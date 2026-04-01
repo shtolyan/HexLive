@@ -11,9 +11,8 @@ namespace HexLive.Simulation.Bootstrap
 
 public sealed class WorldStateFactory
 {
-    private int _nextPointValue = 1;
-    private int _nextConnectionGroupValue = 1;
-    private readonly Dictionary<string, ConnectionGroup> _connectionGroupsByPositionKey = new Dictionary<string, ConnectionGroup>();
+    private int _nextJunctionValue = 1;
+    private readonly Dictionary<(int, int), JunctionId> _junctionsByKey = new();
 
     public WorldState Create(WorldBootstrapDefinition bootstrap)
     {
@@ -34,6 +33,8 @@ public sealed class WorldStateFactory
         {
             AddFragment(world, fragmentBootstrap);
         }
+
+        BuildAdjacency(world);
 
         foreach (var objectBootstrap in bootstrap.Objects)
         {
@@ -69,66 +70,106 @@ public sealed class WorldStateFactory
             world.Occupancy.EntitiesInTile[coord] = new List<EntityId>();
         }
 
-        GeneratePoints(world, fragmentId, fragment);
+        GenerateJunctions(world, fragmentId, fragment);
+
+        foreach (var tileBootstrap in bootstrap.Tiles)
+        {
+            if (tileBootstrap.BlockedSlots.Count == 0)
+            {
+                continue;
+            }
+
+            var coord = new TileCoord(tileBootstrap.Q, tileBootstrap.R);
+            if (!world.Tiles.Items.TryGetValue(coord, out var tile))
+            {
+                continue;
+            }
+
+            foreach (var slot in tileBootstrap.BlockedSlots)
+            {
+                if (slot >= 0 && slot < tile.Junctions.Count)
+                {
+                    var junctionId = tile.Junctions[slot];
+                    if (world.Junctions.Items.TryGetValue(junctionId, out var junction))
+                    {
+                        junction.Blocked = true;
+                    }
+                }
+            }
+        }
     }
 
-    private void GeneratePoints(WorldState world, FragmentId fragmentId, Fragment fragment)
+    private void GenerateJunctions(WorldState world, FragmentId fragmentId, Fragment fragment)
     {
         foreach (var pair in fragment.Tiles)
         {
             var tile = pair.Value;
+
             foreach (var template in HexPointLayout.GetInteriorTemplates())
             {
-                var point = new Point
-                {
-                    Id = new PointId(_nextPointValue++),
-                    Fragment = fragmentId,
-                    AnchorTile = tile.Coord,
-                    Role = template.Role,
-                    LocalOffset = template.Offset,
-                    Kind = PointKind.Interior
-                };
-                point.Tiles.Add(tile.Coord);
-                world.Points.Items[point.Id] = point;
-                world.Occupancy.PointOwner[point.Id] = null;
-                tile.Points.Add(point.Id);
+                var key = HexPointLayout.GetJunctionKeyPair(tile.Coord, template.SubAxial);
+                var junction = CreateJunction(world, fragmentId, tile, template, key);
+                tile.Junctions.Add(junction.Id);
             }
 
-            foreach (var template in HexPointLayout.GetConnectionTemplates())
+            foreach (var template in HexPointLayout.GetBoundaryTemplates())
             {
-                var point = new Point
-                {
-                    Id = new PointId(_nextPointValue++),
-                    Fragment = fragmentId,
-                    AnchorTile = tile.Coord,
-                    Role = template.Role,
-                    LocalOffset = template.Offset,
-                    Kind = PointKind.Connection
-                };
-                point.Tiles.Add(tile.Coord);
+                var key = HexPointLayout.GetJunctionKeyPair(tile.Coord, template.SubAxial);
 
-                var worldPosition = HexSpatialMath.PointToWorld(tile.Coord, point.LocalOffset);
-                var key = GetConnectionPositionKey(worldPosition);
-                if (!_connectionGroupsByPositionKey.TryGetValue(key, out var connectionGroup))
+                if (_junctionsByKey.TryGetValue(key, out var existingId))
                 {
-                    connectionGroup = new ConnectionGroup
+                    var existing = world.Junctions.Items[existingId];
+                    if (!existing.Tiles.Contains(tile.Coord))
                     {
-                        Id = new ConnectionGroupId(_nextConnectionGroupValue++)
-                    };
-                    _connectionGroupsByPositionKey[key] = connectionGroup;
-                    world.ConnectionGroups.Items[connectionGroup.Id] = connectionGroup;
-                }
+                        existing.Tiles.Add(tile.Coord);
+                    }
 
-                point.ConnectionGroupId = connectionGroup.Id;
-                connectionGroup.Points.Add(point.Id);
-                if (!connectionGroup.Tiles.Contains(tile.Coord))
+                    tile.Junctions.Add(existingId);
+                }
+                else
                 {
-                    connectionGroup.Tiles.Add(tile.Coord);
+                    var junction = CreateJunction(world, fragmentId, tile, template, key);
+                    tile.Junctions.Add(junction.Id);
                 }
+            }
+        }
+    }
 
-                world.Points.Items[point.Id] = point;
-                world.Occupancy.PointOwner[point.Id] = null;
-                tile.Points.Add(point.Id);
+    private Junction CreateJunction(WorldState world, FragmentId fragmentId, Tile tile, JunctionTemplate template, (int, int) key)
+    {
+        var junction = new Junction
+        {
+            Id = new JunctionId(_nextJunctionValue++),
+            Fragment = fragmentId,
+            WorldPosition = HexSpatialMath.TileToWorld(tile.Coord) + template.Offset
+        };
+        junction.Tiles.Add(tile.Coord);
+
+        world.Junctions.Items[junction.Id] = junction;
+        world.Occupancy.JunctionOwner[junction.Id] = null;
+        _junctionsByKey[key] = junction.Id;
+
+        return junction;
+    }
+
+    private void BuildAdjacency(WorldState world)
+    {
+        foreach (var pair in _junctionsByKey)
+        {
+            var key = pair.Key;
+            var junctionId = pair.Value;
+            var junction = world.Junctions.Items[junctionId];
+
+            foreach (var offset in HexPointLayout.NeighborKeyOffsets)
+            {
+                var neighborKey = (key.Item1 + offset.dx, key.Item2 + offset.dy);
+                if (_junctionsByKey.TryGetValue(neighborKey, out var neighborId))
+                {
+                    if (!junction.Neighbors.Contains(neighborId))
+                    {
+                        junction.Neighbors.Add(neighborId);
+                    }
+                }
             }
         }
     }
@@ -150,16 +191,16 @@ public sealed class WorldStateFactory
             ResourceAmount = 1f
         };
 
-        foreach (var slot in bootstrap.PointSlots)
+        foreach (var slot in bootstrap.JunctionSlots)
         {
-            if (slot < 0 || slot >= tile.Points.Count)
+            if (slot < 0 || slot >= tile.Junctions.Count)
             {
                 throw new InvalidOperationException(
-                    $"Object {bootstrap.Id} references invalid point slot {slot} on tile {tileCoord}. " +
-                    $"Available slot range: 0..{tile.Points.Count - 1}.");
+                    $"Object {bootstrap.Id} references invalid junction slot {slot} on tile {tileCoord}. " +
+                    $"Available slot range: 0..{tile.Junctions.Count - 1}.");
             }
 
-            worldObject.Points.Add(tile.Points[slot]);
+            worldObject.Junctions.Add(tile.Junctions[slot]);
         }
 
         world.Entities.Objects[worldObject.Id] = worldObject;
@@ -228,13 +269,6 @@ public sealed class WorldStateFactory
         }
 
         return flags;
-    }
-
-    private static string GetConnectionPositionKey(Float2 position)
-    {
-        var x = (int)Math.Round(position.X * 10000f);
-        var y = (int)Math.Round(position.Y * 10000f);
-        return string.Format("{0}:{1}", x, y);
     }
 }
 

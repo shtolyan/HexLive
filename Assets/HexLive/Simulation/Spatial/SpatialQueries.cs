@@ -14,17 +14,24 @@ public static class SpatialQueries
                !tile.Flags.HasFlag(TileFlags.Blocked);
     }
 
-    public static bool IsPointFree(WorldState world, PointId pointId)
+    public static bool IsJunctionFree(WorldState world, JunctionId junctionId)
     {
-        foreach (var linkedPointId in GetLinkedPointIds(world, pointId))
+        if (!world.Occupancy.JunctionOwner.TryGetValue(junctionId, out var owner))
         {
-            if (!world.Occupancy.PointOwner.TryGetValue(linkedPointId, out var owner) || owner is not null)
-            {
-                return false;
-            }
+            return true;
         }
 
-        return true;
+        return owner is null;
+    }
+
+    public static bool IsJunctionPassable(WorldState world, JunctionId junctionId)
+    {
+        if (!world.Junctions.Items.TryGetValue(junctionId, out var junction))
+        {
+            return false;
+        }
+
+        return !junction.Blocked;
     }
 
     public static IReadOnlyList<TileCoord> GetNeighbors(WorldState world, TileCoord origin)
@@ -42,39 +49,41 @@ public static class SpatialQueries
         return neighbors;
     }
 
-    public static IEnumerable<Point> GetPointsForTile(WorldState world, TileCoord coord)
+    public static IReadOnlyList<JunctionId> GetPassableNeighbors(WorldState world, JunctionId junctionId)
     {
-        if (!world.Tiles.Items.TryGetValue(coord, out var tile))
+        if (!world.Junctions.Items.TryGetValue(junctionId, out var junction))
         {
-            yield break;
+            return System.Array.Empty<JunctionId>();
         }
 
-        foreach (var pointId in tile.Points)
+        var result = new List<JunctionId>();
+        foreach (var neighborId in junction.Neighbors)
         {
-            if (world.Points.Items.TryGetValue(pointId, out var point))
+            if (world.Junctions.Items.TryGetValue(neighborId, out var neighbor) && !neighbor.Blocked)
             {
-                yield return point;
+                result.Add(neighborId);
             }
         }
+
+        return result;
     }
 
-    public static IEnumerable<PointId> GetLinkedPointIds(WorldState world, PointId pointId)
+    public static JunctionId? FindNearestJunction(WorldState world, Float2 worldPosition)
     {
-        if (!world.Points.Items.TryGetValue(pointId, out var point))
+        JunctionId? nearest = null;
+        var bestDist = float.MaxValue;
+
+        foreach (var pair in world.Junctions.Items)
         {
-            yield break;
+            var dist = HexSpatialMath.Distance(worldPosition, pair.Value.WorldPosition);
+            if (dist < bestDist)
+            {
+                bestDist = dist;
+                nearest = pair.Key;
+            }
         }
 
-        if (point.ConnectionGroupId is null || !world.ConnectionGroups.Items.TryGetValue(point.ConnectionGroupId.Value, out var junction))
-        {
-            yield return pointId;
-            yield break;
-        }
-
-        foreach (var memberPointId in junction.Points)
-        {
-            yield return memberPointId;
-        }
+        return nearest;
     }
 }
 

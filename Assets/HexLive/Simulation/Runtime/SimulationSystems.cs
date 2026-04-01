@@ -66,6 +66,8 @@ public sealed class PerceptionSystem : ISimulationSystem
             npc.Perception.Environment.IsPrivate = world.Entities.Npcs.Count <= 1;
             npc.Perception.LastUpdatedTick = world.Tick;
 
+            var npcJunction = ResolveCurrentJunction(world, npc);
+
             foreach (var obj in world.Entities.Objects.Values)
             {
                 if (!world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition))
@@ -74,12 +76,16 @@ public sealed class PerceptionSystem : ISimulationSystem
                 }
 
                 var distance = HexSpatialMath.Distance(npc.Position, HexSpatialMath.TileToWorld(obj.Tile));
+                var objJunction = obj.Junctions.Count > 0 ? obj.Junctions[0] : (JunctionId?)null;
+                var isReachable = npcJunction.HasValue && objJunction.HasValue &&
+                    HexPathfinder.FindPath(world, npcJunction.Value, objJunction.Value).Count > 0;
+
                 var perceived = new PerceivedObject
                 {
                     Id = obj.Id,
                     Tile = obj.Tile,
                     Distance = distance,
-                    IsReachable = HexPathfinder.FindPath(world, npc.Tile, obj.Tile).Count > 0,
+                    IsReachable = isReachable,
                     IsOccupied = obj.IsOccupied
                 };
 
@@ -93,6 +99,18 @@ public sealed class PerceptionSystem : ISimulationSystem
 
             Trace.Emit(world, npc.Id, "PerceptionUpdated", $"Objects={npc.Perception.Objects.Count}");
         }
+    }
+
+    private static JunctionId? ResolveCurrentJunction(WorldState world, NPCState npc)
+    {
+        if (npc.CurrentJunction.HasValue && world.Junctions.Items.ContainsKey(npc.CurrentJunction.Value))
+        {
+            return npc.CurrentJunction;
+        }
+
+        var nearest = SpatialQueries.FindNearestJunction(world, npc.Position);
+        npc.CurrentJunction = nearest;
+        return nearest;
     }
 }
 
@@ -188,7 +206,7 @@ public sealed class PlanningSystem : ISimulationSystem
 
             npc.Plan.Steps.Clear();
             npc.Plan.TargetObjectId = null;
-            npc.Plan.TargetPointId = null;
+            npc.Plan.TargetJunctionId = null;
             npc.Plan.TargetTile = null;
             npc.Plan.Goal = npc.Mind.CurrentGoal;
 
@@ -220,29 +238,30 @@ public sealed class PlanningSystem : ISimulationSystem
                 continue;
             }
 
+            var targetJunction = worldObject.Junctions.Count > 0 ? worldObject.Junctions[0] : (JunctionId?)null;
             npc.Plan.TargetObjectId = worldObject.Id;
             npc.Plan.TargetTile = worldObject.Tile;
-            npc.Plan.TargetPointId = worldObject.Points.Count > 0 ? worldObject.Points[0] : null;
-            if (npc.Plan.TargetPointId is { } pointId &&
-                !SpatialMutations.TryReservePoint(world, pointId, npc.Id, world.Tick, 48))
+            npc.Plan.TargetJunctionId = targetJunction;
+
+            if (targetJunction is { } jId &&
+                !SpatialMutations.TryReserveJunction(world, jId, npc.Id, world.Tick, 48))
             {
                 npc.Plan.Status = PlanStatus.Failed;
-                Trace.Emit(world, npc.Id, "ReservationFailed", $"Point={pointId.Value}");
+                Trace.Emit(world, npc.Id, "ReservationFailed", $"Junction={jId.Value}");
                 continue;
             }
 
             npc.Plan.Steps.Add(new PlanStep
             {
-                Type = PlanStepType.MoveToTile,
-                TargetTile = worldObject.Tile,
-                TargetPoint = npc.Plan.TargetPointId,
+                Type = PlanStepType.MoveToJunction,
+                TargetJunction = targetJunction,
                 TargetObject = worldObject.Id
             });
             npc.Plan.Steps.Add(new PlanStep
             {
                 Type = PlanStepType.Interact,
                 TargetObject = worldObject.Id,
-                TargetPoint = npc.Plan.TargetPointId
+                TargetJunction = targetJunction
             });
             npc.Plan.CurrentStepIndex = 0;
             npc.Plan.Status = PlanStatus.Active;
@@ -273,44 +292,46 @@ public sealed class PathfindingSystem : ISimulationSystem
     {
         foreach (var npc in world.Entities.Npcs.Values)
         {
-            if (npc.Plan.Status != PlanStatus.Active || npc.Plan.TargetTile is null)
+            if (npc.Plan.Status != PlanStatus.Active || npc.Plan.TargetJunctionId is null)
             {
                 continue;
             }
 
-            if (npc.Movement.IsMoving && npc.Movement.TilePath.Count > 0)
+            if (npc.Movement.IsMoving && npc.Movement.JunctionPath.Count > 0)
             {
                 continue;
             }
 
-            if (npc.Tile == npc.Plan.TargetTile.Value)
+            if (npc.CurrentJunction.HasValue && npc.CurrentJunction.Value.Equals(npc.Plan.TargetJunctionId.Value))
             {
                 continue;
             }
 
-            var path = HexPathfinder.FindPath(world, npc.Tile, npc.Plan.TargetTile.Value);
+            var startJunction = npc.CurrentJunction ?? SpatialQueries.FindNearestJunction(world, npc.Position);
+            if (startJunction is null)
+            {
+                npc.Movement.Status = MovementStatus.Blocked;
+                npc.Movement.StopReason = "No current junction";
+                continue;
+            }
+
+            var path = HexPathfinder.FindPath(world, startJunction.Value, npc.Plan.TargetJunctionId.Value);
             if (path.Count == 0)
             {
                 npc.Movement.Status = MovementStatus.Blocked;
                 npc.Movement.StopReason = "No path";
-                Trace.Emit(world, npc.Id, "PathFailed", $"To={npc.Plan.TargetTile.Value.Q},{npc.Plan.TargetTile.Value.R}");
+                Trace.Emit(world, npc.Id, "PathFailed", $"To junction {npc.Plan.TargetJunctionId.Value.Value}");
                 continue;
             }
 
-            npc.Movement.TilePath.Clear();
+            npc.Movement.JunctionPath.Clear();
             foreach (var step in path)
             {
-                npc.Movement.TilePath.Add(step);
+                npc.Movement.JunctionPath.Add(step);
             }
 
             npc.Movement.PathIndex = 1;
             npc.Movement.IsMoving = path.Count > 1;
-            npc.Movement.CurrentTargetTile = path.Count > 1 ? path[1] : path[0];
-            npc.Movement.CurrentTargetPoint = npc.Plan.TargetPointId;
-            npc.Movement.FinalTile = npc.Plan.TargetTile;
-            npc.Movement.FinalWorldTarget = npc.Plan.TargetPointId is { } pointId && world.Points.Items.TryGetValue(pointId, out var point)
-                ? HexSpatialMath.TileToWorld(point.AnchorTile) + point.LocalOffset
-                : HexSpatialMath.TileToWorld(npc.Plan.TargetTile.Value);
             npc.Movement.Status = npc.Movement.IsMoving ? MovementStatus.Moving : MovementStatus.Arrived;
             npc.Movement.StopReason = string.Empty;
             Trace.Emit(world, npc.Id, "PathBuilt", $"Length={path.Count}");
@@ -328,54 +349,90 @@ public sealed class MovementSystem : ISimulationSystem
     {
         foreach (var npc in world.Entities.Npcs.Values)
         {
-            if (!npc.Movement.IsMoving)
+            if (!npc.Movement.IsMoving || npc.Movement.JunctionPath.Count == 0)
             {
                 continue;
             }
 
-            var target = npc.Movement.PathIndex < npc.Movement.TilePath.Count
-                ? HexSpatialMath.TileToWorld(npc.Movement.TilePath[npc.Movement.PathIndex])
-                : npc.Movement.FinalWorldTarget ?? npc.Position;
+            var targetIndex = npc.Movement.PathIndex;
+            if (targetIndex >= npc.Movement.JunctionPath.Count)
+            {
+                npc.Movement.IsMoving = false;
+                npc.Movement.Status = MovementStatus.Arrived;
+                continue;
+            }
 
+            var targetJunctionId = npc.Movement.JunctionPath[targetIndex];
+            if (!world.Junctions.Items.TryGetValue(targetJunctionId, out var targetJunction))
+            {
+                npc.Movement.IsMoving = false;
+                npc.Movement.Status = MovementStatus.Invalid;
+                continue;
+            }
+
+            var target = targetJunction.WorldPosition;
             var delta = new Float2(target.X - npc.Position.X, target.Y - npc.Position.Y);
             var direction = HexSpatialMath.Normalize(delta);
             npc.Movement.DesiredDirection = direction;
             npc.Movement.DesiredRotationDegrees = HexSpatialMath.AngleDegrees(direction);
-            npc.RotationDegrees = npc.Movement.DesiredRotationDegrees;
 
-            var movementPerTick = npc.MoveSpeed * world.TickDeltaTime;
+            // Rotate toward target (progressive, not instant)
+            var turnPerTick = npc.TurnSpeed * world.TickDeltaTime;
+            npc.RotationDegrees = MathUtil.RotateTowards(
+                npc.RotationDegrees,
+                npc.Movement.DesiredRotationDegrees,
+                turnPerTick);
+
+            // Only move when facing roughly the right direction
+            var facingError = MathUtil.Abs(MathUtil.DeltaAngle(npc.RotationDegrees, npc.Movement.DesiredRotationDegrees));
+            const float alignmentThreshold = 30f;
+
+            if (facingError > alignmentThreshold)
+            {
+                // Still rotating — don't move yet
+                npc.Movement.Status = MovementStatus.Rotating;
+                continue;
+            }
+
+            // Scale speed by alignment: full speed when aligned, slower when turning
+            var alignmentFactor = 1f - (facingError / alignmentThreshold) * 0.5f;
+            var movementPerTick = npc.MoveSpeed * alignmentFactor * world.TickDeltaTime;
             var distance = HexSpatialMath.Distance(npc.Position, target);
 
             if (distance <= movementPerTick)
             {
                 npc.Position = target;
+                npc.CurrentJunction = targetJunctionId;
 
-                if (npc.Movement.PathIndex < npc.Movement.TilePath.Count)
+                var previousTile = npc.Tile;
+                if (targetJunction.Tiles.Count > 0)
                 {
-                    var previousTile = npc.Tile;
-                    npc.Tile = npc.Movement.TilePath[npc.Movement.PathIndex];
-                    SpatialMutations.MoveEntityToTile(world, npc.Id, previousTile, npc.Tile);
-                    npc.Movement.PathIndex++;
-                    Trace.Emit(world, npc.Id, "EnteredTile", $"{npc.Tile.Q},{npc.Tile.R}");
+                    var newTile = targetJunction.Tiles[0];
+                    if (newTile != previousTile)
+                    {
+                        npc.Tile = newTile;
+                        SpatialMutations.MoveEntityToTile(world, npc.Id, previousTile, npc.Tile);
+                        Trace.Emit(world, npc.Id, "EnteredTile", $"{npc.Tile.Q},{npc.Tile.R}");
+                    }
                 }
 
-                if (npc.Movement.PathIndex >= npc.Movement.TilePath.Count)
-                {
-                    if (npc.Movement.FinalWorldTarget is not null && HexSpatialMath.Distance(npc.Position, npc.Movement.FinalWorldTarget.Value) > 0.01f)
-                    {
-                        npc.Position = npc.Movement.FinalWorldTarget.Value;
-                    }
+                npc.Movement.PathIndex++;
 
+                if (npc.Movement.PathIndex >= npc.Movement.JunctionPath.Count)
+                {
                     npc.Movement.IsMoving = false;
                     npc.Movement.Status = MovementStatus.Arrived;
-                    npc.Movement.CurrentTargetTile = npc.Movement.FinalTile;
-                    Trace.Emit(world, npc.Id, "MovementCompleted", Trace.FormatTile(npc.Movement.FinalTile));
+                    Trace.Emit(world, npc.Id, "MovementCompleted", $"Junction={targetJunctionId.Value}");
                 }
             }
             else
             {
                 npc.Position += direction * movementPerTick;
                 npc.Movement.Status = MovementStatus.Moving;
+                npc.RotationDegrees = MathUtil.RotateTowards(
+                    npc.RotationDegrees,
+                    npc.Movement.DesiredRotationDegrees,
+                    turnPerTick);
             }
         }
     }
@@ -408,7 +465,12 @@ public sealed class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
-            if (npc.Movement.IsMoving || npc.Tile != worldObject.Tile)
+            if (npc.Movement.IsMoving)
+            {
+                continue;
+            }
+
+            if (npc.Movement.Status != MovementStatus.Arrived && npc.Movement.JunctionPath.Count > 0)
             {
                 continue;
             }
@@ -423,13 +485,12 @@ public sealed class ExecutionSystem : ISimulationSystem
                 npc.Execution.EndTick = world.Tick + interaction.DurationTicks;
                 worldObject.IsOccupied = true;
                 worldObject.CurrentUser = npc.Id;
-                if (npc.Plan.TargetPointId is { } pointId)
+                if (npc.Plan.TargetJunctionId is { } jId)
                 {
-                    SpatialMutations.OccupyPoint(world, pointId, npc.Id);
+                    SpatialMutations.OccupyJunction(world, jId, npc.Id);
                 }
 
                 Trace.Emit(world, npc.Id, "InteractionStarted", $"{interaction.Type} -> {worldObject.DefinitionId}");
-
                 continue;
             }
 
@@ -440,23 +501,23 @@ public sealed class ExecutionSystem : ISimulationSystem
                 npc.Execution.LastCompletedTick = world.Tick;
                 worldObject.IsOccupied = false;
                 worldObject.CurrentUser = null;
-                if (npc.Plan.TargetPointId is { } pointId)
+                if (npc.Plan.TargetJunctionId is { } jId)
                 {
-                    SpatialMutations.FreePoint(world, pointId, npc.Id);
-                    SpatialMutations.ReleasePointReservation(world, pointId, npc.Id);
+                    SpatialMutations.FreeJunction(world, jId, npc.Id);
+                    SpatialMutations.ReleaseJunctionReservation(world, jId, npc.Id);
                 }
 
                 npc.Plan.Status = PlanStatus.Completed;
                 npc.Plan.Steps.Clear();
                 npc.Plan.TargetObjectId = null;
-                npc.Plan.TargetPointId = null;
+                npc.Plan.TargetJunctionId = null;
                 npc.Plan.TargetTile = null;
                 npc.Mind.CurrentGoal = GoalType.None;
                 npc.Execution.CurrentInteraction = null;
                 npc.Execution.TargetObject = null;
                 npc.Execution.StartTick = 0;
                 npc.Execution.EndTick = 0;
-                npc.Movement.TilePath.Clear();
+                npc.Movement.JunctionPath.Clear();
                 npc.Movement.PathIndex = 0;
                 Trace.Emit(world, npc.Id, "InteractionCompleted", definition.Interactions[0].Type.ToString());
             }

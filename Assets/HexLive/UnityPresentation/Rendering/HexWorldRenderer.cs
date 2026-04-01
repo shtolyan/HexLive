@@ -13,7 +13,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
 {
     [SerializeField] private SimulationRunnerBehaviour? _runner;
 
-    private const float PointMarkerScaleFactor = 1f / 25f;
+    private const float JunctionMarkerScaleFactor = 1f / 25f;
+    private const float EdgeLineHeight = 0.01f;
 
     private const float NpcRadiusFactor = 17f / 75f;
     private const float NpcHeightFactor = 11f / 30f;
@@ -31,19 +32,38 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private const float FoodRadiusFactor = 7f / 75f;
 
     private readonly Dictionary<TileCoord, GameObject> _tileViews = new();
-    private readonly Dictionary<int, GameObject> _pointViews = new();
+    private readonly Dictionary<int, GameObject> _junctionViews = new();
     private readonly Dictionary<int, GameObject> _objectViews = new();
     private readonly Dictionary<int, GameObject> _npcViews = new();
 
     private Transform? _tilesRoot;
-    private Transform? _pointsRoot;
+    private Transform? _junctionsRoot;
     private Transform? _objectsRoot;
     private Transform? _npcsRoot;
     private int _lastRenderedTick = -1;
 
+    private WorldSnapshot? _lastSnapshot;
+
+    private readonly struct Pose
+    {
+        public readonly Vector3 Position;
+        public readonly Quaternion Rotation;
+
+        public Pose(Vector3 position, Quaternion rotation)
+        {
+            Position = position;
+            Rotation = rotation;
+        }
+    }
+
+    private readonly Dictionary<int, Pose> _prevNpcPoses = new();
+    private readonly Dictionary<int, Pose> _currNpcPoses = new();
+    private readonly Dictionary<int, Vector3> _prevObjectPositions = new();
+    private readonly Dictionary<int, Vector3> _currObjectPositions = new();
+
     private float HexRadius => SimulationUnityMapper.HexRadius;
 
-    private float PointMarkerScale => HexRadius * PointMarkerScaleFactor;
+    private float JunctionMarkerScale => HexRadius * JunctionMarkerScaleFactor;
 
     public void SetRunner(SimulationRunnerBehaviour runner)
     {
@@ -59,20 +79,27 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
 
         var snapshot = _runner.CreateSnapshot();
-        if (snapshot is null || snapshot.Tick == _lastRenderedTick)
+        if (snapshot is null)
         {
             return;
         }
 
         EnsureRoots();
-        RenderSnapshot(snapshot);
-        _lastRenderedTick = snapshot.Tick;
+
+        if (snapshot.Tick != _lastRenderedTick)
+        {
+            RenderSnapshot(snapshot);
+            _lastRenderedTick = snapshot.Tick;
+            _lastSnapshot = snapshot;
+        }
+
+        InterpolateMovables(_runner.TickAlpha);
     }
 
     private void EnsureRoots()
     {
         _tilesRoot ??= CreateRoot("Tiles");
-        _pointsRoot ??= CreateRoot("Points");
+        _junctionsRoot ??= CreateRoot("Junctions");
         _objectsRoot ??= CreateRoot("Objects");
         _npcsRoot ??= CreateRoot("NPCs");
     }
@@ -100,12 +127,16 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
         }
 
-        foreach (var point in snapshot.Points)
+        // Build lookup for junction positions
+        var junctionPositions = new Dictionary<int, Float2>();
+        foreach (var junction in snapshot.Junctions)
         {
-            var key = point.Id.Value;
-            if (!_pointViews.ContainsKey(key))
+            junctionPositions[junction.Id.Value] = junction.WorldPosition;
+
+            var key = junction.Id.Value;
+            if (!_junctionViews.ContainsKey(key))
             {
-                _pointViews[key] = CreatePointView(point);
+                _junctionViews[key] = CreateJunctionView(junction);
             }
         }
 
@@ -114,11 +145,22 @@ public sealed class HexWorldRenderer : MonoBehaviour
             var key = worldObject.Id.Value;
             if (!_objectViews.TryGetValue(key, out var objectView))
             {
-                objectView = CreateObjectView(worldObject);
+                objectView = CreateObjectView(worldObject, junctionPositions);
                 _objectViews[key] = objectView;
             }
 
-            objectView.transform.position = GetObjectAnchorPosition(snapshot, worldObject);
+            var objPos = GetObjectAnchorPosition(snapshot, worldObject);
+
+            if (_currObjectPositions.TryGetValue(key, out var oldObjPos))
+            {
+                _prevObjectPositions[key] = oldObjPos;
+            }
+            else
+            {
+                _prevObjectPositions[key] = objPos;
+            }
+
+            _currObjectPositions[key] = objPos;
         }
 
         foreach (var npc in snapshot.Npcs)
@@ -130,8 +172,65 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 _npcViews[key] = npcView;
             }
 
-            npcView.transform.position = SimulationUnityMapper.ToUnityPosition(npc.Position, SimulationUnityMapper.TileHeight);
-            npcView.transform.rotation = Quaternion.Euler(0f, npc.RotationDegrees, 0f);
+            var targetPos = SimulationUnityMapper.ToUnityPosition(npc.Position, SimulationUnityMapper.TileHeight);
+            var targetRot = Quaternion.Euler(0f, SimulationUnityMapper.ToUnityYawDegrees(npc.RotationDegrees), 0f);
+            var targetPose = new Pose(targetPos, targetRot);
+
+            if (_currNpcPoses.TryGetValue(key, out var oldPose))
+            {
+                _prevNpcPoses[key] = oldPose;
+            }
+            else
+            {
+                _prevNpcPoses[key] = targetPose;
+            }
+
+            _currNpcPoses[key] = targetPose;
+        }
+    }
+
+    private void InterpolateMovables(float alpha)
+    {
+        foreach (var kvp in _npcViews)
+        {
+            var key = kvp.Key;
+            var view = kvp.Value;
+
+            if (!_currNpcPoses.TryGetValue(key, out var curr))
+            {
+                continue;
+            }
+
+            if (_prevNpcPoses.TryGetValue(key, out var prev))
+            {
+                view.transform.position = Vector3.Lerp(prev.Position, curr.Position, alpha);
+                view.transform.rotation = Quaternion.Slerp(prev.Rotation, curr.Rotation, alpha);
+            }
+            else
+            {
+                view.transform.position = curr.Position;
+                view.transform.rotation = curr.Rotation;
+            }
+        }
+
+        foreach (var kvp in _objectViews)
+        {
+            var key = kvp.Key;
+            var view = kvp.Value;
+
+            if (!_currObjectPositions.TryGetValue(key, out var curr))
+            {
+                continue;
+            }
+
+            if (_prevObjectPositions.TryGetValue(key, out var prev))
+            {
+                view.transform.position = Vector3.Lerp(prev, curr, alpha);
+            }
+            else
+            {
+                view.transform.position = curr;
+            }
         }
     }
 
@@ -150,26 +249,27 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return go;
     }
 
-    private GameObject CreatePointView(PointSnapshot point)
+    private GameObject CreateJunctionView(JunctionSnapshot junction)
     {
         var go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        go.name = $"Point {point.Id.Value}";
-        go.transform.SetParent(_pointsRoot, false);
-        go.transform.localScale = Vector3.one * PointMarkerScale;
-        go.transform.position = SimulationUnityMapper.ToUnityPointPosition(
-            point.WorldPosition,
+        go.name = $"Junction {junction.Id.Value}";
+        go.transform.SetParent(_junctionsRoot, false);
+        var scale = junction.Blocked ? JunctionMarkerScale * 4f : JunctionMarkerScale;
+        go.transform.localScale = Vector3.one * scale;
+        go.transform.position = SimulationUnityMapper.ToUnityPosition(
+            junction.WorldPosition,
             SimulationUnityMapper.TileHeight + SimulationUnityMapper.PointMarkerLift);
 
         var renderer = go.GetComponent<MeshRenderer>();
         if (renderer is not null)
         {
-            renderer.sharedMaterial = CreateMaterial(GetPointColor(point));
+            renderer.sharedMaterial = CreateMaterial(GetJunctionColor(junction));
         }
 
         return go;
     }
 
-    private GameObject CreateObjectView(ObjectSnapshot worldObject)
+    private GameObject CreateObjectView(ObjectSnapshot worldObject, Dictionary<int, Float2> junctionPositions)
     {
         var primitiveType = GetObjectPrimitive(worldObject.DefinitionId);
         var scale = GetObjectScale(worldObject.DefinitionId);
@@ -178,7 +278,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         var visual = CreatePrimitiveVisual(root.transform, primitiveType, scale, GetObjectColor(worldObject.DefinitionId));
         visual.name = "Visual";
-        root.transform.position = GetObjectAnchorPosition(_runner!.CreateSnapshot()!, worldObject);
+
+        var pos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
+        root.transform.position = SimulationUnityMapper.ToUnityPosition(pos, SimulationUnityMapper.TileHeight);
         return root;
     }
 
@@ -187,29 +289,69 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var root = new GameObject($"NPC {npc.Id.Value}");
         root.transform.SetParent(_npcsRoot, false);
 
-        var visual = CreatePrimitiveVisual(
+        var bodyRadius = HexRadius * NpcRadiusFactor;
+        var bodyHeight = HexRadius * NpcHeightFactor;
+        var headRadius = bodyRadius * 0.7f;
+
+        var skinColor = new Color(0.88f, 0.84f, 0.72f);
+        var visorColor = new Color(0.08f, 0.08f, 0.08f);
+
+        var body = CreatePrimitiveVisual(
             root.transform,
-            PrimitiveType.Capsule,
-            new Vector3(HexRadius * NpcRadiusFactor, HexRadius * NpcHeightFactor, HexRadius * NpcRadiusFactor),
-            new Color(0.88f, 0.84f, 0.72f));
-        visual.name = "Visual";
+            PrimitiveType.Cylinder,
+            new Vector3(bodyRadius, bodyHeight, bodyRadius),
+            skinColor);
+        body.name = "Body";
+
+        var head = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        head.name = "Head";
+        head.transform.SetParent(root.transform, false);
+        head.transform.localScale = Vector3.one * headRadius;
+        head.transform.localPosition = new Vector3(0f, bodyHeight * 2f + headRadius * 0.5f, 0f);
+        var headRenderer = head.GetComponent<MeshRenderer>();
+        if (headRenderer is not null)
+        {
+            headRenderer.sharedMaterial = CreateMaterial(skinColor);
+        }
+
+        var visor = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        visor.name = "Visor";
+        visor.transform.SetParent(head.transform, false);
+        visor.transform.localScale = new Vector3(0.85f, 0.35f, 0.3f);
+        visor.transform.localPosition = new Vector3(0f, 0.05f, 0.4f);
+        var visorRenderer = visor.GetComponent<MeshRenderer>();
+        if (visorRenderer is not null)
+        {
+            visorRenderer.sharedMaterial = CreateMaterial(visorColor);
+        }
+
         return root;
     }
 
     private Vector3 GetObjectAnchorPosition(WorldSnapshot snapshot, ObjectSnapshot worldObject)
     {
-        if (worldObject.Points.Count > 0)
+        if (worldObject.Junctions.Count > 0)
         {
-            foreach (var point in snapshot.Points)
+            foreach (var junction in snapshot.Junctions)
             {
-                if (point.Id == worldObject.Points[0])
+                if (junction.Id.Equals(worldObject.Junctions[0]))
                 {
-                    return SimulationUnityMapper.ToUnityPointPosition(point.WorldPosition, SimulationUnityMapper.TileHeight);
+                    return SimulationUnityMapper.ToUnityPosition(junction.WorldPosition, SimulationUnityMapper.TileHeight);
                 }
             }
         }
 
         return SimulationUnityMapper.ToUnityTilePosition(worldObject.Tile, SimulationUnityMapper.TileHeight);
+    }
+
+    private static Float2 GetObjectAnchorFromJunctions(ObjectSnapshot worldObject, Dictionary<int, Float2> junctionPositions)
+    {
+        if (worldObject.Junctions.Count > 0 && junctionPositions.TryGetValue(worldObject.Junctions[0].Value, out var pos))
+        {
+            return pos;
+        }
+
+        return HexSpatialMath.TileToWorld(worldObject.Tile);
     }
 
     private static Mesh BuildHexMesh(float radius, float height)
@@ -338,19 +480,24 @@ public sealed class HexWorldRenderer : MonoBehaviour
             : new Color(0.49f, 0.61f, 0.47f);
     }
 
-    private static Color GetPointColor(PointSnapshot point)
+    private static Color GetJunctionColor(JunctionSnapshot junction)
     {
-        if (point.Occupied)
+        if (junction.Occupied)
         {
             return new Color(0.83f, 0.19f, 0.19f);
         }
 
-        if (point.Reserved)
+        if (junction.Reserved)
         {
             return new Color(0.95f, 0.45f, 0.12f);
         }
 
-        return point.Kind == HexLive.Simulation.Spatial.PointKind.Connection
+        if (junction.Blocked)
+        {
+            return new Color(0.45f, 0.15f, 0.15f);
+        }
+
+        return junction.Tiles.Count > 1
             ? new Color(0.24f, 0.78f, 0.34f)
             : new Color(0.94f, 0.94f, 0.94f);
     }

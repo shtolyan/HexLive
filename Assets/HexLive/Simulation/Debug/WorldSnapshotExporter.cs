@@ -26,25 +26,29 @@ public static class WorldSnapshotExporter
             });
         }
 
-        foreach (var pair in world.Points.Items)
+        foreach (var pair in world.Junctions.Items)
         {
-            var point = pair.Value;
-            snapshot.Points.Add(new PointSnapshot
+            var junction = pair.Value;
+            var js = new JunctionSnapshot
             {
-                Id = point.Id,
-                ConnectionGroupId = point.ConnectionGroupId,
-                Role = point.Role,
-                LocalOffset = point.LocalOffset,
-                WorldPosition = HexSpatialMath.TileToWorld(point.AnchorTile) + point.LocalOffset,
-                Kind = point.Kind,
-                Occupied = world.Occupancy.PointOwner.TryGetValue(point.Id, out var owner) && owner is not null,
-                Reserved = world.Reservations.Points.ContainsKey(point.Id)
-            });
+                Id = junction.Id,
+                WorldPosition = junction.WorldPosition,
+                Blocked = junction.Blocked,
+                Occupied = world.Occupancy.JunctionOwner.TryGetValue(junction.Id, out var owner) && owner is not null,
+                Reserved = world.Reservations.Junctions.ContainsKey(junction.Id)
+            };
 
-            foreach (var tileCoord in point.Tiles)
+            foreach (var tileCoord in junction.Tiles)
             {
-                snapshot.Points[snapshot.Points.Count - 1].Tiles.Add(tileCoord);
+                js.Tiles.Add(tileCoord);
             }
+
+            foreach (var neighborId in junction.Neighbors)
+            {
+                js.Neighbors.Add(neighborId);
+            }
+
+            snapshot.Junctions.Add(js);
         }
 
         foreach (var pair in world.Entities.Objects)
@@ -57,9 +61,9 @@ public static class WorldSnapshotExporter
                 Tile = obj.Tile
             };
 
-            foreach (var pointId in obj.Points)
+            foreach (var junctionId in obj.Junctions)
             {
-                exported.Points.Add(pointId);
+                exported.Junctions.Add(junctionId);
             }
 
             snapshot.Objects.Add(exported);
@@ -86,9 +90,9 @@ public static class WorldSnapshotExporter
                 TargetTile = npc.Plan.TargetTile
             };
 
-            foreach (var tileCoord in npc.Movement.TilePath)
+            foreach (var junctionId in npc.Movement.JunctionPath)
             {
-                npcSnapshot.Path.Add(tileCoord);
+                npcSnapshot.Path.Add(junctionId);
             }
 
             foreach (var goalScore in npc.Mind.LastScores)

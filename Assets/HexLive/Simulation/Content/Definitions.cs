@@ -20,8 +20,6 @@ public sealed class InteractionDefinition
 
     public InteractionType Type { get; set; }
 
-    public PointRole RequiredPointRole { get; set; }
-
     public int DurationTicks { get; set; }
 
     public InteractionEffects Effects { get; } = new();
@@ -47,18 +45,6 @@ public enum InteractionType
     Sleep,
     Dress,
     Observe
-}
-
-public enum PointRole
-{
-    None,
-    Access,
-    Sit,
-    Sleep,
-    Item,
-    Observe,
-    SocialA,
-    SocialB
 }
 
 }

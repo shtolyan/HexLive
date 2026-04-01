@@ -8,11 +8,7 @@ public sealed class MovementState
 {
     public bool IsMoving { get; set; }
 
-    public TileCoord? CurrentTargetTile { get; set; }
-
-    public PointId? CurrentTargetPoint { get; set; }
-
-    public List<TileCoord> TilePath { get; } = new();
+    public List<JunctionId> JunctionPath { get; } = new();
 
     public int PathIndex { get; set; }
 
@@ -27,10 +23,6 @@ public sealed class MovementState
     public MovementStatus Status { get; set; } = MovementStatus.Idle;
 
     public string StopReason { get; set; } = string.Empty;
-
-    public TileCoord? FinalTile { get; set; }
-
-    public Float2? FinalWorldTarget { get; set; }
 }
 
 public enum MovementStatus

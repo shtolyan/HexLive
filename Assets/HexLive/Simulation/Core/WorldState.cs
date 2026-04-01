@@ -16,9 +16,7 @@ public sealed class WorldState
 
     public TileMap Tiles { get; } = new();
 
-    public PointMap Points { get; } = new();
-
-    public ConnectionGroupMap ConnectionGroups { get; } = new();
+    public JunctionMap Junctions { get; } = new();
 
     public EntityRepository Entities { get; } = new();
 

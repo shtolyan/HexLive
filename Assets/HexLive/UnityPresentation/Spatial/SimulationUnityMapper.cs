@@ -37,5 +37,14 @@ namespace HexLive.UnityPresentation.Spatial
         {
             return ToUnityPosition(worldPosition, y);
         }
+
+        /// <summary>
+        /// Converts a simulation angle (atan2(Y,X), 0° = +X) to Unity Y-axis
+        /// rotation (0° = +Z forward). Accounts for the axis swap: sim Y → Unity Z.
+        /// </summary>
+        public static float ToUnityYawDegrees(float simAngleDegrees)
+        {
+            return 90f - simAngleDegrees;
+        }
     }
 }

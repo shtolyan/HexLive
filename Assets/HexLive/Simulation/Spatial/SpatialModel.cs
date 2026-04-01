@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using HexLive.Simulation.Common;
-using HexLive.Simulation.Content;
 
 namespace HexLive.Simulation.Spatial
 {
@@ -15,14 +14,9 @@ public sealed class TileMap
     public Dictionary<TileCoord, Tile> Items { get; } = new();
 }
 
-public sealed class PointMap
+public sealed class JunctionMap
 {
-    public Dictionary<PointId, Point> Items { get; } = new();
-}
-
-public sealed class ConnectionGroupMap
-{
-    public Dictionary<ConnectionGroupId, ConnectionGroup> Items { get; } = new();
+    public Dictionary<JunctionId, Junction> Items { get; } = new();
 }
 
 public sealed class Fragment
@@ -40,37 +34,24 @@ public sealed class Tile
 
     public TileFlags Flags { get; set; } = TileFlags.None;
 
-    public List<PointId> Points { get; } = new();
+    public List<JunctionId> Junctions { get; } = new();
 
     public float TemperatureModifier { get; set; }
 }
 
-public sealed class Point
+public sealed class Junction
 {
-    public PointId Id { get; set; }
+    public JunctionId Id { get; set; }
 
     public FragmentId Fragment { get; set; }
 
-    public TileCoord AnchorTile { get; set; } = TileCoord.Zero;
+    public Float2 WorldPosition { get; set; } = Float2.Zero;
 
     public List<TileCoord> Tiles { get; } = new();
 
-    public PointRole Role { get; set; } = PointRole.None;
+    public bool Blocked { get; set; }
 
-    public Float2 LocalOffset { get; set; } = Float2.Zero;
-
-    public PointKind Kind { get; set; } = PointKind.Interior;
-
-    public ConnectionGroupId? ConnectionGroupId { get; set; }
-}
-
-public sealed class ConnectionGroup
-{
-    public ConnectionGroupId Id { get; set; }
-
-    public List<PointId> Points { get; } = new();
-
-    public List<TileCoord> Tiles { get; } = new();
+    public List<JunctionId> Neighbors { get; } = new();
 }
 
 public sealed class FragmentLink
@@ -91,12 +72,6 @@ public enum TileFlags
     Walkable = 1 << 0,
     Blocked = 1 << 1,
     Indoor = 1 << 2
-}
-
-public enum PointKind
-{
-    Interior,
-    Connection
 }
 
 }

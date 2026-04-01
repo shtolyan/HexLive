@@ -6,7 +6,7 @@ namespace HexLive.Simulation.Spatial
 
 public sealed class ReservationState
 {
-    public Dictionary<PointId, ReservationRecord> Points { get; } = new();
+    public Dictionary<JunctionId, ReservationRecord> Junctions { get; } = new();
 }
 
 public sealed class ReservationRecord
@@ -20,7 +20,7 @@ public sealed class ReservationRecord
 
 public sealed class OccupancyState
 {
-    public Dictionary<PointId, EntityId?> PointOwner { get; } = new();
+    public Dictionary<JunctionId, EntityId?> JunctionOwner { get; } = new();
 
     public Dictionary<TileCoord, List<EntityId>> EntitiesInTile { get; } = new();
 }

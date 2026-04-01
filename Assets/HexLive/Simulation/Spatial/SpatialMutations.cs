@@ -42,59 +42,44 @@ public static class SpatialMutations
         }
     }
 
-    public static bool TryReservePoint(WorldState world, PointId pointId, EntityId owner, int currentTick, int durationTicks)
+    public static bool TryReserveJunction(WorldState world, JunctionId junctionId, EntityId owner, int currentTick, int durationTicks)
     {
-        foreach (var linkedPointId in SpatialQueries.GetLinkedPointIds(world, pointId))
+        if (world.Reservations.Junctions.TryGetValue(junctionId, out var existing))
         {
-            if (world.Reservations.Points.TryGetValue(linkedPointId, out var existing))
+            if (existing.Owner != owner && existing.EndTick >= currentTick)
             {
-                if (existing.Owner != owner && existing.EndTick >= currentTick)
-                {
-                    return false;
-                }
+                return false;
             }
         }
 
-        foreach (var linkedPointId in SpatialQueries.GetLinkedPointIds(world, pointId))
+        world.Reservations.Junctions[junctionId] = new ReservationRecord
         {
-            world.Reservations.Points[linkedPointId] = new ReservationRecord
-            {
-                Owner = owner,
-                StartTick = currentTick,
-                EndTick = currentTick + durationTicks
-            };
-        }
+            Owner = owner,
+            StartTick = currentTick,
+            EndTick = currentTick + durationTicks
+        };
 
         return true;
     }
 
-    public static void ReleasePointReservation(WorldState world, PointId pointId, EntityId owner)
+    public static void ReleaseJunctionReservation(WorldState world, JunctionId junctionId, EntityId owner)
     {
-        foreach (var linkedPointId in SpatialQueries.GetLinkedPointIds(world, pointId))
+        if (world.Reservations.Junctions.TryGetValue(junctionId, out var existing) && existing.Owner == owner)
         {
-            if (world.Reservations.Points.TryGetValue(linkedPointId, out var existing) && existing.Owner == owner)
-            {
-                world.Reservations.Points.Remove(linkedPointId);
-            }
+            world.Reservations.Junctions.Remove(junctionId);
         }
     }
 
-    public static void OccupyPoint(WorldState world, PointId pointId, EntityId owner)
+    public static void OccupyJunction(WorldState world, JunctionId junctionId, EntityId owner)
     {
-        foreach (var linkedPointId in SpatialQueries.GetLinkedPointIds(world, pointId))
-        {
-            world.Occupancy.PointOwner[linkedPointId] = owner;
-        }
+        world.Occupancy.JunctionOwner[junctionId] = owner;
     }
 
-    public static void FreePoint(WorldState world, PointId pointId, EntityId owner)
+    public static void FreeJunction(WorldState world, JunctionId junctionId, EntityId owner)
     {
-        foreach (var linkedPointId in SpatialQueries.GetLinkedPointIds(world, pointId))
+        if (world.Occupancy.JunctionOwner.TryGetValue(junctionId, out var existing) && existing == owner)
         {
-            if (world.Occupancy.PointOwner.TryGetValue(linkedPointId, out var existing) && existing == owner)
-            {
-                world.Occupancy.PointOwner[linkedPointId] = null;
-            }
+            world.Occupancy.JunctionOwner[junctionId] = null;
         }
     }
 }

@@ -70,7 +70,7 @@ public static class WorldBootstrapJsonParser
                 FragmentId = entry.fragmentId,
                 TileQ = entry.tileQ,
                 TileR = entry.tileR,
-                PointSlots = new List<int>(entry.pointSlots)
+                JunctionSlots = new List<int>(entry.pointSlots)
             });
         }
 

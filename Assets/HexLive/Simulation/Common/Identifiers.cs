@@ -68,47 +68,25 @@ namespace HexLive.Simulation.Common
         public static bool operator !=(FragmentId left, FragmentId right) => !left.Equals(right);
     }
 
-    public readonly struct PointId : IEquatable<PointId>
+    public readonly struct JunctionId : IEquatable<JunctionId>
     {
-        public PointId(int value)
+        public JunctionId(int value)
         {
             Value = value;
         }
 
         public int Value { get; }
 
-        public bool Equals(PointId other) => Value == other.Value;
+        public bool Equals(JunctionId other) => Value == other.Value;
 
-        public override bool Equals(object obj) => obj is PointId other && Equals(other);
-
-        public override int GetHashCode() => Value;
-
-        public override string ToString() => Value.ToString();
-
-        public static bool operator ==(PointId left, PointId right) => left.Equals(right);
-
-        public static bool operator !=(PointId left, PointId right) => !left.Equals(right);
-    }
-
-    public readonly struct ConnectionGroupId : IEquatable<ConnectionGroupId>
-    {
-        public ConnectionGroupId(int value)
-        {
-            Value = value;
-        }
-
-        public int Value { get; }
-
-        public bool Equals(ConnectionGroupId other) => Value == other.Value;
-
-        public override bool Equals(object obj) => obj is ConnectionGroupId other && Equals(other);
+        public override bool Equals(object obj) => obj is JunctionId other && Equals(other);
 
         public override int GetHashCode() => Value;
 
         public override string ToString() => Value.ToString();
 
-        public static bool operator ==(ConnectionGroupId left, ConnectionGroupId right) => left.Equals(right);
+        public static bool operator ==(JunctionId left, JunctionId right) => left.Equals(right);
 
-        public static bool operator !=(ConnectionGroupId left, ConnectionGroupId right) => !left.Equals(right);
+        public static bool operator !=(JunctionId left, JunctionId right) => !left.Equals(right);
     }
 }

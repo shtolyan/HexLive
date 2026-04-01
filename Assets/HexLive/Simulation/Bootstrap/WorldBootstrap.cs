@@ -48,6 +48,8 @@ public sealed class TileBootstrap
     public bool Indoor { get; set; }
 
     public bool Blocked { get; set; }
+
+    public List<int> BlockedSlots { get; set; } = new();
 }
 
 public sealed class ObjectBootstrap
@@ -62,7 +64,7 @@ public sealed class ObjectBootstrap
 
     public int TileR { get; set; }
 
-    public List<int> PointSlots { get; set; } = new();
+    public List<int> JunctionSlots { get; set; } = new();
 }
 
 public sealed class NpcBootstrap

@@ -1,7 +1,5 @@
 using System.Collections.Generic;
 using HexLive.Simulation.Common;
-using HexLive.Simulation.Content;
-using HexLive.Simulation.Spatial;
 
 namespace HexLive.Simulation.Debug
 {
@@ -14,7 +12,7 @@ public sealed class WorldSnapshot
 
     public List<TileSnapshot> Tiles { get; } = new();
 
-    public List<PointSnapshot> Points { get; } = new();
+    public List<JunctionSnapshot> Junctions { get; } = new();
 
     public List<ObjectSnapshot> Objects { get; } = new();
 
@@ -34,25 +32,21 @@ public sealed class TileSnapshot
     public bool Indoor { get; set; }
 }
 
-public sealed class PointSnapshot
+public sealed class JunctionSnapshot
 {
-    public PointId Id { get; set; }
-
-    public ConnectionGroupId? ConnectionGroupId { get; set; }
-
-    public List<TileCoord> Tiles { get; } = new List<TileCoord>();
-
-    public PointRole Role { get; set; } = PointRole.None;
-
-    public Float2 LocalOffset { get; set; } = Float2.Zero;
+    public JunctionId Id { get; set; }
 
     public Float2 WorldPosition { get; set; } = Float2.Zero;
 
-    public PointKind Kind { get; set; } = PointKind.Interior;
+    public List<TileCoord> Tiles { get; } = new();
+
+    public bool Blocked { get; set; }
 
     public bool Occupied { get; set; }
 
     public bool Reserved { get; set; }
+
+    public List<JunctionId> Neighbors { get; } = new();
 }
 
 public sealed class ObjectSnapshot
@@ -63,7 +57,7 @@ public sealed class ObjectSnapshot
 
     public TileCoord Tile { get; set; } = TileCoord.Zero;
 
-    public List<PointId> Points { get; } = new();
+    public List<JunctionId> Junctions { get; } = new();
 }
 
 public sealed class NpcSnapshot
@@ -96,7 +90,7 @@ public sealed class NpcSnapshot
 
     public TileCoord? TargetTile { get; set; }
 
-    public List<TileCoord> Path { get; } = new();
+    public List<JunctionId> Path { get; } = new();
 
     public List<GoalScoreSnapshot> GoalScores { get; } = new();
 }

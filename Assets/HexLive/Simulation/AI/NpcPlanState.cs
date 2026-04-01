@@ -16,7 +16,7 @@ public sealed class NPCPlanState
 
     public ObjectId? TargetObjectId { get; set; }
 
-    public PointId? TargetPointId { get; set; }
+    public JunctionId? TargetJunctionId { get; set; }
 
     public TileCoord? TargetTile { get; set; }
 }
@@ -25,9 +25,7 @@ public sealed class PlanStep
 {
     public PlanStepType Type { get; set; }
 
-    public TileCoord? TargetTile { get; set; }
-
-    public PointId? TargetPoint { get; set; }
+    public JunctionId? TargetJunction { get; set; }
 
     public ObjectId? TargetObject { get; set; }
 
@@ -36,8 +34,7 @@ public sealed class PlanStep
 
 public enum PlanStepType
 {
-    MoveToTile,
-    MoveToPoint,
+    MoveToJunction,
     Interact,
     Wait
 }

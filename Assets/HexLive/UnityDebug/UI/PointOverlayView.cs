@@ -19,16 +19,21 @@ namespace HexLive.UnityDebug.UI
         private Camera _cam;
         private bool _visible;
 
-        private readonly Dictionary<int, VisualElement> _pointElements = new();
-        private readonly Dictionary<int, VisualElement> _groupElements = new();
-        private readonly HashSet<int> _processedGroups = new();
+        private readonly Dictionary<int, VisualElement> _badges = new();
+
+        // Edge drawing
+        private WorldSnapshot _cachedSnapshot;
+        private Material _lineMaterial;
 
         private static readonly Color BadgeBg = new(0.05f, 0.05f, 0.06f, 0.75f);
-        private static readonly Color ConnectionBg = new(0.04f, 0.07f, 0.04f, 0.80f);
-        private static readonly Color ConnectionBorder = new(0.20f, 0.50f, 0.28f);
+        private static readonly Color BlockedBg = new(0.30f, 0.08f, 0.08f, 0.80f);
+        private static readonly Color OccupiedBg = new(0.35f, 0.08f, 0.08f, 0.80f);
+        private static readonly Color ReservedBg = new(0.40f, 0.20f, 0.05f, 0.80f);
+        private static readonly Color BoundaryBg = new(0.04f, 0.07f, 0.04f, 0.80f);
         private static readonly Color Txt = new(0.85f, 0.86f, 0.88f);
-        private static readonly Color Dim = new(0.50f, 0.53f, 0.58f);
         private static readonly Color Green = new(0.24f, 0.72f, 0.34f);
+        private static readonly Color EdgePassable = new(0.20f, 0.65f, 0.25f, 0.45f);
+        private static readonly Color EdgeBlocked = new(0.75f, 0.15f, 0.15f, 0.55f);
 
         public void SetRunner(SimulationRunnerBehaviour runner) => _runner = runner;
 
@@ -64,6 +69,8 @@ namespace HexLive.UnityDebug.UI
             _overlayRoot.style.right = 0f;
             _overlayRoot.style.bottom = 0f;
             _overlayRoot.style.display = DisplayStyle.None;
+
+            CreateLineMaterial();
         }
 
         private void Update()
@@ -78,69 +85,111 @@ namespace HexLive.UnityDebug.UI
                 _overlayRoot.style.display = _visible ? DisplayStyle.Flex : DisplayStyle.None;
             }
 
-            if (!_visible) return;
+            if (!_visible)
+            {
+                _cachedSnapshot = null;
+                return;
+            }
+
             if (_cam == null) _cam = Camera.main;
             if (_cam == null) return;
 
             var snapshot = _runner != null ? _runner.CreateSnapshot() : null;
-            if (snapshot == null) { HideAll(); return; }
+            if (snapshot == null) { HideAll(); _cachedSnapshot = null; return; }
 
+            _cachedSnapshot = snapshot;
             RefreshOverlays(snapshot);
+        }
+
+        private void OnRenderObject()
+        {
+            if (!_visible || _cachedSnapshot == null) return;
+
+            DrawEdges(_cachedSnapshot);
         }
 
         private void RefreshOverlays(WorldSnapshot snapshot)
         {
-            _processedGroups.Clear();
-            foreach (var kv in _pointElements) kv.Value.style.display = DisplayStyle.None;
-            foreach (var kv in _groupElements) kv.Value.style.display = DisplayStyle.None;
+            foreach (var kv in _badges) kv.Value.style.display = DisplayStyle.None;
 
-            var groupPoints = new Dictionary<int, List<PointSnapshot>>();
-            foreach (var p in snapshot.Points)
+            foreach (var junction in snapshot.Junctions)
             {
-                if (p.ConnectionGroupId.HasValue)
-                {
-                    var gid = p.ConnectionGroupId.Value.Value;
-                    if (!groupPoints.ContainsKey(gid))
-                        groupPoints[gid] = new List<PointSnapshot>();
-                    groupPoints[gid].Add(p);
-                }
-            }
+                var pos = WorldToPanel(junction.WorldPosition);
+                if (!pos.HasValue) continue;
 
-            foreach (var p in snapshot.Points)
-            {
-                if (p.ConnectionGroupId.HasValue)
-                {
-                    var gid = p.ConnectionGroupId.Value.Value;
-                    if (_processedGroups.Contains(gid)) continue;
-                    _processedGroups.Add(gid);
-
-                    var members = groupPoints[gid];
-                    var pos = WorldToPanel(ComputeCentroid(members));
-                    if (!pos.HasValue) continue;
-
-                    var card = GetOrCreateGroupCard(gid, members);
-                    PlaceAt(card, pos.Value);
-                    card.style.display = DisplayStyle.Flex;
-                }
-                else
-                {
-                    var pos = WorldToPanel(p.WorldPosition);
-                    if (!pos.HasValue) continue;
-
-                    var badge = GetOrCreateBadge(p);
-                    UpdateBadge(badge, p);
-                    PlaceAt(badge, pos.Value);
-                    badge.style.display = DisplayStyle.Flex;
-                }
+                var badge = GetOrCreateBadge(junction);
+                UpdateBadge(badge, junction);
+                PlaceAt(badge, pos.Value);
+                badge.style.display = DisplayStyle.Flex;
             }
         }
 
-        // ── Interior badge: tiny dot ──
+        // ── Edge drawing with GL ──
 
-        private VisualElement GetOrCreateBadge(PointSnapshot p)
+        private void DrawEdges(WorldSnapshot snapshot)
         {
-            var id = p.Id.Value;
-            if (_pointElements.TryGetValue(id, out var e)) return e;
+            if (_lineMaterial == null) return;
+
+            var junctionLookup = new Dictionary<int, JunctionSnapshot>();
+            foreach (var j in snapshot.Junctions)
+            {
+                junctionLookup[j.Id.Value] = j;
+            }
+
+            _lineMaterial.SetPass(0);
+            GL.PushMatrix();
+            GL.Begin(GL.LINES);
+
+            var drawn = new HashSet<long>();
+            var lineHeight = SimulationUnityMapper.TileHeight + SimulationUnityMapper.PointMarkerLift * 0.5f;
+
+            foreach (var junction in snapshot.Junctions)
+            {
+                var fromPos = SimulationUnityMapper.ToUnityPosition(junction.WorldPosition, lineHeight);
+
+                foreach (var neighborId in junction.Neighbors)
+                {
+                    var a = junction.Id.Value;
+                    var b = neighborId.Value;
+                    var edgeKey = a < b ? ((long)a << 32) | (uint)b : ((long)b << 32) | (uint)a;
+                    if (!drawn.Add(edgeKey)) continue;
+
+                    if (!junctionLookup.TryGetValue(b, out var neighbor)) continue;
+
+                    var toPos = SimulationUnityMapper.ToUnityPosition(neighbor.WorldPosition, lineHeight);
+                    var blocked = junction.Blocked || neighbor.Blocked;
+
+                    GL.Color(blocked ? EdgeBlocked : EdgePassable);
+                    GL.Vertex(fromPos);
+                    GL.Vertex(toPos);
+                }
+            }
+
+            GL.End();
+            GL.PopMatrix();
+        }
+
+        private void CreateLineMaterial()
+        {
+            var shader = Shader.Find("Hidden/Internal-Colored");
+            if (shader == null) return;
+
+            _lineMaterial = new Material(shader)
+            {
+                hideFlags = HideFlags.HideAndDontSave
+            };
+            _lineMaterial.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            _lineMaterial.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            _lineMaterial.SetInt("_Cull", (int)UnityEngine.Rendering.CullMode.Off);
+            _lineMaterial.SetInt("_ZWrite", 0);
+        }
+
+        // ── Badges ──
+
+        private VisualElement GetOrCreateBadge(JunctionSnapshot j)
+        {
+            var id = j.Id.Value;
+            if (_badges.TryGetValue(id, out var e)) return e;
 
             var b = new VisualElement();
             b.pickingMode = PickingMode.Ignore;
@@ -165,88 +214,27 @@ namespace HexLive.UnityDebug.UI
             b.Add(lbl);
 
             _overlayRoot.Add(b);
-            _pointElements[id] = b;
+            _badges[id] = b;
             return b;
         }
 
-        private void UpdateBadge(VisualElement b, PointSnapshot p)
+        private static void UpdateBadge(VisualElement b, JunctionSnapshot j)
         {
             var lbl = b.Q<Label>("t");
             if (lbl == null) return;
 
-            var role = p.Role.ToString();
-            var shortRole = role == "Access" ? "" : " " + role[0];
-            lbl.text = string.Format("{0}{1}", p.Id.Value, shortRole);
+            var isBoundary = j.Tiles.Count > 1;
+            lbl.text = j.Id.Value.ToString();
+            lbl.style.color = isBoundary ? Green : Txt;
 
-            if (p.Occupied)
-                b.style.backgroundColor = new Color(0.35f, 0.08f, 0.08f, 0.80f);
-            else if (p.Reserved)
-                b.style.backgroundColor = new Color(0.40f, 0.20f, 0.05f, 0.80f);
+            if (j.Blocked)
+                b.style.backgroundColor = BlockedBg;
+            else if (j.Occupied)
+                b.style.backgroundColor = OccupiedBg;
+            else if (j.Reserved)
+                b.style.backgroundColor = ReservedBg;
             else
-                b.style.backgroundColor = BadgeBg;
-        }
-
-        // ── Connection group: compact card ──
-
-        private VisualElement GetOrCreateGroupCard(int gid, List<PointSnapshot> members)
-        {
-            if (_groupElements.TryGetValue(gid, out var e))
-            {
-                e.Clear();
-                BuildCard(e, gid, members);
-                return e;
-            }
-
-            var c = new VisualElement();
-            c.pickingMode = PickingMode.Ignore;
-            c.style.position = UnityEngine.UIElements.Position.Absolute;
-            c.style.backgroundColor = ConnectionBg;
-            c.style.borderTopLeftRadius = 3f;
-            c.style.borderTopRightRadius = 3f;
-            c.style.borderBottomLeftRadius = 3f;
-            c.style.borderBottomRightRadius = 3f;
-            c.style.borderBottomColor = ConnectionBorder;
-            c.style.borderTopColor = ConnectionBorder;
-            c.style.borderLeftColor = ConnectionBorder;
-            c.style.borderRightColor = ConnectionBorder;
-            c.style.borderBottomWidth = 1f;
-            c.style.borderTopWidth = 1f;
-            c.style.borderLeftWidth = 1f;
-            c.style.borderRightWidth = 1f;
-            c.style.paddingLeft = 3f;
-            c.style.paddingRight = 3f;
-            c.style.paddingTop = 2f;
-            c.style.paddingBottom = 2f;
-
-            BuildCard(c, gid, members);
-            _overlayRoot.Add(c);
-            _groupElements[gid] = c;
-            return c;
-        }
-
-        private static void BuildCard(VisualElement c, int gid, List<PointSnapshot> members)
-        {
-            // One-line header: "G42 · 3pts"
-            var h = new Label(string.Format("G{0} {1}pt", gid, members.Count));
-            h.style.color = Green;
-            h.style.fontSize = 6;
-            h.style.unityFontStyleAndWeight = FontStyle.Bold;
-            h.style.unityTextAlign = TextAnchor.MiddleCenter;
-            c.Add(h);
-
-            // Compact: list point IDs in one row
-            var ids = new System.Text.StringBuilder();
-            for (var i = 0; i < members.Count; i++)
-            {
-                if (i > 0) ids.Append(" ");
-                ids.Append(members[i].Id.Value);
-            }
-
-            var row = new Label(ids.ToString());
-            row.style.color = Dim;
-            row.style.fontSize = 5;
-            row.style.unityTextAlign = TextAnchor.MiddleCenter;
-            c.Add(row);
+                b.style.backgroundColor = isBoundary ? BoundaryBg : BadgeBg;
         }
 
         // ── Positioning ──
@@ -258,11 +246,9 @@ namespace HexLive.UnityDebug.UI
             var sp = _cam.WorldToScreenPoint(uPos);
             if (sp.z < 0f) return null;
 
-            // Screen coords: bottom-left origin → flip Y for UI Toolkit (top-left origin)
             var screenX = sp.x;
             var screenY = Screen.height - sp.y;
 
-            // Account for panel DPI scaling
             var scale = 1f;
             var ps = _document.panelSettings;
             if (ps != null && ps.scaleMode == PanelScaleMode.ConstantPhysicalSize)
@@ -288,18 +274,9 @@ namespace HexLive.UnityDebug.UI
             el.style.translate = new Translate(Length.Percent(-50f), Length.Percent(-100f));
         }
 
-        private static Float2 ComputeCentroid(List<PointSnapshot> m)
-        {
-            var x = 0f; var y = 0f;
-            foreach (var p in m) { x += p.WorldPosition.X; y += p.WorldPosition.Y; }
-            var c = m.Count > 0 ? m.Count : 1;
-            return new Float2(x / c, y / c);
-        }
-
         private void HideAll()
         {
-            foreach (var kv in _pointElements) kv.Value.style.display = DisplayStyle.None;
-            foreach (var kv in _groupElements) kv.Value.style.display = DisplayStyle.None;
+            foreach (var kv in _badges) kv.Value.style.display = DisplayStyle.None;
         }
     }
 }

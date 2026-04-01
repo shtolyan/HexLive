@@ -27,6 +27,15 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
 
     public float SpeedMultiplier => _clock?.SpeedMultiplier ?? 1f;
 
+    /// <summary>
+    /// Fraction [0..1) of progress toward the next simulation tick.
+    /// Used by renderers to interpolate between discrete tick states.
+    /// </summary>
+    public float TickAlpha =>
+        _settings is not null && _settings.TickDeltaTime > 0f
+            ? Mathf.Clamp01(_accumulator / _settings.TickDeltaTime)
+            : 0f;
+
     public WorldSnapshot? CreateSnapshot()
     {
         return _engine is null ? null : WorldSnapshotExporter.Export(_engine.World);

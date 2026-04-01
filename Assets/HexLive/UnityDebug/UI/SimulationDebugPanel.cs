@@ -773,12 +773,12 @@ namespace HexLive.UnityDebug.UI
             return tile == null ? "-" : string.Format("({0}, {1})", tile.Value.Q, tile.Value.R);
         }
 
-        private static string FormatPath(IReadOnlyList<Simulation.Common.TileCoord> path)
+        private static string FormatPath(IReadOnlyList<Simulation.Common.JunctionId> path)
         {
             var parts = new string[path.Count];
             for (var i = 0; i < path.Count; i++)
             {
-                parts[i] = string.Format("{0},{1}", path[i].Q, path[i].R);
+                parts[i] = path[i].Value.ToString();
             }
             return string.Join(" -> ", parts);
         }
@@ -786,7 +786,7 @@ namespace HexLive.UnityDebug.UI
         private static int CountReserved(WorldSnapshot snapshot)
         {
             var total = 0;
-            foreach (var point in snapshot.Points)
+            foreach (var point in snapshot.Junctions)
             {
                 if (point.Reserved) total++;
             }
@@ -796,7 +796,7 @@ namespace HexLive.UnityDebug.UI
         private static int CountOccupied(WorldSnapshot snapshot)
         {
             var total = 0;
-            foreach (var point in snapshot.Points)
+            foreach (var point in snapshot.Junctions)
             {
                 if (point.Occupied) total++;
             }

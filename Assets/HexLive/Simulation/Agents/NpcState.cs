@@ -15,7 +15,7 @@ public sealed class NPCState
 
     public TileCoord Tile { get; set; } = TileCoord.Zero;
 
-    public PointId? Point { get; set; }
+    public JunctionId? CurrentJunction { get; set; }
 
     public Float2 Position { get; set; } = Float2.Zero;
 

@@ -8,10 +8,15 @@ namespace HexLive.Simulation.Navigation
 
 public static class HexPathfinder
 {
-    public static List<TileCoord> FindPath(WorldState world, TileCoord start, TileCoord goal)
+    public static List<JunctionId> FindPath(WorldState world, JunctionId start, JunctionId goal)
     {
-        var frontier = new Queue<TileCoord>();
-        var cameFrom = new Dictionary<TileCoord, TileCoord?>();
+        if (start.Equals(goal))
+        {
+            return new List<JunctionId> { start };
+        }
+
+        var frontier = new Queue<JunctionId>();
+        var cameFrom = new Dictionary<JunctionId, JunctionId?>();
 
         frontier.Enqueue(start);
         cameFrom[start] = null;
@@ -19,34 +24,44 @@ public static class HexPathfinder
         while (frontier.Count > 0)
         {
             var current = frontier.Dequeue();
-            if (current == goal)
+            if (current.Equals(goal))
             {
                 break;
             }
 
-            foreach (var neighbor in SpatialQueries.GetNeighbors(world, current))
+            if (!world.Junctions.Items.TryGetValue(current, out var junction))
             {
-                if (!SpatialQueries.IsTileWalkable(world, neighbor) && neighbor != goal)
+                continue;
+            }
+
+            foreach (var neighborId in junction.Neighbors)
+            {
+                if (cameFrom.ContainsKey(neighborId))
                 {
                     continue;
                 }
 
-                if (cameFrom.ContainsKey(neighbor))
+                if (!world.Junctions.Items.TryGetValue(neighborId, out var neighbor))
                 {
                     continue;
                 }
 
-                frontier.Enqueue(neighbor);
-                cameFrom[neighbor] = current;
+                if (neighbor.Blocked && !neighborId.Equals(goal))
+                {
+                    continue;
+                }
+
+                frontier.Enqueue(neighborId);
+                cameFrom[neighborId] = current;
             }
         }
 
         if (!cameFrom.ContainsKey(goal))
         {
-            return new List<TileCoord>();
+            return new List<JunctionId>();
         }
 
-        var path = new List<TileCoord>();
+        var path = new List<JunctionId>();
         var step = goal;
         while (true)
         {

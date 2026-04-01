@@ -1,32 +1,45 @@
 using System;
 using System.Collections.Generic;
 using HexLive.Simulation.Common;
-using HexLive.Simulation.Content;
 
 namespace HexLive.Simulation.Spatial
 {
     public static class HexPointLayout
     {
-        private const int InteriorRadius = 2;
-        private const int ConnectionRadius = 3;
-        private const float PointGridRadiusFactor = 1f / (3f * HexSpatialMath.Sqrt3);
+        public const int InteriorRadius = 3;
+        public const int BoundaryRadius = 4;
 
-        private static readonly IReadOnlyList<HexPointTemplate> InteriorTemplates = BuildInteriorTemplates();
-        private static readonly IReadOnlyList<ConnectionPointTemplate> ConnectionTemplates = BuildConnectionTemplates();
+        private static readonly float PointGridRadiusFactor = 1f / (BoundaryRadius * HexSpatialMath.Sqrt3);
 
-        public static IReadOnlyList<HexPointTemplate> GetInteriorTemplates()
+        private static readonly IReadOnlyList<JunctionTemplate> InteriorTemplates = BuildInteriorTemplates();
+        private static readonly IReadOnlyList<JunctionTemplate> BoundaryTemplates = BuildBoundaryTemplates();
+
+        /// <summary>
+        /// The 6 neighbor offsets in (xKey, yKey) space for the flat-top sub-grid.
+        /// </summary>
+        public static readonly (int dx, int dy)[] NeighborKeyOffsets =
+        {
+            (+1, +1),
+            (-1, -1),
+            (0, +2),
+            (0, -2),
+            (+1, -1),
+            (-1, +1)
+        };
+
+        public static IReadOnlyList<JunctionTemplate> GetInteriorTemplates()
         {
             return InteriorTemplates;
         }
 
-        public static IReadOnlyList<ConnectionPointTemplate> GetConnectionTemplates()
+        public static IReadOnlyList<JunctionTemplate> GetBoundaryTemplates()
         {
-            return ConnectionTemplates;
+            return BoundaryTemplates;
         }
 
-        private static IReadOnlyList<HexPointTemplate> BuildInteriorTemplates()
+        private static IReadOnlyList<JunctionTemplate> BuildInteriorTemplates()
         {
-            var templates = new List<HexPointTemplate>();
+            var templates = new List<JunctionTemplate>();
             var slot = 0;
             for (var r = -InteriorRadius; r <= InteriorRadius; r++)
             {
@@ -35,10 +48,7 @@ namespace HexLive.Simulation.Spatial
                 for (var q = qMin; q <= qMax; q++)
                 {
                     var axial = new AxialPoint(q, r);
-                    templates.Add(new HexPointTemplate(
-                        slot,
-                        GetInteriorRole(slot),
-                        ToLocalOffset(axial)));
+                    templates.Add(new JunctionTemplate(slot, ToLocalOffset(axial), axial));
                     slot++;
                 }
             }
@@ -46,41 +56,20 @@ namespace HexLive.Simulation.Spatial
             return templates;
         }
 
-        private static IReadOnlyList<ConnectionPointTemplate> BuildConnectionTemplates()
+        private static IReadOnlyList<JunctionTemplate> BuildBoundaryTemplates()
         {
-            var templates = new List<ConnectionPointTemplate>(ConnectionRadius * 6);
+            var templates = new List<JunctionTemplate>(BoundaryRadius * 6);
             var slot = 0;
-            var ring = BuildRing(ConnectionRadius);
+            var ring = BuildRing(BoundaryRadius);
             foreach (var axial in ring)
             {
-                templates.Add(new ConnectionPointTemplate(
-                    slot++,
-                    PointRole.Access,
-                    ProjectToHexBoundary(ToLocalOffset(axial))));
+                templates.Add(new JunctionTemplate(slot++, ToLocalOffset(axial), axial));
             }
 
             return templates;
         }
 
-        private static PointRole GetInteriorRole(int slot)
-        {
-            switch (slot)
-            {
-                case 1:
-                case 6:
-                    return PointRole.Item;
-                case 7:
-                    return PointRole.Observe;
-                case 12:
-                    return PointRole.Sit;
-                case 17:
-                    return PointRole.Sleep;
-                default:
-                    return PointRole.Access;
-            }
-        }
-
-        private static Float2 ToLocalOffset(AxialPoint axial)
+        public static Float2 ToLocalOffset(AxialPoint axial)
         {
             var pointGridRadius = HexSpatialMath.HexRadius * PointGridRadiusFactor;
             var x = pointGridRadius * 1.5f * axial.Q;
@@ -88,33 +77,11 @@ namespace HexLive.Simulation.Spatial
             return new Float2(x, y);
         }
 
-        private static Float2 ProjectToHexBoundary(Float2 offset)
+        public static (int xKey, int yKey) GetJunctionKeyPair(TileCoord tile, AxialPoint subAxial)
         {
-            var direction = HexSpatialMath.Normalize(offset);
-            if (Math.Abs(direction.X) <= 0.0001f && Math.Abs(direction.Y) <= 0.0001f)
-            {
-                return offset;
-            }
-
-            var boundaryDistance = HexSpatialMath.HexApothem / GetMaxHexNormalProjection(direction);
-            return direction * boundaryDistance;
-        }
-
-        private static float GetMaxHexNormalProjection(Float2 direction)
-        {
-            var max = float.MinValue;
-            for (var i = 0; i < 6; i++)
-            {
-                var angle = (float)Math.PI / 3f * i;
-                var normal = new Float2((float)Math.Cos(angle), (float)Math.Sin(angle));
-                var projection = (direction.X * normal.X) + (direction.Y * normal.Y);
-                if (projection > max)
-                {
-                    max = projection;
-                }
-            }
-
-            return max;
+            var xKey = 2 * BoundaryRadius * tile.Q + BoundaryRadius * tile.R + subAxial.Q;
+            var yKey = 3 * BoundaryRadius * tile.R + 2 * subAxial.R + subAxial.Q;
+            return (xKey, yKey);
         }
 
         private static IReadOnlyList<AxialPoint> BuildRing(int radius)
@@ -149,36 +116,20 @@ namespace HexLive.Simulation.Spatial
         }
     }
 
-    public readonly struct HexPointTemplate
+    public readonly struct JunctionTemplate
     {
-        public HexPointTemplate(int slot, PointRole role, Float2 offset)
+        public JunctionTemplate(int slot, Float2 offset, AxialPoint subAxial)
         {
             Slot = slot;
-            Role = role;
             Offset = offset;
+            SubAxial = subAxial;
         }
 
         public int Slot { get; }
 
-        public PointRole Role { get; }
-
         public Float2 Offset { get; }
-    }
 
-    public readonly struct ConnectionPointTemplate
-    {
-        public ConnectionPointTemplate(int slot, PointRole role, Float2 offset)
-        {
-            Slot = slot;
-            Role = role;
-            Offset = offset;
-        }
-
-        public int Slot { get; }
-
-        public PointRole Role { get; }
-
-        public Float2 Offset { get; }
+        public AxialPoint SubAxial { get; }
     }
 
     public readonly struct AxialPoint

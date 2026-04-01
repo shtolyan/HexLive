@@ -19,7 +19,7 @@ public static class PrototypeContentCatalog
                     {
                         Id = "eat.apple",
                         Type = InteractionType.Eat,
-                        RequiredPointRole = PointRole.Item,
+
                         DurationTicks = 8,
                         Effects = { HungerDelta = -0.45f, ComfortDelta = 0.05f }
                     }
@@ -36,7 +36,7 @@ public static class PrototypeContentCatalog
                     {
                         Id = "sit.chair",
                         Type = InteractionType.Sit,
-                        RequiredPointRole = PointRole.Sit,
+
                         DurationTicks = 12,
                         Effects = { ComfortDelta = 0.35f, EnergyDelta = 0.05f }
                     }
@@ -53,7 +53,7 @@ public static class PrototypeContentCatalog
                     {
                         Id = "sleep.bed",
                         Type = InteractionType.Sleep,
-                        RequiredPointRole = PointRole.Sleep,
+
                         DurationTicks = 20,
                         Effects = { EnergyDelta = 0.5f, ComfortDelta = 0.2f }
                     }
@@ -70,7 +70,7 @@ public static class PrototypeContentCatalog
                     {
                         Id = "dress.coat",
                         Type = InteractionType.Dress,
-                        RequiredPointRole = PointRole.Item,
+
                         DurationTicks = 10,
                         Effects = { ThermalDelta = -0.3f, WarmthDelta = 0.4f }
                     }

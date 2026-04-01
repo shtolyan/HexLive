@@ -14,7 +14,7 @@ public sealed class WorldObjectState
 
     public TileCoord Tile { get; set; } = TileCoord.Zero;
 
-    public List<PointId> Points { get; } = new();
+    public List<JunctionId> Junctions { get; } = new();
 
     public bool IsOccupied { get; set; }
 

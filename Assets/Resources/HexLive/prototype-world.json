@@ -1,0 +1,52 @@
+{
+  "simulation": {
+    "tickDeltaTime": 0.25,
+    "mediumTickInterval": 4,
+    "slowTickInterval": 16
+  },
+  "environment": {
+    "globalTemperature": 9.0
+  },
+  "fragments": [
+    {
+      "id": 1,
+      "tiles": [
+        { "q": 0, "r": 0, "walkable": true, "indoor": true, "blocked": false },
+        { "q": 1, "r": 0, "walkable": true, "indoor": true, "blocked": false },
+        { "q": 2, "r": 0, "walkable": true, "indoor": true, "blocked": false },
+        { "q": 3, "r": 0, "walkable": false, "indoor": false, "blocked": true },
+        { "q": 0, "r": 1, "walkable": true, "indoor": true, "blocked": false },
+        { "q": 1, "r": 1, "walkable": true, "indoor": true, "blocked": false },
+        { "q": 2, "r": 1, "walkable": true, "indoor": true, "blocked": false },
+        { "q": 3, "r": 1, "walkable": true, "indoor": true, "blocked": false },
+        { "q": -1, "r": 2, "walkable": true, "indoor": true, "blocked": false },
+        { "q": 0, "r": 2, "walkable": true, "indoor": true, "blocked": false },
+        { "q": 1, "r": 2, "walkable": false, "indoor": false, "blocked": true },
+        { "q": 2, "r": 2, "walkable": true, "indoor": true, "blocked": false },
+        { "q": -1, "r": 3, "walkable": true, "indoor": true, "blocked": false },
+        { "q": 0, "r": 3, "walkable": true, "indoor": true, "blocked": false },
+        { "q": 1, "r": 3, "walkable": true, "indoor": true, "blocked": false },
+        { "q": 2, "r": 3, "walkable": true, "indoor": true, "blocked": false }
+      ]
+    }
+  ],
+  "objects": [
+    { "id": 100, "definitionId": "food.apple", "fragmentId": 1, "tileQ": 2, "tileR": 3, "pointSlots": [1] },
+    { "id": 101, "definitionId": "chair.basic", "fragmentId": 1, "tileQ": 0, "tileR": 2, "pointSlots": [4] },
+    { "id": 102, "definitionId": "bed.basic", "fragmentId": 1, "tileQ": -1, "tileR": 3, "pointSlots": [6, 7] },
+    { "id": 103, "definitionId": "clothing.coat", "fragmentId": 1, "tileQ": 3, "tileR": 1, "pointSlots": [5] }
+  ],
+  "npcs": [
+    {
+      "id": 1,
+      "fragmentId": 1,
+      "tileQ": 0,
+      "tileR": 0,
+      "hunger": 0.7,
+      "energy": 0.45,
+      "comfort": 0.35,
+      "social": 0.2,
+      "thermalDiscomfort": 0.6
+    }
+  ]
+}

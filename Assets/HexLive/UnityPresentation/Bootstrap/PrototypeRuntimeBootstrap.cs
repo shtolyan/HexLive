@@ -35,13 +35,19 @@ public static class PrototypeRuntimeBootstrap
             return;
         }
 
+        // Disable orbit camera if present
         var orbit = mainCamera.GetComponent<OrbitCameraController>();
-        if (orbit == null)
+        if (orbit != null)
         {
-            orbit = mainCamera.gameObject.AddComponent<OrbitCameraController>();
+            orbit.enabled = false;
         }
 
-        orbit.SetRunner(runner);
+        // Install RTS camera
+        var rts = mainCamera.GetComponent<RtsCameraController>();
+        if (rts == null)
+        {
+            rts = mainCamera.gameObject.AddComponent<RtsCameraController>();
+        }
     }
 }
 

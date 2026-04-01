@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using HexLive.Simulation.Debug;
 using HexLive.UnityPresentation.Bootstrap;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 
 namespace HexLive.UnityDebug.UI
@@ -51,6 +52,9 @@ namespace HexLive.UnityDebug.UI
         private readonly List<Button> _speedButtons = new();
         private Button _pauseButton;
 
+        // Toggle visibility
+        private bool _visible = true;
+
         // Colors
         private static readonly Color PanelBg = new(0.09f, 0.09f, 0.10f, 0.96f);
         private static readonly Color PanelBorder = new(0.20f, 0.20f, 0.24f);
@@ -93,6 +97,17 @@ namespace HexLive.UnityDebug.UI
             {
                 _runner = FindFirstObjectByType<SimulationRunnerBehaviour>();
             }
+
+            var keyboard = Keyboard.current;
+            if (keyboard != null && keyboard.tabKey.wasPressedThisFrame)
+            {
+                _visible = !_visible;
+                _document.rootVisualElement.style.display = _visible
+                    ? DisplayStyle.Flex
+                    : DisplayStyle.None;
+            }
+
+            if (!_visible) return;
 
             Refresh();
         }
@@ -438,41 +453,64 @@ namespace HexLive.UnityDebug.UI
             Color color, out Label valueLabel)
         {
             var container = new VisualElement();
-            container.style.marginBottom = 10f;
+            container.style.marginBottom = 8f;
 
-            // Label row
-            var labelRow = new VisualElement();
-            labelRow.style.flexDirection = FlexDirection.Row;
-            labelRow.style.justifyContent = Justify.SpaceBetween;
-            labelRow.style.marginBottom = 3f;
-
-            var nameLabel = new Label(label);
-            nameLabel.style.color = color;
-            nameLabel.style.fontSize = 11;
-            nameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-
-            valueLabel = new Label("0%");
-            valueLabel.style.color = TextSecondary;
-            valueLabel.style.fontSize = 11;
-
-            labelRow.Add(nameLabel);
-            labelRow.Add(valueLabel);
-            container.Add(labelRow);
-
-            // Bar track
-            var track = CreateBarTrack(16f);
-            var fill = CreateBarFill(0f, color);
-            fill.name = "fill";
-            track.Add(fill);
-            container.Add(track);
-
-            // Description
+            // Description above bar
             var desc = new Label(description);
             desc.style.color = TextMuted;
             desc.style.fontSize = 9;
-            desc.style.marginTop = 2f;
+            desc.style.marginBottom = 3f;
             container.Add(desc);
 
+            // Bar track — taller to fit text inside
+            var track = CreateBarTrack(22f);
+
+            // Fill
+            var fill = CreateBarFill(0f, color);
+            fill.name = "fill";
+            track.Add(fill);
+
+            // Overlay row with label + value inside the bar
+            var overlay = new VisualElement();
+            overlay.style.position = Position.Absolute;
+            overlay.style.left = 0f;
+            overlay.style.right = 0f;
+            overlay.style.top = 0f;
+            overlay.style.bottom = 0f;
+            overlay.style.flexDirection = FlexDirection.Row;
+            overlay.style.alignItems = Align.Center;
+            overlay.style.justifyContent = Justify.SpaceBetween;
+            overlay.style.paddingLeft = 8f;
+            overlay.style.paddingRight = 8f;
+
+            var nameLabel = new Label(label);
+            nameLabel.style.color = TextPrimary;
+            nameLabel.style.fontSize = 11;
+            nameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            // Text shadow via outline for readability over bar
+            nameLabel.style.textShadow = new TextShadow
+            {
+                offset = new Vector2(0f, 1f),
+                blurRadius = 3f,
+                color = new Color(0f, 0f, 0f, 0.8f)
+            };
+
+            valueLabel = new Label("0%");
+            valueLabel.style.color = TextPrimary;
+            valueLabel.style.fontSize = 11;
+            valueLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            valueLabel.style.textShadow = new TextShadow
+            {
+                offset = new Vector2(0f, 1f),
+                blurRadius = 3f,
+                color = new Color(0f, 0f, 0f, 0.8f)
+            };
+
+            overlay.Add(nameLabel);
+            overlay.Add(valueLabel);
+            track.Add(overlay);
+
+            container.Add(track);
             parent.Add(container);
             return track;
         }

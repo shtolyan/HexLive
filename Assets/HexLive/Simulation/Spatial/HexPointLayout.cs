@@ -53,7 +53,10 @@ namespace HexLive.Simulation.Spatial
             var ring = BuildRing(ConnectionRadius);
             foreach (var axial in ring)
             {
-                templates.Add(new ConnectionPointTemplate(slot++, PointRole.Access, ToLocalOffset(axial)));
+                templates.Add(new ConnectionPointTemplate(
+                    slot++,
+                    PointRole.Access,
+                    ProjectToHexBoundary(ToLocalOffset(axial))));
             }
 
             return templates;
@@ -80,9 +83,38 @@ namespace HexLive.Simulation.Spatial
         private static Float2 ToLocalOffset(AxialPoint axial)
         {
             var pointGridRadius = HexSpatialMath.HexRadius * PointGridRadiusFactor;
-            var x = pointGridRadius * HexSpatialMath.Sqrt3 * (axial.Q + (axial.R * 0.5f));
-            var y = pointGridRadius * 1.5f * axial.R;
+            var x = pointGridRadius * 1.5f * axial.Q;
+            var y = pointGridRadius * HexSpatialMath.Sqrt3 * (axial.R + (axial.Q * 0.5f));
             return new Float2(x, y);
+        }
+
+        private static Float2 ProjectToHexBoundary(Float2 offset)
+        {
+            var direction = HexSpatialMath.Normalize(offset);
+            if (Math.Abs(direction.X) <= 0.0001f && Math.Abs(direction.Y) <= 0.0001f)
+            {
+                return offset;
+            }
+
+            var boundaryDistance = HexSpatialMath.HexApothem / GetMaxHexNormalProjection(direction);
+            return direction * boundaryDistance;
+        }
+
+        private static float GetMaxHexNormalProjection(Float2 direction)
+        {
+            var max = float.MinValue;
+            for (var i = 0; i < 6; i++)
+            {
+                var angle = (float)Math.PI / 3f * i;
+                var normal = new Float2((float)Math.Cos(angle), (float)Math.Sin(angle));
+                var projection = (direction.X * normal.X) + (direction.Y * normal.Y);
+                if (projection > max)
+                {
+                    max = projection;
+                }
+            }
+
+            return max;
         }
 
         private static IReadOnlyList<AxialPoint> BuildRing(int radius)

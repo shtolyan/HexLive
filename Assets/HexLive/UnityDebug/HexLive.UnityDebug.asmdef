@@ -3,7 +3,8 @@
   "rootNamespace": "HexLive.UnityDebug",
   "references": [
     "HexLive.Simulation",
-    "HexLive.UnityPresentation"
+    "HexLive.UnityPresentation",
+    "Unity.InputSystem"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

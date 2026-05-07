@@ -233,7 +233,7 @@ namespace HexLive.UnityDebug.UI
             // Trace Log
             content.Add(CreateSectionTitle("Trace Log"));
             var traceSection = CreateSection();
-            traceSection.style.maxHeight = 200f;
+            traceSection.style.maxHeight = 400f;
             traceSection.style.overflow = Overflow.Hidden;
             var traceScroll = new ScrollView(ScrollViewMode.Vertical);
             traceScroll.style.flexGrow = 1f;
@@ -372,11 +372,18 @@ namespace HexLive.UnityDebug.UI
 
             if (snapshot == null || snapshot.TraceEvents.Count == 0)
             {
-                _traceContainer.Add(CreateValueLabel("No events yet"));
+                _traceContainer.Add(CreateValueLabel("No events yet (buffer empty)"));
                 return;
             }
 
-            var start = Mathf.Max(0, snapshot.TraceEvents.Count - 12);
+            // Show event count header
+            var countLabel = new Label(string.Format("Events in buffer: {0}", snapshot.TraceEvents.Count));
+            countLabel.style.color = TextMuted;
+            countLabel.style.fontSize = 9;
+            countLabel.style.marginBottom = 4f;
+            _traceContainer.Add(countLabel);
+
+            var start = Mathf.Max(0, snapshot.TraceEvents.Count - 30);
             for (var i = start; i < snapshot.TraceEvents.Count; i++)
             {
                 var trace = snapshot.TraceEvents[i];

@@ -35,6 +35,7 @@ public sealed class WorldStateFactory
         }
 
         BuildAdjacency(world);
+        BlockEdgeJunctions(world);
 
         foreach (var objectBootstrap in bootstrap.Objects)
         {
@@ -170,6 +171,17 @@ public sealed class WorldStateFactory
                         junction.Neighbors.Add(neighborId);
                     }
                 }
+            }
+        }
+    }
+
+    private static void BlockEdgeJunctions(WorldState world)
+    {
+        foreach (var junction in world.Junctions.Items.Values)
+        {
+            if (junction.Tiles.Count == 1 && junction.Neighbors.Count < 6)
+            {
+                junction.Blocked = true;
             }
         }
     }

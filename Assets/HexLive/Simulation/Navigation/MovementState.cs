@@ -23,6 +23,9 @@ public sealed class MovementState
     public MovementStatus Status { get; set; } = MovementStatus.Idle;
 
     public string StopReason { get; set; } = string.Empty;
+
+    public float PostTurnDelay { get; set; }
+    public float PostTurnTimer { get; set; }
 }
 
 public enum MovementStatus

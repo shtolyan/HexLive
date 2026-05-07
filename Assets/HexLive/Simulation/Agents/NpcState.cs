@@ -23,7 +23,9 @@ public sealed class NPCState
 
     public float MoveSpeed { get; set; } = 1f;
 
-    public float TurnSpeed { get; set; } = 180f;
+    public float TurnSpeed { get; set; } = 90f;
+
+    public float PostTurnPause { get; set; } = 0.4f;
 
     public float EquippedWarmth { get; set; }
 

@@ -18,7 +18,7 @@ public sealed class SimulationEventBuffer
 {
     private readonly List<SimulationEvent> _events = new();
 
-    public int Capacity { get; set; } = 128;
+    public int Capacity { get; set; } = 2048;
 
     public IReadOnlyList<SimulationEvent> Items => _events;
 

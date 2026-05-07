@@ -16,6 +16,7 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
     private SimulationEngine? _engine;
     private SimulationClock? _clock;
     private SimulationSettings? _settings;
+    private int _lastLoggedEventIndex;
 
     public SimulationEngine? Engine => _engine;
 
@@ -64,6 +65,31 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
             _accumulator -= _settings.TickDeltaTime;
             _engine.Step();
         }
+
+        FlushEventsToConsole();
+    }
+
+    private void FlushEventsToConsole()
+    {
+        if (_engine is null) return;
+
+        var events = _engine.World.Events.Items;
+        if (events.Count == 0) return;
+
+        // If buffer was trimmed and our index is beyond start, reset
+        if (_lastLoggedEventIndex > events.Count)
+        {
+            _lastLoggedEventIndex = 0;
+        }
+
+        for (var i = _lastLoggedEventIndex; i < events.Count; i++)
+        {
+            var e = events[i];
+            var entityTag = e.EntityId.HasValue ? $"NPC#{e.EntityId.Value}" : "SYS";
+            Debug.Log($"[HexLive T{e.Tick}] [{entityTag}] {e.Type}: {e.Message}");
+        }
+
+        _lastLoggedEventIndex = events.Count;
     }
 
     public void Pause() => _clock?.Pause();
@@ -94,6 +120,7 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
         }
 
         _engine.Step();
+        FlushEventsToConsole();
     }
 
     public void SetSpeed(float speedMultiplier) => _clock?.SetSpeed(speedMultiplier);
@@ -153,6 +180,7 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
         _engine = new SimulationEngine(world, _settings, _clock);
         RegisterDefaultSystems(_engine);
         _accumulator = 0f;
+        _lastLoggedEventIndex = 0;
     }
 
     private static void RegisterDefaultSystems(SimulationEngine engine)
@@ -163,6 +191,7 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
         engine.Register(new PerceptionSystem());
         engine.Register(new DecisionSystem());
         engine.Register(new PlanningSystem());
+        engine.Register(new NeedsDecaySystem());
         engine.Register(new TemperatureSystem());
     }
 }

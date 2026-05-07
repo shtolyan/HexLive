@@ -97,7 +97,27 @@ public sealed class PerceptionSystem : ISimulationSystem
                 npc.Perception.Objects.Add(perceived);
             }
 
-            Trace.Emit(world, npc.Id, "PerceptionUpdated", $"Objects={npc.Perception.Objects.Count}");
+            var reachableCount = 0;
+            var occupiedCount = 0;
+            foreach (var obj in npc.Perception.Objects)
+            {
+                if (obj.IsReachable) reachableCount++;
+                if (obj.IsOccupied) occupiedCount++;
+            }
+
+            Trace.Emit(world, npc.Id, "PerceptionUpdated",
+                $"Objects={npc.Perception.Objects.Count} Reachable={reachableCount} Occupied={occupiedCount} " +
+                $"Needs=[{Trace.FormatNeeds(npc.Needs)}] Tile={npc.Tile.Q},{npc.Tile.R} " +
+                $"Pos={Trace.FormatPos(npc.Position)} Junction={Trace.FormatJunction(npcJunction)} " +
+                $"Env=[Temp={world.Environment.GlobalTemperature:F1} Agents={world.Entities.Npcs.Count - 1}]");
+
+            foreach (var obj in npc.Perception.Objects)
+            {
+                var interactions = string.Join(",", obj.AvailableInteractions);
+                Trace.Emit(world, npc.Id, "PerceivedObject",
+                    $"Obj={obj.Id.Value} Tile={obj.Tile.Q},{obj.Tile.R} Dist={obj.Distance:F2} " +
+                    $"Reachable={obj.IsReachable} Occupied={obj.IsOccupied} Interactions=[{interactions}]");
+            }
         }
     }
 
@@ -110,6 +130,8 @@ public sealed class PerceptionSystem : ISimulationSystem
 
         var nearest = SpatialQueries.FindNearestJunction(world, npc.Position);
         npc.CurrentJunction = nearest;
+        Trace.Emit(world, npc.Id, "JunctionResolved",
+            $"NearestJunction={Trace.FormatJunction(nearest)} Pos={Trace.FormatPos(npc.Position)}");
         return nearest;
     }
 }
@@ -124,17 +146,34 @@ public sealed class DecisionSystem : ISimulationSystem
     {
         foreach (var npc in world.Entities.Npcs.Values)
         {
+            var previousGoal = npc.Mind.CurrentGoal;
             npc.Mind.LastScores.Clear();
 
-            AddGoalScore(npc, GoalType.Eat, npc.Needs.Hunger, HasInteraction(npc, InteractionType.Eat));
-            AddGoalScore(npc, GoalType.Sleep, 1f - npc.Needs.Energy, HasInteraction(npc, InteractionType.Sleep));
-            AddGoalScore(npc, GoalType.Sit, 1f - npc.Needs.Comfort, HasInteraction(npc, InteractionType.Sit));
-            AddGoalScore(npc, GoalType.Dress, npc.Needs.ThermalDiscomfort, HasInteraction(npc, InteractionType.Dress));
+            var eatAvail = HasInteraction(npc, InteractionType.Eat);
+            var sleepAvail = HasInteraction(npc, InteractionType.Sleep);
+            var sitAvail = HasInteraction(npc, InteractionType.Sit);
+            var dressAvail = HasInteraction(npc, InteractionType.Dress);
+
+            AddGoalScore(npc, GoalType.Eat, npc.Needs.Hunger, eatAvail);
+            AddGoalScore(npc, GoalType.Sleep, 1f - npc.Needs.Energy, sleepAvail);
+            AddGoalScore(npc, GoalType.Sit, 1f - npc.Needs.Comfort, sitAvail);
+            AddGoalScore(npc, GoalType.Dress, npc.Needs.ThermalDiscomfort, dressAvail);
             AddGoalScore(npc, GoalType.Idle, 0.05f, true);
+
+            Trace.Emit(world, npc.Id, "DecisionInput",
+                $"Needs=[{Trace.FormatNeeds(npc.Needs)}] " +
+                $"Available=[Eat={eatAvail} Sleep={sleepAvail} Sit={sitAvail} Dress={dressAvail}] " +
+                $"PrevGoal={previousGoal} PlanStatus={npc.Plan.Status} ExecStatus={npc.Execution.Status}");
 
             GoalScore? best = null;
             foreach (var score in npc.Mind.LastScores)
             {
+                Trace.Emit(world, npc.Id, "GoalScored",
+                    $"{score.Goal}: Base={score.BaseScore:F3} Need={score.NeedModifier:F3} " +
+                    $"Mem={score.MemoryModifier:F3} Soc={score.SocialModifier:F3} " +
+                    $"Env={score.EnvironmentModifier:F3} Cmd={score.CommandModifier:F3} " +
+                    $"=> Final={score.FinalScore:F3}");
+
                 if (best is null || score.FinalScore > best.FinalScore)
                 {
                     best = score;
@@ -143,6 +182,7 @@ public sealed class DecisionSystem : ISimulationSystem
 
             if (best is null)
             {
+                Trace.Emit(world, npc.Id, "DecisionSkipped", "No scores available");
                 continue;
             }
 
@@ -158,7 +198,10 @@ public sealed class DecisionSystem : ISimulationSystem
                 npc.Mind.LastDecision.Scores.Add(score);
             }
 
-            Trace.Emit(world, npc.Id, "GoalSelected", best.Goal.ToString());
+            var changed = previousGoal != best.Goal;
+            Trace.Emit(world, npc.Id, "GoalSelected",
+                $"{best.Goal} (Score={best.FinalScore:F3}) " +
+                $"{(changed ? $"CHANGED from {previousGoal}" : "UNCHANGED")}");
         }
     }
 
@@ -201,29 +244,44 @@ public sealed class PlanningSystem : ISimulationSystem
         {
             if (npc.Plan.Status == PlanStatus.Active && npc.Plan.Goal == npc.Mind.CurrentGoal)
             {
+                Trace.Emit(world, npc.Id, "PlanSkipped",
+                    $"ActivePlan already matches Goal={npc.Mind.CurrentGoal} Step={npc.Plan.CurrentStepIndex}/{npc.Plan.Steps.Count}");
                 continue;
             }
 
+            var prevStatus = npc.Plan.Status;
+            var prevGoal = npc.Plan.Goal;
             npc.Plan.Steps.Clear();
             npc.Plan.TargetObjectId = null;
             npc.Plan.TargetJunctionId = null;
             npc.Plan.TargetTile = null;
             npc.Plan.Goal = npc.Mind.CurrentGoal;
 
+            Trace.Emit(world, npc.Id, "PlanStarted",
+                $"Goal={npc.Mind.CurrentGoal} PrevGoal={prevGoal} PrevStatus={prevStatus}");
+
             var interactionType = GoalToInteraction(npc.Mind.CurrentGoal);
             if (interactionType is null)
             {
                 npc.Plan.Status = PlanStatus.Completed;
+                Trace.Emit(world, npc.Id, "PlanNoInteraction",
+                    $"Goal={npc.Mind.CurrentGoal} has no mapped interaction (Idle?)");
                 continue;
             }
 
             PerceivedObject? selected = null;
+            var candidateCount = 0;
             foreach (var perceived in npc.Perception.Objects)
             {
                 if (!perceived.IsReachable || !perceived.AvailableInteractions.Contains(interactionType.Value))
                 {
                     continue;
                 }
+
+                candidateCount++;
+                Trace.Emit(world, npc.Id, "PlanCandidate",
+                    $"Obj={perceived.Id.Value} Tile={perceived.Tile.Q},{perceived.Tile.R} " +
+                    $"Dist={perceived.Distance:F2} Occupied={perceived.IsOccupied}");
 
                 if (selected is null || perceived.Distance < selected.Distance)
                 {
@@ -234,9 +292,16 @@ public sealed class PlanningSystem : ISimulationSystem
             if (selected is null || !world.Entities.Objects.TryGetValue(selected.Id, out var worldObject))
             {
                 npc.Plan.Status = PlanStatus.Failed;
-                Trace.Emit(world, npc.Id, "PlanFailed", $"Goal={npc.Mind.CurrentGoal}");
+                Trace.Emit(world, npc.Id, "PlanFailed",
+                    $"Goal={npc.Mind.CurrentGoal} Interaction={interactionType} " +
+                    $"Candidates={candidateCount} NoSuitableObject");
                 continue;
             }
+
+            Trace.Emit(world, npc.Id, "PlanTargetSelected",
+                $"Obj={worldObject.Id.Value} Def={worldObject.DefinitionId} " +
+                $"Tile={worldObject.Tile.Q},{worldObject.Tile.R} Dist={selected.Distance:F2} " +
+                $"FromCandidates={candidateCount}");
 
             var targetJunction = worldObject.Junctions.Count > 0 ? worldObject.Junctions[0] : (JunctionId?)null;
             npc.Plan.TargetObjectId = worldObject.Id;
@@ -247,8 +312,15 @@ public sealed class PlanningSystem : ISimulationSystem
                 !SpatialMutations.TryReserveJunction(world, jId, npc.Id, world.Tick, 48))
             {
                 npc.Plan.Status = PlanStatus.Failed;
-                Trace.Emit(world, npc.Id, "ReservationFailed", $"Junction={jId.Value}");
+                Trace.Emit(world, npc.Id, "ReservationFailed",
+                    $"Junction={jId.Value} Already reserved or occupied");
                 continue;
+            }
+
+            if (targetJunction is { } reservedJId)
+            {
+                Trace.Emit(world, npc.Id, "JunctionReserved",
+                    $"Junction={reservedJId.Value} Duration=48ticks Until={world.Tick + 48}");
             }
 
             npc.Plan.Steps.Add(new PlanStep
@@ -265,7 +337,10 @@ public sealed class PlanningSystem : ISimulationSystem
             });
             npc.Plan.CurrentStepIndex = 0;
             npc.Plan.Status = PlanStatus.Active;
-            Trace.Emit(world, npc.Id, "PlanBuilt", $"Goal={npc.Plan.Goal};Target={worldObject.DefinitionId};Tile={worldObject.Tile.Q},{worldObject.Tile.R}");
+            Trace.Emit(world, npc.Id, "PlanBuilt",
+                $"Goal={npc.Plan.Goal} Target={worldObject.DefinitionId} " +
+                $"Tile={worldObject.Tile.Q},{worldObject.Tile.R} Junction={Trace.FormatJunction(targetJunction)} " +
+                $"Steps=[MoveToJunction,Interact]");
         }
     }
 
@@ -304,6 +379,8 @@ public sealed class PathfindingSystem : ISimulationSystem
 
             if (npc.CurrentJunction.HasValue && npc.CurrentJunction.Value.Equals(npc.Plan.TargetJunctionId.Value))
             {
+                Trace.Emit(world, npc.Id, "PathAlreadyAtTarget",
+                    $"Junction={npc.CurrentJunction.Value.Value} (already at destination)");
                 continue;
             }
 
@@ -312,15 +389,22 @@ public sealed class PathfindingSystem : ISimulationSystem
             {
                 npc.Movement.Status = MovementStatus.Blocked;
                 npc.Movement.StopReason = "No current junction";
+                Trace.Emit(world, npc.Id, "PathBlocked",
+                    $"No current junction found at Pos={Trace.FormatPos(npc.Position)}");
                 continue;
             }
+
+            Trace.Emit(world, npc.Id, "PathSearching",
+                $"From={startJunction.Value.Value} To={npc.Plan.TargetJunctionId.Value.Value} " +
+                $"Pos={Trace.FormatPos(npc.Position)}");
 
             var path = HexPathfinder.FindPath(world, startJunction.Value, npc.Plan.TargetJunctionId.Value);
             if (path.Count == 0)
             {
                 npc.Movement.Status = MovementStatus.Blocked;
                 npc.Movement.StopReason = "No path";
-                Trace.Emit(world, npc.Id, "PathFailed", $"To junction {npc.Plan.TargetJunctionId.Value.Value}");
+                Trace.Emit(world, npc.Id, "PathFailed",
+                    $"No route from Junction={startJunction.Value.Value} to Junction={npc.Plan.TargetJunctionId.Value.Value}");
                 continue;
             }
 
@@ -334,7 +418,15 @@ public sealed class PathfindingSystem : ISimulationSystem
             npc.Movement.IsMoving = path.Count > 1;
             npc.Movement.Status = npc.Movement.IsMoving ? MovementStatus.Moving : MovementStatus.Arrived;
             npc.Movement.StopReason = string.Empty;
-            Trace.Emit(world, npc.Id, "PathBuilt", $"Length={path.Count}");
+
+            var pathJunctions = new System.Text.StringBuilder();
+            for (var i = 0; i < path.Count; i++)
+            {
+                if (i > 0) pathJunctions.Append("->");
+                pathJunctions.Append(path[i].Value);
+            }
+            Trace.Emit(world, npc.Id, "PathBuilt",
+                $"Length={path.Count} Route=[{pathJunctions}] IsMoving={npc.Movement.IsMoving}");
         }
     }
 }
@@ -359,6 +451,8 @@ public sealed class MovementSystem : ISimulationSystem
             {
                 npc.Movement.IsMoving = false;
                 npc.Movement.Status = MovementStatus.Arrived;
+                Trace.Emit(world, npc.Id, "MovementPathExhausted",
+                    $"PathIndex={targetIndex} >= PathCount={npc.Movement.JunctionPath.Count}");
                 continue;
             }
 
@@ -367,6 +461,8 @@ public sealed class MovementSystem : ISimulationSystem
             {
                 npc.Movement.IsMoving = false;
                 npc.Movement.Status = MovementStatus.Invalid;
+                Trace.Emit(world, npc.Id, "MovementInvalidJunction",
+                    $"Junction={targetJunctionId.Value} not found in world");
                 continue;
             }
 
@@ -376,25 +472,36 @@ public sealed class MovementSystem : ISimulationSystem
             npc.Movement.DesiredDirection = direction;
             npc.Movement.DesiredRotationDegrees = HexSpatialMath.AngleDegrees(direction);
 
-            // Rotate toward target (progressive, not instant)
             var turnPerTick = npc.TurnSpeed * world.TickDeltaTime;
+            var prevRotation = npc.RotationDegrees;
             npc.RotationDegrees = MathUtil.RotateTowards(
                 npc.RotationDegrees,
                 npc.Movement.DesiredRotationDegrees,
                 turnPerTick);
 
-            // Only move when facing roughly the right direction
             var facingError = MathUtil.Abs(MathUtil.DeltaAngle(npc.RotationDegrees, npc.Movement.DesiredRotationDegrees));
             const float alignmentThreshold = 30f;
 
             if (facingError > alignmentThreshold)
             {
-                // Still rotating — don't move yet
                 npc.Movement.Status = MovementStatus.Rotating;
+                npc.Movement.PostTurnTimer = npc.PostTurnPause;
+                Trace.Emit(world, npc.Id, "MovementRotating",
+                    $"Rot={prevRotation:F1}->{npc.RotationDegrees:F1} Desired={npc.Movement.DesiredRotationDegrees:F1} " +
+                    $"Error={facingError:F1}>{alignmentThreshold} ToJunction={targetJunctionId.Value} " +
+                    $"Step={targetIndex}/{npc.Movement.JunctionPath.Count}");
                 continue;
             }
 
-            // Scale speed by alignment: full speed when aligned, slower when turning
+            if (npc.Movement.PostTurnTimer > 0f)
+            {
+                npc.Movement.PostTurnTimer -= world.TickDeltaTime;
+                npc.Movement.Status = MovementStatus.Rotating;
+                Trace.Emit(world, npc.Id, "MovementPostTurnPause",
+                    $"Timer={npc.Movement.PostTurnTimer:F2}s remaining");
+                continue;
+            }
+
             var alignmentFactor = 1f - (facingError / alignmentThreshold) * 0.5f;
             var movementPerTick = npc.MoveSpeed * alignmentFactor * world.TickDeltaTime;
             var distance = HexSpatialMath.Distance(npc.Position, target);
@@ -412,17 +519,24 @@ public sealed class MovementSystem : ISimulationSystem
                     {
                         npc.Tile = newTile;
                         SpatialMutations.MoveEntityToTile(world, npc.Id, previousTile, npc.Tile);
-                        Trace.Emit(world, npc.Id, "EnteredTile", $"{npc.Tile.Q},{npc.Tile.R}");
+                        Trace.Emit(world, npc.Id, "EnteredTile",
+                            $"From={previousTile.Q},{previousTile.R} To={npc.Tile.Q},{npc.Tile.R}");
                     }
                 }
 
                 npc.Movement.PathIndex++;
 
+                Trace.Emit(world, npc.Id, "JunctionReached",
+                    $"Junction={targetJunctionId.Value} Pos={Trace.FormatPos(target)} " +
+                    $"Step={npc.Movement.PathIndex}/{npc.Movement.JunctionPath.Count}");
+
                 if (npc.Movement.PathIndex >= npc.Movement.JunctionPath.Count)
                 {
                     npc.Movement.IsMoving = false;
                     npc.Movement.Status = MovementStatus.Arrived;
-                    Trace.Emit(world, npc.Id, "MovementCompleted", $"Junction={targetJunctionId.Value}");
+                    Trace.Emit(world, npc.Id, "MovementCompleted",
+                        $"FinalJunction={targetJunctionId.Value} Tile={npc.Tile.Q},{npc.Tile.R} " +
+                        $"Pos={Trace.FormatPos(npc.Position)}");
                 }
             }
             else
@@ -433,6 +547,10 @@ public sealed class MovementSystem : ISimulationSystem
                     npc.RotationDegrees,
                     npc.Movement.DesiredRotationDegrees,
                     turnPerTick);
+                Trace.Emit(world, npc.Id, "MovementStep",
+                    $"Pos={Trace.FormatPos(npc.Position)} -> Junction={targetJunctionId.Value} " +
+                    $"Dist={distance:F3} Speed={movementPerTick:F3} Align={alignmentFactor:F2} " +
+                    $"Rot={npc.RotationDegrees:F1}");
             }
         }
     }
@@ -456,22 +574,30 @@ public sealed class ExecutionSystem : ISimulationSystem
             if (!world.Entities.Objects.TryGetValue(npc.Plan.TargetObjectId.Value, out var worldObject))
             {
                 npc.Plan.Status = PlanStatus.Failed;
+                Trace.Emit(world, npc.Id, "ExecFailed",
+                    $"TargetObject={npc.Plan.TargetObjectId.Value.Value} not found in world");
                 continue;
             }
 
             if (!world.Content.ObjectDefinitions.TryGetValue(worldObject.DefinitionId, out var definition))
             {
                 npc.Plan.Status = PlanStatus.Failed;
+                Trace.Emit(world, npc.Id, "ExecFailed",
+                    $"Definition={worldObject.DefinitionId} not found in catalog");
                 continue;
             }
 
             if (npc.Movement.IsMoving)
             {
+                Trace.Emit(world, npc.Id, "ExecWaitingForMovement",
+                    $"Status={npc.Movement.Status} PathStep={npc.Movement.PathIndex}/{npc.Movement.JunctionPath.Count}");
                 continue;
             }
 
             if (npc.Movement.Status != MovementStatus.Arrived && npc.Movement.JunctionPath.Count > 0)
             {
+                Trace.Emit(world, npc.Id, "ExecWaitingForArrival",
+                    $"MovementStatus={npc.Movement.Status} (not Arrived)");
                 continue;
             }
 
@@ -490,13 +616,35 @@ public sealed class ExecutionSystem : ISimulationSystem
                     SpatialMutations.OccupyJunction(world, jId, npc.Id);
                 }
 
-                Trace.Emit(world, npc.Id, "InteractionStarted", $"{interaction.Type} -> {worldObject.DefinitionId}");
+                Trace.Emit(world, npc.Id, "InteractionStarted",
+                    $"{interaction.Type} -> {worldObject.DefinitionId} " +
+                    $"Duration={interaction.DurationTicks}ticks ({interaction.DurationTicks * world.TickDeltaTime:F1}s) " +
+                    $"EndTick={npc.Execution.EndTick} " +
+                    $"Effects=[H={interaction.Effects.HungerDelta:+0.00;-0.00} " +
+                    $"E={interaction.Effects.EnergyDelta:+0.00;-0.00} " +
+                    $"C={interaction.Effects.ComfortDelta:+0.00;-0.00} " +
+                    $"T={interaction.Effects.ThermalDelta:+0.00;-0.00} " +
+                    $"W={interaction.Effects.WarmthDelta:+0.00;-0.00}]");
                 continue;
             }
 
-            if (npc.Execution.Status == ExecutionStatus.InProgress && world.Tick >= npc.Execution.EndTick)
+            if (npc.Execution.Status == ExecutionStatus.InProgress)
             {
+                var remaining = npc.Execution.EndTick - world.Tick;
+                if (remaining > 0)
+                {
+                    var total = npc.Execution.EndTick - npc.Execution.StartTick;
+                    var progress = total > 0 ? 1f - (float)remaining / total : 1f;
+                    Trace.Emit(world, npc.Id, "ExecProgress",
+                        $"{npc.Execution.CurrentInteraction} Progress={progress:P0} " +
+                        $"Remaining={remaining}ticks ({remaining * world.TickDeltaTime:F1}s)");
+                    continue;
+                }
+
+                var needsBefore = Trace.FormatNeeds(npc.Needs);
                 ApplyEffects(npc, definition.Interactions[0].Effects);
+                var needsAfter = Trace.FormatNeeds(npc.Needs);
+
                 npc.Execution.Status = ExecutionStatus.Completed;
                 npc.Execution.LastCompletedTick = world.Tick;
                 worldObject.IsOccupied = false;
@@ -506,6 +654,11 @@ public sealed class ExecutionSystem : ISimulationSystem
                     SpatialMutations.FreeJunction(world, jId, npc.Id);
                     SpatialMutations.ReleaseJunctionReservation(world, jId, npc.Id);
                 }
+
+                Trace.Emit(world, npc.Id, "InteractionCompleted",
+                    $"{definition.Interactions[0].Type} on {worldObject.DefinitionId} " +
+                    $"Duration={npc.Execution.EndTick - npc.Execution.StartTick}ticks " +
+                    $"NeedsBefore=[{needsBefore}] NeedsAfter=[{needsAfter}]");
 
                 npc.Plan.Status = PlanStatus.Completed;
                 npc.Plan.Steps.Clear();
@@ -519,7 +672,9 @@ public sealed class ExecutionSystem : ISimulationSystem
                 npc.Execution.EndTick = 0;
                 npc.Movement.JunctionPath.Clear();
                 npc.Movement.PathIndex = 0;
-                Trace.Emit(world, npc.Id, "InteractionCompleted", definition.Interactions[0].Type.ToString());
+
+                Trace.Emit(world, npc.Id, "CycleReset",
+                    $"Goal->None Plan->Completed Execution->Cleared Movement->Cleared (ready for next decision)");
             }
         }
     }
@@ -534,6 +689,36 @@ public sealed class ExecutionSystem : ISimulationSystem
     }
 }
 
+public sealed class NeedsDecaySystem : ISimulationSystem
+{
+    public string Name => nameof(NeedsDecaySystem);
+
+    public TickLayer Layer => TickLayer.Slow;
+
+    private const float HungerRate = 0.02f;
+    private const float EnergyRate = 0.015f;
+    private const float ComfortRate = 0.01f;
+
+    public void Run(WorldState world)
+    {
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            var prevHunger = npc.Needs.Hunger;
+            var prevEnergy = npc.Needs.Energy;
+            var prevComfort = npc.Needs.Comfort;
+
+            npc.Needs.Hunger = MathUtil.Clamp01(npc.Needs.Hunger + HungerRate);
+            npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy - EnergyRate);
+            npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort - ComfortRate);
+
+            Trace.Emit(world, npc.Id, "NeedsDecay",
+                $"Hunger={prevHunger:F3}->{npc.Needs.Hunger:F3}(+{HungerRate}) " +
+                $"Energy={prevEnergy:F3}->{npc.Needs.Energy:F3}(-{EnergyRate}) " +
+                $"Comfort={prevComfort:F3}->{npc.Needs.Comfort:F3}(-{ComfortRate})");
+        }
+    }
+}
+
 public sealed class TemperatureSystem : ISimulationSystem
 {
     public string Name => nameof(TemperatureSystem);
@@ -544,9 +729,16 @@ public sealed class TemperatureSystem : ISimulationSystem
     {
         foreach (var npc in world.Entities.Npcs.Values)
         {
+            var prevThermal = npc.Needs.ThermalDiscomfort;
             var ambientPressure = world.Environment.GlobalTemperature < 12f ? 0.06f : -0.03f;
+            var warmthRelief = npc.EquippedWarmth * 0.05f;
             npc.Needs.ThermalDiscomfort = MathUtil.Clamp01(
-                npc.Needs.ThermalDiscomfort + ambientPressure - npc.EquippedWarmth * 0.05f);
+                npc.Needs.ThermalDiscomfort + ambientPressure - warmthRelief);
+
+            Trace.Emit(world, npc.Id, "TemperatureUpdate",
+                $"Thermal={prevThermal:F3}->{npc.Needs.ThermalDiscomfort:F3} " +
+                $"AmbientPressure={ambientPressure:+0.00;-0.00} WarmthRelief={warmthRelief:F3} " +
+                $"EquippedWarmth={npc.EquippedWarmth:F2} GlobalTemp={world.Environment.GlobalTemperature:F1}");
         }
     }
 }
@@ -564,7 +756,25 @@ internal static class Trace
         });
     }
 
+    public static void EmitSystem(WorldState world, string type, string message)
+    {
+        world.Events.Add(new SimulationEvent
+        {
+            Tick = world.Tick,
+            EntityId = null,
+            Type = type,
+            Message = message
+        });
+    }
+
     public static string FormatTile(TileCoord? tile) => tile is null ? "-" : $"{tile.Value.Q},{tile.Value.R}";
+
+    public static string FormatNeeds(NPCNeeds n) =>
+        $"H={n.Hunger:F2} E={n.Energy:F2} C={n.Comfort:F2} S={n.Social:F2} T={n.ThermalDiscomfort:F2}";
+
+    public static string FormatPos(Float2 p) => $"({p.X:F2},{p.Y:F2})";
+
+    public static string FormatJunction(JunctionId? j) => j is null ? "-" : j.Value.Value.ToString();
 }
 
 }

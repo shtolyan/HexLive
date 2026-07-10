@@ -299,6 +299,20 @@ public sealed class DecisionSystem : ISimulationSystem
                 continue;
             }
 
+            // Spec 29C.9: while an action is genuinely underway, don't
+            // re-decide. Gradual needs (iter 30) drain the executing goal's
+            // OWN score every tick (eating lowers Hunger -> Eat's score
+            // falls), which otherwise flips the goal mid-action and explodes
+            // the interrupt count (seed 31337: 782). Real emergencies still
+            // break in: a threatening dog sets Flee reactively via the fear
+            // path (handled above), and starvation/dehydration interrupt on
+            // the very next decision once the short action completes. Actions
+            // are <= 100 ticks, so deferring is imperceptible.
+            if (npc.Execution.Status == ExecutionStatus.InProgress)
+            {
+                continue;
+            }
+
             var previousGoal = npc.Mind.CurrentGoal;
             npc.Mind.LastScores.Clear();
             npc.Mind.Cooldowns.RemoveAll(c => c.EndTick <= world.Tick);
@@ -2803,6 +2817,16 @@ public sealed class ExecutionSystem : ISimulationSystem
                 {
                     var total = npc.Execution.EndTick - npc.Execution.StartTick;
                     var progress = total > 0 ? 1f - (float)remaining / total : 1f;
+                    // Spec 29C.9: needs fill gradually over the action (Sims-
+                    // style), not in a jump at the end. Each in-progress tick
+                    // applies one duration-share; the final share lands at
+                    // completion (total = duration shares = the full effect).
+                    var inProgressInteraction = ResolveInteraction(definition, npc.Execution.CurrentInteraction);
+                    if (inProgressInteraction is not null && total > 0)
+                    {
+                        ApplyEffectsScaled(npc, inProgressInteraction.Effects, 1f / total);
+                    }
+
                     Trace.Emit(world, npc.Id, "ExecProgress",
                         $"{npc.Execution.CurrentInteraction} Progress={progress:P0} " +
                         $"Remaining={remaining}ticks ({remaining * world.TickDeltaTime:F1}s)");
@@ -2819,7 +2843,11 @@ public sealed class ExecutionSystem : ISimulationSystem
                 }
 
                 var needsBefore = Trace.FormatNeeds(npc.Needs);
-                ApplyEffects(npc, completedInteraction.Effects);
+                // Spec 29C.9: the final duration-share of the gradual fill —
+                // the earlier shares landed tick-by-tick during the action.
+                var completedTotal = npc.Execution.EndTick - npc.Execution.StartTick;
+                ApplyEffectsScaled(npc, completedInteraction.Effects,
+                    completedTotal > 0 ? 1f / completedTotal : 1f);
 
                 // Spec 29H: filling the bottle charges it (raw at a bank,
                 // boiled at a lit campfire) — thirst is quenched only on Drink.
@@ -3262,7 +3290,8 @@ public sealed class ExecutionSystem : ISimulationSystem
 
     // Spec 28.15A: agent-targeted Talk. The listener stays passive — only the
     // initiator runs this state machine; both sides receive gains at the end.
-    private const int TalkDurationTicks = 16;
+    // Spec 29C.9 (iter 30): a real conversation, not a one-second exchange.
+    private const int TalkDurationTicks = 40;
     private const float TalkInitiatorSocialGain = 0.40f;
     private const float TalkListenerSocialGain = 0.25f;
     private const float TalkRelationshipGain = 0.05f;
@@ -3712,14 +3741,22 @@ public sealed class ExecutionSystem : ISimulationSystem
             return;
         }
 
-        if (npc.Execution.Status != ExecutionStatus.InProgress ||
-            npc.Execution.EndTick - world.Tick > 0)
+        if (npc.Execution.Status != ExecutionStatus.InProgress)
         {
             return;
         }
 
-        npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort + comfort);
-        npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy + energy);
+        // Spec 29C.9: comfort/energy recover gradually while she rests — the
+        // whole point of "you can watch it fill", not a jump on standing up.
+        var restShare = durationTicks > 0 ? 1f / durationTicks : 1f;
+        npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort + comfort * restShare);
+        npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy + energy * restShare);
+
+        if (npc.Execution.EndTick - world.Tick > 0)
+        {
+            return;
+        }
+
         ReleaseClaims(world, npc);
         if (step.TargetJunction is { } done)
         {
@@ -3923,10 +3960,16 @@ public sealed class ExecutionSystem : ISimulationSystem
         if (npc.Execution.Status == ExecutionStatus.InProgress)
         {
             var remaining = npc.Execution.EndTick - world.Tick;
+            var total = npc.Execution.EndTick - npc.Execution.StartTick;
             if (remaining > 0)
             {
-                var total = npc.Execution.EndTick - npc.Execution.StartTick;
                 var progress = total > 0 ? 1f - (float)remaining / total : 1f;
+                // Spec 29C.9: hunger drops mouthful by mouthful, not in a jump.
+                if (total > 0)
+                {
+                    ApplyEffectsScaled(npc, interaction.Effects, 1f / total);
+                }
+
                 Trace.Emit(world, npc.Id, "ExecProgress",
                     $"Eat (inventory) Progress={progress:P0} " +
                     $"Remaining={remaining}ticks ({remaining * world.TickDeltaTime:F1}s)");
@@ -3934,7 +3977,7 @@ public sealed class ExecutionSystem : ISimulationSystem
             }
 
             var needsBefore = Trace.FormatNeeds(npc.Needs);
-            ApplyEffects(npc, interaction.Effects);
+            ApplyEffectsScaled(npc, interaction.Effects, total > 0 ? 1f / total : 1f);
             npc.Inventory.Items.Remove(itemId);
             var needsAfter = Trace.FormatNeeds(npc.Needs);
 
@@ -3962,7 +4005,7 @@ public sealed class ExecutionSystem : ISimulationSystem
 
     // Spec 29H: drink in place from the carried bottle — thirst quenched,
     // raw water carries the 30 % sickness roll, then the bottle empties.
-    private const int DrinkBottleDurationTicks = 6;
+    private const int DrinkBottleDurationTicks = 16;
 
     private static void RunDrinkBottle(WorldState world, NPCState npc)
     {
@@ -3985,20 +4028,24 @@ public sealed class ExecutionSystem : ISimulationSystem
             return;
         }
 
-        if (npc.Execution.Status != ExecutionStatus.InProgress ||
-            npc.Execution.EndTick - world.Tick > 0)
+        if (npc.Execution.Status != ExecutionStatus.InProgress)
         {
             return;
         }
 
-        // A bottleful is a real drink: relief bumped (raw 0.6->0.7, boiled
-        // 0.8->0.85) so the two-step chain's throughput matches the old
-        // single water-edge drink and dehydration stays in band (29H).
+        // A bottleful is a real drink: relief raw 0.7 / boiled 0.85 (so the
+        // two-step chain matches the old single drink, 29H). Spec 29C.9: the
+        // thirst drops gulp by gulp across the duration, not in one jump.
         var boiled = npc.BottleWater == WaterKind.Boiled;
-        npc.Needs.Thirst = MathUtil.Clamp01(npc.Needs.Thirst - (boiled ? 0.85f : 0.7f));
-        if (boiled)
+        var thirstTotal = boiled ? 0.85f : 0.7f;
+        var comfortTotal = boiled ? 0.05f : 0f;
+        var share = 1f / DrinkBottleDurationTicks;
+        npc.Needs.Thirst = MathUtil.Clamp01(npc.Needs.Thirst - thirstTotal * share);
+        npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort + comfortTotal * share);
+
+        if (npc.Execution.EndTick - world.Tick > 0)
         {
-            npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort + 0.05f);
+            return;
         }
 
         // Spec 29H: raw water is a gamble — 30 % sickness (moved here from
@@ -4042,11 +4089,18 @@ public sealed class ExecutionSystem : ISimulationSystem
 
     private static void ApplyEffects(NPCState npc, InteractionEffects effects)
     {
-        npc.Needs.Hunger = MathUtil.Clamp01(npc.Needs.Hunger + effects.HungerDelta);
-        npc.Needs.Thirst = MathUtil.Clamp01(npc.Needs.Thirst + effects.ThirstDelta);
-        npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy + effects.EnergyDelta);
-        npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort + effects.ComfortDelta);
-        npc.Needs.ThermalDiscomfort = MathUtil.Clamp01(npc.Needs.ThermalDiscomfort + effects.ThermalDelta);
+        ApplyEffectsScaled(npc, effects, 1f);
+    }
+
+    // Spec 29C.9: apply a fraction of an interaction's effect — used to drip
+    // the need relief gradually across the action's duration (Sims-style).
+    private static void ApplyEffectsScaled(NPCState npc, InteractionEffects effects, float k)
+    {
+        npc.Needs.Hunger = MathUtil.Clamp01(npc.Needs.Hunger + effects.HungerDelta * k);
+        npc.Needs.Thirst = MathUtil.Clamp01(npc.Needs.Thirst + effects.ThirstDelta * k);
+        npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy + effects.EnergyDelta * k);
+        npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort + effects.ComfortDelta * k);
+        npc.Needs.ThermalDiscomfort = MathUtil.Clamp01(npc.Needs.ThermalDiscomfort + effects.ThermalDelta * k);
         // Spec 31A.5A: warmth/armor are no longer touched here — they are
         // recomputed from the worn-items list by EquipmentMath.
     }

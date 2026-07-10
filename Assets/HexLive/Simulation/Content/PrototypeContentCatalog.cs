@@ -20,7 +20,9 @@ public static class PrototypeContentCatalog
                         Id = "eat.apple",
                         Type = InteractionType.Eat,
 
-                        DurationTicks = 8,
+                        // Spec 29C.9 (iter 30): a proper meal, eaten mouthful
+                        // by mouthful (hunger fills gradually), not a gulp.
+                        DurationTicks = 20,
                         // -0.60 since iteration 6: nights produce nothing, so a
                         // meal must carry an NPC through more dark ticks.
                         Effects = { HungerDelta = -0.6f, ComfortDelta = 0.05f }

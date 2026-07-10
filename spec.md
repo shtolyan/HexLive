@@ -5945,6 +5945,33 @@ The land itself is furniture — worse than the real thing, but always there.
   (<= 0.55) in that window — at 0.35 the kit's logs were always eaten by
   the hearth. The hut-completion bed reward stays.
 
+### 29C.9 Gradual needs & longer actions (iteration 30)
+
+Sims-style: a need fills **visibly, tick by tick, across the action**, not
+in one jump when it ends. The interaction's total effect is divided into
+`duration` equal shares; each in-progress tick applies one share, the last
+share lands at completion, so the sum is exactly the authored effect.
+
+- Applies to every need-bearing interaction through the shared
+  `ApplyEffectsScaled(npc, effects, 1/duration)` path: object interactions
+  (Sit on a chair, Sleep in a bed — Comfort/Energy), Eat-from-inventory
+  (Hunger), Drink-from-bottle (Thirst/Comfort), and ground rest
+  (Comfort/Energy). Work interactions (Harvest/Fuel/Craft/Build/PickUp)
+  carry no need effect, so their share is zero — harmless.
+- **Longer actions** (things read as too fast on screen): Eat 8 -> **20
+  ticks** (5 s), Drink-from-bottle 6 -> **16** (4 s), Talk 16 -> **40**
+  (10 s). Sit (70) and Sleep (100) were already unhurried; now their
+  Comfort/Energy also fills gradually instead of at stand-up.
+- Sickness (raw water) and the mutual social gain (Talk) still resolve
+  once, at completion — only the personal-need relief is dripped.
+- **Decision stability:** gradual needs drain the executing goal's own
+  score mid-action, so the decision layer must NOT re-decide while an
+  action is InProgress (a guard holds the goal until it completes) — else
+  the goal flips every tick and interrupts explode. Emergencies are
+  unaffected: Flee is set reactively by the fear path, and
+  starvation/dehydration interrupt on the next decision after the (short,
+  <= 100-tick) action ends.
+
 ### 29H The Water Bottle (iteration 29)
 
 Drinking is no longer a bare interaction at the water's edge — everyone

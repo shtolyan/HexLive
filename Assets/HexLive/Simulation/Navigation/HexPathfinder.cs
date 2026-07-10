@@ -10,6 +10,16 @@ public static class HexPathfinder
 {
     public static List<JunctionId> FindPath(WorldState world, JunctionId start, JunctionId goal)
     {
+        return FindPath(world, start, goal, null);
+    }
+
+    // Spec 24.3 (iteration 24): housemates are soft obstacles — avoid the
+    // junctions they stand on; when that seals every route, fall back to
+    // the direct path (never hard-stuck).
+    public static List<JunctionId> FindPath(
+        WorldState world, JunctionId start, JunctionId goal,
+        HashSet<JunctionId> avoid)
+    {
         if (start.Equals(goal))
         {
             return new List<JunctionId> { start };
@@ -51,6 +61,11 @@ public static class HexPathfinder
                     continue;
                 }
 
+                if (avoid is not null && avoid.Contains(neighborId) && !neighborId.Equals(goal))
+                {
+                    continue;
+                }
+
                 frontier.Enqueue(neighborId);
                 cameFrom[neighborId] = current;
             }
@@ -58,7 +73,10 @@ public static class HexPathfinder
 
         if (!cameFrom.ContainsKey(goal))
         {
-            return new List<JunctionId>();
+            // Fully enclosed by standing housemates: take the direct path.
+            return avoid is not null
+                ? FindPath(world, start, goal, null)
+                : new List<JunctionId>();
         }
 
         var path = new List<JunctionId>();

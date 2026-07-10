@@ -51,6 +51,9 @@ public sealed class Junction
 
     public bool Blocked { get; set; }
 
+    // Spec 35.3: a passable door junction — humans only, animals never.
+    public bool Door { get; set; }
+
     public List<JunctionId> Neighbors { get; } = new();
 }
 
@@ -71,7 +74,9 @@ public enum TileFlags
     None = 0,
     Walkable = 1 << 0,
     Blocked = 1 << 1,
-    Indoor = 1 << 2
+    Indoor = 1 << 2,
+    Water = 1 << 3, // spec 35.1: walkable shallows — river tiles
+    HasFloor = 1 << 4 // spec 35.3: a built floor+roof piece
 }
 
 }

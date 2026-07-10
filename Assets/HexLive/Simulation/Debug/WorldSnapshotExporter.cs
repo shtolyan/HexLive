@@ -11,7 +11,11 @@ public static class WorldSnapshotExporter
         var snapshot = new WorldSnapshot
         {
             Tick = world.Tick,
-            Temperature = world.Environment.GlobalTemperature
+            Temperature = world.Environment.GlobalTemperature,
+            Clock = Runtime.EnvironmentSystem.FormatClock(world.Environment.TimeOfDayNormalized),
+            DayPhase = world.Environment.Phase.ToString(),
+            UvIndex = world.Environment.UvIndex,
+            IsRaining = world.Environment.IsRaining
         };
 
         foreach (var pair in world.Tiles.Items)
@@ -22,7 +26,8 @@ public static class WorldSnapshotExporter
                 Coord = tile.Coord,
                 Walkable = tile.Flags.HasFlag(TileFlags.Walkable),
                 Blocked = tile.Flags.HasFlag(TileFlags.Blocked),
-                Indoor = tile.Flags.HasFlag(TileFlags.Indoor)
+                Indoor = tile.Flags.HasFlag(TileFlags.Indoor),
+                Water = tile.Flags.HasFlag(TileFlags.Water)
             });
         }
 
@@ -75,20 +80,80 @@ public static class WorldSnapshotExporter
             var npcSnapshot = new NpcSnapshot
             {
                 Id = npc.Id,
+                DisplayName = npc.DisplayName,
+                ActorMesh = npc.ActorMesh,
                 Tile = npc.Tile,
                 Position = npc.Position,
                 RotationDegrees = npc.RotationDegrees,
+                Health = npc.Health,
+                IsFighting = npc.IsFighting,
                 Hunger = npc.Needs.Hunger,
+                Thirst = npc.Needs.Thirst,
                 Energy = npc.Needs.Energy,
                 Comfort = npc.Needs.Comfort,
+                Social = npc.Needs.Social,
                 ThermalDiscomfort = npc.Needs.ThermalDiscomfort,
                 CurrentGoal = npc.Mind.CurrentGoal.ToString(),
                 PlanStatus = npc.Plan.Status.ToString(),
                 MovementStatus = npc.Movement.Status.ToString(),
                 ExecutionStatus = npc.Execution.Status.ToString(),
                 CurrentInteraction = npc.Execution.CurrentInteraction?.ToString() ?? "-",
-                TargetTile = npc.Plan.TargetTile
+                TargetTile = npc.Plan.TargetTile,
+                IsStarving = npc.Mind.IsStarving,
+                InventoryCapacity = npc.Inventory.Capacity,
+                GoalLockEndTick = npc.Mind.GoalLock is { } goalLock &&
+                    goalLock.Goal == npc.Mind.CurrentGoal && goalLock.EndTick > world.Tick
+                        ? goalLock.EndTick
+                        : null
             };
+
+            foreach (var item in npc.Inventory.Items)
+            {
+                npcSnapshot.InventoryItems.Add(item);
+            }
+
+            foreach (var item in npc.WornItems)
+            {
+                npcSnapshot.WornItems.Add(item);
+            }
+
+            var worstPartValue = 1f;
+            var worstPartName = "-";
+            foreach (var part in npc.Body.Parts)
+            {
+                npcSnapshot.BodyParts.Add($"{part.Key}={part.Value:F2}");
+                if (part.Value < worstPartValue)
+                {
+                    worstPartValue = part.Value;
+                    worstPartName = part.Key.ToString();
+                }
+            }
+
+            npcSnapshot.WorstBodyPart = worstPartValue < 1f
+                ? $"{worstPartName} {worstPartValue:F2}"
+                : "OK";
+
+            foreach (var cooldown in npc.Mind.Cooldowns)
+            {
+                if (cooldown.EndTick > world.Tick)
+                {
+                    npcSnapshot.CooldownGoals.Add($"{cooldown.Goal}:{cooldown.EndTick}");
+                }
+            }
+
+            foreach (var relation in npc.Social.Relationships)
+            {
+                npcSnapshot.Relationships.Add(
+                    $"NPC{relation.Key.Value}: T={relation.Value.Trust:F2} F={relation.Value.Familiarity:F2} A={relation.Value.Affinity:F2}");
+            }
+
+            npcSnapshot.KnownObjectCount = npc.Memory.KnownObjects.Count;
+            foreach (var known in npc.Memory.KnownObjects.Values)
+            {
+                npcSnapshot.KnownObjects.Add(
+                    $"{known.DefinitionId}@{known.Tile.Q},{known.Tile.R}" +
+                    (known.IsPermanent ? "" : $" (seen t{known.LastSeenTick})"));
+            }
 
             foreach (var junctionId in npc.Movement.JunctionPath)
             {
@@ -105,6 +170,28 @@ public static class WorldSnapshotExporter
             }
 
             snapshot.Npcs.Add(npcSnapshot);
+        }
+
+        foreach (var crab in world.Rabbits)
+        {
+            snapshot.Crabs.Add(new CrabSnapshot
+            {
+                Id = crab.Id,
+                Tile = crab.Tile,
+                Position = crab.Position
+            });
+        }
+
+        foreach (var dog in world.Dogs)
+        {
+            snapshot.Dogs.Add(new DogSnapshot
+            {
+                Id = dog.Id,
+                Tile = dog.Tile,
+                Position = dog.Position,
+                Health = dog.Health,
+                Status = dog.Status.ToString()
+            });
         }
 
         foreach (var trace in world.Events.Items)

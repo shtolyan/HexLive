@@ -47,6 +47,40 @@ public static class MathUtil
     {
         return value < 0f ? -value : value;
     }
+
+    public static float Clamp(float value, float min, float max)
+    {
+        if (value < min)
+        {
+            return min;
+        }
+
+        return value > max ? max : value;
+    }
+
+    // Seeded variant (spec 29C.1): runs are reproducible per seed and
+    // diverge across seeds.
+    public static float Hash01(int seed, int a, int b, int c)
+    {
+        return Hash01(seed ^ (a * 486187739), b, c);
+    }
+
+    // Stateless deterministic hash → [0, 1). Used for outcome rolls
+    // (spec 28.15B): no RNG state, identical across runs and resumes.
+    public static float Hash01(int a, int b, int c)
+    {
+        unchecked
+        {
+            var h = 2166136261u;
+            h = (h ^ (uint)a) * 16777619u;
+            h = (h ^ (uint)b) * 16777619u;
+            h = (h ^ (uint)c) * 16777619u;
+            h ^= h >> 13;
+            h *= 0x5BD1E995u;
+            h ^= h >> 15;
+            return (h & 0xFFFFFF) / 16777216f;
+        }
+    }
 }
 
 }

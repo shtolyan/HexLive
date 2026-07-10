@@ -19,7 +19,8 @@ public sealed class WorldStateFactory
         var world = new WorldState
         {
             Tick = 0,
-            TickDeltaTime = bootstrap.Simulation.TickDeltaTime
+            TickDeltaTime = bootstrap.Simulation.TickDeltaTime,
+            Seed = bootstrap.Simulation.Seed
         };
 
         foreach (var pair in PrototypeContentCatalog.CreateDefaults())
@@ -47,7 +48,122 @@ public sealed class WorldStateFactory
             AddNpc(world, npcBootstrap);
         }
 
+        CreateBuildProject(world);
+        SeedHomeKnowledge(world);
+
+        // Spec 29E.3: campfires start cold (ResourceAmount is fuel ticks).
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
+                definition.Tags.Contains("Campfire"))
+            {
+                obj.ResourceAmount = 0f;
+            }
+        }
+
+        // Spec 31A.5B: everyone starts in underwear (per-NPC instance).
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            npc.WornItems.Add("underwear.cloth");
+            Runtime.EquipmentMath.Recalculate(world, npc);
+        }
+
         return world;
+    }
+
+    // Spec 35.3: choose the communal hut site (seeded) — walkable, dry,
+    // 5-7 tiles from home, all six neighbors present and walkable; the
+    // door edge faces home. A construction.site object anchors the work.
+    private static void CreateBuildProject(WorldState world)
+    {
+        var home = new TileCoord(0, 2);
+        var candidates = new List<TileCoord>();
+        foreach (var pair in world.Tiles.Items)
+        {
+            var tile = pair.Value;
+            if (!tile.Flags.HasFlag(TileFlags.Walkable) ||
+                tile.Flags.HasFlag(TileFlags.Blocked) ||
+                tile.Flags.HasFlag(TileFlags.Indoor) ||
+                tile.Flags.HasFlag(TileFlags.Water))
+            {
+                continue;
+            }
+
+            var distance = HexSpatialMath.HexDistance(pair.Key, home);
+            if (distance is < 5 or > 7)
+            {
+                continue;
+            }
+
+            var allNeighborsOk = true;
+            foreach (var direction in HexDirection.All)
+            {
+                var neighbor = new TileCoord(pair.Key.Q + direction.DQ, pair.Key.R + direction.DR);
+                if (!world.Tiles.Items.TryGetValue(neighbor, out var neighborTile) ||
+                    !neighborTile.Flags.HasFlag(TileFlags.Walkable) ||
+                    neighborTile.Flags.HasFlag(TileFlags.Water))
+                {
+                    allNeighborsOk = false;
+                    break;
+                }
+            }
+
+            if (allNeighborsOk)
+            {
+                candidates.Add(pair.Key);
+            }
+        }
+
+        if (candidates.Count == 0)
+        {
+            return;
+        }
+
+        candidates.Sort((x, y) => (x.Q * 1000 + x.R).CompareTo(y.Q * 1000 + y.R));
+        var pick = (int)(MathUtil.Hash01(world.Seed, 35, 3, 1901) * candidates.Count);
+        pick = Math.Min(pick, candidates.Count - 1);
+        var site = candidates[pick];
+
+        var doorEdge = 0;
+        var bestDistance = int.MaxValue;
+        for (var i = 0; i < HexDirection.All.Length; i++)
+        {
+            var direction = HexDirection.All[i];
+            var neighbor = new TileCoord(site.Q + direction.DQ, site.R + direction.DR);
+            var distance = HexSpatialMath.HexDistance(neighbor, home);
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                doorEdge = i;
+            }
+        }
+
+        world.Project = new BuildProject { Tile = site, DoorEdge = doorEdge };
+
+        var siteTile = world.Tiles.Items[site];
+        WorldObjectMutations.SpawnObject(world, "construction.site",
+            new FragmentId(1), site, siteTile.Junctions[0]);
+    }
+
+    // Spec 27.18A: NPCs know their home layout at start — every bootstrap
+    // object becomes a permanent memory record for every NPC.
+    private static void SeedHomeKnowledge(WorldState world)
+    {
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            foreach (var obj in world.Entities.Objects.Values)
+            {
+                npc.Memory.KnownObjects[obj.Id] = new Memory.ObjectMemory
+                {
+                    Id = obj.Id,
+                    DefinitionId = obj.DefinitionId,
+                    Tile = obj.Tile,
+                    Junction = obj.Junctions.Count > 0 ? obj.Junctions[0] : null,
+                    IsPermanent = true,
+                    LastSeenTick = 0
+                };
+            }
+        }
     }
 
     private void AddFragment(WorldState world, FragmentBootstrap bootstrap)
@@ -223,6 +339,14 @@ public sealed class WorldStateFactory
         }
 
         objects.Add(worldObject.Id);
+
+        // Spec 31C.1/31C.7: obstacles block their anchor (and footprint).
+        WorldObjectMutations.SetObstacleBlocking(world, worldObject, blocked: true);
+
+        if (worldObject.Id.Value >= world.NextRuntimeObjectId)
+        {
+            world.NextRuntimeObjectId = worldObject.Id.Value + 1;
+        }
     }
 
     private void AddNpc(WorldState world, NpcBootstrap bootstrap)
@@ -231,12 +355,15 @@ public sealed class WorldStateFactory
         var npc = new NPCState
         {
             Id = new EntityId(bootstrap.Id),
+            DisplayName = bootstrap.DisplayName,
+            ActorMesh = bootstrap.ActorMesh,
             Fragment = new FragmentId(bootstrap.FragmentId),
             Tile = coord,
             Position = HexSpatialMath.TileToWorld(coord)
         };
 
         npc.Needs.Hunger = bootstrap.Hunger;
+        npc.Needs.Thirst = bootstrap.Thirst;
         npc.Needs.Energy = bootstrap.Energy;
         npc.Needs.Comfort = bootstrap.Comfort;
         npc.Needs.Social = bootstrap.Social;
@@ -278,6 +405,11 @@ public sealed class WorldStateFactory
         if (bootstrap.Indoor)
         {
             flags |= TileFlags.Indoor;
+        }
+
+        if (bootstrap.Water)
+        {
+            flags |= TileFlags.Water;
         }
 
         return flags;

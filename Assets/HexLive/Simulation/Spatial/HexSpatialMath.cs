@@ -36,6 +36,14 @@ public static class HexSpatialMath
         return MathF.Sqrt(dx * dx + dy * dy);
     }
 
+    // Axial hex grid distance in tiles.
+    public static int HexDistance(TileCoord a, TileCoord b)
+    {
+        var dq = a.Q - b.Q;
+        var dr = a.R - b.R;
+        return (Math.Abs(dq) + Math.Abs(dr) + Math.Abs(dq + dr)) / 2;
+    }
+
     public static float AngleDegrees(Float2 direction)
     {
         return MathF.Atan2(direction.Y, direction.X) * (180f / MathF.PI);

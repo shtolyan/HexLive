@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using HexLive.Simulation.Common;
+using HexLive.Simulation.Content;
 
 namespace HexLive.Simulation.AI
 {
@@ -19,6 +20,12 @@ public sealed class NPCPlanState
     public JunctionId? TargetJunctionId { get; set; }
 
     public TileCoord? TargetTile { get; set; }
+
+    // Inventory item consumed by a ConsumeInventoryItem plan (definition id).
+    public string? TargetItemDefinitionId { get; set; }
+
+    // Agent targeted by a Talk plan (spec 28.15A).
+    public EntityId? TargetAgentId { get; set; }
 }
 
 public sealed class PlanStep
@@ -29,6 +36,8 @@ public sealed class PlanStep
 
     public ObjectId? TargetObject { get; set; }
 
+    public InteractionType? Interaction { get; set; }
+
     public int? TimeoutEndTick { get; set; }
 }
 
@@ -36,6 +45,8 @@ public enum PlanStepType
 {
     MoveToJunction,
     Interact,
+    ConsumeInventoryItem,
+    UndressItem,
     Wait
 }
 

@@ -31,16 +31,6 @@ namespace HexLive.Simulation.Common
 
     public readonly struct HexDirection : IEquatable<HexDirection>
     {
-        private static readonly HexDirection[] AllDirections =
-        {
-            East,
-            NorthEast,
-            NorthWest,
-            West,
-            SouthWest,
-            SouthEast
-        };
-
         public HexDirection(int dq, int dr)
         {
             DQ = dq;
@@ -57,6 +47,18 @@ namespace HexLive.Simulation.Common
         public static readonly HexDirection West = new HexDirection(-1, 0);
         public static readonly HexDirection SouthWest = new HexDirection(-1, 1);
         public static readonly HexDirection SouthEast = new HexDirection(0, 1);
+
+        // Must be declared after the named directions: static initializers run
+        // in textual order, and an earlier declaration would capture zeros.
+        private static readonly HexDirection[] AllDirections =
+        {
+            East,
+            NorthEast,
+            NorthWest,
+            West,
+            SouthWest,
+            SouthEast
+        };
 
         public static ReadOnlySpan<HexDirection> All => AllDirections;
 

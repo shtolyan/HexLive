@@ -24,6 +24,69 @@ public static class SpatialQueries
         return owner is null;
     }
 
+    // Spec 31C.7: walk the blocked/wet cluster outward from an anchor and
+    // collect the passable dry junctions on its rim — "stand at the edge
+    // of the furniture / on the river bank". BFS bounded by maxVisited.
+    public static void CollectStandableAround(
+        WorldState world, HexLive.Simulation.Common.JunctionId anchor,
+        System.Collections.Generic.List<HexLive.Simulation.Common.JunctionId> results,
+        int maxVisited = 96)
+    {
+        results.Clear();
+        var visited = new System.Collections.Generic.HashSet<HexLive.Simulation.Common.JunctionId> { anchor };
+        var frontier = new System.Collections.Generic.Queue<HexLive.Simulation.Common.JunctionId>();
+        frontier.Enqueue(anchor);
+        while (frontier.Count > 0 && visited.Count < maxVisited)
+        {
+            var currentId = frontier.Dequeue();
+            if (!world.Junctions.Items.TryGetValue(currentId, out var current))
+            {
+                continue;
+            }
+
+            foreach (var neighborId in current.Neighbors)
+            {
+                if (!visited.Add(neighborId) ||
+                    !world.Junctions.Items.TryGetValue(neighborId, out var neighbor))
+                {
+                    continue;
+                }
+
+                var wet = IsAllWaterJunction(world, neighborId);
+                if (!neighbor.Blocked && !wet)
+                {
+                    results.Add(neighborId); // rim found; do not expand past it
+                }
+                else
+                {
+                    frontier.Enqueue(neighborId); // inside the cluster; keep walking
+                }
+            }
+        }
+    }
+
+    // Spec 31C.7: a junction strictly inside water (every owning tile is
+    // Water). Shore junctions (mixed land+water) do not count.
+    public static bool IsAllWaterJunction(WorldState world, JunctionId junctionId)
+    {
+        if (!world.Junctions.Items.TryGetValue(junctionId, out var junction) ||
+            junction.Tiles.Count == 0)
+        {
+            return false;
+        }
+
+        foreach (var coord in junction.Tiles)
+        {
+            if (!world.Tiles.Items.TryGetValue(coord, out var tile) ||
+                !tile.Flags.HasFlag(TileFlags.Water))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public static bool IsJunctionPassable(WorldState world, JunctionId junctionId)
     {
         if (!world.Junctions.Items.TryGetValue(junctionId, out var junction))
@@ -75,6 +138,11 @@ public static class SpatialQueries
 
         foreach (var pair in world.Junctions.Items)
         {
+            if (pair.Value.Blocked)
+            {
+                continue; // spec 35.3: never resolve onto a wall
+            }
+
             var dist = HexSpatialMath.Distance(worldPosition, pair.Value.WorldPosition);
             if (dist < bestDist)
             {

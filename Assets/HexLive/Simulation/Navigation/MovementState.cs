@@ -6,6 +6,9 @@ namespace HexLive.Simulation.Navigation
 
 public sealed class MovementState
 {
+    // Spec 24.3: ticks spent politely waiting for a housemate to move.
+    public int BlockedWaitTicks { get; set; }
+
     public bool IsMoving { get; set; }
 
     public List<JunctionId> JunctionPath { get; } = new();

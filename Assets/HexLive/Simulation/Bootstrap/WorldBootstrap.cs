@@ -23,6 +23,9 @@ public sealed class SimulationBootstrapSettings
     public int MediumTickInterval { get; set; } = 4;
 
     public int SlowTickInterval { get; set; } = 16;
+
+    // Spec 29C.1: world seed — same seed reproduces the run exactly.
+    public int Seed { get; set; } = 12345;
 }
 
 public sealed class EnvironmentBootstrap
@@ -49,6 +52,8 @@ public sealed class TileBootstrap
 
     public bool Blocked { get; set; }
 
+    public bool Water { get; set; }
+
     public List<int> BlockedSlots { get; set; } = new();
 }
 
@@ -71,6 +76,10 @@ public sealed class NpcBootstrap
 {
     public int Id { get; set; }
 
+    public string DisplayName { get; set; } = string.Empty;
+
+    public string ActorMesh { get; set; } = string.Empty;
+
     public int FragmentId { get; set; }
 
     public int TileQ { get; set; }
@@ -78,6 +87,8 @@ public sealed class NpcBootstrap
     public int TileR { get; set; }
 
     public float Hunger { get; set; }
+
+    public float Thirst { get; set; }
 
     public float Energy { get; set; }
 

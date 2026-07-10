@@ -1,25 +1,43 @@
+using System.Collections.Generic;
+using HexLive.Simulation.Common;
+
 namespace HexLive.Simulation.Social
 {
+
+// Spec 28.1/28.2 (v1): per-pair relationships; Authority deferred.
 public sealed class SocialState
 {
-    public float Trust { get; set; }
+    public Dictionary<EntityId, RelationshipData> Relationships { get; } = new();
 
     public float Embarrassment { get; set; }
 
-    public float Presence { get; set; }
+    public RelationshipData GetOrCreate(EntityId other)
+    {
+        if (!Relationships.TryGetValue(other, out var relationship))
+        {
+            relationship = new RelationshipData();
+            Relationships[other] = relationship;
+        }
 
-    public float Hearing { get; set; }
+        return relationship;
+    }
 }
 
-public sealed class RelationshipSummary
+public sealed class RelationshipData
 {
     public float Trust { get; set; }
 
     public float Familiarity { get; set; }
+
+    public float Affinity { get; set; }
 }
 
-public sealed class SocialSystem
+// Spec 28.3: what perception carries about another agent.
+public sealed class RelationshipSummary
 {
+    public float Trust { get; set; }
+
+    public float Affinity { get; set; }
 }
 
 }

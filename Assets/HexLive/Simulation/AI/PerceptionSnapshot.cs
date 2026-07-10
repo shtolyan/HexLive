@@ -40,6 +40,12 @@ public sealed class PerceivedObject
 {
     public ObjectId Id { get; set; }
 
+    public string DefinitionId { get; set; } = string.Empty;
+
+    // True when the entry comes from spatial memory, not current sight
+    // (spec 27.14/27.18A): occupancy is then assumed, not observed.
+    public bool FromMemory { get; set; }
+
     public TileCoord Tile { get; set; } = TileCoord.Zero;
 
     public float Distance { get; set; }
@@ -47,6 +53,8 @@ public sealed class PerceivedObject
     public bool IsReachable { get; set; }
 
     public bool IsOccupied { get; set; }
+
+    public EntityId? OccupiedBy { get; set; }
 
     public List<InteractionType> AvailableInteractions { get; } = new();
 }
@@ -62,6 +70,16 @@ public sealed class PerceivedAgent
     public bool CanSee { get; set; }
 
     public bool CanHear { get; set; }
+
+    public JunctionId? Junction { get; set; }
+
+    public bool IsReachable { get; set; }
+
+    // Busy = mid-interaction other than Talk (talking agents stay approachable).
+    public bool IsBusy { get; set; }
+
+    // Walking agents are not talk targets in v1 (no chasing, spec 28.15A).
+    public bool IsMoving { get; set; }
 
     public RelationshipSummary Relationship { get; } = new();
 }

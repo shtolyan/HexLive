@@ -810,9 +810,14 @@ hills, and mountains — some climbable by natural ramps, some sheer.
 - `Tile.Elevation`: int 0..5. 0 = sea floor, 1-2 = lowland, 3 = hills,
   4-5 = mountains. Bootstrap carries it (`TileBootstrap.Elevation`).
 - Elevation is SIMULATION state: it decides passability. Rendering maps it
-  to visual height (0.35 world units per level) and biome colors — sand at
+  to visual height (0.55 world units per level) and biome colors — sand at
   the waterline (existing adjacency rule), grass lowland, brown-green
   hills, brown rock peaks.
+- The 0.55 step is deliberately **sitting height**: the actors stand
+  ~1.7 units tall, so one step (0.55) is just above chair-seat height
+  (~0.45) and taller than a shin (~0.44) — legs dangle off a 1-level
+  ledge without touching the ground (§29G), approachable from below and
+  from above. Two steps (1.10) are chest-high: a cliff, blocked.
 
 **Seeded generation** (PrototypeWorldDefinitionFactory)
 
@@ -825,7 +830,12 @@ hills, and mountains — some climbable by natural ramps, some sheer.
   map bounds.
 - The **home plateau**: tiles within 3 of the home center and of the hut
   site clamp to elevation 1-2 and never become sea — the colony never
-  spawns on a cliff. River tiles carve to elevation 1.
+  spawns on a cliff.
+- **All water shares one level**: river tiles carve to elevation 0 — the
+  same as the sea — so the river meets the coast flush (no stepped water
+  surfaces). Banks clamp to elevation 1: a 0->1 step to the waterline is
+  a walkable slope (drinkable) and, per §29G, a scenic ledge to sit on
+  with legs over the water; >1 would be a cliff wall.
 
 **Cliffs & ramps**
 

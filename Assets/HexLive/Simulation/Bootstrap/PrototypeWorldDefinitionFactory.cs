@@ -302,7 +302,7 @@ namespace HexLive.Simulation.Bootstrap
                     {
                         tile.Water = true;
                         tile.Walkable = true; // the river stays wadable even where it crosses sea-marked coast
-                        tile.Elevation = 1;   // spec 20.16: the river carves through the terrain
+                        tile.Elevation = 0;   // spec 20.16: ALL water shares one level — the river meets the sea flush
                         tile.BlockedSlots.Clear();
                     }
                 }
@@ -320,10 +320,12 @@ namespace HexLive.Simulation.Bootstrap
 
                 foreach (var direction in HexDirection.All)
                 {
+                    // Banks clamp to 1: the river sits at sea level (0) and a
+                    // >1 step to the waterline would be a cliff — no drinking.
                     if (byCoord.TryGetValue((tile.Q + direction.DQ, tile.R + direction.DR), out var bank) &&
-                        !bank.Water && bank.Walkable && bank.Elevation > 2)
+                        !bank.Water && bank.Walkable && bank.Elevation > 1)
                     {
-                        bank.Elevation = 2;
+                        bank.Elevation = 1;
                     }
                 }
             }

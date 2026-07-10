@@ -478,7 +478,11 @@ public sealed class DecisionSystem : ISimulationSystem
             var (campfireSeen, campfireFuel) = FindCampfire(npc, world);
             var pondReachable = HasReachableWithTag(npc, world, "RawWater");
             var boiledReady = campfireSeen && campfireFuel > 0f && hasPot;
-            var drinkAvail = npc.Needs.Thirst >= 0.35f && (boiledReady || pondReachable);
+            // Spec 29H: the two-step water chain — fill the bottle, then drink.
+            var bottleEmpty = npc.BottleWater == WaterKind.None;
+            var getWaterAvail = npc.Needs.Thirst >= 0.35f && bottleEmpty &&
+                (boiledReady || pondReachable);
+            var drinkAvail = npc.Needs.Thirst >= 0.35f && !bottleEmpty;
             // Spec 35.2: any reachable Tool not carried (saw, dropped gear).
             var gatherToolsAvail = npc.Inventory.HasSpace &&
                 HasMissingToolReachable(npc, world);
@@ -489,6 +493,7 @@ public sealed class DecisionSystem : ISimulationSystem
             var tendFireAvail = hasWood && fuelLow && (campfireFuel > 0f || hasLighter);
 
             AddGoalScore(npc, world.Tick, GoalType.Drink, npc.Needs.Thirst, drinkAvail, drinkBoost);
+            AddGoalScore(npc, world.Tick, GoalType.GetWater, npc.Needs.Thirst, getWaterAvail, drinkBoost);
             AddGoalScore(npc, world.Tick, GoalType.GatherTools,
                 0.25f + 0.2f * npc.Needs.Thirst, gatherToolsAvail);
             AddGoalScore(npc, world.Tick, GoalType.GatherWood,
@@ -1173,6 +1178,29 @@ public sealed class PlanningSystem : ISimulationSystem
                 continue;
             }
 
+            if (npc.Mind.CurrentGoal == GoalType.Drink)
+            {
+                // Spec 29H: drinking happens in place from the bottle — no
+                // target object, no junction reservation (mirrors Eat).
+                if (npc.BottleWater == WaterKind.None)
+                {
+                    npc.Plan.Status = PlanStatus.Failed;
+                    Trace.Emit(world, npc.Id, "PlanFailed", "Goal=Drink but the bottle is empty");
+                    continue;
+                }
+
+                npc.Plan.Steps.Add(new PlanStep
+                {
+                    Type = PlanStepType.DrinkBottle,
+                    Interaction = InteractionType.Drink
+                });
+                npc.Plan.CurrentStepIndex = 0;
+                npc.Plan.Status = PlanStatus.Active;
+                Trace.Emit(world, npc.Id, "PlanBuilt",
+                    $"Goal=Drink Water={npc.BottleWater} Steps=[DrinkBottle]");
+                continue;
+            }
+
             if (npc.Mind.CurrentGoal == GoalType.Socialize)
             {
                 BuildTalkPlan(world, npc);
@@ -1276,8 +1304,8 @@ public sealed class PlanningSystem : ISimulationSystem
             // the best armor over the nearest garment.
             var preferArmor = interactionType == InteractionType.Dress &&
                 npc.Memory.Dangers.Count > 0 && npc.EquippedArmor < 0.3f;
-            // Spec 29E.2: boiled over raw whenever actually available.
-            var preferBoiled = npc.Mind.CurrentGoal == GoalType.Drink;
+            // Spec 29E.2/29H: fill boiled over raw whenever actually available.
+            var preferBoiled = npc.Mind.CurrentGoal == GoalType.GetWater;
 
             PerceivedObject? selected = null;
             var selectedArmor = 0f;
@@ -2142,7 +2170,7 @@ public sealed class PlanningSystem : ISimulationSystem
             GoalType.GetFood => InteractionType.PickUp,
             GoalType.GatherWood => InteractionType.PickUp,
             GoalType.GatherTools => InteractionType.PickUp,
-            GoalType.Drink => InteractionType.Drink,
+            GoalType.GetWater => InteractionType.FillBottle,
             GoalType.TendFire => InteractionType.Fuel,
             GoalType.CraftSpear => InteractionType.Craft,
             GoalType.CookMeat => InteractionType.Craft,
@@ -2212,13 +2240,13 @@ public sealed class PlanningSystem : ISimulationSystem
                 return definition.Tags.Contains("Corpse") || definition.Tags.Contains("Grave");
             case GoalType.Bury:
                 return definition.Tags.Contains("Corpse");
-            case GoalType.Drink:
+            case GoalType.GetWater:
+                // Spec 29H: fill at a raw bank, or at a lit campfire with a pot.
                 if (definition.Tags.Contains("RawWater"))
                 {
                     return true;
                 }
 
-                // A campfire is only a drink source when lit and a pot is carried.
                 return definition.Tags.Contains("Campfire") &&
                     npc.Inventory.Items.Contains("tool.pot") &&
                     world.Entities.Objects.TryGetValue(perceived.Id, out var campfire) &&
@@ -2517,6 +2545,12 @@ public sealed class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
+            if (npc.Plan.Steps.Count > 0 && npc.Plan.Steps[0].Type == PlanStepType.DrinkBottle)
+            {
+                RunDrinkBottle(world, npc);
+                continue;
+            }
+
             // Spec 29G: ground rest plans have no target object — the last
             // step says what to do once the walk (if any) is over.
             var lastStep = npc.Plan.Steps.Count > 0 ? npc.Plan.Steps[npc.Plan.Steps.Count - 1] : null;
@@ -2787,27 +2821,14 @@ public sealed class ExecutionSystem : ISimulationSystem
                 var needsBefore = Trace.FormatNeeds(npc.Needs);
                 ApplyEffects(npc, completedInteraction.Effects);
 
-                // Spec 29E.2: raw water is a gamble — 30 % sickness.
-                if (completedInteraction.Type == InteractionType.Drink &&
-                    definition.Tags.Contains("RawWater"))
+                // Spec 29H: filling the bottle charges it (raw at a bank,
+                // boiled at a lit campfire) — thirst is quenched only on Drink.
+                if (completedInteraction.Type == InteractionType.FillBottle)
                 {
-                    var sickRoll = MathUtil.Hash01(world.Seed, world.Tick, npc.Id.Value, 833);
-                    if (sickRoll < 0.30f)
-                    {
-                        npc.Body.Parts[BodyPart.Torso] =
-                            System.Math.Max(0f, npc.Body.Parts[BodyPart.Torso] - 0.15f);
-                        npc.Health = npc.Body.Mean();
-                        npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort - 0.2f);
-                        if (npc.Body.VitalDestroyed(out var sickVital))
-                        {
-                            npc.Health = 0f;
-                            Trace.Emit(world, npc.Id, "VitalPartDestroyed",
-                                $"{sickVital} destroyed by sickness");
-                        }
-
-                        Trace.Emit(world, npc.Id, "GotSick",
-                            $"Raw water (Roll={sickRoll:F2}) Torso={npc.Body.Parts[BodyPart.Torso]:F2}");
-                    }
+                    npc.BottleWater = definition.Tags.Contains("RawWater")
+                        ? WaterKind.Raw : WaterKind.Boiled;
+                    Trace.Emit(world, npc.Id, "BottleFilled",
+                        $"{npc.BottleWater} from {worldObject.DefinitionId}");
                 }
 
                 var needsAfter = Trace.FormatNeeds(npc.Needs);
@@ -3939,6 +3960,86 @@ public sealed class ExecutionSystem : ISimulationSystem
         }
     }
 
+    // Spec 29H: drink in place from the carried bottle — thirst quenched,
+    // raw water carries the 30 % sickness roll, then the bottle empties.
+    private const int DrinkBottleDurationTicks = 6;
+
+    private static void RunDrinkBottle(WorldState world, NPCState npc)
+    {
+        if (npc.BottleWater == WaterKind.None)
+        {
+            npc.Plan.Status = PlanStatus.Failed;
+            Trace.Emit(world, npc.Id, "ExecFailed", "DrinkBottle: the bottle is empty");
+            return;
+        }
+
+        if (npc.Execution.Status == ExecutionStatus.None)
+        {
+            npc.Execution.Status = ExecutionStatus.InProgress;
+            npc.Execution.CurrentInteraction = InteractionType.Drink;
+            npc.Execution.TargetObject = null;
+            npc.Execution.StartTick = world.Tick;
+            npc.Execution.EndTick = world.Tick + DrinkBottleDurationTicks;
+            Trace.Emit(world, npc.Id, "InteractionStarted",
+                $"Drink (bottle:{npc.BottleWater}) Duration={DrinkBottleDurationTicks}ticks");
+            return;
+        }
+
+        if (npc.Execution.Status != ExecutionStatus.InProgress ||
+            npc.Execution.EndTick - world.Tick > 0)
+        {
+            return;
+        }
+
+        // A bottleful is a real drink: relief bumped (raw 0.6->0.7, boiled
+        // 0.8->0.85) so the two-step chain's throughput matches the old
+        // single water-edge drink and dehydration stays in band (29H).
+        var boiled = npc.BottleWater == WaterKind.Boiled;
+        npc.Needs.Thirst = MathUtil.Clamp01(npc.Needs.Thirst - (boiled ? 0.85f : 0.7f));
+        if (boiled)
+        {
+            npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort + 0.05f);
+        }
+
+        // Spec 29H: raw water is a gamble — 30 % sickness (moved here from
+        // the old water-edge Drink now that filling and drinking are split).
+        if (!boiled)
+        {
+            var sickRoll = MathUtil.Hash01(world.Seed, world.Tick, npc.Id.Value, 833);
+            if (sickRoll < 0.30f)
+            {
+                npc.Body.Parts[BodyPart.Torso] =
+                    System.Math.Max(0f, npc.Body.Parts[BodyPart.Torso] - 0.15f);
+                npc.Health = npc.Body.Mean();
+                npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort - 0.2f);
+                if (npc.Body.VitalDestroyed(out var sickVital))
+                {
+                    npc.Health = 0f;
+                    Trace.Emit(world, npc.Id, "VitalPartDestroyed",
+                        $"{sickVital} destroyed by sickness");
+                }
+
+                Trace.Emit(world, npc.Id, "GotSick",
+                    $"Raw water (Roll={sickRoll:F2}) Torso={npc.Body.Parts[BodyPart.Torso]:F2}");
+            }
+        }
+
+        Trace.Emit(world, npc.Id, "DrankBottle",
+            $"{(boiled ? "Boiled" : "Raw")} water Thirst={npc.Needs.Thirst:F2}");
+        npc.BottleWater = WaterKind.None;
+
+        npc.Plan.Status = PlanStatus.Completed;
+        npc.Plan.Steps.Clear();
+        npc.Mind.CurrentGoal = GoalType.None;
+        npc.Execution.Status = ExecutionStatus.None;
+        npc.Execution.CurrentInteraction = null;
+        npc.Execution.StartTick = 0;
+        npc.Execution.EndTick = 0;
+
+        Trace.Emit(world, npc.Id, "CycleReset",
+            "Goal->None Plan->Completed Execution->Cleared (drank from bottle)");
+    }
+
     private static void ApplyEffects(NPCState npc, InteractionEffects effects)
     {
         npc.Needs.Hunger = MathUtil.Clamp01(npc.Needs.Hunger + effects.HungerDelta);
@@ -4979,6 +5080,14 @@ public sealed class DogSystem : ISimulationSystem
 
             foreach (var item in npc.Inventory.Items)
             {
+                // Spec 29H: the bottle is a personal effect — it stays with
+                // its owner, never litters the world (and never lets a
+                // survivor hoard empty bottles via GatherTools).
+                if (item.DefinitionId == "tool.bottle")
+                {
+                    continue;
+                }
+
                 var droppedCarried = WorldObjectMutations.SpawnObject(
                     world, item.DefinitionId, npc.Fragment, npc.Tile, junction);
                 droppedCarried.Wetness = item.Wetness;

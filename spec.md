@@ -5936,6 +5936,46 @@ The land itself is furniture — worse than the real thing, but always there.
   (<= 0.55) in that window — at 0.35 the kit's logs were always eaten by
   the hearth. The hut-completion bed reward stays.
 
+### 29H The Water Bottle (iteration 29)
+
+Drinking is no longer a bare interaction at the water's edge — everyone
+carries a bottle, fills it at a source, and drinks from it. A two-step
+chain that mirrors GetFood -> Eat.
+
+**The bottle**
+
+- Every NPC bootstraps with a personal `tool.bottle` (a real inventory
+  item, so it shows in the panel and in hand). It is never consumed and
+  never dropped on death — a personal effect, always there.
+- The bottle holds one of `WaterKind` = **None / Raw / Boiled**, tracked
+  on `NPCState.BottleWater` (one bottle per NPC, so the fill state lives
+  on the NPC, not the item instance).
+
+**Fill then drink**
+
+- **GetWater** goal (score = Thirst, same as GetFood = Hunger): available
+  when Thirst >= 0.35 and the bottle is empty and a source is reachable.
+  Plan = walk to the best source and **FillBottle** (a new interaction
+  type) there. Source preference reuses the old drink selection: a lit
+  campfire with a pot fills **Boiled**; otherwise a pond/river bank fills
+  **Raw**. Filling quenches nothing — it only charges the bottle. The
+  bank-standing / reach-beside pathing is exactly the old Drink's.
+- **Drink** goal (score = Thirst): available when Thirst >= 0.35 and the
+  bottle is NOT empty. Plan = a single in-place `DrinkBottle` step (no
+  target object, no reservation — like Eat-from-inventory). On
+  completion: Thirst **-0.7 (Raw) / -0.85 (Boiled)**, Boiled adds
+  Comfort +0.05, **Raw keeps the 30 % sickness roll** (moved here from
+  the old water-edge Drink), and the bottle empties.
+- The dehydration emergency boost applies to BOTH GetWater and Drink, so
+  a parched NPC races to fill AND to drink.
+
+The pond/river/campfire objects now expose **FillBottle**, not Drink.
+Durations: FillBottle 6 (raw) / 8 (boiled) ticks, DrinkBottle 6 ticks
+— together about one old single-drink cost, with the relief bumped so
+the two-step throughput matches (the first soak's 10/12 + 8 at -0.6/-0.8
+nearly doubled the ticks-per-thirst and spiked dehydration). The payoff:
+water can be carried away from the dangerous bank.
+
 ### 31C.7A Unhurried sitting (iteration 26 addendum)
 
 The 12-tick (3 s) Sit read as fidgeting once the sit animation landed.
@@ -6914,9 +6954,12 @@ the current spatial system, not bolted on.
   pattern); **saw** is findable wilderness loot (tag Tool — the existing
   GatherTools goal collects it; the goal's gate widens from lighter/pot to
   "any reachable Tool not carried", which also recovers dropped gear).
-- **`Harvest` interaction** on harvestable objects: big tree 40 ticks,
-  palm 30, boulder 40. Trees need axe OR saw (saw halves the duration);
-  boulders need the pickaxe. Completion consumes the object and loots:
+- **`Harvest` interaction** on harvestable objects: big tree **80 ticks
+  (20 s)**, palm **60**, boulder **80** (iteration 29 — felling a whole
+  tree and breaking rock should read as real labor, not a flick; the
+  earlier 40/30/40 were near-instant on screen). Trees need axe OR saw
+  (saw halves the duration — a sawn palm is 30 ticks); boulders need the
+  pickaxe. Completion consumes the object and loots:
   big tree → 4 logs; palm → 2 logs + **3 palm leaves**
   (`resource.palm_leaf`); boulder → 4 stones. Shade dies with the tree
   (real tradeoff from 35.4 on).

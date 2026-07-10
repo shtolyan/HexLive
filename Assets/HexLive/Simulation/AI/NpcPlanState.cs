@@ -49,6 +49,7 @@ public enum PlanStepType
     UndressItem,
     GroundSit,   // sit in place on the land (spec 29G)
     GroundSleep, // lie at a free hex center (spec 29G)
+    DrinkBottle, // drink in place from the carried bottle (spec 29H)
     Wait
 }
 

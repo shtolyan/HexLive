@@ -126,6 +126,17 @@ public sealed class NPCState
 
     // Spec 29G: junctions covered by a lying body — housemates path around.
     public System.Collections.Generic.List<HexLive.Simulation.Common.JunctionId> ClaimedJunctions { get; } = new();
+
+    // Spec 29H: what the carried bottle currently holds (one bottle per NPC).
+    public WaterKind BottleWater { get; set; } = WaterKind.None;
+}
+
+// Spec 29H: the contents of an NPC's water bottle.
+public enum WaterKind
+{
+    None,
+    Raw,    // filled at a pond/river bank — 30 % sickness on drink
+    Boiled  // filled at a lit campfire with a pot — safe, quenches more
 }
 
 }

@@ -43,13 +43,16 @@ public static class PrototypeContentCatalog
                 Tags = { "Water", "RawWater" },
                 Interactions =
                 {
+                    // Spec 29H: fill the bottle (raw) — thirst is quenched only
+                    // when she drinks from it later, in place.
                     new InteractionDefinition
                     {
-                        Id = "drink.raw",
-                        Type = InteractionType.Drink,
+                        Id = "fill.raw",
+                        Type = InteractionType.FillBottle,
 
-                        DurationTicks = 10,
-                        Effects = { ThirstDelta = -0.6f }
+                        // Spec 29H: fill+drink must cost about one old drink —
+                        // 6 + 6 ticks ~ the old single 10-tick raw drink.
+                        DurationTicks = 6
                     }
                 }
             },
@@ -60,13 +63,14 @@ public static class PrototypeContentCatalog
                 Tags = { "Campfire" },
                 Interactions =
                 {
+                    // Spec 29H: fill the bottle with boiled (safe) water; the
+                    // thirst/comfort payoff lands when she drinks it later.
                     new InteractionDefinition
                     {
-                        Id = "drink.boiled",
-                        Type = InteractionType.Drink,
+                        Id = "fill.boiled",
+                        Type = InteractionType.FillBottle,
 
-                        DurationTicks = 12,
-                        Effects = { ThirstDelta = -0.8f, ComfortDelta = 0.05f }
+                        DurationTicks = 8
                     },
                     new InteractionDefinition
                     {
@@ -94,13 +98,13 @@ public static class PrototypeContentCatalog
                 Tags = { "Water", "RawWater" },
                 Interactions =
                 {
+                    // Spec 29H: fill the bottle (raw) at the riverbank.
                     new InteractionDefinition
                     {
-                        Id = "drink.river",
-                        Type = InteractionType.Drink,
+                        Id = "fill.river",
+                        Type = InteractionType.FillBottle,
 
-                        DurationTicks = 10,
-                        Effects = { ThirstDelta = -0.6f }
+                        DurationTicks = 6
                     }
                 }
             },
@@ -116,7 +120,8 @@ public static class PrototypeContentCatalog
                         Id = "mine.boulder",
                         Type = InteractionType.Harvest,
 
-                        DurationTicks = 40
+                        // Spec 35.2 (iter 29): breaking rock is real labor.
+                        DurationTicks = 80
                     }
                 }
             },
@@ -149,7 +154,8 @@ public static class PrototypeContentCatalog
                         Id = "chop.big",
                         Type = InteractionType.Harvest,
 
-                        DurationTicks = 40
+                        // Spec 35.2 (iter 29): felling a whole tree takes a while.
+                        DurationTicks = 80
                     }
                 }
             },
@@ -166,7 +172,8 @@ public static class PrototypeContentCatalog
                         Id = "chop.palm",
                         Type = InteractionType.Harvest,
 
-                        DurationTicks = 30
+                        // Spec 35.2 (iter 29): a palm is 60 by axe, 30 by saw.
+                        DurationTicks = 60
                     }
                 },
                 // Spec 31C.1: coconuts drop where apples used to grow.
@@ -477,6 +484,24 @@ public static class PrototypeContentCatalog
                     new InteractionDefinition
                     {
                         Id = "pickup.pot",
+                        Type = InteractionType.PickUp,
+
+                        DurationTicks = 4
+                    }
+                }
+            },
+            // Spec 29H: the personal water bottle — a definition so it renders
+            // and shows in the panel; the fill state lives on the NPC.
+            ["tool.bottle"] = new ObjectDefinition
+            {
+                Id = "tool.bottle",
+                DisplayName = "Bottle",
+                Tags = { "Tool" },
+                Interactions =
+                {
+                    new InteractionDefinition
+                    {
+                        Id = "pickup.bottle",
                         Type = InteractionType.PickUp,
 
                         DurationTicks = 4

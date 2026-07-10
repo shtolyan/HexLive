@@ -415,6 +415,9 @@ public sealed class WorldStateFactory
         npc.Needs.Social = bootstrap.Social;
         npc.Needs.ThermalDiscomfort = bootstrap.ThermalDiscomfort;
 
+        // Spec 29H: everyone carries a personal water bottle (starts empty).
+        npc.Inventory.Items.Add(new Agents.ItemInstance("tool.bottle"));
+
         world.Entities.Npcs[npc.Id] = npc;
         world.Occupancy.EntitiesInTile[coord].Add(npc.Id);
 

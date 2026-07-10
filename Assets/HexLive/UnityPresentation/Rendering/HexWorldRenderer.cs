@@ -407,8 +407,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
             case "Build":
                 return npc.InventoryItems.Contains("resource.firewood")
                     ? "resource.firewood" : null;
+            // Spec 29H: fill the bottle and drink from it — the bottle shows
+            // in hand for both.
+            case "FillBottle":
             case "Drink":
-                return npc.InventoryItems.Contains("tool.pot") ? "tool.pot" : null;
+                return "tool.bottle";
             default:
                 return null;
         }

@@ -101,7 +101,8 @@ public enum InteractionType
     Bury,
     Observe,
     Talk,
-    Hang
+    Hang,
+    FillBottle // spec 29H: charge the water bottle at a source
 }
 
 }

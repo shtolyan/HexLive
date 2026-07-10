@@ -18,6 +18,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // Spec 31.17: ~14k junction spheres are ~10M triangles — debug only.
     [SerializeField] private bool _showJunctionMarkers;
 
+    // Spec 20.16: terrain-style grass tufts on grass tiles.
+    [SerializeField] private bool _grassDetail = true;
+    [SerializeField, Range(0, 30)] private int _grassBladesPerTile = 12;
+
     private const float JunctionMarkerScaleFactor = 1f / 25f;
     private const float EdgeLineHeight = 0.01f;
 
@@ -115,8 +119,32 @@ public sealed class HexWorldRenderer : MonoBehaviour
         InterpolateMovables(_runner.TickAlpha);
     }
 
+    private GameObject _seaPlane;
+
+    private void EnsureSeaPlane()
+    {
+        if (_seaPlane != null)
+        {
+            return;
+        }
+
+        // Spec 20.16: the ocean extends past the playable bounds.
+        _seaPlane = GameObject.CreatePrimitive(PrimitiveType.Plane);
+        _seaPlane.name = "Sea";
+        _seaPlane.transform.SetParent(transform, false);
+        _seaPlane.transform.position = new Vector3(
+            0f, SimulationUnityMapper.TileHeight - ElevationStep * 0.45f, 0f);
+        _seaPlane.transform.localScale = new Vector3(40f, 1f, 40f); // 400x400 units
+        var renderer = _seaPlane.GetComponent<MeshRenderer>();
+        if (renderer is not null)
+        {
+            renderer.sharedMaterial = CreateWaterMaterial();
+        }
+    }
+
     private void EnsureRoots()
     {
+        EnsureSeaPlane();
         _tilesRoot ??= CreateRoot("Tiles");
         _junctionsRoot ??= CreateRoot("Junctions");
         _objectsRoot ??= CreateRoot("Objects");
@@ -140,8 +168,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
     {
         // Spec 31C.4: the river gets banks — tiles adjacent to water are sand.
         _waterCoords.Clear();
+        _tileElevations.Clear();
         foreach (var tile in snapshot.Tiles)
         {
+            _tileElevations[tile.Coord] = tile.Elevation;
             if (tile.Water)
             {
                 _waterCoords.Add(tile.Coord);
@@ -229,7 +259,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 _npcViews[key] = npcView;
             }
 
-            var targetPos = SimulationUnityMapper.ToUnityPosition(npc.Position, SimulationUnityMapper.TileHeight);
+            var targetPos = SimulationUnityMapper.ToUnityPosition(npc.Position, GroundY(npc.Tile));
             var targetRot = Quaternion.Euler(0f, SimulationUnityMapper.ToUnityYawDegrees(npc.RotationDegrees), 0f);
             var targetPose = new Pose(targetPos, targetRot);
 
@@ -305,7 +335,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             var partner = FindNearestOtherNpc(snapshot, npc);
             if (partner is not null)
             {
-                var head = SimulationUnityMapper.ToUnityPosition(partner.Position, SimulationUnityMapper.TileHeight);
+                var head = SimulationUnityMapper.ToUnityPosition(partner.Position, GroundY(partner.Tile));
                 head.y += HexRadius * NpcHeightFactor * 1.8f;
                 actorView.LookAtPoint(head);
                 return;
@@ -315,7 +345,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         if (npc.MovementStatus == "Moving" && npc.TargetTile is { } target)
         {
             var ahead = SimulationUnityMapper.ToUnityPosition(
-                HexSpatialMath.TileToWorld(target), SimulationUnityMapper.TileHeight);
+                HexSpatialMath.TileToWorld(target), GroundY(target));
             ahead.y += HexRadius * NpcHeightFactor * 1.5f;
             actorView.LookAtPoint(ahead);
             return;
@@ -477,6 +507,28 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private readonly HashSet<TileCoord> _waterCoords = new();
 
+    // Spec 20.16: elevation registry — every movable and object view takes
+    // its Y from its tile's top.
+    private const float ElevationStep = 0.55f;
+    private readonly Dictionary<TileCoord, int> _tileElevations = new();
+
+    // Spec 20.16: prisms skirt down to a shared base so tall tiles read as
+    // solid columns rooted below every neighbour — no floating tops.
+    private const float TerrainBaseY = -2.5f;
+
+    // World-space UV scales: tops sample a biome texture continuously across
+    // tiles; walls stretch a cliff texture along the perimeter and vertically.
+    private const float TopUvScale = 0.42f;
+    private const float WallUvScaleU = 0.5f;
+    private const float WallUvScaleV = 0.45f;
+
+    private float GroundY(TileCoord coord)
+    {
+        var elevation = _tileElevations.TryGetValue(coord, out var e) ? e : 1;
+        return SimulationUnityMapper.TileHeight + elevation * ElevationStep;
+    }
+
+
     private bool IsSandTile(TileSnapshot tile)
     {
         if (tile.Water || tile.Indoor)
@@ -500,26 +552,65 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var go = new GameObject($"Hex {tile.Coord.Q},{tile.Coord.R}");
         go.transform.SetParent(_tilesRoot, false);
         var position = SimulationUnityMapper.ToUnityTilePosition(tile.Coord);
+        var world = HexSpatialMath.TileToWorld(tile.Coord);
 
         var meshFilter = go.AddComponent<MeshFilter>();
-        meshFilter.sharedMesh = BuildHexMesh(HexRadius, SimulationUnityMapper.TileHeight);
+        // Spec 20.16: hexes are prisms — top at the tile's elevation, skirt
+        // to a shared base so hills read as solid terrain, not floating caps.
+        var topHeight = SimulationUnityMapper.TileHeight + tile.Elevation * ElevationStep;
+        if (tile.Water)
+        {
+            topHeight -= ElevationStep * 0.4f; // sunken water surface
+        }
+
+        // Submesh 0 = flat top, submesh 1 = the perimeter skirt/cliff.
+        meshFilter.sharedMesh = BuildHexPrismMesh(HexRadius, topHeight, TerrainBaseY, world.X, world.Y);
 
         var meshRenderer = go.AddComponent<MeshRenderer>();
         if (tile.Water)
         {
-            // Spec 31C.4: shallows — the water surface sits sunken and
-            // translucent, so a wading NPC visibly sinks to the ankles.
-            position.y -= SimulationUnityMapper.TileHeight * 0.4f;
-            meshRenderer.sharedMaterial = CreateWaterMaterial();
+            // Transparent water surface on top; sandy riverbed on the walls.
+            meshRenderer.sharedMaterials = new[]
+            {
+                CreateWaterMaterial(),
+                GetFlatMaterial(Jitter(BiomeColor("sand"), tile.Coord, 0.05f))
+            };
         }
         else
         {
-            var color = sand ? new Color(0.87f, 0.78f, 0.55f) : GetTileColor(tile);
-            meshRenderer.sharedMaterial = CreateMaterial(color);
+            var topBiome = sand ? "sand" : TopBiome(tile.Elevation);
+            // Low-poly look: flat facet colours, a subtle per-tile shade
+            // jitter for a hand-placed patchwork, darker earthy cliffs.
+            meshRenderer.sharedMaterials = new[]
+            {
+                GetFlatMaterial(Jitter(BiomeColor(topBiome), tile.Coord, 0.07f)),
+                GetFlatMaterial(Jitter(BiomeColor("cliff"), tile.Coord, 0.05f))
+            };
+
+            // Spec 20.16: leafy tufts stand on grass tops — terrain grass.
+            if (_grassDetail && _grassBladesPerTile > 0 &&
+                (topBiome == "grass" || topBiome == "grass_dry"))
+            {
+                BuildGrassClump(go.transform, HexRadius, topHeight, tile.Coord);
+            }
         }
 
         go.transform.position = position;
         return go;
+    }
+
+    // Spec 20.16: biome key by elevation band — grass lowland, dry grass,
+    // brown-green hills, bare rock, mountain caps.
+    private static string TopBiome(int elevation)
+    {
+        return elevation switch
+        {
+            <= 1 => "grass",
+            2 => "grass_dry",
+            3 => "hill",
+            4 => "rock",
+            _ => "mountain"
+        };
     }
 
     private static Material _waterMaterial;
@@ -531,6 +622,15 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return _waterMaterial;
         }
 
+        // Spec 20.16: stylized cartoon water — waves, fresnel two-tone, glints.
+        var stylized = Shader.Find("HexLive/StylizedWater");
+        if (stylized != null)
+        {
+            _waterMaterial = new Material(stylized);
+            return _waterMaterial;
+        }
+
+        // Fallback: plain transparent URP/Lit if the shader failed to import.
         var material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
         material.SetFloat("_Surface", 1f); // transparent
         material.SetFloat("_Blend", 0f);   // alpha
@@ -586,7 +686,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             FitObjectPrefab(instance, worldObject.DefinitionId);
             var anchorPos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
             prefabRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
-                anchorPos, SimulationUnityMapper.TileHeight);
+                anchorPos, GroundY(worldObject.Tile));
+            MaybeAttachCampfire(prefabRoot, worldObject.DefinitionId);
             return prefabRoot;
         }
 
@@ -599,8 +700,22 @@ public sealed class HexWorldRenderer : MonoBehaviour
         visual.name = "Visual";
 
         var pos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
-        root.transform.position = SimulationUnityMapper.ToUnityPosition(pos, SimulationUnityMapper.TileHeight);
+        root.transform.position = SimulationUnityMapper.ToUnityPosition(pos, GroundY(worldObject.Tile));
+        MaybeAttachCampfire(root, worldObject.DefinitionId);
         return root;
+    }
+
+    // Spec 20.16: the campfire actually burns — flame particles + a warm,
+    // flickering point light that lights nearby terrain and actors.
+    private void MaybeAttachCampfire(GameObject root, string definitionId)
+    {
+        if (definitionId != "campfire.spot")
+        {
+            return;
+        }
+
+        var effect = root.AddComponent<HexLive.UnityPresentation.Environment.CampfireEffect>();
+        effect.Construct(HexRadius);
     }
 
     // Animal keys share one pose map: dogs get positive ids, crabs negative.
@@ -616,7 +731,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 _dogViews[key] = CreateDogView(dog.Id);
             }
 
-            UpdateAnimalPose(key, dog.Position);
+            UpdateAnimalPose(key, dog.Position, dog.Tile);
         }
 
         foreach (var crab in snapshot.Crabs)
@@ -628,16 +743,16 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 _crabViews[crab.Id] = CreateCrabView(crab.Id);
             }
 
-            UpdateAnimalPose(key, crab.Position);
+            UpdateAnimalPose(key, crab.Position, crab.Tile);
         }
 
         PruneAnimalViews(_dogViews, liveKeys, negate: false);
         PruneAnimalViews(_crabViews, liveKeys, negate: true);
     }
 
-    private void UpdateAnimalPose(int key, Float2 position)
+    private void UpdateAnimalPose(int key, Float2 position, TileCoord tile)
     {
-        var target = SimulationUnityMapper.ToUnityPosition(position, SimulationUnityMapper.TileHeight);
+        var target = SimulationUnityMapper.ToUnityPosition(position, GroundY(tile));
         var pose = new Pose(target, Quaternion.identity);
         _prevAnimalPoses[key] = _currAnimalPoses.TryGetValue(key, out var old) ? old : pose;
         _currAnimalPoses[key] = pose;
@@ -802,12 +917,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
             {
                 if (junction.Id.Equals(worldObject.Junctions[0]))
                 {
-                    return SimulationUnityMapper.ToUnityPosition(junction.WorldPosition, SimulationUnityMapper.TileHeight);
+                    return SimulationUnityMapper.ToUnityPosition(junction.WorldPosition, GroundY(worldObject.Tile));
                 }
             }
         }
 
-        return SimulationUnityMapper.ToUnityTilePosition(worldObject.Tile, SimulationUnityMapper.TileHeight);
+        return SimulationUnityMapper.ToUnityTilePosition(worldObject.Tile, GroundY(worldObject.Tile));
     }
 
     private static Float2 GetObjectAnchorFromJunctions(ObjectSnapshot worldObject, Dictionary<int, Float2> junctionPositions)
@@ -820,34 +935,218 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return HexSpatialMath.TileToWorld(worldObject.Tile);
     }
 
-    private static Mesh BuildHexMesh(float radius, float height)
+    // Spec 20.16: a solid hex prism — flat top (submesh 0) plus a skirt of
+    // six quads down to a shared base (submesh 1) so elevation reads as rock
+    // columns that visually meet their lower neighbours. UVs are world-space
+    // so the biome texture flows continuously from tile to tile.
+    private static Mesh BuildHexPrismMesh(float radius, float top, float baseY, float worldX, float worldZ)
     {
-        var mesh = new Mesh
-        {
-            name = "HexTile"
-        };
+        var mesh = new Mesh { name = "HexPrism" };
 
-        var vertices = new List<Vector3> { new(0f, height, 0f) };
-        var triangles = new List<int>();
+        var vertices = new List<Vector3>();
+        var uvs = new List<Vector2>();
+        var topTris = new List<int>();
+        var wallTris = new List<int>();
 
+        // --- top face (fan around the centre) ---
+        vertices.Add(new Vector3(0f, top, 0f));
+        uvs.Add(new Vector2(worldX, worldZ) * TopUvScale);
+
+        var rim = new Vector3[6];
         for (var i = 0; i < 6; i++)
         {
             var angle = Mathf.Deg2Rad * (60f * i - 30f);
-            vertices.Add(new Vector3(radius * Mathf.Cos(angle), height, radius * Mathf.Sin(angle)));
+            rim[i] = new Vector3(radius * Mathf.Cos(angle), top, radius * Mathf.Sin(angle));
+            vertices.Add(rim[i]);
+            uvs.Add(new Vector2(worldX + rim[i].x, worldZ + rim[i].z) * TopUvScale);
         }
 
-        for (var i = 1; i <= 6; i++)
+        for (var i = 0; i < 6; i++)
         {
-            var next = i == 6 ? 1 : i + 1;
-            triangles.Add(0);
-            triangles.Add(next);
-            triangles.Add(i);
+            var a = 1 + i;
+            var b = 1 + (i + 1) % 6;
+            topTris.Add(0);
+            topTris.Add(b);
+            topTris.Add(a);
+        }
+
+        // --- perimeter skirt (own vertices for hard-edged cliff shading) ---
+        for (var i = 0; i < 6; i++)
+        {
+            var a = rim[i];
+            var b = rim[(i + 1) % 6];
+            var start = vertices.Count;
+
+            vertices.Add(new Vector3(a.x, top, a.z));
+            vertices.Add(new Vector3(b.x, top, b.z));
+            vertices.Add(new Vector3(b.x, baseY, b.z));
+            vertices.Add(new Vector3(a.x, baseY, a.z));
+
+            var uA = i * WallUvScaleU;
+            var uB = (i + 1) * WallUvScaleU;
+            uvs.Add(new Vector2(uA, top * WallUvScaleV));
+            uvs.Add(new Vector2(uB, top * WallUvScaleV));
+            uvs.Add(new Vector2(uB, baseY * WallUvScaleV));
+            uvs.Add(new Vector2(uA, baseY * WallUvScaleV));
+
+            wallTris.Add(start + 0);
+            wallTris.Add(start + 1);
+            wallTris.Add(start + 2);
+            wallTris.Add(start + 0);
+            wallTris.Add(start + 2);
+            wallTris.Add(start + 3);
+        }
+
+        mesh.subMeshCount = 2;
+        mesh.SetVertices(vertices);
+        mesh.SetUVs(0, uvs);
+        mesh.SetTriangles(topTris, 0);
+        mesh.SetTriangles(wallTris, 1);
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        return mesh;
+    }
+
+    // ---- Flat low-poly biome colours ----
+    // No textures: each tile is a flat-shaded facet with a small, stable
+    // per-tile shade jitter so a field of grass reads as a hand-placed
+    // patchwork rather than one dead-flat sheet. Materials are cached by
+    // quantised colour so the SRP batcher still groups most tiles.
+
+    private static Color BiomeColor(string biome)
+    {
+        return biome switch
+        {
+            "grass" => new Color(0.42f, 0.63f, 0.30f),
+            "grass_dry" => new Color(0.56f, 0.63f, 0.33f),
+            "hill" => new Color(0.53f, 0.47f, 0.30f),
+            "rock" => new Color(0.56f, 0.51f, 0.45f),
+            "mountain" => new Color(0.60f, 0.60f, 0.62f),
+            "sand" => new Color(0.89f, 0.81f, 0.58f),
+            "cliff" => new Color(0.47f, 0.35f, 0.26f),
+            _ => new Color(0.5f, 0.5f, 0.5f)
+        };
+    }
+
+    // Deterministic ±amount brightness wobble keyed off the tile coord.
+    private static Color Jitter(Color color, TileCoord coord, float amount)
+    {
+        var seed = (uint)(coord.Q * 73856093 ^ coord.R * 19349663) ^ 0x85EBCA6Bu;
+        var k = 1f + (NextRand(ref seed) - 0.5f) * 2f * amount;
+        return new Color(color.r * k, color.g * k, color.b * k);
+    }
+
+    private static readonly Dictionary<int, Material> _flatMaterials = new();
+
+    private static Material GetFlatMaterial(Color color)
+    {
+        // Quantise to ~24 levels per channel to keep the material count low.
+        var key = (Mathf.RoundToInt(color.r * 24f) << 16)
+                  | (Mathf.RoundToInt(color.g * 24f) << 8)
+                  | Mathf.RoundToInt(color.b * 24f);
+        if (_flatMaterials.TryGetValue(key, out var cached) && cached != null)
+        {
+            return cached;
+        }
+
+        var material = new Material(Shader.Find("Universal Render Pipeline/Lit"))
+        {
+            color = color
+        };
+        material.SetFloat("_Smoothness", 0f);
+        material.SetFloat("_Cull", 0f); // double-sided: skirt interiors never show
+        _flatMaterials[key] = material;
+        return material;
+    }
+
+    // ---- Terrain grass tufts ----
+
+    private static Material _grassMaterial;
+
+    private static Material GetGrassMaterial()
+    {
+        if (_grassMaterial != null)
+        {
+            return _grassMaterial;
+        }
+
+        // Flat solid-green blades — low-poly, no texture, no alpha seams.
+        var material = new Material(Shader.Find("Universal Render Pipeline/Lit"))
+        {
+            color = new Color(0.36f, 0.56f, 0.24f)
+        };
+        material.SetFloat("_Smoothness", 0f);
+        material.SetFloat("_Cull", 0f); // single triangles seen from both sides
+        _grassMaterial = material;
+        return material;
+    }
+
+    private void BuildGrassClump(Transform parent, float radius, float topY, TileCoord coord)
+    {
+        var go = new GameObject("Grass");
+        go.transform.SetParent(parent, false);
+        var meshFilter = go.AddComponent<MeshFilter>();
+        var meshRenderer = go.AddComponent<MeshRenderer>();
+        meshRenderer.sharedMaterial = GetGrassMaterial();
+        meshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        meshFilter.sharedMesh = BuildGrassMesh(radius, topY, coord);
+    }
+
+    private Mesh BuildGrassMesh(float radius, float topY, TileCoord coord)
+    {
+        var mesh = new Mesh { name = "GrassClump" };
+        var vertices = new List<Vector3>();
+        var tris = new List<int>();
+
+        // Deterministic per-tile scatter — same tile always looks the same.
+        var seed = (uint)(coord.Q * 73856093 ^ coord.R * 19349663) ^ 0x9E3779B9u;
+        var apothem = radius * 0.78f;
+
+        for (var b = 0; b < _grassBladesPerTile; b++)
+        {
+            var ang = NextRand(ref seed) * Mathf.PI * 2f;
+            var rad = Mathf.Sqrt(NextRand(ref seed)) * apothem;
+            var px = Mathf.Cos(ang) * rad;
+            var pz = Mathf.Sin(ang) * rad;
+            var h = radius * (0.14f + NextRand(ref seed) * 0.10f);
+            var w = radius * 0.05f;
+            var yaw = NextRand(ref seed) * Mathf.PI;
+            // A tiny lean so tufts aren't rigidly vertical.
+            var lean = radius * (NextRand(ref seed) - 0.5f) * 0.06f;
+
+            AddGrassBlade(vertices, tris, px, pz, topY, w, h, yaw, lean);
+            AddGrassBlade(vertices, tris, px, pz, topY, w, h, yaw + Mathf.PI * 0.5f, lean);
         }
 
         mesh.SetVertices(vertices);
-        mesh.SetTriangles(triangles, 0);
+        mesh.SetTriangles(tris, 0);
         mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
         return mesh;
+    }
+
+    // One low-poly blade: a triangle tapering from a base edge to a tip.
+    private static void AddGrassBlade(List<Vector3> vertices, List<int> tris,
+        float px, float pz, float baseY, float halfWidth, float height, float yaw, float lean)
+    {
+        var dx = Mathf.Cos(yaw) * halfWidth;
+        var dz = Mathf.Sin(yaw) * halfWidth;
+        var start = vertices.Count;
+
+        vertices.Add(new Vector3(px - dx, baseY, pz - dz));
+        vertices.Add(new Vector3(px + dx, baseY, pz + dz));
+        vertices.Add(new Vector3(px + lean, baseY + height, pz + lean));
+
+        tris.Add(start + 0);
+        tris.Add(start + 1);
+        tris.Add(start + 2);
+    }
+
+    // Cheap deterministic LCG in [0,1); avoids UnityEngine.Random global state.
+    private static float NextRand(ref uint state)
+    {
+        state = state * 1664525u + 1013904223u;
+        return (state >> 8) / 16777216f;
     }
 
     // Spec 31C.3: normalize any downloaded/transferred model to the hex

@@ -9,13 +9,13 @@ public static class PrototypeDebugBootstrap
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Install()
     {
-        var existing = Object.FindFirstObjectByType<SimulationDebugPanel>();
+        var existing = Object.FindAnyObjectByType<SimulationDebugPanel>();
         if (existing is not null)
         {
             return;
         }
 
-        var runner = Object.FindFirstObjectByType<SimulationRunnerBehaviour>();
+        var runner = Object.FindAnyObjectByType<SimulationRunnerBehaviour>();
 
         // Debug HUD + controls panel
         var debugRoot = new GameObject("HexLive Debug");

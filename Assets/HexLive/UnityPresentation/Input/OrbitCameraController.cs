@@ -37,7 +37,7 @@ namespace HexLive.UnityPresentation.Input
         {
             if (_runner == null)
             {
-                _runner = FindFirstObjectByType<SimulationRunnerBehaviour>();
+                _runner = FindAnyObjectByType<SimulationRunnerBehaviour>();
             }
 
             if (_runner == null || !_runner.IsReady)

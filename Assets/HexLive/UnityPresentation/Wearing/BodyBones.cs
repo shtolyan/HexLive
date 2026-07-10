@@ -1,0 +1,166 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace HexLive.UnityPresentation.Wearing
+{
+
+// Adapted from molly_copy Wearing.BodyBones (spec 31B.3): same serialized
+// field names (hip / wearTransform / hair / genitals — the .meta claims the
+// original GUID so actor prefab data binds directly). Equip/TakeOff keep
+// the source's layer-and-slot bookkeeping including underwear auto-hiding;
+// gender checks, events, and nudity toggling are gone — the base body stays
+// as authored and hair is just another Wear spawned on Construct.
+public sealed class BodyBones : MonoBehaviour
+{
+    [SerializeField] private Transform hip;
+    [SerializeField] private Transform wearTransform;
+    [SerializeField] private Wear hair;
+    [SerializeField] private GameObject genitals;
+
+    private readonly Dictionary<string, Transform> _bonesMap = new();
+    private readonly Dictionary<string, Wear> _wears = new();
+    private readonly Dictionary<VisualWearLayer, Dictionary<VisualWearSlot, Wear>> _byLayer = new();
+    private readonly Dictionary<Wear, string> _wearKeys = new();
+    private ActorName _actorMesh;
+
+    public Transform WearTransform => wearTransform;
+
+    public void Construct(ActorName actorMesh)
+    {
+        _actorMesh = actorMesh;
+        _bonesMap.Clear();
+        _wears.Clear();
+        _wearKeys.Clear();
+        _byLayer[VisualWearLayer.Underwear] = new Dictionary<VisualWearSlot, Wear>();
+        _byLayer[VisualWearLayer.Wear] = new Dictionary<VisualWearSlot, Wear>();
+        _byLayer[VisualWearLayer.Outerwear] = new Dictionary<VisualWearSlot, Wear>();
+
+        if (genitals != null)
+        {
+            genitals.SetActive(false);
+        }
+
+        foreach (var bone in hip.GetComponentsInChildren<Transform>(true))
+        {
+            if (_bonesMap.ContainsKey(bone.name) == false)
+            {
+                _bonesMap.Add(bone.name, bone);
+            }
+        }
+
+        if (hair != null)
+        {
+            var spawned = Instantiate(hair, wearTransform);
+            spawned.Construct(_actorMesh, this);
+        }
+    }
+
+    public Transform GetBone(string boneName)
+    {
+        return _bonesMap.TryGetValue(boneName, out var bone) ? bone : null;
+    }
+
+    public bool IsEquipped(string key)
+    {
+        return _wears.ContainsKey(key);
+    }
+
+    // key = sim item definition id + index (a sim item may map to several
+    // visual garments, each equipped under its own key).
+    public void Equip(string key, Wear wearPrefab)
+    {
+        if (_wears.ContainsKey(key))
+        {
+            return;
+        }
+
+        var layerDict = _byLayer[wearPrefab.Layer];
+        var underwear = _byLayer[VisualWearLayer.Underwear];
+        var newWear = Instantiate(wearPrefab, wearTransform);
+        newWear.Construct(_actorMesh, this);
+
+        foreach (var slot in newWear.Slots)
+        {
+            // One garment per (layer, slot) — the old one comes off.
+            if (layerDict.TryGetValue(slot, out var conflicting))
+            {
+                TakeOff(_wearKeys[conflicting]);
+            }
+
+            if (wearPrefab.Layer != VisualWearLayer.Underwear)
+            {
+                if (newWear.HeedHideUnderwearSlot(slot) && underwear.TryGetValue(slot, out var under))
+                {
+                    under.Hide();
+                }
+            }
+            else
+            {
+                // Dressing underwear beneath already-worn outer layers.
+                if (_byLayer[VisualWearLayer.Wear].TryGetValue(slot, out var outer1) &&
+                    outer1.HeedHideUnderwearSlot(slot))
+                {
+                    newWear.Hide();
+                }
+
+                if (_byLayer[VisualWearLayer.Outerwear].TryGetValue(slot, out var outer2) &&
+                    outer2.HeedHideUnderwearSlot(slot))
+                {
+                    newWear.Hide();
+                }
+            }
+
+            layerDict[slot] = newWear;
+        }
+
+        _wears[key] = newWear;
+        _wearKeys[newWear] = key;
+    }
+
+    public void TakeOff(string key)
+    {
+        if (_wears.TryGetValue(key, out var wear) == false)
+        {
+            return;
+        }
+
+        var layerDict = _byLayer[wear.Layer];
+        var wearLayer = _byLayer[VisualWearLayer.Wear];
+        var underwear = _byLayer[VisualWearLayer.Underwear];
+
+        foreach (var slot in wear.Slots)
+        {
+            if (layerDict.TryGetValue(slot, out var occupant) && occupant == wear)
+            {
+                layerDict.Remove(slot);
+            }
+
+            // Whatever underwear was hidden beneath becomes visible again,
+            // unless another outer garment still covers that slot.
+            if (wearLayer.TryGetValue(slot, out var stillOn) && stillOn.HeedHideUnderwearSlot(slot))
+            {
+                continue;
+            }
+
+            if (underwear.TryGetValue(slot, out var under))
+            {
+                under.Show();
+            }
+        }
+
+        Destroy(wear.gameObject);
+        _wears.Remove(key);
+        _wearKeys.Remove(wear);
+    }
+
+    public void TakeOffAll()
+    {
+        var keys = new List<string>(_wears.Keys);
+        foreach (var key in keys)
+        {
+            TakeOff(key);
+        }
+    }
+}
+
+}

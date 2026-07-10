@@ -25,6 +25,13 @@ namespace HexLive.UnityDebug.UI
         private WorldSnapshot _cachedSnapshot;
         private Material _lineMaterial;
 
+        // Spec 31.17: the overlay was designed for a 16-tile room and met a
+        // 14k-junction world — cull by camera distance, refresh per tick.
+        private const float OverlayRange = 14f;
+        private const int MaxBadges = 700;
+        private int _lastRefreshedTick = -1;
+        private Vector3 _lastCamPos;
+
         private static readonly Color BadgeBg = new(0.05f, 0.05f, 0.06f, 0.75f);
         private static readonly Color BlockedBg = new(0.30f, 0.08f, 0.08f, 0.80f);
         private static readonly Color OccupiedBg = new(0.35f, 0.08f, 0.08f, 0.80f);
@@ -76,7 +83,7 @@ namespace HexLive.UnityDebug.UI
         private void Update()
         {
             if (_runner == null)
-                _runner = FindFirstObjectByType<SimulationRunnerBehaviour>();
+                _runner = FindAnyObjectByType<SimulationRunnerBehaviour>();
 
             var kb = Keyboard.current;
             if (kb != null && kb.spaceKey.wasPressedThisFrame)
@@ -98,7 +105,13 @@ namespace HexLive.UnityDebug.UI
             if (snapshot == null) { HideAll(); _cachedSnapshot = null; return; }
 
             _cachedSnapshot = snapshot;
-            RefreshOverlays(snapshot);
+            var camMoved = (_cam.transform.position - _lastCamPos).sqrMagnitude > 0.04f;
+            if (snapshot.Tick != _lastRefreshedTick || camMoved)
+            {
+                _lastRefreshedTick = snapshot.Tick;
+                _lastCamPos = _cam.transform.position;
+                RefreshOverlays(snapshot);
+            }
         }
 
         private void OnRenderObject()
@@ -112,8 +125,16 @@ namespace HexLive.UnityDebug.UI
         {
             foreach (var kv in _badges) kv.Value.style.display = DisplayStyle.None;
 
+            var focus = OverlayFocusPoint();
+            var shown = 0;
             foreach (var junction in snapshot.Junctions)
             {
+                if (shown >= MaxBadges) break;
+
+                var world = SimulationUnityMapper.ToUnityPosition(
+                    junction.WorldPosition, SimulationUnityMapper.TileHeight);
+                if ((world - focus).sqrMagnitude > OverlayRange * OverlayRange) continue;
+
                 var pos = WorldToPanel(junction.WorldPosition);
                 if (!pos.HasValue) continue;
 
@@ -121,16 +142,32 @@ namespace HexLive.UnityDebug.UI
                 UpdateBadge(badge, junction);
                 PlaceAt(badge, pos.Value);
                 badge.style.display = DisplayStyle.Flex;
+                shown++;
             }
+        }
+
+        // Where the camera is looking at ground level — range-culling
+        // around the view center, not the camera body.
+        private Vector3 OverlayFocusPoint()
+        {
+            var t = _cam.transform;
+            var ray = new Ray(t.position, t.forward);
+            var plane = new Plane(Vector3.up, new Vector3(0f, SimulationUnityMapper.TileHeight, 0f));
+            return plane.Raycast(ray, out var enter) ? ray.GetPoint(enter) : t.position;
         }
 
         // ── Edge drawing with GL ──
 
+        private readonly Dictionary<int, JunctionSnapshot> _junctionLookup = new();
+        private readonly HashSet<long> _drawnEdges = new();
+
         private void DrawEdges(WorldSnapshot snapshot)
         {
-            if (_lineMaterial == null) return;
+            if (_lineMaterial == null || _cam == null) return;
 
-            var junctionLookup = new Dictionary<int, JunctionSnapshot>();
+            var focus = OverlayFocusPoint();
+            var junctionLookup = _junctionLookup;
+            junctionLookup.Clear();
             foreach (var j in snapshot.Junctions)
             {
                 junctionLookup[j.Id.Value] = j;
@@ -140,12 +177,14 @@ namespace HexLive.UnityDebug.UI
             GL.PushMatrix();
             GL.Begin(GL.LINES);
 
-            var drawn = new HashSet<long>();
+            var drawn = _drawnEdges;
+            drawn.Clear();
             var lineHeight = SimulationUnityMapper.TileHeight + SimulationUnityMapper.PointMarkerLift * 0.5f;
 
             foreach (var junction in snapshot.Junctions)
             {
                 var fromPos = SimulationUnityMapper.ToUnityPosition(junction.WorldPosition, lineHeight);
+                if ((fromPos - focus).sqrMagnitude > OverlayRange * OverlayRange) continue;
 
                 foreach (var neighborId in junction.Neighbors)
                 {

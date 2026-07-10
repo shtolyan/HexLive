@@ -11,7 +11,7 @@ public static class PrototypeRuntimeBootstrap
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Install()
     {
-        var existingRunner = Object.FindFirstObjectByType<SimulationRunnerBehaviour>();
+        var existingRunner = Object.FindAnyObjectByType<SimulationRunnerBehaviour>();
         if (existingRunner is not null)
         {
             return;
@@ -19,7 +19,14 @@ public static class PrototypeRuntimeBootstrap
 
         var root = new GameObject("HexLive Prototype");
         var runner = root.AddComponent<SimulationRunnerBehaviour>();
-        runner.Configure(PrototypeWorldDefinitionFactory.Create(), startPaused: true, initialSpeed: 1f);
+
+        // Presentation-side randomness (spec 29C.1): each play-mode session
+        // gets a fresh seed; the simulation itself stays deterministic per seed.
+        var seed = System.Environment.TickCount;
+        Debug.Log($"[HexLive] World seed: {seed}");
+        // Spec 31.13: play mode drops straight into a живой мир — the
+        // simulation ticks at normal speed from frame one.
+        runner.Configure(PrototypeWorldDefinitionFactory.Create(seed), startPaused: false, initialSpeed: 1f);
 
         var renderer = root.AddComponent<HexWorldRenderer>();
         renderer.SetRunner(runner);
@@ -48,6 +55,8 @@ public static class PrototypeRuntimeBootstrap
         {
             rts = mainCamera.gameObject.AddComponent<RtsCameraController>();
         }
+
+        rts.SetRunner(runner);
     }
 }
 

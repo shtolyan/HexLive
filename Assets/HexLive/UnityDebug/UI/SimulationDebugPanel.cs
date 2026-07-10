@@ -22,14 +22,25 @@ namespace HexLive.UnityDebug.UI
         private Label _hudTileValue;
         private Label _hudGoalValue;
         private Label _hudInteractionValue;
+        private Label _hudInventoryValue;
+        private Label _hudWornValue;
+        private Label _hudBodyValue;
+        private Label _hudStarvingBadge;
+        private VisualElement _healthBar;
+        private Label _healthLabel;
+        private VisualElement _thirstBar;
+        private Label _thirstLabel;
         private VisualElement _hungerBar;
         private VisualElement _energyBar;
         private VisualElement _comfortBar;
+        private VisualElement _socialBar;
         private VisualElement _thermalBar;
         private Label _hungerLabel;
         private Label _energyLabel;
         private Label _comfortLabel;
+        private Label _socialLabel;
         private Label _thermalLabel;
+        private Label _hudRelationsValue;
 
         // Debug elements
         private Foldout _debugFoldout;
@@ -38,11 +49,15 @@ namespace HexLive.UnityDebug.UI
         private Label _pausedValue;
         private Label _speedValue;
         private Label _planValue;
+        private Label _goalLockValue;
+        private Label _cooldownsValue;
+        private Label _memoryValue;
         private Label _targetTileValue;
         private Label _movementValue;
         private Label _executionValue;
         private Label _pathValue;
         private Label _temperatureValue;
+        private Label _clockValue;
         private Label _reservedValue;
         private Label _occupiedValue;
         private VisualElement _scoresContainer;
@@ -52,8 +67,9 @@ namespace HexLive.UnityDebug.UI
         private readonly List<Button> _speedButtons = new();
         private Button _pauseButton;
 
-        // Toggle visibility
-        private bool _visible = true;
+        // Toggle visibility — hidden by default, Tab shows (spec 31.17:
+        // debug overlays stay out of the way of the live world).
+        private bool _visible;
 
         // Colors
         private static readonly Color PanelBg = new(0.09f, 0.09f, 0.10f, 0.96f);
@@ -72,6 +88,9 @@ namespace HexLive.UnityDebug.UI
         private static readonly Color HungerColor = new(0.92f, 0.55f, 0.20f);
         private static readonly Color EnergyColor = new(0.40f, 0.78f, 0.35f);
         private static readonly Color ComfortColor = new(0.40f, 0.62f, 0.92f);
+        private static readonly Color SocialColor = new(0.62f, 0.44f, 0.86f);
+        private static readonly Color HealthColor = new(0.85f, 0.25f, 0.35f);
+        private static readonly Color ThirstColor = new(0.30f, 0.65f, 0.90f);
         private static readonly Color ThermalColor = new(0.90f, 0.35f, 0.35f);
         private static readonly Color ScoreBarColor = new(0.55f, 0.45f, 0.85f);
 
@@ -95,7 +114,7 @@ namespace HexLive.UnityDebug.UI
         {
             if (_runner == null)
             {
-                _runner = FindFirstObjectByType<SimulationRunnerBehaviour>();
+                _runner = FindAnyObjectByType<SimulationRunnerBehaviour>();
             }
 
             var keyboard = Keyboard.current;
@@ -120,6 +139,7 @@ namespace HexLive.UnityDebug.UI
         {
             var root = _document.rootVisualElement;
             root.Clear();
+            root.style.display = _visible ? DisplayStyle.Flex : DisplayStyle.None;
             root.style.flexGrow = 1f;
             root.style.flexDirection = FlexDirection.Row;
             root.style.justifyContent = Justify.FlexStart;
@@ -150,16 +170,38 @@ namespace HexLive.UnityDebug.UI
             _hudTileValue = AddKeyValue(infoSection, "Tile");
             _hudGoalValue = AddKeyValue(infoSection, "Goal");
             _hudInteractionValue = AddKeyValue(infoSection, "Interaction");
+            _hudInventoryValue = AddKeyValue(infoSection, "Inventory");
+            _hudWornValue = AddKeyValue(infoSection, "Worn");
+            _hudBodyValue = AddKeyValue(infoSection, "Body");
             panel.Add(infoSection);
+
+            _hudStarvingBadge = new Label("STARVING");
+            _hudStarvingBadge.style.color = Color.white;
+            _hudStarvingBadge.style.backgroundColor = new Color(0.75f, 0.12f, 0.12f);
+            _hudStarvingBadge.style.unityFontStyleAndWeight = FontStyle.Bold;
+            _hudStarvingBadge.style.unityTextAlign = TextAnchor.MiddleCenter;
+            _hudStarvingBadge.style.paddingTop = 3f;
+            _hudStarvingBadge.style.paddingBottom = 3f;
+            _hudStarvingBadge.style.marginBottom = 6f;
+            _hudStarvingBadge.style.display = DisplayStyle.None;
+            panel.Add(_hudStarvingBadge);
 
             panel.Add(CreateSectionTitle("Needs"));
 
             var needsSection = CreateSection();
+            _healthBar = AddNeedBar(needsSection, "Health", "Hit points; regenerates while fed", HealthColor, out _healthLabel);
             _hungerBar = AddNeedBar(needsSection, "Hunger", "Pressure to find food", HungerColor, out _hungerLabel);
+            _thirstBar = AddNeedBar(needsSection, "Thirst", "Pressure to find water", ThirstColor, out _thirstLabel);
             _energyBar = AddNeedBar(needsSection, "Energy", "Current rest reserve", EnergyColor, out _energyLabel);
             _comfortBar = AddNeedBar(needsSection, "Comfort", "Current comfort level", ComfortColor, out _comfortLabel);
+            _socialBar = AddNeedBar(needsSection, "Social", "Social fulfillment", SocialColor, out _socialLabel);
             _thermalBar = AddNeedBar(needsSection, "Thermal", "Temperature discomfort", ThermalColor, out _thermalLabel);
             panel.Add(needsSection);
+
+            panel.Add(CreateSectionTitle("Relations"));
+            var relationsSection = CreateSection();
+            _hudRelationsValue = AddKeyValue(relationsSection, "Relations");
+            panel.Add(relationsSection);
         }
 
         private void BuildDebug(VisualElement panel)
@@ -216,10 +258,14 @@ namespace HexLive.UnityDebug.UI
             content.Add(CreateSectionTitle("Simulation"));
             var simSection = CreateSection();
             _planValue = AddKeyValue(simSection, "Plan");
+            _goalLockValue = AddKeyValue(simSection, "Goal Lock");
+            _cooldownsValue = AddKeyValue(simSection, "Cooldowns");
+            _memoryValue = AddKeyValue(simSection, "Memory");
             _targetTileValue = AddKeyValue(simSection, "Target Tile");
             _movementValue = AddKeyValue(simSection, "Movement");
             _executionValue = AddKeyValue(simSection, "Execution");
             _pathValue = AddKeyValue(simSection, "Path");
+            _clockValue = AddKeyValue(simSection, "Time");
             _temperatureValue = AddKeyValue(simSection, "Temperature");
             _reservedValue = AddKeyValue(simSection, "Reserved Pts");
             _occupiedValue = AddKeyValue(simSection, "Occupied Pts");
@@ -276,24 +322,51 @@ namespace HexLive.UnityDebug.UI
             }
 
             var npc = snapshot.Npcs[0];
-            _hudNpcName.text = string.Format("NPC #{0}", npc.Id.Value);
+            _hudNpcName.text = string.IsNullOrEmpty(npc.DisplayName)
+                ? string.Format("NPC #{0}", npc.Id.Value)
+                : string.Format("{0} (#{1})", npc.DisplayName, npc.Id.Value);
             _hudTileValue.text = string.Format("({0}, {1})", npc.Tile.Q, npc.Tile.R);
             _hudGoalValue.text = npc.CurrentGoal;
             _hudGoalValue.style.color = GetGoalColor(npc.CurrentGoal);
             _hudInteractionValue.text = npc.CurrentInteraction;
+            _hudInventoryValue.text = npc.InventoryItems.Count == 0
+                ? string.Format("empty (0/{0})", npc.InventoryCapacity)
+                : string.Format("{0} ({1}/{2})",
+                    string.Join(", ", npc.InventoryItems),
+                    npc.InventoryItems.Count,
+                    npc.InventoryCapacity);
+            _hudWornValue.text = npc.WornItems.Count == 0
+                ? "-"
+                : string.Join(", ", npc.WornItems);
+            _hudBodyValue.text = npc.WorstBodyPart;
+            _hudStarvingBadge.style.display = npc.IsStarving ? DisplayStyle.Flex : DisplayStyle.None;
 
+            SetNeedBar(_healthBar, _healthLabel, npc.IsFighting ? "Health (FIGHTING)" : "Health", npc.Health, HealthColor);
             SetNeedBar(_hungerBar, _hungerLabel, "Hunger", npc.Hunger, HungerColor);
+            SetNeedBar(_thirstBar, _thirstLabel, "Thirst", npc.Thirst, ThirstColor);
             SetNeedBar(_energyBar, _energyLabel, "Energy", npc.Energy, EnergyColor);
             SetNeedBar(_comfortBar, _comfortLabel, "Comfort", npc.Comfort, ComfortColor);
+            SetNeedBar(_socialBar, _socialLabel, "Social", npc.Social, SocialColor);
             SetNeedBar(_thermalBar, _thermalLabel, "Thermal", npc.ThermalDiscomfort, ThermalColor);
+            _hudRelationsValue.text = npc.Relationships.Count == 0
+                ? "-"
+                : string.Join("\n", npc.Relationships);
 
             _planValue.text = npc.PlanStatus;
+            _goalLockValue.text = npc.GoalLockEndTick.HasValue
+                ? string.Format("until {0}", npc.GoalLockEndTick.Value)
+                : "-";
+            _cooldownsValue.text = npc.CooldownGoals.Count == 0
+                ? "-"
+                : string.Join(", ", npc.CooldownGoals);
+            _memoryValue.text = string.Format("{0} known objects", npc.KnownObjectCount);
             _targetTileValue.text = FormatTile(npc.TargetTile);
             _movementValue.text = npc.MovementStatus;
             _movementValue.style.color = GetMovementColor(npc.MovementStatus);
             _executionValue.text = npc.ExecutionStatus;
             _executionValue.style.color = GetExecutionColor(npc.ExecutionStatus);
             _pathValue.text = npc.Path.Count == 0 ? "-" : FormatPath(npc.Path);
+            _clockValue.text = string.Format("{0} ({1}) UV {2:F2}{3}", snapshot.Clock, snapshot.DayPhase, snapshot.UvIndex, snapshot.IsRaining ? " RAIN" : "");
             _temperatureValue.text = string.Format("{0:0.0} C", snapshot.Temperature);
             _temperatureValue.style.color = snapshot.Temperature < 12f ? ThermalColor : EnergyColor;
             _reservedValue.text = CountReserved(snapshot).ToString();
@@ -310,21 +383,33 @@ namespace HexLive.UnityDebug.UI
             _hudGoalValue.text = "-";
             _hudGoalValue.style.color = TextSecondary;
             _hudInteractionValue.text = "-";
+            _hudInventoryValue.text = "-";
+            _hudWornValue.text = "-";
+            _hudBodyValue.text = "-";
+            _hudStarvingBadge.style.display = DisplayStyle.None;
             _planValue.text = "-";
+            _goalLockValue.text = "-";
+            _cooldownsValue.text = "-";
+            _memoryValue.text = "-";
             _targetTileValue.text = "-";
             _movementValue.text = "-";
             _movementValue.style.color = TextPrimary;
             _executionValue.text = "-";
             _executionValue.style.color = TextPrimary;
             _pathValue.text = "-";
+            _clockValue.text = "-";
             _temperatureValue.text = "-";
             _temperatureValue.style.color = TextPrimary;
             _reservedValue.text = "-";
             _occupiedValue.text = "-";
+            SetNeedBar(_healthBar, _healthLabel, "Health", 0f, HealthColor);
             SetNeedBar(_hungerBar, _hungerLabel, "Hunger", 0f, HungerColor);
+            SetNeedBar(_thirstBar, _thirstLabel, "Thirst", 0f, ThirstColor);
             SetNeedBar(_energyBar, _energyLabel, "Energy", 0f, EnergyColor);
             SetNeedBar(_comfortBar, _comfortLabel, "Comfort", 0f, ComfortColor);
+            SetNeedBar(_socialBar, _socialLabel, "Social", 0f, SocialColor);
             SetNeedBar(_thermalBar, _thermalLabel, "Thermal", 0f, ThermalColor);
+            _hudRelationsValue.text = "-";
         }
 
         private void UpdateScores(NpcSnapshot npc)
@@ -750,6 +835,8 @@ namespace HexLive.UnityDebug.UI
             if (string.IsNullOrEmpty(goal) || goal == "-" || goal == "None")
                 return TextSecondary;
             if (goal == "Eat") return HungerColor;
+            if (goal == "GetFood") return HungerColor;
+            if (goal == "Socialize") return SocialColor;
             if (goal == "Sleep") return EnergyColor;
             if (goal == "Sit") return ComfortColor;
             if (goal == "Dress") return ThermalColor;

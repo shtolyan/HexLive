@@ -1,3 +1,4 @@
+#nullable enable
 using HexLive.Simulation.Bootstrap;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
@@ -37,9 +38,26 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
             ? Mathf.Clamp01(_accumulator / _settings.TickDeltaTime)
             : 0f;
 
+    private WorldSnapshot? _cachedSnapshot;
+    private int _cachedSnapshotTick = -1;
+
+    // Spec 31.17: consumers poll every frame; the world serializes once
+    // per simulation tick.
     public WorldSnapshot? CreateSnapshot()
     {
-        return _engine is null ? null : WorldSnapshotExporter.Export(_engine.World);
+        if (_engine is null)
+        {
+            return null;
+        }
+
+        if (_cachedSnapshot is not null && _engine.World.Tick == _cachedSnapshotTick)
+        {
+            return _cachedSnapshot;
+        }
+
+        _cachedSnapshot = WorldSnapshotExporter.Export(_engine.World);
+        _cachedSnapshotTick = _engine.World.Tick;
+        return _cachedSnapshot;
     }
 
     private void Awake()
@@ -191,8 +209,16 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
         engine.Register(new PerceptionSystem());
         engine.Register(new DecisionSystem());
         engine.Register(new PlanningSystem());
+        engine.Register(new DogSystem());
+        engine.Register(new RabbitSystem());
+        engine.Register(new WeatherSystem());
+        engine.Register(new EnvironmentSystem());
         engine.Register(new NeedsDecaySystem());
         engine.Register(new TemperatureSystem());
+        engine.Register(new MoistureSystem());
+        engine.Register(new FruitProductionSystem());
+        engine.Register(new FireSystem());
+        engine.Register(new CorpseSystem());
     }
 }
 

@@ -3,7 +3,8 @@
   "rootNamespace": "HexLive.UnityPresentation",
   "references": [
     "HexLive.Simulation",
-    "Unity.InputSystem"
+    "Unity.InputSystem",
+    "RootMotion"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

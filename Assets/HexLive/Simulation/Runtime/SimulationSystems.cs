@@ -504,16 +504,24 @@ public sealed class DecisionSystem : ISimulationSystem
             var hasBow = npc.Inventory.Items.Contains("tool.bow");
             var arrowCount = CountInventory(npc, "resource.arrow");
             var armed = hasSpear || (hasBow && arrowCount > 0);
-            var huntAvail = armed && !hasRawMeat && !hasFoodInInventory &&
-                npc.Needs.Hunger >= 0.3f &&
+            // A carried coconut does not block the hunt — meat is also hide,
+            // and hide is pants and a bow; the old any-food gate left the
+            // whole leather/bow tier dormant (4 seeds, ~0 hunts). But the
+            // window closes at 0.55: a truly hungry NPC takes the sure meal,
+            // not a chase with a 50% roll (starving storms otherwise).
+            var huntAvail = armed && !hasRawMeat &&
+                npc.Needs.Hunger >= 0.3f && npc.Needs.Hunger < 0.55f &&
                 NearestVisibleRabbit(npc, world) is not null;
             var craftSpearAvail = !hasSpear && hasWood && campfireSeen;
             var cookAvail = hasRawMeat && campfireSeen && campfireFuel > 0f;
             var craftLeatherAvail = hideCount >= 1 && campfireSeen &&
                 !npc.WornItems.Contains("clothing.leather_pants");
 
+            // Inside the peckish window the hunt genuinely outbids GetFood
+            // (0.3+0.5h > h for h < 0.6); the availability window above is
+            // what protects mealtimes, not the curve.
             AddGoalScore(npc, world.Tick, GoalType.Hunt,
-                0.15f + 0.5f * npc.Needs.Hunger, huntAvail, emergencyBoost);
+                0.3f + 0.5f * npc.Needs.Hunger, huntAvail, emergencyBoost);
             AddGoalScore(npc, world.Tick, GoalType.CraftSpear,
                 0.2f + 0.2f * npc.Needs.Hunger, craftSpearAvail);
             AddGoalScore(npc, world.Tick, GoalType.CookMeat,
@@ -832,6 +840,8 @@ public sealed class DecisionSystem : ISimulationSystem
             }
 
             var distance = HexSpatialMath.HexDistance(npc.Tile, rabbit.Tile);
+            // Radius stays 4: 5-6 made hunts more frequent but the longer
+            // chases dragged NPCs into dog country (wipes on two seeds).
             if (distance <= 4 && distance < bestDistance)
             {
                 bestDistance = distance;

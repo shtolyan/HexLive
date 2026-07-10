@@ -371,13 +371,42 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
                 return "food.coconut";
             case "Harvest":
-                if (npc.InventoryItems.Contains("tool.pickaxe_stone") &&
-                    !npc.InventoryItems.Contains("tool.axe_stone"))
+                // The goal says WHAT is being harvested: a boulder wants the
+                // pickaxe; a tree wants the axe, or the saw when that's the
+                // chopper's tool (the saw era showed empty-handed logging).
+                if (npc.CurrentGoal == "MineBoulder" &&
+                    npc.InventoryItems.Contains("tool.pickaxe_stone"))
                 {
                     return "tool.pickaxe_stone";
                 }
 
-                return npc.InventoryItems.Contains("tool.axe_stone") ? "tool.axe_stone" : null;
+                if (npc.InventoryItems.Contains("tool.axe_stone"))
+                {
+                    return "tool.axe_stone";
+                }
+
+                if (npc.InventoryItems.Contains("tool.saw"))
+                {
+                    return "tool.saw";
+                }
+
+                return npc.InventoryItems.Contains("tool.pickaxe_stone")
+                    ? "tool.pickaxe_stone" : null;
+            case "Fuel":
+                return npc.InventoryItems.Contains("resource.firewood")
+                    ? "resource.firewood" : null;
+            case "Craft":
+                if (npc.CurrentGoal == "CookMeat" &&
+                    npc.InventoryItems.Contains("food.meat_raw"))
+                {
+                    return "food.meat_raw";
+                }
+
+                return npc.InventoryItems.Contains("resource.firewood")
+                    ? "resource.firewood" : null;
+            case "Build":
+                return npc.InventoryItems.Contains("resource.firewood")
+                    ? "resource.firewood" : null;
             case "Drink":
                 return npc.InventoryItems.Contains("tool.pot") ? "tool.pot" : null;
             default:

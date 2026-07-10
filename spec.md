@@ -4663,12 +4663,23 @@ Prey wildlife (`RabbitState`, mirrors 29C.3 dogs but flees):
 | Spooked | after a missed kill attempt: immune + panicked for 150 ticks |
 
 NPCs perceive rabbits by direct proximity scan (hex distance <= 4) — no
-rabbit memory in v1.
+rabbit memory in v1. (Radius 5-6 was tried in the crab era to raise
+encounter rates: the longer chases dragged hunters into dog country and
+seeds wiped — hunts stay rare-but-real at 4.)
 
 ### 29F.2 Hunting
 
 - `Hunt` goal: needs a **spear carried**, a visible non-spooked rabbit,
-  Hunger >= 0.3, and no meat already in hand. Score 0.15 + 0.5 × Hunger.
+  Hunger >= 0.3, and no raw meat already in hand (a carried coconut does
+  NOT block the hunt — meat is also hide, and hide is pants and a bow;
+  with the old any-food gate hunters basically never had an open window
+  and the whole leather/bow tier lay dormant). Hunting is for the
+  PECKISH: available at **0.3 <= Hunger < 0.55** — a truly hungry NPC
+  takes the sure meal, not a chase with a 50 % roll. Inside the window
+  the score **0.3 + 0.5 × Hunger** genuinely outbids GetFood (= Hunger);
+  the availability window, not the curve, protects mealtimes. (History:
+  0.15 + 0.5 × Hunger was strictly dominated — zero hunts across four
+  seeds; an uncapped 0.3 + 0.5 × Hunger caused starving storms.)
 - The plan is a move-only chase to the rabbit's junction; the rabbit flees;
   re-planning each arrival produces a genuine pursuit (NPC walk speed beats
   hop speed).

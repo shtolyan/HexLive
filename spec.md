@@ -5945,6 +5945,38 @@ The land itself is furniture — worse than the real thing, but always there.
   (<= 0.55) in that window — at 0.35 the kit's logs were always eaten by
   the hearth. The hut-completion bed reward stays.
 
+### 29C.10 Signed thermal comfort & the burning fire (iteration 31)
+
+The temperature axis becomes a **signed "chocolate" scale** for the UI, and
+weather gains real stakes.
+
+- `NPCNeeds.ThermalComfort` in [-1, +1]: **0 = ideal**, negative = too cold
+  (snowflake, left), positive = too hot (sun, right). Computed each slow
+  tick from the effective temperature: 0 inside the ideal [12,20] band,
+  scaling to ±1 over ~15 degrees beyond it. This is the instantaneous
+  reading the UI shows.
+- The old unsigned `ThermalDiscomfort` (0..1) stays as the accumulating
+  NEED the decision layer scores (Dress when cold, CoolOff/Undress when
+  hot — direction still comes from the effective temperature). Its pressure
+  now tracks the discomfort magnitude.
+- **HP at the extremes**: while |ThermalComfort| >= 0.85 (un-fled freezing
+  or heatstroke, and not standing in water) every body part loses 0.02 per
+  slow tick — `Hypothermia` / `Heatstroke` traces; a destroyed vital ends
+  it. Weather can now kill the unprepared. (Dormant in the current mild
+  climate — a safety net for genuine cold snaps / heat waves.)
+- **The campfire warms the DISPLAY**: a LIT campfire radiates warmth to
+  tiles within 2 (≈ +8 at 1 tile, +4 at 2), folded into the signed
+  ThermalComfort the UI shows — the player watches the dial pull toward
+  "ideal" by the fire on a cold night. This iteration keeps it DISPLAY
+  only: feeding the fire's warmth into the decision-driving discomfort NEED
+  reshuffled the dog-fragile colony (everyone comfortable → nobody
+  dresses/cools → repositioned into wipes). Likewise the "standing in the
+  fire burns you" HP hit is **deferred**: NPCs constantly path across the
+  central fire tile, so any hit whittles them down. Both land properly in
+  the **campfire-as-obstacle** pass (approach from the edge, never stand on
+  the flames) — `onFire`/`FireBurn` are already computed and traced,
+  waiting to be wired once that holds.
+
 ### 29C.9 Gradual needs & longer actions (iteration 30)
 
 Sims-style: a need fills **visibly, tick by tick, across the action**, not

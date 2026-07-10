@@ -4310,16 +4310,26 @@ public sealed class TemperatureSystem : ISimulationSystem
             var isShaded = IsShaded(world, npc.Tile);
             var indoorBonus = isIndoor ? 4f : 0f;
             var coolBonus = (isShaded ? -2f : 0f) + (isInWater ? -3f : 0f);
-            var effectiveTemp = world.Environment.GlobalTemperature + npc.EquippedWarmth * 10f +
+            // Spec 29C.10: a lit campfire warms the tiles around it (the
+            // colder it is, the more worth huddling by the fire), but only
+            // chases away COLD — it never overheats a warm body.
+            var fireWarmth = NearbyFireWarmth(world, npc.Tile, out var onFire);
+            var baseTemp = world.Environment.GlobalTemperature + npc.EquippedWarmth * 10f +
                 indoorBonus + coolBonus;
+            // The accumulating NEED (decisions score this) uses the base temp,
+            // NOT the fire warmth — a survival-relevant reshuffle here (the fire
+            // making everyone comfortable, so nobody dresses/cools) tipped
+            // dog-fragile seeds into wipes. The fire's warmth is a DISPLAY-only
+            // comfort for iteration 31; making it a real thermal source waits
+            // for the campfire-as-obstacle pass so it can't reposition fatally.
             float pressure;
-            if (effectiveTemp < 12f)
+            if (baseTemp < 12f)
             {
-                pressure = System.Math.Min(0.09f, (12f - effectiveTemp) * 0.02f); // cold
+                pressure = System.Math.Min(0.09f, (12f - baseTemp) * 0.02f); // cold
             }
-            else if (effectiveTemp > 20f)
+            else if (baseTemp > 20f)
             {
-                pressure = System.Math.Min(0.09f, (effectiveTemp - 20f) * 0.02f); // overheating
+                pressure = System.Math.Min(0.09f, (baseTemp - 20f) * 0.02f); // overheating
             }
             else
             {
@@ -4328,10 +4338,68 @@ public sealed class TemperatureSystem : ISimulationSystem
 
             npc.Needs.ThermalDiscomfort = MathUtil.Clamp01(npc.Needs.ThermalDiscomfort + pressure);
 
+            // Signed comfort for the UI DOES fold in the fire's warmth (clamped
+            // so it only removes cold): the player sees the fire pull the dial
+            // toward "ideal" on a cold night, even though the sim's decisions
+            // stay on the base temperature this iteration.
+            var effectiveTemp = baseTemp + fireWarmth;
+            if (baseTemp <= 20f && effectiveTemp > 20f)
+            {
+                effectiveTemp = 20f;
+            }
+
+            // Spec 29C.10: signed comfort for the UI — 0 in the ideal [12,20]
+            // band, scaling to -1 (freezing) / +1 (boiling) over a ~15 span.
+            float signed;
+            if (effectiveTemp < 12f)
+            {
+                signed = System.Math.Max(-1f, (effectiveTemp - 12f) / 15f);
+            }
+            else if (effectiveTemp > 20f)
+            {
+                signed = System.Math.Min(1f, (effectiveTemp - 20f) / 15f);
+            }
+            else
+            {
+                signed = 0f;
+            }
+
+            npc.Needs.ThermalComfort = signed;
+            var magnitude = System.Math.Abs(signed);
+
+            // Spec 29C.10: "the fire burns you if you stand in it" is DEFERRED
+            // to the campfire-as-obstacle pass — any HP/comfort hit here
+            // reshuffles the dog-fragile colony (NPCs constantly path across
+            // the central fire tile) and wipes seeds. onFire is computed and
+            // traced so the mechanic is ready to wire once nobody stands on
+            // the flames by construction.
+            if (onFire)
+            {
+                Trace.Emit(world, npc.Id, "FireBurn", "On the fire tile (no HP hit yet)");
+            }
+
+            if (magnitude >= 0.85f && !isInWater)
+            {
+                foreach (var part in AllTemperatureParts)
+                {
+                    npc.Body.Parts[part] = System.Math.Max(0f, npc.Body.Parts[part] - 0.02f);
+                }
+
+                npc.Health = npc.Body.Mean();
+                if (npc.Body.VitalDestroyed(out _))
+                {
+                    npc.Health = 0f;
+                }
+
+                Trace.Emit(world, npc.Id, signed > 0f ? "Heatstroke" : "Hypothermia",
+                    $"ThermalComfort={signed:+0.00;-0.00} Health={npc.Health:F2}");
+            }
+
             Trace.Emit(world, npc.Id, "TemperatureUpdate",
                 $"Thermal={prevThermal:F3}->{npc.Needs.ThermalDiscomfort:F3} " +
+                $"Signed={signed:+0.00;-0.00} " +
                 $"EffectiveTemp={effectiveTemp:F1} (Global={world.Environment.GlobalTemperature:F1} " +
-                $"Warmth={npc.EquippedWarmth:F2}) Pressure={pressure:+0.00;-0.00}");
+                $"Warmth={npc.EquippedWarmth:F2} Fire={fireWarmth:F1}) Pressure={pressure:+0.00;-0.00}");
 
             // Spec 35.4: sun exposure and sunburn on uncovered parts.
             var effectiveUv = isIndoor || isInWater
@@ -4371,6 +4439,41 @@ public sealed class TemperatureSystem : ISimulationSystem
                 npc.SunExposure = System.Math.Max(0f, npc.SunExposure - 0.05f);
             }
         }
+    }
+
+    private static readonly BodyPart[] AllTemperatureParts =
+    {
+        BodyPart.Head, BodyPart.Torso, BodyPart.Pelvis,
+        BodyPart.ArmL, BodyPart.ArmR, BodyPart.LegL, BodyPart.LegR
+    };
+
+    // Spec 29C.10: warmth radiated by nearby LIT campfires. On the fire's own
+    // tile it is agony (onFire = true); a tile or two away it gently warms.
+    private static float NearbyFireWarmth(WorldState world, TileCoord tile, out bool onFire)
+    {
+        onFire = false;
+        var warmth = 0f;
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (obj.ResourceAmount <= 0f ||
+                !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
+                !definition.Tags.Contains("Campfire"))
+            {
+                continue;
+            }
+
+            var dist = HexSpatialMath.HexDistance(tile, obj.Tile);
+            if (dist == 0)
+            {
+                onFire = true;
+            }
+            else if (dist <= 2)
+            {
+                warmth = System.Math.Max(warmth, dist == 1 ? 8f : 4f);
+            }
+        }
+
+        return warmth;
     }
 
     // Spec 35.4: within 1 tile of a Shade-tagged object (big tree / palm).

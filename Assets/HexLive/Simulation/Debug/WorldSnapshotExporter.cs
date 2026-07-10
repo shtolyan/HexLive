@@ -64,7 +64,8 @@ public static class WorldSnapshotExporter
             {
                 Id = obj.Id,
                 DefinitionId = obj.DefinitionId,
-                Tile = obj.Tile
+                Tile = obj.Tile,
+                ResourceAmount = obj.ResourceAmount
             };
 
             foreach (var junctionId in obj.Junctions)
@@ -94,6 +95,7 @@ public static class WorldSnapshotExporter
                 Comfort = npc.Needs.Comfort,
                 Social = npc.Needs.Social,
                 ThermalDiscomfort = npc.Needs.ThermalDiscomfort,
+                ThermalComfort = npc.Needs.ThermalComfort,
                 CurrentGoal = npc.Mind.CurrentGoal.ToString(),
                 PlanStatus = npc.Plan.Status.ToString(),
                 MovementStatus = npc.Movement.Status.ToString(),

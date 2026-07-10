@@ -95,6 +95,9 @@ public sealed class ObjectSnapshot
 
     public TileCoord Tile { get; set; } = TileCoord.Zero;
 
+    // Spec 29E.3: fuel ticks. For a campfire, > 0 means lit/burning.
+    public float ResourceAmount { get; set; }
+
     public List<JunctionId> Junctions { get; } = new();
 }
 
@@ -131,6 +134,9 @@ public sealed class NpcSnapshot
     public float Social { get; set; }
 
     public float ThermalDiscomfort { get; set; }
+
+    // Spec 29C.10: signed thermal comfort for the UI — 0 ideal, - cold, + hot.
+    public float ThermalComfort { get; set; }
 
     public string CurrentGoal { get; set; } = string.Empty;
 

@@ -123,6 +123,9 @@ public sealed class NPCState
     public SocialState Social { get; } = new();
 
     public InventoryState Inventory { get; } = new();
+
+    // Spec 29G: junctions covered by a lying body — housemates path around.
+    public System.Collections.Generic.List<HexLive.Simulation.Common.JunctionId> ClaimedJunctions { get; } = new();
 }
 
 }

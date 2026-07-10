@@ -174,7 +174,9 @@ public static class PrototypeContentCatalog
                 {
                     ProducedDefinitionId = "food.coconut",
                     IntervalTicks = 100,
-                    MaxConcurrent = 4,
+                    // Spec 20.16: the island ring ate ~7% of the land — palms
+                    // carry one more coconut to keep the table set.
+                    MaxConcurrent = 5,
                     MaxDistanceTiles = 1
                 }
             },

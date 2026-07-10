@@ -54,6 +54,9 @@ public sealed class TileBootstrap
 
     public bool Water { get; set; }
 
+    // Spec 20.16: island elevation, 0..5.
+    public int Elevation { get; set; } = 1;
+
     public List<int> BlockedSlots { get; set; } = new();
 }
 

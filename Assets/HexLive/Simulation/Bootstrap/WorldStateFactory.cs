@@ -37,6 +37,7 @@ public sealed class WorldStateFactory
 
         BuildAdjacency(world);
         BlockEdgeJunctions(world);
+        BlockCliffAndSeaJunctions(world);
 
         foreach (var objectBootstrap in bootstrap.Objects)
         {
@@ -178,7 +179,8 @@ public sealed class WorldStateFactory
             var tile = new Tile
             {
                 Coord = coord,
-                Flags = GetTileFlags(tileBootstrap)
+                Flags = GetTileFlags(tileBootstrap),
+                Elevation = tileBootstrap.Elevation
             };
 
             fragment.Tiles[coord] = tile;
@@ -287,6 +289,50 @@ public sealed class WorldStateFactory
                         junction.Neighbors.Add(neighborId);
                     }
                 }
+            }
+        }
+    }
+
+    // Spec 20.16: cliffs are junction blocks — a boundary junction whose
+    // owning LAND tiles differ by more than one level is impassable, and
+    // junctions living entirely on unwalkable sea are closed outright.
+    private static void BlockCliffAndSeaJunctions(WorldState world)
+    {
+        foreach (var junction in world.Junctions.Items.Values)
+        {
+            if (junction.Blocked || junction.Tiles.Count == 0)
+            {
+                continue;
+            }
+
+            var anyWalkable = false;
+            var minElevation = int.MaxValue;
+            var maxElevation = int.MinValue;
+            foreach (var coord in junction.Tiles)
+            {
+                if (!world.Tiles.Items.TryGetValue(coord, out var tile))
+                {
+                    continue;
+                }
+
+                if (tile.Flags.HasFlag(TileFlags.Walkable))
+                {
+                    anyWalkable = true;
+                }
+
+                minElevation = System.Math.Min(minElevation, tile.Elevation);
+                maxElevation = System.Math.Max(maxElevation, tile.Elevation);
+            }
+
+            if (!anyWalkable)
+            {
+                junction.Blocked = true; // open sea
+                continue;
+            }
+
+            if (junction.Tiles.Count > 1 && maxElevation - minElevation > 1)
+            {
+                junction.Blocked = true; // cliff face
             }
         }
     }

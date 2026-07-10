@@ -66,6 +66,7 @@ public enum GoalType
     CoolOff,      // stand in shade or the river when overheating (iter 20)
     CraftRack,    // drying rack: 2 logs at the campfire (iteration 21)
     DryClothes,   // hang the wettest garment / stand by the fire (iter 21)
+    CraftBed,     // bedroll: 2 logs + 3 palm leaves (iteration 28)
     CraftBow,     // bow: 2 logs + 1 hide at the campfire (iteration 22)
     CraftArrows,  // 1 log -> 3 arrows at the campfire (iteration 22)
     Idle

@@ -66,6 +66,8 @@ public sealed class TileSnapshot
     public bool Indoor { get; set; }
 
     public bool Water { get; set; }
+
+    public int Elevation { get; set; }
 }
 
 public sealed class JunctionSnapshot
@@ -156,6 +158,8 @@ public sealed class NpcSnapshot
 
     public List<string> Relationships { get; } = new();
 
+    public List<RelationshipSnapshot> RelationshipDetails { get; } = new();
+
     public int KnownObjectCount { get; set; }
 
     public List<string> KnownObjects { get; } = new();
@@ -163,6 +167,19 @@ public sealed class NpcSnapshot
     public List<JunctionId> Path { get; } = new();
 
     public List<GoalScoreSnapshot> GoalScores { get; } = new();
+}
+
+public sealed class RelationshipSnapshot
+{
+    public int OtherId { get; set; }
+
+    public string OtherName { get; set; } = string.Empty;
+
+    public float Trust { get; set; }
+
+    public float Familiarity { get; set; }
+
+    public float Affinity { get; set; }
 }
 
 public sealed class GoalScoreSnapshot

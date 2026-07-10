@@ -371,12 +371,19 @@ public sealed class DecisionSystem : ISimulationSystem
             var getFoodAvail = !hasFoodInInventory && npc.Inventory.HasSpace &&
                 npc.Needs.Hunger >= GetFoodHungerThreshold &&
                 (HasInteraction(npc, InteractionType.PickUp) || KnowsReachableProducer(npc, world));
-            var sleepAvail = HasInteraction(npc, InteractionType.Sleep);
+            // Spec 29G: the land itself is furniture — a bed is better, but
+            // sleep never blocks on owning one. Still, nobody naps at noon
+            // out of boredom: sleep is for the tired or for the dark hours
+            // (without this gate the first soak showed 73 ground naps eating
+            // every idle minute — no explores, the fire never lit).
+            var sleepAvail = npc.Needs.Energy < 0.45f ||
+                world.Environment.Phase is DayPhase.Night or DayPhase.Evening;
             // Spec 31C.7A: sit because you need it — and never settle into a
-            // chair on an empty stomach.
+            // chair on an empty stomach. Sitting yields to sleep hours (the
+            // Sit->Sleep churn was 47 interrupts/soak before this gate).
             var sitAvail = npc.Needs.Comfort < 0.6f &&
                 npc.Needs.Hunger < 0.6f && npc.Needs.Thirst < 0.6f &&
-                HasInteraction(npc, InteractionType.Sit);
+                !sleepAvail;
             // Spec 29C.4 restraint: dress only against cold — an overheated
             // NPC reaching for more clothes is a doom loop.
             // Spec 29C.4A: fresh danger overrides the weather — arm up.
@@ -439,7 +446,10 @@ public sealed class DecisionSystem : ISimulationSystem
             AddGoalScore(npc, world.Tick, GoalType.GetFood, npc.Needs.Hunger, getFoodAvail, emergencyBoost);
             AddGoalScore(npc, world.Tick, GoalType.Sleep, 1f - npc.Needs.Energy, sleepAvail,
                 environment: sleepEnvironmentBonus);
-            AddGoalScore(npc, world.Tick, GoalType.Sit, 1f - npc.Needs.Comfort, sitAvail);
+            // Sitting anywhere is leisure, not survival: half-weight keeps it
+            // an idle-time filler instead of outbidding fire and food chores
+            // (full 1-Comfort made Sit >= 0.4 by construction of its gate).
+            AddGoalScore(npc, world.Tick, GoalType.Sit, (1f - npc.Needs.Comfort) * 0.5f, sitAvail);
             AddGoalScore(npc, world.Tick, GoalType.Dress, dressNeed, dressAvail);
             // Spec 28.15B: dislike lowers the urge, embarrassment causes
             // post-quarrel withdrawal.
@@ -583,6 +593,18 @@ public sealed class DecisionSystem : ISimulationSystem
             }
 
             var craftRackAvail = !RackExists(world) && carriedLogs >= 2 && campfireSeen;
+
+            // Spec 29G: the bed must be earned — 2 logs + 3 palm leaves.
+            // The hearth outranks the mattress: never spend logs on a bed
+            // while the fire is hungry (777 soak: the bed ate the only wood
+            // and the fire never burned again — boiledDrinks=0 all game).
+            var craftBedAvail = !HasReachableWithTag(npc, world, "Bed") &&
+                carriedLogs >= 2 && carriedLeaves >= 3 && campfireSeen &&
+                campfireFuel > 0f;
+            // 0.6: with the full kit in hand and the fire alive, the bed
+            // must outbid TendFire (<=0.55) — at 0.35 the kit's logs were
+            // always eaten by the hearth and the bed never happened.
+            AddGoalScore(npc, world.Tick, GoalType.CraftBed, 0.6f, craftBedAvail);
             AddGoalScore(npc, world.Tick, GoalType.CraftRack,
                 0.3f + (world.Environment.IsRaining || wornWetness > 0.5f ? 0.2f : 0f),
                 craftRackAvail);
@@ -607,8 +629,11 @@ public sealed class DecisionSystem : ISimulationSystem
             // girls genuinely idle, and idle should wander, not loiter.
             // ...and only when the hearth is in order — full-time tourism
             // collapsed the fire/craft economy on the first soak.
+            // Comfort > 0.35 (was 0.5): with beds earned rather than given
+            // (spec 29G) comfort is a luxury — the old bar made wanderlust
+            // unreachable and the outings gate starved (777: explores=0).
             var wellRested = npc.Needs.Hunger < 0.5f && npc.Needs.Thirst < 0.5f &&
-                npc.Needs.Energy > 0.5f && npc.Needs.Comfort > 0.5f && !fuelLow ? 0.15f : 0f;
+                npc.Needs.Energy > 0.5f && npc.Needs.Comfort > 0.35f && !fuelLow ? 0.15f : 0f;
             AddGoalScore(npc, world.Tick, GoalType.Explore, 0.05f + exploreJitter + wellRested, true);
 
             AddGoalScore(npc, world.Tick, GoalType.Idle, 0.05f, true);
@@ -1036,6 +1061,7 @@ public static class PlanInterruption
 {
     public static void Abort(WorldState world, NPCState npc, string reason)
     {
+        ExecutionSystem.ReleaseClaims(world, npc);
         if (npc.Execution.Status == ExecutionStatus.InProgress &&
             npc.Plan.TargetObjectId is { } objId &&
             world.Entities.Objects.TryGetValue(objId, out var worldObject) &&
@@ -1203,6 +1229,19 @@ public sealed class PlanningSystem : ISimulationSystem
                 npc.Plan.Status = PlanStatus.Active;
                 Trace.Emit(world, npc.Id, "PlanBuilt",
                     $"Goal=Undress Item={removable} Steps=[UndressItem]");
+                continue;
+            }
+
+            // Spec 29G: no chair/bed among candidates -> rest on the land.
+            if (npc.Mind.CurrentGoal == GoalType.Sit && !HasFurnitureCandidate(world, npc, InteractionType.Sit))
+            {
+                BuildGroundSitPlan(world, npc);
+                continue;
+            }
+
+            if (npc.Mind.CurrentGoal == GoalType.Sleep && !HasFurnitureCandidate(world, npc, InteractionType.Sleep))
+            {
+                BuildGroundSleepPlan(world, npc);
                 continue;
             }
 
@@ -1557,6 +1596,188 @@ public sealed class PlanningSystem : ISimulationSystem
         npc.Plan.Status = PlanStatus.Active;
         Trace.Emit(world, npc.Id, "CoolOffPlanned",
             $"To {spot.DefinitionId} Tile={spot.Tile.Q},{spot.Tile.R}");
+    }
+
+    // Spec 29G: does perception offer real furniture for this interaction?
+    private static bool HasFurnitureCandidate(WorldState world, NPCState npc, InteractionType interaction)
+    {
+        foreach (var perceived in npc.Perception.Objects)
+        {
+            if (perceived.IsReachable && !perceived.IsOccupied &&
+                perceived.AvailableInteractions.Contains(interaction))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Spec 29G: sit on the land — a ledge with the legs over the edge when
+    // one is close, any free junction otherwise.
+    private void BuildGroundSitPlan(WorldState world, NPCState npc)
+    {
+        JunctionId? spot = null;
+
+        // Prefer a scenic ledge within ~4 tiles.
+        if (npc.CurrentJunction is { } from)
+        {
+            var bestDist = float.MaxValue;
+            foreach (var junction in world.Junctions.Items.Values)
+            {
+                if (junction.Blocked || junction.Tiles.Count < 2 ||
+                    !IsLedge(world, junction) ||
+                    !SpatialQueries.IsJunctionFree(world, junction.Id))
+                {
+                    continue;
+                }
+
+                var d = HexSpatialMath.Distance(junction.WorldPosition, npc.Position);
+                if (d < bestDist && d < HexSpatialMath.HexRadius * 8f &&
+                    Connectivity.Reachable(world, from, junction.Id))
+                {
+                    bestDist = d;
+                    spot = junction.Id;
+                }
+            }
+        }
+
+        // Otherwise: sit right where she stands (or the nearest free spot).
+        spot ??= npc.CurrentJunction;
+        if (spot is not { } sitSpot ||
+            !SpatialMutations.TryReserveJunction(world, sitSpot, npc.Id, world.Tick, 96))
+        {
+            npc.Plan.Status = PlanStatus.Failed;
+            SetGoalCooldown(world, npc, GoalType.Sit);
+            Trace.Emit(world, npc.Id, "PlanFailed", "Goal=Sit NoGroundSpot");
+            return;
+        }
+
+        npc.Plan.TargetJunctionId = sitSpot;
+        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.MoveToJunction, TargetJunction = sitSpot });
+        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.GroundSit, TargetJunction = sitSpot });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        Trace.Emit(world, npc.Id, "GroundSitPlanned",
+            $"Junction={sitSpot.Value} Ledge={IsLedgeId(world, sitSpot)}");
+    }
+
+    // Spec 29G: lie at the center of a free hexagon — walkable, dry, no
+    // objects, nobody else lying there. The spot is anchored to HOME (the
+    // campfire), not to wherever the night caught the NPC: the first soak
+    // with self-anchored sleep had the colony bedding down in dog country
+    // and getting eaten (fights=215, 5 deaths).
+    private void BuildGroundSleepPlan(WorldState world, NPCState npc)
+    {
+        var anchor = npc.Tile;
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var objDef) &&
+                objDef.Tags.Contains("Campfire"))
+            {
+                anchor = obj.Tile;
+                break;
+            }
+        }
+
+        JunctionId? spot = null;
+        var bestDist = float.MaxValue;
+        foreach (var tile in world.Tiles.Items.Values)
+        {
+            if (!tile.Flags.HasFlag(TileFlags.Walkable) ||
+                tile.Flags.HasFlag(TileFlags.Water) ||
+                tile.Junctions.Count == 0)
+            {
+                continue;
+            }
+
+            if (world.Caches.ObjectsByTile.TryGetValue(tile.Coord, out var objects) && objects.Count > 0)
+            {
+                continue;
+            }
+
+            var d = (float)HexSpatialMath.HexDistance(tile.Coord, anchor);
+            if (d > 6f)
+            {
+                continue;
+            }
+
+            // A roof beats proximity: indoor sleepers are sanctuary-safe
+            // (spec 29C.4A) — outdoor night camps got mauled by dogs.
+            if (tile.Flags.HasFlag(TileFlags.Indoor))
+            {
+                d -= 100f;
+            }
+
+            if (d >= bestDist)
+            {
+                continue;
+            }
+
+            // center junction: nearest to the tile's world center
+            var center = HexSpatialMath.TileToWorld(tile.Coord);
+            JunctionId? centerJunction = null;
+            var centerDist = float.MaxValue;
+            foreach (var junctionId in tile.Junctions)
+            {
+                if (!world.Junctions.Items.TryGetValue(junctionId, out var junction) || junction.Blocked)
+                {
+                    continue;
+                }
+
+                var cd = HexSpatialMath.Distance(junction.WorldPosition, center);
+                if (cd < centerDist)
+                {
+                    centerDist = cd;
+                    centerJunction = junctionId;
+                }
+            }
+
+            if (centerJunction is { } cj && SpatialQueries.IsJunctionFree(world, cj) &&
+                npc.CurrentJunction is { } from2 && Connectivity.Reachable(world, from2, cj))
+            {
+                bestDist = d;
+                spot = cj;
+            }
+        }
+
+        if (spot is not { } lieSpot ||
+            !SpatialMutations.TryReserveJunction(world, lieSpot, npc.Id, world.Tick, 96))
+        {
+            npc.Plan.Status = PlanStatus.Failed;
+            SetGoalCooldown(world, npc, GoalType.Sleep);
+            Trace.Emit(world, npc.Id, "PlanFailed", "Goal=Sleep NoGroundSpot");
+            return;
+        }
+
+        npc.Plan.TargetJunctionId = lieSpot;
+        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.MoveToJunction, TargetJunction = lieSpot });
+        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.GroundSleep, TargetJunction = lieSpot });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        Trace.Emit(world, npc.Id, "GroundSleepPlanned", $"Junction={lieSpot.Value}");
+    }
+
+    // Spec 29G: a junction on a boundary with >=1 level difference.
+    internal static bool IsLedge(WorldState world, Junction junction)
+    {
+        var min = int.MaxValue;
+        var max = int.MinValue;
+        foreach (var coord in junction.Tiles)
+        {
+            if (world.Tiles.Items.TryGetValue(coord, out var tile))
+            {
+                min = System.Math.Min(min, tile.Elevation);
+                max = System.Math.Max(max, tile.Elevation);
+            }
+        }
+
+        return max - min >= 1;
+    }
+
+    internal static bool IsLedgeId(WorldState world, JunctionId id)
+    {
+        return world.Junctions.Items.TryGetValue(id, out var junction) && IsLedge(world, junction);
     }
 
     // Spec 35.5: is a free drying rack within reach?
@@ -1919,6 +2140,7 @@ public sealed class PlanningSystem : ISimulationSystem
             GoalType.CraftAxe => InteractionType.Craft,
             GoalType.CraftPickaxe => InteractionType.Craft,
             GoalType.CraftRack => InteractionType.Craft,
+            GoalType.CraftBed => InteractionType.Craft,
             GoalType.CraftBow => InteractionType.Craft,
             GoalType.CraftArrows => InteractionType.Craft,
             GoalType.DryClothes => InteractionType.Hang,
@@ -1959,6 +2181,7 @@ public sealed class PlanningSystem : ISimulationSystem
             case GoalType.CraftAxe:
             case GoalType.CraftPickaxe:
             case GoalType.CraftRack:
+            case GoalType.CraftBed:
             case GoalType.CraftBow:
             case GoalType.CraftArrows:
                 return definition.Tags.Contains("Campfire");
@@ -2009,9 +2232,19 @@ public sealed class PathfindingSystem : ISimulationSystem
         _avoidScratch.Clear();
         foreach (var other in world.Entities.Npcs.Values)
         {
-            if (other.Id.Value != self.Id.Value && other.CurrentJunction is { } standing)
+            if (other.Id.Value == self.Id.Value)
+            {
+                continue;
+            }
+
+            if (other.CurrentJunction is { } standing)
             {
                 _avoidScratch.Add(standing);
+            }
+
+            foreach (var claimed in other.ClaimedJunctions)
+            {
+                _avoidScratch.Add(claimed);
             }
         }
 
@@ -2274,6 +2507,15 @@ public sealed class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
+            // Spec 29G: ground rest plans have no target object — the last
+            // step says what to do once the walk (if any) is over.
+            var lastStep = npc.Plan.Steps.Count > 0 ? npc.Plan.Steps[npc.Plan.Steps.Count - 1] : null;
+            if (lastStep is { Type: PlanStepType.GroundSit or PlanStepType.GroundSleep })
+            {
+                RunGroundRestPlan(world, npc, lastStep);
+                continue;
+            }
+
             if (npc.Plan.TargetAgentId is not null)
             {
                 RunTalk(world, npc);
@@ -2403,6 +2645,8 @@ public sealed class ExecutionSystem : ISimulationSystem
                             DecisionSystem.CountInventory(npc, "resource.stone") >= 2,
                         GoalType.CraftRack => DecisionSystem.CountInventory(npc, "resource.firewood") >= 2 &&
                             !DecisionSystem.RackExists(world),
+                        GoalType.CraftBed => DecisionSystem.CountInventory(npc, "resource.firewood") >= 2 &&
+                            DecisionSystem.CountInventory(npc, "resource.palm_leaf") >= 3,
                         GoalType.CraftBow => DecisionSystem.CountInventory(npc, "resource.firewood") >= 2 &&
                             DecisionSystem.CountInventory(npc, "resource.hide") >= 1,
                         GoalType.CraftArrows => npc.Inventory.Items.Contains("resource.firewood"),
@@ -2651,6 +2895,15 @@ public sealed class ExecutionSystem : ISimulationSystem
                             npc.Inventory.Items.Remove("resource.firewood");
                             npc.Inventory.Items.Remove("resource.firewood");
                             PlaceRack(world, npc, worldObject);
+                            break;
+                        case GoalType.CraftBed:
+                            npc.Inventory.Items.Remove("resource.firewood");
+                            npc.Inventory.Items.Remove("resource.firewood");
+                            npc.Inventory.Items.Remove("resource.palm_leaf");
+                            npc.Inventory.Items.Remove("resource.palm_leaf");
+                            npc.Inventory.Items.Remove("resource.palm_leaf");
+                            PlaceCraftedFurniture(world, npc, worldObject, "bed.basic");
+                            Trace.Emit(world, npc.Id, "BedCrafted", "A bedroll of her own");
                             break;
                         case GoalType.CraftBow:
                             npc.Inventory.Items.Remove("resource.firewood");
@@ -3258,6 +3511,31 @@ public sealed class ExecutionSystem : ISimulationSystem
         return wettest;
     }
 
+    // Spec 29G: crafted furniture lands on a free junction by the fire.
+    private static void PlaceCraftedFurniture(WorldState world, NPCState npc, WorldObjectState campfire, string definitionId)
+    {
+        JunctionId? spot = null;
+        if (campfire.Junctions.Count > 0)
+        {
+            foreach (var neighbor in SpatialQueries.GetPassableNeighbors(world, campfire.Junctions[0]))
+            {
+                if (SpatialQueries.IsJunctionFree(world, neighbor))
+                {
+                    spot = neighbor;
+                    break;
+                }
+            }
+        }
+
+        spot ??= npc.CurrentJunction;
+        if (spot is not { } junction)
+        {
+            return;
+        }
+
+        WorldObjectMutations.SpawnObject(world, definitionId, npc.Fragment, npc.Tile, junction);
+    }
+
     // Spec 35.5: the crafted rack goes onto a free junction next to the
     // campfire; when the fireside is crowded it lands at the crafter's feet.
     private static void PlaceRack(WorldState world, NPCState npc, WorldObjectState campfire)
@@ -3325,6 +3603,196 @@ public sealed class ExecutionSystem : ISimulationSystem
     // Spec 31A.5A: take off a worn item in place; it drops to the world at
     // the NPC's feet, retrievable by anyone.
     private const int UndressDurationTicks = 6;
+
+    // Spec 29G: drive a ground rest plan — walk to the reserved spot (the
+    // PathfindingSystem does the walking), then rest in place.
+    private static void RunGroundRestPlan(WorldState world, NPCState npc, PlanStep step)
+    {
+        if (npc.Execution.Status != ExecutionStatus.InProgress)
+        {
+            if (npc.Movement.IsMoving)
+            {
+                return;
+            }
+
+            if (npc.Movement.Status == MovementStatus.Blocked)
+            {
+                PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
+                PlanInterruption.Abort(world, npc, "Ground rest spot unreachable");
+                npc.Mind.CurrentGoal = GoalType.None;
+                return;
+            }
+
+            var atTarget = npc.Plan.TargetJunctionId is { } target &&
+                npc.CurrentJunction is { } current && current.Equals(target);
+            if (!atTarget)
+            {
+                return;
+            }
+        }
+
+        if (step.Type == PlanStepType.GroundSit)
+        {
+            RunGroundRest(world, npc, step, InteractionType.Sit, 70,
+                step.TargetJunction is { } lg && PlanningSystem.IsLedgeId(world, lg) ? 0.25f : 0.15f,
+                0.05f);
+        }
+        else
+        {
+            // Sleep restores as well as a bed (a night is a night) — the
+            // bed's edge is comfort, not energy. +0.35 energy here produced
+            // a poverty trap: 160 naps/soak and no time to live.
+            RunGroundRest(world, npc, step, InteractionType.Sleep, 100, 0f, 0.5f);
+        }
+    }
+
+    // Spec 29G: rest on the land — a timed in-place interaction with no
+    // object. Lying claims the body's footprint so housemates path around.
+    private static void RunGroundRest(
+        WorldState world, NPCState npc, PlanStep step,
+        InteractionType kind, int durationTicks, float comfort, float energy)
+    {
+        if (npc.Execution.Status == ExecutionStatus.None)
+        {
+            npc.Execution.Status = ExecutionStatus.InProgress;
+            npc.Execution.CurrentInteraction = kind;
+            npc.Execution.TargetObject = null;
+            npc.Execution.StartTick = world.Tick;
+            npc.Execution.EndTick = world.Tick + durationTicks;
+
+            if (step.TargetJunction is { } spot)
+            {
+                SpatialMutations.OccupyJunction(world, spot, npc.Id);
+
+                if (kind == InteractionType.Sit &&
+                    world.Junctions.Items.TryGetValue(spot, out var ledge) && PlanningSystem.IsLedge(world, ledge))
+                {
+                    FaceLowerSide(world, npc, ledge);
+                }
+
+                if (kind == InteractionType.Sleep)
+                {
+                    ClaimLyingFootprint(world, npc, spot);
+                }
+            }
+
+            Trace.Emit(world, npc.Id, "InteractionStarted",
+                $"{kind} on the ground Duration={durationTicks}ticks");
+            return;
+        }
+
+        if (npc.Execution.Status != ExecutionStatus.InProgress ||
+            npc.Execution.EndTick - world.Tick > 0)
+        {
+            return;
+        }
+
+        npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort + comfort);
+        npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy + energy);
+        ReleaseClaims(world, npc);
+        if (step.TargetJunction is { } done)
+        {
+            SpatialMutations.FreeJunction(world, done, npc.Id);
+            SpatialMutations.ReleaseJunctionReservation(world, done, npc.Id);
+        }
+
+        Trace.Emit(world, npc.Id, kind == InteractionType.Sleep ? "GroundSleptWell" : "GroundSatDown",
+            $"Comfort+{comfort:F2} Energy+{energy:F2}");
+
+        if (kind == InteractionType.Sit)
+        {
+            npc.Mind.Cooldowns.Add(new GoalCooldown
+            {
+                Goal = GoalType.Sit,
+                EndTick = world.Tick + 240
+            });
+        }
+
+        // Canonical cycle reset (same as InteractionCompleted): Execution
+        // back to None or the next interaction's start gate never opens.
+        npc.Plan.Status = PlanStatus.Completed;
+        npc.Plan.Steps.Clear();
+        npc.Plan.TargetObjectId = null;
+        npc.Plan.TargetJunctionId = null;
+        npc.Plan.TargetTile = null;
+        npc.Plan.TargetItemDefinitionId = null;
+        npc.Plan.TargetAgentId = null;
+        npc.Mind.CurrentGoal = GoalType.None;
+        npc.Execution.Status = ExecutionStatus.None;
+        npc.Execution.CurrentInteraction = null;
+        npc.Execution.TargetObject = null;
+        npc.Execution.StartTick = 0;
+        npc.Execution.EndTick = 0;
+        npc.Movement.JunctionPath.Clear();
+        npc.Movement.PathIndex = 0;
+
+        Trace.Emit(world, npc.Id, "CycleReset",
+            "Goal->None Plan->Completed Execution->Cleared (ground rest done)");
+    }
+
+    // Spec 29G: the lying body covers junctions within half a hex radius.
+    private static void ClaimLyingFootprint(WorldState world, NPCState npc, JunctionId center)
+    {
+        npc.ClaimedJunctions.Clear();
+        if (!world.Junctions.Items.TryGetValue(center, out var origin))
+        {
+            return;
+        }
+
+        var radius = HexSpatialMath.HexRadius * 0.5f;
+        var radiusSq = radius * radius;
+        foreach (var coord in origin.Tiles)
+        {
+            if (!world.Tiles.Items.TryGetValue(coord, out var tile))
+            {
+                continue;
+            }
+
+            foreach (var junctionId in tile.Junctions)
+            {
+                if (!world.Junctions.Items.TryGetValue(junctionId, out var junction) || junction.Blocked)
+                {
+                    continue;
+                }
+
+                var dx = junction.WorldPosition.X - origin.WorldPosition.X;
+                var dy = junction.WorldPosition.Y - origin.WorldPosition.Y;
+                if (dx * dx + dy * dy <= radiusSq)
+                {
+                    npc.ClaimedJunctions.Add(junctionId);
+                }
+            }
+        }
+    }
+
+    internal static void ReleaseClaims(WorldState world, NPCState npc)
+    {
+        npc.ClaimedJunctions.Clear();
+    }
+
+    // Spec 29G: legs over the edge — face the lowest neighboring tile.
+    private static void FaceLowerSide(WorldState world, NPCState npc, Junction ledge)
+    {
+        Tile lowest = null;
+        foreach (var coord in ledge.Tiles)
+        {
+            if (world.Tiles.Items.TryGetValue(coord, out var tile) &&
+                (lowest == null || tile.Elevation < lowest.Elevation))
+            {
+                lowest = tile;
+            }
+        }
+
+        if (lowest == null)
+        {
+            return;
+        }
+
+        var center = HexSpatialMath.TileToWorld(lowest.Coord);
+        var direction = HexSpatialMath.Normalize(new Float2(
+            center.X - npc.Position.X, center.Y - npc.Position.Y));
+        npc.RotationDegrees = HexSpatialMath.AngleDegrees(direction);
+    }
 
     private static void RunUndressItem(WorldState world, NPCState npc)
     {
@@ -4413,6 +4881,11 @@ public sealed class DogSystem : ISimulationSystem
     // Spec 29C.2: death cleanup must be total.
     private static void RemoveDeadNpc(WorldState world, EntityId deadId)
     {
+        if (world.Entities.Npcs.TryGetValue(deadId, out var dying))
+        {
+            ExecutionSystem.ReleaseClaims(world, dying);
+        }
+
         if (!world.Entities.Npcs.TryGetValue(deadId, out var npc))
         {
             return;

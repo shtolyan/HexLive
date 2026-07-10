@@ -32,6 +32,9 @@ public sealed class Tile
 {
     public TileCoord Coord { get; set; } = TileCoord.Zero;
 
+    // Spec 20.16: 0 = sea floor, 1-2 lowland, 3 hills, 4-5 mountains.
+    public int Elevation { get; set; } = 1;
+
     public TileFlags Flags { get; set; } = TileFlags.None;
 
     public List<JunctionId> Junctions { get; } = new();

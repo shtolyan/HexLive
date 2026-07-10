@@ -27,7 +27,8 @@ public static class WorldSnapshotExporter
                 Walkable = tile.Flags.HasFlag(TileFlags.Walkable),
                 Blocked = tile.Flags.HasFlag(TileFlags.Blocked),
                 Indoor = tile.Flags.HasFlag(TileFlags.Indoor),
-                Water = tile.Flags.HasFlag(TileFlags.Water)
+                Water = tile.Flags.HasFlag(TileFlags.Water),
+                Elevation = tile.Elevation
             });
         }
 
@@ -143,8 +144,21 @@ public static class WorldSnapshotExporter
 
             foreach (var relation in npc.Social.Relationships)
             {
+                var otherName = world.Entities.Npcs.TryGetValue(relation.Key, out var otherNpc)
+                    ? otherNpc.DisplayName
+                    : $"NPC{relation.Key.Value}";
+
                 npcSnapshot.Relationships.Add(
                     $"NPC{relation.Key.Value}: T={relation.Value.Trust:F2} F={relation.Value.Familiarity:F2} A={relation.Value.Affinity:F2}");
+
+                npcSnapshot.RelationshipDetails.Add(new RelationshipSnapshot
+                {
+                    OtherId = relation.Key.Value,
+                    OtherName = string.IsNullOrEmpty(otherName) ? $"NPC{relation.Key.Value}" : otherName,
+                    Trust = relation.Value.Trust,
+                    Familiarity = relation.Value.Familiarity,
+                    Affinity = relation.Value.Affinity
+                });
             }
 
             npcSnapshot.KnownObjectCount = npc.Memory.KnownObjects.Count;

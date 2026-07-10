@@ -76,7 +76,6 @@ namespace HexLive.Simulation.Bootstrap
                     // Place objects at distinct interior point slots (ring 1 positions).
                     // Food is not placed directly: apple trees (104, 105) drop it.
                     Object(101, "chair.basic", 1, 0, 2, 3),
-                    Object(102, "bed.basic", 1, -1, 3, 5, 4),
                     Object(103, "clothing.coat", 1, 3, 1, 2),
                     Object(104, "tree.palm", 1, -2, 2, 1),
                     Object(105, "tree.palm", 1, 1, 4, 1),
@@ -85,7 +84,6 @@ namespace HexLive.Simulation.Bootstrap
                     Object(107, "tree.palm", 1, 3, 2, 1),
                     // Second bed (iteration 6): both NPCs want to sleep at
                     // night; one shared bed would mean nightly fights.
-                    Object(106, "bed.basic", 1, 2, 0, 1),
                     // Wilderness rewards (iteration 9): a far tree and armor
                     // pieces — exploration pays (spec 29C.4/29C.5).
                     Object(108, "tree.palm", 1, 6, 1, 1),
@@ -165,9 +163,92 @@ namespace HexLive.Simulation.Bootstrap
             };
 
             AddWilderness(definition.Fragments[0]);
+            AddIslandElevation(definition.Fragments[0], seed);
             AddRiver(definition.Fragments[0], seed);
             AddNaturalFeatures(definition, seed);
             return definition;
+        }
+
+        // Spec 20.16: the world is an island — seeded value noise times a
+        // radial falloff carves sea, lowland, hills and mountains. The home
+        // plateau is clamped so the colony never spawns on a cliff.
+        private static void AddIslandElevation(FragmentBootstrap fragment, int seed)
+        {
+            // Map bounds q in [-8,10], r in [-6,8] -> world-space center.
+            var center = HexSpatialMath.TileToWorld(new TileCoord(1, 1));
+            var edge = HexSpatialMath.TileToWorld(new TileCoord(10, 1));
+            var maxDist = System.Math.Abs(edge.X - center.X);
+
+            var home = new TileCoord(0, 2);
+            var hutSite = new TileCoord(5, -4);
+
+            foreach (var tile in fragment.Tiles)
+            {
+                var coord = new TileCoord(tile.Q, tile.R);
+                var world = HexSpatialMath.TileToWorld(coord);
+                var dx = world.X - center.X;
+                var dy = world.Y - center.Y;
+                var dist = System.MathF.Sqrt(dx * dx + dy * dy) / maxDist;
+
+                // Radial island falloff: 1 at the center, 0 past ~0.95.
+                var falloff = MathUtil.Clamp01(1f - dist * dist * 1.15f);
+
+                var noise = ValueNoise(seed, world.X * 0.13f, world.Y * 0.13f) * 0.55f +
+                            ValueNoise(seed + 17, world.X * 0.34f, world.Y * 0.34f) * 0.45f;
+                // Sharpen: squaring pushes midtones down, peaks stand out
+                // and neighboring quantization steps jump 2+ (real cliffs).
+                var height = (noise * noise * 1.4f + 0.3f) * falloff;
+
+                var elevation = (int)System.MathF.Round(height * 6f);
+                elevation = System.Math.Min(5, elevation);
+
+                // The map's outer ring is always open sea — no straight-cut
+                // coastline at the world bounds.
+                if (tile.Q <= -8 || tile.Q >= 10 || tile.R <= -6 || tile.R >= 8)
+                {
+                    elevation = 0;
+                }
+
+                // Home plateau: never sea, never cliffside.
+                var nearHome = HexSpatialMath.HexDistance(coord, home) <= 3 ||
+                               HexSpatialMath.HexDistance(coord, hutSite) <= 3;
+                if (nearHome)
+                {
+                    elevation = System.Math.Max(1, System.Math.Min(2, elevation));
+                }
+
+                if (elevation <= 0)
+                {
+                    // Open sea: visible water, but nobody swims off the island.
+                    tile.Elevation = 0;
+                    tile.Water = true;
+                    tile.Walkable = false;
+                }
+                else
+                {
+                    tile.Elevation = elevation;
+                }
+            }
+        }
+
+        // Deterministic value noise: Hash01 lattice + bilinear interpolation.
+        private static float ValueNoise(int seed, float x, float y)
+        {
+            var x0 = (int)System.MathF.Floor(x);
+            var y0 = (int)System.MathF.Floor(y);
+            var tx = x - x0;
+            var ty = y - y0;
+            var sx = tx * tx * (3f - 2f * tx);
+            var sy = ty * ty * (3f - 2f * ty);
+
+            var v00 = MathUtil.Hash01(seed, x0, y0, 7001);
+            var v10 = MathUtil.Hash01(seed, x0 + 1, y0, 7001);
+            var v01 = MathUtil.Hash01(seed, x0, y0 + 1, 7001);
+            var v11 = MathUtil.Hash01(seed, x0 + 1, y0 + 1, 7001);
+
+            var a = v00 + (v10 - v00) * sx;
+            var b = v01 + (v11 - v01) * sx;
+            return a + (b - a) * sy;
         }
 
         // Spec 29C: wilderness — a walkable outdoor region around the
@@ -220,7 +301,29 @@ namespace HexLive.Simulation.Bootstrap
                         !tile.Indoor && !tile.Blocked)
                     {
                         tile.Water = true;
+                        tile.Walkable = true; // the river stays wadable even where it crosses sea-marked coast
+                        tile.Elevation = 1;   // spec 20.16: the river carves through the terrain
                         tile.BlockedSlots.Clear();
+                    }
+                }
+            }
+
+            // Spec 20.16: rivers flow in valleys — banks clamp to lowland so
+            // the waterline is always approachable (a cliff-walled river
+            // starved the colony of drink spots on the first soak).
+            foreach (var tile in fragment.Tiles)
+            {
+                if (!tile.Water || tile.Walkable == false)
+                {
+                    continue;
+                }
+
+                foreach (var direction in HexDirection.All)
+                {
+                    if (byCoord.TryGetValue((tile.Q + direction.DQ, tile.R + direction.DR), out var bank) &&
+                        !bank.Water && bank.Walkable && bank.Elevation > 2)
+                    {
+                        bank.Elevation = 2;
                     }
                 }
             }

@@ -800,6 +800,85 @@ Validation should run at authoring time.
 - simple Occupancy + Reservation
   Keep graphs explicit and simple.
 
+### 20.16 Tile Elevation & The Island (iteration 27)
+
+The world is an island: sea on every side, beaches, grassy plains, brown
+hills, and mountains — some climbable by natural ramps, some sheer.
+
+**Elevation model**
+
+- `Tile.Elevation`: int 0..5. 0 = sea floor, 1-2 = lowland, 3 = hills,
+  4-5 = mountains. Bootstrap carries it (`TileBootstrap.Elevation`).
+- Elevation is SIMULATION state: it decides passability. Rendering maps it
+  to visual height (0.35 world units per level) and biome colors — sand at
+  the waterline (existing adjacency rule), grass lowland, brown-green
+  hills, brown rock peaks.
+
+**Seeded generation** (PrototypeWorldDefinitionFactory)
+
+- Deterministic value noise (Hash01 lattice + bilinear interpolation, two
+  octaves at world-space frequencies ~0.13/0.3) times a radial island
+  falloff from the map center.
+- `height <= 0` -> **sea**: Water flag, `Walkable = false` (open sea is
+  not shallows — nobody swims out of the world; the river and pond remain
+  walkable Water). The island mask guarantees a full sea ring inside the
+  map bounds.
+- The **home plateau**: tiles within 3 of the home center and of the hut
+  site clamp to elevation 1-2 and never become sea — the colony never
+  spawns on a cliff. River tiles carve to elevation 1.
+
+**Cliffs & ramps**
+
+- A boundary junction whose owning LAND tiles differ by **more than 1
+  level** is `Blocked` at bootstrap — cliffs are real obstacles, exactly
+  the mechanism walls and tree trunks already use (connectivity, pathing
+  and the debug overlay inherit it for free).
+- A 1-level difference is a walkable slope: where the noise is gentle the
+  hillside naturally forms ramp paths ("stairs") to the top; where it is
+  steep, peaks stay unreachable on purpose.
+- Soak invariant: the home connectivity component must cover >= 50 % of
+  land junctions (an island with SOME unreachable crags is desired; a
+  shattered one is a generation bug).
+
+**Rendering**
+
+- Hexes render as **solid prisms** (`BuildHexPrismMesh`): a flat top at
+  `0.2 + Elevation x 0.55` plus a six-quad perimeter skirt dropping to a
+  shared base (`TerrainBaseY = -2.5`), so a raised tile is a rock column
+  that visually meets its lower neighbours instead of a floating cap. The
+  mesh has two submeshes — top (biome material) and skirt (cliff material).
+- Style is **flat low-poly, untextured** — deliberately no noise textures
+  (they showed tiling seams and clashed with the cartoon look). Each facet
+  is a flat colour: `BiomeColor` gives the per-biome base
+  (`grass`, `grass_dry`, `hill`, `rock`, `mountain`, `sand`, `cliff`),
+  `Jitter` applies a small stable per-tile brightness wobble (keyed off the
+  tile coord) for a hand-placed patchwork, and `GetFlatMaterial` caches one
+  double-sided (`_Cull = 0`) URP/Lit material per quantised colour so the
+  SRP batcher still groups most tiles.
+- Grass tiles grow **low-poly tufts** (`BuildGrassClump`): a per-tile
+  combined mesh of solid-green triangle blades (crossed pairs, slight lean),
+  deterministically scattered from the tile coord, one shared flat green
+  material — no texture, no alpha. Gated by `_grassDetail` /
+  `_grassBladesPerTile` on the renderer.
+- Water renders sunken below its tile top (existing rule); its prism skirt
+  uses the sand material as a riverbed bank. A large sea-colored backdrop
+  plane extends the ocean beyond the playable bounds. The sea/water tops use
+  a stylized cartoon water shader (`HexLive/StylizedWater`): gentle vertex
+  waves, fresnel deep→shallow two-tone, drifting glints, soft specular.
+- **Day/night** (`SkyDayNightController`, installed by the bootstrap) reads
+  `Environment.TimeOfDayNormalized` (0 = 06:00) and swings one directional
+  light along an arc: it is the **sun** by day (warm→white, bright) and the
+  **moon** by night (cool, dim), overhead at noon/midnight. Ambient light
+  lerps night↔day. A custom skybox (`HexLive/StylizedSky`) renders a
+  day/night gradient, a sun disc + glow, a moon disc + glow, a warm sunset
+  band, and a twinkling star field; the controller feeds it sun/moon
+  directions and the day amount each frame.
+- **Campfires burn** (`CampfireEffect` on `campfire.spot` views): rising
+  flame + ember particle systems (additive soft puffs) and a warm,
+  Perlin-flickered point light that lights nearby terrain and actors.
+- Every movable and object view takes its Y from its tile's top (the
+  renderer's pose interpolation smooths level changes).
+
 ### 20.15 Design Rules
 
 - Discrete for planning, continuous for execution
@@ -5781,6 +5860,61 @@ tiles adjacent to water render sand-colored — the river gets banks.
   exactly what the object blocked — overlapping obstacles and walls stay
   intact.
 
+### 29G Ground Rest & The Crafted Bed (iteration 28)
+
+The land itself is furniture — worse than the real thing, but always there.
+
+**Sitting anywhere**
+
+- The Sit goal no longer requires a chair: chairs are preferred candidates;
+  with none reachable the girl sits on the ground at a free junction.
+- **Ledge sitting**: junctions on a boundary where adjacent tiles differ by
+  >= 1 elevation are scenic spots — sitting there means legs dangling over
+  the edge. Ground-sit planning prefers a ledge within 4 tiles.
+- Comfort: chair +0.4 / ledge +0.25 / plain ground +0.15 (Energy +0.05 on
+  the ground vs +0.1 on a chair). Duration 70 ticks and the post-sit
+  cooldown are shared with 31C.7A.
+- At sit start she faces the lower side of the ledge (sim rotation).
+- **Sitting is leisure, not survival**: the Sit score is (1-Comfort) x 0.5
+  — an idle-time filler that never outbids fire and food chores (at full
+  weight Sit >= 0.4 by construction of its own gate and it starved the
+  economy) — and Sit is unavailable during sleep hours (the Sit->Sleep
+  churn was 47 interrupts/soak).
+
+**Lying on the grass**
+
+- Sleep works with no bed, but only for the tired or after dark:
+  availability = Energy < 0.45 OR Evening/Night phase. Unconditional
+  availability turned naps into a universal time sink (73/soak, the fire
+  never lit).
+- The girl lies at the CENTER of a free hexagon — walkable, not water, no
+  objects, no other claimant. The spot is anchored to HOME (the campfire
+  tile, search radius 6), and **indoor floor beats proximity**: outdoor
+  night camps wherever the dark caught her got the colony mauled by dogs
+  (sanctuary rule 29C.4A protects indoor sleepers).
+- Ground sleep: 100 ticks, Energy +0.5, Comfort 0 (bed: +0.5 / +0.2) — a
+  night is a night; the bed's edge is comfort, not energy (+0.35 ground
+  energy created a poverty trap: 160 naps/soak and no time to live). The
+  sleeping metabolism (31C.7A) applies to both.
+- **Lying claims the body's footprint**: junctions within 0.5 x hex radius
+  of the lying spot register in `NPCState.ClaimedJunctions` for the
+  duration — housemates path around a sleeper (the same avoidance that
+  respects standing NPCs). Claims release on completion, interruption, or
+  death.
+
+**The bed must be earned**
+
+- Bootstrap beds are GONE — the colony's first nights are on the grass.
+- `CraftBed` goal (score 0.6): 2 logs + 3 palm leaves at the campfire ->
+  a bedroll placed on a free junction near the fire (the CraftRack
+  placement pattern). Available when no bed is known reachable, the
+  materials are carried AND the fire is burning (fuel > 0) — the hearth
+  outranks the mattress (a bed crafted from the last logs left seed 777
+  fireless for the whole soak). A palm chop yields exactly the bed kit
+  (2 logs + 3 leaves); the 0.6 score lets the bed outbid TendFire
+  (<= 0.55) in that window — at 0.35 the kit's logs were always eaten by
+  the hearth. The hut-completion bed reward stays.
+
 ### 31C.7A Unhurried sitting (iteration 26 addendum)
 
 The 12-tick (3 s) Sit read as fidgeting once the sit animation landed.
@@ -5794,7 +5928,9 @@ Rebalanced as a proper breather:
 - **Post-sit cooldown 240 ticks** (~1 game-hour): after a good rest she
   gets on with her day instead of chaining sits.
 - **Well-rested wanderlust** (29C.5 amendment): Explore gains +0.15 when the campfire is fuelled and
-  every need is comfortable (Hunger/Thirst < 0.5, Energy/Comfort > 0.5) —
+  every need is comfortable (Hunger/Thirst < 0.5, Energy > 0.5,
+  Comfort > 0.35 — with beds earned rather than given (29G) comfort is a
+  luxury; the old 0.5 bar made wanderlust unreachable) —
   long rests created genuinely idle NPCs who then never left the yard;
   a settled colony strolls instead of standing by the fire.
 - **Sleeping metabolism**: while the current interaction is Sleep, Hunger

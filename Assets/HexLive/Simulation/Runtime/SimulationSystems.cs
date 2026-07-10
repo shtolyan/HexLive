@@ -4188,8 +4188,34 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 relationship.Affinity = MathUtil.MoveTowards(relationship.Affinity, 0f, driftRate);
             }
 
+            // Spec 29C.2: starvation / dehydration cost HP. Without this an
+            // NPC whose needs maxed out (food/water unreachable) hangs forever
+            // — Health never falls, it never dies, its slot never frees. The
+            // 0.95 gate sits above the 0.85 starving appraisal, so healthy
+            // colonies that briefly spike lose nothing; only a truly stuck
+            // agent drains to death.
+            var starved = npc.Needs.Hunger >= 0.95f;
+            var parched = npc.Needs.Thirst >= 0.95f;
+            if (starved || parched)
+            {
+                var damage = starved && parched ? 0.05f : 0.03f;
+                foreach (var part in AllBodyParts)
+                {
+                    npc.Body.Parts[part] = MathUtil.Clamp01(npc.Body.Parts[part] - damage);
+                }
+
+                npc.Health = npc.Body.Mean();
+                if (npc.Body.VitalDestroyed(out _))
+                {
+                    npc.Health = 0f;
+                }
+
+                Trace.Emit(world, npc.Id, npc.Health <= 0f ? "StarvedToDeath" : "StarvationDamage",
+                    $"Hunger={npc.Needs.Hunger:F2} Thirst={npc.Needs.Thirst:F2} " +
+                    $"Damage=-{damage:F2} Health={npc.Health:F2}");
+            }
             // Spec 29C.2/19.3C: eat and rest to heal — part by part.
-            if (npc.Health < 1f && npc.Needs.Hunger < 0.5f)
+            else if (npc.Health < 1f && npc.Needs.Hunger < 0.5f)
             {
                 foreach (var part in AllBodyParts)
                 {

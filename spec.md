@@ -4470,7 +4470,16 @@ simulation itself stays deterministic.
 |---|---|
 | `NPCState.Health` | 0..1, starts 1.0 |
 | Regeneration | +0.02 per slow tick while Hunger < 0.5 ("eat and rest to heal") |
+| **Starvation / dehydration** | while Hunger >= 0.95 OR Thirst >= 0.95, every body part loses **-0.03 per slow tick** (both at once: -0.05); Health follows the body mean, a destroyed vital ends it (`StarvedToDeath` trace) |
 | Death | Health <= 0 → NPC is removed from the world (`NpcDied` trace) |
+
+**Why the drain matters (iteration 30 bug fix):** before this, an NPC whose
+needs maxed out (food/water unreachable) simply hung forever — Health never
+fell, so it never died and never freed its slot. A survival sim must have
+consequences: unmet critical needs cost HP until the body gives out. The
+0.95 gate sits well above the 0.85 "starving" appraisal, so a healthy colony
+that briefly spikes hunger loses nothing and recovers; only a genuinely stuck
+agent drains to death (~200 s of continuous starvation).
 
 Death cleanup must be total: entity repository, tile caches/occupancy, all
 junction reservations/occupancy owned by the NPC, and any world object it was

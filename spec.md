@@ -295,6 +295,8 @@ All behavior is in systems. All data is in components/state structs.
 class NPCState
 {
     public EntityId Id;
+    public string DisplayName;   // iteration 23: Marta / Molly / Jolie
+    public string ActorMesh;     // iteration 23: which visual body renders her
 
     // spatial
     public FragmentId Fragment;
@@ -321,6 +323,9 @@ class NPCState
     // memory / social
     public MemoryState Memory;
     public SocialState Social;
+
+    // carrying (v1 minimal, see 29B)
+    public InventoryState Inventory; // few slots of definition ids
 }
 ```
 
@@ -346,6 +351,10 @@ class WorldObjectState
 
     // example runtime data
     public float ResourceAmount; // e.g., food left
+
+    // production runtime data (only used by producers, see 29A)
+    public int NextProductionTick;
+    public List<ObjectId> ProducedItems;
 }
 ```
 
@@ -402,6 +411,60 @@ Temperature is a first-class simulation value.
 - fragment-local modifiers
 - tile-local modifiers
 - clothing modifiers on NPC side
+
+### 19.3C Body, Parts & Wounds (Iteration 12)
+
+Ported from the molly_copy reference project (BoneHealthSystem + Wearing):
+bones simplified to **7 body parts**, each with its own health.
+
+```csharp
+enum BodyPart { Head, Torso, Pelvis, ArmL, ArmR, LegL, LegR }
+
+class BodyState
+{
+    public Dictionary<BodyPart, float> Parts; // each 0..1, starts 1.0
+}
+```
+
+| Rule | Value |
+|---|---|
+| Vital parts | Head, Torso — destroyed (0) → **death**, regardless of overall HP |
+| Overall Health | mean of the 7 parts (feeds existing flee/regen/snapshot logic) |
+| Bite target | seeded-weighted random part: legs 30 %+30 %, arms 12.5 %+12.5 %, torso 10 %, pelvis 3 %, head 2 % (dogs bite low) |
+| Bite damage | 0.2 × (1 − armor covering that part) to the hit part |
+| Limping | movement speed × (0.4 + 0.6 × mean leg health) — a mauled leg means hobbling home |
+| Weak arms | strike-back × (0.4 + 0.6 × mean arm health) |
+| Regeneration | each part +0.02 per slow tick while Hunger < 0.5 |
+| Death causes | vital part destroyed (traced with the part) OR overall health depleted |
+
+### 19.7A Day/Night Cycle v1 (Iteration 6)
+
+The environment gains a tick-derived clock; temperature and behavior follow
+the day rhythm.
+
+| Parameter | Value |
+|---|---|
+| Day length | 2400 ticks (10 min real time at 0.25 s/tick) |
+| Phases (quarters) | Morning 06–12, Day 12–18, Evening 18–24, Night 00–06 |
+| Simulation start (tick 0) | 06:00, Morning |
+| Temperature | 12 ± 6 °C sinusoid; warmest 15:00 (18°), coldest 03:00 (6°) |
+| Discomfort threshold | unchanged (12°): days are comfortable, nights are cold |
+| Fruit production | Morning + Day only (29A); at dawn an overdue timer fires immediately — "morning apples" |
+| Sleep environment bonus (23.4) | +0.25 at Night, +0.10 at Evening via EnvironmentModifier |
+
+```csharp
+class EnvironmentState
+{
+    // ... existing fields ...
+    public float TimeOfDayNormalized; // 0..1, 0 = 06:00
+    public DayPhase Phase;            // Morning, Day, Evening, Night
+}
+```
+
+An `EnvironmentSystem` (Slow layer, ordered before needs/temperature) derives
+the clock from the tick and updates `GlobalTemperature`; a `PhaseChanged`
+trace marks transitions. Expected emergent rhythm: gather food and socialize
+in daylight, dress for the cold evening, sleep through the night.
 
 **This allows the simulation to support:**
 
@@ -481,6 +544,16 @@ What exists right now in the simulation, in a form that can be stepped, saved, d
 This is the backbone on which all tick-driven systems operate.
 
 ## 20. Spatial System (Deep)
+
+> **SEAMLESS WORLD REWORK (Iteration 17, 2026-07).** The world is
+> **seamless**: one continuous hex field in a single axial coordinate
+> space. The Fragment/FragmentLink model below is **retired as a gameplay
+> concept** — there are no portals, transitions, or per-fragment scopes.
+> `FragmentId` survives in code as a technical constant (always 1) until a
+> cleanup pass removes it; future scaling is by chunked *streaming* of one
+> continuous space, never by teleport links. All sections mentioning
+> fragment transitions (20.x FragmentLink, 19.x Fragment scope) are void.
+
 
 This section formalizes the world space using a graph-based, tick-compatible model:
 Fragment → Tile → Junction
@@ -1290,6 +1363,13 @@ GetTilesInRadius(centerTile, radius)
 
 This ensures performance scalability.
 
+**Iteration 5 note (2026-07):** implemented for objects with hex-distance
+radius **2 tiles**; objects beyond the radius are supplied to the same
+perception list from spatial memory (27.18A) flagged `FromMemory`.
+**Agents remain globally perceived in v1** — the prototype world is one
+shared home and its yard; cohabitant awareness is assumed. Agent-radius and
+agent memory return together with bigger worlds.
+
 ### 22.8 Reachability Filtering
 
 Not all perceived objects are usable.
@@ -1446,17 +1526,23 @@ A goal is a high-level intention.
 enum GoalType
 {
     None,
-    Eat,
+    Eat,      // consume food the NPC already has (inventory)
+    GetFood,  // acquire food from the world (pick up produce)
     Sleep,
     Sit,
     Shower,
     Dress,
     Socialize,
+    Explore,  // wander to a random far junction (iteration 9, see 29C.5)
     Observe,
     Follow,
     Idle
 }
 ```
+
+Acquisition and consumption are separate goals: `GetFood` ends with food in
+inventory, `Eat` ends with a need satisfied. Keeping them apart keeps scoring,
+gating, and debug output honest (see 23.21, 29B).
 
 **A goal is not yet:**
 
@@ -1613,6 +1699,28 @@ NPC appears indecisive or broken
 keep goal for at least 5 ticks unless interrupted
 require new goal to exceed current goal by threshold Δ
 
+**Worked example (v1 Starving status, needs on 0..1 scale):**
+
+- enter Starving when Hunger >= 0.85
+- clear Starving only when Hunger < 0.60
+
+The wide 0.85/0.60 gap is deliberate hysteresis: one apple (HungerDelta -0.60
+since iteration 6) taken at the 0.85 threshold lands at ~0.25 and safely
+clears the status, so the NPC cannot flicker in and out of Starving.
+
+**v1 goal switching rules (iteration 3):**
+
+| Parameter | Value |
+|---|---|
+| Switch delta with an active plan | new score must exceed current by 0.15 |
+| Switch with no active plan | free (delta 0) |
+| Goal lock duration | 24 ticks (6 s) from goal adoption |
+| Lock override (emergency) | new score must exceed current by 0.5 |
+
+The Starving boost (+1.0, see 23.17) intentionally crosses the 0.5 lock
+override, so emergencies always break through. `Idle` and `None` are never
+locked and never require a delta to leave.
+
 ### 23.9 Goal Locks
 
 ```csharp
@@ -1630,6 +1738,12 @@ Goal lock is not absolute. It may be broken by higher-priority emergency conditi
 
 - current goal = Sit
 - hunger suddenly becomes critical → Eat may interrupt
+
+**v1 rules (iteration 3):** a lock is placed whenever a non-Idle goal is
+adopted (`EndTick = now + 24`). While locked, a competing goal takes over only
+if its score exceeds the current goal's score by 0.5 (only the Starving boost
+crosses this in v1). After the lock expires the normal 0.15 switch delta from
+23.8 applies. Stale locks (for a goal no longer current) are ignored.
 
 ### 23.10 Cooldowns
 
@@ -1650,6 +1764,16 @@ class GoalCooldown
 ```
 
 This helps prevent repeated spammy attempts.
+
+**v1 rules (iteration 3):** planning failures (`PlanFailed` — no suitable
+object, `ReservationFailed` — junction taken by another NPC) put the failed
+goal on a 40-tick (10 s) cooldown. Goals on cooldown are hard-gated in
+scoring (FinalScore = 0), so the NPC picks the next-best activity instead of
+hammering the same target. Expired cooldowns are pruned each decision pass.
+
+A failure also clears the goal's own lock (23.9): a failed goal must not be
+defended by its lock, or the hold rule would pin the zero-scored goal and
+planning would retry the same target every pass until the lock expired.
 
 ### 23.11 Hard Gating vs Soft Scoring
 
@@ -1761,6 +1885,31 @@ emergency need appears
 - hunger becomes critical → interrupt allowed
 - small score change from Sit to Observe → no interrupt
 
+**Concrete v1 emergency rule (Starving):**
+
+| Parameter | Value |
+|---|---|
+| Enter Starving | Hunger >= 0.85 |
+| Clear Starving (hysteresis, see 23.8) | Hunger < 0.60 |
+| While Starving | +1.0 EmergencyModifier to Eat and GetFood FinalScore |
+
+The +1.0 boost dominates any normal score (regular max is 0.1 + need = 1.1 vs
+boosted 2.1 minimum when available), so food goals always win while Starving.
+
+**Interrupt semantics (mandatory cleanup):** when a new goal replaces an
+active plan — emergency or otherwise — the simulation must abort cleanly
+before replanning:
+
+- if an interaction is in progress, clear the target object's
+  `IsOccupied` / `CurrentUser`
+- free the occupied junction and release the plan's junction reservation
+- reset execution state, invalidate the plan, clear the movement path
+- emit `GoalInterrupted`
+
+Skipping any of these leaks occupancy/reservations permanently.
+Starving is a status only: needs still clamp at their bounds and there is no
+death or damage in v1.
+
 ### 23.18 Decision Output
 
 The output of the decision system should be explicit.
@@ -1812,15 +1961,16 @@ For the first slice, keep goal vocabulary small.
 
 **Recommended v1:**
 
-- Eat
+- Eat (consume from inventory)
+- GetFood (pick up food from the world, iteration 2)
 - Sit
 - Sleep
+- Socialize (talk to another NPC, iteration 4 — see 28.15A)
 - Idle
 
 **Optional if ready:**
 
 - Shower
-- Socialize
 
 This is enough to validate the architecture without overcomplicating content.
 
@@ -1943,6 +2093,12 @@ Planner must select a concrete target.
 - sort by distance / availability
 - pick best candidate
 - ObjectId SelectFoodTarget(NPCState npc)
+
+**v1 candidate filter (iteration 3):** a perceived object qualifies only if it
+is reachable, offers the goal's interaction, and is not occupied by another
+NPC (occupied-by-self counts as available — an NPC mid-interaction must not
+lose its own target). This is the RequiresObjectFree condition from 29.6
+applied at selection time; junction reservation remains the race arbiter.
 
 ### 24.4 Plan Construction Example
 
@@ -3169,6 +3325,40 @@ This keeps memory consistent with world evolution.
 
 Long-term memory can be added later.
 
+### 27.18A Spatial Object Memory v1 (Iteration 5)
+
+Implemented subset: **SeenObject spatial memory** (27.11) — enough to make
+limited perception (22.7) livable. Interaction success/failure records and
+the float strength model are deferred; v1 uses a TTL instead.
+
+| Parameter | Value |
+|---|---|
+| Perception radius (objects) | hex distance <= 2 tiles |
+| Memory record | per-object: definition id, tile, junction, LastSeenTick, IsPermanent |
+| Storage | dictionary keyed by ObjectId (O(1) upsert on every sighting) |
+| TTL for discovered (runtime) objects | 2400 ticks (10 min) since last seen |
+| Seeded home knowledge | all bootstrap objects, `IsPermanent`, never expires |
+
+**Rules:**
+
+- **Formation/reinforcement (27.8/27.9):** every sighting upserts the record
+  and refreshes `LastSeenTick`.
+- **Negative evidence:** if a remembered object's tile is inside the current
+  perception radius but the object no longer exists, the record is removed
+  (`MemoryForgotten` trace). Belief survives only where the NPC cannot see.
+- **Stale-memory discovery:** walking to a remembered object that turns out
+  to be gone fails the plan, removes the record, and re-decides — the
+  emergent "go check, discover it's gone" behavior.
+- **Memory vs perception (27.14):** memory entries enter the same perceived
+  list flagged `FromMemory`, with occupancy assumed free. Because memory can
+  be wrong, execution must guard interaction start against an actually
+  occupied object (fail + cooldown instead of stomping the occupant).
+- **Foraging (27.11):** when GetFood finds no known food item, the NPC walks
+  to the nearest known producer (`Produce != null`, e.g. an apple tree) —
+  a move-only plan with no interaction. Arriving brings dropped fruit into
+  perception radius. If already at the producer and no fruit is visible,
+  GetFood takes a normal 40-tick cooldown — the NPC "waits by the tree".
+
 ### 27.19 Design Rules
 
 - Memory is event-driven, not continuously recomputed
@@ -3392,6 +3582,183 @@ class SocialCooldown
 - embarrassment basic system
 - simple talk interaction
 
+**Iteration 4 implementation note (2026-07):** implemented — relationship
+dictionary (Trust/Familiarity/Affinity per pair, Authority deferred), agent
+perception, Social need decay, and the direct Talk interaction below.
+**Embarrassment is consciously deferred**: no privacy-sensitive action
+(Shower etc.) exists yet, so the mechanic would have no trigger; it returns
+together with the Shower object.
+
+### 28.15A Talk v1 — Concrete Rules (Iteration 4)
+
+| Parameter | Value |
+|---|---|
+| Social need decay | -0.008 per slow tick (higher Social = better) |
+| Talk duration | 16 ticks (4 s) |
+| Social gain | initiator +0.40, listener +0.25 |
+| Relationship gain (both directions) | Familiarity +0.05, Affinity +0.05 |
+| Talk range at start | 4 × hex radius (world distance) |
+| Affinity decision feedback | Socialize SocialModifier = 0.1 × best target Affinity |
+| Failure / rejection | goal cooldown 40 ticks (23.10 rules apply) |
+
+**Flow (28.8 "keep coordination simple"):**
+
+- Socialize goal is available when a reachable, non-busy, **stationary**
+  agent is perceived (busy = mid-interaction other than Talk). Walking agents
+  are not talk targets — v1 explicitly avoids moving-target chases; the wide
+  talk range absorbs small drift between planning and arrival.
+- **Invitation handshake (28.8 made concrete):** when the initiator's plan is
+  built it *claims* the target (`PendingTalkFrom = initiator`). A claimed NPC
+  accepts by waiting in place: it aborts its own active plan (a "polite
+  interrupt"), holds goal None, and does not initiate talks itself. The wait
+  breaks on: initiator no longer targeting it (self-healed every decision
+  pass), the waiter entering Starving, or a 120-tick timeout
+  (`TalkWaitTimeout` trace).
+- Plan: reserve a free passable neighbor junction of the target's current
+  junction → MoveToJunction → Interact(Talk) with a *target agent* instead of
+  a target object (`NPCPlanState.TargetAgentId`).
+- **Partner choice (28.6, iteration 8):** among available targets the NPC
+  prefers the one it likes most (highest affinity); distance is only a
+  tie-break. Friendship therefore self-selects — and a disliked housemate
+  gets approached only via the loneliness override.
+- **In-flight goal protection:** while a talk plan is active (walking or
+  talking), the per-tick availability scan must not zero out the Socialize
+  score — transient target movement is not "target gone"; the plan validates
+  its target at arrival. Without this the initiator's own plan gets
+  interrupted by score collapse every time the target shifts.
+- At arrival the initiator validates: target still within talk range, not
+  busy, not Starving, not walking. Any failure → `InteractionRejected` /
+  out-of-range trace, plan aborted, Socialize on cooldown.
+- At completion both sides receive Social and relationship gains and
+  `TalkCompleted` / `RelationshipChanged` events are emitted.
+- Accepted v1 simplification: a listener who walks away mid-talk still grants
+  full effects (talks are 4 s; not worth partial-effect machinery yet).
+
+### 28.15B Talk Outcomes & Conflict v1 (Iteration 7)
+
+Talks no longer always succeed: relationships gain real dynamics — quarrels,
+resentment, avoidance, and reconciliation. Affinity becomes signed
+(**-1..+1**, was 0..1); Familiarity stays 0..1 (you know your enemies too).
+Trust still does not evolve in v1.
+
+**Talk outcome roll (deterministic):** at talk completion a quarrel chance is
+computed and resolved with a stateless hash of (tick, initiator id,
+listener id) — no RNG state, resume-safe.
+
+| Parameter | Value |
+|---|---|
+| Quarrel base chance | 0.10 |
+| Irritability term | +0.35 × mean of both participants' max(Hunger, 1-Energy) |
+| Friendship protection | -0.25 × max(0, mean mutual Affinity) |
+| Hostility spice | +0.10 × max(0, -mean mutual Affinity) |
+| Clamp | 0.05 .. 0.60 |
+
+Retuned after the first soaks: the crankier-participant max made nearly every
+talk risky (41 % quarrels → net-negative talk economics → guaranteed
+hostility), and symmetric affinity influence made reconciliation hopeless
+(mutual -1.0 pushed the chance to the old 0.75 cap). With the mean + split
+terms, a calm neutral talk quarrels ~20 % (slightly net-positive), friends
+are protected, and a reconciliation talk succeeds ~3 times out of 4 —
+relationships can genuinely travel both directions.
+
+| Outcome | Effects (both directions unless noted) |
+|---|---|
+| Success | Social +0.40/+0.25; Familiarity +0.05; Affinity +0.05 |
+| Quarrel | Social +0.15/+0.10 (contact, but draining); Familiarity +0.05; Affinity -0.12; Embarrassment +0.30 both; initiator gets a Socialize cooldown (23.10) |
+
+**Refusal by dislike (28.9/28.10):** the listener refuses when its affinity
+toward the initiator is below **-0.25** — unless the listener itself is
+lonely (Social < **0.25**), which overrides the grudge ("reconciliation
+talks"). A rejected initiator loses **-0.05** affinity toward the rejector —
+**but only for personal refusals** (dislike). Neutral refusals (busy,
+starving, walking) cost nothing: taking offense at "sorry, busy" turned out
+to be the engine of an irreversible hostility spiral (157 rejections × -0.05
+dwarfed every possible gain in the first soak run).
+
+**Grudges fade (asymmetric):** affinity drifts toward 0 — by **0.003 per
+slow tick** (~0.45/day) on the negative side, but only **0.001 per slow
+tick** (~0.15/day) on the positive side. Without any drift a -1.0 lock-in is
+permanent (the refusal gate blocks the very talks that could heal it); with
+*symmetric* drift friendships could never warm past ~+0.2 because the decay
+outran talk gains. Asymmetry matches life: resentment cools in a day or two,
+while friendship needs only light upkeep. A deep grudge (-1.0) becomes
+talkable (-0.25) in under 2 days.
+
+**Resentment from contention:** arriving at an object occupied by another
+NPC (`InteractionBlocked`) costs **-0.08** affinity toward the occupant —
+scarcity breeds friction organically.
+
+**Embarrassment (28.5):** quarrels raise Embarrassment by 0.30; it decays
+0.02 per slow tick; the Socialize score takes
+`SocialModifier = 0.1 × best target affinity - 0.3 × Embarrassment`, so a
+freshly quarreled NPC keeps to itself for a while, and disliked targets
+lower the urge (28.6).
+
+**Expected dynamics:** cranky talks sour relationships; soured relationships
+raise quarrel chance and refusals; avoidance starves the Social need; the
+loneliness override forces a reconciliation attempt; a calm successful talk
+heals. Relationships oscillate instead of saturating at eternal friendship.
+
+### 28.15C Death, Grief & Remembrance (Iteration 15)
+
+A housemate's death must not pass unnoticed.
+
+**Corpse:** death spawns `corpse.npc` at the death site (in addition to the
+dropped items, 31A.5A). `CurrentUser` stores *whose* corpse it is (the field
+is unused on corpses otherwise). The body decays away after **4800 ticks**
+(2 days, `CorpseSystem` on the ResourceAmount-as-timer pattern of 29E.3).
+
+**Learning of death:**
+
+- **Witnessing** — any living NPC within 6 tiles at the moment of death
+  grieves immediately.
+- **Discovery** — perceiving a corpse not yet grieved for triggers grief on
+  sight (per-NPC `GrievedCorpses` set prevents re-triggering).
+
+**Grief (scaled by the relationship):**
+
+| Effect | Value |
+|---|---|
+| Social need | -max(0.15, 0.3 + 0.3 × affinity toward the deceased) — friends hurt hard, even enemies' deaths disturb |
+| Comfort | -0.2 |
+| Mourning period | 2400 ticks (1 day): Socialize score takes -0.2 (withdrawal) |
+| Fear | the death site enters danger memory (29C.4A) — explore/food avoid it |
+
+**Mourning (closure):** while grieving, the `Mourn` goal (score 0.7 —
+the ritual must survive the long walk to the body against everyday needs;
+0.5 kept getting interrupted mid-pilgrimage until the corpse rotted)
+targets the corpse with the existing `Observe` interaction (16 ticks).
+Completing it ends the mourning period early ("простился") with a small
+Comfort recovery (+0.1). If the corpse decays before anyone comes, grief
+simply times out.
+
+### 28.15D Burial & Graves (Iteration 16)
+
+The death arc closes: a body can be laid to rest, and fear becomes memory.
+
+**Burial:**
+
+| Rule | Value |
+|---|---|
+| `Bury` goal | any housemate who perceives/remembers a corpse; score 0.6 (below Mourn 0.7 — rite first, burial after) |
+| Interaction | `Bury` on the corpse, 20 ticks, no tool needed in v1 |
+| Result | corpse despawns → **`grave.npc` spawns at the same junction** (permanent, never decays; `CurrentUser` still records who lies there) |
+| Closure | the burier's mourning ends; Comfort +0.15 |
+| Sanctification | the death tile is removed from **every living NPC's** danger memory — the place is no longer frightening, it is sacred |
+
+**Grave visits (remembrance):** the `Mourn` goal widens — when *not*
+grieving but lonely (Social < 0.35) and a grave is known, it targets the
+grave (Observe, 12 ticks, score 0.3): Comfort +0.1, **Social +0.15** — the
+dead keep a lasting social presence; lonely housemates come to talk to the
+grave.
+
+**Loot, not inheritance:** the deceased's dropped gear is simply
+**ownerless** — ordinary world items at the death site that anyone may pick
+up, wear, or use through the normal PickUp/Dress goals. There is no
+ownership or inheritance concept; the grave's `CurrentUser` records only
+*who lies there* (identity for grief), never possession of the items around
+it.
+
 ### 28.16 Design Rules
 
 - Social state is per-entity pair
@@ -3485,6 +3852,7 @@ This allows interactions to be authored as data rather than hand-coded object-sp
 enum InteractionType
 {
     Eat,
+    PickUp, // take a world item into inventory (iteration 2; naming per 31A.3)
     Sit,
     Sleep,
     Shower,
@@ -3633,6 +4001,10 @@ class WorldObjectState
     public EntityId? CurrentUser;
 
     public float ResourceAmount;
+
+    // production runtime data (producers only, see 29A)
+    public int NextProductionTick;
+    public List<ObjectId> ProducedItems;
 }
 ```
 
@@ -3643,6 +4015,7 @@ Examples of runtime-only data:
 - cleanliness
 - broken state
 - temporary lock state
+- production timer and produced item ids (flora, see 29A)
 
 ### 29.11 Interaction Offers
 
@@ -3837,6 +4210,405 @@ Interactions are authored as data, not scattered hardcoded branches
 Content & Interaction System answers:
 How do we add new world objects and behaviors without rewriting the core AI architecture?
 It is the scalability layer that turns the simulation from a prototype into a content-driven game.
+
+## 29A. Flora & Produce System (v1 Minimal)
+
+Added in iteration 2 (2026-07). Some world objects produce other world objects
+over time: an apple tree periodically drops apples on nearby tiles. This is
+the first system that creates and destroys world objects at runtime, so it
+also defines the runtime object lifecycle rules.
+
+### 29A.1 Producer Definition
+
+Production is authored as optional static content on ObjectDefinition:
+
+```csharp
+class ObjectDefinition
+{
+    // ... existing fields ...
+    public ProduceDefinition? Produce; // null for non-producers
+}
+
+class ProduceDefinition
+{
+    public string ProducedDefinitionId; // e.g. "food.apple"
+    public int IntervalTicks;           // v1: 100 (25 s; was 160 before the
+                                        // daylight-only rule of 19.7A halved
+                                        // the production window)
+    public int MaxConcurrent;           // v1: 3
+    public int MaxDistanceTiles;        // v1: 1 (tree tile + direct neighbors)
+}
+```
+
+A producer needs no interactions of its own — the tree itself is not eaten or
+harvested in v1; only its dropped produce is.
+
+### 29A.2 Production Rules
+
+Production runs as a Slow-layer system (after needs/temperature):
+
+- production runs only during daylight (Morning/Day phases, 19.7A); at night
+  the timer is left untouched, so an overdue producer fires immediately at
+  dawn ("morning apples")
+- for each object whose definition has `Produce != null`:
+  - if `world.Tick < NextProductionTick` → skip
+  - on firing, set `NextProductionTick = Tick + IntervalTicks` immediately,
+    so a failed drop also waits a full interval (no per-tick retry spam)
+  - prune `ProducedItems` of ids no longer present in the world
+    (eaten/picked produce frees cap slots)
+  - if `ProducedItems.Count >= MaxConcurrent` → skip, trace
+    `ProduceSkipped(CapReached)`
+  - otherwise pick a drop spot and spawn the produced object, record its id
+    in `ProducedItems`, trace `ObjectSpawned`
+
+**Drop spot selection (deterministic):** candidate tiles are the producer's
+tile plus its neighbors within `MaxDistanceTiles`, filtered to existing,
+walkable, non-blocked tiles. Within a tile, pick the first junction (by slot
+order) that is not blocked, not occupied, and not already the anchor of
+another object on that tile. If no candidate exists → skip, trace
+`ProduceSkipped(NoFreeSpot)`, retry next interval.
+
+**Accepted limitation:** produce may land on a junction that is currently
+unreachable for an NPC. Perception marks it `IsReachable = false`, it is never
+targeted, and it still counts against `MaxConcurrent` — bounded garbage, not a
+leak.
+
+### 29A.3 Runtime Object Lifecycle
+
+Iteration 2 introduces object spawn/despawn at runtime. Rules:
+
+- **ID allocation:** hand-authored bootstrap objects keep ids below 1000;
+  runtime-spawned objects take ids from `WorldState.NextRuntimeObjectId`
+  (monotonic counter starting at 1000). No id reuse.
+- **Symmetry:** spawn adds the object to the entity repository and every
+  spatial cache (objects-by-tile); despawn removes it from exactly the same
+  structures. No other system may add/remove objects directly.
+- **Ownership:** despawn must not touch junction reservations — those are
+  owned by NPC plans and are released by plan invalidation/interrupt cleanup
+  (see 23.17, 26.16).
+- **Observability:** spawn and despawn emit `ObjectSpawned` /
+  `ObjectDespawned` trace events (view layer contract: 31.15).
+- **Dangling targets:** any plan targeting a despawned object must fail
+  safely: the execution layer detects the missing target, releases the plan's
+  junction reservation, invalidates the plan, and lets the next decision pass
+  re-decide.
+
+### 29A.4 v1 Content
+
+- `tree.apple`: no interactions, tag `Flora`,
+  `Produce = { "food.apple", 100, 4, 1 }` (retuned in iteration 6 for
+  daylight-only production: the dark half of the day adds ~+1.5 Hunger with
+  zero supply, so nights are survived on ground stock. Interval 160→100,
+  concurrent cap 3→4 for a deeper dusk stock, and the apple itself feeds more:
+  Eat HungerDelta -0.45→-0.60)
+- `food.apple` (existing): Eat (8 ticks, HungerDelta -0.45,
+  ComfortDelta +0.05) plus new PickUp (see 29B)
+
+## 29B. Inventory & Item Carrying (v1 Minimal)
+
+Added in iteration 2 (2026-07). The vertical slice scope (33.7, 34.18)
+deliberately excluded "deep inventory systems"; this section pulls forward
+only the minimal carrying model needed for the survival loop:
+pick food up → carry it → eat it.
+
+### 29B.1 Inventory State
+
+```csharp
+class InventoryState
+{
+    public List<string> Items; // definition ids, no per-item runtime state
+    public int Capacity;       // v1: 2
+}
+```
+
+Items are plain definition-id strings. A carried item has no world position,
+no junctions, no occupancy — it exists only in the list.
+
+### 29B.2 PickUp Contract
+
+`PickUp` is a normal object interaction (29.3) on the world item:
+
+- plan shape: MoveToJunction(item junction) → Interact(PickUp)
+- duration: 4 ticks (1 s); no need deltas
+- on completion: the world object despawns (29A.3) and its definition id is
+  appended to the actor's inventory
+- hard-gated (23.11) when the inventory is full or already contains food —
+  v1 NPCs do not stockpile
+- **restraint gate (iteration 6):** also hard-gated below Hunger 0.35 — NPCs
+  do not harvest food they do not need. Without this they vacuum every apple
+  the moment it drops, the ground stock is empty by dusk, and the
+  production-free night (19.7A) becomes a nightly famine.
+
+Goal mapping: `GetFood → PickUp` on the nearest reachable object offering it.
+
+### 29B.3 Eating From Inventory
+
+`Eat` becomes an inventory-consumption goal:
+
+- availability = inventory contains an item whose definition has an Eat
+  interaction (perceived world food no longer gates Eat)
+- plan shape: a single in-place `ConsumeInventoryItem` step — no target
+  object, no junction reservation, executable anywhere
+- execution runs the item's own Eat InteractionDefinition (duration and
+  effects come from content, e.g. apple: 8 ticks, Hunger -0.45), then removes
+  the item from the inventory; trace `ItemConsumed`
+
+### 29B.4 Out of Scope in v1
+
+- Drop / transfer / theft
+- stacking, item counts, weight
+- per-item runtime state (freshness, durability)
+- inventory UI beyond a debug readout
+- clothing equip flow migration (31A keeps its own equip model for now)
+
+## 29C. Wildlife, Health & Combat (v1 Minimal — Iteration 9)
+
+Added 2026-07. The world gains real stakes: health, hostile wildlife (dogs),
+armor, and death. Also introduces the **world seed** — runs are deterministic
+per seed, but different seeds produce different lives.
+
+### 29C.1 World Seed & Randomness
+
+`WorldState.Seed` comes from bootstrap (`Simulation.Seed`). All chance rolls
+(talk outcomes 28.15B, dog behavior, explore urges) are stateless hashes that
+mix the seed, so a run is exactly reproducible for a given seed and diverges
+across seeds. The presentation layer may randomize the seed per session; the
+simulation itself stays deterministic.
+
+### 29C.2 Health
+
+| Parameter | Value |
+|---|---|
+| `NPCState.Health` | 0..1, starts 1.0 |
+| Regeneration | +0.02 per slow tick while Hunger < 0.5 ("eat and rest to heal") |
+| Death | Health <= 0 → NPC is removed from the world (`NpcDied` trace) |
+
+Death cleanup must be total: entity repository, tile caches/occupancy, all
+junction reservations/occupancy owned by the NPC, and any world object it was
+using. Other NPCs' relationships and invitations self-heal (28.8 rules).
+
+### 29C.3 Dogs
+
+Dogs are lightweight creatures (`DogState`), not NPCs — a three-state machine
+(Roam / Chase / Fight), no needs, plans, or perception pipeline.
+
+| Parameter | Value |
+|---|---|
+| Population | max 2 alive; initial spawn at world start, respawn check every 3 days |
+| Spawn placement | random wilderness junction, hex distance >= 5 from every NPC |
+| Roam | ~20 % chance per medium tick to hop to a random passable neighbor junction |
+| Aggro | NPC within hex distance 2 → chase |
+| Chase | one junction hop per medium tick (slower than a walking NPC) |
+| Attack range | same or adjacent junction |
+| Dog HP | 0.9; NPC strike-back 0.15 per medium tick → dog dies in ~6 s |
+| Dog damage | 0.08 × (1 − EquippedArmor) per medium tick |
+
+**Intended balance:** one dog costs an unarmored NPC ~0.5 Health — a scary
+but survivable fight followed by days of healing. Two dogs at once out-damage
+the kill rate — near-certain death. Armor tilts both fights.
+
+**Combat is reactive in v1:** a fought NPC has its plan aborted and is held
+in place (`IsFighting`); it strikes back automatically at one adjacent dog.
+No flee, no planned hunting, no fear memory yet — those are the next layers.
+Fighting NPCs count as busy for social purposes.
+
+### 29C.4 Armor & Overheating
+
+`InteractionEffects` gains `ArmorDelta` → `NPCState.EquippedArmor` (0..1,
+fraction of incoming damage absorbed). Armor pieces are Dress-able clothing
+scattered in the wilderness — exploration pays.
+
+Warmth stops being a pure good. Effective temperature, graded pressure:
+
+```
+effectiveTemp = GlobalTemperature + EquippedWarmth * 10
+cold (effectiveTemp < 12): ThermalDiscomfort += min(0.09, (12 - effectiveTemp) * 0.02)
+hot  (effectiveTemp > 20): ThermalDiscomfort += min(0.09, (effectiveTemp - 20) * 0.02)
+else: ThermalDiscomfort -= 0.03
+```
+
+A coat (+0.4 warmth = +4°) turns the coldest night (6°) into a mild 10°
+(pressure 0.04 instead of the naked 0.09 cap); the same coat pushes the 18°
+afternoon to 22° (pressure 0.04), and coat + leather armor (+6°) to 24°
+(0.08) — an overdressed NPC overheats at midday and pays for protection with
+discomfort.
+
+**Equip rules (v1, from the first soak):**
+
+- Warmth and armor apply as **max(current, item)**, not a sum — repeated
+  dressing must not stack a coat into a furnace and 1.0 armor (the first
+  soak produced invulnerable, permanently overheated NPCs).
+- `Dress` is hard-gated below ThermalDiscomfort 0.3 **and** when the
+  effective temperature is not on the cold side (>= 14): an overheated NPC
+  reaching for more clothes was a self-reinforcing doom loop.
+
+**v1 limitation:** there is no Undress action yet — dressing decisions are
+one-way within a run; threat-aware armor decisions (don armor because dogs
+are near) are deferred until fear/memory of wildlife exists.
+
+### 29C.4A Fear, Flight & Sanctuary (Iteration 10)
+
+Combat stops being a stand-and-trade: NPCs assess, flee, remember, and
+prepare.
+
+**Sanctuary:** dogs never enter Indoor tiles — roaming, chasing, and
+spawning all skip indoor junctions. Home is safe; "run home" is a real
+strategy, not a metaphor.
+
+**Flight:**
+
+| Parameter | Value |
+|---|---|
+| Flee trigger | Health < 0.5 OR >= 2 dogs adjacent |
+| Flee behavior | abort plan → `Flee` goal: move-only plan to the nearest reachable indoor junction |
+| While fleeing | no strike-back; bites still land (escape has a price) |
+| Escape works because | NPC walks ~1.5× dog hop speed; dogs lose targets beyond aggro+3 |
+| Flee ends | on arrival (plan completes → normal life resumes) |
+
+The decision system holds the `Flee` goal unconditionally while its plan is
+active — nothing outbids running for your life.
+
+**Danger memory (27 integration):** every aggro/first bite records
+`{tile, tick}` in `MemoryState.Dangers` (deduped by tile, TTL 2400 ticks =
+1 day, cap 8). Effects:
+
+- **Explore avoidance:** wander destinations within 3 tiles of a fresh
+  danger are filtered out — "меня там покусали, обойду".
+- **Food avoidance (iteration 11 hard lesson):** GetFood pickup targets and
+  forage destinations within 2 tiles of a fresh danger are skipped too —
+  **unless the NPC is Starving** (desperation overrides caution, consistent
+  with 23.17 emergencies). Without this, a dog pair camping a fruit tree
+  became a death trap: hungry NPCs walked to the nearest tree one after
+  another and died at the same spot — one even looting the previous
+  victim's armor on the way — a full colony wipe on day 4.
+- **Threat-aware dressing (the 29C.4 deferral, now real):** with any fresh
+  danger memory and EquippedArmor < 0.3, `Dress` becomes available even in
+  warm weather, scored at need >= 0.6, and the planner prefers the
+  highest-ArmorDelta reachable item instead of the nearest — the NPC
+  consciously puts on armor *because the world got dangerous*, accepting the
+  overheating cost (29C.4).
+
+### 29C.5 Explore Goal (23.2 addition)
+
+`Explore` sends an idle NPC to a random reachable junction 3–8 tiles away
+(move-only plan). Score = 0.1 base + 0.05 need + a seeded jitter of 0..0.2
+that changes every 160 ticks — wandering urges vary run to run (retuned from
+0.1 + 0..0.2 @ 80 ticks: the first soak produced 16 trips/NPC/day and hungry,
+twitchy wanderers; a few trips per day is the intent). Explore loses
+to any pressing need but beats Idle roughly half the time, so calm NPCs
+drift outward, discover armor, trees — and dogs. Discoveries persist via
+spatial memory (27.18A).
+
+## 29E. Thirst, Water & Fire (Iteration 13)
+
+The survival chain deepens: drink or suffer, and boiled water is worth the
+logistics of fire.
+
+### 29E.1 Thirst Need
+
+| Parameter | Value |
+|---|---|
+| `NPCNeeds.Thirst` | 0..1, higher = worse (like Hunger); starts per bootstrap |
+| Decay | +0.025 per slow tick |
+| Restraint gate | Drink goal gated below Thirst 0.35 (29B.2 pattern) |
+| Dehydrated status | enter >= 0.85, clear < 0.60; +1.0 boost to Drink (23.17 pattern) |
+| Death | none in v1 — misery only, like hunger |
+
+### 29E.2 Water Sources
+
+- **Pond** (`water.pond`, tag RawWater, 2 in the wilderness): `Drink`
+  interaction, 10 ticks, Thirst -0.6 — and a **30 % sickness roll** (seeded
+  hash): Torso -0.15, Comfort -0.2, `GotSick` trace. Raw water is a gamble.
+- **Lit campfire + pot**: `Drink` (boiled), 12 ticks, Thirst -0.8,
+  Comfort +0.05, no risk. Requires the campfire lit and `tool.pot` in the
+  drinker's inventory. The planner prefers boiled over raw whenever it is
+  actually available.
+
+### 29E.3 Campfire & Fuel
+
+- `campfire.spot` (fixed, in the yard). **Fuel = `ResourceAmount`** in
+  ticks; lit = fuel > 0. A `FireSystem` (Slow) burns 16 ticks of fuel per
+  slow tick and traces `FireOut` at zero.
+- `Fuel` interaction (8 ticks): consumes one `resource.firewood` from the
+  actor's inventory, +1200 ticks of fuel (half a day per log).
+  **Lighting a dead fire requires `tool.lighter` in inventory**; topping up
+  a burning fire does not.
+- Firewood: pickable logs scattered at bootstrap plus two
+  `forest.deadfall` producers (Produce = firewood, interval 300, cap 3 —
+  the 29A pipeline reused verbatim). Renewable but effortful.
+- Tools (`tool.lighter`, `tool.pot`, tag Tool): pickable, multi-use, never
+  consumed; placed near the home at bootstrap ("basics are found quickly").
+- Inventory capacity grows 2 → 4 (food + lighter + pot + a log).
+
+### 29E.4 Goal Chain (emergent, no multi-step planner)
+
+Four single-step goals chain through world state, not through plans:
+
+| Goal | Available when | Need value |
+|---|---|---|
+| Drink | (lit campfire && pot) OR pond known; Thirst >= 0.35 | Thirst |
+| GatherTools | lighter or pot missing && a Tool item known reachable && space | 0.25 + 0.2 × Thirst |
+| GatherWood | no log carried && wood known && campfire fuel < 600 && space | 0.2 + 0.3 × Thirst |
+| TendFire | log carried && campfire fuel < 600 && (fuel > 0 OR lighter carried) | 0.25 + 0.3 × Thirst |
+
+Target selection is tag-filtered per goal (GetFood → Food, GatherWood →
+Firewood, GatherTools → Tool), so food pickups and wood pickups never cross.
+The expected life: early days of risky pond water and occasional sickness,
+then tools get collected, the fire gets kept, and boiled water becomes the
+norm — with relapses to the pond when the fire dies far from a log.
+
+## 29F. Hunting & Crafting (Iteration 14)
+
+Meat closes the survival chain: prey → weapon → hunt → cook → eat, plus the
+first clothing craft. The campfire doubles as the workbench.
+
+### 29F.1 Rabbits
+
+Prey wildlife (`RabbitState`, mirrors 29C.3 dogs but flees):
+
+| Parameter | Value |
+|---|---|
+| Population | max 4; respawn check every 2400 ticks (rabbits breed fast — retuned from 3/3600 after a 1-kill-per-10-days first soak); spawn >= 3 tiles from NPCs, never indoors |
+| Idle | grazes; 30 % chance per medium tick of a random hop |
+| Flight | NPC within 2 tiles → hops to the neighbor junction farthest from the nearest NPC |
+| Spooked | after a missed kill attempt: immune + panicked for 150 ticks |
+
+NPCs perceive rabbits by direct proximity scan (hex distance <= 4) — no
+rabbit memory in v1.
+
+### 29F.2 Hunting
+
+- `Hunt` goal: needs a **spear carried**, a visible non-spooked rabbit,
+  Hunger >= 0.3, and no meat already in hand. Score 0.15 + 0.5 × Hunger.
+- The plan is a move-only chase to the rabbit's junction; the rabbit flees;
+  re-planning each arrival produces a genuine pursuit (NPC walk speed beats
+  hop speed).
+- Kill resolution is automatic on adjacency (RabbitSystem): seeded roll,
+  **50 % kill / 50 % miss**. Miss → rabbit spooked, hunter gets a Hunt
+  cooldown. Kill → rabbit despawns; **1 raw meat + 1 hide auto-loot** into
+  the hunter's inventory (overflow drops at feet).
+
+### 29F.3 Crafting at the Campfire
+
+`Craft` interaction on `campfire.spot` (12 ticks); the recipe is selected by
+the goal; ingredients validated at interaction start:
+
+| Goal | Ingredients | Output | Extra requirement |
+|---|---|---|---|
+| CraftSpear | 1 firewood | `tool.spear` (inventory) | none (whittling) |
+| CookMeat | 1 raw meat | `food.meat_cooked` (inventory) | fire lit |
+| CraftLeather | 1 hide (retuned from 2: loot splits across hunters, two-on-one-NPC never happened in soaks) | `clothing.leather_pants` — **worn immediately** | none |
+
+- **Raw meat is inedible** — `food.meat_raw` has no Eat interaction at all;
+  the only path to calories is through the fire.
+- `food.meat_cooked`: Eat, Hunger -0.9 — a real meal versus the apple's -0.6.
+- `clothing.leather_pants`: Wear layer, covers Pelvis + LegL + LegR, warmth
+  0.2, **armor 0.2 — the first leg protection** (dogs bite legs 60 % of the
+  time, 19.3C).
+- Goal scores: CookMeat 0.3 + 0.4 × Hunger; CraftSpear 0.2 + 0.2 × Hunger
+  (gated on not owning one); CraftLeather 0.35 flat (gated on a hide in hand and
+  not already wearing pants).
+- Inventory capacity 4 → **7** (food, lighter, pot, log, spear, meat, hide).
 
 ## 30. Debug, Observability & Development Tooling (Deep)
 
@@ -4542,11 +5314,18 @@ Unity prefabs represent visual templates only.
 
 ### 31.15 Spawning & Despawning
 
-Driven by simulation events.
+Target contract — driven by simulation events:
 
 - `OnEntitySpawned` → create view
 - `OnEntityDespawned` → destroy view
   Views should not create entities themselves.
+
+**v1 implementation (iteration 2): snapshot diff.** The renderer creates a
+view for every snapshot id it does not know yet, and destroys views whose id
+is missing from the current snapshot. This is equivalent for a small world and
+avoids an event-delivery channel; the event-driven contract above remains the
+later target. The simulation still emits `ObjectSpawned` / `ObjectDespawned`
+trace events for observability (see 29A.3).
 
 ### 31.16 Error Handling & Desync Protection
 
@@ -4567,6 +5346,19 @@ sanity checks comparing snapshot vs expected ranges
 - avoid per-frame allocations
 - reuse view objects (pooling)
 - limit debug overlays in release
+
+Iteration 23 hardening (first real profile, 285 tiles / ~14k junctions):
+
+- **Snapshot export is cached per simulation tick** in the runner —
+  consumers (renderer, debug panel, point overlay) may poll every frame
+  but the world is serialized at most once per tick. Exporting the full
+  snapshot per consumer per frame cost ~180k GC allocations/frame.
+- **Junction markers are debug-only** (~14k sphere primitives = ~10M
+  triangles): off by default, toggleable via the renderer's
+  `_showJunctionMarkers` flag.
+- **The point overlay culls by camera distance** (badges and GL edges
+  within `DebugOverlayRange` of the camera focus only, hard badge cap)
+  and refreshes badges only when the snapshot tick changes.
 
 ### 31.18 Minimal v1 Integration Scope
 
@@ -4692,12 +5484,358 @@ For the first vertical slice, clothing should support:
 - future-ready layering field, even if lightly used at first
   Detailed bone attachment and visual assembly remain on Unity side.
 
+### 31A.5A Wearables as Items (Iteration 11)
+
+Clothing stops being an infinite prop and becomes a real, exclusive item.
+
+**Model:**
+
+- `NPCState.WornItems` — list of worn definition ids. Equipment values are
+  recomputed from it: `EquippedWarmth / EquippedArmor = max over worn items`
+  (consistent with 29C.4's no-stacking rule).
+- **Dress consumes the world object** (like PickUp): the garment despawns
+  into `WornItems` — only one NPC can wear the coat. Wearables become
+  contended resources like beds (24.3 filtering + reservations apply).
+- **Undress** (new goal + in-place `UndressItem` step, 6 ticks): the item is
+  removed from `WornItems` and **spawned back into the world at the NPC's
+  current junction** — clothes migrate around the map, others can pick them
+  up where they were dropped.
+- **Death drops everything worn** at the death site (29C.2 cleanup): killed
+  in the wild wearing heavy armor → the armor lies where the dogs won,
+  retrievable by whoever dares.
+
+**Undress decision (the 29C.4 tradeoff made complete):**
+
+| Rule | Value |
+|---|---|
+| Trigger | effectiveTemp > 20 AND ThermalDiscomfort >= 0.4 |
+| Removal candidate | the warmest worn item that is *safe to remove* |
+| Safe to remove | item has no armor, OR no fresh danger memory (29C.4A) |
+| If nothing is safe to remove | keep sweating — protection beats comfort under threat |
+
+An NPC that armored up after a dog attack overheats at noon; once the danger
+memory fades (1 day), it finally takes the armor off — and until then it
+visibly pays for safety.
+
+### 31A.5B Layered Wear (Iteration 12, molly_copy port)
+
+Clothing gains the molly three-layer model, adapted to the headless sim
+(WearSlots simplified to the 7 body parts of 19.3C):
+
+```csharp
+enum WearLayer { Underwear, Wear, Outerwear }
+
+class ObjectDefinition
+{
+    // ... existing ...
+    public WearLayer? Layer;        // null = not wearable
+    public List<BodyPart> Covers;   // zones this garment occupies/protects
+}
+```
+
+**Rules (mirroring molly BodyBones.Equip):**
+
+- One item per (layer, body part). Dressing over an occupied (layer, part)
+  **takes the old item off** — it drops at the NPC's feet like Undress.
+- **Warmth = clamp01(sum over worn items)** — layering finally stacks
+  (underwear 0.05 + coat 0.4 + heavy armor 0.25 = a genuinely hot outfit).
+- **Armor is per part = max over items covering that part** — leather on the
+  torso does nothing for a bitten leg. Protection now has anatomy.
+- Every NPC starts wearing `underwear.cloth` (Underwear, Torso+Pelvis,
+  warmth 0.05) — three instances exist, one per NPC, never contended.
+- v1 content: coat = Wear layer, covers Torso+Arms (warmth 0.4);
+  leather armor = Outerwear, Torso (armor 0.3, warmth 0.15);
+  heavy armor = Outerwear, Torso+Pelvis (armor 0.5, warmth 0.25).
+  Note: no garment covers legs yet — dogs bite low, and legs are naked
+  until leather crafting arrives (iteration 14 roadmap).
+
 ### 31A.6 Summary
 
 **Clothing System answers:**
 
 What is the NPC wearing, how does that affect temperature and comfort, and how can clothing become part of world interaction?
 It creates a bridge between inventory-like systems, environmental simulation, and visual presentation.
+
+## 31B. Actor Visualization & Wardrobe (iteration 23)
+
+The colony gets faces. Three Daz3D Genesis3Female actors are transferred
+from the sibling project `/Volumes/ORICO/molly_copy` and bound to the three
+simulated NPCs. The simulation stays byte-identical — this section is pure
+presentation; `DisplayName`/`ActorMesh` on NPCState (19.3) are inert labels
+the simulation never branches on.
+
+### 31B.1 Identity
+
+| NPC | DisplayName | ActorMesh (visual body) | Hair (auto-spawned) |
+|---|---|---|---|
+| 1 | Marta | Marta (`Daz3D/Martanaked`) | LowPonytail |
+| 2 | Molly | Molly (`MollyMesh.mesh`, 385 MB standalone) | ShilohHair |
+| 3 | Jolie | Jana (`Daz3D/Jana`) | JelikaHair_32434 |
+
+Jolie wears Jana's body — the actor set has no Jolie; the name belongs to
+the colony, the mesh to the source project.
+
+### 31B.2 Source wear architecture (adopted)
+
+The molly_copy wearing system is adopted with its serialization intact:
+
+- A **wear item** is a prefab: root `Wear` MonoBehaviour + its own bone
+  hierarchy under `hip` + one SkinnedMeshRenderer. `Wear.Construct()`
+  parents every garment bone onto the matching body bone (by name) via a
+  runtime `ParentConnection`, and swaps the renderer's mesh per actor from
+  the serialized `WearConfig { actorName, scale, mesh }` list — one prefab
+  fits every girl.
+- **BodyBones** on the actor: bone-name map built from `hip`, an empty
+  `Wear` child as attach container, a `hair` Wear prefab auto-spawned on
+  Construct, and `Equip`/`TakeOff` with per-slot layer bookkeeping
+  (underwear auto-hides under outer garments — same three layers as 31A.5B).
+
+### 31B.3 Transfer rules (the "smart import")
+
+- **GUID preservation**: every copied asset ships with its original .meta —
+  all cross-references (meshes, materials, textures, prefab hair refs)
+  survive verbatim. The GUID dependency closure is computed by script, not
+  copied by folder guess.
+- **Script adaptation, not copying**: only `Wear` and `BodyBones` are
+  reimplemented (namespace `HexLive.UnityPresentation.Wearing`), stripped
+  of Actor/FinalIK/localization/combat coupling, but keeping the exact
+  serialized field names AND claiming the ORIGINAL script GUIDs
+  (`7a660832…` / `eaba56e3…`) in their .meta — copied wear prefabs bind to
+  the adapted classes with zero YAML edits. The `ActorName` enum order
+  (Molly, Jolly, Marta, Tonny, Kshishtof, Jana, Masha, Rita) is preserved —
+  `WearConfig.actorName` is serialized as an int. `ParentConnection` is
+  runtime-added (never serialized) and needs no GUID claim.
+- **Naked base prefabs**: stripped copies of the actor prefabs are authored
+  under `Assets/Resources/HexLive/Actors/<ActorMesh>.prefab`. Kept: the
+  full skeleton, body SkinnedMeshRenderer(s), Animator (repointed to our
+  controller), adapted BodyBones, the empty `Wear` container. Removed: all
+  gameplay/IK/camera/face MonoBehaviours (Actor, FinalIK, Daz3DInstance,
+  BlendShape*, Agent/combat stack, NavMeshAgent, Rigidbody, colliders) and
+  non-rig children (cameras, anchor points, `Points`). No clothing is baked
+  into the prefab — the base is naked; even hair arrives at runtime.
+- **Wardrobe subset**: only female, non-explicit items that map onto
+  simulation wearables; the source's WearData ScriptableObjects and 1.2 GB
+  library are NOT copied wholesale.
+- **Excluded on principle**: all adult content (SEX* prefabs, related
+  animation clips and items), male FCO_*/FAO_* gear, DynamicBone,
+  combat/AI/camera/Firebase scripts.
+- **FinalIK is transferred** (Assets/RootMotion, ~3 MB, user decision):
+  `LookAtIK` and `FullBodyBipedIK` components stay on the actor prefabs
+  with their serialized bone references intact — the girls keep living
+  eyes and posture. The gaze mechanic is ported: the view layer drives
+  `lookAt.solver.target` + weight profile (weight/body/head/eyes/clamp,
+  molly_copy's LookAtConfig pattern) — talking NPCs look at each other,
+  walkers glance along their path; weights ease in/out smoothly.
+
+### 31B.4 Sim-to-visual wardrobe mapping
+
+`clothing definition id -> wear prefab(s)` by Resources convention:
+`Assets/Resources/HexLive/Wear/<definitionId>/` contains one or more wear
+prefabs, all equipped/removed together as the visual of that sim item.
+
+| Sim item | Visual prefab(s) |
+|---|---|
+| underwear.cloth | Panty_31415 + Bra_20266 |
+| clothing.leather_pants | SkinnyJeans_24487 |
+| clothing.coat | Jacket_7653 |
+| armor.leather | DdlSlc_Top |
+| armor.heavy | jacket_8867 |
+
+### 31B.5 Renderer bridge
+
+`HexWorldRenderer.CreateNpcView` instantiates
+`Resources/HexLive/Actors/{snapshot.ActorMesh}` when present (primitive
+capsule remains the fallback). A new `NpcActorView` component:
+
+- `Construct(actorMesh)` → BodyBones.Construct (bone map + hair).
+- Per snapshot: diffs `WornItems` against the currently equipped set →
+  `Equip`/`TakeOff` of the mapped wear prefabs. Sim wetness/durability do
+  not change visuals in v1.
+- Gaze (LookAtIK): during a Talk interaction the view targets the partner's
+  head; while walking, a point ahead on the path; otherwise the weight eases
+  to 0 (animation-neutral idle gaze).
+- Drives the Animator **from measured view motion**, not simulation
+  status: the view samples its own root displacement and yaw delta each
+  frame — feet move exactly when the body visibly moves (status-driven
+  animation lagged a tick + damping: sliding starts, treadmill stops).
+  Controller states: Idle / Walk / TurnLeft / TurnRight (clips
+  `@Idle_Neutral`, `@WalkForward_NtrlFaceFwd`, `@TurnOnSpot` Left/Right A);
+  params `Speed` and `TurnDirection` (−1/0/+1 from yaw rate when standing).
+  One controller shared by all three girls via humanoid retargeting.
+- `FullBodyBipedIK` ships **disabled** on the prefabs: its effector targets
+  lived on components we strip, and an unfed solver freezes the pose (the
+  "Marta slides in one pose" bug). It stays dormant until a mechanic feeds
+  it; LookAtIK remains active.
+- Positions/rotation stay owned by the existing renderer lerp — **the
+  simulation is the only mover**. Root motion is disabled on the actor
+  prefabs (the locomotion clips carry it) AND at runtime, and the actor
+  body child is re-pinned to its view root every LateUpdate: without this
+  the Animator and the renderer both moved transforms and the body drifted
+  off its root on turns.
+- Actor scale is normalized to the hex metric via a uniform view-scale
+  factor.
+
+### 31B.6 Verification
+
+Compile-level: presentation csproj builds. Play-mode checklist (user):
+three named girls render at their sim positions, walk with animation, hair
+present, underwear from bootstrap visible, Dress/Undress in the sim
+adds/removes garments on the body, wear conflicts swap visuals, death drops
+leave the body naked. Headless soaks are unaffected (simulation untouched).
+
+## 31C. World Object Visualization & Tropical Reskin (iteration 24)
+
+The island stops being abstract: beds are beds, palms are palms, water has
+depth, and the fauna/flora match the tropics. Part presentation, part small
+simulation amendments — each amendment is listed here and in its deep
+section.
+
+### 31C.1 Simulation amendments
+
+- **Coconuts, not apples** (29A): the home produce trees are palms;
+  `food.apple` -> `food.coconut` (same Eat -0.6 / PickUp), `tree.apple`
+  retired — `tree.palm` gains `Produce { food.coconut, 100, 4, 1 }`.
+  Richer coconut mechanics (cracking them open) — a later iteration.
+- **Crabs, not rabbits** (29F.2): the huntable animal is a crab; it spawns
+  within 2 tiles of Water tiles (river bank), hops slower (they scuttle),
+  and the trace/metric vocabulary follows (CrabSpawned/CrabKilled/…).
+  Loot unchanged (meat + hide) — call the hide chitin when it matters.
+- **Obstacle anchors** (20.15/24.3): `tree.big`, `tree.palm`, and
+  `rock.boulder` **block their anchor junction** (spawn/bootstrap sets
+  Blocked + TopologyVersion++; felling/mining unblocks the same way). NPCs
+  no longer walk through trunks. Interaction plans with a blocked-anchor
+  target approach a free passable **neighbor** junction instead — the
+  execution range check is junction-adjacent by construction.
+- **Produce rot** (29A): a dropped fruit that nobody picks up despawns
+  after 2400 ticks (`ProduceRotted` trace) — unreachable-junction drops no
+  longer litter the world forever.
+
+### 31C.2 Bed & the lying pose
+
+`bed_b.prefab` transfers from molly_copy (GUID closure, scripts stripped —
+its AnimationLevelItem pattern is *adapted*, not copied: attach point +
+override idle clip). Our version: the bed object view exposes an
+`ObjectAttachPoint` (the source prefab's `point` child); while an NPC's
+current interaction is `Sleep` and her execution target is that bed, the
+actor view snaps to the attach point and plays the **Laying** animator
+state (`Laying Breathless.fbx` idle). On wake the view releases back to
+the renderer's pose flow. Same pattern reserved for Sit later.
+
+### 31C.3 Object prefab convention
+
+`HexWorldRenderer.CreateObjectView` first tries
+`Resources/HexLive/Objects/<definitionId>.prefab`; the primitive composite
+remains the fallback. Delivered prefabs: `bed.basic` (bed_b), `tree.palm`
+(downloaded CC0 model), `food.coconut`. Everything else stays primitive
+until it earns art.
+
+### 31C.4 Water depth & sand
+
+Water tiles render **sunken and translucent**: the hex top drops ~40 % of
+tile height below ground level with an alpha-blended blue material — an
+NPC wading the shallows visibly sinks to the ankles (the simulation
+already walks through Water tiles; this is pure visual depth). Walkable
+tiles adjacent to water render sand-colored — the river gets banks.
+
+### 31C.5 Post-play fixes (user report)
+
+- **Bed teleport**: the transferred bed prefab carried a baked scene offset
+  ({-20.6, 0, 3.5}) in its root — the visual (and its lying attach point)
+  rendered 20 units from the logical anchor, so a sleeper "vanished into a
+  red sphere" across the map. Root zeroed; additionally the actor view
+  refuses an attach point farther than 3 body heights (teleport guard).
+- **Legible fallbacks**: the catch-all red sphere is gone — water spots are
+  flat blue discs, the campfire an ember-orange disc, stones gray, tools
+  and resources brown boxes, graves dark slabs, corpses lying capsules;
+  the unknown-object default is a neutral gray sphere.
+- **Mutual obstacles (spec 24.3 amendment)**: NPC pathfinding avoids
+  junctions currently occupied by a standing housemate (falls back to the
+  direct path when fully enclosed — never hard-stuck); a mover whose next
+  step is occupied waits up to 40 ticks, then re-paths around. Nobody
+  shares a standing spot or ghosts through a neighbor.
+- **Talk spacing & facing (spec 28.8 amendment)**: the initiator approaches
+  a free junction ~0.9 hex radius from the partner (an arm's-length circle,
+  not the adjacent sub-grid point), and when the talk starts both
+  participants turn to face each other (sim rotation; the view's gaze
+  already followed).
+
+### 31C.7 Water etiquette & solid furniture (iteration 26)
+
+- **Animals never enter water** (29C/29F amendment): dog and crab movement
+  (roam, chase, flee, hop) rejects junctions whose tiles are entirely
+  Water. Shore junctions (mixed land+water) stay walkable — crabs skitter
+  along the very bank but do not swim. Crab spawn obeys the same rule.
+- **Drinking happens from the bank** (29E amendment): when an interaction
+  target's anchor junction lies on a Water tile, the plan approaches the
+  nearest free passable junction on DRY land instead — the girl stands on
+  the bank and draws river water from the neighbor tile. Reuses the
+  obstacle "stand beside" mechanism.
+- **The bed is solid** (24.3 amendment): `ObjectDefinition.ObstacleRadius`
+  (world units) blocks every junction within that radius of the anchor —
+  not just the anchor itself. `bed.basic` gets Obstacle + radius **0.3 x
+  hex radius** — the bedroll core; the first soak at 0.45 blocked so much
+  of the small home interior that traffic starved the colony (starving
+  38 -> 22 on the control run). Nobody paths through the bed and the
+  sleeper approaches from beside it. Blocked junctions are recorded
+  per object (`WorldObjectState.BlockedJunctions`) so despawn unblocks
+  exactly what the object blocked — overlapping obstacles and walls stay
+  intact.
+
+### 31C.7A Unhurried sitting (iteration 26 addendum)
+
+The 12-tick (3 s) Sit read as fidgeting once the sit animation landed.
+Rebalanced as a proper breather:
+
+- Sit duration 12 -> **70 ticks** (~17.5 s), Comfort +0.4, Energy +0.1
+  (one long rest instead of many micro-sits).
+- Availability gate: Comfort < 0.6 **and Hunger/Thirst < 0.6** — you sit
+  because you need it, and never settle into a chair on an empty stomach
+  (the first soak showed long sits crowding out meals on seed 777).
+- **Post-sit cooldown 240 ticks** (~1 game-hour): after a good rest she
+  gets on with her day instead of chaining sits.
+- **Well-rested wanderlust** (29C.5 amendment): Explore gains +0.15 when the campfire is fuelled and
+  every need is comfortable (Hunger/Thirst < 0.5, Energy/Comfort > 0.5) —
+  long rests created genuinely idle NPCs who then never left the yard;
+  a settled colony strolls instead of standing by the fire.
+- **Sleeping metabolism**: while the current interaction is Sleep, Hunger
+  and Thirst accumulate at **x0.4** — a sleeping body burns less; without
+  this, hour-long sleep blocks guaranteed a starving wake-up every night
+  (starving churn x3).
+- **Sleep is likewise unhurried** (same addendum): bed Sleep 20 -> **100
+  ticks** (~25 s, one game-hour), Energy +0.5, Comfort +0.2 — four-five
+  real sleep blocks per night instead of eight catnaps (160 starved the
+  colony overnight: hunger spiked mid-block, starving x10). No post-sleep
+  cooldown: waking briefly and turning over is how nights work.
+
+### 31C.6 Full model pass & interaction poses (iteration 25)
+
+- **Every world object renders a real model** (Kenney Survival Kit + Food
+  Kit + Nature Kit, all CC0, licenses in ImportedActors/Kenney): big tree,
+  deadfall log, boulder, stone, firewood, palm leaf clump, campfire pit,
+  coconut, raw/cooked meat, stone axe, stone pickaxe, pot (bucket), grave
+  signpost, construction floor frame, drying rack (fence), and the bed is
+  now a survival **bedroll** (the sci-fi bed retired). Auto-fit sizes per
+  category (tools 0.18 R, campfire 0.55 R, boulder 0.45 R).
+- **Water anchors have no gizmo**: water.pond/water.river interaction
+  objects render as empty anchors — the river/pond tiles ARE the visual;
+  NPCs walk to the bank and drink (user decision; the sim interaction
+  objects stay, only their visuals are gone).
+- **Interaction poses** (animator params Working/Sitting + states
+  Crouch / Sit; clips: Polygonmaker crouch_inplace, Mixamo Sitting):
+  PickUp/Harvest/Build/Craft/Fuel/Bury/Hang -> crouch; Sit -> sit. Laying
+  keeps priority over both.
+- **Hand props**: while eating the food model sits in the right hand
+  (rHand bone via BodyBones), while chopping/mining — the axe/pickaxe,
+  while drinking boiled water — the pot; auto-scaled to palm size by
+  bounds. No prop when nothing fits.
+
+### 31C.5A Verification
+
+Sim side: 2-seed soak (coconut chain = old apple metrics, crabs spawn/get
+hunted near water, no pathing through blocked anchors, rot counter > 0,
+structure checks green). Presentation: play-mode checklist — sleeping NPC
+lies on the bed, palms/coconuts/bed render from prefabs, water shows
+depth, sand banks visible, no one clips through trunks.
 
 ## 32. NPC Brain & AI Architecture Layer (GOAP / LLM / Hybrid)
 
@@ -4934,6 +6072,10 @@ So even the first slice should be built on hex adjacency, not square-grid tempor
 
 - Shower / wash point
 
+**Iteration 2 note (2026-07):** the static food object is replaced by apple
+trees (29A) that drop apples outdoors; food now enters the world only through
+production, and the NPC carries it via the minimal inventory (29B).
+
 ### 33.4 Prototype NPC State
 
 **The NPC should already have:**
@@ -4946,6 +6088,17 @@ So even the first slice should be built on hex adjacency, not square-grid tempor
 - basic movement and facing
 
 For the first iteration, the NPC may start with no clothing equipped.
+
+**Iteration 3 note (2026-07):** the prototype runs **two NPCs** with different
+starting need profiles. Single-instance objects (bed, chair, coat) become
+contended: occupied objects are filtered at target selection (24.3), junction
+reservations arbitrate races, and failed attempts go on goal cooldown (23.10).
+
+**Iteration 8 note (2026-07):** **three NPCs**. Bed scarcity is deliberate
+(2 beds : 3 sleepers): nightly contention feeds the resentment mechanic
+(28.15B) and differentiates pairwise relationships. Talk partners are chosen
+by affinity (28.6), not proximity, so triangles form: coalitions, cool-offs,
+and reconciliations between different pairs at different times.
 
 ### 33.5 Prototype AI Loop to Prove
 
@@ -4980,6 +6133,10 @@ Temperature must already exist in the first slice.
 - clothing modifies thermal comfort
 - temperature can influence decision scores
   This is enough to validate the architecture without building full climate simulation yet.
+
+**Iteration 6 note (2026-07):** the single temperature value now follows the
+day/night sinusoid (19.7A). Seasons and local (fragment/tile) modifiers
+remain deferred.
 
 ### 33.7 Prototype Clothing Scope
 
@@ -5509,6 +6666,11 @@ fragment temperature is uncomfortable enough to matter
 - complex camera systems
 
 These can come later.
+
+**Iteration 2 note (2026-07):** a deliberately *minimal* inventory (2 slots,
+pickup + consume only — see 29B) was pulled forward to enable the survival
+loop. "Deep inventory systems" (stacking, transfer, UI, item state) remain
+deferred.
 The first slice should prove the architecture, not the full game.
 
 ### 34.19 Recommended Milestone Order
@@ -5560,3 +6722,215 @@ The first slice should prove the architecture, not the full game.
 
 In what exact order should we build the first prototype so that the architecture stays clean and the result becomes playable as early as possible?
 It is the roadmap from design to code.
+
+
+## 35. Open World Survival Expansion (Iterations 17-22 Master Plan)
+
+Direction set 2026-07-10: a seamless world with real building, weather, sun,
+rivers, wet and wearing-out clothing, and ranged weapons. Research note:
+hex-native construction follows the tile/edge/corner model (Red Blob Games)
+— **walls live on hex edges**, which maps 1:1 onto the existing
+edge-junction blocking (`blockedSlots`); building is therefore native to
+the current spatial system, not bolted on.
+
+### 35.1 Iteration 17 — Seamless World Foundation
+
+- World grows to a ~285-tile continuous field (q -8..10, r -6..8); the
+  hand-authored home stays where it is, wilderness generated around it.
+- **River**: a seeded winding line of `Water` tiles (new TileFlags.Water):
+  walkable shallows, drinkable (RawWater), never buildable; cooling and
+  wetness arrive with 35.4/35.5.
+- **Terrain props** (seeded placement): boulders (`rock.boulder`), small
+  stones (`resource.stone`, pickable), big shade trees (`tree.big`), palms
+  (`tree.palm`). Inert until their iterations.
+- **Performance**: perception reachability switches from per-object BFS to
+  an O(1) **connected-component cache** (recomputed when topology changes —
+  i.e., when walls are built); path BFS remains only for actual movement.
+
+### 35.2 Iteration 18 — Tools & Harvesting (implemented)
+
+- **Logs are unified with `resource.firewood`** — one wood resource serves
+  fire and construction; deadfall stays the renewable source, felling the
+  bulk source.
+- **Stone axe** (craft: 1 log + 1 stone), **stone pickaxe** (1 log +
+  2 stones) at the campfire workbench (Craft recipes keyed by goal, 29F.3
+  pattern); **saw** is findable wilderness loot (tag Tool — the existing
+  GatherTools goal collects it; the goal's gate widens from lighter/pot to
+  "any reachable Tool not carried", which also recovers dropped gear).
+- **`Harvest` interaction** on harvestable objects: big tree 40 ticks,
+  palm 30, boulder 40. Trees need axe OR saw (saw halves the duration);
+  boulders need the pickaxe. Completion consumes the object and loots:
+  big tree → 4 logs; palm → 2 logs + **3 palm leaves**
+  (`resource.palm_leaf`); boulder → 4 stones. Shade dies with the tree
+  (real tradeoff from 35.4 on).
+- **Goal chain** (29E.4 pattern): GatherStone (stones needed for missing
+  tools, score 0.25) → CraftAxe (0.3) / CraftPickaxe (0.25) →
+  HarvestTree (0.35 when the fire is starving and no ground wood remains,
+  or 0.25 to stock palm leaves) / MineBoulder (0.25 when the pickaxe owner
+  carries < 2 stones). Apple trees are never harvest targets.
+- Inventory capacity 7 → **10** (the tool belt era).
+
+### 35.3 Iteration 19 — Building (hex-edge construction, implemented)
+
+- **One communal project** (v1): a 1-tile wilderness hut, site seeded
+  5-7 tiles from home on a walkable non-water tile whose 6 neighbors all
+  exist; the **door edge faces home**. A `construction.site` anchor object
+  is spawned there so the whole plan/reserve/interact machinery applies
+  unchanged; NPCs know it from the start (seeded memory).
+- **Build pieces**, one `Build` interaction (30 ticks) each, sequenced
+  floor → 5 walls → door:
+  - **Floor + roof**: 1 log + 2 palm leaves; sets `TileFlags.HasFloor`.
+  - **Wall segment** (per edge): 1 log + 1 stone; blocks ALL junctions
+    shared with that neighbor (the existing blockedSlots mechanism) and
+    bumps `TopologyVersion` — the connectivity cache rebuilds from real
+    construction for the first time.
+  - **Door** (home-facing edge): 2 logs; blocks all shared junctions
+    except one, which is marked `Junction.Door` — passable to humans,
+    **never used by animals** (dog/rabbit movement skips Door junctions).
+    The doorway junction must be a **mid-edge** junction — shared by
+    exactly the site tile and the door neighbor (`Tiles.Count == 2`) and
+    not already blocked. Corner junctions are shared with the adjacent
+    wall edges and get blocked when those walls go up; marking one of
+    them as the door seals the hut with the builder inside (found by the
+    iteration 20 soak: a trapped NPC slept in the sealed hut for days
+    while starving — everything outside was unreachable). Walls in turn
+    never block a junction already marked `Door`. Soak invariant: after
+    completion the hut interior must share a connectivity component with
+    the outside world.
+- **Completion**: all pieces done → the tile flips `Indoor` (sanctuary +
+  the new **+4° indoor warmth** in the temperature model), a `bed.basic`
+  spawns inside (a wilderness bed — the reward), the construction site is
+  removed, `HutCompleted` traced.
+- **Material drivers** extend the 29E.4 chains: GatherWood/GatherStone
+  also trigger when the pending build piece needs logs/stones; palm leaves
+  come from the 35.2 palm-chopping stock. `Build` (score 0.4) fires when
+  the NPC carries the full bill for the pending piece.
+- **Construction is peacetime work** (first-soak lesson: logs feed walls
+  AND the hearth, and haulers starved — 37 starving / 47 dehydrated
+  episodes): the build chain pauses entirely while the builder is hungry
+  (>= 0.5) or thirsty (>= 0.5), or while the campfire is low on fuel. The
+  hearth outranks the walls.
+- Map-edge safety: `FindNearestJunction` now skips blocked junctions, and
+  any NPC standing on a junction as it is walled re-resolves to the
+  nearest passable one.
+
+### 35.4 Iteration 20 — Sun, UV & Shade (implemented)
+
+- **UV index**: `UvIndex = 0.9 × sin(π × dayProgress / 0.5)` over the
+  daylight half (06:00-18:00), 0 otherwise — peaks 0.9 at midday; rain
+  (35.5) will halve it.
+- **Exposure & sunburn** (needs at least one *uncovered* body part —
+  31A.5B coverage reuse; the head is never covered until hats exist):
+  - effective UV: Indoor or Water tile → 0; within 1 tile of a Shade
+    object (big tree / palm) → ×0.2; else full.
+  - while effective UV > 0.5: `SunExposure += (uv - 0.5) × 0.3` per slow
+    tick (~1.3 game-hours of peak sun to burn — the first soak showed
+    0.15 never crossed 1.0 in ten days: exposure peaked at 0.99),
+    plus Comfort -0.02 once exposure passes 0.5 (the sizzle is felt
+    before the burn).
+  - at SunExposure >= 1.0: **sunburn** — a seeded-random uncovered part
+    takes 0.08 damage (head burns can kill via 19.3C vitals — sunstroke),
+    Comfort -0.15, exposure resets to 0.5, `Sunburn` trace.
+  - recovery: exposure -0.05 per protected/night slow tick (a burn risk
+    lingers through a short shade break; 0.1 erased it too fast).
+- **Shade & cooling**: shade lowers effective temperature by 2°; standing
+  on a Water tile (the river) by 3° and blocks UV — the river is the
+  midday refuge the user asked for.
+- **CoolOff goal** (score 0.1 + 0.5 × max(Thermal, SunExposure − 0.4),
+  when effective temp > 20 with Thermal >= 0.35 **or** SunExposure >= 0.6
+  — heat and sunburn risk are separate reasons to seek cover; the first
+  soak showed the heat-only gate never trips in this climate): move-only
+  trip to the nearest Shade or Water spot; standing there cools and
+  shields, and exposure recovery drains the urge so the NPC naturally
+  resumes work. Chopping palms for leaves (35.2) now visibly costs the
+  colony its parasols.
+
+### 35.5 Iteration 21 — Weather, Rain & Wet Clothes (implemented)
+
+- **Weather system** (WeatherSystem, slow layer): seeded rain fronts,
+  scheduled **per day** — a per-slow-tick Bernoulli roll turned out badly
+  mixed on the 16-tick stride (seed 777 rolled zero fronts in ten days).
+  For day `d = tick / 2400`: it is a rain day iff
+  `Hash01(seed, d, 17, 3301) < 0.45`; the front starts at
+  `d×2400 + Hash01(seed, d, 18, 3301) × 2100` and lasts
+  `300 + 600 × Hash01(seed, d, 19, 3302)` ticks. The whole schedule is a
+  pure function of (seed, tick) — no weather state machine; the system
+  just derives `IsRaining` each slow tick and traces the
+  `RainStarted`/`RainStopped` transitions.
+- **Rain effects**: effective UV ×0.5 (applied to `UvIndex` at source),
+  global temperature −3° while raining. Rain wets every wearable outdoors:
+  worn and carried items of NPCs on non-Indoor tiles, and wearable ground
+  objects on non-Indoor tiles (a coat dropped in the rain soaks — and so
+  does one hung on the rack; nobody dries laundry in a downpour).
+- **Item instances**: `ItemInstance { DefinitionId, Wetness 0..1,
+  Durability 0..1 }` (Agents/InventoryState.cs). `NPCState.WornItems` and
+  `InventoryState.Items` become `List<ItemInstance>`; ground objects carry
+  `WorldObjectState.Wetness` so wetness survives drop → pickup → dress
+  round-trips (Durability mechanics arrive in 35.6; the field rides along
+  at 1.0). Non-wearables (tools, logs, food) share the type; their wetness
+  is tracked but has no effect in v1.
+- **Wetting rates** (per slow tick): rain outdoors +0.04 (soaked in ~12
+  slow ticks); standing on a Water tile +0.15 (the river drenches).
+- **Wet garment** (Wetness > 0.5): contributes **zero warmth**
+  (EquipmentMath recalculates each slow tick, since wetness now moves),
+  armor unaffected; movement ×0.9 per wet *worn* item, floor ×0.8.
+  `SoakedThrough` trace when a worn item crosses 0.5 upward.
+- **Drying** (every slow tick an item is not being wetted, all locations —
+  worn, carried, ground): `Wetness -= 0.02 × rate`, where rate is the best
+  of: ×3 in direct sun (effective UV > 0.3 at the holder's/item's tile,
+  shade/indoor rules from 35.4 apply), ×4 within 1 tile of a lit campfire,
+  ×5 hanging on the drying rack, else ×1. Multipliers do not stack.
+- **Drying rack**: `station.drying_rack` object; `CraftRack` goal (score
+  0.3 + 0.2 when raining or any worn item wet; the first soak scored it
+  0.1+0.3 and it lost all 811 available ticks to the busy goal field —
+  infrastructure competes like CraftLeather 0.35, not like filler;
+  requires 2 logs carried, none exists yet) — crafted at the campfire and placed on a free
+  neighbor junction. "Holds one item" v1: hanging = the NPC undresses the
+  wettest worn garment and it spawns as a ground object **at the rack's
+  junction**; a wearable at the rack junction dries ×5. Hung clothes are
+  ownerless loot (28.15D rule) — anyone cold just dresses from the rack.
+- **DryClothes goal** (score 0.15 + 0.4 × max worn wetness; available when
+  a worn item has Wetness > 0.5, it is not raining, and a free rack or lit
+  campfire is known reachable): if the rack junction is free → walk there
+  and hang the wettest item (`ItemHung` trace); else a move-only trip to
+  the lit campfire — standing there dries the whole outfit at ×4.
+  Cooldown 40 ticks on completion/failure.
+- Deliberate v1 simplifications: rain has no sound/visual sim side; no
+  puddles; rabbits/dogs ignore rain; boiled-water pots don't collect rain.
+
+### 35.6 Iteration 22 — Durability & Bow (implemented)
+
+- **Passive wear** (MoistureSystem — the per-item condition pass): every
+  *worn* garment loses `0.01 / 150` durability per slow tick (= 0.01 per
+  worn game-day; ~100 quiet days per garment). Carried, hung, and ground
+  items do not wear; tools do not wear in v1.
+- **Damage wear**: every dog bite costs each garment covering the bitten
+  part **0.05** durability — armor absorbs health damage but the cloth
+  gets chewed either way. Dog fights, not time, are what actually kill
+  clothes on the soak horizon.
+- **Destruction**: at durability <= 0 the worn item is removed outright —
+  `ItemDestroyed` trace, Comfort -0.1, equipment recalculated. Nothing
+  drops: it is rags. Crafting keeps the colony clothed — the economy loops.
+- **Bow**: `tool.bow` — `CraftBow` goal (score 0.3): 2 logs + 1 hide at
+  the campfire; available when no housemate need is more pressing and the
+  crafter has no bow yet. CraftLeather (0.35) outranks it for the first
+  hide — pants before weaponry.
+- **Arrows**: `resource.arrow` — `CraftArrows` goal (score 0.3): 1 log ->
+  **3 arrows**; available with a bow and an empty quiver (arrow count 0).
+- **Ranged hunting** (RabbitSystem resolution, before the spear branch): a
+  hunter with bow + arrow shoots at hex distance <= 3 — no adjacency
+  chase needed. Per shot: 1 arrow consumed; hit chance **0.6** -> kill +
+  loot (meat + hide) and a **40 %** roll to recover the arrow from the
+  carcass (`ArrowRecovered`); a miss spooks the rabbit (existing spook +
+  Hunt cooldown) and the arrow is lost in the grass. `BowShot` trace.
+  Hunt availability: spear **or** (bow and >= 1 arrow).
+- **Shooting dogs** (DogSystem): while a dog is *chasing*, any OTHER NPC
+  (not the chase target, not fighting) with bow + arrow within 3 tiles
+  fires once per slow pass: hit chance **0.5**, damage **0.35** (two hits
+  drop a 0.9-hp dog); arrows are never recovered from dogs. The fear arc
+  gains an answer: a fleeing housemate can be covered from the treeline.
+  `DogShot` trace; dog death reuses the existing DogKilled path.
+
+Each iteration keeps the spec-first discipline: numbers land in the
+relevant deep sections (20, 29C-F, 31A) as they are implemented; this
+master plan is the map, not the law.

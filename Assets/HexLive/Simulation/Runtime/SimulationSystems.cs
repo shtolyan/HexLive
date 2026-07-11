@@ -4340,6 +4340,39 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             npc.Needs.Hygiene = MathUtil.Clamp01(
                 npc.Needs.Hygiene + (IsAtOrBesideWater(world, npc.Tile) ? 0.05f : -0.004f));
 
+            // Spec 40.2: blood. A badly wounded part (< 0.4) bleeds — the worse
+            // the wound, the faster; blood refills slowly while fed and rested.
+            // Gentle rates so the healthy colony is unaffected: only a mauled
+            // NPC bleeds, and it's survivable if the wounds close. At zero the
+            // NPC dies of blood loss.
+            var worstPart = 1f;
+            foreach (var part in AllBodyParts)
+            {
+                if (npc.Body.Parts[part] < worstPart)
+                {
+                    worstPart = npc.Body.Parts[part];
+                }
+            }
+
+            if (worstPart < 0.4f)
+            {
+                npc.Needs.Blood = System.Math.Max(0f, npc.Needs.Blood - (0.4f - worstPart) * 0.06f);
+                if (npc.Needs.Blood <= 0f)
+                {
+                    npc.Health = 0f;
+                    Trace.Emit(world, npc.Id, "BledOut", $"Worst part {worstPart:F2} — blood loss");
+                }
+                else
+                {
+                    Trace.Emit(world, npc.Id, "Bleeding",
+                        $"Worst={worstPart:F2} Blood={npc.Needs.Blood:F2}");
+                }
+            }
+            else if (npc.Needs.Blood < 1f && npc.Needs.Hunger < 0.6f)
+            {
+                npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood + 0.02f);
+            }
+
             // Spec 28.15B: post-quarrel embarrassment fades with time.
             npc.Social.Embarrassment = MathUtil.Clamp01(npc.Social.Embarrassment - 0.02f);
 

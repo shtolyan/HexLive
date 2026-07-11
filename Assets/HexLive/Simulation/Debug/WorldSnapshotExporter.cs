@@ -98,6 +98,7 @@ public static class WorldSnapshotExporter
                 ThermalComfort = npc.Needs.ThermalComfort,
                 Stamina = npc.Needs.Stamina,
                 Hygiene = npc.Needs.Hygiene,
+                Blood = npc.Needs.Blood,
                 CurrentGoal = npc.Mind.CurrentGoal.ToString(),
                 PlanStatus = npc.Plan.Status.ToString(),
                 MovementStatus = npc.Movement.Status.ToString(),

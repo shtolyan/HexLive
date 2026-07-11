@@ -32,6 +32,11 @@ public sealed class NPCNeeds
     // rises while at the water's edge (bathing/washing). A visible survivor
     // param — grubbier the longer since a wash. Starts clean.
     public float Hygiene { get; set; } = 1f;
+
+    // Spec 40.2: blood (1 = full). A badly wounded part (< 0.4) bleeds — blood
+    // ebbs away; it refills slowly while fed and rested. At zero the NPC dies
+    // of blood loss. Bandages (later) stop the bleed and speed the refill.
+    public float Blood { get; set; } = 1f;
 }
 
 }

@@ -144,6 +144,9 @@ public sealed class NpcSnapshot
     // Spec 40.6: hygiene 1=clean..0=filthy (UI + grime tint).
     public float Hygiene { get; set; }
 
+    // Spec 40.2: blood 0..1 — bleeds from bad wounds; 0 = death (UI).
+    public float Blood { get; set; }
+
     public string CurrentGoal { get; set; } = string.Empty;
 
     public string PlanStatus { get; set; } = string.Empty;

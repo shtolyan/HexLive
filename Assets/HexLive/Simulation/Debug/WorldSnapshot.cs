@@ -150,6 +150,9 @@ public sealed class NpcSnapshot
     // Spec 40.7: tan 0=pale..1=dark — sun on bare skin (skin-paint cue).
     public float TanLevel { get; set; }
 
+    // Spec 40.3: bandages left in the med pouch (UI).
+    public int Bandages { get; set; }
+
     public string CurrentGoal { get; set; } = string.Empty;
 
     public string PlanStatus { get; set; } = string.Empty;

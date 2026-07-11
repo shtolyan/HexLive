@@ -10,15 +10,17 @@ public static class HexPathfinder
 {
     public static List<JunctionId> FindPath(WorldState world, JunctionId start, JunctionId goal)
     {
-        return FindPath(world, start, goal, null);
+        return FindPath(world, start, goal, null, true);
     }
 
     // Spec 24.3 (iteration 24): housemates are soft obstacles — avoid the
     // junctions they stand on; when that seals every route, fall back to
     // the direct path (never hard-stuck).
+    // Spec 40.17: weightClimb applies the climb-seam detour preference (false
+    // for hungry/thirsty NPCs so food/water routes stay short — fixes 12345).
     public static List<JunctionId> FindPath(
         WorldState world, JunctionId start, JunctionId goal,
-        HashSet<JunctionId> avoid)
+        HashSet<JunctionId> avoid, bool weightClimb = true)
     {
         if (start.Equals(goal))
         {
@@ -79,7 +81,7 @@ public static class HexPathfinder
                     continue;
                 }
 
-                var cost = gScore[current] + ClimbCost(world, current, neighborId);
+                var cost = gScore[current] + ClimbCost(world, current, neighborId, weightClimb);
                 gScore[neighborId] = cost;
                 cameFrom[neighborId] = current;
                 frontier.Add(cost * priorityScale + seq++, neighborId);
@@ -90,7 +92,7 @@ public static class HexPathfinder
         {
             // Fully enclosed by standing housemates: take the direct path.
             return avoid is not null
-                ? FindPath(world, start, goal, null)
+                ? FindPath(world, start, goal, null, weightClimb)
                 : new List<JunctionId>();
         }
 
@@ -123,17 +125,22 @@ public static class HexPathfinder
     // change). SeamCost stays == FlatCost (uniform, byte-identical to BFS)
     // until that pass; flip SeamCost + retune dogs to enable it.
     private const long FlatCost = 10L;
-    private const long SeamCost = 10L; // 1.0x uniform; see finding above
+    private const long SeamCost = 12L; // 1.2x, applied only when weightClimb
 
     // Spec 40.18: entering the swim ring costs 4x a land step — a slow, risky
     // last resort, so a route only takes to the water when there's no dry way.
     private const long SwimCost = 40L;
 
-    private static long ClimbCost(WorldState world, JunctionId from, JunctionId to)
+    private static long ClimbCost(WorldState world, JunctionId from, JunctionId to, bool weightClimb)
     {
         if (world.SwimJunctions.Contains(to))
         {
             return SwimCost;
+        }
+
+        if (!weightClimb)
+        {
+            return FlatCost;
         }
 
         return world.ClimbSeams.Contains(to) ? SeamCost : FlatCost;

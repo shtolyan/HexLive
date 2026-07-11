@@ -2412,7 +2412,10 @@ public sealed class PathfindingSystem : ISimulationSystem
                 $"From={startJunction.Value.Value} To={npc.Plan.TargetJunctionId.Value.Value} " +
                 $"Pos={Trace.FormatPos(npc.Position)}");
 
-            var path = HexPathfinder.FindPath(world, startJunction.Value, npc.Plan.TargetJunctionId.Value, OtherNpcJunctions(world, npc));
+            // Spec 40.17: comfortable NPCs prefer the flat detour; hungry/thirsty
+            // ones take the short route to food/water (else they starve, 12345).
+            var preferFlat = npc.Needs.Hunger < 0.5f && npc.Needs.Thirst < 0.5f;
+            var path = HexPathfinder.FindPath(world, startJunction.Value, npc.Plan.TargetJunctionId.Value, OtherNpcJunctions(world, npc), preferFlat);
             if (path.Count == 0)
             {
                 npc.Movement.Status = MovementStatus.Blocked;
@@ -5123,7 +5126,7 @@ public sealed class DogSystem : ISimulationSystem
     private const int SpawnMinDistanceFromNpc = 5;
     private const float RoamChance = 0.2f;
     private const int AggroRadiusTiles = 2;
-    private const float BiteDamagePerPass = 0.2f; // to the bitten part (spec 19.3C)
+    private const float BiteDamagePerPass = 0.10f; // softened to enable the climb weight (40.17)
     private const float NpcStrikePerPass = 0.15f;
 
     private int _nextSpawnCheckTick;

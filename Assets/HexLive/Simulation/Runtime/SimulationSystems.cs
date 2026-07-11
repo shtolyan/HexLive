@@ -2308,6 +2308,12 @@ public sealed class PathfindingSystem : ISimulationSystem
     private static readonly System.Collections.Generic.HashSet<JunctionId> _avoidScratch = new();
 
     // Spec 24.3: the junctions other housemates currently stand on.
+    // NOTE (spec 34, climb): soft-avoiding elevation-step "climb seams" here
+    // was tried to make hillside routes prefer the flat way around, but a hard
+    // avoid over-penalizes (forces long detours) and whack-a-moled the fragile
+    // economy across seeds. The correct form is a WEIGHTED path cost (climb =
+    // 2x, per the user), which needs the BFS turned into a cost-aware search —
+    // deferred to a focused pass (with the climb animation in Unity).
     internal static System.Collections.Generic.HashSet<JunctionId> OtherNpcJunctions(
         WorldState world, NPCState self)
     {

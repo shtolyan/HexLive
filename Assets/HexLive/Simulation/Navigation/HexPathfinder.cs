@@ -25,11 +25,21 @@ public static class HexPathfinder
             return new List<JunctionId> { start };
         }
 
-        var frontier = new Queue<JunctionId>();
+        // Spec 40.17: uniform-cost search. Priority = gScore * PriorityScale +
+        // insertion order, so with every edge at ClimbCost == 1 it dequeues in
+        // exactly BFS order (the seq tiebreak preserves FIFO within a depth) —
+        // byte-identical to the old Queue BFS. This is the safe substrate for
+        // the deferred 2x climb-seam weight: the day seams are tagged at
+        // world-gen, ClimbCost returns 2 for a seam edge and detours win.
+        const long priorityScale = 1_000_000L;
+        var frontier = new PriorityQueue<JunctionId, long>();
         var cameFrom = new Dictionary<JunctionId, JunctionId?>();
+        var gScore = new Dictionary<JunctionId, long>();
+        var seq = 0L;
 
-        frontier.Enqueue(start);
+        frontier.Enqueue(start, 0L);
         cameFrom[start] = null;
+        gScore[start] = 0L;
 
         while (frontier.Count > 0)
         {
@@ -66,8 +76,10 @@ public static class HexPathfinder
                     continue;
                 }
 
-                frontier.Enqueue(neighborId);
+                var cost = gScore[current] + ClimbCost(world, current, neighborId);
+                gScore[neighborId] = cost;
                 cameFrom[neighborId] = current;
+                frontier.Enqueue(neighborId, cost * priorityScale + seq++);
             }
         }
 
@@ -95,6 +107,16 @@ public static class HexPathfinder
 
         path.Reverse();
         return path;
+    }
+
+    // Spec 40.17: per-edge walk cost. v1 is uniform (1) — behaviourally
+    // identical to BFS. When elevation-step "climb seams" are tagged at
+    // world-gen (a symmetric climb-edge set on WorldState), this returns 2 for
+    // a seam edge so a route prefers the flat detour but still climbs when
+    // climbing is genuinely shorter.
+    private static long ClimbCost(WorldState world, JunctionId from, JunctionId to)
+    {
+        return 1L;
     }
 }
 

@@ -124,8 +124,17 @@ public static class HexPathfinder
     private const long FlatCost = 10L;
     private const long SeamCost = 10L; // 1.0x = uniform; see finding above
 
+    // Spec 40.18: entering the swim ring costs 4x a land step — a slow, risky
+    // last resort, so a route only takes to the water when there's no dry way.
+    private const long SwimCost = 40L;
+
     private static long ClimbCost(WorldState world, JunctionId from, JunctionId to)
     {
+        if (world.SwimJunctions.Contains(to))
+        {
+            return SwimCost;
+        }
+
         return world.ClimbSeams.Contains(to) ? SeamCost : FlatCost;
     }
 }

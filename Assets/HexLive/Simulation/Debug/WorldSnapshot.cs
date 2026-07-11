@@ -94,6 +94,10 @@ public sealed class JunctionSnapshot
     // hand-over-hand climb here.
     public bool IsClimbSeam { get; set; }
 
+    // Spec 40.18: an opened swim junction — presentation draws water an NPC can
+    // cross (and sites the swim animation / shark patrol).
+    public bool IsSwimmable { get; set; }
+
     public List<JunctionId> Neighbors { get; } = new();
 }
 

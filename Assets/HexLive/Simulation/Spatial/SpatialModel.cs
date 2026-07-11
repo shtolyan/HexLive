@@ -79,7 +79,8 @@ public enum TileFlags
     Blocked = 1 << 1,
     Indoor = 1 << 2,
     Water = 1 << 3, // spec 35.1: walkable shallows — river tiles
-    HasFloor = 1 << 4 // spec 35.3: a built floor+roof piece
+    HasFloor = 1 << 4, // spec 35.3: a built floor+roof piece
+    Swimmable = 1 << 5 // spec 40.18: deep water an NPC can swim (4x cost, shark risk)
 }
 
 }

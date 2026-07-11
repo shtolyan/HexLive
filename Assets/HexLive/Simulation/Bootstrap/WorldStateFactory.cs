@@ -38,6 +38,7 @@ public sealed class WorldStateFactory
         BuildAdjacency(world);
         BlockEdgeJunctions(world);
         BlockCliffAndSeaJunctions(world);
+        OpenSwimRing(world);
 
         foreach (var objectBootstrap in bootstrap.Objects)
         {
@@ -340,6 +341,38 @@ public sealed class WorldStateFactory
                 // climb seam — crossable, but the pathfinder charges 2x.
                 world.ClimbSeams.Add(junction.Id);
             }
+        }
+    }
+
+    // Spec 40.18: open a one-deep swimmable ring — sea junctions that touch
+    // walkable land become crossable (unblocked + tagged SwimJunctions), so the
+    // pathfinder can enter the water at a steep cost. Deeper sea stays blocked,
+    // so the ring is a dead-end until a second land mass gives it a far shore.
+    private static void OpenSwimRing(WorldState world)
+    {
+        var opened = new System.Collections.Generic.List<Common.JunctionId>();
+        foreach (var junction in world.Junctions.Items.Values)
+        {
+            if (!junction.Blocked || !SpatialQueries.IsAllWaterJunction(world, junction.Id))
+            {
+                continue;
+            }
+
+            foreach (var neighborId in junction.Neighbors)
+            {
+                if (world.Junctions.Items.TryGetValue(neighborId, out var neighbor) &&
+                    !neighbor.Blocked && !SpatialQueries.IsAllWaterJunction(world, neighborId))
+                {
+                    opened.Add(junction.Id);
+                    break;
+                }
+            }
+        }
+
+        foreach (var id in opened)
+        {
+            world.Junctions.Items[id].Blocked = false;
+            world.SwimJunctions.Add(id);
         }
     }
 

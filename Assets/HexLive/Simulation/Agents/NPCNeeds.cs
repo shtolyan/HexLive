@@ -21,6 +21,12 @@ public sealed class NPCNeeds
     // ThermalDiscomfort above stays the accumulating NEED the decision layer
     // scores (Dress/CoolOff), driven by direction from the effective temp.
     public float ThermalComfort { get; set; }
+
+    // Spec 40.1: stamina (0..1). The energy to DO things — spent on work,
+    // recovered by rest and food. Its ceiling is set by how fed/rested/
+    // comfortable the body is (you can't be spry on an empty stomach). Low
+    // stamina pulls the NPC toward sitting/lying down. Starts full.
+    public float Stamina { get; set; } = 1f;
 }
 
 }

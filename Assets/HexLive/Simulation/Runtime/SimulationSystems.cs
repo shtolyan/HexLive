@@ -463,7 +463,11 @@ public sealed class DecisionSystem : ISimulationSystem
             // Sitting anywhere is leisure, not survival: half-weight keeps it
             // an idle-time filler instead of outbidding fire and food chores
             // (full 1-Comfort made Sit >= 0.4 by construction of its gate).
-            AddGoalScore(npc, world.Tick, GoalType.Sit, (1f - npc.Needs.Comfort) * 0.5f, sitAvail);
+            // Spec 40.1: low stamina adds a gentle pull toward sitting to
+            // recover (score only — availability unchanged, so the economy
+            // isn't reshaped, just the timing of an already-available rest).
+            AddGoalScore(npc, world.Tick, GoalType.Sit,
+                (1f - npc.Needs.Comfort) * 0.5f + (1f - npc.Needs.Stamina) * 0.25f, sitAvail);
             AddGoalScore(npc, world.Tick, GoalType.Dress, dressNeed, dressAvail);
             // Spec 28.15B: dislike lowers the urge, embarrassment causes
             // post-quarrel withdrawal.
@@ -4293,6 +4297,23 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy - EnergyRate);
             npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort - ComfortRate);
             npc.Needs.Social = MathUtil.Clamp01(npc.Needs.Social - SocialRate);
+
+            // Spec 40.1: stamina. Its ceiling is how fed/rested/comfortable the
+            // body is (you can't be spry starving). It drains while working or
+            // moving, recovers fast while resting (sit/sleep), slowly while
+            // idle — and moves toward that ceiling either way. Soft in v1: it
+            // does NOT gate actions (that would collapse the economy); it only
+            // colours the UI and nudges the rest goals (below).
+            var staminaCeiling = MathUtil.Clamp01(
+                0.30f + 0.35f * (1f - npc.Needs.Hunger) + 0.25f * npc.Needs.Energy +
+                0.10f * npc.Needs.Comfort);
+            var resting = npc.Execution.CurrentInteraction is
+                InteractionType.Sit or InteractionType.Sleep;
+            var working = npc.Execution.Status == ExecutionStatus.InProgress && !resting;
+            var staminaDelta = resting ? 0.06f : working ? -0.05f : 0.015f;
+            npc.Needs.Stamina = MathUtil.Clamp(
+                npc.Needs.Stamina + staminaDelta, 0f, staminaCeiling);
+
             // Spec 28.15B: post-quarrel embarrassment fades with time.
             npc.Social.Embarrassment = MathUtil.Clamp01(npc.Social.Embarrassment - 0.02f);
 

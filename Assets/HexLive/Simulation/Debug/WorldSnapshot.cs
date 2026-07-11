@@ -138,6 +138,9 @@ public sealed class NpcSnapshot
     // Spec 29C.10: signed thermal comfort for the UI — 0 ideal, - cold, + hot.
     public float ThermalComfort { get; set; }
 
+    // Spec 40.1: stamina 0..1 — the energy to act (UI + panting cue).
+    public float Stamina { get; set; }
+
     public string CurrentGoal { get; set; } = string.Empty;
 
     public string PlanStatus { get; set; } = string.Empty;

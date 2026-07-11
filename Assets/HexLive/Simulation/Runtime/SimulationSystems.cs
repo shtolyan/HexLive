@@ -667,7 +667,7 @@ public sealed class DecisionSystem : ISimulationSystem
             // slowly, never at the expense of staying alive.
             var buildRaftAvail = carriedLogs >= 1 && world.RaftProgress < WorldState.RaftTarget &&
                 !fuelLow && npc.Needs.Hunger < 0.5f && npc.Needs.Thirst < 0.5f &&
-                npc.Memory.Dangers.Count == 0 && HasReachableWithTag(npc, world, "Raft");
+                npc.Memory.Dangers.Count == 0 && KnowsReachableWithTag(npc, world, "Raft");
             AddGoalScore(npc, world.Tick, GoalType.BuildRaft, 0.28f, buildRaftAvail);
             AddGoalScore(npc, world.Tick, GoalType.CraftRack,
                 0.3f + (world.Environment.IsRaining || wornWetness > 0.5f ? 0.2f : 0f),
@@ -916,6 +916,30 @@ public sealed class DecisionSystem : ISimulationSystem
             if (obj.IsReachable && ObjectUsableBy(obj, npc.Id) &&
                 world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
                 definition.Tags.Contains(tag))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Spec 40.15: a KNOWN object with this tag that's reachable overland —
+    // used for far, out-of-perception goals (the coastal raft) that NPCs
+    // remember from the start (SeedHomeKnowledge) even when they can't see it.
+    internal static bool KnowsReachableWithTag(NPCState npc, WorldState world, string tag)
+    {
+        if (npc.CurrentJunction is not { } from)
+        {
+            return false;
+        }
+
+        foreach (var known in npc.Memory.KnownObjects.Values)
+        {
+            if (known.Junction is { } j &&
+                world.Content.ObjectDefinitions.TryGetValue(known.DefinitionId, out var def) &&
+                def.Tags.Contains(tag) &&
+                (Connectivity.Reachable(world, from, j) || Connectivity.ReachableBeside(world, from, j)))
             {
                 return true;
             }

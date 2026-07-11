@@ -42,6 +42,11 @@ public sealed class NPCNeeds
     // med pouch — it must not crowd food/materials out of the pack). Two to
     // start; auto-spent to dress a serious wound.
     public int Bandages { get; set; } = 2;
+
+    // Spec 40.7: tan (0 = pale, 1 = dark). Builds slowly from sun on bare
+    // skin; the redness→tan look is painted from this on the skin texture
+    // (presentation). Never fades to zero — a survivor stays weathered.
+    public float TanLevel { get; set; }
 }
 
 }

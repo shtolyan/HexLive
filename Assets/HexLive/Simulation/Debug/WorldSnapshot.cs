@@ -147,6 +147,9 @@ public sealed class NpcSnapshot
     // Spec 40.2: blood 0..1 — bleeds from bad wounds; 0 = death (UI).
     public float Blood { get; set; }
 
+    // Spec 40.7: tan 0=pale..1=dark — sun on bare skin (skin-paint cue).
+    public float TanLevel { get; set; }
+
     public string CurrentGoal { get; set; } = string.Empty;
 
     public string PlanStatus { get; set; } = string.Empty;

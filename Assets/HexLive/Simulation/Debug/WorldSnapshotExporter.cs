@@ -99,6 +99,7 @@ public static class WorldSnapshotExporter
                 Stamina = npc.Needs.Stamina,
                 Hygiene = npc.Needs.Hygiene,
                 Blood = npc.Needs.Blood,
+                TanLevel = npc.Needs.TanLevel,
                 CurrentGoal = npc.Mind.CurrentGoal.ToString(),
                 PlanStatus = npc.Plan.Status.ToString(),
                 MovementStatus = npc.Movement.Status.ToString(),

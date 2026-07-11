@@ -4589,6 +4589,11 @@ public sealed class TemperatureSystem : ISimulationSystem
             var uncovered = CollectUncoveredParts(world, npc);
             if (effectiveUv > 0.5f && uncovered.Count > 0)
             {
+                // Spec 40.7: bare skin under the sun slowly tans (weathered
+                // survivor). More exposed skin, stronger sun → faster. The
+                // burn→tan colour is painted from this in presentation.
+                npc.Needs.TanLevel = MathUtil.Clamp01(
+                    npc.Needs.TanLevel + (effectiveUv - 0.5f) * 0.0015f * uncovered.Count);
                 npc.SunExposure += (effectiveUv - 0.5f) * 0.3f;
                 if (npc.SunExposure > 0.5f)
                 {

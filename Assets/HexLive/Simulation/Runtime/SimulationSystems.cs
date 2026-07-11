@@ -642,6 +642,16 @@ public sealed class DecisionSystem : ISimulationSystem
             // must outbid TendFire (<=0.55) — at 0.35 the kit's logs were
             // always eaten by the hearth and the bed never happened.
             AddGoalScore(npc, world.Tick, GoalType.CraftBed, 0.6f, craftBedAvail);
+
+            // Spec 40.14: a sun shelter — woven from 4 spare palm leaves at the
+            // fire when the sun bites and there's no shade near home yet. Score
+            // scales with the current UV so it's a fair-weather project, not a
+            // constant pull (keeps the fragile colony from reshuffling).
+            var craftTentAvail = world.Environment.UvIndex > 0.4f &&
+                carriedLeaves >= 4 && campfireSeen &&
+                !HasReachableWithTag(npc, world, "Shelter");
+            AddGoalScore(npc, world.Tick, GoalType.CraftTent,
+                0.25f + 0.3f * world.Environment.UvIndex, craftTentAvail);
             AddGoalScore(npc, world.Tick, GoalType.CraftRack,
                 0.3f + (world.Environment.IsRaining || wornWetness > 0.5f ? 0.2f : 0f),
                 craftRackAvail);
@@ -2203,6 +2213,7 @@ public sealed class PlanningSystem : ISimulationSystem
             GoalType.CraftPickaxe => InteractionType.Craft,
             GoalType.CraftRack => InteractionType.Craft,
             GoalType.CraftBed => InteractionType.Craft,
+            GoalType.CraftTent => InteractionType.Craft,
             GoalType.CraftBow => InteractionType.Craft,
             GoalType.CraftArrows => InteractionType.Craft,
             GoalType.DryClothes => InteractionType.Hang,
@@ -2244,6 +2255,7 @@ public sealed class PlanningSystem : ISimulationSystem
             case GoalType.CraftPickaxe:
             case GoalType.CraftRack:
             case GoalType.CraftBed:
+            case GoalType.CraftTent:
             case GoalType.CraftBow:
             case GoalType.CraftArrows:
                 return definition.Tags.Contains("Campfire");
@@ -2714,6 +2726,7 @@ public sealed class ExecutionSystem : ISimulationSystem
                         GoalType.CraftRack => DecisionSystem.CountInventory(npc, "resource.firewood") >= 2 &&
                             !DecisionSystem.RackExists(world),
                         GoalType.CraftBed => DecisionSystem.CountInventory(npc, "resource.palm_leaf") >= 3,
+                        GoalType.CraftTent => DecisionSystem.CountInventory(npc, "resource.palm_leaf") >= 4,
                         GoalType.CraftBow => DecisionSystem.CountInventory(npc, "resource.firewood") >= 2 &&
                             DecisionSystem.CountInventory(npc, "resource.hide") >= 1,
                         GoalType.CraftArrows => npc.Inventory.Items.Contains("resource.firewood"),
@@ -2984,6 +2997,15 @@ public sealed class ExecutionSystem : ISimulationSystem
                                 bedKind == "bed.basic" ? "A bedroll of her own" : "A leaf sleeping-mat");
                             break;
                         }
+                        case GoalType.CraftTent:
+                            // Spec 40.14: 4 leaves woven into a shade canopy.
+                            npc.Inventory.Items.Remove("resource.palm_leaf");
+                            npc.Inventory.Items.Remove("resource.palm_leaf");
+                            npc.Inventory.Items.Remove("resource.palm_leaf");
+                            npc.Inventory.Items.Remove("resource.palm_leaf");
+                            PlaceCraftedFurniture(world, npc, worldObject, "shelter.tent");
+                            Trace.Emit(world, npc.Id, "TentCrafted", "A leaf sun shelter");
+                            break;
                         case GoalType.CraftBow:
                             npc.Inventory.Items.Remove("resource.firewood");
                             npc.Inventory.Items.Remove("resource.firewood");

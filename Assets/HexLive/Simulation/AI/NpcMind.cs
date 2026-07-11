@@ -68,6 +68,7 @@ public enum GoalType
     CraftRack,    // drying rack: 2 logs at the campfire (iteration 21)
     DryClothes,   // hang the wettest garment / stand by the fire (iter 21)
     CraftBed,     // bedroll: 2 logs + 3 palm leaves (iteration 28)
+    CraftTent,    // sun shelter: 4 palm leaves at the campfire (spec 40.14)
     CraftBow,     // bow: 2 logs + 1 hide at the campfire (iteration 22)
     CraftArrows,  // 1 log -> 3 arrows at the campfire (iteration 22)
     Idle

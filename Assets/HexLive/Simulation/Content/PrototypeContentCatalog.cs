@@ -598,6 +598,15 @@ public static class PrototypeContentCatalog
                 },
                 Tags = { "Bed", "Obstacle" }
             },
+            // Spec 40.14: a sun shelter — a leaf canopy that shades the tiles
+            // around it (reuses the Shade system: shade cuts UV to 20 %). A bed
+            // can sit beneath it. Woven from 4 palm leaves at the fire.
+            ["shelter.tent"] = new ObjectDefinition
+            {
+                Id = "shelter.tent",
+                DisplayName = "Tent",
+                Tags = { "Shade", "Shelter" }
+            },
             // Spec 40.14: the cheap tier-1 sleeping mat — woven from 3 palm
             // leaves (no logs). A little better than bare grass, well short of
             // the bedroll. Not an obstacle (a flat mat you can step over).

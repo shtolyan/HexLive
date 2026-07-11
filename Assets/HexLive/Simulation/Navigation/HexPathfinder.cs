@@ -114,15 +114,16 @@ public static class HexPathfinder
 
     // Spec 40.17: a flat step costs FlatCost; a climb seam costs SeamCost, so
     // routes could prefer the flat way. Costs are scaled by 10 so a fractional
-    // multiplier stays integer. EMPIRICAL FINDING: no simple weight holds the
-    // fragile colony green — 2x worsened 3 of 6 seeds (deaths 1->2), and 1.5x
-    // COLLAPSED 3 seeds outright. The reshuffle of the deterministic dog-dance
-    // is chaotic per multiplier, so the weight needs a dedicated rebalance
-    // iteration (dog spawns / home layout), not a tweak. SeamCost stays ==
-    // FlatCost (uniform, byte-identical to BFS) until that pass; flip SeamCost
-    // to enable the weight and rebalance.
+    // multiplier stays integer. EMPIRICAL FINDING (three multipliers tested):
+    // NO weight holds the fragile colony green — 2x worsened 3 of 6 seeds
+    // (deaths 1->2), 1.5x COLLAPSED 3 seeds, and even a gentle 1.2x BROKE 1
+    // seed (777). The reshuffle of the deterministic dog-dance is chaotic at
+    // any reroute, so the weight is NOT a multiplier problem — it needs a
+    // dedicated rebalance of dog spawns / home layout (a game-difficulty
+    // change). SeamCost stays == FlatCost (uniform, byte-identical to BFS)
+    // until that pass; flip SeamCost + retune dogs to enable it.
     private const long FlatCost = 10L;
-    private const long SeamCost = 10L; // 1.0x = uniform; see finding above
+    private const long SeamCost = 10L; // 1.0x uniform; see finding above
 
     // Spec 40.18: entering the swim ring costs 4x a land step — a slow, risky
     // last resort, so a route only takes to the water when there's no dry way.

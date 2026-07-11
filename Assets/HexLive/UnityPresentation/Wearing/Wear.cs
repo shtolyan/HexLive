@@ -86,6 +86,104 @@ public sealed class Wear : MonoBehaviour
         }
     }
 
+    // Spec 40.10: erode a worn-out garment. durability01 (1 = pristine, 0 =
+    // rags) drives the HexLive/GarmentTear dissolve: procedural Voronoi holes
+    // grow with ragged frayed edges, skin/underlayers show through. The tear
+    // shader is swapped in LAZILY the first time wear actually bites, so
+    // pristine clothes and hair keep their original material untouched
+    // (same-named URP Lit properties carry over on the swap). TUNING KNOB:
+    // TearBiteDurability — wear starts showing below this durability.
+    private const float TearBiteDurability = 0.6f;
+    private const int MaxDamageSpheres = 8;
+    private static readonly int TearAmountId = Shader.PropertyToID("_TearAmount");
+    private static readonly int DirtAmountId = Shader.PropertyToID("_DirtAmount");
+    private static readonly int DamageSphereCountId = Shader.PropertyToID("_DamageSphereCount");
+    private static readonly int DamageSpheresId = Shader.PropertyToID("_DamageSpheres");
+    private static Shader _tearShader;
+    private static bool _tearShaderSearched;
+    private MaterialPropertyBlock _wearMpb;
+    private bool _tearShaderApplied;
+    private float _tear;
+    private float _dirt;
+    private readonly Vector4[] _damageSpheres = new Vector4[MaxDamageSpheres];
+    private int _damageSphereCount;
+
+    public void SetErosion(float durability01)
+    {
+        // 0 at the bite threshold, 1 at rags (near-fully dissolved).
+        _tear = Mathf.InverseLerp(TearBiteDurability, 0f, Mathf.Clamp01(durability01));
+        PushCondition();
+    }
+
+    // Spec 40.10-C: dirt (1 − hygiene) + world-space damage spheres (xyz =
+    // bone anchor, w = strength), shared by all the NPC's garments — a sphere
+    // only bites fragments within _DamageRadius, so the wound zone maps to
+    // the covering garment spatially, no UV knowledge needed.
+    public void SetGrime(float dirt01, Vector4[] spheres, int count)
+    {
+        _dirt = Mathf.Clamp01(dirt01);
+        _damageSphereCount = Mathf.Min(count, MaxDamageSpheres);
+        for (var i = 0; i < _damageSphereCount; i++)
+        {
+            _damageSpheres[i] = spheres[i];
+        }
+
+        PushCondition();
+    }
+
+    private void PushCondition()
+    {
+        if (_meshRenderer == null)
+        {
+            return;
+        }
+
+        // Pristine, clean, unhurt: leave the original material alone (the
+        // dirt gate skips pointless swaps for barely-visible smudges).
+        var active = _tear > 0f || _dirt > 0.15f || _damageSphereCount > 0;
+        if (!active && !_tearShaderApplied)
+        {
+            return;
+        }
+
+        ApplyTearShader();
+
+        _wearMpb ??= new MaterialPropertyBlock();
+        _meshRenderer.GetPropertyBlock(_wearMpb);
+        _wearMpb.SetFloat(TearAmountId, _tear);
+        _wearMpb.SetFloat(DirtAmountId, _dirt);
+        _wearMpb.SetFloat(DamageSphereCountId, _damageSphereCount);
+        _wearMpb.SetVectorArray(DamageSpheresId, _damageSpheres);
+        _meshRenderer.SetPropertyBlock(_wearMpb);
+    }
+
+    private void ApplyTearShader()
+    {
+        if (_tearShaderApplied)
+        {
+            return;
+        }
+
+        _tearShaderApplied = true;
+        if (!_tearShaderSearched)
+        {
+            _tearShaderSearched = true;
+            _tearShader = Shader.Find("HexLive/GarmentTear");
+        }
+
+        if (_tearShader == null)
+        {
+            return; // shader missing: erosion silently no-ops
+        }
+
+        // .materials instantiates per-garment copies, so each girl's shirt
+        // tears independently; _BaseMap/_BaseColor/_BumpMap survive the swap.
+        foreach (var material in _meshRenderer.materials)
+        {
+            material.shader = _tearShader;
+        }
+    }
+
     private Transform FindHip()
     {
         foreach (var t in GetComponentsInChildren<Transform>(true))

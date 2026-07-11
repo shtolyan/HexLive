@@ -11,7 +11,8 @@ Material:
   m_Shader: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
+  m_ValidKeywords:
+  - _SPECULAR_SETUP
   m_InvalidKeywords:
   - IRAYUBER_GLOSSYCOLORACTIVE
   - _BLENDMODE_ALPHA
@@ -200,7 +201,7 @@ Material:
     - _RenderQueueType: 4
     - _RequireSplitLighting: 0
     - _Roughness: 1
-    - _Smoothness: 0.5
+    - _Smoothness: 0
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SpecularLobe1Roughness: 0
@@ -233,7 +234,7 @@ Material:
     - _TransparentWritingMotionVec: 0
     - _TransparentZWrite: 0
     - _UseShadowThreshold: 0
-    - _WorkflowMode: 1
+    - _WorkflowMode: 0
     - _XRMotionVectorsPass: 1
     - _ZTestDepthEqualForOpaque: 4
     - _ZTestTransparent: 4

@@ -13,6 +13,13 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
     [SerializeField] private bool _startPaused = true;
     [SerializeField] private float _initialSpeed = 1f;
 
+    // Perf: mirroring EVERY sim trace event into Debug.Log was an editor
+    // killer — each entry captures a stack trace (frame cost at 50x speed)
+    // and the console/Editor.log accumulate across play sessions, so the
+    // editor got slower with every run. The debug panel reads the event
+    // buffer directly; flip this on only when console tracing is needed.
+    [SerializeField] private bool _logTraceEventsToConsole;
+
     private float _accumulator;
     private SimulationEngine? _engine;
     private SimulationClock? _clock;
@@ -40,9 +47,12 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
 
     private WorldSnapshot? _cachedSnapshot;
     private int _cachedSnapshotTick = -1;
+    private bool _cachedSnapshotDetailed;
 
     // Spec 31.17: consumers poll every frame; the world serializes once
-    // per simulation tick.
+    // per simulation tick. The cached snapshot is handed back to the
+    // exporter for in-place reuse, so consumers must not hold it across
+    // ticks (they all re-poll every frame).
     public WorldSnapshot? CreateSnapshot()
     {
         if (_engine is null)
@@ -50,13 +60,17 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
             return null;
         }
 
-        if (_cachedSnapshot is not null && _engine.World.Tick == _cachedSnapshotTick)
+        var detailed = WorldSnapshotExporter.IncludeDebugDetails;
+        if (_cachedSnapshot is not null &&
+            _engine.World.Tick == _cachedSnapshotTick &&
+            _cachedSnapshotDetailed == detailed)
         {
             return _cachedSnapshot;
         }
 
-        _cachedSnapshot = WorldSnapshotExporter.Export(_engine.World);
+        _cachedSnapshot = WorldSnapshotExporter.Export(_engine.World, _cachedSnapshot);
         _cachedSnapshotTick = _engine.World.Tick;
+        _cachedSnapshotDetailed = detailed;
         return _cachedSnapshot;
     }
 
@@ -93,6 +107,14 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
 
         var events = _engine.World.Events.Items;
         if (events.Count == 0) return;
+
+        // Keep the index moving even while logging is off, so enabling the
+        // toggle mid-run starts from "now" instead of dumping the backlog.
+        if (!_logTraceEventsToConsole)
+        {
+            _lastLoggedEventIndex = events.Count;
+            return;
+        }
 
         // If buffer was trimmed and our index is beyond start, reset
         if (_lastLoggedEventIndex > events.Count)
@@ -199,6 +221,8 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
         RegisterDefaultSystems(_engine);
         _accumulator = 0f;
         _lastLoggedEventIndex = 0;
+        _cachedSnapshot = null;
+        _cachedSnapshotTick = -1;
     }
 
     private static void RegisterDefaultSystems(SimulationEngine engine)

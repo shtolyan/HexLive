@@ -13,12 +13,13 @@ Material:
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - _ALPHATEST_ON
+  - _SPECULAR_SETUP
   m_InvalidKeywords:
   - _DISABLE_SSR_TRANSPARENT
   - _DOUBLESIDED_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 0
+  m_DoubleSidedGI: 1
   m_CustomRenderQueue: 2450
   stringTagMap:
     MotionVector: User
@@ -129,7 +130,7 @@ Material:
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
     - _ConservativeDepthOffsetEnable: 0
-    - _Cull: 2
+    - _Cull: 0
     - _CullMode: 0
     - _CullModeForward: 0
     - _Cutoff: 0.42
@@ -165,7 +166,7 @@ Material:
     - _ReceivesSSRTransparent: 0
     - _RenderQueueType: 1
     - _RequireSplitLighting: 0
-    - _Smoothness: 0.5
+    - _Smoothness: 0
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
@@ -189,7 +190,7 @@ Material:
     - _TransparentWritingMotionVec: 0
     - _TransparentZWrite: 1
     - _UseShadowThreshold: 0
-    - _WorkflowMode: 1
+    - _WorkflowMode: 0
     - _XRMotionVectorsPass: 1
     - _ZTestDepthEqualForOpaque: 3
     - _ZTestTransparent: 4

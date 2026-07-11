@@ -63,10 +63,17 @@ public sealed class WorldStateFactory
             }
         }
 
-        // Spec 31A.5B: everyone starts in underwear (per-NPC instance).
+        // Spec 31A.5B: everyone starts dressed — but randomized (deterministic
+        // per seed+NPC): a random pair of panties + a random bra/top. Ids match
+        // the Resources/HexLive/Wear/<id> folders and catalog definitions.
+        string[] startBottoms = { "Panty_11571", "Bikini Bottom" };
+        string[] startTops = { "Bikini top", "TankTop9_20034", "Top_11927", "CowTop", "Top_2300" };
         foreach (var npc in world.Entities.Npcs.Values)
         {
-            npc.WornItems.Add("underwear.cloth");
+            var bottom = startBottoms[(int)(MathUtil.Hash01(world.Seed, npc.Id.Value, 11, 4201) * startBottoms.Length)];
+            var top = startTops[(int)(MathUtil.Hash01(world.Seed, npc.Id.Value, 12, 4202) * startTops.Length)];
+            npc.WornItems.Add(bottom);
+            npc.WornItems.Add(top);
             Runtime.EquipmentMath.Recalculate(world, npc);
         }
 

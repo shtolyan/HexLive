@@ -31,7 +31,7 @@ Material:
   - _DOUBLESIDED_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 0
+  m_DoubleSidedGI: 1
   m_CustomRenderQueue: 2450
   stringTagMap:
     MotionVector: User
@@ -142,7 +142,7 @@ Material:
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
     - _ConservativeDepthOffsetEnable: 0
-    - _Cull: 2
+    - _Cull: 0
     - _CullMode: 0
     - _CullModeForward: 0
     - _Cutoff: 0.204
@@ -178,7 +178,7 @@ Material:
     - _ReceivesSSRTransparent: 0
     - _RenderQueueType: 1
     - _RequireSplitLighting: 0
-    - _Smoothness: 0.5
+    - _Smoothness: 0
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1

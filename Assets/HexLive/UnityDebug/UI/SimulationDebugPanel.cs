@@ -110,6 +110,16 @@ namespace HexLive.UnityDebug.UI
             BuildUi();
         }
 
+        private void OnEnable()
+        {
+            WorldSnapshotExporter.IncludeDebugDetails = _visible;
+        }
+
+        private void OnDisable()
+        {
+            WorldSnapshotExporter.IncludeDebugDetails = false;
+        }
+
         private void Update()
         {
             if (_runner == null)
@@ -124,6 +134,10 @@ namespace HexLive.UnityDebug.UI
                 _document.rootVisualElement.style.display = _visible
                     ? DisplayStyle.Flex
                     : DisplayStyle.None;
+
+                // Trace events / memory dumps / goal scores are expensive to
+                // export — only ask for them while the panel is on screen.
+                WorldSnapshotExporter.IncludeDebugDetails = _visible;
             }
 
             if (!_visible) return;

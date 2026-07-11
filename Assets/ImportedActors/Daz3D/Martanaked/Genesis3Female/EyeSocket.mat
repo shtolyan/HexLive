@@ -236,7 +236,7 @@ Material:
     - _RenderQueueType: 1
     - _RequireSplitLighting: 1
     - _Roughness: 0.5045872
-    - _Smoothness: 0.5
+    - _Smoothness: 0.32
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SpecularLobe1Roughness: 0.5477226

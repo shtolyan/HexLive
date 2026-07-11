@@ -65,6 +65,30 @@ public sealed class BodyBones : MonoBehaviour
         return _wears.ContainsKey(key);
     }
 
+    // Spec 40.10: erode every visual garment mapped from a sim item (a sim item
+    // can map to several keys "defId#0", "defId#1", …) by its durability.
+    public void SetWearErosion(string defId, float durability01)
+    {
+        var prefix = defId + "#";
+        foreach (var pair in _wears)
+        {
+            if (pair.Key.StartsWith(prefix))
+            {
+                pair.Value.SetErosion(durability01);
+            }
+        }
+    }
+
+    // Spec 40.10-C: dirt + zone-damage spheres for every SIM garment. Hair is
+    // instantiated directly in Construct (never in _wears), so it stays clean.
+    public void SetWearGrime(float dirt01, Vector4[] spheres, int count)
+    {
+        foreach (var pair in _wears)
+        {
+            pair.Value.SetGrime(dirt01, spheres, count);
+        }
+    }
+
     // key = sim item definition id + index (a sim item may map to several
     // visual garments, each equipped under its own key).
     public void Equip(string key, Wear wearPrefab)
@@ -151,6 +175,54 @@ public sealed class BodyBones : MonoBehaviour
         Destroy(wear.gameObject);
         _wears.Remove(key);
         _wearKeys.Remove(wear);
+    }
+
+    // Debug: hide every equipped garment (skin inspection) / show them back.
+    // Restore re-applies the layer rules: underwear stays hidden wherever a
+    // worn outer garment covers its slot — no bras popping through tops.
+    public void SetAllWearsVisible(bool visible)
+    {
+        foreach (var wear in _wears.Values)
+        {
+            if (!visible)
+            {
+                wear.Hide();
+                continue;
+            }
+
+            if (wear.Layer != VisualWearLayer.Underwear)
+            {
+                wear.Show();
+                continue;
+            }
+
+            var hiddenByOuter = false;
+            foreach (var slot in wear.Slots)
+            {
+                if (_byLayer[VisualWearLayer.Wear].TryGetValue(slot, out var outer1) &&
+                    outer1.HeedHideUnderwearSlot(slot))
+                {
+                    hiddenByOuter = true;
+                    break;
+                }
+
+                if (_byLayer[VisualWearLayer.Outerwear].TryGetValue(slot, out var outer2) &&
+                    outer2.HeedHideUnderwearSlot(slot))
+                {
+                    hiddenByOuter = true;
+                    break;
+                }
+            }
+
+            if (hiddenByOuter)
+            {
+                wear.Hide();
+            }
+            else
+            {
+                wear.Show();
+            }
+        }
     }
 
     public void TakeOffAll()

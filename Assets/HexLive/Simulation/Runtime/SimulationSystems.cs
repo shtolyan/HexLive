@@ -4462,8 +4462,11 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // Spec 40.6: hygiene drifts down with living, up at the waterside
             // (washing while drinking/filling). Soft v1 — tracked for the UI,
             // no dedicated Bathe goal yet (that reshuffles the fragile colony).
+            // Grubbying takes ~10 game days from clean to filthy (0.0004/slow
+            // tick; was 0.004 — a single day, way too fast once dirt got real
+            // smudge decals).
             npc.Needs.Hygiene = MathUtil.Clamp01(
-                npc.Needs.Hygiene + (IsAtOrBesideWater(world, npc.Tile) ? 0.05f : -0.004f));
+                npc.Needs.Hygiene + (IsAtOrBesideWater(world, npc.Tile) ? 0.05f : -0.0004f));
 
             // Spec 40.2: blood. A badly wounded part (< 0.4) bleeds — the worse
             // the wound, the faster; blood refills slowly while fed and rested.
@@ -4820,10 +4823,11 @@ public sealed class TemperatureSystem : ISimulationSystem
             if (effectiveUv > 0.5f && uncovered.Count > 0)
             {
                 // Spec 40.7: bare skin under the sun slowly tans (weathered
-                // survivor). More exposed skin, stronger sun → faster. The
-                // burn→tan colour is painted from this in presentation.
+                // survivor). effectiveUv already carries the shade penalty
+                // (isShaded -> x0.2), so you tan LESS in shade. Rate tuned for
+                // ~10 game days to full tan at open-sun exposure.
                 npc.Needs.TanLevel = MathUtil.Clamp01(
-                    npc.Needs.TanLevel + (effectiveUv - 0.5f) * 0.0015f * uncovered.Count);
+                    npc.Needs.TanLevel + (effectiveUv - 0.5f) * 0.0018f * uncovered.Count);
                 // Spec 40.7: acute redness rises faster than the tan settles —
                 // bare skin goes red first, then browns as it heals below.
                 npc.Needs.Sunburn = MathUtil.Clamp01(

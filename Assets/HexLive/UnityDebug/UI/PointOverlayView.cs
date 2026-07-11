@@ -208,6 +208,17 @@ namespace HexLive.UnityDebug.UI
             GL.PopMatrix();
         }
 
+        // HideAndDontSave survives play-mode exit AND domain reload — without
+        // an explicit destroy each play session leaked one native material.
+        private void OnDestroy()
+        {
+            if (_lineMaterial != null)
+            {
+                Destroy(_lineMaterial);
+                _lineMaterial = null;
+            }
+        }
+
         private void CreateLineMaterial()
         {
             var shader = Shader.Find("Hidden/Internal-Colored");

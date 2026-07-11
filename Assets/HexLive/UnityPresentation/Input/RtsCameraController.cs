@@ -1,4 +1,5 @@
 using HexLive.UnityPresentation.Bootstrap;
+using HexLive.UnityPresentation.Rendering;
 using HexLive.UnityPresentation.Spatial;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -32,7 +33,7 @@ namespace HexLive.UnityPresentation.Input
 
         [Header("Orbit")]
         [SerializeField] private float _orbitDistance = 9f;
-        [SerializeField] private float _orbitMinDistance = 3f;
+        [SerializeField] private float _orbitMinDistance = 0.7f; // close-up: face fills the frame
         [SerializeField] private float _orbitMaxDistance = 22f;
         [SerializeField] private float _orbitZoomSpeed = 4f;
         [SerializeField] private float _orbitRotationSpeed = 0.2f;
@@ -40,9 +41,15 @@ namespace HexLive.UnityPresentation.Input
         [SerializeField] private float _orbitMinPitch = 5f;
         [SerializeField] private float _orbitMaxPitch = 80f;
         [SerializeField] private float _orbitYaw = 0f;
-        [SerializeField] private float _orbitPositionSmooth = 0.08f;
+        [SerializeField] private float _orbitPositionSmooth = 0.14f;
         [SerializeField] private float _orbitRotationSmooth = 0.06f;
         [SerializeField] private float _pickRadiusPixels = 70f;
+
+        [Tooltip("Orbit pivot height above the NPC's feet, as a fraction of the hex radius (neck ≈ 0.62).")]
+        [SerializeField] private float _orbitNeckFactor = 0.62f;
+
+        [Tooltip("How smoothly the pivot follows the NPC. Bigger = softer/laggier follow.")]
+        [SerializeField] private float _orbitTargetSmooth = 0.1f;
 
         private enum Mode
         {
@@ -64,8 +71,12 @@ namespace HexLive.UnityPresentation.Input
         private float _yawVelocity;
         private float _pitchVelocity;
         private Vector3 _orbitVelocity;
+        private Vector3 _smoothedTarget;
+        private Vector3 _targetVelocity;
+        private bool _hasSmoothedTarget;
 
         private Camera _camera;
+        private HexWorldRenderer _worldRenderer;
 
         public void SetRunner(SimulationRunnerBehaviour runner)
         {
@@ -79,6 +90,30 @@ namespace HexLive.UnityPresentation.Input
             transform.rotation = Quaternion.Euler(_startRotation);
             _targetPosition = _startPosition;
             _targetHeight = _startPosition.y;
+        }
+
+        private void OnEnable()
+        {
+            NpcSelection.SelectionChanged += OnSelectionChanged;
+        }
+
+        private void OnDisable()
+        {
+            NpcSelection.SelectionChanged -= OnSelectionChanged;
+        }
+
+        // Selection is the single source of truth: clicking an NPC (or the panel
+        // switching characters) drives the camera into/out of orbit.
+        private void OnSelectionChanged(int npcId)
+        {
+            if (npcId >= 0)
+            {
+                EnterOrbit(npcId);
+            }
+            else if (_mode == Mode.Orbit)
+            {
+                ExitOrbit();
+            }
         }
 
         private void LateUpdate()
@@ -171,6 +206,12 @@ namespace HexLive.UnityPresentation.Input
                 return;
             }
 
+            // Don't pick NPCs hidden behind the character bar.
+            if (NpcSelection.PointerOverUi)
+            {
+                return;
+            }
+
             if (_camera == null)
             {
                 _camera = GetComponent<Camera>();
@@ -207,7 +248,7 @@ namespace HexLive.UnityPresentation.Input
 
             if (bestId >= 0)
             {
-                EnterOrbit(bestId);
+                NpcSelection.Select(bestId);
             }
         }
 
@@ -221,13 +262,17 @@ namespace HexLive.UnityPresentation.Input
             _currentYaw = _orbitYaw;
             _currentPitch = _orbitPitch;
             _orbitVelocity = Vector3.zero;
+            _hasSmoothedTarget = false; // snap the pivot to the new NPC on entry
         }
 
         private void ExitOrbit()
         {
             _mode = Mode.Free;
-            // Resume the free camera from wherever we ended up hovering.
-            _targetPosition = new Vector3(transform.position.x, _targetHeight, transform.position.z);
+            // Return to a top-down view centered on the character we were
+            // watching, so Escape leaves them in frame instead of snapping to
+            // a random spot.
+            var pivot = _hasSmoothedTarget ? _smoothedTarget : transform.position;
+            _targetPosition = new Vector3(pivot.x, _targetHeight, pivot.z);
             _velocity = Vector3.zero;
         }
 
@@ -236,7 +281,7 @@ namespace HexLive.UnityPresentation.Input
             var keyboard = Keyboard.current;
             if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
             {
-                ExitOrbit();
+                NpcSelection.Clear();
                 return;
             }
 
@@ -246,12 +291,36 @@ namespace HexLive.UnityPresentation.Input
                 return;
             }
 
-            if (!TryGetNpcPosition(snapshot, _orbitTargetId, out var target))
+            // Left/right arrows cycle to the previous/next character (arrows
+            // aren't used for panning while orbiting).
+            HandleOrbitCycle(snapshot);
+
+            // Re-pick: clicking another NPC while orbiting switches focus to it
+            // (left click is free here — rotation uses the right button).
+            TryPickNpc();
+
+            if (!TryGetOrbitTarget(snapshot, _orbitTargetId, out var rawTarget))
             {
                 // The followed NPC is gone (died) — fall back to free camera.
-                ExitOrbit();
+                NpcSelection.Clear();
                 return;
             }
+
+            // Follow the pivot smoothly so the NPC's slightly stepped motion
+            // doesn't jerk the camera.
+            if (!_hasSmoothedTarget)
+            {
+                _smoothedTarget = rawTarget;
+                _targetVelocity = Vector3.zero;
+                _hasSmoothedTarget = true;
+            }
+            else
+            {
+                _smoothedTarget = Vector3.SmoothDamp(
+                    _smoothedTarget, rawTarget, ref _targetVelocity, _orbitTargetSmooth);
+            }
+
+            var target = _smoothedTarget;
 
             HandleOrbitInput();
 
@@ -269,6 +338,45 @@ namespace HexLive.UnityPresentation.Input
             transform.rotation = rotation;
         }
 
+        // Cycle the followed character with the left/right arrow keys.
+        private void HandleOrbitCycle(HexLive.Simulation.Debug.WorldSnapshot snapshot)
+        {
+            var keyboard = Keyboard.current;
+            if (keyboard == null || snapshot.Npcs.Count == 0)
+            {
+                return;
+            }
+
+            var dir = 0;
+            if (keyboard.leftArrowKey.wasPressedThisFrame || keyboard.aKey.wasPressedThisFrame)
+            {
+                dir = -1;
+            }
+            else if (keyboard.rightArrowKey.wasPressedThisFrame || keyboard.dKey.wasPressedThisFrame)
+            {
+                dir = 1;
+            }
+
+            if (dir == 0)
+            {
+                return;
+            }
+
+            var count = snapshot.Npcs.Count;
+            var index = 0;
+            for (var i = 0; i < count; i++)
+            {
+                if (snapshot.Npcs[i].Id.Value == _orbitTargetId)
+                {
+                    index = i;
+                    break;
+                }
+            }
+
+            var next = ((index + dir) % count + count) % count;
+            NpcSelection.Select(snapshot.Npcs[next].Id.Value);
+        }
+
         private void HandleOrbitInput()
         {
             var mouse = Mouse.current;
@@ -280,8 +388,10 @@ namespace HexLive.UnityPresentation.Input
             var scroll = mouse.scroll.ReadValue().y;
             if (Mathf.Abs(scroll) > 0.001f)
             {
+                // Proportional zoom: fine steps up close, big sweeps far out.
+                var step = _orbitZoomSpeed * 0.01f * Mathf.Max(0.15f, _orbitDistance / 9f);
                 _orbitDistance = Mathf.Clamp(
-                    _orbitDistance - scroll * _orbitZoomSpeed * 0.01f,
+                    _orbitDistance - scroll * step,
                     _orbitMinDistance, _orbitMaxDistance);
             }
 
@@ -296,20 +406,43 @@ namespace HexLive.UnityPresentation.Input
             _currentPitch = Mathf.Clamp(_currentPitch, _orbitMinPitch, _orbitMaxPitch);
         }
 
-        private static bool TryGetNpcPosition(
-            HexLive.Simulation.Debug.WorldSnapshot snapshot, int npcId, out Vector3 position)
+        // The orbit pivot: the pose-aware center of the body (bone-derived) —
+        // chest height standing, and it follows the body down when the NPC
+        // sits or lies, so the character stays centered in frame. Fallbacks:
+        // feet + neck offset, then the raw snapshot position.
+        private bool TryGetOrbitTarget(
+            HexLive.Simulation.Debug.WorldSnapshot snapshot, int npcId, out Vector3 target)
         {
+            var neck = SimulationUnityMapper.HexRadius * _orbitNeckFactor;
+
+            if (_worldRenderer == null)
+            {
+                _worldRenderer = FindAnyObjectByType<HexWorldRenderer>();
+            }
+
+            if (_worldRenderer != null && _worldRenderer.TryGetNpcBodyCenter(npcId, out var bodyCenter))
+            {
+                target = bodyCenter;
+                return true;
+            }
+
+            if (_worldRenderer != null && _worldRenderer.TryGetNpcViewPosition(npcId, out var viewPos))
+            {
+                target = viewPos + Vector3.up * neck;
+                return true;
+            }
+
             foreach (var npc in snapshot.Npcs)
             {
                 if (npc.Id.Value == npcId)
                 {
-                    position = SimulationUnityMapper.ToUnityPosition(
-                        npc.Position, SimulationUnityMapper.CameraTargetHeight);
+                    target = SimulationUnityMapper.ToUnityPosition(
+                        npc.Position, SimulationUnityMapper.TileHeight + neck);
                     return true;
                 }
             }
 
-            position = Vector3.zero;
+            target = Vector3.zero;
             return false;
         }
 

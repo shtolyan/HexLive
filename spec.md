@@ -870,11 +870,23 @@ hills, and mountains — some climbable by natural ramps, some sheer.
   deterministically scattered from the tile coord, one shared flat green
   material — no texture, no alpha. Gated by `_grassDetail` /
   `_grassBladesPerTile` on the renderer.
-- Water renders sunken below its tile top (existing rule); its prism skirt
-  uses the sand material as a riverbed bank. A large sea-colored backdrop
-  plane extends the ocean beyond the playable bounds. The sea/water tops use
-  a stylized cartoon water shader (`HexLive/StylizedWater`): gentle vertex
-  waves, fresnel deep→shallow two-tone, drifting glints, soft specular.
+- Water renders sunken below its tile top. The sea/water tops use the imported
+  **Definitive Stylized Water URP** material
+  (`Resources/HexLive/Water/StylizedWaterDefinitive.mat`, from the user's
+  StylizedWaterShader asset in `Assets/ThirdParty/`): depth-gradient colour,
+  animated foam, fresnel, refraction. `CreateWaterMaterial` loads it first and
+  falls back to the hand-written `HexLive/StylizedWater` shader. Needs the URP
+  asset's Depth + Opaque textures on (PC asset already has them; the Mobile
+  asset does not).
+- **Shore-only foam:** the water is depth-intersection foam, so foam appears
+  wherever an opaque wall pierces the surface. Water tiles therefore build
+  **no skirt** (`BuildHexPrismMesh(..., includeSkirt: false)`) — a bare
+  surface, not a walled prism — so water↔water hex seams never foam. Depth
+  comes from a single opaque **deep sea floor** plane (`EnsureSeaPlane`, at
+  `waterY − 1.6`): open sea reads deep and foam-free, and the only shallow
+  intersections left are the land tiles' cliff skirts rising through the
+  surface — foam hugs the shoreline. A transparent sea-surface plane still
+  extends the ocean past the playable bounds.
 - **Day/night** (`SkyDayNightController`, installed by the bootstrap) reads
   `Environment.TimeOfDayNormalized` (0 = 06:00) and swings one directional
   light along an arc: it is the **sun** by day (warm→white, bright) and the
@@ -885,7 +897,22 @@ hills, and mountains — some climbable by natural ramps, some sheer.
   directions and the day amount each frame.
 - **Campfires burn** (`CampfireEffect` on `campfire.spot` views): rising
   flame + ember particle systems (additive soft puffs) and a warm,
-  Perlin-flickered point light that lights nearby terrain and actors.
+  Perlin-flickered point light that lights nearby terrain and actors. The
+  fire is bound to the simulation — `SetLit(ResourceAmount > 0)` each tick,
+  so it only burns while the campfire has fuel (starts cold).
+- **Tool/resource/food models** are procedural low-poly
+  (`LowPolyToolFactory`): axe, pickaxe, spear, bow, arrow, pot, saw,
+  lighter, firewood, stone, hide, palm leaf, coconut, meat — built from
+  cubes / a pyramid / a small prism, flat-shaded. Used both on the ground
+  (`CreateObjectView`, before the generic primitive) and in an NPC's hand
+  (`NpcActorView.SetHandProp`). No external assets, no prefab wiring.
+- **Action animations** are procedural (`NpcActorView.ApplyActionPose`):
+  the Animator only has locomotion + a generic crouch/sit/lay, so chopping,
+  spear thrust, bow draw, eat/drink and combat swings are layered on in
+  LateUpdate by rotating `rShldrBend`/`rForearmBend` in world space around
+  the body's right axis. Driven by `SetInteraction` (Harvest→chop, Eat/
+  Drink→hand-to-mouth, Build/Craft/Fuel→work) and `SetCombat(IsFighting,
+  weapon)` which also puts the bow/spear in hand while hunting.
 - Every movable and object view takes its Y from its tile's top (the
   renderer's pose interpolation smooths level changes).
 
@@ -5945,6 +5972,23 @@ The land itself is furniture — worse than the real thing, but always there.
   (<= 0.55) in that window — at 0.35 the kit's logs were always eaten by
   the hearth. The hut-completion bed reward stays.
 
+### 33.1 / 33.2 Presentation: weapon on the back, cartoon rain (iteration 33)
+
+Zero-simulation, presentation-only (renders live; verify in the editor):
+
+- **33.1 Weapon slung on the back** (`NpcActorView.SetBackWeapon`): a
+  carried spear/bow mounts on the upper-spine bone (Genesis3 `chestUpper`
+  with fallbacks), slung diagonally, hidden while it's in the hand
+  (fighting). The renderer feeds it `BackWeaponFor(npc)` from the carried
+  weapon. First step toward weapons-as-equipment (§33 slot system, sim
+  part pending).
+- **33.2 Cartoon rain** (`HexWorldRenderer.UpdateRain`): a world-space
+  droplet `ParticleSystem` (stretched billboards, ~900/s) plays over the
+  island whenever `snapshot.IsRaining`, stops when it clears.
+
+Both live with the rest of the uncommitted presentation layer (the
+committed HEAD `NpcActorView` predates this infrastructure).
+
 ### 35.7 Crafted furniture no longer heaps (iteration 33)
 
 The camp piled up: campfire, bed and rack all landed on the fire's
@@ -6024,21 +6068,12 @@ share lands at completion, so the sum is exactly the authored effect.
   (Hunger), Drink-from-bottle (Thirst/Comfort), and ground rest
   (Comfort/Energy). Work interactions (Harvest/Fuel/Craft/Build/PickUp)
   carry no need effect, so their share is zero — harmless.
-- **Longer actions** (things read as too fast on screen): Eat 8 -> **20
-  ticks** (5 s), Drink-from-bottle 6 -> **16** (4 s), Talk 16 -> **40**
+- **Longer actions** (things read as too fast on screen): Eat 8 → **20
+  ticks** (5 s), Drink-from-bottle 6 → **16** (4 s), Talk 16 → **40**
   (10 s). Sit (70) and Sleep (100) were already unhurried; now their
   Comfort/Energy also fills gradually instead of at stand-up.
 - Sickness (raw water) and the mutual social gain (Talk) still resolve
   once, at completion — only the personal-need relief is dripped.
-- **Decision stability:** gradual needs drain the executing goal's own
-  score mid-action, so the decision layer must NOT re-decide while an
-  action is InProgress (a guard holds the goal until it completes) — else
-  the goal flips every tick and interrupts explode. Emergencies are
-  unaffected: Flee is set reactively by the fear path, and
-  starvation/dehydration interrupt on the next decision after the (short,
-  <= 100-tick) action ends.
-
-### 29H The Water Bottle (iteration 29)
 
 Drinking is no longer a bare interaction at the water's edge — everyone
 carries a bottle, fills it at a source, and drinks from it. A two-step
@@ -6065,18 +6100,16 @@ chain that mirrors GetFood -> Eat.
 - **Drink** goal (score = Thirst): available when Thirst >= 0.35 and the
   bottle is NOT empty. Plan = a single in-place `DrinkBottle` step (no
   target object, no reservation — like Eat-from-inventory). On
-  completion: Thirst **-0.7 (Raw) / -0.85 (Boiled)**, Boiled adds
+  completion: Thirst **-0.6 (Raw) / -0.8 (Boiled)**, Boiled adds
   Comfort +0.05, **Raw keeps the 30 % sickness roll** (moved here from
   the old water-edge Drink), and the bottle empties.
 - The dehydration emergency boost applies to BOTH GetWater and Drink, so
   a parched NPC races to fill AND to drink.
 
 The pond/river/campfire objects now expose **FillBottle**, not Drink.
-Durations: FillBottle 6 (raw) / 8 (boiled) ticks, DrinkBottle 6 ticks
-— together about one old single-drink cost, with the relief bumped so
-the two-step throughput matches (the first soak's 10/12 + 8 at -0.6/-0.8
-nearly doubled the ticks-per-thirst and spiked dehydration). The payoff:
-water can be carried away from the dangerous bank.
+Durations: FillBottle 10 (raw) / 12 (boiled) ticks, DrinkBottle 8 ticks
+— roughly the old single-drink cost split across two steps, with the
+payoff that water can be carried away from the dangerous bank.
 
 ### 31C.7A Unhurried sitting (iteration 26 addendum)
 
@@ -7325,6 +7358,10 @@ pass — order chosen to add robustness before difficulty.
   param). Restore by **bathing** — swim in water / stand under a
   **waterfall** / shower. Find/borrow swim & shower animations (the
   molly_copy repo has a shower animation).
+- **Shipped (visual):** `NpcActorView.SetSkinWeathering` now takes `hygiene`
+  and muddies the bare-skin tint toward a dull earthy brown as it drops
+  (grime overlay via the same per-submesh property block, skin-only). Driven
+  by exported `Hygiene`. Bathing/waterside already restores the param.
 
 ### 40.7 Sunburn → tan (skin system)
 - Skin **reddens where clothing doesn't cover**, sharply along garment
@@ -7344,10 +7381,61 @@ pass — order chosen to add robustness before difficulty.
   the described fade. Purely cosmetic: it gates no action and changes no
   survival outcome (so it can't disturb the fragile colony). Presentation
   reads it as the red channel over the tan, masked by garment coverage.
+- **Rate & shade:** tan builds only on bare parts under the sun, gated by
+  `effectiveUv > 0.5`, which already carries the shade penalty (shaded tiles
+  cut UV ×0.2), so you tan **less in shade**. Rate `0.0018/slow-tick·part`
+  ≈ ~10 game days to max at open-sun exposure. Presentation's full-tan tint
+  is a **deep brown** (`0.40, 0.27, 0.18`), multiplying the skin so max tan
+  reads markedly dark.
 
 ### 40.8 Visible injuries (decals/texture)
 - Where a bone is hit (leg/arm/head/belly), draw a **wound** on the
   skin/clothing — texture paint or decal. Real, visible damage.
+- **Shipped v1 (whole-body flush):** a badly hurt body (Health < 0.6)
+  tints the whole skin toward a bruised red-purple via `SetSkinWeathering`'s
+  `hurt` channel.
+- **Shipped v2 (procedural decals, `SkinDecals`):** per-zone wound marks —
+  scratch streaks + blood blots, 1–4 per zone scaling with that zone's
+  damage; **dust/dirt smudges** climbing legs→arms→torso→face as Hygiene
+  drops; **sweat droplets** (glossy, gently shimmering) blooming on
+  face/chest/arms when ThermalComfort runs hot. Each decal is a **URP
+  DecalProjector** parented to the zone's bone and aimed into the limb, so
+  the texture is projected onto the skin mesh and hugs its curvature (the
+  Decal renderer feature is enabled on PC_Renderer/Mobile_Renderer; the
+  presentation asmdef references the URP runtime). Placement is
+  deterministic from npcId+zone+slot (persistent across frames). Wound
+  decals use **fal.ai-generated textures** (claw gashes `wound_scratch.png`,
+  splatter `blood_splat.png` in `Resources/HexLive/Decals/`), post-processed
+  to red-only with soft alpha falloff (baked-in pale "skin" would clash with
+  tan; wet gloss is painted into the albedo since the URP decal graph
+  exposes no smoothness). Fallbacks: molly hit-system `blood_splash.png`,
+  then procedural. Dirt stays procedural 256px layered grime, accumulating
+  over ~10 game days (hygiene −0.0004/slow tick). **Sweat** is a decal too:
+  a fal.ai droplet-spray photo generated on black and luminance-keyed to
+  alpha (`sweat_drops.png`) — bright specular cores stay, background goes
+  fully transparent, so the projection reads as glistening transparent
+  beads; the projector's fadeFactor breathes 0.75↔1.0. (The interim
+  3D-sphere droplets looked wrong and were removed.) NOTE: the Decal
+  feature runs **albedo-only** (`surfaceData: 0`) — decals never override
+  the skin's smoothness/normals (glassy sun-glint fix); wet gloss is baked
+  into the textures. The old whole-body grime
+  tint is kept only as a subtle base — dirt reads primarily as the
+  projected smudges.
+  **Skin-only:** the exporter ships `UncoveredParts`
+  (`EquipmentMath.IsPartCovered`) and decals spawn solely on bare zones;
+  quads hug the skin so worn garments occlude them — never blood/sweat on
+  clothing. Cleared automatically when the zone heals / skin is washed /
+  the body cools. A left-side **debug panel** (`DebugControlsPanel`)
+- **Next iteration (planned): garment decals as a separate layer.** Clothing
+  gets its OWN decal set, attached to the garment mesh, with distinct looks:
+  blood *soaking through fabric* (spreading darker stain with soft edges)
+  vs the skin's scratch/blot; dirt/dust *on cloth* (dry, matte, caught in
+  folds) vs skin smudges. Skin decals stay under clothing (occluded), fabric
+  decals live on the garment — each material reads correctly. No sweat on
+  fabric (sweat stays a bare-skin effect; maybe damp patches later).
+  injects a random wound / clears wounds / dirties / washes / tans / untans the
+  selected NPC (or everyone) so these visuals can be exercised without waiting
+  on play.
 
 ### 40.9 Injury-driven locomotion & poses
 - **Limp** when a leg is hurt; **crawl** when both legs are down; a hurt
@@ -7367,6 +7455,47 @@ pass — order chosen to add robustness before difficulty.
   and is discarded. **Visual tearing**: garments get progressively ragged
   (torn tights = transparent alpha-cut texture). Research alpha-cutout /
   texture-erosion tech; drive rip amount by durability.
+- **UPDATE — REAL TEARING (procedural dissolve, presentation).** The first
+  `_Cutoff` pass only worked on textures that already had alpha (lace); solid
+  fabric never visibly tore. Replaced with a custom URP shader
+  `HexLive/GarmentTear` (`UnityPresentation/Wearing/GarmentTear.shader`):
+  a procedural tear mask (Voronoi cells + value-noise raggedness, UV-space,
+  no per-garment art) is clipped against `_TearAmount`, so holes nucleate at
+  cell centers and grow with ragged organic edges; a `_TearEdgeTint` band
+  darkens the rim into a frayed hem. `Cull Off` + `SV_IsFrontFace` normal
+  flip render the cloth's inside through the holes; skin/underlayers show
+  through since the body is fully modeled beneath (layers all render).
+  The ShadowCaster pass clips identically (holes don't cast solid shadows).
+  `Wear.SetErosion` swaps a garment's materials to the tear shader **lazily,
+  the first time wear actually bites** (durability < ~0.6) — pristine clothes
+  and hair keep their original URP Lit (same-named properties `_BaseMap/
+  _BaseColor/_BumpMap` carry over on swap); `_TearAmount` then rides a
+  property block per garment instance. Knobs: bite threshold in
+  `Wear.SetErosion`; `_TearScale` (hole density), `_TearEdgeWidth`,
+  `_TearEdgeTint` (fray) in the shader defaults. Known limits: hard alpha-test
+  edges (fits the low-poly style); a garment that was authored translucent
+  loses its transparency once swapped (none in the current wardrobe).
+  Future (§40.10-C): per-zone tear stamps into a small per-instance mask RT
+  (reuse the skin-decal pattern) so a dog bite tears the exact pant leg.
+- **UPDATE — §40.10-C SHIPPED (zone damage + dirt layer, combined with A).**
+  Instead of a mask RT, zone damage rides **world-space damage spheres** — no
+  UV mapping needed, spatial locality does the garment-coverage mapping for
+  free. Each hurt body zone (health < 0.9) plants a sphere at its bone anchor
+  (Head→head, Torso→abdomenUpper, Pelvis→pelvis, Arm→forearmBend,
+  Leg→shin — knees/elbows, where cloth really rips), strength = 1 − health,
+  refreshed every frame so spheres track the animation.
+  `NpcActorView.SetBodyCondition` (which already receives zone healths +
+  hygiene for skin decals) builds the spheres and calls
+  `BodyBones.SetWearGrime` → every SIM garment's `Wear.SetGrime` (hair is
+  never in `_wears`, stays clean). The shader takes the max of global wear
+  and local sphere tear, so a dog bite rips the exact pant leg even on a
+  pristine garment. **Dirt layer**: `_DirtAmount = 1 − hygiene` drives
+  noise-mottled blotches (separate `_DirtScale` noise octave) that multiply
+  albedo toward `_DirtColor`; coverage grows from sparse smudges to
+  near-full grime as hygiene drops. The lazy shader swap now also triggers
+  on dirt > 0.15 or any damage sphere. Knobs: `_DamageRadius` (rip size
+  around a wound), `_DirtColor/_DirtScale`, sphere threshold + anchors in
+  `NpcActorView.ZoneBoneAnchors`.
 
 ### 40.11 Character UI panel
 - Select an NPC → a **button** opens a panel showing: **equipment slots**
@@ -7394,6 +7523,22 @@ pass — order chosen to add robustness before difficulty.
   settles at rest (hip Y 1.3→0.01, head→0.02, rigidbodies sleeping) — visually
   a crumpled body on the terrain. Note the `??`-vs-Unity-fake-null pitfall:
   component lookups use `GetComponent(); if (x == null) Add()`, never `??`.
+- **UPDATE — DEATH = RAGDOLL CORPSE (view adopts the body).** Sim logic was
+  already complete since iters 15/16 and is unchanged: death spawns a
+  `corpse.npc` object at the NPC's junction (`CurrentUser` = whose body,
+  decay 2 days), witnesses in range grieve instantly, others on perception;
+  grieving NPCs take `GoalType.Mourn` (walk to the corpse + Observe →
+  "Mourned"), then `Bury` → a permanent grave. The only sim change is
+  export: `ObjectSnapshot.OwnerNpcId` (= `CurrentUser`) so the view can
+  match a corpse to the actor who died. View: when an NPC vanishes from the
+  snapshot, `HexWorldRenderer` finds her `corpse.npc` by `OwnerNpcId` and
+  ADOPTS the actor body instead of destroying it — clears laying/sit/gaze,
+  fires `SetRagdoll(true)` (physics collapse, wounds/torn clothes stay on),
+  destroys the old capsule-blob corpse view, and keeps the body under the
+  corpse object's id. When that object leaves the snapshot (decayed or
+  buried → grave), the body view is destroyed. `SetRagdoll` now also
+  disables LookAtIK, and the procedural pose layers (action/thermal/
+  posture) are gated off while ragdolled so nothing fights the physics.
 
 ### 40.14 Tent (sun shelter) & tiered beds
 - **Tent**: a min-1-hex **angled canopy** that shades one person from the

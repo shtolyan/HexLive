@@ -124,6 +124,10 @@ public sealed class ObjectSnapshot
     // Spec 29E.3: fuel ticks. For a campfire, > 0 means lit/burning.
     public float ResourceAmount { get; set; }
 
+    // Spec 40.13: whose body/marker this is (corpse.npc / grave.npc carry the
+    // dead NPC's id in CurrentUser) — lets the view adopt the actor's ragdoll.
+    public int? OwnerNpcId { get; set; }
+
     public List<JunctionId> Junctions { get; } = new();
 }
 
@@ -148,6 +152,10 @@ public sealed class NpcSnapshot
     public List<string> BodyParts { get; } = new();
 
     public string WorstBodyPart { get; set; } = string.Empty;
+
+    // Spec 40.8/40.6: zones with NO garment coverage — skin decals (wounds,
+    // dirt, sweat) may only appear on these; clothing hides the rest.
+    public List<string> UncoveredParts { get; } = new();
 
     public float Hunger { get; set; }
 
@@ -192,6 +200,10 @@ public sealed class NpcSnapshot
 
     // Spec 40.13: knocked out — the presentation lays the body limp.
     public bool IsFainted { get; set; }
+
+    // Iter 28: sitting at a one-step ledge junction — the presentation
+    // lifts the body so the butt rests on the upper step. Export-only.
+    public bool IsLedgeSit { get; set; }
 
     // Spec 40.13: stress 0=calm..1=breaking point (UI).
     public float Stress { get; set; }

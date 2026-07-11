@@ -220,7 +220,7 @@ Material:
     - _MakeupEnable: 0
     - _MakeupRoughnessMultiplierValue: 1
     - _MakeupWeightValue: 1
-    - _Metallic: 0
+    - _Metallic: 1
     - _Normal: 0.2
     - _OcclusionStrength: 1
     - _OpaqueCullMode: 2
@@ -232,7 +232,7 @@ Material:
     - _RenderQueueType: 1
     - _RequireSplitLighting: 1
     - _Roughness: 0.2
-    - _Smoothness: 0.5
+    - _Smoothness: 0.451
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SpecularLobe1Roughness: 0

@@ -12,23 +12,27 @@ Material:
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
+  - _ALPHAPREMULTIPLY_ON
   - _ALPHATEST_ON
   - _NORMALMAP
+  - _SURFACE_TYPE_TRANSPARENT
   m_InvalidKeywords:
   - _DISABLE_SSR_TRANSPARENT
   - _DOUBLESIDED_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: 2450
+  m_CustomRenderQueue: 3000
   stringTagMap:
     MotionVector: User
-    RenderType: TransparentCutout
+    RenderType: Transparent
   disabledShaderPasses:
   - TransparentDepthPrepass
   - TransparentDepthPostpass
   - TransparentBackface
   - MOTIONVECTORS
+  - DepthOnly
+  - SHADOWCASTER
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -122,7 +126,7 @@ Material:
     - _AlphaPower: 1.184
     - _AlphaSrcBlend: 1
     - _AlphaStrength: 2
-    - _AlphaToMask: 1
+    - _AlphaToMask: 0
     - _Blend: 0
     - _BlendMode: 0
     - _BlendModePreserveSpecular: 1
@@ -133,7 +137,7 @@ Material:
     - _Cull: 2
     - _CullMode: 0
     - _CullModeForward: 0
-    - _Cutoff: 0.466
+    - _Cutoff: 0
     - _DepthOffsetEnable: 0
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
@@ -141,9 +145,9 @@ Material:
     - _DoubleSidedEnable: 1
     - _DoubleSidedGIMode: 0
     - _DoubleSidedNormalMode: 1
-    - _DstBlend: 0
+    - _DstBlend: 10
     - _DstBlend2: 0
-    - _DstBlendAlpha: 0
+    - _DstBlendAlpha: 10
     - _EnableBlendModePreserveSpecularLighting: 1
     - _EnableFogOnTransparent: 1
     - _EnvironmentReflections: 1
@@ -166,7 +170,7 @@ Material:
     - _ReceivesSSRTransparent: 0
     - _RenderQueueType: 1
     - _RequireSplitLighting: 0
-    - _Smoothness: 0.5
+    - _Smoothness: 0
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
@@ -180,7 +184,7 @@ Material:
     - _StencilWriteMaskDistortionVec: 4
     - _StencilWriteMaskMV: 43
     - _SupportDecals: 1
-    - _Surface: 0
+    - _Surface: 1
     - _SurfaceType: 0
     - _TransparentBackfaceEnable: 1
     - _TransparentCullMode: 2
@@ -194,10 +198,10 @@ Material:
     - _XRMotionVectorsPass: 1
     - _ZTestDepthEqualForOpaque: 3
     - _ZTestTransparent: 4
-    - _ZWrite: 1
+    - _ZWrite: 0
     m_Colors:
-    - _BaseColor: {r: 0.7169812, g: 0.64595944, b: 0.64595944, a: 1}
-    - _Color: {r: 0.7169812, g: 0.64595944, b: 0.64595944, a: 1}
+    - _BaseColor: {r: 0.7169812, g: 0.64595944, b: 0.64595944, a: 0}
+    - _Color: {r: 0.7169812, g: 0.64595944, b: 0.64595944, a: 0}
     - _DoubleSidedConstants: {r: 1, g: 1, b: -1, a: 0}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}

@@ -236,7 +236,7 @@ Material:
     - _RenderQueueType: 1
     - _RequireSplitLighting: 1
     - _Roughness: 0.5
-    - _Smoothness: 0.5
+    - _Smoothness: 0.32
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SpecularLobe1Roughness: 1
@@ -276,8 +276,7 @@ Material:
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _DiffusionProfileAsset: {r: 7.461874e-29, g: -0.00000019700305, b: -4.0285196e-15,
-        a: 2.3215992e-19}
+    - _DiffusionProfileAsset: {r: 7.461874e-29, g: -0.00000019700305, b: -4.0285196e-15, a: 2.3215992e-19}
     - _DoubleSidedConstants: {r: 1, g: 1, b: -1, a: 0}
     - _Emission: {r: 0, g: 0, b: 0, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}

@@ -19,7 +19,7 @@ Material:
   - _DOUBLESIDED_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 0
+  m_DoubleSidedGI: 1
   m_CustomRenderQueue: 2450
   stringTagMap:
     MotionVector: User
@@ -133,7 +133,7 @@ Material:
     - _Cull: 0
     - _CullMode: 0
     - _CullModeForward: 0
-    - _Cutoff: 0.33
+    - _Cutoff: 0.427
     - _DepthOffsetEnable: 0
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1

@@ -45,7 +45,17 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private readonly Dictionary<TileCoord, GameObject> _tileViews = new();
     private readonly Dictionary<int, GameObject> _junctionViews = new();
+
+    // Spec 40.17: a persistent "точечка на шве" — a small amber dot marking a
+    // climb seam (a one-step ledge you clamber up), always shown (not the
+    // debug-only junction spheres).
+    private readonly Dictionary<int, GameObject> _seamMarkers = new();
     private readonly Dictionary<int, GameObject> _objectViews = new();
+
+    // Spec 40.13: dead actors stay as physics-ragdoll corpses — keyed by the
+    // corpse.npc OBJECT id (the sim's logic anchor for mourn/bury/decay), so
+    // the body view lives exactly as long as the corpse object does.
+    private readonly Dictionary<int, GameObject> _corpseBodyViews = new();
     private readonly Dictionary<int, GameObject> _npcViews = new();
 
     // Spec 31B.5: actor-backed views (Marta/Molly/Jana bodies); primitive
@@ -93,6 +103,67 @@ public sealed class HexWorldRenderer : MonoBehaviour
         _runner = runner;
     }
 
+    // The NPC's current interpolated world position (feet), so the orbit
+    // camera can follow the smooth visual position instead of the raw,
+    // tick-stepped simulation position.
+    public bool TryGetNpcViewPosition(int npcId, out Vector3 position)
+    {
+        if (_npcViews.TryGetValue(npcId, out var view) && view != null)
+        {
+            position = view.transform.position;
+            return true;
+        }
+
+        position = Vector3.zero;
+        return false;
+    }
+
+    // Orbit pivot: the pose-aware visual center of the NPC's body (chest when
+    // standing, following the body down when sitting/lying).
+    public bool TryGetNpcBodyCenter(int npcId, out Vector3 center)
+    {
+        if (_actorViews.TryGetValue(npcId, out var actorView) && actorView != null)
+        {
+            return actorView.TryGetBodyCenter(out center);
+        }
+
+        if (_npcViews.TryGetValue(npcId, out var view) && view != null)
+        {
+            center = view.transform.position + Vector3.up * (HexRadius * NpcHeightFactor);
+            return true;
+        }
+
+        center = Vector3.zero;
+        return false;
+    }
+
+    // Face anchor of the LIVE in-world character (real dirt/tan/clothes) for
+    // the portrait camera. Falls back to the primitive view's head sphere.
+    public bool TryGetNpcFace(
+        int npcId, out Vector3 faceCenter, out Vector3 faceForward, out Vector3 faceUp, out float scale)
+    {
+        if (_actorViews.TryGetValue(npcId, out var actorView) && actorView != null)
+        {
+            return actorView.TryGetFace(out faceCenter, out faceForward, out faceUp, out scale);
+        }
+
+        if (_npcViews.TryGetValue(npcId, out var view) && view != null)
+        {
+            var bodyHeight = HexRadius * NpcHeightFactor;
+            faceCenter = view.transform.position + Vector3.up * (bodyHeight * 2.2f);
+            faceForward = view.transform.forward;
+            faceUp = view.transform.up;
+            scale = bodyHeight * 2.4f / 1.7f;
+            return true;
+        }
+
+        faceCenter = Vector3.zero;
+        faceForward = Vector3.forward;
+        faceUp = Vector3.up;
+        scale = 1f;
+        return false;
+    }
+
     private void Update()
     {
         _runner ??= FindAnyObjectByType<SimulationRunnerBehaviour>();
@@ -116,7 +187,234 @@ public sealed class HexWorldRenderer : MonoBehaviour
             _lastSnapshot = snapshot;
         }
 
+        UpdateRain(snapshot.IsRaining);
+        UpdateEnvironmentWetness(snapshot.IsRaining);
         InterpolateMovables(_runner.TickAlpha);
+    }
+
+    // Spec 33.2 (iter 33): cartoon rain — a shower of little droplet particles
+    // over the island whenever the weather says it's raining.
+    private ParticleSystem _rain;
+
+    private void UpdateRain(bool raining)
+    {
+        if (_rain == null)
+        {
+            var go = new GameObject("Rain");
+            go.transform.SetParent(transform, false);
+            go.transform.localPosition = new Vector3(0f, 30f, 0f);
+            // Particles emit along local +Z — aim it straight DOWN, or the
+            // "rain" sprays sideways 30 units above the island (the bug that
+            // made rain invisible in play).
+            go.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            _rain = go.AddComponent<ParticleSystem>();
+            _rain.Stop();
+
+            var main = _rain.main;
+            main.startSpeed = 22f;
+            // Thin, dainty streaks — width comes from startSize in stretch mode.
+            main.startSize = new ParticleSystem.MinMaxCurve(0.035f, 0.06f);
+            main.startLifetime = 2.2f;
+            main.startColor = new Color(0.65f, 0.78f, 0.95f, 0.55f);
+            main.maxParticles = 9000;
+            main.gravityModifier = 1.2f;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+
+            var emission = _rain.emission;
+            emission.rateOverTime = 2600f; // lots of small drops
+
+            var shape = _rain.shape;
+            shape.shapeType = ParticleSystemShapeType.Box;
+            shape.scale = new Vector3(60f, 60f, 1f); // XY box, perpendicular to fall
+
+            // Kill each drop exactly at ground level...
+            var groundY = SimulationUnityMapper.TileHeight + 0.03f;
+            var planeGo = new GameObject("RainGroundPlane");
+            planeGo.transform.SetParent(transform, false); // NOT under the rotated emitter
+            planeGo.transform.position = new Vector3(0f, groundY, 0f);
+            var collision = _rain.collision;
+            collision.enabled = true;
+            collision.type = ParticleSystemCollisionType.Planes;
+            collision.SetPlane(0, planeGo.transform);
+            collision.bounce = 0f;
+            collision.lifetimeLoss = 1f;
+
+            // ...and burst a few tiny droplets where it lands (the splash).
+            var splash = CreateSplashSystem(go.transform);
+            var subEmitters = _rain.subEmitters;
+            subEmitters.enabled = true;
+            subEmitters.AddSubEmitter(
+                splash, ParticleSystemSubEmitterType.Collision, ParticleSystemSubEmitterProperties.InheritNothing);
+
+            var renderer = _rain.GetComponent<ParticleSystemRenderer>();
+            if (renderer != null)
+            {
+                renderer.renderMode = ParticleSystemRenderMode.Stretch;
+                renderer.velocityScale = 0.018f;
+                renderer.lengthScale = 5f;
+                renderer.sharedMaterial = GetRainMaterial();
+            }
+        }
+
+        if (raining && !_rain.isPlaying)
+        {
+            _rain.Play();
+        }
+        else if (!raining && _rain.isPlaying)
+        {
+            _rain.Stop();
+        }
+    }
+
+    // Tiny droplet burst where a raindrop hits the ground. Must live as a
+    // child of the rain system (Unity sub-emitter rule); the local rotation
+    // cancels the parent's 90° so the hemisphere sprays world-up.
+    private ParticleSystem CreateSplashSystem(Transform rainRoot)
+    {
+        var go = new GameObject("RainSplash");
+        go.transform.SetParent(rainRoot, false);
+        go.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
+        var splash = go.AddComponent<ParticleSystem>();
+        splash.Stop();
+
+        var main = splash.main;
+        main.startSpeed = new ParticleSystem.MinMaxCurve(0.6f, 1.7f);
+        main.startSize = new ParticleSystem.MinMaxCurve(0.02f, 0.05f);
+        main.startLifetime = new ParticleSystem.MinMaxCurve(0.18f, 0.38f);
+        main.startColor = new Color(0.75f, 0.86f, 1f, 0.75f);
+        main.maxParticles = 6000;
+        main.gravityModifier = 1.4f;
+        main.simulationSpace = ParticleSystemSimulationSpace.World;
+
+        var emission = splash.emission;
+        emission.rateOverTime = 0f;
+        emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 3, 5, 1, 0.01f) });
+
+        var shape = splash.shape;
+        shape.shapeType = ParticleSystemShapeType.Hemisphere;
+        shape.radius = 0.02f;
+
+        var renderer = splash.GetComponent<ParticleSystemRenderer>();
+        if (renderer != null)
+        {
+            renderer.renderMode = ParticleSystemRenderMode.Billboard;
+            renderer.sharedMaterial = GetRainMaterial();
+        }
+
+        return splash;
+    }
+
+    private static Material _rainMaterial;
+
+    // A particle-capable unlit transparent material — URP Lit renders
+    // stretched billboards black/invisible.
+    private static Material GetRainMaterial()
+    {
+        if (_rainMaterial != null)
+        {
+            return _rainMaterial;
+        }
+
+        var shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+        if (shader == null)
+        {
+            _rainMaterial = CreateWaterMaterial();
+            return _rainMaterial;
+        }
+
+        var material = new Material(shader);
+        material.SetFloat("_Surface", 1f);
+        material.SetOverrideTag("RenderType", "Transparent");
+        material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+        material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+        material.SetInt("_ZWrite", 0);
+        material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+        material.color = new Color(0.65f, 0.78f, 0.95f, 0.6f);
+        _rainMaterial = material;
+        return material;
+    }
+
+    // ---- Rain mood: cloud-dimmed light + wet darkened glossy terrain ----
+
+    private float _wetness;                 // 0 dry .. 1 soaked (visual only)
+    private Light _sun;
+    private bool _sunCached;
+    private float _sunBaseIntensity;
+    private Color _sunBaseColor;
+    private float _ambientBase;
+    private float _appliedWetness = -1f;
+
+    private void UpdateEnvironmentWetness(bool raining)
+    {
+        // Soak fast (~6 s), dry out slowly (~25 s).
+        var target = raining ? 1f : 0f;
+        var rate = raining ? Time.deltaTime / 6f : Time.deltaTime / 25f;
+        _wetness = Mathf.MoveTowards(_wetness, target, rate);
+
+        if (Mathf.Abs(_wetness - _appliedWetness) < 0.004f)
+        {
+            return;
+        }
+
+        _appliedWetness = _wetness;
+        ApplyWetness(_wetness);
+    }
+
+    private void ApplyWetness(float w)
+    {
+        // Cloud light: dimmer, cooler, flatter.
+        if (!_sunCached)
+        {
+            _sun = RenderSettings.sun;
+            if (_sun == null)
+            {
+                // Fallback: the scene's directional light that lights the world
+                // (skip specials like the portrait stage's dedicated light).
+                foreach (var light in FindObjectsByType<Light>(FindObjectsSortMode.None))
+                {
+                    if (light.type == LightType.Directional && (light.cullingMask & 1) != 0)
+                    {
+                        _sun = light;
+                        break;
+                    }
+                }
+            }
+
+            if (_sun != null)
+            {
+                _sunBaseIntensity = _sun.intensity;
+                _sunBaseColor = _sun.color;
+            }
+
+            _ambientBase = RenderSettings.ambientIntensity;
+            _sunCached = true;
+        }
+
+        if (_sun != null)
+        {
+            _sun.intensity = _sunBaseIntensity * Mathf.Lerp(1f, 0.45f, w);
+            _sun.color = Color.Lerp(_sunBaseColor, new Color(0.62f, 0.68f, 0.78f), w * 0.6f);
+        }
+
+        RenderSettings.ambientIntensity = _ambientBase * Mathf.Lerp(1f, 0.65f, w);
+
+        // Wet ground: darker and glossier. The flat-material cache is shared
+        // by every tile, so this touches a few dozen materials, not thousands.
+        foreach (var pair in _flatMaterials)
+        {
+            if (pair.Value == null || !_flatBaseColors.TryGetValue(pair.Key, out var baseColor))
+            {
+                continue;
+            }
+
+            pair.Value.color = baseColor * Mathf.Lerp(1f, 0.68f, w);
+            pair.Value.SetFloat("_Smoothness", 0.75f * w);
+        }
+
+        if (_grassMaterial != null)
+        {
+            _grassMaterial.color = _grassBaseColor * Mathf.Lerp(1f, 0.68f, w);
+        }
     }
 
     private GameObject _seaPlane;
@@ -128,12 +426,28 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return;
         }
 
-        // Spec 20.16: the ocean extends past the playable bounds.
+        var waterY = SimulationUnityMapper.TileHeight - ElevationStep * 0.45f;
+
+        // Spec 20.16: an opaque deep sea floor well below the surface. It gives
+        // the stylized water real depth everywhere (so open sea reads deep and
+        // foam-free); the only shallow intersections left are the land walls
+        // rising through the surface — i.e. foam hugs the shore, nothing else.
+        var floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
+        floor.name = "SeaFloor";
+        floor.transform.SetParent(transform, false);
+        floor.transform.position = new Vector3(0f, waterY - 1.6f, 0f);
+        floor.transform.localScale = new Vector3(40f, 1f, 40f);
+        var floorRenderer = floor.GetComponent<MeshRenderer>();
+        if (floorRenderer is not null)
+        {
+            floorRenderer.sharedMaterial = CreateMaterial(new Color(0.06f, 0.14f, 0.26f));
+        }
+
+        // Spec 20.16: the ocean surface extends past the playable bounds.
         _seaPlane = GameObject.CreatePrimitive(PrimitiveType.Plane);
         _seaPlane.name = "Sea";
         _seaPlane.transform.SetParent(transform, false);
-        _seaPlane.transform.position = new Vector3(
-            0f, SimulationUnityMapper.TileHeight - ElevationStep * 0.45f, 0f);
+        _seaPlane.transform.position = new Vector3(0f, waterY, 0f);
         _seaPlane.transform.localScale = new Vector3(40f, 1f, 40f); // 400x400 units
         var renderer = _seaPlane.GetComponent<MeshRenderer>();
         if (renderer is not null)
@@ -200,6 +514,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     _junctionViews[key] = CreateJunctionView(junction);
                 }
             }
+
+            // Spec 40.17: climb-seam dots — always shown, once per seam.
+            if (junction.IsClimbSeam && !_seamMarkers.ContainsKey(junction.Id.Value))
+            {
+                _seamMarkers[junction.Id.Value] = CreateSeamMarker(junction);
+            }
         }
 
         // Snapshot-diff despawn (spec 31.15): destroy views whose object
@@ -227,13 +547,46 @@ public sealed class HexWorldRenderer : MonoBehaviour
             _currObjectPositions.Remove(key);
         }
 
+        // Spec 40.13: the ragdolled body follows its corpse object out of the
+        // world (decayed or buried into a grave).
+        var staleCorpseBodies = new List<int>();
+        foreach (var key in _corpseBodyViews.Keys)
+        {
+            if (!liveObjectIds.Contains(key))
+            {
+                staleCorpseBodies.Add(key);
+            }
+        }
+
+        foreach (var key in staleCorpseBodies)
+        {
+            Destroy(_corpseBodyViews[key]);
+            _corpseBodyViews.Remove(key);
+        }
+
         foreach (var worldObject in snapshot.Objects)
         {
             var key = worldObject.Id.Value;
+            // Spec 40.13: an adopted actor body IS the corpse's view — no blob.
+            if (_corpseBodyViews.ContainsKey(key))
+            {
+                continue;
+            }
+
             if (!_objectViews.TryGetValue(key, out var objectView))
             {
                 objectView = CreateObjectView(worldObject, junctionPositions);
                 _objectViews[key] = objectView;
+            }
+
+            // Spec 29E.3: the campfire burns only while it has fuel.
+            if (worldObject.DefinitionId == "campfire.spot")
+            {
+                var fire = objectView.GetComponent<HexLive.UnityPresentation.Environment.CampfireEffect>();
+                if (fire != null)
+                {
+                    fire.SetLit(worldObject.ResourceAmount > 0f);
+                }
             }
 
             var objPos = GetObjectAnchorPosition(snapshot, worldObject);
@@ -301,7 +654,48 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         foreach (var key in staleNpcKeys)
         {
-            Destroy(_npcViews[key]);
+            // Spec 40.13: death — the actor body stays where she fell as a
+            // physics ragdoll, adopted as her corpse.npc object's view (the
+            // sim already drives grief/mourn/bury around that object). Only
+            // when no matching corpse exists does the view just vanish.
+            var adopted = false;
+            if (_actorViews.TryGetValue(key, out var deadActor) && deadActor != null)
+            {
+                foreach (var worldObject in snapshot.Objects)
+                {
+                    if (worldObject.DefinitionId != "corpse.npc" ||
+                        worldObject.OwnerNpcId != key)
+                    {
+                        continue;
+                    }
+
+                    var corpseId = worldObject.Id.Value;
+                    deadActor.SetLedgeSit(false);
+                    deadActor.SetLaying(false, null);
+                    deadActor.ClearGaze();
+                    deadActor.SetRagdoll(true);
+
+                    // The capsule-blob corpse view from this frame's object
+                    // pass is replaced by the real body.
+                    if (_objectViews.TryGetValue(corpseId, out var blob))
+                    {
+                        Destroy(blob);
+                        _objectViews.Remove(corpseId);
+                        _prevObjectPositions.Remove(corpseId);
+                        _currObjectPositions.Remove(corpseId);
+                    }
+
+                    _corpseBodyViews[corpseId] = _npcViews[key];
+                    adopted = true;
+                    break;
+                }
+            }
+
+            if (!adopted)
+            {
+                Destroy(_npcViews[key]);
+            }
+
             _npcViews.Remove(key);
             _actorViews.Remove(key);
             _prevNpcPoses.Remove(key);
@@ -319,14 +713,67 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         actorView.SyncWorn(npc.WornItems);
         actorView.SetInteraction(npc.CurrentInteraction, HeldItemFor(npc));
+        // Iter 28: ledge seat — the sim flags a sit at a one-step seam; the
+        // view lifts the butt onto the upper step (knobs in NpcActorView).
+        actorView.SetLedgeSit(npc.IsLedgeSit);
+        // Spec 20.16: hunting/combat shows the weapon and drives a draw/thrust.
+        actorView.SetCombat(npc.IsFighting, WeaponFor(npc));
+        // Spec 33.1: a carried weapon rides slung on the back when it isn't in
+        // the hand (SetBackWeapon hides it if it's the current hand prop).
+        actorView.SetBackWeapon(BackWeaponFor(npc));
+        // Spec 40.7: shiver when cold, fan when hot (signed thermal comfort).
+        actorView.SetThermal(npc.ThermalComfort);
+        // Face mood: the expression mirrors overall wellbeing — fed needs and
+        // health lift it, hunger/thirst/exhaustion drag it down; a fight
+        // switches the face to anger.
+        var wellbeing =
+            ((1f - npc.Hunger) + (1f - npc.Thirst) + npc.Energy +
+             npc.Comfort + npc.Social + npc.Health) / 6f;
+        actorView.SetFaceMood(wellbeing, npc.IsFighting);
+        // Spec 40.9 / 40.1: injury posture (limp/crawl/arm-hang/head-clutch)
+        // and the winded panting, both derived sim-side and exported.
+        actorView.SetPosture(npc.PostureHint, npc.Winded);
+        // Spec 40.7/40.8: weather the bare skin — tan browns it, sunburn reddens
+        // it, and a badly hurt body (low Health) flushes bruised red.
+        var hurt = npc.Health < 0.6f ? (0.6f - npc.Health) / 0.6f : 0f;
+        actorView.SetSkinWeathering(npc.TanLevel, npc.Sunburn, hurt, npc.Hygiene);
+        // Spec 40.8/40.6: persistent skin decals — wound marks per hurt zone,
+        // dust as hygiene drops, sweat droplets in the heat. Bare zones only.
+        // Debug overrides: forced sweat, and clothes-off exposes every zone.
+        var thermalForSweat = UI.DebugControlsPanel.SweatOverride ?? npc.ThermalComfort;
+        var uncoveredForDecals = UI.DebugControlsPanel.HideClothing ? AllBodyZones : npc.UncoveredParts;
+        actorView.SetBodyCondition(npc.BodyParts, uncoveredForDecals, npc.Hygiene, thermalForSweat);
+        actorView.SetClothingHidden(UI.DebugControlsPanel.HideClothing);
+        // Spec 40.10: tear worn-out garments — cutoff erosion by durability.
+        foreach (var entry in npc.WornDurability)
+        {
+            var tab = entry.IndexOf('\t');
+            if (tab > 0 && float.TryParse(
+                    entry.Substring(tab + 1),
+                    System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out var durability))
+            {
+                actorView.SetGarmentWear(entry.Substring(0, tab), durability);
+            }
+        }
 
         // Spec 31C.2: sleeping happens lying on the bed's attach point.
-        if (npc.CurrentInteraction == "Sleep" && npc.ExecutionStatus == "InProgress")
+        // Spec 40.13: a fainted body lies limp where it dropped (no bed).
+        if (npc.IsFainted)
         {
-            actorView.SetLaying(true, FindBedAttachPoint(snapshot, npc));
+            // Spec 40.13: collapse-from-exhaustion is a physics ragdoll — the
+            // body flops limp where it dropped, not the baked laying clip.
+            actorView.SetRagdoll(true);
+        }
+        else if (npc.CurrentInteraction == "Sleep" && npc.ExecutionStatus == "InProgress")
+        {
+            actorView.SetRagdoll(false);
+            actorView.SetLaying(true, FindBedAttachPoint(snapshot, npc, out var bedSurfaceY), bedSurfaceY);
         }
         else
         {
+            actorView.SetRagdoll(false);
             actorView.SetLaying(false, null);
         }
 
@@ -417,9 +864,43 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
     }
 
-    // The bed she is sleeping on: nearest bed object view within ~a tile.
-    private Transform? FindBedAttachPoint(WorldSnapshot snapshot, NpcSnapshot npc)
+    // Spec 33.1: the weapon slung on the back — the carried spear/bow, so it
+    // is always visibly "equipped" even when idle. SetBackWeapon hides it if
+    // it happens to be in the hand this frame (fighting).
+    private static string BackWeaponFor(NpcSnapshot npc)
     {
+        if (npc.InventoryItems.Contains("tool.bow"))
+        {
+            return "tool.bow";
+        }
+
+        return npc.InventoryItems.Contains("tool.spear") ? "tool.spear" : null;
+    }
+
+    // Debug clothes-off mode treats the whole body as bare for skin decals.
+    private static readonly List<string> AllBodyZones = new()
+    {
+        "Head", "Torso", "Pelvis", "ArmL", "ArmR", "LegL", "LegR"
+    };
+
+    // Spec 20.16: the weapon an NPC fights/hunts with — bow (with arrows)
+    // preferred, else spear. Null when unarmed (bare-handed brawl).
+    private static string WeaponFor(NpcSnapshot npc)
+    {
+        if (npc.InventoryItems.Contains("tool.bow") && npc.InventoryItems.Contains("resource.arrow"))
+        {
+            return "tool.bow";
+        }
+
+        return npc.InventoryItems.Contains("tool.spear") ? "tool.spear" : null;
+    }
+
+    // The bed she is sleeping on: nearest bed object view within ~a tile.
+    private Transform? FindBedAttachPoint(WorldSnapshot snapshot, NpcSnapshot npc, out float surfaceY)
+    {
+        // Default: the sleeper's own tile top, used when there is no bed.
+        surfaceY = GroundY(npc.Tile);
+
         ObjectSnapshot? bed = null;
         var bestSq = float.MaxValue;
         foreach (var worldObject in snapshot.Objects)
@@ -440,6 +921,23 @@ public sealed class HexWorldRenderer : MonoBehaviour
         if (bed is null || !_objectViews.TryGetValue(bed.Id.Value, out var bedView))
         {
             return null;
+        }
+
+        // The body's underside should rest on the bed's top surface.
+        var bedRenderers = bedView.GetComponentsInChildren<Renderer>();
+        if (bedRenderers.Length > 0)
+        {
+            var bedBounds = bedRenderers[0].bounds;
+            for (var i = 1; i < bedRenderers.Length; i++)
+            {
+                bedBounds.Encapsulate(bedRenderers[i].bounds);
+            }
+
+            surfaceY = bedBounds.max.y;
+        }
+        else
+        {
+            surfaceY = GroundY(bed.Tile);
         }
 
         var point = bedView.transform.Find("point");
@@ -595,18 +1093,16 @@ public sealed class HexWorldRenderer : MonoBehaviour
             topHeight -= ElevationStep * 0.4f; // sunken water surface
         }
 
-        // Submesh 0 = flat top, submesh 1 = the perimeter skirt/cliff.
-        meshFilter.sharedMesh = BuildHexPrismMesh(HexRadius, topHeight, TerrainBaseY, world.X, world.Y);
+        // Submesh 0 = flat top, submesh 1 = the perimeter skirt/cliff. Water
+        // tiles are a bare surface (no skirt) over the shared deep sea floor,
+        // so foam only forms where the opaque land walls pierce the surface.
+        meshFilter.sharedMesh = BuildHexPrismMesh(
+            HexRadius, topHeight, TerrainBaseY, world.X, world.Y, includeSkirt: !tile.Water);
 
         var meshRenderer = go.AddComponent<MeshRenderer>();
         if (tile.Water)
         {
-            // Transparent water surface on top; sandy riverbed on the walls.
-            meshRenderer.sharedMaterials = new[]
-            {
-                CreateWaterMaterial(),
-                GetFlatMaterial(Jitter(BiomeColor("sand"), tile.Coord, 0.05f))
-            };
+            meshRenderer.sharedMaterial = CreateWaterMaterial();
         }
         else
         {
@@ -654,7 +1150,17 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return _waterMaterial;
         }
 
-        // Spec 20.16: stylized cartoon water — waves, fresnel two-tone, glints.
+        // Spec 20.16: prefer the imported "Definitive Stylized Water URP"
+        // material (depth gradient, animated foam, fresnel, refraction) — the
+        // tuned asset carries its distortion/foam texture with it.
+        var definitive = Resources.Load<Material>("HexLive/Water/StylizedWaterDefinitive");
+        if (definitive != null)
+        {
+            _waterMaterial = definitive;
+            return _waterMaterial;
+        }
+
+        // Fallback: my hand-written stylized water shader.
         var stylized = Shader.Find("HexLive/StylizedWater");
         if (stylized != null)
         {
@@ -696,6 +1202,29 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return go;
     }
 
+    // Spec 40.17: a small amber dot sitting on a climb seam — where an NPC
+    // clambers up a one-step ledge. Scaled below the debug junction sphere so
+    // it reads as a marker, lifted a touch above the ground.
+    private GameObject CreateSeamMarker(JunctionSnapshot junction)
+    {
+        var go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        go.name = $"ClimbSeam {junction.Id.Value}";
+        go.transform.SetParent(_junctionsRoot, false);
+        go.transform.localScale = Vector3.one * (JunctionMarkerScale * 1.6f);
+        go.transform.position = SimulationUnityMapper.ToUnityPosition(
+            junction.WorldPosition,
+            SimulationUnityMapper.TileHeight + SimulationUnityMapper.PointMarkerLift * 2f);
+
+        var renderer = go.GetComponent<MeshRenderer>();
+        if (renderer is not null)
+        {
+            // Warm amber, distinct from terrain — reads as a climb hint.
+            renderer.sharedMaterial = CreateMaterial(new Color(0.88f, 0.54f, 0.24f));
+        }
+
+        return go;
+    }
+
     private GameObject CreateObjectView(ObjectSnapshot worldObject, Dictionary<int, Float2> junctionPositions)
     {
         // Spec 31C.4: water interaction anchors have no gizmo — the river
@@ -721,6 +1250,20 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 anchorPos, GroundY(worldObject.Tile));
             MaybeAttachCampfire(prefabRoot, worldObject.DefinitionId);
             return prefabRoot;
+        }
+
+        // Spec 20.16: procedural low-poly model for known tools/resources/food
+        // before the generic primitive fallback.
+        var lowPoly = HexLive.UnityPresentation.Environment.LowPolyToolFactory.Build(worldObject.DefinitionId);
+        if (lowPoly != null)
+        {
+            var modelRoot = new GameObject($"Object {worldObject.DefinitionId}");
+            modelRoot.transform.SetParent(_objectsRoot, false);
+            lowPoly.transform.SetParent(modelRoot.transform, false);
+            FitObjectPrefab(lowPoly, worldObject.DefinitionId);
+            var anchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
+            modelRoot.transform.position = SimulationUnityMapper.ToUnityPosition(anchor, GroundY(worldObject.Tile));
+            return modelRoot;
         }
 
         var primitiveType = GetObjectPrimitive(worldObject.DefinitionId);
@@ -893,7 +1436,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 actorBody.transform.localPosition = Vector3.zero;
 
                 var view = actorRoot.AddComponent<NpcActorView>();
-                view.Construct(npc.ActorMesh);
+                view.Construct(npc.ActorMesh, npc.Id.Value);
                 _actorViews[npc.Id.Value] = view;
                 return actorRoot;
             }
@@ -971,7 +1514,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // six quads down to a shared base (submesh 1) so elevation reads as rock
     // columns that visually meet their lower neighbours. UVs are world-space
     // so the biome texture flows continuously from tile to tile.
-    private static Mesh BuildHexPrismMesh(float radius, float top, float baseY, float worldX, float worldZ)
+    private static Mesh BuildHexPrismMesh(float radius, float top, float baseY, float worldX, float worldZ,
+        bool includeSkirt = true)
     {
         var mesh = new Mesh { name = "HexPrism" };
 
@@ -1003,37 +1547,47 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
 
         // --- perimeter skirt (own vertices for hard-edged cliff shading) ---
-        for (var i = 0; i < 6; i++)
+        // Spec 20.16: water tiles skip the skirt so no opaque wall reaches the
+        // surface between two water hexes — otherwise the stylized water's
+        // depth-intersection foam would ring every hex, not just the shore.
+        if (includeSkirt)
         {
-            var a = rim[i];
-            var b = rim[(i + 1) % 6];
-            var start = vertices.Count;
+            for (var i = 0; i < 6; i++)
+            {
+                var a = rim[i];
+                var b = rim[(i + 1) % 6];
+                var start = vertices.Count;
 
-            vertices.Add(new Vector3(a.x, top, a.z));
-            vertices.Add(new Vector3(b.x, top, b.z));
-            vertices.Add(new Vector3(b.x, baseY, b.z));
-            vertices.Add(new Vector3(a.x, baseY, a.z));
+                vertices.Add(new Vector3(a.x, top, a.z));
+                vertices.Add(new Vector3(b.x, top, b.z));
+                vertices.Add(new Vector3(b.x, baseY, b.z));
+                vertices.Add(new Vector3(a.x, baseY, a.z));
 
-            var uA = i * WallUvScaleU;
-            var uB = (i + 1) * WallUvScaleU;
-            uvs.Add(new Vector2(uA, top * WallUvScaleV));
-            uvs.Add(new Vector2(uB, top * WallUvScaleV));
-            uvs.Add(new Vector2(uB, baseY * WallUvScaleV));
-            uvs.Add(new Vector2(uA, baseY * WallUvScaleV));
+                var uA = i * WallUvScaleU;
+                var uB = (i + 1) * WallUvScaleU;
+                uvs.Add(new Vector2(uA, top * WallUvScaleV));
+                uvs.Add(new Vector2(uB, top * WallUvScaleV));
+                uvs.Add(new Vector2(uB, baseY * WallUvScaleV));
+                uvs.Add(new Vector2(uA, baseY * WallUvScaleV));
 
-            wallTris.Add(start + 0);
-            wallTris.Add(start + 1);
-            wallTris.Add(start + 2);
-            wallTris.Add(start + 0);
-            wallTris.Add(start + 2);
-            wallTris.Add(start + 3);
+                wallTris.Add(start + 0);
+                wallTris.Add(start + 1);
+                wallTris.Add(start + 2);
+                wallTris.Add(start + 0);
+                wallTris.Add(start + 2);
+                wallTris.Add(start + 3);
+            }
         }
 
-        mesh.subMeshCount = 2;
+        mesh.subMeshCount = includeSkirt ? 2 : 1;
         mesh.SetVertices(vertices);
         mesh.SetUVs(0, uvs);
         mesh.SetTriangles(topTris, 0);
-        mesh.SetTriangles(wallTris, 1);
+        if (includeSkirt)
+        {
+            mesh.SetTriangles(wallTris, 1);
+        }
+
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
         return mesh;
@@ -1070,6 +1624,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private static readonly Dictionary<int, Material> _flatMaterials = new();
 
+    // Dry base colours for the wet-terrain effect (rain darkens the cache).
+    private static readonly Dictionary<int, Color> _flatBaseColors = new();
+    private static Color _grassBaseColor = Color.white;
+
     private static Material GetFlatMaterial(Color color)
     {
         // Quantise to ~24 levels per channel to keep the material count low.
@@ -1088,6 +1646,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         material.SetFloat("_Smoothness", 0f);
         material.SetFloat("_Cull", 0f); // double-sided: skirt interiors never show
         _flatMaterials[key] = material;
+        _flatBaseColors[key] = color;
         return material;
     }
 
@@ -1103,9 +1662,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
 
         // Flat solid-green blades — low-poly, no texture, no alpha seams.
+        _grassBaseColor = new Color(0.36f, 0.56f, 0.24f);
         var material = new Material(Shader.Find("Universal Render Pipeline/Lit"))
         {
-            color = new Color(0.36f, 0.56f, 0.24f)
+            color = _grassBaseColor
         };
         material.SetFloat("_Smoothness", 0f);
         material.SetFloat("_Cull", 0f); // single triangles seen from both sides

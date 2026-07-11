@@ -7439,6 +7439,29 @@ Turnkey steps for that pass:
    in Unity when connected; the seam set also tells the renderer where to
    play it. Blocked on Unity like the rest of §40's visual layer.
 
+**MEASURED CONCLUSION (steps 1–2 shipped; 3 blocked by design, not tuning).**
+Steps 1–2 are done and green: seams are tagged (`WorldState.ClimbSeams`,
+exported as `IsClimbSeam` with presentation dots), and `HexPathfinder` is a
+Unity-safe uniform-cost search (`SortedDictionary`, byte-identical at cost 1).
+Step 3 (the actual weight) is **proven un-addable by parameter tuning** —
+**8+ soak tests, all break seeds, broken set shifts whack-a-mole**:
+seam-cost 2× / 1.5× / 1.2× (each tips 1–3 seeds); a movement-speed 0.5× over
+seams (the user's literal "2× longer to climb", NOT a reroute — still tips 2
+seeds, so it's timing not routing); dog-rebalance rounds (softer bite / lower
+aggro / both — 4/6 at best, shifting seeds); and fewer dogs (`MaxDogs 1` +
+weight — 3/6, WORSE). **Root cause:** the 3-NPC colony survives the
+deterministic dog-dance with *zero margin*, so ANY perturbation to NPC
+movement/timing — however small or rarely-triggered — reshuffles which
+encounters occur and tips it; even *reducing* difficulty reshuffles chaotically.
+**Therefore the climb weight (and §40.18's second island) cannot ship by
+tuning.** They need one of: (a) the colony made robust *by construction* —
+survive dog fights with margin so which-fight-happens stops mattering (a
+deliberate softening of the knife-edge tension — a design choice about the
+game's feel), or (b) a redesigned, less timing-chaotic dog-encounter model.
+Both are design decisions, not knob-turns. Until one is chosen, `SeamCost`
+stays == `FlatCost` (uniform, green) and the weight is measured-dormant like
+the escape raft. See [[project_dog_fragility_balance]] for the full test log.
+
 ### 40.18 Islands, swimming & shark — implementation plan (arc)
 The escape endgame (§40.15) and bigger-world (§40.12) share one dependency
 chain: **traversable water → swimming → shark → island-hopping**. No piece

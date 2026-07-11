@@ -7266,6 +7266,17 @@ pass — order chosen to add robustness before difficulty.
 - New consumables: **bandages, pills** — treat wounds / stop bleeding /
   restore HP. New **Safety goal**: keep a reserve of food, water, medicine,
   supplies. NPCs stockpile against scarcity.
+- **Shipped v1 (medicine):** each NPC carries a small reserve of bandages
+  (`Needs.Bandages`, auto-dressed at `Blood < 0.35`, §40.2) and **pills**
+  (`Needs.Pills`, start 1). Pills are the last-resort backup to bandages:
+  when a part is wounded (`worst < 0.4`) and no bandage fires yet `Health`
+  has fallen near death (`< 0.3`), a pill is spent — the wounded parts and
+  HP recover a step. Fires only at the brink, so it can pull a dying NPC
+  back without touching the healthy colony's deterministic dog-dance
+  (robustness-positive, like the bandage). Both reserves are in the snapshot
+  for the future character panel. The full **Safety goal** (actively
+  gathering a reserve into a chest, §40.4) stays deferred — a new gathering
+  goal reshuffles the fragile colony, so it waits on a surplus economy.
 
 ### 40.4 Harder gathering, more food, storage
 - Reduce the deficit (more total food) but make **acquiring it harder**

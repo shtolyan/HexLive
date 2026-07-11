@@ -43,6 +43,12 @@ public sealed class NPCNeeds
     // start; auto-spent to dress a serious wound.
     public int Bandages { get; set; } = 2;
 
+    // Spec 40.3: pills — the last-resort backup to the bandage. When a wound
+    // is open yet no bandage has fired and HP has fallen near death, a pill is
+    // spent to pull the body and HP back a step. One to start; kept in the med
+    // pouch beside the bandages.
+    public int Pills { get; set; } = 1;
+
     // Spec 40.7: tan (0 = pale, 1 = dark). Builds slowly from sun on bare
     // skin; the redness→tan look is painted from this on the skin texture
     // (presentation). Never fades to zero — a survivor stays weathered.

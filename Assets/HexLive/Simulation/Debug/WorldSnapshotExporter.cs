@@ -103,6 +103,7 @@ public static class WorldSnapshotExporter
                 Blood = npc.Needs.Blood,
                 TanLevel = npc.Needs.TanLevel,
                 Bandages = npc.Needs.Bandages,
+                Pills = npc.Needs.Pills,
                 IsFainted = world.Tick < npc.Mind.FaintedUntilTick,
                 Stress = npc.Needs.Stress,
                 CurrentGoal = npc.Mind.CurrentGoal.ToString(),

@@ -4501,6 +4501,27 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     Trace.Emit(world, npc.Id, "Bandaged",
                         $"Dressed the wounds (Health={npc.Health:F2})");
                 }
+                else if (npc.Needs.Pills > 0 && npc.Health < 0.3f)
+                {
+                    // Spec 40.3: pills — the last-resort backup to the bandage.
+                    // Only at the brink (Health < 0.3, no bandage fired): spend
+                    // a pill to lift the wounded parts and HP a step and stem
+                    // the blood a little. Fires only for an NPC about to die, so
+                    // it can save a life without shifting the healthy colony.
+                    npc.Needs.Pills--;
+                    foreach (var part in AllBodyParts)
+                    {
+                        if (npc.Body.Parts[part] < 0.4f)
+                        {
+                            npc.Body.Parts[part] = MathUtil.Clamp01(npc.Body.Parts[part] + 0.2f);
+                        }
+                    }
+
+                    npc.Health = npc.Body.Mean();
+                    npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood + 0.2f);
+                    Trace.Emit(world, npc.Id, "Medicated",
+                        $"Took a pill at the brink (Health={npc.Health:F2})");
+                }
                 else
                 {
                     npc.Needs.Blood = System.Math.Max(0f, npc.Needs.Blood - (0.4f - worstPart) * 0.06f);

@@ -633,9 +633,11 @@ public sealed class DecisionSystem : ISimulationSystem
             // The hearth outranks the mattress: never spend logs on a bed
             // while the fire is hungry (777 soak: the bed ate the only wood
             // and the fire never burned again — boiledDrinks=0 all game).
+            // Spec 40.14: 3 leaves alone weave the cheap leaf mat; 2 spare logs
+            // upgrade it to the solid bedroll (chosen at craft time). The fire
+            // must still be alive — its logs are never robbed for the bedroll.
             var craftBedAvail = !HasReachableWithTag(npc, world, "Bed") &&
-                carriedLogs >= 2 && carriedLeaves >= 3 && campfireSeen &&
-                campfireFuel > 0f;
+                carriedLeaves >= 3 && campfireSeen && campfireFuel > 0f;
             // 0.6: with the full kit in hand and the fire alive, the bed
             // must outbid TendFire (<=0.55) — at 0.35 the kit's logs were
             // always eaten by the hearth and the bed never happened.
@@ -2711,8 +2713,7 @@ public sealed class ExecutionSystem : ISimulationSystem
                             DecisionSystem.CountInventory(npc, "resource.stone") >= 2,
                         GoalType.CraftRack => DecisionSystem.CountInventory(npc, "resource.firewood") >= 2 &&
                             !DecisionSystem.RackExists(world),
-                        GoalType.CraftBed => DecisionSystem.CountInventory(npc, "resource.firewood") >= 2 &&
-                            DecisionSystem.CountInventory(npc, "resource.palm_leaf") >= 3,
+                        GoalType.CraftBed => DecisionSystem.CountInventory(npc, "resource.palm_leaf") >= 3,
                         GoalType.CraftBow => DecisionSystem.CountInventory(npc, "resource.firewood") >= 2 &&
                             DecisionSystem.CountInventory(npc, "resource.hide") >= 1,
                         GoalType.CraftArrows => npc.Inventory.Items.Contains("resource.firewood"),
@@ -2964,14 +2965,25 @@ public sealed class ExecutionSystem : ISimulationSystem
                             PlaceRack(world, npc, worldObject);
                             break;
                         case GoalType.CraftBed:
-                            npc.Inventory.Items.Remove("resource.firewood");
-                            npc.Inventory.Items.Remove("resource.firewood");
+                        {
+                            // Spec 40.14: with 2 logs spare she weaves the solid
+                            // bedroll; with only leaves, the cheap tier-1 mat.
                             npc.Inventory.Items.Remove("resource.palm_leaf");
                             npc.Inventory.Items.Remove("resource.palm_leaf");
                             npc.Inventory.Items.Remove("resource.palm_leaf");
-                            PlaceCraftedFurniture(world, npc, worldObject, "bed.basic");
-                            Trace.Emit(world, npc.Id, "BedCrafted", "A bedroll of her own");
+                            var bedKind = "bed.leaf";
+                            if (DecisionSystem.CountInventory(npc, "resource.firewood") >= 2)
+                            {
+                                npc.Inventory.Items.Remove("resource.firewood");
+                                npc.Inventory.Items.Remove("resource.firewood");
+                                bedKind = "bed.basic";
+                            }
+
+                            PlaceCraftedFurniture(world, npc, worldObject, bedKind);
+                            Trace.Emit(world, npc.Id, "BedCrafted",
+                                bedKind == "bed.basic" ? "A bedroll of her own" : "A leaf sleeping-mat");
                             break;
+                        }
                         case GoalType.CraftBow:
                             npc.Inventory.Items.Remove("resource.firewood");
                             npc.Inventory.Items.Remove("resource.firewood");

@@ -581,6 +581,25 @@ public static class PrototypeContentCatalog
                 },
                 Tags = { "Bed", "Obstacle" }
             },
+            // Spec 40.14: the cheap tier-1 sleeping mat — woven from 3 palm
+            // leaves (no logs). A little better than bare grass, well short of
+            // the bedroll. Not an obstacle (a flat mat you can step over).
+            ["bed.leaf"] = new ObjectDefinition
+            {
+                Id = "bed.leaf",
+                DisplayName = "Leaf mat",
+                Interactions =
+                {
+                    new InteractionDefinition
+                    {
+                        Id = "sleep.leaf",
+                        Type = InteractionType.Sleep,
+                        DurationTicks = 100,
+                        Effects = { EnergyDelta = 0.45f, ComfortDelta = 0.1f }
+                    }
+                },
+                Tags = { "Bed" }
+            },
             ["clothing.coat"] = new ObjectDefinition
             {
                 Id = "clothing.coat",

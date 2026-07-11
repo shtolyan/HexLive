@@ -47,6 +47,11 @@ public sealed class NPCNeeds
     // skin; the redness→tan look is painted from this on the skin texture
     // (presentation). Never fades to zero — a survivor stays weathered.
     public float TanLevel { get; set; }
+
+    // Spec 40.13: stress (0 = calm, 1 = breaking point). Rises near danger,
+    // in a fight, when badly hurt or starving; ebbs when safe and rested.
+    // Overwhelming stress on an already-spent body can knock it out.
+    public float Stress { get; set; }
 }
 
 }

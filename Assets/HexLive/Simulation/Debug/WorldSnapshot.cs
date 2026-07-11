@@ -156,6 +156,9 @@ public sealed class NpcSnapshot
     // Spec 40.13: knocked out — the presentation lays the body limp.
     public bool IsFainted { get; set; }
 
+    // Spec 40.13: stress 0=calm..1=breaking point (UI).
+    public float Stress { get; set; }
+
     public string CurrentGoal { get; set; } = string.Empty;
 
     public string PlanStatus { get; set; } = string.Empty;

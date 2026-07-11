@@ -4382,12 +4382,19 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             npc.Needs.Stamina = MathUtil.Clamp(
                 npc.Needs.Stamina + staminaDelta, 0f, staminaCeiling);
 
+            // Spec 40.13: stress rises with danger/combat/pain/starvation and
+            // ebbs in calm. A UI param, and a third path to collapse.
+            var stressUp = npc.IsFighting || npc.Memory.Dangers.Count > 0 ||
+                npc.Health < 0.6f || npc.Needs.Hunger >= 0.85f || npc.Needs.Thirst >= 0.85f;
+            npc.Needs.Stress = MathUtil.Clamp01(npc.Needs.Stress + (stressUp ? 0.05f : -0.03f));
+
             // Spec 40.13: collapse. Utterly spent stamina AND a body pushed to
-            // the edge (starving or bleeding) drops the NPC unconscious — it
-            // lies helpless for ~80 ticks, then rises. Rare by construction
-            // (all three at once), so it barely perturbs the colony.
+            // the edge (starving, bleeding, or stress-overwhelmed) drops the
+            // NPC unconscious — it lies helpless for ~80 ticks, then rises.
+            // Rare by construction, so it barely perturbs the colony.
             if (world.Tick >= npc.Mind.FaintedUntilTick && npc.Needs.Stamina <= 0.01f &&
-                (npc.Needs.Hunger >= 0.9f || npc.Needs.Blood < 0.25f) && npc.Health > 0f)
+                (npc.Needs.Hunger >= 0.9f || npc.Needs.Blood < 0.25f || npc.Needs.Stress >= 0.95f) &&
+                npc.Health > 0f)
             {
                 npc.Mind.FaintedUntilTick = world.Tick + 80;
                 PlanInterruption.Abort(world, npc, "Collapsed — unconscious");

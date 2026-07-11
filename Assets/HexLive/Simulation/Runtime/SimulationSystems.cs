@@ -4562,6 +4562,47 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // agent drains to death.
             var starved = npc.Needs.Hunger >= 0.95f;
             var parched = npc.Needs.Thirst >= 0.95f;
+
+            // Spec 40.5: emergent cooperation — a well-fed housemate already
+            // standing beside someone starving at the death-brink hands over a
+            // spare food item. Passive last-resort (no goal, no reroute): it
+            // fires only on this exact adjacency, so like the pill it saves a
+            // life without disturbing the healthy colony's routine.
+            if (starved && npc.CurrentJunction is { } hungryJct)
+            {
+                foreach (var other in world.Entities.Npcs.Values)
+                {
+                    if (other.Id.Equals(npc.Id) || other.Health <= 0f ||
+                        other.Needs.Hunger >= 0.4f || other.IsFighting ||
+                        other.Mind.CurrentGoal == GoalType.Flee ||
+                        other.CurrentJunction is not { } giverJct)
+                    {
+                        continue;
+                    }
+
+                    var adjacent = giverJct.Equals(hungryJct) ||
+                        (world.Junctions.Items.TryGetValue(giverJct, out var gj) &&
+                         gj.Neighbors.Contains(hungryJct));
+                    if (!adjacent)
+                    {
+                        continue;
+                    }
+
+                    var food = other.Inventory.FindFirstFood(world.Content);
+                    if (food is null)
+                    {
+                        continue;
+                    }
+
+                    other.Inventory.Items.Remove(food);
+                    npc.Needs.Hunger = MathUtil.Clamp01(npc.Needs.Hunger - 0.5f);
+                    starved = npc.Needs.Hunger >= 0.95f;
+                    Trace.Emit(world, npc.Id, "FoodShared",
+                        $"Given {food} by NPC{other.Id.Value} (Hunger={npc.Needs.Hunger:F2})");
+                    break;
+                }
+            }
+
             if (starved || parched)
             {
                 var damage = starved && parched ? 0.05f : 0.03f;

@@ -7287,6 +7287,19 @@ pass — order chosen to add robustness before difficulty.
 - NPCs **help each other** with food/supplies. When truly starving they
   make **hard choices** — even **stealing** from a housemate. Social
   fabric under scarcity.
+- **Shipped v1 (food-sharing):** the first cooperation seed. When an NPC is
+  starving at the death-brink (`Hunger ≥ 0.95`, the same gate that begins
+  starvation damage) and an adjacent housemate is well-fed (`Hunger < 0.4`),
+  not fighting or fleeing, and carrying spare food, that neighbour **hands
+  over one food item** — the starving NPC's hunger drops a meal's worth and
+  the damage that tick is averted. Deliberately a **passive last-resort**:
+  no new goal, no reroute, no pathing change — it fires only when a fed
+  carrier already stands beside the dying one, so like the pill (§40.3) it
+  saves a life without disturbing the healthy colony's deterministic routine
+  (robustness-positive; all 6 soak seeds green). Active giving (walking food
+  to the hungry), theft, and generosity shaped by relationships stay
+  deferred — those add competing goals and reroutes that reshuffle the
+  fragile dog-dance.
 
 ### 40.6 Hygiene & dirt
 - New need **Hygiene**: NPCs get **dirty** over time (visual grime + the

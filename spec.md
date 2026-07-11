@@ -7439,6 +7439,36 @@ Turnkey steps for that pass:
    in Unity when connected; the seam set also tells the renderer where to
    play it. Blocked on Unity like the rest of §40's visual layer.
 
+### 40.18 Islands, swimming & shark — implementation plan (arc)
+The escape endgame (§40.15) and bigger-world (§40.12) share one dependency
+chain: **traversable water → swimming → shark → island-hopping**. No piece
+delivers value alone (a shark with nothing to bite is dead code), so this is
+a deliberate multi-iteration arc, sequenced so each step soaks green before
+the next. It WILL reshuffle the dog-dance (water becomes walkable, the map
+grows) — budget multi-round rebalancing per [[project_dog_fragility_balance]].
+1. **Swim tiles.** Add a `Swimmable` tile flag distinct from the current
+   impassable `Water`. Deep sea stays blocked; a shallow crossing between
+   land masses is Swimmable. Pathfinder: entering a Swimmable junction costs
+   ~4× a land step (slow, deferred like the climb weight §40.17 so it's a
+   last-resort route) and drains Stamina/adds a `Swimming` state. This is the
+   destabilizing foundation — soak + rebalance dog spawns before proceeding.
+2. **Shark mob.** A `Shark` wildlife entity (like the dog/crab) that patrols
+   Swimmable/Water tiles only — it never occupies land junctions, so it's
+   inert to the land colony (the same reason the water-bound crab pathing is
+   safe). It attacks any NPC in the `Swimming` state (bite → Blood/HP), and
+   is absent from land. Ship first as a dormant patroller (no swimmers yet →
+   verifiably deaths==baseline, like the null advisor §40.16), then wire the
+   bite once swimming exists.
+3. **Second island.** Extend world-gen with a second land mass across a
+   Swimmable strait, seeded with fresh loot (a pickaxe/saw already scatter,
+   §40.12) and its own resources. Connectivity cache must span both.
+4. **Island-hopping goal.** Resources deplete on the home island → a
+   high-level goal to cross (swim = shark risk, or the raft §40.15 = safe
+   crossing) to the next island. Ties the escape raft's payoff to a real
+   destination. LLM joint-planning (§40.16) is the natural driver.
+Presentation: water-swim animation, shark model + fin, island terrain —
+all Unity-side, land when the editor is connected.
+
 ### Implementation order (living)
 Robustness first, spectacle second: 40.1 Stamina → 40.2 Blood →
 40.14 tiered beds + tent → 40.3 medicine/Safety → 40.6 Hygiene →

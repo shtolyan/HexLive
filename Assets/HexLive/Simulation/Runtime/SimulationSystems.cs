@@ -3578,20 +3578,7 @@ public sealed class ExecutionSystem : ISimulationSystem
     // Spec 29G: crafted furniture lands on a free junction by the fire.
     private static void PlaceCraftedFurniture(WorldState world, NPCState npc, WorldObjectState campfire, string definitionId)
     {
-        JunctionId? spot = null;
-        if (campfire.Junctions.Count > 0)
-        {
-            foreach (var neighbor in SpatialQueries.GetPassableNeighbors(world, campfire.Junctions[0]))
-            {
-                if (SpatialQueries.IsJunctionFree(world, neighbor))
-                {
-                    spot = neighbor;
-                    break;
-                }
-            }
-        }
-
-        spot ??= npc.CurrentJunction;
+        var spot = FindSpacedFurnitureSpot(world, campfire) ?? npc.CurrentJunction;
         if (spot is not { } junction)
         {
             return;
@@ -3600,24 +3587,96 @@ public sealed class ExecutionSystem : ISimulationSystem
         WorldObjectMutations.SpawnObject(world, definitionId, npc.Fragment, npc.Tile, junction);
     }
 
-    // Spec 35.5: the crafted rack goes onto a free junction next to the
-    // campfire; when the fireside is crowded it lands at the crafter's feet.
-    private static void PlaceRack(WorldState world, NPCState npc, WorldObjectState campfire)
+    // Spec 35.7 (iter 33): the camp is no longer a heap. Crafted furniture
+    // still hugs the fire (keeping travel cheap — the economy is tight), but
+    // never lands right on top of another bed/rack: prefer a fireside junction
+    // that isn't within a tile of an existing piece, widening the search ring
+    // only if the near ones are all taken.
+    private static readonly string[] OtherFurnitureTags = { "Bed", "Rack" };
+
+    private static JunctionId? FindSpacedFurnitureSpot(WorldState world, WorldObjectState campfire)
     {
-        JunctionId? spot = null;
-        if (campfire.Junctions.Count > 0)
+        if (campfire.Junctions.Count == 0)
         {
-            foreach (var neighbor in SpatialQueries.GetPassableNeighbors(world, campfire.Junctions[0]))
+            return null;
+        }
+
+        var anchor = campfire.Junctions[0];
+        // Pass 1: a free fireside junction clear of other furniture.
+        foreach (var neighbor in SpatialQueries.GetPassableNeighbors(world, anchor))
+        {
+            if (SpatialQueries.IsJunctionFree(world, neighbor) &&
+                world.Junctions.Items.TryGetValue(neighbor, out var j) && j.Tiles.Count > 0 &&
+                !IsNearOtherFurniture(world, j.Tiles[0]))
+            {
+                return neighbor;
+            }
+        }
+
+        // Pass 2: any junction 2 tiles out that's clear of other furniture.
+        JunctionId? ring = null;
+        foreach (var junction in world.Junctions.Items.Values)
+        {
+            if (junction.Blocked || junction.Tiles.Count == 0 ||
+                !SpatialQueries.IsJunctionFree(world, junction.Id) ||
+                !world.Tiles.Items.TryGetValue(junction.Tiles[0], out var tile) ||
+                !tile.Flags.HasFlag(TileFlags.Walkable) || tile.Flags.HasFlag(TileFlags.Water))
+            {
+                continue;
+            }
+
+            if (HexSpatialMath.HexDistance(junction.Tiles[0], campfire.Tile) == 2 &&
+                !IsNearOtherFurniture(world, junction.Tiles[0]))
+            {
+                ring = junction.Id;
+                break;
+            }
+        }
+
+        // Pass 3: fall back to any free fireside junction (heap beats nowhere).
+        if (ring is null)
+        {
+            foreach (var neighbor in SpatialQueries.GetPassableNeighbors(world, anchor))
             {
                 if (SpatialQueries.IsJunctionFree(world, neighbor))
                 {
-                    spot = neighbor;
-                    break;
+                    return neighbor;
                 }
             }
         }
 
-        spot ??= npc.CurrentJunction;
+        return ring;
+    }
+
+    // Within 1 tile of an existing bed or rack (the campfire itself is fine
+    // to sit beside — we only want to avoid stacking furniture on furniture).
+    private static bool IsNearOtherFurniture(WorldState world, TileCoord tile)
+    {
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (!world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def))
+            {
+                continue;
+            }
+
+            foreach (var tag in OtherFurnitureTags)
+            {
+                if (def.Tags.Contains(tag) && HexSpatialMath.HexDistance(tile, obj.Tile) <= 1)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    // Spec 35.5: the crafted rack goes onto a free junction next to the
+    // campfire; when the fireside is crowded it lands at the crafter's feet.
+    private static void PlaceRack(WorldState world, NPCState npc, WorldObjectState campfire)
+    {
+        // Spec 35.7: spaced away from the fire and the bed (no more heap).
+        var spot = FindSpacedFurnitureSpot(world, campfire) ?? npc.CurrentJunction;
         if (spot is not { } junction)
         {
             GiveOrDrop(world, npc, "resource.firewood");

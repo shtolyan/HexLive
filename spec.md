@@ -5945,6 +5945,18 @@ The land itself is furniture — worse than the real thing, but always there.
   (<= 0.55) in that window — at 0.35 the kit's logs were always eaten by
   the hearth. The hut-completion bed reward stays.
 
+### 35.7 Crafted furniture no longer heaps (iteration 33)
+
+The camp piled up: campfire, bed and rack all landed on the fire's
+immediate neighbour, stacked together. Now crafted furniture (bed, rack)
+places via a small spaced search: **pass 1** a free fireside junction that
+isn't within a tile of an existing bed/rack; **pass 2** a junction 2 tiles
+out that's clear; **pass 3** any free fireside junction (a heap beats
+homelessness). Furniture still hugs the fire — the economy is too tight for
+long trips to a distant bed (2-4 tiles out starved seed 12345) — but the
+pieces no longer sit on top of each other. The campfire itself is not
+avoided (you want the bed *near* the hearth, just not stacked on the rack).
+
 ### 29F.4 Coconuts trimmed, a spear in every hand (iteration 32)
 
 The colony did nothing but eat coconuts — hunting and the whole meat/hide/

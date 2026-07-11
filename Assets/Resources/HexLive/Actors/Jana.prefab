@@ -4353,15 +4353,15 @@ SkinnedMeshRenderer:
   - 0
   - 0
   - 0
-  - 8.1
   - 0
   - 0
   - 0
   - 0
   - 0
   - 0
-  - 28.5
-  - 28.9
+  - 0
+  - 0
+  - 0
   - 0
   - 0
   - 0
@@ -7787,98 +7787,283 @@ MonoBehaviour:
       springNoise: 0
   serializeData2:
     initData:
-      initVersion: 0
-      localHash: 0
-      globalHash: 0
-      clothType: 0
+      initVersion: 2
+      localHash: 85106
+      globalHash: 529420629
+      clothType: 10
       clothTransformRecord:
-        transform: {fileID: 0}
+        transform: {fileID: 7031820492586641723}
         localPosition: {x: 0, y: 0, z: 0}
-        localRotation: {x: 0, y: 0, z: 0, w: 0}
+        localRotation: {x: 0, y: 0, z: 0, w: 1}
         position: {x: 0, y: 0, z: 0}
-        rotation: {x: 0, y: 0, z: 0, w: 0}
-        scale: {x: 0, y: 0, z: 0}
+        rotation: {x: 0, y: 0, z: 0, w: 1}
+        scale: {x: 1, y: 1, z: 1}
         localToWorldMatrix:
-          e00: 0
+          e00: 1
           e01: 0
           e02: 0
           e03: 0
           e10: 0
-          e11: 0
+          e11: 1
           e12: 0
           e13: 0
           e20: 0
           e21: 0
-          e22: 0
+          e22: 1
           e23: 0
           e30: 0
           e31: 0
           e32: 0
-          e33: 0
+          e33: 1
         worldToLocalMatrix:
-          e00: 0
+          e00: 1
           e01: 0
           e02: 0
-          e03: 0
+          e03: -0
           e10: 0
-          e11: 0
+          e11: 1
           e12: 0
-          e13: 0
+          e13: -0
           e20: 0
           e21: 0
-          e22: 0
-          e23: 0
+          e22: 1
+          e23: -0
           e30: 0
           e31: 0
           e32: 0
-          e33: 0
+          e33: 1
       normalAdjustmentTransformRecord:
-        transform: {fileID: 0}
+        transform: {fileID: 7031820492586641723}
         localPosition: {x: 0, y: 0, z: 0}
-        localRotation: {x: 0, y: 0, z: 0, w: 0}
+        localRotation: {x: 0, y: 0, z: 0, w: 1}
         position: {x: 0, y: 0, z: 0}
-        rotation: {x: 0, y: 0, z: 0, w: 0}
-        scale: {x: 0, y: 0, z: 0}
+        rotation: {x: 0, y: 0, z: 0, w: 1}
+        scale: {x: 1, y: 1, z: 1}
         localToWorldMatrix:
-          e00: 0
+          e00: 1
           e01: 0
           e02: 0
           e03: 0
           e10: 0
-          e11: 0
+          e11: 1
           e12: 0
           e13: 0
           e20: 0
           e21: 0
-          e22: 0
+          e22: 1
           e23: 0
           e30: 0
           e31: 0
           e32: 0
-          e33: 0
+          e33: 1
         worldToLocalMatrix:
-          e00: 0
+          e00: 1
           e01: 0
           e02: 0
-          e03: 0
+          e03: -0
           e10: 0
-          e11: 0
+          e11: 1
           e12: 0
-          e13: 0
+          e13: -0
           e20: 0
           e21: 0
-          e22: 0
-          e23: 0
+          e22: 1
+          e23: -0
           e30: 0
           e31: 0
           e32: 0
-          e33: 0
+          e33: 1
       customSkinningBoneRecords: []
-      clothSetupDataList: []
+      clothSetupDataList:
+      - setupType: 2
+        vertexCount: 0
+        hasSkinnedMesh: 0
+        hasBoneWeight: 0
+        skinRootBoneIndex: 0
+        renderTransformIndex: 4
+        skinBoneCount: 4
+        transformCount: 5
+        useTransformCount: 5
+        useTransformIndexArray: 0000000001000000020000000300000004000000
+        transformArray:
+        - {fileID: 6749732497642117296}
+        - {fileID: 7408876370772287586}
+        - {fileID: 3977493480399412264}
+        - {fileID: 2996454323880514610}
+        - {fileID: 7031820492586641723}
+        transformPositions:
+        - x: 0.031719927
+          y: 1.2792909
+          z: -0.06852661
+        - x: 0.031719927
+          y: 1.249291
+          z: 0.021473393
+        - x: -0.03244026
+          y: 1.2802609
+          z: -0.06854804
+        - x: -0.03244026
+          y: 1.250261
+          z: 0.021451965
+        - x: 0
+          y: 0
+          z: 0
+        transformRotations:
+        - value:
+            x: 1.3877788e-17
+            y: -2.7755576e-17
+            z: 3.85186e-34
+            w: 1
+        - value:
+            x: 1.3877788e-17
+            y: -2.7755576e-17
+            z: 3.85186e-34
+            w: 1
+        - value:
+            x: 1.3877788e-17
+            y: -4.814825e-35
+            z: -3.469447e-18
+            w: 1
+        - value:
+            x: 1.3877788e-17
+            y: -4.814825e-35
+            z: -3.469447e-18
+            w: 1
+        - value:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+        transformLocalPositions:
+        - x: 0.031770423
+          y: 0.090998456
+          z: -0.08175564
+        - x: 4.996004e-18
+          y: -0.029999949
+          z: 0.09
+        - x: -0.032389764
+          y: 0.091968454
+          z: -0.081777066
+        - x: 2.0816641e-19
+          y: -0.029999942
+          z: 0.09
+        - x: 0
+          y: 0
+          z: 0
+        transformLocalRotations:
+        - value:
+            x: 1.3877788e-17
+            y: -2.7755576e-17
+            z: 3.85186e-34
+            w: 1
+        - value:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+        - value:
+            x: 1.3877788e-17
+            y: -4.814825e-35
+            z: -3.469447e-18
+            w: 1
+        - value:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+        - value:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+        transformScales:
+        - x: 1
+          y: 1
+          z: 1
+        - x: 1
+          y: 1
+          z: 1
+        - x: 1
+          y: 1
+          z: 1
+        - x: 1
+          y: 1
+          z: 1
+        - x: 1
+          y: 1
+          z: 1
+        initRenderLocalToWorld:
+          c0:
+            x: 1
+            y: 0
+            z: 0
+            w: 0
+          c1:
+            x: 0
+            y: 1
+            z: 0
+            w: 0
+          c2:
+            x: 0
+            y: 0
+            z: 1
+            w: 0
+          c3:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+        initRenderWorldtoLocal:
+          c0:
+            x: 1
+            y: 0
+            z: -0
+            w: -0
+          c1:
+            x: 0
+            y: 1
+            z: -0
+            w: -0
+          c2:
+            x: 0
+            y: 0
+            z: 1
+            w: -0
+          c3:
+            x: 0
+            y: 0
+            z: -0
+            w: 1
+        initRenderRotation:
+          value:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+        initRenderScale:
+          x: 1
+          y: 1
+          z: 1
+        originalMesh: {fileID: 0}
     selectionData:
-      positions: []
-      attributes: []
-      maxConnectionDistance: 0
+      positions:
+      - x: 0.031719927
+        y: 1.2792909
+        z: -0.06852661
+      - x: 0.031719927
+        y: 1.249291
+        z: 0.021473393
+      - x: -0.03244026
+        y: 1.2802609
+        z: -0.06854804
+      - x: -0.03244026
+        y: 1.250261
+        z: 0.021451965
+      attributes:
+      - Value: 1
+      - Value: 2
+      - Value: 1
+      - Value: 2
+      maxConnectionDistance: 0.094868325
       userEdit: 0
     preBuildData:
       enabled: 0

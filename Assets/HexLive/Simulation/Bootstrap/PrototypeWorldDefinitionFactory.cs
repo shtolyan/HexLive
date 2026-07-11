@@ -103,7 +103,13 @@ namespace HexLive.Simulation.Bootstrap
                     Object(120, "resource.firewood", 1, 6, 4, 1),
                     Object(121, "resource.firewood", 1, 1, -1, 1),
                     Object(122, "forest.deadfall", 1, 6, 3, 2),
-                    Object(123, "forest.deadfall", 1, -4, 4, 2)
+                    Object(123, "forest.deadfall", 1, -4, 4, 2),
+                    // AI-print wardrobe experiment: fal.ai-generated textile
+                    // prints on tank-top/panty meshes — scattered near home.
+                    Object(124, "clothing.top_tropic", 1, 2, 0, 3),
+                    Object(125, "clothing.top_tiedye", 1, 4, 1, 3),
+                    Object(126, "underwear.panty_leo", 1, 0, 1, 3),
+                    Object(127, "underwear.panty_stars", 1, 1, 1, 3)
                 },
                 Npcs =
                 {

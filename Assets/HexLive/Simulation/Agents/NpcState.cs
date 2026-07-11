@@ -59,6 +59,26 @@ public sealed class BodyState
         0.4f + 0.6f * (Parts[BodyPart.ArmL] + Parts[BodyPart.ArmR]) * 0.5f;
 }
 
+// Spec 40.8B: one landed bite/hit = one wound record. The zone-health model
+// (BodyState) keeps driving HP/posture/balance exactly as before; wounds are
+// the parallel VISUAL truth — where the skin is broken, how it looks and how
+// far it has closed. Placement/look derive deterministically from Seed.
+public sealed class WoundState
+{
+    public int Id { get; set; }
+
+    public BodyPart Zone { get; set; }
+
+    // HP the hit cost at infliction (bookkeeping/UI; balance stays in BodyState).
+    public float Severity { get; set; }
+
+    // 0 = fresh and vivid, 1 = fully closed (record removed) — the decal
+    // fades with this.
+    public float Heal01 { get; set; }
+
+    public int Seed { get; set; }
+}
+
 public sealed class NPCState
 {
     public EntityId Id { get; set; }
@@ -97,6 +117,15 @@ public sealed class NPCState
     public float Health { get; set; } = 1f;
 
     public BodyState Body { get; } = new();
+
+    // Spec 40.8B: wounds are first-class records — one per landed bite/hit
+    // (starvation/heat/sickness drain HP with NO wound). Each wound knows its
+    // zone, the damage it cost, a deterministic Seed (exact decal spot & look,
+    // stable across frames and save-replays) and Heal01: 0 fresh → 1 healed
+    // (the decal fades with it; the record is removed when fully closed).
+    public System.Collections.Generic.List<WoundState> Wounds { get; } = new();
+
+    public int NextWoundId { get; set; } = 1;
 
     public float EquippedArmor { get; set; }
 

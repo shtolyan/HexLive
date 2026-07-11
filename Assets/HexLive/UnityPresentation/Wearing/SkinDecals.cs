@@ -68,6 +68,15 @@ namespace HexLive.UnityPresentation.Wearing
         // URP Decal renderer feature.
         private const uint SkinRenderingLayer = 1u << 1;
 
+        // Rain droplets also land on garments (Wear opts its renderers into
+        // this bit); sweat/wounds/dirt stay skin-only.
+        private const uint ClothRenderingLayer = Wear.ClothDecalLayer;
+
+        // Rain sprays the whole body top-down — every zone, covered or not
+        // (droplets on covered zones land on the garment above the skin).
+        private static readonly string[] RainSpread =
+            { "Head", "Torso", "ArmL", "ArmR", "LegL", "LegR", "Pelvis", "Torso", "Head", "ArmL", "ArmR", "Torso" };
+
         private readonly Dictionary<string, GameObject> _decals = new();
         private readonly HashSet<string> _desired = new();
         private readonly List<string> _stale = new();
@@ -93,12 +102,13 @@ namespace HexLive.UnityPresentation.Wearing
         }
 
         /// <summary>
-        /// Re-derives the decal set from the tick snapshot. zoneHealth: sim body
-        /// zones (1 = intact); uncovered: zones with NO clothing — the only
-        /// places decals may live; hygiene 1=clean; thermal &gt; 0 = hot.
+        /// Re-derives the decal set from the tick snapshot. wounds: sim wound
+        /// records ("Zone|seed|heal01") — ONE decal each, spot from seed, alpha
+        /// fading as it heals; uncovered: zones with NO clothing — the only
+        /// places skin decals may live; hygiene 1=clean; thermal &gt; 0 = hot.
         /// </summary>
-        public void Sync(Dictionary<string, float> zoneHealth, HashSet<string> uncovered,
-            float hygiene, float thermal)
+        public void Sync(IReadOnlyList<string> wounds, HashSet<string> uncovered,
+            float hygiene, float thermal, float rainWet = 0f)
         {
             if (_bones == null || _bodyRoot == null)
             {
@@ -107,20 +117,50 @@ namespace HexLive.UnityPresentation.Wearing
 
             _desired.Clear();
 
-            // --- wounds: per hurt zone, 1..4 marks the deeper the damage ---
-            foreach (var pair in zoneHealth)
+            // --- rain: droplets over the whole body, skin AND clothes ---
+            var rain = Mathf.Clamp01(rainWet);
+            var rainCount = rain < 0.1f ? 0 : Mathf.Min(RainSpread.Length, (int)(rain * RainSpread.Length + 0.5f));
+            for (var i = 0; i < rainCount; i++)
             {
-                if (!uncovered.Contains(pair.Key) || !Zones.ContainsKey(pair.Key))
-                {
-                    continue;
-                }
+                Want($"rain.{i}", DecalType.Sweat, RainSpread[i], i * 53 + 5, alsoCloth: true);
+            }
 
-                var damage = 1f - pair.Value;
-                var count = damage <= 0.02f ? 0 : Mathf.Min(4, 1 + (int)(damage * 5f));
-                for (var i = 0; i < count; i++)
+            // --- wounds: one decal per sim wound record ("Zone|seed|heal") —
+            // NOT derived from zone HP (starving drains HP without wounds).
+            // The seed picks the exact spot and the scratch/splat look; the
+            // decal fades out as the wound closes.
+            if (wounds != null)
+            {
+                foreach (var entry in wounds)
                 {
-                    var type = i % 2 == 0 ? DecalType.Scratch : DecalType.Blood;
-                    Want($"wound.{pair.Key}.{i}", type, pair.Key, i * 17 + 3);
+                    var parts = entry.Split('|');
+                    if (parts.Length < 3 || !Zones.ContainsKey(parts[0]) ||
+                        !int.TryParse(parts[1], out var woundSeed) ||
+                        !float.TryParse(parts[2],
+                            System.Globalization.NumberStyles.Float,
+                            System.Globalization.CultureInfo.InvariantCulture, out var heal))
+                    {
+                        continue;
+                    }
+
+                    if (!uncovered.Contains(parts[0]))
+                    {
+                        continue; // covered by clothing — hidden until undressed
+                    }
+
+                    var type = (woundSeed & 1) == 0 ? DecalType.Scratch : DecalType.Blood;
+                    var key = $"wound.{woundSeed}";
+                    Want(key, type, parts[0], woundSeed);
+
+                    // Healing: the mark fades toward invisible as heal → 1.
+                    if (_decals.TryGetValue(key, out var go) && go != null)
+                    {
+                        var projector = go.GetComponent<DecalProjector>();
+                        if (projector != null)
+                        {
+                            projector.fadeFactor = Mathf.Clamp01(1f - heal);
+                        }
+                    }
                 }
             }
 
@@ -186,7 +226,7 @@ namespace HexLive.UnityPresentation.Wearing
             }
         }
 
-        private void Want(string key, DecalType type, string zoneName, int salt)
+        private void Want(string key, DecalType type, string zoneName, int salt, bool alsoCloth = false)
         {
             _desired.Add(key);
             if (_decals.TryGetValue(key, out var existing) && existing != null)
@@ -248,9 +288,11 @@ namespace HexLive.UnityPresentation.Wearing
             // the full image; it does NOT reach the far side (radius margin).
             projector.size = new Vector3(size, size, radius * 2.2f);
             projector.pivot = new Vector3(0f, 0f, radius * 1.1f);
-            // Skin-only: project exclusively onto renderers flagged with the
-            // skin layer bit — never the terrain or clothing.
-            projector.renderingLayerMask = SkinRenderingLayer;
+            // Skin-only by default; rain droplets also hit the cloth layer.
+            // Never the terrain (default layer bit 0 is excluded either way).
+            projector.renderingLayerMask = alsoCloth
+                ? SkinRenderingLayer | ClothRenderingLayer
+                : SkinRenderingLayer;
 
             _decals[key] = go;
             if (type == DecalType.Sweat)

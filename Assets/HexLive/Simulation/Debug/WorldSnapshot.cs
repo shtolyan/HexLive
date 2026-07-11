@@ -205,6 +205,10 @@ public sealed class NpcSnapshot
     // lifts the body so the butt rests on the upper step. Export-only.
     public bool IsLedgeSit { get; set; }
 
+    // Spec 41.5: wake-up grace — standing still, coming to her senses after
+    // sleep; presentation holds the idle so the get-up clip can finish.
+    public bool IsWaking { get; set; }
+
     // Spec 40.13: stress 0=calm..1=breaking point (UI).
     public float Stress { get; set; }
 
@@ -229,6 +233,18 @@ public sealed class NpcSnapshot
     // Spec 40.11: "definitionId\tdurability" per worn garment — for the
     // character panel's wear progress bars.
     public List<string> WornDurability { get; } = new();
+
+    // Spec 35.5: "definitionId\twetness" per worn garment — rain soaks cloth,
+    // fire/racks dry it; presentation shows a wet sheen that fades as it dries.
+    public List<string> WornWetness { get; } = new();
+
+    // Spec 40.8B: "Zone|seed|heal01" per open wound — each maps to ONE decal
+    // whose exact spot/look derive from seed and whose alpha fades with heal.
+    public List<string> Wounds { get; } = new();
+
+    // Spec 40.8B: HP fraction held hostage by open wounds (Fallout-style red
+    // bar segment — regen can't cross it; it shrinks as wounds close).
+    public float WoundLockedHp { get; set; }
 
     public int InventoryCapacity { get; set; }
 

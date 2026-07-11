@@ -1099,7 +1099,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   configs:
   - actorName: 0
-    scale: 1
+    scale: 1.06
     mesh: {fileID: 4300000, guid: d7f5828245d3c9246b2f8fcbd4dee154, type: 2}
   - actorName: 1
     scale: 1.05

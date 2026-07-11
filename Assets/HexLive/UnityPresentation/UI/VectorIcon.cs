@@ -23,7 +23,9 @@ namespace HexLive.UnityPresentation.UI
             HeartFill,
             Pause,
             Play,
-            Sun
+            Sun,
+            ChevronDown,
+            ChevronUp
         }
 
         private readonly Kind _kind;
@@ -78,7 +80,20 @@ namespace HexLive.UnityPresentation.UI
                 case Kind.Pause: DrawPause(p, P); break;
                 case Kind.Play: DrawPlay(p, P); break;
                 case Kind.Sun: DrawSun(p, P, k); break;
+                case Kind.ChevronDown: DrawChevron(p, P, true); break;
+                case Kind.ChevronUp: DrawChevron(p, P, false); break;
             }
+        }
+
+        private static void DrawChevron(Painter2D p, Pt P, bool down)
+        {
+            var yTip = down ? 15.5f : 8.5f;
+            var yBase = down ? 8.5f : 15.5f;
+            p.BeginPath();
+            p.MoveTo(P(5.5f, yBase));
+            p.LineTo(P(12f, yTip));
+            p.LineTo(P(18.5f, yBase));
+            p.Stroke();
         }
 
         private delegate Vector2 Pt(float x, float y);

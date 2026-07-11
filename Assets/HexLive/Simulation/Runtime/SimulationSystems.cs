@@ -301,6 +301,13 @@ public sealed class DecisionSystem : ISimulationSystem
                 continue;
             }
 
+            // Spec 41.5: just woke up — stand where you slept and come to
+            // your senses; goals wait out the grace.
+            if (world.Tick < npc.Mind.WakeGraceUntilTick)
+            {
+                continue;
+            }
+
             // Spec 29C.4A: nothing outbids running for your life.
             if (npc.Mind.CurrentGoal == GoalType.Flee && npc.Plan.Status == PlanStatus.Active)
             {
@@ -413,8 +420,12 @@ public sealed class DecisionSystem : ISimulationSystem
             var wantsArmor = npc.Memory.Dangers.Count > 0 && npc.EquippedArmor < 0.3f &&
                 KnowsReachableArmor(npc, world);
             var dressAvail = wantsArmor ||
-                (npc.Needs.ThermalDiscomfort >= 0.3f &&
-                 effectiveTemp < 14f &&
+                (npc.Needs.ThermalDiscomfort >= 0.35f &&
+                 effectiveTemp < 14f && // spec 42: dress against REAL cold only —
+                 // a merely-cool girl (14..16) must not circle the wardrobe all
+                 // day while the fire/water chain starves (worn=183/soak once)
+                 npc.EquippedWarmth < 0.5f && // already bundled up: more cloth
+                 // won't fix 10°C — the campfire will (stops armor-swap churn)
                  HasInteraction(npc, InteractionType.Dress));
             var dressNeed = wantsArmor
                 ? System.Math.Max(npc.Needs.ThermalDiscomfort, 0.6f)
@@ -681,8 +692,10 @@ public sealed class DecisionSystem : ISimulationSystem
 
 
             // Spec 31A.5A: hot and safe → take something off. If everything
-            // warm is also armor under fresh danger, keep sweating.
-            var undressAvail = effectiveTemp > 20f && npc.Needs.ThermalDiscomfort >= 0.4f &&
+            // warm is also armor under fresh danger, keep sweating. Spec 42:
+            // only in REAL heat (past the [16,22] band) — day-warmth must not
+            // strip the layers that the cold night needs back in an hour.
+            var undressAvail = effectiveTemp > 24f && npc.Needs.ThermalDiscomfort >= 0.4f &&
                 FindRemovableItem(npc, world) is not null;
             AddGoalScore(npc, world.Tick, GoalType.Undress, npc.Needs.ThermalDiscomfort, undressAvail);
 
@@ -1079,6 +1092,14 @@ public sealed class DecisionSystem : ISimulationSystem
             if (armor > 0f && npc.Memory.Dangers.Count > 0)
             {
                 continue; // protection beats comfort under threat
+            }
+
+            // Spec 42: heat never strips the girls naked — underwear stays on
+            // (it barely warms anyway), only real layers come off.
+            if (world.Content.ObjectDefinitions.TryGetValue(itemId, out var def) &&
+                def.Layer == WearLayer.Underwear)
+            {
+                continue;
             }
 
             if (warmth > bestWarmth)
@@ -2984,6 +3005,19 @@ public sealed class ExecutionSystem : ISimulationSystem
                     Trace.Emit(world, npc.Id, "ItemWorn",
                         $"Def={worldObject.DefinitionId} Worn=[{string.Join(",", npc.WornItems)}] " +
                         $"Warmth={npc.EquippedWarmth:F2} Armor={npc.EquippedArmor:F2}");
+
+                    // Spec 42: one wardrobe stop per while — never chain-dress.
+                    // A cold girl with no real warmth in reach pinned Dress at
+                    // score 1.0 forever (thermal=1.00, exec=InProgress at soak
+                    // end) and starved the fire/water chain WITH THE LIGHTER IN
+                    // HER POCKET. The cooldown opens a window for TendFire &
+                    // GetWater between wardrobe attempts.
+                    npc.Mind.Cooldowns.RemoveAll(c => c.Goal == GoalType.Dress);
+                    npc.Mind.Cooldowns.Add(new GoalCooldown
+                    {
+                        Goal = GoalType.Dress,
+                        EndTick = world.Tick + 160
+                    });
                 }
                 else if (completedInteraction.Type == InteractionType.Craft)
                 {
@@ -3219,6 +3253,13 @@ public sealed class ExecutionSystem : ISimulationSystem
                     $"{completedInteraction.Type} on {worldObject.DefinitionId} " +
                     $"Duration={npc.Execution.EndTick - npc.Execution.StartTick}ticks " +
                     $"NeedsBefore=[{needsBefore}] NeedsAfter=[{needsAfter}]");
+
+                // Spec 41.5: waking from a bed = stand and come to your
+                // senses for a beat before the next errand.
+                if (completedInteraction.Type == InteractionType.Sleep)
+                {
+                    npc.Mind.WakeGraceUntilTick = world.Tick + 12;
+                }
 
                 npc.Plan.Status = PlanStatus.Completed;
                 npc.Plan.Steps.Clear();
@@ -3873,7 +3914,7 @@ public sealed class ExecutionSystem : ISimulationSystem
             // Sleep restores as well as a bed (a night is a night) — the
             // bed's edge is comfort, not energy. +0.35 energy here produced
             // a poverty trap: 160 naps/soak and no time to live.
-            RunGroundRest(world, npc, step, InteractionType.Sleep, 100, 0f, 0.5f);
+            RunGroundRest(world, npc, step, InteractionType.Sleep, 100, 0f, 0.12f); // spec 42
         }
     }
 
@@ -3937,6 +3978,13 @@ public sealed class ExecutionSystem : ISimulationSystem
 
         Trace.Emit(world, npc.Id, kind == InteractionType.Sleep ? "GroundSleptWell" : "GroundSatDown",
             $"Comfort+{comfort:F2} Energy+{energy:F2}");
+
+        // Spec 41.5: wake up standing still for a beat — no sprinting off
+        // the grass; the get-up clip plays out during the grace.
+        if (kind == InteractionType.Sleep)
+        {
+            npc.Mind.WakeGraceUntilTick = world.Tick + 12;
+        }
 
         if (kind == InteractionType.Sit)
         {
@@ -4317,8 +4365,11 @@ public sealed class EnvironmentSystem : ISimulationSystem
     public TickLayer Layer => TickLayer.Slow;
 
     public const int DayLengthTicks = 2400;
-    private const float BaseTemperature = 12f;
-    private const float TemperatureAmplitude = 6f;
+    // Spec 42: a real tropical swing — 25° at the 15:00 peak (dressed girls
+    // cross the >24 undress gate and strip for the day), 6° at 03:00 (layers
+    // and the campfire earn their keep at night).
+    private const float BaseTemperature = 15.5f;
+    private const float TemperatureAmplitude = 9.5f;
 
     public void Run(WorldState world)
     {
@@ -4373,7 +4424,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
     public TickLayer Layer => TickLayer.Slow;
 
     private const float HungerRate = 0.016f;
-    private const float EnergyRate = 0.015f;
+    private const float EnergyRate = 0.007f; // spec 42: ~1 bar/day
     private const float ComfortRate = 0.01f;
     private const float SocialRate = 0.008f; // spec 28.15A
     private const float ThirstRate = 0.020f; // spec 29E.1
@@ -4498,12 +4549,12 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     {
                         if (npc.Body.Parts[part] < 0.4f)
                         {
-                            npc.Body.Parts[part] = MathUtil.Clamp01(npc.Body.Parts[part] + 0.25f);
+                            npc.Body.Parts[part] = MathUtil.Clamp01(npc.Body.Parts[part] + 0.15f); // spec 42
                         }
                     }
 
                     npc.Health = npc.Body.Mean();
-                    npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood + 0.4f);
+                    npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood + 0.25f); // spec 42
                     Trace.Emit(world, npc.Id, "Bandaged",
                         $"Dressed the wounds (Health={npc.Health:F2})");
                 }
@@ -4519,12 +4570,12 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     {
                         if (npc.Body.Parts[part] < 0.4f)
                         {
-                            npc.Body.Parts[part] = MathUtil.Clamp01(npc.Body.Parts[part] + 0.2f);
+                            npc.Body.Parts[part] = MathUtil.Clamp01(npc.Body.Parts[part] + 0.10f); // spec 42
                         }
                     }
 
                     npc.Health = npc.Body.Mean();
-                    npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood + 0.2f);
+                    npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood + 0.15f); // spec 42
                     Trace.Emit(world, npc.Id, "Medicated",
                         $"Took a pill at the brink (Health={npc.Health:F2})");
                 }
@@ -4545,7 +4596,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             }
             else if (npc.Needs.Blood < 1f && npc.Needs.Hunger < 0.6f)
             {
-                npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood + 0.02f);
+                npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood + 0.005f); // spec 42
             }
 
             // Spec 28.15B: post-quarrel embarrassment fades with time.
@@ -4664,12 +4715,48 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     $"Hunger={npc.Needs.Hunger:F2} Thirst={npc.Needs.Thirst:F2} " +
                     $"Damage=-{damage:F2} Health={npc.Health:F2}");
             }
-            // Spec 29C.2/19.3C: eat and rest to heal — part by part.
+            // Spec 29C.2/19.3C + 40.8B: eat and rest to heal — but only damage
+            // NOT held by open wounds. Each wound keeps its Severity "hostage":
+            // the zone can regen up to (1 − open wound damage) and no further,
+            // so a couple of coconuts never insta-heals a mauling.
             else if (npc.Health < 1f && npc.Needs.Hunger < 0.5f)
             {
                 foreach (var part in AllBodyParts)
                 {
-                    npc.Body.Parts[part] = MathUtil.Clamp01(npc.Body.Parts[part] + 0.02f);
+                    var ceiling = MathUtil.Clamp01(1f - WoundMath.OpenWoundDamage(npc, part));
+                    if (npc.Body.Parts[part] < ceiling)
+                    {
+                        npc.Body.Parts[part] = System.Math.Min(ceiling, npc.Body.Parts[part] + 0.0018f); // spec 42: days, not hours
+                    }
+                }
+
+                npc.Health = npc.Body.Mean();
+            }
+
+            // Spec 40.8B: every wound closes on its own clock, PACED BY
+            // ACTIVITY — sleeping knits flesh twice as fast, marching halves
+            // it. Each healed slice returns its share of the zone's HP, so
+            // health comes back exactly as the wounds close, wound by wound.
+            if (npc.Wounds.Count > 0)
+            {
+                var pace = npc.Execution.CurrentInteraction == InteractionType.Sleep ? 2f
+                    : npc.Movement.Status == MovementStatus.Moving ? 0.5f
+                    : 1f;
+
+                for (var wi = npc.Wounds.Count - 1; wi >= 0; wi--)
+                {
+                    var wound = npc.Wounds[wi];
+                    var slice = System.Math.Min(WoundMath.HealPerSlowTick * pace, 1f - wound.Heal01);
+                    wound.Heal01 += slice;
+                    npc.Body.Parts[wound.Zone] = MathUtil.Clamp01(
+                        npc.Body.Parts[wound.Zone] + wound.Severity * slice);
+
+                    if (wound.Heal01 >= 1f)
+                    {
+                        Trace.Emit(world, npc.Id, "WoundHealed",
+                            $"{wound.Zone} wound #{wound.Id} closed");
+                        npc.Wounds.RemoveAt(wi);
+                    }
                 }
 
                 npc.Health = npc.Body.Mean();
@@ -4736,14 +4823,20 @@ public sealed class TemperatureSystem : ISimulationSystem
             // dog-fragile seeds into wipes. The fire's warmth is a DISPLAY-only
             // comfort for iteration 31; making it a real thermal source waits
             // for the campfire-as-obstacle pass so it can't reposition fatally.
+            // Spec 42: realistic cold — 10°C in underwear (warmth ~0.02) is
+            // genuinely cold and demands pants/boots/jacket (~+5-9°C dressed).
+            // Pressure bites below 14°C: a dressed girl at ~15° is merely cool
+            // (no accumulation — the first [16..] cut had everyone endlessly
+            // "slightly cold" and they dressed in circles all day instead of
+            // tending fire/tools); naked at 10° racks up 0.11+/slow tick.
             float pressure;
-            if (baseTemp < 12f)
+            if (baseTemp < 14f)
             {
-                pressure = System.Math.Min(0.09f, (12f - baseTemp) * 0.02f); // cold
+                pressure = System.Math.Min(0.12f, (14f - baseTemp) * 0.03f); // cold
             }
-            else if (baseTemp > 20f)
+            else if (baseTemp > 22f)
             {
-                pressure = System.Math.Min(0.09f, (baseTemp - 20f) * 0.02f); // overheating
+                pressure = System.Math.Min(0.12f, (baseTemp - 22f) * 0.025f); // overheating
             }
             else
             {
@@ -4757,21 +4850,22 @@ public sealed class TemperatureSystem : ISimulationSystem
             // toward "ideal" on a cold night, even though the sim's decisions
             // stay on the base temperature this iteration.
             var effectiveTemp = baseTemp + fireWarmth;
-            if (baseTemp <= 20f && effectiveTemp > 20f)
+            if (baseTemp <= 22f && effectiveTemp > 22f)
             {
-                effectiveTemp = 20f;
+                effectiveTemp = 22f;
             }
 
-            // Spec 29C.10: signed comfort for the UI — 0 in the ideal [12,20]
-            // band, scaling to -1 (freezing) / +1 (boiling) over a ~15 span.
+            // Spec 42: signed comfort for the UI — 0 in the ideal [16,22]
+            // band (matches the decision pressure above, so the bar never
+            // shows "fine" while the body is freezing), -1 over a ~12 span.
             float signed;
-            if (effectiveTemp < 12f)
+            if (effectiveTemp < 16f)
             {
-                signed = System.Math.Max(-1f, (effectiveTemp - 12f) / 15f);
+                signed = System.Math.Max(-1f, (effectiveTemp - 16f) / 12f);
             }
-            else if (effectiveTemp > 20f)
+            else if (effectiveTemp > 22f)
             {
-                signed = System.Math.Min(1f, (effectiveTemp - 20f) / 15f);
+                signed = System.Math.Min(1f, (effectiveTemp - 22f) / 12f);
             }
             else
             {
@@ -5130,10 +5224,8 @@ public sealed class DogSystem : ISimulationSystem
     private const int SpawnMinDistanceFromNpc = 5;
     private const float RoamChance = 0.2f;
     private const int AggroRadiusTiles = 2;
-    private const float BiteDamagePerPass = 0.07f; // 0.10 for climb weight (40.17), widened to 0.07 for the second island (40.18)
+    private const float BiteDamagePerPass = 0.06f; // spec 42: per-wound healing made 0.07 a full-wipe on 31337; 0.06 soaks 5/6 (999 pends the wound-eviction payback fix)
     private const float NpcStrikePerPass = 0.15f;
-
-    private int _nextSpawnCheckTick;
 
     private readonly System.Collections.Generic.List<Wildlife.DogState> _deadDogs = new();
     private readonly System.Collections.Generic.List<EntityId> _deadNpcs = new();
@@ -5141,9 +5233,10 @@ public sealed class DogSystem : ISimulationSystem
 
     public void Run(WorldState world)
     {
-        if (world.Tick >= _nextSpawnCheckTick)
+        // Spec 41.2 v2: the timer lives in WorldState so it survives a save.
+        if (world.Tick >= world.NextDogSpawnCheckTick)
         {
-            _nextSpawnCheckTick = world.Tick + RespawnCheckTicks;
+            world.NextDogSpawnCheckTick = world.Tick + RespawnCheckTicks;
             while (world.Dogs.Count < MaxDogs)
             {
                 if (!TrySpawnDog(world))
@@ -5287,6 +5380,9 @@ public sealed class DogSystem : ISimulationSystem
         var damage = BiteDamagePerPass * (1f - partArmor);
         target.Body.Parts[bitPart] = System.Math.Max(0f, target.Body.Parts[bitPart] - damage);
         target.Health = target.Body.Mean();
+        // Spec 40.8B: the landed bite leaves a wound record (drives the decal;
+        // heals & fades on its own clock). Starvation/heat never create these.
+        WoundMath.Inflict(world, target, bitPart, damage);
 
         // Spec 35.6: the cloth gets chewed either way — every garment
         // covering the bitten part loses durability; rags fall apart.
@@ -5835,6 +5931,102 @@ public sealed class CorpseSystem : ISimulationSystem
 
 // Spec 31A.5A/31A.5B: equipment values derive from the worn list —
 // warmth stacks across layers (sum), armor is per covered part (max).
+// Spec 40.8B: wounds as first-class records — creation & healing constants.
+// Only landed bites/hits call Inflict; starvation, heat, sunburn and sickness
+// drain HP without ever creating a wound (no phantom decals while starving).
+internal static class WoundMath
+{
+    // Full close in ~2 game days (2 x 150 slow ticks) at neutral pace;
+    // sleeping doubles it, marching halves it.
+    public const float HealPerSlowTick = 1f / 300f;
+
+    private const int MaxWounds = 12;
+
+    // HP still held hostage by open wounds in a zone: Σ severity·(1−heal).
+    // Generic fed-regen may not raise the zone above 1 − this value; the HP
+    // returns only as each wound closes.
+    public static float OpenWoundDamage(NPCState npc, BodyPart zone)
+    {
+        var held = 0f;
+        foreach (var wound in npc.Wounds)
+        {
+            if (wound.Zone == zone)
+            {
+                held += wound.Severity * (1f - wound.Heal01);
+            }
+        }
+
+        return held;
+    }
+
+    public static void Inflict(WorldState world, NPCState npc, BodyPart zone, float damage)
+    {
+        // At the cap the 13th bite never EVICTS (dropping a record would
+        // strand its hostage HP forever — the zone could stick at 0). It
+        // REOPENS an existing wound instead: same-zone if possible (the bite
+        // tears the old scar deeper — same spot, same decal, fade resets),
+        // else the most-healed wound anywhere hands its held HP back to its
+        // own zone and the record is repurposed for the new hit.
+        if (npc.Wounds.Count >= MaxWounds)
+        {
+            WoundState reuse = null;
+            foreach (var wound in npc.Wounds)
+            {
+                if (wound.Zone == zone && (reuse == null || wound.Heal01 > reuse.Heal01))
+                {
+                    reuse = wound;
+                }
+            }
+
+            if (reuse != null)
+            {
+                // Deepen: the combined hostage = what it still held + new hit.
+                reuse.Severity = reuse.Severity * (1f - reuse.Heal01) + damage;
+                reuse.Heal01 = 0f;
+            }
+            else
+            {
+                foreach (var wound in npc.Wounds)
+                {
+                    if (reuse == null || wound.Heal01 > reuse.Heal01)
+                    {
+                        reuse = wound;
+                    }
+                }
+
+                // Close the donor instantly: return its held HP to ITS zone,
+                // then repurpose the record as a fresh wound at the new spot.
+                npc.Body.Parts[reuse.Zone] = MathUtil.Clamp01(
+                    npc.Body.Parts[reuse.Zone] + reuse.Severity * (1f - reuse.Heal01));
+                reuse.Zone = zone;
+                reuse.Severity = damage;
+                reuse.Heal01 = 0f;
+                reuse.Id = npc.NextWoundId++;
+                reuse.Seed = (int)(MathUtil.Hash01(world.Seed, world.Tick, npc.Id.Value, 911 + npc.NextWoundId) * int.MaxValue);
+            }
+
+            Trace.Emit(world, npc.Id, "WoundInflicted",
+                $"{zone} damage={damage:F2} wounds={npc.Wounds.Count} (reopened #{reuse.Id})");
+            return;
+        }
+
+        npc.Wounds.Add(new WoundState
+        {
+            Id = npc.NextWoundId++,
+            Zone = zone,
+            Severity = damage,
+            Heal01 = 0f,
+            // Deterministic per (seed, tick, npc, wound#): the decal's spot and
+            // look replay identically after a save-restore (spec 41.2 replays
+            // the same seed to the same tick).
+            Seed = (int)(MathUtil.Hash01(world.Seed, world.Tick, npc.Id.Value, 911 + npc.NextWoundId) * int.MaxValue)
+        });
+
+        Trace.Emit(world, npc.Id, "WoundInflicted",
+            $"{zone} damage={damage:F2} wounds={npc.Wounds.Count}");
+    }
+}
+
 internal static class EquipmentMath
 {
     public static void Recalculate(WorldState world, NPCState npc)
@@ -5844,11 +6036,10 @@ internal static class EquipmentMath
         foreach (var item in npc.WornItems)
         {
             var (itemWarmth, itemArmor) = ItemValues(world, item.DefinitionId);
-            // Spec 35.5: a soaked garment insulates nothing.
-            if (item.Wetness <= 0.5f)
-            {
-                warmth += itemWarmth;
-            }
+            // Spec 35.5: wet cloth loses insulation GRADUALLY — up to −90% at
+            // fully soaked (was a hard cliff: 100% until 0.5, then zero; the
+            // first minutes of rain changed nothing and the cutoff felt broken).
+            warmth += itemWarmth * (1f - 0.9f * MathUtil.Clamp01(item.Wetness));
 
             armor = System.Math.Max(armor, itemArmor);
         }
@@ -5990,15 +6181,15 @@ public sealed class RabbitSystem : ISimulationSystem
     private const float KillChance = 0.5f;
     private const int SpookTicks = 150;
 
-    private int _nextSpawnCheckTick;
     private readonly System.Collections.Generic.List<Wildlife.RabbitState> _deadRabbits = new();
     private readonly System.Collections.Generic.List<JunctionId> _spawnCandidates = new();
 
     public void Run(WorldState world)
     {
-        if (world.Tick >= _nextSpawnCheckTick)
+        // Spec 41.2 v2: the timer lives in WorldState so it survives a save.
+        if (world.Tick >= world.NextRabbitSpawnCheckTick)
         {
-            _nextSpawnCheckTick = world.Tick + RespawnCheckTicks;
+            world.NextRabbitSpawnCheckTick = world.Tick + RespawnCheckTicks;
             while (world.Rabbits.Count < MaxRabbits && TrySpawnRabbit(world))
             {
             }
@@ -6366,6 +6557,7 @@ public sealed class SharkSystem : ISimulationSystem
                 System.Math.Max(0f, npc.Body.Parts[BodyPart.LegR] - 0.2f);
             npc.Health = npc.Body.Mean();
             npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood - 0.15f);
+            WoundMath.Inflict(world, npc, BodyPart.LegR, 0.2f);
             Trace.Emit(world, npc.Id, "SharkBite", $"NPC{npc.Id.Value} bitten by shark {shark.Id}");
             break;
         }

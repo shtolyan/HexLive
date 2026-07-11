@@ -67,6 +67,13 @@ public sealed class WorldState
 
     public int NextDogId { get; set; } = 1;
 
+    // Spec 41.2 v2: wildlife respawn-check timers live in the MODEL — as
+    // system-local fields they silently reset on load (an off-schedule
+    // respawn roll right after every restore).
+    public int NextDogSpawnCheckTick { get; set; }
+
+    public int NextRabbitSpawnCheckTick { get; set; }
+
     // Spec 35.1: junction connected-components cache for O(1) reachability.
     // TopologyVersion increments whenever junction blocking changes (walls).
     public int TopologyVersion { get; set; } = 1;

@@ -253,6 +253,7 @@ public static class WorldSnapshotExporter
             Bandages = npc.Needs.Bandages,
             Pills = npc.Needs.Pills,
             IsFainted = world.Tick < npc.Mind.FaintedUntilTick,
+            IsWaking = world.Tick < npc.Mind.WakeGraceUntilTick,
             Stress = npc.Needs.Stress,
             CurrentGoal = npc.Mind.CurrentGoal.ToString(),
             PlanStatus = npc.Plan.Status.ToString(),
@@ -278,8 +279,24 @@ public static class WorldSnapshotExporter
             // Spec 40.11: per-garment durability for the character panel's
             // wear progress bars ("id\tdurability").
             npcSnapshot.WornDurability.Add($"{item.DefinitionId}\t{item.Durability:0.###}");
+            // Spec 35.5: per-garment wetness — rain soaks, fire/rack dries;
+            // presentation renders a wet sheen that fades as the cloth dries.
+            npcSnapshot.WornWetness.Add($"{item.DefinitionId}\t{item.Wetness:0.###}");
             npcSnapshot.WornItems.Add(item);
         }
+
+        // Spec 40.8B: open wounds — one decal each, spot/look from seed,
+        // alpha fading with heal. Their unhealed damage sums into the red
+        // "won't regen" segment of the HP bar (Health is the mean of parts,
+        // so the lock is normalized by the part count).
+        var lockedHp = 0f;
+        foreach (var wound in npc.Wounds)
+        {
+            npcSnapshot.Wounds.Add($"{wound.Zone}|{wound.Seed}|{wound.Heal01:0.###}");
+            lockedHp += wound.Severity * (1f - wound.Heal01);
+        }
+
+        npcSnapshot.WoundLockedHp = lockedHp / npc.Body.Parts.Count;
 
         var worstPartValue = 1f;
         var worstPartName = "-";

@@ -137,10 +137,14 @@ namespace HexLive.UnityPresentation.Input
 
         private void UpdateFree()
         {
-            HandlePan();
-            HandleZoom();
+            if (!UI.GameMenu.IsOpen)
+            {
+                HandlePan();
+                HandleZoom();
+                TryPickNpc();
+            }
+
             ApplyFreeMovement();
-            TryPickNpc();
         }
 
         private void HandlePan()
@@ -206,8 +210,8 @@ namespace HexLive.UnityPresentation.Input
                 return;
             }
 
-            // Don't pick NPCs hidden behind the character bar.
-            if (NpcSelection.PointerOverUi)
+            // Don't pick NPCs behind the character bar or through the menu.
+            if (NpcSelection.PointerOverUi || UI.GameMenu.IsOpen)
             {
                 return;
             }

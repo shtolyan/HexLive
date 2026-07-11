@@ -21,6 +21,11 @@ public sealed class NPCMind
     // rises. 0 = conscious.
     public int FaintedUntilTick { get; set; }
 
+    // Spec 41.5: just woke up — stand and come to your senses until this
+    // tick (no goal scoring), so nobody sprints off the pillow and the
+    // get-up animation has room to play.
+    public int WakeGraceUntilTick { get; set; }
+
     public System.Collections.Generic.List<HexLive.Simulation.Common.ObjectId> GrievedCorpses { get; } = new();
 
     // Spec 28.8 v1 handshake: someone is walking over to talk to this NPC.

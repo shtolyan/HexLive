@@ -1,0 +1,272 @@
+using HexLive.UnityPresentation.Bootstrap;
+using HexLive.UnityPresentation.Input;
+using HexLive.UnityPresentation.Localization;
+using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.UIElements;
+
+namespace HexLive.UnityPresentation.UI
+{
+    /// <summary>
+    /// The Escape menu. Escape while a character is selected still belongs to
+    /// the camera (deselect); Escape with nothing selected opens this overlay:
+    /// Continue (hide) or Quit (exit the game / stop play mode in the editor).
+    /// </summary>
+    [RequireComponent(typeof(UIDocument))]
+    public sealed class GameMenu : MonoBehaviour
+    {
+        /// <summary>World input (NPC picking etc.) is blocked while open.</summary>
+        public static bool IsOpen { get; private set; }
+
+        [SerializeField] private SimulationRunnerBehaviour _runner;
+
+        // Was the sim already paused (via the speed bar) before the menu
+        // opened? Then closing the menu must NOT force-resume it.
+        private bool _simWasPausedBefore;
+        private float _timeScaleBefore = 1f;
+
+        private UIDocument _document;
+        private VisualElement _overlay;
+        private Label _title;
+        private Label _continueLabel;
+        private Label _quitLabel;
+
+        private static readonly Color Dim = new(0f, 0f, 0f, 0.55f);
+        private static readonly Color Panel = new(0.075f, 0.094f, 0.110f, 0.98f);
+        private static readonly Color Raised = new(0.133f, 0.165f, 0.192f);
+        private static readonly Color Stroke = new(1f, 1f, 1f, 0.12f);
+        private static readonly Color Text = new(0.906f, 0.925f, 0.937f);
+        private static readonly Color TextDim = new(0.604f, 0.651f, 0.678f);
+        private static readonly Color Gold = new(0.941f, 0.706f, 0.361f);
+        private static readonly Color Ink = new(0.06f, 0.086f, 0.102f);
+        private static readonly Color Danger = new(0.75f, 0.20f, 0.18f);
+
+        private void Awake()
+        {
+            _document = GetComponent<UIDocument>();
+
+            var baseSettings = Resources.Load<PanelSettings>("HexLive/DebugPanelSettings");
+            if (baseSettings != null)
+            {
+                var settings = Instantiate(baseSettings);
+                settings.name = "GameMenuPanelSettings";
+                settings.scaleMode = PanelScaleMode.ScaleWithScreenSize;
+                settings.screenMatchMode = PanelScreenMatchMode.MatchWidthOrHeight;
+                settings.referenceResolution = new Vector2Int(1920, 1080);
+                settings.match = 1f;
+                settings.sortingOrder = 220; // above every other HUD layer
+                _document.panelSettings = settings;
+            }
+
+            Build();
+            ApplyLanguage();
+            IsOpen = false; // fresh session; the overlay is built hidden
+        }
+
+        private void OnEnable() => Loc.LanguageChanged += ApplyLanguage;
+
+        private void OnDisable()
+        {
+            Loc.LanguageChanged -= ApplyLanguage;
+            if (IsOpen)
+            {
+                Time.timeScale = _timeScaleBefore > 0f ? _timeScaleBefore : 1f;
+            }
+
+            IsOpen = false;
+        }
+
+        private void Update()
+        {
+            // The title/loading screen owns the display — this menu stays
+            // hidden there no matter what (and force-closes if it slipped open).
+            if (LoadingScreen.IsActive)
+            {
+                if (IsOpen)
+                {
+                    SetOpen(false);
+                }
+
+                return;
+            }
+
+            var keyboard = Keyboard.current;
+            if (keyboard == null || !keyboard.escapeKey.wasPressedThisFrame)
+            {
+                return;
+            }
+
+            if (IsOpen)
+            {
+                SetOpen(false);
+            }
+            else if (!NpcSelection.HasSelection)
+            {
+                // With a selection, this same Escape press deselects instead
+                // (the camera handles it in LateUpdate, after this check).
+                SetOpen(true);
+            }
+        }
+
+        public void SetRunner(SimulationRunnerBehaviour runner) => _runner = runner;
+
+        private void SetOpen(bool open)
+        {
+            if (IsOpen == open)
+            {
+                return;
+            }
+
+            IsOpen = open;
+            if (_overlay != null)
+            {
+                _overlay.style.display = open ? DisplayStyle.Flex : DisplayStyle.None;
+            }
+
+            if (_runner == null)
+            {
+                _runner = FindAnyObjectByType<SimulationRunnerBehaviour>();
+            }
+
+            if (open)
+            {
+                // First the simulation, then the engine clock.
+                _simWasPausedBefore = _runner != null && _runner.IsPaused;
+                if (_runner != null && !_simWasPausedBefore)
+                {
+                    _runner.Pause();
+                }
+
+                _timeScaleBefore = Time.timeScale;
+                Time.timeScale = 0f;
+            }
+            else
+            {
+                Time.timeScale = _timeScaleBefore > 0f ? _timeScaleBefore : 1f;
+                // Resume only if WE paused it — a manual pause from the speed
+                // bar survives the menu.
+                if (_runner != null && !_simWasPausedBefore && _runner.IsPaused)
+                {
+                    _runner.TogglePause();
+                }
+            }
+        }
+
+        private void Build()
+        {
+            var root = _document.rootVisualElement;
+            root.Clear();
+            root.style.flexGrow = 1f;
+            root.pickingMode = PickingMode.Ignore;
+
+            _overlay = new VisualElement();
+            _overlay.style.position = Position.Absolute;
+            _overlay.style.left = 0f;
+            _overlay.style.right = 0f;
+            _overlay.style.top = 0f;
+            _overlay.style.bottom = 0f;
+            _overlay.style.backgroundColor = Dim;
+            _overlay.style.alignItems = Align.Center;
+            _overlay.style.justifyContent = Justify.Center;
+            _overlay.pickingMode = PickingMode.Position; // swallows world clicks
+            // Born hidden — SetOpen(false) early-outs when IsOpen is already
+            // false, so the initial hide MUST happen here, not there.
+            _overlay.style.display = DisplayStyle.None;
+            root.Add(_overlay);
+
+            var card = new VisualElement();
+            card.style.width = 340f;
+            card.style.backgroundColor = Panel;
+            SetBorder(card, Stroke, 1f);
+            SetRadius(card, 16f);
+            card.style.paddingLeft = 28f;
+            card.style.paddingRight = 28f;
+            card.style.paddingTop = 26f;
+            card.style.paddingBottom = 26f;
+            card.style.alignItems = Align.Stretch;
+            _overlay.Add(card);
+
+            _title = new Label();
+            _title.style.color = Text;
+            _title.style.fontSize = 24;
+            _title.style.unityFontStyleAndWeight = FontStyle.Bold;
+            _title.style.unityTextAlign = TextAnchor.MiddleCenter;
+            _title.style.marginBottom = 22f;
+            card.Add(_title);
+
+            var continueButton = MakeButton(out _continueLabel);
+            continueButton.style.backgroundColor = Gold;
+            _continueLabel.style.color = Ink;
+            continueButton.RegisterCallback<MouseDownEvent>(_ => SetOpen(false));
+            card.Add(continueButton);
+
+            var quitButton = MakeButton(out _quitLabel);
+            quitButton.style.backgroundColor = Raised;
+            quitButton.style.marginTop = 10f;
+            quitButton.RegisterCallback<MouseEnterEvent>(_ => quitButton.style.backgroundColor = Danger);
+            quitButton.RegisterCallback<MouseLeaveEvent>(_ => quitButton.style.backgroundColor = Raised);
+            quitButton.RegisterCallback<MouseDownEvent>(_ => Quit());
+            card.Add(quitButton);
+        }
+
+        private static VisualElement MakeButton(out Label label)
+        {
+            var button = new VisualElement();
+            button.style.height = 46f;
+            button.style.alignItems = Align.Center;
+            button.style.justifyContent = Justify.Center;
+            SetBorder(button, Stroke, 1f);
+            SetRadius(button, 10f);
+
+            label = new Label();
+            label.style.color = Text;
+            label.style.fontSize = 15;
+            label.style.unityFontStyleAndWeight = FontStyle.Bold;
+            button.Add(label);
+            return button;
+        }
+
+        private void ApplyLanguage()
+        {
+            if (_title == null)
+            {
+                return;
+            }
+
+            _title.text = Loc.Get("menu.title");
+            _continueLabel.text = Loc.Get("menu.continue");
+            _quitLabel.text = Loc.Get("menu.quit");
+        }
+
+        private static void Quit()
+        {
+            // timeScale survives leaving play mode — don't poison the editor.
+            Time.timeScale = 1f;
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
+        }
+
+        private static void SetRadius(VisualElement e, float r)
+        {
+            e.style.borderTopLeftRadius = r;
+            e.style.borderTopRightRadius = r;
+            e.style.borderBottomLeftRadius = r;
+            e.style.borderBottomRightRadius = r;
+        }
+
+        private static void SetBorder(VisualElement e, Color color, float width)
+        {
+            e.style.borderTopWidth = width;
+            e.style.borderBottomWidth = width;
+            e.style.borderLeftWidth = width;
+            e.style.borderRightWidth = width;
+            e.style.borderTopColor = color;
+            e.style.borderBottomColor = color;
+            e.style.borderLeftColor = color;
+            e.style.borderRightColor = color;
+        }
+    }
+}

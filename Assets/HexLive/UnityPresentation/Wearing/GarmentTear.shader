@@ -1,6 +1,8 @@
 // Spec 40.10: procedural garment tearing. A Voronoi+noise tear mask is
 // clipped against _TearAmount (0 pristine .. 1 rags): holes nucleate at cell
-// centers and grow with ragged edges; the rim is tinted into a frayed hem.
+// centers and grow with ragged edges; the rim bleaches into pale threadbare
+// fuzz (the fabric's own hue, noise-ragged) and worn patches fade between
+// the holes as tear rises.
 // Property names match URP Lit so a runtime shader swap keeps the garment's
 // textures (_BaseMap/_BaseColor/_BumpMap). Cull Off shows the cloth inside
 // through holes; the ShadowCaster pass clips identically.
@@ -189,11 +191,25 @@ Shader "HexLive/GarmentTear"
 
                 half4 albedo = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv) * _BaseColor;
 
-                // Frayed hem: tint the band just outside the hole edge.
+                // Frayed hem: real frayed cloth goes PALE at the edge — loose
+                // threads catch light. Push the fabric's own colour toward a
+                // bleached, desaturated fuzz (keeps the hue family: grey shirt
+                // → pale grey, jeans → pale blue) instead of tinting it brown,
+                // and rag the band with noise so it never reads as a sticker.
                 half rim = threshold > 0.001
                     ? saturate(1.0 - (mask - threshold) / max(_TearEdgeWidth, 1e-4))
                     : 0.0;
-                albedo.rgb = lerp(albedo.rgb, albedo.rgb * _TearEdgeTint.rgb, rim);
+                half rimNoise = 0.45 + 0.55 * TearValueNoise(input.uv * _TearScale * 6.1);
+                half lum = dot(albedo.rgb, half3(0.299, 0.587, 0.114));
+                half3 fuzz = lerp(albedo.rgb, saturate(half3(lum, lum, lum) * 1.5 + 0.18), 0.85);
+                albedo.rgb = lerp(albedo.rgb, fuzz, rim * rim * rimNoise);
+
+                // Threadbare thinning: as wear rises the cloth also fades in
+                // patches BETWEEN the holes (worn elbows/seams feel) — the
+                // garment reads as old fabric, not pristine cloth with holes.
+                half wearNoise = TearValueNoise(input.uv * _TearScale * 1.7 + 31.0);
+                half thinning = smoothstep(0.55, 0.95, wearNoise) * saturate(_TearAmount * 1.6);
+                albedo.rgb = lerp(albedo.rgb, fuzz, thinning * 0.5);
 
                 // Spec 40.10-C: dirt layer — noise-mottled blotches (own scale)
                 // creep from sparse smudges to near-full grime as dirt rises.

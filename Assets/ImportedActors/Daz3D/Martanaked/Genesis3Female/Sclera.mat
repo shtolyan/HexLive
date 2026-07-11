@@ -11,8 +11,7 @@ Material:
   m_Shader: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords:
-  - _ALPHATEST_ON
+  m_ValidKeywords: []
   m_InvalidKeywords:
   - IRAYUBER_DUALLOBESPECULARREFLECTIVITYACTIVE
   - IRAYUBER_GLOSSYCOLORACTIVE
@@ -20,16 +19,16 @@ Material:
   - _DOUBLESIDED_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 1
-  m_CustomRenderQueue: 2450
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: 2000
   stringTagMap:
     MotionVector: User
-    RenderType: TransparentCutout
+    RenderType: Opaque
   disabledShaderPasses:
-  - MOTIONVECTORS
-  - TransparentBackface
   - TransparentDepthPrepass
   - TransparentDepthPostpass
+  - TransparentBackface
+  - MOTIONVECTORS
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -165,11 +164,11 @@ Material:
     - Vector1_644CECEF: 0
     - _AddPrecomputedVelocity: 0
     - _Alpha: 1
-    - _AlphaClip: 1
+    - _AlphaClip: 0
     - _AlphaCutoffEnable: 1
     - _AlphaDstBlend: 0
     - _AlphaSrcBlend: 1
-    - _AlphaToMask: 1
+    - _AlphaToMask: 0
     - _Blend: 0
     - _BlendMode: 0
     - _BlendModePreserveSpecular: 1
@@ -177,7 +176,7 @@ Material:
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
     - _ConservativeDepthOffsetEnable: 0
-    - _Cull: 0
+    - _Cull: 2
     - _CullMode: 0
     - _CullModeForward: 0
     - _Cutoff: 0.5
@@ -200,15 +199,15 @@ Material:
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyAnisotropy: 0
-    - _GlossyLayeredWeight: 0
+    - _GlossyLayeredWeight: 1
     - _GlossyReflections: 0
-    - _Height: 0.2
+    - _Height: 0
     - _HeightOffset: 0.25
     - _MakeupEnable: 0
     - _MakeupRoughnessMultiplierValue: 1
     - _MakeupWeightValue: 1
     - _Metallic: 0
-    - _Normal: 1
+    - _Normal: 0.2
     - _OcclusionStrength: 1
     - _OpaqueCullMode: 2
     - _Parallax: 0.005
@@ -218,8 +217,8 @@ Material:
     - _ReceivesSSRTransparent: 0
     - _RenderQueueType: 1
     - _RequireSplitLighting: 1
-    - _Roughness: 1
-    - _Smoothness: 0.5
+    - _Roughness: 0.2
+    - _Smoothness: 0.298
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SpecularLobe1Roughness: 0
@@ -240,9 +239,9 @@ Material:
     - _TopCoatBumpStrength: 0
     - _TopCoatIOR: 1.5
     - _TopCoatNormalStrength: 0
-    - _TopCoatRoughness: 0
-    - _TopCoatWeight: 0
-    - _TranslucencyWeight: 0.5
+    - _TopCoatRoughness: 0.7
+    - _TopCoatWeight: 0.5
+    - _TranslucencyWeight: 0.4
     - _TransparentBackfaceEnable: 0
     - _TransparentCullMode: 2
     - _TransparentDepthPostpassEnable: 0
@@ -262,16 +261,16 @@ Material:
     - _DiffusionProfileAsset: {r: 0, g: 0, b: 0, a: 0}
     - _DoubleSidedConstants: {r: 1, g: 1, b: -1, a: 0}
     - _Emission: {r: 0, g: 0, b: 0, a: 1}
-    - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _EmissionColor: {r: 1, g: 1, b: 1, a: 1}
     - _MakeupBaseColor: {r: 1, g: 1, b: 1, a: 0}
     - _Offset: {r: 0, g: 0, b: 0, a: 0}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
     - _Tiling: {r: 1, g: 1, b: 0, a: 0}
-    - _TopCoatColor: {r: 1, g: 1, b: 1, a: 1}
-    - _TranslucencyColor: {r: 0.8666667, g: 0.8666667, b: 0.8666667, a: 1}
+    - _TopCoatColor: {r: 0.8784314, g: 0.90588236, b: 0.92941177, a: 1}
+    - _TranslucencyColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
---- !u!114 &7536558044653280496
+--- !u!114 &5244321079146937610
 MonoBehaviour:
   m_ObjectHideFlags: 11
   m_CorrespondingSourceObject: {fileID: 0}

@@ -179,6 +179,25 @@ namespace HexLive.UnityPresentation.UI
             npc.Body.Parts[part] = Mathf.Clamp01(npc.Body.Parts[part] - 0.35f);
             npc.Health = npc.Body.Mean();
             npc.Needs.Blood = Mathf.Clamp01(npc.Needs.Blood - 0.15f);
+            // Spec 40.8B: the decal comes from the wound RECORD, not from HP.
+            // At the cap (12) the panel mirrors WoundMath: reopen an existing
+            // wound instead of adding a 13th record.
+            if (npc.Wounds.Count >= 12)
+            {
+                var reopen = npc.Wounds[UnityEngine.Random.Range(0, npc.Wounds.Count)];
+                reopen.Severity = reopen.Severity * (1f - reopen.Heal01) + 0.35f;
+                reopen.Heal01 = 0f;
+                return;
+            }
+
+            npc.Wounds.Add(new HexLive.Simulation.Agents.WoundState
+            {
+                Id = npc.NextWoundId++,
+                Zone = part,
+                Severity = 0.35f,
+                Heal01 = 0f,
+                Seed = UnityEngine.Random.Range(1, int.MaxValue)
+            });
         });
 
         private void ClearWounds() => ForEachTarget(npc =>
@@ -190,6 +209,7 @@ namespace HexLive.UnityPresentation.UI
 
             npc.Health = 1f;
             npc.Needs.Blood = 1f;
+            npc.Wounds.Clear();
         });
 
         private void AdjustHygiene(float delta) => ForEachTarget(npc =>

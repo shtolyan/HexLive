@@ -5776,6 +5776,19 @@ prefabs, all equipped/removed together as the visual of that sim item.
 | clothing.coat | Jacket_7653 |
 | armor.leather | DdlSlc_Top |
 | armor.heavy | jacket_8867 |
+| clothing.top_tropic | TopTropic (tank top, fal.ai tropical print) |
+| clothing.top_tiedye | TopTiedye (tank top, fal.ai tie-dye print) |
+| underwear.panty_leo | PantyLeo (panty, fal.ai leopard print) |
+| underwear.panty_stars | PantyStars (panty, fal.ai stars print) |
+
+**AI-print wardrobe experiment:** the four print items are fal.ai-generated
+all-over textile patterns baked into copies of the TankTop9_20034 / Panty_11571
+prefabs (both material slots re-pointed to the print material; textures/mats
+live in `Assets/ImportedActors/Wear/Prints/`). Sim side: registered in
+`PrototypeContentCatalog` as light summer wear (tops: Wear/Torso, +0.08
+warmth; panties: Underwear/Pelvis, +0.03) and spawned as ground objects
+124–127 near home. Pipeline for more: generate print → copy base prefab →
+swap material GUID → drop the folder under `Resources/HexLive/Wear/<simId>/`.
 
 ### 31B.5 Renderer bridge
 
@@ -5785,8 +5798,9 @@ capsule remains the fallback). A new `NpcActorView` component:
 
 - `Construct(actorMesh)` → BodyBones.Construct (bone map + hair).
 - Per snapshot: diffs `WornItems` against the currently equipped set →
-  `Equip`/`TakeOff` of the mapped wear prefabs. Sim wetness/durability do
-  not change visuals in v1.
+  `Equip`/`TakeOff` of the mapped wear prefabs. (Since 40.10/35.5 sim
+  durability DOES drive visuals — tear dissolve — and per-garment wetness
+  drives the wet sheen via `Wear.SetWetness`; see those sections.)
 - Gaze (LookAtIK): during a Talk interaction the view targets the partner's
   head; while walking, a point ahead on the path; otherwise the weight eases
   to 0 (animation-neutral idle gaze).
@@ -7182,6 +7196,23 @@ the current spatial system, not bolted on.
 
 ### 35.5 Iteration 21 — Weather, Rain & Wet Clothes (implemented)
 
+**Presentation (wet look — reuses the sweat tech):**
+
+- **Body in rain**: an NPC standing outdoors while it rains gets the full
+  sweat treatment — skin smoothness climbs to the wet gloss and droplet
+  decals bead on the skin (renderer passes `rainWet` = raining && tile not
+  Indoor into `SetBodyCondition`; it maxes with the thermal sweat drive).
+- **Rain droplets on clothes too**: garments opt into a dedicated cloth
+  rendering-layer bit (`Wear.ClothDecalLayer`, 1<<2); rain droplet
+  projectors target skin|cloth and spray ALL zones (covered ones land on
+  the garment above), while wounds/dirt/sweat stay skin-only.
+- **Wet cloth**: the exporter ships per-garment `WornWetness`
+  ("id\twetness"); each `Wear` lerps its smoothness toward 0.85 and darkens
+  its base color as wetness rises. The dry base values are captured from
+  the shared material before any tint, so when the sim dries the item
+  (fire/rack/sun) the garment returns to its EXACT authored look. Wetness
+  alone never swaps in the tear shader — it rides the property block only.
+
 - **Weather system** (WeatherSystem, slow layer): seeded rain fronts,
   scheduled **per day** — a per-slow-tick Bernoulli roll turned out badly
   mixed on the 16-tick stride (seed 777 rolled zero fronts in ten days).
@@ -7206,10 +7237,13 @@ the current spatial system, not bolted on.
   is tracked but has no effect in v1.
 - **Wetting rates** (per slow tick): rain outdoors +0.04 (soaked in ~12
   slow ticks); standing on a Water tile +0.15 (the river drenches).
-- **Wet garment** (Wetness > 0.5): contributes **zero warmth**
-  (EquipmentMath recalculates each slow tick, since wetness now moves),
-  armor unaffected; movement ×0.9 per wet *worn* item, floor ×0.8.
-  `SoakedThrough` trace when a worn item crosses 0.5 upward.
+- **Wet garment**: insulation degrades **gradually** — warmth ×
+  `(1 − 0.9 × Wetness)`, i.e. −90% when fully soaked (was a hard cliff:
+  full warmth until 0.5 then zero — the first minutes of rain changed
+  nothing and the cutoff read as broken). EquipmentMath recalculates each
+  slow tick, since wetness moves; armor unaffected; movement ×0.9 per wet
+  *worn* item (Wetness > 0.5), floor ×0.8. `SoakedThrough` trace when a
+  worn item crosses 0.5 upward.
 - **Drying** (every slow tick an item is not being wetted, all locations —
   worn, carried, ground): `Wetness -= 0.02 × rate`, where rate is the best
   of: ×3 in direct sun (effective UV > 0.3 at the holder's/item's tile,
@@ -7394,9 +7428,31 @@ pass — order chosen to add robustness before difficulty.
 - **Shipped v1 (whole-body flush):** a badly hurt body (Health < 0.6)
   tints the whole skin toward a bruised red-purple via `SetSkinWeathering`'s
   `hurt` channel.
-- **Shipped v2 (procedural decals, `SkinDecals`):** per-zone wound marks —
-  scratch streaks + blood blots, 1–4 per zone scaling with that zone's
-  damage; **dust/dirt smudges** climbing legs→arms→torso→face as Hygiene
+- **Shipped v3 (40.8B — wounds as first-class records):** one landed
+  bite/hit = one `WoundState { Id, Zone, Severity, Heal01, Seed }` on the
+  NPC (`WoundMath.Inflict`; dog + shark bites only). Starvation, heat,
+  sunburn and sickness drain HP but create **no wound** — no phantom decals
+  while starving. Each wound maps to ONE decal: spot/look deterministic
+  from `Seed` (stable across frames AND save-replays — spec 41.2 replays
+  the same seed), alpha fading with `Heal01`; the record disappears when
+  fully closed. **Cap = 12, and the 13th hit never EVICTS** (dropping a
+  record would strand its hostage HP — a zone could stick at 0 forever): it
+  REOPENS an existing wound — same-zone if possible (the bite tears the old
+  scar deeper: severity absorbs the remaining hostage + the new hit, heal
+  resets, same decal spot), otherwise the most-healed wound anywhere first
+  returns its held HP to its own zone, then the record is repurposed as a
+  fresh wound at the new spot. **Healing is per wound and
+  activity-paced**: full close ~2 game days at rest, ×2 while sleeping,
+  ×0.5 while marching. **HP is held hostage**: fed-regen may only raise a
+  zone to `1 − Σ severity·(1−heal)` (its `WoundMath.OpenWoundDamage`) — a
+  couple of coconuts never insta-heals a mauling; each healed slice returns
+  exactly its share of the zone's HP. The character panel's HP bar is
+  **Fallout-style**: green fill = current health, a red right-anchored
+  segment = `WoundLockedHp` (won't regen until wounds close; shrinks as
+  they do), with the value reading "72% (−18)".
+- **Shipped v2 (procedural decals, `SkinDecals`):** wound marks —
+  scratch streaks + blood blots driven by the wound records above;
+  **dust/dirt smudges** climbing legs→arms→torso→face as Hygiene
   drops; **sweat droplets** (glossy, gently shimmering) blooming on
   face/chest/arms when ThermalComfort runs hot. Each decal is a **URP
   DecalProjector** parented to the zone's bone and aimed into the limb, so
@@ -7433,7 +7489,9 @@ pass — order chosen to add robustness before difficulty.
   folds) vs skin smudges. Skin decals stay under clothing (occluded), fabric
   decals live on the garment — each material reads correctly. No sweat on
   fabric (sweat stays a bare-skin effect; maybe damp patches later).
-  injects a random wound / clears wounds / dirties / washes / tans / untans the
+  injects a random wound (a real WoundState record) / clears wounds /
+  dirties / washes / tans / untans / forces sweat on-off / toggles
+  clothing visibility ("Hide clothes" — every zone counts as bare) for the
   selected NPC (or everyone) so these visuals can be exercised without waiting
   on play.
 
@@ -7533,12 +7591,22 @@ pass — order chosen to add robustness before difficulty.
   match a corpse to the actor who died. View: when an NPC vanishes from the
   snapshot, `HexWorldRenderer` finds her `corpse.npc` by `OwnerNpcId` and
   ADOPTS the actor body instead of destroying it — clears laying/sit/gaze,
-  fires `SetRagdoll(true)` (physics collapse, wounds/torn clothes stay on),
   destroys the old capsule-blob corpse view, and keeps the body under the
   corpse object's id. When that object leaves the snapshot (decayed or
   buried → grave), the body view is destroyed. `SetRagdoll` now also
   disables LookAtIK, and the procedural pose layers (action/thermal/
   posture) are gated off while ragdolled so nothing fights the physics.
+- **UPDATE — RAGDOLL RETIRED (death/faint = lie down asleep).** In play the
+  ragdoll spun on activation and fell through the terrain — hex tiles are
+  collider-less meshes, so physics bodies have nothing to land on. Decision:
+  no ragdoll, no extra physics. Death and faint/collapse now play the baked
+  laying clip pinned to the tile's ground Y (`SetLaying(true, null,
+  GroundY(tile))`) — the body quietly lies down and "sleeps" where it fell;
+  the adopted-corpse lifecycle above is unchanged. `corpse.npc` and
+  `grave.npc` objects render as invisible anchors (no blob, no grave
+  marker); sim-side Mourn/Bury logic untouched. `SetRagdoll` stays in
+  `NpcActorView` as dormant code (no callers) in case tile colliders ever
+  land and it's worth revisiting.
 
 ### 40.14 Tent (sun shelter) & tiered beds
 - **Tent**: a min-1-hex **angled canopy** that shades one person from the
@@ -7702,9 +7770,153 @@ grows) — budget multi-round rebalancing per [[project_dog_fragility_balance]].
 Presentation: water-swim animation, shark model + fin, island terrain —
 all Unity-side, land when the editor is connected.
 
+### 40.19 Dropped clothing = real garment lying flat (shipped)
+Dropped clothing used to render as a coloured primitive cylinder. Now any
+world object whose definition id has wear prefabs (`Resources/HexLive/Wear/
+<simId>/` — clothing.*, underwear.*, armor.*) renders as the REAL garment
+mesh lying flat on the ground, textures intact (`GarmentDropFactory`, wired
+into `HexWorldRenderer.CreateObjectView` between the Objects-prefab path and
+the low-poly/primitive fallbacks).
+
+How: the wear prefab's skinned mesh renders in bind pose through a plain
+MeshFilter (a T-pose shirt flattened reads as clothes laid out on the
+ground). No vertex baking — the source meshes may lack Read/Write — the
+whole effect is transforms: the mesh child is offset by `-bounds.center`
+(the Daz bind space has its origin at the character's FEET; this recentring
+is what puts the pivot at the garment's own centre so a drop sits on its
+anchor instead of floating a torso away), rotated −90° about X onto its
+back, and squashed to `FlattenFactor` (0.12) of its depth via the parent's
+Y scale — not zero, coplanar faces would z-fight. Footwear (id contains
+boot/shoe) keeps its 3D shape and just stands on the ground. Multi-piece
+items (underwear = bra + panties) lie side by side, group centred. The drop
+is scaled by the same actor factor the girls wear it at (`HexRadius *
+NpcHeightFactor * 2.4 / 1.7`), gets a deterministic scatter yaw from the
+object id, and is grounded with a 1 cm epsilon against tile z-fighting.
+TUNING KNOBS: `FlattenFactor`, `PieceGapFactor` (gap between side-by-side
+pieces, 0.2 of the widest).
+
 ### Implementation order (living)
 Robustness first, spectacle second: 40.1 Stamina → 40.2 Blood →
 40.14 tiered beds + tent → 40.3 medicine/Safety → 40.6 Hygiene →
 40.7 tan/skin → 40.10 wear + 40.8 injuries + 40.9 poses (presentation,
 needs live Unity) → 40.11 UI → 40.12 bigger island/loot → 40.13 ragdoll →
 40.15 escape/rafts/shark → 40.5 cooperation/theft → 40.16 LLM.
+
+## §41 Loading, Save & Offline Progression (iteration 37)
+
+### 41.1 Loading screen (pause-until-ready)
+Play mode used to drop straight into a live world (`startPaused: false`),
+so the sim ticked while Unity was still spawning terrain/actors — then the
+runner's accumulator "caught up" with a burst of ticks (visible stutter +
+time jump). New flow: the runner starts PAUSED; a full-screen loading
+overlay (UIDocument, top sorting order) drives phases:
+1. **World** — bootstrap the WorldState (synchronous, cheap).
+2. **Time passed** — if a save exists, restore the model blob (§41.2 v2),
+   then wind forward by `offlineTicks` (§41.3), chunked ~10 ms per frame
+   so the progress bar animates.
+3. **Island** — let `HexWorldRenderer` build all views (terrain mesh,
+   actors, wardrobe) behind the overlay for a few frames.
+4. **Warm-up** — select each NPC once (builds the character panel UI,
+   portrait camera + its RenderTexture, shader variants) so the FIRST real
+   click has no hitch — this was the "заход в персонажа" lag: the whole
+   panel tree + portrait pipeline built lazily on first selection.
+5. Fade out, unpause, autosave timer starts. Camera: `NpcSelection.Select`
+   (Jana) — the RTS camera's selection handler enters orbit on her, so the
+   game opens looking at Jana with her panel up.
+Background art: `Resources/HexLive/UI/loading_island` (fal.ai-generated,
+girls-on-island in the game's low-poly palette).
+Anti-burst guard (independent of loading): the tick accumulator is clamped
+to `TickDeltaTime × 12` (≈3 game-seconds of backlog) — a frame hitch may
+never turn into a catch-up burst; at 50× the per-frame budget (~0.8 s) is
+far below the clamp, so top speed is unaffected.
+
+### 41.2 Save format — the save IS the model (v2, iteration 39)
+v1 stored `{seed, tick}` and REPLAYED the deterministic history on load.
+That dies the moment non-deterministic inputs arrive — player commands and
+LLM decisions (§40.16) can't be replayed from a seed — and replay time grew
+with total played ticks. v2 serializes the model in full:
+`WorldSaveSerializer` (Simulation/Persistence, pure C#, versioned binary)
+writes every piece of state the sim can mutate — tick, environment/weather,
+build project, runtime tile flags (HasFloor/Indoor) and junction
+Blocked/Door sets, all world objects, all NPCs (needs, mind, plan,
+execution, movement, perception, memory, social, inventory, worn items,
+body/wounds), wildlife (dogs/rabbits/sharks), reservations, occupancy and
+the runtime caches (verbatim, list order preserved — systems iterate
+them), plus the wildlife respawn timers (moved into `WorldState` from
+system-local fields, which silently reset on load). Static topology —
+tiles, junction ids, adjacency, content catalog — is REBUILT from the seed
+by `WorldStateFactory`, never stored; the blob is tens of KB.
+File: `Application.persistentDataPath/hexlive_save.dat` — a small header
+`{magic, version, seed, tick, unixSeconds, speed}` (read alone for the
+menu, §41.4) followed by the blob; written to `.tmp` and swapped whole so
+a crash mid-write can't eat the old save. Autosave every 60 real seconds +
+on quit / play-mode exit, as before. A corrupt/mismatched save falls back
+to a new world.
+NOT serialized, by design: trace events (no sim effect), decision debug
+scores (rewritten every pass), the junction-components cache (derived,
+rebuilt on first pathfind). Dictionary ITERATION order is inherently
+unsaveable (bucket/freelist internals): a restored world is content-
+identical — headless-proven byte-exact on re-serialize across 4 seeds —
+and simulates identically for a window (measured 0–1600 ticks), after
+which enumeration-order differences make it a sibling world, not a wrong
+one. Accepted: the design premise of v2 is that determinism is going away
+anyway.
+
+### 41.3 Offline progression
+On load, elapsed real time becomes game time: `offlineTicks =
+(now − save.unixSeconds) × 4` (1 tick = 0.25 s at 1×), capped at
+**3 game days** (7200 ticks, `DayLengthTicks = 2400`) so a week away
+doesn't starve the colony or stall the load. The wind starts from the
+RESTORED state (v2: load first, then simulate the absence) and finishes
+BEFORE any view spawns — the player returns to "time really passed":
+resources regrown, needs drifted, maybe someone got bitten.
+
+### 41.4 Main menu (iteration 38)
+The loading screen opens with a MENU over the island art, before any world
+exists: **«Продолжить»** (only when a save file is present) and **«Новая
+игра»** (deletes the save, rolls a fresh seed). The world is bootstrapped
+only after the choice — the runner sits unconfigured (renderer/panels all
+guard on `IsReady`), so the menu costs nothing. After the click the flow is
+§41.1 unchanged: restore → offline wind → spawn → warm-up → fade → Jana.
+
+### 41.5 Wake-up grace (iteration 38)
+Waking from any Sleep (bed / leaf mat / ground) sets
+`Mind.WakeGraceUntilTick = tick + 12` (~3 game-seconds). While in grace the
+DecisionSystem does not score goals — the NPC simply STANDS where she slept,
+coming to her senses; no instant errands off the pillow, and the presentation
+GetUp clip has room to play without foot-sliding (exported as
+`NpcSnapshot.IsWaking`).
+
+## §42 Survival Realism Rebalance (iteration 38)
+The colony's numbers dated from the subsistence-race era; with the player
+watching one girl closely they read arcade-fast. New targets (day = 2400
+ticks = 24 game hours, 100 ticks = 1 game hour):
+- **Sleep**: a full recharge is a real night — bed 0.18 / leaf mat 0.15 /
+  bare ground 0.12 energy per 100-tick sleep block (was 0.5/0.45/0.5), so
+  0→1 takes ~6 game hours on a bed. Energy drain slowed to match a
+  one-sleep-per-day budget: EnergyRate 0.015 → 0.007 per slow tick
+  (~1.05 bars/day).
+- **Healing**: wounds knit in DAYS, not hours — part regen 0.02 → 0.0018
+  per slow tick (a 0.6 dog mauling ≈ 2.2 game days), blood refill
+  0.02 → 0.005. Food no longer power-heals: eating feeds the regen
+  CONDITION (fed+rested) but the rate above is the cap. First aid stays
+  meaningful but not magic: bandage part-heal 0.25 → 0.15 (blood boost 0.4
+  → 0.25), pill 0.2 → 0.10 (blood 0.2 → 0.15).
+- **Clothing warmth** (`EquippedWarmth × 10 °C`): underwear is DECORATIVE
+  warmth (0.01–0.03 — bikinis at 10 °C mean shivering), real cover carries
+  the budget: tops/shirts ~0.12–0.15, dress 0.2, pants 0.25 (shorts/skirts
+  0.08–0.12), boots 0.12–0.15, gloves/scarf 0.04–0.06, coat/jacket 0.4.
+  A full pants+shirt+boots+coat outfit ≈ 0.9 → +9 °C; the old uniform
+  0.08-for-everything wardrobe is retired.
+- **UPDATE — comfort band moved to [16,22] °C** (was [12,20]; the first pass
+  re-priced the wardrobe but left the band, so 10 °C naked still read
+  "almost fine" on the bar and in the pressure — the exact bug it was meant
+  to kill). Now: decision pressure is cold below 16 (0.025/°C, cap 0.12),
+  overheating above 22; the UI signed comfort uses the SAME band (the bar
+  may never say "fine" while the body freezes; -1 over a 12 °C span).
+  Dress gate: effectiveTemp < 16 (was 14); undress gate: > 24 — only real
+  heat strips layers, day-warmth no longer undresses what the night needs.
+  **Heat can never strip an NPC naked**: `FindRemovableItem` skips the
+  Underwear layer entirely (it barely warms — removing it is pure nudity,
+  which was exactly the "голые при 10 °C" bug: day heat peeled everything
+  including bras, and the [12,20] band called the aftermath comfortable).

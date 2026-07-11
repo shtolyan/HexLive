@@ -54,7 +54,33 @@ public sealed class NpcFaceAnimator : MonoBehaviour
 
     public void Construct(SkinnedMeshRenderer[] bodySkins)
     {
-        _eyesClosed = Resolve(bodySkins, "eCTRLEyesClosed");
+        // The prefabs ship with stuck authored expressions (Jana: frown 42 +
+        // eyes half-closed; Molly: smile 37) — zero every eCTRL* expression
+        // shape so the face starts neutral. Character morphs (non-eCTRL)
+        // define the actor's look and are left untouched.
+        if (bodySkins != null)
+        {
+            foreach (var skin in bodySkins)
+            {
+                var mesh = skin != null ? skin.sharedMesh : null;
+                if (mesh == null)
+                {
+                    continue;
+                }
+
+                for (var i = 0; i < mesh.blendShapeCount; i++)
+                {
+                    if (mesh.GetBlendShapeName(i).Contains("eCTRL"))
+                    {
+                        skin.SetBlendShapeWeight(i, 0f);
+                    }
+                }
+            }
+        }
+
+        // Known asset bug: the combined eCTRLEyesClosed shape does nothing —
+        // blink by driving the per-eye L/R shapes together, in sync.
+        _eyesClosed = Resolve(bodySkins, "eCTRLEyesClosedL", "eCTRLEyesClosedR");
         _smile = Resolve(bodySkins, "eCTRLMouthSmileSimple");
         _smileFull = Resolve(bodySkins, "eCTRLSmile");
         _frown = Resolve(bodySkins, "eCTRLMouthFrown");
@@ -67,7 +93,7 @@ public sealed class NpcFaceAnimator : MonoBehaviour
     // exact-name or suffix match, so both "eCTRLSmile" and
     // "Genesis3Female__eCTRLSmile" resolve; exclude longer variants
     // (eCTRLEyesClosed must not grab eCTRLEyesClosedL/R).
-    private static Channel Resolve(SkinnedMeshRenderer[] skins, string shape)
+    private static Channel Resolve(SkinnedMeshRenderer[] skins, params string[] shapes)
     {
         var channel = new Channel();
         if (skins == null)
@@ -86,10 +112,13 @@ public sealed class NpcFaceAnimator : MonoBehaviour
             for (var i = 0; i < mesh.blendShapeCount; i++)
             {
                 var name = mesh.GetBlendShapeName(i);
-                if (name == shape || name.EndsWith("__" + shape) || name.EndsWith("." + shape))
+                foreach (var shape in shapes)
                 {
-                    channel.Targets.Add((skin, i));
-                    break;
+                    if (name == shape || name.EndsWith("__" + shape) || name.EndsWith("." + shape))
+                    {
+                        channel.Targets.Add((skin, i));
+                        break;
+                    }
                 }
             }
         }

@@ -79,6 +79,20 @@ public sealed class BodyBones : MonoBehaviour
         }
     }
 
+    // Spec 35.5: wet sheen for every visual garment of one SIM item — rain
+    // soaks it, fire/rack dries it back to the authored look.
+    public void SetWearWetness(string defId, float wet01)
+    {
+        var prefix = defId + "#";
+        foreach (var pair in _wears)
+        {
+            if (pair.Key.StartsWith(prefix))
+            {
+                pair.Value.SetWetness(wet01);
+            }
+        }
+    }
+
     // Spec 40.10-C: dirt + zone-damage spheres for every SIM garment. Hair is
     // instantiated directly in Construct (never in _wears), so it stays clean.
     public void SetWearGrime(float dirt01, Vector4[] spheres, int count)

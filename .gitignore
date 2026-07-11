@@ -46,3 +46,7 @@
 
 # Crash reporting
 sysinfo.txt
+
+# Editor screenshot dumps (MCP verification shots) — never commit
+Assets/Screenshots/
+Assets/Screenshots.meta

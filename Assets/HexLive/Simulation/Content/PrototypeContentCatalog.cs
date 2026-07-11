@@ -459,7 +459,7 @@ public static class PrototypeContentCatalog
                         Type = InteractionType.Dress,
 
                         DurationTicks = 12,
-                        Effects = { ThermalDelta = -0.1f, WarmthDelta = 0.2f, ArmorDelta = 0.2f }
+                        Effects = { ThermalDelta = -0.1f, WarmthDelta = 0.25f, ArmorDelta = 0.2f } // spec 42
                     }
                 },
                 Tags = { "Clothing", "Armor" }
@@ -593,7 +593,7 @@ public static class PrototypeContentCatalog
 
                         // Spec 31C.7A: real sleep blocks, not catnaps.
                         DurationTicks = 100,
-                        Effects = { EnergyDelta = 0.5f, ComfortDelta = 0.2f }
+                        Effects = { EnergyDelta = 0.18f, ComfortDelta = 0.2f } // spec 42: full night ~6h
                     }
                 },
                 Tags = { "Bed", "Obstacle" }
@@ -638,7 +638,7 @@ public static class PrototypeContentCatalog
                         Id = "sleep.leaf",
                         Type = InteractionType.Sleep,
                         DurationTicks = 100,
-                        Effects = { EnergyDelta = 0.45f, ComfortDelta = 0.1f }
+                        Effects = { EnergyDelta = 0.15f, ComfortDelta = 0.1f } // spec 42
                     }
                 },
                 Tags = { "Bed" }
@@ -677,7 +677,82 @@ public static class PrototypeContentCatalog
                         Type = InteractionType.Dress,
 
                         DurationTicks = 8,
-                        Effects = { WarmthDelta = 0.05f }
+                        Effects = { WarmthDelta = 0.02f } // spec 42
+                    }
+                },
+                Tags = { "Clothing" }
+            },
+            // AI-print wardrobe experiment: fal.ai-generated textile prints on
+            // the tank-top / panty meshes. Light summer wear — a whisper of
+            // warmth, zero armor; purely cosmetic variety.
+            ["clothing.top_tropic"] = new ObjectDefinition
+            {
+                Id = "clothing.top_tropic",
+                DisplayName = "Tropic Top",
+                Layer = WearLayer.Wear,
+                Covers = { BodyPart.Torso },
+                Interactions =
+                {
+                    new InteractionDefinition
+                    {
+                        Id = "dress.top_tropic",
+                        Type = InteractionType.Dress,
+                        DurationTicks = 8,
+                        Effects = { WarmthDelta = 0.12f } // spec 42
+                    }
+                },
+                Tags = { "Clothing" }
+            },
+            ["clothing.top_tiedye"] = new ObjectDefinition
+            {
+                Id = "clothing.top_tiedye",
+                DisplayName = "Tie-Dye Top",
+                Layer = WearLayer.Wear,
+                Covers = { BodyPart.Torso },
+                Interactions =
+                {
+                    new InteractionDefinition
+                    {
+                        Id = "dress.top_tiedye",
+                        Type = InteractionType.Dress,
+                        DurationTicks = 8,
+                        Effects = { WarmthDelta = 0.12f } // spec 42
+                    }
+                },
+                Tags = { "Clothing" }
+            },
+            ["underwear.panty_leo"] = new ObjectDefinition
+            {
+                Id = "underwear.panty_leo",
+                DisplayName = "Leopard Panties",
+                Layer = WearLayer.Underwear,
+                Covers = { BodyPart.Pelvis },
+                Interactions =
+                {
+                    new InteractionDefinition
+                    {
+                        Id = "dress.panty_leo",
+                        Type = InteractionType.Dress,
+                        DurationTicks = 8,
+                        Effects = { WarmthDelta = 0.01f } // spec 42
+                    }
+                },
+                Tags = { "Clothing" }
+            },
+            ["underwear.panty_stars"] = new ObjectDefinition
+            {
+                Id = "underwear.panty_stars",
+                DisplayName = "Star Panties",
+                Layer = WearLayer.Underwear,
+                Covers = { BodyPart.Pelvis },
+                Interactions =
+                {
+                    new InteractionDefinition
+                    {
+                        Id = "dress.panty_stars",
+                        Type = InteractionType.Dress,
+                        DurationTicks = 8,
+                        Effects = { WarmthDelta = 0.01f } // spec 42
                     }
                 },
                 Tags = { "Clothing" }
@@ -731,9 +806,11 @@ public static class PrototypeContentCatalog
     // Imported wardrobe (molly_copy). Each garment is its own wearable item;
     // the id matches its Resources/HexLive/Wear/<id>/ folder so the visual
     // loads. Stats kept light (light warmth, no armor) — tune per garment.
+    // Spec 42: warmth is per garment now — underwear is decorative
+    // (0.01-0.03), real cover carries the budget (EquippedWarmth x10 °C).
     private static void AddGarment(
         Dictionary<string, ObjectDefinition> defs, string id, string name,
-        WearLayer layer, params BodyPart[] covers)
+        WearLayer layer, float warmth, params BodyPart[] covers)
     {
         var def = new ObjectDefinition { Id = id, DisplayName = name, Layer = layer };
         def.Covers.AddRange(covers);
@@ -743,47 +820,47 @@ public static class PrototypeContentCatalog
             Id = "dress." + id,
             Type = InteractionType.Dress,
             DurationTicks = 10,
-            Effects = { WarmthDelta = 0.08f }
+            Effects = { WarmthDelta = warmth }
         });
         defs[id] = def;
     }
 
     private static void AddImportedGarments(Dictionary<string, ObjectDefinition> defs)
     {
-        AddGarment(defs, "Bikini Bottom", "Bikini nizkii", WearLayer.Underwear, BodyPart.Pelvis);
-        AddGarment(defs, "Bikini top", "Bikini verx", WearLayer.Underwear, BodyPart.Torso);
-        AddGarment(defs, "Boots 20496", "Sapozhki", WearLayer.Underwear, BodyPart.LegL, BodyPart.LegR);
-        AddGarment(defs, "Boots", "Sapogi", WearLayer.Outerwear, BodyPart.LegL, BodyPart.LegR);
-        AddGarment(defs, "Boots_155064", "Botinki", WearLayer.Outerwear, BodyPart.LegL, BodyPart.LegR);
-        AddGarment(defs, "CityDress", "Plate", WearLayer.Wear, BodyPart.Torso, BodyPart.Pelvis);
-        AddGarment(defs, "CowTop", "Korotkij top", WearLayer.Underwear, BodyPart.Torso);
-        AddGarment(defs, "Glove_2245", "Perchatki", WearLayer.Wear, BodyPart.ArmL, BodyPart.ArmR);
-        AddGarment(defs, "Gloves_17510", "Perchatki", WearLayer.Wear, BodyPart.ArmL, BodyPart.ArmR);
-        AddGarment(defs, "Gloves_5480", "Perchatki korotkie", WearLayer.Wear, BodyPart.ArmL, BodyPart.ArmR);
-        AddGarment(defs, "Gloves_8128", "Perchatki kozhanye", WearLayer.Wear, BodyPart.ArmL, BodyPart.ArmR);
-        AddGarment(defs, "Got stock", "Chulki", WearLayer.Underwear, BodyPart.LegL, BodyPart.LegR);
-        AddGarment(defs, "NeckWarmer_1259", "Sharf", WearLayer.Underwear, BodyPart.Torso);
-        AddGarment(defs, "Necklace_2228", "Kolie", WearLayer.Underwear, BodyPart.Torso);
-        AddGarment(defs, "Over Knee G3F_18296", "Chulki za koleno", WearLayer.Underwear, BodyPart.LegL, BodyPart.LegR);
-        AddGarment(defs, "Pants_24055", "Bryuki", WearLayer.Wear, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR);
-        AddGarment(defs, "Panty_11571", "Trusiki kruzhevnye", WearLayer.Underwear, BodyPart.Pelvis);
-        AddGarment(defs, "Shirt G3F_31977", "Rubashka", WearLayer.Wear, BodyPart.Torso);
-        AddGarment(defs, "Shorts 1389", "Shorty", WearLayer.Wear, BodyPart.Pelvis);
-        AddGarment(defs, "Shorts Green", "Shorty zelyonye", WearLayer.Wear, BodyPart.Pelvis);
-        AddGarment(defs, "Shorts short", "Mini-shorty", WearLayer.Wear, BodyPart.Pelvis);
-        AddGarment(defs, "Shorts_10_14636", "Shorty", WearLayer.Wear, BodyPart.Pelvis);
-        AddGarment(defs, "Skirt 29046", "Yubka", WearLayer.Wear, BodyPart.Pelvis);
-        AddGarment(defs, "Skirt G3F_27980", "Yubka", WearLayer.Wear, BodyPart.Pelvis);
-        AddGarment(defs, "Skirt_2799", "Yubka mini", WearLayer.Wear, BodyPart.Pelvis);
-        AddGarment(defs, "Sleeve_19793", "Narukavniki", WearLayer.Wear, BodyPart.ArmL, BodyPart.ArmR);
-        AddGarment(defs, "Stockings_8731", "Chulki", WearLayer.Underwear, BodyPart.LegL, BodyPart.LegR);
-        AddGarment(defs, "TankTop9_20034", "Majka", WearLayer.Wear, BodyPart.Torso);
-        AddGarment(defs, "Tights Old", "Kolgotki starye", WearLayer.Underwear, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR);
-        AddGarment(defs, "Tights_1818", "Kolgotki", WearLayer.Underwear, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR);
-        AddGarment(defs, "Top_11927", "Top", WearLayer.Underwear, BodyPart.Torso);
-        AddGarment(defs, "Top_2300", "Sportivnyj top", WearLayer.Wear, BodyPart.Torso);
-        AddGarment(defs, "legHolster_2204", "Kabura na nogu", WearLayer.Outerwear, BodyPart.LegL, BodyPart.LegR);
-        AddGarment(defs, "pants_21038", "Shtany", WearLayer.Wear, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR);
+        AddGarment(defs, "Bikini Bottom", "Bikini nizkii", WearLayer.Underwear, 0.01f, BodyPart.Pelvis);
+        AddGarment(defs, "Bikini top", "Bikini verx", WearLayer.Underwear, 0.01f, BodyPart.Torso);
+        AddGarment(defs, "Boots 20496", "Sapozhki", WearLayer.Underwear, 0.12f, BodyPart.LegL, BodyPart.LegR);
+        AddGarment(defs, "Boots", "Sapogi", WearLayer.Outerwear, 0.15f, BodyPart.LegL, BodyPart.LegR);
+        AddGarment(defs, "Boots_155064", "Botinki", WearLayer.Outerwear, 0.14f, BodyPart.LegL, BodyPart.LegR);
+        AddGarment(defs, "CityDress", "Plate", WearLayer.Wear, 0.2f, BodyPart.Torso, BodyPart.Pelvis);
+        AddGarment(defs, "CowTop", "Korotkij top", WearLayer.Underwear, 0.03f, BodyPart.Torso);
+        AddGarment(defs, "Glove_2245", "Perchatki", WearLayer.Wear, 0.04f, BodyPart.ArmL, BodyPart.ArmR);
+        AddGarment(defs, "Gloves_17510", "Perchatki", WearLayer.Wear, 0.04f, BodyPart.ArmL, BodyPart.ArmR);
+        AddGarment(defs, "Gloves_5480", "Perchatki korotkie", WearLayer.Wear, 0.03f, BodyPart.ArmL, BodyPart.ArmR);
+        AddGarment(defs, "Gloves_8128", "Perchatki kozhanye", WearLayer.Wear, 0.05f, BodyPart.ArmL, BodyPart.ArmR);
+        AddGarment(defs, "Got stock", "Chulki", WearLayer.Underwear, 0.04f, BodyPart.LegL, BodyPart.LegR);
+        AddGarment(defs, "NeckWarmer_1259", "Sharf", WearLayer.Underwear, 0.06f, BodyPart.Torso);
+        AddGarment(defs, "Necklace_2228", "Kolie", WearLayer.Underwear, 0.0f, BodyPart.Torso);
+        AddGarment(defs, "Over Knee G3F_18296", "Chulki za koleno", WearLayer.Underwear, 0.04f, BodyPart.LegL, BodyPart.LegR);
+        AddGarment(defs, "Pants_24055", "Bryuki", WearLayer.Wear, 0.25f, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR);
+        AddGarment(defs, "Panty_11571", "Trusiki kruzhevnye", WearLayer.Underwear, 0.01f, BodyPart.Pelvis);
+        AddGarment(defs, "Shirt G3F_31977", "Rubashka", WearLayer.Wear, 0.15f, BodyPart.Torso);
+        AddGarment(defs, "Shorts 1389", "Shorty", WearLayer.Wear, 0.08f, BodyPart.Pelvis);
+        AddGarment(defs, "Shorts Green", "Shorty zelyonye", WearLayer.Wear, 0.08f, BodyPart.Pelvis);
+        AddGarment(defs, "Shorts short", "Mini-shorty", WearLayer.Wear, 0.06f, BodyPart.Pelvis);
+        AddGarment(defs, "Shorts_10_14636", "Shorty", WearLayer.Wear, 0.08f, BodyPart.Pelvis);
+        AddGarment(defs, "Skirt 29046", "Yubka", WearLayer.Wear, 0.1f, BodyPart.Pelvis);
+        AddGarment(defs, "Skirt G3F_27980", "Yubka", WearLayer.Wear, 0.1f, BodyPart.Pelvis);
+        AddGarment(defs, "Skirt_2799", "Yubka mini", WearLayer.Wear, 0.06f, BodyPart.Pelvis);
+        AddGarment(defs, "Sleeve_19793", "Narukavniki", WearLayer.Wear, 0.03f, BodyPart.ArmL, BodyPart.ArmR);
+        AddGarment(defs, "Stockings_8731", "Chulki", WearLayer.Underwear, 0.04f, BodyPart.LegL, BodyPart.LegR);
+        AddGarment(defs, "TankTop9_20034", "Majka", WearLayer.Wear, 0.1f, BodyPart.Torso);
+        AddGarment(defs, "Tights Old", "Kolgotki starye", WearLayer.Underwear, 0.05f, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR);
+        AddGarment(defs, "Tights_1818", "Kolgotki", WearLayer.Underwear, 0.05f, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR);
+        AddGarment(defs, "Top_11927", "Top", WearLayer.Underwear, 0.03f, BodyPart.Torso);
+        AddGarment(defs, "Top_2300", "Sportivnyj top", WearLayer.Wear, 0.12f, BodyPart.Torso);
+        AddGarment(defs, "legHolster_2204", "Kabura na nogu", WearLayer.Outerwear, 0.0f, BodyPart.LegL, BodyPart.LegR);
+        AddGarment(defs, "pants_21038", "Shtany", WearLayer.Wear, 0.25f, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR);
     }
 }
 

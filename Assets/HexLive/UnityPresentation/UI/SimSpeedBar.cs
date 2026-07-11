@@ -33,6 +33,9 @@ namespace HexLive.UnityPresentation.UI
         private int _weatherTick = -1;
         private Language _weatherLanguage;
 
+        // Spec 42: model degrees -> player-facing Celsius (display only).
+        public const float DisplayCelsiusOffset = 10f;
+
         private static readonly Color Panel = new(0.075f, 0.094f, 0.110f, 0.94f);
         private static readonly Color Raised = new(0.133f, 0.165f, 0.192f);
         private static readonly Color Stroke = new(1f, 1f, 1f, 0.12f);
@@ -207,7 +210,11 @@ namespace HexLive.UnityPresentation.UI
             _weatherTick = snapshot.Tick;
             _weatherLanguage = Loc.Current;
 
-            _tempLabel.text = $"{Mathf.RoundToInt(snapshot.Temperature)}°C";
+            // Spec 42: sim temperatures are RELATIVE units tuned for the
+            // comfort math; the player reads familiar Celsius, so the HUD
+            // shows model + 10 (model 23° -> "33°C", night 8 -> "18°C").
+            // Display-only — every decision/soak stays on the model value.
+            _tempLabel.text = $"{Mathf.RoundToInt(snapshot.Temperature + DisplayCelsiusOffset)}°C";
             _tempLabel.style.color = snapshot.Temperature < 12f
                 ? new Color(0.278f, 0.714f, 0.902f)
                 : snapshot.Temperature > 20f ? new Color(0.910f, 0.455f, 0.420f) : Text;

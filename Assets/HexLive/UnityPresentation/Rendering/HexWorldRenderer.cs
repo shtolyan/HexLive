@@ -483,12 +483,18 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // Spec 31C.4: the river gets banks — tiles adjacent to water are sand.
         _waterCoords.Clear();
         _tileElevations.Clear();
+        _indoorCoords.Clear();
         foreach (var tile in snapshot.Tiles)
         {
             _tileElevations[tile.Coord] = tile.Elevation;
             if (tile.Water)
             {
                 _waterCoords.Add(tile.Coord);
+            }
+
+            if (tile.Indoor)
+            {
+                _indoorCoords.Add(tile.Coord);
             }
         }
 
@@ -671,9 +677,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
                     var corpseId = worldObject.Id.Value;
                     deadActor.SetLedgeSit(false);
-                    deadActor.SetLaying(false, null);
                     deadActor.ClearGaze();
-                    deadActor.SetRagdoll(true);
+                    // Spec 40.13 v2: death is a quiet lie-down-and-sleep (the
+                    // baked laying clip) — NO ragdoll: the hex tiles carry no
+                    // colliders, so physics bodies spun out and fell through.
+                    deadActor.SetRagdoll(false);
+                    deadActor.SetLaying(true, null, GroundY(worldObject.Tile));
 
                     // The capsule-blob corpse view from this frame's object
                     // pass is replaced by the real body.
@@ -742,7 +751,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // Debug overrides: forced sweat, and clothes-off exposes every zone.
         var thermalForSweat = UI.DebugControlsPanel.SweatOverride ?? npc.ThermalComfort;
         var uncoveredForDecals = UI.DebugControlsPanel.HideClothing ? AllBodyZones : npc.UncoveredParts;
-        actorView.SetBodyCondition(npc.BodyParts, uncoveredForDecals, npc.Hygiene, thermalForSweat);
+        // Spec 35.5: rain reuses the sweat tech — an NPC standing outdoors in
+        // the rain glistens and beads exactly like sweating; garments carry
+        // their own sim wetness (soaked cloth shines/darkens, dries back).
+        var rainWet = snapshot.IsRaining && !_indoorCoords.Contains(npc.Tile) ? 1f : 0f;
+        actorView.SetBodyCondition(npc.BodyParts, uncoveredForDecals, npc.Hygiene, thermalForSweat,
+            rainWet, npc.WornWetness, npc.Wounds);
         actorView.SetClothingHidden(UI.DebugControlsPanel.HideClothing);
         // Spec 40.10: tear worn-out garments — cutoff erosion by durability.
         foreach (var entry in npc.WornDurability)
@@ -762,9 +776,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // Spec 40.13: a fainted body lies limp where it dropped (no bed).
         if (npc.IsFainted)
         {
-            // Spec 40.13: collapse-from-exhaustion is a physics ragdoll — the
-            // body flops limp where it dropped, not the baked laying clip.
-            actorView.SetRagdoll(true);
+            // Spec 40.13 v2: collapse lies down with the baked laying clip —
+            // ragdoll physics is retired (no tile colliders to land on).
+            actorView.SetRagdoll(false);
+            actorView.SetLaying(true, null, GroundY(npc.Tile));
         }
         else if (npc.CurrentInteraction == "Sleep" && npc.ExecutionStatus == "InProgress")
         {
@@ -1037,6 +1052,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private readonly HashSet<TileCoord> _waterCoords = new();
 
+    // Spec 35.5: rain wets only NPCs standing outdoors.
+    private readonly HashSet<TileCoord> _indoorCoords = new();
+
     // Spec 20.16: elevation registry — every movable and object view takes
     // its Y from its tile's top.
     private const float ElevationStep = 0.55f;
@@ -1229,7 +1247,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
     {
         // Spec 31C.4: water interaction anchors have no gizmo — the river
         // and pond tiles ARE the visual; NPCs just come and drink.
-        if (worldObject.DefinitionId.StartsWith("water."))
+        // Spec 40.13 v2: corpse.npc has no blob either — the dead actor's own
+        // body (adopted, lying asleep) IS the corpse; and death spawns no
+        // visible grave marker at all.
+        if (worldObject.DefinitionId.StartsWith("water.") ||
+            worldObject.DefinitionId == "corpse.npc" ||
+            worldObject.DefinitionId == "grave.npc")
         {
             var invisible = new GameObject($"Object {worldObject.DefinitionId} (anchor)");
             invisible.transform.SetParent(_objectsRoot, false);
@@ -1250,6 +1273,27 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 anchorPos, GroundY(worldObject.Tile));
             MaybeAttachCampfire(prefabRoot, worldObject.DefinitionId);
             return prefabRoot;
+        }
+
+        // Spec 40.19: dropped clothing shows the real garment lying flat on
+        // the ground (footwear stands as-is). The factory's pivot is the
+        // garment's own centre, so the drop sits exactly on its anchor.
+        var garment = HexLive.UnityPresentation.Wearing.GarmentDropFactory.Build(worldObject.DefinitionId);
+        if (garment != null)
+        {
+            var garmentRoot = new GameObject($"Object {worldObject.DefinitionId}");
+            garmentRoot.transform.SetParent(_objectsRoot, false);
+            garment.transform.SetParent(garmentRoot.transform, false);
+            // Same world scale the girls wear it at, so the drop reads
+            // proportional to its former owner; deterministic scatter yaw.
+            var garmentScale = HexRadius * NpcHeightFactor * 2.4f / ActorSourceHeightMeters;
+            garment.transform.localScale = Vector3.one * garmentScale;
+            garment.transform.localRotation = Quaternion.Euler(0f, (worldObject.Id.Value * 73) % 360, 0f);
+            GroundVisual(garment, lift: 0.01f); // epsilon: thin cloth vs tile z-fight
+            var garmentPos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
+            garmentRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
+                garmentPos, GroundY(worldObject.Tile));
+            return garmentRoot;
         }
 
         // Spec 20.16: procedural low-poly model for known tools/resources/food
@@ -1811,16 +1855,27 @@ public sealed class HexWorldRenderer : MonoBehaviour
             instance.transform.localScale *= target / current;
         }
 
-        // ground the model: bottom of bounds sits on the tile top
-        var scaledRenderers = instance.GetComponentsInChildren<Renderer>();
-        var scaledBounds = scaledRenderers[0].bounds;
-        for (var i = 1; i < scaledRenderers.Length; i++)
+        GroundVisual(instance);
+    }
+
+    // Ground the model: bottom of its renderer bounds sits on the tile top
+    // (plus an optional epsilon for near-flat meshes that would z-fight).
+    private static void GroundVisual(GameObject instance, float lift = 0f)
+    {
+        var renderers = instance.GetComponentsInChildren<Renderer>();
+        if (renderers.Length == 0)
         {
-            scaledBounds.Encapsulate(scaledRenderers[i].bounds);
+            return;
         }
 
-        var lift = instance.transform.position.y - scaledBounds.min.y;
-        instance.transform.localPosition += new Vector3(0f, lift, 0f);
+        var bounds = renderers[0].bounds;
+        for (var i = 1; i < renderers.Length; i++)
+        {
+            bounds.Encapsulate(renderers[i].bounds);
+        }
+
+        var offset = instance.transform.position.y - bounds.min.y + lift;
+        instance.transform.localPosition += new Vector3(0f, offset, 0f);
     }
 
     private static PrimitiveType GetObjectPrimitive(string definitionId)

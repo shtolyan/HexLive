@@ -42,6 +42,7 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement _statusDot;
         private Label _thoughtValue;
         private VisualElement _healthFill;
+        private VisualElement _healthLockedFill;
         private Label _healthValue;
         private Label _starvingBadge;
         private VisualElement _needsContainer;
@@ -71,6 +72,11 @@ namespace HexLive.UnityPresentation.UI
         // Slide animation
         private bool _shown;
         private float _anim; // 0 = hidden (off-screen), 1 = fully shown
+
+        // Collapsed: the character stays selected (camera keeps following),
+        // only the bar slides away; a small bottom tab brings it back.
+        private bool _collapsed;
+        private VisualElement _expandTab;
 
         // ── palette ───────────────────────────────────────────────────────
         private static readonly Color Text = new(0.906f, 0.925f, 0.937f);
@@ -103,6 +109,10 @@ namespace HexLive.UnityPresentation.UI
             public VectorIcon.Kind Icon;
             public Color Color;
             public bool Pressure; // raw: higher = worse → invert for well-being
+
+            // Show the raw pressure itself: a FULL red bar means "maxed out"
+            // (stress reads this way — 100% stressed, not 0% well-being).
+            public bool Direct;
         }
 
         private struct NeedBinding
@@ -128,7 +138,7 @@ namespace HexLive.UnityPresentation.UI
             new() { Key = "need.stamina", Icon = VectorIcon.Kind.Energy, Color = Energy, Pressure = false },
             new() { Key = "need.blood", Icon = VectorIcon.Kind.Health, Color = Health, Pressure = false },
             new() { Key = "need.hygiene", Icon = VectorIcon.Kind.Thirst, Color = Thirst, Pressure = false },
-            new() { Key = "need.stress", Icon = VectorIcon.Kind.Think, Color = Social, Pressure = true },
+            new() { Key = "need.stress", Icon = VectorIcon.Kind.Think, Color = Social, Direct = true },
         };
 
         public void SetRunner(SimulationRunnerBehaviour runner) => _runner = runner;
@@ -223,10 +233,28 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            var scale = Screen.height / panelHeight;         // pixels per panel unit
+            var scale = Screen.height / panelHeight;          // pixels per panel unit
+            var mousePos = mouse.position.ReadValue();        // bottom-left origin
+
+            if (_collapsed)
+            {
+                // Only the little expand tab occupies the screen.
+                if (_expandTab == null)
+                {
+                    NpcSelection.PointerOverUi = false;
+                    return;
+                }
+
+                var tab = _expandTab.layout;
+                var withinY = mousePos.y <= tab.height * scale + 4f;
+                var halfWidth = tab.width * scale * 0.5f + 4f;
+                var withinX = Mathf.Abs(mousePos.x - Screen.width * 0.5f) <= halfWidth;
+                NpcSelection.PointerOverUi = withinY && withinX;
+                return;
+            }
+
             var barPixels = _card.layout.height * scale;      // bar height from the bottom
-            var mouseY = mouse.position.ReadValue().y;        // bottom-left origin
-            NpcSelection.PointerOverUi = mouseY <= barPixels;
+            NpcSelection.PointerOverUi = mousePos.y <= barPixels;
         }
 
         private void OnSelectionChanged(int npcId)
@@ -239,6 +267,7 @@ namespace HexLive.UnityPresentation.UI
             else
             {
                 _boundActorId = -1;
+                _collapsed = false; // next selection opens the bar again
                 NpcSelection.PointerOverUi = false;
                 // Stop the portrait camera when nobody is selected.
                 if (_portraitStage != null)
@@ -251,7 +280,8 @@ namespace HexLive.UnityPresentation.UI
         // Slide the bar up from below the screen edge and back down.
         private void Animate()
         {
-            var target = _shown ? 1f : 0f;
+            var expanded = _shown && !_collapsed;
+            var target = expanded ? 1f : 0f;
             if (_slideDuration > 0.001f)
             {
                 _anim = Mathf.MoveTowards(_anim, target, Time.unscaledDeltaTime / _slideDuration);
@@ -259,6 +289,13 @@ namespace HexLive.UnityPresentation.UI
             else
             {
                 _anim = target;
+            }
+
+            if (_expandTab != null)
+            {
+                _expandTab.style.display = _shown && _collapsed
+                    ? DisplayStyle.Flex
+                    : DisplayStyle.None;
             }
 
             if (!_shown && _anim <= 0.001f)
@@ -309,7 +346,12 @@ namespace HexLive.UnityPresentation.UI
 
             var hp = Mathf.Clamp01(npc.Health);
             _healthFill.style.width = Length.Percent(hp * 100f);
-            _healthValue.text = $"{Mathf.RoundToInt(hp * 100f)}%";
+            // Red right segment: HP that will NOT regen until wounds close.
+            var locked = Mathf.Clamp01(npc.WoundLockedHp);
+            _healthLockedFill.style.width = Length.Percent(locked * 100f);
+            _healthValue.text = locked > 0.005f
+                ? $"{Mathf.RoundToInt(hp * 100f)}% (-{Mathf.RoundToInt(locked * 100f)})"
+                : $"{Mathf.RoundToInt(hp * 100f)}%";
 
             UpdateStatus(npc);
 
@@ -365,16 +407,22 @@ namespace HexLive.UnityPresentation.UI
             for (var i = 0; i < _needBindings.Count; i++)
             {
                 var b = _needBindings[i];
-                var raw = RawNeed(npc, b.Config.Key);
-                var wellbeing = Mathf.Clamp01(b.Config.Pressure ? 1f - raw : raw);
+                var raw = Mathf.Clamp01(RawNeed(npc, b.Config.Key));
 
-                b.Fill.style.width = Length.Percent(wellbeing * 100f);
-                b.Fill.style.backgroundColor = LevelColor(wellbeing);
-                b.Pct.text = $"{Mathf.RoundToInt(wellbeing * 100f)}%";
+                // Direct (stress): the bar IS the pressure — 100% full and red
+                // when maxed, a sliver of green when calm.
+                // Otherwise: well-being — full green is good.
+                var display = b.Config.Direct ? raw
+                    : b.Config.Pressure ? 1f - raw : raw;
+                var goodness = b.Config.Direct ? 1f - raw : display;
 
-                var low = wellbeing < 0.30f;
-                b.Pct.style.color = low ? Crit : TextDim;
-                b.Label.style.color = low ? new Color(0.949f, 0.769f, 0.753f) : Text;
+                b.Fill.style.width = Length.Percent(display * 100f);
+                b.Fill.style.backgroundColor = LevelColor(goodness);
+                b.Pct.text = $"{Mathf.RoundToInt(display * 100f)}%";
+
+                var alarm = goodness < 0.30f;
+                b.Pct.style.color = alarm ? Crit : TextDim;
+                b.Label.style.color = alarm ? new Color(0.949f, 0.769f, 0.753f) : Text;
             }
 
             UpdateThermal(npc.ThermalComfort);
@@ -563,6 +611,78 @@ namespace HexLive.UnityPresentation.UI
             card.Add(BuildIdentityColumn());
             card.Add(BuildNeedsColumn());
             card.Add(BuildRelationsColumn());
+
+            card.Add(BuildCollapseButton());
+            BuildExpandTab();
+        }
+
+        // Small chevron-down in the card's top-right corner: hide the bar but
+        // keep the character selected (camera keeps following them).
+        private VisualElement BuildCollapseButton()
+        {
+            var button = new VisualElement();
+            button.style.position = Position.Absolute;
+            button.style.top = 8f;
+            button.style.right = 12f;
+            button.style.width = 30f;
+            button.style.height = 24f;
+            button.style.alignItems = Align.Center;
+            button.style.justifyContent = Justify.Center;
+            button.style.backgroundColor = Raised;
+            SetBorder(button, Stroke, 1f);
+            SetRadius(button, 6f);
+
+            var icon = new VectorIcon(VectorIcon.Kind.ChevronDown, TextDim);
+            icon.style.width = 16f;
+            icon.style.height = 16f;
+            button.Add(icon);
+
+            button.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(button, GoldDim));
+            button.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(button, Stroke));
+            button.RegisterCallback<MouseDownEvent>(evt =>
+            {
+                _collapsed = true;
+                evt.StopPropagation();
+            });
+
+            return button;
+        }
+
+        // Bottom-center tab with a chevron-up, shown while the bar is hidden.
+        private void BuildExpandTab()
+        {
+            _expandTab = new VisualElement();
+            _expandTab.style.position = Position.Absolute;
+            _expandTab.style.bottom = 0f;
+            _expandTab.style.left = Length.Percent(50);
+            _expandTab.style.translate = new Translate(Length.Percent(-50), 0f);
+            _expandTab.style.flexDirection = FlexDirection.Row;
+            _expandTab.style.alignItems = Align.Center;
+            _expandTab.style.justifyContent = Justify.Center;
+            _expandTab.style.width = 96f;
+            _expandTab.style.height = 30f;
+            _expandTab.style.backgroundColor = Raised;
+            SetBorder(_expandTab, StrokeStrong, 1f);
+            _expandTab.style.borderTopLeftRadius = 10f;
+            _expandTab.style.borderTopRightRadius = 10f;
+            _expandTab.style.borderBottomWidth = 0f;
+            _expandTab.style.display = DisplayStyle.None;
+            _expandTab.pickingMode = PickingMode.Position;
+
+            var icon = new VectorIcon(VectorIcon.Kind.ChevronUp, Gold);
+            icon.style.width = 18f;
+            icon.style.height = 18f;
+            _expandTab.Add(icon);
+
+            _expandTab.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(_expandTab, GoldDim));
+            _expandTab.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(_expandTab, StrokeStrong));
+            _expandTab.RegisterCallback<MouseDownEvent>(evt =>
+            {
+                _collapsed = false;
+                evt.StopPropagation();
+            });
+
+            _root.Add(_expandTab);
         }
 
         private void BuildThought()
@@ -666,9 +786,20 @@ namespace HexLive.UnityPresentation.UI
             hRow.Add(_healthValue);
             info.Add(hRow);
 
+            // Spec 40.8B: Fallout-style HP bar — green = current health,
+            // red (right-anchored) = HP locked by open wounds; regen can only
+            // fill the gap between them, the red shrinks as wounds close.
             var hTrack = MakeTrack(5f);
-            _healthFill = MakeFill(Health);
+            _healthFill = MakeFill(new Color(0.36f, 0.72f, 0.33f));
             hTrack.Add(_healthFill);
+            _healthLockedFill = new VisualElement();
+            _healthLockedFill.style.position = Position.Absolute;
+            _healthLockedFill.style.right = 0f;
+            _healthLockedFill.style.top = 0f;
+            _healthLockedFill.style.bottom = 0f;
+            _healthLockedFill.style.width = Length.Percent(0f);
+            _healthLockedFill.style.backgroundColor = new Color(0.72f, 0.16f, 0.14f);
+            hTrack.Add(_healthLockedFill);
             info.Add(hTrack);
 
             // Status chip + badge in a row

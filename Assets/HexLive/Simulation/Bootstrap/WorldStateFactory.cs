@@ -63,17 +63,32 @@ public sealed class WorldStateFactory
             }
         }
 
-        // Spec 31A.5B: everyone starts dressed — but randomized (deterministic
-        // per seed+NPC): a random pair of panties + a random bra/top. Ids match
-        // the Resources/HexLive/Wear/<id> folders and catalog definitions.
+        // Spec 31A.5B + 42: everyone starts dressed FOR THE WEATHER — random
+        // (deterministic per seed+NPC) underwear beneath a random outer set.
+        // At ~10 °C ambient the [16,22] comfort band demands ~+0.5 warmth
+        // (top+pants+boots ≈ 0.5 → ~15 °C effective, mild chill that the
+        // campfire covers); a seeded coin-flip jacket (+0.4) makes some girls
+        // genuinely comfortable and leaves others chasing the fire — texture,
+        // not a death sentence. Worn items are NOT world objects, so this
+        // provisions the cold WITHOUT perturbing routes/placement.
         string[] startBottoms = { "Panty_11571", "Bikini Bottom" };
-        string[] startTops = { "Bikini top", "TankTop9_20034", "Top_11927", "CowTop", "Top_2300" };
+        string[] startTops = { "Bikini top", "Top_11927", "CowTop" };
+        string[] startShirts = { "TankTop9_20034", "Top_2300", "Shirt G3F_31977" };
+        string[] startPants = { "Pants_24055", "pants_21038" };
+        string[] startBoots = { "Boots", "Boots_155064", "Boots 20496" };
         foreach (var npc in world.Entities.Npcs.Values)
         {
-            var bottom = startBottoms[(int)(MathUtil.Hash01(world.Seed, npc.Id.Value, 11, 4201) * startBottoms.Length)];
-            var top = startTops[(int)(MathUtil.Hash01(world.Seed, npc.Id.Value, 12, 4202) * startTops.Length)];
-            npc.WornItems.Add(bottom);
-            npc.WornItems.Add(top);
+            var id = npc.Id.Value;
+            npc.WornItems.Add(startBottoms[(int)(MathUtil.Hash01(world.Seed, id, 11, 4201) * startBottoms.Length)]);
+            npc.WornItems.Add(startTops[(int)(MathUtil.Hash01(world.Seed, id, 12, 4202) * startTops.Length)]);
+            npc.WornItems.Add(startShirts[(int)(MathUtil.Hash01(world.Seed, id, 13, 4203) * startShirts.Length)]);
+            npc.WornItems.Add(startPants[(int)(MathUtil.Hash01(world.Seed, id, 14, 4204) * startPants.Length)]);
+            npc.WornItems.Add(startBoots[(int)(MathUtil.Hash01(world.Seed, id, 15, 4205) * startBoots.Length)]);
+            if (MathUtil.Hash01(world.Seed, id, 16, 4206) < 0.5f)
+            {
+                npc.WornItems.Add("clothing.coat");
+            }
+
             Runtime.EquipmentMath.Recalculate(world, npc);
         }
 

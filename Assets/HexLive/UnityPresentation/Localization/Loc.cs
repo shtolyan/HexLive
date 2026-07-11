@@ -102,6 +102,11 @@ namespace HexLive.UnityPresentation.Localization
             ["need.hygiene"] = new[] { "Hygiene", "Гигиена" },
             ["need.stress"] = new[] { "Stress", "Стресс" },
 
+            // Game menu (Escape)
+            ["menu.title"] = new[] { "Menu", "Меню" },
+            ["menu.continue"] = new[] { "Continue", "Продолжить" },
+            ["menu.quit"] = new[] { "Quit game", "Выйти из игры" },
+
             // Weather widget (top-left)
             ["weather.rain"] = new[] { "Rain", "Дождь" },
             ["weather.clear"] = new[] { "Clear", "Ясно" },
@@ -154,7 +159,18 @@ namespace HexLive.UnityPresentation.Localization
             ["goal.CraftRack"] = new[] { "Building a drying rack", "Мастерит сушилку" },
             ["goal.DryClothes"] = new[] { "Drying clothes", "Сушит одежду" },
             ["goal.CraftBow"] = new[] { "Making a bow", "Мастерит лук" },
-            ["goal.CraftArrows"] = new[] { "Making arrows", "Мастерит стрелы" }
+            ["goal.CraftArrows"] = new[] { "Making arrows", "Мастерит стрелы" },
+
+            // Spec 41.1: loading screen phases.
+            ["loading.world"] = new[] { "Shaping the island...", "Создаём остров..." },
+            ["loading.time"] = new[] { "Time is passing...", "Идёт время..." },
+            ["loading.island"] = new[] { "Waking the island...", "Остров просыпается..." },
+            ["loading.warmup"] = new[] { "Meeting the girls...", "Знакомимся с девочками..." },
+            ["loading.done"] = new[] { "Welcome back", "С возвращением" },
+
+            // Spec 41.4: main menu.
+            ["menu.continue"] = new[] { "Continue", "Продолжить" },
+            ["menu.newgame"] = new[] { "New game", "Новая игра" }
         };
     }
 }

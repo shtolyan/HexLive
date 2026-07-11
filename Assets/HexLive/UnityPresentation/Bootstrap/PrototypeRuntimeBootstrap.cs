@@ -22,14 +22,9 @@ public static class PrototypeRuntimeBootstrap
         var root = new GameObject("HexLive Prototype");
         var runner = root.AddComponent<SimulationRunnerBehaviour>();
 
-        // Presentation-side randomness (spec 29C.1): each play-mode session
-        // gets a fresh seed; the simulation itself stays deterministic per seed.
-        var seed = System.Environment.TickCount;
-        Debug.Log($"[HexLive] World seed: {seed}");
-        // Spec 31.13: play mode drops straight into a живой мир — the
-        // simulation ticks at normal speed from frame one.
-        runner.Configure(PrototypeWorldDefinitionFactory.Create(seed), startPaused: false, initialSpeed: 1f);
-
+        // Spec 41.4: the world is NOT configured here — the loading screen
+        // opens as a menu (Continue / New game) and bootstraps the chosen
+        // world itself; everything below guards on runner.IsReady.
         var renderer = root.AddComponent<HexWorldRenderer>();
         renderer.SetRunner(runner);
 
@@ -39,6 +34,12 @@ public static class PrototypeRuntimeBootstrap
 
         InstallCamera(runner);
         InstallCharacterUi(runner);
+
+        // Spec 41.1/41.4: the loading curtain owns the rest — menu, world
+        // bootstrap, replay, view spawn, warm-up, fade, unpause, Jana.
+        var loaderRoot = new GameObject("HexLive Loading Screen");
+        var loader = loaderRoot.AddComponent<LoadingScreen>();
+        loader.Begin(runner);
     }
 
     // Live-portrait stage + the Sims-style character panel. The panel appears
@@ -72,6 +73,12 @@ public static class PrototypeRuntimeBootstrap
         debugRoot.AddComponent<UIDocument>();
         var debugPanel = debugRoot.AddComponent<DebugControlsPanel>();
         debugPanel.SetRunner(runner);
+
+        // Escape menu (continue / quit) — Escape with nothing selected.
+        var menuRoot = new GameObject("HexLive Game Menu");
+        menuRoot.AddComponent<UIDocument>();
+        var menu = menuRoot.AddComponent<GameMenu>();
+        menu.SetRunner(runner);
     }
 
     private static void InstallCamera(SimulationRunnerBehaviour runner)

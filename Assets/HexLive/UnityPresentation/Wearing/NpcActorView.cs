@@ -64,6 +64,17 @@ public sealed class NpcActorView : MonoBehaviour
     private const float DrySkinSmoothness = 0.32f;
     private const float WetSkinSmoothness = 0.85f;
 
+    // Spec 35.5: unified inertial skin wetness. Rain soaks fast (fully wet in
+    // ~4 s), sweat builds slower (~12 s to its level), and skin dries in
+    // ~45 s — same idea as the sim's garment wetness, just quicker (clothes
+    // take minutes). TUNING KNOBS.
+    private const float RainSoakPerSecond = 0.25f;
+    private const float SweatSoakPerSecond = 0.08f;
+    private const float SkinDryPerSecond = 0.022f;
+    private float _skinWetness;
+    private float _clothRainWetness;
+    private float _wetnessLastTime;
+
     // The body is a single SkinnedMeshRenderer with many material submeshes
     // (skin zones + eyes + lashes + …). The weathering tint must touch only the
     // bare-skin submeshes — tinting the eye submeshes turned them white in-game
@@ -134,6 +145,14 @@ public sealed class NpcActorView : MonoBehaviour
     private float _lastYaw;
     private float _moveEpsilon = 0.01f;
     private bool _motionSampleValid;
+
+    // Feet match the ground: the walk cycle plays at the body's ACTUAL pace,
+    // so a hobbling (mauled legs), soaked, or turning character takes slow
+    // weighty steps instead of pattering in place at full cadence.
+    // Healthy full speed is 1.0 world units/s ≈ 0.76 body heights/s.
+    private const float FullWalkBodyHeightsPerSec = 0.76f;
+    private bool _wasWalking;
+    private float _animSpeed = 1f;
 
     // Face anchor rig for the portrait camera, calibrated once in the prefab's
     // upright rest pose: face center, face-forward and face-up are captured in
@@ -319,7 +338,9 @@ public sealed class NpcActorView : MonoBehaviour
     // Spec 40.8/40.6: forward the tick's body condition to the decal layer.
     // bodyParts entries are "Zone=0.85" strings straight from the snapshot.
     public void SetBodyCondition(IReadOnlyList<string> bodyParts,
-        IReadOnlyList<string> uncoveredParts, float hygiene, float thermal)
+        IReadOnlyList<string> uncoveredParts, float hygiene, float thermal,
+        float rainWet = 0f, IReadOnlyList<string> wornWetness = null,
+        IReadOnlyList<string> wounds = null)
     {
         if (_skinDecals == null)
         {
@@ -344,13 +365,73 @@ public sealed class NpcActorView : MonoBehaviour
             _uncoveredScratch.Add(part);
         }
 
-        _skinDecals.Sync(_zoneHealthScratch, _uncoveredScratch, hygiene, thermal);
+        // Rain wetness is inertial: the renderer feeds a binary "in the rain
+        // right now" flag (it flips on tile/indoor boundaries), but a body
+        // SOAKS in seconds and DRIES in tens of seconds. Integrating here
+        // kills the wet/dry flicker (Marta walking past the house) and keeps
+        // her visibly wet after stepping under a roof or when the rain stops.
+        var now = Time.time;
+        var dt = _wetnessLastTime > 0f ? Mathf.Max(0f, now - _wetnessLastTime) : 0f;
+        _wetnessLastTime = now;
 
-        // Wet sheen: hot skin glistens. The droplet decals are albedo-only, so
-        // the visible "sweatiness" is the skin's smoothness climbing toward a
-        // wet gloss — sunlight then pings off the whole body.
+        // Unified skin-wetness pool (clothes-like drying, a touch faster):
+        // rain fills it toward 1 fast; sweat fills it toward the current
+        // sweat level slower; it always DRAINS gradually — rain stopping
+        // leaves her glistening for ~a minute, cooling down doesn't
+        // instantly dry the sweat, and while she stays hot the wetness
+        // never drains below her sweat level.
+        var sweatLevel = Mathf.Clamp01(thermal / 0.6f);
+        var wetTarget = Mathf.Max(rainWet > 0.5f ? 1f : 0f, sweatLevel);
+        if (wetTarget > _skinWetness)
+        {
+            var rise = rainWet > 0.5f ? RainSoakPerSecond : SweatSoakPerSecond;
+            _skinWetness = Mathf.Min(wetTarget, _skinWetness + dt * rise);
+        }
+        else
+        {
+            _skinWetness = Mathf.Max(wetTarget, _skinWetness - dt * SkinDryPerSecond);
+        }
+
+        // Cloth rain sheen is inertial too (rain-only — sweat doesn't soak the
+        // shirt): fabric visibly darkens within seconds of standing in rain.
+        if (rainWet > 0.5f)
+        {
+            _clothRainWetness = Mathf.Min(1f, _clothRainWetness + dt * RainSoakPerSecond);
+        }
+        else
+        {
+            _clothRainWetness = Mathf.Max(0f, _clothRainWetness - dt * SkinDryPerSecond);
+        }
+
+        // Spec 35.5: each worn garment shows max(sim wetness, quick rain
+        // sheen). The sim value is the slow gameplay truth (soaks over game
+        // minutes, dries at fire/rack — so she STAYS wet after the storm);
+        // the inertial part makes cloth react to rain as fast as the skin.
+        if (_bodyBones != null && wornWetness != null)
+        {
+            foreach (var entry in wornWetness)
+            {
+                var tab = entry.IndexOf('\t');
+                if (tab > 0 && float.TryParse(entry.Substring(tab + 1),
+                        System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture, out var wetValue))
+                {
+                    _bodyBones.SetWearWetness(entry.Substring(0, tab),
+                        Mathf.Max(wetValue, _clothRainWetness));
+                }
+            }
+        }
+
+        _skinDecals.Sync(wounds, _uncoveredScratch, hygiene, thermal, _skinWetness);
+
+        // Wet sheen: hot skin glistens — and rain-soaked skin the same way
+        // (spec 35.5: rain reuses the sweat tech). The droplet decals are
+        // albedo-only, so the visible wetness is the skin's smoothness
+        // climbing toward a wet gloss — sunlight then pings off the body.
+        // The gloss reads straight from the unified wetness pool — rain and
+        // sweat both feed it, so whichever is stronger wins naturally.
         _skinMpb ??= new MaterialPropertyBlock();
-        var sweat01 = Mathf.Clamp01(thermal / 0.6f);
+        var sweat01 = _skinWetness;
         var smoothness = Mathf.Lerp(DrySkinSmoothness, WetSkinSmoothness, sweat01);
         foreach (var (renderer, index) in _skinTintTargets)
         {
@@ -806,6 +887,11 @@ public sealed class NpcActorView : MonoBehaviour
                 localRotation = Quaternion.Euler(0.808f, 0f, 0f);
                 localScale = new Vector3(0.7718072f, 0.9210232f, 0.7718072f);
                 return true;
+            case "tool.spear":
+                localPosition = new Vector3(0.058f, -0.025f, -0.078f);
+                localRotation = Quaternion.Euler(-1.544f, -263.963f, 90.255f);
+                localScale = new Vector3(0.405947f, 0.405947f, 0.405947f);
+                return true;
             default:
                 localPosition = Vector3.zero;
                 localRotation = Quaternion.identity;
@@ -1110,6 +1196,8 @@ public sealed class NpcActorView : MonoBehaviour
         {
             _animator.SetFloat(SpeedParam, 0f);
             _animator.SetFloat(TurnDirectionParam, 0f);
+            _animator.speed = 1f; // sleep clips run at authored pace
+            _animSpeed = 1f;
             _motionSampleValid = false;
             return;
         }
@@ -1131,8 +1219,25 @@ public sealed class NpcActorView : MonoBehaviour
         _lastPosition = position;
         _lastYaw = yaw;
 
-        var walking = linearSpeed > _moveEpsilon;
+        // Hysteresis: harder to START walking than to KEEP walking, so the
+        // stop-start junction gait doesn't flicker the walk/idle blend.
+        var threshold = _wasWalking ? _moveEpsilon * 0.6f : _moveEpsilon * 1.3f;
+        var walking = linearSpeed > threshold;
+        _wasWalking = walking;
         _animator.SetFloat(SpeedParam, walking ? 1f : 0f, 0.05f, Time.deltaTime);
+
+        // Scale the walk-cycle playback to the measured speed: half the
+        // speed = half the cadence. Clamped so extreme crawling still reads
+        // as steps and healthy walking never overclocks.
+        var targetAnimSpeed = 1f;
+        if (walking && _bodyRoot != null)
+        {
+            var fullSpeed = 1.7f * _bodyRoot.lossyScale.y * FullWalkBodyHeightsPerSec;
+            targetAnimSpeed = Mathf.Clamp(linearSpeed / Mathf.Max(0.0001f, fullSpeed), 0.35f, 1.15f);
+        }
+
+        _animSpeed = Mathf.MoveTowards(_animSpeed, targetAnimSpeed, Time.deltaTime * 3f);
+        _animator.speed = _animSpeed;
 
         // Turning on the spot: meaningful yaw rate while standing.
         var turn = 0f;

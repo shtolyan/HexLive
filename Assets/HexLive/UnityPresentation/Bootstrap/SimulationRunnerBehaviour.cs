@@ -90,6 +90,12 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
         }
 
         _accumulator += Time.unscaledDeltaTime * _clock.SpeedMultiplier;
+
+        // Spec 41.1: a frame hitch (spawning, GC, shader compile) must never
+        // turn into a catch-up burst of ticks. ~3 game-seconds of backlog max;
+        // at 50x the per-frame budget (~0.8 s) stays far below the clamp.
+        _accumulator = Mathf.Min(_accumulator, _settings.TickDeltaTime * 12f);
+
         var maxTicks = Mathf.Max(1, _settings.MaxTicksPerFrame);
 
         for (var i = 0; i < maxTicks && _accumulator >= _settings.TickDeltaTime; i++)
@@ -99,6 +105,87 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
         }
 
         FlushEventsToConsole();
+        AutosaveTick();
+    }
+
+    // Spec 41.2 v2: autosave — every 60 real seconds while enabled (the
+    // loading screen turns this on once the world is presented), plus on quit
+    // and on leaving play mode (OnDestroy). The save is the FULL model blob
+    // (tens of KB) — still trivial next to a 60-second cadence.
+    private const float AutosaveIntervalSeconds = 60f;
+    private float _autosaveTimer;
+
+    public bool AutosaveEnabled { get; set; }
+
+    // Spec 41.1 safety net: if the loading coroutine dies without unpausing
+    // (an in-play domain reload kills coroutines silently), the game must not
+    // stay frozen behind a dead curtain — resume once the loader is gone.
+    private float _loaderWatchdog;
+
+    private void LateUpdate()
+    {
+        if (_clock is null || !_clock.IsPaused || AutosaveEnabled)
+        {
+            return;
+        }
+
+        _loaderWatchdog += Time.unscaledDeltaTime;
+        if (_loaderWatchdog < 2f)
+        {
+            return;
+        }
+
+        _loaderWatchdog = 0f;
+        if (FindAnyObjectByType<UI.LoadingScreen>() == null)
+        {
+            Debug.LogWarning("[HexLive] Loading screen died without finishing — resuming.");
+            _clock.Resume();
+            AutosaveEnabled = true;
+        }
+    }
+
+    private void AutosaveTick()
+    {
+        if (!AutosaveEnabled)
+        {
+            return;
+        }
+
+        _autosaveTimer += Time.unscaledDeltaTime;
+        if (_autosaveTimer < AutosaveIntervalSeconds)
+        {
+            return;
+        }
+
+        _autosaveTimer = 0f;
+        WriteSaveNow();
+    }
+
+    public void WriteSaveNow()
+    {
+        if (_engine is null)
+        {
+            return;
+        }
+
+        SaveGame.Write(_engine.World, SpeedMultiplier);
+    }
+
+    private void OnApplicationQuit()
+    {
+        if (AutosaveEnabled)
+        {
+            WriteSaveNow();
+        }
+    }
+
+    private void OnDestroy()
+    {
+        // Editor play-mode exit skips OnApplicationQuit — save here too.
+        if (AutosaveEnabled)
+        {
+            WriteSaveNow();
+        }
     }
 
     private void FlushEventsToConsole()

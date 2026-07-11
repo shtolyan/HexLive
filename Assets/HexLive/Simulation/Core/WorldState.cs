@@ -54,6 +54,11 @@ public sealed class WorldState
     // pathfinder may cross at ~4x cost (a slow, shark-risked last resort).
     public System.Collections.Generic.HashSet<Common.JunctionId> SwimJunctions { get; } = new();
 
+    // Spec 40.18 step 4: the strait crossing to the second island — swim
+    // junctions the pathfinder charges a reduced cost so a foraging NPC can
+    // afford the hop for an island-exclusive resource (the wider ring stays 4x).
+    public System.Collections.Generic.HashSet<Common.JunctionId> StraitJunctions { get; } = new();
+
     // Spec 29C.1: all chance rolls mix this seed.
     public int Seed { get; set; } = 12345;
 

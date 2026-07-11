@@ -411,6 +411,7 @@ public sealed class WorldStateFactory
         {
             world.Junctions.Items[id].Blocked = false;
             world.SwimJunctions.Add(id);
+            world.StraitJunctions.Add(id); // spec 40.18 step 4: cheap crossing
         }
     }
 

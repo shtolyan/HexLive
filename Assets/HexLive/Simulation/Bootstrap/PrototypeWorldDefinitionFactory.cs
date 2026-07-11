@@ -377,8 +377,13 @@ namespace HexLive.Simulation.Bootstrap
             // Spec 40.12: more scattered gear — the wilds reward exploring, and
             // a found tool saves a craft. GatherTools already collects any
             // reachable Tool not carried.
-            Place("tool.pickaxe_stone", 1, 881, 2);
             Place("tool.saw", 1, 991, 2);
+
+            // Spec 40.18 step 4: the ONLY pickaxe sits on the second island —
+            // an island-exclusive tool a GatherTools NPC must cross the strait
+            // for (plus a palm for food/wood), reached via the cheap strait.
+            definition.Objects.Add(Object(nextId++, "tree.palm", 1, 9, 4, 1));
+            definition.Objects.Add(Object(nextId++, "tool.pickaxe_stone", 1, 9, 5, 2));
 
             // Drink spots along the river: one river object per few water rows.
             var placedRiver = 0;

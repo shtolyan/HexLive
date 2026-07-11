@@ -131,8 +131,18 @@ public static class HexPathfinder
     // last resort, so a route only takes to the water when there's no dry way.
     private const long SwimCost = 40L;
 
+    // Spec 40.18 step 4: the strait to the second island is a cheap swim (2x),
+    // so a foraging NPC will actually make the hop for an island-exclusive
+    // resource. The wider ring stays SwimCost (4x), a shark-risked last resort.
+    private const long StraitCost = 20L;
+
     private static long ClimbCost(WorldState world, JunctionId from, JunctionId to, bool weightClimb)
     {
+        if (world.StraitJunctions.Contains(to))
+        {
+            return StraitCost;
+        }
+
         if (world.SwimJunctions.Contains(to))
         {
             return SwimCost;

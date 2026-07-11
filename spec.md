@@ -7525,6 +7525,22 @@ grows) — budget multi-round rebalancing per [[project_dog_fragility_balance]].
    high-level goal to cross (swim = shark risk, or the raft §40.15 = safe
    crossing) to the next island. Ties the escape raft's payoff to a real
    destination. LLM joint-planning (§40.16) is the natural driver.
+   **UPDATE — SHIPPED (functional crossing).** No new goal or depletion
+   economy was needed: the existing `GatherTools` goal drives it once two
+   conditions hold. (a) The strait is a CHEAP crossing — `OpenStraitCorridor`
+   tags its junctions into `WorldState.StraitJunctions`, and `HexPathfinder`
+   charges them `StraitCost` (2×) instead of the ring's `SwimCost` (4×), so a
+   route will actually take the hop; the wider ring stays 4× (a shark-risked
+   last resort nobody enters). (b) The island holds an EXCLUSIVE resource —
+   the ONLY `tool.pickaxe_stone` now sits on the island (the mainland scatter
+   was removed), so a tool-seeking NPC must cross for it (a palm rides along
+   for food/wood). Measured: 2 of 6 seeds show a real crossing (the island
+   pickaxe is gathered and carried home), all 6 stay soak-green. A non-
+   exclusive resource is dormant (nobody crosses — home has equivalents), and
+   the cheap strait alone doesn't reshuffle the colony past the §40.18-step-3
+   budget. The shark bite during the short strait hop is rare enough to keep
+   `survivorsOk`. Depletion economy + LLM driver remain future enrichment; the
+   core loop (cross the strait for island-exclusive loot) is live and green.
 Presentation: water-swim animation, shark model + fin, island terrain —
 all Unity-side, land when the editor is connected.
 

@@ -4603,6 +4603,43 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 }
             }
 
+            // Spec 40.5: theft — if still starving at the brink and nobody
+            // shared, take food from an adjacent housemate who has some (a hard
+            // choice under scarcity; the victim loses the meal). Mirrors the
+            // food-sharing block but takes regardless of the victim's own state.
+            if (starved && npc.CurrentJunction is { } thiefJct)
+            {
+                foreach (var victim in world.Entities.Npcs.Values)
+                {
+                    if (victim.Id.Equals(npc.Id) || victim.Health <= 0f ||
+                        victim.CurrentJunction is not { } victimJct)
+                    {
+                        continue;
+                    }
+
+                    var adjacent = victimJct.Equals(thiefJct) ||
+                        (world.Junctions.Items.TryGetValue(victimJct, out var vj) &&
+                         vj.Neighbors.Contains(thiefJct));
+                    if (!adjacent)
+                    {
+                        continue;
+                    }
+
+                    var loot = victim.Inventory.FindFirstFood(world.Content);
+                    if (loot is null)
+                    {
+                        continue;
+                    }
+
+                    victim.Inventory.Items.Remove(loot);
+                    npc.Needs.Hunger = MathUtil.Clamp01(npc.Needs.Hunger - 0.5f);
+                    starved = npc.Needs.Hunger >= 0.95f;
+                    Trace.EmitSystem(world, "FoodStolen",
+                        $"NPC{npc.Id.Value} stole {loot} from NPC{victim.Id.Value}");
+                    break;
+                }
+            }
+
             if (starved || parched)
             {
                 var damage = starved && parched ? 0.05f : 0.03f;

@@ -7308,6 +7308,17 @@ pass — order chosen to add robustness before difficulty.
   to the hungry), theft, and generosity shaped by relationships stay
   deferred — those add competing goals and reroutes that reshuffle the
   fragile dog-dance.
+- **Shipped v1 (theft):** the flip side. If an NPC is still starving at the
+  death-brink after nobody shared, and an adjacent housemate is *carrying*
+  food, the starving one **takes it** — the victim loses the meal (a hard
+  choice under scarcity). Mirrors food-sharing (same passive last-resort
+  adjacency check, no goal/reroute) but takes regardless of the victim's own
+  state. Verified: all 6 soak seeds green with deaths identical to baseline
+  — it's dormant in the standard soaks (a housemate carrying a spare meal
+  next to a starving one is a rare coincidence, like sharing) but present and
+  non-destabilizing when it does fire. NOTE: an earlier *inference* that
+  theft would destabilize was wrong — measured, it's safe like sharing,
+  because it places nothing and fires only on the rare brink-adjacency.
 
 ### 40.6 Hygiene & dirt
 - New need **Hygiene**: NPCs get **dirty** over time (visual grime + the

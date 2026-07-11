@@ -7500,6 +7500,27 @@ grows) — budget multi-round rebalancing per [[project_dog_fragility_balance]].
 3. **Second island.** Extend world-gen with a second land mass across a
    Swimmable strait, seeded with fresh loot (a pickaxe/saw already scatter,
    §40.12) and its own resources. Connectivity cache must span both.
+   **UPDATE — SHIPPED (reachable island).** A second land mass sits in the SE
+   sea at (9,4)/(9,5) (`PrototypeWorldDefinitionFactory` forces those tiles to
+   elevation 1). `WorldStateFactory.OpenStraitCorridor` floods the SE strait
+   box (all-water junctions with tiles in q7–10,r2–6) into `SwimJunctions`, so
+   the island joins the mainland's connected component (BFS-measured: 9841
+   junctions, i.e. the whole map). NOTE: the one-deep swim ring alone can't
+   bridge a full water tile (its interior junctions stay all-water/blocked) —
+   the corridor flood is required; island terrain alone leaves a 163-junction
+   isolated blob. The prior "far shore is topologically isolated" conclusion
+   was a probe artifact (`npc.CurrentJunction` is null at bootstrap), not real.
+   REBALANCE COST (per the standing "accept multi-round balancing" directive):
+   the far-corner terrain change reshuffles the knife-edge dog-dance to 1/6 on
+   its own, so the colony's perturbation budget had to be widened to absorb it
+   — `BiteDamagePerPass` 0.10→0.07, `HungerRate` 0.02→0.016, `ThirstRate`
+   0.025→0.020. This is the ONLY config that soaks 6/6: tightening any of the
+   three whack-a-moles (0.09/0.019/0.024 → 4/6 breaking 31337/555; 0.08/0.017/
+   0.022 → 4/6 breaking 12345/555 — different seeds each step). Same lesson as
+   the climb weight §40.17: multi-dimensional loosening converges where single
+   knobs oscillate. The island is REACHABLE but not yet a crossing DESTINATION
+   (no island-exclusive resource wired → NPCs have no incentive to swim there);
+   that is step 4. Revert the three constants + the two bootstrap edits to undo.
 4. **Island-hopping goal.** Resources deplete on the home island → a
    high-level goal to cross (swim = shark risk, or the raft §40.15 = safe
    crossing) to the next island. Ties the escape raft's payoff to a real

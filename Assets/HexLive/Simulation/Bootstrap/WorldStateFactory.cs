@@ -374,6 +374,44 @@ public sealed class WorldStateFactory
             world.Junctions.Items[id].Blocked = false;
             world.SwimJunctions.Add(id);
         }
+
+        OpenStraitCorridor(world);
+    }
+
+    // Spec 40.18: flood the SE strait box so a connected swim path bridges the
+    // peninsula to the second island (the one-deep ring alone can't cross a full
+    // water tile). Bounded to the SE corner the home colony never routes into.
+    private static void OpenStraitCorridor(WorldState world)
+    {
+        var opened = new System.Collections.Generic.List<Common.JunctionId>();
+        foreach (var junction in world.Junctions.Items.Values)
+        {
+            if (!junction.Blocked || !SpatialQueries.IsAllWaterJunction(world, junction.Id))
+            {
+                continue;
+            }
+
+            var inStrait = junction.Tiles.Count > 0;
+            foreach (var coord in junction.Tiles)
+            {
+                if (coord.Q < 7 || coord.Q > 10 || coord.R < 2 || coord.R > 6)
+                {
+                    inStrait = false;
+                    break;
+                }
+            }
+
+            if (inStrait)
+            {
+                opened.Add(junction.Id);
+            }
+        }
+
+        foreach (var id in opened)
+        {
+            world.Junctions.Items[id].Blocked = false;
+            world.SwimJunctions.Add(id);
+        }
     }
 
     private static void BlockEdgeJunctions(WorldState world)

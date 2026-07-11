@@ -4372,11 +4372,11 @@ public sealed class NeedsDecaySystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Slow;
 
-    private const float HungerRate = 0.02f;
+    private const float HungerRate = 0.016f;
     private const float EnergyRate = 0.015f;
     private const float ComfortRate = 0.01f;
     private const float SocialRate = 0.008f; // spec 28.15A
-    private const float ThirstRate = 0.025f; // spec 29E.1
+    private const float ThirstRate = 0.020f; // spec 29E.1
 
     private static readonly BodyPart[] AllBodyParts =
     {
@@ -5126,7 +5126,7 @@ public sealed class DogSystem : ISimulationSystem
     private const int SpawnMinDistanceFromNpc = 5;
     private const float RoamChance = 0.2f;
     private const int AggroRadiusTiles = 2;
-    private const float BiteDamagePerPass = 0.10f; // softened to enable the climb weight (40.17)
+    private const float BiteDamagePerPass = 0.07f; // 0.10 for climb weight (40.17), widened to 0.07 for the second island (40.18)
     private const float NpcStrikePerPass = 0.15f;
 
     private int _nextSpawnCheckTick;

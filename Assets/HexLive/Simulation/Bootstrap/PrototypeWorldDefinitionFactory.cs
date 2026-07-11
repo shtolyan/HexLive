@@ -215,6 +215,13 @@ namespace HexLive.Simulation.Bootstrap
                     elevation = System.Math.Max(1, System.Math.Min(2, elevation));
                 }
 
+                // Spec 40.18: a small second island in the SE sea, reachable via
+                // the swim strait opened in OpenStraitCorridor.
+                if (coord.Q == 9 && (coord.R == 4 || coord.R == 5))
+                {
+                    elevation = System.Math.Max(elevation, 1);
+                }
+
                 if (elevation <= 0)
                 {
                     // Open sea: visible water, but nobody swims off the island.

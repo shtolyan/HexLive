@@ -165,6 +165,10 @@ public sealed class NpcSnapshot
     // Limp, ArmHang, HeadClutch, Upright.
     public string PostureHint { get; set; } = "Upright";
 
+    // Spec 40.1: winded — stamina spent to the floor. Drives the panting
+    // pose/breath in presentation. Derived (Stamina < 0.15), export-only.
+    public bool Winded { get; set; }
+
     // Spec 40.13: knocked out — the presentation lays the body limp.
     public bool IsFainted { get; set; }
 

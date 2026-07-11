@@ -7256,6 +7256,14 @@ pass — order chosen to add robustness before difficulty.
   urge to sit/lie down and recover.
 - Extreme depletion (plus hunger/stress) can cause **unconsciousness**:
   the NPC ragdolls, falls, and lies for a while before getting up.
+- **Shipped v1:** stamina drains −0.05/slow-tick while working/moving,
+  recovers +0.06 resting (sit/sleep) and +0.015 idle, under a ceiling set
+  by Hunger/Energy/Comfort — verified to dip near the floor under sustained
+  work in soak. Soft: it does not gate actions (that collapses the
+  economy), only nudges the rest goals and colours the UI. The **panting**
+  cue is exported as a derived `Winded` flag (`Stamina < 0.15`) for the
+  presentation breath/pose; the ragdoll-faint on extreme depletion is the
+  existing `FaintedUntilTick` path (§40.13), surfaced as `IsFainted`.
 
 ### 40.2 Blood & bleeding
 - Wounds cause **gradual blood loss**. Low blood → death if untended.

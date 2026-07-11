@@ -421,6 +421,8 @@ public sealed class WorldStateFactory
         // always to hand (foreshadows the weapon-slot equipment). With
         // coconuts scarcer, this lets hunting actually happen from day one.
         npc.Inventory.Items.Add(new Agents.ItemInstance("tool.spear"));
+        // Spec 40.3: two bandages start in the med pouch (Needs.Bandages),
+        // not the general pack.
 
         world.Entities.Npcs[npc.Id] = npc;
         world.Occupancy.EntitiesInTile[coord].Add(npc.Id);

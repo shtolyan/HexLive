@@ -496,6 +496,23 @@ public static class PrototypeContentCatalog
                     }
                 }
             },
+            // Spec 40.3: a bandage — first aid. Auto-applied when bleeding to
+            // dress the worst wound and stem blood loss. A carried consumable.
+            ["item.bandage"] = new ObjectDefinition
+            {
+                Id = "item.bandage",
+                DisplayName = "Bandage",
+                Tags = { "Medicine" },
+                Interactions =
+                {
+                    new InteractionDefinition
+                    {
+                        Id = "pickup.bandage",
+                        Type = InteractionType.PickUp,
+                        DurationTicks = 4
+                    }
+                }
+            },
             // Spec 29H: the personal water bottle — a definition so it renders
             // and shows in the panel; the fill state lives on the NPC.
             ["tool.bottle"] = new ObjectDefinition

@@ -4368,16 +4368,42 @@ public sealed class NeedsDecaySystem : ISimulationSystem
 
             if (worstPart < 0.4f)
             {
-                npc.Needs.Blood = System.Math.Max(0f, npc.Needs.Blood - (0.4f - worstPart) * 0.06f);
-                if (npc.Needs.Blood <= 0f)
+                // Spec 40.3: a bandage in the pack dresses the worst wound —
+                // patch it up, stem the blood, and it's consumed. First aid
+                // that turns a mauling from fatal into survivable.
+                // Last resort: only when actually bleeding out (blood < 0.35),
+                // so it saves a life without re-shuffling the colony over
+                // every scratch (every mauling survivor would otherwise shift
+                // the deterministic dog-dance and tip fragile seeds).
+                if (npc.Needs.Bandages > 0 && npc.Needs.Blood < 0.35f)
                 {
-                    npc.Health = 0f;
-                    Trace.Emit(world, npc.Id, "BledOut", $"Worst part {worstPart:F2} — blood loss");
+                    npc.Needs.Bandages--;
+                    foreach (var part in AllBodyParts)
+                    {
+                        if (npc.Body.Parts[part] < 0.4f)
+                        {
+                            npc.Body.Parts[part] = MathUtil.Clamp01(npc.Body.Parts[part] + 0.25f);
+                        }
+                    }
+
+                    npc.Health = npc.Body.Mean();
+                    npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood + 0.4f);
+                    Trace.Emit(world, npc.Id, "Bandaged",
+                        $"Dressed the wounds (Health={npc.Health:F2})");
                 }
                 else
                 {
-                    Trace.Emit(world, npc.Id, "Bleeding",
-                        $"Worst={worstPart:F2} Blood={npc.Needs.Blood:F2}");
+                    npc.Needs.Blood = System.Math.Max(0f, npc.Needs.Blood - (0.4f - worstPart) * 0.06f);
+                    if (npc.Needs.Blood <= 0f)
+                    {
+                        npc.Health = 0f;
+                        Trace.Emit(world, npc.Id, "BledOut", $"Worst part {worstPart:F2} — blood loss");
+                    }
+                    else
+                    {
+                        Trace.Emit(world, npc.Id, "Bleeding",
+                            $"Worst={worstPart:F2} Blood={npc.Needs.Blood:F2}");
+                    }
                 }
             }
             else if (npc.Needs.Blood < 1f && npc.Needs.Hunger < 0.6f)

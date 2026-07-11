@@ -35,8 +35,13 @@ public sealed class NPCNeeds
 
     // Spec 40.2: blood (1 = full). A badly wounded part (< 0.4) bleeds — blood
     // ebbs away; it refills slowly while fed and rested. At zero the NPC dies
-    // of blood loss. Bandages (later) stop the bleed and speed the refill.
+    // of blood loss. Bandages stop the bleed and speed the refill.
     public float Blood { get; set; } = 1f;
+
+    // Spec 40.3: first-aid stock, held apart from the general inventory (a
+    // med pouch — it must not crowd food/materials out of the pack). Two to
+    // start; auto-spent to dress a serious wound.
+    public int Bandages { get; set; } = 2;
 }
 
 }

@@ -7236,3 +7236,114 @@ the current spatial system, not bolted on.
 Each iteration keeps the spec-first discipline: numbers land in the
 relevant deep sections (20, 29C-F, 31A) as they are implemented; this
 master plan is the map, not the law.
+
+---
+
+## §40 Survivor Arc — Roadmap (captured 2026-07-11)
+
+A large design brainstorm from the user, recorded verbatim-in-intent so
+nothing is lost. Items are implemented iteration-by-iteration (spec-first,
+2-seed+ soak, commit); anything not yet built lives here as the plan. The
+colony is currently dog-fragile, so each behavioural change is a balancing
+pass — order chosen to add robustness before difficulty.
+
+### 40.1 Stamina (new core need)
+- A derived reserve: high when **fed, rested, comfortable** (formed from
+  Hunger/Energy/Comfort). **Every action spends stamina** (harvest, craft,
+  build, hunt, gather…). Depleted stamina → the NPC must **rest** (sit,
+  lie, sleep) or **eat** to recover; idling recovers it slowly, resting
+  fast. When it hits zero: **panting** ("фух-фух") animation, a strong
+  urge to sit/lie down and recover.
+- Extreme depletion (plus hunger/stress) can cause **unconsciousness**:
+  the NPC ragdolls, falls, and lies for a while before getting up.
+
+### 40.2 Blood & bleeding
+- Wounds cause **gradual blood loss**. Low blood → death if untended.
+  Blood **regenerates like HP** over time (and via food/rest). Bandages/
+  medicine speed it and stop bleeding.
+
+### 40.3 Medicine & stockpiling (Safety goal)
+- New consumables: **bandages, pills** — treat wounds / stop bleeding /
+  restore HP. New **Safety goal**: keep a reserve of food, water, medicine,
+  supplies. NPCs stockpile against scarcity.
+
+### 40.4 Harder gathering, more food, storage
+- Reduce the deficit (more total food) but make **acquiring it harder**
+  (further, gated, riskier). Chests / storage places to stockpile
+  resources & food (foreshadowed by the Safety goal).
+
+### 40.5 Emergent cooperation & theft
+- NPCs **help each other** with food/supplies. When truly starving they
+  make **hard choices** — even **stealing** from a housemate. Social
+  fabric under scarcity.
+
+### 40.6 Hygiene & dirt
+- New need **Hygiene**: NPCs get **dirty** over time (visual grime + the
+  param). Restore by **bathing** — swim in water / stand under a
+  **waterfall** / shower. Find/borrow swim & shower animations (the
+  molly_copy repo has a shower animation).
+
+### 40.7 Sunburn → tan (skin system)
+- Skin **reddens where clothing doesn't cover**, sharply along garment
+  edges (a t-shirt's neckline burns in a clean line). Fresh burn = bright
+  red; over time it **fades to a dark tan**. Torn clothing lets those
+  patches tan too. New param **skin protection**; UV/heat damage tied to
+  it. Strong overheat → **heatstroke / sunstroke** damage and possible
+  faint. Implement by painting the skin texture progressively (burn→tan)
+  masked by coverage.
+
+### 40.8 Visible injuries (decals/texture)
+- Where a bone is hit (leg/arm/head/belly), draw a **wound** on the
+  skin/clothing — texture paint or decal. Real, visible damage.
+
+### 40.9 Injury-driven locomotion & poses
+- **Limp** when a leg is hurt; **crawl** when both legs are down; a hurt
+  **arm hangs** ragdoll-limp; hands **clutch head/belly** when those parts
+  are hit. Ties bone health → animation.
+
+### 40.10 Clothing wear (verify + visual)
+- Verify durability actually works; **worn-out clothing turns to trash**
+  and is discarded. **Visual tearing**: garments get progressively ragged
+  (torn tights = transparent alpha-cut texture). Research alpha-cutout /
+  texture-erosion tech; drive rip amount by durability.
+
+### 40.11 Character UI panel
+- Select an NPC → a **button** opens a panel showing: **equipment slots**
+  (what's worn/held where), **clothing durability** with progress bars,
+  and **bone health** (which parts are wounded). Live inspection.
+
+### 40.12 Expand the island & scattered loot
+- **Bigger / multiple islands.** Scatter **findable items** (pickaxe, saw,
+  varied gear) with different models & params — crafting takes a back seat
+  to exploration/finding for a while.
+
+### 40.13 Ragdoll
+- Verify ragdoll works. Use it for **faint / collapse-from-exhaustion**
+  and possibly a relaxed sleep flop.
+
+### 40.14 Tent (sun shelter) & tiered beds
+- **Tent**: a min-1-hex **angled canopy** that shades one person from the
+  sun — one (or two) hex edges become an impassable roof. A **bed can go
+  under it**. Needs a nice model (leaves + sticks).
+- **Tiered beds**: the current bedroll becomes **tier 2** (high comfort,
+  expensive). Add a **simple leaf sleeping-mat** — cheap, only a little
+  better than bare grass.
+
+### 40.15 Global goal — escape the island
+- Beyond "survive": **leave the island.** Build a **raft (with a motor)**
+  and sail away, hopping between **multiple islands** (resources run out;
+  move on). Swimming risks a **shark** mob (attacks/kills mid-swim); a raft
+  is the safe crossing. Endgame in the spirit of survival games (build up,
+  then depart). NPCs must **organize together** for it.
+
+### 40.16 LLM assist
+- Wire an **LLM** to suggest **joint plans** when the colony is in dire
+  straits — high-level cooperative strategy the hand-written AI can't
+  reach. (Spec has earlier hooks for this; formalize the trigger + I/O.)
+
+### Implementation order (living)
+Robustness first, spectacle second: 40.1 Stamina → 40.2 Blood →
+40.14 tiered beds + tent → 40.3 medicine/Safety → 40.6 Hygiene →
+40.7 tan/skin → 40.10 wear + 40.8 injuries + 40.9 poses (presentation,
+needs live Unity) → 40.11 UI → 40.12 bigger island/loot → 40.13 ragdoll →
+40.15 escape/rafts/shark → 40.5 cooperation/theft → 40.16 LLM.

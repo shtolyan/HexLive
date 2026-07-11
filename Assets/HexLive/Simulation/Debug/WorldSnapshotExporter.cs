@@ -121,6 +121,9 @@ public static class WorldSnapshotExporter
 
             foreach (var item in npc.WornItems)
             {
+                // Spec 40.11: per-garment durability for the character panel's
+                // wear progress bars ("id\tdurability").
+                npcSnapshot.WornDurability.Add($"{item.DefinitionId}\t{item.Durability:0.###}");
                 npcSnapshot.WornItems.Add(item);
             }
 

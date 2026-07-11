@@ -168,6 +168,10 @@ public sealed class NpcSnapshot
 
     public List<string> WornItems { get; } = new();
 
+    // Spec 40.11: "definitionId\tdurability" per worn garment — for the
+    // character panel's wear progress bars.
+    public List<string> WornDurability { get; } = new();
+
     public int InventoryCapacity { get; set; }
 
     public int? GoalLockEndTick { get; set; }

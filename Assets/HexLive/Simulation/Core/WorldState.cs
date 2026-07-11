@@ -40,6 +40,11 @@ public sealed class WorldState
     public int RaftProgress { get; set; }
     public const int RaftTarget = 20;
 
+    // Spec 40.17: walkable junctions that straddle a one-level elevation step —
+    // "climb seams". Tagged at world-gen; the pathfinder charges 2x to cross
+    // one so routes prefer the flat detour but still climb when it's shorter.
+    public System.Collections.Generic.HashSet<Common.JunctionId> ClimbSeams { get; } = new();
+
     // Spec 29C.1: all chance rolls mix this seed.
     public int Seed { get; set; } = 12345;
 

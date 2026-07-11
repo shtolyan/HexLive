@@ -116,6 +116,11 @@ public static class HexPathfinder
     // climbing is genuinely shorter.
     private static long ClimbCost(WorldState world, JunctionId from, JunctionId to)
     {
+        // Spec 40.17: seams are TAGGED (world.ClimbSeams) but not yet weighted.
+        // A 2x weight here reshuffled the fragile colony's dog-dance in soak
+        // (deaths 1->2 in 3 of 6 seeds), so the weight waits on a focused
+        // rebalance pass; routing stays byte-identical to plain BFS for now.
+        // Flip to `world.ClimbSeams.Contains(to) ? 2L : 1L` when rebalancing.
         return 1L;
     }
 }

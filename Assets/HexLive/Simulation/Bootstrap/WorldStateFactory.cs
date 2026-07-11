@@ -334,6 +334,12 @@ public sealed class WorldStateFactory
             {
                 junction.Blocked = true; // cliff face
             }
+            else if (junction.Tiles.Count > 1 && maxElevation - minElevation == 1)
+            {
+                // Spec 40.17: a walkable junction straddling a single step is a
+                // climb seam — crossable, but the pathfinder charges 2x.
+                world.ClimbSeams.Add(junction.Id);
+            }
         }
     }
 

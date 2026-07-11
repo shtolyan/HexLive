@@ -1,3 +1,4 @@
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Spatial;
 
@@ -149,6 +150,20 @@ public static class WorldSnapshotExporter
             npcSnapshot.WorstBodyPart = worstPartValue < 1f
                 ? $"{worstPartName} {worstPartValue:F2}"
                 : "OK";
+
+            // Spec 40.9: one authoritative injury-locomotion hint for the
+            // presentation pose layer. Priority: faint > crawl (both legs) >
+            // limp (one leg) > arm hang > head clutch > upright.
+            float Part(BodyPart p) => npc.Body.Parts.TryGetValue(p, out var v) ? v : 1f;
+            var legL = Part(BodyPart.LegL);
+            var legR = Part(BodyPart.LegR);
+            npcSnapshot.PostureHint =
+                npcSnapshot.IsFainted ? "Faint"
+                : legL < 0.4f && legR < 0.4f ? "Crawl"
+                : legL < 0.4f || legR < 0.4f ? "Limp"
+                : Part(BodyPart.ArmL) < 0.4f || Part(BodyPart.ArmR) < 0.4f ? "ArmHang"
+                : Part(BodyPart.Head) < 0.4f ? "HeadClutch"
+                : "Upright";
 
             foreach (var cooldown in npc.Mind.Cooldowns)
             {

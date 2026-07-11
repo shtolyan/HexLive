@@ -7334,6 +7334,14 @@ pass — order chosen to add robustness before difficulty.
 - **Limp** when a leg is hurt; **crawl** when both legs are down; a hurt
   **arm hangs** ragdoll-limp; hands **clutch head/belly** when those parts
   are hit. Ties bone health → animation.
+- **Shipped v1 (sim hint):** the snapshot exports a single authoritative
+  `PostureHint` per NPC, derived from body damage + faint, so the
+  presentation pose layer has one unambiguous signal instead of
+  re-interpreting raw bone health. Priority: `Faint` > `Crawl` (both legs
+  < 0.4) > `Limp` (one leg) > `ArmHang` (an arm) > `HeadClutch` (head) >
+  `Upright`. Export-only — no simulation logic changes. The poses
+  themselves are presentation (Unity) and land when the pose layer reads
+  this hint.
 
 ### 40.10 Clothing wear (verify + visual)
 - Verify durability actually works; **worn-out clothing turns to trash**

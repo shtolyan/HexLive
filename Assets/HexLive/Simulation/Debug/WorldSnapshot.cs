@@ -160,6 +160,11 @@ public sealed class NpcSnapshot
     public int Pills { get; set; }
     public float Sunburn { get; set; }
 
+    // Spec 40.9: authoritative injury-locomotion hint for the presentation
+    // pose layer, derived from body damage + faint. One of: Faint, Crawl,
+    // Limp, ArmHang, HeadClutch, Upright.
+    public string PostureHint { get; set; } = "Upright";
+
     // Spec 40.13: knocked out — the presentation lays the body limp.
     public bool IsFainted { get; set; }
 

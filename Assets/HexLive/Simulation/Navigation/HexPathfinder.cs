@@ -25,18 +25,13 @@ public static class HexPathfinder
             return new List<JunctionId> { start };
         }
 
-        // Spec 40.17: uniform-cost search. Priority = gScore * PriorityScale +
-        // insertion order, so with every edge at ClimbCost == 1 it dequeues in
-        // exactly BFS order (the seq tiebreak preserves FIFO within a depth) —
-        // byte-identical to the old Queue BFS. This is the safe substrate for
-        // the deferred 2x climb-seam weight: the day seams are tagged at
-        // world-gen, ClimbCost returns 2 for a seam edge and detours win.
-        // Frontier ordered by (gScore, insertion-seq). The seq term makes every
-        // priority unique, so a SortedDictionary is a stable min-priority queue
-        // (and, unlike .NET 6's PriorityQueue, it compiles under Unity's
-        // netstandard2.1). With every edge at ClimbCost == 1 the ordering is
-        // exactly BFS — byte-identical, md5-verified against the pre-change soak.
-        const long priorityScale = 1_000_000L;
+        // Spec 40.17: uniform-cost search. Frontier ordered by (gScore, seq):
+        // the seq term makes every priority unique, so a SortedDictionary is a
+        // stable min-priority queue — and, unlike .NET 6's PriorityQueue, it
+        // compiles under Unity's netstandard2.1. While ClimbCost is uniform the
+        // ordering is exactly BFS (byte-identical, md5-verified against the
+        // pre-change soak); a per-edge seam weight drops in via ClimbCost.
+        const long priorityScale = 100_000_000L;
         var frontier = new SortedDictionary<long, JunctionId>();
         var cameFrom = new Dictionary<JunctionId, JunctionId?>();
         var gScore = new Dictionary<JunctionId, long>();
@@ -117,19 +112,21 @@ public static class HexPathfinder
         return path;
     }
 
-    // Spec 40.17: per-edge walk cost. v1 is uniform (1) — behaviourally
-    // identical to BFS. When elevation-step "climb seams" are tagged at
-    // world-gen (a symmetric climb-edge set on WorldState), this returns 2 for
-    // a seam edge so a route prefers the flat detour but still climbs when
-    // climbing is genuinely shorter.
+    // Spec 40.17: a flat step costs FlatCost; a climb seam costs SeamCost, so
+    // routes could prefer the flat way. Costs are scaled by 10 so a fractional
+    // multiplier stays integer. EMPIRICAL FINDING: no simple weight holds the
+    // fragile colony green — 2x worsened 3 of 6 seeds (deaths 1->2), and 1.5x
+    // COLLAPSED 3 seeds outright. The reshuffle of the deterministic dog-dance
+    // is chaotic per multiplier, so the weight needs a dedicated rebalance
+    // iteration (dog spawns / home layout), not a tweak. SeamCost stays ==
+    // FlatCost (uniform, byte-identical to BFS) until that pass; flip SeamCost
+    // to enable the weight and rebalance.
+    private const long FlatCost = 10L;
+    private const long SeamCost = 10L; // 1.0x = uniform; see finding above
+
     private static long ClimbCost(WorldState world, JunctionId from, JunctionId to)
     {
-        // Spec 40.17: seams are TAGGED (world.ClimbSeams) but not yet weighted.
-        // A 2x weight here reshuffled the fragile colony's dog-dance in soak
-        // (deaths 1->2 in 3 of 6 seeds), so the weight waits on a focused
-        // rebalance pass; routing stays byte-identical to plain BFS for now.
-        // Flip to `world.ClimbSeams.Contains(to) ? 2L : 1L` when rebalancing.
-        return 1L;
+        return world.ClimbSeams.Contains(to) ? SeamCost : FlatCost;
     }
 }
 

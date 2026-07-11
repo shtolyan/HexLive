@@ -7390,6 +7390,16 @@ pass — order chosen to add robustness before difficulty.
 - Wire an **LLM** to suggest **joint plans** when the colony is in dire
   straits — high-level cooperative strategy the hand-written AI can't
   reach. (Spec has earlier hooks for this; formalize the trigger + I/O.)
+- **Shipped v1 (trigger + I/O contract):** `AI.DireStraits.Assess(world)`
+  detects a colony-wide crisis (≥ 2 living NPCs, and ≥ half of them,
+  starving/parched or badly wounded at once). On the rising edge,
+  `NeedsDecaySystem` consults `DireStraits.Advisor` (an `IJointPlanAdvisor`)
+  and emits a `DireStraits` trace with the `DireStraitsContext`
+  (starving/wounded/living counts). The default advisor is a **null-object**
+  — the seam is **inert** (no behaviour change, colony soak unaffected) until
+  a host swaps in an LLM-backed advisor and acts on the returned plan. This
+  is exactly the "formalize the trigger + I/O" step; the live LLM call and
+  plan-application are the deferred v2.
 
 ### 40.17 Climb — weighted pathfinding (implementation plan, deferred)
 The user wants big elevation steps to be **climbable "seams"** that are 2×

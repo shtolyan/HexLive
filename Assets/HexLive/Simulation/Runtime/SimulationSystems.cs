@@ -4638,6 +4638,24 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 $"Comfort={prevComfort:F3}->{npc.Needs.Comfort:F3}(-{ComfortRate}) " +
                 $"Social={prevSocial:F3}->{npc.Needs.Social:F3}(-{SocialRate})");
         }
+
+        // Spec 40.16: joint-plan advisor trigger. On the rising edge of a
+        // colony-wide crisis, consult the advisor (a null-object by default, so
+        // this is inert) and trace the onset. Formalizes the trigger + I/O; a
+        // host swaps DireStraits.Advisor for an LLM-backed one to act on it.
+        var crisis = AI.DireStraits.Assess(world);
+        if (crisis is not null && !world.ColonyInDireStraits)
+        {
+            world.ColonyInDireStraits = true;
+            var advice = AI.DireStraits.Advisor.Advise(crisis);
+            Trace.EmitSystem(world, "DireStraits",
+                $"starving={crisis.StarvingCount} wounded={crisis.WoundedCount}/{crisis.LivingCount}" +
+                (string.IsNullOrEmpty(advice) ? "" : $" advice={advice}"));
+        }
+        else if (crisis is null)
+        {
+            world.ColonyInDireStraits = false;
+        }
     }
 }
 

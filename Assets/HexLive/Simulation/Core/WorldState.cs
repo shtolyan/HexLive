@@ -40,6 +40,11 @@ public sealed class WorldState
     public int RaftProgress { get; set; }
     public const int RaftTarget = 20;
 
+    // Spec 40.16: latch for the joint-plan advisor's dire-straits trigger — set
+    // while the colony is in crisis so the advisor is consulted once per onset,
+    // not every tick.
+    public bool ColonyInDireStraits { get; set; }
+
     // Spec 40.17: walkable junctions that straddle a one-level elevation step —
     // "climb seams". Tagged at world-gen; the pathfinder charges 2x to cross
     // one so routes prefer the flat detour but still climb when it's shorter.

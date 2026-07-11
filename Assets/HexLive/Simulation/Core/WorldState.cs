@@ -76,6 +76,9 @@ public sealed class WorldState
     // Spec 29F.1: prey.
     public System.Collections.Generic.List<Wildlife.RabbitState> Rabbits { get; } = new();
 
+    // Spec 40.18: sharks patrolling the swim ring — bite swimmers.
+    public System.Collections.Generic.List<Wildlife.SharkState> Sharks { get; } = new();
+
     public int NextRabbitId { get; set; } = 1;
 }
 

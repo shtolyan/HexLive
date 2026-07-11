@@ -43,4 +43,18 @@ public sealed class RabbitState
     public int SpookedUntilTick { get; set; }
 }
 
+// Spec 40.18: a shark — patrols water only, bites any NPC that swims. Like a
+// dog it's a simple roamer, not an NPC (no needs/plans). Dormant against the
+// land colony (it can't leave the water) until swimming gives it prey.
+public sealed class SharkState
+{
+    public int Id { get; set; }
+
+    public TileCoord Tile { get; set; } = TileCoord.Zero;
+
+    public JunctionId Junction { get; set; }
+
+    public Float2 Position { get; set; } = Float2.Zero;
+}
+
 }

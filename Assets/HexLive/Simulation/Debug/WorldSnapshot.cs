@@ -35,6 +35,8 @@ public sealed class WorldSnapshot
 
     public List<CrabSnapshot> Crabs { get; } = new();
 
+    public List<SharkSnapshot> Sharks { get; } = new();
+
     public List<TraceEventSnapshot> TraceEvents { get; } = new();
 }
 
@@ -58,6 +60,16 @@ public sealed class DogSnapshot
     public float Health { get; set; }
 
     public string Status { get; set; } = string.Empty;
+}
+
+// Spec 40.18: a shark patrolling the water (presentation renders a fin/model).
+public sealed class SharkSnapshot
+{
+    public int Id { get; set; }
+
+    public TileCoord Tile { get; set; } = TileCoord.Zero;
+
+    public Float2 Position { get; set; } = Float2.Zero;
 }
 
 public sealed class TileSnapshot

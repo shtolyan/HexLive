@@ -230,6 +230,16 @@ public static class WorldSnapshotExporter
             });
         }
 
+        foreach (var shark in world.Sharks)
+        {
+            snapshot.Sharks.Add(new SharkSnapshot
+            {
+                Id = shark.Id,
+                Tile = shark.Tile,
+                Position = shark.Position
+            });
+        }
+
         foreach (var dog in world.Dogs)
         {
             snapshot.Dogs.Add(new DogSnapshot

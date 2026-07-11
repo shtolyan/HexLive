@@ -6263,6 +6263,108 @@ public sealed class RabbitSystem : ISimulationSystem
     }
 }
 
+// Spec 40.18: sharks — simple water roamers (like dogs, not NPCs) that bite
+// any NPC caught swimming. Dormant against the land colony: they can't leave
+// the water and NPCs don't yet swim (the ring is a dead-end), so the bite
+// never fires until a second island gives the ring a far shore.
+public sealed class SharkSystem : ISimulationSystem
+{
+    public string Name => nameof(SharkSystem);
+
+    public TickLayer Layer => TickLayer.Medium;
+
+    private const int MaxSharks = 2;
+
+    private static readonly System.Collections.Generic.List<Common.JunctionId> _waterScratch = new();
+
+    public void Run(WorldState world)
+    {
+        if (world.Sharks.Count < MaxSharks && world.SwimJunctions.Count > 0)
+        {
+            var swims = new System.Collections.Generic.List<Common.JunctionId>(world.SwimJunctions);
+            var pick = (int)(MathUtil.Hash01(world.Seed, world.Tick, world.Sharks.Count, 6101) * swims.Count);
+            pick = System.Math.Min(pick, swims.Count - 1);
+            if (world.Junctions.Items.TryGetValue(swims[pick], out var jn))
+            {
+                world.Sharks.Add(new Wildlife.SharkState
+                {
+                    Id = 900 + world.Sharks.Count,
+                    Junction = swims[pick],
+                    Tile = jn.Tiles.Count > 0 ? jn.Tiles[0] : default,
+                    Position = jn.WorldPosition
+                });
+            }
+        }
+
+        foreach (var shark in world.Sharks)
+        {
+            RoamShark(world, shark);
+            BiteSwimmers(world, shark);
+        }
+    }
+
+    // Patrol among water junctions (the swim ring + open sea).
+    private static void RoamShark(WorldState world, Wildlife.SharkState shark)
+    {
+        if (!world.Junctions.Items.TryGetValue(shark.Junction, out var junction) ||
+            junction.Neighbors.Count == 0)
+        {
+            return;
+        }
+
+        _waterScratch.Clear();
+        foreach (var nid in junction.Neighbors)
+        {
+            if (SpatialQueries.IsAllWaterJunction(world, nid) || world.SwimJunctions.Contains(nid))
+            {
+                _waterScratch.Add(nid);
+            }
+        }
+
+        if (_waterScratch.Count == 0)
+        {
+            return;
+        }
+
+        var pick = (int)(MathUtil.Hash01(world.Seed, world.Tick, shark.Id, 6203) * _waterScratch.Count);
+        pick = System.Math.Min(pick, _waterScratch.Count - 1);
+        if (world.Junctions.Items.TryGetValue(_waterScratch[pick], out var nj))
+        {
+            shark.Junction = _waterScratch[pick];
+            shark.Tile = nj.Tiles.Count > 0 ? nj.Tiles[0] : shark.Tile;
+            shark.Position = nj.WorldPosition;
+        }
+    }
+
+    // Bite an NPC that's swimming on/next to the shark (dormant until swimming).
+    private static void BiteSwimmers(WorldState world, Wildlife.SharkState shark)
+    {
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            if (npc.Health <= 0f || npc.CurrentJunction is not { } njct ||
+                !world.SwimJunctions.Contains(njct))
+            {
+                continue;
+            }
+
+            var adjacent = njct.Equals(shark.Junction) ||
+                (world.Junctions.Items.TryGetValue(shark.Junction, out var sj) &&
+                 sj.Neighbors.Contains(njct));
+            if (!adjacent)
+            {
+                continue;
+            }
+
+            npc.Body.Parts[BodyPart.LegR] =
+                System.Math.Max(0f, npc.Body.Parts[BodyPart.LegR] - 0.2f);
+            npc.Health = npc.Body.Mean();
+            npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood - 0.15f);
+            Trace.Emit(world, npc.Id, "SharkBite", $"NPC{npc.Id.Value} bitten by shark {shark.Id}");
+            break;
+        }
+    }
+}
+
 // Spec 35.1: O(1) reachability via connected components. Path BFS remains
 // only for actual movement; every "can I get there at all" check uses this.
 // Spec 35.5: seeded rain fronts — no state machine beyond a deadline tick.

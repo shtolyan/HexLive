@@ -528,8 +528,12 @@ public sealed class DecisionSystem : ISimulationSystem
             // whole leather/bow tier dormant (4 seeds, ~0 hunts). But the
             // window closes at 0.55: a truly hungry NPC takes the sure meal,
             // not a chase with a 50% roll (starving storms otherwise).
+            // Spec 29F.4 (iter 32): window widened 0.55 -> 0.8. With coconuts
+            // scarce, hunger climbs past 0.55 often and GetFood may find no
+            // fruit — hunting must stay available as the real meat/hide source
+            // rather than ceding to a starve.
             var huntAvail = armed && !hasRawMeat &&
-                npc.Needs.Hunger >= 0.3f && npc.Needs.Hunger < 0.55f &&
+                npc.Needs.Hunger >= 0.3f && npc.Needs.Hunger < 0.8f &&
                 NearestVisibleRabbit(npc, world) is not null;
             var craftSpearAvail = !hasSpear && hasWood && campfireSeen;
             var cookAvail = hasRawMeat && campfireSeen && campfireFuel > 0f;

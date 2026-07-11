@@ -5945,6 +5945,28 @@ The land itself is furniture — worse than the real thing, but always there.
   (<= 0.55) in that window — at 0.35 the kit's logs were always eaten by
   the hearth. The hut-completion bed reward stays.
 
+### 29F.4 Coconuts trimmed, a spear in every hand (iteration 32)
+
+The colony did nothing but eat coconuts — hunting and the whole meat/hide/
+leather-armor tier lay dormant. Rebalanced so the wilds matter:
+
+- **Everyone bootstraps with a `tool.spear`** (like the bottle: a weapon
+  always to hand — foreshadows the weapon-slot equipment of a later pass).
+  This is what actually turns hunting on: NPCs no longer need to craft a
+  spear first, so a crab in sight becomes a hunt from day one.
+- **Coconuts trimmed**: palm `MaxConcurrent` 5 → **4**. A gentle cut — the
+  colony stays fed (crabs hug the far river and can't fully replace fruit,
+  so a harsh cut just starved everyone and starved the fire of wood-gathering
+  effort), but coconuts no longer blanket the map.
+- **Hunt window widened** 0.55 → **0.8** hunger: with fruit a little
+  scarcer, hunger climbs past 0.55 often; hunting must stay available as the
+  real meat/hide source rather than ceding to a hungrier GetFood.
+- Result: hunts happen (kills, then `clothing.leather_pants` sewn from
+  hides → armor against the dogs), the food table no longer monotone.
+- Deeper scarcity (making crabs a true food pillar) waits on the crabs
+  themselves becoming catchable near home — their river habitat + the tight
+  perception radius make them opportunistic prey for now.
+
 ### 29C.10 Signed thermal comfort & the burning fire (iteration 31)
 
 The temperature axis becomes a **signed "chocolate" scale** for the UI, and

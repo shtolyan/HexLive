@@ -182,10 +182,14 @@ public static class PrototypeContentCatalog
                 Produce = new ProduceDefinition
                 {
                     ProducedDefinitionId = "food.coconut",
+                    // Spec 29F.4 (iter 32): coconuts were TOO plentiful (5 per
+                    // palm) — the colony just ate coconuts and never hunted.
+                    // Trimmed to 3 / slower so hunger climbs into the hunt
+                    // window and crab meat / hides (leather armor) matter,
+                    // without starving the colony (2/170 was too harsh — crabs
+                    // hug the far river and can't fully replace fruit).
                     IntervalTicks = 100,
-                    // Spec 20.16: the island ring ate ~7% of the land — palms
-                    // carry one more coconut to keep the table set.
-                    MaxConcurrent = 5,
+                    MaxConcurrent = 4,
                     MaxDistanceTiles = 1
                 }
             },

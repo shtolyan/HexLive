@@ -417,6 +417,10 @@ public sealed class WorldStateFactory
 
         // Spec 29H: everyone carries a personal water bottle (starts empty).
         npc.Inventory.Items.Add(new Agents.ItemInstance("tool.bottle"));
+        // Spec 29F.4 (iter 32): everyone starts with a spear — a weapon is
+        // always to hand (foreshadows the weapon-slot equipment). With
+        // coconuts scarcer, this lets hunting actually happen from day one.
+        npc.Inventory.Items.Add(new Agents.ItemInstance("tool.spear"));
 
         world.Entities.Npcs[npc.Id] = npc;
         world.Occupancy.EntitiesInTile[coord].Add(npc.Id);

@@ -7462,6 +7462,21 @@ Both are design decisions, not knob-turns. Until one is chosen, `SeamCost`
 stays == `FlatCost` (uniform, green) and the weight is measured-dormant like
 the escape raft. See [[project_dog_fragility_balance]] for the full test log.
 
+**UPDATE — SHIPPED (1c0e67b).** The "blocked by design" conclusion above was
+premature. The fix was to address BOTH coupled dimensions at once, exactly
+as diagnosed: (1) a **food-exempt** climb weight — `FindPath(..., weightClimb)`,
+false when `Hunger/Thirst >= 0.5`, so hungry NPCs keep short food/water
+routes (no starvation); (2) a **dog margin** — `BiteDamagePerPass 0.2→0.10`,
+enough combat slack to absorb the reroute's dog-dance reshuffle. Together:
+6/6 green, `SeamCost = 12` (1.2×) active for comfortable NPCs, dogs still
+lethal (5 deaths/6 seeds vs 7). The margin threshold is sharp (0.10 works,
+0.11→5/6). TRADEOFF: dogs do half per-bite damage — a deliberate, modest
+softening (the "accept multi-round balancing" the goal allowed); set
+`BiteDamagePerPass` back to `0.2` to restore the harder game (the weight
+then goes dormant). §40.18's second island reaches 5/6 on this softened
+baseline (only one seed's fire/water soft-gate resists) — close, a focused
+placement pass away, no longer a hard blocker.
+
 ### 40.18 Islands, swimming & shark — implementation plan (arc)
 The escape endgame (§40.15) and bigger-world (§40.12) share one dependency
 chain: **traversable water → swimming → shark → island-hopping**. No piece

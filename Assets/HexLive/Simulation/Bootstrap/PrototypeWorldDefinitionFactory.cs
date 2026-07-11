@@ -145,9 +145,7 @@ namespace HexLive.Simulation.Bootstrap
                     new NpcBootstrap
                     {
                         Id = 3,
-                        // Jolie wears Jana's body mesh — the actor set has no
-                        // Jolie; the name is the colony's, the body is Jana's.
-                        DisplayName = "Jolie",
+                        DisplayName = "Jana",
                         ActorMesh = "Jana",
                         FragmentId = 1,
                         TileQ = 0,
@@ -369,6 +367,11 @@ namespace HexLive.Simulation.Bootstrap
             Place("tree.big", 6, 557, 1);
             Place("tree.palm", 5, 661, 1);
             Place("tool.saw", 1, 773, 2); // spec 35.2: findable wilderness loot
+            // Spec 40.12: more scattered gear — the wilds reward exploring, and
+            // a found tool saves a craft. GatherTools already collects any
+            // reachable Tool not carried.
+            Place("tool.pickaxe_stone", 1, 881, 2);
+            Place("tool.saw", 1, 991, 2);
 
             // Drink spots along the river: one river object per few water rows.
             var placedRiver = 0;

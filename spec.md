@@ -7381,6 +7381,19 @@ pass — order chosen to add robustness before difficulty.
 ### 40.13 Ragdoll
 - Verify ragdoll works. Use it for **faint / collapse-from-exhaustion**
   and possibly a relaxed sleep flop.
+- **UPDATE — SHIPPED & VERIFIED (presentation WIP).** `NpcActorView` builds an
+  11-bone physics ragdoll procedurally on the Daz Genesis3 skeleton (hip,
+  chest, head, l/r shoulder+forearm, l/r thigh+shin — Rigidbody + sized
+  Capsule/Sphere/Box colliders + CharacterJoints with 40° swing / ±25° twist
+  limits), lazily on first use. `SetRagdoll(bool)`: active ⇒ Animator off +
+  bodies dynamic (limp); inactive ⇒ bodies kinematic + Animator re-drives (the
+  actor stands back up on wake). `HexWorldRenderer` routes `IsFainted` →
+  `SetRagdoll(true)` (bed-sleep still uses the baked Laying clip; any other
+  state ⇒ `SetRagdoll(false)`). Verified live in the editor: through the
+  shipped code path a fainted actor's skeleton collapses limp to the ground and
+  settles at rest (hip Y 1.3→0.01, head→0.02, rigidbodies sleeping) — visually
+  a crumpled body on the terrain. Note the `??`-vs-Unity-fake-null pitfall:
+  component lookups use `GetComponent(); if (x == null) Add()`, never `??`.
 
 ### 40.14 Tent (sun shelter) & tiered beds
 - **Tent**: a min-1-hex **angled canopy** that shades one person from the

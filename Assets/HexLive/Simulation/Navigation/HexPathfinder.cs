@@ -31,19 +31,27 @@ public static class HexPathfinder
         // byte-identical to the old Queue BFS. This is the safe substrate for
         // the deferred 2x climb-seam weight: the day seams are tagged at
         // world-gen, ClimbCost returns 2 for a seam edge and detours win.
+        // Frontier ordered by (gScore, insertion-seq). The seq term makes every
+        // priority unique, so a SortedDictionary is a stable min-priority queue
+        // (and, unlike .NET 6's PriorityQueue, it compiles under Unity's
+        // netstandard2.1). With every edge at ClimbCost == 1 the ordering is
+        // exactly BFS — byte-identical, md5-verified against the pre-change soak.
         const long priorityScale = 1_000_000L;
-        var frontier = new PriorityQueue<JunctionId, long>();
+        var frontier = new SortedDictionary<long, JunctionId>();
         var cameFrom = new Dictionary<JunctionId, JunctionId?>();
         var gScore = new Dictionary<JunctionId, long>();
         var seq = 0L;
 
-        frontier.Enqueue(start, 0L);
+        frontier.Add(0L, start);
         cameFrom[start] = null;
         gScore[start] = 0L;
 
         while (frontier.Count > 0)
         {
-            var current = frontier.Dequeue();
+            var head = default(KeyValuePair<long, JunctionId>);
+            foreach (var kv in frontier) { head = kv; break; } // lowest priority
+            frontier.Remove(head.Key);
+            var current = head.Value;
             if (current.Equals(goal))
             {
                 break;
@@ -79,7 +87,7 @@ public static class HexPathfinder
                 var cost = gScore[current] + ClimbCost(world, current, neighborId);
                 gScore[neighborId] = cost;
                 cameFrom[neighborId] = current;
-                frontier.Enqueue(neighborId, cost * priorityScale + seq++);
+                frontier.Add(cost * priorityScale + seq++, neighborId);
             }
         }
 

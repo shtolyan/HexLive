@@ -44,7 +44,8 @@ public static class WorldSnapshotExporter
                 WorldPosition = junction.WorldPosition,
                 Blocked = junction.Blocked,
                 Occupied = world.Occupancy.JunctionOwner.TryGetValue(junction.Id, out var owner) && owner is not null,
-                Reserved = world.Reservations.Junctions.ContainsKey(junction.Id)
+                Reserved = world.Reservations.Junctions.ContainsKey(junction.Id),
+                IsClimbSeam = world.ClimbSeams.Contains(junction.Id)
             };
 
             foreach (var tileCoord in junction.Tiles)

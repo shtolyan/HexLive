@@ -89,6 +89,11 @@ public sealed class JunctionSnapshot
 
     public bool Reserved { get; set; }
 
+    // Spec 40.17: this walkable junction straddles a one-level elevation step —
+    // presentation draws a climb-seam marker ("точечки на шве") and plays the
+    // hand-over-hand climb here.
+    public bool IsClimbSeam { get; set; }
+
     public List<JunctionId> Neighbors { get; } = new();
 }
 

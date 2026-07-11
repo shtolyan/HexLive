@@ -54,6 +54,13 @@ public sealed class NPCNeeds
     // (presentation). Never fades to zero — a survivor stays weathered.
     public float TanLevel { get; set; }
 
+    // Spec 40.7: sunburn — the ACUTE redness on bare skin (0 = none, 1 = raw).
+    // Rises fast under strong sun on uncovered parts, then heals when out of
+    // the sun; as it heals a fraction settles into permanent TanLevel (burn
+    // browns into tan). Purely cosmetic — the skin painter reads it as the red
+    // channel over the tan; it gates nothing and changes no survival outcome.
+    public float Sunburn { get; set; }
+
     // Spec 40.13: stress (0 = calm, 1 = breaking point). Rises near danger,
     // in a fight, when badly hurt or starving; ebbs when safe and rested.
     // Overwhelming stress on an already-spent body can knock it out.

@@ -7302,6 +7302,16 @@ pass — order chosen to add robustness before difficulty.
   it. Strong overheat → **heatstroke / sunstroke** damage and possible
   faint. Implement by painting the skin texture progressively (burn→tan)
   masked by coverage.
+- **Shipped v1 (sim data model):** two skin channels are now tracked and
+  exported so the skin painter has both when Unity connects.
+  `Needs.TanLevel` (permanent, never fades) already builds from sun on bare
+  parts. New `Needs.Sunburn` is the **acute redness**: it rises ~2.5× faster
+  than tan under strong sun on uncovered parts, then heals when out of the
+  sun (or fully covered), and as it heals ~40 % of the healed amount settles
+  into permanent `TanLevel` — bright red first, browning into tan, exactly
+  the described fade. Purely cosmetic: it gates no action and changes no
+  survival outcome (so it can't disturb the fragile colony). Presentation
+  reads it as the red channel over the tan, masked by garment coverage.
 
 ### 40.8 Visible injuries (decals/texture)
 - Where a bone is hit (leg/arm/head/belly), draw a **wound** on the

@@ -158,6 +158,7 @@ public sealed class NpcSnapshot
     // Spec 40.3: bandages left in the med pouch (UI).
     public int Bandages { get; set; }
     public int Pills { get; set; }
+    public float Sunburn { get; set; }
 
     // Spec 40.13: knocked out — the presentation lays the body limp.
     public bool IsFainted { get; set; }

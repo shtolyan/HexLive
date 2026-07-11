@@ -4725,6 +4725,10 @@ public sealed class TemperatureSystem : ISimulationSystem
                 // burn→tan colour is painted from this in presentation.
                 npc.Needs.TanLevel = MathUtil.Clamp01(
                     npc.Needs.TanLevel + (effectiveUv - 0.5f) * 0.0015f * uncovered.Count);
+                // Spec 40.7: acute redness rises faster than the tan settles —
+                // bare skin goes red first, then browns as it heals below.
+                npc.Needs.Sunburn = MathUtil.Clamp01(
+                    npc.Needs.Sunburn + (effectiveUv - 0.5f) * 0.004f * uncovered.Count);
                 npc.SunExposure += (effectiveUv - 0.5f) * 0.3f;
                 if (npc.SunExposure > 0.5f)
                 {
@@ -4754,6 +4758,15 @@ public sealed class TemperatureSystem : ISimulationSystem
             else
             {
                 npc.SunExposure = System.Math.Max(0f, npc.SunExposure - 0.05f);
+            }
+
+            // Spec 40.7: out of the sun (or fully covered), the acute burn heals
+            // and a fraction of it settles into permanent tan — red browns down.
+            if (npc.Needs.Sunburn > 0f && (effectiveUv <= 0.5f || uncovered.Count == 0))
+            {
+                var heal = System.Math.Min(npc.Needs.Sunburn, 0.0025f);
+                npc.Needs.Sunburn -= heal;
+                npc.Needs.TanLevel = MathUtil.Clamp01(npc.Needs.TanLevel + heal * 0.4f);
             }
         }
     }

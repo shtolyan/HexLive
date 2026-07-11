@@ -102,6 +102,7 @@ public static class WorldSnapshotExporter
                 Hygiene = npc.Needs.Hygiene,
                 Blood = npc.Needs.Blood,
                 TanLevel = npc.Needs.TanLevel,
+                Sunburn = npc.Needs.Sunburn,
                 Bandages = npc.Needs.Bandages,
                 Pills = npc.Needs.Pills,
                 IsFainted = world.Tick < npc.Mind.FaintedUntilTick,

@@ -141,6 +141,9 @@ public sealed class NpcSnapshot
     // Spec 40.1: stamina 0..1 — the energy to act (UI + panting cue).
     public float Stamina { get; set; }
 
+    // Spec 40.6: hygiene 1=clean..0=filthy (UI + grime tint).
+    public float Hygiene { get; set; }
+
     public string CurrentGoal { get; set; } = string.Empty;
 
     public string PlanStatus { get; set; } = string.Empty;

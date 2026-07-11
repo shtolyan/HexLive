@@ -27,6 +27,11 @@ public sealed class NPCNeeds
     // comfortable the body is (you can't be spry on an empty stomach). Low
     // stamina pulls the NPC toward sitting/lying down. Starts full.
     public float Stamina { get; set; } = 1f;
+
+    // Spec 40.6: hygiene (1 = clean, 0 = filthy). Decays slowly with living;
+    // rises while at the water's edge (bathing/washing). A visible survivor
+    // param — grubbier the longer since a wash. Starts clean.
+    public float Hygiene { get; set; } = 1f;
 }
 
 }

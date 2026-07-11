@@ -4280,6 +4280,26 @@ public sealed class NeedsDecaySystem : ISimulationSystem
         BodyPart.ArmL, BodyPart.ArmR, BodyPart.LegL, BodyPart.LegR
     };
 
+    // Spec 40.6: standing on or next to a water tile (the bank you drink from).
+    private static bool IsAtOrBesideWater(WorldState world, TileCoord tile)
+    {
+        if (world.Tiles.Items.TryGetValue(tile, out var here) && here.Flags.HasFlag(TileFlags.Water))
+        {
+            return true;
+        }
+
+        foreach (var dir in HexDirection.All)
+        {
+            if (world.Tiles.Items.TryGetValue(new TileCoord(tile.Q + dir.DQ, tile.R + dir.DR), out var n) &&
+                n.Flags.HasFlag(TileFlags.Water))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public void Run(WorldState world)
     {
         foreach (var npc in world.Entities.Npcs.Values)
@@ -4313,6 +4333,12 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             var staminaDelta = resting ? 0.06f : working ? -0.05f : 0.015f;
             npc.Needs.Stamina = MathUtil.Clamp(
                 npc.Needs.Stamina + staminaDelta, 0f, staminaCeiling);
+
+            // Spec 40.6: hygiene drifts down with living, up at the waterside
+            // (washing while drinking/filling). Soft v1 — tracked for the UI,
+            // no dedicated Bathe goal yet (that reshuffles the fragile colony).
+            npc.Needs.Hygiene = MathUtil.Clamp01(
+                npc.Needs.Hygiene + (IsAtOrBesideWater(world, npc.Tile) ? 0.05f : -0.004f));
 
             // Spec 28.15B: post-quarrel embarrassment fades with time.
             npc.Social.Embarrassment = MathUtil.Clamp01(npc.Social.Embarrassment - 0.02f);

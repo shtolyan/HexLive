@@ -19,6 +19,13 @@ public static class PrototypeRuntimeBootstrap
             return;
         }
 
+        // Dev scenes (wardrobe test etc.) own themselves — the game world
+        // must not boot on top of them.
+        if (Object.FindAnyObjectByType<WardrobeTest.WardrobeTestBootstrap>() is not null)
+        {
+            return;
+        }
+
         var root = new GameObject("HexLive Prototype");
         var runner = root.AddComponent<SimulationRunnerBehaviour>();
 

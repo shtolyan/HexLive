@@ -69,6 +69,39 @@ public sealed class Wear : MonoBehaviour
         }
     }
 
+    // --- Wardrobe test-scene support: per-actor fit-scale tuning ---
+
+    // Read the authored fit scale for one actor (1 when no config exists).
+    public float GetConfigScale(ActorName actor)
+    {
+        foreach (var config in configs)
+        {
+            if (config.actorName == actor)
+            {
+                return config.scale;
+            }
+        }
+
+        return 1f;
+    }
+
+    // Write the fit scale for one actor; adds a config entry (mesh = shared
+    // authored mesh) when the actor had none. Called on the PREFAB ASSET by
+    // the wardrobe test scene, then persisted via AssetDatabase.SaveAssets.
+    public void SetConfigScale(ActorName actor, float scale)
+    {
+        foreach (var config in configs)
+        {
+            if (config.actorName == actor)
+            {
+                config.scale = scale;
+                return;
+            }
+        }
+
+        configs.Add(new WearConfig { actorName = actor, scale = scale, mesh = null });
+    }
+
     public bool HeedHideUnderwearSlot(VisualWearSlot slot)
     {
         return noHideUnderwearSlots.Contains(slot) == false;

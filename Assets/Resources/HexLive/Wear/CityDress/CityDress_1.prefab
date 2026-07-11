@@ -1284,7 +1284,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   configs:
   - actorName: 0
-    scale: 1
+    scale: 1.02
     mesh: {fileID: 4300000, guid: 131f9b418c7401744ac292517cabc564, type: 2}
   - actorName: 1
     scale: 1
@@ -1682,6 +1682,8 @@ SkinnedMeshRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 257
   m_RendererPriority: 0
   m_Materials:
@@ -1704,9 +1706,11 @@ SkinnedMeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   serializedVersion: 2
   m_Quality: 0
   m_UpdateWhenOffscreen: 0

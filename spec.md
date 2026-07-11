@@ -5833,6 +5833,29 @@ present, underwear from bootstrap visible, Dress/Undress in the sim
 adds/removes garments on the body, wear conflicts swap visuals, death drops
 leave the body naked. Headless soaks are unaffected (simulation untouched).
 
+### 31B.7 Wardrobe test scene (dev tool — SHIPPED, verified)
+
+`Assets/Scenes/WardrobeTest.unity` + `WardrobeTest/WardrobeTestBootstrap.cs`:
+an isolated fitting room for tuning garment fit. One GameObject bootstraps
+everything (camera/light/ground/UI); `PrototypeRuntimeBootstrap` skips the
+game world when it sees the wardrobe bootstrap in the scene.
+
+- Pick Molly / Marta / Jana; the equipped outfit carries across the switch.
+- Right panel lists every wear prefab under `Resources/HexLive/Wear/**`
+  grouped by sim-definition folder; click = equip (+select), click again =
+  take off. Layer/slot conflicts resolve through the normal BodyBones rules.
+- The girl loops sit (3.5 s) → lie+sleep (7.5 s) → get up → idle (2 s)
+  through the HexNpcLocomotion params; toggleable.
+- Selected garment's per-actor `WearConfig.scale` is tuned with ◀/▶ or
+  the ←/→ keys (step 0.01, Shift = 0.001). Each change writes the loaded
+  prefab asset and re-dresses the garment (TakeOff + Equip) — the preview
+  is byte-for-byte the game's own equip path, since Construct bakes the
+  scale into every stitched bone and post-hoc bone tweaks don't match.
+  "Сохранить в префабы" persists via `AssetDatabase.SaveAssets` (editor
+  only). New `Wear` API: `GetConfigScale` / `SetConfigScale` (adds a
+  config when the actor had none).
+- Camera: RMB orbit, wheel zoom, MMB pan.
+
 ## 31C. World Object Visualization & Tropical Reskin (iteration 24)
 
 The island stops being abstract: beds are beds, palms are palms, water has
@@ -7920,3 +7943,25 @@ ticks = 24 game hours, 100 ticks = 1 game hour):
   Underwear layer entirely (it barely warms — removing it is pure nudity,
   which was exactly the "голые при 10 °C" bug: day heat peeled everything
   including bras, and the [12,20] band called the aftermath comfortable).
+
+### 42.A Sweat → thirst (shipped)
+Overheating now costs water: in `NeedsDecaySystem` the thirst tick is
+scaled by `1 + SweatThirstFactor × max(0, ThermalComfort)` — up to **+25%
+thirst at heatstroke-level heat** (`SweatThirstFactor = 0.25`). Reads the
+previous slow tick's signed comfort; the cold side is free (a shivering
+body does not sweat). This closes the loop with the sweat VISUAL
+(NpcActorView's gloss sheen at thermal/0.6): what glistens now also
+drinks. The sweat multiplier rides the existing NeedsDecay trace
+(`Sweat=x.xx`) — no new event type, nothing to whitelist in the harness.
+
+Balance (the §40.18 lesson again — multi-dimensional loosening where a
+single knob whack-a-moles): factor 0.5 broke seeds 777+42 on a green
+HEAD, 0.25 and even 0.15 still broke 777 (dressed-for-night girls hit the
+day heat and spiralled: heatstroke + faster thirst), and 0.05 alone was
+green but homeopathic. The shipped config pairs **factor 0.25 with the
+base `ThirstRate` eased 0.020 → 0.018**: a cool girl is slightly less
+thirsty than before, a heatstroking one ~+12% net — heat matters
+RELATIVE to the baseline. 6/6 soak green (12345/777/999/31337/555/42, 3
+game days); the same easing also turned the WarmUp-era near-naked-start
+tree from 2/6 to 6/6 green. TUNING KNOBS: `SweatThirstFactor`,
+`ThirstRate`; the pair moves together — retune both or neither.

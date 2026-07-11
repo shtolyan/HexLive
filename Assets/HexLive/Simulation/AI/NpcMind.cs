@@ -16,6 +16,11 @@ public sealed class NPCMind
     // Spec 28.15C: mourning period and which bodies were already grieved for.
     public int GrievingUntilTick { get; set; }
 
+    // Spec 40.13: knocked out — utterly spent stamina plus starvation or
+    // blood loss drops the body; it lies unable to act until this tick, then
+    // rises. 0 = conscious.
+    public int FaintedUntilTick { get; set; }
+
     public System.Collections.Generic.List<HexLive.Simulation.Common.ObjectId> GrievedCorpses { get; } = new();
 
     // Spec 28.8 v1 handshake: someone is walking over to talk to this NPC.

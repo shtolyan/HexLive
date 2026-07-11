@@ -293,6 +293,14 @@ public sealed class DecisionSystem : ISimulationSystem
                 continue;
             }
 
+            // Spec 40.13: unconscious — lie helpless, recovering a little
+            // stamina, until the body comes to. No decisions while out.
+            if (world.Tick < npc.Mind.FaintedUntilTick)
+            {
+                npc.Needs.Stamina = MathUtil.Clamp01(npc.Needs.Stamina + 0.02f);
+                continue;
+            }
+
             // Spec 29C.4A: nothing outbids running for your life.
             if (npc.Mind.CurrentGoal == GoalType.Flee && npc.Plan.Status == PlanStatus.Active)
             {
@@ -4367,6 +4375,20 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             var staminaDelta = resting ? 0.06f : working ? -0.05f : 0.015f;
             npc.Needs.Stamina = MathUtil.Clamp(
                 npc.Needs.Stamina + staminaDelta, 0f, staminaCeiling);
+
+            // Spec 40.13: collapse. Utterly spent stamina AND a body pushed to
+            // the edge (starving or bleeding) drops the NPC unconscious — it
+            // lies helpless for ~80 ticks, then rises. Rare by construction
+            // (all three at once), so it barely perturbs the colony.
+            if (world.Tick >= npc.Mind.FaintedUntilTick && npc.Needs.Stamina <= 0.01f &&
+                (npc.Needs.Hunger >= 0.9f || npc.Needs.Blood < 0.25f) && npc.Health > 0f)
+            {
+                npc.Mind.FaintedUntilTick = world.Tick + 80;
+                PlanInterruption.Abort(world, npc, "Collapsed — unconscious");
+                npc.Mind.CurrentGoal = GoalType.None;
+                Trace.Emit(world, npc.Id, "Fainted",
+                    $"Stamina={npc.Needs.Stamina:F2} Hunger={npc.Needs.Hunger:F2} Blood={npc.Needs.Blood:F2}");
+            }
 
             // Spec 40.6: hygiene drifts down with living, up at the waterside
             // (washing while drinking/filling). Soft v1 — tracked for the UI,

@@ -598,6 +598,23 @@ public static class PrototypeContentCatalog
                 },
                 Tags = { "Bed", "Obstacle" }
             },
+            // Spec 40.15: the escape raft — a coastal build the colony hauls
+            // logs to. At RaftTarget logs it can sail off the island.
+            ["vessel.raft"] = new ObjectDefinition
+            {
+                Id = "vessel.raft",
+                DisplayName = "Raft",
+                Tags = { "Raft" },
+                Interactions =
+                {
+                    new InteractionDefinition
+                    {
+                        Id = "build.raft",
+                        Type = InteractionType.BuildRaft,
+                        DurationTicks = 24
+                    }
+                }
+            },
             // Spec 40.14: a sun shelter — a leaf canopy that shades the tiles
             // around it (reuses the Shade system: shade cuts UV to 20 %). A bed
             // can sit beneath it. Woven from 4 palm leaves at the fire.

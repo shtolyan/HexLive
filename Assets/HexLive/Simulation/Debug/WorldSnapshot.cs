@@ -18,6 +18,11 @@ public sealed class WorldSnapshot
 
     public bool IsRaining { get; set; }
 
+    // Spec 40.15: logs hauled to the escape raft, and the target — for a HUD
+    // "escape progress" readout. At Progress >= Target the colony can leave.
+    public int RaftProgress { get; set; }
+    public int RaftTarget { get; set; }
+
     public List<TileSnapshot> Tiles { get; } = new();
 
     public List<JunctionSnapshot> Junctions { get; } = new();

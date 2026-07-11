@@ -35,6 +35,11 @@ public sealed class WorldState
     // Runtime-spawned objects allocate ids from here; bootstrap ids stay below 1000.
     public int NextRuntimeObjectId { get; set; } = 1000;
 
+    // Spec 40.15: logs hauled to the escape raft (target 20). At the target the
+    // colony can sail off the island — the global goal.
+    public int RaftProgress { get; set; }
+    public const int RaftTarget = 20;
+
     // Spec 29C.1: all chance rolls mix this seed.
     public int Seed { get; set; } = 12345;
 

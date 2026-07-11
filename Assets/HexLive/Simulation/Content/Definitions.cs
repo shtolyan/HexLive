@@ -102,7 +102,8 @@ public enum InteractionType
     Observe,
     Talk,
     Hang,
-    FillBottle // spec 29H: charge the water bottle at a source
+    FillBottle, // spec 29H: charge the water bottle at a source
+    BuildRaft   // spec 40.15: haul logs to the escape raft
 }
 
 }

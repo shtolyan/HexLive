@@ -383,6 +383,52 @@ namespace HexLive.Simulation.Bootstrap
                     placedRiver++;
                 }
             }
+
+            // Spec 40.15: the escape raft on the coast — a walkable, non-water
+            // tile beside the sea, nearest to home (the way off the island).
+            var raftCoords = new Dictionary<(int q, int r), TileBootstrap>();
+            foreach (var tile in fragment.Tiles)
+            {
+                raftCoords[(tile.Q, tile.R)] = tile;
+            }
+
+            var home = new TileCoord(0, 2);
+            TileBootstrap raftTile = null;
+            var raftBest = int.MaxValue;
+            foreach (var tile in fragment.Tiles)
+            {
+                if (!tile.Walkable || tile.Water || tile.Indoor)
+                {
+                    continue;
+                }
+
+                var beside = false;
+                foreach (var dir in HexDirection.All)
+                {
+                    if (raftCoords.TryGetValue((tile.Q + dir.DQ, tile.R + dir.DR), out var n) && n.Water)
+                    {
+                        beside = true;
+                        break;
+                    }
+                }
+
+                if (!beside)
+                {
+                    continue;
+                }
+
+                var d = HexSpatialMath.HexDistance(new TileCoord(tile.Q, tile.R), home);
+                if (d < raftBest)
+                {
+                    raftBest = d;
+                    raftTile = tile;
+                }
+            }
+
+            if (raftTile is not null)
+            {
+                definition.Objects.Add(Object(nextId++, "vessel.raft", 1, raftTile.Q, raftTile.R, 1));
+            }
         }
 
         private static TileBootstrap Tile(int q, int r, bool walkable = true, bool indoor = false, bool blocked = false, params int[] blockedSlots)

@@ -15,7 +15,9 @@ public static class WorldSnapshotExporter
             Clock = Runtime.EnvironmentSystem.FormatClock(world.Environment.TimeOfDayNormalized),
             DayPhase = world.Environment.Phase.ToString(),
             UvIndex = world.Environment.UvIndex,
-            IsRaining = world.Environment.IsRaining
+            IsRaining = world.Environment.IsRaining,
+            RaftProgress = world.RaftProgress,
+            RaftTarget = HexLive.Simulation.Core.WorldState.RaftTarget
         };
 
         foreach (var pair in world.Tiles.Items)

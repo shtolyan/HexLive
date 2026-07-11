@@ -660,6 +660,15 @@ public sealed class DecisionSystem : ISimulationSystem
                 !HasReachableWithTag(npc, world, "Shelter");
             AddGoalScore(npc, world.Tick, GoalType.CraftTent,
                 0.25f + 0.3f * world.Environment.UvIndex, craftTentAvail);
+
+            // Spec 40.15: the escape raft — a low-priority background project.
+            // Only when survival is handled (fed, fire fine, no danger) does a
+            // log get carried to the coast; the way off the island is earned
+            // slowly, never at the expense of staying alive.
+            var buildRaftAvail = carriedLogs >= 1 && world.RaftProgress < WorldState.RaftTarget &&
+                !fuelLow && npc.Needs.Hunger < 0.5f && npc.Needs.Thirst < 0.5f &&
+                npc.Memory.Dangers.Count == 0 && HasReachableWithTag(npc, world, "Raft");
+            AddGoalScore(npc, world.Tick, GoalType.BuildRaft, 0.28f, buildRaftAvail);
             AddGoalScore(npc, world.Tick, GoalType.CraftRack,
                 0.3f + (world.Environment.IsRaining || wornWetness > 0.5f ? 0.2f : 0f),
                 craftRackAvail);
@@ -2222,6 +2231,7 @@ public sealed class PlanningSystem : ISimulationSystem
             GoalType.CraftRack => InteractionType.Craft,
             GoalType.CraftBed => InteractionType.Craft,
             GoalType.CraftTent => InteractionType.Craft,
+            GoalType.BuildRaft => InteractionType.BuildRaft,
             GoalType.CraftBow => InteractionType.Craft,
             GoalType.CraftArrows => InteractionType.Craft,
             GoalType.DryClothes => InteractionType.Hang,
@@ -2280,6 +2290,8 @@ public sealed class PlanningSystem : ISimulationSystem
                 return definition.Tags.Contains("Boulder");
             case GoalType.Build:
                 return definition.Tags.Contains("BuildSite");
+            case GoalType.BuildRaft:
+                return definition.Tags.Contains("Raft");
             case GoalType.Mourn:
                 return definition.Tags.Contains("Corpse") || definition.Tags.Contains("Grave");
             case GoalType.Bury:
@@ -3046,6 +3058,23 @@ public sealed class ExecutionSystem : ISimulationSystem
                     ApplyBuildPiece(world, npc);
                     worldObject.IsOccupied = false;
                     worldObject.CurrentUser = null;
+                }
+                else if (completedInteraction.Type == InteractionType.BuildRaft)
+                {
+                    // Spec 40.15: every carried log goes into the raft; at the
+                    // target the colony can sail off the island.
+                    var deposited = DecisionSystem.CountInventory(npc, "resource.firewood");
+                    npc.Inventory.Items.RemoveAll(i => i.DefinitionId == "resource.firewood");
+                    world.RaftProgress = System.Math.Min(WorldState.RaftTarget, world.RaftProgress + deposited);
+                    worldObject.IsOccupied = false;
+                    worldObject.CurrentUser = null;
+                    Trace.Emit(world, npc.Id, "RaftProgress",
+                        $"+{deposited} logs -> {world.RaftProgress}/{WorldState.RaftTarget}");
+                    if (world.RaftProgress >= WorldState.RaftTarget)
+                    {
+                        Trace.EmitSystem(world, "RaftLaunched",
+                            "The raft is finished — the colony can leave the island!");
+                    }
                 }
                 else if (completedInteraction.Type == InteractionType.Harvest)
                 {

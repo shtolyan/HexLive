@@ -7391,6 +7391,33 @@ pass — order chosen to add robustness before difficulty.
   straits — high-level cooperative strategy the hand-written AI can't
   reach. (Spec has earlier hooks for this; formalize the trigger + I/O.)
 
+### 40.17 Climb — weighted pathfinding (implementation plan, deferred)
+The user wants big elevation steps to be **climbable "seams"** that are 2×
+the cost of flat walking, so a route **prefers the flat detour** but will
+climb when climbing is genuinely shorter. Current status: `HexPathfinder`
+is a uniform-cost **BFS** (`Navigation/HexPathfinder.cs`) and there is **no
+seam marker** — junctions carry only their tiles' `Elevation`, no per-edge
+climb flag. A naive elevation-diff heuristic mis-tags seams and reshuffles
+the fragile dog-dance, so this is a **focused iteration**, not a drive-by.
+Turnkey steps for that pass:
+1. **Tag seams at world-gen.** When wiring junction neighbours in
+   `PrototypeWorldDefinitionFactory` / the junction builder, mark an edge as
+   a climb-seam when the two junctions' representative `Elevation` differs by
+   ≥ 1 step. Store it as a `HashSet<(JunctionId,JunctionId)>` climb-edge set
+   on `WorldState` (symmetric) or a per-neighbour parallel list.
+2. **Convert BFS → uniform-cost search.** Swap the `Queue` for a
+   `PriorityQueue<JunctionId,long>` keyed by `gScore*BIG + insertionSeq`.
+   With every edge cost 1 this is byte-identical to today's BFS (the seq
+   tiebreak preserves FIFO) — verify a soak is unchanged before adding
+   weight (safe substrate first).
+3. **Weight the seams.** Edge cost = 2 when the edge is in the climb-seam
+   set, else 1. Re-soak all 6 seeds; expect route shifts on hillsides —
+   rebalance (dog spawns / home layout) if a seed tips, per the fragility
+   discipline.
+4. **Presentation.** The climb animation (hand-over-hand up the seam) lands
+   in Unity when connected; the seam set also tells the renderer where to
+   play it. Blocked on Unity like the rest of §40's visual layer.
+
 ### Implementation order (living)
 Robustness first, spectacle second: 40.1 Stamina → 40.2 Blood →
 40.14 tiered beds + tent → 40.3 medicine/Safety → 40.6 Hygiene →

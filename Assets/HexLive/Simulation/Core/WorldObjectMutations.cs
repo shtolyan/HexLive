@@ -105,6 +105,21 @@ public static class WorldObjectMutations
                     junction.Blocked = true;
                     worldObject.BlockedJunctions.Add(junctionId);
                     changed = true;
+
+                    // §45 r5: nudge anyone standing where the obstacle lands —
+                    // same as the hut-wall builder. An NPC left standing ON a
+                    // newly blocked junction keeps the (still valid) key, so
+                    // the perception re-anchor never fires, pathfinding can't
+                    // start, and EVERYTHING reads unreachable: on 25-day soaks
+                    // 3 of 6 deaths were girls starving pinned at the campfire
+                    // after a bed/rack spawned under their feet.
+                    foreach (var bystander in world.Entities.Npcs.Values)
+                    {
+                        if (bystander.CurrentJunction is { } cj && cj.Equals(junctionId))
+                        {
+                            bystander.CurrentJunction = null;
+                        }
+                    }
                 }
             }
         }

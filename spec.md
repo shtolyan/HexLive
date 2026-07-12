@@ -8108,7 +8108,33 @@ are complementary and are recorded together here.
   attrition 0.03/0.05 → 0.02/0.035; sickness damage floored at 0.2 torso
   (grind-not-kill — lethality needs a second stressor); hypothermia
   0.02 → 0.012 per slow tick (one bad night ~0.44, not 0.74 — dawn gives
-  a chance to dress; two exposed nights still kill).
+  a chance to dress; two exposed nights still kill); fed-regen 0.0018 →
+  0.0030 per slow tick and its gate hunger < 0.5 → 0.6 (the long-run
+  colony hovers at ~0.5–0.6 hunger, so bodies never healed between
+  episodes).
+- **Emergency unload** (same chip session): getFoodAvail requires
+  inventory SPACE, and the r3 raft stockpile (3 logs + leaves + tools)
+  fills packs that nothing ever empties — on a 25-day soak 6 of 8
+  starvation deaths died at Hunger = 1.00 with 10/10 slots and zero food
+  while coconuts sat at producer cap (25–39 on the ground, 550+ rotting).
+  A girl at hunger ≥ 0.8 with a full pack and no food in it now drops one
+  carried resource per slow tick (wood → leaves → stone, never tools) at
+  her feet. Last-resort by construction, like food-sharing/theft.
+- **Boxed-in bugfix** (same chip session): an NPC standing on a junction
+  that BECOMES Blocked (bed/rack obstacle spawn) kept the still-valid key,
+  so pathfinding could never start and every plan read unreachable — she
+  starved pinned in place (3 of 6 deaths on one soak, always at the
+  campfire where furniture lands). Fix in both directions:
+  `SetObstacleBlocking` now nudges bystanders (`CurrentJunction = null`,
+  same as the hut-wall builder) and `ResolveCurrentJunction` re-anchors
+  off a blocked junction (self-healing net for any future blocker).
+
+**Measured (25-day, 6 seeds, live tree with friction fire + all of the
+above): 6/6 colonies alive at day 25** — 12345/777/31337 at 3/3, 999/555/42
+at 2/3; 3 deaths total (r4 baseline: 12 deaths, 2 full wipes). Raft
+launched 4/6; 3-day gate 6/6 all-alive. The 3 remaining deaths are late
+(day 14–22) chronic-attrition cases — bodies worn down over days, not any
+single mechanic.
 
 **Measured (30-day frozen-snapshot soak, 6 seeds): 6/6 launch the raft**
 (555 day 3.1, 999 day 11.6, 31337 day 15.1, 12345 day 17.1, 42 day 19.7,

@@ -251,7 +251,14 @@ public sealed class PerceptionSystem : ISimulationSystem
 
     private static JunctionId? ResolveCurrentJunction(WorldState world, NPCState npc)
     {
-        if (npc.CurrentJunction.HasValue && world.Junctions.Items.ContainsKey(npc.CurrentJunction.Value))
+        // §45 r5: a junction that BECAME blocked underfoot (obstacle spawn,
+        // wall) must not anchor the NPC — pathfinding can't start from a
+        // blocked node, so a kept key means every plan reads unreachable
+        // until she starves. Re-anchor to the nearest open junction instead
+        // (self-healing net for any blocker that forgets to nudge).
+        if (npc.CurrentJunction.HasValue &&
+            world.Junctions.Items.TryGetValue(npc.CurrentJunction.Value, out var current) &&
+            !current.Blocked)
         {
             return npc.CurrentJunction;
         }

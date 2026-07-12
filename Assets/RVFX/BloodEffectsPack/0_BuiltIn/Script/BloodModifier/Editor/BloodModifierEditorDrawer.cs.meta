@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 40713e3ef56cc694d8fd11d13b9e5121
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 295450
+  packageName: Blood Effects Pack
+  packageVersion: 5.3.1
+  assetPath: Assets/RVFX/BloodEffectsPack/0_BuiltIn/Script/BloodModifier/Editor/BloodModifierEditorDrawer.cs
+  uploadId: 880594

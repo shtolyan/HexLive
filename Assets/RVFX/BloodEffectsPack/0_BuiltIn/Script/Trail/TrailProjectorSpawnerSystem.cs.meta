@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 57f6c3e051c7fce4a8915699de1bf244
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 295450
+  packageName: Blood Effects Pack
+  packageVersion: 5.3.1
+  assetPath: Assets/RVFX/BloodEffectsPack/0_BuiltIn/Script/Trail/TrailProjectorSpawnerSystem.cs
+  uploadId: 880594

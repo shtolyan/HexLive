@@ -63,7 +63,9 @@ public sealed class NpcActorView : MonoBehaviour
     // albedo-only, so the actual shine comes from raising the skin's
     // smoothness while hot. 0.32 is the authored dry value on all actors.
     private const float DrySkinSmoothness = 0.32f;
-    private const float WetSkinSmoothness = 0.85f;
+    // 0.85 read as plastic — pulled ~15% down: still a clear wet sheen,
+    // but skin, not vinyl.
+    private const float WetSkinSmoothness = 0.72f;
 
     // Spec 35.5: unified inertial skin wetness. Rain soaks fast (fully wet in
     // ~4 s), sweat builds slower (~12 s to its level), and skin dries in
@@ -95,8 +97,36 @@ public sealed class NpcActorView : MonoBehaviour
     // bake-raycast placement + stamp records that fade with healing). Flip off
     // to fall back to the decal projectors.
     private const bool PaintWoundsIntoTexture = true;
+    // Sweat as painted NORMAL-ONLY relief (transparent beads glinting via the
+    // wet gloss) instead of albedo decals (baked white highlights showed even
+    // in shadow). PARKED for now — at body scale the bead relief read as a
+    // skin disease on the face; the tech is kept for future pox/insect-bite
+    // visuals ("оставим для болезней или укусов насекомых"). While parked,
+    // sweat shows as the wet gloss alone (the old droplet projectors stay
+    // muted too — they read as white paint).
+    private const bool PaintSweatIntoTexture = false;
+    // The decal-projector bubbles (the rebuilt glassy-bead sheet) are the
+    // best sweat look so far — back on per the user ("не идеальные, но пока
+    // лучше не получилось").
+    private const bool SweatDropletProjectors = true;
     private SkinTexturePainter _skinPainter;
     private readonly List<(string zone, int seed, float heal)> _woundScratch = new();
+
+    // Spec 40.8-F: a FRESH wound sprays a short RVFX Blood Effects Pack
+    // splash from the hit zone (prefabs moved under Resources/HexLive/VFX).
+    private static GameObject[] _splashPrefabs;
+
+    // No-domain-reload runs keep statics between plays — a pre-import null
+    // load must not stick forever.
+    [UnityEngine.RuntimeInitializeOnLoadMethod(
+        UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStaticPrefabCache()
+    {
+        _splashPrefabs = null;
+    }
+    private readonly HashSet<int> _seenWoundSeeds = new();
+    private bool _woundVfxPrimed;
+    private float _lastSplashTime;
 
     // Spec 40.8/40.6: skin decal layer (wounds/dirt/sweat on bare zones only).
     private SkinDecals _skinDecals;
@@ -539,8 +569,16 @@ public sealed class NpcActorView : MonoBehaviour
                 }
             }
 
-            _skinPainter.Sync(_woundScratch, _bandagedScratch);
-            _skinDecals.Sync(null, _uncoveredScratch, hygiene, thermal, _skinWetness, null);
+            SyncWoundSplashVfx();
+            _skinPainter.Sync(_woundScratch, _bandagedScratch,
+                PaintSweatIntoTexture ? _skinWetness : 0f, _uncoveredScratch);
+            // Sweat visuals are parked: gloss only — the painter beads are
+            // off (read as pox on the face) and the projector droplets stay
+            // muted (read as white paint). The projector "rain" pass keys off
+            // the RAIN-only inertial wetness — the unified pool made sweat
+            // spawn whitish rain rings.
+            _skinDecals.Sync(null, _uncoveredScratch, hygiene,
+                SweatDropletProjectors ? thermal : 0f, _clothRainWetness, null);
         }
         else
         {
@@ -1194,6 +1232,94 @@ public sealed class NpcActorView : MonoBehaviour
         _bodyBones?.SetWearErosion(definitionId, durability01);
     }
 
+    // Spec 40.8-F: fresh wounds spray blood. Compares this sync's wound seeds
+    // against everything seen before; the FIRST unseen fresh wound (heal ≈ 0)
+    // fires one RVFX splash at its zone bone — one spray per sync, so a
+    // 3-gash bite reads as one hit, and a 0.4 s real-time gate keeps fast
+    // sim-speeds from hosing the screen. The first sync after spawn/load is
+    // silent: those wounds are history, not fresh hits.
+    private void SyncWoundSplashVfx()
+    {
+        if (!_woundVfxPrimed)
+        {
+            foreach (var (_, seed, _) in _woundScratch)
+            {
+                _seenWoundSeeds.Add(seed);
+            }
+
+            _woundVfxPrimed = true;
+            return;
+        }
+
+        string splashZone = null;
+        var splashSeed = 0;
+        foreach (var (zone, seed, heal) in _woundScratch)
+        {
+            if (_seenWoundSeeds.Add(seed) && splashZone == null && heal < 0.05f)
+            {
+                splashZone = zone;
+                splashSeed = seed;
+            }
+        }
+
+        // Long runs accumulate healed-away seeds — rebuild when it bloats.
+        if (_seenWoundSeeds.Count > 128)
+        {
+            _seenWoundSeeds.Clear();
+            foreach (var (_, seed, _) in _woundScratch)
+            {
+                _seenWoundSeeds.Add(seed);
+            }
+        }
+
+        if (splashZone == null || Time.time - _lastSplashTime < 0.4f ||
+            _bodyBones == null || !ZoneBoneAnchors.TryGetValue(splashZone, out var boneName))
+        {
+            return;
+        }
+
+        var bone = _bodyBones.GetBone(boneName);
+        if (bone == null)
+        {
+            return;
+        }
+
+        _splashPrefabs ??= new[]
+        {
+            Resources.Load<GameObject>("HexLive/VFX/Blood_Splash_01_URP"),
+            Resources.Load<GameObject>("HexLive/VFX/Blood_Splash_02_URP"),
+            Resources.Load<GameObject>("HexLive/VFX/Blood_Splash_03_URP")
+        };
+        var prefab = _splashPrefabs[(splashSeed & int.MaxValue) % _splashPrefabs.Length];
+        if (prefab == null)
+        {
+            return;
+        }
+
+        _lastSplashTime = Time.time;
+        var root = _bodyRoot != null ? _bodyRoot : transform;
+        var outward = bone.position - root.position;
+        outward.y = 0f;
+        if (outward.sqrMagnitude < 0.0001f)
+        {
+            outward = root.forward;
+        }
+
+        var vfx = Instantiate(prefab, bone.position,
+            UnityEngine.Quaternion.LookRotation(outward.normalized + UnityEngine.Vector3.up * 0.35f));
+        // The pack is authored for a full-size human; our actors are ~0.35
+        // scale — Hierarchy scaling shrinks sizes AND velocities together.
+        vfx.transform.localScale = UnityEngine.Vector3.one * root.lossyScale.y;
+        foreach (var ps in vfx.GetComponentsInChildren<UnityEngine.ParticleSystem>(true))
+        {
+            var main = ps.main;
+            main.scalingMode = UnityEngine.ParticleSystemScalingMode.Hierarchy;
+        }
+
+        // The pack's KillEffect self-destroys in 3-5 s; this is the backstop.
+        Destroy(vfx, 8f);
+    }
+
     // Spec 40.7: paint the bare skin from tan (0..1) and acute sunburn (0..1).
     // Tan multiplies the skin toward a weathered brown; sunburn layers red on
     // top. Values are the exported Needs.TanLevel / Needs.Sunburn. First pass —
@@ -1207,9 +1333,16 @@ public sealed class NpcActorView : MonoBehaviour
         }
 
         _skinMpb ??= new MaterialPropertyBlock();
-        // Spec 40.7: full tan is a deep brown — multiplies the skin texture, so
-        // at TanLevel 1 the skin goes markedly dark, not just a light bronze.
-        var tint = Color.Lerp(Color.white, new Color(0.40f, 0.27f, 0.18f), Mathf.Clamp01(tanLevel));
+        // Spec 40.7: tanning goes THROUGH red — pale skin first flushes like a
+        // fresh burn (the retired low-HP red, reused: it read exactly like
+        // "just caught the sun"), then the red deepens into the brown. Full
+        // tan is a deep brown — multiplies the skin texture, so at TanLevel 1
+        // the skin goes markedly dark, not just a light bronze.
+        var tan = Mathf.Clamp01(tanLevel);
+        var redPhase = Mathf.Clamp01(tan / 0.35f);
+        var brownPhase = Mathf.Clamp01((tan - 0.35f) / 0.65f);
+        var tint = Color.Lerp(Color.white, new Color(0.79f, 0.55f, 0.57f), redPhase);
+        tint = Color.Lerp(tint, new Color(0.40f, 0.27f, 0.18f), brownPhase);
         tint = Color.Lerp(tint, new Color(0.95f, 0.50f, 0.42f), Mathf.Clamp01(sunburn) * 0.75f);
         // Spec 40.6: grime — the filthier the skin (low hygiene), the more it
         // muddies toward a dull earthy brown. Applied before the injury flush so

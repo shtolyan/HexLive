@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 
 namespace HexLive.UnityPresentation.Environment
 {
@@ -10,8 +11,14 @@ namespace HexLive.UnityPresentation.Environment
 // each starts as a small drip, spreads out over ~half a sim minute, and
 // then fades away over ONE game day (2400 ticks). Purely cosmetic and
 // presentation-side: driven by snapshot ticks (respects pause/speed), not
-// persisted in saves. Textures are AI-generated flat cartoon stains in
-// Resources/HexLive/BloodStains (4 variants, picked at random).
+// persisted in saves.
+// Visuals are the RVFX Blood Effects Pack splatters rendered the way the
+// pack's own demo does it — as URP **DecalProjectors** aimed down, so the
+// pool hugs sloped hex prisms, pebbles and feet instead of floating as a
+// flat quad — WITH the pack's normal maps for a wet-relief glint. The
+// pack's realtime spawner scripts themselves aren't used: they run on
+// Time.deltaTime and would ignore sim pause/speed, so the tick-driven
+// lifecycle here stays ours.
 public sealed class GroundBloodStains : MonoBehaviour
 {
     private const int MaxStains = 160;          // oldest recycled beyond this
@@ -24,18 +31,16 @@ public sealed class GroundBloodStains : MonoBehaviour
     private const int DripIntervalTicks = 6;    // while bleeding, ~1.5 sim-s
     private const int BleedGraceTicks = 20;     // blood drops on SLOW ticks (16)
     private const float FootJitter = 0.12f;
-
-    private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
-    private static readonly int BaseMapId = Shader.PropertyToID("_BaseMap");
-    private static readonly int SurfaceId = Shader.PropertyToID("_Surface");
-    private static readonly int SrcBlendId = Shader.PropertyToID("_SrcBlend");
-    private static readonly int DstBlendId = Shader.PropertyToID("_DstBlend");
-    private static readonly int ZWriteId = Shader.PropertyToID("_ZWrite");
+    // The projector hovers above the foot point and projects down through
+    // the ground: enough depth to catch a slope, not enough to bleed into
+    // caves under overhangs.
+    private const float ProjectorHover = 0.35f;
+    private const float ProjectorDepth = 0.9f;
 
     private sealed class Stain
     {
         public Transform Root;
-        public MeshRenderer Renderer;
+        public DecalProjector Projector;
         public int BornTick;
         public float FullScale;
     }
@@ -50,8 +55,6 @@ public sealed class GroundBloodStains : MonoBehaviour
     private readonly List<Stain> _stains = new();
     private readonly Dictionary<int, BleedTracker> _trackers = new();
     private Material[] _materials; // one per texture variant, shared by stains
-    private Mesh _quad;
-    private MaterialPropertyBlock _mpb;
 
     // Per-NPC, once per rendered sim tick: detect blood loss and drip.
     public void OnNpcTick(int npcId, float blood, Vector3 footWorld, int tick)
@@ -95,14 +98,10 @@ public sealed class GroundBloodStains : MonoBehaviour
             var spread = Mathf.Clamp01(age / SpreadTicks);
             spread = 1f - (1f - spread) * (1f - spread);
             var scale = Mathf.Lerp(DripScale, stain.FullScale, spread);
-            stain.Root.localScale = new Vector3(scale, scale, scale);
+            stain.Projector.size = new Vector3(scale, scale, ProjectorDepth);
 
             // Dry out: linear fade across the game day.
-            var alpha = MaxAlpha * (1f - age / LifetimeTicks);
-            _mpb ??= new MaterialPropertyBlock();
-            stain.Renderer.GetPropertyBlock(_mpb);
-            _mpb.SetColor(BaseColorId, new Color(1f, 1f, 1f, alpha));
-            stain.Renderer.SetPropertyBlock(_mpb);
+            stain.Projector.fadeFactor = MaxAlpha * (1f - age / LifetimeTicks);
         }
     }
 
@@ -122,22 +121,23 @@ public sealed class GroundBloodStains : MonoBehaviour
 
         var go = new GameObject("BloodStain");
         go.transform.SetParent(transform, false);
-        // Tiny per-stain lift so overlapping puddles never z-fight.
-        var lift = 0.012f + (_stains.Count % 16) * 0.0006f;
-        go.transform.position = at + new Vector3(0f, lift, 0f);
+        go.transform.position = at + new Vector3(0f, ProjectorHover, 0f);
+        // Look straight down with a random spin so variants never repeat.
         go.transform.rotation = Quaternion.Euler(90f, Random.Range(0f, 360f), 0f);
-        go.transform.localScale = Vector3.one * DripScale;
 
-        go.AddComponent<MeshFilter>().sharedMesh = _quad;
-        var renderer = go.AddComponent<MeshRenderer>();
-        renderer.sharedMaterial = _materials[Random.Range(0, _materials.Length)];
-        renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        renderer.receiveShadows = false;
+        var projector = go.AddComponent<DecalProjector>();
+        projector.material = _materials[Random.Range(0, _materials.Length)];
+        projector.size = new Vector3(DripScale, DripScale, ProjectorDepth);
+        projector.pivot = Vector3.zero;
+        projector.fadeFactor = MaxAlpha;
+        // Everything the pool touches catches it — terrain, grass, a foot
+        // standing in it (that wrap is exactly why the pack projects decals).
+        projector.renderingLayerMask = uint.MaxValue;
 
         _stains.Add(new Stain
         {
             Root = go.transform,
-            Renderer = renderer,
+            Projector = projector,
             BornTick = tick,
             FullScale = Random.Range(PuddleScaleMin, PuddleScaleMax),
         });
@@ -150,32 +150,40 @@ public sealed class GroundBloodStains : MonoBehaviour
             return;
         }
 
+        // Albedo + matching pack normal maps live in sibling folders; pair
+        // them by sorted name (LoadAll gives no order guarantee).
         var textures = Resources.LoadAll<Texture2D>("HexLive/BloodStains");
+        var normals = Resources.LoadAll<Texture2D>("HexLive/BloodStainNormals");
+        System.Array.Sort(textures, (a, b) => string.CompareOrdinal(a.name, b.name));
+        System.Array.Sort(normals, (a, b) => string.CompareOrdinal(a.name, b.name));
+
         _materials = new Material[textures.Length];
         for (var i = 0; i < textures.Length; i++)
         {
-            _materials[i] = CreateStainMaterial(textures[i]);
+            _materials[i] = CreateStainMaterial(textures[i],
+                i < normals.Length ? normals[i] : null);
         }
-
-        // Unity's Quad primitive mesh without the collider dance.
-        var probe = GameObject.CreatePrimitive(PrimitiveType.Quad);
-        _quad = probe.GetComponent<MeshFilter>().sharedMesh;
-        Destroy(probe);
     }
 
-    // URP Unlit, transparent: the stain is flat colour from the texture —
-    // lighting variance on a decal-like overlay reads as z-fighting noise.
-    private static Material CreateStainMaterial(Texture2D texture)
+    // URP Decal shadergraph material (same "Base_Map" reference quirk as the
+    // skin decals). The pack normal map gives the pool its wet relief; the
+    // DBuffer runs Albedo+Normal, smoothness stays untouched.
+    private static Material CreateStainMaterial(Texture2D texture, Texture2D normal)
     {
-        var material = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
-        material.SetTexture(BaseMapId, texture);
-        material.SetFloat(SurfaceId, 1f);
-        material.SetFloat(SrcBlendId, (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
-        material.SetFloat(DstBlendId, (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-        material.SetFloat(ZWriteId, 0f);
-        material.SetOverrideTag("RenderType", "Transparent");
-        material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-        material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+        var shader = Shader.Find("Shader Graphs/Decal");
+        var material = new Material(shader != null ? shader : Shader.Find("Universal Render Pipeline/Lit"));
+        material.SetTexture("Base_Map", texture);
+        material.SetTexture("_BaseMap", texture);
+        var blend = normal != null ? 0.6f : 0f;
+        if (normal != null)
+        {
+            material.SetTexture("Normal_Map", normal);
+            material.SetTexture("_NormalMap", normal);
+        }
+
+        material.SetFloat("Normal_Blend", blend);
+        material.SetFloat("_NormalBlend", blend);
+        material.SetFloat("_DecalNormalBlendFactor", blend);
         return material;
     }
 }

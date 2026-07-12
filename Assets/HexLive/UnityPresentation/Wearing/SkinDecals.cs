@@ -44,20 +44,19 @@ namespace HexLive.UnityPresentation.Wearing
         // even light grime dusts legs+arms+torso, not just legs), then repeated
         // rounds — at full filth every zone carries several smudges: legs 5,
         // arms 4+4, torso (chest+belly) 6, pelvis (butt) 4, face 3 = 26 decals.
-        // Doubled (26 → 52 smudges): at Hygiene 0 the body must read FILTHY —
-        // every zone carries several overlapping smudges, none stays clean.
+        // Tuned down twice (52 → 30 → 24; both louder passes read as
+        // paint-bombed): mostly limbs/torso, only a couple on the head so
+        // the face and hair don't drown in grain. The granular sheet itself
+        // is dark brown and translucent (alpha ≤ 0.45) with an early radial
+        // fade — full filth reads as a quiet dusty crust with no hard seams
+        // at the projector edges.
         private static readonly string[] DirtSpread =
         {
             "LegL", "LegR", "ArmL", "ArmR", "Torso", "Pelvis",
-            "LegL", "LegR", "ArmL", "ArmR", "Torso", "Head",
-            "Torso", "Pelvis", "ArmL", "ArmR", "LegL", "LegR",
-            "Torso", "Head", "Pelvis", "LegL", "ArmL", "Torso",
-            "Head", "Pelvis",
             "LegL", "LegR", "ArmL", "ArmR", "Torso", "Pelvis",
-            "LegR", "LegL", "ArmR", "ArmL", "Torso", "Head",
-            "Pelvis", "Torso", "ArmL", "ArmR", "LegL", "LegR",
-            "Head", "Torso", "Pelvis", "LegR", "ArmR", "Torso",
-            "Head", "Pelvis"
+            "Torso", "Pelvis", "ArmL", "ArmR", "LegL", "LegR",
+            "Torso", "LegL", "ArmR", "Head",
+            "LegR", "Head"
         };
 
         // Sweat shows where skin glistens first: face, chest, then arms.
@@ -307,7 +306,7 @@ namespace HexLive.UnityPresentation.Wearing
                 DecalType.Blood => 0.075f,
                 DecalType.Sweat => 0.070f, // droplet spray patch
                 DecalType.Bandage => 0.110f, // leaf wrap covers the wound area
-                _ => 0.150f // dirt
+                _ => 0.110f // dirt (0.150 read too loud on the thighs)
             } * _height * sizeJitter;
 
             var go = new GameObject($"Decal {key}");
@@ -337,6 +336,14 @@ namespace HexLive.UnityPresentation.Wearing
         // ---- materials / textures ----
 
         private static readonly Dictionary<DecalType, Material> _materials = new();
+
+        // No-domain-reload runs keep this cache between plays — rebuilt so a
+        // texture updated on disk (or imported mid-session) is picked up.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStaticMaterialCache()
+        {
+            _materials.Clear();
+        }
 
         private static Material GetDecalMaterial(DecalType type)
         {
@@ -382,6 +389,29 @@ namespace HexLive.UnityPresentation.Wearing
             // decal renders as a plain white square. Set both to stay robust.
             material.SetTexture("Base_Map", texture);
             material.SetTexture("_BaseMap", texture);
+
+            // Volumetric grains: the DBuffer runs Albedo+Normal now. Sweat
+            // beads get a full-strength dome normal map (on wet-glossed skin
+            // every bead catches its own sun glint); dirt crumbs get a softer
+            // one (dry grain relief). Wounds/bandage explicitly blend NO
+            // normal — they'd flatten the skin pores.
+            var normalMap = type switch
+            {
+                DecalType.Sweat => Resources.Load<Texture2D>("HexLive/Decals/sweat_drops_n"),
+                DecalType.Dirt => Resources.Load<Texture2D>("HexLive/Decals/dirt_dust_n"),
+                _ => null
+            };
+            var normalBlend = normalMap == null ? 0f : type == DecalType.Sweat ? 1f : 0.7f;
+            if (normalMap != null)
+            {
+                material.SetTexture("Normal_Map", normalMap);
+                material.SetTexture("_NormalMap", normalMap);
+            }
+
+            material.SetFloat("Normal_Blend", normalBlend);
+            material.SetFloat("_NormalBlend", normalBlend);
+            material.SetFloat("_DecalNormalBlendFactor", normalBlend);
+
             _materials[type] = material;
             return material;
         }

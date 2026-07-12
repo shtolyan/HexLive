@@ -134,6 +134,12 @@ public sealed class Wear : MonoBehaviour
     // not only after damage — natural wear frays cloth too.
     private const float TearBiteDurability = 0.85f;
     private const int MaxDamageSpheres = 8;
+    // Spec 40.10-D: holes + dirt PAINTED into per-garment textures (UV-stable
+    // — the world-space sphere clip breathed with the bones and flickered).
+    // Flip off to fall back to the fully procedural shader path.
+    private const bool PaintWearIntoTexture = true;
+    private GarmentWearPainter _wearPainter;
+    private static readonly int SphereTearOnId = Shader.PropertyToID("_SphereTearOn");
     private static readonly int TearAmountId = Shader.PropertyToID("_TearAmount");
     private static readonly int TearMaskTexId = Shader.PropertyToID("_TearMaskTex");
     private static readonly int TearTexOnId = Shader.PropertyToID("_TearTexOn");
@@ -260,6 +266,26 @@ public sealed class Wear : MonoBehaviour
             ApplyTearShader();
         }
 
+        // Spec 40.10-D: the painter stamps holes/dirt into textures; the
+        // shader then must not ALSO rip via world spheres (flicker) or paint
+        // its procedural dust (double filth). Blood soak keeps the spheres.
+        if (PaintWearIntoTexture && _tearShaderApplied)
+        {
+            if (_wearPainter == null)
+            {
+                _wearPainter = gameObject.AddComponent<GarmentWearPainter>();
+                _wearPainter.Construct(_meshRenderer);
+            }
+
+            _wearPainter.SetState(_tear, _dirt, _damageSpheres, _damageSphereCount);
+        }
+
+        // Painted bite holes are near-black in the mask: a small floor tear
+        // amount clips them open even while overall durability is high.
+        var effectiveTear = PaintWearIntoTexture && _wearPainter != null && _wearPainter.HasDamageHoles
+            ? Mathf.Max(_tear, 0.12f)
+            : _tear;
+
         // Per material slot: tear/dirt/spheres are shared, but smoothness and
         // colour restore each slot's OWN dry values (a renderer-wide block
         // used slot 0's white for everything and greyed the blue tank body).
@@ -268,14 +294,17 @@ public sealed class Wear : MonoBehaviour
         for (var i = 0; i < slotCount; i++)
         {
             _meshRenderer.GetPropertyBlock(_wearMpb, i);
-            _wearMpb.SetFloat(TearAmountId, _tear);
-            _wearMpb.SetFloat(DirtAmountId, _dirt);
+            _wearMpb.SetFloat(TearAmountId, effectiveTear);
+            _wearMpb.SetFloat(DirtAmountId, PaintWearIntoTexture ? 0f : _dirt);
+            _wearMpb.SetFloat(SphereTearOnId, PaintWearIntoTexture ? 0f : 1f);
             _wearMpb.SetFloat(BloodAmountId, _blood);
             _wearMpb.SetFloat(SweatAmountId, _sweat);
             _wearMpb.SetFloat(DamageSphereCountId, _damageSphereCount);
             _wearMpb.SetVectorArray(DamageSpheresId, _damageSpheres);
             // Spec 35.5: soaked cloth shines and darkens; dry restores base.
-            _wearMpb.SetFloat(SmoothnessId, Mathf.Lerp(_drySmoothnessPerSlot[i], 0.85f, _wet));
+            // 0.72 matches the wet SKIN gloss — 0.85 here while the body wore
+            // 0.72 read as mismatched smoothness across materials.
+            _wearMpb.SetFloat(SmoothnessId, Mathf.Lerp(_drySmoothnessPerSlot[i], 0.72f, _wet));
             var soaked = Color.Lerp(_dryColorPerSlot[i], _dryColorPerSlot[i] * 0.6f, _wet);
             soaked.a = _dryColorPerSlot[i].a;
             _wearMpb.SetColor(BaseColorId, soaked);

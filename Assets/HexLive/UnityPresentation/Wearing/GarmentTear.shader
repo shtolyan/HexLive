@@ -21,11 +21,16 @@ Shader "HexLive/GarmentTear"
         // depths — darker spots rip first. White default = procedural fallback.
         _TearMaskTex ("Artistic tear mask", 2D) = "white" {}
         _TearMaskTiling ("Tear mask tiling (per UV)", Float) = 1.0
+        // 0 = damage spheres do NOT clip holes (painted-wear mode: holes are
+        // stamped into the mask in UV space instead — world-space sphere
+        // thresholds breathe with the animated bones and flicker). Blood
+        // soak keeps using the spheres either way.
+        _SphereTearOn ("Spheres rip holes (0/1)", Float) = 1.0
         _TearTexOn ("Use artistic mask (0/1)", Float) = 0.0
         _TearEdgeWidth ("Frayed edge width", Range(0.001, 0.3)) = 0.09
         _TearEdgeTint ("Frayed edge tint", Color) = (0.45, 0.4, 0.38, 1)
         _DirtAmount ("Dirt (0 clean .. 1 filthy)", Range(0, 1)) = 0.0
-        _DirtColor ("Dirt tint", Color) = (0.65, 0.57, 0.42, 1)
+        _DirtColor ("Dirt tint", Color) = (0.50, 0.42, 0.31, 1)
         // Spec 40.8-C: blood soaks through the cloth over the wound (localized
         // by the damage spheres); sweat = damp darkened patches with a sheen.
         _BloodAmount ("Blood soak (0..1)", Range(0, 1)) = 0.0
@@ -57,6 +62,7 @@ Shader "HexLive/GarmentTear"
             half _TearAmount;
             float _TearScale;
             float _TearMaskTiling;
+            float _SphereTearOn;
             half _TearTexOn;
             half _TearEdgeWidth;
             half4 _TearEdgeTint;
@@ -167,8 +173,11 @@ Shader "HexLive/GarmentTear"
         float TearThresholdAt(float3 positionWS)
         {
             // _HolesOn = 0 (skin mode): threshold 0 — nothing ever clips,
-            // the paint layers still work.
-            return saturate(max(_TearAmount, LocalDamageTear(positionWS)) * 1.08) * _HolesOn;
+            // the paint layers still work. _SphereTearOn = 0 (painted-wear
+            // mode): only the UV-stable mask/_TearAmount rip — no breathing
+            // holes from bone-anchored world spheres.
+            return saturate(max(_TearAmount,
+                LocalDamageTear(positionWS) * _SphereTearOn) * 1.08) * _HolesOn;
         }
         ENDHLSL
 
@@ -257,10 +266,12 @@ Shader "HexLive/GarmentTear"
                 // Sandy dust: blend toward the earth tint but never darken
                 // below ~80% of the cloth's own brightness — dust LIGHTENS
                 // dark fabric and dulls bright fabric, like real dry dirt.
-                half3 dust = lerp(albedo.rgb, _DirtColor.rgb, 0.7);
+                // Kept gentle (0.45/0.35): the earlier 0.7/0.5 pull painted
+                // harsh beige speckle over dark garments.
+                half3 dust = lerp(albedo.rgb, _DirtColor.rgb, 0.45);
                 dust = max(dust, albedo.rgb * 0.8);
                 albedo.rgb = lerp(albedo.rgb, dust,
-                    dirtCover * saturate(_DirtAmount * 1.3) * 0.5);
+                    dirtCover * saturate(_DirtAmount * 1.3) * 0.35);
 
                 // Spec 40.8-C: blood soaks THROUGH the garment right over the
                 // wound — localized by the same damage spheres that rip the

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 26c74a51d6d57e343b4bb3323097e0b5
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 9100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 295450
+  packageName: Blood Effects Pack
+  packageVersion: 5.3.1
+  assetPath: Assets/RVFX/BloodEffectsPack/UIEffect/Animation/BloodScreen_Animator.controller
+  uploadId: 880594

@@ -112,6 +112,6 @@ MonoBehaviour:
     maxDrawDistance: 1000
     decalLayers: 1
     dBufferSettings:
-      surfaceData: 0
+      surfaceData: 1
     screenSpaceSettings:
       normalBlend: 0

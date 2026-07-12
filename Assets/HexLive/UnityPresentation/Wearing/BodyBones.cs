@@ -52,6 +52,13 @@ public sealed class BodyBones : MonoBehaviour
         {
             var spawned = Instantiate(hair, wearTransform);
             spawned.Construct(_actorMesh, this);
+            // Hair must never catch SKIN-layer decals (dirt/sweat grain in the
+            // strands): imported prefabs ship odd rendering-layer masks (257),
+            // so pin every hair renderer to the cloth bit explicitly.
+            foreach (var renderer in spawned.GetComponentsInChildren<Renderer>(true))
+            {
+                renderer.renderingLayerMask = Wear.ClothDecalLayer;
+            }
         }
     }
 

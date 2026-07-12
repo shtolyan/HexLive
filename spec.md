@@ -7390,10 +7390,18 @@ pass — order chosen to add robustness before difficulty.
   puddle over ~120 ticks, then dries: linear alpha fade to zero across
   **one game day (2400 ticks)**, driven by sim tick (pause/speed safe),
   then the quad is destroyed. Cap 160 stains, oldest recycled. Cosmetic
-  only — never persisted, no sim coupling. Visuals: 4 AI-generated flat
-  cartoon stain textures (fal.ai flux/schnell + rembg) in
-  `Resources/HexLive/BloodStains/`, URP Unlit transparent quads with a tiny
-  per-stain lift against z-fighting. TUNING KNOBS: `LifetimeTicks`,
+  only — never persisted, no sim coupling. Visuals: the RVFX Blood Effects
+  Pack static splatters (`BloodDecal_01..04`, deep venous with shading)
+  copied as the 4 variants in `Resources/HexLive/BloodStains/` (they
+  replaced the first-pass fal.ai cartoon stains), rendered the way the
+  pack's demo does — as downward **DecalProjectors** (the pool hugs sloped
+  hex prisms, grass and feet standing in it; `renderingLayerMask` =
+  everything) with the pack's matching **normal maps**
+  (`Resources/HexLive/BloodStainNormals/`, blend 0.6) for wet relief.
+  Spread animates `projector.size`, drying animates `fadeFactor`. The
+  pack's own spawner scripts (Trail/ProjectorSpawnerSystem) are NOT used —
+  they run on realtime `Time.deltaTime` and would ignore sim pause/speed;
+  the tick-driven lifecycle stays ours. TUNING KNOBS: `LifetimeTicks`,
   `SpreadTicks`, `DripIntervalTicks`, `PuddleScaleMin/Max`, `MaxStains`.
 
 ### 40.3 Medicine & stockpiling (Safety goal)
@@ -7477,13 +7485,32 @@ pass — order chosen to add robustness before difficulty.
 - **Rate & shade:** tan builds only on bare parts under the sun, gated by
   `effectiveUv > 0.5`, which already carries the shade penalty (shaded tiles
   cut UV ×0.2), so you tan **less in shade**. Rate `0.0018/slow-tick·part`
-  ≈ ~10 game days to max at open-sun exposure. Presentation's full-tan tint
-  is a **deep brown** (`0.40, 0.27, 0.18`), multiplying the skin so max tan
-  reads markedly dark.
+  ≈ ~10 game days to max at open-sun exposure. Presentation tans THROUGH
+  red: pale skin first flushes toward a fresh-burn red (`0.79, 0.55, 0.57`
+  by TanLevel 0.35 — the retired low-HP flush color, which read exactly
+  like "just caught the sun"), then deepens into the full-tan **deep
+  brown** (`0.40, 0.27, 0.18` at TanLevel 1), multiplying the skin so max
+  tan reads markedly dark. Acute Sunburn still layers its own red on top.
 
 ### 40.8 Visible injuries (decals/texture)
 - Where a bone is hit (leg/arm/head/belly), draw a **wound** on the
   skin/clothing — texture paint or decal. Real, visible damage.
+- **SHIPPED (40.8-F — blood splash VFX on fresh wounds):** the purchased
+  **RVFX Blood Effects Pack** (Assets/RVFX, URP variant extracted from its
+  nested `BloodEffectPack_URP.unitypackage`) is wired in two ways. (1) A
+  FRESH wound (first sync where its seed appears, heal ≈ 0) fires one
+  particle splash prefab (`Blood_Splash_01..03_URP`, moved under
+  `Resources/HexLive/VFX` GUID-intact so material refs survive) at the
+  zone's bone, oriented outward, Hierarchy-scaled to the ~0.35 actors;
+  one spray per sync (a 3-gash bite = one hit), 0.4 s real-time gate for
+  fast sim speeds, silent first sync (loaded wounds are history, not
+  hits); the pack's KillEffect self-destroys the instance (8 s backstop).
+  (2) The pack's static splatters were TRIED as the painter's underlay
+  variants and reverted — on the body the original pair (the user's
+  blood_splash picture + generated art) reads better; the pack textures
+  live on in the ground stains (with their normal maps) and the splash
+  VFX. Unused pack goodies for later: blood trails, gut chunks, UI
+  blood-screen overlays.
 - **v1 (whole-body flush) — RETIRED:** the old "Health < 0.6 tints the
   whole skin bruised red-purple" pass is switched off (the renderer passes
   `hurt = 0`; the `SetSkinWeathering` channel remains wired should it ever
@@ -7536,9 +7563,19 @@ pass — order chosen to add robustness before difficulty.
   exposes no smoothness). Fallbacks: molly hit-system `blood_splash.png`,
   then procedural. **Dirt** is a fal.ai texture too (`dirt_dust.png`):
   macro photo of sandy powder grains + clumps on black, luminance-keyed to
-  alpha with a radial edge falloff and an earthy tint — granular speckle
-  like the logo's weathered grime (the old procedural blobs read as flat
-  paint). Dirt accumulates
+  alpha with a radial edge falloff — granular speckle like the logo's
+  weathered grime (the old procedural blobs read as flat paint). Tuned
+  down twice after paint-bombed passes: **dark brown** (recolored from
+  luminance — multiplying the beige source kept it yellow), **quiet**
+  (alpha ≤ 0.45, 24 smudges — was 52 → 30, only two on the head), smaller
+  patches (0.110 × height, was 0.150), an **early radial fade** (from 55%
+  of the sheet) so projector box edges never show as hard seams on the
+  limbs, and **volumetric** — a baked grain-relief normal map
+  (`dirt_dust_n.png`) blends at 0.7 via the Albedo+Normal DBuffer. Hair renderers are pinned to the cloth layer
+  explicitly (imported prefabs shipped odd masks like 257). The
+  GarmentTear cloth dust was softened to match (0.45 tint pull / 0.35 max
+  cover, browner `_DirtColor 0.50,0.42,0.31`) — 0.7/0.5 painted harsh
+  beige speckle over dark garments. Dirt accumulates
   over ~10 game days (hygiene −0.0004/slow tick). **Sweat** is a decal too:
   a fal.ai droplet-spray photo generated on black and luminance-keyed to
   alpha (`sweat_drops.png`); the projector's fadeFactor breathes 0.75↔1.0.
@@ -7549,10 +7586,40 @@ pass — order chosen to add robustness before difficulty.
   liked) were cropped, circularly masked and re-scattered as ~68 small
   copies (34–78 px vs the old 230 px giant) on a jittered grid + tiny
   satellites. Sweat patches also widened 8 → 13 zones entries, so full heat
-  covers the body in many little glistening beads. NOTE: the Decal
-  feature runs **albedo-only** (`surfaceData: 0`) — decals never override
-  the skin's smoothness/normals (glassy sun-glint fix); wet gloss is baked
-  into the textures. Dirt is deliberately HEAVY at the bottom of the
+  covers the body in many little glistening beads. **v3 — sweat as painted
+  NORMAL-ONLY relief** (`PaintSweatIntoTexture`) — **PARKED**: at body
+  scale the bead relief read as skin pox on the face; sweat currently
+  shows as the **wet gloss + the decal-projector bubbles** (the rebuilt
+  glassy-bead sheet — best look so far per the user; the painter beads
+  stay off). The bead-relief tech is kept intact behind the flag for
+  future disease/insect-bite visuals. Mechanism (for that future use): a real
+  droplet is transparent, so the painter stamps the dome normal sheet
+  (`sweat_drops_n`) straight into the skin's normal map — 6 patches per
+  bare zone (head: 2). **Stamps are world-size-true**: UV density is
+  anisotropic per tile (a leg tile packs the circumference tight and the
+  length loose — square-UV stamps stretched into ribs down the thigh, and
+  the dense face tile blew beads up huge), so placement measures the hit
+  triangle's metres-per-UV along U and V and sizes the stamp rect per
+  axis (`StampSizeFor`): every wound/bandage/bead patch lands square and
+  consistent in world metres on any body part. The droplet sheet itself
+  is procedural rain-glass style (analytic hemisphere normals over exact
+  height fields — dense wobbly drops, run-down trails, satellites;
+  matched to the user's reference). The droplet sheet normals are TRUE SPHERICAL CAPS
+  (chamfer distance transform per bead + local-radius max filter, height
+  = √(d(2R−d))/R, pinholes morphologically closed) — blurred-alpha
+  heights gave plateaus whose edge slopes read as crater rings. Wound
+  reliefs use two-scale dome heights (S ±6/−7). Strength = wetness (0.1
+  buckets), zero
+  colour change; the wet gloss (0.72) turns each dome into a genuine sun
+  glint. Sweat-only slots do NOT swap their albedo (per-channel repaint).
+  The projector "rain" pass now keys off rain-only inertial wetness (the
+  unified pool made sweat spawn rain rings too). Wet skin smoothness
+  itself was pulled 0.85 → 0.72 (read as plastic/vinyl). NOTE: the Decal
+  feature runs **Albedo+Normal** (`surfaceData: 1`) — smoothness/MAOS stays
+  decal-untouchable (glassy sun-glint fix), normals are used ONLY by the
+  sweat material (dome normal map = volumetric beads); every other decal
+  material sets `Normal_Blend 0` so blood/dirt never flatten the skin
+  pores. Wet gloss is baked into the textures. Dirt is deliberately HEAVY at the bottom of the
   scale: 52 overlapping smudge decals (doubled from 26) climb the body as
   hygiene drops, and the whole-body grime tint reaches half-strength
   earthy brown at Hygiene 0 — the entire skin must read filthy, no clean
@@ -7597,7 +7664,16 @@ pass — order chosen to add robustness before difficulty.
   placement never retries per-frame. The wound then composites into
   a RenderTexture copy of that slot's albedo (≤2048², explicit sRGB,
   mips regenerated after stamping, assigned to the
-  per-NPC material instance): TWO stamps per pass — the picked blood-splash
+  per-NPC material instance) — AND into a copy of the slot's **normal
+  map**: the authored normal is decoded to plain RGB
+  (`NormalDecodeBlit.shader` handles DXT5nm), then each stamp's baked
+  relief map (`blood_splash_n`/`blood_splat_n` bead UP, `wound_scratch_n`
+  grooves IN; RGB-encoded, A = stamp alpha, linear RT — the encoding
+  survives URP's `UnpackNormalmapRGorAG` since a·r = x at a = 1) blends by
+  the same fading alpha, so healing flattens the relief in step with the
+  color; slots without an authored normal start flat and get
+  `_NORMALMAP` enabled (disabled again on full restore).
+  TWO stamps per pass — the picked blood-splash
   underlay wider, the detailed gash/splat art centered on the hit. Stamp
   records (slot/uv/seed/textures) persist; **healing just repaints** the
   composite from the clean original with lower alpha (0.1 buckets) until
@@ -7680,6 +7756,27 @@ pass — order chosen to add robustness before difficulty.
   on dirt > 0.15 or any damage sphere. Knobs: `_DamageRadius` (rip size
   around a wound), `_DirtColor/_DirtScale`, sphere threshold + anchors in
   `NpcActorView.ZoneBoneAnchors`.
+- **SHIPPED (40.10-D — wear PAINTED into garment textures).** The
+  world-space sphere clip made holes **breathe with the animated bones**
+  (threshold = f(positionWS) vs a bone-anchored sphere → a hole opened and
+  closed as the limb swung). `GarmentWearPainter` (the skin-painter tech on
+  clothes, behind `Wear.PaintWearIntoTexture`) stamps holes into a
+  **per-garment copy of the artistic tear mask in UV space** — glued to the
+  fabric, animation-proof: bite holes place ONCE per damage-sphere quarter
+  bucket at the sphere's nearest garment triangle (molly bake + nearest
+  centroid, bake-scale detected vs renderer bounds), painted near-black
+  (clip open immediately — a 0.12 tear floor guarantees it); natural-wear
+  holes accumulate with erosion at seeded triangles, painted at rising
+  depth-grays so the artistic destruction sequence still orders them. The
+  shader keeps ripping via `_TearAmount` + mask only (`_SphereTearOn 0`;
+  spheres still localize blood soak). Fray rims stay shader-side (mask
+  bands — UV-stable). **Dirt on cloth = the same `dirt_dust` sheet as the
+  skin** stamped into a per-slot albedo copy (count/alpha from 1 − hygiene,
+  seeded on-island triangles; `_DirtAmount` muted → no double filth; wash
+  restores the original). All event-driven on buckets (tear 0.05, dirt
+  0.1, sphere 0.25) — zero per-frame painting. Known limit: natural-hole
+  seeds use instance ids, so their spots reshuffle across a save reload
+  (bite holes re-derive from wounds and stay).
 
 ### 40.11 Character UI panel
 - Select an NPC → a **button** opens a panel showing: **equipment slots**

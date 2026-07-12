@@ -91,32 +91,33 @@ namespace HexLive.UnityPresentation.UI
                 _root.style.backgroundSize = new BackgroundSize(BackgroundSizeType.Cover);
             }
 
-            // The big game title floats over the art, up high.
-            var gameTitle = new Label("HexLive")
+            // The game logo floats over the art in the top-left corner.
+            var logo = Resources.Load<Texture2D>("HexLive/UI/logo");
+            if (logo != null)
             {
-                style =
+                var logoImage = new VisualElement
                 {
-                    position = Position.Absolute,
-                    left = 0, right = 0,
-                    top = Length.Percent(14),
-                    fontSize = 58,
-                    color = new Color(0.97f, 0.94f, 0.86f, 0.97f),
-                    unityFontStyleAndWeight = FontStyle.Bold,
-                    unityTextAlign = TextAnchor.MiddleCenter
-                }
-            };
-            _root.Add(gameTitle);
+                    style =
+                    {
+                        position = Position.Absolute,
+                        left = 36, top = 20,
+                        width = 360,
+                        height = 360f * logo.height / logo.width,
+                        backgroundImage = new StyleBackground(logo)
+                    }
+                };
+                _root.Add(logoImage);
+            }
 
             // Spec 41.4: the main menu — a compact dark card docked to the
-            // left, same design language as the in-game Escape menu. The world
-            // doesn't exist yet; buttons decide which world to build.
+            // bottom-left corner: icon rows over a dimmed rounded panel. The
+            // world doesn't exist yet; buttons decide which world to build.
             _menuBox = new VisualElement
             {
                 style =
                 {
                     position = Position.Absolute,
-                    left = 48, top = 0, bottom = 0,
-                    justifyContent = Justify.Center,
+                    left = 40, bottom = 40,
                     alignItems = Align.FlexStart
                 }
             };
@@ -126,54 +127,84 @@ namespace HexLive.UnityPresentation.UI
                 style =
                 {
                     width = 300,
-                    backgroundColor = new Color(0.075f, 0.094f, 0.110f, 0.98f),
-                    borderTopLeftRadius = 16, borderTopRightRadius = 16,
-                    borderBottomLeftRadius = 16, borderBottomRightRadius = 16,
+                    backgroundColor = new Color(0.055f, 0.070f, 0.085f, 0.86f),
+                    borderTopLeftRadius = 18, borderTopRightRadius = 18,
+                    borderBottomLeftRadius = 18, borderBottomRightRadius = 18,
                     borderLeftWidth = 1, borderRightWidth = 1,
                     borderTopWidth = 1, borderBottomWidth = 1,
-                    borderLeftColor = new Color(1f, 1f, 1f, 0.12f),
-                    borderRightColor = new Color(1f, 1f, 1f, 0.12f),
-                    borderTopColor = new Color(1f, 1f, 1f, 0.12f),
-                    borderBottomColor = new Color(1f, 1f, 1f, 0.12f),
-                    paddingLeft = 24, paddingRight = 24,
-                    paddingTop = 22, paddingBottom = 16
+                    borderLeftColor = new Color(1f, 1f, 1f, 0.10f),
+                    borderRightColor = new Color(1f, 1f, 1f, 0.10f),
+                    borderTopColor = new Color(1f, 1f, 1f, 0.10f),
+                    borderBottomColor = new Color(1f, 1f, 1f, 0.10f),
+                    paddingLeft = 16, paddingRight = 16,
+                    paddingTop = 16, paddingBottom = 14
                 }
             };
-
-            var caption = new Label(Loc.Get("menu.title"))
-            {
-                style =
-                {
-                    fontSize = 22,
-                    color = new Color(0.906f, 0.925f, 0.937f),
-                    unityFontStyleAndWeight = FontStyle.Bold,
-                    unityTextAlign = TextAnchor.MiddleCenter,
-                    marginBottom = 18
-                }
-            };
-            card.Add(caption);
 
             // Continue is always present; without a save it sits disabled
             // (greyed out, not clickable) so the menu shape never changes.
-            var continueButton = MakeMenuButton(Loc.Get("menu.continue"), primary: _save != null, () =>
+            card.Add(MakeMenuRow("play", Loc.Get("menu.continue"),
+                primary: true, enabled: _save != null, () =>
             {
                 _continueChosen = true;
                 _menuChosen = true;
-            });
-            if (_save == null)
-            {
-                continueButton.SetEnabled(false);
-                continueButton.style.backgroundColor = new Color(0.10f, 0.12f, 0.14f, 0.9f);
-                continueButton.style.color = new Color(0.40f, 0.447f, 0.478f);
-            }
+            }));
 
-            card.Add(continueButton);
-
-            card.Add(MakeMenuButton(Loc.Get("menu.newgame"), primary: _save == null, () =>
+            card.Add(MakeMenuRow("plus", Loc.Get("menu.newgame"),
+                primary: false, enabled: true, () =>
             {
                 _continueChosen = false;
                 _menuChosen = true;
             }));
+
+            // Placeholders for now — visible but not wired up yet.
+            card.Add(MakeMenuRow("gear", Loc.Get("menu.settings"),
+                primary: false, enabled: false, null));
+            card.Add(MakeMenuRow("person", Loc.Get("menu.characters"),
+                primary: false, enabled: false, null));
+
+            card.Add(MakeMenuRow("exit", Loc.Get("menu.quit"),
+                primary: false, enabled: true, () =>
+            {
+#if UNITY_EDITOR
+                UnityEditor.EditorApplication.isPlaying = false;
+#else
+                Application.Quit();
+#endif
+            }));
+
+            var divider = new VisualElement
+            {
+                style =
+                {
+                    height = 1,
+                    marginTop = 10, marginBottom = 10,
+                    backgroundColor = new Color(1f, 1f, 1f, 0.12f)
+                }
+            };
+            card.Add(divider);
+
+            var tagline = new VisualElement
+            {
+                style =
+                {
+                    flexDirection = FlexDirection.Row,
+                    alignItems = Align.Center,
+                    paddingLeft = 8, paddingRight = 4
+                }
+            };
+            tagline.Add(MakeIcon("bulb", new Color(0.72f, 0.75f, 0.77f)));
+            tagline.Add(new Label(Loc.Get("menu.tagline"))
+            {
+                style =
+                {
+                    fontSize = 12,
+                    color = new Color(0.72f, 0.75f, 0.77f),
+                    whiteSpace = WhiteSpace.Normal,
+                    marginLeft = 10
+                }
+            });
+            card.Add(tagline);
 
             _menuBox.Add(card);
             _root.Add(_menuBox);
@@ -194,18 +225,6 @@ namespace HexLive.UnityPresentation.UI
             };
             _progressStrip = strip;
             _root.Add(strip);
-
-            var title = new Label("HexLive")
-            {
-                style =
-                {
-                    fontSize = 30,
-                    color = new Color(0.95f, 0.92f, 0.85f, 1f),
-                    unityFontStyleAndWeight = FontStyle.Bold,
-                    marginBottom = 6
-                }
-            };
-            strip.Add(title);
 
             _status = new Label("...")
             {
@@ -246,58 +265,159 @@ namespace HexLive.UnityPresentation.UI
             document.rootVisualElement.Add(_root);
         }
 
-        // Buttons in the Escape-menu style: gold primary with dark ink text,
-        // dark secondary with a subtle stroke that lights up gold on hover.
-        private static Button MakeMenuButton(string text, bool primary, System.Action onClick)
+        // Menu rows in the reference style: icon + label on a transparent
+        // row, gold for the primary action, subtle light wash on hover.
+        // Disabled rows stay visible but dimmed and unclickable.
+        private static Button MakeMenuRow(
+            string icon, string text, bool primary, bool enabled, System.Action onClick)
         {
             var gold = new Color(0.941f, 0.706f, 0.361f);
-            var goldDim = new Color(0.541f, 0.416f, 0.204f);
-            var raised = new Color(0.133f, 0.165f, 0.192f);
-            var stroke = new Color(1f, 1f, 1f, 0.12f);
-            var ink = new Color(0.06f, 0.086f, 0.102f);
             var textColor = new Color(0.906f, 0.925f, 0.937f);
+            var dim = new Color(0.45f, 0.49f, 0.52f);
+            var color = !enabled ? dim : primary ? gold : textColor;
 
             var button = new Button(onClick)
             {
-                text = text,
+                text = string.Empty,
                 style =
                 {
-                    width = 252,
+                    flexDirection = FlexDirection.Row,
+                    alignItems = Align.Center,
                     height = 46,
-                    marginLeft = 0, marginRight = 0, marginTop = 0,
-                    marginBottom = 10,
-                    fontSize = 15,
-                    unityFontStyleAndWeight = FontStyle.Bold,
-                    color = primary ? ink : textColor,
-                    backgroundColor = primary ? gold : raised,
-                    borderTopLeftRadius = 10, borderTopRightRadius = 10,
-                    borderBottomLeftRadius = 10, borderBottomRightRadius = 10,
-                    borderLeftWidth = 1, borderRightWidth = 1,
-                    borderTopWidth = 1, borderBottomWidth = 1,
-                    borderLeftColor = stroke, borderRightColor = stroke,
-                    borderTopColor = stroke, borderBottomColor = stroke
+                    marginLeft = 0, marginRight = 0, marginTop = 0, marginBottom = 2,
+                    paddingLeft = 12, paddingRight = 12,
+                    backgroundColor = Color.clear,
+                    borderLeftWidth = 0, borderRightWidth = 0,
+                    borderTopWidth = 0, borderBottomWidth = 0,
+                    borderTopLeftRadius = 12, borderTopRightRadius = 12,
+                    borderBottomLeftRadius = 12, borderBottomRightRadius = 12
                 }
             };
 
-            if (!primary)
+            button.Add(MakeIcon(icon, color));
+            button.Add(new Label(text)
+            {
+                style =
+                {
+                    fontSize = 17,
+                    unityFontStyleAndWeight = FontStyle.Bold,
+                    color = color,
+                    marginLeft = 12
+                },
+                pickingMode = PickingMode.Ignore
+            });
+
+            if (enabled)
             {
                 button.RegisterCallback<MouseEnterEvent>(_ =>
-                {
-                    button.style.borderLeftColor = goldDim;
-                    button.style.borderRightColor = goldDim;
-                    button.style.borderTopColor = goldDim;
-                    button.style.borderBottomColor = goldDim;
-                });
+                    button.style.backgroundColor = new Color(1f, 1f, 1f, 0.07f));
                 button.RegisterCallback<MouseLeaveEvent>(_ =>
-                {
-                    button.style.borderLeftColor = stroke;
-                    button.style.borderRightColor = stroke;
-                    button.style.borderTopColor = stroke;
-                    button.style.borderBottomColor = stroke;
-                });
+                    button.style.backgroundColor = Color.clear);
+            }
+            else
+            {
+                button.SetEnabled(false);
             }
 
             return button;
+        }
+
+        // Tiny vector icons painted with Painter2D — no textures needed.
+        private static VisualElement MakeIcon(string kind, Color color)
+        {
+            const float s = 20f;
+            var el = new VisualElement
+            {
+                style = { width = s, height = s, flexShrink = 0 },
+                pickingMode = PickingMode.Ignore
+            };
+            el.generateVisualContent += ctx =>
+            {
+                var p = ctx.painter2D;
+                p.fillColor = color;
+                p.strokeColor = color;
+                p.lineWidth = 2.4f;
+                p.lineCap = LineCap.Round;
+                var c = new Vector2(s * 0.5f, s * 0.5f);
+                switch (kind)
+                {
+                    case "play":
+                        p.BeginPath();
+                        p.MoveTo(new Vector2(s * 0.30f, s * 0.16f));
+                        p.LineTo(new Vector2(s * 0.88f, s * 0.50f));
+                        p.LineTo(new Vector2(s * 0.30f, s * 0.84f));
+                        p.ClosePath();
+                        p.Fill();
+                        break;
+
+                    case "plus":
+                        p.lineWidth = 3.2f;
+                        p.BeginPath();
+                        p.MoveTo(new Vector2(s * 0.5f, s * 0.14f));
+                        p.LineTo(new Vector2(s * 0.5f, s * 0.86f));
+                        p.MoveTo(new Vector2(s * 0.14f, s * 0.5f));
+                        p.LineTo(new Vector2(s * 0.86f, s * 0.5f));
+                        p.Stroke();
+                        break;
+
+                    case "gear":
+                        p.lineWidth = 3.4f;
+                        for (var i = 0; i < 8; i++)
+                        {
+                            var a = i * Mathf.PI / 4f;
+                            var dir = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
+                            p.BeginPath();
+                            p.MoveTo(c + dir * (s * 0.26f));
+                            p.LineTo(c + dir * (s * 0.44f));
+                            p.Stroke();
+                        }
+
+                        p.lineWidth = 3.6f;
+                        p.BeginPath();
+                        p.Arc(c, s * 0.22f, 0, 360);
+                        p.Stroke();
+                        break;
+
+                    case "person":
+                        p.BeginPath();
+                        p.Arc(new Vector2(s * 0.5f, s * 0.30f), s * 0.17f, 0, 360);
+                        p.Fill();
+                        p.BeginPath();
+                        p.Arc(new Vector2(s * 0.5f, s * 0.92f), s * 0.32f, 180, 360);
+                        p.ClosePath();
+                        p.Fill();
+                        break;
+
+                    case "exit":
+                        p.BeginPath();
+                        p.MoveTo(new Vector2(s * 0.52f, s * 0.16f));
+                        p.LineTo(new Vector2(s * 0.16f, s * 0.16f));
+                        p.LineTo(new Vector2(s * 0.16f, s * 0.84f));
+                        p.LineTo(new Vector2(s * 0.52f, s * 0.84f));
+                        p.Stroke();
+                        p.BeginPath();
+                        p.MoveTo(new Vector2(s * 0.42f, s * 0.5f));
+                        p.LineTo(new Vector2(s * 0.88f, s * 0.5f));
+                        p.MoveTo(new Vector2(s * 0.72f, s * 0.34f));
+                        p.LineTo(new Vector2(s * 0.88f, s * 0.5f));
+                        p.LineTo(new Vector2(s * 0.72f, s * 0.66f));
+                        p.Stroke();
+                        break;
+
+                    case "bulb":
+                        p.BeginPath();
+                        p.Arc(new Vector2(s * 0.5f, s * 0.38f), s * 0.22f, 0, 360);
+                        p.Stroke();
+                        p.BeginPath();
+                        p.MoveTo(new Vector2(s * 0.40f, s * 0.70f));
+                        p.LineTo(new Vector2(s * 0.60f, s * 0.70f));
+                        p.MoveTo(new Vector2(s * 0.43f, s * 0.82f));
+                        p.LineTo(new Vector2(s * 0.57f, s * 0.82f));
+                        p.Stroke();
+                        break;
+                }
+            };
+            return el;
         }
 
         private void SetProgress(float overall, string status)

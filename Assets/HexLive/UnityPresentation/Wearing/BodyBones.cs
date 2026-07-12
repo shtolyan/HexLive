@@ -95,11 +95,12 @@ public sealed class BodyBones : MonoBehaviour
 
     // Spec 40.10-C: dirt + zone-damage spheres for every SIM garment. Hair is
     // instantiated directly in Construct (never in _wears), so it stays clean.
-    public void SetWearGrime(float dirt01, Vector4[] spheres, int count)
+    public void SetWearGrime(float dirt01, Vector4[] spheres, int count,
+        float blood01 = 0f, float sweat01 = 0f)
     {
         foreach (var pair in _wears)
         {
-            pair.Value.SetGrime(dirt01, spheres, count);
+            pair.Value.SetGrime(dirt01, spheres, count, blood01, sweat01);
         }
     }
 

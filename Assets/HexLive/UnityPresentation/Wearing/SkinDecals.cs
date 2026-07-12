@@ -44,18 +44,28 @@ namespace HexLive.UnityPresentation.Wearing
         // even light grime dusts legs+arms+torso, not just legs), then repeated
         // rounds — at full filth every zone carries several smudges: legs 5,
         // arms 4+4, torso (chest+belly) 6, pelvis (butt) 4, face 3 = 26 decals.
+        // Doubled (26 → 52 smudges): at Hygiene 0 the body must read FILTHY —
+        // every zone carries several overlapping smudges, none stays clean.
         private static readonly string[] DirtSpread =
         {
             "LegL", "LegR", "ArmL", "ArmR", "Torso", "Pelvis",
             "LegL", "LegR", "ArmL", "ArmR", "Torso", "Head",
             "Torso", "Pelvis", "ArmL", "ArmR", "LegL", "LegR",
             "Torso", "Head", "Pelvis", "LegL", "ArmL", "Torso",
+            "Head", "Pelvis",
+            "LegL", "LegR", "ArmL", "ArmR", "Torso", "Pelvis",
+            "LegR", "LegL", "ArmR", "ArmL", "Torso", "Head",
+            "Pelvis", "Torso", "ArmL", "ArmR", "LegL", "LegR",
+            "Head", "Torso", "Pelvis", "LegR", "ArmR", "Torso",
             "Head", "Pelvis"
         };
 
         // Sweat shows where skin glistens first: face, chest, then arms.
+        // 8 → 13 patches: the droplet sheet is all small beads now, so full
+        // heat covers the body in many little bubbles instead of a few blots.
         private static readonly string[] SweatSpread =
-            { "Head", "Head", "Torso", "Torso", "ArmL", "ArmR", "Head", "Torso" };
+            { "Head", "Head", "Torso", "Torso", "ArmL", "ArmR", "Head", "Torso",
+              "Torso", "Pelvis", "ArmL", "ArmR", "Torso" };
 
         private BodyBones? _bones;
         private Transform? _bodyRoot;
@@ -120,8 +130,9 @@ namespace HexLive.UnityPresentation.Wearing
 
             _desired.Clear();
 
-            // --- bandages: a dressed zone shows the leaf wrap INSTEAD of its
-            // wound marks (spec 44 — the poultice covers the injury).
+            // Spec 44: a dressed zone shows the leaf-wrap decal INSTEAD of its
+            // wound marks (the shader-paint experiment was reverted — the
+            // projector reads better on skin).
             if (bandaged != null)
             {
                 foreach (var zone in bandaged)
@@ -352,6 +363,10 @@ namespace HexLive.UnityPresentation.Wearing
                 DecalType.Sweat => Resources.Load<Texture2D>("HexLive/Decals/sweat_drops"),
                 // Spec 44: leaf poultice bound with fiber twine (fal.ai).
                 DecalType.Bandage => Resources.Load<Texture2D>("HexLive/Decals/bandage_wrap"),
+                // fal.ai granular dust on black, luminance-keyed: powder
+                // grains + clumps like the logo's weathered grime — the old
+                // procedural blobs read as flat paint.
+                DecalType.Dirt => Resources.Load<Texture2D>("HexLive/Decals/dirt_dust"),
                 _ => null
             };
 
@@ -475,10 +490,11 @@ namespace HexLive.UnityPresentation.Wearing
             mask *= Mathf.SmoothStep(0.30f, 0.62f, macro * 0.6f + meso * 0.4f);
             var speck = Mathf.SmoothStep(0.62f, 0.82f, meso) * 0.5f;
 
-            var col = Color.Lerp(new Color(0.38f, 0.30f, 0.20f), new Color(0.20f, 0.15f, 0.10f),
+            // Sandy earth, not soot: dry dust reads light-brown on skin.
+            var col = Color.Lerp(new Color(0.62f, 0.53f, 0.38f), new Color(0.44f, 0.36f, 0.25f),
                 Mathf.Clamp01(speck + grain * 0.3f));
             var alpha = Mathf.Clamp01(mask * (0.55f + grain * 0.35f) + speck * mask);
-            return new Color(col.r, col.g, col.b, alpha * 0.85f);
+            return new Color(col.r, col.g, col.b, alpha * 0.7f);
         }
 
         // Sweat: a cluster of beads with thin run-down streaks — bright specular

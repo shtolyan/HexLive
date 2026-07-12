@@ -91,6 +91,13 @@ public sealed class NpcActorView : MonoBehaviour
         "lacrimal", "brow"
     };
 
+    // Spec 40.8-D: wounds/bandages are PAINTED into the skin textures (molly
+    // bake-raycast placement + stamp records that fade with healing). Flip off
+    // to fall back to the decal projectors.
+    private const bool PaintWoundsIntoTexture = true;
+    private SkinTexturePainter _skinPainter;
+    private readonly List<(string zone, int seed, float heal)> _woundScratch = new();
+
     // Spec 40.8/40.6: skin decal layer (wounds/dirt/sweat on bare zones only).
     private SkinDecals _skinDecals;
     private int _npcId;
@@ -155,6 +162,14 @@ public sealed class NpcActorView : MonoBehaviour
     private const float FullWalkBodyHeightsPerSec = 0.76f;
     private bool _wasWalking;
     private float _animSpeed = 1f;
+    // Fast-forward: the sim's speed multiplier scales every clip's playback
+    // (walk cadence, sleep, limp — all of it), fed per-sync by the renderer.
+    private float _simSpeed = 1f;
+
+    public void SetSimSpeed(float multiplier)
+    {
+        _simSpeed = Mathf.Max(0.01f, multiplier);
+    }
 
     // Face anchor rig for the portrait camera, calibrated once in the prefab's
     // upright rest pose: face center, face-forward and face-up are captured in
@@ -268,6 +283,40 @@ public sealed class NpcActorView : MonoBehaviour
             // Underside reference for sleep-planting (worn garments hug the body).
             _bodySkins = _bodyRoot.GetComponentsInChildren<SkinnedMeshRenderer>(true);
             BuildSkinTintTargets();
+            // NOTE: an experiment swapping the SKIN to the GarmentTear paint
+            // shader was reverted — Cull Off + the AlphaTest queue flickered on
+            // the skinned body and the Daz skin lost its depth (looked flat
+            // white). Skin stays on URP Lit; wounds/bandages paint INTO the
+            // skin textures (SkinTexturePainter), sweat keeps its decals.
+            if (PaintWoundsIntoTexture && _bodyBones != null)
+            {
+                SkinnedMeshRenderer bodyRenderer = null;
+                var slotScratch = new List<int>();
+                foreach (var (renderer, index) in _skinTintTargets)
+                {
+                    if (renderer == null)
+                    {
+                        continue;
+                    }
+
+                    if (bodyRenderer == null)
+                    {
+                        bodyRenderer = renderer;
+                    }
+
+                    if (ReferenceEquals(renderer, bodyRenderer))
+                    {
+                        slotScratch.Add(index);
+                    }
+                }
+
+                if (bodyRenderer != null)
+                {
+                    _skinPainter = gameObject.AddComponent<SkinTexturePainter>();
+                    _skinPainter.Construct(bodyRenderer, slotScratch, _bodyBones,
+                        _bodyRoot != null ? _bodyRoot : transform, _npcId);
+                }
+            }
 
             // Face life: blinking + mood-driven expression on the blend shapes.
             _face = gameObject.AddComponent<NpcFaceAnimator>();
@@ -470,7 +519,33 @@ public sealed class NpcActorView : MonoBehaviour
             }
         }
 
-        _skinDecals.Sync(wounds, _uncoveredScratch, hygiene, thermal, _skinWetness, _bandagedScratch);
+        // Spec 40.8-D: wounds/bandages paint into the skin textures; the decal
+        // projectors then skip them (dirt/sweat/rain stay projector-based).
+        if (PaintWoundsIntoTexture && _skinPainter != null)
+        {
+            _woundScratch.Clear();
+            if (wounds != null)
+            {
+                foreach (var entry in wounds)
+                {
+                    var parts = entry.Split('|');
+                    if (parts.Length >= 3 && int.TryParse(parts[1], out var woundSeed) &&
+                        float.TryParse(parts[2],
+                            System.Globalization.NumberStyles.Float,
+                            System.Globalization.CultureInfo.InvariantCulture, out var woundHeal))
+                    {
+                        _woundScratch.Add((parts[0], woundSeed, woundHeal));
+                    }
+                }
+            }
+
+            _skinPainter.Sync(_woundScratch, _bandagedScratch);
+            _skinDecals.Sync(null, _uncoveredScratch, hygiene, thermal, _skinWetness, null);
+        }
+        else
+        {
+            _skinDecals.Sync(wounds, _uncoveredScratch, hygiene, thermal, _skinWetness, _bandagedScratch);
+        }
 
         // Wet sheen: hot skin glistens — and rain-soaked skin the same way
         // (spec 35.5: rain reuses the sweat tech). The droplet decals are
@@ -517,7 +592,26 @@ public sealed class NpcActorView : MonoBehaviour
                     position.x, position.y, position.z, Mathf.Clamp01(1f - pair.Value));
             }
 
-            _bodyBones.SetWearGrime(Mathf.Clamp01(1f - hygiene), _damageSpheres, sphereCount);
+            // Spec 40.8-C: blood soaks the covering cloth over FRESH wounds —
+            // intensity from the unhealed hostage across all wound records
+            // (fades as they close). Sweat damp = the thermal sweat drive.
+            var bloodSoak = 0f;
+            if (wounds != null)
+            {
+                foreach (var entry in wounds)
+                {
+                    var sep = entry.LastIndexOf('|');
+                    if (sep > 0 && float.TryParse(entry.Substring(sep + 1),
+                            System.Globalization.NumberStyles.Float,
+                            System.Globalization.CultureInfo.InvariantCulture, out var heal))
+                    {
+                        bloodSoak += 1f - heal;
+                    }
+                }
+            }
+
+            _bodyBones.SetWearGrime(Mathf.Clamp01(1f - hygiene), _damageSpheres, sphereCount,
+                Mathf.Clamp01(bloodSoak * 0.7f), Mathf.Clamp01(thermal / 0.6f));
         }
     }
 
@@ -731,6 +825,17 @@ public sealed class NpcActorView : MonoBehaviour
         }
 
         _ragdollBodies = bodies.ToArray();
+    }
+
+    // Spec 40.13 v2: death — the body lies down (the normal LieDown → Sleep
+    // flow) and then freezes in one pose; a corpse doesn't breathe the sleep
+    // loop. One-way: corpse views are destroyed, never revived.
+    private bool _dead;
+
+    public void SetDead(float surfaceY)
+    {
+        _dead = true;
+        SetLaying(true, null, surfaceY);
     }
 
     // Spec 40.13: collapse (faint) => go limp; wake => animator takes over.
@@ -1037,7 +1142,7 @@ public sealed class NpcActorView : MonoBehaviour
             return;
         }
 
-        _thermalPhase += Time.deltaTime;
+        _thermalPhase += Time.deltaTime * _simSpeed;
 
         if (_thermal < -0.4f && _rShldr != null)
         {
@@ -1109,10 +1214,11 @@ public sealed class NpcActorView : MonoBehaviour
         // Spec 40.6: grime — the filthier the skin (low hygiene), the more it
         // muddies toward a dull earthy brown. Applied before the injury flush so
         // wounds still read on a dirty body.
-        // Kept subtle: dirt is primarily the projected smudge decals now; the
-        // tint only dims truly filthy skin a little.
+        // At Hygiene 0 the WHOLE skin must read dirty (user: "вся кожа должна
+        // быть грязная") — the smudge decals give texture, this tint carries
+        // the overall filth. Half-strength earthy brown at zero hygiene.
         var grime = Mathf.Clamp01(1f - Mathf.Clamp01(hygiene));
-        tint = Color.Lerp(tint, new Color(0.42f, 0.37f, 0.30f), grime * 0.25f);
+        tint = Color.Lerp(tint, new Color(0.42f, 0.37f, 0.30f), grime * 0.5f);
         // Spec 40.8: a badly hurt body flushes bruised red-purple. First-pass
         // whole-body tint (per-zone wound decals need texture work); driven by
         // 1 - Health so it only shows when genuinely wounded.
@@ -1205,7 +1311,7 @@ public sealed class NpcActorView : MonoBehaviour
             return;
         }
 
-        _posturePhase += Time.deltaTime;
+        _posturePhase += Time.deltaTime * _simSpeed;
         var right = _bodyRoot.right;
 
         switch (_posture)
@@ -1251,8 +1357,24 @@ public sealed class NpcActorView : MonoBehaviour
         {
             _animator.SetFloat(SpeedParam, 0f);
             _animator.SetFloat(TurnDirectionParam, 0f);
-            _animator.speed = 1f; // sleep clips run at authored pace
-            _animSpeed = 1f;
+            if (_dead)
+            {
+                // Spec 40.13 v2: a corpse lies down once and then holds a
+                // single pose — freeze the animator as soon as the lie-down
+                // settles into the Sleep state (no breathing loop forever).
+                if (_animator.speed != 0f &&
+                    _animator.GetCurrentAnimatorStateInfo(0).IsName("Sleep"))
+                {
+                    _animator.speed = 0f;
+                }
+            }
+            else
+            {
+                // Sleep clips run at authored pace, scaled by fast-forward.
+                _animator.speed = _simSpeed;
+            }
+
+            _animSpeed = _animator.speed;
             _motionSampleValid = false;
             return;
         }
@@ -1282,17 +1404,21 @@ public sealed class NpcActorView : MonoBehaviour
         _animator.SetFloat(SpeedParam, walking ? 1f : 0f, 0.05f, Time.deltaTime);
 
         // Scale the walk-cycle playback to the measured speed: half the
-        // speed = half the cadence. Clamped so extreme crawling still reads
-        // as steps and healthy walking never overclocks.
+        // speed = half the cadence. The cadence is judged in SIM time (the
+        // measured view speed divided by the fast-forward multiplier), clamped
+        // so extreme crawling still reads as steps and healthy walking never
+        // overclocks — then the multiplier scales the playback back up, so a
+        // 4× world steps exactly 4× faster instead of gliding.
         var targetAnimSpeed = 1f;
         if (walking && _bodyRoot != null)
         {
             var fullSpeed = 1.7f * _bodyRoot.lossyScale.y * FullWalkBodyHeightsPerSec;
-            targetAnimSpeed = Mathf.Clamp(linearSpeed / Mathf.Max(0.0001f, fullSpeed), 0.35f, 1.15f);
+            var simCadence = linearSpeed / Mathf.Max(0.0001f, fullSpeed * _simSpeed);
+            targetAnimSpeed = Mathf.Clamp(simCadence, 0.35f, 1.15f);
         }
 
-        _animSpeed = Mathf.MoveTowards(_animSpeed, targetAnimSpeed, Time.deltaTime * 3f);
-        _animator.speed = _animSpeed;
+        _animSpeed = Mathf.MoveTowards(_animSpeed, targetAnimSpeed, Time.deltaTime * 3f * _simSpeed);
+        _animator.speed = _animSpeed * _simSpeed;
 
         // Turning on the spot: meaningful yaw rate while standing.
         var turn = 0f;
@@ -1329,7 +1455,7 @@ public sealed class NpcActorView : MonoBehaviour
             return;
         }
 
-        _actionPhase += Time.deltaTime;
+        _actionPhase += Time.deltaTime * _simSpeed;
         var right = _bodyRoot.right;
 
         float shldr;

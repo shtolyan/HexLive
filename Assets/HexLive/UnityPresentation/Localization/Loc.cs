@@ -172,7 +172,14 @@ namespace HexLive.UnityPresentation.Localization
 
             // Spec 41.4: main menu.
             ["menu.continue"] = new[] { "Continue", "Продолжить" },
-            ["menu.newgame"] = new[] { "New game", "Новая игра" }
+            ["menu.newgame"] = new[] { "New game", "Новая игра" },
+            ["menu.settings"] = new[] { "Settings", "Настройки" },
+            ["menu.characters"] = new[] { "Characters", "Персонажи" },
+            ["menu.tagline"] = new[]
+            {
+                "Explore. Build. Survive.\nYour world. Your rules.",
+                "Исследуй. Строй. Выживай.\nТвой мир. Твои правила."
+            }
         };
     }
 }

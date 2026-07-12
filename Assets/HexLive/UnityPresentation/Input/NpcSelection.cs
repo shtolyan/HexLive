@@ -19,6 +19,18 @@ namespace HexLive.UnityPresentation.Input
 
         private static int _selectedId = -1;
 
+        // Editor runs without domain reload keep statics between play
+        // sessions — a selection from the LAST run silently survived and the
+        // debug panel kept wounding that NPC with "nothing" selected.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(
+            UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            _selectedId = -1;
+            PointerOverUi = false;
+            SelectionChanged = null;
+        }
+
         public static bool HasSelection => _selectedId >= 0;
 
         public static int SelectedId => _selectedId;

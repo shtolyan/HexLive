@@ -130,9 +130,13 @@ public sealed class Wear : MonoBehaviour
     // pristine clothes and hair keep their original material untouched
     // (same-named URP Lit properties carry over on the swap). TUNING KNOB:
     // TearBiteDurability — wear starts showing below this durability.
-    private const float TearBiteDurability = 0.6f;
+    // Holes start early (worn-in look grows over the garment's whole life),
+    // not only after damage — natural wear frays cloth too.
+    private const float TearBiteDurability = 0.85f;
     private const int MaxDamageSpheres = 8;
     private static readonly int TearAmountId = Shader.PropertyToID("_TearAmount");
+    private static readonly int TearMaskTexId = Shader.PropertyToID("_TearMaskTex");
+    private static readonly int TearTexOnId = Shader.PropertyToID("_TearTexOn");
     private static readonly int DirtAmountId = Shader.PropertyToID("_DirtAmount");
     private static readonly int DamageSphereCountId = Shader.PropertyToID("_DamageSphereCount");
     private static readonly int DamageSpheresId = Shader.PropertyToID("_DamageSpheres");
@@ -142,6 +146,10 @@ public sealed class Wear : MonoBehaviour
     private bool _tearShaderApplied;
     private float _tear;
     private float _dirt;
+    private float _blood;
+    private float _sweat;
+    private static readonly int BloodAmountId = Shader.PropertyToID("_BloodAmount");
+    private static readonly int SweatAmountId = Shader.PropertyToID("_SweatAmount");
     private readonly Vector4[] _damageSpheres = new Vector4[MaxDamageSpheres];
     private int _damageSphereCount;
 
@@ -208,9 +216,14 @@ public sealed class Wear : MonoBehaviour
     // bone anchor, w = strength), shared by all the NPC's garments — a sphere
     // only bites fragments within _DamageRadius, so the wound zone maps to
     // the covering garment spatially, no UV knowledge needed.
-    public void SetGrime(float dirt01, Vector4[] spheres, int count)
+    public void SetGrime(float dirt01, Vector4[] spheres, int count,
+        float blood01 = 0f, float sweat01 = 0f)
     {
         _dirt = Mathf.Clamp01(dirt01);
+        // Spec 40.8-C: blood soaks the cloth over the wound (localized by the
+        // damage spheres below); sweat damps it in patches with a sheen.
+        _blood = Mathf.Clamp01(blood01);
+        _sweat = Mathf.Clamp01(sweat01);
         _damageSphereCount = Mathf.Min(count, MaxDamageSpheres);
         for (var i = 0; i < _damageSphereCount; i++)
         {
@@ -231,7 +244,8 @@ public sealed class Wear : MonoBehaviour
         // dirt gate skips pointless swaps for barely-visible smudges).
         // Wetness alone does NOT swap in the tear shader — it only rides the
         // property block (works on the original URP Lit material too).
-        var tearActive = _tear > 0f || _dirt > 0.15f || _damageSphereCount > 0;
+        var tearActive = _tear > 0f || _dirt > 0.15f || _damageSphereCount > 0 ||
+            _blood > 0.05f || _sweat > 0.25f;
         var active = tearActive || _wet > 0.01f || _wetTouched;
         if (!active && !_tearShaderApplied)
         {
@@ -256,6 +270,8 @@ public sealed class Wear : MonoBehaviour
             _meshRenderer.GetPropertyBlock(_wearMpb, i);
             _wearMpb.SetFloat(TearAmountId, _tear);
             _wearMpb.SetFloat(DirtAmountId, _dirt);
+            _wearMpb.SetFloat(BloodAmountId, _blood);
+            _wearMpb.SetFloat(SweatAmountId, _sweat);
             _wearMpb.SetFloat(DamageSphereCountId, _damageSphereCount);
             _wearMpb.SetVectorArray(DamageSpheresId, _damageSpheres);
             // Spec 35.5: soaked cloth shines and darkens; dry restores base.
@@ -288,9 +304,18 @@ public sealed class Wear : MonoBehaviour
 
         // .materials instantiates per-garment copies, so each girl's shirt
         // tears independently; _BaseMap/_BaseColor/_BumpMap survive the swap.
+        // The artistic dissolve mask (fal.ai ragged holes at varied depths)
+        // replaces the procedural Voronoi when present — one mask serves
+        // every garment type, since it lives in generic UV space.
+        var tearMask = Resources.Load<Texture2D>("HexLive/Decals/tear_mask");
         foreach (var material in _meshRenderer.materials)
         {
             material.shader = _tearShader;
+            if (tearMask != null)
+            {
+                material.SetTexture(TearMaskTexId, tearMask);
+                material.SetFloat(TearTexOnId, 1f);
+            }
         }
     }
 

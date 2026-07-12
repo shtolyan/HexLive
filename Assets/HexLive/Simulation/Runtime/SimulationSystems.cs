@@ -673,11 +673,16 @@ public sealed class DecisionSystem : ISimulationSystem
             var craftAxeAvail = !hasAxe && !hasSaw && hasWood && stoneCount >= 1 && campfireSeen;
             var craftPickaxeAvail = !hasPickaxe && hasWood && stoneCount >= 2 && campfireSeen;
             var canChop = hasAxe || hasSaw;
+            // §47 comfort: a bed per girl, not per colony. bedDeficit drives
+            // both the leaf supply (chop a palm when short) and CraftBed.
+            var bedDeficit = CountReachableWithTag(npc, world, "Bed") <
+                world.Entities.Npcs.Count;
             var harvestTreeAvail = canChop && npc.Inventory.HasSpace &&
                 ((fuelLow && !HasReachableWithTag(npc, world, "Firewood") &&
                   (HasReachableWithTag(npc, world, "BigTree") || HasReachableWithTag(npc, world, "Palm"))) ||
                  ((CountInventory(npc, "resource.palm_leaf") == 0 ||
-                   (piece is { } pLeaf && carriedLeaves < pLeaf.Leaves)) &&
+                   (piece is { } pLeaf && carriedLeaves < pLeaf.Leaves) ||
+                   (bedDeficit && carriedLeaves < 3)) &&
                   HasReachableWithTag(npc, world, "Palm")));
             var mineBoulderAvail = hasPickaxe && stoneCount < 2 && npc.Inventory.HasSpace &&
                 HasReachableWithTag(npc, world, "Boulder");
@@ -697,7 +702,16 @@ public sealed class DecisionSystem : ISimulationSystem
             AddGoalScore(npc, world.Tick, GoalType.GatherStone, 0.25f + freeHands, gatherStoneAvail);
             AddGoalScore(npc, world.Tick, GoalType.CraftAxe, 0.3f + freeHands, craftAxeAvail);
             AddGoalScore(npc, world.Tick, GoalType.CraftPickaxe, 0.25f + freeHands, craftPickaxeAvail);
-            AddGoalScore(npc, world.Tick, GoalType.HarvestTree, 0.3f + freeHands, harvestTreeAvail);
+            // §47 comfort: the bed-chain pull — mirrors the spec-42 cold
+            // chain. Bedless nights are the colony's loudest churn (Sleep
+            // plan-starts 787-995 per 25 days, ~all retries), yet at 0.3
+            // HarvestTree lost the auction to Dress/Socialize and leaves>=3
+            // held 0% of npc-ticks: the palm never got chopped, so the bed
+            // never got woven. The pull fires only while the chain is
+            // actually short (deficit + no leaves in hand).
+            var bedChainPull = bedDeficit && carriedLeaves < 3 && canChop ? 0.25f : 0f;
+            AddGoalScore(npc, world.Tick, GoalType.HarvestTree,
+                0.3f + freeHands + bedChainPull, harvestTreeAvail);
             AddGoalScore(npc, world.Tick, GoalType.MineBoulder, 0.25f + freeHands, mineBoulderAvail);
 
             // Spec 35.3: build when the full bill for the pending piece is carried.
@@ -731,8 +745,15 @@ public sealed class DecisionSystem : ISimulationSystem
             // Spec 40.14: 3 leaves alone weave the cheap leaf mat; 2 spare logs
             // upgrade it to the solid bedroll (chosen at craft time). The fire
             // must still be alive — its logs are never robbed for the bedroll.
-            var craftBedAvail = !HasReachableWithTag(npc, world, "Bed") &&
-                carriedLeaves >= 3 && campfireSeen && campfireFuel > 0f;
+            // §47 comfort: two locks removed. (1) "any reachable bed"
+            // capped the colony at ONE crafted bed for three girls —
+            // bedDeficit (beds < living girls) lets everyone earn her own.
+            // (2) campfireFuel > 0 was the same permanent lock the raft and
+            // fire chains had (the pit burns 10-20% of the time; CraftBed
+            // never appeared in ANY soak's won-auction top-14) — weaving at
+            // the cold pit is fine, the Craft interaction never needed the
+            // flame anyway.
+            var craftBedAvail = bedDeficit && carriedLeaves >= 3 && campfireSeen;
             // 0.6: with the full kit in hand and the fire alive, the bed
             // must outbid TendFire (<=0.55) — at 0.35 the kit's logs were
             // always eaten by the hearth and the bed never happened.
@@ -1024,6 +1045,25 @@ public sealed class DecisionSystem : ISimulationSystem
         }
 
         return false;
+    }
+
+    // §47 comfort: like HasReachableWithTag but counts — used for the
+    // bed-per-girl deficit. Occupancy is ignored on purpose (a bed someone
+    // sleeps in right now still exists as furniture).
+    internal static int CountReachableWithTag(NPCState npc, WorldState world, string tag)
+    {
+        var count = 0;
+        foreach (var obj in npc.Perception.Objects)
+        {
+            if (obj.IsReachable &&
+                world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
+                definition.Tags.Contains(tag))
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     // Spec 40.15: a KNOWN object with this tag that's reachable overland —
@@ -3858,8 +3898,14 @@ public sealed class ExecutionSystem : ISimulationSystem
         }
 
         var anchor = campfire.Junctions[0];
-        // Pass 1: a free fireside junction clear of other furniture.
-        foreach (var neighbor in SpatialQueries.GetPassableNeighbors(world, anchor))
+        // Pass 1: a free junction on the standable rim just OUTSIDE the
+        // fire's blocked ember ring (§47). GetPassableNeighbors would look
+        // at the anchor's immediate neighbors — all inside the blocked ring
+        // now — so we use the same beside-arrival BFS the planner uses:
+        // furniture lands in the passable zone with a natural offset from
+        // the flames, still fireside-close.
+        SpatialQueries.CollectStandableAround(world, anchor, _furnitureRimScratch);
+        foreach (var neighbor in _furnitureRimScratch)
         {
             if (SpatialQueries.IsJunctionFree(world, neighbor) &&
                 world.Junctions.Items.TryGetValue(neighbor, out var j) && j.Tiles.Count > 0 &&
@@ -3889,10 +3935,11 @@ public sealed class ExecutionSystem : ISimulationSystem
             }
         }
 
-        // Pass 3: fall back to any free fireside junction (heap beats nowhere).
+        // Pass 3: fall back to any free rim junction (heap beats nowhere).
         if (ring is null)
         {
-            foreach (var neighbor in SpatialQueries.GetPassableNeighbors(world, anchor))
+            SpatialQueries.CollectStandableAround(world, anchor, _furnitureRimScratch);
+            foreach (var neighbor in _furnitureRimScratch)
             {
                 if (SpatialQueries.IsJunctionFree(world, neighbor))
                 {
@@ -3903,6 +3950,8 @@ public sealed class ExecutionSystem : ISimulationSystem
 
         return ring;
     }
+
+    private static readonly System.Collections.Generic.List<JunctionId> _furnitureRimScratch = new();
 
     // Within 1 tile of an existing bed or rack (the campfire itself is fine
     // to sit beside — we only want to avoid stacking furniture on furniture).
@@ -4401,7 +4450,7 @@ public sealed class ExecutionSystem : ISimulationSystem
                     // floor, not heal: a torso already below 0.2 (dog mauling)
                     // is not restored by getting sick on top of it
                     npc.Body.Parts[BodyPart.Torso] =
-                        System.Math.Max(0.2f, npc.Body.Parts[BodyPart.Torso] - 0.08f);
+                        System.Math.Max(0.1f, npc.Body.Parts[BodyPart.Torso] - 0.08f); // §46: floor 0.2 -> 0.1 — sickness alone still can't kill, but leaves you one bad night from it
                 }
                 npc.Health = npc.Body.Mean();
                 npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort - 0.2f);
@@ -5014,7 +5063,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 // ~2.2 game hours — faster than the recovery loop can respond).
                 // Death stays certain for a truly stuck agent; a girl who
                 // reaches food/water mid-episode now lives to eat it.
-                var damage = starved && parched ? 0.035f : 0.02f;
+                var damage = starved && parched ? 0.05f : 0.03f; // §46 difficulty: restored to pre-r5 — safe now that sickness/fire/cold are fixed; at 0.025/0.045 the colony still won 10/12
                 foreach (var part in AllBodyParts)
                 {
                     npc.Body.Parts[part] = MathUtil.Clamp01(npc.Body.Parts[part] - damage);
@@ -5217,7 +5266,7 @@ public sealed class TemperatureSystem : ISimulationSystem
                 // to dress/warm up; two exposed nights still kill.
                 foreach (var part in AllTemperatureParts)
                 {
-                    npc.Body.Parts[part] = System.Math.Max(0f, npc.Body.Parts[part] - 0.012f);
+                    npc.Body.Parts[part] = System.Math.Max(0f, npc.Body.Parts[part] - 0.015f); // §46: half-way back from r5's 0.012 — one exposed night ~0.55, harsh but survivable
                 }
 
                 npc.Health = npc.Body.Mean();
@@ -5544,12 +5593,17 @@ public sealed class DogSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Medium;
 
-    private const int MaxDogs = 2;
-    private const int RespawnCheckTicks = 7200; // every 3 game days
+    private const int MaxDogs = 3; // §46 difficulty pass: 2 -> 3 (12/12 wins at 2 — armed girls out-fought the pair)
+    private const int RespawnCheckTicks = 3600; // §46: every 1.5 game days (was 3) — sustained pack pressure, not one skirmish per arc
+
+    // §46 v2: night-raid catastrophe knobs.
+    private const float RaidChancePerDay = 0.20f; // §47 recalibration: 0.25 -> 0.20 — the comfort chain (ember ring + bed-per-girl) spends real auction time, wins fell 6/12 -> 3/12; one notch of raid pressure buys it back
+    private const int RaidPackSize = 3;
+    private const int RaidDuskOffsetTicks = 1800;
     private const int SpawnMinDistanceFromNpc = 5;
     private const float RoamChance = 0.2f;
     private const int AggroRadiusTiles = 2;
-    private const float BiteDamagePerPass = 0.07f; // §46 difficulty pass: back up from 0.06 — under the r4/r5-softened survival the colony won 6/6 and the dogs are the fightable threat (0.07 was a wipe only under the OLD harsh attrition)
+    private const float BiteDamagePerPass = 0.09f; // §46 difficulty pass: 0.06 -> 0.09 in two steps — at 0.07 the pack only STALLED colonies (7/12 wins, 5 timeouts, 4 dog kills); the loss condition should be blood, not the clock
     private const float NpcStrikePerPass = 0.15f;
 
     private readonly System.Collections.Generic.List<Wildlife.DogState> _deadDogs = new();
@@ -5568,6 +5622,35 @@ public sealed class DogSystem : ISimulationSystem
                 {
                     break;
                 }
+            }
+        }
+
+        // §46 v2: the NIGHT RAID — a seeded swing catastrophe. Constant
+        // damage knobs saturated at ~10-15% colony losses (the homeostat
+        // absorbs steady pressure); real 50/50 tension needs rare spikes.
+        // Roll is a pure function of (seed, day); dusk hits the colony
+        // when the girls are cold, tired and scattered. Days 0-1 are a
+        // grace period — a raid on an unestablished camp is a coin-flip
+        // wipe with no story. Raid dogs are ordinary dogs: they can be
+        // fought, fled, and they linger until killed.
+        var raidDay = world.Tick / EnvironmentSystem.DayLengthTicks;
+        var raidDusk = raidDay * EnvironmentSystem.DayLengthTicks + RaidDuskOffsetTicks;
+        if (raidDay >= 2 && world.Tick >= raidDusk && world.Tick < raidDusk + 4 &&
+            MathUtil.Hash01(world.Seed, raidDay, 4646) < RaidChancePerDay)
+        {
+            var spawned = 0;
+            for (var i = 0; i < RaidPackSize; i++)
+            {
+                if (TrySpawnDog(world))
+                {
+                    spawned++;
+                }
+            }
+
+            if (spawned > 0)
+            {
+                Trace.EmitSystem(world, "NightRaid",
+                    $"{spawned} dogs at dusk of day {raidDay}");
             }
         }
 
@@ -6265,7 +6348,21 @@ internal static class WoundMath
     // sleeping doubles it, marching halves it.
     public const float HealPerSlowTick = 1f / 300f;
 
-    private const int MaxWounds = 12;
+    // Raised 12 → 36 alongside multi-gash hits (one bite files three
+    // records): at low HP the body should read MAULED all over — a dozen
+    // bites' worth of marks before the reopen path freezes the count.
+    private const int MaxWounds = 36;
+
+    // Spec 40.8-E: a landed bite tears SEVERAL gashes, not one — each hit
+    // splits into this many records (same zone, distinct seeds → distinct
+    // painted marks). The DAMAGE is split too, so total hostage HP, healing
+    // duration and the dog balance stay exactly as before; only the visual
+    // density changes.
+    private const int GashesPerHit = 3;
+
+    // Hits below this don't split — three sub-0.03 records are invisible
+    // clutter that burns the cap for nothing.
+    private const float MinSplittableDamage = 0.09f;
 
     // HP still held hostage by open wounds in a zone: Σ severity·(1−heal).
     // Generic fed-regen may not raise the zone above 1 − this value; the HP
@@ -6286,7 +6383,17 @@ internal static class WoundMath
 
     public static void Inflict(WorldState world, NPCState npc, BodyPart zone, float damage)
     {
-        // At the cap the 13th bite never EVICTS (dropping a record would
+        var pieces = damage < MinSplittableDamage ? 1 : GashesPerHit;
+        var share = damage / pieces;
+        for (var i = 0; i < pieces; i++)
+        {
+            InflictOne(world, npc, zone, share);
+        }
+    }
+
+    private static void InflictOne(WorldState world, NPCState npc, BodyPart zone, float damage)
+    {
+        // At the cap the next bite never EVICTS (dropping a record would
         // strand its hostage HP forever — the zone could stick at 0). It
         // REOPENS an existing wound instead: same-zone if possible (the bite
         // tears the old scar deeper — same spot, same decal, fade resets),
@@ -6920,7 +7027,28 @@ public sealed class WeatherSystem : ISimulationSystem
             Trace.EmitSystem(world, raining ? "RainStarted" : "RainStopped",
                 raining ? $"Until={env.RainUntilTick}" : $"Tick={world.Tick}");
         }
+
+        // §46 v2: the STORM SURGE — the sea claws logs back off the raft.
+        // A seeded swing catastrophe (pure function of seed+day, like rain):
+        // losing progress stretches the run, and a longer run means more
+        // night-raid rolls — the two catastrophes compound into real 50/50
+        // tension without making daily survival harsher.
+        if (world.RaftProgress > 0 &&
+            world.Tick == day * EnvironmentSystem.DayLengthTicks + StormSurgeOffsetTicks &&
+            MathUtil.Hash01(world.Seed, day, 5151) < StormChancePerDay)
+        {
+            var washed = System.Math.Min(world.RaftProgress, StormRaftLogLoss);
+            world.RaftProgress -= washed;
+            Trace.EmitSystem(world, "StormSurge",
+                $"-{washed} raft logs -> {world.RaftProgress}/{WorldState.RaftTarget} (day {day})");
+        }
     }
+
+    // §46 v2: storm-surge catastrophe knobs. Offset 1600 keeps the tick on
+    // the Slow (16-tick) grid this system runs on.
+    private const float StormChancePerDay = 0.12f;
+    private const int StormRaftLogLoss = 2;
+    private const int StormSurgeOffsetTicks = 1600;
 }
 
 // Spec 35.5: wetting and drying for every item instance in the world —
@@ -6951,11 +7079,13 @@ public sealed class MoistureSystem : ISimulationSystem
             UpdateItems(world, npc, npc.WornItems, wetting, dryRate, worn: true);
             UpdateItems(world, npc, npc.Inventory.Items, wetting, dryRate, worn: false);
 
-            // Spec 35.6: worn cloth wears 0.01 per game-day (150 slow ticks).
+            // Spec 35.6: worn cloth wears 0.02 per game-day (150 slow ticks) —
+            // doubled so natural wear VISIBLY frays clothes within ~a week
+            // (holes start below durability 0.85; rags fall apart ~day 50).
             _wornOutScratch.Clear();
             foreach (var item in npc.WornItems)
             {
-                item.Durability -= 0.01f / 150f;
+                item.Durability -= 0.02f / 150f;
                 if (item.Durability <= 0f)
                 {
                     _wornOutScratch.Add(item);

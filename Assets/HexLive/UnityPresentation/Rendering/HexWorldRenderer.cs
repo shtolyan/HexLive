@@ -657,6 +657,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         _bloodStains?.Advance(snapshot.Tick);
 
+        UpdateGrassFlattening(snapshot);
+
         SyncAnimalViews(snapshot);
 
         // A dead housemate leaves a corpse object - her walking view goes.
@@ -699,11 +701,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     var corpseId = worldObject.Id.Value;
                     deadActor.SetLedgeSit(false);
                     deadActor.ClearGaze();
-                    // Spec 40.13 v2: death is a quiet lie-down-and-sleep (the
-                    // baked laying clip) — NO ragdoll: the hex tiles carry no
+                    // Spec 40.13 v2: death is a quiet lie-down, then the pose
+                    // freezes (SetDead) — NO ragdoll: the hex tiles carry no
                     // colliders, so physics bodies spun out and fell through.
                     deadActor.SetRagdoll(false);
-                    deadActor.SetLaying(true, null, GroundY(worldObject.Tile));
+                    deadActor.SetDead(GroundY(worldObject.Tile));
 
                     // The capsule-blob corpse view from this frame's object
                     // pass is replaced by the real body.
@@ -741,6 +743,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return;
         }
 
+        // Fast-forward: animations play at the sim's speed multiplier, so 2× /
+        // 4× / 50× worlds move bodies 2× / 4× / 50× faster too (1× on pause).
+        actorView.SetSimSpeed(_runner != null && !_runner.IsPaused ? _runner.SpeedMultiplier : 1f);
         actorView.SyncWorn(npc.WornItems);
         actorView.SetInteraction(npc.CurrentInteraction, HeldItemFor(npc));
         // Iter 28: ledge seat — the sim flags a sit at a one-step seam; the
@@ -763,10 +768,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // Spec 40.9 / 40.1: injury posture (limp/crawl/arm-hang/head-clutch)
         // and the winded panting, both derived sim-side and exported.
         actorView.SetPosture(npc.PostureHint, npc.Winded);
-        // Spec 40.7/40.8: weather the bare skin — tan browns it, sunburn reddens
-        // it, and a badly hurt body (low Health) flushes bruised red.
-        var hurt = npc.Health < 0.6f ? (0.6f - npc.Health) / 0.6f : 0f;
-        actorView.SetSkinWeathering(npc.TanLevel, npc.Sunburn, hurt, npc.Hygiene);
+        // Spec 40.7/40.8: weather the bare skin — tan browns it, sunburn
+        // reddens it. (The old low-HP bruised-red whole-body flush was
+        // retired: the painted wound marks carry the injury look on their
+        // own — the flush just muddied them.)
+        actorView.SetSkinWeathering(npc.TanLevel, npc.Sunburn, 0f, npc.Hygiene);
         // Spec 40.8/40.6: persistent skin decals — wound marks per hurt zone,
         // dust as hygiene drops, sweat droplets in the heat. Bare zones only.
         // Debug overrides: forced sweat, and clothes-off exposes every zone.
@@ -1185,6 +1191,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private static Material _waterMaterial;
 
+    // The live water material (sea plane + water tiles share it). The
+    // day/night controller darkens its colours with the directional light so
+    // the sea stops glowing at night.
+    public static Material ActiveWaterMaterial { get; private set; }
+
     private static Material CreateWaterMaterial()
     {
         if (_waterMaterial != null)
@@ -1194,11 +1205,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         // Spec 20.16: prefer the imported "Definitive Stylized Water URP"
         // material (depth gradient, animated foam, fresnel, refraction) — the
-        // tuned asset carries its distortion/foam texture with it.
+        // tuned asset carries its distortion/foam texture with it. A runtime
+        // COPY: the controller tints it per frame, and tinting the loaded
+        // asset directly would dirty the .mat on disk in the editor.
         var definitive = Resources.Load<Material>("HexLive/Water/StylizedWaterDefinitive");
         if (definitive != null)
         {
-            _waterMaterial = definitive;
+            _waterMaterial = new Material(definitive);
+            ActiveWaterMaterial = _waterMaterial;
             return _waterMaterial;
         }
 
@@ -1207,6 +1221,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         if (stylized != null)
         {
             _waterMaterial = new Material(stylized);
+            ActiveWaterMaterial = _waterMaterial;
             return _waterMaterial;
         }
 
@@ -1750,6 +1765,66 @@ public sealed class HexWorldRenderer : MonoBehaviour
         meshRenderer.sharedMaterial = GetGrassMaterial();
         meshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         meshFilter.sharedMesh = BuildGrassMesh(radius, topY, coord);
+        _grassByTile[coord] = go;
+    }
+
+    // A lying body flattens the grass under it: the tile's tuft clump hides
+    // while someone sleeps/faints/lies dead there and pops back after. Cost is
+    // O(lying bodies) per tick — only the affected tiles ever toggle.
+    private readonly Dictionary<TileCoord, GameObject> _grassByTile = new();
+    private readonly HashSet<TileCoord> _lyingTiles = new();
+    private readonly HashSet<TileCoord> _hiddenGrassTiles = new();
+    private readonly List<TileCoord> _grassToggleScratch = new();
+
+    private void UpdateGrassFlattening(WorldSnapshot snapshot)
+    {
+        _lyingTiles.Clear();
+        foreach (var npc in snapshot.Npcs)
+        {
+            if (npc.IsFainted ||
+                (npc.CurrentInteraction == "Sleep" && npc.ExecutionStatus == "InProgress"))
+            {
+                _lyingTiles.Add(npc.Tile);
+            }
+        }
+
+        foreach (var obj in snapshot.Objects)
+        {
+            if (obj.DefinitionId == "corpse.npc")
+            {
+                _lyingTiles.Add(obj.Tile);
+            }
+        }
+
+        // Re-grow where nobody lies anymore.
+        _grassToggleScratch.Clear();
+        foreach (var coord in _hiddenGrassTiles)
+        {
+            if (!_lyingTiles.Contains(coord))
+            {
+                _grassToggleScratch.Add(coord);
+            }
+        }
+
+        foreach (var coord in _grassToggleScratch)
+        {
+            _hiddenGrassTiles.Remove(coord);
+            if (_grassByTile.TryGetValue(coord, out var grass) && grass != null)
+            {
+                grass.SetActive(true);
+            }
+        }
+
+        // Flatten under the newly lying.
+        foreach (var coord in _lyingTiles)
+        {
+            if (!_hiddenGrassTiles.Contains(coord) &&
+                _grassByTile.TryGetValue(coord, out var grass) && grass != null)
+            {
+                grass.SetActive(false);
+                _hiddenGrassTiles.Add(coord);
+            }
+        }
     }
 
     private Mesh BuildGrassMesh(float radius, float topY, TileCoord coord)

@@ -869,7 +869,9 @@ hills, and mountains — some climbable by natural ramps, some sheer.
   combined mesh of solid-green triangle blades (crossed pairs, slight lean),
   deterministically scattered from the tile coord, one shared flat green
   material — no texture, no alpha. Gated by `_grassDetail` /
-  `_grassBladesPerTile` on the renderer.
+  `_grassBladesPerTile` on the renderer. **Flattening:** a lying body
+  (sleeping / fainted / corpse) hides its tile's grass clump and it pops
+  back after — O(lying bodies) per tick, only affected tiles toggle.
 - Water renders sunken below its tile top. The sea/water tops use the imported
   **Definitive Stylized Water URP** material
   (`Resources/HexLive/Water/StylizedWaterDefinitive.mat`, from the user's
@@ -877,7 +879,12 @@ hills, and mountains — some climbable by natural ramps, some sheer.
   animated foam, fresnel, refraction. `CreateWaterMaterial` loads it first and
   falls back to the hand-written `HexLive/StylizedWater` shader. Needs the URP
   asset's Depth + Opaque textures on (PC asset already has them; the Mobile
-  asset does not).
+  asset does not). **Day/night:** the water shader ignores scene lighting
+  (the sea glowed at night), so `CreateWaterMaterial` hands out a runtime
+  COPY of the asset (`ActiveWaterMaterial`) and `SkyDayNightController`
+  scales its gradient/fresnel/foam colours with the directional light every
+  frame — authored look at noon, deep moonlit blue at night (base colours
+  captured once, alpha untouched, the .mat asset never dirtied).
 - **Shore-only foam:** the water is depth-intersection foam, so foam appears
   wherever an opaque wall pierces the surface. Water tiles therefore build
   **no skirt** (`BuildHexPrismMesh(..., includeSkirt: false)`) — a bare
@@ -6091,6 +6098,15 @@ weather gains real stakes.
   the **campfire-as-obstacle** pass (approach from the edge, never stand on
   the flames) — `onFire`/`FireBurn` are already computed and traced,
   waiting to be wired once that holds.
+- **Campfire-as-obstacle: SHIPPED.** `campfire.spot` now carries the
+  `Obstacle` tag — its anchor junction is blocked at spawn (the same
+  `SetObstacleBlocking` mechanism as tree trunks; the §45 r5 bystander
+  nudge relocates anyone standing there). Nobody paths through the fire
+  pit. All fire interactions already stand BESIDE a blocked anchor: the
+  generic object-plan branch falls back to `CollectStandableAround`, and
+  DryClothes picks a passable neighbor — crafting/fueling/boiling/warming
+  at the fire keep working from adjacent junctions. The `FireBurn` HP hit
+  can now be wired safely in a future balance pass.
 
 ### 29C.9 Gradual needs & longer actions (iteration 30)
 
@@ -7260,6 +7276,11 @@ the current spatial system, not bolted on.
   is tracked but has no effect in v1.
 - **Wetting rates** (per slow tick): rain outdoors +0.04 (soaked in ~12
   slow ticks); standing on a Water tile +0.15 (the river drenches).
+- **Natural wear rate ×2 (0.02/game-day) + early fraying**: holes start
+  below durability **0.85** (was 0.6), so clothes visibly age within a week
+  of wear — not only after combat damage; rags still fall apart at 0
+  (`DestroyWornItems` removes the item from `WornItems`; the visual
+  unequips via the SyncWorn diff — nothing drops to the ground).
 - **Wet garment**: insulation degrades **gradually** — warmth ×
   `(1 − 0.9 × Wetness)`, i.e. −90% when fully soaked (was a hard cliff:
   full warmth until 0.5 then zero — the first minutes of rain changed
@@ -7463,17 +7484,27 @@ pass — order chosen to add robustness before difficulty.
 ### 40.8 Visible injuries (decals/texture)
 - Where a bone is hit (leg/arm/head/belly), draw a **wound** on the
   skin/clothing — texture paint or decal. Real, visible damage.
-- **Shipped v1 (whole-body flush):** a badly hurt body (Health < 0.6)
-  tints the whole skin toward a bruised red-purple via `SetSkinWeathering`'s
-  `hurt` channel.
-- **Shipped v3 (40.8B — wounds as first-class records):** one landed
-  bite/hit = one `WoundState { Id, Zone, Severity, Heal01, Seed }` on the
-  NPC (`WoundMath.Inflict`; dog + shark bites only). Starvation, heat,
+- **v1 (whole-body flush) — RETIRED:** the old "Health < 0.6 tints the
+  whole skin bruised red-purple" pass is switched off (the renderer passes
+  `hurt = 0`; the `SetSkinWeathering` channel remains wired should it ever
+  return). With wounds painted into the skin the marks carry the injury
+  look on their own — the flush just muddied them.
+- **Shipped v3 (40.8B — wounds as first-class records):** a landed
+  bite/hit files `WoundState { Id, Zone, Severity, Heal01, Seed }` records
+  on the NPC (`WoundMath.Inflict`; dog + shark bites only). **40.8-E
+  (multi-gash):** one hit tears THREE records (same zone, distinct seeds →
+  distinct painted marks), the damage split between them — total hostage
+  HP, healing duration and dog balance are identical to the single-record
+  era, only the visual density tripled; hits under 0.09 don't split (three
+  invisible slivers would burn the cap for nothing). The debug panel's
+  "+ Random wound" mirrors this (3 gashes per click). Starvation, heat,
   sunburn and sickness drain HP but create **no wound** — no phantom decals
   while starving. Each wound maps to ONE decal: spot/look deterministic
   from `Seed` (stable across frames AND save-replays — spec 41.2 replays
   the same seed), alpha fading with `Heal01`; the record disappears when
-  fully closed. **Cap = 12, and the 13th hit never EVICTS** (dropping a
+  fully closed. **Cap = 36 (raised from 12 with multi-gash — at low HP the
+  body should read mauled all over, a dozen bites' worth of marks), and the
+  hit past the cap never EVICTS** (dropping a
   record would strand its hostage HP — a zone could stick at 0 forever): it
   REOPENS an existing wound — same-zone if possible (the bite tears the old
   scar deeper: severity absorbs the remaining hostage + the new hit, heal
@@ -7503,35 +7534,85 @@ pass — order chosen to add robustness before difficulty.
   to red-only with soft alpha falloff (baked-in pale "skin" would clash with
   tan; wet gloss is painted into the albedo since the URP decal graph
   exposes no smoothness). Fallbacks: molly hit-system `blood_splash.png`,
-  then procedural. Dirt stays procedural 256px layered grime, accumulating
+  then procedural. **Dirt** is a fal.ai texture too (`dirt_dust.png`):
+  macro photo of sandy powder grains + clumps on black, luminance-keyed to
+  alpha with a radial edge falloff and an earthy tint — granular speckle
+  like the logo's weathered grime (the old procedural blobs read as flat
+  paint). Dirt accumulates
   over ~10 game days (hygiene −0.0004/slow tick). **Sweat** is a decal too:
   a fal.ai droplet-spray photo generated on black and luminance-keyed to
-  alpha (`sweat_drops.png`) — bright specular cores stay, background goes
-  fully transparent, so the projection reads as glistening transparent
-  beads; the projector's fadeFactor breathes 0.75↔1.0. (The interim
-  3D-sphere droplets looked wrong and were removed.) NOTE: the Decal
+  alpha (`sweat_drops.png`); the projector's fadeFactor breathes 0.75↔1.0.
+  (The interim 3D-sphere droplets looked wrong and were removed.) The sheet
+  was later REBUILT from its own best beads: the structureless tiny specks
+  read as milky white dots on skin ("как сперма"), so the four structured
+  bubbles (ring + refraction + specular notch — the "belly bubble" the user
+  liked) were cropped, circularly masked and re-scattered as ~68 small
+  copies (34–78 px vs the old 230 px giant) on a jittered grid + tiny
+  satellites. Sweat patches also widened 8 → 13 zones entries, so full heat
+  covers the body in many little glistening beads. NOTE: the Decal
   feature runs **albedo-only** (`surfaceData: 0`) — decals never override
   the skin's smoothness/normals (glassy sun-glint fix); wet gloss is baked
-  into the textures. The old whole-body grime
-  tint is kept only as a subtle base — dirt reads primarily as the
-  projected smudges.
+  into the textures. Dirt is deliberately HEAVY at the bottom of the
+  scale: 52 overlapping smudge decals (doubled from 26) climb the body as
+  hygiene drops, and the whole-body grime tint reaches half-strength
+  earthy brown at Hygiene 0 — the entire skin must read filthy, no clean
+  patches.
   **Skin-only:** the exporter ships `UncoveredParts`
   (`EquipmentMath.IsPartCovered`) and decals spawn solely on bare zones;
   quads hug the skin so worn garments occlude them — never blood/sweat on
   clothing. Cleared automatically when the zone heals / skin is washed /
   the body cools. A left-side **debug panel** (`DebugControlsPanel`)
-- **Next iteration (planned): garment decals as a separate layer.** Clothing
-  gets its OWN decal set, attached to the garment mesh, with distinct looks:
-  blood *soaking through fabric* (spreading darker stain with soft edges)
-  vs the skin's scratch/blot; dirt/dust *on cloth* (dry, matte, caught in
-  folds) vs skin smudges. Skin decals stay under clothing (occluded), fabric
-  decals live on the garment — each material reads correctly. No sweat on
-  fabric (sweat stays a bare-skin effect; maybe damp patches later).
   injects a random wound (a real WoundState record) / clears wounds /
   dirties / washes / tans / untans / forces sweat on-off / toggles
   clothing visibility ("Hide clothes" — every zone counts as bare) for the
-  selected NPC (or everyone) so these visuals can be exercised without waiting
-  on play.
+  selected NPC (or everyone) so these visuals can be exercised without
+  waiting on play.
+- **SHIPPED (40.8-C, shader layers instead of decals): blood & sweat on
+  cloth.** The GarmentTear shader gained two artistic layers alongside the
+  dust: **blood soak** — deep venous red wicking through the fabric exactly
+  over the wound (localized by the SAME damage spheres that rip the cloth,
+  noise-spread like real wicking; intensity = Σ unhealed wound hostage,
+  fades as wounds close; stain brightness scales with the cloth's own
+  luminance) — and **sweat damp** — noise patches that darken the fabric a
+  touch and gloss it (smoothness +0.45×damp), driven by the thermal sweat
+  level. Both ride the existing per-slot property block via
+  `Wear.SetGrime(dirt, spheres, count, blood01, sweat01)`, activate the
+  tear-shader swap when meaningful (blood > 0.05, sweat > 0.25), and cost
+  no decal projectors.
+- **SHIPPED (40.8-D — wounds painted INTO the skin texture):** the molly
+  hit-placement tech, ported **collider-free** (molly's
+  `MeleeOnHitNonPhysics` pattern, hardened): on a new wound the body bakes
+  its pose (`BakeMesh`) and the seeded zone surface point picks the
+  **closest skin triangle** (centroid distance — a ray can slip past a thin
+  limb, nearest-triangle can never miss) → UV + submesh slot. Genesis3 UVs
+  are UDIM-tiled (torso U∈[1,2], legs U∈[2,3]…), so the UV wraps into
+  [0,1] before painting. No temp `MeshCollider`, no per-placement PhysX
+  cooking. Cheaper than molly's original: triangle/UV topology is cached
+  once from the baked snapshot (the Daz FBX itself is not CPU-readable;
+  eyes/lashes excluded up front), vertices refresh via a reusable buffer,
+  and the POINT transforms into local space with one inverse matrix
+  (bake-scale detected from mesh bounds — scale-correct for the ~0.35
+  actors) instead of pushing every vertex to world. Fully lazy — an NPC who
+  never bleeds allocates nothing; unresolvable zones leave a dead record so
+  placement never retries per-frame. The wound then composites into
+  a RenderTexture copy of that slot's albedo (≤2048², explicit sRGB,
+  mips regenerated after stamping, assigned to the
+  per-NPC material instance): TWO stamps per pass — the picked blood-splash
+  underlay wider, the detailed gash/splat art centered on the hit. Stamp
+  records (slot/uv/seed/textures) persist; **healing just repaints** the
+  composite from the clean original with lower alpha (0.1 buckets) until
+  the mark dissolves; bandages stamp the leaf wrap the same way. Repaints
+  are event-driven (state hash), rays only on NEW wounds. Skin stays URP
+  Lit — tan/sunburn tints multiply the repainted map like the original,
+  clothing occludes naturally, portraits show it. `PaintWoundsIntoTexture`
+  flips back to decal projectors. Sweat/dirt/rain stay projector-based.
+- **REVERTED (skin paint-shader experiment):** swapping the bare-skin slots
+  to GarmentTear (`_HolesOn = 0`) made the body flicker (Cull Off +
+  AlphaTest queue on the skinned mesh) and flattened the Daz skin to a pale
+  cartoon look. Skin stays on **URP Lit**; wounds/sweat droplets/bandage
+  remain decal projectors + the smoothness sheen, which read better on skin.
+  The shader keeps `_HolesOn`/`_BandageSpheres` (harmless, default cloth
+  behavior) should a dedicated skin variant return later.
 
 ### 40.9 Injury-driven locomotion & poses
 - **Limp** when a leg is hurt; **crawl** when both legs are down; a hurt
@@ -7555,10 +7636,17 @@ pass — order chosen to add robustness before difficulty.
   `_Cutoff` pass only worked on textures that already had alpha (lace); solid
   fabric never visibly tore. Replaced with a custom URP shader
   `HexLive/GarmentTear` (`UnityPresentation/Wearing/GarmentTear.shader`):
-  a procedural tear mask (Voronoi cells + value-noise raggedness, UV-space,
-  no per-garment art) is clipped against `_TearAmount`, so holes nucleate at
-  cell centers and grow with ragged organic edges; a `_TearEdgeTint` band
-  darkens the rim into a frayed hem. `Cull Off` + `SV_IsFrontFace` normal
+  the tear mask is clipped against `_TearAmount`. The mask is the
+  **fal.ai artistic dissolve map** (`Resources/HexLive/Decals/tear_mask.png`:
+  hand-drawn-quality ragged holes/slashes, post-processed to varied gray
+  depths — darker rips open FIRST, so rising wear plays a natural
+  destruction sequence; mirror-composited for tileability; blurred rims so
+  each hole grows along its frayed silhouette). It lives in generic UV
+  space, so ONE mask serves every garment type; `Wear.ApplyTearShader`
+  assigns it and flips `_TearTexOn` — without the texture the shader falls
+  back to the original procedural Voronoi+noise mask. The rim bleaches into
+  pale threadbare fuzz (the fabric's own hue) and worn patches fade between
+  holes as tear rises. `Cull Off` + `SV_IsFrontFace` normal
   flip render the cloth's inside through the holes; skin/underlayers show
   through since the body is fully modeled beneath (layers all render).
   The ShadowCaster pass clips identically (holes don't cast solid shadows).
@@ -7862,7 +7950,9 @@ overlay (UIDocument, top sorting order) drives phases:
    (Jana) — the RTS camera's selection handler enters orbit on her, so the
    game opens looking at Jana with her panel up.
 Background art: `Resources/HexLive/UI/loading_island` (fal.ai-generated,
-girls-on-island in the game's low-poly palette).
+the three girls at sunset on the low-poly island, 1920×1080). Game logo
+`Resources/HexLive/UI/logo` ("HEX ISLAND SURVIVE", alpha-cut) overlays the
+art top-left; no text titles are drawn by code.
 Anti-burst guard (independent of loading): the tick accumulator is clamped
 to `TickDeltaTime × 12` (≈3 game-seconds of backlog) — a frame hitch may
 never turn into a catch-up burst; at 50× the per-frame budget (~0.8 s) is
@@ -7909,13 +7999,18 @@ RESTORED state (v2: load first, then simulate the absence) and finishes
 BEFORE any view spawns — the player returns to "time really passed":
 resources regrown, needs drifted, maybe someone got bitten.
 
-### 41.4 Main menu (iteration 38)
+### 41.4 Main menu (iteration 38, restyled iteration 43)
 The loading screen opens with a MENU over the island art, before any world
-exists: **«Продолжить»** (only when a save file is present) and **«Новая
-игра»** (deletes the save, rolls a fresh seed). The world is bootstrapped
-only after the choice — the runner sits unconfigured (renderer/panels all
-guard on `IsReady`), so the menu costs nothing. After the click the flow is
-§41.1 unchanged: restore → offline wind → spawn → warm-up → fade → Jana.
+exists — a dark rounded card docked bottom-left, icon rows painted with
+Painter2D (no texture assets): **«Продолжить»** (gold primary; dimmed and
+unclickable without a save), **«Новая игра»** (deletes the save, rolls a
+fresh seed), **«Настройки»** and **«Персонажи»** (visible placeholders,
+disabled for now), **«Выйти из игры»** (`Application.Quit`, stops play mode
+in-editor), then a divider and the tagline («Исследуй. Строй. Выживай.»).
+The world is bootstrapped only after the choice — the runner sits
+unconfigured (renderer/panels all guard on `IsReady`), so the menu costs
+nothing. After the click the flow is §41.1 unchanged: restore → offline
+wind → spawn → warm-up → fade → Jana.
 
 ### 41.5 Wake-up grace (iteration 38)
 Waking from any Sleep (bed / leaf mat / ground) sets
@@ -8144,3 +8239,97 @@ single mechanic.
 game is now completable on every soak seed; remaining polish (boiled
 water still ~5% of drinks, chronic dehydration misery, dog maulings)
 is quality-of-life, not passability.
+
+## §46 Difficulty pass — putting teeth back (iteration 44)
+After r5 the game was TOO safe (6/6, three zero-death colonies). Goal from
+the user: ~50% losses, deaths back in the story, "sharp" deaths (blood,
+beasts, cold) rather than the grind we deliberately fixed. Measured ladder
+(12 seeds — canonical 6 + 7/101/2024/4242/90210/13 — 30-40 game days,
+WIN = raft launched with survivors, LOSS = colony wiped):
+
+| knobs (cumulative) | result | reading |
+|---|---|---|
+| r5 baseline | 12/12 WIN, ~5 deaths | unkillable |
+| bleed 0.06→0.09, dog bite 0.06→0.07 | 12/12, few deaths | girls out-fight the pair of dogs |
+| + MaxDogs 2→3, respawn 3d→1.5d | 7/12 in 30d, 0 wipes | dogs STALL (danger-memory gates the raft), don't kill |
+| + bite 0.09, horizon 40d | 12/12, 3 deaths | stalls finish given time; reshuffle noise |
+| + attrition 0.025/0.045, sickness floor 0.2→0.1, hypothermia 0.012→0.015 | 10/12, 12 deaths, 1 wipe | deaths are back (dogs 5, bleed 2, hypo 1); most colonies lose 1-2 girls |
+| + attrition 0.03/0.05 (pre-r5, CURRENT TREE) | 11/12, 14 deaths, 1 wipe | the working "drama" balance |
+| experiment: 2-girl start (snapshot only, not shipped) | 11/12, 1 early wipe | redundancy is NOT what protects the colony |
+
+**Conclusion:** the r5 safety nets made the colony a homeostat — individual
+deaths no longer cascade into wipes (that cascade was exactly what r4/r5
+removed). Damage knobs restore per-girl mortality (~1-2 deaths/colony/run)
+but colony-level loss saturates at ~10-15%; pushing predator pressure
+further first produces timeout-stalls, not drama (the 3-dog row). A true
+~50% loss rate needs a swing MECHANIC (rare seeded catastrophes: night
+pack raid, storm that wrecks raft progress, epidemic), not a bigger
+constant — recorded here as the §46 v2 candidate.
+
+### §46 v2 — swing catastrophes; 50% HIT (iteration 44, SHIPPED)
+Two rare seeded events (pure functions of seed+day — deterministic,
+save-safe, no RNG state):
+
+- **Night raid** (`DogSystem`): each day from day 2, a 25% roll spawns a
+  pack of +3 ordinary dogs at dusk (tick offset 1800). Days 0–1 are a
+  grace period (a raid on an unestablished camp is a storyless coin-flip).
+  Raid dogs linger until killed — they can be fought or fled. Knobs:
+  `RaidChancePerDay=0.25, RaidPackSize=3, RaidDuskOffsetTicks=1800`.
+- **Storm surge** (`WeatherSystem`): each day, a 12% roll washes 2 logs
+  off the raft (offset 1600, on the Slow grid). Losing progress stretches
+  the run → more raid rolls — the catastrophes compound. Knobs:
+  `StormChancePerDay=0.12, StormRaftLogLoss=2, StormSurgeOffsetTicks=1600`.
+
+**Measured (40-day, 12-seed soak): 6/12 WIN — exactly the target 50%.**
+4 LOSS (colony wiped, all by raid packs), 2 TIMEOUT (alive but storm-set-
+back, 1-3/10 raft at day 40). Winners mostly finish 3/3 ALIVE ("fought
+them off and sailed") — the drama profile the user asked for: NightRaid
+fires 4-8 times/run, StormSurge 1-4. Unity-target build
+(HexLive.Simulation.csproj, netstandard2.1) clean. Difficulty dial for
+the future: RaidChancePerDay is the primary knob (0.25 ≈ 50%; lower it
+for an easier mode, raise for brutal).
+
+## §47 The fire zone & the comfort chain (iteration 44)
+
+### §47.1 Ember ring — the campfire is a ZONE, not a cell
+User: the fire should block a hex ring around itself, not one junction,
+and furniture must be built in the passable zone with an offset.
+`campfire.spot` now has `ObstacleRadius = 0.8 × HexRadius`: the anchor
+plus the tile's interior junction ring block (the fire hex is solid),
+while the corner junctions — the lattice the camp walks and sleeps on —
+stay passable. Interactions survive by construction: beside-arrival
+(`CollectStandableAround`) BFS-walks through the blocked cluster to the
+first standable rim, still within 1 tile of the fire (full +8° warmth).
+Furniture placement (`FindSpacedFurnitureSpot`) now uses the same rim BFS
+instead of the anchor's immediate neighbors, so beds/racks land just
+outside the ember ring, fireside-close with a natural offset.
+**Measured lesson — 1.05R is too greedy:** blocking the corner junctions
+too swallowed the fireside beds; Sleep plans failed 87-224/seed, the
+sleepless girls met the night raids in the open (bites ×5-10) and wins
+collapsed 6/12 → 3/12. At 0.8R the ring costs ~1 seed of winrate (noise-
+level) and an A/B probe (ring off) confirmed the chronic Sleep-fail
+churn predates the ring — it was the bed shortage.
+
+### §47.2 Comfort chain — why nobody built beds (user question), fixed
+Diagnosis (probe: bedDeficit/leaves/chopTool sampled every 25 ticks):
+1. `craftBedAvail` required a BURNING fire (the same permanent lock the
+   raft and fire chains had — the pit burns 10-20% of the time);
+2. `!HasReachableWithTag("Bed")` capped the colony at ONE crafted bed
+   for three girls — bedless-girl Sleep churn was the loudest signal in
+   every soak (787-995 plan-starts per 25 days, mostly retries);
+3. palm leaves held ≥3 in **0%** of sampled npc-ticks — HarvestTree at
+   score 0.3 never won the auction (lost to Dress/Socialize), so the palm
+   was never chopped and the 3-leaf kit never existed.
+Fixes (all availability/score, no new mechanics): `bedDeficit` = reachable
+beds < living girls replaces both the one-bed cap and drives a leaf-supply
+clause in `harvestTreeAvail`; the burning-fire clause dropped (weaving at
+the cold pit is fine — the Craft interaction never needed the flame);
+`bedChainPull` +0.25 on HarvestTree while the chain is short (deficit, no
+leaves, has axe/saw) — mirrors the spec-42 cold chain.
+**Measured:** beds now get built (4/12 seeds crafted 1-3 beds; a full
+bed set drops Sleep fails ~190 → 11 and seed 90210 wins by day 6.7).
+The chain spends real auction time in the §46 world, so the difficulty
+dial moved one notch: `RaidChancePerDay 0.25 → 0.20`, final winrate
+**5/12 (42%)** — inside the 40-60% target band. Remaining known gap:
+seeds whose girls lose all axes/saws can't run the chain (chopTool 0%
+in seed 42's samples) — tool scatter/recovery is a future candidate.

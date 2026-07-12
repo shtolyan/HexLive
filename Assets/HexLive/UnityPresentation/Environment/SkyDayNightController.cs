@@ -106,6 +106,61 @@ namespace HexLive.UnityPresentation.Environment
                 _skyMaterial.SetFloat("_DayAmount", dayAmount);
                 _skyMaterial.SetColor("_SunColor", sunTint);
             }
+
+            ApplyWaterLighting(dayAmount);
+        }
+
+        // The imported stylized water shader doesn't read scene lighting — its
+        // gradient/foam colours render at authored brightness, so the sea
+        // GLOWED at night. Scale the material's colours with the directional
+        // light instead: full authored look at noon, deep moonlit blue at
+        // night. Base colours are captured once from the runtime material copy
+        // (HexWorldRenderer clones the asset), so day always restores exactly.
+        private static readonly int[] WaterColorProps =
+        {
+            Shader.PropertyToID("_DepthGradient1"),
+            Shader.PropertyToID("_DepthGradient2"),
+            Shader.PropertyToID("_DepthGradient3"),
+            Shader.PropertyToID("_FresnelColor"),
+            Shader.PropertyToID("_FoamColor"),
+            // fallback HexLive/StylizedWater properties
+            Shader.PropertyToID("_ShallowColor"),
+            Shader.PropertyToID("_DeepColor"),
+            Shader.PropertyToID("_GlintColor")
+        };
+
+        private Material? _waterMaterial;
+        private readonly System.Collections.Generic.Dictionary<int, Color> _waterBaseColors = new();
+
+        private void ApplyWaterLighting(float dayAmount)
+        {
+            var material = Rendering.HexWorldRenderer.ActiveWaterMaterial;
+            if (material == null)
+            {
+                return;
+            }
+
+            if (!ReferenceEquals(material, _waterMaterial))
+            {
+                _waterMaterial = material;
+                _waterBaseColors.Clear();
+                foreach (var id in WaterColorProps)
+                {
+                    if (material.HasProperty(id))
+                    {
+                        _waterBaseColors[id] = material.GetColor(id);
+                    }
+                }
+            }
+
+            // Moonlit night: dark, blue-shifted; sunlit day: authored colours.
+            var tint = Color.Lerp(new Color(0.10f, 0.14f, 0.24f), Color.white, dayAmount);
+            foreach (var pair in _waterBaseColors)
+            {
+                var lit = pair.Value * tint;
+                lit.a = pair.Value.a; // never touch transparency
+                _waterMaterial.SetColor(pair.Key, lit);
+            }
         }
 
         private void EnsureLight()

@@ -125,6 +125,7 @@ namespace HexLive.UnityPresentation.UI
             box.Add(MakeButton("- Tan", Raised, () => AdjustTan(-0.25f)));
             box.Add(MakeButton("+ Sweat", Raised, () => SweatOverride = 0.6f));
             box.Add(MakeButton("- Sweat", Raised, () => SweatOverride = -1f));
+            box.Add(MakeButton("+ Tear clothes", Raised, TearClothes));
 
             _clothesButton = MakeButton("Hide clothes", Raised, ToggleClothes);
             _clothesLabel = (Label)_clothesButton[0];
@@ -179,25 +180,29 @@ namespace HexLive.UnityPresentation.UI
             npc.Body.Parts[part] = Mathf.Clamp01(npc.Body.Parts[part] - 0.35f);
             npc.Health = npc.Body.Mean();
             npc.Needs.Blood = Mathf.Clamp01(npc.Needs.Blood - 0.15f);
-            // Spec 40.8B: the decal comes from the wound RECORD, not from HP.
-            // At the cap (12) the panel mirrors WoundMath: reopen an existing
-            // wound instead of adding a 13th record.
-            if (npc.Wounds.Count >= 12)
+            // Spec 40.8B/40.8-E: the decal comes from the wound RECORD, not
+            // from HP, and a hit tears THREE gashes (mirrors WoundMath: the
+            // damage splits, so balance math is identical). At the cap (36)
+            // reopen an existing wound instead of adding another record.
+            for (var gash = 0; gash < 3; gash++)
             {
-                var reopen = npc.Wounds[UnityEngine.Random.Range(0, npc.Wounds.Count)];
-                reopen.Severity = reopen.Severity * (1f - reopen.Heal01) + 0.35f;
-                reopen.Heal01 = 0f;
-                return;
-            }
+                if (npc.Wounds.Count >= 36)
+                {
+                    var reopen = npc.Wounds[UnityEngine.Random.Range(0, npc.Wounds.Count)];
+                    reopen.Severity = reopen.Severity * (1f - reopen.Heal01) + 0.35f / 3f;
+                    reopen.Heal01 = 0f;
+                    continue;
+                }
 
-            npc.Wounds.Add(new HexLive.Simulation.Agents.WoundState
-            {
-                Id = npc.NextWoundId++,
-                Zone = part,
-                Severity = 0.35f,
-                Heal01 = 0f,
-                Seed = UnityEngine.Random.Range(1, int.MaxValue)
-            });
+                npc.Wounds.Add(new HexLive.Simulation.Agents.WoundState
+                {
+                    Id = npc.NextWoundId++,
+                    Zone = part,
+                    Severity = 0.35f / 3f,
+                    Heal01 = 0f,
+                    Seed = UnityEngine.Random.Range(1, int.MaxValue)
+                });
+            }
         });
 
         private void ClearWounds() => ForEachTarget(npc =>
@@ -217,6 +222,16 @@ namespace HexLive.UnityPresentation.UI
 
         private void AdjustTan(float delta) => ForEachTarget(npc =>
             npc.Needs.TanLevel = Mathf.Clamp01(npc.Needs.TanLevel + delta));
+
+        // Rip the worn clothes a step further (durability -0.3) — the tear
+        // shader's transparent holes show up without waiting days of wear.
+        private void TearClothes() => ForEachTarget(npc =>
+        {
+            foreach (var item in npc.WornItems)
+            {
+                item.Durability = Mathf.Max(0.05f, item.Durability - 0.3f);
+            }
+        });
 
         // ---- ui helpers ----
 

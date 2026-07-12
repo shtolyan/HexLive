@@ -62,7 +62,22 @@ public static class PrototypeContentCatalog
             {
                 Id = "campfire.spot",
                 DisplayName = "Campfire",
-                Tags = { "Campfire" },
+                // Obstacle: nobody walks THROUGH the fire pit — and §47:
+                // not through the EMBER RING around it either. The radius
+                // blocks the anchor plus one junction ring (~one hex row),
+                // so routes bend around the fire zone instead of clipping
+                // the flames. Interactions still work: the beside-arrival
+                // BFS (CollectStandableAround) walks through the blocked
+                // cluster to the first standable rim, which stays within
+                // 1 tile of the fire — full +8° warmth reach.
+                Tags = { "Campfire", "Obstacle" },
+                // 0.8R blocks the anchor + the tile's interior junction ring
+                // (the fire hex itself is solid) while leaving the corner
+                // junctions — the lattice the camp actually walks and sleeps
+                // on — passable. 1.05R swallowed the fireside beds: Sleep
+                // plans failed 87-224 times/seed, sleepless girls met the
+                // night raids in the open (bites x5-10), wins fell 6/12→3/12.
+                ObstacleRadius = 0.8f * HexLive.Simulation.Spatial.HexSpatialMath.HexRadius,
                 Interactions =
                 {
                     // Spec 29H: fill the bottle with boiled (safe) water; the

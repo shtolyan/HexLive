@@ -30,6 +30,8 @@ public static class WorldSnapshotExporter
         snapshot.UvIndex = world.Environment.UvIndex;
         snapshot.IsRaining = world.Environment.IsRaining;
         snapshot.RaftProgress = world.RaftProgress;
+        snapshot.SunDirection = world.SunDirection;
+        snapshot.SunElevationDegrees = world.SunElevationDegrees;
         snapshot.RaftTarget = HexLive.Simulation.Core.WorldState.RaftTarget;
 
         ExportTiles(world, snapshot);
@@ -314,6 +316,12 @@ public static class WorldSnapshotExporter
             {
                 npcSnapshot.UncoveredParts.Add(part.Key.ToString());
             }
+        }
+
+        // Spec 44: leaf-wrap decals on the dressed zones.
+        foreach (var zone in npc.BandagedZones)
+        {
+            npcSnapshot.BandagedZones.Add(zone.ToString());
         }
 
         npcSnapshot.WorstBodyPart = worstPartValue < 1f

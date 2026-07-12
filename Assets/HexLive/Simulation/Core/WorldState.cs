@@ -38,7 +38,7 @@ public sealed class WorldState
     // Spec 40.15: logs hauled to the escape raft (target 20). At the target the
     // colony can sail off the island — the global goal.
     public int RaftProgress { get; set; }
-    public const int RaftTarget = 20;
+    public const int RaftTarget = 10; // spec 45 r2: reachable endgame
 
     // Spec 40.16: latch for the joint-plan advisor's dire-straits trigger — set
     // while the colony is in crisis so the advisor is consulted once per onset,
@@ -58,6 +58,16 @@ public sealed class WorldState
     // junctions the pathfinder charges a reduced cost so a foraging NPC can
     // afford the hop for an island-exclusive resource (the wider ring stays 4x).
     public System.Collections.Generic.HashSet<Common.JunctionId> StraitJunctions { get; } = new();
+
+    // Spec 43: tiles currently in cast shadow (terrain + canopy), rebuilt by
+    // EnvironmentSystem every medium tick from the sun path. DERIVED — never
+    // serialized; a loaded world repopulates it on its first tick.
+    public System.Collections.Generic.HashSet<Common.TileCoord> ShadedTiles { get; } = new();
+
+    // Spec 43: sun horizontal direction (world XZ) and elevation in degrees,
+    // exported so the rendered light matches the sim's shadow math exactly.
+    public Common.Float2 SunDirection { get; set; }
+    public float SunElevationDegrees { get; set; }
 
     // Spec 29C.1: all chance rolls mix this seed.
     public int Seed { get; set; } = 12345;

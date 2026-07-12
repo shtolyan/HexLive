@@ -27,6 +27,7 @@ namespace HexLive.UnityPresentation.UI
         // Weather widget (top-left): temperature, rain/clear, clock + phase.
         private VectorIcon _sunIcon;
         private VectorIcon _rainIcon;
+        private Label _dayLabel;
         private Label _tempLabel;
         private Label _weatherLabel;
         private Label _clockLabel;
@@ -161,6 +162,21 @@ namespace HexLive.UnityPresentation.UI
             box.style.paddingBottom = 7f;
             root.Add(box);
 
+            // Survival day counter leads the widget.
+            _dayLabel = new Label("—");
+            _dayLabel.style.color = Gold;
+            _dayLabel.style.fontSize = 15;
+            _dayLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            _dayLabel.style.marginRight = 10f;
+            box.Add(_dayLabel);
+
+            var divider = new VisualElement();
+            divider.style.width = 1f;
+            divider.style.height = 18f;
+            divider.style.backgroundColor = Stroke;
+            divider.style.marginRight = 10f;
+            box.Add(divider);
+
             _tempLabel = new Label("—");
             _tempLabel.style.color = Text;
             _tempLabel.style.fontSize = 17;
@@ -209,6 +225,11 @@ namespace HexLive.UnityPresentation.UI
 
             _weatherTick = snapshot.Tick;
             _weatherLanguage = Loc.Current;
+
+            // Survival day, 1-based (a game day is DayLengthTicks ticks).
+            var day = snapshot.Tick /
+                HexLive.Simulation.Runtime.EnvironmentSystem.DayLengthTicks + 1;
+            _dayLabel.text = $"{Loc.Get("weather.day")} {day}";
 
             // Spec 42: sim temperatures are RELATIVE units tuned for the
             // comfort math; the player reads familiar Celsius, so the HUD

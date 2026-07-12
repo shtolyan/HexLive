@@ -7359,6 +7359,21 @@ pass — order chosen to add robustness before difficulty.
 - Wounds cause **gradual blood loss**. Low blood → death if untended.
   Blood **regenerates like HP** over time (and via food/rest). Bandages/
   medicine speed it and stop bleeding.
+- **40.2-B Ground blood stains (shipped, presentation).** A bleeding girl
+  drips onto the ground: `GroundBloodStains` (spawned lazily by
+  `HexWorldRenderer`) watches each NPC's snapshot `Blood` — a DOWNWARD tick
+  is an unambiguous "bleeding now" signal (bandages/pills only raise it) and
+  arms a ~20-tick grace window; while armed she leaves a droplet at her feet
+  (±0.12 m jitter) every 6 ticks, so a walking wounded girl draws a trail.
+  Each stain lands drip-small (0.05 m), spreads ease-out to a 0.16–0.30 m
+  puddle over ~120 ticks, then dries: linear alpha fade to zero across
+  **one game day (2400 ticks)**, driven by sim tick (pause/speed safe),
+  then the quad is destroyed. Cap 160 stains, oldest recycled. Cosmetic
+  only — never persisted, no sim coupling. Visuals: 4 AI-generated flat
+  cartoon stain textures (fal.ai flux/schnell + rembg) in
+  `Resources/HexLive/BloodStains/`, URP Unlit transparent quads with a tiny
+  per-stain lift against z-fighting. TUNING KNOBS: `LifetimeTicks`,
+  `SpreadTicks`, `DripIntervalTicks`, `PuddleScaleMin/Max`, `MaxStains`.
 
 ### 40.3 Medicine & stockpiling (Safety goal)
 - New consumables: **bandages, pills** — treat wounds / stop bleeding /
@@ -7965,3 +7980,141 @@ RELATIVE to the baseline. 6/6 soak green (12345/777/999/31337/555/42, 3
 game days); the same easing also turned the WarmUp-era near-naked-start
 tree from 2/6 to 6/6 green. TUNING KNOBS: `SweatThirstFactor`,
 `ThirstRate`; the pair moves together — retune both or neither.
+
+## §43 Sun & cast shadows (iteration 39)
+The sim computes WHERE shadows fall, matching the rendered sun. Sun path is
+a pure function of TimeOfDayNormalized (up for p in [0,0.5] = 06:00-18:00):
+azimuth sweeps east -> south -> west, elevation follows sin (peak ~65 deg at
+noon, ~8 deg at dawn/dusk). Every medium tick EnvironmentSystem rebuilds
+`WorldState.ShadedTiles` (derived, never serialized): for each tile a ray
+marches TOWARD the sun up to 5 hex steps; a blocker shades it when
+`blockerElev >= myElev + k * tan(sunElev) * (stepWorld/ElevationStep)` —
+tall hexes cast real directional shadows (long at dawn, none at noon for a
+1-step cliff). Shade-tagged objects (palms/big trees) add +2 virtual steps
+on their tile and always shade their OWN tile (canopy); Indoor tiles block
+as +2 (the hut wall). `IsShaded` now reads the map, so UV exposure, tan,
+sunburn and CoolOff inherit directional shade for free. Presentation: the
+snapshot exports the sun azimuth/elevation so SkyDayNightController can
+align the rendered light to the same path (visual shadows == sim shade).
+
+## §44 Blood, rest & herbal bandages (iteration 40)
+- **Clotting**: bleeding only while a wound is FRESH (heal01 < 0.3) — a
+  closing wound stops draining blood; the first hours after a mauling stay
+  deadly, the two-day tail doesn't.
+- **Bed rest**: blood refill x3 while sleeping, x2 by a burning fire
+  (stacking with fed) — a hurt girl who huddles and sleeps pulls through.
+- **Healing herb**: `herb.bush` (new Flora spawn, 3 across the island)
+  produces `resource.herb_leaf` nearby (FruitProduction pattern, max 2).
+  Craft `CraftBandage` at the campfire: 2 leaves -> +1 bandage (available
+  when hurt or stock < 2). Bandage use now REMEMBERS the dressed zones
+  (`NPCState.BandagedZones`, cleared when the zone heals past 0.7) and the
+  snapshot exports them — presentation spawns a leaf-wrap decal on the
+  bandaged spot.
+- **Presentation (shipped)**: `herb.bush` renders as a procedural low-poly
+  medicinal shrub (`LowPolyToolFactory` — splayed stems, leaf blades, pale
+  bloom tips so it reads special among the greenery); `resource.herb_leaf`
+  as a single leaf. The **bandage decal** (`SkinDecals`, DecalType.Bandage)
+  uses a fal.ai leaf-poultice texture (`Resources/HexLive/Decals/
+  bandage_wrap.png` — green leaves bound with fiber twine; procedural
+  crossed-band fallback). A bandaged zone REPLACES its wound decals with
+  one wrap decal (same deterministic zone placement, salt 271); when the
+  sim clears the zone from `BandagedZones` the wrap disappears and any
+  still-open wounds show again.
+- **Water**: ThirstRate 0.020 -> 0.017 (thirst was permanently red and
+  starved the blood regen's fed-condition).
+- **Wound eviction payback**: when the 12-wound cap evicts the oldest
+  wound, its remaining held HP returns to the zone instantly (fixes
+  survivors stuck at zone 0 — the 999/31337 structureOk breaks).
+
+## §45 Free hands — the progress drive (iteration 41)
+Survival ate 100% of the day and the endgame was unreachable (30-day runs:
+raft 0/20, no pickaxe, no build). When the needs are HANDLED — fed, watered,
+rested, warm, no fresh danger — a +0.3 "free hands" drive lifts every
+industry/progress goal (GatherStone/Wood, CraftAxe/Pickaxe, HarvestTree,
+MineBoulder, Build, BuildRaft), so a stable colony automatically turns its
+surplus into tools, the hut and the escape raft. Pass criterion for future
+soaks: visible raft progress within 10 game days on stable seeds.
+
+### §45 r3 — the raft actually launches (iteration 43)
+r2 left the endgame formally reachable but practically locked. Instrumented
+15-day soaks (gate probe sampling every 25 ticks) found three stacked locks,
+each fixed in `DecisionSystem`:
+
+1. **The fire clause was a permanent lock.** `!fuelLow` (fuel ≥ 600) was
+   almost never true in the campfire era; even the softened "fire burning"
+   held < 16% of sampled npc-ticks — the pit is cold most of a long run.
+   The BuildRaft gate now has **no fire condition**: hunger < 0.55,
+   thirst < 0.55 (matched to the free-hands drive), no danger memories,
+   raft known & reachable. "Fed, watered, safe" already means the
+   household can spare a pair of hands; TendFire outbids the raft when
+   fuel genuinely matters.
+2. **The raft had no wood supply of its own.** GatherWood only fired for
+   the hearth (`fuelLow`) or the hut piece, so the coast run rode on
+   leftover logs (3 deposits in 15 days). New `raftWoodDemand`: a settled
+   girl (same gate needs) who knows the raft stocks **up to 3 logs**
+   before the run, and the demand adds **+0.3** to GatherWood's score so
+   stocking actually wins the auction.
+3. **The auction weight was survival-era.** At base 0.28 BuildRaft won
+   1–5 auctions in 15 days against needs hovering ~0.5–0.6. Now
+   **0.4 + freeHands + 0.05 × carriedLogs** (≈ 0.85 loaded & free): when
+   the gate is open the endgame outbids moderate needs; the gate itself
+   guarantees she starts the trip fed, watered and safe.
+
+**Measured (15-day, 6 seeds):** raft launched on 4/6 seeds (days 10–15);
+12345 reached 9/10, 777 3/10. BuildRaft plans 11–18 per seed (was 1–5),
+zero plan failures — when the goal wins, the trip works. Known remaining
+weakness (out of scope here, next candidate): the colony still bleeds on
+long horizons — fire alive only ~10% of the time, chronic dehydration
+events, 1–2 deaths per seed by day 15 — the launch currently races the
+decay rather than riding a stable surplus.
+
+### §45 r4 — raw water eased; the sickness death-spiral broken (iteration 43)
+Instrumented death-cause capture (last 3 damage events before each NpcDied)
+showed the long-horizon collapse was one loop: the fire is dead ~90% of the
+time (FireLit 1–6 per 15 days, FireFueled 0 — TendFire never wins the
+auction against needs), so boiled water barely exists (raw:boiled drinks =
+478:11 across 6 seeds), so the colony lives on the 30%/−0.15-torso raw-water
+gamble at 70–105 drinks per soak — 3–5 full torsos of expected damage, and
+half of all deaths were "Torso destroyed by sickness"; the other half were
+starved/parched attrition with thirst pinned at 1.00 (the thirst treadmill
+is 3.5–4 bottles/day at ThirstRate 0.018 — water chores already eat the
+day, sickness was pure downside).
+
+**The knob (soft param, no behaviour change):** sickness roll 30% → 15%,
+torso hit 0.15 → 0.08 (expected ~0.012/drink — inside fed-regen's budget).
+The gamble stays; it stopped being a death sentence for a fireless colony.
+
+**Measured (25-day, 6 seeds):** sickness deaths ZERO; 5/6 colonies have
+survivors at day 25 (was: near-total die-off by day 15–18); raft launched
+4/6 (days 9–13) with 12345 — the r3 straggler — now finishing at 2/2 alive;
+31337 at 9/10 with a survivor. Remaining failure mode is seed 777: wiped by
+day 7.5 by hypothermia (death at ThermalComfort −0.93) + a dog mauling —
+the cold/fire economy, a separate iteration (fire auction weight is
+reshuffle-heavy territory, per the climb-weight lesson).
+
+### §45 r5 — the cold layer; FULL-GAME PASSABILITY 6/6 (iteration 43)
+Two sessions worked this layer concurrently in the same tree; the edits
+are complementary and are recorded together here.
+
+- **Friction fire** (this session): the freeze probe (sampling every 25
+  ticks while ThermalComfort < −0.5) showed 60–75% of all freezing
+  npc-ticks across ALL seeds were "dead fire + wood in hand + NO lighter"
+  — one lighter per colony and a half-day burn meant the carrier was
+  almost never the one freezing at the pit. TendFire no longer requires
+  the lighter when ThermalComfort < −0.35 (hand-drill in genuine cold;
+  the threshold sits before the −0.85 damage band so the lighter stays
+  meaningful in mild weather).
+- **Attrition & cold easing** (parallel chip session): starvation
+  attrition 0.03/0.05 → 0.02/0.035; sickness damage floored at 0.2 torso
+  (grind-not-kill — lethality needs a second stressor); hypothermia
+  0.02 → 0.012 per slow tick (one bad night ~0.44, not 0.74 — dawn gives
+  a chance to dress; two exposed nights still kill).
+
+**Measured (30-day frozen-snapshot soak, 6 seeds): 6/6 launch the raft**
+(555 day 3.1, 999 day 11.6, 31337 day 15.1, 12345 day 17.1, 42 day 19.7,
+777 day 27.7) — every colony has survivors (12345 and 31337 and 555 at
+3/3, zero deaths), 5 deaths total across all seeds (r3 baseline: 18 in
+15 days). Seed 777 — the r4 hypothermia wipe — finishes 2/2 alive. The
+game is now completable on every soak seed; remaining polish (boiled
+water still ~5% of drinks, chronic dehydration misery, dog maulings)
+is quality-of-life, not passability.

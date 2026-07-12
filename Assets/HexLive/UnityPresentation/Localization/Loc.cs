@@ -110,6 +110,7 @@ namespace HexLive.UnityPresentation.Localization
             // Weather widget (top-left)
             ["weather.rain"] = new[] { "Rain", "Дождь" },
             ["weather.clear"] = new[] { "Clear", "Ясно" },
+            ["weather.day"] = new[] { "Day", "День" },
             ["phase.Morning"] = new[] { "morning", "утро" },
             ["phase.Day"] = new[] { "day", "день" },
             ["phase.Evening"] = new[] { "evening", "вечер" },
@@ -156,6 +157,7 @@ namespace HexLive.UnityPresentation.Localization
             ["goal.MineBoulder"] = new[] { "Breaking a boulder", "Дробит камень" },
             ["goal.Build"] = new[] { "Building the hut", "Строит хижину" },
             ["goal.CoolOff"] = new[] { "Cooling off", "Остывает" },
+            ["goal.WarmUp"] = new[] { "Warming by the fire", "Греется у костра" },
             ["goal.CraftRack"] = new[] { "Building a drying rack", "Мастерит сушилку" },
             ["goal.DryClothes"] = new[] { "Drying clothes", "Сушит одежду" },
             ["goal.CraftBow"] = new[] { "Making a bow", "Мастерит лук" },

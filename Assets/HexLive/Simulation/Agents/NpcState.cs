@@ -125,6 +125,10 @@ public sealed class NPCState
     // (the decal fades with it; the record is removed when fully closed).
     public System.Collections.Generic.List<WoundState> Wounds { get; } = new();
 
+    // Spec 44: zones currently dressed with a leaf bandage — presentation
+    // draws the wrap decal; cleared as the zone heals past 0.7.
+    public System.Collections.Generic.HashSet<Content.BodyPart> BandagedZones { get; } = new();
+
     public int NextWoundId { get; set; } = 1;
 
     public float EquippedArmor { get; set; }

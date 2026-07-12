@@ -7,7 +7,8 @@ namespace HexLive.UnityPresentation.UI
     /// Renders a live face close-up of the selected NPC into a RenderTexture —
     /// filming the REAL in-world character (actual dirt, tan, wounds, clothes),
     /// not a staged clone. A dedicated camera hovers in front of the face and
-    /// follows it every frame; the island itself is the backdrop.
+    /// follows it every frame. It culls to the "Actors" layer only, so the
+    /// character renders against a clean solid backdrop — no environment.
     /// </summary>
     public sealed class PortraitStage : MonoBehaviour
     {
@@ -46,7 +47,9 @@ namespace HexLive.UnityPresentation.UI
             _camera.fieldOfView = 22f;
             _camera.nearClipPlane = 0.03f;
             _camera.farClipPlane = 60f;
-            _camera.cullingMask = ~(1 << 5); // the world, not the UI layer
+            // Actors-only mask is applied in LateUpdate (retried until the
+            // layer resolves — an externally added layer may load late).
+            _camera.cullingMask = ~(1 << 5); // interim: world minus UI
             _camera.enabled = false;
         }
 
@@ -60,12 +63,27 @@ namespace HexLive.UnityPresentation.UI
             }
         }
 
+        private bool _maskResolved;
+
         // After the world renderer has interpolated the actors for this frame.
         private void LateUpdate()
         {
             if (_camera == null)
             {
                 return;
+            }
+
+            // Actors-only: the portrait shows the character (clothes, decals,
+            // effects — everything on her hierarchy) against the solid
+            // backdrop; the environment never renders into the texture.
+            if (!_maskResolved)
+            {
+                var actorsLayer = LayerMask.NameToLayer("Actors");
+                if (actorsLayer >= 0)
+                {
+                    _camera.cullingMask = 1 << actorsLayer;
+                    _maskResolved = true;
+                }
             }
 
             if (_npcId < 0)

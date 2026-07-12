@@ -32,6 +32,7 @@ public sealed class NpcActorView : MonoBehaviour
     private static readonly int LayingParam = Animator.StringToHash("Laying");
     private static readonly int WorkingParam = Animator.StringToHash("Working");
     private static readonly int SittingParam = Animator.StringToHash("Sitting");
+    private static readonly int LimpingParam = Animator.StringToHash("Limping");
     private string _currentPropId;
     private GameObject _handProp;
 
@@ -95,6 +96,7 @@ public sealed class NpcActorView : MonoBehaviour
     private int _npcId;
     private readonly Dictionary<string, float> _zoneHealthScratch = new();
     private readonly HashSet<string> _uncoveredScratch = new();
+    private readonly HashSet<string> _bandagedScratch = new();
 
     // Spec 40.10-C: garment grime + zone-damage rips. Each hurt zone plants a
     // world-space damage sphere at its bone anchor (knees/elbows — where cloth
@@ -309,6 +311,42 @@ public sealed class NpcActorView : MonoBehaviour
         _gazeProxy.SetParent(transform.parent, false);
     }
 
+    // The whole actor hierarchy lives on the "Actors" layer so the portrait
+    // camera can render the character (clothes, props, decals — anything that
+    // spawned under her) with zero environment. Re-applied every tick because
+    // garments/props/decals spawn at runtime with the default layer.
+    private static int _actorsLayer = -1;
+
+    public void EnsureActorLayer()
+    {
+        // Keep retrying while unresolved: the layer table may load AFTER the
+        // domain (TagManager edited externally) — a cached -1 would otherwise
+        // disable portrait isolation for the whole session.
+        if (_actorsLayer < 0)
+        {
+            _actorsLayer = LayerMask.NameToLayer("Actors");
+            if (_actorsLayer < 0)
+            {
+                return;
+            }
+        }
+
+        ApplyLayerRecursive(transform, _actorsLayer);
+    }
+
+    private static void ApplyLayerRecursive(Transform node, int layer)
+    {
+        if (node.gameObject.layer != layer)
+        {
+            node.gameObject.layer = layer;
+        }
+
+        for (var i = 0; i < node.childCount; i++)
+        {
+            ApplyLayerRecursive(node.GetChild(i), layer);
+        }
+    }
+
     // Debug: strip the visuals only (sim wardrobe untouched) so skin effects —
     // tan, sunburn, wounds, dust, sweat — can be inspected on the full body.
     // While hidden, re-hide every tick (SyncWorn may equip new garments); when
@@ -340,7 +378,7 @@ public sealed class NpcActorView : MonoBehaviour
     public void SetBodyCondition(IReadOnlyList<string> bodyParts,
         IReadOnlyList<string> uncoveredParts, float hygiene, float thermal,
         float rainWet = 0f, IReadOnlyList<string> wornWetness = null,
-        IReadOnlyList<string> wounds = null)
+        IReadOnlyList<string> wounds = null, IReadOnlyList<string> bandagedZones = null)
     {
         if (_skinDecals == null)
         {
@@ -422,7 +460,17 @@ public sealed class NpcActorView : MonoBehaviour
             }
         }
 
-        _skinDecals.Sync(wounds, _uncoveredScratch, hygiene, thermal, _skinWetness);
+        // Spec 44: bandaged zones show the leaf wrap instead of wound marks.
+        _bandagedScratch.Clear();
+        if (bandagedZones != null)
+        {
+            foreach (var zone in bandagedZones)
+            {
+                _bandagedScratch.Add(zone);
+            }
+        }
+
+        _skinDecals.Sync(wounds, _uncoveredScratch, hygiene, thermal, _skinWetness, _bandagedScratch);
 
         // Wet sheen: hot skin glistens — and rain-soaked skin the same way
         // (spec 35.5: rain reuses the sweat tech). The droplet decals are
@@ -1022,6 +1070,15 @@ public sealed class NpcActorView : MonoBehaviour
     {
         _posture = string.IsNullOrEmpty(postureHint) ? "Upright" : postureHint;
         _winded = winded;
+
+        // Spec 40.9: a leg wound swaps the Walk cycle for the imported Limp
+        // clip (animator state) — replaces the old procedural body sway.
+        // Crawl (both legs) rides the same clip until a real crawl exists;
+        // the old 35° forward pitch read as a bug, not an injury.
+        if (_animator != null)
+        {
+            _animator.SetBool(LimpingParam, _posture is "Limp" or "Crawl");
+        }
     }
 
     // Spec 40.10: erode a worn garment by its durability (1 = pristine, 0 =
@@ -1137,10 +1194,10 @@ public sealed class NpcActorView : MonoBehaviour
     }
 
     // Layered injury body language. Faint is handled by SetLaying (the body is
-    // already down), so it's skipped here. ArmHang, HeadClutch and the winded
-    // breathing are authored to spec; Limp/Crawl are subtle placeholders until
-    // the walk cycle can be tuned against a live screenshot (flip/scale the
-    // amplitudes in the editor — the sim signal is authoritative).
+    // already down) and Limp by the animator's Limp walk state (LimpingParam),
+    // so both are skipped here. ArmHang, HeadClutch and the winded breathing
+    // are authored to spec; Crawl is a subtle placeholder until the rig can do
+    // real all-fours (the sim signal is authoritative).
     private void ApplyPosturePose()
     {
         if (_laying || _bodyRoot == null || _rShldr == null)
@@ -1150,7 +1207,6 @@ public sealed class NpcActorView : MonoBehaviour
 
         _posturePhase += Time.deltaTime;
         var right = _bodyRoot.right;
-        var fwd = _bodyRoot.forward;
 
         switch (_posture)
         {
@@ -1168,12 +1224,11 @@ public sealed class NpcActorView : MonoBehaviour
                     _rForearm.rotation = Quaternion.AngleAxis(-120f, right) * _rForearm.rotation;
                 }
                 break;
-            case "Limp": // placeholder: a slight favoured-side list; tune in editor
-                _bodyRoot.rotation = Quaternion.AngleAxis(4f * Mathf.Sin(_posturePhase * 2f), fwd) * _bodyRoot.rotation;
-                break;
-            case "Crawl": // placeholder: deep forward hunch; real all-fours needs the rig
+            // "Limp" and "Crawl" are animator-driven (the Limp walk state via
+            // LimpingParam), not procedural poses — no cases here. Crawl keeps
+            // only a slumped shoulder on top until a real all-fours clip lands.
+            case "Crawl":
                 _rShldr.rotation = Quaternion.AngleAxis(-30f, right) * _rShldr.rotation;
-                _bodyRoot.rotation = Quaternion.AngleAxis(35f, right) * _bodyRoot.rotation;
                 break;
         }
 

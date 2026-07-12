@@ -192,6 +192,22 @@ public sealed class HexWorldRenderer : MonoBehaviour
         InterpolateMovables(_runner.TickAlpha);
     }
 
+    // Spec 40.2-B: ground blood stains manager (lazy — lives under the
+    // renderer, cleared with it on scene teardown).
+    private HexLive.UnityPresentation.Environment.GroundBloodStains _bloodStains;
+
+    private HexLive.UnityPresentation.Environment.GroundBloodStains EnsureBloodStains()
+    {
+        if (_bloodStains == null)
+        {
+            var go = new GameObject("BloodStains");
+            go.transform.SetParent(transform, false);
+            _bloodStains = go.AddComponent<HexLive.UnityPresentation.Environment.GroundBloodStains>();
+        }
+
+        return _bloodStains;
+    }
+
     // Spec 33.2 (iter 33): cartoon rain — a shower of little droplet particles
     // over the island whenever the weather says it's raining.
     private ParticleSystem _rain;
@@ -634,7 +650,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
             _currNpcPoses[key] = targetPose;
 
             SyncActorView(snapshot, npc);
+
+            // Spec 40.2-B: a bleeding girl drips blood at her feet.
+            EnsureBloodStains().OnNpcTick(key, npc.Blood, targetPos, snapshot.Tick);
         }
+
+        _bloodStains?.Advance(snapshot.Tick);
 
         SyncAnimalViews(snapshot);
 
@@ -756,8 +777,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // their own sim wetness (soaked cloth shines/darkens, dries back).
         var rainWet = snapshot.IsRaining && !_indoorCoords.Contains(npc.Tile) ? 1f : 0f;
         actorView.SetBodyCondition(npc.BodyParts, uncoveredForDecals, npc.Hygiene, thermalForSweat,
-            rainWet, npc.WornWetness, npc.Wounds);
+            rainWet, npc.WornWetness, npc.Wounds, npc.BandagedZones);
         actorView.SetClothingHidden(UI.DebugControlsPanel.HideClothing);
+        // Portrait isolation: keep the whole actor hierarchy (incl. garments,
+        // props and decals spawned this tick) on the Actors layer.
+        actorView.EnsureActorLayer();
         // Spec 40.10: tear worn-out garments — cutoff erosion by durability.
         foreach (var entry in npc.WornDurability)
         {

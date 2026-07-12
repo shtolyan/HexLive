@@ -19,7 +19,7 @@ namespace HexLive.UnityPresentation.Wearing
     /// </summary>
     public sealed class SkinDecals : MonoBehaviour
     {
-        private enum DecalType { Scratch, Blood, Dirt, Sweat }
+        private enum DecalType { Scratch, Blood, Dirt, Sweat, Bandage }
 
         private sealed class Zone
         {
@@ -104,11 +104,14 @@ namespace HexLive.UnityPresentation.Wearing
         /// <summary>
         /// Re-derives the decal set from the tick snapshot. wounds: sim wound
         /// records ("Zone|seed|heal01") — ONE decal each, spot from seed, alpha
-        /// fading as it heals; uncovered: zones with NO clothing — the only
-        /// places skin decals may live; hygiene 1=clean; thermal &gt; 0 = hot.
+        /// fading as it heals; bandaged: zones dressed with a leaf bandage —
+        /// their wound decals are REPLACED by one leaf-wrap decal; uncovered:
+        /// zones with NO clothing — the only places skin decals may live;
+        /// hygiene 1=clean; thermal &gt; 0 = hot.
         /// </summary>
         public void Sync(IReadOnlyList<string> wounds, HashSet<string> uncovered,
-            float hygiene, float thermal, float rainWet = 0f)
+            float hygiene, float thermal, float rainWet = 0f,
+            HashSet<string> bandaged = null)
         {
             if (_bones == null || _bodyRoot == null)
             {
@@ -116,6 +119,19 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             _desired.Clear();
+
+            // --- bandages: a dressed zone shows the leaf wrap INSTEAD of its
+            // wound marks (spec 44 — the poultice covers the injury).
+            if (bandaged != null)
+            {
+                foreach (var zone in bandaged)
+                {
+                    if (Zones.ContainsKey(zone) && uncovered.Contains(zone))
+                    {
+                        Want($"bandage.{zone}", DecalType.Bandage, zone, 271);
+                    }
+                }
+            }
 
             // --- rain: droplets over the whole body, skin AND clothes ---
             var rain = Mathf.Clamp01(rainWet);
@@ -146,6 +162,11 @@ namespace HexLive.UnityPresentation.Wearing
                     if (!uncovered.Contains(parts[0]))
                     {
                         continue; // covered by clothing — hidden until undressed
+                    }
+
+                    if (bandaged != null && bandaged.Contains(parts[0]))
+                    {
+                        continue; // dressed — the leaf wrap replaces the wound marks
                     }
 
                     var type = (woundSeed & 1) == 0 ? DecalType.Scratch : DecalType.Blood;
@@ -274,6 +295,7 @@ namespace HexLive.UnityPresentation.Wearing
                 DecalType.Scratch => 0.095f,
                 DecalType.Blood => 0.075f,
                 DecalType.Sweat => 0.070f, // droplet spray patch
+                DecalType.Bandage => 0.110f, // leaf wrap covers the wound area
                 _ => 0.150f // dirt
             } * _height * sizeJitter;
 
@@ -328,6 +350,8 @@ namespace HexLive.UnityPresentation.Wearing
                 // specular cores stay, background fully transparent — reads as
                 // a glistening spray of sweat right on the skin.
                 DecalType.Sweat => Resources.Load<Texture2D>("HexLive/Decals/sweat_drops"),
+                // Spec 44: leaf poultice bound with fiber twine (fal.ai).
+                DecalType.Bandage => Resources.Load<Texture2D>("HexLive/Decals/bandage_wrap"),
                 _ => null
             };
 
@@ -369,6 +393,7 @@ namespace HexLive.UnityPresentation.Wearing
                         DecalType.Scratch => ScratchPixel(u, v),
                         DecalType.Blood => BloodPixel(u, v),
                         DecalType.Dirt => DirtPixel(u, v),
+                        DecalType.Bandage => BandagePixel(u, v),
                         _ => SweatPixel(u, v)
                     };
                 }
@@ -486,6 +511,23 @@ namespace HexLive.UnityPresentation.Wearing
             var col = Color.Lerp(new Color(0.72f, 0.82f, 0.92f), Color.white, highlight);
             var alpha = Mathf.Clamp01(beads * 0.45f + highlight * 0.5f);
             return new Color(col.r, col.g, col.b, alpha);
+        }
+
+        // Fallback leaf wrap: overlapping green leaf pads + crossed tan twine.
+        private static Color BandagePixel(float u, float v)
+        {
+            var r = Mathf.Sqrt(u * u + v * v);
+            var pad = Mathf.Clamp01((0.40f - r) / 0.08f);
+            var leafTone = 0.5f + 0.5f * Mathf.Sin(u * 21f + v * 9f);
+            var col = Color.Lerp(new Color(0.30f, 0.52f, 0.26f), new Color(0.42f, 0.64f, 0.32f), leafTone);
+
+            // Crossed fiber twine bands.
+            var band1 = Mathf.Clamp01((0.05f - Mathf.Abs(u + v * 0.3f)) / 0.02f);
+            var band2 = Mathf.Clamp01((0.05f - Mathf.Abs(v - u * 0.3f)) / 0.02f);
+            var twine = Mathf.Max(band1, band2) * pad;
+            col = Color.Lerp(col, new Color(0.76f, 0.62f, 0.42f), twine);
+
+            return new Color(col.r, col.g, col.b, pad * 0.95f);
         }
 
         private static float Frac(float x) => x - Mathf.Floor(x);

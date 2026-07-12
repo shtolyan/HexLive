@@ -50,6 +50,8 @@ namespace HexLive.UnityPresentation.Environment
                 case "bed.leaf": BuildLeafMat(root.transform); break;
                 case "shelter.tent": BuildTent(root.transform); break;
                 case "vessel.raft": BuildRaft(root.transform); break;
+                case "herb.bush": BuildHerbBush(root.transform); break;
+                case "resource.herb_leaf": BuildHerbLeaf(root.transform); break;
                 default:
                     Object.Destroy(root);
                     return null;
@@ -162,6 +164,48 @@ namespace HexLive.UnityPresentation.Environment
             AddBox(p, new Vector3(0.10f, 0.02f, 0.6f), new Vector3(0f, 0.02f, 0.25f), new Vector3(-8f, 0f, 0f), Leaf);
             AddBox(p, new Vector3(0.10f, 0.02f, 0.5f), new Vector3(0.06f, 0.03f, 0.15f), new Vector3(-8f, 40f, 0f), Leaf);
             AddBox(p, new Vector3(0.10f, 0.02f, 0.5f), new Vector3(-0.06f, 0.03f, 0.15f), new Vector3(-8f, -40f, 0f), Leaf);
+        }
+
+        // Spec 44: the healing herb bush — a small leafy medicinal shrub with
+        // pale flower tips so it reads as "special" among the greenery.
+        private static void BuildHerbBush(Transform p)
+        {
+            var herb = new Color(0.33f, 0.60f, 0.30f);
+            var herbDark = new Color(0.24f, 0.46f, 0.22f);
+            var bloom = new Color(0.95f, 0.93f, 0.78f);
+
+            // Splayed stems with a leaf blade at each tip.
+            for (var i = 0; i < 5; i++)
+            {
+                var yaw = i * 72f;
+                var lean = 22f + (i % 2) * 10f;
+                var rot = Quaternion.Euler(0f, yaw, lean);
+                var dir = rot * Vector3.up;
+                var stemLen = 0.42f + (i % 3) * 0.07f;
+                AddBox(p, new Vector3(0.035f, stemLen, 0.035f),
+                    dir * (stemLen * 0.5f), new Vector3(0f, yaw, lean),
+                    i % 2 == 0 ? herb : herbDark);
+                AddBox(p, new Vector3(0.16f, 0.02f, 0.28f),
+                    dir * stemLen + new Vector3(0f, 0.02f, 0f), new Vector3(12f, yaw, 0f), herb);
+                // Flower tips on three of the stems.
+                if (i % 2 == 0)
+                {
+                    AddBox(p, new Vector3(0.07f, 0.06f, 0.07f),
+                        dir * (stemLen + 0.05f), new Vector3(0f, yaw + 45f, 0f), bloom);
+                }
+            }
+
+            // Low leafy base clump.
+            AddBox(p, new Vector3(0.34f, 0.14f, 0.34f), new Vector3(0f, 0.07f, 0f), new Vector3(0f, 20f, 0f), herbDark);
+        }
+
+        // Spec 44: a single picked herb leaf (ground/hand pickup).
+        private static void BuildHerbLeaf(Transform p)
+        {
+            var herb = new Color(0.36f, 0.62f, 0.32f);
+            AddBox(p, new Vector3(0.16f, 0.015f, 0.30f), new Vector3(0f, 0.02f, 0.1f), new Vector3(-6f, 0f, 0f), herb);
+            AddBox(p, new Vector3(0.02f, 0.015f, 0.14f), new Vector3(0f, 0.015f, -0.1f), Vector3.zero,
+                new Color(0.30f, 0.45f, 0.22f));
         }
 
         // Spec 40.14: a woven leaf sleeping mat — a thin flat pad of leaves.

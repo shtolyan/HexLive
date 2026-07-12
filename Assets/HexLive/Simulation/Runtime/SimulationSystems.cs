@@ -524,19 +524,76 @@ public sealed class DecisionSystem : ISimulationSystem
             var gatherToolsAvail = npc.Inventory.HasSpace &&
                 HasMissingToolReachable(npc, world);
             var fuelLow = campfireSeen && campfireFuel < 600f;
+            // Spec 40.15 r3: the raft is a wood SINK of its own — with only
+            // fire/build demand the endgame rode on leftover logs and crawled
+            // (15-day soaks: 3 deposits). A settled girl who knows the raft
+            // stocks up to 3 logs before the coast run so each trip counts.
+            var raftWoodDemand = carriedLogs < 3 &&
+                world.RaftProgress < WorldState.RaftTarget &&
+                npc.Needs.Hunger < 0.55f && npc.Needs.Thirst < 0.55f &&
+                npc.Memory.Dangers.Count == 0 &&
+                KnowsReachableWithTag(npc, world, "Raft");
             var gatherWoodAvail = (!hasWood && fuelLow ||
-                    (piece is { } pLog && carriedLogs < pLog.Logs)) &&
+                    (piece is { } pLog && carriedLogs < pLog.Logs) ||
+                    raftWoodDemand) &&
                 npc.Inventory.HasSpace && HasReachableWithTag(npc, world, "Firewood");
-            var tendFireAvail = hasWood && fuelLow && (campfireFuel > 0f || hasLighter);
+            // §45 r5: a genuinely cold girl can start the fire WITHOUT the
+            // lighter (friction/hand-drill). The freeze probe showed 60-75%
+            // of all freezing npc-ticks were "dead fire + wood in hand + no
+            // lighter" — one lighter per colony and a half-day burn time
+            // meant the carrier was almost never the one freezing at the
+            // pit, and seed 777 died of hypothermia around that lock. The
+            // threshold (-0.35, before the -0.85 damage band) keeps the
+            // lighter meaningful in mild weather.
+            var canFrictionLight = npc.Needs.ThermalComfort < -0.35f;
+            var tendFireAvail = hasWood && fuelLow &&
+                (campfireFuel > 0f || hasLighter || canFrictionLight);
 
             AddGoalScore(npc, world.Tick, GoalType.Drink, npc.Needs.Thirst, drinkAvail, drinkBoost);
             AddGoalScore(npc, world.Tick, GoalType.GetWater, npc.Needs.Thirst, getWaterAvail, drinkBoost);
+            // Spec 42: cold drives the WHOLE fire chain, not just the last
+            // link — a freezing girl fetches the lighter and hauls wood with
+            // fire-priority, otherwise the chain never outbids water/food and
+            // the pit stays cold forever (goal histogram: fire goals absent).
+            var coldChain = npc.Needs.ThermalComfort < -0.15f
+                ? 0.4f * npc.Needs.ThermalDiscomfort
+                : 0f;
             AddGoalScore(npc, world.Tick, GoalType.GatherTools,
-                0.25f + 0.2f * npc.Needs.Thirst, gatherToolsAvail);
+                0.25f + 0.2f * npc.Needs.Thirst + coldChain, gatherToolsAvail);
+            // The raft pull mirrors BuildRaft's weight: stocking logs for the
+            // coast run must win the auction as often as the run itself, or
+            // the demand flag never turns into wood in hand (soak: GatherWood
+            // won 8-10 times in 15 days while the raft starved).
             AddGoalScore(npc, world.Tick, GoalType.GatherWood,
-                0.2f + 0.3f * npc.Needs.Thirst, gatherWoodAvail);
+                0.2f + 0.3f * npc.Needs.Thirst + coldChain +
+                (raftWoodDemand ? 0.3f : 0f), gatherWoodAvail);
+            // Spec 42: cold is the second reason to light the fire — a
+            // freezing girl with wood and a lighter prioritizes the flame
+            // over almost everything (this is THE way to warm up now).
+            var freezing = npc.Needs.ThermalComfort < -0.15f;
             AddGoalScore(npc, world.Tick, GoalType.TendFire,
-                0.25f + 0.3f * npc.Needs.Thirst, tendFireAvail);
+                0.25f + 0.3f * npc.Needs.Thirst +
+                (freezing ? 0.45f * npc.Needs.ThermalDiscomfort : 0f), tendFireAvail);
+
+            // Spec 42: WarmUp — go stand by the burning fire until the chill
+            // lifts. Available while genuinely cold and a lit fire is known;
+            // the thermal system does the rest (fire is a real heat source).
+            var warmUpAvail = freezing && npc.Needs.ThermalDiscomfort >= 0.35f &&
+                campfireSeen && campfireFuel > 0f;
+            AddGoalScore(npc, world.Tick, GoalType.WarmUp,
+                0.35f + 0.55f * npc.Needs.ThermalDiscomfort, warmUpAvail);
+
+            // Spec 44: the herbal first-aid chain — gather leaves, craft a
+            // bandage at the fire. Urgency scales with how hurt anyone is.
+            var herbLeaves = CountInventory(npc, "resource.herb_leaf");
+            var hurtUrgency = npc.Health < 0.7f ? 0.3f : 0f;
+            var gatherHerbAvail = herbLeaves < 2 && npc.Needs.Bandages < 2 &&
+                npc.Inventory.HasSpace && HasReachableWithTag(npc, world, "Herb");
+            AddGoalScore(npc, world.Tick, GoalType.GatherHerb,
+                0.22f + hurtUrgency, gatherHerbAvail);
+            var craftBandageAvail = herbLeaves >= 2 && npc.Needs.Bandages < 2 && campfireSeen;
+            AddGoalScore(npc, world.Tick, GoalType.CraftBandage,
+                0.3f + hurtUrgency, craftBandageAvail);
 
             // Spec 29F: hunting & crafting.
             var hasSpear = npc.Inventory.Items.Contains("tool.spear");
@@ -618,18 +675,30 @@ public sealed class DecisionSystem : ISimulationSystem
             var mineBoulderAvail = hasPickaxe && stoneCount < 2 && npc.Inventory.HasSpace &&
                 HasReachableWithTag(npc, world, "Boulder");
 
-            AddGoalScore(npc, world.Tick, GoalType.GatherStone, 0.25f, gatherStoneAvail);
-            AddGoalScore(npc, world.Tick, GoalType.CraftAxe, 0.3f, craftAxeAvail);
-            AddGoalScore(npc, world.Tick, GoalType.CraftPickaxe, 0.25f, craftPickaxeAvail);
-            AddGoalScore(npc, world.Tick, GoalType.HarvestTree, 0.3f, harvestTreeAvail);
-            AddGoalScore(npc, world.Tick, GoalType.MineBoulder, 0.25f, mineBoulderAvail);
+            // Spec 45: FREE HANDS — needs handled, no danger => the surplus
+            // goes into progress. Static 0.25-0.3 scores never beat the
+            // needs-driven day (30-day runs: raft 0/20, no tools, no build);
+            // a settled girl now picks up the pickaxe instead of strolling.
+            // Spec 45 r2: "good enough" beats "perfect" — the strict 0.45
+            // gate never opened (thirst lives above it), so no surplus ever
+            // reached the projects. Comfortable-ish and safe is enough.
+            var freeHands = npc.Needs.Hunger < 0.55f && npc.Needs.Thirst < 0.55f &&
+                npc.Needs.Energy > 0.35f && npc.Needs.ThermalDiscomfort < 0.5f &&
+                npc.Memory.Dangers.Count == 0
+                    ? 0.3f
+                    : 0f;
+            AddGoalScore(npc, world.Tick, GoalType.GatherStone, 0.25f + freeHands, gatherStoneAvail);
+            AddGoalScore(npc, world.Tick, GoalType.CraftAxe, 0.3f + freeHands, craftAxeAvail);
+            AddGoalScore(npc, world.Tick, GoalType.CraftPickaxe, 0.25f + freeHands, craftPickaxeAvail);
+            AddGoalScore(npc, world.Tick, GoalType.HarvestTree, 0.3f + freeHands, harvestTreeAvail);
+            AddGoalScore(npc, world.Tick, GoalType.MineBoulder, 0.25f + freeHands, mineBoulderAvail);
 
             // Spec 35.3: build when the full bill for the pending piece is carried.
             var buildAvail = piece is { } needNow &&
                 carriedLogs >= needNow.Logs && stoneCount >= needNow.Stones &&
                 carriedLeaves >= needNow.Leaves &&
                 HasReachableWithTag(npc, world, "BuildSite");
-            AddGoalScore(npc, world.Tick, GoalType.Build, 0.4f, buildAvail);
+            AddGoalScore(npc, world.Tick, GoalType.Build, 0.4f + freeHands, buildAvail);
 
             // Spec 35.4: overheating drives a trip to shade or the river.
             var coolOffUrge = System.MathF.Max(npc.Needs.ThermalDiscomfort, npc.SunExposure - 0.4f);
@@ -673,13 +742,26 @@ public sealed class DecisionSystem : ISimulationSystem
                 0.25f + 0.3f * world.Environment.UvIndex, craftTentAvail);
 
             // Spec 40.15: the escape raft — a low-priority background project.
-            // Only when survival is handled (fed, fire fine, no danger) does a
+            // Only when survival is handled (fed, watered, no danger) does a
             // log get carried to the coast; the way off the island is earned
-            // slowly, never at the expense of staying alive.
+            // slowly, never at the expense of staying alive. No fire clause:
+            // !fuelLow (fuel >= 600) was almost never true in the campfire
+            // era, and even "fire burning" holds <16% of the time on 10-day
+            // soaks — either variant locks the endgame out permanently.
+            // Hunger/thirst/danger already express "the household can spare
+            // a pair of hands"; TendFire outbids the raft when fuel matters.
             var buildRaftAvail = carriedLogs >= 1 && world.RaftProgress < WorldState.RaftTarget &&
-                !fuelLow && npc.Needs.Hunger < 0.5f && npc.Needs.Thirst < 0.5f &&
+                npc.Needs.Hunger < 0.55f && npc.Needs.Thirst < 0.55f &&
                 npc.Memory.Dangers.Count == 0 && KnowsReachableWithTag(npc, world, "Raft");
-            AddGoalScore(npc, world.Tick, GoalType.BuildRaft, 0.28f, buildRaftAvail);
+            // A loaded girl leans coastward: each carried log adds pull so
+            // the stocked-up trip actually happens instead of dissolving
+            // into strolls. Base 0.4 (was 0.28): plan statistics showed the
+            // old weight won the auction 1-5 times in 15 days — the endgame
+            // needs to outbid moderate needs (~0.6) whenever the gate is
+            // open, and the gate itself already guarantees she's fed,
+            // watered and safe when she commits to the coast run.
+            AddGoalScore(npc, world.Tick, GoalType.BuildRaft,
+                0.4f + freeHands + 0.05f * carriedLogs, buildRaftAvail);
             AddGoalScore(npc, world.Tick, GoalType.CraftRack,
                 0.3f + (world.Environment.IsRaining || wornWetness > 0.5f ? 0.2f : 0f),
                 craftRackAvail);
@@ -2285,6 +2367,9 @@ public sealed class PlanningSystem : ISimulationSystem
             GoalType.MineBoulder => InteractionType.Harvest,
             GoalType.Build => InteractionType.Build,
             GoalType.Mourn => InteractionType.Observe,
+            GoalType.WarmUp => InteractionType.Observe,
+            GoalType.GatherHerb => InteractionType.PickUp,
+            GoalType.CraftBandage => InteractionType.Craft,
             GoalType.Bury => InteractionType.Bury,
             GoalType.Sleep => InteractionType.Sleep,
             GoalType.Sit => InteractionType.Sit,
@@ -2310,6 +2395,9 @@ public sealed class PlanningSystem : ISimulationSystem
             case GoalType.GatherTools:
                 return definition.Tags.Contains("Tool") &&
                     !npc.Inventory.Items.Contains(perceived.DefinitionId);
+            case GoalType.GatherHerb:
+                return definition.Tags.Contains("Herb");
+            case GoalType.CraftBandage:
             case GoalType.TendFire:
             case GoalType.CraftSpear:
             case GoalType.CookMeat:
@@ -2339,6 +2427,11 @@ public sealed class PlanningSystem : ISimulationSystem
                 return definition.Tags.Contains("Raft");
             case GoalType.Mourn:
                 return definition.Tags.Contains("Corpse") || definition.Tags.Contains("Grave");
+            case GoalType.WarmUp:
+                // Spec 42: only a BURNING fire warms — a cold pit is no target.
+                return definition.Tags.Contains("Campfire") &&
+                    world.Entities.Objects.TryGetValue(perceived.Id, out var pit) &&
+                    pit.ResourceAmount > 0f;
             case GoalType.Bury:
                 return definition.Tags.Contains("Corpse");
             case GoalType.GetWater:
@@ -3024,6 +3117,13 @@ public sealed class ExecutionSystem : ISimulationSystem
                     // Spec 29F.3: recipe by goal.
                     switch (npc.Plan.Goal)
                     {
+                        case GoalType.CraftBandage:
+                            npc.Inventory.Items.Remove("resource.herb_leaf");
+                            npc.Inventory.Items.Remove("resource.herb_leaf");
+                            npc.Needs.Bandages++;
+                            Trace.Emit(world, npc.Id, "BandageCrafted",
+                                $"Bandages={npc.Needs.Bandages}");
+                            break;
                         case GoalType.CraftSpear:
                             npc.Inventory.Items.Remove("resource.firewood");
                             GiveOrDrop(world, npc, "tool.spear");
@@ -4267,15 +4367,35 @@ public sealed class ExecutionSystem : ISimulationSystem
             return;
         }
 
-        // Spec 29H: raw water is a gamble — 30 % sickness (moved here from
+        // Spec 29H: raw water is a gamble — sickness roll (moved here from
         // the old water-edge Drink now that filling and drinking are split).
+        // §45 r4: eased 30%/-0.15 -> 15%/-0.08. The colony drinks raw
+        // 70-105 times per 15 days (boiled is ~2% of drinks — the fire is
+        // dead ~90% of the time), so the old odds ground through 3-5 full
+        // torsos per soak: half of all deaths were "Torso destroyed by
+        // sickness". The gamble stays (chronic cough), but expected damage
+        // (~0.012/drink) now sits within fed-regen's budget instead of
+        // being a guaranteed death sentence for a fireless colony.
         if (!boiled)
         {
             var sickRoll = MathUtil.Hash01(world.Seed, world.Tick, npc.Id.Value, 833);
-            if (sickRoll < 0.30f)
+            if (sickRoll < 0.15f)
             {
-                npc.Body.Parts[BodyPart.Torso] =
-                    System.Math.Max(0f, npc.Body.Parts[BodyPart.Torso] - 0.15f);
+                // §45 r5: sickness grinds but never kills on its own — the
+                // damage stops at a 0.2 torso floor. A colony that lives long
+                // (r5 attrition easing) drinks raw ~200 times per 25 days;
+                // even at 15%/-0.08 that's ~2.4 expected torsos, and two
+                // r5-baseline deaths were still "Torso destroyed by sickness".
+                // With the floor, chronic gut-rot wears you to miserable (0.2)
+                // and lethality needs a SECOND stressor (starvation, cold, a
+                // dog) — the roll, damage and comfort hit are all unchanged.
+                if (npc.Body.Parts[BodyPart.Torso] > 0.2f)
+                {
+                    // floor, not heal: a torso already below 0.2 (dog mauling)
+                    // is not restored by getting sick on top of it
+                    npc.Body.Parts[BodyPart.Torso] =
+                        System.Math.Max(0.2f, npc.Body.Parts[BodyPart.Torso] - 0.08f);
+                }
                 npc.Health = npc.Body.Mean();
                 npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort - 0.2f);
                 if (npc.Body.VitalDestroyed(out var sickVital))
@@ -4406,6 +4526,123 @@ public sealed class EnvironmentSystem : ISimulationSystem
                 $"{previousPhase}->{world.Environment.Phase} " +
                 $"Clock={FormatClock(progress)} Temp={world.Environment.GlobalTemperature:F1}");
         }
+
+        RebuildShadows(world, progress);
+    }
+
+    // Spec 43: cast shadows. The sun rises east (p=0, 06:00), peaks south at
+    // noon (p=0.25) and sets west (p=0.5); elevation follows the same sine
+    // (8° at the horizons, 65° at noon). Every tile marches a short ray
+    // TOWARD the sun: a blocker (tall hex, +2 for canopy/indoor walls)
+    // shades it when its silhouette clears the sun line. Dawn/dusk throw
+    // 3-5 tile shadows off a cliff; at noon a 1-step ledge shades nothing.
+    private const int ShadowRaySteps = 5;
+    private const float ElevationWorldStep = 0.55f; // renderer's step height
+    private const float CanopyVirtualSteps = 2f;
+
+    private static void RebuildShadows(WorldState world, float progress)
+    {
+        world.ShadedTiles.Clear();
+        if (progress >= 0.5f)
+        {
+            world.SunElevationDegrees = 0f;
+            world.SunDirection = Float2.Zero;
+            return; // night — no sun, shade is moot (UV is 0 anyway)
+        }
+
+        var arc = System.MathF.Sin(System.MathF.PI * progress / 0.5f); // 0..1..0
+        var azimuth = System.MathF.PI * (progress / 0.5f); // east -> west
+        var sunDir = new Float2(System.MathF.Cos(azimuth), -System.MathF.Sin(azimuth));
+        var elevationDeg = 8f + 57f * arc;
+        world.SunDirection = sunDir;
+        world.SunElevationDegrees = elevationDeg;
+
+        // Rise of the sun line per horizontal tile step, in ELEVATION units.
+        var stepWorld = HexSpatialMath.HexRadius * HexSpatialMath.Sqrt3;
+        var risePerStep = System.MathF.Tan(elevationDeg * System.MathF.PI / 180f)
+            * (stepWorld / ElevationWorldStep);
+
+        // Canopy/wall blockers: +2 virtual steps on their tile; a canopy tile
+        // is also always shaded itself (standing under the palm).
+        _shadowExtra.Clear();
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def) &&
+                def.Tags.Contains("Shade"))
+            {
+                _shadowExtra[obj.Tile] = CanopyVirtualSteps;
+                world.ShadedTiles.Add(obj.Tile);
+            }
+        }
+
+        foreach (var pair in world.Tiles.Items)
+        {
+            var tile = pair.Value;
+            if (tile.Flags.HasFlag(TileFlags.Indoor))
+            {
+                // Roofed: always out of the sun, and the walls block others.
+                world.ShadedTiles.Add(pair.Key);
+                _shadowExtra.TryGetValue(pair.Key, out var prior);
+                _shadowExtra[pair.Key] = System.Math.Max(prior, CanopyVirtualSteps);
+            }
+        }
+
+        foreach (var pair in world.Tiles.Items)
+        {
+            if (world.ShadedTiles.Contains(pair.Key))
+            {
+                continue;
+            }
+
+            var origin = HexSpatialMath.TileToWorld(pair.Key);
+            var myElev = (float)pair.Value.Elevation;
+            for (var k = 1; k <= ShadowRaySteps; k++)
+            {
+                var sample = new Float2(
+                    origin.X + sunDir.X * stepWorld * k,
+                    origin.Y + sunDir.Y * stepWorld * k);
+                var blockerCoord = WorldToTile(sample);
+                if (!world.Tiles.Items.TryGetValue(blockerCoord, out var blocker))
+                {
+                    continue;
+                }
+
+                _shadowExtra.TryGetValue(blockerCoord, out var extra);
+                var blockerHeight = blocker.Elevation + extra;
+                if (blockerHeight >= myElev + risePerStep * k)
+                {
+                    world.ShadedTiles.Add(pair.Key);
+                    break;
+                }
+            }
+        }
+    }
+
+    private static readonly System.Collections.Generic.Dictionary<TileCoord, float> _shadowExtra = new();
+
+    // Inverse of HexSpatialMath.TileToWorld (linear) with axial rounding.
+    private static TileCoord WorldToTile(Float2 world)
+    {
+        var r = world.Y / (HexSpatialMath.HexRadius * HexSpatialMath.HexRowStepFactor);
+        var q = world.X / (HexSpatialMath.HexRadius * HexSpatialMath.HexWidthFactor) - r * 0.5f;
+        // Cube rounding (s = -q-r) picks the nearest hex.
+        var s = -q - r;
+        var rq = System.MathF.Round(q);
+        var rr = System.MathF.Round(r);
+        var rs = System.MathF.Round(s);
+        var dq = System.MathF.Abs(rq - q);
+        var dr = System.MathF.Abs(rr - r);
+        var ds = System.MathF.Abs(rs - s);
+        if (dq > dr && dq > ds)
+        {
+            rq = -rr - rs;
+        }
+        else if (dr > ds)
+        {
+            rr = -rq - rs;
+        }
+
+        return new TileCoord((int)rq, (int)rr);
     }
 
     public static string FormatClock(float progress)
@@ -4427,7 +4664,13 @@ public sealed class NeedsDecaySystem : ISimulationSystem
     private const float EnergyRate = 0.007f; // spec 42: ~1 bar/day
     private const float ComfortRate = 0.01f;
     private const float SocialRate = 0.008f; // spec 28.15A
-    private const float ThirstRate = 0.020f; // spec 29E.1
+    // Spec 42.A: base eased 0.020 -> 0.018 as the compensating loosening for
+    // the sweat multiplier below — same multi-dimensional-budget lesson as
+    // §40.18 (0.020 + factor 0.25 broke seed 777; 0.05 alone was homeopathy).
+    private const float ThirstRate = 0.018f; // spec 29E.1
+
+    // Spec 42.A: extra thirst per unit of positive ThermalComfort (sweat).
+    private const float SweatThirstFactor = 0.25f;
 
     private static readonly BodyPart[] AllBodyParts =
     {
@@ -4467,8 +4710,13 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // Spec 31C.7A: a sleeping body burns less — hour-long sleep
             // blocks must not guarantee a starving wake-up.
             var metabolism = npc.Execution.CurrentInteraction == InteractionType.Sleep ? 0.4f : 1f;
+            // Spec 42.A: sweating burns water — overheating scales thirst by
+            // up to +25% at heatstroke-level heat (ThermalComfort +1). Reads
+            // the previous slow tick's signed comfort; cold side is free (a
+            // shivering body does not sweat). SOFT knob: SweatThirstFactor.
+            var sweat = 1f + SweatThirstFactor * System.Math.Max(0f, npc.Needs.ThermalComfort);
             npc.Needs.Hunger = MathUtil.Clamp01(npc.Needs.Hunger + HungerRate * metabolism);
-            npc.Needs.Thirst = MathUtil.Clamp01(npc.Needs.Thirst + ThirstRate * metabolism);
+            npc.Needs.Thirst = MathUtil.Clamp01(npc.Needs.Thirst + ThirstRate * metabolism * sweat);
             npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy - EnergyRate);
             npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort - ComfortRate);
             npc.Needs.Social = MathUtil.Clamp01(npc.Needs.Social - SocialRate);
@@ -4533,7 +4781,20 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 }
             }
 
-            if (worstPart < 0.4f)
+            // Spec 44: clotting — only a FRESH wound (heal01 < 0.3) bleeds;
+            // once it starts closing the blood stops, so the deadly window is
+            // the first hours after the mauling, not the whole two-day heal.
+            var freshWound = false;
+            foreach (var wound in npc.Wounds)
+            {
+                if (wound.Heal01 < 0.3f && wound.Severity >= 0.05f)
+                {
+                    freshWound = true;
+                    break;
+                }
+            }
+
+            if (worstPart < 0.4f && freshWound)
             {
                 // Spec 40.3: a bandage in the pack dresses the worst wound —
                 // patch it up, stem the blood, and it's consumed. First aid
@@ -4550,6 +4811,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                         if (npc.Body.Parts[part] < 0.4f)
                         {
                             npc.Body.Parts[part] = MathUtil.Clamp01(npc.Body.Parts[part] + 0.15f); // spec 42
+                            npc.BandagedZones.Add(part); // spec 44: leaf-wrap decal
                         }
                     }
 
@@ -4581,7 +4843,12 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 }
                 else
                 {
-                    npc.Needs.Blood = System.Math.Max(0f, npc.Needs.Blood - (0.4f - worstPart) * 0.06f);
+                    // §46 difficulty pass: 0.06 -> 0.09. With the r4/r5
+                    // survival fixes the colony won 6/6 — the game needs
+                    // teeth back, and bleeding is the "sharp" death channel
+                    // (dramatic, fightable with bandages) rather than the
+                    // slow-grind ones we deliberately softened.
+                    npc.Needs.Blood = System.Math.Max(0f, npc.Needs.Blood - (0.4f - worstPart) * 0.09f);
                     if (npc.Needs.Blood <= 0f)
                     {
                         npc.Health = 0f;
@@ -4596,7 +4863,12 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             }
             else if (npc.Needs.Blood < 1f && npc.Needs.Hunger < 0.6f)
             {
-                npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood + 0.005f); // spec 42
+                // Spec 44: bed rest — sleeping knits blood x3, huddling by a
+                // burning fire x2; a fed girl who lies low pulls through.
+                var bloodPace = npc.Execution.CurrentInteraction == InteractionType.Sleep ? 3f
+                    : TemperatureSystem.NearbyFireWarmth(world, npc.Tile, out _) > 0f ? 2f
+                    : 1f;
+                npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood + 0.005f * bloodPace); // spec 44
             }
 
             // Spec 28.15B: post-quarrel embarrassment fades with time.
@@ -4609,6 +4881,36 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             {
                 var driftRate = relationship.Affinity < 0f ? 0.003f : 0.001f;
                 relationship.Affinity = MathUtil.MoveTowards(relationship.Affinity, 0f, driftRate);
+            }
+
+            // §45 r5: emergency unload — the raft/hearth stockpile must never
+            // cost a life. getFoodAvail requires inventory SPACE, and §45 r3
+            // fills packs (3 raft logs + leaves + tools) that nothing ever
+            // empties: on the r5 25-day soak 6 of 8 starvation deaths died at
+            // Hunger=1.00 with 10/10 slots of logs/leaves and ZERO food —
+            // coconuts abundant (25-39 on the ground, producers at cap) but
+            // un-pick-up-able. A genuinely starving girl with a full pack and
+            // no food in it now drops one carried resource per slow tick
+            // (wood, then leaves, then stone — never tools) at her feet, so
+            // GetFood can fire again. Last-resort by construction (hunger
+            // >= 0.8), like food-sharing/theft — the healthy colony never
+            // sees it.
+            if (npc.Needs.Hunger >= 0.8f && !npc.Inventory.HasSpace &&
+                npc.Inventory.FindFirstFood(world.Content) is null)
+            {
+                foreach (var junk in new[] { "resource.firewood", "resource.palm_leaf", "resource.stone" })
+                {
+                    var idx = npc.Inventory.Items.FindIndex(i => i.DefinitionId == junk);
+                    if (idx >= 0)
+                    {
+                        var item = npc.Inventory.Items[idx];
+                        npc.Inventory.Items.RemoveAt(idx);
+                        ExecutionSystem.DropItemAtFeet(world, npc, item);
+                        Trace.Emit(world, npc.Id, "EmergencyUnload",
+                            $"Dropped {junk} (Hunger={npc.Needs.Hunger:F2}, full pack, no food)");
+                        break;
+                    }
+                }
             }
 
             // Spec 29C.2: starvation / dehydration cost HP. Without this an
@@ -4699,7 +5001,13 @@ public sealed class NeedsDecaySystem : ISimulationSystem
 
             if (starved || parched)
             {
-                var damage = starved && parched ? 0.05f : 0.03f;
+                // §45 r5: attrition eased 0.03/0.05 -> 0.02/0.035. The 25-day
+                // baseline showed every colony losing 1-2 girls to ACUTE
+                // starvation episodes (a pinned need grinds a full body in
+                // ~2.2 game hours — faster than the recovery loop can respond).
+                // Death stays certain for a truly stuck agent; a girl who
+                // reaches food/water mid-episode now lives to eat it.
+                var damage = starved && parched ? 0.035f : 0.02f;
                 foreach (var part in AllBodyParts)
                 {
                     npc.Body.Parts[part] = MathUtil.Clamp01(npc.Body.Parts[part] - damage);
@@ -4719,14 +5027,26 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // NOT held by open wounds. Each wound keeps its Severity "hostage":
             // the zone can regen up to (1 − open wound damage) and no further,
             // so a couple of coconuts never insta-heals a mauling.
-            else if (npc.Health < 1f && npc.Needs.Hunger < 0.5f)
+            else if (npc.Health < 1f && npc.Needs.Hunger < 0.6f)
             {
+                // §45 r5: regen 0.0018 -> 0.0030 (~0.45/day) and the gate
+                // eased 0.5 -> 0.6 — the long-run colony hovers at hunger
+                // ~0.5-0.6, so the old gate barely ever opened and bodies
+                // never recovered between sickness/cold/hunger episodes;
+                // every r5-baseline death was a body ground down over days
+                // 15-24 with no regen in between. Still days, not hours.
                 foreach (var part in AllBodyParts)
                 {
                     var ceiling = MathUtil.Clamp01(1f - WoundMath.OpenWoundDamage(npc, part));
                     if (npc.Body.Parts[part] < ceiling)
                     {
-                        npc.Body.Parts[part] = System.Math.Min(ceiling, npc.Body.Parts[part] + 0.0018f); // spec 42: days, not hours
+                        npc.Body.Parts[part] = System.Math.Min(ceiling, npc.Body.Parts[part] + 0.0030f);
+                    }
+
+                    // Spec 44: the leaf wrap comes off once the zone has healed.
+                    if (npc.Body.Parts[part] > 0.7f)
+                    {
+                        npc.BandagedZones.Remove(part);
                     }
                 }
 
@@ -4766,7 +5086,8 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 $"Hunger={prevHunger:F3}->{npc.Needs.Hunger:F3}(+{HungerRate}) " +
                 $"Energy={prevEnergy:F3}->{npc.Needs.Energy:F3}(-{EnergyRate}) " +
                 $"Comfort={prevComfort:F3}->{npc.Needs.Comfort:F3}(-{ComfortRate}) " +
-                $"Social={prevSocial:F3}->{npc.Needs.Social:F3}(-{SocialRate})");
+                $"Social={prevSocial:F3}->{npc.Needs.Social:F3}(-{SocialRate}) " +
+                $"Sweat={sweat:F2}");
         }
 
         // Spec 40.16: joint-plan advisor trigger. On the rising edge of a
@@ -4815,20 +5136,20 @@ public sealed class TemperatureSystem : ISimulationSystem
             // colder it is, the more worth huddling by the fire), but only
             // chases away COLD — it never overheats a warm body.
             var fireWarmth = NearbyFireWarmth(world, npc.Tile, out var onFire);
+            // Spec 42 (WarmUp era): the campfire is a REAL heat source now —
+            // +8° at range 1, +4° at range 2, clamped so it only chases away
+            // cold, never overheats. The girls start near-naked and the
+            // wardrobe is scarce; the designed loop is light the fire, huddle
+            // by it, and let rain douse it (iter-31's display-only caution is
+            // retired together with the knife-edge balance).
             var baseTemp = world.Environment.GlobalTemperature + npc.EquippedWarmth * 10f +
                 indoorBonus + coolBonus;
-            // The accumulating NEED (decisions score this) uses the base temp,
-            // NOT the fire warmth — a survival-relevant reshuffle here (the fire
-            // making everyone comfortable, so nobody dresses/cools) tipped
-            // dog-fragile seeds into wipes. The fire's warmth is a DISPLAY-only
-            // comfort for iteration 31; making it a real thermal source waits
-            // for the campfire-as-obstacle pass so it can't reposition fatally.
+            var fireRelief = System.Math.Min(fireWarmth, System.Math.Max(0f, 22f - baseTemp));
+            baseTemp += fireRelief;
             // Spec 42: realistic cold — 10°C in underwear (warmth ~0.02) is
-            // genuinely cold and demands pants/boots/jacket (~+5-9°C dressed).
-            // Pressure bites below 14°C: a dressed girl at ~15° is merely cool
-            // (no accumulation — the first [16..] cut had everyone endlessly
-            // "slightly cold" and they dressed in circles all day instead of
-            // tending fire/tools); naked at 10° racks up 0.11+/slow tick.
+            // genuinely cold; pressure bites below 14°C (a merely-cool girl at
+            // ~15° doesn't accumulate — no wardrobe-circling), naked at 10°
+            // racks up 0.11+/slow tick unless she's warming by the fire.
             float pressure;
             if (baseTemp < 14f)
             {
@@ -4845,15 +5166,8 @@ public sealed class TemperatureSystem : ISimulationSystem
 
             npc.Needs.ThermalDiscomfort = MathUtil.Clamp01(npc.Needs.ThermalDiscomfort + pressure);
 
-            // Signed comfort for the UI DOES fold in the fire's warmth (clamped
-            // so it only removes cold): the player sees the fire pull the dial
-            // toward "ideal" on a cold night, even though the sim's decisions
-            // stay on the base temperature this iteration.
-            var effectiveTemp = baseTemp + fireWarmth;
-            if (baseTemp <= 22f && effectiveTemp > 22f)
-            {
-                effectiveTemp = 22f;
-            }
+            // Signed comfort for the UI — fire already folded into baseTemp.
+            var effectiveTemp = baseTemp;
 
             // Spec 42: signed comfort for the UI — 0 in the ideal [16,22]
             // band (matches the decision pressure above, so the bar never
@@ -4888,9 +5202,15 @@ public sealed class TemperatureSystem : ISimulationSystem
 
             if (magnitude >= 0.85f && !isInWater)
             {
+                // §45 r5: 0.02 -> 0.012. A rainy 6° night (rain also douses
+                // the fire 4x) killed a near-naked girl from FULL health in
+                // one night (~37 slow ticks x 0.02 = 0.74) — both 25-day
+                // wipes (777, 42) started as day-4/5 hypothermia deaths.
+                // At 0.012 a single bad night hurts (~0.44) but leaves dawn
+                // to dress/warm up; two exposed nights still kill.
                 foreach (var part in AllTemperatureParts)
                 {
-                    npc.Body.Parts[part] = System.Math.Max(0f, npc.Body.Parts[part] - 0.02f);
+                    npc.Body.Parts[part] = System.Math.Max(0f, npc.Body.Parts[part] - 0.012f);
                 }
 
                 npc.Health = npc.Body.Mean();
@@ -4976,7 +5296,7 @@ public sealed class TemperatureSystem : ISimulationSystem
 
     // Spec 29C.10: warmth radiated by nearby LIT campfires. On the fire's own
     // tile it is agony (onFire = true); a tile or two away it gently warms.
-    private static float NearbyFireWarmth(WorldState world, TileCoord tile, out bool onFire)
+    internal static float NearbyFireWarmth(WorldState world, TileCoord tile, out bool onFire)
     {
         onFire = false;
         var warmth = 0f;
@@ -5006,17 +5326,10 @@ public sealed class TemperatureSystem : ISimulationSystem
     // Spec 35.4: within 1 tile of a Shade-tagged object (big tree / palm).
     internal static bool IsShaded(WorldState world, TileCoord tile)
     {
-        foreach (var obj in world.Entities.Objects.Values)
-        {
-            if (world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
-                definition.Tags.Contains("Shade") &&
-                HexSpatialMath.HexDistance(tile, obj.Tile) <= 1)
-            {
-                return true;
-            }
-        }
-
-        return false;
+        // Spec 43: real cast shadows — the map is rebuilt from the sun path
+        // every medium tick (terrain silhouettes + canopy + hut walls), so
+        // shade is directional now: long at dawn/dusk, tight at noon.
+        return world.ShadedTiles.Contains(tile);
     }
 
     private static readonly System.Collections.Generic.List<BodyPart> _uncoveredScratch = new();
@@ -5201,11 +5514,16 @@ public sealed class FireSystem : ISimulationSystem
                 continue;
             }
 
-            obj.ResourceAmount = System.Math.Max(0f, obj.ResourceAmount - BurnPerSlowTick);
+            // Spec 42: rain douses the fire — not instantly, but a downpour
+            // eats fuel 4x faster, so a full stack dies in ~40 game minutes.
+            // A dry night by the fire is the warm-up plan; a wet one isn't.
+            var burn = BurnPerSlowTick * (world.Environment.IsRaining ? 4f : 1f);
+            obj.ResourceAmount = System.Math.Max(0f, obj.ResourceAmount - burn);
             if (obj.ResourceAmount <= 0f)
             {
                 Trace.EmitSystem(world, "FireOut",
-                    $"{obj.DefinitionId} at Tile={obj.Tile.Q},{obj.Tile.R} burned out");
+                    $"{obj.DefinitionId} at Tile={obj.Tile.Q},{obj.Tile.R} burned out" +
+                    (world.Environment.IsRaining ? " (doused by rain)" : ""));
             }
         }
     }
@@ -5224,7 +5542,7 @@ public sealed class DogSystem : ISimulationSystem
     private const int SpawnMinDistanceFromNpc = 5;
     private const float RoamChance = 0.2f;
     private const int AggroRadiusTiles = 2;
-    private const float BiteDamagePerPass = 0.06f; // spec 42: per-wound healing made 0.07 a full-wipe on 31337; 0.06 soaks 5/6 (999 pends the wound-eviction payback fix)
+    private const float BiteDamagePerPass = 0.07f; // §46 difficulty pass: back up from 0.06 — under the r4/r5-softened survival the colony won 6/6 and the dogs are the fightable threat (0.07 was a wipe only under the OLD harsh attrition)
     private const float NpcStrikePerPass = 0.15f;
 
     private readonly System.Collections.Generic.List<Wildlife.DogState> _deadDogs = new();

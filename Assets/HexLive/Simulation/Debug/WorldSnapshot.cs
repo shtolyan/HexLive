@@ -23,6 +23,11 @@ public sealed class WorldSnapshot
     public int RaftProgress { get; set; }
     public int RaftTarget { get; set; }
 
+    // Spec 43: sun path for the renderer — align the directional light to
+    // the sim's shadow math so visual shadows match sim shade.
+    public Float2 SunDirection { get; set; } = Float2.Zero;
+    public float SunElevationDegrees { get; set; }
+
     public List<TileSnapshot> Tiles { get; } = new();
 
     public List<JunctionSnapshot> Junctions { get; } = new();
@@ -156,6 +161,9 @@ public sealed class NpcSnapshot
     // Spec 40.8/40.6: zones with NO garment coverage — skin decals (wounds,
     // dirt, sweat) may only appear on these; clothing hides the rest.
     public List<string> UncoveredParts { get; } = new();
+
+    // Spec 44: zones dressed with a herbal bandage — leaf-wrap decal.
+    public List<string> BandagedZones { get; } = new();
 
     public float Hunger { get; set; }
 

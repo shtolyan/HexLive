@@ -384,6 +384,7 @@ namespace HexLive.Simulation.Bootstrap
             // a found tool saves a craft. GatherTools already collects any
             // reachable Tool not carried.
             Place("tool.saw", 1, 991, 2);
+            Place("herb.bush", 3, 1213, 1); // spec 44: healing herb
 
             // Spec 40.18 step 4: the ONLY pickaxe sits on the second island —
             // an island-exclusive tool a GatherTools NPC must cross the strait

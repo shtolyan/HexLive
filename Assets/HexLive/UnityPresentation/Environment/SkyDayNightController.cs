@@ -66,6 +66,22 @@ namespace HexLive.UnityPresentation.Environment
 
             if (sunHeight >= 0f)
             {
+                // Spec 43: aim the light along the SIM's sun vector (snapshot
+                // SunDirection/SunElevationDegrees) so the rendered terrain
+                // shadows land exactly where the sim says a tile is shaded.
+                var world = _runner?.Engine?.World;
+                if (world != null && world.SunElevationDegrees > 0f)
+                {
+                    var toSun = new Vector3(world.SunDirection.X, 0f, world.SunDirection.Y);
+                    if (toSun.sqrMagnitude > 0.001f)
+                    {
+                        var elev = world.SunElevationDegrees * Mathf.Deg2Rad;
+                        var dir = (-toSun.normalized * Mathf.Cos(elev) +
+                                   Vector3.down * Mathf.Sin(elev)).normalized;
+                        sunRot = Quaternion.LookRotation(dir);
+                    }
+                }
+
                 _sunLight!.transform.rotation = sunRot;
                 _sunLight.color = sunTint;
                 _sunLight.intensity = Mathf.Lerp(0.35f, 1.15f,

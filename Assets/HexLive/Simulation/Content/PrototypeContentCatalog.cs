@@ -81,6 +81,16 @@ public static class PrototypeContentCatalog
 
                         DurationTicks = 8
                     },
+                    // Spec 42: huddle by the flames — the WarmUp goal parks
+                    // here while the fire (a real heat source now) melts the
+                    // chill away; comfort seals the ritual.
+                    new InteractionDefinition
+                    {
+                        Id = "warm.by.fire",
+                        Type = InteractionType.Observe,
+                        DurationTicks = 120,
+                        Effects = { ComfortDelta = 0.1f }
+                    },
                     // Spec 29F.3: the campfire doubles as the workbench;
                     // the recipe is selected by the crafting goal.
                     new InteractionDefinition
@@ -796,6 +806,37 @@ public static class PrototypeContentCatalog
                     }
                 },
                 Tags = { "Clothing", "Armor" }
+            }
+        };
+
+        // Spec 44: healing herb — a bush that sheds pickable leaves; two
+        // leaves craft one herbal bandage at the campfire.
+        defs["herb.bush"] = new ObjectDefinition
+        {
+            Id = "herb.bush",
+            DisplayName = "Healing herb",
+            Tags = { "Flora", "HerbBush" },
+            Produce = new ProduceDefinition
+            {
+                ProducedDefinitionId = "resource.herb_leaf",
+                IntervalTicks = 240,
+                MaxConcurrent = 2,
+                MaxDistanceTiles = 1
+            }
+        };
+        defs["resource.herb_leaf"] = new ObjectDefinition
+        {
+            Id = "resource.herb_leaf",
+            DisplayName = "Herb leaf",
+            Tags = { "Herb" },
+            Interactions =
+            {
+                new InteractionDefinition
+                {
+                    Id = "pickup.herb",
+                    Type = InteractionType.PickUp,
+                    DurationTicks = 4
+                }
             }
         };
 

@@ -2733,6 +2733,15 @@ public sealed class MovementSystem : ISimulationSystem
 
                     scanDist += HexSpatialMath.Distance(scanFrom, jn.WorldPosition);
                     scanFrom = jn.WorldPosition;
+
+                    // The tile she STEPS ONTO crossing this junction is Tiles[0]
+                    // — the exact rule normal walking uses (see the walk tile
+                    // update ~line 3102). Hop detection MUST use the same tile,
+                    // so it fires only when the tile she actually walks onto
+                    // steps to a different elevation (a drop into water counts).
+                    // Testing every tile of the junction instead fired at seam
+                    // junctions she merely walks ALONG — each borders both levels
+                    // — and she bounced hop-after-hop down the seam.
                     if (world.Tiles.Items.TryGetValue(jn.Tiles[0], out var jt) &&
                         jt.Elevation != hopStandTile.Elevation &&
                         (!IsSwimTile(jt) || jt.Elevation < hopStandTile.Elevation))
@@ -2745,54 +2754,38 @@ public sealed class MovementSystem : ISimulationSystem
 
                 if (wallIndex >= 0)
                 {
-                    var wallPos = npc.Movement.JunctionPath[wallIndex] is { } wid &&
-                        world.Junctions.Items.TryGetValue(wid, out var wj)
-                        ? wj.WorldPosition : target;
-                    var landingIndex = wallIndex + 1;
-                    var landingPos = wallPos;
-                    if (landingIndex < npc.Movement.JunctionPath.Count &&
+                    // The hop crosses exactly ONE elevation border: she leaves
+                    // the tile just BEFORE the wall junction and lands on the
+                    // wall tile (Tiles[0]) — the same tile normal walking would
+                    // put her on — so the sim bookkeeping and the visual arc
+                    // agree and she never re-arms the same crossing.
+                    var nearCoord = npc.Tile;
+                    if (wallIndex > npc.Movement.PathIndex &&
                         world.Junctions.Items.TryGetValue(
-                            npc.Movement.JunctionPath[landingIndex], out var lj))
+                            npc.Movement.JunctionPath[wallIndex - 1], out var beforeJn) &&
+                        beforeJn.Tiles.Count > 0)
                     {
-                        landingPos = lj.WorldPosition;
-                    }
-                    else
-                    {
-                        landingIndex = wallIndex;
+                        nearCoord = beforeJn.Tiles[0];
                     }
 
-                    // Fixed approach direction across the wall (from the lattice
-                    // point BEFORE the wall to the one AFTER it).
-                    var beforePos = npc.Position;
-                    if (wallIndex - 1 >= 0 &&
-                        world.Junctions.Items.TryGetValue(
-                            npc.Movement.JunctionPath[wallIndex - 1], out var bj))
-                    {
-                        beforePos = bj.WorldPosition;
-                    }
-
-                    var centerA = HexSpatialMath.TileToWorld(npc.Tile);
-                    var centerB = HexSpatialMath.TileToWorld(wallTile.Coord);
-                    var axis = HexSpatialMath.Normalize(centerB - centerA);
-                    var wallMid = (centerA + centerB) * 0.5f;
-                    var flightDir = HexSpatialMath.Normalize(landingPos - beforePos);
-                    var axisDot = flightDir.X * axis.X + flightDir.Y * axis.Y;
-                    if (axisDot < 0.3f) axisDot = 0.3f;
-                    var toWall = wallMid - beforePos;
-                    var tCross = (toWall.X * axis.X + toWall.Y * axis.Y) / axisDot;
-                    var cross = beforePos + flightDir * tCross;      // fixed wall crossing
-                    // Step EdgePadding ALONG the flight direction (not divided
-                    // by the approach angle) — the jump is always the same
-                    // length (2*EdgePadding), never stretched huge on an
-                    // angled approach (the len=2.0 "strange water dive").
+                    // Fly straight across the shared edge, near CENTRE -> wall
+                    // CENTRE, symmetric EdgePadding before/after the border.
+                    // (Building the direction from consecutive path junctions
+                    // zig-zagged at corners and launched her at the wrong hex;
+                    // building it from npc.Tile broke when the wall was a step
+                    // ahead. Tile centres are robust for both.)
+                    var nearCenter = HexSpatialMath.TileToWorld(nearCoord);
+                    var targetCenter = HexSpatialMath.TileToWorld(wallTile.Coord);
+                    var crossing = (nearCenter + targetCenter) * 0.5f;
+                    var flightDir = HexSpatialMath.Normalize(targetCenter - nearCenter);
                     var stepAlong = HexHopTuning.EdgePadding;
-                    var takeoff = cross - flightDir * stepAlong;
-                    var landing = cross + flightDir * stepAlong;
+                    var takeoff = crossing - flightDir * stepAlong;
+                    var landing = crossing + flightDir * stepAlong;
 
                     target = takeoff;                 // ONE target for the walk
                     hopApproach = true;
                     npc.Movement.HopArmed = true;     // commit — freeze the plan
-                    npc.Movement.HopLandingIndex = landingIndex;
+                    npc.Movement.HopLandingIndex = wallIndex;
                     npc.Movement.HopFrom = takeoff;
                     npc.Movement.HopTo = landing;
                     npc.Movement.HopUp = wallTile.Elevation > hopStandTile.Elevation;
@@ -2930,16 +2923,16 @@ public sealed class MovementSystem : ISimulationSystem
                     npc.CurrentJunction =
                         npc.Movement.JunctionPath[npc.Movement.HopLandingIndex];
 
-                    // Tile: land in the tile the LANDING junction belongs to
-                    // (falls back to the edge tile when the path ended on the
-                    // edge). The girl may fly over the border tile entirely.
+                    // Tile: §21.21B v11 resolves HopTargetTile as the EXACT tile
+                    // she flies into (from the wall junction + her path) and lands
+                    // HopTo inside it — so commit it directly. Deriving the tile
+                    // from the landing junction's Tiles[0] instead picked a
+                    // neighbour (often her OWN previous tile), so npc.Tile never
+                    // updated, the scan kept seeing the wall ahead and re-armed
+                    // the SAME hop — she bounced on the border ("double jump",
+                    // and the wrong tile fed the view a wrong ground Y so she
+                    // sank into the hex).
                     var hopLandTile = npc.Movement.HopTargetTile;
-                    if (world.Junctions.Items.TryGetValue(
-                            npc.CurrentJunction.Value, out var hopLandJunction) &&
-                        hopLandJunction.Tiles.Count > 0)
-                    {
-                        hopLandTile = hopLandJunction.Tiles[0];
-                    }
 
                     var hopPreviousTile = npc.Tile;
                     if (hopLandTile != hopPreviousTile)
@@ -3498,8 +3491,9 @@ public sealed class ExecutionSystem : ISimulationSystem
                             npc.Inventory.Items.Remove("resource.herb_leaf");
                             npc.Inventory.Items.Remove("resource.herb_leaf");
                             npc.Needs.Bandages++;
+                            npc.Needs.HerbalBandages++; // spec 44: this one is gathered plantain -> leaf-wrap decal
                             Trace.Emit(world, npc.Id, "BandageCrafted",
-                                $"Bandages={npc.Needs.Bandages}");
+                                $"Bandages={npc.Needs.Bandages} Herbal={npc.Needs.HerbalBandages}");
                             break;
                         case GoalType.CraftSpear:
                             npc.Inventory.Items.Remove("resource.firewood");
@@ -5191,13 +5185,32 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 // the deterministic dog-dance and tip fragile seeds).
                 if (npc.Needs.Bandages > 0 && npc.Needs.Blood < 0.35f)
                 {
+                    // Spec 44: spend the pre-made medkit bandages (spec 40.3)
+                    // first; only a HERBAL dressing — crafted from gathered
+                    // plantain leaves — leaves the leaf-wrap decal, so the
+                    // plantain visual always means she actually gathered the
+                    // leaves. When all remaining bandages are herbal, this one is.
+                    bool herbal = npc.Needs.HerbalBandages >= npc.Needs.Bandages;
                     npc.Needs.Bandages--;
+                    if (herbal) npc.Needs.HerbalBandages--;
                     foreach (var part in AllBodyParts)
                     {
                         if (npc.Body.Parts[part] < 0.4f)
                         {
                             npc.Body.Parts[part] = MathUtil.Clamp01(npc.Body.Parts[part] + 0.15f); // spec 42
-                            npc.BandagedZones.Add(part); // spec 44: leaf-wrap decal
+                            // Spec 44: herbal -> leaf-wrap decal (gathered plantain);
+                            // medkit -> plain gauze decal. A zone shows one or the
+                            // other, never both.
+                            if (herbal)
+                            {
+                                npc.BandagedZones.Add(part);
+                                npc.GauzeZones.Remove(part);
+                            }
+                            else
+                            {
+                                npc.GauzeZones.Add(part);
+                                npc.BandagedZones.Remove(part);
+                            }
                         }
                     }
 
@@ -5429,10 +5442,12 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                         npc.Body.Parts[part] = System.Math.Min(ceiling, npc.Body.Parts[part] + 0.0030f);
                     }
 
-                    // Spec 44: the leaf wrap comes off once the zone has healed.
+                    // Spec 44: the dressing (leaf wrap or gauze) comes off once
+                    // the zone has healed.
                     if (npc.Body.Parts[part] > 0.7f)
                     {
                         npc.BandagedZones.Remove(part);
+                        npc.GauzeZones.Remove(part);
                     }
                 }
 

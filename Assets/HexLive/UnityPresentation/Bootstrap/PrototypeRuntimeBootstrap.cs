@@ -13,6 +13,10 @@ public static class PrototypeRuntimeBootstrap
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Install()
     {
+        // Apply the saved tuning asset (hop/swim/water feel) before anything
+        // spawns — the values that used to be hand-edited code constants.
+        Config.HexTuning.LoadAndApply();
+
         var existingRunner = Object.FindAnyObjectByType<SimulationRunnerBehaviour>();
         if (existingRunner is not null)
         {

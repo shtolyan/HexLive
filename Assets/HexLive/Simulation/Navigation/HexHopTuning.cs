@@ -33,6 +33,18 @@ public static class HexHopTuning
     // (2*EdgePadding) — "just over the edge". Raise for a bigger leap.
     public static float EdgePadding = 0.3f;
 
+    // Dropping DOWN: a little UP pop off the edge before the fall (world
+    // units) so the feet clear the lip instead of scraping it. Presentation
+    // only (the model's drop is flat). 0 = straight gravity.
+    public static float DownHopUp = 0.2f;
+
+    // Dropping DOWN: fraction of the FLIGHT she stays LEVEL (no drop) before
+    // gravity kicks in. The flight is symmetric about the wall border, which
+    // she crosses at 0.5 — so holding to ~0.5 means she sails OVER the lip and
+    // only falls once she's above the lower ground, never scraping the edge.
+    // Presentation only. 0 = fall immediately (old behaviour), 1 = no fall.
+    public static float DownFallStartFrac = 0.5f;
+
     // Diving into water: the body SPLASHES this many world units BELOW the
     // swim level at the deepest point of the plunge, then bobs back up to it
     // — a real plunge with a resurface, not a hover-stop at the waterline.

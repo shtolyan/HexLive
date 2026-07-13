@@ -2,7 +2,8 @@
   "name": "HexLive.UnityDebug.Editor",
   "rootNamespace": "HexLive.UnityDebug.Editor",
   "references": [
-    "HexLive.UnityDebug"
+    "HexLive.UnityDebug",
+    "HexLive.UnityPresentation"
   ],
   "includePlatforms": [
     "Editor"

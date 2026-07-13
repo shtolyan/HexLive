@@ -29,7 +29,7 @@ namespace HexLive.Simulation.Persistence
 //   on load, rebuilt on first pathfind).
 public static class WorldSaveSerializer
 {
-    public const int BlobVersion = 1;
+    public const int BlobVersion = 2; // v2: NPCNeeds.HerbalBandages (spec 44)
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
 
@@ -522,6 +522,7 @@ public static class WorldSaveSerializer
         w.Write(needs.Hygiene);
         w.Write(needs.Blood);
         w.Write(needs.Bandages);
+        w.Write(needs.HerbalBandages);
         w.Write(needs.Pills);
         w.Write(needs.TanLevel);
         w.Write(needs.Sunburn);
@@ -758,6 +759,7 @@ public static class WorldSaveSerializer
         needs.Hygiene = r.ReadSingle();
         needs.Blood = r.ReadSingle();
         needs.Bandages = r.ReadInt32();
+        needs.HerbalBandages = r.ReadInt32();
         needs.Pills = r.ReadInt32();
         needs.TanLevel = r.ReadSingle();
         needs.Sunburn = r.ReadSingle();

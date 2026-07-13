@@ -1355,6 +1355,51 @@ Crossing to a tile one elevation level up OR down is a deliberate jump whose
 timing lives in ONE place — `HexHopTuning` (Simulation/Navigation) — shared by
 the sim and the presentation, so the two can never drift apart:
 
+- v12 — CLIP ACTUALLY COMPRESSED TO THE WINDOW (the "master clock" was never
+  wired). The design says the jump clip is compressed to exactly HopSeconds,
+  but the animator's JumpUp/JumpDown states had `m_Speed 1` and NO speed
+  parameter — the authored ~2.6s `X Bot@Jump` clip played at its own length,
+  decoupled from the sim window, so it overshot HopSeconds (and with the clip's
+  loop flag on, replayed — the user's "it played the jump twice"). v12 adds a
+  `JumpSpeed` float param to the controller, sets both jump states'
+  SpeedParameter to it, and NpcActorView sets `JumpSpeed = clipLength /
+  window` at each jump (clip length cached from the runtime controller). One
+  playthrough now == the hop window at any HopSeconds, loop flag irrelevant
+  (the state still exits at ExitTime 0.9, now 0.9×window). Unity multiplies the
+  param by global animator.speed, so fast-forward stays in sync with the arc.
+- v13 — TILES[0]-CONSISTENT (fixes the border double-hop v11 introduced).
+  v11 (below) fixed the wrong-hex DIVE but broke tile bookkeeping: it detected
+  a wall when ANY tile of a junction differed in elevation, and committed the
+  landing tile from a re-derived "nearest tile". Two regressions: (a) a junction
+  on a SEAM between two elevations always borders both, so walking ALONG a seam
+  fired a hop at every junction — she bounced hop-after-hop (9–15 tick
+  double-hops, the user's "spрыгивает, запрыгивает"); (b) the landing tile
+  often resolved to her OWN previous tile, so `npc.Tile` never updated and she
+  re-armed the same hop (and the wrong tile fed the view a wrong ground Y — she
+  "sank into the hex"). Root insight: normal walking assigns her tile from
+  `junction.Tiles[0]`; hop detection and landing MUST use the same tile or the
+  two disagree. v13: detection fires only when `Tiles[0]` steps to a different
+  elevation (a drop into water counts); the hop crosses exactly ONE border,
+  landing on that wall tile (`HopLandingIndex = wallIndex`, `npc.Tile` = wall
+  `Tiles[0]`, `PathIndex = wallIndex+1`). Only the flight GEOMETRY keeps v11's
+  tile-centre fix: fly near-centre → wall-centre (near = `Tiles[0]` of the
+  junction before the wall, or npc.Tile), crossing = midpoint, ±`EdgePadding`.
+  Harness: 23 hops (was 44–49 broken / 28 pre-session), 0/11 wrong-hex water
+  dives, ZERO sub-25-tick bounces, every hop len 0.60.
+- v11 — CORRECT DIVE GEOMETRY (superseded in part by v13 above). A wall
+  junction borders SEVERAL tiles; the scan used `jn.Tiles[0]` and rebuilt the
+  flight from `TileToWorld(npc.Tile)` as centre A. When the wall was a step
+  ahead or the target was a DIAGONAL neighbour, that mis-placed the crossing so
+  the landing fell short — a harness probe measured her landing back on land for
+  10+/50 hops (e.g. stand (3,0) → target water (2,1) but HopTo landed in (3,0)).
+  The fix that STUCK is the tile-CENTRE flight (crossing = centre midpoint, dir
+  = near→wall, ±`EdgePadding`); v11's extra tile-reselection was reverted in v13
+  because it desynced from the walk's `Tiles[0]`. Presentation also holds her
+  LEVEL across the lip until
+  `DownFallStartFrac` (0.5) of the flight — she only falls once past the edge,
+  no more foot-scrape — plus a small `DownHopUp` pop. All knobs now live in a
+  `HexTuningConfig` ScriptableObject (Resources), applied at game start and
+  saved from the SwimTest inspector.
 - v7 — SYMMETRIC WALL CLEARANCE (final jump geometry). The lattice is fine
   (junction spacing ~0.37 wu; boundary points are DUPLICATED either side of
   a wall), so the v6 "exclude one junction" left takeoff flush on the wall
@@ -7478,13 +7523,19 @@ pass — order chosen to add robustness before difficulty.
   is an unambiguous "bleeding now" signal (bandages/pills only raise it) and
   arms a ~20-tick grace window; while armed she leaves a droplet at her feet
   (±0.12 m jitter) every 6 ticks, so a walking wounded girl draws a trail.
-  Each stain lands drip-small (0.05 m), spreads ease-out to a 0.16–0.30 m
+  Each stain lands drip-small (0.09 m), spreads ease-out to a 0.26–0.46 m
   puddle over ~120 ticks, then dries: linear alpha fade to zero across
-  **one game day (2400 ticks)**, driven by sim tick (pause/speed safe),
-  then the quad is destroyed. Cap 110 stains, oldest recycled (each is a
+  **~3 game days (7200 ticks; `DayLengthTicks` = 2400)** — blood you walk
+  past is still there tomorrow — driven by sim tick (pause/speed safe), then
+  the quad is destroyed. As it dries it ALSO darkens: `_BaseColor` steps
+  toward deep dried bordo over `AgeBuckets` (6) shared darker material copies
+  per variant, swapped by age — a fading semi-transparent RED film over
+  yellow sand read as bright "ketchup", darkening keeps old stains a dark
+  dried mark. Cap 130 stains, oldest recycled (each is a
   DBuffer DecalProjector rendered every frame — a dog swarm hits the cap
   fast, so the cap bounds overdraw; size stops being rewritten once fully
-  spread). Cosmetic
+  spread — the only thing that expires blood early, no external cleanup
+  scripts). Cosmetic
   only — never persisted, no sim coupling. Visuals: the RVFX Blood Effects
   Pack's OWN static projector decal **materials** (`BloodFX_PBR_Projector_URP`
   shadergraph — tuned albedo power / ambient intensity / wet smoothness +
@@ -7500,7 +7551,15 @@ pass — order chosen to add robustness before difficulty.
   textures — flatter). Rendered
   the way the pack's demo does — as downward **DecalProjectors** (the pool
   hugs sloped hex prisms, grass and feet standing in it; `renderingLayerMask`
-  = everything). Spread animates `projector.size`, drying animates
+  = everything). The projector box projects DOWNWARD ONLY — top face at the
+  foot (`ProjectorHover` 0.06, `pivot.z = ProjectorDepth/2` pushes the whole
+  volume below the contact point) — so it never climbs the girl's legs/body/
+  clothes (the old +0.35 centered box reached ~0.8 m up her shins and sprayed
+  blood on her). Rendering-layer exclusion was avoided on purpose: light
+  layers are on (`m_SupportsLightLayers: 1`) and the code-created sun has no
+  explicit mask, so moving the actors to a dedicated rendering layer risked
+  unlighting them — the geometry fix is lighting-safe. Spread animates
+  `projector.size`, drying animates
   `fadeFactor` (both projector fields, so all stains of a variant share one
   material instance). The old `Resources/HexLive/BloodStains/` +
   `BloodStainNormals/` texture folders are now unused by this system (the
@@ -7517,6 +7576,26 @@ pass — order chosen to add robustness before difficulty.
   they run on realtime `Time.deltaTime` and would ignore sim pause/speed;
   the tick-driven lifecycle stays ours. TUNING KNOBS: `LifetimeTicks`,
   `SpreadTicks`, `DripIntervalTicks`, `PuddleScaleMin/Max`, `MaxStains`.
+- **40.2-C Blood in water (iteration 1, shipped, presentation).** When a
+  bleeding girl is IN the water her blood billows on the surface instead of
+  pooling on the ground. Detection is the renderer's existing
+  `_npcOnWater[key]` (`_waterCoords.Contains(npc.Tile)` — wading OR swimming);
+  the blood-drip branch in `HexWorldRenderer` routes an in-water girl to a new
+  `WaterBloodStains` component and NOT to `GroundBloodStains`, so there is no
+  ground puddle underwater. Each drip is a flat translucent scarlet **quad**
+  (not a projector — independent of the custom water shader) laid on the
+  surface, riding the live `WaterWave` swell each frame (`LateUpdate`); it
+  spreads ease-out to a wider-than-land 0.55–0.95 m disc (blood diffuses in
+  water) over `SpreadTicks` (200) and dilutes away over `LifetimeTicks` (900),
+  its hue washing scarlet → pale pink as alpha fades (it dilutes, it does not
+  dry to bordo). Same tick-driven lifecycle as the ground stains (pause/speed
+  safe), cosmetic only, never persisted. The disc texture + transparent
+  URP/Unlit material are procedural (no imported assets). TUNING KNOBS:
+  `LifetimeTicks`, `SpreadTicks`, `BillowScaleMin/Max`, `MaxAlpha`, `MaxStains`.
+  **ITERATION 2 (planned):** in water the blood should spread AND vanish
+  FASTER than on land (dilution) — tune `LifetimeTicks`/`SpreadTicks` down;
+  possibly feed the reddening into the water shader for a true tint rather than
+  a floating quad.
 
 ### 40.3 Medicine & stockpiling (Safety goal)
 - New consumables: **bandages, pills** — treat wounds / stop bleeding /
@@ -8491,6 +8570,16 @@ align the rendered light to the same path (visual shadows == sim shade).
   (`NPCState.BandagedZones`, cleared when the zone heals past 0.7) and the
   snapshot exports them — presentation spawns a leaf-wrap decal on the
   bandaged spot.
+  - **Medkit vs herbal (the leaf wrap only means gathered plantain):** the
+    two starting bandages (spec 40.3) are a pre-made medkit, NOT gathered
+    leaves. `NPCNeeds.HerbalBandages` tracks how many of the pouch's bandages
+    were crafted from gathered plantain; `CraftBandage` bumps it. On a
+    dressing the MEDKIT bandages are spent first and leave NO leaf-wrap decal
+    (the wound is patched but the plantain visual never appears for a bandage
+    she didn't gather); the leaf-wrap (`BandagedZones`) is stamped ONLY when a
+    herbal bandage is the one consumed — so the plantain wrap on screen always
+    corresponds to leaves she actually went out and picked. Persisted in the
+    save blob (BlobVersion 2).
 - **Presentation (shipped)**: `herb.bush` renders as a procedural low-poly
   medicinal shrub (`LowPolyToolFactory` — splayed stems, leaf blades, pale
   bloom tips so it reads special among the greenery); `resource.herb_leaf`

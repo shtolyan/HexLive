@@ -35,15 +35,15 @@ public sealed class SwimTestBootstrap : MonoBehaviour
 
     [Tooltip("Амплитуда волны — высота гребня в мировых единицах. ОДНА на всё: и меш воды, и качание пловца.")]
     [Range(0f, 1f)]
-    [SerializeField] private float _waveAmplitude;
+    [SerializeField] private float _waveAmplitude = 0.1f;
 
     [Tooltip("Частота волны (рад/юнит). Длина волны = 2π/частота: меньше значение — длиннее и плавнее волна.")]
     [Range(0.05f, 3f)]
-    [SerializeField] private float _waveFrequency;
+    [SerializeField] private float _waveFrequency = 1.4f;
 
     [Tooltip("Скорость бега волны по поверхности.")]
     [Range(0f, 6f)]
-    [SerializeField] private float _waveSpeed;
+    [SerializeField] private float _waveSpeed = 2f;
 
     [Header("Вода — симуляция")]
     [Tooltip("Пауза после прыжка в воду: сколько секунд она барахтается на месте (tread idle), прежде чем поплыть.")]
@@ -53,6 +53,15 @@ public sealed class SwimTestBootstrap : MonoBehaviour
     [Tooltip("Множитель скорости движения в глубокой воде (1 — как пешком).")]
     [Range(0.1f, 1.5f)]
     [SerializeField] private float _swimSpeedFactor = 0.6f;
+
+    [Header("Сидение на краю (ledge)")]
+    [Tooltip("Подъём попы по Y на верхнюю ступень, когда сидит на краю (вьюха, модель не трогает). Умножается на кол-во ступеней вверх. Меньше = ниже к земле.")]
+    [Range(-1f, 1f)]
+    [SerializeField] private float _ledgeSeatLift = 0.4f;
+
+    [Tooltip("Сдвиг НАЗАД на кромку (к верхнему тайлу), чтобы подъём приходился на землю, а не висел над обрывом.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float _ledgeSeatBack = 0.45f;
 
     // §21.21B: живые ручки прыжка. Каждый кадр проталкиваются в HexHopTuning
     // (единый источник тайминга: сим-траверс + скорость клипа + дуга тела),
@@ -78,9 +87,78 @@ public sealed class SwimTestBootstrap : MonoBehaviour
     [Range(0f, 1.5f)]
     [SerializeField] private float _divePlungeDepth = 0.35f;
 
+    [Tooltip("СПРЫГИВАНИЕ: на сколько мировых единиц она подпрыгивает ВВЕРХ с края перед падением (чтобы ноги не задевали кромку). 0 = сразу вниз.")]
+    [Range(0f, 0.8f)]
+    [SerializeField] private float _hopDownUp = 0.2f;
+
+    [Tooltip("СПРЫГИВАНИЕ: доля полёта, до которой она летит РОВНО и не падает. 0.5 = падает только перелетев кромку (не задевает край). Меньше = падает раньше.")]
+    [Range(0f, 0.95f)]
+    [SerializeField] private float _hopDownFallStart = 0.5f;
+
     [Tooltip("Задержка старта симуляции после запуска сцены (реальные секунды): Unity успевает прогрузиться и отрисоваться, пока мир стоит на паузе.")]
     [Range(0f, 10f)]
     [SerializeField] private float _startDelaySeconds = 3f;
+
+    [Header("Конфиг (ScriptableObject)")]
+    [Tooltip("Ассет HexTuningConfig, который читает основная игра. Кнопки сохранения/загрузки — под этим компонентом в инспекторе.")]
+    [SerializeField] private Config.HexTuningConfig _tuningConfig;
+
+    public Config.HexTuningConfig TuningConfig => _tuningConfig;
+
+    // Editor button: current slider values -> the config asset. The editor
+    // then marks the asset dirty and saves it (persists, even from play mode
+    // since it's an asset, not a scene object).
+    public void WriteSlidersToConfig()
+    {
+        if (_tuningConfig == null)
+        {
+            return;
+        }
+
+        _tuningConfig.hopSeconds = _hopSeconds;
+        _tuningConfig.hopTakeoffSeconds = _hopTakeoffSeconds;
+        _tuningConfig.hopLandingSeconds = _hopLandingSeconds;
+        _tuningConfig.hopEdgePadding = _hopEdgePadding;
+        _tuningConfig.hopDownUp = _hopDownUp;
+        _tuningConfig.hopDownFallStartFrac = _hopDownFallStart;
+        _tuningConfig.divePlungeDepth = _divePlungeDepth;
+        _tuningConfig.swimEntryPauseSeconds = _treadPauseSeconds;
+        _tuningConfig.swimSpeedFactor = _swimSpeedFactor;
+        _tuningConfig.sinkDepth = _sinkDepth;
+        _tuningConfig.swimBodyLift = _swimBodyLift;
+        _tuningConfig.ledgeSeatLift = _ledgeSeatLift;
+        _tuningConfig.ledgeSeatBack = _ledgeSeatBack;
+        _tuningConfig.waveAmplitude = _waveAmplitude;
+        _tuningConfig.waveFrequency = _waveFrequency;
+        _tuningConfig.waveSpeed = _waveSpeed;
+        // wadeDepth has no SwimTest slider — its config value is left as is.
+    }
+
+    // Editor button: the config asset -> the sliders (revert to saved).
+    public void ReadSlidersFromConfig()
+    {
+        if (_tuningConfig == null)
+        {
+            return;
+        }
+
+        _hopSeconds = _tuningConfig.hopSeconds;
+        _hopTakeoffSeconds = _tuningConfig.hopTakeoffSeconds;
+        _hopLandingSeconds = _tuningConfig.hopLandingSeconds;
+        _hopEdgePadding = _tuningConfig.hopEdgePadding;
+        _hopDownUp = _tuningConfig.hopDownUp;
+        _hopDownFallStart = _tuningConfig.hopDownFallStartFrac;
+        _divePlungeDepth = _tuningConfig.divePlungeDepth;
+        _treadPauseSeconds = _tuningConfig.swimEntryPauseSeconds;
+        _swimSpeedFactor = _tuningConfig.swimSpeedFactor;
+        _sinkDepth = _tuningConfig.sinkDepth;
+        _swimBodyLift = _tuningConfig.swimBodyLift;
+        _ledgeSeatLift = _tuningConfig.ledgeSeatLift;
+        _ledgeSeatBack = _tuningConfig.ledgeSeatBack;
+        _waveAmplitude = _tuningConfig.waveAmplitude;
+        _waveFrequency = _tuningConfig.waveFrequency;
+        _waveSpeed = _tuningConfig.waveSpeed;
+    }
 
     private SimulationRunnerBehaviour _runner;
     private JunctionId? _homeJunction;
@@ -93,20 +171,13 @@ public sealed class SwimTestBootstrap : MonoBehaviour
     {
         Application.runInBackground = true;
 
-        // Слайдеры прыжка стартуют ИЗ КОДА (HexHopTuning) — иначе сцена
-        // подсовывает значение, сериализованное при её сохранении, и новые
-        // дефолты из кода молча игнорируются (два источника правды).
-        // Настройка в плей-моде работает как раньше: двигаете слайдер,
-        // PushTuning каждый кадр проталкивает его обратно в HexHopTuning.
-        _hopSeconds = HexHopTuning.HopSeconds;
-        _hopTakeoffSeconds = HexHopTuning.TakeoffSeconds;
-        _hopLandingSeconds = HexHopTuning.LandingSeconds;
-        _hopEdgePadding = HexHopTuning.EdgePadding;
-        _divePlungeDepth = HexHopTuning.DivePlungeDepth;
-        _swimBodyLift = Wearing.NpcActorView.SwimBodyLift;
-        _waveAmplitude = WaterWave.Amplitude;
-        _waveFrequency = WaterWave.Frequency;
-        _waveSpeed = WaterWave.Speed;
+        // NB: the inspector sliders are the source of truth AT PLAY. We do
+        // NOT overwrite them from the code defaults here — that reset every
+        // value the user dialed in before pressing Play. PushTuning() below
+        // (and every frame) pushes the inspector values INTO the tuning
+        // statics, so what you set is what runs. To move a value into the
+        // shipped code default, edit HexHopTuning.cs; to snap a slider back
+        // to that default, right-click the field in the inspector → Reset.
 
         BuildEnvironment();
 
@@ -378,6 +449,8 @@ public sealed class SwimTestBootstrap : MonoBehaviour
         MovementSystem.SwimEntryPauseSeconds = _treadPauseSeconds;
         MovementSystem.SwimSpeedFactor = _swimSpeedFactor;
         Wearing.NpcActorView.SwimBodyLift = _swimBodyLift;
+        Wearing.NpcActorView.LedgeSeatLift = _ledgeSeatLift;
+        Wearing.NpcActorView.LedgeSeatBack = _ledgeSeatBack;
         WaterWave.Amplitude = _waveAmplitude;
         WaterWave.Frequency = _waveFrequency;
         WaterWave.Speed = _waveSpeed;
@@ -388,6 +461,8 @@ public sealed class SwimTestBootstrap : MonoBehaviour
         HexHopTuning.LandingSeconds = _hopLandingSeconds;
         HexHopTuning.EdgePadding = _hopEdgePadding;
         HexHopTuning.DivePlungeDepth = _divePlungeDepth;
+        HexHopTuning.DownHopUp = _hopDownUp;
+        HexHopTuning.DownFallStartFrac = _hopDownFallStart;
     }
 
     // ---- environment ----

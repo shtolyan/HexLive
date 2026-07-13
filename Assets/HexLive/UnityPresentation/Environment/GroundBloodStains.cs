@@ -29,8 +29,18 @@ public sealed class GroundBloodStains : MonoBehaviour
     // With a dog swarm many girls bleed at once and the cap is hit fast —
     // 160 big projectors was real overdraw. 110 bounds it (oldest recycled)
     // while the drip trail still reads.
-    private const int MaxStains = 110;          // oldest recycled beyond this
-    private const float LifetimeTicks = 2400f;  // one game day to vanish
+    private const int MaxStains = 130;          // oldest recycled beyond this
+    // Blood lingers for DAYS, not one (EnvironmentSystem.DayLengthTicks =
+    // 2400/day): a spilled pool you walk past should still be there tomorrow,
+    // slowly drying. 3 game days.
+    private const float LifetimeTicks = 7200f;  // ~3 game days to vanish
+    // As a stain dries its alpha fades — but a semi-transparent RED film over
+    // yellow sand reads as bright "ketchup". So we also darken _BaseColor with
+    // age toward deep dried bordo: old + faint = a dark stain, not orange.
+    // Discrete buckets of shared materials (no per-stain material, no MPB —
+    // DecalProjector doesn't take one): 4 variants x AgeBuckets instances.
+    private const int AgeBuckets = 6;
+    private static readonly Color DriedBlood = new(0.15f, 0.02f, 0.02f, 1f);
     private const float SpreadTicks = 120f;     // drip -> full puddle, ~30 sim-s
     private const float DripScale = 0.09f;      // fresh droplet, metres
     // Bigger + more opaque than the first pass: on bright sand a 0.2 m,
@@ -42,10 +52,13 @@ public sealed class GroundBloodStains : MonoBehaviour
     private const int DripIntervalTicks = 6;    // while bleeding, ~1.5 sim-s
     private const int BleedGraceTicks = 20;     // blood drops on SLOW ticks (16)
     private const float FootJitter = 0.12f;
-    // The projector hovers above the foot point and projects down through
-    // the ground: enough depth to catch a slope, not enough to bleed into
-    // caves under overhangs.
-    private const float ProjectorHover = 0.35f;
+    // The projector box must project DOWN INTO THE GROUND only, never up the
+    // girl's legs/body/clothes (a +0.35 hover with a centered box reached
+    // ~0.8 m up her shins → blood sprayed on her). Now it sits just above the
+    // foot contact (small hover to still catch the ground when the foot floats
+    // over a slope) and the box is pushed fully DOWNWARD via the pivot, so its
+    // top face is at the foot and everything above — her — is outside it.
+    private const float ProjectorHover = 0.06f;
     private const float ProjectorDepth = 0.9f;
 
     private sealed class Stain
@@ -54,6 +67,8 @@ public sealed class GroundBloodStains : MonoBehaviour
         public DecalProjector Projector;
         public int BornTick;
         public float FullScale;
+        public int Variant;   // which decal texture/material family
+        public int Bucket;    // current darkening step (0 = fresh red)
     }
 
     private sealed class BleedTracker
@@ -65,7 +80,10 @@ public sealed class GroundBloodStains : MonoBehaviour
 
     private readonly List<Stain> _stains = new();
     private readonly Dictionary<int, BleedTracker> _trackers = new();
-    private Material[] _materials; // one per texture variant, shared by stains
+    // [variant, age bucket] — bucket 0 is the fresh red Resources asset, later
+    // buckets are runtime copies darkened toward DriedBlood. Shared by stains.
+    private Material[,] _stainMats;
+    private int _variantCount;
 
     // Per-NPC, once per rendered sim tick: detect blood loss and drip.
     public void OnNpcTick(int npcId, float blood, Vector3 footWorld, int tick)
@@ -116,15 +134,26 @@ public sealed class GroundBloodStains : MonoBehaviour
                 stain.Projector.size = new Vector3(scale, scale, ProjectorDepth);
             }
 
-            // Dry out: linear fade across the game day.
-            stain.Projector.fadeFactor = MaxAlpha * (1f - age / LifetimeTicks);
+            // Dry out: linear alpha fade across the whole lifetime.
+            var t01 = age / LifetimeTicks;
+            stain.Projector.fadeFactor = MaxAlpha * (1f - t01);
+
+            // ...and darken with age so the fading film never goes ketchup.
+            // Bucketed: swap to a darker shared material only when the step
+            // changes (not every tick).
+            var bucket = Mathf.Clamp((int)(t01 * AgeBuckets), 0, AgeBuckets - 1);
+            if (bucket != stain.Bucket)
+            {
+                stain.Bucket = bucket;
+                stain.Projector.material = _stainMats[stain.Variant, bucket];
+            }
         }
     }
 
     private void Spawn(Vector3 at, int tick)
     {
         EnsureAssets();
-        if (_materials.Length == 0)
+        if (_variantCount == 0)
         {
             return; // no textures shipped: silently no-op
         }
@@ -141,13 +170,19 @@ public sealed class GroundBloodStains : MonoBehaviour
         // Look straight down with a random spin so variants never repeat.
         go.transform.rotation = Quaternion.Euler(90f, Random.Range(0f, 360f), 0f);
 
+        var variant = Random.Range(0, _variantCount);
         var projector = go.AddComponent<DecalProjector>();
-        projector.material = _materials[Random.Range(0, _materials.Length)];
+        projector.material = _stainMats[variant, 0]; // fresh red
         projector.size = new Vector3(DripScale, DripScale, ProjectorDepth);
-        projector.pivot = Vector3.zero;
+        // Push the projection box fully DOWNWARD (local +Z points down after
+        // the 90° tilt): its top face lands at the foot and the whole volume
+        // sits below, so the ground gets painted but the girl above never
+        // does. pivot is local-space, so the depth axis is Z.
+        projector.pivot = new Vector3(0f, 0f, ProjectorDepth * 0.5f);
         projector.fadeFactor = MaxAlpha;
-        // Everything the pool touches catches it — terrain, grass, a foot
-        // standing in it (that wrap is exactly why the pack projects decals).
+        // Terrain, grass and a foot standing IN the pool still catch it (that
+        // downward wrap is why the pack projects decals) — but only surfaces
+        // at/below the foot, never the legs/body/clothes rising above it.
         projector.renderingLayerMask = uint.MaxValue;
 
         _stains.Add(new Stain
@@ -156,12 +191,14 @@ public sealed class GroundBloodStains : MonoBehaviour
             Projector = projector,
             BornTick = tick,
             FullScale = Random.Range(PuddleScaleMin, PuddleScaleMax),
+            Variant = variant,
+            Bucket = 0,
         });
     }
 
     private void EnsureAssets()
     {
-        if (_materials != null)
+        if (_stainMats != null)
         {
             return;
         }
@@ -172,10 +209,49 @@ public sealed class GroundBloodStains : MonoBehaviour
         // Resources as BloodStain_01..04. They render exactly like the pack's
         // demo `..._Static_Projected` prefabs; we only drive size + fadeFactor
         // per stain on our tick-driven lifecycle. Shared instances: fadeFactor
-        // and size are DecalProjector fields, not material state, so one
-        // material serves every stain of that variant.
-        _materials = Resources.LoadAll<Material>("HexLive/BloodStainMats");
-        System.Array.Sort(_materials, (a, b) => string.CompareOrdinal(a.name, b.name));
+        // and size are DecalProjector fields, not material state.
+        var bases = Resources.LoadAll<Material>("HexLive/BloodStainMats");
+        System.Array.Sort(bases, (a, b) => string.CompareOrdinal(a.name, b.name));
+        _variantCount = bases.Length;
+        _stainMats = new Material[_variantCount, AgeBuckets];
+        for (var v = 0; v < _variantCount; v++)
+        {
+            // Bucket 0 is the shared asset itself — never mutated. Later
+            // buckets are copies with _BaseColor lerped toward dried bordo.
+            _stainMats[v, 0] = bases[v];
+            var fresh = bases[v].HasProperty("_BaseColor")
+                ? bases[v].GetColor("_BaseColor")
+                : Color.red;
+            var dried = new Color(DriedBlood.r, DriedBlood.g, DriedBlood.b, fresh.a);
+            for (var b = 1; b < AgeBuckets; b++)
+            {
+                var m = new Material(bases[v]);
+                var c = Color.Lerp(fresh, dried, b / (float)(AgeBuckets - 1));
+                if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", c);
+                if (m.HasProperty("_Color")) m.SetColor("_Color", c);
+                _stainMats[v, b] = m;
+            }
+        }
+    }
+
+    private void OnDestroy()
+    {
+        // Free the darkened runtime copies (bucket 0 is a shared asset).
+        if (_stainMats == null)
+        {
+            return;
+        }
+
+        for (var v = 0; v < _variantCount; v++)
+        {
+            for (var b = 1; b < AgeBuckets; b++)
+            {
+                if (_stainMats[v, b] != null)
+                {
+                    Destroy(_stainMats[v, b]);
+                }
+            }
+        }
     }
 }
 

@@ -43,6 +43,14 @@ public sealed class NPCNeeds
     // start; auto-spent to dress a serious wound.
     public int Bandages { get; set; } = 2;
 
+    // Spec 44: of the bandages in the pouch, how many are HERBAL — crafted from
+    // 2 gathered plantain leaves at the fire — as opposed to the two pre-made
+    // medkit bandages every girl starts with (spec 40.3). Only a herbal dressing
+    // shows the leaf-wrap decal; medkit bandages patch the wound with no leaf
+    // visual (you never gathered them). Medkit bandages are spent first, so the
+    // plantain wrap appears only once she has actually gone out and gathered.
+    public int HerbalBandages { get; set; } = 0;
+
     // Spec 40.3: pills — the last-resort backup to the bandage. When a wound
     // is open yet no bandage has fired and HP has fallen near death, a pill is
     // spent to pull the body and HP back a step. One to start; kept in the med

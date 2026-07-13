@@ -19,7 +19,7 @@ namespace HexLive.UnityPresentation.Wearing
     /// </summary>
     public sealed class SkinDecals : MonoBehaviour
     {
-        private enum DecalType { Scratch, Blood, Dirt, Sweat, Bandage }
+        private enum DecalType { Scratch, Blood, Dirt, Sweat, Bandage, Gauze }
 
         private sealed class Zone
         {
@@ -120,7 +120,7 @@ namespace HexLive.UnityPresentation.Wearing
         /// </summary>
         public void Sync(IReadOnlyList<string> wounds, HashSet<string> uncovered,
             float hygiene, float thermal, float rainWet = 0f,
-            HashSet<string> bandaged = null)
+            HashSet<string> bandaged = null, HashSet<string> gauzed = null)
         {
             if (_bones == null || _bodyRoot == null)
             {
@@ -129,9 +129,10 @@ namespace HexLive.UnityPresentation.Wearing
 
             _desired.Clear();
 
-            // Spec 44: a dressed zone shows the leaf-wrap decal INSTEAD of its
-            // wound marks (the shader-paint experiment was reverted — the
-            // projector reads better on skin).
+            // Spec 44: a dressed zone shows its wrap decal INSTEAD of its wound
+            // marks (the shader-paint experiment was reverted — the projector
+            // reads better on skin). Herbal dressings show the leaf wrap;
+            // pre-made medkit dressings show a plain gauze wrap.
             if (bandaged != null)
             {
                 foreach (var zone in bandaged)
@@ -139,6 +140,17 @@ namespace HexLive.UnityPresentation.Wearing
                     if (Zones.ContainsKey(zone) && uncovered.Contains(zone))
                     {
                         Want($"bandage.{zone}", DecalType.Bandage, zone, 271);
+                    }
+                }
+            }
+
+            if (gauzed != null)
+            {
+                foreach (var zone in gauzed)
+                {
+                    if (Zones.ContainsKey(zone) && uncovered.Contains(zone))
+                    {
+                        Want($"gauze.{zone}", DecalType.Gauze, zone, 271);
                     }
                 }
             }
@@ -174,9 +186,10 @@ namespace HexLive.UnityPresentation.Wearing
                         continue; // covered by clothing — hidden until undressed
                     }
 
-                    if (bandaged != null && bandaged.Contains(parts[0]))
+                    if ((bandaged != null && bandaged.Contains(parts[0])) ||
+                        (gauzed != null && gauzed.Contains(parts[0])))
                     {
-                        continue; // dressed — the leaf wrap replaces the wound marks
+                        continue; // dressed — the wrap (leaf or gauze) replaces the wound marks
                     }
 
                     var type = (woundSeed & 1) == 0 ? DecalType.Scratch : DecalType.Blood;
@@ -306,6 +319,7 @@ namespace HexLive.UnityPresentation.Wearing
                 DecalType.Blood => 0.075f,
                 DecalType.Sweat => 0.070f, // droplet spray patch
                 DecalType.Bandage => 0.110f, // leaf wrap covers the wound area
+                DecalType.Gauze => 0.110f, // gauze wrap covers the wound area
                 _ => 0.110f // dirt (0.150 read too loud on the thighs)
             } * _height * sizeJitter;
 
@@ -370,6 +384,9 @@ namespace HexLive.UnityPresentation.Wearing
                 DecalType.Sweat => Resources.Load<Texture2D>("HexLive/Decals/sweat_drops"),
                 // Spec 44: leaf poultice bound with fiber twine (fal.ai).
                 DecalType.Bandage => Resources.Load<Texture2D>("HexLive/Decals/bandage_wrap"),
+                // Spec 44: plain medkit gauze wrap (procedural fallback until a
+                // gauze_wrap.png is dropped in — the loader then prefers it).
+                DecalType.Gauze => Resources.Load<Texture2D>("HexLive/Decals/gauze_wrap"),
                 // fal.ai granular dust on black, luminance-keyed: powder
                 // grains + clumps like the logo's weathered grime — the old
                 // procedural blobs read as flat paint.
@@ -439,6 +456,7 @@ namespace HexLive.UnityPresentation.Wearing
                         DecalType.Blood => BloodPixel(u, v),
                         DecalType.Dirt => DirtPixel(u, v),
                         DecalType.Bandage => BandagePixel(u, v),
+                        DecalType.Gauze => GauzePixel(u, v),
                         _ => SweatPixel(u, v)
                     };
                 }
@@ -574,6 +592,38 @@ namespace HexLive.UnityPresentation.Wearing
             col = Color.Lerp(col, new Color(0.76f, 0.62f, 0.42f), twine);
 
             return new Color(col.r, col.g, col.b, pad * 0.95f);
+        }
+
+        // Fallback medkit gauze: a pale off-white cloth pad with a CRISP woven
+        // mesh (warp + weft threads with small holes) and two crossed fabric
+        // bands — no green, no leaves (this is the pre-made bandage, not
+        // gathered plantain).
+        private static Color GauzePixel(float u, float v)
+        {
+            var r = Mathf.Sqrt(u * u + v * v);
+            var pad = Mathf.Clamp01((0.40f - r) / 0.05f);
+
+            const float freq = 30f; // ~30 threads across the pad
+            var su = Mathf.Abs(Mathf.Repeat(u * freq, 1f) - 0.5f) * 2f; // 0=thread,1=gap
+            var sv = Mathf.Abs(Mathf.Repeat(v * freq, 1f) - 0.5f) * 2f;
+            var warp = 1f - Mathf.SmoothStep(0.55f, 0.9f, su); // vertical threads
+            var weft = 1f - Mathf.SmoothStep(0.55f, 0.9f, sv); // horizontal threads
+            var thread = Mathf.Max(warp, weft);
+            var hole = (1f - warp) * (1f - weft); // both in a gap -> mesh hole
+
+            var cream = new Color(0.90f, 0.88f, 0.82f);
+            var ridge = new Color(0.98f, 0.97f, 0.93f);
+            var gap = new Color(0.72f, 0.70f, 0.64f);
+            var col = Color.Lerp(cream, ridge, thread * 0.8f);
+            col = Color.Lerp(col, gap, hole * 0.6f);
+
+            var band1 = Mathf.Clamp01((0.05f - Mathf.Abs(u + v * 0.3f)) / 0.012f);
+            var band2 = Mathf.Clamp01((0.05f - Mathf.Abs(v - u * 0.3f)) / 0.012f);
+            var band = Mathf.Max(band1, band2) * pad;
+            col = Color.Lerp(col, new Color(0.80f, 0.76f, 0.68f), band * 0.5f);
+
+            var alpha = pad * Mathf.Lerp(0.97f, 0.6f, hole);
+            return new Color(col.r, col.g, col.b, alpha);
         }
 
         private static float Frac(float x) => x - Mathf.Floor(x);

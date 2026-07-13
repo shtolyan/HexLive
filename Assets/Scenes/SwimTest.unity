@@ -149,20 +149,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.SwimTest.SwimTestBootstrap
   _sinkDepth: 0.6
-  _swimIdleBodyLift: -0.5
-  _swimMoveBodyLift: -0.27
-  _treadPauseSeconds: 0
+  _swimBodyLift: 0.45
+  _waveAmplitude: 0
+  _waveFrequency: 0
+  _waveSpeed: 0
+  _treadPauseSeconds: 2
   _swimSpeedFactor: 0.6
-  _hopWindupIdleSeconds: 1
   _hopSeconds: 2
-  _hopLandIdleSeconds: 1
-  _hopStartDistance: 0.5
-  _hopLaunchDelayUp: 0.25
-  _hopLaunchDelayDown: 0.25
-  _hopLandLeadUp: 0.25
-  _hopLandLeadDown: 0.25
+  _hopTakeoffSeconds: 0.25
+  _hopLandingSeconds: 0.25
+  _hopEdgePadding: 0.5
   _divePlungeDepth: 0.35
+  _hopDownUp: 0.603
+  _hopDownFallStart: 0.5
   _startDelaySeconds: 3
+  _tuningConfig: {fileID: 11400000, guid: 93f675c6e6eb34945ba693152be8b233, type: 2}
 --- !u!4 &824721003
 Transform:
   m_ObjectHideFlags: 0

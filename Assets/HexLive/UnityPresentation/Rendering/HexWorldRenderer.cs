@@ -216,6 +216,22 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return _bloodStains;
     }
 
+    // Spec 40.2-C: blood spilled while in the water billows on the surface
+    // instead of pooling on the ground (see WaterBloodStains).
+    private HexLive.UnityPresentation.Environment.WaterBloodStains _waterBlood;
+
+    private HexLive.UnityPresentation.Environment.WaterBloodStains EnsureWaterBlood()
+    {
+        if (_waterBlood == null)
+        {
+            var go = new GameObject("WaterBloodStains");
+            go.transform.SetParent(transform, false);
+            _waterBlood = go.AddComponent<HexLive.UnityPresentation.Environment.WaterBloodStains>();
+        }
+
+        return _waterBlood;
+    }
+
     // Spec 33.2 (iter 33): cartoon rain — a shower of little droplet particles
     // over the island whenever the weather says it's raining.
     private ParticleSystem _rain;
@@ -685,11 +701,23 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             SyncActorView(snapshot, npc);
 
-            // Spec 40.2-B: a bleeding girl drips blood at her feet.
-            EnsureBloodStains().OnNpcTick(key, npc.Blood, targetPos, snapshot.Tick);
+            // Spec 40.2-B/C: a bleeding girl drips blood. On land it pools at
+            // her feet; IN THE WATER (iteration 1: detected via _npcOnWater) it
+            // billows on the surface around her instead — different spawn, no
+            // ground puddle underwater.
+            if (_npcOnWater.TryGetValue(key, out var onWaterNow) && onWaterNow)
+            {
+                var waterSurfaceY = GroundY(npc.Tile) - ElevationStep * 0.4f;
+                EnsureWaterBlood().OnNpcTick(key, npc.Blood, targetPos, waterSurfaceY, snapshot.Tick);
+            }
+            else
+            {
+                EnsureBloodStains().OnNpcTick(key, npc.Blood, targetPos, snapshot.Tick);
+            }
         }
 
         _bloodStains?.Advance(snapshot.Tick);
+        _waterBlood?.Advance(snapshot.Tick);
 
         UpdateGrassFlattening(snapshot);
 
@@ -800,7 +828,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         actorView.SetInteraction(npc.CurrentInteraction, HeldItemFor(npc));
         // Iter 28: ledge seat — the sim flags a sit at a one-step seam; the
         // view lifts the butt onto the upper step (knobs in NpcActorView).
-        actorView.SetLedgeSit(npc.IsLedgeSit);
+        actorView.SetLedgeSit(npc.IsLedgeSit, npc.LedgeSeatStepsUp);
         // Spec 20.16: hunting/combat shows the weapon and drives a draw/thrust.
         actorView.SetCombat(npc.IsFighting, WeaponFor(npc));
         // Spec 33.1: a carried weapon rides slung on the back when it isn't in

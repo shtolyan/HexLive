@@ -35,6 +35,12 @@ public sealed class NpcActorView : MonoBehaviour
     private static readonly int LimpingParam = Animator.StringToHash("Limping");
     private static readonly int JumpUpParam = Animator.StringToHash("JumpUp");
     private static readonly int JumpDownParam = Animator.StringToHash("JumpDown");
+    // §21.21B: drives the JumpUp/JumpDown states' Speed Multiplier so the
+    // authored jump clip is COMPRESSED to exactly the sim hop window (one
+    // playthrough == HopSeconds), instead of running at its own ~2.6s length
+    // and looping/overshooting the window.
+    private static readonly int JumpSpeedParam = Animator.StringToHash("JumpSpeed");
+    private float _jumpClipLength;   // authored seconds of the shared jump clip
     private static readonly int SwimmingParam = Animator.StringToHash("Swimming");
     private string _currentPropId;
     private GameObject _handProp;
@@ -140,6 +146,7 @@ public sealed class NpcActorView : MonoBehaviour
     private readonly Dictionary<string, float> _zoneHealthScratch = new();
     private readonly HashSet<string> _uncoveredScratch = new();
     private readonly HashSet<string> _bandagedScratch = new();
+    private readonly HashSet<string> _gauzeScratch = new();
 
     // Spec 40.10-C: garment grime + zone-damage rips. Each hurt zone plants a
     // world-space damage sphere at its bone anchor (knees/elbows — where cloth
@@ -168,11 +175,15 @@ public sealed class NpcActorView : MonoBehaviour
 
     // Iter 28: ledge seat — while sitting at a one-step seam the body is
     // lifted so the butt rests ON the upper step (feet reach the lower one)
-    // and tucked slightly back against the edge. TUNING KNOBS:
-    //   LedgeSeatLift — vertical lift (step is 0.55 world units high);
-    //   LedgeSeatBack — shift toward the step behind the back.
-    private const float LedgeSeatLift = 0.40f;
-    private const float LedgeSeatBack = 0.12f;
+    // and tucked back onto the edge. She faces the LOW side (§29G), so local
+    // -Z (behind her back) points at the HIGH tile — LedgeSeatBack slides her
+    // butt back ONTO the rim so the lift lands on solid ground instead of
+    // floating over the low tile's open air. TUNING KNOBS (config-driven so
+    // they can be dialed without editing code — the step is ~0.55 world high):
+    //   LedgeSeatLift — vertical lift onto the upper step;
+    //   LedgeSeatBack — slide back onto the rim (toward the high tile).
+    public static float LedgeSeatLift = 0.40f;
+    public static float LedgeSeatBack = 0.45f;
     private bool _ledgeSit;
 
     // Face life (blink + mood expression) on the body blend shapes.
@@ -250,7 +261,12 @@ public sealed class NpcActorView : MonoBehaviour
     // whole body sits this far off the root while in water, same for tread and
     // stroke. Live-tunable so the swim test can dial it in.
     public static float SwimBodyLift = 0.45f;
+    // Seconds to EASE the swim body-lift in/out. Diving in used to add the full
+    // SwimBodyLift the instant she entered the water tile — a hard snap up. Now
+    // it ramps, so the plunge resolves smoothly into the floating swim pose.
+    private const float SwimLiftEaseSeconds = 0.4f;
     private bool _swimming;
+    private float _swimBlend; // 0..1 eased weight on SwimBodyLift
 
     public void SetSwimming(bool swimming)
     {
@@ -337,6 +353,14 @@ public sealed class NpcActorView : MonoBehaviour
         _jumpTakeoffFrac = Mathf.Clamp01(takeoffFrac);
         _jumpFlightEndFrac = Mathf.Clamp(flightEndFrac, _jumpTakeoffFrac + 0.05f, 1f);
         _jumpTimer = _jumpDuration;
+        // Compress the authored clip to exactly this window: one playthrough ==
+        // durationSimSeconds. Speed = clipLength / window (Unity multiplies this
+        // by the global animator.speed, so fast-forward stays in sync with the
+        // arc timer). Falls back to 1 if the clip length is unknown.
+        if (_jumpClipLength > 0.001f)
+        {
+            _animator.SetFloat(JumpSpeedParam, _jumpClipLength / _jumpDuration);
+        }
         _animator.ResetTrigger(_jumpUp ? JumpDownParam : JumpUpParam);
         _animator.SetTrigger(_jumpUp ? JumpUpParam : JumpDownParam);
     }
@@ -354,18 +378,40 @@ public sealed class NpcActorView : MonoBehaviour
                     Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.5f, 1f, tf)));
         }
 
-        // Hold through the step-off, then gravity (quadratic) to touchdown.
-        var ease = Mathf.Pow(Mathf.Clamp01(Mathf.InverseLerp(0.1f, 1f, tf)), 2f);
-
-        // §40.18-B splash: a dive doesn't hover-stop at the waterline — it
-        // sails DivePlungeDepth UNDER the swim level and bobs back up to it
-        // (ease > 1 = below the target; back to exactly 1 by the end).
+        // §40.18-B water dive: don't hover-stop at the waterline — gravity
+        // straight in, then SPLASH DivePlungeDepth below swim level and bob
+        // back up. Kept on the old immediate-fall curve (a plunge should).
         if (_jumpPlunge && _jumpHeightDelta < -0.01f)
         {
+            var diveEase = Mathf.Pow(Mathf.Clamp01(Mathf.InverseLerp(0.1f, 1f, tf)), 2f);
             var bob = Mathf.Sin(Mathf.Clamp01(Mathf.InverseLerp(0.62f, 1f, tf)) * Mathf.PI);
-            ease += bob * (HexLive.Simulation.Navigation.HexHopTuning.DivePlungeDepth /
+            diveEase += bob * (HexLive.Simulation.Navigation.HexHopTuning.DivePlungeDepth /
                 Mathf.Abs(_jumpHeightDelta));
+            return diveEase;
         }
+
+        // Solid drop: stay LEVEL across the lip and only fall once she has
+        // crossed to above the lower ground. Falling early scrapes her feet on
+        // the edge — so hold to DownFallStartFrac of the flight, then gravity
+        // (quadratic) from there down to touchdown at flight-end.
+        var fallStart = Mathf.Clamp(
+            HexLive.Simulation.Navigation.HexHopTuning.DownFallStartFrac, 0f, 0.95f);
+        float ease;
+        if (tf <= fallStart)
+        {
+            ease = 0f; // level flight — above the lower tile, not yet falling
+        }
+        else
+        {
+            var f = Mathf.InverseLerp(fallStart, 1f, tf);
+            ease = f * f; // gravity from the crossing point to the target
+        }
+
+        // A little UP pop off the edge during the level phase (feet clear the
+        // lip). ease < 0 = above stand level, since DOWN heightDelta < 0.
+        var pop = Mathf.Sin(Mathf.Clamp01(tf / Mathf.Max(0.01f, fallStart)) * Mathf.PI);
+        ease -= pop * (HexLive.Simulation.Navigation.HexHopTuning.DownHopUp /
+            Mathf.Max(0.01f, Mathf.Abs(_jumpHeightDelta)));
 
         return ease;
     }
@@ -494,6 +540,21 @@ public sealed class NpcActorView : MonoBehaviour
         _bodyBones = GetComponentInChildren<BodyBones>();
         _animator = GetComponentInChildren<Animator>();
         _lookAtIK = GetComponentInChildren<LookAtIK>();
+
+        // Cache the authored length of the jump clip so StartJumpArc can scale
+        // it to the sim hop window (§21.21B). Both JumpUp/JumpDown share one
+        // clip whose name contains "Jump".
+        if (_animator != null && _animator.runtimeAnimatorController != null)
+        {
+            foreach (var clip in _animator.runtimeAnimatorController.animationClips)
+            {
+                if (clip != null && clip.name.IndexOf("Jump", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    _jumpClipLength = clip.length;
+                    break;
+                }
+            }
+        }
 
         if (System.Enum.TryParse(actorMeshName, out ActorName parsed) == false)
         {
@@ -759,13 +820,23 @@ public sealed class NpcActorView : MonoBehaviour
             }
         }
 
-        // Spec 44: bandaged zones show the leaf wrap instead of wound marks.
+        // Spec 44: dressed zones hide wound marks. A "|g" suffix marks a MEDKIT
+        // gauze wrap; a bare zone name marks a HERBAL leaf wrap (gathered
+        // plantain). Split them so presentation draws the matching decal.
         _bandagedScratch.Clear();
+        _gauzeScratch.Clear();
         if (bandagedZones != null)
         {
             foreach (var zone in bandagedZones)
             {
-                _bandagedScratch.Add(zone);
+                if (zone.EndsWith("|g", System.StringComparison.Ordinal))
+                {
+                    _gauzeScratch.Add(zone.Substring(0, zone.Length - 2));
+                }
+                else
+                {
+                    _bandagedScratch.Add(zone);
+                }
             }
         }
 
@@ -795,7 +866,8 @@ public sealed class NpcActorView : MonoBehaviour
             // the same sheen the rest of the body shows.
             var wetSmoothnessForPaint = Mathf.Lerp(DrySkinSmoothness, WetSkinSmoothness, _skinWetness);
             _skinPainter.Sync(_woundScratch, _bandagedScratch,
-                PaintSweatDroplets ? _skinWetness : 0f, _uncoveredScratch, wetSmoothnessForPaint);
+                PaintSweatDroplets ? _skinWetness : 0f, _uncoveredScratch, wetSmoothnessForPaint,
+                _gauzeScratch);
             // Projector sweat is retired (v4 paints droplets instead); the
             // projector "rain" pass keys off the RAIN-only inertial wetness —
             // the unified pool made sweat spawn whitish rain rings.
@@ -804,7 +876,8 @@ public sealed class NpcActorView : MonoBehaviour
         }
         else
         {
-            _skinDecals.Sync(wounds, _uncoveredScratch, hygiene, thermal, _skinWetness, _bandagedScratch);
+            _skinDecals.Sync(wounds, _uncoveredScratch, hygiene, thermal, _skinWetness, _bandagedScratch,
+                _gauzeScratch);
         }
 
         // Wet sheen: hot skin glistens — and rain-soaked skin the same way
@@ -1165,10 +1238,16 @@ public sealed class NpcActorView : MonoBehaviour
 
     // Iter 28: the renderer flags a ledge sit (sim IsLedgeSit) so LateUpdate
     // lifts the body onto the upper step instead of pinning it to the root.
-    public void SetLedgeSit(bool ledgeSit)
+    // stepsUp = how many steps her butt must rise to reach the seat surface;
+    // 0 = she's already on the higher tile (a land/water rim), so NO lift —
+    // she sits right on her own edge instead of floating above it.
+    public void SetLedgeSit(bool ledgeSit, int stepsUp = 1)
     {
         _ledgeSit = ledgeSit;
+        _ledgeSeatStepsUp = stepsUp;
     }
+
+    private int _ledgeSeatStepsUp = 1;
 
     private static ActionKind ActionFromInteraction(string interaction, string heldItemId)
     {
@@ -1929,10 +2008,12 @@ public sealed class NpcActorView : MonoBehaviour
             }
             else
             {
-                // Iter 28: ledge seat — lift the butt onto the upper step and
-                // tuck it back against the edge (local -Z = behind the back).
+                // Iter 28: ledge seat — lift the butt onto the upper step
+                // (× the steps she's below it: 0 = already on the higher
+                // tile, sit right on her edge, no float) and tuck it back
+                // against the edge (local -Z = behind the back).
                 var rest = _ledgeSit
-                    ? new Vector3(0f, LedgeSeatLift, -LedgeSeatBack)
+                    ? new Vector3(0f, LedgeSeatLift * _ledgeSeatStepsUp, -LedgeSeatBack)
                     : Vector3.zero;
                 // §21.21B hex-step jump: the ballistic trajectory rides this
                 // local offset (world delta -> local handles root rotation
@@ -1943,10 +2024,19 @@ public sealed class NpcActorView : MonoBehaviour
                     rest += transform.InverseTransformVector(jumpOffset);
                 }
 
-                // §40.18-B: one shared body-height lift while swimming.
-                if (_swimming)
+                // §40.18-B: one shared body-height lift while swimming, EASED
+                // in/out so diving in (or climbing out) doesn't snap the body up
+                // by SwimBodyLift in a single frame. The dive arc plunges her
+                // under and rises to swim-root depth; this then floats her the
+                // last bit up to the swim pose over SwimLiftEaseSeconds — no
+                // teleport, no "standing on the water" flash.
+                _swimBlend = Mathf.MoveTowards(
+                    _swimBlend, _swimming ? 1f : 0f,
+                    Time.deltaTime * Mathf.Max(1f, _simSpeed) / SwimLiftEaseSeconds);
+                if (_swimBlend > 0f)
                 {
-                    rest.y += SwimBodyLift / Mathf.Max(0.0001f, transform.lossyScale.y);
+                    rest.y += SwimBodyLift * _swimBlend /
+                        Mathf.Max(0.0001f, transform.lossyScale.y);
                 }
 
                 _bodyRoot.localPosition = rest;

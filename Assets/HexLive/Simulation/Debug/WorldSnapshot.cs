@@ -227,6 +227,12 @@ public sealed class NpcSnapshot
     // lifts the body so the butt rests on the upper step. Export-only.
     public bool IsLedgeSit { get; set; }
 
+    // Iter 28 fix: how many elevation steps her butt is BELOW the seat
+    // surface (the higher tile of the seam) — 0 when she already stands on
+    // the higher tile (sit on her own edge, e.g. a land/water rim), 1 when
+    // she perches up from the lower tile. The view lifts by this × per-step.
+    public int LedgeSeatStepsUp { get; set; }
+
     // Spec 41.5: wake-up grace — standing still, coming to her senses after
     // sleep; presentation holds the idle so the get-up clip can finish.
     public bool IsWaking { get; set; }

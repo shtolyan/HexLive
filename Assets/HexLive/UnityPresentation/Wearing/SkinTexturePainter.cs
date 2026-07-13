@@ -67,6 +67,9 @@ namespace HexLive.UnityPresentation.Wearing
             // smoothness 0..1 before the WoundWetGloss scale).
             public Texture? OverGloss;
             public bool IsBandage;
+            // Spec 44: this wrap is a plain MEDKIT gauze dressing (not a herbal
+            // leaf wrap) — paints the gauze art and backfills from _texGauze.
+            public bool IsGauze;
             // Spec 40.8 v4 water droplet: the effect stamp (refraction normal
             // + rim + coverage/halo) and the atlas cell both textures use.
             public Texture? Effect;
@@ -140,6 +143,7 @@ namespace HexLive.UnityPresentation.Wearing
         private static Texture2D? _texScratch;
         private static Texture2D? _texSplat;
         private static Texture2D? _texBandage;
+        private static Texture2D? _texGauze;
         // Matching relief maps (RGB = encoded tangent normal, A = stamp
         // alpha): scratches groove IN, blood pools bead UP.
         private static Texture2D? _texSplashN;
@@ -290,7 +294,8 @@ namespace HexLive.UnityPresentation.Wearing
         /// fully healed marks vanish (composite rebuilt from the original).
         /// </summary>
         public void Sync(List<(string zone, int seed, float heal)> wounds, HashSet<string> bandaged,
-            float sweat01 = 0f, HashSet<string>? uncovered = null, float wetSmoothness = 0.32f)
+            float sweat01 = 0f, HashSet<string>? uncovered = null, float wetSmoothness = 0.32f,
+            HashSet<string>? gauzed = null)
         {
             if (_body == null || _materials == null)
             {
@@ -373,6 +378,23 @@ namespace HexLive.UnityPresentation.Wearing
                 }
             }
 
+            // Spec 44: medkit gauze wraps — same as the leaf wrap but a plain
+            // gauze stamp ("g" keys keep them distinct from the "b" leaf wraps).
+            if (gauzed != null)
+            {
+                foreach (var zone in gauzed)
+                {
+                    var key = $"g{zone}";
+                    _desired.Add(key);
+                    _alpha[key] = 1f;
+                    stateHash = stateHash * 31 + key.GetHashCode();
+                    if (!_stamps.ContainsKey(key))
+                    {
+                        needsPlacement = true;
+                    }
+                }
+            }
+
             // Drop records that no longer exist (healed / unbandaged).
             _stale.Clear();
             foreach (var key in _stamps.Keys)
@@ -403,7 +425,7 @@ namespace HexLive.UnityPresentation.Wearing
 
             if (needsPlacement)
             {
-                PlaceNewStamps(wounds, bandaged, sweat, uncovered);
+                PlaceNewStamps(wounds, bandaged, sweat, uncovered, gauzed);
             }
 
             RepaintAll();
@@ -412,7 +434,7 @@ namespace HexLive.UnityPresentation.Wearing
         // ---- placement: molly's bake-and-raycast, collider-free ----
 
         private void PlaceNewStamps(List<(string zone, int seed, float heal)> wounds, HashSet<string> bandaged,
-            float sweat01, HashSet<string>? uncovered)
+            float sweat01, HashSet<string>? uncovered, HashSet<string>? gauzed = null)
         {
             if (!BakePoseForRaycasts())
             {
@@ -436,6 +458,18 @@ namespace HexLive.UnityPresentation.Wearing
                     // The wrap sits where the zone's wounds are: reuse the
                     // first wound seed in that zone if any, else the zone key.
                     TryPlace(key, zone, zone.GetHashCode(), isBandage: true);
+                }
+            }
+
+            if (gauzed != null)
+            {
+                foreach (var zone in gauzed)
+                {
+                    var key = $"g{zone}";
+                    if (!_stamps.ContainsKey(key))
+                    {
+                        TryPlace(key, zone, zone.GetHashCode(), isBandage: true, isGauze: true);
+                    }
                 }
             }
 
@@ -645,11 +679,11 @@ namespace HexLive.UnityPresentation.Wearing
             sizeV = Mathf.Clamp(targetWorld / worldPerV, minUv, 0.95f);
         }
 
-        private void TryPlace(string key, string zoneName, int seed, bool isBandage)
+        private void TryPlace(string key, string zoneName, int seed, bool isBandage, bool isGauze = false)
         {
             if (!Zones.TryGetValue(zoneName, out var zone))
             {
-                PlaceTombstone(key, seed, isBandage);
+                PlaceTombstone(key, seed, isBandage, isGauze);
                 return;
             }
 
@@ -659,7 +693,7 @@ namespace HexLive.UnityPresentation.Wearing
                 // Unresolvable zone: record a dead stamp so the placement
                 // isn't retried (and logged) on every sync forever.
                 Debug.LogWarning($"[SkinPaint] npc{_npcId} {key}: bone '{zone.BoneA}' not found");
-                PlaceTombstone(key, seed, isBandage);
+                PlaceTombstone(key, seed, isBandage, isGauze);
                 return;
             }
 
@@ -689,7 +723,7 @@ namespace HexLive.UnityPresentation.Wearing
             var triangle = ClosestSkinTriangle(searchPoint);
             if (triangle < 0)
             {
-                PlaceTombstone(key, seed, isBandage);
+                PlaceTombstone(key, seed, isBandage, isGauze);
                 return;
             }
 
@@ -719,23 +753,24 @@ namespace HexLive.UnityPresentation.Wearing
                 UvSizeX = sizeU,
                 UvSizeY = sizeV,
                 Under = isBandage ? null : _texSplash,
-                Over = isBandage ? _texBandage : wover,
+                Over = isGauze ? _texGauze : (isBandage ? _texBandage : wover),
                 // NO wound relief (spec 40.8-D v5 revision): stamps often
                 // straddle a UV seam and the normal discontinuity flared as
                 // ugly lit ridges there; the depth gain never justified it.
                 // Wound volume = albedo darkness + wet gloss. Droplets keep
                 // their dome relief (single small stamp, seams rare).
                 OverGloss = isBandage ? null : wgloss,
-                IsBandage = isBandage
+                IsBandage = isBandage,
+                IsGauze = isGauze
             };
             Debug.Log($"[SkinPaint] npc{_npcId} {key} zone={zoneName} -> slot={slot} uv=({uv.x:F3},{uv.y:F3}) size=({sizeU:F2},{sizeV:F2})");
         }
 
         // A dead stamp record: paints nothing (slot -1 never matches) but
         // stops Sync from re-attempting the same placement every frame.
-        private void PlaceTombstone(string key, int seed, bool isBandage)
+        private void PlaceTombstone(string key, int seed, bool isBandage, bool isGauze = false)
         {
-            _stamps[key] = new Stamp { Key = key, Slot = -1, Seed = seed, IsBandage = isBandage };
+            _stamps[key] = new Stamp { Key = key, Slot = -1, Seed = seed, IsBandage = isBandage, IsGauze = isGauze };
         }
 
         // Fill in any art a stamp missed because its texture asset wasn't
@@ -760,7 +795,7 @@ namespace HexLive.UnityPresentation.Wearing
 
             if (stamp.IsBandage)
             {
-                stamp.Over ??= _texBandage;
+                stamp.Over ??= stamp.IsGauze ? _texGauze : _texBandage;
                 return;
             }
 
@@ -816,6 +851,70 @@ namespace HexLive.UnityPresentation.Wearing
             return best;
         }
 
+        // Spec 44: procedural medkit gauze wrap — a pale off-white cloth pad
+        // with a CRISP woven mesh (warp + weft threads with small holes) and
+        // two crossed fabric bands (no green, no leaves; this is the pre-made
+        // bandage, not gathered plantain). Baked at 1024 so the weave stays
+        // sharp when stamped onto the 2048 skin tile. Mirrors SkinDecals'
+        // GauzePixel so the paint and projector paths read the same.
+        private static Texture2D MakeGauzeTexture()
+        {
+            const int size = 1024;
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, true)
+            {
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear,
+                anisoLevel = 8,
+                name = "gauze_wrap_procedural"
+            };
+            var px = new Color[size * size];
+            for (var y = 0; y < size; y++)
+            {
+                for (var x = 0; x < size; x++)
+                {
+                    var u = (x + 0.5f) / size - 0.5f;
+                    var v = (y + 0.5f) / size - 0.5f;
+                    px[y * size + x] = GauzeSample(u, v);
+                }
+            }
+
+            tex.SetPixels(px);
+            tex.Apply(true);
+            return tex;
+        }
+
+        // Shared crisp-gauze pixel (u,v in -0.5..0.5). Warp/weft thread ridges
+        // with sharp gaps read as real woven mesh; the holes drop alpha so a
+        // hint of skin shows through, and two crossed wrap bands sit on top.
+        internal static Color GauzeSample(float u, float v)
+        {
+            var r = Mathf.Sqrt(u * u + v * v);
+            var pad = Mathf.Clamp01((0.40f - r) / 0.05f);
+
+            const float freq = 30f; // ~30 threads across the pad
+            var su = Mathf.Abs(Mathf.Repeat(u * freq, 1f) - 0.5f) * 2f; // 0=thread,1=gap
+            var sv = Mathf.Abs(Mathf.Repeat(v * freq, 1f) - 0.5f) * 2f;
+            var warp = 1f - Mathf.SmoothStep(0.55f, 0.9f, su); // vertical threads
+            var weft = 1f - Mathf.SmoothStep(0.55f, 0.9f, sv); // horizontal threads
+            var thread = Mathf.Max(warp, weft);
+            var hole = (1f - warp) * (1f - weft); // both in a gap -> mesh hole
+
+            var cream = new Color(0.90f, 0.88f, 0.82f);
+            var ridge = new Color(0.98f, 0.97f, 0.93f);
+            var gap = new Color(0.72f, 0.70f, 0.64f);
+            var col = Color.Lerp(cream, ridge, thread * 0.8f);
+            col = Color.Lerp(col, gap, hole * 0.6f);
+
+            // Two crossed wrap bands (sharper edges than the pad).
+            var band1 = Mathf.Clamp01((0.05f - Mathf.Abs(u + v * 0.3f)) / 0.012f);
+            var band2 = Mathf.Clamp01((0.05f - Mathf.Abs(v - u * 0.3f)) / 0.012f);
+            var band = Mathf.Max(band1, band2) * pad;
+            col = Color.Lerp(col, new Color(0.80f, 0.76f, 0.68f), band * 0.5f);
+
+            var alpha = pad * Mathf.Lerp(0.97f, 0.6f, hole); // holes let skin peek
+            return new Color(col.r, col.g, col.b, alpha);
+        }
+
         // No-domain-reload editor runs keep statics between plays: a load
         // that ran BEFORE an asset was imported would cache null forever
         // (wounds silently lost their relief this way). Reset on every play.
@@ -823,7 +922,7 @@ namespace HexLive.UnityPresentation.Wearing
         private static void ResetStatics()
         {
             _stampTexturesLoaded = false;
-            _texSplash = _texScratch = _texSplat = _texBandage = null;
+            _texSplash = _texScratch = _texSplat = _texBandage = _texGauze = null;
             _texSplashN = _texScratchN = _texSplatN = _texSweatN = null;
             _texScratchG = _texSplatG = null;
             _woundOver = System.Array.Empty<Texture2D?>();
@@ -849,6 +948,10 @@ namespace HexLive.UnityPresentation.Wearing
             _texScratch = Resources.Load<Texture2D>("HexLive/Decals/wound_scratch");
             _texSplat = Resources.Load<Texture2D>("HexLive/Decals/blood_splat");
             _texBandage = Resources.Load<Texture2D>("HexLive/Decals/bandage_wrap");
+            // Spec 44: medkit gauze — prefer a gauze_wrap.png if present, else
+            // bake the procedural cloth wrap so the medkit dressing is visible
+            // without any imported asset.
+            _texGauze = Resources.Load<Texture2D>("HexLive/Decals/gauze_wrap") ?? MakeGauzeTexture();
             _texSplashN = Resources.Load<Texture2D>("HexLive/Decals/blood_splash_n");
             _texScratchN = Resources.Load<Texture2D>("HexLive/Decals/wound_scratch_n");
             _texSplatN = Resources.Load<Texture2D>("HexLive/Decals/blood_splat_n");

@@ -328,10 +328,17 @@ public static class WorldSnapshotExporter
             }
         }
 
-        // Spec 44: leaf-wrap decals on the dressed zones.
+        // Spec 44: dressing decals on the dressed zones — herbal leaf wraps as
+        // the bare zone name, medkit gauze wraps tagged with a "|g" suffix
+        // (presentation splits them into leaf-wrap vs gauze decals).
         foreach (var zone in npc.BandagedZones)
         {
             npcSnapshot.BandagedZones.Add(zone.ToString());
+        }
+
+        foreach (var zone in npc.GauzeZones)
+        {
+            npcSnapshot.BandagedZones.Add($"{zone}|g");
         }
 
         npcSnapshot.WorstBodyPart = worstPartValue < 1f
@@ -377,6 +384,13 @@ public static class WorldSnapshotExporter
             }
 
             npcSnapshot.IsLedgeSit = maxElevation - minElevation == 1;
+
+            // How far below the seat (higher tile) her own tile sits: 0 if
+            // she stands on the higher tile (a land/water rim — sit right on
+            // her edge, no lift), 1 if she perches up from the lower tile.
+            var standElevation = world.Tiles.Items.TryGetValue(npc.Tile, out var standSeat)
+                ? standSeat.Elevation : maxElevation;
+            npcSnapshot.LedgeSeatStepsUp = System.Math.Max(0, maxElevation - standElevation);
         }
 
         foreach (var relation in npc.Social.Relationships)

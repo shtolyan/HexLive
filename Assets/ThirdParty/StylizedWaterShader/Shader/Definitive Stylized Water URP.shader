@@ -346,7 +346,16 @@ Shader "Definitive Stylized Water URP"
 				float2 rotator80 = mul( texCoord79 - float2( 0.5,0.5 ) , float2x2( cos80 , -sin80 , sin80 , cos80 )) + float2( 0.5,0.5 );
 				float temp_output_87_0 = sin( ( mulTime86 + ( rotator80.x * 30.0 * _WavesAmplitude ) ) );
 				float Waves90 = ( temp_output_87_0 * 10.0 * _WavesIntensity );
-				float3 lerpResult117 = lerp( float3( 0,0,0 ) , ( v.ase_normal * Waves90 * 0.04 ) , _VertexOffset);
+				// HexLive: single-source world-space swell (mirrored in WaterWave.cs).
+				// Replaces the stock UV-driven wave — that keyed the height off UV.x,
+				// so hex-tile UVs (world*0.42) gave a ~0.36u wavelength that aliased
+				// per hex, while the sea plane's 0..1 UVs waved on a totally different
+				// scale. World XZ makes every water surface share ONE continuous swell,
+				// and the swimmer snaps its Y to this exact formula. Foam still uses
+				// the original UV wave below.
+				float3 hexWaveWS = mul( unity_ObjectToWorld, float4( v.vertex.xyz, 1.0 ) ).xyz;
+				float hexWavePhase = ( _TimeParameters.x * _WavesSpeed ) + ( ( hexWaveWS.x * cos80 + hexWaveWS.z * sin80 ) * _WavesAmplitude );
+				float3 lerpResult117 = lerp( float3( 0,0,0 ) , float3( 0.0 , ( sin( hexWavePhase ) * _WavesIntensity * 0.4 ) , 0.0 ) , _VertexOffset);
 				
 				o.ase_texcoord7.xy = v.texcoord.xy;
 				
@@ -875,7 +884,16 @@ Shader "Definitive Stylized Water URP"
 				float2 rotator80 = mul( texCoord79 - float2( 0.5,0.5 ) , float2x2( cos80 , -sin80 , sin80 , cos80 )) + float2( 0.5,0.5 );
 				float temp_output_87_0 = sin( ( mulTime86 + ( rotator80.x * 30.0 * _WavesAmplitude ) ) );
 				float Waves90 = ( temp_output_87_0 * 10.0 * _WavesIntensity );
-				float3 lerpResult117 = lerp( float3( 0,0,0 ) , ( v.ase_normal * Waves90 * 0.04 ) , _VertexOffset);
+				// HexLive: single-source world-space swell (mirrored in WaterWave.cs).
+				// Replaces the stock UV-driven wave — that keyed the height off UV.x,
+				// so hex-tile UVs (world*0.42) gave a ~0.36u wavelength that aliased
+				// per hex, while the sea plane's 0..1 UVs waved on a totally different
+				// scale. World XZ makes every water surface share ONE continuous swell,
+				// and the swimmer snaps its Y to this exact formula. Foam still uses
+				// the original UV wave below.
+				float3 hexWaveWS = mul( unity_ObjectToWorld, float4( v.vertex.xyz, 1.0 ) ).xyz;
+				float hexWavePhase = ( _TimeParameters.x * _WavesSpeed ) + ( ( hexWaveWS.x * cos80 + hexWaveWS.z * sin80 ) * _WavesAmplitude );
+				float3 lerpResult117 = lerp( float3( 0,0,0 ) , float3( 0.0 , ( sin( hexWavePhase ) * _WavesIntensity * 0.4 ) , 0.0 ) , _VertexOffset);
 				
 				float4 ase_clipPos = TransformObjectToHClip((v.vertex).xyz);
 				float4 screenPos = ComputeScreenPos(ase_clipPos);
@@ -1215,7 +1233,16 @@ Shader "Definitive Stylized Water URP"
 				float2 rotator80 = mul( texCoord79 - float2( 0.5,0.5 ) , float2x2( cos80 , -sin80 , sin80 , cos80 )) + float2( 0.5,0.5 );
 				float temp_output_87_0 = sin( ( mulTime86 + ( rotator80.x * 30.0 * _WavesAmplitude ) ) );
 				float Waves90 = ( temp_output_87_0 * 10.0 * _WavesIntensity );
-				float3 lerpResult117 = lerp( float3( 0,0,0 ) , ( v.ase_normal * Waves90 * 0.04 ) , _VertexOffset);
+				// HexLive: single-source world-space swell (mirrored in WaterWave.cs).
+				// Replaces the stock UV-driven wave — that keyed the height off UV.x,
+				// so hex-tile UVs (world*0.42) gave a ~0.36u wavelength that aliased
+				// per hex, while the sea plane's 0..1 UVs waved on a totally different
+				// scale. World XZ makes every water surface share ONE continuous swell,
+				// and the swimmer snaps its Y to this exact formula. Foam still uses
+				// the original UV wave below.
+				float3 hexWaveWS = mul( unity_ObjectToWorld, float4( v.vertex.xyz, 1.0 ) ).xyz;
+				float hexWavePhase = ( _TimeParameters.x * _WavesSpeed ) + ( ( hexWaveWS.x * cos80 + hexWaveWS.z * sin80 ) * _WavesAmplitude );
+				float3 lerpResult117 = lerp( float3( 0,0,0 ) , float3( 0.0 , ( sin( hexWavePhase ) * _WavesIntensity * 0.4 ) , 0.0 ) , _VertexOffset);
 				
 				float4 ase_clipPos = TransformObjectToHClip((v.vertex).xyz);
 				float4 screenPos = ComputeScreenPos(ase_clipPos);
@@ -1546,7 +1573,16 @@ Shader "Definitive Stylized Water URP"
 				float2 rotator80 = mul( texCoord79 - float2( 0.5,0.5 ) , float2x2( cos80 , -sin80 , sin80 , cos80 )) + float2( 0.5,0.5 );
 				float temp_output_87_0 = sin( ( mulTime86 + ( rotator80.x * 30.0 * _WavesAmplitude ) ) );
 				float Waves90 = ( temp_output_87_0 * 10.0 * _WavesIntensity );
-				float3 lerpResult117 = lerp( float3( 0,0,0 ) , ( v.ase_normal * Waves90 * 0.04 ) , _VertexOffset);
+				// HexLive: single-source world-space swell (mirrored in WaterWave.cs).
+				// Replaces the stock UV-driven wave — that keyed the height off UV.x,
+				// so hex-tile UVs (world*0.42) gave a ~0.36u wavelength that aliased
+				// per hex, while the sea plane's 0..1 UVs waved on a totally different
+				// scale. World XZ makes every water surface share ONE continuous swell,
+				// and the swimmer snaps its Y to this exact formula. Foam still uses
+				// the original UV wave below.
+				float3 hexWaveWS = mul( unity_ObjectToWorld, float4( v.vertex.xyz, 1.0 ) ).xyz;
+				float hexWavePhase = ( _TimeParameters.x * _WavesSpeed ) + ( ( hexWaveWS.x * cos80 + hexWaveWS.z * sin80 ) * _WavesAmplitude );
+				float3 lerpResult117 = lerp( float3( 0,0,0 ) , float3( 0.0 , ( sin( hexWavePhase ) * _WavesIntensity * 0.4 ) , 0.0 ) , _VertexOffset);
 				
 				float4 ase_clipPos = TransformObjectToHClip((v.vertex).xyz);
 				float4 screenPos = ComputeScreenPos(ase_clipPos);
@@ -1891,7 +1927,16 @@ Shader "Definitive Stylized Water URP"
 				float2 rotator80 = mul( texCoord79 - float2( 0.5,0.5 ) , float2x2( cos80 , -sin80 , sin80 , cos80 )) + float2( 0.5,0.5 );
 				float temp_output_87_0 = sin( ( mulTime86 + ( rotator80.x * 30.0 * _WavesAmplitude ) ) );
 				float Waves90 = ( temp_output_87_0 * 10.0 * _WavesIntensity );
-				float3 lerpResult117 = lerp( float3( 0,0,0 ) , ( v.ase_normal * Waves90 * 0.04 ) , _VertexOffset);
+				// HexLive: single-source world-space swell (mirrored in WaterWave.cs).
+				// Replaces the stock UV-driven wave — that keyed the height off UV.x,
+				// so hex-tile UVs (world*0.42) gave a ~0.36u wavelength that aliased
+				// per hex, while the sea plane's 0..1 UVs waved on a totally different
+				// scale. World XZ makes every water surface share ONE continuous swell,
+				// and the swimmer snaps its Y to this exact formula. Foam still uses
+				// the original UV wave below.
+				float3 hexWaveWS = mul( unity_ObjectToWorld, float4( v.vertex.xyz, 1.0 ) ).xyz;
+				float hexWavePhase = ( _TimeParameters.x * _WavesSpeed ) + ( ( hexWaveWS.x * cos80 + hexWaveWS.z * sin80 ) * _WavesAmplitude );
+				float3 lerpResult117 = lerp( float3( 0,0,0 ) , float3( 0.0 , ( sin( hexWavePhase ) * _WavesIntensity * 0.4 ) , 0.0 ) , _VertexOffset);
 				
 				float4 ase_clipPos = TransformObjectToHClip((v.vertex).xyz);
 				float4 screenPos = ComputeScreenPos(ase_clipPos);
@@ -2225,7 +2270,16 @@ Shader "Definitive Stylized Water URP"
 				float2 rotator80 = mul( texCoord79 - float2( 0.5,0.5 ) , float2x2( cos80 , -sin80 , sin80 , cos80 )) + float2( 0.5,0.5 );
 				float temp_output_87_0 = sin( ( mulTime86 + ( rotator80.x * 30.0 * _WavesAmplitude ) ) );
 				float Waves90 = ( temp_output_87_0 * 10.0 * _WavesIntensity );
-				float3 lerpResult117 = lerp( float3( 0,0,0 ) , ( v.ase_normal * Waves90 * 0.04 ) , _VertexOffset);
+				// HexLive: single-source world-space swell (mirrored in WaterWave.cs).
+				// Replaces the stock UV-driven wave — that keyed the height off UV.x,
+				// so hex-tile UVs (world*0.42) gave a ~0.36u wavelength that aliased
+				// per hex, while the sea plane's 0..1 UVs waved on a totally different
+				// scale. World XZ makes every water surface share ONE continuous swell,
+				// and the swimmer snaps its Y to this exact formula. Foam still uses
+				// the original UV wave below.
+				float3 hexWaveWS = mul( unity_ObjectToWorld, float4( v.vertex.xyz, 1.0 ) ).xyz;
+				float hexWavePhase = ( _TimeParameters.x * _WavesSpeed ) + ( ( hexWaveWS.x * cos80 + hexWaveWS.z * sin80 ) * _WavesAmplitude );
+				float3 lerpResult117 = lerp( float3( 0,0,0 ) , float3( 0.0 , ( sin( hexWavePhase ) * _WavesIntensity * 0.4 ) , 0.0 ) , _VertexOffset);
 				
 				float4 ase_clipPos = TransformObjectToHClip((v.vertex).xyz);
 				float4 screenPos = ComputeScreenPos(ase_clipPos);
@@ -2591,7 +2645,16 @@ Shader "Definitive Stylized Water URP"
 				float2 rotator80 = mul( texCoord79 - float2( 0.5,0.5 ) , float2x2( cos80 , -sin80 , sin80 , cos80 )) + float2( 0.5,0.5 );
 				float temp_output_87_0 = sin( ( mulTime86 + ( rotator80.x * 30.0 * _WavesAmplitude ) ) );
 				float Waves90 = ( temp_output_87_0 * 10.0 * _WavesIntensity );
-				float3 lerpResult117 = lerp( float3( 0,0,0 ) , ( v.ase_normal * Waves90 * 0.04 ) , _VertexOffset);
+				// HexLive: single-source world-space swell (mirrored in WaterWave.cs).
+				// Replaces the stock UV-driven wave — that keyed the height off UV.x,
+				// so hex-tile UVs (world*0.42) gave a ~0.36u wavelength that aliased
+				// per hex, while the sea plane's 0..1 UVs waved on a totally different
+				// scale. World XZ makes every water surface share ONE continuous swell,
+				// and the swimmer snaps its Y to this exact formula. Foam still uses
+				// the original UV wave below.
+				float3 hexWaveWS = mul( unity_ObjectToWorld, float4( v.vertex.xyz, 1.0 ) ).xyz;
+				float hexWavePhase = ( _TimeParameters.x * _WavesSpeed ) + ( ( hexWaveWS.x * cos80 + hexWaveWS.z * sin80 ) * _WavesAmplitude );
+				float3 lerpResult117 = lerp( float3( 0,0,0 ) , float3( 0.0 , ( sin( hexWavePhase ) * _WavesIntensity * 0.4 ) , 0.0 ) , _VertexOffset);
 				
 				o.ase_texcoord7.xy = v.texcoord.xy;
 				

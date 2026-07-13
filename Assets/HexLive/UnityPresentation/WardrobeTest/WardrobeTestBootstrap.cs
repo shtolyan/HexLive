@@ -113,6 +113,11 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
 
         RenderSettings.ambientMode = AmbientMode.Flat;
         RenderSettings.ambientLight = new Color(0.42f, 0.44f, 0.48f);
+        // Spec 40.8 v4: droplet glints need env specular even in the fitting
+        // room — flat ambient alone leaves smooth pixels with nothing to
+        // reflect.
+        Environment.ProceduralSkyReflection.Apply();
+        Environment.ProceduralSkyReflection.SetDayAmount(1f);
 
         var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
         ground.name = "Ground";

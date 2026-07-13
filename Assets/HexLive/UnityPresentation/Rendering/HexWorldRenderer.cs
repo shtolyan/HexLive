@@ -91,6 +91,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private readonly Dictionary<int, Pose> _prevNpcPoses = new();
     private readonly Dictionary<int, Pose> _currNpcPoses = new();
+
+    // §40.18-B: NPCs currently standing on a water tile ride the live wave
+    // swell every render frame (WaterWave), so their Y stays glued to the same
+    // surface the shader draws — no static bob coefficients needed.
+    private readonly Dictionary<int, bool> _npcOnWater = new();
     private readonly Dictionary<int, Vector3> _prevObjectPositions = new();
     private readonly Dictionary<int, Vector3> _currObjectPositions = new();
 
@@ -189,6 +194,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         UpdateRain(snapshot.IsRaining);
         UpdateEnvironmentWetness(snapshot.IsRaining);
+        // §40.18-B: our owned wave params -> the water material, so the mesh
+        // swell always matches what WaterWave.Height gives the swimmer.
+        WaterWave.PushToShader();
         InterpolateMovables(_runner.TickAlpha);
     }
 
@@ -498,6 +506,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
     {
         // Spec 31C.4: the river gets banks — tiles adjacent to water are sand.
         _waterCoords.Clear();
+        _swimCoords.Clear();
         _tileElevations.Clear();
         _indoorCoords.Clear();
         foreach (var tile in snapshot.Tiles)
@@ -506,6 +515,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
             if (tile.Water)
             {
                 _waterCoords.Add(tile.Coord);
+
+                // §40.18-B: deep (unwalkable) water is swum, not waded — the
+                // actor's root sinks below the surface there.
+                if (!tile.Walkable)
+                {
+                    _swimCoords.Add(tile.Coord);
+                }
             }
 
             if (tile.Indoor)
@@ -521,6 +537,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 _tileViews[tile.Coord] = CreateTileView(tile, IsSandTile(tile));
             }
         }
+
+        // Spec 20.16: one merged, finely-tessellated water surface for an even
+        // seam-free wave across every water hex (see EnsureWaterSurface).
+        EnsureWaterSurface(snapshot);
 
         // Build lookup for junction positions
         var junctionPositions = new Dictionary<int, Float2>();
@@ -634,13 +654,27 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 _npcViews[key] = npcView;
             }
 
-            var targetPos = SimulationUnityMapper.ToUnityPosition(npc.Position, GroundY(npc.Tile));
+            // ActorGroundY is the STATIC surface (tile top − sink); the live
+            // wave swell is added per render frame in InterpolateViews so the
+            // swimmer bobs with the exact surface under her, not a snapshot.
+            _npcOnWater[key] = _waterCoords.Contains(npc.Tile);
+            var targetPos = SimulationUnityMapper.ToUnityPosition(npc.Position, ActorGroundY(npc.Tile));
             var targetRot = Quaternion.Euler(0f, SimulationUnityMapper.ToUnityYawDegrees(npc.RotationDegrees), 0f);
             var targetPose = new Pose(targetPos, targetRot);
 
             if (_currNpcPoses.TryGetValue(key, out var oldPose))
             {
                 _prevNpcPoses[key] = oldPose;
+
+                // §45: stepping onto a tile one level up/down is a visible
+                // hop, not a glide — the actor plays JumpUp/JumpDown and its
+                // own Y-offset curve carries the body to the exact new level.
+                var stepDy = targetPos.y - oldPose.Position.y;
+                if (Mathf.Abs(stepDy) > ElevationStep * 0.5f &&
+                    _actorViews.TryGetValue(key, out var jumper) && jumper != null)
+                {
+                    jumper.TriggerHexStepJump(stepDy);
+                }
             }
             else
             {
@@ -732,6 +766,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             _actorViews.Remove(key);
             _prevNpcPoses.Remove(key);
             _currNpcPoses.Remove(key);
+            _npcOnWater.Remove(key);
         }
     }
 
@@ -746,6 +781,21 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // Fast-forward: animations play at the sim's speed multiplier, so 2× /
         // 4× / 50× worlds move bodies 2× / 4× / 50× faster too (1× on pause).
         actorView.SetSimSpeed(_runner != null && !_runner.IsPaused ? _runner.SpeedMultiplier : 1f);
+        // §40.18-B: in deep water the animator swims (tread idle / strokes).
+        actorView.SetSwimming(_swimCoords.Contains(npc.Tile));
+        // §21.21B: sim-driven hex-step jump — the view flies its ballistic
+        // arc (and compresses the jump clip) over the sim's hop window. The
+        // height delta is the EXACT root-level difference, so a dive into
+        // water lands at swim depth (ActorGroundY handles the sink), not one
+        // dry step down.
+        // §21.21B v4 circle climbing: the sim itself steps her back onto the
+        // hex inner circle during the takeoff beat and flies circle-to-circle
+        // — the view only needs the exact height delta and the water flag.
+        actorView.SetHopSignal(npc.HopKind,
+            npc.HopKind.Length > 0
+                ? ActorGroundY(npc.HopTargetTile) - ActorGroundY(npc.Tile)
+                : 0f,
+            npc.HopKind.Length > 0 && _swimCoords.Contains(npc.HopTargetTile));
         actorView.SyncWorn(npc.WornItems);
         actorView.SetInteraction(npc.CurrentInteraction, HeldItemFor(npc));
         // Iter 28: ledge seat — the sim flags a sit at a one-step seam; the
@@ -1047,14 +1097,38 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 continue;
             }
 
+            var onWater = _npcOnWater.TryGetValue(key, out var w) && w;
+
             if (_prevNpcPoses.TryGetValue(key, out var prev))
             {
-                view.transform.position = Vector3.Lerp(prev.Position, curr.Position, alpha);
+                var pos = Vector3.Lerp(prev.Position, curr.Position, alpha);
+                // §45 hex-step jump: don't ALSO lerp the root's Y across the
+                // step — the actor animates the vertical itself (jump offset),
+                // so the root snaps straight to the new ground level.
+                if (Mathf.Abs(curr.Position.y - prev.Position.y) > ElevationStep * 0.5f)
+                {
+                    pos.y = curr.Position.y;
+                }
+
+                // §40.18-B: ride the live wave swell at her exact XZ — same
+                // formula the shader displaces the surface with (WaterWave).
+                if (onWater)
+                {
+                    pos.y += WaterWave.HeightNow(pos.x, pos.z);
+                }
+
+                view.transform.position = pos;
                 view.transform.rotation = Quaternion.Slerp(prev.Rotation, curr.Rotation, alpha);
             }
             else
             {
-                view.transform.position = curr.Position;
+                var pos = curr.Position;
+                if (onWater)
+                {
+                    pos.y += WaterWave.HeightNow(pos.x, pos.z);
+                }
+
+                view.transform.position = pos;
                 view.transform.rotation = curr.Rotation;
             }
         }
@@ -1081,6 +1155,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
     }
 
     private readonly HashSet<TileCoord> _waterCoords = new();
+    private readonly HashSet<TileCoord> _swimCoords = new();
 
     // Spec 35.5: rain wets only NPCs standing outdoors.
     private readonly HashSet<TileCoord> _indoorCoords = new();
@@ -1104,6 +1179,25 @@ public sealed class HexWorldRenderer : MonoBehaviour
     {
         var elevation = _tileElevations.TryGetValue(coord, out var e) ? e : 1;
         return SimulationUnityMapper.TileHeight + elevation * ElevationStep;
+    }
+
+    // §40.18-B: where an ACTOR's root sits on a tile. On land that is the
+    // ground; in deep water she hangs SinkDepth below the water surface; in
+    // walkable shallows (the river) she wades WadeDepth under it — knee-deep,
+    // not walking ON the water.
+    private float ActorGroundY(TileCoord coord)
+    {
+        if (!_waterCoords.Contains(coord))
+        {
+            return GroundY(coord);
+        }
+
+        // Water tiles render their surface sunken 40% of a step below the
+        // tile top (spec 31C.4) — mirror CreateTileView's formula.
+        var surfaceY = GroundY(coord) - ElevationStep * 0.4f;
+        return surfaceY - (_swimCoords.Contains(coord)
+            ? SwimVisuals.SinkDepth
+            : SwimVisuals.WadeDepth);
     }
 
 
@@ -1132,7 +1226,6 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var position = SimulationUnityMapper.ToUnityTilePosition(tile.Coord);
         var world = HexSpatialMath.TileToWorld(tile.Coord);
 
-        var meshFilter = go.AddComponent<MeshFilter>();
         // Spec 20.16: hexes are prisms — top at the tile's elevation, skirt
         // to a shared base so hills read as solid terrain, not floating caps.
         var topHeight = SimulationUnityMapper.TileHeight + tile.Elevation * ElevationStep;
@@ -1141,19 +1234,52 @@ public sealed class HexWorldRenderer : MonoBehaviour
             topHeight -= ElevationStep * 0.4f; // sunken water surface
         }
 
-        // Submesh 0 = flat top, submesh 1 = the perimeter skirt/cliff. Water
-        // tiles are a bare surface (no skirt) over the shared deep sea floor,
-        // so foam only forms where the opaque land walls pierce the surface.
-        meshFilter.sharedMesh = BuildHexPrismMesh(
-            HexRadius, topHeight, TerrainBaseY, world.X, world.Y, includeSkirt: !tile.Water);
-
-        var meshRenderer = go.AddComponent<MeshRenderer>();
         if (tile.Water)
         {
-            meshRenderer.sharedMaterial = CreateWaterMaterial();
+            // Spec 20.16: the wavy water SURFACE is NOT built here. Per-tile
+            // hex tops each tented independently around their centre vertex
+            // (7 verts/hex under-sampled the world-space wave) and their
+            // separate transparent draws double-blended along shared edges —
+            // both read as visible seams between hexes. EnsureWaterSurface()
+            // merges every water tile into ONE finely-tessellated mesh with a
+            // single transparent draw, so the wave is one smooth even sheet.
+            // Only the opaque per-tile riverbed stays here.
+
+            // §31C.4/§40.18-B: wadable shallows get a visible RIVERBED hex
+            // exactly WadeDepth under the surface — the same height the
+            // actors sink to, so a knee-deep girl reads as standing on the
+            // bottom instead of hovering inside translucent water.
+            if (tile.Walkable)
+            {
+                var bed = new GameObject("Riverbed");
+                bed.transform.SetParent(go.transform, false);
+                var bedFilter = bed.AddComponent<MeshFilter>();
+                bedFilter.sharedMesh = BuildHexPrismMesh(
+                    HexRadius, topHeight - SwimVisuals.WadeDepth, TerrainBaseY,
+                    world.X, world.Y, includeSkirt: true);
+                var bedRenderer = bed.AddComponent<MeshRenderer>();
+                // Queue 2999: drawn before the water (which tints it), but
+                // ABOVE the opaque cutoff (2500) — so the bed never enters
+                // _CameraDepthTexture. The stylized water reads depth from
+                // that texture: with the bed visible to it the whole river
+                // became "2 cm shallow" and foamed edge to edge. This way the
+                // water sees the deep SeaFloor and the river renders exactly
+                // like the sea, while the girls still stand on a real bottom.
+                bedRenderer.sharedMaterials = new[]
+                {
+                    RiverbedMaterial(Jitter(BiomeColor("sand"), tile.Coord, 0.06f)),
+                    RiverbedMaterial(Jitter(BiomeColor("cliff"), tile.Coord, 0.05f))
+                };
+            }
         }
         else
         {
+            // Submesh 0 = flat top, submesh 1 = the perimeter skirt/cliff.
+            var meshFilter = go.AddComponent<MeshFilter>();
+            meshFilter.sharedMesh = BuildHexPrismMesh(
+                HexRadius, topHeight, TerrainBaseY, world.X, world.Y, includeSkirt: true);
+            var meshRenderer = go.AddComponent<MeshRenderer>();
+
             var topBiome = sand ? "sand" : TopBiome(tile.Elevation);
             // Low-poly look: flat facet colours, a subtle per-tile shade
             // jitter for a hand-placed patchwork, darker earthy cliffs.
@@ -1676,6 +1802,138 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return mesh;
     }
 
+    private GameObject _waterSurface;
+
+    // Spec 20.16: how many times each of a hex's 6 wedges is subdivided. The
+    // Definitive water shader offsets vertices by a UV-driven wave; a bare hex
+    // top (7 verts spanning ~3u) sampled it far too coarsely, so each hex
+    // tented on its own. Level 4 drops edge length to ~0.37u so the merged
+    // sheet reads as one continuous wave. NOTE: the wave frequency is set by
+    // the material's _WavesAmplitude (it multiplies UV inside the sine) — if
+    // the surface still looks choppy, lower _WavesAmplitude for a gentler,
+    // longer wave rather than piling on more triangles here.
+    private const int WaterSubdivisions = 4;
+
+    // Merge every water tile's top into a SINGLE tessellated, world-space mesh
+    // with one transparent draw. This kills both seam sources at once: the
+    // per-hex tenting (now finely sampled + shared across the whole sheet) and
+    // the double-blend where separate transparent tile draws overlapped along
+    // shared edges. Vertices are baked in world XZ; the object sits at the
+    // origin so posWS == the baked coords and the shader wave stays continuous.
+    private void EnsureWaterSurface(WorldSnapshot snapshot)
+    {
+        if (_waterSurface != null)
+        {
+            return;
+        }
+
+        var vertices = new List<Vector3>();
+        var uvs = new List<Vector2>();
+        var tris = new List<int>();
+
+        foreach (var tile in snapshot.Tiles)
+        {
+            if (!tile.Water)
+            {
+                continue;
+            }
+
+            var world = HexSpatialMath.TileToWorld(tile.Coord);
+            var topHeight = SimulationUnityMapper.TileHeight
+                          + tile.Elevation * ElevationStep
+                          - ElevationStep * 0.4f; // sunken water surface
+            AppendSubdividedHexTop(vertices, uvs, tris, world.X, world.Y, topHeight, WaterSubdivisions);
+        }
+
+        if (vertices.Count == 0)
+        {
+            return;
+        }
+
+        var mesh = new Mesh
+        {
+            name = "WaterSurface",
+            // Many tiles × subdivided verts easily clears the 16-bit ceiling.
+            indexFormat = UnityEngine.Rendering.IndexFormat.UInt32
+        };
+        mesh.SetVertices(vertices);
+        mesh.SetUVs(0, uvs);
+        mesh.SetTriangles(tris, 0);
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+
+        _waterSurface = new GameObject("WaterSurface");
+        _waterSurface.transform.SetParent(_tilesRoot, false);
+        _waterSurface.transform.position = Vector3.zero; // verts already world XZ
+        _waterSurface.AddComponent<MeshFilter>().sharedMesh = mesh;
+        _waterSurface.AddComponent<MeshRenderer>().sharedMaterial = CreateWaterMaterial();
+    }
+
+    // Tessellate one hexagon (centred at world cx,cz, top at y) into a
+    // triangular grid and append it to the shared lists. Each of the 6 wedges
+    // (centre → rim[i] → rim[i+1]) is split into n² sub-triangles via
+    // barycentric subdivision. UVs mirror BuildHexPrismMesh (world XZ scaled).
+    private void AppendSubdividedHexTop(
+        List<Vector3> vertices, List<Vector2> uvs, List<int> tris,
+        float cx, float cz, float y, int n)
+    {
+        var centre = new Vector3(cx, y, cz);
+
+        var rim = new Vector3[6];
+        for (var i = 0; i < 6; i++)
+        {
+            var angle = Mathf.Deg2Rad * (60f * i - 30f);
+            rim[i] = new Vector3(cx + HexRadius * Mathf.Cos(angle), y, cz + HexRadius * Mathf.Sin(angle));
+        }
+
+        for (var i = 0; i < 6; i++)
+        {
+            // Wind centre → rim[i+1] → rim[i] so the top faces +Y (matches
+            // BuildHexPrismMesh); the water shader is Cull Off regardless.
+            AppendSubdividedTriangle(vertices, uvs, tris, centre, rim[(i + 1) % 6], rim[i], n);
+        }
+    }
+
+    private void AppendSubdividedTriangle(
+        List<Vector3> vertices, List<Vector2> uvs, List<int> tris,
+        Vector3 p0, Vector3 p1, Vector3 p2, int n)
+    {
+        var baseIndex = vertices.Count;
+
+        // Row r (0..n) holds r+1 points along the p0→p1 / p0→p2 fronts.
+        for (var r = 0; r <= n; r++)
+        {
+            for (var c = 0; c <= r; c++)
+            {
+                var w0 = (n - r) / (float)n;
+                var w2 = r == 0 ? 0f : c / (float)n;
+                var w1 = 1f - w0 - w2;
+                var p = p0 * w0 + p1 * w1 + p2 * w2;
+                vertices.Add(p);
+                uvs.Add(new Vector2(p.x, p.z) * TopUvScale);
+            }
+        }
+
+        // Triangulate the barycentric grid (index of (r,c) = r*(r+1)/2 + c).
+        for (var r = 1; r <= n; r++)
+        {
+            var rowStart = baseIndex + r * (r - 1) / 2;       // start of row r-1
+            var nextStart = baseIndex + r * (r + 1) / 2;      // start of row r
+            for (var c = 0; c < r; c++)
+            {
+                tris.Add(rowStart + c);
+                tris.Add(nextStart + c);
+                tris.Add(nextStart + c + 1);
+                if (c < r - 1)
+                {
+                    tris.Add(rowStart + c);
+                    tris.Add(nextStart + c + 1);
+                    tris.Add(rowStart + c + 1);
+                }
+            }
+        }
+    }
+
     // ---- Flat low-poly biome colours ----
     // No textures: each tile is a flat-shaded facet with a small, stable
     // per-tile shade jitter so a field of grass reads as a hand-placed
@@ -1710,6 +1968,30 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // Dry base colours for the wet-terrain effect (rain darkens the cache).
     private static readonly Dictionary<int, Color> _flatBaseColors = new();
     private static Color _grassBaseColor = Color.white;
+
+    // Riverbed variant of the flat terrain material: identical look, but
+    // renderQueue 2999 keeps it OUT of _CameraDepthTexture (opaques ≤ 2500)
+    // while still drawing under the transparent water — the stylized water
+    // must not "see" the bed or the whole river reads as foamy shallows.
+    private static readonly Dictionary<int, Material> _riverbedMaterials = new();
+
+    private static Material RiverbedMaterial(Color color)
+    {
+        var key = (Mathf.RoundToInt(color.r * 24f) << 16)
+                  | (Mathf.RoundToInt(color.g * 24f) << 8)
+                  | Mathf.RoundToInt(color.b * 24f);
+        if (_riverbedMaterials.TryGetValue(key, out var cached) && cached != null)
+        {
+            return cached;
+        }
+
+        var material = new Material(GetFlatMaterial(color))
+        {
+            renderQueue = 2999
+        };
+        _riverbedMaterials[key] = material;
+        return material;
+    }
 
     private static Material GetFlatMaterial(Color color)
     {

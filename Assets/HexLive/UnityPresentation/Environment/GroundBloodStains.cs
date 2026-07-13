@@ -15,19 +15,30 @@ namespace HexLive.UnityPresentation.Environment
 // Visuals are the RVFX Blood Effects Pack splatters rendered the way the
 // pack's own demo does it — as URP **DecalProjectors** aimed down, so the
 // pool hugs sloped hex prisms, pebbles and feet instead of floating as a
-// flat quad — WITH the pack's normal maps for a wet-relief glint. The
-// pack's realtime spawner scripts themselves aren't used: they run on
-// Time.deltaTime and would ignore sim pause/speed, so the tick-driven
-// lifecycle here stays ours.
+// flat quad. We use the pack's OWN projector decal materials
+// (BloodFX_PBR_Projector_URP shadergraph, copied to
+// Resources/HexLive/BloodStainMats as BloodStain_01..04) — the same rich
+// wet look as the pack's `..._Static_Projected` demo prefabs — rather than
+// a stock Shader-Graphs/Decal built from loose textures. The pack's
+// realtime spawner scripts aren't used: they run on Time.deltaTime and
+// would ignore sim pause/speed, so the tick-driven lifecycle here stays
+// ours (we only drive DecalProjector size + fadeFactor).
 public sealed class GroundBloodStains : MonoBehaviour
 {
-    private const int MaxStains = 160;          // oldest recycled beyond this
+    // Each stain is a DecalProjector rendered into the DBuffer EVERY frame.
+    // With a dog swarm many girls bleed at once and the cap is hit fast —
+    // 160 big projectors was real overdraw. 110 bounds it (oldest recycled)
+    // while the drip trail still reads.
+    private const int MaxStains = 110;          // oldest recycled beyond this
     private const float LifetimeTicks = 2400f;  // one game day to vanish
     private const float SpreadTicks = 120f;     // drip -> full puddle, ~30 sim-s
-    private const float DripScale = 0.05f;      // fresh droplet, metres
-    private const float PuddleScaleMin = 0.16f; // full spread, metres
-    private const float PuddleScaleMax = 0.30f;
-    private const float MaxAlpha = 0.85f;
+    private const float DripScale = 0.09f;      // fresh droplet, metres
+    // Bigger + more opaque than the first pass: on bright sand a 0.2 m,
+    // 0.85-alpha brown smear read as a faint dirt smudge. Fresh-red material
+    // + these makes it a clear wet pool.
+    private const float PuddleScaleMin = 0.26f; // full spread, metres
+    private const float PuddleScaleMax = 0.46f;
+    private const float MaxAlpha = 1f;
     private const int DripIntervalTicks = 6;    // while bleeding, ~1.5 sim-s
     private const int BleedGraceTicks = 20;     // blood drops on SLOW ticks (16)
     private const float FootJitter = 0.12f;
@@ -94,11 +105,16 @@ public sealed class GroundBloodStains : MonoBehaviour
                 continue;
             }
 
-            // Ease-out spread: a drip lands small and flows outward.
-            var spread = Mathf.Clamp01(age / SpreadTicks);
-            spread = 1f - (1f - spread) * (1f - spread);
-            var scale = Mathf.Lerp(DripScale, stain.FullScale, spread);
-            stain.Projector.size = new Vector3(scale, scale, ProjectorDepth);
+            // Ease-out spread: a drip lands small and flows outward. Once
+            // fully spread (age >= SpreadTicks) the size is fixed, so stop
+            // rewriting it — only the fade keeps changing across the day.
+            if (age < SpreadTicks)
+            {
+                var spread = age / SpreadTicks;
+                spread = 1f - (1f - spread) * (1f - spread);
+                var scale = Mathf.Lerp(DripScale, stain.FullScale, spread);
+                stain.Projector.size = new Vector3(scale, scale, ProjectorDepth);
+            }
 
             // Dry out: linear fade across the game day.
             stain.Projector.fadeFactor = MaxAlpha * (1f - age / LifetimeTicks);
@@ -150,41 +166,16 @@ public sealed class GroundBloodStains : MonoBehaviour
             return;
         }
 
-        // Albedo + matching pack normal maps live in sibling folders; pair
-        // them by sorted name (LoadAll gives no order guarantee).
-        var textures = Resources.LoadAll<Texture2D>("HexLive/BloodStains");
-        var normals = Resources.LoadAll<Texture2D>("HexLive/BloodStainNormals");
-        System.Array.Sort(textures, (a, b) => string.CompareOrdinal(a.name, b.name));
-        System.Array.Sort(normals, (a, b) => string.CompareOrdinal(a.name, b.name));
-
-        _materials = new Material[textures.Length];
-        for (var i = 0; i < textures.Length; i++)
-        {
-            _materials[i] = CreateStainMaterial(textures[i],
-                i < normals.Length ? normals[i] : null);
-        }
-    }
-
-    // URP Decal shadergraph material (same "Base_Map" reference quirk as the
-    // skin decals). The pack normal map gives the pool its wet relief; the
-    // DBuffer runs Albedo+Normal, smoothness stays untouched.
-    private static Material CreateStainMaterial(Texture2D texture, Texture2D normal)
-    {
-        var shader = Shader.Find("Shader Graphs/Decal");
-        var material = new Material(shader != null ? shader : Shader.Find("Universal Render Pipeline/Lit"));
-        material.SetTexture("Base_Map", texture);
-        material.SetTexture("_BaseMap", texture);
-        var blend = normal != null ? 0.6f : 0f;
-        if (normal != null)
-        {
-            material.SetTexture("Normal_Map", normal);
-            material.SetTexture("_NormalMap", normal);
-        }
-
-        material.SetFloat("Normal_Blend", blend);
-        material.SetFloat("_NormalBlend", blend);
-        material.SetFloat("_DecalNormalBlendFactor", blend);
-        return material;
+        // Use the RVFX pack's OWN projector decal materials (the pretty
+        // BloodFX_PBR_Projector_URP shadergraph — tuned albedo power, ambient
+        // intensity, wet smoothness/specularity + normal), copied into
+        // Resources as BloodStain_01..04. They render exactly like the pack's
+        // demo `..._Static_Projected` prefabs; we only drive size + fadeFactor
+        // per stain on our tick-driven lifecycle. Shared instances: fadeFactor
+        // and size are DecalProjector fields, not material state, so one
+        // material serves every stain of that variant.
+        _materials = Resources.LoadAll<Material>("HexLive/BloodStainMats");
+        System.Array.Sort(_materials, (a, b) => string.CompareOrdinal(a.name, b.name));
     }
 }
 

@@ -68,26 +68,47 @@ Shader "HexLive/StylizedWater"
                 float _Smoothness;
             CBUFFER_END
 
+            // The wave surface Y = base + A*sin(ax)*cos(az), where ax,az are
+            // functions of world x,z only. Shared by vert (displacement) and
+            // frag (analytic normal) so both read the exact same wave.
+            float WaveHeight(float x, float z, float t)
+            {
+                float ax = x * _WaveFreq + t;
+                float az = z * _WaveFreq * 0.8 + t * 1.3;
+                return sin(ax) * cos(az);
+            }
+
             Varyings vert (Attributes IN)
             {
                 Varyings OUT;
                 float3 posWS = TransformObjectToWorld(IN.positionOS.xyz);
 
                 float t = _Time.y * _WaveSpeed;
-                float wave = sin(posWS.x * _WaveFreq + t)
-                           * cos(posWS.z * _WaveFreq * 0.8 + t * 1.3);
-                posWS.y += wave * _WaveAmp;
+                posWS.y += WaveHeight(posWS.x, posWS.z, t) * _WaveAmp;
 
                 OUT.positionWS = posWS;
                 OUT.positionHCS = TransformWorldToHClip(posWS);
-                OUT.normalWS = TransformObjectToWorldNormal(IN.normalOS);
+                // Normal is derived per-pixel from the wave gradient in frag,
+                // so it no longer matters how coarsely the mesh is tessellated.
+                OUT.normalWS = float3(0, 1, 0);
                 return OUT;
             }
 
             half4 frag (Varyings IN) : SV_Target
             {
                 float3 viewDir = normalize(GetWorldSpaceViewDir(IN.positionWS));
-                float3 n = normalize(IN.normalWS);
+
+                // Per-pixel wave normal from the analytic gradient of
+                // Y = A*sin(ax)*cos(az). posWS.xz is the true world position
+                // (the wave only moved Y), so this is exact at any tessellation
+                // — the merged water sheet and the coarse sea plane both shade
+                // as one continuous, seam-free wave.
+                float tN = _Time.y * _WaveSpeed;
+                float ax = IN.positionWS.x * _WaveFreq + tN;
+                float az = IN.positionWS.z * _WaveFreq * 0.8 + tN * 1.3;
+                float dYdx = _WaveAmp * _WaveFreq * cos(ax) * cos(az);
+                float dYdz = -_WaveAmp * _WaveFreq * 0.8 * sin(ax) * sin(az);
+                float3 n = normalize(float3(-dYdx, 1.0, -dYdz));
 
                 // Fresnel: steep view -> deep colour, grazing view -> shallow.
                 float fres = pow(1.0 - saturate(dot(n, viewDir)), _FresnelPower);

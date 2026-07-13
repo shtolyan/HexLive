@@ -197,6 +197,11 @@ public sealed class NpcSnapshot
     public int Pills { get; set; }
     public float Sunburn { get; set; }
 
+    // Spec 35.4: the UV actually hitting this NPC right now — 0 indoors, in
+    // water or at night; shade cuts the global index to 20%. For the panel.
+    public float EffectiveUv { get; set; }
+    public bool IsShaded { get; set; }
+
     // Spec 40.9: authoritative injury-locomotion hint for the presentation
     // pose layer, derived from body damage + faint. One of: Faint, Crawl,
     // Limp, ArmHang, HeadClutch, Upright.
@@ -205,6 +210,15 @@ public sealed class NpcSnapshot
     // Spec 40.1: winded — stamina spent to the floor. Drives the panting
     // pose/breath in presentation. Derived (Stamina < 0.15), export-only.
     public bool Winded { get; set; }
+
+    // §21.21B hex-step hop: "Up"/"Down" while the sim walks the jump path
+    // (Movement.HopTimer > 0), else "". The view starts the jump clip and its
+    // vertical arc on the rising edge of this signal.
+    public string HopKind { get; set; } = string.Empty;
+
+    // §21.21B: the tile the hop lands on — the view derives the exact target
+    // ground height (water dives land below the surface, not one step down).
+    public TileCoord HopTargetTile { get; set; } = TileCoord.Zero;
 
     // Spec 40.13: knocked out — the presentation lays the body limp.
     public bool IsFainted { get; set; }

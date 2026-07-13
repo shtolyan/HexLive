@@ -13,6 +13,14 @@ Shader "HexLive/GarmentTear"
         _BaseMap ("Albedo", 2D) = "white" {}
         _BaseColor ("Color", Color) = (1, 1, 1, 1)
         [Normal] _BumpMap ("Normal", 2D) = "bump" {}
+        // Carried over from URP Lit on the swap: garments authored with a
+        // neutralized bump (scale 0 / tiny) must STAY smooth — sampling at
+        // a hard-coded strength 1 made relief pop in the moment damage
+        // swapped the shader ("нормали летают").
+        _BumpScale ("Normal scale", Float) = 1.0
+        // URP Lit convention: metallic in R, smoothness in A; white default
+        // keeps constant-driven materials identical.
+        _MetallicGlossMap ("Metallic (R) Gloss (A)", 2D) = "white" {}
         _Smoothness ("Smoothness", Range(0, 1)) = 0.35
         _Metallic ("Metallic", Range(0, 1)) = 0.0
         _TearAmount ("Tear (0 none .. 1 rags)", Range(0, 1)) = 0.0
@@ -59,6 +67,7 @@ Shader "HexLive/GarmentTear"
             half4 _BaseColor;
             half _Smoothness;
             half _Metallic;
+            half _BumpScale;
             half _TearAmount;
             float _TearScale;
             float _TearMaskTiling;
@@ -89,6 +98,7 @@ Shader "HexLive/GarmentTear"
 
         TEXTURE2D(_BaseMap); SAMPLER(sampler_BaseMap);
         TEXTURE2D(_BumpMap); SAMPLER(sampler_BumpMap);
+        TEXTURE2D(_MetallicGlossMap); SAMPLER(sampler_MetallicGlossMap);
         TEXTURE2D(_TearMaskTex); SAMPLER(sampler_TearMaskTex);
 
         float2 TearHash(float2 p)
@@ -323,7 +333,12 @@ Shader "HexLive/GarmentTear"
                     wetGloss *= 1.0 - wrap; // the wrap is matte
                 }
 
-                half3 normalTS = UnpackNormal(SAMPLE_TEXTURE2D(_BumpMap, sampler_BumpMap, input.uv));
+                // _BumpScale honors the authored strength (0 = neutralized —
+                // URP Lit garments without the _NORMALMAP keyword rendered
+                // smooth; popping to strength 1 on the damage swap read as
+                // "normals flying").
+                half3 normalTS = UnpackNormalScale(
+                    SAMPLE_TEXTURE2D(_BumpMap, sampler_BumpMap, input.uv), _BumpScale);
                 half sgn = input.tangentWS.w;
                 half3 bitangent = sgn * cross(input.normalWS, input.tangentWS.xyz);
                 half3 normalWS = normalize(TransformTangentToWorld(
@@ -337,12 +352,18 @@ Shader "HexLive/GarmentTear"
                 inputData.shadowCoord = TransformWorldToShadowCoord(input.positionWS);
                 inputData.bakedGI = SampleSH(normalWS);
 
+                // Per-pixel metallic/smoothness from the authored map (white
+                // default = the old constants): losing the gloss map on the
+                // damage swap flattened worn leather/satin to uniform plastic.
+                half4 metallicGloss = SAMPLE_TEXTURE2D(_MetallicGlossMap,
+                    sampler_MetallicGlossMap, input.uv);
+
                 SurfaceData surfaceData = (SurfaceData)0;
                 surfaceData.albedo = albedo.rgb;
                 surfaceData.alpha = 1;
-                surfaceData.metallic = _Metallic;
+                surfaceData.metallic = _Metallic * metallicGloss.r;
                 // Wet patches (blood/sweat) gloss the fabric locally.
-                surfaceData.smoothness = saturate(_Smoothness + wetGloss * 0.45);
+                surfaceData.smoothness = saturate(_Smoothness * metallicGloss.a + wetGloss * 0.45);
                 surfaceData.occlusion = 1;
                 surfaceData.normalTS = normalTS;
 

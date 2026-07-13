@@ -124,6 +124,13 @@ namespace HexLive.UnityPresentation.Localization
             ["rel.tense"] = new[] { "tense", "напряжённо" },
             ["rel.hostile"] = new[] { "hostile", "враждебно" },
 
+            // Sun / UV exposure (character panel)
+            ["uv.high"] = new[] { "UV: high", "УФ: высокий" },
+            ["uv.mid"] = new[] { "UV: medium", "УФ: средний" },
+            ["uv.low"] = new[] { "UV: low", "УФ: низкий" },
+            ["uv.none"] = new[] { "UV: none", "УФ: нет" },
+            ["uv.shade"] = new[] { "in shade", "в тени" },
+
             // Status badges
             ["badge.starving"] = new[] { "STARVING", "ГОЛОДАЕТ" },
             ["badge.fighting"] = new[] { "FIGHTING", "ДЕРЁТСЯ" },

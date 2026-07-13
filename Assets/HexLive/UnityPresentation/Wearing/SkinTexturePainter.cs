@@ -63,7 +63,15 @@ namespace HexLive.UnityPresentation.Wearing
             // Relief for the skin NORMAL map: gashes cut in, blood beads up.
             public Texture? UnderNormal;
             public Texture? OverNormal;
+            // Wet-gloss shape for the painted _MetallicGlossMap (alpha =
+            // smoothness 0..1 before the WoundWetGloss scale).
+            public Texture? OverGloss;
             public bool IsBandage;
+            // Spec 40.8 v4 water droplet: the effect stamp (refraction normal
+            // + rim + coverage/halo) and the atlas cell both textures use.
+            public Texture? Effect;
+            public Rect CellRect = new(0f, 0f, 1f, 1f);
+            public bool IsDroplet;
         }
 
         // 1024 visibly softened the 4096 Daz skin (the whole slot swaps to the
@@ -72,6 +80,55 @@ namespace HexLive.UnityPresentation.Wearing
         // GUI-neutral: Graphics.DrawTexture doubles the colour, so 0.5 gray
         // renders the stamp unmodified; alpha likewise runs on a 0.5 scale.
         private static Color StampTint(float alpha) => new(0.5f, 0.5f, 0.5f, alpha * 0.5f);
+
+        // ---- Spec 40.8 v4 water-droplet knobs ----
+        // Drops appear once the wetness pool clears this (below it wetness is
+        // gloss-only, as before).
+        private const float DropletWetnessThreshold = 0.25f;
+        // 40.8 v4.1: head PATCHES are allowed again — the pox read came from
+        // naked normal-relief beads, these are fully shaded water drops. The
+        // face stamps stay smaller (HeadPatchScale) as extra insurance.
+        private const int FaceDroplets = 2;
+        private const float HeadPatchScale = 0.6f;
+        // v4.1: a stamp is a PATCH of 4-9 small drops (user verdict on
+        // single-drop stamps: "one drop is nothing — cover the whole body").
+        // Patch spans 5-7.5 cm; the drops inside come out Ø ~10-18 mm.
+        private const float DropWorldSizeMin = 0.05f;
+        private const float DropWorldSizeMax = 0.075f;
+        // Belt-and-braces for the dense face UV tile ("beads blew up huge"):
+        // no droplet stamp may span more UV than this on either axis.
+        private const float MaxDropletUvSize = 0.12f;
+        // Water shading, applied by DropletStamp.shader at stamp time.
+        private const float DropGloss = 0.95f;   // smoothness inside the drop
+        private const float DropDarken = 0.7f;   // wet albedo under the drop
+        private const float HaloDarken = 0.9f;   // damp ring around it
+        // Albedo shift as a fraction of the STAMP size. v4.1 stamps are
+        // multi-drop patches, so this is ~0.3x of a single drop's span.
+        private const float RefractStrength = 0.05f;
+        private const float RimBoost = 0.8f;     // additive meniscus highlight
+        // The gloss mask is soft — 1024 is plenty (2048 with mips costs ~21 MB
+        // per slot and buys nothing for a smoothness ramp).
+        private const int GlossRtSize = 1024;
+
+        // ---- wound volume knobs (spec 40.8-D v5) ----
+        // Fresh cuts glisten: absolute smoothness stamped into the wet core
+        // (base skin stays at the caller's dry/wet value, 0.32 dry).
+        // Full 1.0 — the wound IS the volume cue now (relief was cut for
+        // UV-seam artifacts), so it must visibly out-shine everything,
+        // including the 0.72 sweat sheen and the 0.95 droplets.
+        private const float WoundWetGloss = 1f;
+
+        private static readonly int UnderTexId = Shader.PropertyToID("_UnderTex");
+        private static readonly int SlotRectId = Shader.PropertyToID("_SlotRect");
+        private static readonly int CellRectId = Shader.PropertyToID("_CellRect");
+        private static readonly int FadeId = Shader.PropertyToID("_Fade");
+        private static readonly int RefractStrengthId = Shader.PropertyToID("_RefractStrength");
+        private static readonly int DarkenId = Shader.PropertyToID("_Darken");
+        private static readonly int HaloDarkenId = Shader.PropertyToID("_HaloDarken");
+        private static readonly int RimBoostId = Shader.PropertyToID("_RimBoost");
+        private static readonly int BaseGlossId = Shader.PropertyToID("_BaseGloss");
+        private static readonly int DropGlossId = Shader.PropertyToID("_DropGloss");
+        private static readonly int GlossMaxId = Shader.PropertyToID("_GlossMax");
 
         // Stamp art loads once per session, not once per wound.
         // NOTE: the RVFX pack splatters were tried as underlay variants and
@@ -88,14 +145,36 @@ namespace HexLive.UnityPresentation.Wearing
         private static Texture2D? _texSplashN;
         private static Texture2D? _texScratchN;
         private static Texture2D? _texSplatN;
-        // Sweat beads are NORMAL-ONLY stamps: a real droplet is transparent —
-        // no albedo paint at all, just dome relief; the wet skin gloss turns
-        // each dome into its own sun glint. (The albedo decal experiment
-        // baked white highlights that showed even in shadow.)
+        // LEGACY v3 bead-spray sheet — kept for future pox/insect-bite
+        // visuals. Live sweat now uses the procedural SweatDropletSheet
+        // (spec 40.8 v4: few large drops, three painted channels).
         private static Texture2D? _texSweatN;
+        // Wet-core gloss shapes for the wound art (alpha = smoothness 0..1).
+        private static Texture2D? _texScratchG;
+        private static Texture2D? _texSplatG;
+        // Spec 40.8-D v5: the wound over-art VARIANT table. Seed picks one so
+        // repeated hits don't all look identical. Index-aligned: _woundGloss[i]
+        // is the wet-core gloss for _woundOver[i]. All are BLOOD-ONLY art (no
+        // baked skin/flesh) so any tan tint reads right. Extra gash shapes
+        // (wound_gash_*) join the two originals (scratch claw + blood splat).
+        private static readonly string[] WoundVariantNames =
+        {
+            "wound_scratch", "blood_splat",
+            "wound_gash_slash", "wound_gash_streak", "wound_gash_smear",
+            "wound_gash_fork", "wound_gash_torn",
+        };
+        private static Texture2D?[] _woundOver = System.Array.Empty<Texture2D?>();
+        private static Texture2D?[] _woundGloss = System.Array.Empty<Texture2D?>();
         // Decodes the (possibly DXT5nm) authored skin normal into plain RGB
         // before stamps blend on top (NormalDecodeBlit.shader).
         private static Material? _normalDecode;
+        // Stamps wound wet-gloss into the map's alpha (WoundGlossStamp.shader:
+        // BlendOp Max, ColorMask A — overlaps keep the shiniest value).
+        private static Material? _glossStamp;
+        // Spec 40.8 v4: composites a droplet's refraction/darkening/rim into
+        // the albedo and its smoothness into the gloss map (DropletStamp.shader).
+        private static Material? _dropletStamp;
+        private static bool _dropletShaderWarned;
 
         private SkinnedMeshRenderer? _body;
         private BodyBones? _bones;
@@ -109,6 +188,15 @@ namespace HexLive.UnityPresentation.Wearing
         private Texture?[] _originalNormal = System.Array.Empty<Texture?>();
         private RenderTexture?[] _slotRt = System.Array.Empty<RenderTexture?>();
         private RenderTexture?[] _slotRtNormal = System.Array.Empty<RenderTexture?>();
+        // Spec 40.8 v4: the third painted channel — per-pixel smoothness.
+        // Alpha carries ABSOLUTE values (URP Lit multiplies the map by the
+        // _Smoothness scalar, so NpcActorView pins the scalar to 1 on slots
+        // where this map is live — see SlotHasGlossMap).
+        private RenderTexture?[] _slotRtGloss = System.Array.Empty<RenderTexture?>();
+        private bool[] _glossLive = System.Array.Empty<bool>();
+        // Smoothness of wet-but-undropped skin — the gloss map's base value,
+        // fed by NpcActorView from the unified wetness pool.
+        private float _wetSmoothness = 0.32f;
 
         private readonly Dictionary<string, Stamp> _stamps = new();
         private readonly Dictionary<string, float> _alpha = new(); // key -> current fade
@@ -142,6 +230,8 @@ namespace HexLive.UnityPresentation.Wearing
             _originalNormal = new Texture?[_materials.Length];
             _slotRt = new RenderTexture?[_materials.Length];
             _slotRtNormal = new RenderTexture?[_materials.Length];
+            _slotRtGloss = new RenderTexture?[_materials.Length];
+            _glossLive = new bool[_materials.Length];
             for (var i = 0; i < _materials.Length; i++)
             {
                 _originalAlbedo[i] = _materials[i] != null && _materials[i].HasProperty("_BaseMap")
@@ -153,45 +243,87 @@ namespace HexLive.UnityPresentation.Wearing
             }
         }
 
-        // Patches per zone (sizes are world-true via StampSizeFor, so only
-        // the count varies: small zones need fewer).
-        private static int SweatStampsFor(string zone) => zone == "Head" ? 2 : 6;
+        /// <summary>The renderer whose material slots this painter owns —
+        /// NpcActorView matches it against its tint targets.</summary>
+        public SkinnedMeshRenderer? Body => _body;
+
+        /// <summary>True while a slot's material carries the painted gloss
+        /// map. The map's alpha is ABSOLUTE smoothness, so the caller must
+        /// pin the _Smoothness scalar/property-block to 1 on these slots
+        /// (URP Lit multiplies map × scalar) — and back to its own wetness
+        /// lerp everywhere else.</summary>
+        public bool SlotHasGlossMap(int slot) =>
+            slot >= 0 && slot < _glossLive.Length && _glossLive[slot];
+
+        // Spec 40.8 v4.1: PATCHES per zone (each carries 4-9 shaded drops —
+        // full coverage lands ~200 drops body-wide). Counts scale with the
+        // wetness pool: a patch or two just past the threshold, the full
+        // set near soaked — at which point she reads covered in beads.
+        private static int MaxDropletsFor(string zone) => zone switch
+        {
+            "Head" => FaceDroplets,
+            "Torso" => 8,
+            "LegL" or "LegR" => 6,
+            "Pelvis" => 4,
+            _ => 4
+        };
+
+        private static int DropletCountFor(string zone, float sweat)
+        {
+            var max = MaxDropletsFor(zone);
+            if (max == 0 || sweat < DropletWetnessThreshold)
+            {
+                return 0;
+            }
+
+            var t = Mathf.Clamp01((sweat - DropletWetnessThreshold) /
+                                  (0.9f - DropletWetnessThreshold));
+            return Mathf.Max(1, Mathf.RoundToInt(max * t));
+        }
 
         /// <summary>
         /// wounds: (zone, seed, heal01) records; bandaged: zones under a leaf
-        /// wrap; sweat01 + uncovered drive the normal-only droplet stamps.
+        /// wrap; sweat01 + uncovered drive the painted water droplets (40.8
+        /// v4); wetSmoothness is the caller's current wet-skin gloss — it
+        /// becomes the gloss map's base so droplets sit ON the wet sheen.
         /// New wounds raycast-place once; heals repaint with lower alpha;
         /// fully healed marks vanish (composite rebuilt from the original).
         /// </summary>
         public void Sync(List<(string zone, int seed, float heal)> wounds, HashSet<string> bandaged,
-            float sweat01 = 0f, HashSet<string>? uncovered = null)
+            float sweat01 = 0f, HashSet<string>? uncovered = null, float wetSmoothness = 0.32f)
         {
             if (_body == null || _materials == null)
             {
                 return;
             }
 
+            _wetSmoothness = Mathf.Clamp01(wetSmoothness);
             _desired.Clear();
             var stateHash = 17;
             var needsPlacement = false;
 
-            // Sweat beads bloom on every bare zone once she's damp; their
-            // relief fades with the same 0.1 buckets as the wound marks.
+            // Water droplets bead up on EVERY zone once the wetness pool
+            // clears the threshold — v4.1 drops the uncovered filter (sweat
+            // soaks the whole body; covered zones are occluded by the
+            // garment meshes anyway, and skin peeking through rips/gaps
+            // should glisten too). Count grows with wetness, relief/gloss
+            // fade with the same 0.1 buckets as the wound marks.
             var sweat = Mathf.Clamp01(sweat01);
-            if (sweat > 0.05f && uncovered != null)
+            _ = uncovered; // kept for signature stability (wounds still use it upstream)
+            if (sweat > DropletWetnessThreshold)
             {
-                foreach (var zone in uncovered)
+                foreach (var zone in Zones.Keys)
                 {
-                    if (!Zones.ContainsKey(zone))
-                    {
-                        continue;
-                    }
-
-                    for (var i = 0; i < SweatStampsFor(zone); i++)
+                    for (var i = 0; i < DropletCountFor(zone, sweat); i++)
                     {
                         var key = $"sw{zone}#{i}";
                         _desired.Add(key);
-                        _alpha[key] = sweat;
+                        // Remapped fade: raw wetness left drops at 30-60%
+                        // opacity for most of the sweaty range — ghosts. A
+                        // drop that EXISTS should read near-full; it still
+                        // dissolves through the buckets while drying.
+                        _alpha[key] = Mathf.Clamp01((sweat - DropletWetnessThreshold) /
+                                                    (0.6f - DropletWetnessThreshold));
                         stateHash = stateHash * 31 + key.GetHashCode();
                         if (!_stamps.ContainsKey(key))
                         {
@@ -201,6 +333,9 @@ namespace HexLive.UnityPresentation.Wearing
                 }
 
                 stateHash = stateHash * 31 + (int)(sweat * 10f);
+                // The gloss base tracks the wetness pool — repaint the map
+                // when it crosses a bucket even if the drop set is unchanged.
+                stateHash = stateHash * 31 + (int)(_wetSmoothness * 20f);
             }
 
             foreach (var (zone, seed, heal) in wounds)
@@ -217,6 +352,13 @@ namespace HexLive.UnityPresentation.Wearing
                 {
                     needsPlacement = true;
                 }
+            }
+
+            if (wounds.Count > 0)
+            {
+                // Wound gloss sits on the wet-skin base — repaint when the
+                // wetness pool crosses a bucket even with no drops around.
+                stateHash = stateHash * 31 + (int)(_wetSmoothness * 20f);
             }
 
             foreach (var zone in bandaged)
@@ -297,16 +439,11 @@ namespace HexLive.UnityPresentation.Wearing
                 }
             }
 
-            if (sweat01 > 0.05f && uncovered != null)
+            if (sweat01 > DropletWetnessThreshold)
             {
-                foreach (var zone in uncovered)
+                foreach (var zone in Zones.Keys)
                 {
-                    if (!Zones.ContainsKey(zone))
-                    {
-                        continue;
-                    }
-
-                    for (var i = 0; i < SweatStampsFor(zone); i++)
+                    for (var i = 0; i < DropletCountFor(zone, sweat01); i++)
                     {
                         var key = $"sw{zone}#{i}";
                         if (!_stamps.ContainsKey(key))
@@ -318,8 +455,13 @@ namespace HexLive.UnityPresentation.Wearing
             }
         }
 
-        // A sweat bead patch: same seeded surface placement as a wound, but
-        // the stamp is NORMAL-ONLY (no albedo entries) — pure relief.
+        // Spec 40.8 v4.1: a PATCH of small shaded water drops per stamp.
+        // (v4.0 tried one large drop per stamp — read as "one lonely drop";
+        // v3's dense spray read as pox because its beads were naked relief.
+        // These are dense AND fully shaded.) Same seeded surface placement
+        // as a wound; the stamp paints THREE channels: dome relief into the
+        // normal map, refraction/darkening/rim into the albedo, and near-1
+        // smoothness into the gloss map.
         private void TryPlaceSweat(string key, string zoneName, int seed)
         {
             if (!Zones.TryGetValue(zoneName, out var zone))
@@ -369,11 +511,20 @@ namespace HexLive.UnityPresentation.Wearing
             uv.x = Mathf.Repeat(uv.x, 1f);
             uv.y = Mathf.Repeat(uv.y, 1f);
             EnsureStampTextures();
-            // A bead patch spans ~18 cm of body (full-rig metres) — the sheet
-            // inside carries dozens of drops at a consistent world size.
-            var targetWorld = (0.15f + NextRand(ref state) * 0.06f) * (_height / 1.7f);
-            StampSizeFor(triangle, targetWorld, out var sizeU, out var sizeV);
-            Debug.Log($"[SkinPaint] npc{_npcId} sweat {zoneName} -> slot={slot} uv=({uv.x:F2},{uv.y:F2}) size=({sizeU:F2},{sizeV:F2})");
+            // A PATCH of 4-9 shaded drops, world-true 5-7.5 cm across
+            // (drops inside ~10-18 mm — still exaggerated vs real 2-4 mm
+            // sweat, or they die in camera distance and mips).
+            var targetWorld = (DropWorldSizeMin +
+                               NextRand(ref state) * (DropWorldSizeMax - DropWorldSizeMin)) *
+                              (_height / 1.7f) *
+                              (zoneName == "Head" ? HeadPatchScale : 1f);
+            // Droplets bypass the wound floor (0.02 UV would already be 4x a
+            // drop on a sparse torso tile) but hard-cap on the dense face tile.
+            StampSizeFor(triangle, targetWorld, out var sizeU, out var sizeV, minUv: 0.004f);
+            sizeU = Mathf.Min(sizeU, MaxDropletUvSize);
+            sizeV = Mathf.Min(sizeV, MaxDropletUvSize);
+            var cell = PickDropletCell(zoneName, ref state);
+            Debug.Log($"[SkinPaint] npc{_npcId} droplet {zoneName} cell={cell} -> slot={slot} uv=({uv.x:F2},{uv.y:F2}) size=({sizeU:F3},{sizeV:F3})");
             _stamps[key] = new Stamp
             {
                 Key = key,
@@ -382,9 +533,21 @@ namespace HexLive.UnityPresentation.Wearing
                 Seed = seed,
                 UvSizeX = sizeU,
                 UvSizeY = sizeV,
-                OverNormal = _texSweatN,
+                OverNormal = SweatDropletSheet.Normal,
+                Effect = SweatDropletSheet.Effect,
+                CellRect = SweatDropletSheet.CellRect(cell),
+                IsDroplet = true,
                 IsBandage = false
             };
+        }
+
+        // v4.2: every cell is round beads (run-trail cells were cut — the
+        // body animates, texture "down" points anywhere), so the pick is a
+        // plain seeded roll.
+        private static int PickDropletCell(string zone, ref uint state)
+        {
+            _ = zone;
+            return (int)(NextRand(ref state) * SweatDropletSheet.Cells) % SweatDropletSheet.Cells;
         }
 
         // Bakes the current pose and refreshes the local-space working set.
@@ -456,7 +619,8 @@ namespace HexLive.UnityPresentation.Wearing
         // and V (world metres per UV unit) and returns per-axis UV sizes so
         // the painted stamp is SQUARE and `targetWorld` metres wide on the
         // body no matter how the tile is unwrapped.
-        private void StampSizeFor(int triangle, float targetWorld, out float sizeU, out float sizeV)
+        private void StampSizeFor(int triangle, float targetWorld, out float sizeU, out float sizeV,
+            float minUv = 0.02f)
         {
             var i0 = _skinTriangles[triangle * 3];
             var i1 = _skinTriangles[triangle * 3 + 1];
@@ -477,8 +641,8 @@ namespace HexLive.UnityPresentation.Wearing
             var dPdv = (p2 * t1.x - p1 * t2.x) * inv;
             var worldPerU = Mathf.Max(0.0001f, dPdu.magnitude * _localToWorldScale);
             var worldPerV = Mathf.Max(0.0001f, dPdv.magnitude * _localToWorldScale);
-            sizeU = Mathf.Clamp(targetWorld / worldPerU, 0.02f, 0.95f);
-            sizeV = Mathf.Clamp(targetWorld / worldPerV, 0.02f, 0.95f);
+            sizeU = Mathf.Clamp(targetWorld / worldPerU, minUv, 0.95f);
+            sizeV = Mathf.Clamp(targetWorld / worldPerV, minUv, 0.95f);
         }
 
         private void TryPlace(string key, string zoneName, int seed, bool isBandage)
@@ -545,6 +709,7 @@ namespace HexLive.UnityPresentation.Wearing
             var targetWorld = (isBandage ? 0.14f : 0.07f + NextRand(ref state) * 0.04f)
                               * (_height / 1.7f);
             StampSizeFor(triangle, targetWorld, out var sizeU, out var sizeV);
+            var (wover, wgloss) = WoundVariant(seed);
             _stamps[key] = new Stamp
             {
                 Key = key,
@@ -554,9 +719,13 @@ namespace HexLive.UnityPresentation.Wearing
                 UvSizeX = sizeU,
                 UvSizeY = sizeV,
                 Under = isBandage ? null : _texSplash,
-                Over = isBandage ? _texBandage : (seed & 1) == 0 ? _texScratch : _texSplat,
-                UnderNormal = isBandage ? null : _texSplashN,
-                OverNormal = isBandage ? null : (seed & 1) == 0 ? _texScratchN : _texSplatN,
+                Over = isBandage ? _texBandage : wover,
+                // NO wound relief (spec 40.8-D v5 revision): stamps often
+                // straddle a UV seam and the normal discontinuity flared as
+                // ugly lit ridges there; the depth gain never justified it.
+                // Wound volume = albedo darkness + wet gloss. Droplets keep
+                // their dome relief (single small stamp, seams rare).
+                OverGloss = isBandage ? null : wgloss,
                 IsBandage = isBandage
             };
             Debug.Log($"[SkinPaint] npc{_npcId} {key} zone={zoneName} -> slot={slot} uv=({uv.x:F3},{uv.y:F3}) size=({sizeU:F2},{sizeV:F2})");
@@ -582,7 +751,10 @@ namespace HexLive.UnityPresentation.Wearing
             EnsureStampTextures();
             if (stamp.Key.StartsWith("sw"))
             {
-                stamp.OverNormal ??= _texSweatN;
+                // Droplet art is generated, not imported — heal references a
+                // domain reload may have severed.
+                stamp.OverNormal ??= SweatDropletSheet.Normal;
+                stamp.Effect ??= SweatDropletSheet.Effect;
                 return;
             }
 
@@ -593,9 +765,34 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             stamp.Under ??= _texSplash;
-            stamp.UnderNormal ??= _texSplashN;
-            stamp.Over ??= (stamp.Seed & 1) == 0 ? _texScratch : _texSplat;
-            stamp.OverNormal ??= (stamp.Seed & 1) == 0 ? _texScratchN : _texSplatN;
+            var (wover, wgloss) = WoundVariant(stamp.Seed);
+            stamp.Over ??= wover;
+            stamp.OverGloss ??= wgloss;
+        }
+
+        // Deterministic per-seed wound art: the same seed always resolves to
+        // the same shape, so a save-replay and a late RefreshStampArt agree.
+        // Skips variants whose PNG hasn't imported yet (partial import paints
+        // fewer shapes, never crashes); index-aligned over+gloss stay paired.
+        private static (Texture? over, Texture? gloss) WoundVariant(int seed)
+        {
+            var n = _woundOver.Length;
+            if (n == 0)
+            {
+                return (_texScratch, _texScratchG);
+            }
+
+            var start = (int)((uint)seed % (uint)n);
+            for (var k = 0; k < n; k++)
+            {
+                var i = (start + k) % n;
+                if (_woundOver[i] != null)
+                {
+                    return (_woundOver[i], _woundGloss[i]);
+                }
+            }
+
+            return (_texScratch, _texScratchG);
         }
 
         // Closest-by-centroid skin triangle to a baked-local point.
@@ -628,14 +825,21 @@ namespace HexLive.UnityPresentation.Wearing
             _stampTexturesLoaded = false;
             _texSplash = _texScratch = _texSplat = _texBandage = null;
             _texSplashN = _texScratchN = _texSplatN = _texSweatN = null;
+            _texScratchG = _texSplatG = null;
+            _woundOver = System.Array.Empty<Texture2D?>();
+            _woundGloss = System.Array.Empty<Texture2D?>();
             _normalDecode = null;
+            _dropletStamp = null;
+            _glossStamp = null;
+            _dropletShaderWarned = false;
         }
 
         private static void EnsureStampTextures()
         {
             // Re-check while anything is missing (asset may import mid-session).
             if (_stampTexturesLoaded && _texScratchN != null && _texSplatN != null &&
-                _texSplashN != null && _texSweatN != null)
+                _texSplashN != null && _texSweatN != null && _dropletStamp != null &&
+                _texScratchG != null && _texSplatG != null && _glossStamp != null)
             {
                 return;
             }
@@ -649,8 +853,26 @@ namespace HexLive.UnityPresentation.Wearing
             _texScratchN = Resources.Load<Texture2D>("HexLive/Decals/wound_scratch_n");
             _texSplatN = Resources.Load<Texture2D>("HexLive/Decals/blood_splat_n");
             _texSweatN = Resources.Load<Texture2D>("HexLive/Decals/sweat_drops_n");
+            _texScratchG = Resources.Load<Texture2D>("HexLive/Decals/wound_scratch_g");
+            _texSplatG = Resources.Load<Texture2D>("HexLive/Decals/blood_splat_g");
+
+            // Load the wound over-art variant table (over + matching gloss).
+            // A missing variant PNG leaves nulls — WoundVariant() skips them,
+            // so a partial import just paints fewer shapes, never crashes.
+            _woundOver = new Texture2D?[WoundVariantNames.Length];
+            _woundGloss = new Texture2D?[WoundVariantNames.Length];
+            for (var i = 0; i < WoundVariantNames.Length; i++)
+            {
+                _woundOver[i] = Resources.Load<Texture2D>($"HexLive/Decals/{WoundVariantNames[i]}");
+                _woundGloss[i] = Resources.Load<Texture2D>($"HexLive/Decals/{WoundVariantNames[i]}_g");
+            }
+
             var decodeShader = Shader.Find("Hidden/HexLive/NormalDecodeBlit");
             _normalDecode = decodeShader != null ? new Material(decodeShader) : null;
+            var dropletShader = Shader.Find("Hidden/HexLive/DropletStamp");
+            _dropletStamp = dropletShader != null ? new Material(dropletShader) : null;
+            var glossShader = Shader.Find("Hidden/HexLive/WoundGlossStamp");
+            _glossStamp = glossShader != null ? new Material(glossShader) : null;
         }
 
         // ---- painting ----
@@ -669,13 +891,17 @@ namespace HexLive.UnityPresentation.Wearing
                 RefreshStampArt(stamp);
             }
 
-            // Which slots carry stamps now — PER CHANNEL: a sweat-only slot
-            // must not swap its albedo to the (lower-res) paint target, and a
-            // fully healed slot restores each original independently.
+            // Which slots carry stamps now — PER CHANNEL: a fully healed slot
+            // restores each original independently. Droplets touch all three
+            // channels: refraction/rim bake into the albedo (the price of the
+            // lens look — the slot swaps to the paint target), relief into
+            // the normal map, near-1 smoothness into the gloss map.
             for (var slot = 0; slot < _materials.Length; slot++)
             {
                 var hasAlbedo = false;
                 var hasNormal = false;
+                var hasDroplet = false;
+                var hasGloss = false;
                 foreach (var stamp in _stamps.Values)
                 {
                     if (stamp.Slot != slot)
@@ -683,8 +909,12 @@ namespace HexLive.UnityPresentation.Wearing
                         continue;
                     }
 
-                    hasAlbedo |= stamp.Under != null || stamp.Over != null;
+                    var droplet = stamp.IsDroplet && stamp.Effect != null;
+                    hasAlbedo |= stamp.Under != null || stamp.Over != null || droplet;
                     hasNormal |= stamp.UnderNormal != null || stamp.OverNormal != null;
+                    hasDroplet |= droplet;
+                    // Wounds carry their own wet-gloss stamp (spec 40.8-D v5).
+                    hasGloss |= droplet || stamp.OverGloss != null;
                 }
 
                 if (hasAlbedo)
@@ -704,8 +934,50 @@ namespace HexLive.UnityPresentation.Wearing
                 {
                     RestoreSlotNormal(slot);
                 }
+
+                if (hasDroplet && _dropletStamp == null && !_dropletShaderWarned)
+                {
+                    // Droplets without their shader = faint normal bumps only.
+                    _dropletShaderWarned = true;
+                    Debug.LogWarning($"[SkinPaint] npc{_npcId}: DropletStamp shader missing — " +
+                                     "droplet albedo/gloss muted (normal relief only)");
+                }
+
+                if ((hasDroplet && _dropletStamp != null) || (hasGloss && _glossStamp != null))
+                {
+                    RepaintSlotGloss(slot);
+                }
+                else if (_glossLive[slot])
+                {
+                    RestoreSlotGloss(slot);
+                }
             }
         }
+
+        // Uniforms for one droplet's DrawTexture passes. _SlotRect maps the
+        // stamp's footprint back to slot UVs so the shader can offset-sample
+        // the ORIGINAL albedo under the drop (the fake refraction).
+        private void ConfigureDropletMaterial(Stamp stamp, float fade, int slot)
+        {
+            var mat = _dropletStamp!;
+            mat.SetTexture(UnderTexId, _originalAlbedo[slot]);
+            mat.SetVector(SlotRectId, new Vector4(
+                stamp.Uv.x - stamp.UvSizeX * 0.5f, stamp.Uv.y - stamp.UvSizeY * 0.5f,
+                stamp.UvSizeX, stamp.UvSizeY));
+            mat.SetVector(CellRectId, new Vector4(
+                stamp.CellRect.x, stamp.CellRect.y, stamp.CellRect.width, stamp.CellRect.height));
+            mat.SetFloat(FadeId, fade);
+            mat.SetFloat(RefractStrengthId, RefractStrength);
+            mat.SetFloat(DarkenId, DropDarken);
+            mat.SetFloat(HaloDarkenId, HaloDarken);
+            mat.SetFloat(RimBoostId, RimBoost);
+            mat.SetFloat(BaseGlossId, _wetSmoothness);
+            mat.SetFloat(DropGlossId, DropGloss);
+        }
+
+        private Rect DropletRect(Stamp stamp) => new(
+            stamp.Uv.x - stamp.UvSizeX * 0.5f, 1f - stamp.Uv.y - stamp.UvSizeY * 0.5f,
+            stamp.UvSizeX, stamp.UvSizeY);
 
         private void RepaintSlot(int slot)
         {
@@ -762,6 +1034,8 @@ namespace HexLive.UnityPresentation.Wearing
                     // Underlay (the picked blood splash) draws wider; the
                     // detailed art centers on the exact hit UV. V axis flips
                     // (UV bottom-left origin vs pixel-matrix top-left).
+                    // 0.5: at 0.8 the splash's pale-pink wash read as skin
+                    // DISCOLORATION on tanned bodies — a faint halo only.
                     var cx = stamp.Uv.x;
                     var cy = 1f - stamp.Uv.y;
                     if (stamp.Under != null)
@@ -769,7 +1043,7 @@ namespace HexLive.UnityPresentation.Wearing
                         var sx = stamp.UvSizeX * 1.6f;
                         var sy = stamp.UvSizeY * 1.6f;
                         Graphics.DrawTexture(new Rect(cx - sx * 0.5f, cy - sy * 0.5f, sx, sy),
-                            stamp.Under, new Rect(0f, 0f, 1f, 1f), 0, 0, 0, 0, StampTint(alpha * 0.8f));
+                            stamp.Under, new Rect(0f, 0f, 1f, 1f), 0, 0, 0, 0, StampTint(alpha * 0.5f));
                     }
 
                     if (stamp.Over != null)
@@ -777,6 +1051,28 @@ namespace HexLive.UnityPresentation.Wearing
                         Graphics.DrawTexture(new Rect(cx - stamp.UvSizeX * 0.5f, cy - stamp.UvSizeY * 0.5f,
                                 stamp.UvSizeX, stamp.UvSizeY),
                             stamp.Over, new Rect(0f, 0f, 1f, 1f), 0, 0, 0, 0, StampTint(alpha));
+                    }
+                }
+
+                // Water droplets land ON TOP of wounds/bandages: the damp
+                // halo multiplies whatever is painted (pass 0), the drop
+                // interior becomes the refracted original albedo (pass 1).
+                if (_dropletStamp != null)
+                {
+                    foreach (var stamp in _stamps.Values)
+                    {
+                        if (stamp.Slot != slot || !stamp.IsDroplet || stamp.Effect == null ||
+                            !_alpha.TryGetValue(stamp.Key, out var alpha) || alpha <= 0.01f)
+                        {
+                            continue;
+                        }
+
+                        ConfigureDropletMaterial(stamp, alpha, slot);
+                        var rect = DropletRect(stamp);
+                        Graphics.DrawTexture(rect, stamp.Effect, stamp.CellRect,
+                            0, 0, 0, 0, Color.white, _dropletStamp, 0);
+                        Graphics.DrawTexture(rect, stamp.Effect, stamp.CellRect,
+                            0, 0, 0, 0, Color.white, _dropletStamp, 1);
                     }
                 }
 
@@ -791,6 +1087,114 @@ namespace HexLive.UnityPresentation.Wearing
                 _materials[slot].SetTexture("_BaseMap", source);
                 Debug.LogWarning($"[SkinPaint] npc{_npcId} slot={slot}: repaint failed, original restored — {e.Message}");
             }
+        }
+
+        // Spec 40.8 v4: the gloss map. Cleared to the CURRENT wet-skin base
+        // smoothness, droplets overwrite toward DropGloss (BlendOp Max in the
+        // shader keeps overlaps additive-safe). Alpha is ABSOLUTE smoothness
+        // and R is metallic 0 — URP Lit multiplies alpha by the _Smoothness
+        // scalar, which NpcActorView pins to 1 while this map is live.
+        private void RepaintSlotGloss(int slot)
+        {
+            // Either stamp material serves: droplets need _dropletStamp,
+            // wound wet-gloss needs _glossStamp — per-stamp guards below.
+            if (_materials == null || _materials[slot] == null ||
+                (_dropletStamp == null && _glossStamp == null) ||
+                !_materials[slot].HasProperty("_MetallicGlossMap"))
+            {
+                return;
+            }
+
+            var rt = _slotRtGloss[slot];
+            if (rt == null)
+            {
+                // Linear: the alpha is smoothness DATA, not colour.
+                rt = new RenderTexture(GlossRtSize, GlossRtSize, 0, RenderTextureFormat.ARGB32,
+                    RenderTextureReadWrite.Linear)
+                {
+                    name = $"SkinPaintG_{_npcId}_{slot}",
+                    useMipMap = true,
+                    autoGenerateMips = false
+                };
+                rt.Create();
+                _slotRtGloss[slot] = rt;
+                Debug.Log($"[SkinPaint] npc{_npcId} slot={slot}: gloss target {GlossRtSize}x{GlossRtSize}");
+            }
+
+            var previous = RenderTexture.active;
+            try
+            {
+                RenderTexture.active = rt;
+                GL.Clear(false, true, new Color(0f, 0f, 0f, _wetSmoothness));
+                GL.PushMatrix();
+                GL.LoadPixelMatrix(0f, 1f, 1f, 0f);
+
+                foreach (var stamp in _stamps.Values)
+                {
+                    if (stamp.Slot != slot ||
+                        !_alpha.TryGetValue(stamp.Key, out var alpha) || alpha <= 0.01f)
+                    {
+                        continue;
+                    }
+
+                    if (stamp.IsDroplet)
+                    {
+                        if (stamp.Effect == null || _dropletStamp == null)
+                        {
+                            continue;
+                        }
+
+                        ConfigureDropletMaterial(stamp, alpha, slot);
+                        Graphics.DrawTexture(DropletRect(stamp), stamp.Effect, stamp.CellRect,
+                            0, 0, 0, 0, Color.white, _dropletStamp, 2);
+                        continue;
+                    }
+
+                    if (stamp.OverGloss == null || _glossStamp == null)
+                    {
+                        continue;
+                    }
+
+                    // Only the detailed over-art glistens — the splash
+                    // underlay stays dry; a matte halo around a wet core is
+                    // what makes the cut read DEEP. Healing fades the gloss
+                    // until it sinks below the base and BlendOp Max drops it.
+                    _glossStamp.SetFloat(GlossMaxId, WoundWetGloss);
+                    _glossStamp.SetFloat(FadeId, alpha);
+                    Graphics.DrawTexture(new Rect(stamp.Uv.x - stamp.UvSizeX * 0.5f,
+                            1f - stamp.Uv.y - stamp.UvSizeY * 0.5f, stamp.UvSizeX, stamp.UvSizeY),
+                        stamp.OverGloss, new Rect(0f, 0f, 1f, 1f),
+                        0, 0, 0, 0, Color.white, _glossStamp);
+                }
+
+                GL.PopMatrix();
+                RenderTexture.active = previous;
+                rt.GenerateMips();
+                _materials[slot].SetTexture("_MetallicGlossMap", rt);
+                _materials[slot].EnableKeyword("_METALLICSPECGLOSSMAP");
+                _glossLive[slot] = true;
+            }
+            catch (System.Exception e)
+            {
+                RenderTexture.active = previous;
+                RestoreSlotGloss(slot);
+                Debug.LogWarning($"[SkinPaint] npc{_npcId} slot={slot}: gloss repaint failed — {e.Message}");
+            }
+        }
+
+        private void RestoreSlotGloss(int slot)
+        {
+            if (_materials == null || _materials[slot] == null ||
+                !_materials[slot].HasProperty("_MetallicGlossMap"))
+            {
+                return;
+            }
+
+            // Back to the scalar-only path (the authored materials ship with
+            // no gloss map at all) — NpcActorView resumes its wetness lerp.
+            _materials[slot].SetTexture("_MetallicGlossMap", null);
+            _materials[slot].DisableKeyword("_METALLICSPECGLOSSMAP");
+            _glossLive[slot] = false;
         }
 
         // The same composite for the skin NORMAL map: the authored normal is
@@ -865,9 +1269,11 @@ namespace HexLive.UnityPresentation.Wearing
 
                     if (stamp.OverNormal != null)
                     {
+                        // CellRect: droplets pick one drop out of the sheet's
+                        // atlas; wound art keeps the default full rect.
                         Graphics.DrawTexture(new Rect(cx - stamp.UvSizeX * 0.5f, cy - stamp.UvSizeY * 0.5f,
                                 stamp.UvSizeX, stamp.UvSizeY),
-                            stamp.OverNormal, new Rect(0f, 0f, 1f, 1f), 0, 0, 0, 0, StampTint(alpha));
+                            stamp.OverNormal, stamp.CellRect, 0, 0, 0, 0, StampTint(alpha));
                     }
                 }
 
@@ -916,6 +1322,15 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             foreach (var rt in _slotRtNormal)
+            {
+                if (rt != null)
+                {
+                    rt.Release();
+                    Destroy(rt);
+                }
+            }
+
+            foreach (var rt in _slotRtGloss)
             {
                 if (rt != null)
                 {

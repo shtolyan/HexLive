@@ -33,6 +33,9 @@ public sealed class NpcActorView : MonoBehaviour
     private static readonly int WorkingParam = Animator.StringToHash("Working");
     private static readonly int SittingParam = Animator.StringToHash("Sitting");
     private static readonly int LimpingParam = Animator.StringToHash("Limping");
+    private static readonly int JumpUpParam = Animator.StringToHash("JumpUp");
+    private static readonly int JumpDownParam = Animator.StringToHash("JumpDown");
+    private static readonly int SwimmingParam = Animator.StringToHash("Swimming");
     private string _currentPropId;
     private GameObject _handProp;
 
@@ -97,18 +100,21 @@ public sealed class NpcActorView : MonoBehaviour
     // bake-raycast placement + stamp records that fade with healing). Flip off
     // to fall back to the decal projectors.
     private const bool PaintWoundsIntoTexture = true;
-    // Sweat as painted NORMAL-ONLY relief (transparent beads glinting via the
-    // wet gloss) instead of albedo decals (baked white highlights showed even
-    // in shadow). PARKED for now — at body scale the bead relief read as a
-    // skin disease on the face; the tech is kept for future pox/insect-bite
-    // visuals ("оставим для болезней или укусов насекомых"). While parked,
-    // sweat shows as the wet gloss alone (the old droplet projectors stay
-    // muted too — they read as white paint).
-    private const bool PaintSweatIntoTexture = false;
-    // The decal-projector bubbles (the rebuilt glassy-bead sheet) are the
-    // best sweat look so far — back on per the user ("не идеальные, но пока
-    // лучше не получилось").
-    private const bool SweatDropletProjectors = true;
+    // Spec 40.8 v4: sweat/rain as painted WATER DROPLETS — few large drops,
+    // each stamped into all three skin channels: dome relief in the normal
+    // map, refraction + wet darkening + meniscus rim baked into the albedo,
+    // and near-1 smoothness in a painted gloss map (per-pixel — the uniform
+    // smoothness bump alone could never make a discrete drop). This is the
+    // v3 normal-relief tech un-parked: the pox read came from the DENSE BEAD
+    // SPRAY sheet, not the relief itself, so v4 stamps single exaggerated
+    // drops and skips the face. (v3's spray sheet stays for future
+    // pox/insect-bite visuals — "оставим для болезней или укусов насекомых".)
+    private const bool PaintSweatDroplets = true;
+    // The v2 decal-projector bubbles ("не идеальные, но пока лучше не
+    // получилось") retire while the painted droplets are on — two sweat
+    // systems double-coat the skin. The projector RAIN pass stays (streaks
+    // on skin + cloth).
+    private const bool SweatDropletProjectors = false;
     private SkinTexturePainter _skinPainter;
     private readonly List<(string zone, int seed, float heal)> _woundScratch = new();
 
@@ -199,6 +205,218 @@ public sealed class NpcActorView : MonoBehaviour
     public void SetSimSpeed(float multiplier)
     {
         _simSpeed = Mathf.Max(0.01f, multiplier);
+    }
+
+    // Hex-step jump (§21.21B). Timing comes from HexHopTuning — the single
+    // source the sim and the view share. Two entry points, one arc engine:
+    //  - SetHopSignal: the SIM says "walking the jump path now" (snapshot
+    //    HopKind). The body flies a BALLISTIC arc — linear XZ progress toward
+    //    the predicted landing point, vertical ease with overshoot (up) or
+    //    gravity (down) — and touches down LandingSeconds BEFORE the sim
+    //    window closes (§21.21B v3: Takeoff/Landing mark up the clip): the clip's
+    //    landing frames play already planted while the sim root slides the
+    //    last stretch underneath. Landing is exact by construction: the
+    //    planted point IS where the root arrives at window end.
+    //  - TriggerHexStepJump: legacy pose-delta path, now only water dive-in /
+    //    climb-out (§40.18-B): vertical-only arc over the treading pause, no
+    //    lead. Guarded so the root snap at a land-hop's end can't echo one.
+    // The clips are imported "_noy" (authored root height stripped), so this
+    // arc is the ONLY root-level motion.
+    // The up-arc apex rises this fraction ABOVE the target ledge before the
+    // body drops onto it (0.3 => ~0.17 wu over a 0.55 step).
+    private const float JumpUpOvershoot = 1.3f;
+    private string _hopKind = string.Empty;
+    // §21.21B v7: the VIEW is vertical-only. The sim already moves the root's
+    // XZ perfectly (gather → straight takeoff→landing), so the body follows
+    // the root's XZ exactly and adds ONLY a Y arc that smooths the ground-
+    // level snap at the tile crossing into a jump. No XZ prediction, no
+    // velocity extrapolation, no settle phase — those double-computed the XZ
+    // the sim already owns and left the residual offset the user saw.
+    private float _jumpStartY;         // root world-Y at arc start (stand level)
+    private bool _jumpPlunge;          // dive into water: splash below, bob up
+    private float _jumpHeightDelta;    // world units, signed (+ = up)
+    private float _jumpTakeoffFrac;    // [0..this] = crouch beat (arc flat)
+    private float _jumpFlightEndFrac;  // [this..1] = landing beat (arc = 1)
+    private float _jumpDuration;
+    private float _jumpTimer;
+    private float _jumpRetriggerGuard; // swallows the pose-delta echo at hop end
+    private bool _jumpUp;
+
+    // §40.18-B: deep-water locomotion — the renderer flags the tile. While
+    // swimming the animator runs TreadWater (still) / Swim (moving); the
+    // procedural arm layers (actions, thermal, posture) stand down so they
+    // don't fight the stroke.
+    // ONE shared body-height lift for swimming (world units, + = up) — the
+    // whole body sits this far off the root while in water, same for tread and
+    // stroke. Live-tunable so the swim test can dial it in.
+    public static float SwimBodyLift = 0.45f;
+    private bool _swimming;
+
+    public void SetSwimming(bool swimming)
+    {
+        if (_swimming == swimming)
+        {
+            return;
+        }
+
+        _swimming = swimming;
+        if (_animator != null)
+        {
+            _animator.SetBool(SwimmingParam, swimming);
+        }
+    }
+
+    // §21.21B: sim hop signal ("Up"/"Down"/""), fed every sync. Starts the
+    // ballistic arc on the rising edge. heightDeltaWorld is the EXACT signed
+    // root-level difference (renderer-computed; water dives include the swim
+    // sink depth).
+    public void SetHopSignal(string hopKind, float heightDeltaWorld, bool intoWater = false)
+    {
+        hopKind ??= string.Empty;
+        if (hopKind == _hopKind)
+        {
+            return;
+        }
+
+        _hopKind = hopKind;
+        if (hopKind.Length == 0)
+        {
+            return;
+        }
+
+        // §21.21B v3: one clock for everything — the body flies exactly the
+        // sim's airborne window: [Takeoff .. HopSeconds - Landing]. During
+        // the takeoff beat the root stands (offset 0 by construction);
+        // during the landing beat the root has stopped at the landing point
+        // and the clip plants the feet.
+        var up = hopKind == "Up";
+        _jumpPlunge = intoWater && !up;
+        var hop = HexLive.Simulation.Navigation.HexHopTuning.HopSeconds;
+        StartJumpArc(
+            up,
+            heightDeltaWorld,
+            hop,
+            HexLive.Simulation.Navigation.HexHopTuning.TakeoffSeconds / hop,
+            (hop - HexLive.Simulation.Navigation.HexHopTuning.LandingSeconds) / hop);
+    }
+
+    // Legacy pose-delta path — water dive-in / climb-out only.
+    public void TriggerHexStepJump(float heightDeltaWorld)
+    {
+        // A land hop in ANY phase (flight or the grace window after release)
+        // owns the body — the root's tile-switch snap must not echo a second
+        // arc.
+        if (_jumpTimer > 0f || _jumpRetriggerGuard > 0f)
+        {
+            return;
+        }
+
+        _jumpPlunge = false;
+        // Water dives/climb-outs have no sim hop window — half the hop clock
+        // covers the treading pause they play over; no takeoff/landing beats.
+        StartJumpArc(
+            heightDeltaWorld > 0f,
+            heightDeltaWorld,
+            HexLive.Simulation.Navigation.HexHopTuning.HopSeconds * 0.5f,
+            0f, 1f);
+    }
+
+    private void StartJumpArc(
+        bool up, float heightDelta, float durationSimSeconds,
+        float takeoffFrac, float flightEndFrac)
+    {
+        if (_laying || _dead || _animator == null)
+        {
+            return;
+        }
+
+        _jumpUp = up;
+        _jumpHeightDelta = heightDelta;
+        _jumpStartY = transform.position.y;
+        _jumpDuration = Mathf.Max(0.05f, durationSimSeconds);
+        _jumpTakeoffFrac = Mathf.Clamp01(takeoffFrac);
+        _jumpFlightEndFrac = Mathf.Clamp(flightEndFrac, _jumpTakeoffFrac + 0.05f, 1f);
+        _jumpTimer = _jumpDuration;
+        _animator.ResetTrigger(_jumpUp ? JumpDownParam : JumpUpParam);
+        _animator.SetTrigger(_jumpUp ? JumpUpParam : JumpDownParam);
+    }
+
+    // Vertical arc height 0..1 over the FLIGHT fraction tf (0 at takeoff-end,
+    // 1 at flight-end). > 1 = above the target ledge on the way up.
+    private float JumpVerticalEase(float tf)
+    {
+        if (_jumpUp)
+        {
+            // Launch fast, fly PAST the ledge height, drop onto it.
+            return tf < 0.5f
+                ? Mathf.SmoothStep(0f, JumpUpOvershoot, Mathf.InverseLerp(0f, 0.5f, tf))
+                : Mathf.Lerp(JumpUpOvershoot, 1f,
+                    Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.5f, 1f, tf)));
+        }
+
+        // Hold through the step-off, then gravity (quadratic) to touchdown.
+        var ease = Mathf.Pow(Mathf.Clamp01(Mathf.InverseLerp(0.1f, 1f, tf)), 2f);
+
+        // §40.18-B splash: a dive doesn't hover-stop at the waterline — it
+        // sails DivePlungeDepth UNDER the swim level and bobs back up to it
+        // (ease > 1 = below the target; back to exactly 1 by the end).
+        if (_jumpPlunge && _jumpHeightDelta < -0.01f)
+        {
+            var bob = Mathf.Sin(Mathf.Clamp01(Mathf.InverseLerp(0.62f, 1f, tf)) * Mathf.PI);
+            ease += bob * (HexLive.Simulation.Navigation.HexHopTuning.DivePlungeDepth /
+                Mathf.Abs(_jumpHeightDelta));
+        }
+
+        return ease;
+    }
+
+    // Advances the jump window and returns the world-space offset the body
+    // holds relative to the sim root this frame. VERTICAL ONLY (§21.21B v7):
+    // the sim owns the root's XZ (gather → straight flight → landing); the
+    // body follows it exactly and adds a Y arc that turns the tile-crossing
+    // ground snap into a jump. Self-correcting: it reads the live root Y each
+    // frame, so a late tile switch just holds the body at arc height until
+    // the snap arrives — no dip, no snap-back, no settle machinery.
+    private Vector3 JumpOffsetWorld()
+    {
+        if (_jumpRetriggerGuard > 0f)
+        {
+            _jumpRetriggerGuard -= Time.deltaTime * _simSpeed;
+        }
+
+        if (_jumpTimer <= 0f)
+        {
+            return Vector3.zero;
+        }
+
+        _jumpTimer -= Time.deltaTime * _simSpeed;
+        if (_jumpTimer <= 0f)
+        {
+            _jumpRetriggerGuard = 0.5f;
+            return Vector3.zero;
+        }
+
+        // t over the whole window; map to the FLIGHT fraction tf so the arc
+        // is flat during the takeoff beat and pinned at 1 during landing.
+        var t = 1f - Mathf.Clamp01(_jumpTimer / Mathf.Max(0.0001f, _jumpDuration));
+        float arc; // 0 at stand level, 1 at target level (>1 = overshoot above)
+        if (t <= _jumpTakeoffFrac)
+        {
+            arc = 0f;
+        }
+        else if (t >= _jumpFlightEndFrac)
+        {
+            arc = 1f;
+        }
+        else
+        {
+            var tf = Mathf.InverseLerp(_jumpTakeoffFrac, _jumpFlightEndFrac, t);
+            arc = JumpVerticalEase(tf);
+        }
+
+        // Desired body world-Y minus the actual (live) root Y = the offset.
+        var desiredY = _jumpStartY + _jumpHeightDelta * arc;
+        return new Vector3(0f, desiredY - transform.position.y, 0f);
     }
 
     // Face anchor rig for the portrait camera, calibrated once in the prefab's
@@ -316,8 +534,10 @@ public sealed class NpcActorView : MonoBehaviour
             // NOTE: an experiment swapping the SKIN to the GarmentTear paint
             // shader was reverted — Cull Off + the AlphaTest queue flickered on
             // the skinned body and the Daz skin lost its depth (looked flat
-            // white). Skin stays on URP Lit; wounds/bandages paint INTO the
-            // skin textures (SkinTexturePainter), sweat keeps its decals.
+            // white). Skin stays on URP Lit; wounds/bandages AND water
+            // droplets (40.8 v4) paint INTO the skin textures
+            // (SkinTexturePainter) — droplet water shading is baked at stamp
+            // time precisely so no custom skin shader is needed.
             if (PaintWoundsIntoTexture && _bodyBones != null)
             {
                 SkinnedMeshRenderer bodyRenderer = null;
@@ -570,13 +790,15 @@ public sealed class NpcActorView : MonoBehaviour
             }
 
             SyncWoundSplashVfx();
+            // The painter needs the current wet-skin gloss: it is the BASE of
+            // the painted gloss map, so droplet pixels (0.95) sit on top of
+            // the same sheen the rest of the body shows.
+            var wetSmoothnessForPaint = Mathf.Lerp(DrySkinSmoothness, WetSkinSmoothness, _skinWetness);
             _skinPainter.Sync(_woundScratch, _bandagedScratch,
-                PaintSweatIntoTexture ? _skinWetness : 0f, _uncoveredScratch);
-            // Sweat visuals are parked: gloss only — the painter beads are
-            // off (read as pox on the face) and the projector droplets stay
-            // muted (read as white paint). The projector "rain" pass keys off
-            // the RAIN-only inertial wetness — the unified pool made sweat
-            // spawn whitish rain rings.
+                PaintSweatDroplets ? _skinWetness : 0f, _uncoveredScratch, wetSmoothnessForPaint);
+            // Projector sweat is retired (v4 paints droplets instead); the
+            // projector "rain" pass keys off the RAIN-only inertial wetness —
+            // the unified pool made sweat spawn whitish rain rings.
             _skinDecals.Sync(null, _uncoveredScratch, hygiene,
                 SweatDropletProjectors ? thermal : 0f, _clothRainWetness, null);
         }
@@ -601,8 +823,16 @@ public sealed class NpcActorView : MonoBehaviour
                 continue;
             }
 
+            // Spec 40.8 v4: slots carrying the painted gloss map hold their
+            // per-pixel ABSOLUTE smoothness in the map alpha — URP Lit
+            // multiplies it by this scalar, so the scalar must be 1 there.
+            // Missing one slot here is the "whole body vinyl" failure mode
+            // (the 0.85-plastic scar): everywhere else keeps the wetness lerp.
+            var glossMapped = _skinPainter != null &&
+                              ReferenceEquals(renderer, _skinPainter.Body) &&
+                              _skinPainter.SlotHasGlossMap(index);
             renderer.GetPropertyBlock(_skinMpb, index);
-            _skinMpb.SetFloat(SmoothnessId, smoothness);
+            _skinMpb.SetFloat(SmoothnessId, glossMapped ? 1f : smoothness);
             renderer.SetPropertyBlock(_skinMpb, index);
         }
 
@@ -1175,7 +1405,7 @@ public sealed class NpcActorView : MonoBehaviour
     // top of the animated pose; skipped while lying down.
     private void ApplyThermalPose()
     {
-        if (_laying || _bodyRoot == null)
+        if (_laying || _swimming || _bodyRoot == null)
         {
             return;
         }
@@ -1439,7 +1669,7 @@ public sealed class NpcActorView : MonoBehaviour
     // real all-fours (the sim signal is authoritative).
     private void ApplyPosturePose()
     {
-        if (_laying || _bodyRoot == null || _rShldr == null)
+        if (_laying || _swimming || _bodyRoot == null || _rShldr == null)
         {
             return;
         }
@@ -1543,7 +1773,9 @@ public sealed class NpcActorView : MonoBehaviour
         // overclocks — then the multiplier scales the playback back up, so a
         // 4× world steps exactly 4× faster instead of gliding.
         var targetAnimSpeed = 1f;
-        if (walking && _bodyRoot != null)
+        // §40.18-B: swim clips play at their authored pace — the walk-cadence
+        // ground-matching would crawl the strokes (deep water is slow by sim).
+        if (walking && !_swimming && _bodyRoot != null && _jumpTimer <= 0f)
         {
             var fullSpeed = 1.7f * _bodyRoot.lossyScale.y * FullWalkBodyHeightsPerSec;
             var simCadence = linearSpeed / Mathf.Max(0.0001f, fullSpeed * _simSpeed);
@@ -1552,6 +1784,20 @@ public sealed class NpcActorView : MonoBehaviour
 
         _animSpeed = Mathf.MoveTowards(_animSpeed, targetAnimSpeed, Time.deltaTime * 3f * _simSpeed);
         _animator.speed = _animSpeed * _simSpeed;
+
+        // §21.21B: while a hex-step jump is flying, compress the jump clip so
+        // its authored length fits the arc window exactly — the same
+        // HexHopTuning number that paces the sim traversal.
+        if (_jumpTimer > 0f)
+        {
+            var jumpState = _animator.GetCurrentAnimatorStateInfo(0);
+            if (jumpState.IsName("JumpUp") || jumpState.IsName("JumpDown"))
+            {
+                _animator.speed = jumpState.length * _simSpeed /
+                    Mathf.Max(0.05f, _jumpDuration);
+                _animSpeed = _animator.speed;
+            }
+        }
 
         // Turning on the spot: meaningful yaw rate while standing.
         var turn = 0f;
@@ -1582,7 +1828,7 @@ public sealed class NpcActorView : MonoBehaviour
     // moderate; flip the sign if a motion reads backwards.
     private void ApplyActionPose()
     {
-        if (_action == ActionKind.None || _laying || _rShldr == null || _bodyRoot == null)
+        if (_action == ActionKind.None || _laying || _swimming || _rShldr == null || _bodyRoot == null)
         {
             _actionPhase = 0f;
             return;
@@ -1685,9 +1931,25 @@ public sealed class NpcActorView : MonoBehaviour
             {
                 // Iter 28: ledge seat — lift the butt onto the upper step and
                 // tuck it back against the edge (local -Z = behind the back).
-                _bodyRoot.localPosition = _ledgeSit
+                var rest = _ledgeSit
                     ? new Vector3(0f, LedgeSeatLift, -LedgeSeatBack)
                     : Vector3.zero;
+                // §21.21B hex-step jump: the ballistic trajectory rides this
+                // local offset (world delta -> local handles root rotation
+                // and scale in one go).
+                var jumpOffset = JumpOffsetWorld();
+                if (jumpOffset != Vector3.zero)
+                {
+                    rest += transform.InverseTransformVector(jumpOffset);
+                }
+
+                // §40.18-B: one shared body-height lift while swimming.
+                if (_swimming)
+                {
+                    rest.y += SwimBodyLift / Mathf.Max(0.0001f, transform.lossyScale.y);
+                }
+
+                _bodyRoot.localPosition = rest;
                 _bodyRoot.localRotation = Quaternion.identity;
             }
         }

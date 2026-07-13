@@ -11,7 +11,10 @@ using UnityEditor;
 ///  - Single-clip Mixamo FBX: the lone clip (Mixamo names them all "mixamo.com") is
 ///    renamed after the file. Loops by default; suffix the file "_once" for one-shots.
 ///    Suffix "_toNNN" trims the clip's tail to frame NNN (e.g. "LieDown_once_to166");
-///    suffix "_fromNNN" trims its head. Both are stripped from the final clip name.
+///    suffix "_fromNNN" trims its head. Suffix "_noy" discards the clip's authored
+///    root height (Y goes to unapplied root motion) so the view can drive the
+///    vertical trajectory itself — used by the hex-step jump clips. All suffixes
+///    are stripped from the final clip name.
 ///  - Multi-clip packs (e.g. Quaternius Universal Animation Library, ~50 clips in one
 ///    FBX): the pack's own clip names are kept as-is, and each clip loops only when its
 ///    name ends in "_Loop" (the pack's convention for cyclic motions).
@@ -50,6 +53,7 @@ public sealed class AnimLibraryImportPostprocessor : AssetPostprocessor
         // stripping each so what remains is the clean clip name.
         var fileName = Path.GetFileNameWithoutExtension(assetPath);
         var fileWantsOneShot = false;
+        var stripRootY = false;
         var trimFirst = -1f;
         var trimLast = -1f;
         for (var stripped = true; stripped;)
@@ -59,6 +63,12 @@ public sealed class AnimLibraryImportPostprocessor : AssetPostprocessor
             {
                 fileWantsOneShot = true;
                 fileName = fileName.Substring(0, fileName.Length - "_once".Length);
+                stripped = true;
+            }
+            if (fileName.EndsWith("_noy", System.StringComparison.OrdinalIgnoreCase))
+            {
+                stripRootY = true;
+                fileName = fileName.Substring(0, fileName.Length - "_noy".Length);
                 stripped = true;
             }
             var range = Regex.Match(fileName, "_(from|to)(\\d+)$", RegexOptions.IgnoreCase);
@@ -98,6 +108,14 @@ public sealed class AnimLibraryImportPostprocessor : AssetPostprocessor
             clips[i].keepOriginalPositionXZ = true;
             clips[i].keepOriginalPositionY = true;
             clips[i].keepOriginalOrientation = true;
+
+            if (stripRootY)
+            {
+                // "_noy": vertical root motion is extracted and never applied —
+                // the pose keeps the jump mechanics, the view owns the height.
+                clips[i].lockRootHeightY = false;
+                clips[i].keepOriginalPositionY = false;
+            }
         }
 
         importer.clipAnimations = clips;

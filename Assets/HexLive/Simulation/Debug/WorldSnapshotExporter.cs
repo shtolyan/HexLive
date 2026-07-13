@@ -271,6 +271,16 @@ public static class WorldSnapshotExporter
                     : null
         };
 
+        // Spec 35.4: per-NPC effective UV — same formula as TemperatureSystem
+        // (indoor/water block it entirely, shade cuts the index to 20%).
+        var uvIndoor = world.Tiles.Items.TryGetValue(npc.Tile, out var uvTile) &&
+            uvTile.Flags.HasFlag(TileFlags.Indoor);
+        var uvWater = uvTile is not null && uvTile.Flags.HasFlag(TileFlags.Water);
+        npcSnapshot.IsShaded = Runtime.TemperatureSystem.IsShaded(world, npc.Tile);
+        npcSnapshot.EffectiveUv = uvIndoor || uvWater
+            ? 0f
+            : world.Environment.UvIndex * (npcSnapshot.IsShaded ? 0.2f : 1f);
+
         foreach (var item in npc.Inventory.Items)
         {
             npcSnapshot.InventoryItems.Add(item);
@@ -341,6 +351,12 @@ public static class WorldSnapshotExporter
             : Part(BodyPart.ArmL) < 0.4f || Part(BodyPart.ArmR) < 0.4f ? "ArmHang"
             : Part(BodyPart.Head) < 0.4f ? "HeadClutch"
             : "Upright";
+
+        // §21.21B hex-step hop: signal the jump traversal to the view.
+        npcSnapshot.HopKind = npc.Movement.HopTimer > 0f
+            ? (npc.Movement.HopUp ? "Up" : "Down")
+            : string.Empty;
+        npcSnapshot.HopTargetTile = npc.Movement.HopTargetTile;
 
         // Iter 28: sitting at a junction whose tiles step exactly one
         // level = a ledge seat; the view plants the butt on the upper step.

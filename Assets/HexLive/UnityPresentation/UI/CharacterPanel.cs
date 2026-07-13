@@ -39,6 +39,8 @@ namespace HexLive.UnityPresentation.UI
         private Label _nameLabel;
         private Label _roleLabel;
         private Label _statusLabel;
+        private VectorIcon _uvIcon;
+        private Label _uvLabel;
         private VisualElement _statusDot;
         private Label _thoughtValue;
         private VisualElement _healthFill;
@@ -354,6 +356,7 @@ namespace HexLive.UnityPresentation.UI
                 : $"{Mathf.RoundToInt(hp * 100f)}%";
 
             UpdateStatus(npc);
+            UpdateUv(npc);
 
             var showBadge = npc.IsStarving || npc.IsFighting;
             _starvingBadge.style.display = showBadge ? DisplayStyle.Flex : DisplayStyle.None;
@@ -400,6 +403,50 @@ namespace HexLive.UnityPresentation.UI
 
             _statusLabel.text = Loc.Get(key);
             _statusDot.style.backgroundColor = dot;
+        }
+
+        // UV: none (night/indoor/water) → low → medium → high; a shaded NPC
+        // gets the "(in shade)" suffix and the icon dims with the level.
+        private void UpdateUv(NpcSnapshot npc)
+        {
+            if (_uvLabel == null)
+            {
+                return;
+            }
+
+            var uv = npc.EffectiveUv;
+            string key;
+            Color color;
+            if (uv < 0.02f)
+            {
+                key = "uv.none";
+                color = TextMute;
+            }
+            else if (uv < 0.3f)
+            {
+                key = "uv.low";
+                color = Good;
+            }
+            else if (uv < 0.6f)
+            {
+                key = "uv.mid";
+                color = Warn;
+            }
+            else
+            {
+                key = "uv.high";
+                color = Crit;
+            }
+
+            var text = Loc.Get(key);
+            if (npc.IsShaded && uv >= 0.02f)
+            {
+                text += $" · {Loc.Get("uv.shade")}";
+            }
+
+            _uvLabel.text = text;
+            _uvLabel.style.color = color;
+            _uvIcon.SetColor(uv < 0.02f ? TextMute : Gold);
         }
 
         private void UpdateNeeds(NpcSnapshot npc)
@@ -838,6 +885,24 @@ namespace HexLive.UnityPresentation.UI
             statusRow.Add(_starvingBadge);
 
             info.Add(statusRow);
+
+            // Sun exposure: how much UV hits her right now (shade-aware).
+            var uvRow = new VisualElement();
+            uvRow.style.flexDirection = FlexDirection.Row;
+            uvRow.style.alignItems = Align.Center;
+            uvRow.style.marginTop = 5f;
+            _uvIcon = new VectorIcon(VectorIcon.Kind.Sun, Gold);
+            _uvIcon.style.width = 12f;
+            _uvIcon.style.height = 12f;
+            _uvIcon.style.flexShrink = 0f;
+            _uvIcon.style.marginRight = 6f;
+            _uvLabel = new Label();
+            _uvLabel.style.color = TextDim;
+            _uvLabel.style.fontSize = 12;
+            uvRow.Add(_uvIcon);
+            uvRow.Add(_uvLabel);
+            info.Add(uvRow);
+
             col.Add(info);
 
             return col;

@@ -89,10 +89,13 @@ namespace HexLive.Simulation.Bootstrap
                     Object(108, "tree.palm", 1, 6, 1, 1),
                     Object(109, "armor.leather", 1, 5, 4, 2),
                     Object(110, "armor.heavy", 1, -3, 5, 2),
-                    // Water & fire chain (iteration 13, spec 29E): two ponds
-                    // in the wild, a campfire in the yard, basics near home.
-                    Object(111, "water.pond", 1, 5, -1, 1),
-                    Object(112, "water.pond", 1, -3, 3, 1),
+                    // Water & fire chain (iteration 13, spec 29E): a campfire
+                    // in the yard, basics near home. The two wilderness ponds
+                    // (objects 111/112) are RETIRED: they spent their whole
+                    // life as invisible anchors on dry grass, and once given
+                    // real water they read as foam-filled puddles with no
+                    // depression — the river (correctly anchored drink spots)
+                    // is the raw-water source now.
                     Object(113, "campfire.spot", 1, 0, 4, 2),
                     Object(114, "tool.lighter", 1, -1, 0, 1),
                     Object(115, "tool.pot", 1, 2, 4, 1),
@@ -392,14 +395,35 @@ namespace HexLive.Simulation.Bootstrap
             definition.Objects.Add(Object(nextId++, "tree.palm", 1, 9, 4, 1));
             definition.Objects.Add(Object(nextId++, "tool.pickaxe_stone", 1, 9, 5, 2));
 
-            // Drink spots along the river: one river object per few water rows.
+            // Drink spots along the river — anchored on the dry BANK beside a
+            // wadable river tile ("fill at the riverbank", spec 29H), never on
+            // the water itself: an in-water anchor made every fill a soak,
+            // and wet clothes give no warmth — soaks showed the colony dying
+            // of hypothermia once the (dry) ponds were retired.
+            var tilesByCoord = new Dictionary<(int q, int r), TileBootstrap>();
+            foreach (var tile in fragment.Tiles)
+            {
+                tilesByCoord[(tile.Q, tile.R)] = tile;
+            }
+
+            var neighborOffsets = new[] { (1, 0), (-1, 0), (0, 1), (0, -1), (1, -1), (-1, 1) };
             var placedRiver = 0;
             foreach (var tile in fragment.Tiles)
             {
-                if (tile.Water && placedRiver < 5 && (tile.R + 6) % 3 == 0)
+                if (!tile.Water || !tile.Walkable || placedRiver >= 5 || (tile.R + 6) % 3 != 0)
                 {
-                    definition.Objects.Add(Object(nextId++, "water.river", 1, tile.Q, tile.R, 1));
-                    placedRiver++;
+                    continue;
+                }
+
+                foreach (var (dq, dr) in neighborOffsets)
+                {
+                    if (tilesByCoord.TryGetValue((tile.Q + dq, tile.R + dr), out var bank) &&
+                        !bank.Water && bank.Walkable)
+                    {
+                        definition.Objects.Add(Object(nextId++, "water.river", 1, bank.Q, bank.R, 1));
+                        placedRiver++;
+                        break;
+                    }
                 }
             }
 

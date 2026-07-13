@@ -36,6 +36,10 @@ namespace HexLive.UnityPresentation.Environment
         {
             EnsureLight();
             EnsureSky();
+            // Spec 40.8 v4: env specular for the water-droplet glints (flat
+            // ambient leaves unity_SpecCube0 gray — smooth pixels had nothing
+            // to reflect).
+            ProceduralSkyReflection.Apply();
         }
 
         private void Update()
@@ -97,6 +101,8 @@ namespace HexLive.UnityPresentation.Environment
 
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
             RenderSettings.ambientLight = Color.Lerp(NightAmbient, DayAmbient, dayAmount);
+            // Reflections (droplet glints) dim with the sky.
+            ProceduralSkyReflection.SetDayAmount(dayAmount);
 
             if (_skyMaterial != null)
             {

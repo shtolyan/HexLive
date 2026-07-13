@@ -1349,6 +1349,98 @@ This is intentionally simple and suitable for v1.
 
 This is enough to make NPC movement feel alive while staying debuggable.
 
+### 21.21B Hex-Step Hop (one-level climb)
+
+Crossing to a tile one elevation level up OR down is a deliberate jump whose
+timing lives in ONE place — `HexHopTuning` (Simulation/Navigation) — shared by
+the sim and the presentation, so the two can never drift apart:
+
+- v7 — SYMMETRIC WALL CLEARANCE (final jump geometry). The lattice is fine
+  (junction spacing ~0.37 wu; boundary points are DUPLICATED either side of
+  a wall), so the v6 "exclude one junction" left takeoff flush on the wall
+  (measured signedFromWall 0.00) and landing 0.65 past it — an asymmetric
+  shift toward the target. v7 keeps the lattice only as a DIRECTION hint and
+  places takeoff/landing GEOMETRICALLY at exactly ±`EdgePadding` (0.5 wu)
+  perpendicular to the wall plane (tile-centre midpoint, normal = stand→
+  target axis). Measured: every hop now −0.50 / +0.50, jump length 1.15.
+  The takeoff beat smoothly gathers her from where she stood (≈ the wall)
+  back onto the takeoff point (a natural run-up rock, not a snap); rotation
+  is locked on the flight vector the entire window (probe: rot constant, no
+  spin). Survival soak PENDING (deferred at user request — jumps first).
+- v10 — CONSISTENT JUMP LENGTH. Measured every hop in a harness copy of the
+  SwimTest world: symmetry was perfect (−EdgePadding/+EdgePadding) BUT the
+  length varied 1.0–2.0 because takeoff/landing stepped `EdgePadding/axisDot`
+  along the flight (dividing by the approach angle to hold a constant
+  PERPENDICULAR clearance) — an angled water dive stretched to len 2.0 (the
+  user's "strange water jump"). v10 steps a FIXED `EdgePadding` ALONG the
+  flight instead, so every jump is exactly `2*EdgePadding` long regardless of
+  angle; the perpendicular clearance now rides the angle (0.26–0.30, natural
+  — closer to the wall on an oblique approach). Default `EdgePadding` 0.5→0.3
+  (len 1.0→0.6, "just over the edge" per user feedback that the jump read too
+  big / too early). Slider in SwimTest.
+- v9 — ONE TARGET, COMMITTED (fixes the v8 freeze/death). v8's stop-short
+  redirect FOUGHT the walk: the redirect aimed at the takeoff (past her
+  path junction) while the rotation/walk aimed at the junction itself, and
+  because the hop-approach walked her PAST that junction without advancing
+  PathIndex, the per-tick rescan measured distance-to-wall THROUGH a
+  now-behind junction and flipped the target on/off with her position — she
+  oscillated in place and starved (reproduced in a harness copy of the
+  SwimTest world: frozen at (-4.87,0.56), rot spinning, dead by t=64). v9:
+  the wall scan runs ONCE; on finding a wall it commits (`Movement.HopArmed`)
+  and freezes the FIXED takeoff/landing (computed from lattice points, not
+  her live position). While armed, the walk target IS the takeoff — a single
+  point, so rotation + pacing + arrival never pull two ways. Arrival launches
+  the hop and clears the flag; repath clears it too. Harness (SwimTest world)
+  now runs the full loop: walk up → hop onto the hill → eat → hop down →
+  cross the strait → drink, 4000 ticks, no freeze, survives. Compiles clean
+  in the live Unity editor.
+- v8 — STOP-SHORT (no gather). v7 placed takeoff correctly at −EdgePadding
+  but fired the hop only when the edge junction was already her target — by
+  then she was AT the wall (the fine lattice puts boundary points on it), so
+  a takeoff-beat "gather" slid her ~0.5 back off the wall: the user's "walks
+  into the wall, then slides back too far". v8 LOOKS AHEAD along the path for
+  the nearest elevation-edge wall; while it is within ~EdgePadding+1.2 she
+  walks straight toward the TAKEOFF point (−EdgePadding before the wall) and
+  stops there, then crouches in place and flies — she never reaches the wall,
+  so there is no slide. Probe: takeoff held constant through the takeoff
+  beat, geometry −0.50/+0.50, len 1.00, rotation locked, no back-slide;
+  5-day×3-seed smoke crash-free.
+- v7 VIEW rewrite — VERTICAL-ONLY. Since the sim owns the root's full XZ
+  (gather → straight flight → landing), the view no longer predicts XZ: the
+  body follows the root's XZ exactly and adds ONLY a Y arc that turns the
+  tile-crossing ground snap into a jump. Deleted the whole 3D ballistic
+  prediction (root-velocity extrapolation, separate body clock, settle
+  phase) — it double-computed the XZ the sim already produces and was the
+  source of the residual visual offset. The arc is flat over the takeoff
+  beat, eases 0→(overshoot)→1 over the flight span, pinned at 1 over the
+  landing beat; reads the live root Y each frame (self-correcting, no dip/
+  snap-back). Needs a live Unity session to eyeball.
+- v3 — the ANIMATION is the master clock; two variables mark up the clip:
+  `HopSeconds` (2.0) is the whole window (the clip is compressed to it);
+  `TakeoffSeconds` (0.5) is the clip's crouch/push-off — the sim stands,
+  the clip already plays; the airborne middle (`HopSeconds - Takeoff -
+  Landing`) flies the padded path at constant pace; `LandingSeconds` (0.5)
+  is the clip's feet-planting — the sim already stands at the landing
+  point. Walking resumes when the window closes. No separate windup/landing
+  idles, no view-side lead/delay pairs — sim and view read the same two
+  numbers, desync is impossible by construction. Mobility/wetness factors
+  don't apply mid-hop — it's a jump.
+- v3.2: the hop has NO survival logic at all — no hurry threshold, no
+  danger bypass (both existed briefly in §46 v3/v3.1 and were retired for
+  elegance: the v3 window is short, flight moves at ~walk pace, so a girl
+  jumping under attack risks only the brief takeoff/landing beats). The
+  exposure cost is paid in the global balance instead: bite 0.07→0.06,
+  hunger 0.013→0.012, raids →0.10; measured 6/12 (50%), dead centre.
+- `LandIdleSeconds` (1.0): on reaching the edge junction the hop has landed —
+  the NPC stands in plain idle (`ClimbPauseTimer`, status `Waiting`), then
+  walks on.
+- The snapshot exports `HopKind` ("Up"/"Down"/"") while the hop is in flight;
+  the presentation plays the JumpUp/JumpDown clip compressed to the same
+  `HopSeconds` and carries the body's vertical arc (slight overshoot above
+  the target ledge on the way up).
+- Water transitions are excluded — swim dive-in/climb-out (§40.18-B) owns
+  those. Timers are transient (not persisted).
+
 ### 21.22 Design Rules
 
 Movement is executed by the simulation, never by Unity
@@ -7389,16 +7481,38 @@ pass — order chosen to add robustness before difficulty.
   Each stain lands drip-small (0.05 m), spreads ease-out to a 0.16–0.30 m
   puddle over ~120 ticks, then dries: linear alpha fade to zero across
   **one game day (2400 ticks)**, driven by sim tick (pause/speed safe),
-  then the quad is destroyed. Cap 160 stains, oldest recycled. Cosmetic
+  then the quad is destroyed. Cap 110 stains, oldest recycled (each is a
+  DBuffer DecalProjector rendered every frame — a dog swarm hits the cap
+  fast, so the cap bounds overdraw; size stops being rewritten once fully
+  spread). Cosmetic
   only — never persisted, no sim coupling. Visuals: the RVFX Blood Effects
-  Pack static splatters (`BloodDecal_01..04`, deep venous with shading)
-  copied as the 4 variants in `Resources/HexLive/BloodStains/` (they
-  replaced the first-pass fal.ai cartoon stains), rendered the way the
-  pack's demo does — as downward **DecalProjectors** (the pool hugs sloped
-  hex prisms, grass and feet standing in it; `renderingLayerMask` =
-  everything) with the pack's matching **normal maps**
-  (`Resources/HexLive/BloodStainNormals/`, blend 0.6) for wet relief.
-  Spread animates `projector.size`, drying animates `fadeFactor`. The
+  Pack's OWN static projector decal **materials** (`BloodFX_PBR_Projector_URP`
+  shadergraph — tuned albedo power / ambient intensity / wet smoothness +
+  specularity + normal, the exact look of the pack's `..._Static_Projected`
+  demo prefabs), the four copied into `Resources/HexLive/BloodStainMats/` as
+  `BloodStain_01..04` with fresh GUIDs and loaded via `Resources.LoadAll`.
+  We copy the MATERIAL, not the pack's `..._Static_Projected` prefab: that
+  prefab carries `ProjectorPrioritySetter_URP` (a per-frame `Update`) +
+  `BloodModifier_URP` — 110 of those would run 110 `Update`s/frame; the bare
+  projector we build + the shared material gets the identical look with zero
+  per-frame script cost. This replaced the earlier runtime-built stock
+  `Shader Graphs/Decal` material (which only reused the pack's loose
+  textures — flatter). Rendered
+  the way the pack's demo does — as downward **DecalProjectors** (the pool
+  hugs sloped hex prisms, grass and feet standing in it; `renderingLayerMask`
+  = everything). Spread animates `projector.size`, drying animates
+  `fadeFactor` (both projector fields, so all stains of a variant share one
+  material instance). The old `Resources/HexLive/BloodStains/` +
+  `BloodStainNormals/` texture folders are now unused by this system (the
+  pack materials reference their source textures by GUID). NOTE: the pack
+  material out-of-the-box multiplies its (red) decal texture by a grey/brown
+  `_BaseColor`+`_Color` at `_ColorIntensity 0.39` → dull brown smudge on
+  bright sand (a first swap looked identical to the old stock-decal version,
+  which drew the SAME `BloodDecal_01..04` textures). Retinted the 4 copied
+  materials to fresh wet red (`_BaseColor`/`_Color` = 0.85,0.06,0.05,
+  `_ColorIntensity` 0.85) and enlarged the pool (drip 0.09 m → 0.26–0.46 m,
+  `MaxAlpha` 1.0) so it reads as a clear red pool. Old brown stains linger
+  until they fade (up to one game day); new bleeding draws the red ones. The
   pack's own spawner scripts (Trail/ProjectorSpawnerSystem) are NOT used —
   they run on realtime `Time.deltaTime` and would ignore sim pause/speed;
   the tick-driven lifecycle stays ours. TUNING KNOBS: `LifetimeTicks`,
@@ -7587,12 +7701,10 @@ pass — order chosen to add robustness before difficulty.
   copies (34–78 px vs the old 230 px giant) on a jittered grid + tiny
   satellites. Sweat patches also widened 8 → 13 zones entries, so full heat
   covers the body in many little glistening beads. **v3 — sweat as painted
-  NORMAL-ONLY relief** (`PaintSweatIntoTexture`) — **PARKED**: at body
-  scale the bead relief read as skin pox on the face; sweat currently
-  shows as the **wet gloss + the decal-projector bubbles** (the rebuilt
-  glassy-bead sheet — best look so far per the user; the painter beads
-  stay off). The bead-relief tech is kept intact behind the flag for
-  future disease/insect-bite visuals. Mechanism (for that future use): a real
+  NORMAL-ONLY relief** (`PaintSweatIntoTexture`) — was **PARKED**: at body
+  scale the bead relief read as skin pox on the face. The bead-relief tech
+  is kept intact for future disease/insect-bite visuals — and its pipeline
+  became the foundation of v4 below. Mechanism (for that future use): a real
   droplet is transparent, so the painter stamps the dome normal sheet
   (`sweat_drops_n`) straight into the skin's normal map — 6 patches per
   bare zone (head: 2). **Stamps are world-size-true**: UV density is
@@ -7611,10 +7723,78 @@ pass — order chosen to add robustness before difficulty.
   reliefs use two-scale dome heights (S ±6/−7). Strength = wetness (0.1
   buckets), zero
   colour change; the wet gloss (0.72) turns each dome into a genuine sun
-  glint. Sweat-only slots do NOT swap their albedo (per-channel repaint).
-  The projector "rain" pass now keys off rain-only inertial wetness (the
-  unified pool made sweat spawn rain rings too). Wet skin smoothness
-  itself was pulled 0.85 → 0.72 (read as plastic/vinyl). NOTE: the Decal
+  glint. The projector "rain" pass now keys off rain-only inertial wetness
+  (the unified pool made sweat spawn rain rings too). Wet skin smoothness
+  itself was pulled 0.85 → 0.72 (read as plastic/vinyl).
+  **v4 — painted WATER DROPLETS (`PaintSweatDroplets`, SHIPPED — the live
+  sweat/rain look).** Diagnosis of why nothing before read as water: (a) a
+  drop is a LENS, not a gloss patch — it needs per-drop normal relief,
+  near-1 smoothness UNDER THE DROP ONLY, darkened/refracted skin beneath
+  and a bright meniscus rim; the uniform submesh smoothness could never
+  make a discrete drop; (b) at smoothness ≈ 1 a single directional light's
+  GGX lobe collapses to a sub-pixel point — the visible "glassy" shine
+  comes from ENVIRONMENT specular, and the scenes ran flat ambient with
+  zero reflection probes, so even correct relief looked flat; (c) the v3
+  pox read came from the DENSE SPRAY sheet, not from relief per se — and
+  real-size (2–4 mm) drops die in the normal-map mips anyway. Hence v4:
+  - **Few LARGE drops**: one drop per stamp (`SweatDropletSheet`, a
+    procedural 4×2 atlas of sphere-cap domes / hanging teardrops / runnels,
+    height `h = bulge·r·√(1−(d/r)²)`, bulge 0.4 — water sits low), 8–15 mm
+    world-true, 2–4 per zone scaling with the wetness pool
+    (`DropletCountFor`), threshold 0.25, **face excluded**
+    (`FaceDroplets = 0`) with a hard UV-size cap (`MaxDropletUvSize`) as
+    the dense-face-tile guard. Limbs/torso prefer teardrop cells (V runs
+    along the limb ≈ gravity).
+  - **Three painted channels** per drop (`DropletStamp.shader`, stamped at
+    repaint time — skin STAYS on URP Lit, respecting the shader-swap
+    revert): dome relief into the normal map (v3 path); a damp halo
+    (×0.9), wet darkening (×0.75), **fake refraction** (original albedo
+    offset-sampled along the droplet normal XY — the Shadertoy-"Heartfelt"
+    lens trick) and an additive meniscus rim baked into the albedo; and a
+    **painted gloss map** — the third channel: `_MetallicGlossMap` alpha
+    carries ABSOLUTE smoothness (base = the current wetness gloss, 0.95
+    in drops, BlendOp Max for overlaps). URP 17 Lit multiplies map alpha
+    × the `_Smoothness` scalar (verified in `LitInput.hlsl`
+    `SampleMetallicSpecGloss`; map R replaces `_Metallic` — kept 0), so
+    `NpcActorView` pins the property-block scalar to **1.0 on slots where
+    the map is live** (`SlotHasGlossMap`) and keeps the 0.32→0.72 lerp
+    elsewhere — miss a slot and the body goes vinyl (the 0.85-plastic
+    scar). Droplet slots DO swap their albedo to the paint RT now (the
+    price of baked refraction — same trade wounds make).
+  - **Env specular for the glints**: `ProceduralSkyReflection` — a
+    code-generated 64 px HDR cubemap (sky gradient + hot sun blob + dark
+    ground) installed as `RenderSettings.customReflectionTexture` in
+    `SkyDayNightController` and the wardrobe scene;
+    `reflectionIntensity` lerps 0.25↔1 with dayAmount. The sun blob is
+    static — the glint reads as "sky".
+  - **Build safety**: `_METALLICSPECGLOSSMAP` is a shader_feature; no
+    authored material used it, so a `SkinGlossKeepAlive.mat` ships in
+    Resources to keep the variant from being stripped (editor would look
+    right, device builds silently flat). NOTE: `DropletStamp.shader` is
+    `Shader.Find`-loaded like NormalDecodeBlit — same build-inclusion
+    caveat as that shader.
+  - The v2 **projector sweat retires** (`SweatDropletProjectors = false`
+    — two sweat systems would double-coat); the projector rain pass
+    stays for streaks. Rain feeds the same wetness pool, so rain also
+    beads drops.
+  **v4.1 — dense patches (user verdict on v4.0: "одна капелька — это всё
+  хуйня", the single drops were near-invisible even after live size
+  tuning).** A stamp is now a PATCH of 4-9 small fully-shaded drops
+  (seeded scatter per atlas cell, drops Ø 10-18 mm, patch 5-7.5 cm,
+  `HeadPatchScale 0.6` on the face); ~34 patches ≈ **200 drops** at full
+  sweat. Density is safe now precisely because each bead carries the
+  complete water shading — the v3 pox read came from naked normal bumps.
+  The **uncovered filter is dropped** for droplets (sweat everywhere;
+  garment meshes occlude covered zones naturally, skin through rips
+  glistens). `RefractStrength` rescaled 0.35 → 0.05 (patch-relative).
+  Live-debug findings that drove this (via UnityMCP on a paused play
+  session): placement/painting/MPB/gloss were all correct from the start
+  — the failures were pure readability (8-15 mm ≈ 7 px specks at gameplay
+  zoom; wetness-proportional fade left drops at 65% opacity; the dark tan
+  `_BaseColor` tint multiplies painted highlights down; shadowed limbs
+  hide albedo cues entirely; and the first "sky wash" shading flattened
+  drops into pale smudges — replaced by dark lens + upper-rim crescent +
+  specular dot + caustic lower rim, all baked in texture space). NOTE: the Decal
   feature runs **Albedo+Normal** (`surfaceData: 1`) — smoothness/MAOS stays
   decal-untouchable (glassy sun-glint fix), normals are used ONLY by the
   sweat material (dome normal map = volumetric beads); every other decal
@@ -7682,6 +7862,50 @@ pass — order chosen to add robustness before difficulty.
   Lit — tan/sunburn tints multiply the repainted map like the original,
   clothing occludes naturally, portraits show it. `PaintWoundsIntoTexture`
   flips back to decal projectors. Sweat/dirt/rain stay projector-based.
+- **SHIPPED (40.8-D v5 — volumetric wounds: wet gloss, NO relief):** the
+  flat/transparent gash was three problems at once — semi-transparent
+  albedo core, no specular cue, and blood color that dark tan tints
+  swallowed. Fixes: (1) wounds now stamp a third channel, joining the v4
+  droplet **gloss map** (`_MetallicGlossMap`, alpha = ABSOLUTE smoothness,
+  NpcActorView pins `_Smoothness` to 1 on live slots): the detailed
+  over-art stamps its wet-core shape (`wound_scratch_g`/`blood_splat_g`,
+  `WoundWetGloss = 1.0` — with relief cut, the glint IS the volume cue;
+  it must out-shine the 0.72 sweat sheen and the 0.95 droplets) via
+  `WoundGlossStamp.shader` — **BlendOp Max, ColorMask A**, so overlaps
+  keep the shiniest value, the base never darkens, and a healing wound
+  sinks below the base and vanishes; the splash underlay stays DRY and
+  now draws at 0.5 alpha (at 0.8 its pale-pink wash read as skin
+  discoloration on tanned bodies). (2) The gash art is regenerated by
+  `Tools/wound_art_pipeline.py` (fal.ai flux/schnell, SFX-makeup framing;
+  FAL_KEY env only — never committed): chroma-key with a red-ratio gate
+  (blood is R≫G+B, knuckle shadows are not), enclosed wet interiors
+  hole-filled and forced **fully opaque**, baked photo highlights removed
+  (the gloss channel shines dynamically now), blood brightened to survive
+  the ~0.47-red tan tint, content colour bled under transparent texels
+  (no white mip fringe), percentile-crop to content. (3) **Wound normal
+  relief was REMOVED** (v5 revision): stamps regularly straddle UV seams
+  and the relief discontinuity flared as ugly lit ridges there, while the
+  perceived depth gain was marginal — wounds no longer set
+  `UnderNormal`/`OverNormal`, and the `_BumpScale` boost is gone. Wound
+  volume = opaque dark albedo + wet gloss. Droplet dome relief (v4) and
+  the normal-paint plumbing itself are untouched; `wound_scratch_n.png`
+  stays on disk unused should relief return with seam-aware art.
+- **SHIPPED (40.8-D v5.1 — wound VARIETY, blood-only):** repeated hits all
+  drew the same one or two shapes. Replaced the seed-parity scratch/splat
+  pick with a **variant table** (`WoundVariantNames` → `_woundOver[]` /
+  index-aligned `_woundGloss[]`): `WoundVariant(seed)` selects
+  `seed % N`, skipping any not-yet-imported PNG (partial import paints
+  fewer shapes, never crashes) and staying deterministic so a save-replay
+  and a late `RefreshStampArt` agree. Ships 7 shapes: the two originals
+  (`wound_scratch` claw, `blood_splat`) + 5 new `wound_gash_*`
+  (slash/streak/smear/fork/torn). **All BLOOD-ONLY** — the pipeline was
+  re-prompted for "wet fresh blood, torn splatter edges, no skin, no flesh"
+  after flesh-baked candidates (puncture/bite/graze) were rejected: a stamp
+  with baked skin tone reads wrong on other NPCs' skin (each has its own
+  tan/complexion) and prosthetic-hole art looked plastic. Each variant is
+  albedo + a `_g` wet-gloss twin (`Tools/wound_art_pipeline.py build
+  --name <v>`); no relief (per v5). New art committed under
+  `Resources/HexLive/Decals/wound_gash_*` with pre-authored metas.
 - **REVERTED (skin paint-shader experiment):** swapping the bare-skin slots
   to GarmentTear (`_HolesOn = 0`) made the body flicker (Cull Off +
   AlphaTest queue on the skinned mesh) and flattened the Daz skin to a pale
@@ -7774,7 +7998,19 @@ pass — order chosen to add robustness before difficulty.
   skin** stamped into a per-slot albedo copy (count/alpha from 1 − hygiene,
   seeded on-island triangles; `_DirtAmount` muted → no double filth; wash
   restores the original). All event-driven on buckets (tear 0.05, dirt
-  0.1, sphere 0.25) — zero per-frame painting. Known limit: natural-hole
+  0.1, sphere 0.25) — zero per-frame painting. **Transparent garments**
+  (stockings, sheer sleeves — `_Surface 1` or Transparent queue) never
+  swap to the opaque tear shader (it rendered sheer fabric solid black):
+  they keep their authored shader and their holes are ERASED from the
+  albedo alpha instead (`Hidden/HexLive/AlphaErase`, dst.a ×= 1−src.a,
+  ColorMask A) — bite holes punch immediately, natural-wear holes as
+  erosion passes their depth, and the shader's own blending renders them
+  see-through. **Swap fidelity:** the tear shader honors `_BumpScale`
+  (`UnpackNormalScale` — garments authored with a neutralized bump popped
+  to full-strength relief the moment damage swapped the shader, "нормали
+  летают") and samples `_MetallicGlossMap` (metallic R × `_Metallic`,
+  smoothness A × `_Smoothness`, white default = old constants — losing
+  the gloss map flattened worn leather/satin to uniform plastic). Known limit: natural-hole
   seeds use instance ids, so their spots reshuffle across a save reload
   (bite holes re-derive from wounds and stay).
 
@@ -7992,6 +8228,59 @@ grows) — budget multi-round rebalancing per [[project_dog_fragility_balance]].
    core loop (cross the strait for island-exclusive loot) is live and green.
 Presentation: water-swim animation, shark model + fin, island terrain —
 all Unity-side, land when the editor is connected.
+
+#### 40.18-B Swim presentation + swim test scene (shipped, tuning)
+The Unity side of step 1: the swimmer LOOKS like a swimmer. Two Mixamo clips
+imported through the AnimLibrary pipeline (`Swimming.fbx` → strokes,
+`TreadWater.fbx` → treading idle; both loop, authored root height kept — the
+view owns the plunge). Animator (`HexNpcLocomotion`): new `Swimming` bool;
+`TreadWater`/`Swim` states mirror Idle/Walk gated by `Swimming` + the same
+measured `Speed`; `JumpDown` exits straight into `TreadWater` when the water
+flag is already up, so the dive lands treading, not standing.
+
+Flow of one crossing (sim leads, view follows):
+- **Jump in.** Stepping land→deep water is the ordinary §21.21B hex-step
+  drop; the renderer sees the big Y delta and plays JumpDown, whose offset
+  curve carries the body from the bank INTO the water.
+- **Sink, don't snap.** A swimmer's root hangs `SwimVisuals.SinkDepth`
+  (default 0.35 wu) BELOW the water surface (`HexWorldRenderer.ActorGroundY`;
+  surface = tile top − 0.4·step per §31C.4). Deep water only — walkable river
+  shallows still wade ankle-deep. Feet never snap onto the surface.
+- **Tread a beat.** `MovementSystem` holds the swimmer still for
+  `SwimEntryPauseSeconds` (default 0.75 s, `SwimEnter` trace) on entering a
+  swim tile from land — reuses the climb-pause plumbing; the animator shows
+  `TreadWater` because measured speed is zero.
+- **Swim.** Movement resumes at `SwimSpeedFactor` (default 0.55×); the Swim
+  clip plays at authored pace (the walk-cadence ground-matching is bypassed
+  while swimming — sim slowness would crawl the strokes). The procedural arm
+  layers (actions/thermal/posture) stand down in water.
+- **Climb out.** Water→land is one elevation step up: the stock §21.21B
+  windup (treading at the edge) + JumpUp hop carries her onto the bank.
+
+Deep water = `Water && !Walkable` on both sides of the fence (sim
+`MovementSystem.IsSwimTile`, view `_swimCoords` from the snapshot).
+
+**Swim test scene** (`Scenes/SwimTest.unity`, `SwimTestBootstrap` — dev tool
+like the wardrobe room): a real simulation cut down to the water-and-ledges
+problem. The home island (3×3) carries a HILL tile at elevation 2 with ALL
+the coconuts on top; a 2×3 deep strait (fully flooded into `SwimJunctions`
+at bootstrap: the build-time ring alone can't bridge a full water tile, same
+lesson as step 3) splits it from the far island (2×3) holding the only
+`water.pond`. The girl wakes starving AND parched, so one lap exercises both
+mechanics: hex-step jump up the hill → eat → jump down, then dive into the
+strait → tread → swim → climb out → fill the bottle → drink (no `tool.bottle`
+item needed — `FillBottle` charges the NPC's own `BottleWater`). When fed and
+watered she is teleported home needy with the bottle emptied (else the next
+"drink" is a sip on the spot, not a swim); R restarts a lap manually. The
+swim knobs live on the component in the inspector, pushed into the statics
+every frame: `SinkDepth`, `SwimEntryPauseSeconds`, `SwimSpeedFactor`. Jump
+timing is NOT there — §21.21B centralizes it in `HexHopTuning`: the sim hops
+the edge segment in `HopSeconds`, then stands `LandIdleSeconds` at the far
+junction where the tile switches; the view arc (both directions) plays
+inside that stand. Water transitions are excluded from sim hops — the dive
+rides the same view arc over the swim-entry treading pause. No sharks — the
+test runner registers the default system list, which never included
+`SharkSystem`.
 
 ### 40.19 Dropped clothing = real garment lying flat (shipped)
 Dropped clothing used to render as a coloured primitive cylinder. Now any
@@ -8427,6 +8716,43 @@ leaves, has axe/saw) — mirrors the spec-42 cold chain.
 bed set drops Sleep fails ~190 → 11 and seed 90210 wins by day 6.7).
 The chain spends real auction time in the §46 world, so the difficulty
 dial moved one notch: `RaidChancePerDay 0.25 → 0.20`, final winrate
-**5/12 (42%)** — inside the 40-60% target band. Remaining known gap:
+**5/12 (42%)** — inside the 40-60% target band.
+
+### §46 v3 — pond retirement + hex-hop rebalance (iteration 45)
+Retiring the two dry ponds (water now ONLY at the river) plus the §21.21B
+hop ceremony re-broke the balance: 0/12 (hypothermia+starvation wipes —
+in-water fill anchors soaked every water run, and the jump ceremony taxed
+every seam crossing). Recovered to **5/12 (42%)** with, in order of impact:
+1. `water.river` anchors moved to the dry BANK tile beside the river
+   (in-water anchors = wet clothes = zero warmth = cold death spiral);
+2. hop ceremony survival guards: danger in memory OR Hunger/Thirst ≥ 0.5
+   skips the windup/slow-hop/land-idle framing entirely (and danger mid-hop
+   aborts it) — leisure gets the pretty jump, survival gets the scramble;
+3. budget re-widen: HungerRate 0.016→0.013, ThirstRate 0.018→0.014,
+   BiteDamagePerPass 0.09→0.07, hypothermia part-damage 0.015→0.012,
+   `RaidChancePerDay 0.20 → 0.12`.
+4. §21.21B v2 — EDGE PADDING replaced the trigger radius: the hop takes off
+   `EdgePadding` (0.5) before the edge junction AND lands the same padding
+   past it (HopTravelRemaining countdown; a path ending at the edge lands on
+   it). She never stands flush to a wall or on a drop lip.
+5. §21.21B v3 — the six ceremony knobs merged into Takeoff/Landing clip
+   markup (see §21.21B). The ~2x shorter total window eased the economy
+   (7/12); `RaidChancePerDay` recalibrated 0.12→0.21.
+6. v3.2 — hop survival logic fully removed (elegance): paid with bite 0.06,
+   hunger 0.012, raids 0.10 → 6/12 (50%).
+7. §21.21B v4 — circle climbing reshuffled to 4W/4L/4T on 40d; the timeouts
+   were lone-survivor storm stalemates, `StormChancePerDay` 0.12→0.08, and
+   on the honest 60-day horizon they RESOLVE (one late win, three deaths).
+8. §21.21B v5 — the universal clamp (walking can never enter the ring)
+   lengthened every cliff-side route; probe confirmed mechanics intact
+   (movement/hops/goals all run; the day-0 deaths were food races, not
+   freezes). Bought back with hunger 0.011, thirst 0.013 and raids
+   0.10→0.08 (hypothermia-ease was tried and reshuffled NEGATIVE — reverted).
+Final gate (60d, 12 seeds): **6/12 WIN / 6 LOSS / 0 TIMEOUT (50/50)**.
+Soak protocol note: judge on 60d, the 40d cut reports mid-story timeouts.
+Death profile: days 2-35, mixed causes (cold/starve/bleed/raids), winners
+often 3/3 alive. Ladder rows measured: in-water anchors 1/12; bank anchors
+3/12; +cold/raid ease 4/12; +hungry-hurry exemption 5/12; +edge padding
+4/12; +raid 0.12 → 6/12. Remaining known gap:
 seeds whose girls lose all axes/saws can't run the chain (chopTool 0%
 in seed 42's samples) — tool scatter/recovery is a future candidate.

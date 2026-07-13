@@ -2615,6 +2615,20 @@ public sealed class MovementSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Fast;
 
+    // §21.21B hex-step hop: all timing lives in HexHopTuning — one number
+    // drives the sim traversal AND the presentation's clip speed and arc.
+
+    // §40.18-B swim TUNING KNOBS: plunging into deep water holds the swimmer
+    // treading in place for a beat before the strokes start, and deep-water
+    // strokes move slower than a walk. Public statics (not consts) so the
+    // swim test scene can tune them live from the inspector.
+    public static float SwimEntryPauseSeconds = 0.75f;
+    public static float SwimSpeedFactor = 0.6f;
+
+    // Deep water = swim tile; walkable river shallows are waded, not swum.
+    private static bool IsSwimTile(Tile tile) =>
+        (tile.Flags & TileFlags.Water) != 0 && (tile.Flags & TileFlags.Walkable) == 0;
+
     public void Run(WorldState world)
     {
         foreach (var npc in world.Entities.Npcs.Values)
@@ -2666,6 +2680,12 @@ public sealed class MovementSystem : ISimulationSystem
                     npc.Movement.JunctionPath.Clear();
                     npc.Movement.IsMoving = false;
                     npc.Movement.Status = MovementStatus.Waiting;
+                    // §21.21B: a hop must not survive its path — stale hop
+                    // state over a NEW path is a mid-air teleport waiting
+                    // to happen.
+                    npc.Movement.HopTimer = 0f;
+                    npc.Movement.HopArmed = false;
+                    npc.Movement.HopPathIndex = -1;
                     Trace.Emit(world, npc.Id, "MovementRepath",
                         $"Junction={targetJunctionId.Value} held by a housemate");
                 }
@@ -2676,47 +2696,330 @@ public sealed class MovementSystem : ISimulationSystem
             npc.Movement.BlockedWaitTicks = 0;
 
             var target = targetJunction.WorldPosition;
+
+            // §21.21B v9 — ONE TARGET. If an elevation-edge wall is close
+            // ahead, OVERRIDE the walk target to the fixed TAKEOFF point
+            // (EdgePadding before the wall). Everything below — rotation,
+            // pacing, arrival — then aims at that single point, so the walk
+            // and the hop can never pull her two ways (the v8 freeze/jitter
+            // was exactly that tug-of-war). The takeoff/landing are computed
+            // from FIXED lattice points, not her live position, so they don't
+            // drift as she approaches. hopApproach makes arrival launch the
+            // hop instead of a normal junction crossing.
+            var hopApproach = npc.Movement.HopArmed;
+            if (hopApproach)
+            {
+                // Already committed — walk to the FIXED takeoff, no rescan.
+                target = npc.Movement.HopFrom;
+            }
+            else if (npc.Movement.HopTimer <= 0f &&
+                npc.Movement.HopPathIndex != npc.Movement.PathIndex &&
+                world.Tiles.Items.TryGetValue(npc.Tile, out var hopStandTile) &&
+                !IsSwimTile(hopStandTile))
+            {
+                var wallIndex = -1;
+                Tile wallTile = default;
+                var scanDist = 0f;
+                var scanFrom = npc.Position;
+                for (var i = npc.Movement.PathIndex;
+                     i < npc.Movement.JunctionPath.Count && scanDist < HexHopTuning.EdgePadding + 1.2f;
+                     i++)
+                {
+                    if (!world.Junctions.Items.TryGetValue(npc.Movement.JunctionPath[i], out var jn) ||
+                        jn.Tiles.Count == 0)
+                    {
+                        break;
+                    }
+
+                    scanDist += HexSpatialMath.Distance(scanFrom, jn.WorldPosition);
+                    scanFrom = jn.WorldPosition;
+                    if (world.Tiles.Items.TryGetValue(jn.Tiles[0], out var jt) &&
+                        jt.Elevation != hopStandTile.Elevation &&
+                        (!IsSwimTile(jt) || jt.Elevation < hopStandTile.Elevation))
+                    {
+                        wallIndex = i;
+                        wallTile = jt;
+                        break;
+                    }
+                }
+
+                if (wallIndex >= 0)
+                {
+                    var wallPos = npc.Movement.JunctionPath[wallIndex] is { } wid &&
+                        world.Junctions.Items.TryGetValue(wid, out var wj)
+                        ? wj.WorldPosition : target;
+                    var landingIndex = wallIndex + 1;
+                    var landingPos = wallPos;
+                    if (landingIndex < npc.Movement.JunctionPath.Count &&
+                        world.Junctions.Items.TryGetValue(
+                            npc.Movement.JunctionPath[landingIndex], out var lj))
+                    {
+                        landingPos = lj.WorldPosition;
+                    }
+                    else
+                    {
+                        landingIndex = wallIndex;
+                    }
+
+                    // Fixed approach direction across the wall (from the lattice
+                    // point BEFORE the wall to the one AFTER it).
+                    var beforePos = npc.Position;
+                    if (wallIndex - 1 >= 0 &&
+                        world.Junctions.Items.TryGetValue(
+                            npc.Movement.JunctionPath[wallIndex - 1], out var bj))
+                    {
+                        beforePos = bj.WorldPosition;
+                    }
+
+                    var centerA = HexSpatialMath.TileToWorld(npc.Tile);
+                    var centerB = HexSpatialMath.TileToWorld(wallTile.Coord);
+                    var axis = HexSpatialMath.Normalize(centerB - centerA);
+                    var wallMid = (centerA + centerB) * 0.5f;
+                    var flightDir = HexSpatialMath.Normalize(landingPos - beforePos);
+                    var axisDot = flightDir.X * axis.X + flightDir.Y * axis.Y;
+                    if (axisDot < 0.3f) axisDot = 0.3f;
+                    var toWall = wallMid - beforePos;
+                    var tCross = (toWall.X * axis.X + toWall.Y * axis.Y) / axisDot;
+                    var cross = beforePos + flightDir * tCross;      // fixed wall crossing
+                    // Step EdgePadding ALONG the flight direction (not divided
+                    // by the approach angle) — the jump is always the same
+                    // length (2*EdgePadding), never stretched huge on an
+                    // angled approach (the len=2.0 "strange water dive").
+                    var stepAlong = HexHopTuning.EdgePadding;
+                    var takeoff = cross - flightDir * stepAlong;
+                    var landing = cross + flightDir * stepAlong;
+
+                    target = takeoff;                 // ONE target for the walk
+                    hopApproach = true;
+                    npc.Movement.HopArmed = true;     // commit — freeze the plan
+                    npc.Movement.HopLandingIndex = landingIndex;
+                    npc.Movement.HopFrom = takeoff;
+                    npc.Movement.HopTo = landing;
+                    npc.Movement.HopUp = wallTile.Elevation > hopStandTile.Elevation;
+                    npc.Movement.HopTargetTile = wallTile.Coord;
+                }
+            }
+
             var delta = new Float2(target.X - npc.Position.X, target.Y - npc.Position.Y);
             var direction = HexSpatialMath.Normalize(delta);
-            npc.Movement.DesiredDirection = direction;
-            npc.Movement.DesiredRotationDegrees = HexSpatialMath.AngleDegrees(direction);
-
             var turnPerTick = npc.TurnSpeed * world.TickDeltaTime;
-            var prevRotation = npc.RotationDegrees;
-            npc.RotationDegrees = MathUtil.RotateTowards(
-                npc.RotationDegrees,
-                npc.Movement.DesiredRotationDegrees,
-                turnPerTick);
 
-            var facingError = MathUtil.Abs(MathUtil.DeltaAngle(npc.RotationDegrees, npc.Movement.DesiredRotationDegrees));
+            // §21.21B v6: while the hop window runs, the HOP owns rotation
+            // and pacing — the walk aiming below would re-target the path
+            // junction every tick (mid-air spin to -150° and back, measured
+            // in the t=46..62 probe trace) and its facing-error gate would
+            // freeze flight ticks while the view clock kept running.
+            var facingError = 0f;
             const float alignmentThreshold = 30f;
-
-            if (facingError > alignmentThreshold)
+            if (npc.Movement.HopTimer <= 0f)
             {
-                npc.Movement.Status = MovementStatus.Rotating;
-                npc.Movement.PostTurnTimer = npc.PostTurnPause;
-                Trace.Emit(world, npc.Id, "MovementRotating",
-                    $"Rot={prevRotation:F1}->{npc.RotationDegrees:F1} Desired={npc.Movement.DesiredRotationDegrees:F1} " +
-                    $"Error={facingError:F1}>{alignmentThreshold} ToJunction={targetJunctionId.Value} " +
-                    $"Step={targetIndex}/{npc.Movement.JunctionPath.Count}");
+                npc.Movement.DesiredDirection = direction;
+                npc.Movement.DesiredRotationDegrees = HexSpatialMath.AngleDegrees(direction);
+
+                var prevRotation = npc.RotationDegrees;
+                npc.RotationDegrees = MathUtil.RotateTowards(
+                    npc.RotationDegrees,
+                    npc.Movement.DesiredRotationDegrees,
+                    turnPerTick);
+
+                facingError = MathUtil.Abs(MathUtil.DeltaAngle(npc.RotationDegrees, npc.Movement.DesiredRotationDegrees));
+
+                if (facingError > alignmentThreshold)
+                {
+                    npc.Movement.Status = MovementStatus.Rotating;
+                    npc.Movement.PostTurnTimer = npc.PostTurnPause;
+                    Trace.Emit(world, npc.Id, "MovementRotating",
+                        $"Rot={prevRotation:F1}->{npc.RotationDegrees:F1} Desired={npc.Movement.DesiredRotationDegrees:F1} " +
+                        $"Error={facingError:F1}>{alignmentThreshold} ToJunction={targetJunctionId.Value} " +
+                        $"Step={targetIndex}/{npc.Movement.JunctionPath.Count}");
+                    continue;
+                }
+
+                if (npc.Movement.PostTurnTimer > 0f)
+                {
+                    npc.Movement.PostTurnTimer -= world.TickDeltaTime;
+                    npc.Movement.Status = MovementStatus.Rotating;
+                    Trace.Emit(world, npc.Id, "MovementPostTurnPause",
+                        $"Timer={npc.Movement.PostTurnTimer:F2}s remaining");
+                    continue;
+                }
+            }
+
+            // Standing pause (swim-entry treading, §40.18-B). Deferred while
+            // a hop is flying — the hop owns its own timeline; a pending
+            // tread pause plays after the landing beat.
+            if (npc.Movement.ClimbPauseTimer > 0f && npc.Movement.HopTimer <= 0f)
+            {
+                npc.Movement.ClimbPauseTimer -= world.TickDeltaTime;
+                npc.Movement.Status = MovementStatus.Waiting;
+                Trace.Emit(world, npc.Id, "ClimbPause",
+                    $"Timer={npc.Movement.ClimbPauseTimer:F2}s remaining");
                 continue;
             }
 
-            if (npc.Movement.PostTurnTimer > 0f)
+            // §21.21B v6: the hop OWNS its window — it runs BEFORE the walk
+            // rotation/alignment code (which would otherwise re-aim her at
+            // the excluded edge junction every tick and even SKIP flight
+            // ticks through the facing-error gate: the mid-air spinning and
+            // the sim-vs-view clock drift the user saw).
+            if (npc.Movement.HopTimer > 0f)
             {
-                npc.Movement.PostTurnTimer -= world.TickDeltaTime;
-                npc.Movement.Status = MovementStatus.Rotating;
-                Trace.Emit(world, npc.Id, "MovementPostTurnPause",
-                    $"Timer={npc.Movement.PostTurnTimer:F2}s remaining");
+                npc.Movement.HopTimer -= world.TickDeltaTime;
+                var hopElapsed = HexHopTuning.HopSeconds - npc.Movement.HopTimer;
+                var flightSpan = System.MathF.Max(0.05f, HexHopTuning.HopSeconds -
+                    HexHopTuning.TakeoffSeconds - HexHopTuning.LandingSeconds);
+
+                if (hopElapsed <= HexHopTuning.TakeoffSeconds)
+                {
+                    // Push-off beat: she already STOPPED at the takeoff point
+                    // (v8 stop-short) — just hold there and crouch, turning to
+                    // face the flight. No gather, no slide.
+                    npc.Position = npc.Movement.HopFrom;
+                    npc.RotationDegrees = MathUtil.RotateTowards(
+                        npc.RotationDegrees, npc.Movement.DesiredRotationDegrees,
+                        npc.TurnSpeed * world.TickDeltaTime);
+                    npc.Movement.Status = MovementStatus.Waiting;
+                    continue;
+                }
+
+                // Airborne: straight lattice-point-to-lattice-point flight.
+                var flightT = MathUtil.Clamp01(
+                    (hopElapsed - HexHopTuning.TakeoffSeconds) / flightSpan);
+                npc.Position = npc.Movement.HopFrom +
+                    (npc.Movement.HopTo - npc.Movement.HopFrom) * flightT;
+                npc.RotationDegrees = MathUtil.RotateTowards(
+                    npc.RotationDegrees, npc.Movement.DesiredRotationDegrees,
+                    npc.TurnSpeed * world.TickDeltaTime);
+                npc.Movement.Status = flightT < 1f
+                    ? MovementStatus.Moving
+                    : MovementStatus.Waiting; // landing beat: feet planting
+
+                // Landing beat: pre-face the NEXT waypoint while the feet
+                // plant, so she stands up already in the right turn instead
+                // of landing, pausing and spinning afterwards.
+                if (flightT >= 1f && npc.Movement.HopCrossed &&
+                    npc.Movement.PathIndex < npc.Movement.JunctionPath.Count &&
+                    world.Junctions.Items.TryGetValue(
+                        npc.Movement.JunctionPath[npc.Movement.PathIndex], out var nextAfterHop))
+                {
+                    var toNext = nextAfterHop.WorldPosition - npc.Position;
+                    if (HexSpatialMath.Distance(nextAfterHop.WorldPosition, npc.Position) > 0.05f)
+                    {
+                        npc.Movement.DesiredRotationDegrees =
+                            HexSpatialMath.AngleDegrees(HexSpatialMath.Normalize(toNext));
+                    }
+                }
+
+                if (flightT >= 1f && !npc.Movement.HopCrossed)
+                {
+                    // A re-plan may have REPLACED the path mid-flight — the
+                    // landing index then points into a stale list. Land where
+                    // she is, close the hop, let pathfinding re-route.
+                    if (npc.Movement.HopLandingIndex >= npc.Movement.JunctionPath.Count)
+                    {
+                        npc.Movement.HopCrossed = true;
+                        npc.Movement.HopTimer = 0f;
+                        Trace.Emit(world, npc.Id, "HopAborted",
+                            "Path replaced mid-flight — landed in place");
+                        continue;
+                    }
+
+                    // Touched down on the landing lattice point: do the
+                    // bookkeeping for it AND the excluded edge junction.
+                    npc.Movement.HopCrossed = true;
+                    npc.CurrentJunction =
+                        npc.Movement.JunctionPath[npc.Movement.HopLandingIndex];
+
+                    // Tile: land in the tile the LANDING junction belongs to
+                    // (falls back to the edge tile when the path ended on the
+                    // edge). The girl may fly over the border tile entirely.
+                    var hopLandTile = npc.Movement.HopTargetTile;
+                    if (world.Junctions.Items.TryGetValue(
+                            npc.CurrentJunction.Value, out var hopLandJunction) &&
+                        hopLandJunction.Tiles.Count > 0)
+                    {
+                        hopLandTile = hopLandJunction.Tiles[0];
+                    }
+
+                    var hopPreviousTile = npc.Tile;
+                    if (hopLandTile != hopPreviousTile)
+                    {
+                        npc.Tile = hopLandTile;
+                        SpatialMutations.MoveEntityToTile(world, npc.Id, hopPreviousTile, npc.Tile);
+                        Trace.Emit(world, npc.Id, "EnteredTile",
+                            $"From={hopPreviousTile.Q},{hopPreviousTile.R} To={npc.Tile.Q},{npc.Tile.R}");
+
+                        if (world.Tiles.Items.TryGetValue(npc.Tile, out var hopLandedTile) &&
+                            world.Tiles.Items.TryGetValue(hopPreviousTile, out var hopLeftTile) &&
+                            IsSwimTile(hopLandedTile) && !IsSwimTile(hopLeftTile))
+                        {
+                            // §40.18-B: dove into deep water — tread a beat
+                            // (plays after the landing beat; the pause block
+                            // defers while the hop window runs).
+                            npc.Movement.ClimbPauseTimer = SwimEntryPauseSeconds;
+                            Trace.Emit(world, npc.Id, "SwimEnter",
+                                $"Pause={SwimEntryPauseSeconds:F2}s Tile={npc.Tile.Q},{npc.Tile.R}");
+                        }
+                    }
+
+                    npc.Movement.PathIndex = npc.Movement.HopLandingIndex + 1;
+                    Trace.Emit(world, npc.Id, "HopLanded",
+                        $"Tile={npc.Tile.Q},{npc.Tile.R} Pos={Trace.FormatPos(npc.Position)}");
+                    if (npc.Movement.PathIndex >= npc.Movement.JunctionPath.Count)
+                    {
+                        // The path ends on this landing — close the hop window
+                        // too, or the (now skipped) movement loop would leave
+                        // it dangling and HopKind stuck for the view.
+                        npc.Movement.HopTimer = 0f;
+                        npc.Movement.ClimbPauseTimer = System.MathF.Max(
+                            npc.Movement.ClimbPauseTimer, HexHopTuning.LandingSeconds);
+                        npc.Movement.IsMoving = false;
+                        npc.Movement.Status = MovementStatus.Arrived;
+                        Trace.Emit(world, npc.Id, "MovementCompleted",
+                            $"HopLanding Tile={npc.Tile.Q},{npc.Tile.R} " +
+                            $"Pos={Trace.FormatPos(npc.Position)}");
+                    }
+                }
+
                 continue;
             }
+
 
             var alignmentFactor = 1f - (facingError / alignmentThreshold) * 0.5f;
             // Spec 19.3C: mauled legs mean hobbling.
             var movementPerTick = npc.MoveSpeed * npc.Body.MobilityFactor() *
                 EquipmentMath.WetMovementFactor(npc) *
                 alignmentFactor * world.TickDeltaTime;
+
+            // §40.18-B: deep-water strokes are slower than a walk on land.
+            // Keyed off the SWIMMER's tile, so the slowdown starts once she is
+            // in the water and ends when she has climbed out.
+            if (world.Tiles.Items.TryGetValue(npc.Tile, out var swimStandTile) &&
+                IsSwimTile(swimStandTile))
+            {
+                movementPerTick *= SwimSpeedFactor;
+            }
+
             var distance = HexSpatialMath.Distance(npc.Position, target);
+
+            // §21.21B v9: reached the takeoff point — launch the hop (the
+            // flight block owns the window from here). No tile switch / path
+            // advance now; that happens on touchdown.
+            if (hopApproach && distance <= movementPerTick)
+            {
+                npc.Position = npc.Movement.HopFrom;
+                npc.Movement.HopArmed = false;
+                npc.Movement.HopPathIndex = npc.Movement.PathIndex;
+                npc.Movement.HopCrossed = false;
+                npc.Movement.HopTimer = HexHopTuning.HopSeconds;
+                npc.Movement.DesiredRotationDegrees = HexSpatialMath.AngleDegrees(
+                    HexSpatialMath.Normalize(npc.Movement.HopTo - npc.Movement.HopFrom));
+                npc.Movement.Status = MovementStatus.Waiting;
+                Trace.Emit(world, npc.Id, "HopStarted",
+                    $"{(npc.Movement.HopUp ? "Up" : "Down")} " +
+                    $"From={Trace.FormatPos(npc.Movement.HopFrom)} To={Trace.FormatPos(npc.Movement.HopTo)}");
+                continue;
+            }
 
             if (distance <= movementPerTick)
             {
@@ -2733,6 +3036,20 @@ public sealed class MovementSystem : ISimulationSystem
                         SpatialMutations.MoveEntityToTile(world, npc.Id, previousTile, npc.Tile);
                         Trace.Emit(world, npc.Id, "EnteredTile",
                             $"From={previousTile.Q},{previousTile.R} To={npc.Tile.Q},{npc.Tile.R}");
+
+                        if (world.Tiles.Items.TryGetValue(newTile, out var landedTile) &&
+                            world.Tiles.Items.TryGetValue(previousTile, out var leftTile))
+                        {
+                            // §40.18-B: plunged from land into deep water —
+                            // tread in place for a beat before stroking off
+                            // (the view plays the jump-in + treading idle).
+                            if (IsSwimTile(landedTile) && !IsSwimTile(leftTile))
+                            {
+                                npc.Movement.ClimbPauseTimer = SwimEntryPauseSeconds;
+                                Trace.Emit(world, npc.Id, "SwimEnter",
+                                    $"Pause={SwimEntryPauseSeconds:F2}s Tile={newTile.Q},{newTile.R}");
+                            }
+                        }
                     }
                 }
 
@@ -3048,6 +3365,19 @@ public sealed class ExecutionSystem : ISimulationSystem
 
             if (npc.Execution.Status == ExecutionStatus.InProgress)
             {
+                // Spec 42: the fire died mid-huddle — a dead pit warms nobody,
+                // so warming (and boiling) at it stops NOW instead of playing
+                // out the full interaction at a cold fireplace.
+                if (npc.Execution.CurrentInteraction is InteractionType.Observe
+                        or InteractionType.FillBottle &&
+                    definition.Tags.Contains("Campfire") &&
+                    worldObject.ResourceAmount <= 0f)
+                {
+                    PlanInterruption.Abort(world, npc, "Fire went out mid-interaction");
+                    npc.Mind.CurrentGoal = GoalType.None;
+                    continue;
+                }
+
                 var remaining = npc.Execution.EndTick - world.Tick;
                 if (remaining > 0)
                 {
@@ -4716,14 +5046,14 @@ public sealed class NeedsDecaySystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Slow;
 
-    private const float HungerRate = 0.016f;
+    private const float HungerRate = 0.011f; // pond removal + hex-hop ceremony rebalance: water/food trips got longer
     private const float EnergyRate = 0.007f; // spec 42: ~1 bar/day
     private const float ComfortRate = 0.01f;
     private const float SocialRate = 0.008f; // spec 28.15A
     // Spec 42.A: base eased 0.020 -> 0.018 as the compensating loosening for
     // the sweat multiplier below — same multi-dimensional-budget lesson as
     // §40.18 (0.020 + factor 0.25 broke seed 777; 0.05 alone was homeopathy).
-    private const float ThirstRate = 0.018f; // spec 29E.1
+    private const float ThirstRate = 0.013f; // spec 29E.1; pond removal + §21.21B v5 clamp rebalance
 
     // Spec 42.A: extra thirst per unit of positive ThermalComfort (sweat).
     private const float SweatThirstFactor = 0.25f;
@@ -5266,7 +5596,7 @@ public sealed class TemperatureSystem : ISimulationSystem
                 // to dress/warm up; two exposed nights still kill.
                 foreach (var part in AllTemperatureParts)
                 {
-                    npc.Body.Parts[part] = System.Math.Max(0f, npc.Body.Parts[part] - 0.015f); // §46: half-way back from r5's 0.012 — one exposed night ~0.55, harsh but survivable
+                    npc.Body.Parts[part] = System.Math.Max(0f, npc.Body.Parts[part] - 0.012f); // pond-removal rebalance: back to r5's 0.012 — river water runs already добавили мокрого холода
                 }
 
                 npc.Health = npc.Body.Mean();
@@ -5597,13 +5927,13 @@ public sealed class DogSystem : ISimulationSystem
     private const int RespawnCheckTicks = 3600; // §46: every 1.5 game days (was 3) — sustained pack pressure, not one skirmish per arc
 
     // §46 v2: night-raid catastrophe knobs.
-    private const float RaidChancePerDay = 0.20f; // §47 recalibration: 0.25 -> 0.20 — the comfort chain (ember ring + bed-per-girl) spends real auction time, wins fell 6/12 -> 3/12; one notch of raid pressure buys it back
+    private const float RaidChancePerDay = 0.08f; // §21.21B v3.2: hop has NO survival logic at all (user: elegance everywhere) — the exposure tax is paid with bite 0.06 + hunger 0.012 + this raid notch; 12-seed soak = 6/12 (50%) // §47 recalibration: 0.25 -> 0.20 — the comfort chain (ember ring + bed-per-girl) spends real auction time, wins fell 6/12 -> 3/12; one notch of raid pressure buys it back
     private const int RaidPackSize = 3;
     private const int RaidDuskOffsetTicks = 1800;
     private const int SpawnMinDistanceFromNpc = 5;
     private const float RoamChance = 0.2f;
     private const int AggroRadiusTiles = 2;
-    private const float BiteDamagePerPass = 0.09f; // §46 difficulty pass: 0.06 -> 0.09 in two steps — at 0.07 the pack only STALLED colonies (7/12 wins, 5 timeouts, 4 dog kills); the loss condition should be blood, not the clock
+    private const float BiteDamagePerPass = 0.06f; // §46 difficulty pass: 0.06 -> 0.09 in two steps — at 0.07 the pack only STALLED colonies (7/12 wins, 5 timeouts, 4 dog kills); the loss condition should be blood, not the clock
     private const float NpcStrikePerPass = 0.15f;
 
     private readonly System.Collections.Generic.List<Wildlife.DogState> _deadDogs = new();
@@ -7046,7 +7376,7 @@ public sealed class WeatherSystem : ISimulationSystem
 
     // §46 v2: storm-surge catastrophe knobs. Offset 1600 keeps the tick on
     // the Slow (16-tick) grid this system runs on.
-    private const float StormChancePerDay = 0.12f;
+    private const float StormChancePerDay = 0.08f; // §21.21B v4 recalibration: circle-climb reshuffle left 4/12 lone-survivor TIMEOUTS (6-10 storms outpaced a solo raft rebuild) — fewer surges converts stalls into decided runs
     private const int StormRaftLogLoss = 2;
     private const int StormSurgeOffsetTicks = 1600;
 }

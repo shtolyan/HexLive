@@ -336,9 +336,18 @@ public sealed class Wear : MonoBehaviour
         // The artistic dissolve mask (fal.ai ragged holes at varied depths)
         // replaces the procedural Voronoi when present — one mask serves
         // every garment type, since it lives in generic UV space.
+        // TRANSPARENT slots (stockings, sheer sleeves) keep their authored
+        // shader: GarmentTear is opaque alpha-test and turned sheer fabric
+        // solid black. Their holes are punched into the albedo ALPHA by the
+        // wear painter instead — the original shader blends them out.
         var tearMask = Resources.Load<Texture2D>("HexLive/Decals/tear_mask");
         foreach (var material in _meshRenderer.materials)
         {
+            if (IsTransparentMaterial(material))
+            {
+                continue;
+            }
+
             material.shader = _tearShader;
             if (tearMask != null)
             {
@@ -346,6 +355,22 @@ public sealed class Wear : MonoBehaviour
                 material.SetFloat(TearTexOnId, 1f);
             }
         }
+    }
+
+    // URP Lit convention: _Surface 1 = Transparent; high queues too.
+    public static bool IsTransparentMaterial(Material material)
+    {
+        if (material == null)
+        {
+            return false;
+        }
+
+        if (material.HasProperty("_Surface") && material.GetFloat("_Surface") > 0.5f)
+        {
+            return true;
+        }
+
+        return material.renderQueue >= (int)UnityEngine.Rendering.RenderQueue.Transparent;
     }
 
     private Transform FindHip()

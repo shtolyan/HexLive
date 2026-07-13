@@ -44,6 +44,11 @@ namespace HexLive.UnityPresentation.Wearing
         private Texture?[] _originalAlbedo = System.Array.Empty<Texture?>();
         private RenderTexture?[] _maskRt = System.Array.Empty<RenderTexture?>();
         private RenderTexture?[] _albedoRt = System.Array.Empty<RenderTexture?>();
+        // Transparent slots (stockings, sheer sleeves) keep their authored
+        // shader — their holes are ERASED from the albedo alpha instead of
+        // clipped by the tear mask (the opaque tear shader made them black).
+        private bool[] _transparentSlot = System.Array.Empty<bool>();
+        private float _lastTear;
 
         private readonly List<Hole> _holes = new();
         private readonly float[] _sphereBuckets = new float[8];
@@ -54,6 +59,7 @@ namespace HexLive.UnityPresentation.Wearing
         private static Texture2D? _holeStamp;
         private static Texture2D? _texDirt;
         private static Texture2D? _texTearMask;
+        private static Material? _alphaErase;
         private static bool _artLoaded;
 
         // Baked-pose working set (small meshes — garments are a few k tris).
@@ -73,11 +79,13 @@ namespace HexLive.UnityPresentation.Wearing
             _originalAlbedo = new Texture?[_materials.Length];
             _maskRt = new RenderTexture?[_materials.Length];
             _albedoRt = new RenderTexture?[_materials.Length];
+            _transparentSlot = new bool[_materials.Length];
             for (var i = 0; i < _materials.Length; i++)
             {
                 _originalAlbedo[i] = _materials[i] != null && _materials[i].HasProperty("_BaseMap")
                     ? _materials[i].GetTexture("_BaseMap")
                     : null;
+                _transparentSlot[i] = Wear.IsTransparentMaterial(_materials[i]);
             }
         }
 
@@ -136,6 +144,7 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             _lastStateHash = stateHash;
+            _lastTear = Mathf.Clamp01(tear01);
             RepaintMasks();
             RepaintDirt(dirt01);
         }
@@ -284,6 +293,11 @@ namespace HexLive.UnityPresentation.Wearing
             EnsureArt();
             for (var slot = 0; slot < _materials.Length; slot++)
             {
+                if (_transparentSlot[slot])
+                {
+                    continue; // holes are erased from the albedo alpha instead
+                }
+
                 var hasHole = false;
                 foreach (var hole in _holes)
                 {
@@ -379,7 +393,11 @@ namespace HexLive.UnityPresentation.Wearing
                     continue;
                 }
 
-                if (count == 0)
+                // Transparent slots erase their holes from the albedo alpha
+                // (their authored shader blends them out) — the albedo copy
+                // is needed even with zero dirt once a hole is open.
+                var punchHoles = _transparentSlot[slot] && AnyOpenHoleIn(slot);
+                if (count == 0 && !punchHoles)
                 {
                     if (_albedoRt[slot] != null)
                     {
@@ -448,6 +466,32 @@ namespace HexLive.UnityPresentation.Wearing
                             StampTint(Mathf.Clamp01(dirt01)));
                     }
 
+                    // Punch the open holes out of the alpha (sheer garments).
+                    if (punchHoles && _alphaErase != null && _holeStamp != null)
+                    {
+                        foreach (var hole in _holes)
+                        {
+                            if (hole.Slot != slot)
+                            {
+                                continue;
+                            }
+
+                            var strength = HoleOpenStrength(hole);
+                            if (strength <= 0.01f)
+                            {
+                                continue;
+                            }
+
+                            _alphaErase.SetFloat("_Strength", strength);
+                            var cx = Mathf.Repeat(hole.Uv.x, 1f);
+                            var cy = 1f - Mathf.Repeat(hole.Uv.y, 1f);
+                            Graphics.DrawTexture(
+                                new Rect(cx - hole.Size * 0.5f, cy - hole.Size * 0.5f, hole.Size, hole.Size),
+                                _holeStamp, new Rect(0f, 0f, 1f, 1f), 0, 0, 0, 0,
+                                Color.white, _alphaErase);
+                        }
+                    }
+
                     GL.PopMatrix();
                     RenderTexture.active = previous;
                     rt.GenerateMips();
@@ -471,11 +515,38 @@ namespace HexLive.UnityPresentation.Wearing
             _texDirt = null;
             _texTearMask = null;
             _holeStamp = null;
+            _alphaErase = null;
+        }
+
+        // A hole's erase strength on sheer fabric: bite holes (depth ≈ 0) are
+        // open immediately; natural-wear holes open as erosion passes their
+        // authored depth — mirroring the tear-mask clip semantics.
+        private float HoleOpenStrength(Hole hole)
+        {
+            if (hole.Depth <= 0.05f)
+            {
+                return 1f;
+            }
+
+            return Mathf.Clamp01((_lastTear * 1.08f - hole.Depth) * 5f);
+        }
+
+        private bool AnyOpenHoleIn(int slot)
+        {
+            foreach (var hole in _holes)
+            {
+                if (hole.Slot == slot && HoleOpenStrength(hole) > 0.01f)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static void EnsureArt()
         {
-            if (_artLoaded && _texDirt != null && _texTearMask != null)
+            if (_artLoaded && _texDirt != null && _texTearMask != null && _alphaErase != null)
             {
                 return;
             }
@@ -483,6 +554,8 @@ namespace HexLive.UnityPresentation.Wearing
             _artLoaded = true;
             _texDirt = Resources.Load<Texture2D>("HexLive/Decals/dirt_dust");
             _texTearMask = Resources.Load<Texture2D>("HexLive/Decals/tear_mask");
+            var erase = Shader.Find("Hidden/HexLive/AlphaErase");
+            _alphaErase = erase != null ? new Material(erase) : null;
 
             // Ragged hole stamp: white core fading out with an angular-noise
             // rim (the TINT recolors the core to the hole's depth-gray).

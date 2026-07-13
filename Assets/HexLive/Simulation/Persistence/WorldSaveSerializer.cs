@@ -395,6 +395,29 @@ public static class WorldSaveSerializer
         {
             throw new InvalidDataException("Save blob end marker missing — truncated or corrupt save.");
         }
+
+        MigrateRetiredContent(world);
+    }
+
+    // Save migration: content retired from the bootstrap still lives inside
+    // older saves' entity lists — despawn it on load or the girls keep using
+    // ghosts (e.g. the water.pond anchors: removed from the world, invisible
+    // to the renderer, yet loaded NPCs kept hiking to them for water).
+    private static void MigrateRetiredContent(WorldState world)
+    {
+        var retired = new List<ObjectId>();
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (obj.DefinitionId == "water.pond")
+            {
+                retired.Add(obj.Id);
+            }
+        }
+
+        foreach (var id in retired)
+        {
+            WorldObjectMutations.DespawnObject(world, id);
+        }
     }
 
     private static void WriteObject(BinaryWriter w, WorldObjectState obj)

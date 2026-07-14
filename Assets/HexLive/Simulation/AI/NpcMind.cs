@@ -85,6 +85,7 @@ public enum GoalType
     GatherLeaves, // §54.2: pick scattered palm leaves off the ground
     TendFire,     // fuel/light the campfire with a carried stick (iteration 13 / §54)
     Hunt,         // chase a rabbit with a spear (iteration 14)
+    Prey,         // §56: kill a housemate for meat — starvation last resort
     CraftSpear,   // whittle a spear from a log at the campfire (iteration 14)
     CookMeat,     // cook raw meat on the lit fire (iteration 14)
     CraftLeather, // sew pants from a hide, worn immediately (iteration 14)

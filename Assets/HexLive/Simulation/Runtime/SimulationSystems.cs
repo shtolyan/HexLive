@@ -1073,10 +1073,22 @@ public sealed class DecisionSystem : ISimulationSystem
             // both the leaf supply (chop a palm when short) and CraftBed.
             var bedDeficit = CountReachableWithTag(npc, world, "Bed") <
                 world.Entities.Npcs.Count;
+            // §54.2 fix: don't fell a NEW palm while the LAST one's harvest still
+            // lies unprocessed on the ground. A felled palm scatters its CROWN
+            // (the leaf source) + logs instead of filling the pack, so the
+            // leaf/wood gates below stay "satisfied by 0 carried" and re-fire on
+            // the next-nearest palm — the NPC mowed the whole grove and left a
+            // trail of un-worked crowns/leaves. Finish one tree's output first: an
+            // un-chopped crown OR loose leaves already on the ground block the leaf
+            // motive here (chop-crown/gather-leaves take over); the wood/fuel motive
+            // is already blocked by a reachable "Wood" (logs carry that tag).
+            var pendingLeafSource = HasReachableWithTag(npc, world, "PalmCrown") ||
+                HasReachableWithTag(npc, world, "PalmLeaf");
             var harvestTreeAvail = canChop && npc.Inventory.HasSpace &&
                 ((fuelLow && !HasReachableWithTag(npc, world, "Wood") &&
                   HasReachableWithTag(npc, world, "Palm")) ||
-                 ((CountInventory(npc, "resource.palm_leaf") == 0 ||
+                 (!pendingLeafSource &&
+                  (CountInventory(npc, "resource.palm_leaf") == 0 ||
                    (piece is { } pLeaf && carriedLeaves < pLeaf.Leaves) ||
                    (bedDeficit && carriedLeaves < 3)) &&
                   HasReachableWithTag(npc, world, "Palm")));

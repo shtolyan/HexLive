@@ -1719,7 +1719,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             var prefabRoot = new GameObject($"Object {worldObject.DefinitionId}");
             prefabRoot.transform.SetParent(_objectsRoot, false);
             var instance = Instantiate(objectPrefab, prefabRoot.transform);
-            FitObjectPrefab(instance, worldObject.DefinitionId);
+            FitObjectPrefab(instance, worldObject.DefinitionId, worldObject.Id.Value);
             var anchorPos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
             prefabRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
                 anchorPos, GroundY(worldObject.Tile));
@@ -1756,7 +1756,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             var modelRoot = new GameObject($"Object {worldObject.DefinitionId}");
             modelRoot.transform.SetParent(_objectsRoot, false);
             lowPoly.transform.SetParent(modelRoot.transform, false);
-            FitObjectPrefab(lowPoly, worldObject.DefinitionId);
+            FitObjectPrefab(lowPoly, worldObject.DefinitionId, worldObject.Id.Value);
             var anchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
             modelRoot.transform.position = SimulationUnityMapper.ToUnityPosition(anchor, GroundY(worldObject.Tile));
             return modelRoot;
@@ -2484,13 +2484,43 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     // Spec 31C.3: normalize any downloaded/transferred model to the hex
     // metric by its rendered bounds — no per-asset scale guessing.
-    private void FitObjectPrefab(GameObject instance, string definitionId)
+    private void FitObjectPrefab(GameObject instance, string definitionId, int idValue)
     {
         // Size comes from the shared ObjectFit table (same one the in-hand prop
         // uses in NpcActorView.SetHandProp) so a tool/coconut is the same physical
         // size on the ground and in the hand.
         instance.transform.localScale *= ObjectFit.FitScaleFactor(instance, definitionId);
+        // Scattered ground pose BEFORE grounding so the drop rests on its rotated
+        // bounds (a lain-flat tool sits on its side, not floating at its old height).
+        instance.transform.localRotation = GroundScatterRotation(definitionId, idValue);
         GroundVisual(instance);
+    }
+
+    // A dropped prop's ground pose: a deterministic random yaw so the map doesn't
+    // read as a rigid grid, and — for items authored standing — a tip onto the
+    // side so they lie flat like something dropped, not stuck upright in the soil.
+    private static Quaternion GroundScatterRotation(string definitionId, int idValue)
+    {
+        // Deterministic per-object yaw in [0,360): stable across every view
+        // rebuild, unlike UnityEngine.Random which would pop on each refresh.
+        uint state = (uint)idValue * 2654435761u;
+        var yaw = NextRand(ref state) * 360f;
+
+        if (LiesFlatOnGround(definitionId))
+        {
+            // Authored handle-+Y (TOOL_GENERATION_SPEC); 90° about X tips that long
+            // axis onto the ground, then the yaw scatters which way it points.
+            return Quaternion.Euler(90f, yaw, 0f);
+        }
+
+        return Quaternion.Euler(0f, yaw, 0f);
+    }
+
+    // Spec tools are authored standing (handle +Y). On the ground they should lie
+    // on their side like a dropped tool; the pot is a container that rests upright.
+    private static bool LiesFlatOnGround(string definitionId)
+    {
+        return definitionId.StartsWith("tool.") && definitionId != "tool.pot";
     }
 
     // Ground the model: bottom of its renderer bounds sits on the tile top

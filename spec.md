@@ -9577,6 +9577,19 @@ from scratch (cold start). Two data-driven seams keep it cheap to extend.
   `SimBalance.LogSplitYield` (4) sticks with an axe/saw — the sticks scatter.
   `forest.deadfall` sheds ready sticks (the early bootstrap shortcut).
 
+### §54.2a One tree at a time (don't mow the grove)
+A felled palm is one-shot: its **crown** (leaf source) + logs *scatter on the
+ground*, they don't fill the pack. So the leaf-supply clause in `harvestTreeAvail`
+— which tests **carried** leaves — stayed satisfied-by-zero after a fell and
+re-fired on the next-nearest palm, and target selection is nearest-only with no
+per-tree claim. Net effect: an NPC felled palm after palm and left a trail of
+un-worked crowns/leaves instead of processing one tree's output. Fix (availability
+only, no new mechanic): the leaf motive in `harvestTreeAvail` is suppressed while a
+`PalmCrown` **or** loose `PalmLeaf` lies reachable (`pendingLeafSource`) — so
+`ChopCrown`/`GatherLeaves` take over and empty the current tree before another is
+felled. The fuel/wood motive was already blocked by a reachable `Wood` (logs carry
+that tag).
+
 ### §54.3 Cordage & the knife
 - **`plant.fibrous`** sheds `resource.fiber` (herb-bush pattern). Fiber crafts
   **`resource.rope`** (3 fiber) and **`resource.cloth`** (4 fiber) at the fire.

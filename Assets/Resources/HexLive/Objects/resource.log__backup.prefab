@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 416514759816455697}
   - component: {fileID: 8718956638759713851}
   m_Layer: 0
-  m_Name: resource.log
+  m_Name: resource.log__backup
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -40,7 +40,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3710885677468654308}
-  m_Mesh: {fileID: -1193377681830826073, guid: 3c4ee164c6e024118ad94b6e10f71188, type: 3}
+  m_Mesh: {fileID: 4300000, guid: 92916cb6e25134b24bce74eb9ad9d156, type: 2}
 --- !u!23 &8718956638759713851
 MeshRenderer:
   m_ObjectHideFlags: 0

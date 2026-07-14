@@ -57,6 +57,13 @@ public sealed class WorldObjectState
 
     public int BillLeaves { get; set; }
 
+    // Spec §54.2: beds are lashed from sticks (rails/slats) and, for the premium
+    // bedroll, a rope binding — so the furniture bill needs these two extra
+    // material channels beyond the original log/stone/leaf trio.
+    public int BillSticks { get; set; }
+
+    public int BillRope { get; set; }
+
     // Spec §52: a garment is a container. When it is taken off (or torn), the
     // pocket items it carried ride down with it and live here on the ground
     // object — the NPC remembers (via perception) that its bottle is "in those

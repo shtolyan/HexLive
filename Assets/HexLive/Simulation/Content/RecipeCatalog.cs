@@ -71,9 +71,10 @@ public static class RecipeCatalog
         Add(GoalType.CraftPickaxe, new[] { I("resource.stick", 1), I("resource.stone", 2) });
         Add(GoalType.CraftRack, new[] { I("resource.stick", 2) }, noRack: true);
         // Spec §54.2: the campfire bed is the leaf MAT — EXACTLY the pieces it's
-        // assembled from (8 leaf blades + 2 stick rails). The premium bedroll is a
+        // assembled from (16 leaf blades + 6 stick rails, baked from the leaf-mat
+        // prefab; see BedFactory.BillFor("bed.leaf")). The premium bedroll is a
         // separate progressive build-site piece (BedFactory.BillFor("bed.basic")).
-        Add(GoalType.CraftBed, new[] { I("resource.palm_leaf", 8), I("resource.stick", 2) });
+        Add(GoalType.CraftBed, new[] { I("resource.palm_leaf", 16), I("resource.stick", 6) });
         // Spec §54: a tent is lashed from leaves + a bolt of cloth.
         Add(GoalType.CraftTent, new[] { I("resource.palm_leaf", 4), I("resource.cloth", 1) });
         // Spec §54: the bow needs a rope bowstring (lashing).

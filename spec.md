@@ -9056,7 +9056,8 @@ Pure C#, Unity-free (testable, and the sim could later read it):
   sat by a lit campfire, spec §49.C) — thermal is
   two-tier: mild `Hot`/`Cold` at `|ThermalComfort| ≥ 0.4`, severe HP-draining
   `Heatstroke`/`Freezing` at `≥ 0.85`), survival (`Starving`,
-  `Dehydrated`, `Exhausted`, `Fainted`, `WellFed`, `Rested`), mind
+  `Dehydrated`, `Exhausted`, `Fainted`, `WellFed`, `Rested`, `Snug` (buff —
+  §54.11, asleep on a bed, recovering faster)), mind
   (`Stressed`, `Grieving`, `Lonely`, `Miserable`, `Content`), hygiene
   (`Filthy`). `EffectPolarity` {Buff, Debuff} colours the chip ring;
   `EffectCategory` groups/sorts.
@@ -9066,12 +9067,14 @@ Pure C#, Unity-free (testable, and the sim could later read it):
   here — the presentation maps polarity → ring colour.
 - **`ActiveEffect { Kind, Intensity }`** — one effect acting now; `Intensity`
   (0..1) is how hard it bites (tooltip reads mild/severe, ring brightens).
-- **`EffectEvaluator.Collect(npc, tick, effectiveUv, nearLitFire, results)`** —
-  the classifier. Bleeding
+- **`EffectEvaluator.Collect(npc, tick, effectiveUv, nearLitFire, restingInBed,
+  results)`** — the classifier. Bleeding
   takes precedence over the milder `Injured`; a faint suppresses the redundant
   `Exhausted`. `Comfort` reads bipolar (low → `Miserable`, high → `Content`).
   `nearLitFire` (a campfire within warming range, same probe as the temperature
-  system) raises the `Cozy` buff.
+  system) raises the `Cozy` buff; `restingInBed` (asleep on a bed object) raises
+  `Snug`. World-context conditions the classifier can't read off the NPC alone are
+  passed in as precomputed flags like these — see the §48.6 checklist.
 
 ### §48.3 Icons — emoji first
 Each chip is a coloured circle with a glyph inside. v1 uses **emoji**
@@ -9092,6 +9095,51 @@ one-line "what it does". Debuffs sort before buffs, most-intense first.
 ### §48.5 Not yet modelled
 `Fighting` stays a dedicated badge (§40.11), not an effect chip, to avoid
 duplication. (`Sick` gained a tracked duration in §49 — see below.)
+
+### §48.6 Design principle — every influence on a survivor is an Effect
+**Rule.** Anything that changes what a survivor *is* or how her parameters move —
+a buff, a debuff, an environmental modifier, an item / furniture / fire bonus, a
+need-rate change, a temporary status — is expressed through the **effect layer**.
+There are **no invisible influences**: if it touches the character, it has a named,
+localized, player-visible Effect. The question "what is acting on her right now?"
+must always be answerable by reading her effect row — never buried in a bespoke
+per-tick branch. The catalog is the **single ledger** of everything that acts on a
+survivor: for the player (transparency), for design (one place to see every modifier
+and catch silent stacking), and for tuning (a modifier you can see is one you can
+reason about).
+
+**Two layers of one effect.** An effect has a *surface* and, optionally, a *source*:
+- **Surface (mandatory, always).** The effect exists in `EffectCatalog` with
+  polarity, category, an icon and `effect.<kind>.title/.desc` localization, and
+  `EffectEvaluator` emits it whenever its condition holds. Required for EVERY effect.
+- **Source (the target model).** The modifier itself should live ON the effect — the
+  effect carries the delta / rate / multiplier and the sim system reads it from the
+  active effect, rather than hard-coding a bespoke branch. This promotes the §48.1
+  "v2" from *deferred* to the **governing direction**: new character modifiers are
+  authored as effects; existing bespoke ones migrate onto their effect as they're
+  next touched.
+
+**Coexistence during migration.** Today most effects are still *derived* (§48.1) —
+the sim applies the consequence and the evaluator mirrors it as a chip. That remains
+an acceptable transitional state, but the invariant holds from here on: **no new
+influence ships without an effect**, and a bespoke modifier that gets revisited is
+lifted onto its effect. The knife-edge-balance caution (§48.1) still governs —
+moving a live number is a balance change and must be soak-checked.
+
+**Authoring checklist — adding anything that affects a survivor:**
+1. Add an `EffectKind` (+ polarity / category / emoji in `EffectCatalog`).
+2. Localize `effect.<kind>.title` / `.desc` (EN + RU) in `Loc`.
+3. Emit it from `EffectEvaluator.Collect` under the exact condition it acts (pass any
+   world context the classifier needs as a precomputed flag, e.g. `nearLitFire`,
+   `restingInBed`).
+4. Prefer authoring the modifier ON the effect (source layer); if it must stay a
+   bespoke sim branch for now, the effect MUST still surface it (surface layer).
+5. Soak-check if any live number moved.
+
+Already following this: `Cozy` (fireside), `Snug` (§54.11 — a built bed speeding
+sleep recovery), the thermal / hunger / thirst danger chips. The direction: the
+§54.11 sleep bonuses, garment warmth, and every future item or environmental
+modifier read as effects, not as hidden deltas.
 
 ## §49 Sleep, social & water overhaul (iteration 47)
 
@@ -9584,6 +9632,107 @@ All knobs live in `SimBalance` (§54 block): `LogSplitYield/DurationTicks`,
 `CarcassDecayTicks`, `ButcherDurationTicks`, `CarcassMeatYield`,
 `MeatRaw/CookedSpoilTicks`, `Cannibalism*`, `CampfireStoneBill`. Balance is tuned
 separately — the §54 values are functional placeholders.
+
+### §54.9 Progressive bed build-site (leaf mat)
+The leaf sleeping-mat (`bed.leaf`) is no longer an atomic craft — it is raised at
+a **progressive furniture build-site**, Stranded-Deep style: the pieces are hauled
+in one at a time and the mat **grows into its finished shape** before a hammer taps
+it done.
+
+- **Placement.** `BedSiteSystem` (a Slow-tick colony intent, deliberately outside
+  the per-NPC auction so the fragile survival balance is untouched) stakes ONE
+  `build.site` with `BuildProduct = "bed.leaf"` beside a **lit hearth** when the
+  colony has fewer beds than living girls and none is currently under construction.
+  Bill = `SimBalance.BedLeafBillLeaves`(16) + `BedLeafBillSticks`(6) — EXACTLY the
+  mat's prefab pieces (`BedFactory.BillFor("bed.leaf")`).
+- **Bill channels.** The §52 furniture bill gained two material channels beyond
+  log/stone/leaf: **stick** and **rope** (`WorldObjectState.BillSticks/BillRope`,
+  `BuildSiteMath.AllMaterials` + `MaterialSticks/Rope`). Deposit/read-back iterate
+  `AllMaterials`, so a bed can bill sticks (and, for the premium bedroll, rope).
+- **Hauling.** The existing `BuildFurniture` chain delivers: the gather feeders
+  (`ChopCrown`/`GatherLeaves`, `SplitLog`) fetch what the site needs (`siteNeeds
+  Leaves/Sticks`), and each `Build` interaction deposits whatever needed pieces are
+  in hand into `Contents` (partial delivery). Girls carry ~2 items, so a mat is
+  many trips — it accretes visibly.
+- **Finish.** `ApplyFurnitureSite` raises the bed once stocked and a **hammer** is
+  carried or lying at the site (`tool.hammer`, now findable wilderness loot);
+  the site despawns and the finished `bed.leaf` is spawned.
+- **Bugfix.** `InteractionType.Build` is shared by the hut (`GoalType.Build`) and
+  furniture sites (`BuildFurniture`); the start-gate that requires the full HUT
+  piece bill in hand now skips furniture sites (`!BuildSiteMath.IsSite`), which had
+  silently aborted every bed delivery (leaves/sticks don't satisfy a hut piece).
+- **Render.** `BuildSitePile` detects a bed product and draws it via
+  `BedFactory.Build(product, filled = deliveredCounts)` — each delivered
+  leaf/stick/log/rope drops onto its real slot, so the site grows exactly into the
+  finished bed (not a generic scatter pile). Snapshot carries `Bill/Delivered
+  Sticks/Rope` alongside the log/stone/leaf counts.
+
+`bed.basic` (the premium bedroll: 20 leaf + 2 log + 4 stick + 1 rope) shares all
+this plumbing but is not yet staked by any system — its slot bill is ready for a
+future placer.
+
+### §54.10 Build-time balance (stacking, hut retired, bed-chain priority)
+A goal-time histogram over the soak showed the colony spends ~48% of living time
+asleep and ~20% idle (None/Socialize/Sit), with building near 0% — the girls had
+**time**, but the bed chain lost the auction and each gather trip carried only 2-3
+pieces. Three changes free the time without touching the fragile survival needs
+(hunger/thirst/thermal are NOT the bottleneck — ~2% and ~5% respectively):
+
+- **Bulk resources stack.** Leaves, sticks, stones, fiber and rope fold into ONE
+  pocket slot per `InventoryState.StackSize`(20) of the same id (`IsStackable`).
+  Slots are **not** expanded — `Items` stays a flat instance list, so every
+  Add/Remove/Contains/Count path is unchanged; only `UsedSlots` groups stacks. A
+  whole bed's leaves now ride in one slot, so hauling is a trip or two, not a dozen.
+- **Gather to the bill.** When a bed site needs material the per-trip cap rises
+  from 3 to the full bill (`wantsLeaves` → 16, `splitLog` stick cap → 6), so a
+  stacked bundle actually fills before delivery.
+- **Bed chain outranks leisure.** With a staked site waiting, `ChopCrown`,
+  `GatherLeaves`, `SplitLog` and `BuildFurniture` get a peacetime pull
+  (`bedLeafPull`/`bedStickPull` +0.35, delivery +0.2) so they beat Sit/Socialize/
+  idle. Still peacetime-gated — hunger/thirst/danger always preempt, so survival is
+  never traded for a bed.
+- **The communal hut is retired.** `CreateBuildProject` is no longer called
+  (`world.Project` stays null ⇒ `GoalType.Build`/hut piece-placement never fires).
+  It was never seen in play, competed for logs/stones/time, and its only reward was
+  a `bed.basic` the progressive bed site now supplies.
+
+Result (4-day, 6-seed soak): `CrownChopped`/`GatherLeaves`/`SiteDelivered` now fire
+across seeds, a bed completes (`FurnitureBuilt`), `BuildFurniture` time rose 0.8%→
+2.7%, and deaths fell (hut removal + fewer wasted trips).
+
+### §54.11 Faster sleep recovery + bed/fire reward
+Sleep was ~45% of living time — nights are slept through by design (`ShouldKeep
+Sleeping` = night ∨ low-energy), but the *daytime* naps ate the build window. A
+single unified hook in `NeedsDecaySystem` (where `sleeping` is already true for
+both the ground-sleep and bed-sleep paths) adds an energy bonus per slow tick while
+asleep, so recovery is faster ⇒ less napping ⇒ more time awake to build:
+
+- `SimBalance.SleepEnergyBaseBonus`(0.010) — always while asleep (shorter nights by
+  default, the "sleep less" lever).
+- `SleepEnergyFireBonus`(0.005) — sleeping within a lit fire's warmth.
+- `SleepEnergyLeafBedBonus`(0.006) / `SleepEnergyBasicBedBonus`(0.010) — on a bed,
+  keyed off the slept-on object (`Execution.TargetObject`). This is the concrete
+  payoff for BUILDING a bed and camping by the fire: you recover faster, so you
+  sleep less and do more. (The old `BedEnergy`/`LeafBedEnergy` constants were dead;
+  bed-sleep restore lives in the bed def's interaction `EnergyDelta` — this bonus
+  stacks on top of whichever path is active.)
+
+Result: Sleep fell ~45%→36% of living time, `BuildFurniture` productivity rose, and
+survival IMPROVED (a 6-seed 4-day soak went to 0 deaths, all colonies 3/3) — the
+freed time went into work, not risk. Tune the four bonuses to trade night length.
+
+**Visible as effects (§48).** The sleep influences surface as status chips in the
+character panel: the existing **Cozy** buff already fires by a lit fire (covers the
+fireside sleep bonus), and a new **Snug** buff (`EffectKind.Snug`, 🛌, Survival) fires
+while she's asleep on a bed — the evaluator emits it from a `restingInBed` flag the
+snapshot exporter computes (sleeping + slept-on object is a bed). Localized EN/RU
+(`effect.snug.title/desc`). Effects stay pure UI classification — they never drive
+the bonus, only show it.
+
+**Death-cause soak.** Over a 16-day 6-seed run the eventual killers are
+**dehydration ~73%** and **dog maulings ~27%** — starvation, cold, heat and sickness
+are ~0. Food and warmth are solved; the fragile axis is WATER (the §55 coconut-only
+WIP economy). Short 4-day runs see zero deaths.
 
 ## §55 Rivers retired, drink from the coconut (iteration 55)
 

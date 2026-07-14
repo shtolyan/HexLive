@@ -34,6 +34,8 @@ namespace HexLive.Simulation.Agents.Effects
         Fainted,      // knocked out — utterly spent, lying unable to act
         WellFed,      // freshly full (buff)
         Rested,       // energy and stamina both high (buff)
+        Snug,         // §54.11: asleep in a proper bed — resting deeply, recovering
+                      // energy faster (buff). The bed you built earning its keep.
 
         // ── Mind & wellbeing ──────────────────────────────────────────────
         Stressed,     // stress climbing toward the breaking point

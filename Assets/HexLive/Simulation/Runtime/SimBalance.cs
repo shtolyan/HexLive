@@ -106,6 +106,16 @@ namespace HexLive.Simulation.Runtime
         public static float GroundSitComfortLedge = 0.25f;  // ...more on a ledge (nice view)
         public static float BedEnergy = 0.18f;              // energy per night in a real bed
         public static float LeafBedEnergy = 0.15f;          // energy per night on a leaf mat
+
+        // §54.11: sleep recovers ENERGY faster — a base lift so nights are shorter
+        // by DEFAULT (they slept ~45% of the time), plus a fireside bonus and a bed
+        // bonus. This is the payoff for building a bed and camping by the fire: you
+        // recover faster ⇒ sleep less ⇒ more time on your feet to build/gather.
+        // Added once per slow tick while asleep, on top of the base restore.
+        public static float SleepEnergyBaseBonus = 0.010f;    // always while asleep
+        public static float SleepEnergyFireBonus = 0.005f;    // + by a lit fire
+        public static float SleepEnergyLeafBedBonus = 0.006f; // + on a leaf mat
+        public static float SleepEnergyBasicBedBonus = 0.010f;// + on a premium bedroll
         public static float ChairComfort = 0.4f;            // comfort per sit in a chair
         public static float ChairEnergy = 0.1f;             // energy per sit in a chair
 
@@ -204,6 +214,13 @@ namespace HexLive.Simulation.Runtime
         // Cold start: the campfire is built by piling this many stones at the
         // hearth build-site (no hammer needed), then lit with sticks.
         public static int CampfireStoneBill = 6;
+
+        // §54.2: the leaf sleeping-mat is now raised at a progressive build-site
+        // (haul each leaf/stick, it grows piece by piece, a hammer finishes it) —
+        // NOT an atomic craft. The bill is EXACTLY the mat's prefab pieces (see
+        // BedFactory.BillFor("bed.leaf")): 16 leaf blades + 6 stick rails.
+        public static int BedLeafBillLeaves = 16;
+        public static int BedLeafBillSticks = 6;
 
         // §54.2: how many fronds each palm's crown is built from AND how many
         // loose leaves drop when that crown is chopped — the SAME number per size

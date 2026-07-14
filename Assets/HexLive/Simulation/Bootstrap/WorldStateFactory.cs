@@ -50,7 +50,11 @@ public sealed class WorldStateFactory
             AddNpc(world, npcBootstrap);
         }
 
-        CreateBuildProject(world);
+        // §54.10: the communal hut (spec 35.3) is retired — it was never seen in
+        // play, pulled logs/stones/time away from the things that matter, and its
+        // only reward was a bed.basic that the progressive bed build-site now
+        // supplies. No world.Project ⇒ NextBuildPiece stays null ⇒ GoalType.Build
+        // never fires. (CreateBuildProject is left defined but unused.)
         CreateCampfireSite(world); // §54 cold start: the hearth is built, not given
         // §54.2: beds are woven at the campfire (CraftBed tiers) — the §52 bed
         // build-site is retired, so it's no longer seeded here.

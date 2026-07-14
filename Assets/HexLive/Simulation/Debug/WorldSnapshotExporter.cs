@@ -57,7 +57,9 @@ public static class WorldSnapshotExporter
                 BuildProduct = obj.BuildProduct,
                 BillLogs = obj.BillLogs,
                 BillStones = obj.BillStones,
-                BillLeaves = obj.BillLeaves
+                BillLeaves = obj.BillLeaves,
+                BillSticks = obj.BillSticks,
+                BillRope = obj.BillRope
             };
 
             if (!string.IsNullOrEmpty(obj.BuildProduct))
@@ -69,6 +71,8 @@ public static class WorldSnapshotExporter
                         case "resource.log": exported.DeliveredLogs++; break;
                         case "resource.stone": exported.DeliveredStones++; break;
                         case "resource.palm_leaf": exported.DeliveredLeaves++; break;
+                        case "resource.stick": exported.DeliveredSticks++; break;
+                        case "resource.rope": exported.DeliveredRope++; break;
                     }
                 }
             }
@@ -379,7 +383,13 @@ public static class WorldSnapshotExporter
         // Spec §49.8: a lit campfire within warming range earns the Cozy buff —
         // same warmth probe the temperature/sleep-comfort systems use.
         var nearLitFire = Runtime.TemperatureSystem.NearbyFireWarmth(world, npc.Tile, out _) > 0f;
-        EffectEvaluator.Collect(npc, world.Tick, npcSnapshot.EffectiveUv, nearLitFire, effects);
+        // §54.11: is she asleep on a bed right now? Drives the "Snug" buff (the
+        // bed she built speeding her recovery). Same object the sleep bonus keys on.
+        var restingInBed = npc.Execution.CurrentInteraction == Content.InteractionType.Sleep &&
+            npc.Execution.TargetObject is { } bedId &&
+            world.Entities.Objects.TryGetValue(bedId, out var bedObj) &&
+            bedObj.DefinitionId is "bed.basic" or "bed.leaf";
+        EffectEvaluator.Collect(npc, world.Tick, npcSnapshot.EffectiveUv, nearLitFire, restingInBed, effects);
         foreach (var effect in effects)
         {
             npcSnapshot.Effects.Add($"{effect.Kind}\t{effect.Intensity:0.###}");

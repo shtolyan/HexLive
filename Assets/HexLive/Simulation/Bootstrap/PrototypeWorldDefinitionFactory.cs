@@ -349,6 +349,7 @@ namespace HexLive.Simulation.Bootstrap
             Place("herb.bush", 3, 1213, 1); // spec 44: healing herb
             Place("plant.yucca", 8, 1327, 1); // spec §54: yucca — cut for fiber (rope/cloth); consumed, so seed a few
             Place("tool.knife", 1, 1451, 2); // spec §54: one findable knife bootstraps butchering
+            Place("tool.hammer", 2, 1489, 1); // spec §54.2: findable hammers raise the bed build-sites
             // Spec §54 cold start: the home conveniences are no longer handed
             // out — the pot (boiling), lighter (a spark) and armor are findable
             // wilderness loot instead, so the wilds still reward exploring.

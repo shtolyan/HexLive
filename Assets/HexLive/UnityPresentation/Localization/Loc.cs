@@ -225,6 +225,12 @@ namespace HexLive.UnityPresentation.Localization
                 "Energy and stamina both high — ready for anything.",
                 "Энергия и выносливость высоки — готова ко всему."
             },
+            ["effect.snug.title"] = new[] { "Snug", "В кровати" },
+            ["effect.snug.desc"] = new[]
+            {
+                "Asleep in a proper bed — resting deeply and recovering energy faster.",
+                "Спит в настоящей кровати — глубокий сон, энергия восстанавливается быстрее."
+            },
             ["effect.stressed.title"] = new[] { "Stressed", "В стрессе" },
             ["effect.stressed.desc"] = new[]
             {

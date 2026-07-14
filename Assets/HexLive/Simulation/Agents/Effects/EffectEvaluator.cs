@@ -45,6 +45,7 @@ namespace HexLive.Simulation.Agents.Effects
         // campfire is within warming range (spec §49.8) — it drives the Cozy buff.
         public static void Collect(
             NPCState npc, int currentTick, float effectiveUv, bool nearLitFire,
+            bool restingInBed,
             List<ActiveEffect> results)
         {
             results.Clear();
@@ -207,6 +208,14 @@ namespace HexLive.Simulation.Agents.Effects
             if (needs.Energy > RestedShow && needs.Stamina > RestedShow)
             {
                 results.Add(new ActiveEffect(EffectKind.Rested, Min(needs.Energy, needs.Stamina)));
+            }
+
+            // §54.11: asleep in a bed she (or a housemate) built — the bed's bonus
+            // is speeding her recovery, so the panel shows a "Snug" buff. The
+            // caller sets restingInBed only while she's actually lying on a bed.
+            if (restingInBed)
+            {
+                results.Add(new ActiveEffect(EffectKind.Snug, 1f));
             }
 
             // ── Mind & wellbeing ──────────────────────────────────────────

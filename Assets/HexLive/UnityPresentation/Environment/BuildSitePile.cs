@@ -33,6 +33,35 @@ namespace HexLive.UnityPresentation.Environment
                 Object.Destroy(transform.GetChild(i).gameObject);
             }
 
+            // Spec §54.2: a BED site assembles via BedFactory's real slot layout —
+            // each delivered leaf/stick/log/rope drops onto its final slot, so the
+            // mat grows exactly into the finished bed (not a generic scatter pile).
+            if (BedFactory.IsBed(site.BuildProduct))
+            {
+                var delivered = site.DeliveredLeaves + site.DeliveredSticks +
+                    site.DeliveredLogs + site.DeliveredRope;
+                if (delivered == 0)
+                {
+                    AddStake(); // nothing hauled in yet → the intent stake
+                    return;
+                }
+
+                var partial = BedFactory.Build(site.BuildProduct, mat => mat switch
+                {
+                    "resource.palm_leaf" => site.DeliveredLeaves,
+                    "resource.stick" => site.DeliveredSticks,
+                    "resource.log" => site.DeliveredLogs,
+                    "resource.rope" => site.DeliveredRope,
+                    _ => 0
+                });
+                if (partial != null)
+                {
+                    partial.transform.SetParent(transform, false); // BedFactory is absolute-sized
+                }
+
+                return;
+            }
+
             var placed = 0;
             placed = Pile("resource.stone", site.DeliveredStones, placed);
             placed = Pile("resource.log", site.DeliveredLogs, placed);
@@ -88,6 +117,10 @@ namespace HexLive.UnityPresentation.Environment
         }
 
         private static int Signature(ObjectSnapshot site) =>
-            site.DeliveredStones * 10000 + site.DeliveredLogs * 100 + site.DeliveredLeaves;
+            site.DeliveredStones +
+            site.DeliveredLogs * 100 +
+            site.DeliveredLeaves * 10000 +
+            site.DeliveredSticks * 1000000 +
+            site.DeliveredRope * 100000000;
     }
 }

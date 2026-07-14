@@ -155,6 +155,15 @@ public sealed class ObjectSnapshot
 
     public int DeliveredLeaves { get; set; }
 
+    // Spec §54.2: beds also bill sticks (rails/slats) and rope (bedroll binding).
+    public int BillSticks { get; set; }
+
+    public int BillRope { get; set; }
+
+    public int DeliveredSticks { get; set; }
+
+    public int DeliveredRope { get; set; }
+
     public List<JunctionId> Junctions { get; } = new();
 }
 

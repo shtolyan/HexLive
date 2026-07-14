@@ -859,6 +859,19 @@ public sealed class DecisionSystem : ISimulationSystem
                 BuildSiteMath.Needs(buildSite, BuildSiteMath.MaterialLogs) && carriedLogs < 1;
             var siteNeedsStones = buildSite != null && buildWindow &&
                 BuildSiteMath.Needs(buildSite, BuildSiteMath.MaterialStones);
+            // Spec §54.2: a bed build-site also pulls leaves + sticks — the gather
+            // feeders (ChopCrown/GatherLeaves, SplitLog) fetch them so BuildFurniture
+            // can haul each piece over to the growing mat.
+            var siteNeedsLeaves = buildSite != null && buildWindow &&
+                BuildSiteMath.Needs(buildSite, BuildSiteMath.MaterialLeaves);
+            var siteNeedsSticks = buildSite != null && buildWindow &&
+                BuildSiteMath.Needs(buildSite, BuildSiteMath.MaterialSticks);
+            // §54.10: when a staked bed site is waiting on materials, its gather +
+            // deliver chain outranks peacetime leisure (Sit/Socialize/idle) so the
+            // mat actually finishes — still peacetime-gated, so hunger/thirst/danger
+            // always preempt it (survival is never traded for a bed).
+            var bedLeafPull = siteNeedsLeaves ? 0.35f : 0f;
+            var bedStickPull = siteNeedsSticks ? 0.35f : 0f;
             // BuildFurniture fires when I can advance the site: bring a material
             // it still needs, or raise it once stocked — with a hammer, except a
             // §54 campfire, which is just piled from stones (no hammer).
@@ -1104,29 +1117,37 @@ public sealed class DecisionSystem : ISimulationSystem
             // fire, or a stick-framed craft one split away. Needs a chop tool
             // (deadfall sticks bootstrap the first axe, breaking the chicken-and-
             // egg). Fire-urgent so it can win the auction and keep the hearth fed.
-            var wantsSticks = fuelLow ||
+            var wantsSticks = fuelLow || siteNeedsSticks ||
                 (campfireSeen && (!hasSpear ||
                     (!hasPickaxe && stoneCount >= 2) ||
                     (hasBow && arrowCount == 0)));
-            var splitLogAvail = carriedSticks < 2 &&
+            // §54.10: sticks stack too — split toward the bed's stick bill when a
+            // site needs them, not just the 2-stick fuel reserve.
+            var stickCap = siteNeedsSticks ? SimBalance.BedLeafBillSticks : 2;
+            var splitLogAvail = carriedSticks < stickCap &&
                 (hasAxe || hasSaw) && npc.Inventory.HasSpace &&
                 HasReachableWithTag(npc, world, "Log") && wantsSticks;
             AddGoalScore(npc, world.Tick, GoalType.SplitLog,
-                (fuelLow ? 0.5f : 0.3f) + freeHands, splitLogAvail);
+                (fuelLow ? 0.5f : 0.3f) + freeHands + bedStickPull, splitLogAvail);
 
             // Spec §54.2: chop a felled palm CROWN into loose leaves — when leaves
             // are wanted (a bed short, or a build/tent bill) and a crown lies
             // reachable. Needs a chop tool (the same Process gate as splitting).
+            // §54.10: with leaves stacking into one slot, a girl brings a whole
+            // bundle per trip — so when a bed site is hungry for leaves, gather up
+            // toward the full bill instead of stopping at 3 (which forced a dozen
+            // half-empty trips and the bed never finished).
             var wantsLeaves = (bedDeficit && carriedLeaves < 3) ||
+                (siteNeedsLeaves && carriedLeaves < SimBalance.BedLeafBillLeaves) ||
                 (piece is { } pcrown && carriedLeaves < pcrown.Leaves) ||
                 (world.Environment.UvIndex > 0.4f && carriedLeaves < 4);
             var chopCrownAvail = wantsLeaves && (hasAxe || hasSaw) &&
                 npc.Inventory.HasSpace && HasReachableWithTag(npc, world, "PalmCrown");
-            AddGoalScore(npc, world.Tick, GoalType.ChopCrown, 0.3f + freeHands, chopCrownAvail);
+            AddGoalScore(npc, world.Tick, GoalType.ChopCrown, 0.3f + freeHands + bedLeafPull, chopCrownAvail);
             // Spec §54.2: pick scattered palm leaves off the ground when wanted.
             var gatherLeavesAvail = wantsLeaves && npc.Inventory.HasSpace &&
                 HasReachableWithTag(npc, world, "PalmLeaf");
-            AddGoalScore(npc, world.Tick, GoalType.GatherLeaves, 0.28f + freeHands, gatherLeavesAvail);
+            AddGoalScore(npc, world.Tick, GoalType.GatherLeaves, 0.28f + freeHands + bedLeafPull, gatherLeavesAvail);
 
             // Spec §54: the cordage & knife chain. Rope (a bowstring lashing) is
             // wanted when building toward a bow; cloth when a sun-shelter is due;
@@ -1175,8 +1196,11 @@ public sealed class DecisionSystem : ISimulationSystem
             // (0.55) so a girl already carrying the stones actually delivers them
             // instead of wandering off — otherwise materials never reach the site.
             // §54 cold start: raising the first hearth outranks the day's chores.
+            // §54.10: a bed delivery is lifted over peacetime leisure too, so a
+            // girl carrying a bundle actually walks it to the site and taps it home.
+            var buildFurniturePull = (siteNeedsLeaves || siteNeedsSticks) ? 0.2f : 0f;
             AddGoalScore(npc, world.Tick, GoalType.BuildFurniture,
-                (hearthUrgent ? 0.95f : 0.55f) + freeHands, buildFurnitureAvail);
+                (hearthUrgent ? 0.95f : 0.55f) + freeHands + buildFurniturePull, buildFurnitureAvail);
 
             // Spec §52: free a slot by carrying a low-value item to the fireside
             // stockpile — but only in peace. Life-threatening pressure (a dog, a
@@ -1222,11 +1246,13 @@ public sealed class DecisionSystem : ISimulationSystem
             // never appeared in ANY soak's won-auction top-14) — weaving at
             // the cold pit is fine, the Craft interaction never needed the
             // flame anyway.
-            // Spec §54.2: beds are woven at the campfire again, from our primitive
-            // pieces — the cheap MAT (3 leaves + 2 stick rails) or, with a log
-            // frame + rope lashing to hand, the premium BEDROLL (the effect arm
-            // upgrades the tier). One craft, two beds, both from the bits you see.
-            var craftBedAvail = bedDeficit && carriedLeaves >= 8 && carriedSticks >= 2 && campfireSeen;
+            // Spec §54.2: the leaf mat is no longer an atomic craft. BedSiteSystem
+            // stakes a bed.leaf build-site by the hearth, and the girls haul the
+            // 16 leaves + 6 sticks to it over many trips via the BuildFurniture
+            // chain (below) — the mat grows piece by piece, a hammer finishes it.
+            // So CraftBed is retired here; leave it disabled rather than churn the
+            // Craft dispatch/catalog it still nominally routes through.
+            var craftBedAvail = false;
             AddGoalScore(npc, world.Tick, GoalType.CraftBed, 0.6f, craftBedAvail);
 
             // Spec 40.14: a sun shelter — woven from 4 spare palm leaves at the
@@ -1627,10 +1653,7 @@ public sealed class DecisionSystem : ISimulationSystem
     // Does the NPC carry at least one material this site still needs?
     internal static bool CarriesSiteMaterial(NPCState npc, WorldObjectState site)
     {
-        foreach (var mat in new[]
-                 {
-                     BuildSiteMath.MaterialLogs, BuildSiteMath.MaterialStones, BuildSiteMath.MaterialLeaves
-                 })
+        foreach (var mat in BuildSiteMath.AllMaterials)
         {
             if (BuildSiteMath.Needs(site, mat) && npc.Inventory.Items.Contains(mat))
             {
@@ -4077,7 +4100,14 @@ public sealed class ExecutionSystem : ISimulationSystem
                 }
 
                 // Spec 35.3: building needs the full bill for the pending piece.
-                if (interaction.Type == InteractionType.Build)
+                // Spec 35.3: the HUT piece-placement (GoalType.Build) needs the full
+                // wall/floor bill in hand at start. InteractionType.Build is SHARED
+                // with GoalType.BuildFurniture, though — a furniture build-site
+                // (campfire, bed) instead accepts a partial delivery of whatever
+                // material it still needs (ApplyFurnitureSite), so it must NOT be
+                // gated on the hut bill (that wrongly aborted bed deliveries, whose
+                // leaves/sticks don't satisfy a hut piece).
+                if (interaction.Type == InteractionType.Build && !BuildSiteMath.IsSite(worldObject))
                 {
                     var pendingPiece = DecisionSystem.NextBuildPiece(world);
                     var billOk = pendingPiece is { } bill &&
@@ -4679,10 +4709,7 @@ public sealed class ExecutionSystem : ISimulationSystem
         if (!stockedBefore)
         {
             // Deposit each material the site still needs, one at a time.
-            foreach (var mat in new[]
-                     {
-                         BuildSiteMath.MaterialLogs, BuildSiteMath.MaterialStones, BuildSiteMath.MaterialLeaves
-                     })
+            foreach (var mat in BuildSiteMath.AllMaterials)
             {
                 while (BuildSiteMath.Needs(site, mat))
                 {
@@ -4700,7 +4727,9 @@ public sealed class ExecutionSystem : ISimulationSystem
             Trace.Emit(world, npc.Id, "SiteDelivered",
                 $"{site.BuildProduct}: logs {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialLogs)}/{site.BillLogs} " +
                 $"stones {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialStones)}/{site.BillStones} " +
-                $"leaves {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialLeaves)}/{site.BillLeaves}");
+                $"leaves {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialLeaves)}/{site.BillLeaves} " +
+                $"sticks {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialSticks)}/{site.BillSticks} " +
+                $"rope {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialRope)}/{site.BillRope}");
         }
 
         // Raise it if it is now stocked and a hammer is at hand — carried, or
@@ -6790,6 +6819,32 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             npc.Needs.Thirst = MathUtil.Clamp01(npc.Needs.Thirst + ThirstRate * metabolism * sweat);
             npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy - EnergyRate);
 
+            // §54.11: faster sleep recovery — a base lift (shorter nights) plus a
+            // fireside bonus and a bed bonus, so a bed built by the fire pays off
+            // in time awake. One place, both sleep paths (ground + bed) — `sleeping`
+            // is true for either; the bed bonus keys off the slept-on object.
+            if (sleeping)
+            {
+                var wake = SimBalance.SleepEnergyBaseBonus;
+                if (TemperatureSystem.NearbyFireWarmth(world, npc.Tile, out _) > 0f)
+                {
+                    wake += SimBalance.SleepEnergyFireBonus;
+                }
+
+                if (npc.Execution.TargetObject is { } bedId &&
+                    world.Entities.Objects.TryGetValue(bedId, out var bedObj))
+                {
+                    wake += bedObj.DefinitionId switch
+                    {
+                        "bed.basic" => SimBalance.SleepEnergyBasicBedBonus,
+                        "bed.leaf" => SimBalance.SleepEnergyLeafBedBonus,
+                        _ => 0f
+                    };
+                }
+
+                npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy + wake);
+            }
+
             // Spec §49: unified sleep-comfort. Asleep, comfort no longer drains —
             // the surface + fire + sun + rain formula fills it (bare grass
             // ~0.05/night, +fire ~0.05, a bed ~1.0 minus sun/rain penalties).
@@ -8745,6 +8800,116 @@ public sealed class MeatSpoilageSystem : ISimulationSystem
     }
 }
 
+// Spec §54.2: beds are raised at a PROGRESSIVE build-site — hauled leaf/stick
+// pieces accrete into the mat (rendered growing via BedFactory), then a hammer
+// finishes it. This system is the site PLACER: once the colony has a lit hearth
+// but fewer beds than living girls, and no bed is currently under construction,
+// it stakes ONE bed.leaf site by the fire. One at a time, so a build reads as a
+// clear "this bed, now" project; the finished bed bumps the count and the next
+// site follows. Placement is a colony intent (like the bootstrap campfire site)
+// — deliberately OUTSIDE the per-NPC auction so the fragile survival balance is
+// untouched; the hauling/raising is the existing BuildFurniture chain.
+public sealed class BedSiteSystem : ISimulationSystem
+{
+    public string Name => nameof(BedSiteSystem);
+
+    public TickLayer Layer => TickLayer.Slow;
+
+    public void Run(WorldState world)
+    {
+        var livingGirls = 0;
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            if (npc.Health > 0f)
+            {
+                livingGirls++;
+            }
+        }
+
+        if (livingGirls == 0)
+        {
+            return;
+        }
+
+        // Count finished beds + beds already under construction; find the hearth.
+        var beds = 0;
+        var bedSitesInProgress = 0;
+        WorldObjectState hearth = null;
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (BuildSiteMath.IsSite(obj))
+            {
+                if (obj.BuildProduct is "bed.leaf" or "bed.basic")
+                {
+                    bedSitesInProgress++;
+                }
+
+                continue;
+            }
+
+            if (!world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def))
+            {
+                continue;
+            }
+
+            if (def.Tags.Contains("Bed"))
+            {
+                beds++;
+            }
+            else if (hearth is null && def.Tags.Contains("Campfire"))
+            {
+                hearth = obj;
+            }
+        }
+
+        // Fire first (a lit hearth, not the cold pit-site). One bed at a time.
+        // Cap at one bed per living girl.
+        if (hearth is null || bedSitesInProgress > 0 || beds >= livingGirls)
+        {
+            return;
+        }
+
+        var spot = FindFiresideSpot(world, hearth);
+        if (spot is not { } placement)
+        {
+            return;
+        }
+
+        var site = WorldObjectMutations.SpawnObject(
+            world, "build.site", new FragmentId(1), placement.Tile, placement.Junction);
+        site.BuildProduct = "bed.leaf";
+        site.BillLeaves = SimBalance.BedLeafBillLeaves;
+        site.BillSticks = SimBalance.BedLeafBillSticks;
+        Trace.EmitSystem(world, "BedSitePlaced",
+            $"bed.leaf site staked by the hearth ({beds}/{livingGirls} beds)");
+    }
+
+    // A free junction on a dry tile neighbouring the hearth.
+    private static (TileCoord Tile, JunctionId Junction)? FindFiresideSpot(WorldState world, WorldObjectState hearth)
+    {
+        foreach (var dir in HexDirection.All)
+        {
+            var coord = new TileCoord(hearth.Tile.Q + dir.DQ, hearth.Tile.R + dir.DR);
+            if (!world.Tiles.Items.TryGetValue(coord, out var tile) ||
+                tile.Flags.HasFlag(TileFlags.Water))
+            {
+                continue;
+            }
+
+            foreach (var jid in tile.Junctions)
+            {
+                if (world.Junctions.Items.TryGetValue(jid, out var jn) && !jn.Blocked &&
+                    SpatialQueries.IsJunctionFree(world, jid))
+                {
+                    return (coord, jid);
+                }
+            }
+        }
+
+        return null;
+    }
+}
+
 // Spec §50: a prepared amputation hazard — a reef, a bear-trap, a set spot on
 // the map an author places. A survivor standing on a tile holding a "Hazard"
 // object loses a leg (deterministically at chance 1, or by a tuned roll). Like
@@ -8993,6 +9158,15 @@ internal static class BuildSiteMath
     public const string MaterialLogs = "resource.log"; // spec §54: builds are log-framed
     public const string MaterialStones = "resource.stone";
     public const string MaterialLeaves = "resource.palm_leaf";
+    public const string MaterialSticks = "resource.stick"; // spec §54.2: bed rails/slats
+    public const string MaterialRope = "resource.rope";    // spec §54.2: bedroll binding
+
+    // Every material a furniture site can bill for — iterate this instead of a
+    // hardcoded trio so deposit/read-back cover sticks and rope too.
+    public static readonly string[] AllMaterials =
+    {
+        MaterialLogs, MaterialStones, MaterialLeaves, MaterialSticks, MaterialRope
+    };
 
     public static int Delivered(WorldObjectState site, string materialId)
     {
@@ -9013,16 +9187,26 @@ internal static class BuildSiteMath
         MaterialLogs => System.Math.Max(0, site.BillLogs - Delivered(site, materialId)),
         MaterialStones => System.Math.Max(0, site.BillStones - Delivered(site, materialId)),
         MaterialLeaves => System.Math.Max(0, site.BillLeaves - Delivered(site, materialId)),
+        MaterialSticks => System.Math.Max(0, site.BillSticks - Delivered(site, materialId)),
+        MaterialRope => System.Math.Max(0, site.BillRope - Delivered(site, materialId)),
         _ => 0
     };
 
     public static bool Needs(WorldObjectState site, string materialId) =>
         Remaining(site, materialId) > 0;
 
-    public static bool IsStocked(WorldObjectState site) =>
-        Remaining(site, MaterialLogs) == 0 &&
-        Remaining(site, MaterialStones) == 0 &&
-        Remaining(site, MaterialLeaves) == 0;
+    public static bool IsStocked(WorldObjectState site)
+    {
+        foreach (var mat in AllMaterials)
+        {
+            if (Remaining(site, mat) > 0)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     public static bool IsSite(WorldObjectState obj) =>
         obj != null && !string.IsNullOrEmpty(obj.BuildProduct);
@@ -9033,6 +9217,8 @@ internal static class BuildSiteMath
         MaterialLogs => "Log",
         MaterialStones => "Stone",
         MaterialLeaves => "PalmLeaf",
+        MaterialSticks => "Stick",
+        MaterialRope => "Rope",
         _ => null
     };
 }

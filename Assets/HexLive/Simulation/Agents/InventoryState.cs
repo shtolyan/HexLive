@@ -54,21 +54,57 @@ public sealed class InventoryState
     public static bool IsPersonalEffect(string definitionId) =>
         definitionId == "tool.bottle";
 
-    // Pocketed items only — personal effects (the bottle) ride free.
+    // §54.10: bulk raw materials STACK — a bundle of identical leaves/sticks/etc.
+    // rides in ONE pocket slot (up to StackSize), so hauling a bed's worth of
+    // pieces is a trip or two, not a dozen. Slots are NOT expanded; only the
+    // accounting stacks. Items stays a flat list of instances, so every existing
+    // Add/Remove/Contains/Count path is unchanged — only slot counting groups.
+    public const int StackSize = 20;
+
+    private static readonly HashSet<string> StackableIds = new()
+    {
+        "resource.palm_leaf", "resource.stick", "resource.stone",
+        "resource.fiber", "resource.rope",
+    };
+
+    public static bool IsStackable(string definitionId) => StackableIds.Contains(definitionId);
+
+    // Pocketed items only — personal effects (the bottle) ride free; stackable
+    // bulk resources fold into one slot per StackSize of the same definition.
     public int UsedSlots
     {
         get
         {
-            var n = 0;
+            var loose = 0;
+            Dictionary<string, int>? stacks = null;
             foreach (var item in Items)
             {
-                if (!IsPersonalEffect(item.DefinitionId))
+                if (IsPersonalEffect(item.DefinitionId))
                 {
-                    n++;
+                    continue;
+                }
+
+                if (IsStackable(item.DefinitionId))
+                {
+                    stacks ??= new Dictionary<string, int>();
+                    stacks.TryGetValue(item.DefinitionId, out var c);
+                    stacks[item.DefinitionId] = c + 1;
+                }
+                else
+                {
+                    loose++;
                 }
             }
 
-            return n;
+            if (stacks != null)
+            {
+                foreach (var kv in stacks)
+                {
+                    loose += (kv.Value + StackSize - 1) / StackSize; // ceil to whole slots
+                }
+            }
+
+            return loose;
         }
     }
 

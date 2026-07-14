@@ -7,35 +7,38 @@ namespace HexLive.UnityPresentation.Environment
     /// <summary>
     /// Spec §54.2: build the two beds from the game's own primitive props — logs,
     /// sticks, leaves and rope. Each bed is defined as an ordered list of SLOTS
-    /// (one primitive piece + where it goes). From that one list we render the
+    /// (one primitive piece + exactly where it goes). The slot tables below are
+    /// BAKED from the hand-authored prefabs the user arranged
+    /// (Resources/HexLive/Objects/"bed.leaf (leaf mat)" and "bed.basic (premium
+    /// bedroll)") — literal localPosition / localEuler / localScale per piece, so
+    /// the runtime bed reproduces the prefab 1:1. From that one list we render the
     /// finished bed, a PARTIALLY built bed (only the delivered pieces, each already
-    /// sitting in its final spot — the progressive build-site), and the exact
-    /// material bill (how many of each resource the bed is made of). Built at
-    /// absolute size, so the caller must NOT run FitObjectPrefab on it.
+    /// in its final spot — the progressive build-site), and the exact material bill.
+    /// Built at absolute size, so the caller must NOT run FitObjectPrefab on it.
+    /// To re-capture after editing a bed prefab: scratchpad/emit_slots.py.
     /// </summary>
     public static class BedFactory
     {
-        // Sleeper body height above the ground, per bed, in HexRadius units
-        // (measured in the BuildingTest scene). Premium sits up on its log frame;
-        // the leaf mat is almost on the floor.
-        private const float BasicSleepLiftR = 0.36f;
-        private const float LeafSleepLiftR = 0.041f;
+        // Sleeper body height above the ground, per bed, in world units (the "point"
+        // child; the sim reads its Y as the laying surface). Matches the prefabs.
+        private const float BasicSleepY = 0.5400f;
+        private const float LeafSleepY = 0.0615f;
 
-        // One piece of a bed: which resource it is, how long to render it, and its
-        // place/rotation local to the bed root.
+        // One piece of a bed: which resource it is, and its literal local transform
+        // (uniform scale) relative to the bed root — copied from the prefab.
         public readonly struct Slot
         {
             public readonly string Material; // resource id (resource.log / .stick / .palm_leaf / .rope)
-            public readonly float TargetLen;
             public readonly Vector3 Pos;
             public readonly Vector3 Euler;
+            public readonly float Scale;
 
-            public Slot(string material, float targetLen, Vector3 pos, Vector3 euler)
+            public Slot(string material, Vector3 pos, Vector3 euler, float scale)
             {
                 Material = material;
-                TargetLen = targetLen;
                 Pos = pos;
                 Euler = euler;
+                Scale = scale;
             }
         }
 
@@ -48,12 +51,11 @@ namespace HexLive.UnityPresentation.Environment
                 ? "HexLive/Objects/palm_frond"
                 : $"HexLive/Objects/{material}");
 
-        // The ordered piece list for a bed. Order = the order pieces are laid down.
-        public static List<Slot> Slots(string definitionId)
-        {
-            var r = HexLive.UnityPresentation.Spatial.SimulationUnityMapper.HexRadius;
-            return definitionId == "bed.basic" ? BedrollSlots(r) : LeafMatSlots(r);
-        }
+        // The ordered piece list for a bed. Order = the order pieces are laid down
+        // (frame first, then slats, then leaf mattress, then rope) — drives the
+        // progressive build-site reveal.
+        public static List<Slot> Slots(string definitionId) =>
+            definitionId == "bed.basic" ? BedrollSlots() : LeafMatSlots();
 
         // Exact material bill: how many of each resource the bed is built from.
         public static Dictionary<string, int> BillFor(string definitionId)
@@ -92,89 +94,90 @@ namespace HexLive.UnityPresentation.Environment
                 var prefab = Prefab(s.Material);
                 if (prefab != null)
                 {
-                    Piece(root, prefab, s.TargetLen, s.Pos, s.Euler);
+                    Piece(root, prefab, s);
                 }
             }
 
             // Sleep anchor (only meaningful on a finished bed).
-            var r = HexLive.UnityPresentation.Spatial.SimulationUnityMapper.HexRadius;
-            var liftR = definitionId == "bed.basic" ? BasicSleepLiftR : LeafSleepLiftR;
             var point = new GameObject("point");
             point.transform.SetParent(root.transform, false);
-            point.transform.localPosition = new Vector3(0f, r * liftR, 0f);
+            point.transform.localPosition = new Vector3(0f, definitionId == "bed.basic" ? BasicSleepY : LeafSleepY, 0f);
 
             return root;
         }
 
-        // Premium bedroll: 2 log side-rails + 4 stick slats + 7 leaf mattress + 1 rope.
-        private static List<Slot> BedrollSlots(float r)
+        // Premium bedroll: 2 log side-rails + 4 stick slats + 20 leaf mattress + 1 rope.
+        // Baked from "bed.basic (premium bedroll).prefab".
+        private static List<Slot> BedrollSlots()
         {
-            var s = new List<Slot>();
-            var length = r * 1.05f;
-            var width = r * 0.5f;
-            var railR = length * 0.11f;
-            var deck = railR * 2f;
-
-            s.Add(new Slot("resource.log", length, new Vector3(-width * 0.5f, railR, 0f), new Vector3(0f, 90f, 0f)));
-            s.Add(new Slot("resource.log", length, new Vector3(width * 0.5f, railR, 0f), new Vector3(0f, 90f, 0f)));
-
-            const int slats = 4;
-            for (var i = 0; i < slats; i++)
-            {
-                var t = slats == 1 ? 0.5f : i / (float)(slats - 1);
-                var z = Mathf.Lerp(-length * 0.42f, length * 0.42f, t);
-                s.Add(new Slot("resource.stick", width * 1.15f, new Vector3(0f, deck, z), Vector3.zero));
-            }
-
-            const int pad = 7;
-            for (var i = 0; i < pad; i++)
-            {
-                var t = pad == 1 ? 0.5f : i / (float)(pad - 1);
-                var z = Mathf.Lerp(-length * 0.34f, length * 0.34f, t);
-                var yaw = (i % 2 == 0 ? 90f : 92f) + (t - 0.5f) * 8f;
-                s.Add(new Slot("resource.palm_leaf", width * 1.25f, new Vector3(0f, deck + railR * (0.4f + i * 0.03f), z), new Vector3(0f, yaw, 0f)));
-            }
-
-            s.Add(new Slot("resource.rope", width * 0.4f, new Vector3(width * 0.5f, deck + railR * 0.4f, length * 0.46f), Vector3.zero));
+            var s = new List<Slot>(27);
+            s.Add(new Slot("resource.log", new Vector3(-0.3750f, 0.1732f, 0.0000f), new Vector3(0f, 90.00f, 0f), 1.5719f));
+            s.Add(new Slot("resource.log", new Vector3(0.3750f, 0.1732f, 0.0000f), new Vector3(0f, 90.00f, 0f), 1.5719f));
+            s.Add(new Slot("resource.stick", new Vector3(0.0000f, 0.3465f, -0.6615f), new Vector3(0f, 0.00f, 0f), 0.8608f));
+            s.Add(new Slot("resource.stick", new Vector3(0.0000f, 0.3465f, -0.2205f), new Vector3(0f, 0.00f, 0f), 0.8608f));
+            s.Add(new Slot("resource.stick", new Vector3(0.0000f, 0.3465f, 0.2205f), new Vector3(0f, 0.00f, 0f), 0.8608f));
+            s.Add(new Slot("resource.stick", new Vector3(0.0000f, 0.3465f, 0.6615f), new Vector3(0f, 0.00f, 0f), 0.8608f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(-0.2460f, 0.5370f, -0.6740f), new Vector3(0f, 349.78f, 0f), 0.9357f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(-0.5380f, 0.5000f, -0.5840f), new Vector3(0f, 86.00f, 0f), 0.9357f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(0.6120f, 0.4990f, -0.5760f), new Vector3(0f, 261.93f, 0f), 0.9357f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(-0.5380f, 0.5052f, -0.4055f), new Vector3(0f, 89.33f, 0f), 0.9357f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(0.6120f, 0.5042f, -0.3975f), new Vector3(0f, 265.26f, 0f), 0.9357f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(-0.5380f, 0.5104f, -0.2270f), new Vector3(0f, 88.67f, 0f), 0.9357f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(-0.2440f, 0.5370f, -0.2220f), new Vector3(0f, 349.78f, 0f), 0.9357f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(0.6120f, 0.5094f, -0.2190f), new Vector3(0f, 264.60f, 0f), 0.9357f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(-0.5380f, 0.5156f, -0.0485f), new Vector3(0f, 92.00f, 0f), 0.9357f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(0.6120f, 0.5146f, -0.0405f), new Vector3(0f, 267.93f, 0f), 0.9357f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(-0.2060f, 0.5370f, 0.0350f), new Vector3(0f, 189.28f, 0f), 0.9357f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(0.4150f, 0.5370f, 0.0840f), new Vector3(0f, 179.47f, 0f), 0.9357f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(-0.5380f, 0.5208f, 0.1300f), new Vector3(0f, 91.33f, 0f), 0.9357f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(0.6120f, 0.5198f, 0.1380f), new Vector3(0f, 267.26f, 0f), 0.9357f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(-0.5380f, 0.5260f, 0.3085f), new Vector3(0f, 94.67f, 0f), 0.9357f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(0.6120f, 0.5250f, 0.3165f), new Vector3(0f, 270.60f, 0f), 0.9357f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(0.6120f, 0.5302f, 0.4950f), new Vector3(0f, 269.93f, 0f), 0.9357f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(-0.5270f, 0.5180f, 0.4980f), new Vector3(0f, 94.00f, 0f), 0.9357f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(0.4040f, 0.5370f, 0.5100f), new Vector3(0f, 179.47f, 0f), 0.9357f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(0.4000f, 0.5370f, 0.9430f), new Vector3(0f, 179.47f, 0f), 0.9357f));
+            s.Add(new Slot("resource.rope", new Vector3(0.3750f, 0.4158f, 0.7245f), new Vector3(0f, 0.00f, 0f), 0.3004f));
             return s;
         }
 
-        // Cheap mat: 8 leaf blades + 2 stick edge-rails.
-        private static List<Slot> LeafMatSlots(float r)
+        // Leaf mat: 16 leaf blades (8 large + 8 small) + 6 stick rails.
+        // Baked from "bed.leaf (leaf mat).prefab".
+        private static List<Slot> LeafMatSlots()
         {
-            var s = new List<Slot>();
-            var length = r * 0.95f;
-            var width = r * 0.5f;
-
-            const int blades = 8;
-            for (var i = 0; i < blades; i++)
-            {
-                var t = blades == 1 ? 0.5f : i / (float)(blades - 1);
-                var x = Mathf.Lerp(-width * 0.4f, width * 0.4f, t);
-                var yaw = (t - 0.5f) * 16f;
-                s.Add(new Slot("resource.palm_leaf", length, new Vector3(x, 0.02f + i * 0.005f, 0f), new Vector3(0f, yaw, 0f)));
-            }
-
-            s.Add(new Slot("resource.stick", width * 1.1f, new Vector3(0f, 0.03f, -length * 0.42f), Vector3.zero));
-            s.Add(new Slot("resource.stick", width * 1.1f, new Vector3(0f, 0.03f, length * 0.42f), Vector3.zero));
+            var s = new List<Slot>(22);
+            s.Add(new Slot("resource.stick", new Vector3(0.0000f, 0.0300f, -0.5985f), new Vector3(0f, 0.00f, 0f), 0.8234f));
+            s.Add(new Slot("resource.stick", new Vector3(-0.3420f, 0.0300f, -0.3360f), new Vector3(0f, 90.00f, 0f), 0.8234f));
+            s.Add(new Slot("resource.stick", new Vector3(0.3620f, 0.0300f, -0.2910f), new Vector3(0f, 90.00f, 0f), 0.8234f));
+            s.Add(new Slot("resource.stick", new Vector3(0.3560f, 0.0300f, 0.2890f), new Vector3(0f, 90.00f, 0f), 0.8234f));
+            s.Add(new Slot("resource.stick", new Vector3(-0.3470f, 0.0300f, 0.4000f), new Vector3(0f, 90.00f, 0f), 0.8234f));
+            s.Add(new Slot("resource.stick", new Vector3(0.0000f, 0.0300f, 0.5985f), new Vector3(0f, 0.00f, 0f), 0.8234f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(-0.1170f, 0.0440f, -0.6580f), new Vector3(0f, 355.61f, 0f), 1.4223f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(0.0280f, 0.0640f, -0.6470f), new Vector3(0f, 7.55f, 0f), 1.4223f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(0.0970f, 0.0590f, -0.5280f), new Vector3(0f, 360.00f, 0f), 1.4223f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(-0.1820f, 0.0490f, -0.3860f), new Vector3(0f, 357.89f, 0f), 1.4223f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(-0.3240f, 0.0390f, -0.3370f), new Vector3(0f, 355.38f, 0f), 1.4223f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(0.2160f, 0.0690f, -0.3230f), new Vector3(0f, 7.04f, 0f), 1.4223f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(0.2680f, 0.0740f, -0.2400f), new Vector3(0f, 9.32f, 0f), 1.4223f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(-0.0020f, 0.0540f, -0.1140f), new Vector3(0f, 0.18f, 0f), 1.4223f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(0.0070f, 0.0590f, 0.1310f), new Vector3(0f, 174.73f, 0f), 1.0000f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(0.2430f, 0.0740f, 0.1480f), new Vector3(0f, 184.05f, 0f), 1.0000f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(-0.4150f, 0.0770f, 0.1530f), new Vector3(0f, 170.12f, 0f), 1.0000f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(-0.1650f, 0.0490f, 0.1760f), new Vector3(0f, 172.62f, 0f), 1.0000f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(0.3490f, 0.0840f, 0.2110f), new Vector3(0f, 181.77f, 0f), 1.0000f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(-0.3000f, 0.0840f, 0.2370f), new Vector3(0f, 170.34f, 0f), 1.0000f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(0.0550f, 0.0640f, 0.2460f), new Vector3(0f, 182.29f, 0f), 1.0000f));
+            s.Add(new Slot("resource.palm_leaf", new Vector3(-0.0520f, 0.0540f, 0.2920f), new Vector3(0f, 174.91f, 0f), 1.0000f));
             return s;
         }
 
-        private static void Piece(GameObject root, GameObject prefab, float targetLen, Vector3 pos, Vector3 euler)
+        private static void Piece(GameObject root, GameObject prefab, Slot s)
         {
             var go = Object.Instantiate(prefab, root.transform);
             go.name = prefab.name;
-            if (ObjectFit.WorldBounds(go, out var b))
-            {
-                var maxDim = Mathf.Max(b.size.x, Mathf.Max(b.size.y, b.size.z));
-                if (maxDim > 0.0001f)
-                {
-                    go.transform.localScale *= targetLen / maxDim;
-                }
-            }
-
-            go.transform.localRotation = Quaternion.Euler(euler);
-            go.transform.localPosition = pos;
+            go.transform.localRotation = Quaternion.Euler(s.Euler);
+            go.transform.localScale = Vector3.one * s.Scale;
+            go.transform.localPosition = s.Pos;
         }
     }
 }

@@ -237,5 +237,36 @@ namespace HexLive.Simulation.Runtime
         public static bool CannibalismEnabled = true;
         public static float CannibalismComfortPenalty = 0.25f;
         public static float CannibalizeHungerGate = 0.85f;
+
+        // §56 Predation cannibalism: the absolute last resort — a low-compassion
+        // survivor, starving with NO other food (not even an existing corpse to
+        // butcher), may KILL the weakest housemate and eat them. Ranked below
+        // every softer food source; heavy consequences. PredationEnabled=false
+        // restores pre-§56 behaviour byte-for-byte.
+        public static bool PredationEnabled = true;
+        // Strictly above CannibalizeHungerGate (0.85) so an existing corpse is
+        // always butchered before anyone is killed.
+        public static float PredationHungerGate = 0.95f;
+        // Only survivors with CompassionTrait at/below this ceiling will consider
+        // it (trait spread is 0.35..1.0, so a minority).
+        public static float PredationCompassionCeiling = 0.45f;
+        // Base goal score — kept below GetFood/Hunt/Butcher so it never outranks
+        // a real food source even before the "no other food" gate.
+        public static float PredationBaseScore = 0.05f;
+        // Damage per adjacent strike, aimed at a vital. Deliberately DECISIVE
+        // (~6x a dog's 0.06 bite): this is a desperate knife-killing, and in a
+        // famine the victim is itself starving fast — a weak strike loses the
+        // race to starvation and never lands the kill (soak-observed). Still
+        // scaled down by a starved attacker's StrikeFactor() and by armor.
+        public static float PredationStrikePerPass = 0.35f;
+        // Heavy comfort hit on the killer (vs 0.25 for butchering a found body).
+        public static float PredationComfortPenalty = 0.6f;
+        // Sharp relationship collapse: each witness's Affinity toward the killer.
+        public static float PredationWitnessAffinityLoss = 0.8f;
+        // Self-defence: a preyed-on victim fights back (real strikes at the
+        // attacker, its weapon/StrikeFactor — reusing NpcStrikePerPass), and
+        // BOLTS for an indoor refuge once its Health drops below this. So an
+        // armed, healthy victim can wound, kill, or outrun a starved predator.
+        public static float PredationFleeHealth = 0.6f;
     }
 }

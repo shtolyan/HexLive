@@ -1162,6 +1162,19 @@ public sealed class DecisionSystem : ISimulationSystem
             AddGoalScore(npc, world.Tick, GoalType.Butcher,
                 0.3f + 0.5f * npc.Needs.Hunger, butcherAvail);
 
+            // §56 Predation: the absolute last resort. A low-compassion survivor,
+            // starving with NO softer food left (not even a corpse to butcher)
+            // and a knife in hand, hunts the weakest housemate for meat. The
+            // NoOtherFoodReachable gate keeps it strictly below every real food
+            // source; PredationBaseScore is a low floor so it can never outbid one.
+            var preyAvail = SimBalance.PredationEnabled && hasKnife &&
+                npc.CompassionTrait <= SimBalance.PredationCompassionCeiling &&
+                npc.Needs.Hunger >= SimBalance.PredationHungerGate &&
+                NoOtherFoodReachable(npc, world) &&
+                NearestPreyVictim(npc, world) is not null;
+            AddGoalScore(npc, world.Tick, GoalType.Prey,
+                SimBalance.PredationBaseScore + npc.Needs.Hunger, preyAvail);
+
             // Spec 35.3 + §52: build a hut piece when the full bill is carried
             // AND a hammer is in hand — raising a wall now needs the tool.
             var buildAvail = piece is { } needNow &&
@@ -1495,6 +1508,86 @@ public sealed class DecisionSystem : ISimulationSystem
             {
                 bestDistance = distance;
                 best = rabbit;
+            }
+        }
+
+        return best;
+    }
+
+    // §56: Prey unlocks only when EVERY softer food source is absent — carried
+    // food, ground food, a known fruit producer, a rabbit to hunt, an animal
+    // carcass, or an existing corpse to butcher. The corpse clause guarantees a
+    // found body is always eaten before anyone is killed (a killed housemate is
+    // strictly worse than one who died on their own).
+    internal static bool NoOtherFoodReachable(NPCState npc, WorldState world)
+    {
+        if (npc.Inventory.FindFirstFood(world.Content) is not null)
+        {
+            return false;
+        }
+
+        if (HasReachableWithTag(npc, world, "Food"))
+        {
+            return false;
+        }
+
+        if (KnowsReachableProducer(npc, world))
+        {
+            return false;
+        }
+
+        if (NearestVisibleRabbit(npc, world) is not null)
+        {
+            return false;
+        }
+
+        if (HasReachableWithTag(npc, world, "Carcass"))
+        {
+            return false;
+        }
+
+        if (HasReachableWithTag(npc, world, "Corpse"))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    // §56: the victim of a predation — the weakest reachable housemate. Lowest
+    // health wins; a sleeper is discounted (an easy kill is preferred) and the
+    // nearest breaks remaining ties. A starved predator preys on the frail, so
+    // when no soft target is in reach the goal simply has no victim (it fails).
+    internal static NPCState? NearestPreyVictim(NPCState npc, WorldState world)
+    {
+        if (npc.CurrentJunction is not { } from)
+        {
+            return null;
+        }
+
+        NPCState? best = null;
+        var bestScore = float.MaxValue;
+        foreach (var other in world.Entities.Npcs.Values)
+        {
+            if (other.Id == npc.Id || other.Health <= 0f ||
+                other.CurrentJunction is not { } otherJunction)
+            {
+                continue;
+            }
+
+            if (!from.Equals(otherJunction) &&
+                !Connectivity.Reachable(world, from, otherJunction, npc.Body.CanJump))
+            {
+                continue;
+            }
+
+            var vulnerability = other.Health -
+                (other.Mind.CurrentGoal == GoalType.Sleep ? 0.25f : 0f) +
+                HexSpatialMath.HexDistance(npc.Tile, other.Tile) * 0.01f;
+            if (vulnerability < bestScore)
+            {
+                bestScore = vulnerability;
+                best = other;
             }
         }
 
@@ -1993,6 +2086,36 @@ public sealed class PlanningSystem : ISimulationSystem
                 npc.Plan.Status = PlanStatus.Active;
                 Trace.Emit(world, npc.Id, "HuntPlanned",
                     $"Rabbit={rabbit.Id} Tile={rabbit.Tile.Q},{rabbit.Tile.R}");
+                continue;
+            }
+
+            if (npc.Mind.CurrentGoal == GoalType.Prey)
+            {
+                // §56: a move-only stalk to the victim's junction — the strike is
+                // resolved by PredationSystem once adjacent. Like the hunt, the
+                // completion→rebuild cycle produces a genuine pursuit if the
+                // victim moves. The kill drops a corpse the existing §54 Butcher
+                // goal then processes into meat to eat.
+                var victim = DecisionSystem.NearestPreyVictim(npc, world);
+                if (victim?.CurrentJunction is not { } victimJunction)
+                {
+                    npc.Plan.Status = PlanStatus.Failed;
+                    SetGoalCooldown(world, npc, GoalType.Prey);
+                    Trace.Emit(world, npc.Id, "PlanFailed", "Goal=Prey NoReachableVictim");
+                    continue;
+                }
+
+                npc.Plan.TargetJunctionId = victimJunction;
+                npc.Plan.TargetTile = victim.Tile;
+                npc.Plan.Steps.Add(new PlanStep
+                {
+                    Type = PlanStepType.MoveToJunction,
+                    TargetJunction = victimJunction
+                });
+                npc.Plan.CurrentStepIndex = 0;
+                npc.Plan.Status = PlanStatus.Active;
+                Trace.Emit(world, npc.Id, "PreyPlanned",
+                    $"Victim={victim.Id.Value} Tile={victim.Tile.Q},{victim.Tile.R}");
                 continue;
             }
 
@@ -8065,7 +8188,7 @@ public sealed class DogSystem : ISimulationSystem
         return BodyPart.Head;
     }
 
-    private static float WorstPartHealth(NPCState npc)
+    internal static float WorstPartHealth(NPCState npc)
     {
         var worst = 1f;
         foreach (var value in npc.Body.Parts.Values)
@@ -8143,7 +8266,8 @@ public sealed class DogSystem : ISimulationSystem
     }
 
     // Spec 29C.4A: record the attack site (deduped by tile, capped).
-    private static void RememberDanger(WorldState world, NPCState npc)
+    // §56: also used by PredationSystem so a preyed-on victim flags the danger.
+    internal static void RememberDanger(WorldState world, NPCState npc)
     {
         foreach (var danger in npc.Memory.Dangers)
         {
@@ -8165,7 +8289,8 @@ public sealed class DogSystem : ISimulationSystem
     }
 
     // Spec 29C.4A: run for the nearest reachable indoor junction.
-    private static bool TryStartFlee(WorldState world, NPCState npc, int attackers)
+    // §56: also used by PredationSystem so a preyed-on victim can bolt.
+    internal static bool TryStartFlee(WorldState world, NPCState npc, int attackers)
     {
         if (npc.CurrentJunction is not { } startJunction)
         {
@@ -8353,7 +8478,8 @@ public sealed class DogSystem : ISimulationSystem
     }
 
     // Spec 29C.2: death cleanup must be total.
-    private static void RemoveDeadNpc(WorldState world, EntityId deadId)
+    // §56: also invoked by PredationSystem when a stalked victim is killed.
+    internal static void RemoveDeadNpc(WorldState world, EntityId deadId)
     {
         if (world.Entities.Npcs.TryGetValue(deadId, out var dying))
         {
@@ -9503,6 +9629,240 @@ public sealed class RabbitSystem : ISimulationSystem
         Trace.EmitSystem(world, "CrabSpawned",
             $"Rabbit={rabbit.Id} at Tile={rabbit.Tile.Q},{rabbit.Tile.R}");
         return true;
+    }
+}
+
+// §56 Predation cannibalism: resolves the KILL half of "kill a housemate to eat
+// them" (the EAT half is the existing §54 Butcher→meat→Eat chain). A predator is
+// an NPC whose DecisionSystem picked GoalType.Prey — already gated to a starving,
+// low-compassion survivor with no softer food. This system deals the strikes:
+// once adjacent to the weakest housemate it wounds them each tick via WoundMath
+// until they fall, then routes the death through the shared RemoveDeadNpc (which
+// spawns the corpse and makes witnesses grieve) and applies the heavy social
+// fallout. Mirrors DogSystem/RabbitSystem's adjacency-strike + death-sweep shape.
+public sealed class PredationSystem : ISimulationSystem
+{
+    public string Name => nameof(PredationSystem);
+
+    public TickLayer Layer => TickLayer.Medium;
+
+    private readonly System.Collections.Generic.List<EntityId> _deadVictims = new();
+    private readonly System.Collections.Generic.List<EntityId> _deadAttackers = new();
+
+    public void Run(WorldState world)
+    {
+        if (!SimBalance.PredationEnabled)
+        {
+            return;
+        }
+
+        _deadVictims.Clear();
+        _deadAttackers.Clear();
+        foreach (var predator in world.Entities.Npcs.Values)
+        {
+            if (predator.Mind.CurrentGoal != GoalType.Prey ||
+                predator.CurrentJunction is not { } predJunction)
+            {
+                continue;
+            }
+
+            // Strike whichever living housemate we're adjacent to — the pursued
+            // weakest ends up here. Adjacency = same or neighbouring junction.
+            NPCState? victim = null;
+            foreach (var other in world.Entities.Npcs.Values)
+            {
+                if (other.Id == predator.Id || other.Health <= 0f ||
+                    other.CurrentJunction is not { } otherJunction)
+                {
+                    continue;
+                }
+
+                var adjacent = predJunction.Equals(otherJunction) ||
+                    (world.Junctions.Items.TryGetValue(otherJunction, out var oj) &&
+                     oj.Neighbors.Contains(predJunction));
+                if (adjacent && (victim is null || other.Health < victim.Health))
+                {
+                    victim = other;
+                }
+            }
+
+            if (victim is null)
+            {
+                continue;
+            }
+
+            // A starved attacker is weak (StrikeFactor); a blade bites deeper.
+            var weaponMult = 1f;
+            if (predator.Inventory.Items.Contains("tool.spear"))
+            {
+                weaponMult = SimBalance.SpearStrikeBonus;
+            }
+            else if (predator.Inventory.Items.Contains("tool.axe_stone"))
+            {
+                weaponMult = SimBalance.AxeStrikeBonus;
+            }
+            else if (predator.Inventory.Items.Contains("tool.knife"))
+            {
+                weaponMult = SimBalance.KnifeStrikeBonus;
+            }
+
+            // Apply the strike exactly like a dog's bite (SimulationSystems dog
+            // path): garment on the struck part absorbs, the part loses HP,
+            // Health is the body mean, the hit files a wound decal, and a
+            // destroyed vital is instant death. This mirrors the established
+            // damage flow so the kill is detectable in the same tick.
+            var part = PickKillPart(world, predator.Id.Value);
+            var partArmor = EquipmentMath.ArmorForPart(world, victim, part);
+            var damage = SimBalance.PredationStrikePerPass *
+                predator.Body.StrikeFactor() * weaponMult * (1f - partArmor);
+            victim.Body.Parts[part] = System.Math.Max(0f, victim.Body.Parts[part] - damage);
+            victim.Health = victim.Body.Mean();
+            WoundMath.Inflict(world, victim, part, damage);
+            if (victim.Body.VitalDestroyed(out _))
+            {
+                victim.Health = 0f;
+            }
+
+            Trace.Emit(world, predator.Id, "Preyed",
+                $"Victim={victim.Id.Value} {part} -{damage:F3} (armor={partArmor:F2}) " +
+                $"VictimHealth={victim.Health:F2}");
+
+            if (victim.Health <= 0f)
+            {
+                if (!_deadVictims.Contains(victim.Id))
+                {
+                    _deadVictims.Add(victim.Id);
+                    ApplyKillConsequences(world, predator, victim);
+                }
+
+                continue; // the victim is down — no defence this tick
+            }
+
+            // --- The victim DEFENDS: this is a real fight, not an execution.
+            // It reuses the dog-fight model (Spec 29C.4A) — remember the danger,
+            // then either BOLT for an indoor refuge if badly hurt, or STAND and
+            // trade a real blow at the attacker. An armed, healthy victim can
+            // wound, kill, or outrun a starved predator — so predation can fail.
+            DogSystem.RememberDanger(world, victim);
+
+            var victimFleeing = victim.Mind.CurrentGoal == GoalType.Flee;
+            if (!victimFleeing &&
+                (victim.Health < SimBalance.PredationFleeHealth ||
+                 DogSystem.WorstPartHealth(victim) < 0.35f))
+            {
+                victimFleeing = DogSystem.TryStartFlee(world, victim, 1);
+            }
+
+            if (victimFleeing)
+            {
+                Trace.Emit(world, victim.Id, "PreyFled",
+                    $"From NPC{predator.Id.Value} (Health={victim.Health:F2})");
+                continue;
+            }
+
+            // Stand and fight back — drop the chores, swing at the attacker.
+            victim.IsFighting = true;
+            if (victim.Plan.Status == PlanStatus.Active ||
+                victim.Execution.Status == ExecutionStatus.InProgress)
+            {
+                PlanInterruption.Abort(world, victim, $"Fighting off NPC{predator.Id.Value}");
+                victim.Mind.CurrentGoal = GoalType.None;
+            }
+
+            var defWeapon = 1f;
+            if (victim.Inventory.Items.Contains("tool.spear") && victim.Body.IntactHands >= 2)
+            {
+                defWeapon = SimBalance.SpearStrikeBonus;
+            }
+            else if (victim.Body.IntactHands >= 1 && victim.Inventory.Items.Contains("tool.axe_stone"))
+            {
+                defWeapon = SimBalance.AxeStrikeBonus;
+            }
+            else if (victim.Body.IntactHands >= 1 && victim.Inventory.Items.Contains("tool.knife"))
+            {
+                defWeapon = SimBalance.KnifeStrikeBonus;
+            }
+
+            // The counter-blow uses the same NPC strike-back value that fends off
+            // dogs, scaled by the defender's own StrikeFactor()/weapon and the
+            // attacker's armor.
+            var defPart = PickKillPart(world, victim.Id.Value + 7919);
+            var defArmor = EquipmentMath.ArmorForPart(world, predator, defPart);
+            var defDamage = SimBalance.NpcStrikePerPass *
+                victim.Body.StrikeFactor() * defWeapon * (1f - defArmor);
+            predator.Body.Parts[defPart] = System.Math.Max(0f, predator.Body.Parts[defPart] - defDamage);
+            predator.Health = predator.Body.Mean();
+            WoundMath.Inflict(world, predator, defPart, defDamage);
+            if (predator.Body.VitalDestroyed(out _))
+            {
+                predator.Health = 0f;
+            }
+
+            Trace.Emit(world, victim.Id, "PreyFoughtBack",
+                $"Attacker=NPC{predator.Id.Value} {defPart} -{defDamage:F3} " +
+                $"AttackerHealth={predator.Health:F2}");
+
+            if (predator.Health <= 0f && !_deadAttackers.Contains(predator.Id))
+            {
+                _deadAttackers.Add(predator.Id);
+                Trace.EmitSystem(world, "PredatorKilled",
+                    $"NPC{victim.Id.Value} killed attacker NPC{predator.Id.Value} in self-defence");
+            }
+        }
+
+        foreach (var deadId in _deadVictims)
+        {
+            // Shared death path: spawns corpse.npc (butcherable) + grieves witnesses.
+            DogSystem.RemoveDeadNpc(world, deadId);
+        }
+
+        foreach (var deadId in _deadAttackers)
+        {
+            // A predator felled by its intended prey — an ordinary death (no
+            // "Murdered" fallout; self-defence isn't a colony crime).
+            if (!_deadVictims.Contains(deadId))
+            {
+                DogSystem.RemoveDeadNpc(world, deadId);
+            }
+        }
+    }
+
+    // Lethal intent: aim for the vitals far more than a dog's leg-first bite, so
+    // the kill actually comes rather than merely maiming.
+    private static BodyPart PickKillPart(WorldState world, int predatorId)
+    {
+        var roll = MathUtil.Hash01(world.Seed, world.Tick, predatorId, 561);
+        if (roll < 0.55f) return BodyPart.Torso;
+        if (roll < 0.80f) return BodyPart.Head;
+        if (roll < 0.90f) return BodyPart.Pelvis;
+        if (roll < 0.95f) return BodyPart.ArmR;
+        return BodyPart.LegR;
+    }
+
+    // §56: killing to eat is a colony trauma — a heavy comfort hit on the killer
+    // and a sharp relationship collapse toward them from every witness. (Grief on
+    // witnesses is already triggered by the shared death sweep, RemoveDeadNpc.)
+    private static void ApplyKillConsequences(WorldState world, NPCState killer, NPCState victim)
+    {
+        killer.Needs.Comfort = MathUtil.Clamp(
+            killer.Needs.Comfort - SimBalance.PredationComfortPenalty, 0f, 1f);
+
+        foreach (var witness in world.Entities.Npcs.Values)
+        {
+            if (witness.Id == killer.Id || witness.Id == victim.Id ||
+                HexSpatialMath.HexDistance(witness.Tile, victim.Tile) > 6)
+            {
+                continue;
+            }
+
+            var rel = witness.Social.GetOrCreate(killer.Id);
+            rel.Affinity = MathUtil.Clamp(
+                rel.Affinity - SimBalance.PredationWitnessAffinityLoss, -1f, 1f);
+        }
+
+        Trace.EmitSystem(world, "Murdered",
+            $"NPC{killer.Id.Value} killed NPC{victim.Id.Value} for meat [predation] " +
+            $"KillerComfort={killer.Needs.Comfort:F2}");
     }
 }
 

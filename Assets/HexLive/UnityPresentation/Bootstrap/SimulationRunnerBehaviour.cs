@@ -321,6 +321,7 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
         engine.Register(new DecisionSystem());
         engine.Register(new PlanningSystem());
         engine.Register(new DogSystem());
+        engine.Register(new PredationSystem()); // §56: kill-a-housemate-to-eat
         engine.Register(new RabbitSystem());
         engine.Register(new WeatherSystem());
         engine.Register(new EnvironmentSystem());

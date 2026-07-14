@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1cc61d807aed94fa695030c8255fbd28, type: 3}
+  m_Name: NpcAnimSet
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.NpcAnimSet
+  talk: []
+  death: []
+  gather: {fileID: 0}
+  drink: {fileID: 0}
+  proneIdle: {fileID: -203655887218126122, guid: 0622f46928bb64c88804a44f388a6eff, type: 3}
+  crawl: {fileID: -203655887218126122, guid: a41ca94b2e1c14830af8da86e3454130, type: 3}
+  dress: {fileID: 0}
+  undress: {fileID: 0}
+  armedIdle: {fileID: -203655887218126122, guid: 4b1c7d0af5eb04d6e9a1658453475d94, type: 3}
+  armedWalk: {fileID: -203655887218126122, guid: 9e708ac3817d44062afa1909114df08c, type: 3}
+  weapons:
+  - weaponId: tool.spear
+    idle: {fileID: 0}
+    attacks:
+    - {fileID: -203655887218126122, guid: 5dd0fd96d3fa64b62bc3c1272fde5a39, type: 3}

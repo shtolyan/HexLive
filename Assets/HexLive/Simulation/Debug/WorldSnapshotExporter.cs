@@ -1,4 +1,8 @@
+using System;
+using System.Collections.Generic;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Agents.Effects;
+using HexLive.Simulation.AI;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Spatial;
@@ -47,8 +51,27 @@ public static class WorldSnapshotExporter
                 DefinitionId = obj.DefinitionId,
                 Tile = obj.Tile,
                 ResourceAmount = obj.ResourceAmount,
-                OwnerNpcId = obj.CurrentUser?.Value
+                OwnerNpcId = obj.CurrentUser?.Value,
+                Variant = obj.Variant,
+                // Spec §54: build-site payload for the progressive-assembly view.
+                BuildProduct = obj.BuildProduct,
+                BillLogs = obj.BillLogs,
+                BillStones = obj.BillStones,
+                BillLeaves = obj.BillLeaves
             };
+
+            if (!string.IsNullOrEmpty(obj.BuildProduct))
+            {
+                foreach (var item in obj.Contents)
+                {
+                    switch (item.DefinitionId)
+                    {
+                        case "resource.log": exported.DeliveredLogs++; break;
+                        case "resource.stone": exported.DeliveredStones++; break;
+                        case "resource.palm_leaf": exported.DeliveredLeaves++; break;
+                    }
+                }
+            }
 
             foreach (var junctionId in obj.Junctions)
             {
@@ -227,10 +250,44 @@ public static class WorldSnapshotExporter
         }
     }
 
+    // §Wardrobe-anim: which garment is visually in the NPC's hand right now.
+    //  - Undress: the piece already doffed off the body (Execution.HeldGarment),
+    //    carried through the gather beat until it drops.
+    //  - Dress: once past the handoff the target garment has been "picked up"
+    //    for the don beat; before that (the gather beat) the hands are empty.
+    private static string ResolveHeldGarment(WorldState world, NPCState npc, float progress)
+    {
+        if (npc.Execution.HeldGarment is not null)
+        {
+            return npc.Execution.HeldGarment.DefinitionId;
+        }
+
+        if (npc.Execution.CurrentInteraction == InteractionType.Dress &&
+            progress >= Runtime.ExecutionSystem.WardrobeHandoffFraction &&
+            npc.Plan.TargetObjectId is { } targetId &&
+            world.Entities.Objects.TryGetValue(targetId, out var garment))
+        {
+            return garment.DefinitionId;
+        }
+
+        return string.Empty;
+    }
+
     private static NpcSnapshot ExportNpc(WorldState world, NPCState npc)
     {
+        // §Wardrobe-anim: progress + the garment in hand + the target object,
+        // so the view can phase dress/undress and hide the picked-up ground copy.
+        var execTotal = npc.Execution.EndTick - npc.Execution.StartTick;
+        var interactionProgress = npc.Execution.Status == ExecutionStatus.InProgress && execTotal > 0
+            ? Math.Clamp((float)(world.Tick - npc.Execution.StartTick) / execTotal, 0f, 1f)
+            : 0f;
+        var heldGarmentId = ResolveHeldGarment(world, npc, interactionProgress);
+
         var npcSnapshot = new NpcSnapshot
         {
+            InteractionProgress = interactionProgress,
+            HeldGarmentId = heldGarmentId,
+            TargetObjectId = npc.Plan.TargetObjectId?.Value,
             Id = npc.Id,
             DisplayName = npc.DisplayName,
             ActorMesh = npc.ActorMesh,
@@ -244,6 +301,7 @@ public static class WorldSnapshotExporter
             Energy = npc.Needs.Energy,
             Comfort = npc.Needs.Comfort,
             Social = npc.Needs.Social,
+            Compassion = npc.Needs.Compassion,
             ThermalDiscomfort = npc.Needs.ThermalDiscomfort,
             ThermalComfort = npc.Needs.ThermalComfort,
             Stamina = npc.Needs.Stamina,
@@ -262,6 +320,10 @@ public static class WorldSnapshotExporter
             MovementStatus = npc.Movement.Status.ToString(),
             ExecutionStatus = npc.Execution.Status.ToString(),
             CurrentInteraction = npc.Execution.CurrentInteraction?.ToString() ?? "-",
+            // Spec 28.15E: conversation subject + last outcome for the bubble.
+            TalkTopic = npc.Execution.CurrentTalkTopic?.ToString() ?? string.Empty,
+            TalkResultTick = npc.Execution.LastTalkResultTick,
+            TalkResultDelta = npc.Execution.LastTalkAffinityDelta,
             TargetTile = npc.Plan.TargetTile,
             IsStarving = npc.Mind.IsStarving,
             InventoryCapacity = npc.Inventory.Capacity,
@@ -310,6 +372,19 @@ public static class WorldSnapshotExporter
 
         npcSnapshot.WoundLockedHp = lockedHp / npc.Body.Parts.Count;
 
+        // Spec §48: derive the active status effects (buffs/debuffs) from this
+        // NPC's live state — read-only, so nothing here touches balance. Each
+        // exports as "Kind\tintensity" for the character panel's chip row.
+        var effects = new List<ActiveEffect>();
+        // Spec §49.8: a lit campfire within warming range earns the Cozy buff —
+        // same warmth probe the temperature/sleep-comfort systems use.
+        var nearLitFire = Runtime.TemperatureSystem.NearbyFireWarmth(world, npc.Tile, out _) > 0f;
+        EffectEvaluator.Collect(npc, world.Tick, npcSnapshot.EffectiveUv, nearLitFire, effects);
+        foreach (var effect in effects)
+        {
+            npcSnapshot.Effects.Add($"{effect.Kind}\t{effect.Intensity:0.###}");
+        }
+
         var worstPartValue = 1f;
         var worstPartName = "-";
         foreach (var part in npc.Body.Parts)
@@ -341,19 +416,27 @@ public static class WorldSnapshotExporter
             npcSnapshot.BandagedZones.Add($"{zone}|g");
         }
 
+        // Spec §50: severed zones — the view hides the bone chain + stumps them.
+        foreach (var zone in npc.Body.Severed)
+        {
+            npcSnapshot.SeveredParts.Add(zone.ToString());
+        }
+
         npcSnapshot.WorstBodyPart = worstPartValue < 1f
             ? $"{worstPartName} {worstPartValue:F2}"
             : "OK";
 
-        // Spec 40.9: one authoritative injury-locomotion hint for the
-        // presentation pose layer. Priority: faint > crawl (both legs) >
-        // limp (one leg) > arm hang > head clutch > upright.
+        // Spec 40.9 / §50: one authoritative injury-locomotion hint for the
+        // presentation pose layer. Priority: faint > crawl > limp > arm hang >
+        // head clutch > upright. A LOST leg (one or both, §50) forces Crawl —
+        // the real crawl clip + 1/3 speed; two merely-mauled legs also crawl.
         float Part(BodyPart p) => npc.Body.Parts.TryGetValue(p, out var v) ? v : 1f;
         var legL = Part(BodyPart.LegL);
         var legR = Part(BodyPart.LegR);
+        var legLost = npc.Body.IsSevered(BodyPart.LegL) || npc.Body.IsSevered(BodyPart.LegR);
         npcSnapshot.PostureHint =
             npcSnapshot.IsFainted ? "Faint"
-            : legL < 0.4f && legR < 0.4f ? "Crawl"
+            : legLost || (legL < 0.4f && legR < 0.4f) ? "Crawl"
             : legL < 0.4f || legR < 0.4f ? "Limp"
             : Part(BodyPart.ArmL) < 0.4f || Part(BodyPart.ArmR) < 0.4f ? "ArmHang"
             : Part(BodyPart.Head) < 0.4f ? "HeadClutch"

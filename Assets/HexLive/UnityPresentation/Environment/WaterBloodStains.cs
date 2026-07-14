@@ -19,18 +19,22 @@ namespace HexLive.UnityPresentation.Environment
 // pause/speed), not persisted. Detection of "in water" is the renderer's job
 // (HexWorldRenderer._npcOnWater); this class only spawns/animates the discs.
 //
-// ITERATION 2 (planned): in water the blood spreads AND disappears FASTER than
-// on land (dilution) — tune LifetimeTicks / SpreadTicks below. Left moderate
-// for now so iteration 1 stays "detect + spawn".
+// Behaviour: a drop grows from nothing to ~3x a land puddle's width while its
+// alpha fades in lock-step (wider = more transparent), reaching alpha 0 exactly
+// as it hits full spread — then it's removed. The whole billow-and-vanish takes
+// half a game day (~4x faster than land blood, which lingers for days).
 public sealed class WaterBloodStains : MonoBehaviour
 {
     private const int MaxStains = 60;           // oldest recycled beyond this
-    private const float LifetimeTicks = 900f;   // dilutes away (iter2: faster)
-    private const float SpreadTicks = 200f;     // slow outward billow
-    private const float DripScale = 0.12f;      // fresh drop diameter, metres
-    private const float BillowScaleMin = 0.55f; // full spread — wider than land
-    private const float BillowScaleMax = 0.95f; //   (blood diffuses in water)
-    private const float MaxAlpha = 0.75f;       // translucent — it's IN water
+    // Half a game day (DayLengthTicks = 2400): the drop grows AND fades over
+    // this whole span — radius 0 -> max while alpha max -> 0, then it's gone
+    // from view. ~4x faster than a land stain, which lingers for days.
+    private const float LifetimeTicks = 1200f;
+    private const float DripScale = 0f;         // starts from nothing, grows out
+    // ~3x the earlier spread — blood billows wide as it disperses in water.
+    private const float BillowScaleMin = 1.65f;
+    private const float BillowScaleMax = 2.85f;
+    private const float MaxAlpha = 0.75f;       // fresh; fades to 0 at full spread
     private const int DripIntervalTicks = 6;    // while bleeding, ~1.5 sim-s
     private const int BleedGraceTicks = 20;     // matches the ground stains
     private const float DropJitter = 0.14f;
@@ -106,16 +110,17 @@ public sealed class WaterBloodStains : MonoBehaviour
                 continue;
             }
 
-            // Ease-out billow: the drop lands small and flows outward.
-            var spread = Mathf.Clamp01(age / SpreadTicks);
-            spread = 1f - (1f - spread) * (1f - spread);
+            // One continuous billow over the whole lifetime: the radius grows
+            // from 0 to its max while the alpha fades in lock-step — the wider
+            // it spreads the more transparent it gets, hitting alpha 0 exactly
+            // as it reaches full spread, then it's removed (view + record).
+            var spread = Mathf.Clamp01(age / LifetimeTicks);
             var scale = Mathf.Lerp(DripScale, stain.FullScale, spread);
             stain.Root.localScale = new Vector3(scale, scale, scale);
 
-            // Dilute: alpha fades and the hue washes from scarlet to pale pink.
-            var t01 = age / LifetimeTicks;
-            var col = Color.Lerp(FreshBlood, DilutePink, t01);
-            col.a = MaxAlpha * (1f - t01);
+            // Dilute: hue washes scarlet -> pale pink, alpha inversely to spread.
+            var col = Color.Lerp(FreshBlood, DilutePink, spread);
+            col.a = MaxAlpha * (1f - spread);
             stain.Mpb.SetColor(BaseColorId, col);
             stain.Renderer.SetPropertyBlock(stain.Mpb);
         }

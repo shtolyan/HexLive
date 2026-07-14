@@ -36,6 +36,25 @@ public sealed class NPCMind
 
     public int PendingTalkSinceTick { get; set; }
 
+    // Spec §53: someone is walking over to HELP this NPC (feed/treat/medicate/
+    // console). Mirrors PendingTalkFrom — while set, the sufferer holds still so
+    // the helper can reach her, until arrival, timeout, or an emergency. This is
+    // separate from PendingTalkFrom so a chat and an aid claim don't clobber each
+    // other. Self-healed each decision pass.
+    public HexLive.Simulation.Common.EntityId? PendingAidFrom { get; set; }
+
+    public int PendingAidSinceTick { get; set; }
+
+    // Spec §49 (water sickness v2): raw water no longer bites in one lump.
+    // A positive roll opens a visible window (SickUntilTick, drives the 🤢 icon
+    // + comfort malaise) and adds to a bounded damage budget
+    // (SicknessDamageRemaining) the torso pays down a little each slow tick.
+    // The budget cap keeps total harm ≈ the old instant model even when a
+    // thirsty colony drinks raw back-to-back (overlapping windows). 0 = well.
+    public int SickUntilTick { get; set; }
+
+    public float SicknessDamageRemaining { get; set; }
+
     public GoalLock? GoalLock { get; set; }
 
     public List<GoalCooldown> Cooldowns { get; } = new();
@@ -60,8 +79,11 @@ public enum GoalType
     Drink,        // drink from the carried bottle in place (iter 13 / 29H)
     GetWater,     // fill the bottle at a water source (iteration 29)
     GatherTools,  // pick up a missing lighter/pot (iteration 13)
-    GatherWood,   // pick up a log for the fire (iteration 13)
-    TendFire,     // fuel/light the campfire with a carried log (iteration 13)
+    GatherWood,   // pick up wood (log or stick) off the ground (iteration 13 / §54)
+    SplitLog,     // §54: chop a ground log into sticks (needs an axe, in the field)
+    ChopCrown,    // §54.2: chop a felled palm crown into loose leaves (needs an axe)
+    GatherLeaves, // §54.2: pick scattered palm leaves off the ground
+    TendFire,     // fuel/light the campfire with a carried stick (iteration 13 / §54)
     Hunt,         // chase a rabbit with a spear (iteration 14)
     CraftSpear,   // whittle a spear from a log at the campfire (iteration 14)
     CookMeat,     // cook raw meat on the lit fire (iteration 14)
@@ -78,6 +100,12 @@ public enum GoalType
     WarmUp,       // huddle by the burning campfire when freezing (spec 42)
     GatherHerb,   // pick healing leaves (spec 44)
     CraftBandage, // 2 herb leaves -> bandage at the campfire (spec 44)
+    HarvestYucca, // §54: cut a yucca with a blade (knife/axe) — fiber scatters
+    GatherFiber,  // §54: pick plant fiber off the ground
+    CraftRope,    // §54: 3 fiber -> rope (lashing) at the campfire
+    CraftCloth,   // §54: 4 fiber -> cloth at the campfire
+    CraftKnife,   // §54: 1 stick + 1 stone -> knife at the campfire
+    Butcher,      // §54: knife a carcass/corpse into meat + hide (needs a knife)
     CraftRack,    // drying rack: 2 logs at the campfire (iteration 21)
     DryClothes,   // hang the wettest garment / stand by the fire (iter 21)
     CraftBed,     // bedroll: 2 logs + 3 palm leaves (iteration 28)
@@ -85,6 +113,11 @@ public enum GoalType
     BuildRaft,    // haul logs to the escape raft — the way off the island (40.15)
     CraftBow,     // bow: 2 logs + 1 hide at the campfire (iteration 22)
     CraftArrows,  // 1 log -> 3 arrows at the campfire (iteration 22)
+    Aid,          // tend a suffering housemate — feed/treat/medicate/console (spec 53)
+    PlaceSite,     // §52: stake out a furniture build-site (intent point)
+    DeliverToSite, // §52: haul a needed material to a build-site and deposit it
+    BuildFurniture,// §52: raise a fully-stocked build-site with a hammer
+    HaulToFire,    // §52: carry a low-value item to the fireside stockpile to free a slot
     Idle
 }
 

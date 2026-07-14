@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using HexLive.Simulation.Runtime;
 
 namespace HexLive.Simulation.Content
 {
@@ -9,15 +10,33 @@ public static class PrototypeContentCatalog
     {
         var defs = new Dictionary<string, ObjectDefinition>
         {
+            // §55: a WHOLE coconut. Drinking = crack it open (Stranded Deep):
+            // it quenches thirst and yields a food.coconut_open husk with the
+            // flesh still to eat. Rivers/sea are no longer drinkable, so the
+            // coconut is the only water source. Eating a whole coconut directly
+            // still works (the water is just wasted).
             ["food.coconut"] = new ObjectDefinition
             {
                 Id = "food.coconut",
-                DisplayName = "Apple",
+                DisplayName = "Coconut",
                 Interactions =
                 {
                     new InteractionDefinition
                     {
-                        Id = "eat.apple",
+                        // §55: crack open & drink the coconut water — thirst
+                        // relief, then the shell becomes an openable meal.
+                        Id = "drink.coconut",
+                        Type = InteractionType.Drink,
+                        DurationTicks = 16,
+                        Effects = { ThirstDelta = -SimBalance.CoconutThirst, ComfortDelta = 0.05f },
+                        // The cracked shell (with flesh) drops straight into the
+                        // hand — Scatter=false keeps it in inventory, not on the
+                        // ground.
+                        Yields = { new HarvestDrop { DefinitionId = "food.coconut_open", Count = 1, Scatter = false } }
+                    },
+                    new InteractionDefinition
+                    {
+                        Id = "eat.coconut",
                         Type = InteractionType.Eat,
 
                         // Spec 29C.9 (iter 30): a proper meal, eaten mouthful
@@ -25,11 +44,38 @@ public static class PrototypeContentCatalog
                         DurationTicks = 20,
                         // -0.60 since iteration 6: nights produce nothing, so a
                         // meal must carry an NPC through more dark ticks.
-                        Effects = { HungerDelta = -0.6f, ComfortDelta = 0.05f }
+                        Effects = { HungerDelta = -SimBalance.CoconutHunger, ComfortDelta = 0.05f }
                     },
                     new InteractionDefinition
                     {
-                        Id = "pickup.apple",
+                        Id = "pickup.coconut",
+                        Type = InteractionType.PickUp,
+
+                        DurationTicks = 4
+                    }
+                },
+                // "Coconut" tags it as the fetch target for the thirst chain
+                // (GetWater), on top of "Food" for the hunger chain.
+                Tags = { "Food", "Coconut" }
+            },
+            // §55: an OPENED coconut — the cracked husk left after drinking. The
+            // water is gone (no Drink interaction); the flesh remains to eat.
+            ["food.coconut_open"] = new ObjectDefinition
+            {
+                Id = "food.coconut_open",
+                DisplayName = "Opened Coconut",
+                Interactions =
+                {
+                    new InteractionDefinition
+                    {
+                        Id = "eat.coconut_open",
+                        Type = InteractionType.Eat,
+                        DurationTicks = 20,
+                        Effects = { HungerDelta = -SimBalance.CoconutHunger, ComfortDelta = 0.05f }
+                    },
+                    new InteractionDefinition
+                    {
+                        Id = "pickup.coconut_open",
                         Type = InteractionType.PickUp,
 
                         DurationTicks = 4
@@ -148,7 +194,9 @@ public static class PrototypeContentCatalog
                         Type = InteractionType.Harvest,
 
                         // Spec 35.2 (iter 29): breaking rock is real labor.
-                        DurationTicks = 80
+                        DurationTicks = 80,
+                        // Spec §54: 4 stones scatter on the ground around the rock.
+                        Yields = { new HarvestDrop { DefinitionId = "resource.stone", Count = 4, Scatter = true } }
                     }
                 }
             },
@@ -168,24 +216,8 @@ public static class PrototypeContentCatalog
                     }
                 }
             },
-            ["tree.big"] = new ObjectDefinition
-            {
-                Id = "tree.big",
-                DisplayName = "Big Tree",
-                // Shade in iteration 20 — dies with the tree (spec 35.2).
-                Tags = { "Flora", "Shade", "BigTree", "Obstacle" },
-                Interactions =
-                {
-                    new InteractionDefinition
-                    {
-                        Id = "chop.big",
-                        Type = InteractionType.Harvest,
-
-                        // Spec 35.2 (iter 29): felling a whole tree takes a while.
-                        DurationTicks = 80
-                    }
-                }
-            },
+            // §54.2: the old "tree.big" is retired — the two tree types are now
+            // the big and small palms below.
             ["tree.palm"] = new ObjectDefinition
             {
                 Id = "tree.palm",
@@ -200,7 +232,15 @@ public static class PrototypeContentCatalog
                         Type = InteractionType.Harvest,
 
                         // Spec 35.2 (iter 29): a palm is 60 by axe, 30 by saw.
-                        DurationTicks = 60
+                        DurationTicks = 60,
+                        // Spec §54.2: a BIG palm (3 trunk segments) fells into 3
+                        // logs + the leaf CROWN, all scattered on the ground. The
+                        // crown is then chopped further to release the leaves.
+                        Yields =
+                        {
+                            new HarvestDrop { DefinitionId = "resource.log", Count = 3, Scatter = true },
+                            new HarvestDrop { DefinitionId = "resource.palm_crown", Count = 1, Scatter = true }
+                        }
                     }
                 },
                 // Spec 31C.1: coconuts drop where apples used to grow.
@@ -213,9 +253,80 @@ public static class PrototypeContentCatalog
                     // window and crab meat / hides (leather armor) matter,
                     // without starving the colony (2/170 was too harsh — crabs
                     // hug the far river and can't fully replace fruit).
-                    IntervalTicks = 100,
-                    MaxConcurrent = 4,
+                    // Still coconut-only in practice: standing cap halved
+                    // (4 -> 2) so the ground pile is smaller at start, and the
+                    // drop interval tripled (100 -> 300) so new coconuts fall
+                    // far less often — pushing hunger into the hunt window.
+                    IntervalTicks = 300,
+                    MaxConcurrent = 2,
                     MaxDistanceTiles = 1
+                }
+            },
+            // Spec §54.2: a SMALLER palm — 2 trunk segments → 2 logs + the crown.
+            // Same "Palm" tag so the harvest/coconut behaviour is identical; only
+            // the log count (and the assembled height) differ.
+            ["tree.palm_small"] = new ObjectDefinition
+            {
+                Id = "tree.palm_small",
+                DisplayName = "Palm",
+                Tags = { "Flora", "Shade", "Palm", "Obstacle" },
+                Interactions =
+                {
+                    new InteractionDefinition
+                    {
+                        Id = "chop.palm_small",
+                        Type = InteractionType.Harvest,
+                        DurationTicks = 45,
+                        Yields =
+                        {
+                            new HarvestDrop { DefinitionId = "resource.log", Count = 2, Scatter = true },
+                            new HarvestDrop { DefinitionId = "resource.palm_crown_small", Count = 1, Scatter = true }
+                        }
+                    }
+                },
+                Produce = new ProduceDefinition
+                {
+                    ProducedDefinitionId = "food.coconut",
+                    IntervalTicks = 300,
+                    MaxConcurrent = 2,
+                    MaxDistanceTiles = 1
+                }
+            },
+            // Spec §54.2: the palm CROWN (верхушка) — the leafy top that lands when
+            // a palm is felled. Chop it (Process, with an axe) to release the loose
+            // palm leaves. Two sizes: the BIG palm's crown is fuller and yields
+            // more leaves than the SMALL palm's — the frond count on the tree and
+            // the drop match per size.
+            ["resource.palm_crown"] = new ObjectDefinition
+            {
+                Id = "resource.palm_crown",
+                DisplayName = "Palm crown",
+                Tags = { "PalmCrown", "Resource" },
+                Interactions =
+                {
+                    new InteractionDefinition
+                    {
+                        Id = "chop.crown",
+                        Type = InteractionType.Process,
+                        DurationTicks = 24,
+                        Yields = { new HarvestDrop { DefinitionId = "resource.palm_leaf", Count = SimBalance.BigPalmCrownLeaves, Scatter = true } }
+                    }
+                }
+            },
+            ["resource.palm_crown_small"] = new ObjectDefinition
+            {
+                Id = "resource.palm_crown_small",
+                DisplayName = "Palm crown",
+                Tags = { "PalmCrown", "Resource" },
+                Interactions =
+                {
+                    new InteractionDefinition
+                    {
+                        Id = "chop.crown_small",
+                        Type = InteractionType.Process,
+                        DurationTicks = 20,
+                        Yields = { new HarvestDrop { DefinitionId = "resource.palm_leaf", Count = SimBalance.SmallPalmCrownLeaves, Scatter = true } }
+                    }
                 }
             },
             // Spec 35.3: the communal hut anchor.
@@ -232,6 +343,45 @@ public static class PrototypeContentCatalog
                         Type = InteractionType.Build,
 
                         DurationTicks = 30
+                    }
+                }
+            },
+            // Spec §52: a furniture build-site — an "intent point" every NPC
+            // knows about. Materials are hauled in (deposited into its Contents),
+            // then a builder with a hammer raises the piece. One Build
+            // interaction, product/bill carried per-instance on the object.
+            ["build.site"] = new ObjectDefinition
+            {
+                Id = "build.site",
+                DisplayName = "Build Site",
+                Tags = { "BuildSite", "FurnitureSite" },
+                Interactions =
+                {
+                    // One verb: at the site, a builder either deposits the
+                    // materials in hand or (if stocked, with a hammer) raises the
+                    // piece — the handler decides by the site's state (§52).
+                    new InteractionDefinition
+                    {
+                        Id = "build.furniture",
+                        Type = InteractionType.Build,
+                        DurationTicks = 12
+                    }
+                }
+            },
+            // Spec §52: the builder's hammer — a multi-use Tool, like the
+            // lighter/pot. Raising any piece at a build-site needs one in hand.
+            ["tool.hammer"] = new ObjectDefinition
+            {
+                Id = "tool.hammer",
+                DisplayName = "Hammer",
+                Tags = { "Tool", "Hammer" },
+                Interactions =
+                {
+                    new InteractionDefinition
+                    {
+                        Id = "pickup.hammer",
+                        Type = InteractionType.PickUp,
+                        DurationTicks = 4
                     }
                 }
             },
@@ -323,6 +473,42 @@ public static class PrototypeContentCatalog
 
                         DurationTicks = 20,
                         Effects = { ComfortDelta = 0.15f }
+                    },
+                    // Spec §54: a housemate's body can be butchered for meat + hide
+                    // (cannibalism) — dark, gated behind starvation + a comfort hit.
+                    new InteractionDefinition
+                    {
+                        Id = "butcher.body",
+                        Type = InteractionType.Butcher,
+                        DurationTicks = SimBalance.ButcherDurationTicks,
+                        Yields =
+                        {
+                            new HarvestDrop { DefinitionId = "food.meat_raw", Count = SimBalance.CarcassMeatYield, Scatter = true },
+                            new HarvestDrop { DefinitionId = "resource.hide", Count = 1, Scatter = true }
+                        }
+                    }
+                }
+            },
+            // Spec §54: an animal carcass — left on the map when a beast dies.
+            // Knife it (Butcher) for meat + hide; rots on the CorpseSystem clock.
+            // Variant records the animal (dog/rabbit) for the renderer.
+            ["carcass.animal"] = new ObjectDefinition
+            {
+                Id = "carcass.animal",
+                DisplayName = "Carcass",
+                Tags = { "Carcass", "Decays" },
+                Interactions =
+                {
+                    new InteractionDefinition
+                    {
+                        Id = "butcher.carcass",
+                        Type = InteractionType.Butcher,
+                        DurationTicks = SimBalance.ButcherDurationTicks,
+                        Yields =
+                        {
+                            new HarvestDrop { DefinitionId = "food.meat_raw", Count = SimBalance.CarcassMeatYield, Scatter = true },
+                            new HarvestDrop { DefinitionId = "resource.hide", Count = 1, Scatter = true }
+                        }
                     }
                 }
             },
@@ -343,6 +529,25 @@ public static class PrototypeContentCatalog
                         Effects = { ComfortDelta = 0.1f }
                     }
                 }
+            },
+            // Spec §50: a limb that came off a survivor. CurrentUser records
+            // whose (which actor mesh); Variant records which limb. Tagged
+            // "Decays" so CorpseSystem rots it away on the body clock — but
+            // without the mourn/bury interactions a corpse carries.
+            ["body.limb_severed"] = new ObjectDefinition
+            {
+                Id = "body.limb_severed",
+                DisplayName = "Severed limb",
+                Tags = { "Decays", "Gore" }
+            },
+            // Spec §50: a prepared amputation hazard — a reef/trap tile. Not an
+            // Obstacle (she can step onto it); HazardSystem takes a leg on
+            // contact. Placed by a scene bootstrap / map author.
+            ["hazard.trap"] = new ObjectDefinition
+            {
+                Id = "hazard.trap",
+                DisplayName = "Trap",
+                Tags = { "Hazard" }
             },
             // Spec 35.5: the drying rack — crafted, placed near the fire,
             // dries one hung garment at x5.
@@ -443,7 +648,7 @@ public static class PrototypeContentCatalog
                         Type = InteractionType.Eat,
 
                         DurationTicks = 8,
-                        Effects = { HungerDelta = -0.9f, ComfortDelta = 0.1f }
+                        Effects = { HungerDelta = -SimBalance.CookedMeatHunger, ComfortDelta = 0.1f }
                     },
                     new InteractionDefinition
                     {
@@ -470,25 +675,9 @@ public static class PrototypeContentCatalog
                     }
                 }
             },
-            ["clothing.leather_pants"] = new ObjectDefinition
-            {
-                Id = "clothing.leather_pants",
-                DisplayName = "Leather Pants",
-                Layer = WearLayer.Wear,
-                Covers = { BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR },
-                Interactions =
-                {
-                    new InteractionDefinition
-                    {
-                        Id = "dress.leather_pants",
-                        Type = InteractionType.Dress,
-
-                        DurationTicks = 12,
-                        Effects = { ThermalDelta = -0.1f, WarmthDelta = 0.25f, ArmorDelta = 0.2f } // spec 42
-                    }
-                },
-                Tags = { "Clothing", "Armor" }
-            },
+            // Spec §42: all wearables now live in GarmentLibrary (materialized
+            // below via AppendDefinitions) — the values come from the
+            // GarmentCatalog ScriptableObject at runtime.
             ["tool.lighter"] = new ObjectDefinition
             {
                 Id = "tool.lighter",
@@ -556,18 +745,46 @@ public static class PrototypeContentCatalog
                     }
                 }
             },
-            ["resource.firewood"] = new ObjectDefinition
+            // Spec §54: resource.firewood is retired, split into two materials.
+            // A LOG is the chop output (builds, raft, premium bed) and can be
+            // Processed (with an axe) into 4 STICKS. A STICK is the fuel/craft
+            // currency (fire, tools, arrows). Both carry the shared "Wood" tag so
+            // one GatherWood goal collects either.
+            ["resource.log"] = new ObjectDefinition
             {
-                Id = "resource.firewood",
-                DisplayName = "Firewood",
-                Tags = { "Firewood" },
+                Id = "resource.log",
+                DisplayName = "Log",
+                Tags = { "Log", "Wood", "Resource" },
                 Interactions =
                 {
                     new InteractionDefinition
                     {
-                        Id = "pickup.firewood",
+                        Id = "pickup.log",
                         Type = InteractionType.PickUp,
-
+                        DurationTicks = 4
+                    },
+                    // Spec §54: chop a log into sticks in the field. Sticks scatter
+                    // on the ground around the chopping spot.
+                    new InteractionDefinition
+                    {
+                        Id = "split.log",
+                        Type = InteractionType.Process,
+                        DurationTicks = SimBalance.LogSplitDurationTicks,
+                        Yields = { new HarvestDrop { DefinitionId = "resource.stick", Count = SimBalance.LogSplitYield, Scatter = true } }
+                    }
+                }
+            },
+            ["resource.stick"] = new ObjectDefinition
+            {
+                Id = "resource.stick",
+                DisplayName = "Stick",
+                Tags = { "Stick", "Wood", "Resource" },
+                Interactions =
+                {
+                    new InteractionDefinition
+                    {
+                        Id = "pickup.stick",
+                        Type = InteractionType.PickUp,
                         DurationTicks = 4
                     }
                 }
@@ -579,7 +796,9 @@ public static class PrototypeContentCatalog
                 Tags = { "Flora" },
                 Produce = new ProduceDefinition
                 {
-                    ProducedDefinitionId = "resource.firewood",
+                    // Spec §54: deadfall sheds ready STICKS (no splitting needed) —
+                    // the early-game fuel shortcut.
+                    ProducedDefinitionId = "resource.stick",
                     IntervalTicks = 300,
                     MaxConcurrent = 3,
                     MaxDistanceTiles = 1
@@ -598,7 +817,7 @@ public static class PrototypeContentCatalog
 
                         // Spec 31C.7A: a proper breather, not a fidget.
                         DurationTicks = 70,
-                        Effects = { ComfortDelta = 0.4f, EnergyDelta = 0.1f }
+                        Effects = { ComfortDelta = SimBalance.ChairComfort, EnergyDelta = SimBalance.ChairEnergy }
                     }
                 },
                 Tags = { "Chair" }
@@ -618,7 +837,10 @@ public static class PrototypeContentCatalog
 
                         // Spec 31C.7A: real sleep blocks, not catnaps.
                         DurationTicks = 100,
-                        Effects = { EnergyDelta = 0.18f, ComfortDelta = 0.2f } // spec 42: full night ~6h
+                        // Spec §49: comfort no longer lives on the interaction —
+                        // it's the unified sleep-comfort formula in NeedsDecaySystem
+                        // (surface + fire + sun + rain). Energy still lands here.
+                        Effects = { EnergyDelta = SimBalance.BedEnergy } // spec 42: full night ~6h
                     }
                 },
                 Tags = { "Bed", "Obstacle" }
@@ -663,165 +885,15 @@ public static class PrototypeContentCatalog
                         Id = "sleep.leaf",
                         Type = InteractionType.Sleep,
                         DurationTicks = 100,
-                        Effects = { EnergyDelta = 0.15f, ComfortDelta = 0.1f } // spec 42
+                        // Spec §49: comfort moved to the unified sleep formula.
+                        Effects = { EnergyDelta = SimBalance.LeafBedEnergy } // spec 42
                     }
                 },
                 Tags = { "Bed" }
             },
-            ["clothing.coat"] = new ObjectDefinition
-            {
-                Id = "clothing.coat",
-                DisplayName = "Coat",
-                Layer = WearLayer.Wear,
-                Covers = { BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR },
-                Interactions =
-                {
-                    new InteractionDefinition
-                    {
-                        Id = "dress.coat",
-                        Type = InteractionType.Dress,
-
-                        DurationTicks = 10,
-                        Effects = { ThermalDelta = -0.3f, WarmthDelta = 0.4f }
-                    }
-                },
-                Tags = { "Clothing" }
-            },
-            // Spec 31A.5B: everyone starts in one of these (per-NPC instance).
-            ["underwear.cloth"] = new ObjectDefinition
-            {
-                Id = "underwear.cloth",
-                DisplayName = "Cloth Underwear",
-                Layer = WearLayer.Underwear,
-                Covers = { BodyPart.Torso, BodyPart.Pelvis },
-                Interactions =
-                {
-                    new InteractionDefinition
-                    {
-                        Id = "dress.underwear",
-                        Type = InteractionType.Dress,
-
-                        DurationTicks = 8,
-                        Effects = { WarmthDelta = 0.02f } // spec 42
-                    }
-                },
-                Tags = { "Clothing" }
-            },
-            // AI-print wardrobe experiment: fal.ai-generated textile prints on
-            // the tank-top / panty meshes. Light summer wear — a whisper of
-            // warmth, zero armor; purely cosmetic variety.
-            ["clothing.top_tropic"] = new ObjectDefinition
-            {
-                Id = "clothing.top_tropic",
-                DisplayName = "Tropic Top",
-                Layer = WearLayer.Wear,
-                Covers = { BodyPart.Torso },
-                Interactions =
-                {
-                    new InteractionDefinition
-                    {
-                        Id = "dress.top_tropic",
-                        Type = InteractionType.Dress,
-                        DurationTicks = 8,
-                        Effects = { WarmthDelta = 0.12f } // spec 42
-                    }
-                },
-                Tags = { "Clothing" }
-            },
-            ["clothing.top_tiedye"] = new ObjectDefinition
-            {
-                Id = "clothing.top_tiedye",
-                DisplayName = "Tie-Dye Top",
-                Layer = WearLayer.Wear,
-                Covers = { BodyPart.Torso },
-                Interactions =
-                {
-                    new InteractionDefinition
-                    {
-                        Id = "dress.top_tiedye",
-                        Type = InteractionType.Dress,
-                        DurationTicks = 8,
-                        Effects = { WarmthDelta = 0.12f } // spec 42
-                    }
-                },
-                Tags = { "Clothing" }
-            },
-            ["underwear.panty_leo"] = new ObjectDefinition
-            {
-                Id = "underwear.panty_leo",
-                DisplayName = "Leopard Panties",
-                Layer = WearLayer.Underwear,
-                Covers = { BodyPart.Pelvis },
-                Interactions =
-                {
-                    new InteractionDefinition
-                    {
-                        Id = "dress.panty_leo",
-                        Type = InteractionType.Dress,
-                        DurationTicks = 8,
-                        Effects = { WarmthDelta = 0.01f } // spec 42
-                    }
-                },
-                Tags = { "Clothing" }
-            },
-            ["underwear.panty_stars"] = new ObjectDefinition
-            {
-                Id = "underwear.panty_stars",
-                DisplayName = "Star Panties",
-                Layer = WearLayer.Underwear,
-                Covers = { BodyPart.Pelvis },
-                Interactions =
-                {
-                    new InteractionDefinition
-                    {
-                        Id = "dress.panty_stars",
-                        Type = InteractionType.Dress,
-                        DurationTicks = 8,
-                        Effects = { WarmthDelta = 0.01f } // spec 42
-                    }
-                },
-                Tags = { "Clothing" }
-            },
-            // Spec 29C.4/31A.5B: armor absorbs bites on the parts it covers;
-            // warmth stacks across layers — protection costs midday comfort.
-            ["armor.leather"] = new ObjectDefinition
-            {
-                Id = "armor.leather",
-                DisplayName = "Leather Armor",
-                Layer = WearLayer.Outerwear,
-                Covers = { BodyPart.Torso },
-                Interactions =
-                {
-                    new InteractionDefinition
-                    {
-                        Id = "dress.leather",
-                        Type = InteractionType.Dress,
-
-                        DurationTicks = 12,
-                        Effects = { ThermalDelta = -0.1f, WarmthDelta = 0.15f, ArmorDelta = 0.3f }
-                    }
-                },
-                Tags = { "Clothing", "Armor" }
-            },
-            ["armor.heavy"] = new ObjectDefinition
-            {
-                Id = "armor.heavy",
-                DisplayName = "Heavy Armor",
-                Layer = WearLayer.Outerwear,
-                Covers = { BodyPart.Torso, BodyPart.Pelvis },
-                Interactions =
-                {
-                    new InteractionDefinition
-                    {
-                        Id = "dress.heavy",
-                        Type = InteractionType.Dress,
-
-                        DurationTicks = 16,
-                        Effects = { ThermalDelta = -0.1f, WarmthDelta = 0.25f, ArmorDelta = 0.5f }
-                    }
-                },
-                Tags = { "Clothing", "Armor" }
-            }
+            // Spec 31A.5B: everyone starts in "underwear.cloth" — that garment,
+            // the coat, the armors and the imported wardrobe now all live in
+            // GarmentLibrary (see AppendDefinitions at the end of this method).
         };
 
         // Spec 44: healing herb — a bush that sheds pickable leaves; two
@@ -855,68 +927,73 @@ public static class PrototypeContentCatalog
             }
         };
 
-        AddImportedGarments(defs);
-        return defs;
-    }
-
-    // Imported wardrobe (molly_copy). Each garment is its own wearable item;
-    // the id matches its Resources/HexLive/Wear/<id>/ folder so the visual
-    // loads. Stats kept light (light warmth, no armor) — tune per garment.
-    // Spec 42: warmth is per garment now — underwear is decorative
-    // (0.01-0.03), real cover carries the budget (EquippedWarmth x10 °C).
-    private static void AddGarment(
-        Dictionary<string, ObjectDefinition> defs, string id, string name,
-        WearLayer layer, float warmth, params BodyPart[] covers)
-    {
-        var def = new ObjectDefinition { Id = id, DisplayName = name, Layer = layer };
-        def.Covers.AddRange(covers);
-        def.Tags.Add("Clothing");
-        def.Interactions.Add(new InteractionDefinition
+        // Spec §54: the yucca — the cordage plant, straight out of Stranded
+        // Deep. You CUT it with a blade (a knife or an axe — not a saw/pickaxe)
+        // and its fibers scatter on the ground; craft them into rope (lashing)
+        // and cloth at the campfire.
+        defs["plant.yucca"] = new ObjectDefinition
         {
-            Id = "dress." + id,
-            Type = InteractionType.Dress,
-            DurationTicks = 10,
-            Effects = { WarmthDelta = warmth }
-        });
-        defs[id] = def;
-    }
+            Id = "plant.yucca",
+            DisplayName = "Yucca",
+            Tags = { "Flora", "Yucca" },
+            Interactions =
+            {
+                new InteractionDefinition
+                {
+                    Id = "cut.yucca",
+                    Type = InteractionType.Harvest,
+                    DurationTicks = 16,
+                    Yields = { new HarvestDrop { DefinitionId = "resource.fiber", Count = SimBalance.FiberPerPlant, Scatter = true } }
+                }
+            }
+        };
+        defs["resource.fiber"] = new ObjectDefinition
+        {
+            Id = "resource.fiber",
+            DisplayName = "Plant fiber",
+            Tags = { "Fiber", "Resource" },
+            Interactions =
+            {
+                new InteractionDefinition { Id = "pickup.fiber", Type = InteractionType.PickUp, DurationTicks = 4 }
+            }
+        };
+        defs["resource.rope"] = new ObjectDefinition
+        {
+            Id = "resource.rope",
+            DisplayName = "Rope",
+            Tags = { "Rope", "Resource" },
+            Interactions =
+            {
+                new InteractionDefinition { Id = "pickup.rope", Type = InteractionType.PickUp, DurationTicks = 4 }
+            }
+        };
+        defs["resource.cloth"] = new ObjectDefinition
+        {
+            Id = "resource.cloth",
+            DisplayName = "Cloth",
+            Tags = { "Cloth", "Resource" },
+            Interactions =
+            {
+                new InteractionDefinition { Id = "pickup.cloth", Type = InteractionType.PickUp, DurationTicks = 4 }
+            }
+        };
+        // Spec §54: the knife — a multi-use Tool required to butcher a carcass.
+        defs["tool.knife"] = new ObjectDefinition
+        {
+            Id = "tool.knife",
+            DisplayName = "Knife",
+            Tags = { "Tool", "Knife" },
+            Interactions =
+            {
+                new InteractionDefinition { Id = "pickup.knife", Type = InteractionType.PickUp, DurationTicks = 4 }
+            }
+        };
 
-    private static void AddImportedGarments(Dictionary<string, ObjectDefinition> defs)
-    {
-        AddGarment(defs, "Bikini Bottom", "Bikini nizkii", WearLayer.Underwear, 0.01f, BodyPart.Pelvis);
-        AddGarment(defs, "Bikini top", "Bikini verx", WearLayer.Underwear, 0.01f, BodyPart.Torso);
-        AddGarment(defs, "Boots 20496", "Sapozhki", WearLayer.Underwear, 0.12f, BodyPart.LegL, BodyPart.LegR);
-        AddGarment(defs, "Boots", "Sapogi", WearLayer.Outerwear, 0.15f, BodyPart.LegL, BodyPart.LegR);
-        AddGarment(defs, "Boots_155064", "Botinki", WearLayer.Outerwear, 0.14f, BodyPart.LegL, BodyPart.LegR);
-        AddGarment(defs, "CityDress", "Plate", WearLayer.Wear, 0.2f, BodyPart.Torso, BodyPart.Pelvis);
-        AddGarment(defs, "CowTop", "Korotkij top", WearLayer.Underwear, 0.03f, BodyPart.Torso);
-        AddGarment(defs, "Glove_2245", "Perchatki", WearLayer.Wear, 0.04f, BodyPart.ArmL, BodyPart.ArmR);
-        AddGarment(defs, "Gloves_17510", "Perchatki", WearLayer.Wear, 0.04f, BodyPart.ArmL, BodyPart.ArmR);
-        AddGarment(defs, "Gloves_5480", "Perchatki korotkie", WearLayer.Wear, 0.03f, BodyPart.ArmL, BodyPart.ArmR);
-        AddGarment(defs, "Gloves_8128", "Perchatki kozhanye", WearLayer.Wear, 0.05f, BodyPart.ArmL, BodyPart.ArmR);
-        AddGarment(defs, "Got stock", "Chulki", WearLayer.Underwear, 0.04f, BodyPart.LegL, BodyPart.LegR);
-        AddGarment(defs, "NeckWarmer_1259", "Sharf", WearLayer.Underwear, 0.06f, BodyPart.Torso);
-        AddGarment(defs, "Necklace_2228", "Kolie", WearLayer.Underwear, 0.0f, BodyPart.Torso);
-        AddGarment(defs, "Over Knee G3F_18296", "Chulki za koleno", WearLayer.Underwear, 0.04f, BodyPart.LegL, BodyPart.LegR);
-        AddGarment(defs, "Pants_24055", "Bryuki", WearLayer.Wear, 0.25f, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR);
-        AddGarment(defs, "Panty_11571", "Trusiki kruzhevnye", WearLayer.Underwear, 0.01f, BodyPart.Pelvis);
-        AddGarment(defs, "Shirt G3F_31977", "Rubashka", WearLayer.Wear, 0.15f, BodyPart.Torso);
-        AddGarment(defs, "Shorts 1389", "Shorty", WearLayer.Wear, 0.08f, BodyPart.Pelvis);
-        AddGarment(defs, "Shorts Green", "Shorty zelyonye", WearLayer.Wear, 0.08f, BodyPart.Pelvis);
-        AddGarment(defs, "Shorts short", "Mini-shorty", WearLayer.Wear, 0.06f, BodyPart.Pelvis);
-        AddGarment(defs, "Shorts_10_14636", "Shorty", WearLayer.Wear, 0.08f, BodyPart.Pelvis);
-        AddGarment(defs, "Skirt 29046", "Yubka", WearLayer.Wear, 0.1f, BodyPart.Pelvis);
-        AddGarment(defs, "Skirt G3F_27980", "Yubka", WearLayer.Wear, 0.1f, BodyPart.Pelvis);
-        AddGarment(defs, "Skirt_2799", "Yubka mini", WearLayer.Wear, 0.06f, BodyPart.Pelvis);
-        AddGarment(defs, "Sleeve_19793", "Narukavniki", WearLayer.Wear, 0.03f, BodyPart.ArmL, BodyPart.ArmR);
-        AddGarment(defs, "Stockings_8731", "Chulki", WearLayer.Underwear, 0.04f, BodyPart.LegL, BodyPart.LegR);
-        AddGarment(defs, "TankTop9_20034", "Majka", WearLayer.Wear, 0.1f, BodyPart.Torso);
-        AddGarment(defs, "Tights Old", "Kolgotki starye", WearLayer.Underwear, 0.05f, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR);
-        AddGarment(defs, "Tights_1818", "Kolgotki", WearLayer.Underwear, 0.05f, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR);
-        AddGarment(defs, "Top_11927", "Top", WearLayer.Underwear, 0.03f, BodyPart.Torso);
-        AddGarment(defs, "Top_2300", "Sportivnyj top", WearLayer.Wear, 0.12f, BodyPart.Torso);
-        AddGarment(defs, "legHolster_2204", "Kabura na nogu", WearLayer.Outerwear, 0.0f, BodyPart.LegL, BodyPart.LegR);
-        AddGarment(defs, "pants_21038", "Shtany", WearLayer.Wear, 0.25f, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR);
+        // Spec §42: fold in the whole wearable wardrobe from the shared
+        // library (built-in defaults, or the GarmentCatalog asset when the
+        // Unity presentation layer applied it at startup).
+        GarmentLibrary.AppendDefinitions(defs);
+        return defs;
     }
 }
 

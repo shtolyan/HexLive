@@ -20,6 +20,13 @@ namespace HexLive.UnityPresentation.UI
         /// the in-game Escape menu must never open over it.</summary>
         public static bool IsActive { get; private set; }
 
+        /// <summary>True only while offline ticks are being wound forward.
+        /// The renderer skips its whole Update in this window: winding is pure
+        /// headless simulation, and painting the intermediate world every frame
+        /// (skin decals, actor sync) behind the curtain just starves the tick
+        /// budget and slows the bar. Views build afterward, in loading phase 3.</summary>
+        public static bool IsReplaying { get; private set; }
+
         private const float ReplayBudgetMsPerFrame = 10f;
         private const float FadeSeconds = 0.7f;
         private const string JanaName = "Jana";
@@ -35,10 +42,19 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement _progressFill;
         private VisualElement _progressStrip;
         private Label _status;
+        // §41.3: big day/clock readout shown only while time winds forward —
+        // the player watches days roll by, not raw ticks.
+        private Label _timeReadout;
 
         private void OnEnable() => IsActive = true;
 
-        private void OnDestroy() => IsActive = false;
+        private void OnDestroy()
+        {
+            IsActive = false;
+            // Safety: if the coroutine died mid-wind (an in-play domain reload
+            // kills coroutines silently), don't leave the renderer muted.
+            IsReplaying = false;
+        }
 
         public void Begin(SimulationRunnerBehaviour runner)
         {
@@ -226,13 +242,32 @@ namespace HexLive.UnityPresentation.UI
             _progressStrip = strip;
             _root.Add(strip);
 
+            // The centerpiece during the time-wind: a large, letter-spaced
+            // day + clock. Hidden until replay starts, so the other phases
+            // (island/warmup) keep the compact single-line status.
+            _timeReadout = new Label(string.Empty)
+            {
+                style =
+                {
+                    fontSize = 44,
+                    unityFontStyleAndWeight = FontStyle.Bold,
+                    letterSpacing = 3,
+                    color = new Color(0.96f, 0.93f, 0.86f, 1f),
+                    marginBottom = 6,
+                    display = DisplayStyle.None
+                }
+            };
+            strip.Add(_timeReadout);
+
             _status = new Label("...")
             {
                 style =
                 {
                     fontSize = 14,
-                    color = new Color(0.8f, 0.8f, 0.78f, 1f),
-                    marginBottom = 10
+                    unityFontStyleAndWeight = FontStyle.Normal,
+                    letterSpacing = 4,
+                    color = new Color(0.72f, 0.75f, 0.72f, 1f),
+                    marginBottom = 12
                 }
             };
             strip.Add(_status);
@@ -420,6 +455,17 @@ namespace HexLive.UnityPresentation.UI
             return el;
         }
 
+        // §41.3: tick -> "Day N · HH:MM" using the sim's own day length and
+        // clock formatter, so the readout matches in-game time exactly.
+        private static string FormatDayTime(int tick)
+        {
+            const int dayLen = HexLive.Simulation.Runtime.EnvironmentSystem.DayLengthTicks;
+            var day = tick / dayLen + 1;
+            var progress = (tick % dayLen) / (float)dayLen;
+            var clock = HexLive.Simulation.Runtime.EnvironmentSystem.FormatClock(progress);
+            return $"{Loc.Get("loading.day")} {day}   {clock}";
+        }
+
         private void SetProgress(float overall, string status)
         {
             if (_progressFill != null)
@@ -498,6 +544,8 @@ namespace HexLive.UnityPresentation.UI
             // ~10 ms of stepping per frame so the bar visibly moves.
             if (hasReplay && _runner.Engine is { } engine)
             {
+                IsReplaying = true;
+                _timeReadout.style.display = DisplayStyle.Flex;
                 var clock = System.Diagnostics.Stopwatch.StartNew();
                 var start = engine.World.Tick;
                 while (engine.World.Tick < _targetTick)
@@ -511,11 +559,13 @@ namespace HexLive.UnityPresentation.UI
 
                     var done = (engine.World.Tick - start) /
                         (float)Mathf.Max(1, _targetTick - start);
-                    SetProgress(0.05f + done * 0.6f,
-                        Loc.Get("loading.time") + $" {engine.World.Tick}/{_targetTick}");
+                    _timeReadout.text = FormatDayTime(engine.World.Tick);
+                    SetProgress(0.05f + done * 0.6f, Loc.Get("loading.time"));
                     yield return null;
                 }
 
+                _timeReadout.style.display = DisplayStyle.None;
+                IsReplaying = false;
                 UnityEngine.Debug.Log(
                     $"[HexLive] Replayed to tick {engine.World.Tick} in {clock.ElapsedMilliseconds} ms");
             }

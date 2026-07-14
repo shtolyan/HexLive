@@ -42,10 +42,37 @@ public sealed class InventoryState
 {
     public List<ItemInstance> Items { get; } = new();
 
-    // Spec 35.2: 10 slots — the tool belt era.
-    public int Capacity { get; set; } = 10;
+    // Spec §52: no longer a fixed number — the pack is 2 hand slots plus the
+    // pockets of every worn garment, recomputed by EquipmentMath.Recalculate.
+    // Defaulted so any host that never dresses an NPC still carries a little.
+    public int Capacity { get; set; } = 2;
 
-    public bool HasSpace => Items.Count < Capacity;
+    // Spec §52: personal effects hang on the body (a belt / strap), not in a
+    // pocket, so they never count against the pocket budget and stay carryable
+    // even naked. The bottle is one (spec 29H: "always there"); the future
+    // weapon slot (spec §52) will join it.
+    public static bool IsPersonalEffect(string definitionId) =>
+        definitionId == "tool.bottle";
+
+    // Pocketed items only — personal effects (the bottle) ride free.
+    public int UsedSlots
+    {
+        get
+        {
+            var n = 0;
+            foreach (var item in Items)
+            {
+                if (!IsPersonalEffect(item.DefinitionId))
+                {
+                    n++;
+                }
+            }
+
+            return n;
+        }
+    }
+
+    public bool HasSpace => UsedSlots < Capacity;
 
     public string? FindFirstFood(ContentCatalog content)
     {
@@ -59,6 +86,29 @@ public sealed class InventoryState
             foreach (var interaction in definition.Interactions)
             {
                 if (interaction.Type == InteractionType.Eat)
+                {
+                    return item.DefinitionId;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    // §55: the first carried item that can be drunk (a whole coconut). Mirrors
+    // FindFirstFood — thirst now comes from cracking a coconut, not a bottle.
+    public string? FindFirstDrink(ContentCatalog content)
+    {
+        foreach (var item in Items)
+        {
+            if (!content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var definition))
+            {
+                continue;
+            }
+
+            foreach (var interaction in definition.Interactions)
+            {
+                if (interaction.Type == InteractionType.Drink)
                 {
                     return item.DefinitionId;
                 }

@@ -20,6 +20,10 @@ public sealed class WorldObjectState
 
     public EntityId? CurrentUser { get; set; }
 
+    // Spec §50: a per-object variant tag the renderer reads (e.g. which limb a
+    // "body.limb_severed" object is, so it bakes the matching bone chain).
+    public string Variant { get; set; } = string.Empty;
+
     public float ResourceAmount { get; set; }
 
     // Spec 35.5: ground items get rained on; wetness survives the
@@ -41,6 +45,24 @@ public sealed class WorldObjectState
     public int NextProductionTick { get; set; }
 
     public List<ObjectId> ProducedItems { get; } = new();
+
+    // Spec §52: build-site payload. What this site becomes once finished
+    // (e.g. "bed.basic") and the material bill it must accumulate in Contents
+    // before a hammer can raise it. Zero bill / empty product ⇒ not a site.
+    public string BuildProduct { get; set; } = string.Empty;
+
+    public int BillLogs { get; set; }
+
+    public int BillStones { get; set; }
+
+    public int BillLeaves { get; set; }
+
+    // Spec §52: a garment is a container. When it is taken off (or torn), the
+    // pocket items it carried ride down with it and live here on the ground
+    // object — the NPC remembers (via perception) that its bottle is "in those
+    // panties over there" and can fetch it without dressing. Also used as a
+    // build-site's delivered-materials store and a fireside stockpile bin.
+    public List<Agents.ItemInstance> Contents { get; } = new();
 }
 
 }

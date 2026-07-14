@@ -330,6 +330,8 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
         engine.Register(new FruitProductionSystem());
         engine.Register(new FireSystem());
         engine.Register(new CorpseSystem());
+        engine.Register(new MeatSpoilageSystem()); // §54: ground meat rots
+        engine.Register(new HazardSystem()); // §50: prepared amputation hazards
     }
 }
 

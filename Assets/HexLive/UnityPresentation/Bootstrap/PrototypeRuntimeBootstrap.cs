@@ -17,6 +17,10 @@ public static class PrototypeRuntimeBootstrap
         // spawns — the values that used to be hand-edited code constants.
         Config.HexTuning.LoadAndApply();
 
+        // Spec §42: load the wearable wardrobe from the GarmentCatalog asset
+        // into GarmentLibrary before the world (and its content) is built.
+        Config.GarmentTuning.LoadAndApply();
+
         var existingRunner = Object.FindAnyObjectByType<SimulationRunnerBehaviour>();
         if (existingRunner is not null)
         {
@@ -26,6 +30,16 @@ public static class PrototypeRuntimeBootstrap
         // Dev scenes (wardrobe test etc.) own themselves — the game world
         // must not boot on top of them.
         if (Object.FindAnyObjectByType<WardrobeTest.WardrobeTestBootstrap>() is not null)
+        {
+            return;
+        }
+
+        if (Object.FindAnyObjectByType<ShiverTest.ShiverTestBootstrap>() is not null)
+        {
+            return;
+        }
+
+        if (Object.FindAnyObjectByType<AxeChopTest.AxeChopTestBootstrap>() is not null)
         {
             return;
         }

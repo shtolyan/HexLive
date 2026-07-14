@@ -73,46 +73,22 @@ namespace HexLive.Simulation.Bootstrap
                 },
                 Objects =
                 {
-                    // Place objects at distinct interior point slots (ring 1 positions).
-                    // Food is not placed directly: apple trees (104, 105) drop it.
-                    Object(101, "chair.basic", 1, 0, 2, 3),
-                    Object(103, "clothing.coat", 1, 3, 1, 2),
+                    // Spec §54 COLD START: nothing is pre-built or handed out at
+                    // home. The yard keeps only the natural resources — palms
+                    // (food/wood/leaves) and deadfall (ready sticks). The hearth is
+                    // a build-site the colony raises from stones (CreateCampfireSite),
+                    // the raft is a coastal build-marker, and every tool/garment is
+                    // gathered, found in the wild, or crafted. Retired from the
+                    // yard: the finished campfire, lighter, pot, starting wood,
+                    // chair, coat, armor and the wardrobe (pot/lighter/armor are
+                    // now findable wilderness loot — see AddNaturalFeatures).
                     Object(104, "tree.palm", 1, -2, 2, 1),
                     Object(105, "tree.palm", 1, 1, 4, 1),
-                    // Third tree (iteration 8): a third mouth needs a third
-                    // tree — two left the food economy visibly strained.
-                    Object(107, "tree.palm", 1, 3, 2, 1),
-                    // Second bed (iteration 6): both NPCs want to sleep at
-                    // night; one shared bed would mean nightly fights.
-                    // Wilderness rewards (iteration 9): a far tree and armor
-                    // pieces — exploration pays (spec 29C.4/29C.5).
-                    Object(108, "tree.palm", 1, 6, 1, 1),
-                    Object(109, "armor.leather", 1, 5, 4, 2),
-                    Object(110, "armor.heavy", 1, -3, 5, 2),
-                    // Water & fire chain (iteration 13, spec 29E): a campfire
-                    // in the yard, basics near home. The two wilderness ponds
-                    // (objects 111/112) are RETIRED: they spent their whole
-                    // life as invisible anchors on dry grass, and once given
-                    // real water they read as foam-filled puddles with no
-                    // depression — the river (correctly anchored drink spots)
-                    // is the raw-water source now.
-                    Object(113, "campfire.spot", 1, 0, 4, 2),
-                    Object(114, "tool.lighter", 1, -1, 0, 1),
-                    Object(115, "tool.pot", 1, 2, 4, 1),
-                    Object(116, "resource.firewood", 1, -1, 1, 2),
-                    Object(117, "resource.firewood", 1, 3, 2, 3),
-                    Object(118, "resource.firewood", 1, 5, 2, 1),
-                    Object(119, "resource.firewood", 1, -2, 4, 2),
-                    Object(120, "resource.firewood", 1, 6, 4, 1),
-                    Object(121, "resource.firewood", 1, 1, -1, 1),
+                    // §54.2: a mix of big (3-log) and small (2-log) palms.
+                    Object(107, "tree.palm_small", 1, 3, 2, 1),
+                    Object(108, "tree.palm_small", 1, 6, 1, 1),
                     Object(122, "forest.deadfall", 1, 6, 3, 2),
-                    Object(123, "forest.deadfall", 1, -4, 4, 2),
-                    // AI-print wardrobe experiment: fal.ai-generated textile
-                    // prints on tank-top/panty meshes — scattered near home.
-                    Object(124, "clothing.top_tropic", 1, 2, 0, 3),
-                    Object(125, "clothing.top_tiedye", 1, 4, 1, 3),
-                    Object(126, "underwear.panty_leo", 1, 0, 1, 3),
-                    Object(127, "underwear.panty_stars", 1, 1, 1, 3)
+                    Object(123, "forest.deadfall", 1, -4, 4, 2)
                 },
                 Npcs =
                 {
@@ -171,7 +147,7 @@ namespace HexLive.Simulation.Bootstrap
 
             AddWilderness(definition.Fragments[0]);
             AddIslandElevation(definition.Fragments[0], seed);
-            AddRiver(definition.Fragments[0], seed);
+            AddSeaChannel(definition.Fragments[0], seed);
             AddNaturalFeatures(definition, seed);
             return definition;
         }
@@ -290,9 +266,12 @@ namespace HexLive.Simulation.Bootstrap
             }
         }
 
-        // Spec 35.1: a seeded winding river of walkable Water shallows,
-        // roughly vertical in world space, east of the home.
-        private static void AddRiver(FragmentBootstrap fragment, int seed)
+        // §55: rivers are retired — what was the winding river is now an ordinary
+        // sea inlet. The same seeded channel is carved as UNWALKABLE deep water
+        // (sea = Water without Walkable), so NPCs swim it rather than wade, and
+        // it is no longer drinkable. The one-deep swim ring (WorldStateFactory)
+        // still opens this ≤2-wide channel so it never boxes anyone in.
+        private static void AddSeaChannel(FragmentBootstrap fragment, int seed)
         {
             var byCoord = new Dictionary<(int q, int r), TileBootstrap>();
             foreach (var tile in fragment.Tiles)
@@ -315,31 +294,9 @@ namespace HexLive.Simulation.Bootstrap
                         !tile.Indoor && !tile.Blocked)
                     {
                         tile.Water = true;
-                        tile.Walkable = true; // the river stays wadable even where it crosses sea-marked coast
-                        tile.Elevation = 0;   // spec 20.16: ALL water shares one level — the river meets the sea flush
+                        tile.Walkable = false; // §55: deep sea — swum, not waded, and undrinkable
+                        tile.Elevation = 0;    // spec 20.16: ALL water shares one level — flush with the sea
                         tile.BlockedSlots.Clear();
-                    }
-                }
-            }
-
-            // Spec 20.16: rivers flow in valleys — banks clamp to lowland so
-            // the waterline is always approachable (a cliff-walled river
-            // starved the colony of drink spots on the first soak).
-            foreach (var tile in fragment.Tiles)
-            {
-                if (!tile.Water || tile.Walkable == false)
-                {
-                    continue;
-                }
-
-                foreach (var direction in HexDirection.All)
-                {
-                    // Banks clamp to 1: the river sits at sea level (0) and a
-                    // >1 step to the waterline would be a cliff — no drinking.
-                    if (byCoord.TryGetValue((tile.Q + direction.DQ, tile.R + direction.DR), out var bank) &&
-                        !bank.Water && bank.Walkable && bank.Elevation > 1)
-                    {
-                        bank.Elevation = 1;
                     }
                 }
             }
@@ -380,14 +337,25 @@ namespace HexLive.Simulation.Bootstrap
 
             Place("rock.boulder", 8, 331, 1);
             Place("resource.stone", 12, 443, 2);
-            Place("tree.big", 6, 557, 1);
-            Place("tree.palm", 5, 661, 1);
+            // §54.2: the old big tree is RETIRED — the two tree types are now our
+            // two palms: big (3 logs + crown) and small (2 logs + crown).
+            Place("tree.palm", 6, 661, 1);        // big palms (3 logs)
+            Place("tree.palm_small", 6, 557, 1);  // small palms (2 logs)
             Place("tool.saw", 1, 773, 2); // spec 35.2: findable wilderness loot
             // Spec 40.12: more scattered gear — the wilds reward exploring, and
             // a found tool saves a craft. GatherTools already collects any
             // reachable Tool not carried.
             Place("tool.saw", 1, 991, 2);
             Place("herb.bush", 3, 1213, 1); // spec 44: healing herb
+            Place("plant.yucca", 8, 1327, 1); // spec §54: yucca — cut for fiber (rope/cloth); consumed, so seed a few
+            Place("tool.knife", 1, 1451, 2); // spec §54: one findable knife bootstraps butchering
+            // Spec §54 cold start: the home conveniences are no longer handed
+            // out — the pot (boiling), lighter (a spark) and armor are findable
+            // wilderness loot instead, so the wilds still reward exploring.
+            Place("tool.pot", 1, 1579, 2);
+            Place("tool.lighter", 1, 1663, 1);
+            Place("armor.leather", 1, 1741, 2);
+            Place("armor.heavy", 1, 1823, 2);
 
             // Spec 40.18 step 4: the ONLY pickaxe sits on the second island —
             // an island-exclusive tool a GatherTools NPC must cross the strait
@@ -395,37 +363,9 @@ namespace HexLive.Simulation.Bootstrap
             definition.Objects.Add(Object(nextId++, "tree.palm", 1, 9, 4, 1));
             definition.Objects.Add(Object(nextId++, "tool.pickaxe_stone", 1, 9, 5, 2));
 
-            // Drink spots along the river — anchored on the dry BANK beside a
-            // wadable river tile ("fill at the riverbank", spec 29H), never on
-            // the water itself: an in-water anchor made every fill a soak,
-            // and wet clothes give no warmth — soaks showed the colony dying
-            // of hypothermia once the (dry) ponds were retired.
-            var tilesByCoord = new Dictionary<(int q, int r), TileBootstrap>();
-            foreach (var tile in fragment.Tiles)
-            {
-                tilesByCoord[(tile.Q, tile.R)] = tile;
-            }
-
-            var neighborOffsets = new[] { (1, 0), (-1, 0), (0, 1), (0, -1), (1, -1), (-1, 1) };
-            var placedRiver = 0;
-            foreach (var tile in fragment.Tiles)
-            {
-                if (!tile.Water || !tile.Walkable || placedRiver >= 5 || (tile.R + 6) % 3 != 0)
-                {
-                    continue;
-                }
-
-                foreach (var (dq, dr) in neighborOffsets)
-                {
-                    if (tilesByCoord.TryGetValue((tile.Q + dq, tile.R + dr), out var bank) &&
-                        !bank.Water && bank.Walkable)
-                    {
-                        definition.Objects.Add(Object(nextId++, "water.river", 1, bank.Q, bank.R, 1));
-                        placedRiver++;
-                        break;
-                    }
-                }
-            }
+            // §55: river drink-anchors retired — rivers are gone and water is no
+            // longer drinkable. Thirst is quenched by cracking a coconut instead
+            // (see food.coconut's Drink interaction).
 
             // Spec 40.15: the escape raft on the coast — a walkable, non-water
             // tile beside the sea, nearest to home (the way off the island).

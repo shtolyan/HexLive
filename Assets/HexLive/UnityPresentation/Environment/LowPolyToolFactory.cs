@@ -25,6 +25,8 @@ namespace HexLive.UnityPresentation.Environment
         private static readonly Color MeatRaw = new(0.80f, 0.32f, 0.32f);
         private static readonly Color MeatCooked = new(0.52f, 0.33f, 0.20f);
         private static readonly Color Rock = new(0.50f, 0.48f, 0.46f);
+        private static readonly Color Gauze = new(0.93f, 0.93f, 0.90f);
+        private static readonly Color MedRed = new(0.86f, 0.20f, 0.22f);
 
         public static GameObject? Build(string definitionId)
         {
@@ -40,7 +42,8 @@ namespace HexLive.UnityPresentation.Environment
                 case "tool.saw": BuildSaw(root.transform); break;
                 case "tool.lighter": BuildLighter(root.transform); break;
                 case "resource.arrow": BuildArrow(root.transform); break;
-                case "resource.firewood": BuildFirewood(root.transform); break;
+                case "resource.log": BuildLog(root.transform); break;
+                case "resource.stick": BuildStick(root.transform); break;
                 case "resource.stone": BuildStone(root.transform); break;
                 case "resource.hide": BuildHide(root.transform); break;
                 case "resource.palm_leaf": BuildPalmLeaf(root.transform); break;
@@ -52,6 +55,13 @@ namespace HexLive.UnityPresentation.Environment
                 case "vessel.raft": BuildRaft(root.transform); break;
                 case "herb.bush": BuildHerbBush(root.transform); break;
                 case "resource.herb_leaf": BuildHerbLeaf(root.transform); break;
+                case "plant.yucca": BuildFibrousPlant(root.transform); break;
+                case "resource.fiber": BuildFiber(root.transform); break;
+                case "resource.rope": BuildRope(root.transform); break;
+                case "resource.cloth": BuildCloth(root.transform); break;
+                case "tool.knife": BuildKnife(root.transform); break;
+                case "carcass.animal": BuildCarcass(root.transform); break;
+                case "item.bandage": BuildBandage(root.transform); break;
                 default:
                     Object.Destroy(root);
                     return null;
@@ -73,6 +83,14 @@ namespace HexLive.UnityPresentation.Environment
             AddBox(p, new Vector3(0.7f, 0.06f, 0.06f), new Vector3(0f, 0.92f, 0f), new Vector3(0f, 0f, 6f), Stone);
             AddPyramid(p, 0.10f, 0.16f, new Vector3(0.42f, 0.94f, 0f), new Vector3(0f, 0f, -96f), Stone);
             AddPyramid(p, 0.10f, 0.16f, new Vector3(-0.42f, 0.90f, 0f), new Vector3(0f, 0f, 96f), Stone);
+        }
+
+        private static void BuildBandage(Transform p)
+        {
+            // A small rolled gauze pad with a red medical cross on the top face.
+            AddBox(p, new Vector3(0.30f, 0.12f, 0.22f), new Vector3(0f, 0.06f, 0f), Vector3.zero, Gauze);
+            AddBox(p, new Vector3(0.16f, 0.02f, 0.05f), new Vector3(0f, 0.125f, 0f), Vector3.zero, MedRed);
+            AddBox(p, new Vector3(0.05f, 0.02f, 0.14f), new Vector3(0f, 0.125f, 0f), Vector3.zero, MedRed);
         }
 
         private static void BuildSpear(Transform p)
@@ -142,11 +160,22 @@ namespace HexLive.UnityPresentation.Environment
             AddBox(p, new Vector3(0.06f, 0.05f, 0.06f), new Vector3(0f, 0.24f, 0f), Vector3.zero, Metal);
         }
 
-        private static void BuildFirewood(Transform p)
+        // Spec §54: a single fat log (the chop output). One thick round-ish
+        // trunk lying on its side, split into two tones for a low-poly bark read.
+        private static void BuildLog(Transform p)
         {
-            AddBox(p, new Vector3(0.10f, 0.10f, 0.9f), new Vector3(-0.09f, 0.05f, 0f), new Vector3(0f, 4f, 0f), Wood);
-            AddBox(p, new Vector3(0.10f, 0.10f, 0.9f), new Vector3(0.09f, 0.05f, 0f), new Vector3(0f, -5f, 0f), DarkWood);
-            AddBox(p, new Vector3(0.10f, 0.10f, 0.9f), new Vector3(0f, 0.15f, 0.02f), new Vector3(0f, 1f, 0f), Wood);
+            AddBox(p, new Vector3(0.24f, 0.22f, 1.0f), new Vector3(0f, 0.12f, 0f), new Vector3(0f, 3f, 0f), Wood);
+            AddBox(p, new Vector3(0.18f, 0.10f, 1.0f), new Vector3(0.02f, 0.24f, 0f), new Vector3(0f, -2f, 0f), DarkWood);
+            // pale cut faces at each end
+            AddBox(p, new Vector3(0.22f, 0.20f, 0.04f), new Vector3(0f, 0.12f, 0.5f), Vector3.zero, StringCol);
+            AddBox(p, new Vector3(0.22f, 0.20f, 0.04f), new Vector3(0f, 0.12f, -0.5f), Vector3.zero, StringCol);
+        }
+
+        // Spec §54: a thin stick (fuel / craft currency) — a slim short rod.
+        private static void BuildStick(Transform p)
+        {
+            AddBox(p, new Vector3(0.05f, 0.05f, 0.55f), new Vector3(0f, 0.03f, 0f), new Vector3(0f, 6f, 2f), Wood);
+            AddBox(p, new Vector3(0.045f, 0.045f, 0.4f), new Vector3(0.05f, 0.03f, 0.05f), new Vector3(0f, -18f, 0f), DarkWood);
         }
 
         private static void BuildStone(Transform p)
@@ -247,6 +276,66 @@ namespace HexLive.UnityPresentation.Environment
         {
             AddBox(p, new Vector3(0.42f, 0.16f, 0.30f), new Vector3(0f, 0.08f, 0f), new Vector3(0f, 15f, 0f), color);
             AddBox(p, new Vector3(0.05f, 0.05f, 0.22f), new Vector3(0f, 0.08f, 0.24f), Vector3.zero, DarkWood);
+        }
+
+        // Spec §54: the cordage plant — a tuft of tall pale-green blades fanning up.
+        private static void BuildFibrousPlant(Transform p)
+        {
+            var fiberGreen = new Color(0.54f, 0.62f, 0.34f);
+            var fiberDry = new Color(0.68f, 0.64f, 0.42f);
+            for (var i = 0; i < 6; i++)
+            {
+                var yaw = i * 60f;
+                var lean = 10f + (i % 3) * 6f;
+                AddBox(p, new Vector3(0.05f, 0.7f, 0.02f), new Vector3(0f, 0.35f, 0f),
+                    new Vector3(lean, yaw, 0f), i % 2 == 0 ? fiberGreen : fiberDry);
+            }
+        }
+
+        // Spec §54: a little bundle of loose plant fiber.
+        private static void BuildFiber(Transform p)
+        {
+            var fiberDry = new Color(0.72f, 0.66f, 0.44f);
+            AddBox(p, new Vector3(0.05f, 0.03f, 0.5f), new Vector3(0f, 0.03f, 0f), new Vector3(0f, 4f, 0f), fiberDry);
+            AddBox(p, new Vector3(0.05f, 0.03f, 0.44f), new Vector3(0.05f, 0.03f, 0.02f), new Vector3(0f, -12f, 0f), fiberDry);
+            AddBox(p, new Vector3(0.05f, 0.03f, 0.4f), new Vector3(-0.05f, 0.03f, -0.02f), new Vector3(0f, 14f, 0f), fiberDry);
+        }
+
+        // Spec §54: a coil of rope — a short twisted cord looped over on itself.
+        private static void BuildRope(Transform p)
+        {
+            var rope = new Color(0.78f, 0.68f, 0.44f);
+            for (var i = 0; i < 3; i++)
+            {
+                AddBox(p, new Vector3(0.30f, 0.05f, 0.06f), new Vector3(0f, 0.04f + i * 0.05f, 0f),
+                    new Vector3(0f, i * 12f, 0f), rope);
+            }
+        }
+
+        // Spec §54: a folded bolt of cloth — a flat stacked square.
+        private static void BuildCloth(Transform p)
+        {
+            var cloth = new Color(0.82f, 0.80f, 0.72f);
+            var clothDark = new Color(0.70f, 0.68f, 0.60f);
+            AddBox(p, new Vector3(0.5f, 0.06f, 0.4f), new Vector3(0f, 0.03f, 0f), new Vector3(0f, 6f, 0f), cloth);
+            AddBox(p, new Vector3(0.44f, 0.05f, 0.34f), new Vector3(0.02f, 0.09f, 0f), new Vector3(0f, -4f, 0f), clothDark);
+        }
+
+        // Spec §54: a stone knife — a short handle with a chipped blade.
+        private static void BuildKnife(Transform p)
+        {
+            AddBox(p, new Vector3(0.05f, 0.05f, 0.26f), new Vector3(0f, 0.03f, -0.14f), Vector3.zero, DarkWood);
+            AddBox(p, new Vector3(0.02f, 0.10f, 0.34f), new Vector3(0f, 0.05f, 0.16f), new Vector3(0f, 0f, 0f), Stone);
+        }
+
+        // Spec §54: an animal carcass on the ground — a slumped hide-brown body
+        // with a splayed leg, so it reads as "a downed beast to butcher".
+        private static void BuildCarcass(Transform p)
+        {
+            AddBox(p, new Vector3(0.5f, 0.34f, 0.85f), new Vector3(0f, 0.17f, 0f), new Vector3(6f, 8f, 4f), Hide);
+            AddBox(p, new Vector3(0.30f, 0.26f, 0.30f), new Vector3(0f, 0.20f, 0.5f), new Vector3(0f, 12f, 0f), Hide); // head
+            AddBox(p, new Vector3(0.10f, 0.10f, 0.35f), new Vector3(0.22f, 0.06f, -0.3f), new Vector3(60f, 0f, 0f), Hide); // splayed leg
+            AddBox(p, new Vector3(0.22f, 0.05f, 0.30f), new Vector3(-0.1f, 0.02f, -0.1f), new Vector3(0f, 20f, 0f), MeatRaw); // exposed flesh
         }
 
         // ---- primitives ----

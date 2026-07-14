@@ -44,6 +44,13 @@ public sealed class NpcFaceAnimator : MonoBehaviour
     private Channel _frown;       // eCTRLMouthFrown
     private Channel _angry;
     private Channel _surprised;
+    // Pain wince (no single eCTRLPain shape exists — composited from FACS units).
+    private Channel _browSqueeze;   // brows knit together+down — the signature
+    private Channel _eyesSquint;    // eyes screwed up (lower lids + orbital)
+    private Channel _noseScrunch;   // nose wrinkled (levator — pain/disgust)
+    private Channel _cheekFlex;     // cheeks pushed up under the squint
+    private Channel _mouthGrimace;  // corners pulled back — a teeth-bared wince
+    private Channel _lipsPart;      // lips part in a pained gasp
 
     private float _blinkTimer;
     private float _blinkPhase = -1f; // <0 idle, otherwise 0..1 close, 1..2 open
@@ -51,6 +58,7 @@ public sealed class NpcFaceAnimator : MonoBehaviour
     private float _wellbeing = 0.6f; // 0 miserable .. 1 great
     private bool _fighting;
     private float _surprisePulse;
+    private float _pain;             // 0 none .. 1 writhing (fresh bleeding wounds)
 
     public void Construct(SkinnedMeshRenderer[] bodySkins)
     {
@@ -86,6 +94,14 @@ public sealed class NpcFaceAnimator : MonoBehaviour
         _frown = Resolve(bodySkins, "eCTRLMouthFrown");
         _angry = Resolve(bodySkins, "eCTRLAngry");
         _surprised = Resolve(bodySkins, "eCTRLSurprised");
+        // Pain wince, built from FACS primitives (drive L/R shapes together, as
+        // the combined controllers are unreliable on these figures).
+        _browSqueeze = Resolve(bodySkins, "eCTRLBrowSqueeze");
+        _eyesSquint = Resolve(bodySkins, "eCTRLEyesSquintL", "eCTRLEyesSquintR");
+        _noseScrunch = Resolve(bodySkins, "eCTRLNoseScrunch", "eCTRLNoseWrinkle");
+        _cheekFlex = Resolve(bodySkins, "eCTRLCheekFlexL", "eCTRLCheekFlexR");
+        _mouthGrimace = Resolve(bodySkins, "eCTRLMouthCornerBackL", "eCTRLMouthCornerBackR");
+        _lipsPart = Resolve(bodySkins, "eCTRLLipsPart");
         _blinkTimer = Random.Range(BlinkInterval.x, BlinkInterval.y);
         enabled = _eyesClosed.Targets.Count > 0 || _smile.Targets.Count > 0;
     }
@@ -142,6 +158,14 @@ public sealed class NpcFaceAnimator : MonoBehaviour
     public void SetSleeping(bool sleeping)
     {
         _sleeping = sleeping;
+    }
+
+    // Pain/wince level from fresh bleeding wounds (0 none .. 1 writhing). There
+    // is no single Genesis3 "pain" morph — LateUpdate composites the grimace
+    // from FACS units and gives it a slow throb so it reads as waves of pain.
+    public void SetPain(float pain01)
+    {
+        _pain = Mathf.Clamp01(pain01);
     }
 
     private void LateUpdate()
@@ -209,11 +233,30 @@ public sealed class NpcFaceAnimator : MonoBehaviour
             }
         }
 
+        // --- Pain (fresh bleeding wounds): a wince composited from FACS morphs,
+        // with a slow throb so it reads as writhing. It overrides the resting
+        // smile — you don't smile while in pain — and reinforces the frown.
+        if (_pain > 0.05f)
+        {
+            smile = Mathf.Min(smile, (1f - _pain) * 6f);
+            smileFull = 0f;
+            frown = Mathf.Max(frown, _pain * 45f);
+        }
+
+        var painThrob = _pain * (0.85f + 0.15f * Mathf.Sin(Time.time * 6f));
+
         _smile.Apply(smile, EmotionSpeed, dt);
         _smileFull.Apply(smileFull, EmotionSpeed, dt);
         _frown.Apply(frown, EmotionSpeed, dt);
         _angry.Apply(angry, EmotionSpeed, dt);
         _surprised.Apply(_surprisePulse * 80f, 400f, dt);
+
+        _browSqueeze.Apply(painThrob * 80f, EmotionSpeed, dt);
+        _eyesSquint.Apply(painThrob * 75f, EmotionSpeed, dt);
+        _noseScrunch.Apply(painThrob * 55f, EmotionSpeed, dt);
+        _cheekFlex.Apply(painThrob * 45f, EmotionSpeed, dt);
+        _mouthGrimace.Apply(painThrob * 55f, EmotionSpeed, dt);
+        _lipsPart.Apply(painThrob * 30f, EmotionSpeed, dt);
     }
 }
 

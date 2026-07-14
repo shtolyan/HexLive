@@ -155,13 +155,16 @@ MonoBehaviour:
   _waveSpeed: 0
   _treadPauseSeconds: 2
   _swimSpeedFactor: 0.6
+  _ledgeSeatLift: -0.344
+  _ledgeSeatBack: 0.2
   _hopSeconds: 2
+  _downHopSeconds: 2
   _hopTakeoffSeconds: 0.25
-  _hopLandingSeconds: 0.25
-  _hopEdgePadding: 0.5
-  _divePlungeDepth: 0.35
-  _hopDownUp: 0.603
-  _hopDownFallStart: 0.5
+  _hopLandingSeconds: 0.15
+  _hopEdgePadding: 0.1
+  _divePlungeDepth: 0.7
+  _hopDownUp: 0
+  _hopDownFallStart: 0.225
   _startDelaySeconds: 3
   _tuningConfig: {fileID: 11400000, guid: 93f675c6e6eb34945ba693152be8b233, type: 2}
 --- !u!4 &824721003

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using RootMotion.FinalIK;
 using UnityEngine;
+using HexLive.UnityPresentation.UI;
 
 namespace HexLive.UnityPresentation.Wearing
 {
@@ -31,8 +32,43 @@ public sealed class NpcActorView : MonoBehaviour
     private static readonly int TurnDirectionParam = Animator.StringToHash("TurnDirection");
     private static readonly int LayingParam = Animator.StringToHash("Laying");
     private static readonly int WorkingParam = Animator.StringToHash("Working");
+    // §axe: axe/pickaxe work (Harvest/Process) plays a real looping swing clip
+    // (Standing Melee Attack Horizontal) via the Chop clip-state, replacing the
+    // old procedural shoulder chop.
+    private static readonly int ChoppingParam = Animator.StringToHash("Chopping");
     private static readonly int SittingParam = Animator.StringToHash("Sitting");
+    // Clip-based action states (built by the "HexLive ▸ Build NPC Action States"
+    // editor menu). Clips are swapped in via an AnimatorOverrideController.
+    private static readonly int TalkingParam = Animator.StringToHash("Talking");
+    private static readonly int GatheringParam = Animator.StringToHash("Gathering");
+    private static readonly int DrinkingParam = Animator.StringToHash("Drinking");
+    // §Wardrobe-anim: the don (Dress) and doff (Undress) beats — each a Loopy
+    // clip state whose base clip is swapped from NpcAnimSet.dress / .undress.
+    private static readonly int DressingParam = Animator.StringToHash("Dressing");
+    private static readonly int UndressingParam = Animator.StringToHash("Undressing");
+    // Base-clip KEYS for the override controller (imported takes; see
+    // BuildNpcActionStates). Both currently point at the same placeholder FBX.
+    private const string DressBaseClip = "X Bot@Dressing";
+    private const string UndressBaseClip = "X Bot@Undressing";
+    // §Wardrobe-anim: must match ExecutionSystem.WardrobeHandoffFraction — the
+    // beat split where the garment changes hands (gather<->don, doff<->gather).
+    private const float WardrobeHandoffFraction = 0.5f;
+    // Spec 40.x: runtime handedness — drives Humanoid mirror on the one-handed
+    // clip states (Drink/Gather/Talk/Attack) so a lefty/lost-right-hand NPC
+    // acts with the other hand without any clip rebake.
+    private static readonly int MirrorActionParam = Animator.StringToHash("MirrorAction");
+    // Inverse mirror for clips whose NATIVE authored hand is the left (the drink
+    // clip): a right-handed NPC must mirror it, a lefty plays it native — the
+    // opposite polarity to MirrorAction (used by right-native clips). Default 1.
+    private static readonly int MirrorActionInvParam = Animator.StringToHash("MirrorActionInv");
+    private static readonly int DeadParam = Animator.StringToHash("Dead");
+    private static readonly int AttackParam = Animator.StringToHash("Attack");
+    // Base-clip take-names each action state plays (the override KEYS).
+    private const string TalkBaseClip = "X Bot@Talking";
+    private const string AttackBaseClip = "X Bot@Bayonet Stab";
+    private const string DeathBaseClip = "X Bot@Death From Back Headshot";
     private static readonly int LimpingParam = Animator.StringToHash("Limping");
+    private static readonly int CrawlingParam = Animator.StringToHash("Crawling"); // §50
     private static readonly int JumpUpParam = Animator.StringToHash("JumpUp");
     private static readonly int JumpDownParam = Animator.StringToHash("JumpDown");
     // §21.21B: drives the JumpUp/JumpDown states' Speed Multiplier so the
@@ -41,8 +77,22 @@ public sealed class NpcActorView : MonoBehaviour
     // and looping/overshooting the window.
     private static readonly int JumpSpeedParam = Animator.StringToHash("JumpSpeed");
     private float _jumpClipLength;   // authored seconds of the shared jump clip
+
+    // §NPC-anim: clip config (talk/death variants + weapon idle/attack) is a
+    // shared asset loaded once; the override controller lets each actor swap the
+    // action-state clips at runtime (random talk/death, weapon-specific attack).
+    private static NpcAnimSet _animSet;
+    private static bool _animSetTried;
+    private AnimatorOverrideController _animOverride;
+    private readonly Dictionary<string, AnimationClip> _clipsByName = new();
+    private bool _wantsTalk;          // sim says CurrentInteraction == "Talk"
+    private bool _talkTurnOn;         // this NPC's turn to speak right now
+    private bool _wasFighting;        // rising-edge detect for the attack trigger
+    private const float TalkTurnSeconds = 2.2f; // one speaks, then the other
     private static readonly int SwimmingParam = Animator.StringToHash("Swimming");
     private string _currentPropId;
+    // Right-handed by default; flipped at runtime via SetHandedness.
+    private bool _leftHanded;
     private GameObject _handProp;
 
     // Spec 33.1 (iter 33): a slung weapon rides on the back when carried but
@@ -148,6 +198,55 @@ public sealed class NpcActorView : MonoBehaviour
     private readonly HashSet<string> _bandagedScratch = new();
     private readonly HashSet<string> _gauzeScratch = new();
 
+    // Spec §50: zones already hidden by amputation (a limb never comes back, so
+    // this only grows). Maps a severed BodyPart zone to the DISTAL bone whose
+    // sub-tree we collapse — a below-elbow/below-knee cut that leaves a bloody
+    // stub rather than deforming the shoulder/hip (and the cloth riding them).
+    private readonly HashSet<string> _severedZones = new();
+
+    private static readonly Dictionary<string, string> SeveredDistalBone = new()
+    {
+        ["ArmL"] = "lForearmBend",
+        ["ArmR"] = "rForearmBend",
+        ["LegL"] = "lShin",
+        ["LegR"] = "rShin"
+    };
+
+    // Spec §50: the STUMP (cut) bone where the arterial fountain sprays — the
+    // PROXIMAL parent that stays (upper arm / thigh), NOT the collapsed distal
+    // bone. Sits at the cut and rides the body as she crawls.
+    private static readonly Dictionary<string, string> SeveredStumpBone = new()
+    {
+        ["ArmL"] = "lShldrBend",
+        ["ArmR"] = "rShldrBend",
+        ["LegL"] = "lThighBend",
+        ["LegR"] = "rThighBend"
+    };
+
+    // Spec §50: on sever, ONE gentle fountain at the cut that spurts + drips for
+    // SeverFountainSeconds, raining ~SeverDripRate droplets/sec onto the ground
+    // (≈3× a normal bleed's dripping). Public statics so a dev scene can dial
+    // them live.
+    public static float SeverFountainSeconds = 3f;
+    public static float SeverDripRate = 15f;
+
+    // First SetBodyCondition seeds already-severed zones WITHOUT a fountain (a
+    // save loaded mid-amputation shouldn't spray); real severs after fire.
+    private bool _severVfxPrimed;
+
+    // Spec §50: once a leg is gone she can't stand — every standing/idle clip is
+    // swapped for the prone idle (and walking for the crawl) via the override
+    // controller; sit/sleep/lie/drink keep their own clips.
+    private bool _legless;
+
+    private AnimationClip ProneClip => _animSet != null ? _animSet.proneIdle : null;
+
+    private AnimationClip CrawlClip => _animSet != null ? _animSet.crawl : null;
+
+    // A standing action clip becomes the prone idle while legless.
+    private AnimationClip Standing(AnimationClip standing) =>
+        _legless && ProneClip != null ? ProneClip : standing;
+
     // Spec 40.10-C: garment grime + zone-damage rips. Each hurt zone plants a
     // world-space damage sphere at its bone anchor (knees/elbows — where cloth
     // really rips) so the covering garment tears exactly there; dirt follows
@@ -170,6 +269,29 @@ public sealed class NpcActorView : MonoBehaviour
     private enum ActionKind { None, Chop, Work, RaiseToMouth, BowDraw, SpearThrust, Attack }
     private Transform _rShldr;
     private Transform _rForearm;
+    // Spec 40.7: the cold shiver is a two-sided hug — left arm + a spine curl
+    // and head tuck, not just the right arm (the old one-armed hunch read as a
+    // bug). Bound alongside the right arm in Construct.
+    private Transform _lShldr;
+    private Transform _lForearm;
+    private Transform _thermalChest;
+    private Transform _thermalHead;
+
+    // Spec 40.7: cold-shiver knobs, exposed static so the ShiverTest dev scene
+    // can tune them live with sliders (all amplitudes in degrees; Frequency is
+    // the shared sine rate). Defaults are deliberately small — a fine shiver,
+    // not a seizure.
+    public static class ShiverTuning
+    {
+        // Tuned live in the ShiverTest scene (2026-07-13).
+        public static float Frequency = 38f;
+        public static float ShoulderTremble = 0.8f;
+        public static float ForearmTremble = 1.3f;
+        public static float SpineTremble = 0.7f;
+        public static float HeadTremble = 0.58f;
+        public static float SpineCurl = 0f;     // no static spine curl — tremble only
+        public static float HeadTuck = 17.13f;  // static FORWARD head tuck
+    }
     private ActionKind _action;
     private float _actionPhase;
 
@@ -180,10 +302,13 @@ public sealed class NpcActorView : MonoBehaviour
     // butt back ONTO the rim so the lift lands on solid ground instead of
     // floating over the low tile's open air. TUNING KNOBS (config-driven so
     // they can be dialed without editing code — the step is ~0.55 world high):
-    //   LedgeSeatLift — vertical lift onto the upper step;
+    //   LedgeSeatLift — DIRECT Y offset, ALWAYS applied (negative lowers her);
     //   LedgeSeatBack — slide back onto the rim (toward the high tile).
     public static float LedgeSeatLift = 0.40f;
     public static float LedgeSeatBack = 0.45f;
+    // Extra lift per elevation step she perches UP from a lower tile (≈ one
+    // step high). 0 when she already sits on the higher tile's rim.
+    private const float LedgeSeatPerStep = 0.55f;
     private bool _ledgeSit;
 
     // Face life (blink + mood expression) on the body blend shapes.
@@ -244,7 +369,6 @@ public sealed class NpcActorView : MonoBehaviour
     // velocity extrapolation, no settle phase — those double-computed the XZ
     // the sim already owns and left the residual offset the user saw.
     private float _jumpStartY;         // root world-Y at arc start (stand level)
-    private bool _jumpPlunge;          // dive into water: splash below, bob up
     private float _jumpHeightDelta;    // world units, signed (+ = up)
     private float _jumpTakeoffFrac;    // [0..this] = crouch beat (arc flat)
     private float _jumpFlightEndFrac;  // [this..1] = landing beat (arc = 1)
@@ -306,12 +430,17 @@ public sealed class NpcActorView : MonoBehaviour
         // during the landing beat the root has stopped at the landing point
         // and the clip plants the feet.
         var up = hopKind == "Up";
-        _jumpPlunge = intoWater && !up;
+        // §21.21B: down-jumps can run on their own (faster) window; the beat
+        // FRACTIONS stay tied to HopSeconds (same shape), only the total window
+        // changes, so the sim window, the arc and the clip scale together.
         var hop = HexLive.Simulation.Navigation.HexHopTuning.HopSeconds;
+        var window = HexLive.Simulation.Navigation.HexHopTuning.WindowSeconds(up);
+        // Same jump for everything — water or land (no special water handling);
+        // only up vs down differs, via the window.
         StartJumpArc(
             up,
             heightDeltaWorld,
-            hop,
+            window,
             HexLive.Simulation.Navigation.HexHopTuning.TakeoffSeconds / hop,
             (hop - HexLive.Simulation.Navigation.HexHopTuning.LandingSeconds) / hop);
     }
@@ -327,7 +456,6 @@ public sealed class NpcActorView : MonoBehaviour
             return;
         }
 
-        _jumpPlunge = false;
         // Water dives/climb-outs have no sim hop window — half the hop clock
         // covers the treading pause they play over; no takeoff/landing beats.
         StartJumpArc(
@@ -378,19 +506,8 @@ public sealed class NpcActorView : MonoBehaviour
                     Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.5f, 1f, tf)));
         }
 
-        // §40.18-B water dive: don't hover-stop at the waterline — gravity
-        // straight in, then SPLASH DivePlungeDepth below swim level and bob
-        // back up. Kept on the old immediate-fall curve (a plunge should).
-        if (_jumpPlunge && _jumpHeightDelta < -0.01f)
-        {
-            var diveEase = Mathf.Pow(Mathf.Clamp01(Mathf.InverseLerp(0.1f, 1f, tf)), 2f);
-            var bob = Mathf.Sin(Mathf.Clamp01(Mathf.InverseLerp(0.62f, 1f, tf)) * Mathf.PI);
-            diveEase += bob * (HexLive.Simulation.Navigation.HexHopTuning.DivePlungeDepth /
-                Mathf.Abs(_jumpHeightDelta));
-            return diveEase;
-        }
-
-        // Solid drop: stay LEVEL across the lip and only fall once she has
+        // One drop for EVERYTHING (water or land — no special plunge): stay
+        // LEVEL across the lip and only fall once she has
         // crossed to above the lower ground. Falling early scrapes her feet on
         // the edge — so hold to DownFallStartFrac of the flight, then gravity
         // (quadratic) from there down to touchdown at flight-end.
@@ -548,11 +665,37 @@ public sealed class NpcActorView : MonoBehaviour
         {
             foreach (var clip in _animator.runtimeAnimatorController.animationClips)
             {
-                if (clip != null && clip.name.IndexOf("Jump", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                if (clip == null)
+                {
+                    continue;
+                }
+                // §NPC-anim: index every clip by name (the override KEYS).
+                _clipsByName[clip.name] = clip;
+                if (clip.name.IndexOf("Jump", System.StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     _jumpClipLength = clip.length;
-                    break;
                 }
+            }
+
+            // Wrap the controller so action-state clips can be swapped live.
+            _animOverride = new AnimatorOverrideController(_animator.runtimeAnimatorController);
+            _animator.runtimeAnimatorController = _animOverride;
+
+            // Sync the runtime mirror params to the current handedness so a
+            // pooled/reused instance never starts on the wrong hand.
+            _animator.SetBool(MirrorActionParam, _leftHanded);
+            _animator.SetBool(MirrorActionInvParam, !_leftHanded);
+        }
+
+        // Shared clip config (talk/death variants, per-weapon idle/attack).
+        if (!_animSetTried)
+        {
+            _animSetTried = true;
+            _animSet = Resources.Load<NpcAnimSet>("HexLive/NpcAnimSet");
+            if (_animSet == null)
+            {
+                Debug.LogWarning("[NpcAnim] NpcAnimSet not found at Resources/HexLive/NpcAnimSet " +
+                    "— talk/death variants and weapon attacks fall back to the base clips.");
             }
         }
 
@@ -571,6 +714,12 @@ public sealed class NpcActorView : MonoBehaviour
             // body's right axis, so their local orientation doesn't matter.
             _rShldr = _bodyBones.GetBone("rShldrBend");
             _rForearm = _bodyBones.GetBone("rForearmBend");
+            // Spec 40.7: left arm + upper spine + head for the two-sided cold
+            // shiver (all three actors share the Genesis naming).
+            _lShldr = _bodyBones.GetBone("lShldrBend");
+            _lForearm = _bodyBones.GetBone("lForearmBend");
+            _thermalChest = _bodyBones.GetBone("chestUpper");
+            _thermalHead = _bodyBones.GetBone("head");
 
             // Spec 40.8/40.6: bone-riding skin decals (wounds/dirt/sweat).
             _skinDecals = gameObject.AddComponent<SkinDecals>();
@@ -738,12 +887,18 @@ public sealed class NpcActorView : MonoBehaviour
     public void SetBodyCondition(IReadOnlyList<string> bodyParts,
         IReadOnlyList<string> uncoveredParts, float hygiene, float thermal,
         float rainWet = 0f, IReadOnlyList<string> wornWetness = null,
-        IReadOnlyList<string> wounds = null, IReadOnlyList<string> bandagedZones = null)
+        IReadOnlyList<string> wounds = null, IReadOnlyList<string> bandagedZones = null,
+        IReadOnlyList<string> severedParts = null)
     {
         if (_skinDecals == null)
         {
             return;
         }
+
+        // Spec §50: hide any limb that has been severed. The deep stump wound
+        // the sim filed on the zone paints itself onto the remaining stub via
+        // the normal wound path below — no special stump art needed.
+        ApplySeveredLimbs(severedParts);
 
         _zoneHealthScratch.Clear();
         foreach (var entry in bodyParts)
@@ -956,6 +1111,212 @@ public sealed class NpcActorView : MonoBehaviour
         }
     }
 
+    // Spec §50: collapse the bone sub-tree of every severed limb to nothing, so
+    // the forearm+hand (or shin+foot) — and the sleeve/trouser riding those
+    // bones — vanish, leaving a stub. Permanent and idempotent: once hidden a
+    // zone stays hidden (a limb never grows back). Cheap enough to re-assert
+    // each tick, which also survives a late Animator write reviving the scale.
+    private void ApplySeveredLimbs(IReadOnlyList<string> severedParts)
+    {
+        if (_bodyBones == null || severedParts == null)
+        {
+            return;
+        }
+
+        foreach (var zone in severedParts)
+        {
+            if (!SeveredDistalBone.TryGetValue(zone, out var boneName))
+            {
+                continue;
+            }
+
+            // A zone newly appearing in the set is a fresh sever THIS tick —
+            // spray the arterial fountain (unless we're just priming on load).
+            var isNew = _severedZones.Add(zone);
+            if (isNew && _severVfxPrimed)
+            {
+                SpawnSeverFountain(zone);
+            }
+
+            // Spec §50: a lost LEG means she can't stand — swap the fixed
+            // standing/turn/crouch/idle clips for prone, and walk for crawl,
+            // once (the dynamic action clips are gated in Standing()).
+            if ((zone == "LegL" || zone == "LegR") && !_legless)
+            {
+                _legless = true;
+                ApplyLeglessClipOverrides();
+            }
+
+            var bone = _bodyBones.GetBone(boneName);
+            if (bone != null)
+            {
+                // Not exactly zero — a degenerate scale can NaN the skinning;
+                // a tiny non-zero collapses the sub-tree below visible size.
+                bone.localScale = new Vector3(1e-4f, 1e-4f, 1e-4f);
+            }
+        }
+
+        _severVfxPrimed = true;
+    }
+
+    // Spec §50: the one-time clip swaps for a legless survivor — the states that
+    // carry a FIXED clip (idle, walk, crouch, turn-on-spot). Gather/Talk/Dress
+    // re-apply their clip each frame, so those are handled in Standing() at the
+    // call sites; Sit/Sleep/LieDown/Drink keep their own clips.
+    private void ApplyLeglessClipOverrides()
+    {
+        OverrideClip("Walk", CrawlClip);                     // walk → crawl
+        // Everything else standing → the prone idle. (The game leaves these base
+        // clips in place — no NpcAnimSet action variants — so overriding the base
+        // clip name here is what actually swaps them.)
+        OverrideClip("Idle", ProneClip);
+        OverrideClip("crouch", ProneClip);
+        OverrideClip("TurnOnSpotRightB", ProneClip);
+        OverrideClip("TurnOnSpotLeftA", ProneClip);
+        OverrideClip("X Bot@Gathering Objects", ProneClip);
+        OverrideClip("X Bot@Talking", ProneClip);
+        OverrideClip("X Bot@Dressing", ProneClip);
+    }
+
+    // Spec §50: ONE gentle blood fountain at the cut — a softer version of the
+    // wound splash that spurts and DRIPS for SeverFountainSeconds, raining
+    // droplets to the ground (gravity), then subsides. Parented to the stump
+    // bone so it rides the body as she crawls away.
+    private void SpawnSeverFountain(string zone)
+    {
+        if (_bodyBones == null || !SeveredStumpBone.TryGetValue(zone, out var boneName))
+        {
+            return;
+        }
+
+        var bone = _bodyBones.GetBone(boneName);
+        if (bone == null)
+        {
+            return;
+        }
+
+        _splashPrefabs ??= new[]
+        {
+            Resources.Load<GameObject>("HexLive/VFX/Blood_Splash_01_URP"),
+            Resources.Load<GameObject>("HexLive/VFX/Blood_Splash_02_URP"),
+            Resources.Load<GameObject>("HexLive/VFX/Blood_Splash_03_URP")
+        };
+        var prefab = _splashPrefabs[Mathf.Abs(zone.GetHashCode()) % _splashPrefabs.Length];
+        if (prefab == null)
+        {
+            return;
+        }
+
+        var root = _bodyRoot != null ? _bodyRoot : transform;
+
+        // Point the whole system straight DOWN from the cut, parented to the
+        // stump bone so it tracks it. localScale 1 keeps the bone's actor scale.
+        var vfx = Instantiate(prefab, bone.position,
+            Quaternion.LookRotation(Vector3.down, root.forward), bone);
+        vfx.transform.localScale = Vector3.one;
+
+        foreach (var ps in vfx.GetComponentsInChildren<UnityEngine.ParticleSystem>(true))
+        {
+            ps.Stop(true, UnityEngine.ParticleSystemStopBehavior.StopEmitting);
+
+            var main = ps.main;
+            main.scalingMode = UnityEngine.ParticleSystemScalingMode.Hierarchy;
+            main.loop = true;
+            main.duration = SeverFountainSeconds;
+            // Kill the omnidirectional spray: barely any launch speed, and let
+            // strong gravity pull the droplets STRAIGHT DOWN from the cut so it
+            // reads as blood running down / dripping, not a splash in all dirs.
+            main.startSpeedMultiplier *= 0.12f;
+            main.gravityModifier = Mathf.Max(main.gravityModifier.constant, 3f);
+
+            // Narrow the emitter to a tight downward stream at the stump.
+            var shape = ps.shape;
+            if (shape.enabled)
+            {
+                shape.angle = Mathf.Min(shape.angle, 5f);
+                shape.radius = Mathf.Min(shape.radius, 0.02f);
+            }
+
+            // A steady, moderate drip for the fountain's life; authored bursts
+            // stay as the initial spurt (now also slow → they fall, not spray).
+            var emission = ps.emission;
+            emission.rateOverTime = SeverDripRate;
+
+            ps.Play();
+        }
+
+        StartCoroutine(StopFountain(vfx, SeverFountainSeconds));
+    }
+
+    private static System.Collections.IEnumerator StopFountain(GameObject vfx, float after)
+    {
+        yield return new WaitForSeconds(after);
+        if (vfx == null)
+        {
+            yield break;
+        }
+
+        foreach (var ps in vfx.GetComponentsInChildren<UnityEngine.ParticleSystem>(true))
+        {
+            ps.Stop(true, UnityEngine.ParticleSystemStopBehavior.StopEmitting);
+        }
+
+        Destroy(vfx, 4f); // let the last particles fall and fade
+    }
+
+    // Spec §50: the body skin a severed-limb drop bakes from — the skinned
+    // renderer with the most bones (the actual body, not eyes/lashes/brows).
+    public SkinnedMeshRenderer PrimaryBodySkin
+    {
+        get
+        {
+            if (_bodySkins == null)
+            {
+                return null;
+            }
+
+            // The Daz FIGURE body is the "Genesis…" skinned mesh — the only one
+            // whose geometry covers arms and legs. The actor also carries hair
+            // (far MORE verts, so vertex-count picks it wrong), eyes/eyelashes
+            // (same bone count, so bone-count picks them wrong) and clothing —
+            // so match the body by name.
+            foreach (var skin in _bodySkins)
+            {
+                if (skin != null && skin.sharedMesh != null && skin.bones != null &&
+                    skin.name.IndexOf("Genesis", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return skin;
+                }
+            }
+
+            // Fallback: the most-detailed readable skin that isn't hair/lashes.
+            SkinnedMeshRenderer best = null;
+            var bestVerts = -1;
+            foreach (var skin in _bodySkins)
+            {
+                if (skin == null || skin.sharedMesh == null || skin.bones == null ||
+                    !skin.sharedMesh.isReadable)
+                {
+                    continue;
+                }
+
+                var n = skin.name.ToLowerInvariant();
+                if (n.Contains("hair") || n.Contains("eyelash") || n.Contains("brow") || n.Contains("eye"))
+                {
+                    continue;
+                }
+
+                if (skin.sharedMesh.vertexCount > bestVerts)
+                {
+                    bestVerts = skin.sharedMesh.vertexCount;
+                    best = skin;
+                }
+            }
+
+            return best;
+        }
+    }
+
     // World-space gaze point (talk partner's head, a spot down the path).
     public void LookAtPoint(Vector3 worldPoint)
     {
@@ -1050,6 +1411,16 @@ public sealed class NpcActorView : MonoBehaviour
         if (_face != null)
         {
             _face.SetMood(wellbeing, fighting);
+        }
+    }
+
+    // Face pain: 0 none .. 1 writhing, from fresh bleeding wounds. Composited
+    // into a wince over the mood (see NpcFaceAnimator.SetPain).
+    public void SetFacePain(float pain01)
+    {
+        if (_face != null)
+        {
+            _face.SetPain(pain01);
         }
     }
 
@@ -1176,6 +1547,23 @@ public sealed class NpcActorView : MonoBehaviour
     public void SetDead(float surfaceY)
     {
         _dead = true;
+        // §50: a corpse never crawls — clear the flag so the Crawl loop yields
+        // to the death/laying pose (the Crawl transition also guards on !Dead).
+        if (_animator != null)
+        {
+            _animator.SetBool(CrawlingParam, false);
+        }
+
+        // Random death clip (config) that plays once and holds on the last
+        // frame (Death state has no exit; clip must be Loop Time OFF). Falls
+        // back to the frozen laying pose when no death clips are configured.
+        if (_animator != null && _animSet != null && _animSet.death != null && _animSet.death.Length > 0)
+        {
+            OverrideClip(DeathBaseClip, _animSet.death[Random.Range(0, _animSet.death.Length)]);
+            _animator.SetBool(DeadParam, true);
+            return;
+        }
+
         SetLaying(true, null, surfaceY);
     }
 
@@ -1224,16 +1612,262 @@ public sealed class NpcActorView : MonoBehaviour
     // on Sit, and hold the relevant item in the right hand.
     public void SetInteraction(string interaction, string heldItemId)
     {
+        // Which imported full-body clip-state covers this verb, if any:
+        //   gather (pick up / scoop) and drink now play real clips; construction
+        //   (Build/Craft/Harvest) stays on the crouch "Working" state; Sit as-is.
+        var gathering = interaction is "PickUp" or "FillBottle" or "Fuel" or "Bury" or "Hang";
+        var drinking = interaction == "Drink";
+        _wantsTalk = interaction == "Talk"; // the Talk bool is driven by turn-taking
+
+        // Which procedural/clip action this verb wants (before touching the
+        // animator, so the axe-chop clip-state can pre-empt the crouch Working pose).
+        var actionKind = (gathering || drinking || _wantsTalk)
+            ? ActionKind.None
+            : ActionFromInteraction(interaction, heldItemId);
+        // §axe: chopping/mining with an axe or pickaxe now plays the looping Chop
+        // clip instead of the crouch Working pose + procedural shoulder swing.
+        var chopping = actionKind == ActionKind.Chop;
+
         if (_animator != null)
         {
-            var working = interaction is "PickUp" or "Harvest" or "Build" or "Craft"
-                or "Fuel" or "Bury" or "Hang" or "FillBottle";
-            _animator.SetBool(WorkingParam, working);
+            _animator.SetBool(GatheringParam, gathering);
+            _animator.SetBool(DrinkingParam, drinking);
+            _animator.SetBool(WorkingParam, !chopping && interaction is "Harvest" or "Build" or "Craft");
+            _animator.SetBool(ChoppingParam, chopping);
             _animator.SetBool(SittingParam, interaction == "Sit");
+            // Clip source: config override if present, else the state's base clip.
+            if (gathering && _animSet != null) OverrideClip("X Bot@Gathering Objects", Standing(_animSet.gather));
+            if (drinking && _animSet != null) OverrideClip("X Bot@Drinking", _animSet.drink); // drink-in-hand keeps its clip
         }
 
-        _action = ActionFromInteraction(interaction, heldItemId);
+        // A full-body clip now covers these (incl. the axe swing) — suppress the
+        // procedural shoulder pose so it doesn't fight the clip. Eat keeps its own.
+        _action = chopping ? ActionKind.None : actionKind;
         SetHandProp(heldItemId);
+    }
+
+    // §Wardrobe-anim: drive the two-beat dress/undress sequence. Called every
+    // snapshot AFTER SetInteraction (which it overrides for these verbs).
+    //   Dress   beat A (progress < handoff): gather pose, empty hands, the
+    //           garment still lies on the ground (renderer hides it in beat B);
+    //           beat B: don clip + the garment carried in hand; on completion
+    //           the sim's WornItems gains it and SyncWorn puts it on the body.
+    //   Undress beat A: doff clip while the piece is still worn (SyncWorn shows
+    //           it); at the handoff the sim moves it off the body into the hand;
+    //           beat B: gather pose + the garment in hand; on completion the sim
+    //           drops it and the renderer spawns the ground garment.
+    // garmentId is the snapshot's HeldGarmentId (empty until the piece is in
+    // hand). Progress is the sim interaction fraction 0..1.
+    public void SetWardrobeAction(string interaction, float progress, string garmentId)
+    {
+        var dressing = interaction == "Dress";
+        var undressing = interaction == "Undress";
+        if (!dressing && !undressing)
+        {
+            if (_animator != null)
+            {
+                _animator.SetBool(DressingParam, false);
+                _animator.SetBool(UndressingParam, false);
+            }
+
+            SetHandGarment(null);
+            return;
+        }
+
+        var afterHandoff = progress >= WardrobeHandoffFraction;
+        // Dress: gather then don. Undress: doff then gather.
+        var showGather = dressing ? !afterHandoff : afterHandoff;
+        var showDon = dressing && afterHandoff;
+        var showDoff = undressing && !afterHandoff;
+        var showGarment = afterHandoff && !string.IsNullOrEmpty(garmentId);
+
+        if (_animator != null)
+        {
+            _animator.SetBool(GatheringParam, showGather);
+            _animator.SetBool(DressingParam, showDon);
+            _animator.SetBool(UndressingParam, showDoff);
+            // Clip source: config override if present, else the state's base clip.
+            if (showGather && _animSet != null && _animSet.gather != null)
+                OverrideClip("X Bot@Gathering Objects", Standing(_animSet.gather));
+            if (showDon && _animSet != null && _animSet.dress != null)
+                OverrideClip(DressBaseClip, Standing(_animSet.dress));
+            if (showDoff && _animSet != null && _animSet.undress != null)
+                OverrideClip(UndressBaseClip, Standing(_animSet.undress));
+        }
+
+        // Full-body clips own the pose here — kill the procedural action arm.
+        _action = ActionKind.None;
+        SetHandGarment(showGarment ? garmentId : null);
+    }
+
+    private GameObject _handGarment;
+    private string _handGarmentId;
+
+    // §Wardrobe-anim: a folded-garment prop in the acting hand (the real cloth
+    // mesh, reusing the ground-drop builder). Separate from the tool _handProp
+    // so a wardrobe action and a held tool never clobber each other.
+    private void SetHandGarment(string garmentId)
+    {
+        if (_handGarmentId == garmentId)
+        {
+            return;
+        }
+
+        _handGarmentId = garmentId;
+        if (_handGarment != null)
+        {
+            Destroy(_handGarment);
+            _handGarment = null;
+        }
+
+        if (string.IsNullOrEmpty(garmentId) || _bodyBones == null)
+        {
+            return;
+        }
+
+        var hand = _bodyBones.GetBone(_leftHanded ? "lHand" : "rHand");
+        if (hand == null)
+        {
+            return;
+        }
+
+        var built = GarmentDropFactory.Build(garmentId);
+        if (built == null)
+        {
+            return;
+        }
+
+        built.transform.SetParent(hand, false);
+        _handGarment = built;
+        _handGarment.name = $"HandGarment {garmentId}";
+
+        // Normalize to a palm-sized folded bundle regardless of the mesh size.
+        var renderers = _handGarment.GetComponentsInChildren<Renderer>();
+        if (renderers.Length > 0)
+        {
+            var bounds = renderers[0].bounds;
+            for (var i = 1; i < renderers.Length; i++)
+            {
+                bounds.Encapsulate(renderers[i].bounds);
+            }
+
+            var biggest = Mathf.Max(bounds.size.x, Mathf.Max(bounds.size.y, bounds.size.z));
+            var target = 1.7f * _bodyRoot.lossyScale.y * 0.18f;
+            if (biggest > 0.0001f)
+            {
+                _handGarment.transform.localScale *= target / biggest;
+            }
+        }
+
+        _handGarment.transform.localPosition = Vector3.zero;
+        _handGarment.transform.localRotation = Quaternion.identity;
+    }
+
+    // Spec 28.15E: the overhead chat bubble. The renderer pushes the current
+    // conversation topic every snapshot ("" = not talking → the bubble hides),
+    // and fires a one-shot "+/-" relationship pop when a talk resolves.
+    private NpcSpeechBubble _speechBubble;
+
+    public void SetTalkTopic(string topicName)
+    {
+        EnsureSpeechBubble();
+        _speechBubble?.SetTopic(topicName);
+    }
+
+    public void PopRelationship(float affinityDelta)
+    {
+        EnsureSpeechBubble();
+        _speechBubble?.PopRelationship(affinityDelta);
+    }
+
+    private void EnsureSpeechBubble()
+    {
+        // Anchor to the head bone (calibrated in Construct); until it exists the
+        // NPC can't have started talking yet, so deferring is harmless.
+        if (_speechBubble != null || _headBone == null)
+        {
+            return;
+        }
+
+        var go = new GameObject("SpeechBubble");
+        go.transform.SetParent(transform, false);
+        _speechBubble = go.AddComponent<NpcSpeechBubble>();
+        _speechBubble.Initialize(_headBone, 5000 + _npcId * 4);
+    }
+
+    // §armed-stance: while ANY tool/weapon (tool.*) is in the hand, the base Idle
+    // and Walk clips are swapped for weapon-ready versions (NpcAnimSet.armedIdle /
+    // .armedWalk); empty hand or a non-tool restores the defaults. Standing() keeps
+    // a legless NPC on the prone idle; Walk is left to the crawl override for the
+    // legless (it re-applies "Walk"->CrawlClip every frame and wins). Applied on
+    // prop change (SetHandProp early-returns when the id is unchanged).
+    private void UpdateArmedStance(string itemId)
+    {
+        if (_animSet == null)
+        {
+            return;
+        }
+
+        var armed = !string.IsNullOrEmpty(itemId) &&
+                    itemId.StartsWith("tool.", System.StringComparison.Ordinal);
+
+        if (_animSet.armedIdle != null)
+        {
+            if (armed)
+            {
+                OverrideClip("Idle", Standing(_animSet.armedIdle));
+            }
+            else if (_clipsByName.TryGetValue("Idle", out var baseIdle))
+            {
+                OverrideClip("Idle", baseIdle); // identity remap = restore default
+            }
+        }
+
+        // Walk swap is skipped while legless — the crawl system owns "Walk".
+        if (_animSet.armedWalk != null && !_legless)
+        {
+            if (armed)
+            {
+                OverrideClip("Walk", _animSet.armedWalk);
+            }
+            else if (_clipsByName.TryGetValue("Walk", out var baseWalk))
+            {
+                OverrideClip("Walk", baseWalk);
+            }
+        }
+    }
+
+    // §NPC-anim: swap the clip a base-clip key plays, via the override controller.
+    private void OverrideClip(string baseName, AnimationClip with)
+    {
+        if (_animOverride == null || with == null ||
+            !_clipsByName.TryGetValue(baseName, out var baseClip))
+        {
+            return;
+        }
+        _animOverride[baseClip] = with;
+    }
+
+    // §NPC-anim: turn-taking talk. While the sim has this NPC socialising,
+    // alternate speaking turns with its partner — staggered by npcId over a
+    // shared clock, so one speaks a beat while the other listens, then swap —
+    // and pick a random talk clip each turn. A short natural back-and-forth,
+    // entirely view-side (the sim has no per-turn talk signal).
+    private void UpdateTalkTurns()
+    {
+        if (_animator == null)
+        {
+            return;
+        }
+
+        var on = _wantsTalk && (((int)(Time.time / TalkTurnSeconds) + _npcId) & 1) == 0;
+        if (on && !_talkTurnOn && _animSet != null && _animSet.talk != null && _animSet.talk.Length > 0)
+        {
+            // §50: legless → she talks lying (prone idle), not standing gestures.
+            OverrideClip(TalkBaseClip, Standing(_animSet.talk[Random.Range(0, _animSet.talk.Length)]));
+        }
+        _talkTurnOn = on;
+        _animator.SetBool(TalkingParam, on);
     }
 
     // Iter 28: the renderer flags a ledge sit (sim IsLedgeSit) so LateUpdate
@@ -1256,6 +1890,10 @@ public sealed class NpcActorView : MonoBehaviour
             case "Harvest":
                 var chopping = heldItemId == "tool.axe_stone" || heldItemId == "tool.pickaxe_stone";
                 return chopping ? ActionKind.Chop : ActionKind.Work;
+            case "Process": // spec §54: splitting a log — an axe chop motion
+                return ActionKind.Chop;
+            case "Butcher": // spec §54: knifing a carcass — a crouched working motion
+                return ActionKind.Work;
             case "PickUp":
             case "Build":
             case "Craft":
@@ -1278,13 +1916,32 @@ public sealed class NpcActorView : MonoBehaviour
     {
         if (!fighting)
         {
+            _wasFighting = false;
             return;
         }
 
-        _action = weaponId == "tool.bow" ? ActionKind.BowDraw
-            : weaponId == "tool.spear" ? ActionKind.SpearThrust
-            : ActionKind.Attack;
+        // Weapon architecture: the equipped weapon's config row supplies the
+        // attack clip (spear -> Bayonet Stab now; knife/etc. add a row later).
+        // Armed-idle swap is deferred (the "detail weapons later" pass).
+        var wa = _animSet != null ? _animSet.WeaponFor(weaponId) : null;
+        if (wa != null && wa.attacks != null && wa.attacks.Length > 0 && _animator != null)
+        {
+            if (!_wasFighting) // one strike per engagement (rising edge)
+            {
+                OverrideClip(AttackBaseClip, wa.attacks[Random.Range(0, wa.attacks.Length)]);
+                _animator.SetTrigger(AttackParam);
+            }
+            _action = ActionKind.None;
+        }
+        else
+        {
+            // No config row -> keep the procedural swing/draw/thrust.
+            _action = weaponId == "tool.bow" ? ActionKind.BowDraw
+                : weaponId == "tool.spear" ? ActionKind.SpearThrust
+                : ActionKind.Attack;
+        }
 
+        _wasFighting = true;
         if (!string.IsNullOrEmpty(weaponId))
         {
             SetHandProp(weaponId);
@@ -1299,6 +1956,7 @@ public sealed class NpcActorView : MonoBehaviour
         }
 
         _currentPropId = itemId;
+        UpdateArmedStance(itemId);
         if (_handProp != null)
         {
             Destroy(_handProp);
@@ -1310,7 +1968,7 @@ public sealed class NpcActorView : MonoBehaviour
             return;
         }
 
-        var hand = _bodyBones.GetBone("rHand");
+        var hand = _bodyBones.GetBone(_leftHanded ? "lHand" : "rHand");
         if (hand == null)
         {
             return;
@@ -1337,10 +1995,33 @@ public sealed class NpcActorView : MonoBehaviour
 
         _handProp.name = $"HandProp {itemId}";
 
-        // Hand-tuned placement for specific props (baked from the editor) wins
-        // over the automatic palm-fit — exact position/rotation/scale in the
-        // rHand's local space.
-        if (TryGetHandPropTransform(itemId, out var tunedPos, out var tunedRot, out var tunedScale))
+        // Size: normalize to the SAME world size the ground uses (ObjectFit), so a
+        // tool/coconut is identical in hand and on the ground. ItemAttachConfig's
+        // scale is now a fine MULTIPLIER on top of this (default 1), not absolute.
+        var fit = ObjectFit.FitScaleFactor(_handProp, itemId);
+
+        // Placement priority (each higher tier wins): the tuned ItemAttachConfig
+        // asset (edited live in the ItemAttach test scene) → an "AttachPoint"
+        // child authored into the model → a built-in default table → the
+        // automatic palm-fit below. All in the acting hand's local space.
+        var attachCfg = Config.ItemAttachConfig.Instance;
+        if (attachCfg != null &&
+            attachCfg.TryGet(itemId, _leftHanded, out var cfgPos, out var cfgRot, out var cfgScale))
+        {
+            _handProp.transform.localPosition = cfgPos;
+            _handProp.transform.localRotation = cfgRot;
+            _handProp.transform.localScale = cfgScale * fit; // config scale = multiplier
+            return;
+        }
+
+        if (TryAlignByAttachPoint(_handProp))
+        {
+            return;
+        }
+
+        // Hand-tuned placement for specific props (baked in code) wins over the
+        // automatic palm-fit — exact position/rotation/scale in the hand's space.
+        if (TryGetHandPropTransform(itemId, _leftHanded, out var tunedPos, out var tunedRot, out var tunedScale))
         {
             _handProp.transform.localPosition = tunedPos;
             _handProp.transform.localRotation = tunedRot;
@@ -1348,32 +2029,73 @@ public sealed class NpcActorView : MonoBehaviour
             return;
         }
 
-        // Normalize to a palm-sized prop regardless of source model size.
-        var renderers = _handProp.GetComponentsInChildren<Renderer>();
-        if (renderers.Length > 0)
-        {
-            var bounds = renderers[0].bounds;
-            for (var i = 1; i < renderers.Length; i++)
-            {
-                bounds.Encapsulate(renderers[i].bounds);
-            }
-
-            var biggest = Mathf.Max(bounds.size.x, Mathf.Max(bounds.size.y, bounds.size.z));
-            var target = 1.7f * _bodyRoot.lossyScale.y * 0.12f;
-            if (biggest > 0.0001f)
-            {
-                _handProp.transform.localScale *= target / biggest;
-            }
-        }
-
+        // No tuned placement: use the shared ObjectFit size (same as the ground)
+        // so e.g. a picked-up coconut is the same size it was lying on the ground.
+        _handProp.transform.localScale = Vector3.one * fit;
         _handProp.transform.localPosition = Vector3.zero;
         _handProp.transform.localRotation = Quaternion.identity;
     }
 
-    // Per-prop hand placement, tuned in the editor and baked here. Values are
-    // in the rHand bone's local space.
-    private static bool TryGetHandPropTransform(string itemId, out Vector3 localPosition,
-        out Quaternion localRotation, out Vector3 localScale)
+    // Spec 40.x: switch the acting hand at runtime — props, the one-handed
+    // action CLIPS (via the Animator's MirrorAction bool → Humanoid mirror) and
+    // the procedural action arm all follow. Called by the sim when handedness
+    // changes (a lefty, or an NPC who lost the right hand). Right-handed default.
+    public void SetHandedness(bool leftHanded)
+    {
+        if (_leftHanded == leftHanded)
+        {
+            return;
+        }
+
+        _leftHanded = leftHanded;
+
+        if (_animator != null)
+        {
+            _animator.SetBool(MirrorActionParam, leftHanded);
+            _animator.SetBool(MirrorActionInvParam, !leftHanded);
+        }
+
+        // Re-seat whatever is currently held into the new hand.
+        var held = _currentPropId;
+        _currentPropId = null;
+        SetHandProp(held);
+    }
+
+    // Attach-point authoring: if the model carries a direct child transform
+    // named "AttachPoint", seat the prop so that point lands at the hand origin
+    // (identity). Author the AttachPoint at the item's hand scale — no palm-fit
+    // is applied on this path. Returns false when there is no such child.
+    private static bool TryAlignByAttachPoint(GameObject prop)
+    {
+        Transform attach = null;
+        foreach (Transform child in prop.transform)
+        {
+            if (child.name == "AttachPoint")
+            {
+                attach = child;
+                break;
+            }
+        }
+
+        if (attach == null)
+        {
+            return false;
+        }
+
+        var localPos = attach.localPosition;
+        var propRot = Quaternion.Inverse(attach.localRotation);
+        prop.transform.localScale = Vector3.one;
+        prop.transform.localRotation = propRot;
+        prop.transform.localPosition = -(propRot * localPos);
+        return true;
+    }
+
+    // Per-prop hand placement, tuned in the editor and baked here. Baked values
+    // are RIGHT-hand (rHand local space). For a left-handed hold we use a
+    // hand-tuned left override if one exists, else mirror the right-hand pose
+    // across the body's sagittal plane (negate local X + mirror the rotation).
+    private static bool TryGetHandPropTransform(string itemId, bool leftHanded,
+        out Vector3 localPosition, out Quaternion localRotation, out Vector3 localScale)
     {
         switch (itemId)
         {
@@ -1381,21 +2103,46 @@ public sealed class NpcActorView : MonoBehaviour
                 localPosition = new Vector3(0.0543f, -0.0236f, -0.051f);
                 localRotation = Quaternion.Euler(91.974f, 0.001007f, -6.520996f);
                 localScale = new Vector3(0.349494f, 0.349494f, 0.349494f);
-                return true;
+                break;
             case "food.coconut":
                 localPosition = new Vector3(0.061f, -0.142f, 0.001f);
                 localRotation = Quaternion.Euler(0.808f, 0f, 0f);
                 localScale = new Vector3(0.7718072f, 0.9210232f, 0.7718072f);
-                return true;
+                break;
             case "tool.spear":
                 localPosition = new Vector3(0.058f, -0.025f, -0.078f);
                 localRotation = Quaternion.Euler(-1.544f, -263.963f, 90.255f);
                 localScale = new Vector3(0.405947f, 0.405947f, 0.405947f);
-                return true;
+                break;
             default:
                 localPosition = Vector3.zero;
                 localRotation = Quaternion.identity;
                 localScale = Vector3.one;
+                return false;
+        }
+
+        if (leftHanded && !TryGetLeftHandPropTransform(itemId, ref localPosition, ref localRotation))
+        {
+            localPosition = new Vector3(-localPosition.x, localPosition.y, localPosition.z);
+            var e = localRotation.eulerAngles;
+            localRotation = Quaternion.Euler(e.x, -e.y, -e.z);
+        }
+
+        return true;
+    }
+
+    // Hand-tuned LEFT-hand placements (lHand local space). Add a case here once a
+    // prop is tuned for the off hand; anything missing falls back to a mirror.
+    private static bool TryGetLeftHandPropTransform(string itemId,
+        ref Vector3 localPosition, ref Quaternion localRotation)
+    {
+        switch (itemId)
+        {
+            case "tool.bottle":
+                localPosition = new Vector3(-0.196f, -0.032f, -0.024f);
+                localRotation = Quaternion.Euler(91.974f, 0.001007f, -6.520996f);
+                return true;
+            default:
                 return false;
         }
     }
@@ -1494,13 +2241,46 @@ public sealed class NpcActorView : MonoBehaviour
         if (_thermal < -0.4f && _rShldr != null)
         {
             var intensity = Mathf.InverseLerp(-0.4f, -1f, _thermal); // 0..1
-            var tremble = Mathf.Sin(_thermalPhase * 38f) * 3.5f * intensity;
-            var hunch = 22f * intensity; // arms hug in
             var right = _bodyRoot.right;
-            _rShldr.rotation = Quaternion.AngleAxis(-hunch + tremble, right) * _rShldr.rotation;
+            var ph = _thermalPhase * ShiverTuning.Frequency;
+
+            // Whole-body huddle: the upper spine curls forward and the head
+            // tucks in, each with its own slow tremble so the shiver reads as a
+            // body, not a hinge. (Chest/head bones are oriented so a POSITIVE
+            // rotation around the body's right axis pitches them forward — the
+            // opposite sign to the arm bones.)
+            if (_thermalChest != null)
+            {
+                var t = Mathf.Sin(ph * 0.9f + 1.3f) * ShiverTuning.SpineTremble * intensity;
+                _thermalChest.rotation =
+                    Quaternion.AngleAxis((ShiverTuning.SpineCurl * intensity) + t, right) * _thermalChest.rotation;
+            }
+            if (_thermalHead != null)
+            {
+                var t = Mathf.Sin(ph * 1.1f + 2.1f) * ShiverTuning.HeadTremble * intensity;
+                _thermalHead.rotation =
+                    Quaternion.AngleAxis((ShiverTuning.HeadTuck * intensity) + t, right) * _thermalHead.rotation;
+            }
+
+            // Arms KEEP their idle pose — no hug, no raise. Only a light tremble
+            // is layered on, same as the rest of the body. Each joint runs on
+            // its own phase so the two sides don't shake as one unit.
+            _rShldr.rotation =
+                Quaternion.AngleAxis(Mathf.Sin(ph) * ShiverTuning.ShoulderTremble * intensity, right) * _rShldr.rotation;
             if (_rForearm != null)
             {
-                _rForearm.rotation = Quaternion.AngleAxis(-40f * intensity, right) * _rForearm.rotation;
+                _rForearm.rotation =
+                    Quaternion.AngleAxis(Mathf.Sin(ph + 1.0f) * ShiverTuning.ForearmTremble * intensity, right) * _rForearm.rotation;
+            }
+            if (_lShldr != null)
+            {
+                _lShldr.rotation =
+                    Quaternion.AngleAxis(Mathf.Sin(ph + 0.7f) * ShiverTuning.ShoulderTremble * intensity, right) * _lShldr.rotation;
+            }
+            if (_lForearm != null)
+            {
+                _lForearm.rotation =
+                    Quaternion.AngleAxis(Mathf.Sin(ph + 1.7f) * ShiverTuning.ForearmTremble * intensity, right) * _lForearm.rotation;
             }
         }
         else if (_thermal > 0.4f && _rShldr != null)
@@ -1523,13 +2303,16 @@ public sealed class NpcActorView : MonoBehaviour
         _posture = string.IsNullOrEmpty(postureHint) ? "Upright" : postureHint;
         _winded = winded;
 
-        // Spec 40.9: a leg wound swaps the Walk cycle for the imported Limp
-        // clip (animator state) — replaces the old procedural body sway.
-        // Crawl (both legs) rides the same clip until a real crawl exists;
-        // the old 35° forward pitch read as a bug, not an injury.
+        // Spec 40.9: a leg wound swaps the Walk cycle for the imported Limp clip.
+        // Spec §50: a LOST leg is handled by the AnimatorOverrideController
+        // instead (Idle→prone, Walk→crawl, standing actions→prone) — so the
+        // normal states play as usual and Sit/Sleep/Drink keep their own clips.
+        // The old dedicated Crawl state is NOT used (Crawling stays off), so it
+        // can never hijack sitting/sleeping/drinking.
         if (_animator != null)
         {
-            _animator.SetBool(LimpingParam, _posture is "Limp" or "Crawl");
+            _animator.SetBool(CrawlingParam, false);
+            _animator.SetBool(LimpingParam, _posture == "Limp");
         }
     }
 
@@ -1772,12 +2555,10 @@ public sealed class NpcActorView : MonoBehaviour
                     _rForearm.rotation = Quaternion.AngleAxis(-120f, right) * _rForearm.rotation;
                 }
                 break;
-            // "Limp" and "Crawl" are animator-driven (the Limp walk state via
-            // LimpingParam), not procedural poses — no cases here. Crawl keeps
-            // only a slumped shoulder on top until a real all-fours clip lands.
-            case "Crawl":
-                _rShldr.rotation = Quaternion.AngleAxis(-30f, right) * _rShldr.rotation;
-                break;
+            // Spec §50: "Limp" and "Crawl" are now fully animator-driven (the
+            // Limp walk state via LimpingParam; the real Crawl clip via
+            // CrawlingParam) — no procedural pose on top, which would corrupt
+            // the all-fours clip.
         }
 
         // Spec 40.1: winded — a spent body heaves for breath (shoulders bob).
@@ -1907,7 +2688,12 @@ public sealed class NpcActorView : MonoBehaviour
     // moderate; flip the sign if a motion reads backwards.
     private void ApplyActionPose()
     {
-        if (_action == ActionKind.None || _laying || _swimming || _rShldr == null || _bodyRoot == null)
+        // The acting arm follows handedness; the world-space right-axis swing
+        // mirrors cleanly, so a lefty runs the same math on the left arm.
+        var actShldr = _leftHanded ? _lShldr : _rShldr;
+        var actForearm = _leftHanded ? _lForearm : _rForearm;
+
+        if (_action == ActionKind.None || _laying || _swimming || actShldr == null || _bodyRoot == null)
         {
             _actionPhase = 0f;
             return;
@@ -1971,16 +2757,17 @@ public sealed class NpcActorView : MonoBehaviour
                 return;
         }
 
-        _rShldr.rotation = Quaternion.AngleAxis(-shldr, right) * _rShldr.rotation;
-        if (_rForearm != null)
+        actShldr.rotation = Quaternion.AngleAxis(-shldr, right) * actShldr.rotation;
+        if (actForearm != null)
         {
-            _rForearm.rotation = Quaternion.AngleAxis(-fore, right) * _rForearm.rotation;
+            actForearm.rotation = Quaternion.AngleAxis(-fore, right) * actForearm.rotation;
         }
     }
 
     private void LateUpdate()
     {
         SampleMotion();
+        UpdateTalkTurns();
 
         // Belt and braces for the single movement flow: whatever animation
         // or IK nudged, the body sits exactly on its root (scale is the
@@ -2008,12 +2795,18 @@ public sealed class NpcActorView : MonoBehaviour
             }
             else
             {
-                // Iter 28: ledge seat — lift the butt onto the upper step
-                // (× the steps she's below it: 0 = already on the higher
-                // tile, sit right on her edge, no float) and tuck it back
-                // against the edge (local -Z = behind the back).
+                // Iter 28: ledge seat. LedgeSeatLift is a DIRECT Y offset that
+                // ALWAYS applies (negative lowers her — needed when she sits at
+                // a rim on the HIGHER tile, stepsUp==0, where the old
+                // `Lift * stepsUp` zeroed any value out). The per-step perch is
+                // a SEPARATE term that lifts her ~one elevation step when she
+                // perches UP onto a taller ledge from below (stepsUp>0), tucked
+                // back against the edge (local -Z = behind the back).
                 var rest = _ledgeSit
-                    ? new Vector3(0f, LedgeSeatLift * _ledgeSeatStepsUp, -LedgeSeatBack)
+                    ? new Vector3(
+                        0f,
+                        LedgeSeatLift + LedgeSeatPerStep * _ledgeSeatStepsUp,
+                        -LedgeSeatBack)
                     : Vector3.zero;
                 // §21.21B hex-step jump: the ballistic trajectory rides this
                 // local offset (world delta -> local handles root rotation
@@ -2026,12 +2819,14 @@ public sealed class NpcActorView : MonoBehaviour
 
                 // §40.18-B: one shared body-height lift while swimming, EASED
                 // in/out so diving in (or climbing out) doesn't snap the body up
-                // by SwimBodyLift in a single frame. The dive arc plunges her
-                // under and rises to swim-root depth; this then floats her the
-                // last bit up to the swim pose over SwimLiftEaseSeconds — no
-                // teleport, no "standing on the water" flash.
+                // by SwimBodyLift in a single frame. Suppressed WHILE a hop is
+                // flying (the climb-out hop still reads _swimming because the tile
+                // flips to land only on landing — the arc owns the vertical, so
+                // the lift must not stack on top and pop her up). It eases back in
+                // once the hop closes if she is still in the water.
+                var swimLiftTarget = _swimming && _jumpTimer <= 0f ? 1f : 0f;
                 _swimBlend = Mathf.MoveTowards(
-                    _swimBlend, _swimming ? 1f : 0f,
+                    _swimBlend, swimLiftTarget,
                     Time.deltaTime * Mathf.Max(1f, _simSpeed) / SwimLiftEaseSeconds);
                 if (_swimBlend > 0f)
                 {

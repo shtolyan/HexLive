@@ -913,6 +913,14 @@ hills, and mountains — some climbable by natural ramps, some sheer.
   cubes / a pyramid / a small prism, flat-shaded. Used both on the ground
   (`CreateObjectView`, before the generic primitive) and in an NPC's hand
   (`NpcActorView.SetHandProp`). No external assets, no prefab wiring.
+- **AI-generated tool models** (axe/knife/pickaxe shipped) OVERRIDE the
+  procedural ones: a prefab at `Resources/HexLive/Objects/<id>.prefab` is
+  loaded first by both the hand and ground paths. Generate them by the FIXED
+  pipeline in **`TOOL_GENERATION_SPEC.md`** (repo root) — the KEY RULE is
+  *generate a HIGH-poly textured mesh (trellis-2 image-to-3D), THEN decimate
+  it*; do NOT try to make an AI produce low-poly directly. That doc has the
+  prompt, model, webp fix, pivot/orientation/scale conventions and wiring.
+  Every agent/chat adding a tool MUST follow it so tools stay consistent.
 - **Action animations** are procedural (`NpcActorView.ApplyActionPose`):
   the Animator only has locomotion + a generic crouch/sit/lay, so chopping,
   spear thrust, bow draw, eat/drink and combat swings are layered on in
@@ -4019,6 +4027,64 @@ ownership or inheritance concept; the grave's `CurrentUser` records only
 *who lies there* (identity for grief), never possession of the items around
 it.
 
+### 28.15E Conversation Topics & Overhead Bubbles (Iteration — Sims-style chat)
+
+Talks were an invisible need/relationship transaction (28.15A–B): the only
+readout was the turn-taking animation and a debug trace. This iteration makes
+a chat *legible at a glance*, the way The Sims shows a thought bubble with an
+icon and then a relationship "+/−": every talk now has a **subject** shown as
+an emoji over the speaker's head, and its outcome pops a coloured
+relationship change.
+
+**Topic (`TalkTopic`, `Simulation/Social/TalkTopic.cs`).** A flat enum — the
+sim only ever *picks* a subject; the emoji/colour/label live entirely in
+presentation (`TalkTopicVisuals`), so retheming never touches the sim. The
+pool (island-themed + relationship-coloured):
+
+| Topic | When it's likely | Emoji |
+|---|---|---|
+| `SmallTalk` | default filler | 💬 |
+| `Escape` | miserable (cold/rain) — "off this rock" | ⛵ |
+| `Sharks` | always simmering (the water's menace) | 🦈 |
+| `Dogs` | scared (high Stress) | 🐕 |
+| `Weather` | rain / cold / heat | 🌧 |
+| `Food` | hungry | 🥥 |
+| `Fire` | cold (warmth) | 🔥 |
+| `Home` | starved of company (low Social) | 🏠 |
+| `Gossip` | ambient | 👀 |
+| `Flirt` | mutual liking | 💗 |
+| `Joke` | mutual liking | 😂 |
+| `Grumble` | mutual dislike / crankiness | 😠 |
+
+**Pick (`PickTalkTopic`, deterministic).** At talk start a weighted draw over
+the pool, each weight = a base (every subject stays possible) plus context
+terms read from the *pair's mean* situation — hunger, 1−Social, Stress, signed
+ThermalComfort (cold/hot), rain, and mutual Affinity (like → Flirt/Joke,
+dislike → Grumble). The winner is chosen by a stateless hash of
+(seed, tick, pair) with an independent salt (5501) so it never correlates with
+the 28.15B quarrel roll and is resume-safe. Stored on the initiator's
+`Execution.CurrentTalkTopic`; cleared at completion/abort. Exported as
+`NpcSnapshot.TalkTopic` ("" when idle).
+
+**Outcome pop.** At completion the resolved signed affinity delta (+0.05 good
+chat / −0.12 quarrel, per 28.15B) is stamped on **both** participants
+(`Execution.LastTalkAffinityDelta` + `LastTalkResultTick`) and exported
+(`TalkResultDelta`/`TalkResultTick`). The view fires the glyph once per fresh
+tick: **+** / **++** green for a warmed relationship, **−** / **−−** red for a
+soured one (doubled when |delta| ≥ 0.10 — "сильно/несильно"). Both housemates
+get one, since both relationships moved.
+
+**Presentation (world-space, no Canvas/TMP).** `NpcSpeechBubble` (owned by
+`NpcActorView`, anchored to the head bone) draws an AI-generated empty bubble
+sprite (`Resources/HexLive/UI/speech_bubble.png`) with a legacy `TextMesh`
+emoji, billboarded to the camera and scale-normalised against the actor's
+body scale. `HexWorldRenderer.SyncActorView` pushes `TalkTopic` every snapshot
+(""→hide) and detects a new `TalkResultTick` to trigger the pop. **v1 scope:**
+the bubble shows over the *initiator* only (matching the existing
+initiator-only talk animation); the outcome pop shows over both. Emoji glyph
+coverage depends on the platform font stack — the one piece to verify in a
+build (fallback: swap `TalkTopicVisuals` glyphs for sprite icons).
+
 ### 28.16 Design Rules
 
 - Social state is per-entity pair
@@ -5776,10 +5842,24 @@ Clothing stops being an infinite prop and becomes a real, exclusive item.
 - **Dress consumes the world object** (like PickUp): the garment despawns
   into `WornItems` — only one NPC can wear the coat. Wearables become
   contended resources like beds (24.3 filtering + reservations apply).
-- **Undress** (new goal + in-place `UndressItem` step, 6 ticks): the item is
+- **Undress** (new goal + in-place `UndressItem` step): the item is
   removed from `WornItems` and **spawned back into the world at the NPC's
   current junction** — clothes migrate around the map, others can pick them
   up where they were dropped.
+- **§Wardrobe-anim — two-beat timing (both 8 ticks = 2.0s).** Dress and
+  undress each split at `ExecutionSystem.WardrobeHandoffFraction` (0.5), the
+  instant the garment changes hands, so the view can play a gather beat and a
+  garment-in-hand beat (31B.x):
+  - *Dress:* beat A = gather (empty hands, the garment still lies on the
+    ground); at the handoff the garment is picked up into hand; beat B = don;
+    on completion `WornItems` gains it. The world object persists until
+    completion (the renderer just hides its ground copy through beat B).
+  - *Undress:* beat A = doff (the piece is still worn); at the handoff it is
+    removed from `WornItems` into `NPCExecutionState.HeldGarment` (warmth/armor
+    drop **now**, but it is **not** dropped yet); beat B = gather it up; on
+    completion `HeldGarment` lands on the floor (wetness/durability preserved).
+  - Exported per-NPC: `InteractionProgress` (0..1), `HeldGarmentId` (the piece
+    in hand, or empty), `TargetObjectId` (for the ground-copy hide).
 - **Death drops everything worn** at the death site (29C.2 cleanup): killed
   in the wild wearing heavy armor → the armor lies where the dogs won,
   retrievable by whoever dares.
@@ -5828,6 +5908,39 @@ class ObjectDefinition
   heavy armor = Outerwear, Torso+Pelvis (armor 0.5, warmth 0.25).
   Note: no garment covers legs yet — dogs bite low, and legs are naked
   until leather crafting arrives (iteration 14 roadmap).
+
+### 31A.5C Garment parameters as ScriptableObjects (Iteration 51)
+
+The per-garment survival numbers (warmth, armor, thermal, layer, coverage,
+dress duration) used to be hard-coded in `PrototypeContentCatalog` — inline
+`ObjectDefinition` blocks plus an `AddImportedGarments` table. They are now a
+data-driven catalog, mirroring the `HexTuningConfig` pattern (§21.21 / §49):
+
+- **Engine-free source of truth** — `GarmentParams` (one wearable's fields) and
+  the static `GarmentLibrary` live in `Simulation/Content/Garments/`. The
+  library holds the built-in default table AND the *active* table the content
+  catalog reads; `PrototypeContentCatalog.CreateDefaults()` now ends with
+  `GarmentLibrary.AppendDefinitions(defs)`. The headless soak needs no Unity —
+  it runs on the built-in defaults.
+- **One ScriptableObject per item** — `GarmentDefinition` (Unity side,
+  `UnityPresentation/Wearing/Garments/`) is the inspector-editable asset for one
+  garment. Assets are organized into `Underwear/ Wear/ Outerwear/` folders.
+- **Registry asset** — `GarmentCatalog` (a ScriptableObject list) collects every
+  `GarmentDefinition` and lives in `Resources/HexLive/GarmentCatalog.asset` so
+  the shipping game loads it with no scene reference.
+- **Bridge** — `GarmentTuning.LoadAndApply()` (called from
+  `PrototypeRuntimeBootstrap`, right after `HexTuning`, before the world is
+  built) flattens the catalog into `GarmentLibrary.Override(...)`. A missing or
+  empty asset is ignored → the wardrobe falls back to code defaults, never blank.
+- **Materializing the assets** — the editor menu
+  *HexLive → Garments → Rebuild Catalog From Defaults* creates the 43 assets and
+  the catalog from `GarmentLibrary.Defaults` (Unity owns the GUIDs). *Reset
+  Values From Defaults* re-stamps code values over hand-tuned assets. Rebuild is
+  non-destructive — it only adds missing assets and refreshes the list.
+
+Ids are frozen (they key the `Resources/HexLive/Wear/<id>/` art). Warmth/armor
+budget unchanged from §42; the extraction is structural, values are now tuned in
+the inspector.
 
 ### 31A.6 Summary
 
@@ -5968,6 +6081,38 @@ capsule remains the fallback). A new `NpcActorView` component:
   off its root on turns.
 - Actor scale is normalized to the hex metric via a uniform view-scale
   factor.
+
+### 31B.7 Wardrobe animation — two-beat dress/undress (§Wardrobe-anim)
+
+Getting dressed/undressed is no longer an instant swap where the NPC stands
+flush against the garment. `NpcActorView.SetWardrobeAction(interaction,
+progress, garmentId)` (called by the renderer every snapshot, **after**
+`SetInteraction`, which it overrides for `Dress`/`Undress`) plays the sim
+timing (31A.5A) as two beats, split at progress 0.5:
+
+- **Dress:** beat A = the `Gathering` clip (empty hands); at the handoff the
+  garment appears in the acting hand and beat B plays the `Dressing` clip; on
+  completion `SyncWorn` puts the real garment on the body. The garment lying
+  on the ground is hidden by the renderer from the handoff on
+  (`_wardrobeHiddenObjects`, keyed by the snapshot's `TargetObjectId`), so it
+  is never visible both on the floor and in hand.
+- **Undress:** beat A = the `Undressing` clip while the piece is still worn;
+  at the handoff the sim moves it off the body into the hand (`HeldGarmentId`
+  becomes non-empty, `SyncWorn` bares the body), beat B = the `Gathering`
+  clip; on completion the sim drops it and the renderer spawns the ground
+  garment.
+
+**Hand garment prop:** a folded-cloth prop built by `GarmentDropFactory.Build`
+(the real garment mesh, palm-scaled) parented to the acting hand, kept
+separate from the tool `_handProp` so a wardrobe action and a held tool never
+clobber each other. Handedness (40.x) follows the acting hand.
+
+**Animator:** `Dressing` / `Undressing` bool params drive Loopy clip states
+`Dress` / `Undress` (built by `HexLive ▸ Build NPC Action States`), whose base
+clips are swapped at runtime from `NpcAnimSet.dress` / `.undress` via the
+override controller. v1 placeholder for both is the imported
+`X Bot@Dressing` / `X Bot@Undressing` take (Hostage Situation Idle) — drop
+real don/doff clips into those NpcAnimSet slots to replace it.
 
 ### 31B.6 Verification
 
@@ -7576,26 +7721,42 @@ pass — order chosen to add robustness before difficulty.
   they run on realtime `Time.deltaTime` and would ignore sim pause/speed;
   the tick-driven lifecycle stays ours. TUNING KNOBS: `LifetimeTicks`,
   `SpreadTicks`, `DripIntervalTicks`, `PuddleScaleMin/Max`, `MaxStains`.
-- **40.2-C Blood in water (iteration 1, shipped, presentation).** When a
-  bleeding girl is IN the water her blood billows on the surface instead of
-  pooling on the ground. Detection is the renderer's existing
-  `_npcOnWater[key]` (`_waterCoords.Contains(npc.Tile)` — wading OR swimming);
-  the blood-drip branch in `HexWorldRenderer` routes an in-water girl to a new
-  `WaterBloodStains` component and NOT to `GroundBloodStains`, so there is no
-  ground puddle underwater. Each drip is a flat translucent scarlet **quad**
-  (not a projector — independent of the custom water shader) laid on the
-  surface, riding the live `WaterWave` swell each frame (`LateUpdate`); it
-  spreads ease-out to a wider-than-land 0.55–0.95 m disc (blood diffuses in
-  water) over `SpreadTicks` (200) and dilutes away over `LifetimeTicks` (900),
-  its hue washing scarlet → pale pink as alpha fades (it dilutes, it does not
-  dry to bordo). Same tick-driven lifecycle as the ground stains (pause/speed
-  safe), cosmetic only, never persisted. The disc texture + transparent
-  URP/Unlit material are procedural (no imported assets). TUNING KNOBS:
-  `LifetimeTicks`, `SpreadTicks`, `BillowScaleMin/Max`, `MaxAlpha`, `MaxStains`.
-  **ITERATION 2 (planned):** in water the blood should spread AND vanish
-  FASTER than on land (dilution) — tune `LifetimeTicks`/`SpreadTicks` down;
-  possibly feed the reddening into the water shader for a true tint rather than
-  a floating quad.
+- **40.2-C Blood in water (shipped, presentation).** When a bleeding girl is
+  IN the water her blood billows on the surface instead of pooling on the
+  ground. Detection is the renderer's existing `_npcOnWater[key]`
+  (`_waterCoords.Contains(npc.Tile)` — wading OR swimming); the blood-drip
+  branch in `HexWorldRenderer` routes an in-water girl to a `WaterBloodStains`
+  component and NOT to `GroundBloodStains`, so there is no ground puddle
+  underwater. Each drip is a flat translucent scarlet **quad** (not a
+  projector — independent of the custom water shader) laid on the surface,
+  riding the live `WaterWave` swell each frame (`LateUpdate`). **One
+  continuous billow-and-vanish over the whole lifetime:** the disc grows from
+  0 to a ~3×-land 1.65–2.85 m radius while its alpha fades in lock-step (wider
+  = more transparent), hitting alpha 0 exactly at full spread — then the quad
+  is destroyed (no separate spread/fade phases). Hue washes scarlet → pale
+  pink as it dilutes (it dilutes, it does not dry to bordo). Lifetime
+  `LifetimeTicks` = **1200 (half a game day; `DayLengthTicks` = 2400) — ~4×
+  faster than a land stain**. Tick-driven (pause/speed safe), cosmetic only,
+  never persisted (presentation-only, like the ground stains — sim doesn't
+  know about it). Disc texture + transparent URP/Unlit material are
+  procedural (no imported assets). TUNING KNOBS: `LifetimeTicks`,
+  `BillowScaleMin/Max`, `MaxAlpha`, `MaxStains`. FUTURE (optional): feed the
+  reddening into the water shader for a true tint rather than a floating quad;
+  move to the sim data model if gameplay ever needs it (e.g. shark-on-scent).
+- **40.2-D Pain wince (shipped, presentation).** A bleeding girl winces in
+  pain. The face mood layer (`NpcFaceAnimator`, Genesis3 `eCTRL*` blend shapes)
+  gains a `SetPain(0..1)`; `HexWorldRenderer` derives pain from the freshest
+  open wound — a wound bleeds only while fresh (`heal01 < 0.3`, spec 44), so
+  `pain = max over wounds of clamp01((0.3 − heal01)/0.3)` — 1 on a just-taken
+  wound, fading to 0 as it clots/heals. There is NO single Genesis3 pain morph,
+  so the wince is composited from FACS units: `eCTRLBrowSqueeze` (brows knit),
+  `eCTRLEyesSquint` L/R (eyes screwed up), `eCTRLNoseScrunch`/`NoseWrinkle`,
+  `eCTRLCheekFlex` L/R, `eCTRLMouthCornerBack` L/R (teeth-bared grimace),
+  `eCTRLLipsPart` (a pained gasp), plus a reinforced `eCTRLMouthFrown`; a slow
+  throb (`sin(t·6)`) modulates the whole grimace so it reads as waves of pain
+  ("writhing"). Pain overrides the resting smile. NEXT (as discussed): widen
+  the trigger from bleeding to a general "suffering" signal (limp/`PostureHint`,
+  low wellbeing) once we define what suffering is.
 
 ### 40.3 Medicine & stockpiling (Safety goal)
 - New consumables: **bandages, pills** — treat wounds / stop bleeding /
@@ -8097,6 +8258,9 @@ pass — order chosen to add robustness before difficulty.
 - Select an NPC → a **button** opens a panel showing: **equipment slots**
   (what's worn/held where), **clothing durability** with progress bars,
   and **bone health** (which parts are wounded). Live inspection.
+- **Status effects (§48):** a row of circular buff/debuff chips on the
+  selected character (bleeding, sunstroke, freezing, starving, content…),
+  each with a hover tooltip explaining what it does.
 
 ### 40.12 Expand the island & scattered loot
 - **Bigger / multiple islands.** Scatter **findable items** (pickaxe, saw,
@@ -8845,3 +9009,633 @@ often 3/3 alive. Ladder rows measured: in-water anchors 1/12; bank anchors
 4/12; +raid 0.12 → 6/12. Remaining known gap:
 seeds whose girls lose all axes/saws can't run the chain (chopTool 0%
 in seed 42's samples) — tool scatter/recovery is a future candidate.
+
+## §48 Status effects — the unified buff/debuff layer (iteration 46)
+
+Everything the world does TO a survivor — the sun burning bare skin, the cold
+draining her, a fresh bite bleeding her out, hunger past the emergency line,
+stamina spent to the floor, comfort bottoming out — was, until now, a scatter
+of bespoke per-tick branches in `SimulationSystems` writing flat fields on
+`NPCNeeds`/`NPCState`, legible only as `Trace.Emit` tags. There was no single
+place that answered "what conditions is this girl under right now?", and the
+panel showed only the raw need meters, never a named buff or debuff.
+
+§48 introduces a **status-effect layer**: one declarative catalog of the
+buffs/debuffs a survivor can carry, and one classifier that reads her live
+state and reports which are active. The player sees them as a row of circular
+icon chips on the selected character, each with a hover tooltip that explains
+what it does.
+
+### §48.1 Derived, read-only — balance is untouched
+The colony sits on a knife-edge (see §40 / §46 soak history): any change to a
+tuned number reshuffles seeds and can tip a run. So the effect layer is
+**purely derived** — it is NOT a new stored field and it never mutates
+simulation state. `EffectEvaluator` only READS the existing needs/body/
+environment fields and classifies them; the per-tick systems that actually
+apply the consequences (bleed the blood, drain the HP, slow the walk) are
+exactly as before. Adding, removing or retuning an effect changes only which
+ICON shows — never an outcome. Migrating the real application logic to route
+THROUGH effects (so a system reads its modifier from the effect) is a possible
+v2 and is deliberately deferred, because that WOULD move numbers.
+
+The classifier's thresholds mirror the points where the sim's own logic already
+bites, so an icon appears exactly when the underlying consequence kicks in:
+bleeding when a fresh wound (`Heal01 < 0.3`) sits on a part below `0.4`;
+heat/cold when `|ThermalComfort| ≥ 0.85` (the HP-drain line); starving/
+dehydrated off the existing hysteresis flags; winded at the `Stamina < 0.15`
+floor; sunstroke while `SunExposure > 0.5` (where the sim starts docking
+Comfort and burning skin — it caps at 1.0 with an HP burn then resets to 0.5,
+so the useful window is the whole over-exposed band, not the momentary spike).
+
+### §48.2 Model (Simulation/Agents/Effects/)
+Pure C#, Unity-free (testable, and the sim could later read it):
+- **`EffectKind`** — the enum of every effect. Grouped: injury/blood
+  (`Bleeding`, `Injured`, `Hobbled`, `Bandaged`), environment (`StrongSun`
+  when effective UV ≥ 0.6, `Sunstroke`,
+  `Sunburnt`, `Hot`/`Heatstroke`, `Cold`/`Freezing`, `Soaked`, `Cozy` (buff —
+  sat by a lit campfire, spec §49.C) — thermal is
+  two-tier: mild `Hot`/`Cold` at `|ThermalComfort| ≥ 0.4`, severe HP-draining
+  `Heatstroke`/`Freezing` at `≥ 0.85`), survival (`Starving`,
+  `Dehydrated`, `Exhausted`, `Fainted`, `WellFed`, `Rested`), mind
+  (`Stressed`, `Grieving`, `Lonely`, `Miserable`, `Content`), hygiene
+  (`Filthy`). `EffectPolarity` {Buff, Debuff} colours the chip ring;
+  `EffectCategory` groups/sorts.
+- **`EffectDefinition` + `EffectCatalog`** — the static truth per kind:
+  polarity, category, a placeholder **emoji** glyph (v1; see §48.3) and the
+  `effect.<kind>.title` / `effect.<kind>.desc` localization keys. No `Color`
+  here — the presentation maps polarity → ring colour.
+- **`ActiveEffect { Kind, Intensity }`** — one effect acting now; `Intensity`
+  (0..1) is how hard it bites (tooltip reads mild/severe, ring brightens).
+- **`EffectEvaluator.Collect(npc, tick, effectiveUv, nearLitFire, results)`** —
+  the classifier. Bleeding
+  takes precedence over the milder `Injured`; a faint suppresses the redundant
+  `Exhausted`. `Comfort` reads bipolar (low → `Miserable`, high → `Content`).
+  `nearLitFire` (a campfire within warming range, same probe as the temperature
+  system) raises the `Cozy` buff.
+
+### §48.3 Icons — emoji first
+Each chip is a coloured circle with a glyph inside. v1 uses **emoji**
+placeholders held in the catalog (🩸 bleeding, ☀️ sunstroke, 🥶 freezing,
+🍽️ starving, 😮‍💨 exhausted, 😊 content, …) — zero assets, instantly
+swappable. If the runtime font lacks colour emoji the chip still reads by its
+polarity-coloured ring + tooltip. Swapping a kind to a neural-generated image
+later is a per-kind catalog edit; the rest of the pipeline is unchanged.
+
+### §48.4 Bridge & UI
+`WorldSnapshotExporter.ExportNpc` runs the evaluator and exports
+`NpcSnapshot.Effects` as `"Kind\tintensity"` per active effect (same tab-encoded
+convention as `Wounds`/`WornDurability`). The character panel (§40.11) renders
+one circular chip per entry — buffs ringed green, debuffs red (brighter with
+intensity) — and on hover pops a small tooltip with the localized title and the
+one-line "what it does". Debuffs sort before buffs, most-intense first.
+
+### §48.5 Not yet modelled
+`Fighting` stays a dedicated badge (§40.11), not an effect chip, to avoid
+duplication. (`Sick` gained a tracked duration in §49 — see below.)
+
+## §49 Sleep, social & water overhaul (iteration 47)
+
+A batch of quality-of-life mechanics around resting, company and drinking,
+requested after watching the colony fidget. All knobs live in the static
+`Spec49` class (Simulation) and are surfaced as sliders on `HexTuningConfig`
+(applied at startup via `HexTuning.Apply`), so they can be tuned without a
+rebuild. Verified on the 12-seed / 15-day headless soak: baseline **4W·1L·7
+deaths** → full **10W·0L·3 deaths**, with the "empty get-up" churn cut **47 %**
+(1660 → 882) and boiled-water share up from ~5 % to ~8 % (raise
+`boilChainWeight` for more).
+
+### §49.1 Sleep re-arm — kill the "empty get-up" churn
+Ground sleep was hard-chunked into 100-tick blocks; each block *completed* into
+a full stand + wake-grace + re-plan, then Sleep re-won and she lay back down —
+57 % of night get-ups did nothing but re-lie. `RunGroundRest` now **re-arms the
+block in place** (`ShouldKeepSleeping`) instead of standing: she sleeps the
+night in one continuous lie and only truly wakes for a real, actionable need
+(hunger/thirst ≥ 0.6) or a threat. Crucially **cold is NOT a wake trigger** — a
+near-naked girl on a cold night sits at max thermal discomfort she can't fix, so
+waking her only produced churn; the cold HP hit lands whether she's up or lying.
+
+### §49.2 Unified sleep-comfort formula
+Comfort no longer drains while asleep, and no longer rides the bed interaction's
+`ComfortDelta`. Instead `NeedsDecaySystem` fills it from a single formula over a
+night's sleep: **surface** (grass 0.05, leaf-mat 0.30, bed 1.0) **+ fireside**
+(0.05, §49.8) **− sun** (0.15, sleeping in open daylight) **− rain** (0.15). A bed in
+the rain nets ~0.70; grass nets a token 0.05 so beds are still worth building.
+A worn **jacket/coat** (any torso-covering outer garment — the coat, leather or
+heavy jacket) bunched under the body adds a small ground-only pad bonus (0.06),
+so sleeping rough in outerwear beats bare dirt; a bed supplies its own surface
+so the pad does not stack there.
+
+### §49.3 Delayed, visible water sickness (`Sick` becomes real)
+Raw-water gut-rot is no longer an instant −0.08 torso lump. A positive roll opens
+a **bounded damage budget** (`Mind.SicknessDamageRemaining`, capped) paid down a
+little each slow tick, plus a visible window (`Mind.SickUntilTick`) driving the
+🤢 `Sick` effect and a comfort malaise. Expected total harm ≈ the old lump; the
+**budget cap** is essential — without it, overlapping windows from a thirsty
+colony drinking raw back-to-back ground the torso continuously (it wiped a seed
+in testing). This is the one effect (§48) backed by a stored field + real DoT.
+
+### §49.4 Social — linger longer, plus a passive "second action"
+Talks run longer (`TalkDuration` 40→90) but each sates less (gains 0.40/0.25 →
+0.20/0.12), so they visibly stand and chat yet still want another later. The gap
+is filled by **ambient socialising**: being near an awake, settled housemate
+while doing your own thing trickles a little Social (Sims-style), capped so a
+real chat is still wanted. A chat **won't START** once hunger/thirst ≥
+`SocializeNeedGate` (0.55) — this decouples the longer talks from dehydration
+(a thirsty girl who talks instead of drinking was the soak's dominant new death).
+
+### §49.5 Slow needs while sleeping + a real shade
+A sleeping body accrues cold/heat discomfort *and* takes the thermal HP hit at
+`ThermalSleepFactor` (0.5×) — the Sims-style "needs slow while asleep" that lets
+the re-arm sleep-through be safe. Shade is reworked from a flat −2° cool bonus
+(which chilled girls resting in shade on mild days into cold damage) into a
+**heat-shield**: it only removes heat *above* the comfy band (~22°), never
+chills — so a 35° day reads 28° in shade, an 18° day is unchanged.
+
+### §49.6 Comfort-aware sleep spot + proactive boiling
+`BuildGroundSleepPlan` adds a **small** comfort nudge — shade on a hot day,
+fireside in the cold — dwarfed by the home-anchor + indoor-safety priority (the
+historical dog-country fix), so it only re-orders nearby spots. Balance-neutral
+in the soak. And when only *mildly* thirsty (< `BoilThirstCeiling` 0.6) with a
+pot + a lightable fire in reach, she now **holds off the raw gamble and sets up
+boiled water** (the fire chain gets a `boilChainWeight` push); urgent thirst
+still takes raw. `boilChainWeight` trades boiling for stability: 0.1 (default) is
+free (10W·0L), 0.2 ≈ 13 % boiled at some cost, 0.3 ≈ 20 %.
+
+### §49.7 Wet clothes drag; being wet costs comfort
+`EquipmentMath.WetMovementFactor` (already wired into the walk speed) now only
+counts **real garments** (`WearLayer.Wear`/`Outerwear`) as drag — a wet
+bra/panties/bikini (`Underwear`) is too light to slow you, so a girl in just
+underwear (or naked) keeps full speed even soaked; pants + a vest do drag
+(×`wetDragPerGarment` per wet item, floored at `wetDragFloor`). Separately, the
+plain fact of being soaked shaves a little comfort each slow tick
+(`wetComfortPenalty`) — and **wet underwear counts for that**: it doesn't slow
+you, but it's still miserable. Soak-neutral on wipes (10W·0L).
+
+### §49.8 Fireside comfort — the campfire is cosy
+A lit campfire is now a genuine **comfort** source, not just heat. Two effects,
+both keyed off the same warmth probe the temperature system uses (a burning
+campfire within ~2 tiles):
+- **Asleep by the fire** tops up ~5 % comfort over a night on its own
+  (`SleepComfortFireBonusNight` 0.02 → **0.05**), so bedding down fireside on
+  bare grass is meaningfully cosier than open ground.
+- **Awake by the fire** reverses the usual waking comfort drain (`ComfortRate`)
+  into a small gain (`AwakeFireComfortGain` 0.003/slow tick) — sitting fireside
+  slowly *restores* comfort instead of bleeding it, so it's "a touch comfier than
+  trudging about".
+
+Both surface as the derived buff chip **`Cozy`** (§48, 🏕️, `effect.cozy.*`),
+raised whenever a lit fire is in warming range. Pure additive comfort — no death
+class touched; the knobs are `Spec49.SleepComfortFireBonusNight` /
+`Spec49.AwakeFireComfortGain`.
+
+## §50 Limb loss — amputation (iteration 48)
+
+A survivor can lose an **arm or a leg** — for good. Two triggers, one hard
+consequence, and the severed limb stays in the world.
+
+### §50.1 The "severed" model
+`BodyState` gains `HashSet<BodyPart> Severed` (arms/legs only — never
+Head/Torso/Pelvis, which keep killing via `VitalDestroyed`). A severed zone is
+pinned at 0 HP and **never regenerates**: every HP-return site (bandage/pill
+first-aid, slow fed-regen, per-wound heal payback, and the at-cap wound-reopen
+donor payback) skips severed zones. A **lost leg** (one or both) makes
+`MobilityFactor` return a fixed `CrawlSpeedFactor` (1/3 of walking) — she crawls,
+at the pace the crawl animation is authored for. A **lost arm** collapses
+`StrikeFactor` below the 0.4 "mauled but present" floor — one arm gone →
+×`SeveredLimbMobilityMult` (0.15), both → ×that². The derived §48 chip `Maimed`
+reads `Severed` (pure classification, like Hobbled).
+
+### §50.2 Triggers
+- **Emergent (bites).** After a dog or shark bite applies its damage and files
+  its wound, `AmputateSystemHelpers.TrySeverOnBite` fires iff the bitten limb is
+  now at 0 HP AND either the single blow ≥ `LimbSeverThreshold` (the shark's
+  0.2, a future weapon — a clean tear-off) OR a deterministic roll <
+  `GrindSeverChance` (0.25 — the small dog bite that finally destroys an already-
+  mauled leg rips it away). So most zeroed legs still just hobble; occasionally
+  one comes off.
+- **Prepared place.** `HazardSystem` (slow layer) takes a leg from any survivor
+  standing on a tile that holds a `Hazard`-tagged object (`hazard.trap` — a reef/
+  bear-trap a map author places), at `HazardSeverChance` (1 = on contact). Like
+  the shark, a fixed dangerous spot.
+
+### §50.3 The consequence (hard)
+`Sever` dumps `LimbSeverBloodLoss` (0.4) of the Blood need instantly and files a
+deep stump wound (`LimbSeverWoundSeverity` 0.35) that §44 clotting keeps bleeding
+a while → a likely bleed-out spiral unless she's dressed. It never kills
+outright; death, if it comes, is through blood loss over the following ticks. Her
+current plan is interrupted (as a dog attack does).
+
+### §50.4 The limb in the world
+`Sever` spawns a `body.limb_severed` object at her feet (mirrors the corpse):
+`CurrentUser` = whose limb (which actor mesh), `Variant` = which `BodyPart`,
+`ResourceAmount` = `SeveredLimbDecayTicks` (4800 ≈ 2 days). It's tagged `Decays`,
+so the generalised `CorpseSystem` rots it away on the body clock — but without a
+corpse's mourn/bury interactions. Snapshot carries `ObjectSnapshot.Variant` and
+`NpcSnapshot.SeveredParts`.
+
+### §50.5 Presentation
+The living body is **one skinned mesh on a shared skeleton**, so the limb can't
+be deleted as a sub-object. Instead the view collapses the *distal* bone sub-tree
+(`lForearmBend`/`rForearmBend` for arms, `lShin`/`rShin` for legs) to ~0 scale —
+a below-elbow/below-knee cut that leaves a stub (and drops the sleeve/trouser
+riding those bones) without deforming the shoulder/hip. The stump bleeds via the
+normal §40.8-D wound paint on the remaining stub (the sim already filed the deep
+wound there) — no special stump art (the "prosthetic-hole" look stays rejected,
+§40.8-D). A **lost leg** forces `PostureHint = Crawl`, which drives a new
+`Crawling` animator bool → a dedicated `Crawl` state playing the imported
+`Zombie Crawl` clip (AnyState loop, cleared on death; built by
+`BuildNpcActionStates`). Crawl and Limp are now distinct animator states, never
+both at once; the old procedural Crawl shoulder-pose is gone. The dropped limb is
+the **real geometry**: `SeveredLimbFactory` slices the owner's shared bind-pose
+mesh by bone-weight to the distal chain (independent of the runtime collapse)
+into a plain `MeshFilter`; when the mesh isn't Read/Write it falls back to a
+primitive.
+
+### §50.6 Tuning & balance
+All knobs live in `Spec50` (mirrored in `HexTuningConfig`, §50 header): `Enabled`,
+`LimbSeverThreshold`, `GrindSeverChance`, `LimbSeverBloodLoss`,
+`LimbSeverWoundSeverity`, `SeveredLimbMobilityMult`, `CrawlSpeedFactor`,
+`SeveredLimbDecayTicks`, `HazardSeverChance`. Amputation adds a new bleed-out
+death channel on top of the
+knife-edge dog balance (§46) — soak baseline vs branch and retune before shipping.
+Harness must whitelist the `LimbSevered` trace event.
+
+### §50.7 No jumping without legs — terrain goes off-limits
+A survivor missing a leg (`BodyState.CanJump` false) can't hop an elevation step
+or dive water — the hex-step hop (§21.21B) needs legs. `HexPathfinder.RequiresJump`
+marks an edge that changes elevation (the tile stepped onto, `junction.Tiles[0]`,
+matching the movement hop-arm rule); `FindPath(…, canJump)` skips those edges for
+her, and a **second connectivity graph** (`WorldState.JunctionComponentsFlat`,
+built by `Connectivity.RebuildFlat`, selected by the `canJump` arg on
+`Reachable`/`ReachableBeside`) treats each elevation shelf and the water as its
+own component. `canJump` is threaded from the NPC at the perception reachability
+sites (so every goal-availability helper reading `PerceivedObject.IsReachable`
+inherits it — she never *plans* a route she can't crawl) and at the path search.
+A higher ledge / the water simply becomes unreachable to her, not a failed detour.
+
+
+## §51 Character inventory — the backpack window (iteration 48)
+
+Spec §51 gives the selected character a readable **inventory**. A "🎒 Backpack"
+pill on the identity column of the character panel toggles a floating window
+anchored just above the bar (near the portrait, so it reads as *her* things).
+
+### §51.1 Item data — `ItemCatalog`
+`Simulation/Content/ItemCatalog.cs` (Unity-free, mirrors `EffectCatalog` §48)
+classifies any `ObjectDefinition` into an `ItemCategory` (Weapon, Tool,
+Clothing, Armor, Food, Water, Medicine, Resource, Misc) from its tags/layer, so
+new content (incl. the imported garments) is covered automatically. `ItemInfo`
+carries the category, a placeholder **emoji** glyph (per-id table, else a
+category default) and the Loc keys `item.<slug>.name` / `.desc`. Names/descs
+fall back to the definition DisplayName + a generic `itemcat.<cat>.desc` when a
+hand-authored string is absent. Real icons can replace the emoji per id later.
+
+### §51.2 The window (CharacterPanel)
+Two stacked sub-views: a **list** (Worn + Carried sections, each row = emoji
+tile + localized name + category tag, fed by the snapshot's WornItems /
+InventoryItems) and a **detail** item view (big glyph, name, category,
+description, and derived stat rows — layer, covered zones, warmth ≈ delta×10°C,
+armor percent, hunger restore, plus the worn instance's live durability/wetness).
+Clicking a row opens the detail; a "‹ Back" returns to the list. The window's
+bounds feed `NpcSelection.PointerOverUi`, so clicking an item never deselects the
+NPC. Fully RU/EN localized; the window resets on (re)selection and on collapse.
+Icons are emoji placeholders for v1 (swappable per id later).
+
+## §52 Slot inventory, garment containers & build-sites (iteration 52)
+
+A survival overhaul in five interlocking parts: the pack is now made of the
+clothes you wear and the hands you have; clothing is a container; items have
+importance; the bottle is refillable; and furniture is raised at build-sites
+with a hammer. Survival pressure is eased to make room for the new busywork.
+
+### §52.1 Slot inventory — you carry what you wear
+
+The pack has **no capacity of its own**. It is:
+
+```
+Inventory.Capacity = IntactHands + Σ (worn garment.Capacity)
+```
+
+- **Hands** — `BodyState.IntactHands` = 2 minus severed arms (§50). Naked, that
+  is the *only* capacity (2, or 1/0 for an amputee). Hands are real slots and
+  the pair a two-handed weapon needs (§52.5).
+- **Pockets** — every worn garment grants slots via `GarmentParams.Capacity`
+  (new field, mirrored on `ObjectDefinition.InventoryCapacity` and the Unity
+  `GarmentDefinition` asset). Iron rule: **panties/bra 1, top 2, pants 4,
+  jacket/coat & heavy vest 6, dress 4, skirt/shorts 2, leather armor 4**;
+  accessories (gloves, stockings, jewelry, boots) carry 0.
+- Capacity is recomputed in `EquipmentMath.RecalculateCapacity` on every worn
+  change (dress/undress/destroy/sever) and at bootstrap. The knob `SimBalance.HandSlots`
+  (default 2) caps the hand contribution.
+- **Personal effects** ride free of the pocket budget: the bottle (§29H) hangs
+  on the body, so `InventoryState.UsedSlots`/`HasSpace` skip it — a naked girl
+  still has her bottle and both hands. (`InventoryState.IsPersonalEffect`.)
+
+A dressed girl (underwear 1 + top 2 + pants 4 + 2 hands = 9) sits near the old
+flat 10; a near-naked castaway is genuinely constrained until she finds clothes
+— the intended early arc.
+
+### §52.2 Garments are containers
+
+A worn garment's pocketed items live in the shared pack; when the garment
+**leaves the body** they ride with it:
+
+- **Undress** (`DropGarmentWithContents`) — as the piece comes off, whatever no
+  longer fits the (now-smaller) pack spills *into the removed garment's*
+  `WorldObjectState.Contents` (lowest-importance first). The girl remembers
+  (perception) that her stone is "in those panties over there."
+- **Re-dress** — donning a garment pours its `Contents` back into the pack
+  (capacity just grew); any overflow drops at her feet (`StashRecovered`).
+- **Destroyed clothing does NOT destroy its contents** — when a garment frays to
+  rags (`DestroyWornItems`), the lost slots spill the overflow onto the ground
+  (`SpillOverflow`): the bottle in the ripped panties simply falls out.
+- A lost arm shrinks the pack too — `Sever` recomputes capacity and spills.
+
+`Contents` doubles as a build-site's delivered-materials bin (§52.4) and a
+fireside stockpile (§52.3).
+
+### §52.3 Item importance & the fireside stockpile
+
+Every item has an importance (`ItemCatalog.Importance`, by `ItemCategory`):
+**Water 100, Food 95**, Medicine 80, Weapon 65, Tool 60, Armor 45, Clothing 40,
+Resource 20, Misc 10. It drives *what to drop first*: overflow, combat load-drop
+and haul-to-fire always shed the least-wanted item (`InventoryMath`).
+
+**HaulToFire goal** — a full pack, in peace, sends the girl to set her lowest-value
+item (importance ≤ 25) down at the hearth (`StashedAtFire`) to free a slot; it
+waits there to be reclaimed by normal pickup. **Life-threatening pressure cancels
+it**: a fight, fresh danger memory, Health < 0.4, or Hunger/Thirst ≥ 0.6 — you
+don't tidy your pockets while something is trying to eat you. Score 0.28 (below
+every need); rare under the eased-needs balance, a relief valve for real pressure.
+
+### §52.4 Build-sites & the hammer
+
+Placed furniture is no longer woven in one shot at the campfire. It is raised at
+a **build-site** — an intent point every NPC knows from the start:
+
+- `build.site` object carries a per-instance `BuildProduct` + material bill
+  (`BillLogs/Stones/Leaves`); delivered materials accumulate in `Contents`.
+  The communal **bed** is staked next to the hearth at bootstrap
+  (`CreateBedSite`, bill = 2 stones) and seeded into every NPC's memory.
+- **DeliverToSite / BuildFurniture** (`GoalType.BuildFurniture`, one goal): the
+  gather chains (GatherStone/GatherWood) fire on the site's outstanding needs;
+  a girl carrying a needed material walks to the site and deposits it
+  (`SiteDelivered`, partial delivery is fine — many trips, many girls).
+- **Raising needs a hammer.** Once stocked, a builder completes it if she
+  carries a `tool.hammer` **or one is lying at the workbench** (the site tile or
+  a neighbour) — the product spawns at the site and the site despawns
+  (`FurnitureBuilt`). Two hammers spawn by the hearth at bootstrap; the hammer
+  is a multi-use Tool (never consumed), grabbed via GatherTools.
+- The **hut** (§35.3) is folded into the same discipline: raising a hut piece
+  now also requires a hammer in hand.
+- Build work is **peacetime** (like the hut/raft): it pauses under hunger/thirst
+  ≥ 0.55 or fresh danger. Building is a slow surplus activity — the bed, like the
+  hut, completes only when the colony has spare hands and stone, by design.
+- Scope note: **bed + hut** run the build-site model in v1; tent & drying-rack
+  keep their campfire craft for now (identical machinery — one table row each to
+  migrate). The old `CraftBed` path is retired.
+
+### §52.5 The hands — two-handed weapons & combat
+
+- **Two-handed spear/bow** — wielding needs both hands: `Hunt` (and any spear
+  strike) requires `IntactHands >= 2`. A one-armed survivor (§50) can no longer
+  hunt.
+- **Ready the weapon in a fight** — at the first dog strike, a spear-armed girl
+  with two hands **drops her bulky load** (firewood/stones/leaves) to free her
+  hands (`SpearReadied`) — "quick, throw down the wood and grab the spear." The
+  dropped resources are recoverable after the fight.
+- **The thrust bites** — a readied two-handed spear multiplies strike-back by
+  `SimBalance.SpearStrikeBonus` (1.8), turning the reactive swat into a real
+  jab. The bare hands / one-armed keep the plain strike.
+- **Prefer empty hands** — carried tools sit stowed in pockets by default and
+  are only "in hand" while actually in use; the renderer shows the active
+  item and empties the hands when the job is done (presentation).
+
+### §52.6 Eased survival (making room for the busywork)
+
+The pack/build layer adds work, so the old food/cold panic is softened
+(SimBalance + `HexTuningConfig` defaults):
+
+| Knob | Was | Now | Effect |
+|---|---|---|---|
+| `HungerRate` | 0.011 | **0.0055** | eat ~half as often |
+| `ThirstRate` | 0.013 | **0.010** | gentler thirst |
+| `ColdPressureSlope` | 0.03 | **0.02** | less cold-anxious |
+| `DressThermalThreshold` | 0.35 | **0.45** | fewer fussy wardrobe stops |
+| `BottleCapacity` | 1 (implicit) | **3** | one fill = several gulps |
+
+**Refillable bottle** — filling charges `BottleCharges = SimBalance.BottleCapacity`;
+each `DrinkBottle` spends one; the bottle only empties (and warrants a refill trip)
+when the last charge is gone. Far fewer water runs.
+
+**Soak** (6 seeds, 10 game days): 6/6 green — all survive, structure/rhythm/QoL
+intact. Garment-stash and spear-ready fire every seed; the bed-site delivers on
+every seed and raises when surplus allows (like the hut). Deferred: dedicated
+weapon slot; dynamic (non-bootstrap) site placement; tent/rack migration.
+
+## §53 Compassion & mutual aid (iteration 49)
+
+The survival stack now bites hard — a survivor can **starve**, **bleed**, fall
+**sick** (§49) and even **lose a limb** (§50) — yet everyone was an island:
+feeding, first-aid and medicine were all self-only, so a legless girl who
+couldn't crawl to food, or one bleeding out beside a healthy housemate, got no
+help. §53 makes the colony **care for each other**: a girl who is herself okay
+walks over to the worst-off housemate and helps — feeds, dresses a wound, hands
+a pill, or sits with the grieving — which bonds them both. All knobs live in the
+static `Spec53` block and the `HexTuningConfig` "Сострадание (§53)" sliders, so
+the headless harness can bisect it and it can be soaked without tipping a seed
+(`Spec53.Enabled = false` restores pre-§53 behaviour byte-for-byte).
+
+### §53.1 The need & the trait — сострадание
+Two coupled quantities. **`NPCNeeds.Compassion`** (0..1, 1 = at peace) is the UI
+bar, mirroring the Social convention (high = good). **`NPCState.CompassionTrait`**
+(0..1) is the personality weight, seeded once at spawn in `[TraitMin, TraitMax]`
+(deterministic on the world seed + npc id) and fixed for life. The trait scales
+both how fast the need drains and the strength of the aid drive — so one girl
+drops a bed build to tend a wounded housemate while another only helps when idle.
+
+### §53.2 Decay & restore
+Each slow tick, `Compassion` is **spent** by witnessing un-helped suffering
+nearby: `−= CompassionRate × worstNearbySuffering × CompassionTrait` (the worse,
+and the more caring the witness, the faster it drains). When no reachable
+neighbour is suffering above `SufferingThreshold` it **recovers** by
+`RecoverRate` toward full. Completing an aid restores `AidSelfRestore` directly.
+
+### §53.3 Reading a neighbour's plight
+The perception build tags each `PerceivedAgent` with a `Suffering` (0..1) and the
+single most-urgent **helpable** `AidKind`, in urgency order: **Treat** (open
+wounds / blood loss — a bleed-out clock), **Medicate** (sick, or gravely weak
+with nothing to dress), **Feed** (genuinely hungry), **Console** (grieving or
+breaking under stress). A helper re-assesses on arrival — she may have recovered,
+worsened, or died on the way.
+
+### §53.4 The aid behaviour
+A new `GoalType.Aid` bids into the same utility auction, cloning the talk
+pipeline: pick the **worst-off** reachable, unclaimed sufferer, reserve an
+arm's-length approach junction, claim her with `PendingAidFrom` (she holds still
+until arrival, timeout, or danger — hunger does **not** break her wait, she needs
+the help), then `MoveToJunction` + an aid interaction (`FeedOther` / `TreatOther`
+/ `MedicateOther` / `ConsoleOther`). On completion the **relief is applied
+straight to the target** — no food or bandage is spent, so aid can never bankrupt
+the knife-edge colony: Feed drops her Hunger, Treat lifts wounded parts + stops
+the bleed + drops a gauze wrap, Medicate lifts Health and clears the sickness
+window, Console eases Stress and shortens mourning. **Both** relationships rise by
+`AidRelationshipGain` (larger than a chat's 0.05) across Affinity/Familiarity/
+Trust, and the Sims-style "+/-" pop floats over both heads.
+
+### §53.5 Weights & the self-survival gate
+`aidBid = base + suffering × CompassionTrait × AidWeight + (1 − Compassion) ×
+PressureWeight`. At `AidWeight = 0.85` a high-trait girl (≈1.0) facing a dying
+housemate (suffering ≈ 1) bids ≈0.95 — over `CraftBed` (0.7) and the 0.15 switch
+margin — while a reserved girl (≈0.35) bids ≈0.4 and helps only when otherwise
+idle. Aid is **unavailable** while the helper is in her own crisis: starving,
+dehydrated, `Hunger ≥ SelfHungerGate`, `Health`/`Blood` `< SelfHealthGate`,
+fighting, or fleeing. Her own `StarvingBoost` (1.0) still outranks aid — a girl
+dying of hunger looks after herself first.
+
+### §53.6 Presentation / UI
+A **Compassion** bar (rose, ❤ glyph) joins the CharacterPanel need rows (RU
+«Сострадание»), fed by `NpcSnapshot.Compassion`. Aid emits `AidStarted` / `Aided`
+traces and reuses the existing relationship-pop over both heads.
+
+## §54 Stranded-Deep resource, processing & butchering loop (iteration 54)
+
+Ported the Stranded-Deep gathering/crafting feel: things you chop and kill land
+on the map as physical items you then process, and everything is gathered/built
+from scratch (cold start). Two data-driven seams keep it cheap to extend.
+
+### §54.1 Data seams
+- **`HarvestDrop` / `Yields`** on `InteractionDefinition` (`Definitions.cs`): a
+  harvest/process/butcher verb declares its output as data (`{id, count,
+  scatter}`). `ExecutionSystem.ApplyHarvestYields` reads it and, for `Scatter`
+  drops, spawns each item at a **distinct free junction** around the source
+  (`FindScatterSpot`) — logs/leaves/sticks/meat land *around* the spot, not in a
+  pocket. One handler serves palm→logs, log→sticks, carcass→meat+hide.
+- **`RecipeCatalog`** (`Content/RecipeCatalog.cs`): the crafting ingredient bill
+  as a `GoalType→Recipe` table (inputs, `NeedsLitFire`, `RequiresNoRack`). The
+  craft-start gate (`CraftGateOk`) and effect (`ConsumeRecipeInputs`) both read
+  it; outputs stay per-goal in the effect switch. Retires the duplicated
+  ingredient literals that used to live in two parallel switches.
+
+### §54.2 The wood chain (firewood retired → log + stick)
+`resource.firewood` is gone, split into two materials (both tagged `Wood`, so one
+`GatherWood` goal collects either):
+- **`resource.log`** — the chop output. Builds/raft/premium-bed frame from logs.
+  A palm drops **3 logs + 3 palm leaves**; a big tree **4 logs**; a boulder **4
+  stones** — all scattered on the ground.
+- **`resource.stick`** — the fuel/craft currency. Fire, axe, pickaxe, spear,
+  arrows, rack, knife all cost sticks.
+- **`SplitLog`** (`InteractionType.Process`): chop a **ground log** into
+  `SimBalance.LogSplitYield` (4) sticks with an axe/saw — the sticks scatter.
+  `forest.deadfall` sheds ready sticks (the early bootstrap shortcut).
+
+### §54.3 Cordage & the knife
+- **`plant.fibrous`** sheds `resource.fiber` (herb-bush pattern). Fiber crafts
+  **`resource.rope`** (3 fiber) and **`resource.cloth`** (4 fiber) at the fire.
+  Rope is now the bow's lashing; cloth the tent's panel.
+- **`tool.knife`** (1 stick + 1 stone at the fire) — required to butcher. One is
+  also findable in the wild to bootstrap.
+
+### §54.4 Carcasses, butchering & cannibalism
+- Every animal death (dog / rabbit-"crab") leaves a **`carcass.animal`** on the
+  map (`SpawnCarcass`, `Decays` tag, rots on the `CorpseSystem` clock). Hunting
+  no longer teleports loot into the pack.
+- **`Butcher`** (`InteractionType.Butcher`, needs `tool.knife`) → `meat_raw` +
+  `hide` scatter on the ground. Hunger-driven.
+- A housemate's **`corpse.npc`** is butcherable too (cannibalism) — gated in
+  `IsValidTargetFor` behind `Hunger ≥ SimBalance.CannibalizeHungerGate`, and it
+  costs `CannibalismComfortPenalty` comfort (`CannibalismEnabled` toggle).
+
+### §54.5 Meat spoilage
+`MeatSpoilageSystem` (Slow layer, after `CorpseSystem`): ground `meat_raw` rots
+after `MeatRawSpoilTicks`, `meat_cooked` after the longer `MeatCookedSpoilTicks`
+(from its `SpawnTick`) — cooking is preservation. Carried meat is out of scope
+for v1.
+
+### §54.6 Cold start
+Nothing is pre-built or handed out at home (`PrototypeWorldDefinitionFactory`
+keeps only palms + deadfall). The starting **spear is retired** (crafted like any
+tool); only the water bottle stays in hand. Lighter, pot and armor become
+findable wilderness loot. The **hearth** stands at the generator-chosen yard spot
+as an **unlit `campfire.spot`** (a cold pit) — the colony gathers sticks and
+lights it themselves; the raft stays a coastal build-marker. Soak: the colony
+reliably lights the fire from scratch and runs the whole chain (axe/knife/spear
+crafted, trees felled, animals butchered), 6/6 seeds.
+
+(A build-from-loose-stones campfire-site was prototyped — `build.site` with
+`BuildProduct="campfire.spot"`, no hammer — but the cold/hungry start didn't
+reliably prioritise hauling the stones, so the simple cold pit ships instead. The
+dormant campfire-site scaffolding + `CampfireStoneBill` knob remain for a future
+staged-build pass.)
+
+### §54.7 Presentation
+Procedural low-poly models (`LowPolyToolFactory`) for log, stick, fiber, rope,
+cloth, knife and the animal carcass; `Process`→chop and `Butcher`→work actor
+poses with the right tool in hand. The campfire is ringed with real low-poly
+**stones** (`AddCampfireStoneRing`). Build-sites render their **delivered
+materials piled up** (`BuildSitePile`, fed by new `ObjectSnapshot`
+`BuildProduct`/`Bill*`/`Delivered*` fields) so a piece assembles from its
+components. Felling a tree **tips the trunk over and leaves a stump** (`TreeFall`)
+in sync with the logs hitting the ground.
+
+### §54.8 Tuning
+All knobs live in `SimBalance` (§54 block): `LogSplitYield/DurationTicks`,
+`FiberPerPlant`, `RopeFiberCost`, `ClothFiberCost`, `KnifeStick/StoneCost`,
+`CarcassDecayTicks`, `ButcherDurationTicks`, `CarcassMeatYield`,
+`MeatRaw/CookedSpoilTicks`, `Cannibalism*`, `CampfireStoneBill`. Balance is tuned
+separately — the §54 values are functional placeholders.
+
+## §55 Rivers retired, drink from the coconut (iteration 55)
+
+The drink mechanic is being reworked from scratch. As a first demolition
+step, the old river/sea/bottle water chain is torn out and thirst is served
+by cracking a coconut, Stranded-Deep style. (This is deliberately a WIP — the
+full new drink logic lands in a later pass.)
+
+### §55.1 Rivers become sea
+
+There is no river/sea terrain type — a river was just `Water | Walkable`
+(waded), sea is `Water` without `Walkable` (swum). Rivers are retired: the
+seeded winding channel (`PrototypeWorldDefinitionFactory.AddSeaChannel`, was
+`AddRiver`) is now carved as **unwalkable deep sea**, flush with the ocean at
+elevation 0. NPCs swim it instead of wading; the one-deep swim ring
+(`OpenSwimRing`) still opens the ≤2-wide channel, so it never boxes anyone in.
+Sea and "water" are now the same thing. The `water.river` / `water.pond`
+drink-anchors are no longer placed.
+
+### §55.2 Water is undrinkable
+
+Neither sea nor the former rivers can be drunk from, and boiling is retired
+too. The bottle chain (`GetWater` fill at a `RawWater` bank or campfire+pot,
+`Drink` from the bottle) no longer has any source — `RunDrinkBottle` /
+`FillBottle` become dead code, `BottleWater` stays `None`. Raw-water sickness
+is gone with it (coconut water is clean).
+
+### §55.3 Drink from a coconut (crack → drink → eat)
+
+The coconut is the only water source now. A **whole `food.coconut`** carries a
+**`Drink`** interaction ("crack open & drink", 16 ticks, Thirst
+−`SimBalance.CoconutThirst` = 0.7, Comfort +0.05) whose **Yields** transform it
+into **`food.coconut_open`** — the cracked husk, dropped straight into the hand.
+The opened coconut keeps the old **`Eat`** (Hunger −`CoconutHunger` = 0.6), so
+one coconut = a drink *then* a meal. A whole coconut is still directly Eat-able
+(the water is just wasted) so hunger never blocks on cracking first.
+
+Goals reuse the existing two-step shape:
+- **GetWater** (score = Thirst): fetch a coconut to drink — available when
+  Thirst ≥ 0.35, no drinkable in hand, space free, and a `Coconut`-tagged item
+  is reachable. Maps to `PickUp` (was `FillBottle`); `IsValidTargetFor` accepts
+  any item with a `Drink` interaction.
+- **Drink** (score = Thirst): crack a carried whole coconut in place — a
+  `ConsumeInventoryItem` step with the `Drink` verb. `RunConsumeInventoryItem`
+  is now verb-aware (Eat *or* Drink) and applies a completed interaction's
+  `Yields` into the inventory (the husk).
+
+Knobs: `SimBalance.CoconutThirst`. The palm still produces `food.coconut`
+(`tree.palm`, interval 300, cap 2) — coconuts now feed both hunger and thirst,
+so palm demand roughly doubles; watch coconut supply when the drink mechanic
+is reworked.
+
+Soak (6 seeds, 3 days): rivers gone (`walkableWater=0`, 0 river anchors),
+0 bottle drinks, 7–16 coconut cracks/seed, **0 dehydration**. Residual deaths
+are the pre-existing dog knife-edge (§40 / dog-fragility), not water.

@@ -23,6 +23,19 @@ public static class HexHopTuning
     public static float TakeoffSeconds = 0.5f;
     public static float LandingSeconds = 0.5f;
 
+    // Down-jumps (sprying off a ledge / into water) can run on their OWN,
+    // usually faster, window. HopSeconds is the UP window; DownHopSeconds the
+    // DOWN one. Default == HopSeconds (so nothing changes until it's dialed).
+    // Takeoff/Landing beats scale with the window (DownBeatScale), so the whole
+    // down-jump is uniformly faster — same shape, shorter clock — and the sim
+    // window, the body arc and the clip playback all stay in lockstep.
+    public static float DownHopSeconds = 2f;
+
+    // The window for a hop in the given direction, and the factor the
+    // takeoff/landing beats scale by for a down-jump (1 for up — byte-identical).
+    public static float WindowSeconds(bool up) => up ? HopSeconds : DownHopSeconds;
+    public static float DownBeatScale => DownHopSeconds / System.MathF.Max(0.0001f, HopSeconds);
+
     // Symmetric wall clearance (world units, measured PERPENDICULAR to the
     // obstacle border): the jump takes off exactly this far on the stand
     // side of the wall and lands exactly this far on the target side. The

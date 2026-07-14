@@ -67,9 +67,13 @@ public sealed class SwimTestBootstrap : MonoBehaviour
     // (единый источник тайминга: сим-траверс + скорость клипа + дуга тела),
     // так что менять можно прямо в плей-моде — применяется мгновенно.
     [Header("Прыжок — тайминг (анимация = мастер-часы)")]
-    [Tooltip("ВСЁ окно прыжка: толчок + полёт + приземление. Клип сжимается ровно в это время, сек.")]
+    [Tooltip("ВСЁ окно прыжка ВВЕРХ: толчок + полёт + приземление. Клип сжимается ровно в это время, сек.")]
     [Range(0.5f, 5f)]
     [SerializeField] private float _hopSeconds = 2f;
+
+    [Tooltip("Окно прыжка ВНИЗ (спрыгивание) — меньше = быстрее. Тайминги толчка/посадки масштабируются пропорционально. Сек.")]
+    [Range(0.2f, 5f)]
+    [SerializeField] private float _downHopSeconds = 2f;
 
     [Tooltip("ТОЛЧОК: сколько в начале клипа занимает присед/замах — тело стоит, анимация уже играет, сек.")]
     [Range(0f, 2f)]
@@ -116,6 +120,7 @@ public sealed class SwimTestBootstrap : MonoBehaviour
         }
 
         _tuningConfig.hopSeconds = _hopSeconds;
+        _tuningConfig.downHopSeconds = _downHopSeconds;
         _tuningConfig.hopTakeoffSeconds = _hopTakeoffSeconds;
         _tuningConfig.hopLandingSeconds = _hopLandingSeconds;
         _tuningConfig.hopEdgePadding = _hopEdgePadding;
@@ -143,6 +148,7 @@ public sealed class SwimTestBootstrap : MonoBehaviour
         }
 
         _hopSeconds = _tuningConfig.hopSeconds;
+        _downHopSeconds = _tuningConfig.downHopSeconds;
         _hopTakeoffSeconds = _tuningConfig.hopTakeoffSeconds;
         _hopLandingSeconds = _tuningConfig.hopLandingSeconds;
         _hopEdgePadding = _tuningConfig.hopEdgePadding;
@@ -457,6 +463,7 @@ public sealed class SwimTestBootstrap : MonoBehaviour
 
         // §21.21B: hop timing — one shared source for sim and view.
         HexHopTuning.HopSeconds = _hopSeconds;
+        HexHopTuning.DownHopSeconds = _downHopSeconds;
         HexHopTuning.TakeoffSeconds = _hopTakeoffSeconds;
         HexHopTuning.LandingSeconds = _hopLandingSeconds;
         HexHopTuning.EdgePadding = _hopEdgePadding;

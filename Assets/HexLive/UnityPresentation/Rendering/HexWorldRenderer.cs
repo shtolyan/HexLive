@@ -32,6 +32,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private const float BedHeightFactor = 2f / 25f;
     private const float BedDepthFactor = 14f / 75f;
 
+    // The lying clips are ground-authored (the body's underside baked at root
+    // Y=0), but the visible back rests a touch below the root plane, so pinning
+    // the root straight onto the mattress top makes the sleeper sink in. Lift
+    // the pin by this much (world units) so the body rests on top of the bed.
+    private const float SleepBodyLift = 0.12f;
+
     private const float ChairRadiusFactor = 3f / 25f;
     private const float ChairHeightFactor = 7f / 75f;
 
@@ -52,6 +58,16 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private readonly Dictionary<int, GameObject> _seamMarkers = new();
     private readonly Dictionary<int, GameObject> _objectViews = new();
 
+    // Spec §54: object keys whose view is a tree, so despawn (a chop) plays a
+    // fall animation + leaves a stump instead of a hard cut.
+    private readonly HashSet<int> _treeViewKeys = new();
+
+    // §Wardrobe-anim: garment world objects hidden on the ground this frame
+    // because their owner has picked them up into hand for the "don" beat.
+    // Must match ExecutionSystem.WardrobeHandoffFraction.
+    private const float WardrobeHandoffFraction = 0.5f;
+    private readonly HashSet<int> _wardrobeHiddenObjects = new();
+
     // Spec 40.13: dead actors stay as physics-ragdoll corpses — keyed by the
     // corpse.npc OBJECT id (the sim's logic anchor for mourn/bury/decay), so
     // the body view lives exactly as long as the corpse object does.
@@ -61,6 +77,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // Spec 31B.5: actor-backed views (Marta/Molly/Jana bodies); primitive
     // capsules remain the fallback when no actor prefab matches.
     private readonly Dictionary<int, NpcActorView> _actorViews = new();
+
+    // Spec 28.15E: the last talk-outcome tick popped per NPC, so the "+/-"
+    // relationship glyph fires exactly once when a fresh outcome arrives.
+    private readonly Dictionary<int, int> _lastTalkResultTick = new();
 
     // Spec 31C: the fauna is finally visible.
     private readonly Dictionary<int, GameObject> _dogViews = new();
@@ -171,6 +191,15 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private void Update()
     {
+        // While offline ticks wind forward, stay dark: winding is pure headless
+        // simulation and painting each intermediate world (skin decals, actor
+        // sync) behind the loading curtain only starves the tick budget. Views
+        // build once, afterward, in loading phase 3.
+        if (HexLive.UnityPresentation.UI.LoadingScreen.IsReplaying)
+        {
+            return;
+        }
+
         _runner ??= FindAnyObjectByType<SimulationRunnerBehaviour>();
         if (_runner is null || !_runner.IsReady)
         {
@@ -599,10 +628,23 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         foreach (var key in staleObjectKeys)
         {
-            Destroy(_objectViews[key]);
+            var view = _objectViews[key];
             _objectViews.Remove(key);
             _prevObjectPositions.Remove(key);
             _currObjectPositions.Remove(key);
+
+            // Spec §54: a felled tree tilts over and leaves a stump instead of
+            // vanishing — the logs the sim scattered land around it in the same
+            // frame, so it reads as "chopped down".
+            if (_treeViewKeys.Remove(key) && view != null)
+            {
+                var fall = view.AddComponent<HexLive.UnityPresentation.Environment.TreeFall>();
+                fall.Fell(HexRadius);
+            }
+            else if (view != null)
+            {
+                Destroy(view);
+            }
         }
 
         // Spec 40.13: the ragdolled body follows its corpse object out of the
@@ -622,6 +664,20 @@ public sealed class HexWorldRenderer : MonoBehaviour
             _corpseBodyViews.Remove(key);
         }
 
+        // §Wardrobe-anim: a garment being donned vanishes from the ground the
+        // moment its owner lifts it into hand (the "don" beat), so we never show
+        // the same piece both on the floor and in the hand.
+        _wardrobeHiddenObjects.Clear();
+        foreach (var n in snapshot.Npcs)
+        {
+            if (n.CurrentInteraction == "Dress" &&
+                n.InteractionProgress >= WardrobeHandoffFraction &&
+                n.TargetObjectId is { } hiddenId)
+            {
+                _wardrobeHiddenObjects.Add(hiddenId);
+            }
+        }
+
         foreach (var worldObject in snapshot.Objects)
         {
             var key = worldObject.Id.Value;
@@ -635,6 +691,19 @@ public sealed class HexWorldRenderer : MonoBehaviour
             {
                 objectView = CreateObjectView(worldObject, junctionPositions);
                 _objectViews[key] = objectView;
+                // Spec §54: remember trees so felling them animates.
+                if (worldObject.DefinitionId.Contains("tree"))
+                {
+                    _treeViewKeys.Add(key);
+                }
+            }
+
+            // §Wardrobe-anim: hide/show the ground garment as its owner picks it
+            // up / drops it (SetActive is idempotent, so this is cheap per frame).
+            var shouldHide = _wardrobeHiddenObjects.Contains(key);
+            if (objectView.activeSelf == shouldHide)
+            {
+                objectView.SetActive(!shouldHide);
             }
 
             // Spec 29E.3: the campfire burns only while it has fuel.
@@ -644,6 +713,16 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 if (fire != null)
                 {
                     fire.SetLit(worldObject.ResourceAmount > 0f);
+                }
+            }
+
+            // Spec §54: re-pile a build-site as its delivered materials grow.
+            if (!string.IsNullOrEmpty(worldObject.BuildProduct))
+            {
+                var pile = objectView.GetComponent<HexLive.UnityPresentation.Environment.BuildSitePile>();
+                if (pile != null)
+                {
+                    pile.Refresh(worldObject);
                 }
             }
 
@@ -826,6 +905,24 @@ public sealed class HexWorldRenderer : MonoBehaviour
             npc.HopKind.Length > 0 && _swimCoords.Contains(npc.HopTargetTile));
         actorView.SyncWorn(npc.WornItems);
         actorView.SetInteraction(npc.CurrentInteraction, HeldItemFor(npc));
+        // §Wardrobe-anim: the two-beat dress/undress sequence (gather + garment
+        // in hand). Runs after SetInteraction, which it overrides for these verbs.
+        actorView.SetWardrobeAction(npc.CurrentInteraction, npc.InteractionProgress, npc.HeldGarmentId);
+        // Spec 28.15E: overhead chat bubble — show the talk's emoji, and pop a
+        // "+/-" once when a talk outcome resolves (new TalkResultTick).
+        actorView.SetTalkTopic(npc.TalkTopic);
+        if (npc.TalkResultTick > 0 &&
+            (!_lastTalkResultTick.TryGetValue(npc.Id.Value, out var seenTick) ||
+             seenTick != npc.TalkResultTick))
+        {
+            _lastTalkResultTick[npc.Id.Value] = npc.TalkResultTick;
+            // Skip the very first observation per NPC (avoid a stale pop when a
+            // view is created for an NPC that already talked before we looked).
+            if (seenTick != 0 || npc.TalkResultTick == snapshot.Tick)
+            {
+                actorView.PopRelationship(npc.TalkResultDelta);
+            }
+        }
         // Iter 28: ledge seat — the sim flags a sit at a one-step seam; the
         // view lifts the butt onto the upper step (knobs in NpcActorView).
         actorView.SetLedgeSit(npc.IsLedgeSit, npc.LedgeSeatStepsUp);
@@ -843,6 +940,25 @@ public sealed class HexWorldRenderer : MonoBehaviour
             ((1f - npc.Hunger) + (1f - npc.Thirst) + npc.Energy +
              npc.Comfort + npc.Social + npc.Health) / 6f;
         actorView.SetFaceMood(wellbeing, npc.IsFighting);
+        // A fresh bleeding wound makes her wince in pain. A wound bleeds only
+        // while fresh (heal01 < 0.3, spec 44); pain scales with the freshest
+        // open wound and fades to nothing as they clot/heal.
+        var pain = 0f;
+        if (npc.Wounds != null)
+        {
+            foreach (var w in npc.Wounds)
+            {
+                var wparts = w.Split('|');
+                if (wparts.Length >= 3 && float.TryParse(wparts[2],
+                        System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture, out var heal))
+                {
+                    pain = Mathf.Max(pain, Mathf.Clamp01((0.3f - heal) / 0.3f));
+                }
+            }
+        }
+
+        actorView.SetFacePain(pain);
         // Spec 40.9 / 40.1: injury posture (limp/crawl/arm-hang/head-clutch)
         // and the winded panting, both derived sim-side and exported.
         actorView.SetPosture(npc.PostureHint, npc.Winded);
@@ -861,7 +977,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // their own sim wetness (soaked cloth shines/darkens, dries back).
         var rainWet = snapshot.IsRaining && !_indoorCoords.Contains(npc.Tile) ? 1f : 0f;
         actorView.SetBodyCondition(npc.BodyParts, uncoveredForDecals, npc.Hygiene, thermalForSweat,
-            rainWet, npc.WornWetness, npc.Wounds, npc.BandagedZones);
+            rainWet, npc.WornWetness, npc.Wounds, npc.BandagedZones, npc.SeveredParts);
         actorView.SetClothingHidden(UI.DebugControlsPanel.HideClothing);
         // Portrait isolation: keep the whole actor hierarchy (incl. garments,
         // props and decals spawned this tick) on the Actors layer.
@@ -962,9 +1078,21 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
                 return npc.InventoryItems.Contains("tool.pickaxe_stone")
                     ? "tool.pickaxe_stone" : null;
+            case "Process":
+                // Spec §54: splitting a log — the axe (or saw) is in hand.
+                if (npc.InventoryItems.Contains("tool.axe_stone"))
+                {
+                    return "tool.axe_stone";
+                }
+
+                return npc.InventoryItems.Contains("tool.saw") ? "tool.saw" : null;
+            case "Butcher":
+                // Spec §54: the knife is in hand while butchering.
+                return npc.InventoryItems.Contains("tool.knife") ? "tool.knife" : null;
             case "Fuel":
-                return npc.InventoryItems.Contains("resource.firewood")
-                    ? "resource.firewood" : null;
+                // Spec §54: a stick feeds the fire.
+                return npc.InventoryItems.Contains("resource.stick")
+                    ? "resource.stick" : null;
             case "Craft":
                 if (npc.CurrentGoal == "CookMeat" &&
                     npc.InventoryItems.Contains("food.meat_raw"))
@@ -972,11 +1100,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     return "food.meat_raw";
                 }
 
-                return npc.InventoryItems.Contains("resource.firewood")
-                    ? "resource.firewood" : null;
+                return npc.InventoryItems.Contains("resource.stick")
+                    ? "resource.stick" : null;
             case "Build":
-                return npc.InventoryItems.Contains("resource.firewood")
-                    ? "resource.firewood" : null;
+                // Spec §54: builds are log-framed.
+                return npc.InventoryItems.Contains("resource.log")
+                    ? "resource.log" : null;
             // Spec 29H: fill the bottle and drink from it — the bottle shows
             // in hand for both.
             case "FillBottle":
@@ -1056,7 +1185,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 bedBounds.Encapsulate(bedRenderers[i].bounds);
             }
 
-            surfaceY = bedBounds.max.y;
+            surfaceY = bedBounds.max.y + SleepBodyLift;
         }
         else
         {
@@ -1074,6 +1203,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     break;
                 }
             }
+        }
+
+        // Spec §54.2: an explicit "point" marker (our assembled beds place one)
+        // also defines the sleep HEIGHT — the body lies at the point's Y, not the
+        // bed's bbox top, so each bed's tuned lift is honoured.
+        if (point != null)
+        {
+            surfaceY = point.position.y;
         }
 
         return point != null ? point : bedView.transform;
@@ -1452,6 +1589,128 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return invisible;
         }
 
+        // Spec §54: a build-site shows the piece ASSEMBLING from its delivered
+        // materials — a pile of hauled stones/logs/leaves growing toward the
+        // bill, instead of a flat pad. Refreshed each frame as more is delivered.
+        if (!string.IsNullOrEmpty(worldObject.BuildProduct))
+        {
+            var siteRoot = new GameObject($"Object {worldObject.DefinitionId} (site {worldObject.BuildProduct})");
+            siteRoot.transform.SetParent(_objectsRoot, false);
+            var siteAnchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
+            siteRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
+                siteAnchor, GroundY(worldObject.Tile));
+            var pile = siteRoot.AddComponent<HexLive.UnityPresentation.Environment.BuildSitePile>();
+            pile.Rebuild(worldObject);
+            return siteRoot;
+        }
+
+        // Spec §50: a severed limb — the real limb geometry carved from its
+        // former owner's body mesh (falls through to a primitive when the
+        // owner/mesh can't provide it, e.g. a non-readable import).
+        if (worldObject.DefinitionId == "body.limb_severed")
+        {
+            NpcActorView owner = null;
+            if (worldObject.OwnerNpcId is { } ownerId)
+            {
+                _actorViews.TryGetValue(ownerId, out owner);
+            }
+
+            var anchorPos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
+            var worldPos = SimulationUnityMapper.ToUnityPosition(anchorPos, GroundY(worldObject.Tile));
+
+            var limb = HexLive.UnityPresentation.Wearing.SeveredLimbFactory.Build(
+                owner, worldObject.Variant);
+            if (limb != null)
+            {
+                var limbRoot = new GameObject($"Object {worldObject.DefinitionId} {worldObject.Variant}");
+                limbRoot.transform.SetParent(_objectsRoot, false);
+                limb.transform.SetParent(limbRoot.transform, false);
+                var limbScale = HexRadius * NpcHeightFactor * 2.4f / ActorSourceHeightMeters;
+                limb.transform.localScale = Vector3.one * limbScale;
+                limb.transform.localRotation = Quaternion.Euler(
+                    90f, (worldObject.Id.Value * 47) % 360, 0f); // lie on its side, scattered yaw
+                GroundVisual(limb, lift: 0.05f);
+                limbRoot.transform.position = worldPos;
+                Debug.Log($"[§50 limb] REAL MESH '{worldObject.Variant}' obj#{worldObject.Id.Value} " +
+                    $"at {worldPos} (owner {worldObject.OwnerNpcId})");
+                return limbRoot;
+            }
+
+            // Fallback (the actor mesh isn't Read/Write, or the owner is gone):
+            // a clearly visible blood-red limb-sized capsule, so the dropped
+            // limb is NEVER invisible on scene — findable by name "…(fallback)".
+            var fbRoot = new GameObject($"Object {worldObject.DefinitionId} {worldObject.Variant} (fallback)");
+            fbRoot.transform.SetParent(_objectsRoot, false);
+            var capsule = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            capsule.name = "LimbCapsule";
+            capsule.transform.SetParent(fbRoot.transform, false);
+            capsule.transform.localScale = new Vector3(0.22f, 0.5f, 0.22f);
+            capsule.transform.localRotation = Quaternion.Euler(80f, (worldObject.Id.Value * 47) % 360, 0f);
+            var capMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            capMat.SetColor("_BaseColor", new Color(0.7f, 0.04f, 0.04f));
+            capMat.SetFloat("_Smoothness", 0.15f);
+            capsule.GetComponent<MeshRenderer>().sharedMaterial = capMat;
+            GroundVisual(capsule, lift: 0.12f); // lifted so it's not buried under her feet
+            fbRoot.transform.position = worldPos;
+            Debug.Log($"[§50 limb] FALLBACK capsule '{worldObject.Variant}' obj#{worldObject.Id.Value} " +
+                $"at {worldPos} (owner {worldObject.OwnerNpcId}) — enable Read/Write on the actor mesh for real geometry");
+            return fbRoot;
+        }
+
+        // Spec §54.2: a palm is ASSEMBLED from N trunk-segment logs + a crown, so
+        // it visibly matches the logs/crown that drop when it's felled. Already
+        // absolute-sized (each segment = a dropped log), so no FitObjectPrefab.
+        if (HexLive.UnityPresentation.Environment.PalmTreeFactory.IsPalm(worldObject.DefinitionId))
+        {
+            var palm = HexLive.UnityPresentation.Environment.PalmTreeFactory.Build(worldObject.DefinitionId);
+            if (palm != null)
+            {
+                palm.transform.SetParent(_objectsRoot, false);
+                var palmAnchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
+                palm.transform.position = SimulationUnityMapper.ToUnityPosition(
+                    palmAnchor, GroundY(worldObject.Tile));
+                // §54.2: fell it with the same tilt+stump animation as any tree.
+                return palm;
+            }
+        }
+
+        // Spec §54.2: the dropped palm crown is a fluffy cluster of leaves — no
+        // trunk. Same builder the standing palm's top uses; the big palm's crown
+        // is fuller than the small one's (matching its leaf drop).
+        if (worldObject.DefinitionId == "resource.palm_crown" ||
+            worldObject.DefinitionId == "resource.palm_crown_small")
+        {
+            var frondCount = worldObject.DefinitionId == "resource.palm_crown_small"
+                ? HexLive.Simulation.Runtime.SimBalance.SmallPalmCrownLeaves
+                : HexLive.Simulation.Runtime.SimBalance.BigPalmCrownLeaves;
+            var crown = HexLive.UnityPresentation.Environment.PalmCrownFactory.Build(HexRadius * 0.85f, frondCount);
+            if (crown != null)
+            {
+                var crownRoot = new GameObject("Object resource.palm_crown");
+                crownRoot.transform.SetParent(_objectsRoot, false);
+                crown.transform.SetParent(crownRoot.transform, false);
+                var cAnchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
+                crownRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
+                    cAnchor, GroundY(worldObject.Tile));
+                return crownRoot;
+            }
+        }
+
+        // Spec §54.2: the beds are ASSEMBLED from the game's own primitives —
+        // logs, sticks, leaves, rope — so they read as built from those bits.
+        if (HexLive.UnityPresentation.Environment.BedFactory.IsBed(worldObject.DefinitionId))
+        {
+            var bed = HexLive.UnityPresentation.Environment.BedFactory.Build(worldObject.DefinitionId);
+            if (bed != null)
+            {
+                bed.transform.SetParent(_objectsRoot, false);
+                var bedAnchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
+                bed.transform.position = SimulationUnityMapper.ToUnityPosition(
+                    bedAnchor, GroundY(worldObject.Tile));
+                return bed;
+            }
+        }
+
         // Spec 31C.3: real prefabs first (Resources/HexLive/Objects/<id>),
         // primitives as the eternal fallback.
         var objectPrefab = Resources.Load<GameObject>($"HexLive/Objects/{worldObject.DefinitionId}");
@@ -1519,6 +1778,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     // Spec 20.16: the campfire actually burns — flame particles + a warm,
     // flickering point light that lights nearby terrain and actors.
+    // Spec §54: ring the pit with real low-poly stones (like Stranded Deep's
+    // fire pit) so the hearth reads as "piled from stones", lit or not.
     private void MaybeAttachCampfire(GameObject root, string definitionId)
     {
         if (definitionId != "campfire.spot")
@@ -1526,8 +1787,35 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return;
         }
 
+        AddCampfireStoneRing(root.transform);
+
         var effect = root.AddComponent<HexLive.UnityPresentation.Environment.CampfireEffect>();
         effect.Construct(HexRadius);
+    }
+
+    // Spec §54: a ring of ~9 low-poly stones around the fire pit.
+    private void AddCampfireStoneRing(Transform parent)
+    {
+        const int stoneCount = 9;
+        var ringRadius = HexRadius * 0.42f;
+        for (var i = 0; i < stoneCount; i++)
+        {
+            var angle = (i / (float)stoneCount) * Mathf.PI * 2f;
+            var stone = HexLive.UnityPresentation.Environment.LowPolyToolFactory.Build("resource.stone");
+            if (stone == null)
+            {
+                continue;
+            }
+
+            stone.name = "RingStone";
+            stone.transform.SetParent(parent, false);
+            // Vary size/rotation a touch so the ring doesn't look stamped.
+            var s = 0.5f + 0.12f * Mathf.Sin(i * 2.3f);
+            stone.transform.localScale = new Vector3(s, s * 0.8f, s);
+            stone.transform.localPosition = new Vector3(
+                Mathf.Cos(angle) * ringRadius, 0f, Mathf.Sin(angle) * ringRadius);
+            stone.transform.localRotation = Quaternion.Euler(0f, i * 40f, 0f);
+        }
     }
 
     // Animal keys share one pose map: dogs get positive ids, crabs negative.
@@ -2198,72 +2486,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // metric by its rendered bounds — no per-asset scale guessing.
     private void FitObjectPrefab(GameObject instance, string definitionId)
     {
-        var renderers = instance.GetComponentsInChildren<Renderer>();
-        if (renderers.Length == 0)
-        {
-            return;
-        }
-
-        var bounds = renderers[0].bounds;
-        for (var i = 1; i < renderers.Length; i++)
-        {
-            bounds.Encapsulate(renderers[i].bounds);
-        }
-
-        float target;
-        float current;
-        if (definitionId.Contains("tree"))
-        {
-            target = HexRadius * 2.2f; // palms tower over the girls
-            current = bounds.size.y;
-        }
-        else if (definitionId.Contains("bed"))
-        {
-            target = HexRadius * 0.95f;
-            current = Mathf.Max(bounds.size.x, bounds.size.z);
-        }
-        else if (definitionId.StartsWith("food."))
-        {
-            target = HexRadius * 0.12f;
-            current = Mathf.Max(bounds.size.x, Mathf.Max(bounds.size.y, bounds.size.z));
-        }
-        else if (definitionId.StartsWith("tool.") || definitionId.StartsWith("resource."))
-        {
-            target = HexRadius * 0.18f;
-            current = Mathf.Max(bounds.size.x, Mathf.Max(bounds.size.y, bounds.size.z));
-        }
-        else if (definitionId == "campfire.spot")
-        {
-            target = HexRadius * 0.55f;
-            current = Mathf.Max(bounds.size.x, bounds.size.z);
-        }
-        else if (definitionId == "grave.npc")
-        {
-            target = HexRadius * 0.35f;
-            current = bounds.size.y;
-        }
-        else if (definitionId == "rock.boulder")
-        {
-            target = HexRadius * 0.45f;
-            current = Mathf.Max(bounds.size.x, bounds.size.z);
-        }
-        else if (definitionId == "forest.deadfall" || definitionId == "station.drying_rack" ||
-                 definitionId == "construction.site")
-        {
-            target = HexRadius * 0.7f;
-            current = Mathf.Max(bounds.size.x, bounds.size.z);
-        }
-        else
-        {
-            target = HexRadius * 0.6f;
-            current = Mathf.Max(bounds.size.x, Mathf.Max(bounds.size.y, bounds.size.z));
-        }
-
-        if (current > 0.0001f)
-        {
-            instance.transform.localScale *= target / current;
-        }
-
+        // Size comes from the shared ObjectFit table (same one the in-hand prop
+        // uses in NpcActorView.SetHandProp) so a tool/coconut is the same physical
+        // size on the ground and in the hand.
+        instance.transform.localScale *= ObjectFit.FitScaleFactor(instance, definitionId);
         GroundVisual(instance);
     }
 

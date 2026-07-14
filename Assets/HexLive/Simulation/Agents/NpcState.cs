@@ -22,6 +22,31 @@ public sealed class BodyState
         [BodyPart.LegR] = 1f
     };
 
+    // Spec §50: limbs that have been severed and are gone for good. A severed
+    // zone is pinned at 0 HP and never regenerates (unlike a merely-mauled zone,
+    // which heals back). Only arms/legs can be severed — never Head/Torso/Pelvis.
+    public System.Collections.Generic.HashSet<BodyPart> Severed { get; } = new();
+
+    public bool IsSevered(BodyPart part) => Severed.Contains(part);
+
+    public bool AnySevered => Severed.Count > 0;
+
+    // Spec §50: jumping needs both legs. A survivor missing either leg can't
+    // hop an elevation step (or dive water) — that terrain becomes off-limits.
+    public bool CanJump => !IsSevered(BodyPart.LegL) && !IsSevered(BodyPart.LegR);
+
+    // Spec §52: how many hands can still hold things — one inventory slot each,
+    // and the pair a two-handed weapon needs. Lose an arm, lose a hand slot.
+    public int IntactHands =>
+        (IsSevered(BodyPart.ArmL) ? 0 : 1) + (IsSevered(BodyPart.ArmR) ? 0 : 1);
+
+    // Sever a limb: mark it gone and pin its HP to 0. Idempotent.
+    public void Sever(BodyPart part)
+    {
+        Severed.Add(part);
+        Parts[part] = 0f;
+    }
+
     public float Mean()
     {
         var sum = 0f;
@@ -52,11 +77,40 @@ public sealed class BodyState
     }
 
     // Spec 19.3C: mauled legs mean hobbling, hurt arms mean weak strikes.
-    public float MobilityFactor() =>
-        0.4f + 0.6f * (Parts[BodyPart.LegL] + Parts[BodyPart.LegR]) * 0.5f;
+    // Spec §50: a merely-mauled leg keeps the 0.4 floor (a hurt leg still
+    // shuffles at 40%); a LOST leg (one or both) means she crawls — a fixed
+    // slow pace (CrawlSpeedFactor, ~1/3 of walking) that pairs with the crawl
+    // animation, regardless of how the other leg is doing.
+    public float MobilityFactor()
+    {
+        if (IsSevered(BodyPart.LegL) || IsSevered(BodyPart.LegR))
+        {
+            return HexLive.Simulation.Runtime.Spec50.CrawlSpeedFactor;
+        }
 
-    public float StrikeFactor() =>
-        0.4f + 0.6f * (Parts[BodyPart.ArmL] + Parts[BodyPart.ArmR]) * 0.5f;
+        return 0.4f + 0.6f * (Parts[BodyPart.LegL] + Parts[BodyPart.LegR]) * 0.5f;
+    }
+
+    public float StrikeFactor()
+    {
+        var baseFactor = 0.4f + 0.6f * (Parts[BodyPart.ArmL] + Parts[BodyPart.ArmR]) * 0.5f;
+        return baseFactor * SeveredArmMult();
+    }
+
+    // 1.0 with both arms; the §50 severed multiplier for one gone, its square
+    // for both gone (a lost arm can't strike back — the collapse is below the
+    // 0.4 mauled floor).
+    private float SeveredArmMult()
+    {
+        var gone = (IsSevered(BodyPart.ArmL) ? 1 : 0) + (IsSevered(BodyPart.ArmR) ? 1 : 0);
+        if (gone == 0)
+        {
+            return 1f;
+        }
+
+        var mult = HexLive.Simulation.Runtime.Spec50.SeveredLimbMobilityMult;
+        return gone == 2 ? mult * mult : mult;
+    }
 }
 
 // Spec 40.8B: one landed bite/hit = one wound record. The zone-health model
@@ -144,6 +198,14 @@ public sealed class NPCState
     // Spec 35.4: accumulated sun exposure; burns at 1.0.
     public float SunExposure { get; set; }
 
+    // Spec §53: this girl's personality weight for compassion (0..1). Seeded
+    // once at spawn and fixed for life. It scales BOTH how fast her Compassion
+    // need drains from others' suffering AND the strength of her Aid bid — a
+    // high-trait girl drops a bed build to tend a wounded housemate, a low-trait
+    // one helps only when she has nothing else to do. Default is a middling
+    // value; WorldStateFactory spreads it per-NPC.
+    public float CompassionTrait { get; set; } = 0.6f;
+
     public NPCNeeds Needs { get; } = new();
 
     public NPCMind Mind { get; } = new();
@@ -167,6 +229,12 @@ public sealed class NPCState
 
     // Spec 29H: what the carried bottle currently holds (one bottle per NPC).
     public WaterKind BottleWater { get; set; } = WaterKind.None;
+
+    // Spec §52: a filled bottle holds several gulps. Filling charges it to
+    // SimBalance.BottleCapacity; each drink spends one; at 0 the bottle empties
+    // (BottleWater → None) and only then is a refill trip worthwhile. This is
+    // what lets a colony stop obsessing over water — one fill, several drinks.
+    public int BottleCharges { get; set; }
 }
 
 // Spec 29H: the contents of an NPC's water bottle.

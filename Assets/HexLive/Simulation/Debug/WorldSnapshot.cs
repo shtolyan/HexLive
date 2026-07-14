@@ -133,6 +133,28 @@ public sealed class ObjectSnapshot
     // dead NPC's id in CurrentUser) — lets the view adopt the actor's ragdoll.
     public int? OwnerNpcId { get; set; }
 
+    // Spec §50: object variant tag — for body.limb_severed, the BodyPart name
+    // so the view bakes the matching bone chain from the owner's mesh.
+    public string Variant { get; set; } = string.Empty;
+
+    // Spec §54: build-site payload, so the view can assemble a piece from its
+    // delivered components (a bed growing from hauled stones/logs). Empty
+    // BuildProduct ⇒ not a site. Delivered* are how many of each material have
+    // been dropped into the site so far (out of Bill*).
+    public string BuildProduct { get; set; } = string.Empty;
+
+    public int BillLogs { get; set; }
+
+    public int BillStones { get; set; }
+
+    public int BillLeaves { get; set; }
+
+    public int DeliveredLogs { get; set; }
+
+    public int DeliveredStones { get; set; }
+
+    public int DeliveredLeaves { get; set; }
+
     public List<JunctionId> Junctions { get; } = new();
 }
 
@@ -156,6 +178,10 @@ public sealed class NpcSnapshot
 
     public List<string> BodyParts { get; } = new();
 
+    // Spec §50: zones that have been severed (BodyPart names). The view hides
+    // the matching bone chain and stamps a blood stump at the cut.
+    public List<string> SeveredParts { get; } = new();
+
     public string WorstBodyPart { get; set; } = string.Empty;
 
     // Spec 40.8/40.6: zones with NO garment coverage — skin decals (wounds,
@@ -174,6 +200,9 @@ public sealed class NpcSnapshot
     public float Comfort { get; set; }
 
     public float Social { get; set; }
+
+    // Spec §53: compassion need (1 = at peace, 0 = wrung out).
+    public float Compassion { get; set; }
 
     public float ThermalDiscomfort { get; set; }
 
@@ -250,6 +279,34 @@ public sealed class NpcSnapshot
 
     public string CurrentInteraction { get; set; } = string.Empty;
 
+    // Spec 28.15E: the subject of the current Talk (TalkTopic name), or "" when
+    // not talking. The presentation shows the matching emoji in an overhead
+    // bubble while the speaker is chatting.
+    public string TalkTopic { get; set; } = string.Empty;
+
+    // Spec 28.15E: last talk outcome, for the Sims-style relationship pop over
+    // the head. TalkResultTick is when the outcome resolved (the view fires the
+    // "+/-" once per new tick); TalkResultDelta is the signed affinity change
+    // (+ good chat, - quarrel), whose magnitude drives single vs double glyph.
+    public int TalkResultTick { get; set; } = -1;
+    public float TalkResultDelta { get; set; }
+
+    // §Wardrobe-anim: 0..1 fraction of the current timed interaction, so the
+    // view can split dress/undress into their gather + garment-in-hand beats.
+    // 0 when no timed interaction is running.
+    public float InteractionProgress { get; set; }
+
+    // §Wardrobe-anim: the garment the NPC is holding in hand mid dress/undress
+    // (spawned as a hand prop by the view), or empty. During the "don" beat of
+    // a dress it's the target garment; during the "gather" beat of an undress
+    // it's the piece just taken off. Empty at all other times.
+    public string HeldGarmentId { get; set; } = string.Empty;
+
+    // §Wardrobe-anim: the world object this NPC is interacting with (if any),
+    // so the renderer can hide a garment lying on the ground once its owner has
+    // picked it up into hand for the "don" beat (no double-visible garment).
+    public int? TargetObjectId { get; set; }
+
     public TileCoord? TargetTile { get; set; }
 
     public bool IsStarving { get; set; }
@@ -269,6 +326,11 @@ public sealed class NpcSnapshot
     // Spec 40.8B: "Zone|seed|heal01" per open wound — each maps to ONE decal
     // whose exact spot/look derive from seed and whose alpha fades with heal.
     public List<string> Wounds { get; } = new();
+
+    // Spec §48: active status effects (buffs/debuffs), "Kind\tintensity" each —
+    // derived read-only from this NPC's state by EffectEvaluator. The character
+    // panel renders one circular chip per entry with a hover tooltip.
+    public List<string> Effects { get; } = new();
 
     // Spec 40.8B: HP fraction held hostage by open wounds (Fallout-style red
     // bar segment — regen can't cross it; it shrinks as wounds close).

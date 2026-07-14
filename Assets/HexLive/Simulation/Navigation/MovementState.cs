@@ -16,6 +16,9 @@ public sealed class MovementState
 
     public int PathIndex { get; set; }
 
+    // Vestigial: written each tick but never READ for behaviour (movement uses
+    // a local `direction` + DesiredRotationDegrees). Still serialized, so kept
+    // to avoid a save-format bump; drop with the next serializer version.
     public Float2 DesiredDirection { get; set; } = Float2.Zero;
 
     public float DesiredRotationDegrees { get; set; }
@@ -28,6 +31,9 @@ public sealed class MovementState
 
     public string StopReason { get; set; } = string.Empty;
 
+    // Vestigial: only round-trips through the serializer, never used in logic
+    // (the real post-turn pause is npc.PostTurnPause + PostTurnTimer). Kept for
+    // save-format compat; drop with the next serializer version.
     public float PostTurnDelay { get; set; }
     public float PostTurnTimer { get; set; }
 
@@ -51,13 +57,13 @@ public sealed class MovementState
     public Float2 HopFrom { get; set; }
     public Float2 HopTo { get; set; }
     public bool HopCrossed { get; set; }
+    // Presentation-only flag (up vs down). The MODEL flight is elevation-
+    // agnostic: one straight lerp HopFrom->HopTo either way — do NOT branch the
+    // model on this. The view uses it to pick the ascending/descending arc.
     public bool HopUp { get; set; }
     // Where the hop lands — the presentation reads the exact target ground
     // height from it (water dives land BELOW the surface, not one step down).
     public TileCoord HopTargetTile { get; set; }
-    // Legacy arm-flag kept for external callers (swim test); the hop itself
-    // now always starts on the approach segment before the edge junction.
-    public bool PendingDownHop { get; set; }
     public int HopPathIndex { get; set; } = -1;
 }
 

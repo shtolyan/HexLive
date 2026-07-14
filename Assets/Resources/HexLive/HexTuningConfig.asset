@@ -21,8 +21,8 @@ MonoBehaviour:
   divePlungeDepth: 0.7
   swimEntryPauseSeconds: 2
   swimSpeedFactor: 0.6
-  ledgeSeatLift: -0.438
-  ledgeSeatBack: 0.235
+  ledgeSeatLift: -0.344
+  ledgeSeatBack: 0.2
   sinkDepth: 0.6
   wadeDepth: 0.2
   swimBodyLift: 0.45

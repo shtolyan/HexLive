@@ -51,6 +51,9 @@ public sealed class WorldStateFactory
         }
 
         CreateBuildProject(world);
+        CreateCampfireSite(world); // §54 cold start: the hearth is built, not given
+        // §54.2: beds are woven at the campfire (CraftBed tiers) — the §52 bed
+        // build-site is retired, so it's no longer seeded here.
         SeedHomeKnowledge(world);
 
         // Spec 29E.3: campfires start cold (ResourceAmount is fuel ticks).
@@ -75,8 +78,11 @@ public sealed class WorldStateFactory
         // random (deterministic per seed+NPC) underwear, MAYBE shorts, MAYBE
         // a top missing entirely. Clothing barely warms; the designed way
         // through a cold night is the campfire, not the wardrobe.
-        string[] startBottoms = { "Panty_11571", "Bikini Bottom" };
-        string[] startTops = { "Bikini top", "Top_11927", "CowTop" };
+        // Custom-print underwear/tops (fal.ai textures, spec 42) join the
+        // seeded rotation so castaways can wash ashore in the leopard/star
+        // panties or the tie-dye/tropic tee.
+        string[] startBottoms = { "Panty_11571", "Bikini Bottom", "underwear.panty_leo", "underwear.panty_stars" };
+        string[] startTops = { "Bikini top", "Top_11927", "CowTop", "clothing.top_tiedye", "clothing.top_tropic" };
         string[] startShorts = { "Shorts Green", "Shorts short", "Shorts 1389" };
         foreach (var npc in world.Entities.Npcs.Values)
         {
@@ -170,6 +176,128 @@ public sealed class WorldStateFactory
         var siteTile = world.Tiles.Items[site];
         WorldObjectMutations.SpawnObject(world, "construction.site",
             new FragmentId(1), site, siteTile.Junctions[0]);
+    }
+
+    // Spec §52: stake the communal bed as a build-site next to the campfire —
+    // an intent point every NPC knows from the start (SeedHomeKnowledge runs
+    // right after). Bill = 3 logs + 2 stones; a hammer raises it once stocked.
+    // Placed on a free junction of a tile neighbouring the hearth so it sits in
+    // the yard, not on top of the fire.
+    // §54 cold start (simple): the yard's chosen hearth spot holds an UNLIT
+    // campfire — the pit is there, but stone-cold. The colony gathers sticks and
+    // lights it themselves (TendFire, by lighter or friction); nothing else is
+    // pre-built or handed out. Keeps the generator-chosen good location. (The
+    // "pile the pit from loose stones" build-flow is deferred to a later visual
+    // pass — the AI didn't reliably prioritise it from a cold, hungry start.)
+    private static void CreateCampfireSite(WorldState world)
+    {
+        var hearth = new TileCoord(0, 4);
+        if (!world.Tiles.Items.TryGetValue(hearth, out var tile))
+        {
+            return;
+        }
+
+        JunctionId? junction = null;
+        foreach (var jid in tile.Junctions)
+        {
+            if (world.Junctions.Items.TryGetValue(jid, out var jn) && !jn.Blocked)
+            {
+                junction = jid;
+                break;
+            }
+        }
+
+        if (junction is not { } j)
+        {
+            return;
+        }
+
+        // Spawn it cold — the shared "campfires start cold" pass below zeroes
+        // ResourceAmount, so it renders as an unlit pit until someone fuels it.
+        WorldObjectMutations.SpawnObject(world, "campfire.spot", new FragmentId(1), hearth, j);
+    }
+
+    private static void CreateBedSite(WorldState world)
+    {
+        // §54: anchor the bed-site by the hearth — a finished campfire if one
+        // exists, otherwise the campfire build-site (cold start).
+        var campfire = FindObject(world, "campfire.spot") ?? FindHearthSite(world);
+        if (campfire is null)
+        {
+            return;
+        }
+
+        // Collect free junctions on dry tiles neighbouring the hearth, so both
+        // the bed-site and the hammers land on real, walkable spots.
+        var spots = new System.Collections.Generic.List<(TileCoord Tile, JunctionId Junction)>();
+        foreach (var dir in HexDirection.All)
+        {
+            var coord = new TileCoord(campfire.Tile.Q + dir.DQ, campfire.Tile.R + dir.DR);
+            if (!world.Tiles.Items.TryGetValue(coord, out var tile) ||
+                tile.Flags.HasFlag(TileFlags.Water))
+            {
+                continue;
+            }
+
+            foreach (var jid in tile.Junctions)
+            {
+                if (world.Junctions.Items.TryGetValue(jid, out var jn) && !jn.Blocked)
+                {
+                    spots.Add((coord, jid));
+                    break;
+                }
+            }
+        }
+
+        if (spots.Count == 0)
+        {
+            return;
+        }
+
+        var site = WorldObjectMutations.SpawnObject(
+            world, "build.site", new FragmentId(1), spots[0].Tile, spots[0].Junction);
+        site.BuildProduct = "bed.basic";
+        // §52: an all-stone frame — 3 stones, no logs. Logs are always eaten by
+        // the hearth before they reach a site, so a log-billed bed starves; a
+        // stone bill uses the lightly-contested GatherStone chain and reliably
+        // finishes. (The bill is one line — retune freely.)
+        site.BillLogs = 0;
+        site.BillStones = 2;
+
+        // §52: two builder's hammers near the hearth — a second girl can build
+        // while the first carries one off. Placed on the remaining free spots.
+        for (var i = 1; i < spots.Count && i <= 2; i++)
+        {
+            WorldObjectMutations.SpawnObject(
+                world, "tool.hammer", new FragmentId(1), spots[i].Tile, spots[i].Junction);
+        }
+    }
+
+    private static WorldObjectState FindObject(WorldState world, string definitionId)
+    {
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (obj.DefinitionId == definitionId)
+            {
+                return obj;
+            }
+        }
+
+        return null;
+    }
+
+    // §54 cold start: the campfire build-site (the hearth before it's raised).
+    private static WorldObjectState FindHearthSite(WorldState world)
+    {
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (obj.BuildProduct == "campfire.spot")
+            {
+                return obj;
+            }
+        }
+
+        return null;
     }
 
     // Spec 27.18A: NPCs know their home layout at start — every bootstrap
@@ -518,12 +646,18 @@ public sealed class WorldStateFactory
         npc.Needs.Social = bootstrap.Social;
         npc.Needs.ThermalDiscomfort = bootstrap.ThermalDiscomfort;
 
-        // Spec 29H: everyone carries a personal water bottle (starts empty).
+        // Spec §53: personality compassion weight, drawn once and fixed for life.
+        // Spreads the colony from reserved (helps only when idle) to deeply
+        // caring (breaks off her own chores to tend the hurt). Deterministic on
+        // the world seed + npc id so a replay is identical.
+        npc.CompassionTrait = HexLive.Simulation.Runtime.Spec53.TraitMin +
+            MathUtil.Hash01(world.Seed, bootstrap.Id, 53, 5301) *
+            (HexLive.Simulation.Runtime.Spec53.TraitMax - HexLive.Simulation.Runtime.Spec53.TraitMin);
+
+        // Spec 29H: everyone carries a personal water bottle (starts empty) — the
+        // only starting kit. §54 cold start: the spear is no longer handed out,
+        // it must be crafted (1 stick at the fire), like every other tool.
         npc.Inventory.Items.Add(new Agents.ItemInstance("tool.bottle"));
-        // Spec 29F.4 (iter 32): everyone starts with a spear — a weapon is
-        // always to hand (foreshadows the weapon-slot equipment). With
-        // coconuts scarcer, this lets hunting actually happen from day one.
-        npc.Inventory.Items.Add(new Agents.ItemInstance("tool.spear"));
         // Spec 40.3: two bandages start in the med pouch (Needs.Bandages),
         // not the general pack.
 

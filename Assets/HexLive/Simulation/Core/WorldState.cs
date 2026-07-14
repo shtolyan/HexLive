@@ -92,6 +92,13 @@ public sealed class WorldState
 
     public System.Collections.Generic.Dictionary<JunctionId, int> JunctionComponents { get; } = new();
 
+    // Spec §50: a second connectivity graph for survivors who CAN'T jump (a lost
+    // leg) — it omits every elevation-step edge, so a legless girl reads a higher
+    // ledge / the water as unreachable and never plans a route she can't crawl.
+    public int ComponentsFlatBuiltVersion { get; set; }
+
+    public System.Collections.Generic.Dictionary<JunctionId, int> JunctionComponentsFlat { get; } = new();
+
     // Spec 35.3: the communal hut project (null once cleanup removes it).
     public BuildProject? Project { get; set; }
 

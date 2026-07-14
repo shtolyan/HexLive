@@ -81,7 +81,27 @@ public sealed class PerceivedAgent
     // Walking agents are not talk targets in v1 (no chasing, spec 28.15A).
     public bool IsMoving { get; set; }
 
+    // Spec §53: how badly this neighbour needs help (0 = fine, 1 = dying) and
+    // the single most-urgent HELPABLE kind of aid. Populated by the perception
+    // build so the Aid goal can bid on, and route to, the worst-off housemate
+    // without re-scanning every agent's full state.
+    public float Suffering { get; set; }
+
+    public AidKind AidKind { get; set; } = AidKind.None;
+
     public RelationshipSummary Relationship { get; } = new();
+}
+
+// Spec §53: the kind of care a suffering neighbour needs, in priority order of
+// urgency. The Aid goal picks the neighbour with the highest Suffering and
+// performs the matching interaction.
+public enum AidKind
+{
+    None,
+    Feed,     // starving — a well-fed girl shares a meal
+    Treat,    // wounded / bleeding — dress the wound
+    Medicate, // sick or gravely weak — hand over a pill
+    Console   // grieving or breaking under stress — sit with her
 }
 
 public sealed class PerceivedEnvironment

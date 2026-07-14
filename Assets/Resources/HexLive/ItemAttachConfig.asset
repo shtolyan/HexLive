@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0980b73c5bf504724ace221386edc770, type: 3}
+  m_Name: ItemAttachConfig
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Config.ItemAttachConfig
+  entries:
+  - itemId: tool.axe_stone
+    localPosition: {x: 0.054, y: -0.033, z: -0.076}
+    localEuler: {x: -27.667, y: 97.515, z: 87.548}
+    localScale: {x: 1, y: 1, z: 1}
+    hasLeft: 0
+    leftLocalPosition: {x: 0, y: 0, z: 0}
+    leftLocalEuler: {x: 0, y: 0, z: 0}
+  - itemId: tool.knife
+    localPosition: {x: 0.054, y: -0.033, z: -0.076}
+    localEuler: {x: -27.667, y: 97.515, z: 87.548}
+    localScale: {x: 1, y: 1, z: 1}
+    hasLeft: 0
+    leftLocalPosition: {x: 0, y: 0, z: 0}
+    leftLocalEuler: {x: 0, y: 0, z: 0}
+  - itemId: tool.pickaxe_stone
+    localPosition: {x: 0.054, y: -0.033, z: -0.076}
+    localEuler: {x: -27.667, y: 97.515, z: 87.548}
+    localScale: {x: 1, y: 1, z: 1}
+    hasLeft: 0
+    leftLocalPosition: {x: 0, y: 0, z: 0}
+    leftLocalEuler: {x: 0, y: 0, z: 0}
+  - itemId: tool.hammer
+    localPosition: {x: 0.054, y: -0.033, z: -0.076}
+    localEuler: {x: -27.667, y: 97.515, z: 87.548}
+    localScale: {x: 1, y: 1, z: 1}
+    hasLeft: 0
+    leftLocalPosition: {x: 0, y: 0, z: 0}
+    leftLocalEuler: {x: 0, y: 0, z: 0}
+  - itemId: tool.spear
+    localPosition: {x: 0.054, y: -0.033, z: -0.076}
+    localEuler: {x: -25.4, y: 93.957, z: 75.281}
+    localScale: {x: 1, y: 1, z: 1}
+    hasLeft: 0
+    leftLocalPosition: {x: 0, y: 0, z: 0}
+    leftLocalEuler: {x: 0, y: 0, z: 0}

@@ -13,6 +13,15 @@ public sealed class NPCNeeds
 
     public float Social { get; set; }
 
+    // Spec §53: compassion (1 = at peace, 0 = wrung out). Mirrors the Social
+    // convention (higher = better). It is SPENT when nearby housemates suffer
+    // and go un-helped — the more (and worse) the suffering around her, the
+    // faster it drains — and it is restored by helping someone or when no one
+    // near her is hurting. Low compassion adds pressure to the Aid goal so a
+    // caring girl eventually breaks off her own chores to tend the wounded.
+    // Starts full. The per-NPC WEIGHT of this drive is NPCState.CompassionTrait.
+    public float Compassion { get; set; } = 1f;
+
     public float ThermalDiscomfort { get; set; }
 
     // Spec 29C.10: signed thermal comfort for the UI — 0 = ideal ("chocolate"),

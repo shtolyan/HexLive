@@ -141,19 +141,19 @@ namespace HexLive.UnityPresentation.UI
             _scroll.Clear();
             var tile = FindTile(snapshot, coord);
 
-            _title.text = "Map point";
+            _title.text = Loc.Get("hex.title");
             _subtitle.text = $"Q {coord.Q} / R {coord.R}";
 
             if (tile == null)
             {
-                _scroll.Add(MakeEmpty("No hex data in the current snapshot."));
+                _scroll.Add(MakeEmpty(Loc.Get("hex.no_data")));
                 return;
             }
 
             var objects = FindObjects(snapshot, coord);
             if (objects.Count > 0)
             {
-                _scroll.Add(MakeSectionTitle("Game info"));
+                _scroll.Add(MakeSectionTitle(Loc.Get("hex.game_info")));
                 foreach (var obj in objects)
                 {
                     _scroll.Add(MakeObjectCard(obj));
@@ -161,8 +161,8 @@ namespace HexLive.UnityPresentation.UI
             }
             else
             {
-                _scroll.Add(MakeSectionTitle("Game info"));
-                _scroll.Add(MakeEmpty("No items or objects on this point."));
+                _scroll.Add(MakeSectionTitle(Loc.Get("hex.game_info")));
+                _scroll.Add(MakeEmpty(Loc.Get("hex.no_objects")));
             }
 
             var npcs = FindNpcs(snapshot, coord);
@@ -174,21 +174,21 @@ namespace HexLive.UnityPresentation.UI
                 }
             }
 
-            _scroll.Add(MakeSectionTitle("Hex data"));
+            _scroll.Add(MakeSectionTitle(Loc.Get("hex.hex_data")));
             _scroll.Add(MakeStatGrid(new[]
             {
-                ("Walkable", tile.Walkable ? Yes() : No(), tile.Walkable ? Good : Crit),
-                ("Blocked", tile.Blocked ? Yes() : No(), tile.Blocked ? Crit : Good),
-                ("Indoor", tile.Indoor ? Yes() : No(), tile.Indoor ? Warn : TextDim),
-                ("Water", tile.Water ? Yes() : No(), tile.Water ? Water : TextDim),
-                ("Elevation", tile.Elevation.ToString(), Text),
-                ("Coord", $"{coord.Q},{coord.R}", TextDim)
+                (Loc.Get("hex.walkable"), tile.Walkable ? Yes() : No(), tile.Walkable ? Good : Crit),
+                (Loc.Get("hex.blocked"), tile.Blocked ? Yes() : No(), tile.Blocked ? Crit : Good),
+                (Loc.Get("hex.indoor"), tile.Indoor ? Yes() : No(), tile.Indoor ? Warn : TextDim),
+                (Loc.Get("hex.water"), tile.Water ? Yes() : No(), tile.Water ? Water : TextDim),
+                (Loc.Get("hex.elevation"), tile.Elevation.ToString(), Text),
+                (Loc.Get("hex.coord"), $"{coord.Q},{coord.R}", TextDim)
             }));
 
             var junctions = FindJunctions(snapshot, coord);
             if (junctions.Count > 0)
             {
-                _scroll.Add(MakeSectionTitle("Debug: junctions"));
+                _scroll.Add(MakeSectionTitle(Loc.Get("hex.debug_junctions")));
                 foreach (var j in junctions)
                 {
                     _scroll.Add(MakeJunctionRow(j));
@@ -284,37 +284,37 @@ namespace HexLive.UnityPresentation.UI
             if (!string.IsNullOrEmpty(obj.BuildProduct))
             {
                 box.Add(MakeStatRow(
-                    "Build site",
+                    Loc.Get("hex.build_site"),
                     $"{obj.BuildProduct} / {Delivered(obj)}/{Bill(obj)}",
                     Gold));
-                AddBillLine(box, "Logs", obj.DeliveredLogs, obj.BillLogs);
-                AddBillLine(box, "Stones", obj.DeliveredStones, obj.BillStones);
-                AddBillLine(box, "Leaves", obj.DeliveredLeaves, obj.BillLeaves);
-                AddBillLine(box, "Sticks", obj.DeliveredSticks, obj.BillSticks);
-                AddBillLine(box, "Rope", obj.DeliveredRope, obj.BillRope);
+                AddBillLine(box, Loc.Get("hex.logs"), obj.DeliveredLogs, obj.BillLogs);
+                AddBillLine(box, Loc.Get("hex.stones"), obj.DeliveredStones, obj.BillStones);
+                AddBillLine(box, Loc.Get("hex.leaves"), obj.DeliveredLeaves, obj.BillLeaves);
+                AddBillLine(box, Loc.Get("hex.sticks"), obj.DeliveredSticks, obj.BillSticks);
+                AddBillLine(box, Loc.Get("hex.rope"), obj.DeliveredRope, obj.BillRope);
             }
 
             if (obj.ResourceAmount > 0.001f)
             {
                 box.Add(MakeStatRow(
-                    "Resource",
+                    Loc.Get("hex.resource"),
                     obj.ResourceAmount.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture),
                     Warn));
             }
 
             if (obj.OwnerNpcId.HasValue)
             {
-                box.Add(MakeStatRow("Owner NPC", $"#{obj.OwnerNpcId.Value}", TextDim));
+                box.Add(MakeStatRow(Loc.Get("hex.owner_npc"), $"#{obj.OwnerNpcId.Value}", TextDim));
             }
 
             if (!string.IsNullOrEmpty(obj.Variant))
             {
-                box.Add(MakeStatRow("Variant", obj.Variant, TextDim));
+                box.Add(MakeStatRow(Loc.Get("hex.variant"), obj.Variant, TextDim));
             }
 
             if (def != null && def.Tags.Count > 0)
             {
-                box.Add(MakeStatRow("Tags", string.Join(", ", def.Tags), TextDim));
+                box.Add(MakeStatRow(Loc.Get("hex.tags"), string.Join(", ", def.Tags), TextDim));
             }
 
             return box;
@@ -458,7 +458,7 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement MakeNpcRow(NpcSnapshot npc)
         {
             return MakeStatRow(
-                "Character",
+                Loc.Get("hex.character"),
                 string.IsNullOrEmpty(npc.DisplayName) ? $"NPC #{npc.Id.Value}" : $"{npc.DisplayName} / #{npc.Id.Value}",
                 Good);
         }
@@ -469,7 +469,7 @@ namespace HexLive.UnityPresentation.UI
                 $"blocked:{Bool(j.Blocked)} occupied:{Bool(j.Occupied)} reserved:{Bool(j.Reserved)}";
             if (j.IsClimbSeam) value += " / climb";
             if (j.IsSwimmable) value += " / swim";
-            return MakeStatRow("Junction", value, TextDim);
+            return MakeStatRow(Loc.Get("hex.junction"), value, TextDim);
         }
 
         private VisualElement MakeStatGrid((string label, string value, Color color)[] rows)
@@ -554,8 +554,8 @@ namespace HexLive.UnityPresentation.UI
         private static int Bill(ObjectSnapshot obj) =>
             obj.BillLogs + obj.BillStones + obj.BillLeaves + obj.BillSticks + obj.BillRope;
 
-        private static string Yes() => "yes";
-        private static string No() => "no";
+        private static string Yes() => Loc.Get("common.yes");
+        private static string No() => Loc.Get("common.no");
         private static string Bool(bool value) => value ? "1" : "0";
 
         private static ItemInfo ResolveItemInfo(string id, ObjectDefinition? def)
@@ -576,14 +576,14 @@ namespace HexLive.UnityPresentation.UI
 
         private static string ItemCategoryName(ObjectDefinition? def, ItemInfo info) =>
             def == null && !Loc.Has(info.NameKey)
-                ? "Object"
+                ? Loc.Get("hex.object")
                 : Loc.Get(info.CategoryNameKey);
 
         private static string ItemDesc(ObjectDefinition? def, ItemInfo info)
         {
             if (Loc.Has(info.DescKey)) return Loc.Get(info.DescKey);
             if (def != null) return Loc.Get(info.CategoryDescKey);
-            return "Data is available from the object model.";
+            return Loc.Get("hex.object_data_desc");
         }
 
         private static Sprite? LoadItemIcon(string id)

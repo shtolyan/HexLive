@@ -336,17 +336,12 @@ namespace HexLive.UnityPresentation.UI
 
         private void LocalizeStatic()
         {
-            var ru = Loc.Current == Language.Russian;
-            if (_title != null) _title.text = ru ? "История" : "History";
-            if (_subtitle != null) _subtitle.text = ru
-                ? "важные события текущего мира"
-                : "important events in this world";
-            if (_emptyLabel != null) _emptyLabel.text = ru
-                ? "Пока нет важных событий."
-                : "No important events yet.";
-            if (_showMoreButton != null) _showMoreButton.text = ru ? "Показать раньше" : "Show older";
-            if (_refreshButton != null) _refreshButton.text = ru ? "Обновить" : "Refresh";
-            if (_expandLabel != null) _expandLabel.text = ru ? "История" : "History";
+            if (_title != null) _title.text = Loc.Get("history.title");
+            if (_subtitle != null) _subtitle.text = Loc.Get("history.subtitle");
+            if (_emptyLabel != null) _emptyLabel.text = Loc.Get("history.empty");
+            if (_showMoreButton != null) _showMoreButton.text = Loc.Get("history.show_older");
+            if (_refreshButton != null) _refreshButton.text = Loc.Get("history.refresh");
+            if (_expandLabel != null) _expandLabel.text = Loc.Get("history.title");
         }
 
         private static Button MakeHeaderButton(string text, System.Action onClick)

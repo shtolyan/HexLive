@@ -4,6 +4,7 @@ using HexLive.Simulation.Agents;
 using HexLive.Simulation.Content;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Input;
+using HexLive.UnityPresentation.Localization;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -69,6 +70,16 @@ namespace HexLive.UnityPresentation.UI
             Build();
         }
 
+        private void OnEnable()
+        {
+            Loc.LanguageChanged += Build;
+        }
+
+        private void OnDisable()
+        {
+            Loc.LanguageChanged -= Build;
+        }
+
         private void Update()
         {
             if (_runner == null)
@@ -79,8 +90,8 @@ namespace HexLive.UnityPresentation.UI
             if (_targetLabel != null)
             {
                 _targetLabel.text = NpcSelection.HasSelection
-                    ? $"target: NPC #{NpcSelection.SelectedId}"
-                    : "target: everyone";
+                    ? string.Format(Loc.Get("debug.target_npc"), NpcSelection.SelectedId)
+                    : Loc.Get("debug.target_all");
             }
         }
 
@@ -119,7 +130,7 @@ namespace HexLive.UnityPresentation.UI
             header.style.marginBottom = 2f;
             box.Add(header);
 
-            var title = new Label("DEBUG");
+            var title = new Label(Loc.Get("debug.title"));
             title.style.color = new Color(0.604f, 0.651f, 0.678f);
             title.style.fontSize = 11;
             title.style.unityFontStyleAndWeight = FontStyle.Bold;
@@ -134,23 +145,23 @@ namespace HexLive.UnityPresentation.UI
             collapse.RegisterCallback<MouseDownEvent>(evt => { SetCollapsed(true); evt.StopPropagation(); });
             header.Add(collapse);
 
-            _targetLabel = new Label("target: everyone");
+            _targetLabel = new Label(Loc.Get("debug.target_all"));
             _targetLabel.style.color = new Color(0.55f, 0.60f, 0.63f);
             _targetLabel.style.fontSize = 10;
             _targetLabel.style.marginBottom = 8f;
             box.Add(_targetLabel);
 
-            box.Add(MakeButton("+ Random wound", Wound, AddRandomWound));
-            box.Add(MakeButton("Clear wounds", Raised, ClearWounds));
-            box.Add(MakeButton("+ Dirt", Dirt, () => AdjustHygiene(-0.25f)));
-            box.Add(MakeButton("- Dirt (wash)", Raised, () => AdjustHygiene(+0.25f)));
-            box.Add(MakeButton("+ Tan", TanCol, () => AdjustTan(+0.25f)));
-            box.Add(MakeButton("- Tan", Raised, () => AdjustTan(-0.25f)));
-            box.Add(MakeButton("+ Sweat", Raised, () => SweatOverride = 0.6f));
-            box.Add(MakeButton("- Sweat", Raised, () => SweatOverride = -1f));
-            box.Add(MakeButton("+ Tear clothes", Raised, TearClothes));
+            box.Add(MakeButton(Loc.Get("debug.random_wound"), Wound, AddRandomWound));
+            box.Add(MakeButton(Loc.Get("debug.clear_wounds"), Raised, ClearWounds));
+            box.Add(MakeButton(Loc.Get("debug.dirt_plus"), Dirt, () => AdjustHygiene(-0.25f)));
+            box.Add(MakeButton(Loc.Get("debug.dirt_minus"), Raised, () => AdjustHygiene(+0.25f)));
+            box.Add(MakeButton(Loc.Get("debug.tan_plus"), TanCol, () => AdjustTan(+0.25f)));
+            box.Add(MakeButton(Loc.Get("debug.tan_minus"), Raised, () => AdjustTan(-0.25f)));
+            box.Add(MakeButton(Loc.Get("debug.sweat_plus"), Raised, () => SweatOverride = 0.6f));
+            box.Add(MakeButton(Loc.Get("debug.sweat_minus"), Raised, () => SweatOverride = -1f));
+            box.Add(MakeButton(Loc.Get("debug.tear_clothes"), Raised, TearClothes));
 
-            _clothesButton = MakeButton("Hide clothes", Raised, ToggleClothes);
+            _clothesButton = MakeButton(ClothesButtonText(), Raised, ToggleClothes);
             _clothesLabel = (Label)_clothesButton[0];
             box.Add(_clothesButton);
 
@@ -214,8 +225,13 @@ namespace HexLive.UnityPresentation.UI
             HideClothing = !HideClothing;
             if (_clothesLabel != null)
             {
-                _clothesLabel.text = HideClothing ? "Show clothes" : "Hide clothes";
+                _clothesLabel.text = ClothesButtonText();
             }
+        }
+
+        private static string ClothesButtonText()
+        {
+            return Loc.Get(HideClothing ? "debug.show_clothes" : "debug.hide_clothes");
         }
 
         // ---- actions ----

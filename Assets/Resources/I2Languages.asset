@@ -16,24 +16,4278 @@ MonoBehaviour:
     UserAgreesToHaveItOnTheScene: 0
     UserAgreesToHaveItInsideThePluginsFolder: 0
     GoogleLiveSyncIsUptoDate: 1
-    mTerms: []
+    mTerms:
+    - Term: "panel.needs"
+      TermType: 0
+      Description:
+      Languages:
+      - "Needs"
+      - "ÐÐ¾ÑÑÐµÐ±Ð½Ð¾ÑÑÐ¸"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "panel.relations"
+      TermType: 0
+      Description:
+      Languages:
+      - "Relationships"
+      - "ÐÑÐ½Ð¾ÑÐµÐ½Ð¸Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "panel.wants"
+      TermType: 0
+      Description:
+      Languages:
+      - "Now wants"
+      - "Ð¡ÐµÐ¹ÑÐ°Ñ Ñ
+Ð¾ÑÐµÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "panel.health"
+      TermType: 0
+      Description:
+      Languages:
+      - "Health"
+      - "ÐÐ´Ð¾ÑÐ¾Ð²ÑÐµ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "panel.role"
+      TermType: 0
+      Description:
+      Languages:
+      - "islander"
+      - "Ð¾ÑÑÑÐ¾Ð²Ð¸ÑÑÐ½ÐºÐ°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "panel.live"
+      TermType: 0
+      Description:
+      Languages:
+      - "live"
+      - "Ð¿ÑÑÐ¼Ð¾Ð¹ ÑÑÐ¸Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "panel.none"
+      TermType: 0
+      Description:
+      Languages:
+      - "â"
+      - "â"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "need.hunger"
+      TermType: 0
+      Description:
+      Languages:
+      - "Fed"
+      - "Ð¡ÑÑÐ¾ÑÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "need.thirst"
+      TermType: 0
+      Description:
+      Languages:
+      - "Hydration"
+      - "ÐÐ°Ð¶Ð´Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "need.energy"
+      TermType: 0
+      Description:
+      Languages:
+      - "Energy"
+      - "Ð­Ð½ÐµÑÐ³Ð¸Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "need.comfort"
+      TermType: 0
+      Description:
+      Languages:
+      - "Comfort"
+      - "ÐÐ¾Ð¼ÑÐ¾ÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "need.social"
+      TermType: 0
+      Description:
+      Languages:
+      - "Social"
+      - "ÐÐ±ÑÐµÐ½Ð¸Ðµ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "need.thermal"
+      TermType: 0
+      Description:
+      Languages:
+      - "Warmth"
+      - "Ð¢ÐµÐ¿Ð»Ð¾"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "need.temperature"
+      TermType: 0
+      Description:
+      Languages:
+      - "Temperature"
+      - "Ð¢ÐµÐ¼Ð¿ÐµÑÐ°ÑÑÑÐ°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "need.stamina"
+      TermType: 0
+      Description:
+      Languages:
+      - "Stamina"
+      - "ÐÑÐ½Ð¾ÑÐ»Ð¸Ð²Ð¾ÑÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "need.blood"
+      TermType: 0
+      Description:
+      Languages:
+      - "Blood"
+      - "ÐÑÐ¾Ð²Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "need.hygiene"
+      TermType: 0
+      Description:
+      Languages:
+      - "Hygiene"
+      - "ÐÐ¸Ð³Ð¸ÐµÐ½Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "need.stress"
+      TermType: 0
+      Description:
+      Languages:
+      - "Stress"
+      - "Ð¡ÑÑÐµÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "need.compassion"
+      TermType: 0
+      Description:
+      Languages:
+      - "Compassion"
+      - "Ð¡Ð¾ÑÑÑÐ°Ð´Ð°Ð½Ð¸Ðµ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "panel.effects"
+      TermType: 0
+      Description:
+      Languages:
+      - "Effects"
+      - "Ð­ÑÑÐµÐºÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.bleeding.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Bleeding"
+      - "ÐÑÐ¾Ð²Ð¾ÑÐµÑÐµÐ½Ð¸Ðµ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.bleeding.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "An open wound is draining her blood â dress it before she runs dry."
+      - "ÐÑÐºÑÑÑÐ°Ñ ÑÐ°Ð½Ð° ÑÐµÑÑÐµÑ ÐºÑÐ¾Ð²Ñ â Ð¿ÐµÑÐµÐ²ÑÐ¶Ð¸ÑÐµ, Ð¿Ð¾ÐºÐ° Ð¾Ð½Ð° Ð½Ðµ Ð¸ÑÑÐµÐºÐ»Ð°."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.injured.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Injured"
+      - "Ð Ð°Ð½ÐµÐ½Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.injured.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Wounds slow her healing and lock part of her HP until they close."
+      - "Ð Ð°Ð½Ñ Ð·Ð°Ð¼ÐµÐ´Ð»ÑÑÑ Ð·Ð°Ð¶Ð¸Ð²Ð»ÐµÐ½Ð¸Ðµ Ð¸ ÑÐ´ÐµÑÐ¶Ð¸Ð²Ð°ÑÑ ÑÐ°ÑÑÑ Ð·Ð´Ð¾ÑÐ¾Ð²ÑÑ, Ð¿Ð¾ÐºÐ° Ð½Ðµ Ð·Ð°ÐºÑÐ¾ÑÑÑÑ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.hobbled.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Hobbled"
+      - "Ð¥ÑÐ¾Ð¼Ð°ÐµÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.hobbled.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Hurt legs â she moves slower than usual."
+      - "ÐÐ¾Ð²ÑÐµÐ¶Ð´ÐµÐ½Ñ Ð½Ð¾Ð³Ð¸ â Ð´Ð²Ð¸Ð³Ð°ÐµÑÑÑ Ð¼ÐµÐ´Ð»ÐµÐ½Ð½ÐµÐµ Ð¾Ð±ÑÑÐ½Ð¾Ð³Ð¾."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.bandaged.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Bandaged"
+      - "ÐÐµÑÐµÐ²ÑÐ·Ð°Ð½Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.bandaged.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A dressed wound: the bleeding is stopped and it closes faster."
+      - "Ð Ð°Ð½Ð° Ð¿ÐµÑÐµÐ²ÑÐ·Ð°Ð½Ð°: ÐºÑÐ¾Ð²Ð¾ÑÐµÑÐµÐ½Ð¸Ðµ Ð¾ÑÑÐ°Ð½Ð¾Ð²Ð»ÐµÐ½Ð¾, Ð·Ð°Ð¶Ð¸Ð²Ð°ÐµÑ Ð±ÑÑÑÑÐµÐµ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.strongsun.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Strong sun"
+      - "ÐÐ°Ð»ÑÑÐµÐµ ÑÐ¾Ð»Ð½ÑÐµ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.strongsun.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "The UV is high right here â bare skin will burn without cover or shade."
+      - "ÐÐ´ÐµÑÑ Ð²ÑÑÐ¾ÐºÐ¸Ð¹ UV â Ð±ÐµÐ· Ð¾Ð´ÐµÐ¶Ð´Ñ Ð¸Ð»Ð¸ ÑÐµÐ½Ð¸ Ð¾ÑÐºÑÑÑÐ°Ñ ÐºÐ¾Ð¶Ð° Ð¾Ð±Ð³Ð¾ÑÐ¸Ñ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.sunstroke.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Sunstroke"
+      - "Ð¡Ð¾Ð»Ð½ÐµÑÐ½ÑÐ¹ ÑÐ´Ð°Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.sunstroke.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Too long in the sun on bare skin â it burns her and saps comfort."
+      - "ÐÐ¾Ð»Ð³Ð¾ Ð½Ð° ÑÐ¾Ð»Ð½ÑÐµ Ñ Ð³Ð¾Ð»Ð¾Ð¹ ÐºÐ¾Ð¶ÐµÐ¹ â Ð¾Ð±Ð¶Ð¸Ð³Ð°ÐµÑ Ð¸ ÑÐ½Ð¸Ð¶Ð°ÐµÑ ÐºÐ¾Ð¼ÑÐ¾ÑÑ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.sunburnt.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Sunburnt"
+      - "ÐÐ±Ð³Ð¾ÑÐµÐ»Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.sunburnt.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Raw red skin from the sun. Cosmetic â it fades and tans over."
+      - "ÐÐ¾Ð¶Ð° Ð¾Ð±Ð³Ð¾ÑÐµÐ»Ð° Ð½Ð° ÑÐ¾Ð»Ð½ÑÐµ. ÐÐ¾ÑÐ¼ÐµÑÐ¸ÐºÐ° â ÑÑ
+Ð¾Ð´Ð¸Ñ Ð¸ Ð¿ÑÐµÐ²ÑÐ°ÑÐ°ÐµÑÑÑ Ð² Ð·Ð°Ð³Ð°Ñ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.hot.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Hot"
+      - "ÐÐ°ÑÐºÐ¾"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.hot.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Uncomfortably warm â and edging toward heatstroke. Shade or water would help."
+      - "ÐÐ°ÑÐºÐ¾ Ð¸ Ð½ÐµÐºÐ¾Ð¼ÑÐ¾ÑÑÐ½Ð¾ â Ð¸ ÐºÐ»Ð¾Ð½Ð¸Ñ Ðº Ð¿ÐµÑÐµÐ³ÑÐµÐ²Ñ. ÐÐµ Ð¿Ð¾Ð¼ÐµÑÐ°ÐµÑ ÑÐµÐ½Ñ Ð¸Ð»Ð¸ Ð²Ð¾Ð´Ð°."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.heatstroke.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Heatstroke"
+      - "ÐÐµÑÐµÐ³ÑÐµÐ²"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.heatstroke.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Far too hot â the heat is draining her health. She needs shade or water."
+      - "Ð¡Ð»Ð¸ÑÐºÐ¾Ð¼ Ð¶Ð°ÑÐºÐ¾ â Ð¶Ð°ÑÐ° Ð¾ÑÐ½Ð¸Ð¼Ð°ÐµÑ Ð·Ð´Ð¾ÑÐ¾Ð²ÑÐµ. ÐÑÐ¶Ð½Ð° ÑÐµÐ½Ñ Ð¸Ð»Ð¸ Ð²Ð¾Ð´Ð°."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.cold.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Cold"
+      - "Ð¥Ð¾Ð»Ð¾Ð´Ð½Ð¾"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.cold.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Chilly and uncomfortable â and edging toward freezing. Warmth would help."
+      - "ÐÑÐ±ÐºÐ¾ Ð¸ Ð½ÐµÐºÐ¾Ð¼ÑÐ¾ÑÑÐ½Ð¾ â Ð¸ ÐºÐ»Ð¾Ð½Ð¸Ñ Ðº Ð¿ÐµÑÐµÐ¾Ñ
+Ð»Ð°Ð¶Ð´ÐµÐ½Ð¸Ñ. ÐÐµ Ð¿Ð¾Ð¼ÐµÑÐ°Ð»Ð¾ Ð±Ñ ÑÐ¾Ð³ÑÐµÑÑÑÑ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.freezing.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Freezing"
+      - "ÐÐ°Ð¼ÐµÑÐ·Ð°ÐµÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.freezing.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Far too cold â she's losing health. She needs warmth or clothes."
+      - "Ð¡Ð»Ð¸ÑÐºÐ¾Ð¼ Ñ
+Ð¾Ð»Ð¾Ð´Ð½Ð¾ â ÑÐµÑÑÐµÑ Ð·Ð´Ð¾ÑÐ¾Ð²ÑÐµ. ÐÑÐ¶Ð½Ð¾ ÑÐµÐ¿Ð»Ð¾ Ð¸Ð»Ð¸ Ð¾Ð´ÐµÐ¶Ð´Ð°."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.soaked.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Soaked"
+      - "ÐÑÐ¾Ð¼Ð¾ÐºÐ»Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.soaked.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Wet clothes give no warmth and weigh her down on the move."
+      - "ÐÐ¾ÐºÑÐ°Ñ Ð¾Ð´ÐµÐ¶Ð´Ð° Ð½Ðµ Ð³ÑÐµÐµÑ Ð¸ Ð·Ð°Ð¼ÐµÐ´Ð»ÑÐµÑ Ð´Ð²Ð¸Ð¶ÐµÐ½Ð¸Ðµ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.starving.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Starving"
+      - "ÐÐ¾Ð»Ð¾Ð´Ð°ÐµÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.starving.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Hunger past the edge â her health is draining. She needs to eat now."
+      - "ÐÐ¾Ð»Ð¾Ð´ Ð·Ð° Ð³ÑÐ°Ð½ÑÑ â Ð·Ð´Ð¾ÑÐ¾Ð²ÑÐµ ÑÐ±ÑÐ²Ð°ÐµÑ. Ð¡ÑÐ¾ÑÐ½Ð¾ Ð½ÑÐ¶Ð½Ð¾ Ð¿Ð¾ÐµÑÑÑ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.dehydrated.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Dehydrated"
+      - "ÐÐ±ÐµÐ·Ð²Ð¾Ð¶ÐµÐ½Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.dehydrated.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Thirst past the edge â her health is draining. She needs to drink."
+      - "ÐÐ°Ð¶Ð´Ð° Ð·Ð° Ð³ÑÐ°Ð½ÑÑ â Ð·Ð´Ð¾ÑÐ¾Ð²ÑÐµ ÑÐ±ÑÐ²Ð°ÐµÑ. ÐÑÐ¶Ð½Ð¾ Ð¿Ð¸ÑÑ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.sick.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Sick"
+      - "Ð¢Ð¾ÑÐ½Ð¸Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.sick.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Poisoned by raw water â nauseous and losing health. Boil water before drinking."
+      - "ÐÑÑÐ°Ð²Ð¸Ð»Ð°ÑÑ ÑÑÑÐ¾Ð¹ Ð²Ð¾Ð´Ð¾Ð¹ â ÑÐ¾ÑÐ½Ð¸Ñ, Ð·Ð´Ð¾ÑÐ¾Ð²ÑÐµ ÑÐ±ÑÐ²Ð°ÐµÑ. ÐÐ¾Ð´Ñ Ð½ÑÐ¶Ð½Ð¾ ÐºÐ¸Ð¿ÑÑÐ¸ÑÑ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.exhausted.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Exhausted"
+      - "ÐÑÐ¼Ð¾ÑÐ°Ð½Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.exhausted.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Stamina spent to the floor â winded and desperate to sit down."
+      - "ÐÑÐ½Ð¾ÑÐ»Ð¸Ð²Ð¾ÑÑÑ Ð½Ð° Ð½ÑÐ»Ðµ â Ð·Ð°Ð¿ÑÑ
+Ð°Ð»Ð°ÑÑ, Ñ
+Ð¾ÑÐµÑ Ð¿ÑÐ¸ÑÐµÑÑÑ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.fainted.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Fainted"
+      - "ÐÐµÐ· ÑÐ¾Ð·Ð½Ð°Ð½Ð¸Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.fainted.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Knocked out cold â she lies unable to act until she comes to."
+      - "ÐÐ¾ÑÐµÑÑÐ»Ð° ÑÐ¾Ð·Ð½Ð°Ð½Ð¸Ðµ â Ð»ÐµÐ¶Ð¸Ñ Ð¸ Ð½Ðµ Ð¼Ð¾Ð¶ÐµÑ Ð´ÐµÐ¹ÑÑÐ²Ð¾Ð²Ð°ÑÑ, Ð¿Ð¾ÐºÐ° Ð½Ðµ Ð¾ÑÐ½ÑÑÑÑ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.wellfed.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Well fed"
+      - "Ð¡ÑÑÐ°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.wellfed.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Freshly full â content and at her best."
+      - "Ð¢Ð¾Ð»ÑÐºÐ¾ Ð¿Ð¾ÐµÐ»Ð° â Ð´Ð¾Ð²Ð¾Ð»ÑÐ½Ð° Ð¸ Ð¿Ð¾Ð»Ð½Ð° ÑÐ¸Ð»."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.rested.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Rested"
+      - "ÐÑÐ´Ð¾Ñ
+Ð½ÑÐ»Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.rested.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Energy and stamina both high â ready for anything."
+      - "Ð­Ð½ÐµÑÐ³Ð¸Ñ Ð¸ Ð²ÑÐ½Ð¾ÑÐ»Ð¸Ð²Ð¾ÑÑÑ Ð²ÑÑÐ¾ÐºÐ¸ â Ð³Ð¾ÑÐ¾Ð²Ð° ÐºÐ¾ Ð²ÑÐµÐ¼Ñ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.snug.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Snug"
+      - "Ð ÐºÑÐ¾Ð²Ð°ÑÐ¸"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.snug.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Asleep in a proper bed â resting deeply and recovering energy faster."
+      - "Ð¡Ð¿Ð¸Ñ Ð² Ð½Ð°ÑÑÐ¾ÑÑÐµÐ¹ ÐºÑÐ¾Ð²Ð°ÑÐ¸ â Ð³Ð»ÑÐ±Ð¾ÐºÐ¸Ð¹ ÑÐ¾Ð½, ÑÐ½ÐµÑÐ³Ð¸Ñ Ð²Ð¾ÑÑÑÐ°Ð½Ð°Ð²Ð»Ð¸Ð²Ð°ÐµÑÑÑ Ð±ÑÑÑÑÐµÐµ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.stressed.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Stressed"
+      - "Ð ÑÑÑÐµÑÑÐµ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.stressed.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Stress is climbing toward the breaking point â enough can knock her out."
+      - "Ð¡ÑÑÐµÑÑ ÑÐ°ÑÑÑÑ Ðº Ð¿ÑÐµÐ´ÐµÐ»Ñ â Ð½Ð° Ð³ÑÐ°Ð½Ð¸ Ð¼Ð¾Ð¶ÐµÑ ÑÐ²Ð°Ð»Ð¸ÑÑ Ñ Ð½Ð¾Ð³."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.grieving.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Grieving"
+      - "Ð¡ÐºÐ¾ÑÐ±Ð¸Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.grieving.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Mourning a fallen housemate."
+      - "ÐÐ¿Ð»Ð°ÐºÐ¸Ð²Ð°ÐµÑ Ð¿Ð¾Ð³Ð¸Ð±ÑÑÑ Ð¿Ð¾Ð´ÑÑÐ³Ñ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.lonely.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Lonely"
+      - "ÐÐ´Ð¸Ð½Ð¾ÐºÐ°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.lonely.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Starved of company â she needs someone to talk to."
+      - "ÐÐµ Ñ
+Ð²Ð°ÑÐ°ÐµÑ Ð¾Ð±ÑÐµÐ½Ð¸Ñ â Ð½ÑÐ¶ÐµÐ½ ÐºÑÐ¾-ÑÐ¾ ÑÑÐ´Ð¾Ð¼."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.miserable.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Miserable"
+      - "ÐÐ¾Ð´Ð°Ð²Ð»ÐµÐ½Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.miserable.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Comfort has bottomed out â everything feels wretched."
+      - "ÐÐ¾Ð¼ÑÐ¾ÑÑ Ð½Ð° Ð½ÑÐ»Ðµ â Ð²ÑÑ Ð²Ð¾ÐºÑÑÐ³ ÑÑÐ³Ð¾ÑÑÐ½Ð¾."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.content.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Content"
+      - "ÐÐ¾Ð²Ð¾Ð»ÑÐ½Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.content.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Comfortable and at ease."
+      - "ÐÐ¾Ð¼ÑÐ¾ÑÑÐ½Ð¾ Ð¸ ÑÐ¿Ð¾ÐºÐ¾Ð¹Ð½Ð¾."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.filthy.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Filthy"
+      - "ÐÑÑÐ·Ð½Ð°Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.filthy.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Grubby and long overdue a wash."
+      - "ÐÐ°Ð¼ÑÐ·Ð³Ð°Ð½Ð° â Ð´Ð°Ð²Ð½Ð¾ Ð¿Ð¾ÑÐ° Ð¿Ð¾Ð¼ÑÑÑÑÑ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.cozy.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Cozy"
+      - "Ð£ÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "effect.cozy.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Warmed by the campfire â its glow slowly restores comfort."
+      - "ÐÑÐµÐµÑÑÑ Ñ ÐºÐ¾ÑÑÑÐ° â ÐµÐ³Ð¾ ÑÐµÐ¿Ð»Ð¾ ÑÐ¾Ð·Ð´Ð°ÑÑ ÑÑÑ Ð¸ Ð¿Ð¾Ð½ÐµÐ¼Ð½Ð¾Ð³Ñ Ð²Ð¾ÑÐ¿Ð¾Ð»Ð½ÑÐµÑ ÐºÐ¾Ð¼ÑÐ¾ÑÑ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "menu.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Menu"
+      - "ÐÐµÐ½Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "menu.quit"
+      TermType: 0
+      Description:
+      Languages:
+      - "Quit game"
+      - "ÐÑÐ¹ÑÐ¸ Ð¸Ð· Ð¸Ð³ÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.eyebrow"
+      TermType: 0
+      Description:
+      Languages:
+      - "ESCAPE COMPLETE"
+      - "ÐÐÐÐÐ Ð£ÐÐÐÐ¡Ð¯"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Escaped the island"
+      - "ÐÑÐ±ÑÐ°Ð»Ð¸ÑÑ Ñ Ð¾ÑÑÑÐ¾Ð²Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.subtitle"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} of {1} survivors reached the raft. The simulation is complete."
+      - "ÐÐ¾ Ð¿Ð»Ð¾ÑÐ° Ð´Ð¾Ð±ÑÐ°Ð»Ð¸ÑÑ {0} Ð¸Ð· {1}. Ð¡Ð¸Ð¼ÑÐ»ÑÑÐ¸Ñ Ð·Ð°Ð²ÐµÑÑÐµÐ½Ð°."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.survivors"
+      TermType: 0
+      Description:
+      Languages:
+      - "Survivors"
+      - "ÐÑÐ¶Ð¸Ð»Ð¸"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.fallen"
+      TermType: 0
+      Description:
+      Languages:
+      - "Fallen"
+      - "ÐÐ¾Ð³Ð¸Ð±Ð»Ð¸"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.day"
+      TermType: 0
+      Description:
+      Languages:
+      - "Final day"
+      - "Ð¤Ð¸Ð½Ð°Ð»ÑÐ½ÑÐ¹ Ð´ÐµÐ½Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.time"
+      TermType: 0
+      Description:
+      Languages:
+      - "Time"
+      - "ÐÑÐµÐ¼Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.raft"
+      TermType: 0
+      Description:
+      Languages:
+      - "Raft"
+      - "ÐÐ»Ð¾Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.avg_health"
+      TermType: 0
+      Description:
+      Languages:
+      - "Avg health"
+      - "Ð¡ÑÐµÐ´Ð½ÐµÐµ HP"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.survivors_title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Who survived"
+      - "ÐÑÐ¾ Ð²ÑÐ¶Ð¸Ð»"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.fallen_title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Who did not make it"
+      - "ÐÑÐ¾ Ð½Ðµ Ð´Ð¾Ð±ÑÐ°Ð»ÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.no_fallen"
+      TermType: 0
+      Description:
+      Languages:
+      - "No one died on the way out."
+      - "ÐÐ¸ÐºÑÐ¾ Ð½Ðµ Ð¿Ð¾Ð³Ð¸Ð± Ð¿Ð¾ Ð´Ð¾ÑÐ¾Ð³Ðµ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.close_tooltip"
+      TermType: 0
+      Description:
+      Languages:
+      - "Close summary and inspect the island"
+      - "ÐÐ°ÐºÑÑÑÑ Ð¸ÑÐ¾Ð³Ð¸ Ð¸ Ð¾ÑÐ¼Ð¾ÑÑÐµÑÑ Ð¾ÑÑÑÐ¾Ð²"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.hp"
+      TermType: 0
+      Description:
+      Languages:
+      - "HP"
+      - "HP"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.blood"
+      TermType: 0
+      Description:
+      Languages:
+      - "Blood"
+      - "ÐÑÐ¾Ð²Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.stamina"
+      TermType: 0
+      Description:
+      Languages:
+      - "Stamina"
+      - "ÐÑÐ½Ð¾ÑÐ»Ð¸Ð²Ð¾ÑÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.wounds"
+      TermType: 0
+      Description:
+      Languages:
+      - "Wounds"
+      - "Ð Ð°Ð½Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.on_day"
+      TermType: 0
+      Description:
+      Languages:
+      - "day"
+      - "Ð´ÐµÐ½Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.tile"
+      TermType: 0
+      Description:
+      Languages:
+      - "tile"
+      - "ÐºÐ»ÐµÑÐºÐ°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.unknown"
+      TermType: 0
+      Description:
+      Languages:
+      - "Unknown survivor"
+      - "ÐÐµÐ¸Ð·Ð²ÐµÑÑÐ½ÑÐ¹ Ð¿ÐµÑÑÐ¾Ð½Ð°Ð¶"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.cause_unknown"
+      TermType: 0
+      Description:
+      Languages:
+      - "unknown cause"
+      - "Ð¿ÑÐ¸ÑÐ¸Ð½Ð° Ð½ÐµÐ¸Ð·Ð²ÐµÑÑÐ½Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.cause_bled_out"
+      TermType: 0
+      Description:
+      Languages:
+      - "blood loss"
+      - "ÐºÑÐ¾Ð²Ð¾Ð¿Ð¾ÑÐµÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.cause_dog"
+      TermType: 0
+      Description:
+      Languages:
+      - "dog attack"
+      - "Ð½Ð°Ð¿Ð°Ð´ÐµÐ½Ð¸Ðµ ÑÐ¾Ð±Ð°Ðº"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.cause_heat"
+      TermType: 0
+      Description:
+      Languages:
+      - "heatstroke"
+      - "Ð¿ÐµÑÐµÐ³ÑÐµÐ²"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.cause_cold"
+      TermType: 0
+      Description:
+      Languages:
+      - "hypothermia"
+      - "Ð¿ÐµÑÐµÐ¾Ñ
+Ð»Ð°Ð¶Ð´ÐµÐ½Ð¸Ðµ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.cause_limb"
+      TermType: 0
+      Description:
+      Languages:
+      - "traumatic limb loss"
+      - "ÑÑÐ¶ÑÐ»Ð°Ñ ÑÑÐ°Ð²Ð¼Ð° ÐºÐ¾Ð½ÐµÑÐ½Ð¾ÑÑÐ¸"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.cause_self_defense"
+      TermType: 0
+      Description:
+      Languages:
+      - "victim fought back"
+      - "Ð¶ÐµÑÑÐ²Ð° Ð´Ð°Ð»Ð° Ð¾ÑÐ¿Ð¾Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.cause_predation"
+      TermType: 0
+      Description:
+      Languages:
+      - "killed by a starving survivor"
+      - "ÑÐ±Ð¸ÑÐ° Ð³Ð¾Ð»Ð¾Ð´Ð½ÑÐ¼ Ð²ÑÐ¶Ð¸Ð²ÑÐ¸Ð¼"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.cause_shark"
+      TermType: 0
+      Description:
+      Languages:
+      - "shark bite"
+      - "ÑÐºÑÑ Ð°ÐºÑÐ»Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.cause_starved"
+      TermType: 0
+      Description:
+      Languages:
+      - "starvation or dehydration"
+      - "Ð³Ð¾Ð»Ð¾Ð´ Ð¸Ð»Ð¸ Ð¾Ð±ÐµÐ·Ð²Ð¾Ð¶Ð¸Ð²Ð°Ð½Ð¸Ðµ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.cause_sun"
+      TermType: 0
+      Description:
+      Languages:
+      - "sun exposure"
+      - "ÑÐ¾Ð»Ð½ÐµÑÐ½ÑÐ¹ Ð¾Ð¶Ð¾Ð³"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "end.cause_vital"
+      TermType: 0
+      Description:
+      Languages:
+      - "vital injury"
+      - "ÑÐ¼ÐµÑÑÐµÐ»ÑÐ½Ð°Ñ ÑÑÐ°Ð²Ð¼Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "weather.rain"
+      TermType: 0
+      Description:
+      Languages:
+      - "Rain"
+      - "ÐÐ¾Ð¶Ð´Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "weather.clear"
+      TermType: 0
+      Description:
+      Languages:
+      - "Clear"
+      - "Ð¯ÑÐ½Ð¾"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "weather.day"
+      TermType: 0
+      Description:
+      Languages:
+      - "Day"
+      - "ÐÐµÐ½Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "phase.Morning"
+      TermType: 0
+      Description:
+      Languages:
+      - "morning"
+      - "ÑÑÑÐ¾"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "phase.Day"
+      TermType: 0
+      Description:
+      Languages:
+      - "day"
+      - "Ð´ÐµÐ½Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "phase.Evening"
+      TermType: 0
+      Description:
+      Languages:
+      - "evening"
+      - "Ð²ÐµÑÐµÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "phase.Night"
+      TermType: 0
+      Description:
+      Languages:
+      - "night"
+      - "Ð½Ð¾ÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "rel.close"
+      TermType: 0
+      Description:
+      Languages:
+      - "close"
+      - "Ð±Ð»Ð¸Ð·ÐºÐ¸Ðµ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "rel.friend"
+      TermType: 0
+      Description:
+      Languages:
+      - "friend"
+      - "Ð´ÑÑÐ³"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "rel.acquaint"
+      TermType: 0
+      Description:
+      Languages:
+      - "acquaintance"
+      - "Ð·Ð½Ð°ÐºÐ¾Ð¼ÑÐ¹"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "rel.neutral"
+      TermType: 0
+      Description:
+      Languages:
+      - "neutral"
+      - "Ð½ÐµÐ¹ÑÑÐ°Ð»ÑÐ½Ð¾"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "rel.tense"
+      TermType: 0
+      Description:
+      Languages:
+      - "tense"
+      - "Ð½Ð°Ð¿ÑÑÐ¶ÑÐ½Ð½Ð¾"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "rel.hostile"
+      TermType: 0
+      Description:
+      Languages:
+      - "hostile"
+      - "Ð²ÑÐ°Ð¶Ð´ÐµÐ±Ð½Ð¾"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "rel.affinity"
+      TermType: 0
+      Description:
+      Languages:
+      - "Affinity"
+      - "ÐÑÐ½Ð¾ÑÐµÐ½Ð¸Ðµ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "rel.familiarity"
+      TermType: 0
+      Description:
+      Languages:
+      - "Familiarity"
+      - "ÐÐ½Ð°ÐºÐ¾Ð¼ÑÑÐ²Ð¾"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "rel.trust"
+      TermType: 0
+      Description:
+      Languages:
+      - "Trust"
+      - "ÐÐ¾Ð²ÐµÑÐ¸Ðµ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "uv.high"
+      TermType: 0
+      Description:
+      Languages:
+      - "UV: high"
+      - "Ð£Ð¤: Ð²ÑÑÐ¾ÐºÐ¸Ð¹"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "uv.mid"
+      TermType: 0
+      Description:
+      Languages:
+      - "UV: medium"
+      - "Ð£Ð¤: ÑÑÐµÐ´Ð½Ð¸Ð¹"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "uv.low"
+      TermType: 0
+      Description:
+      Languages:
+      - "UV: low"
+      - "Ð£Ð¤: Ð½Ð¸Ð·ÐºÐ¸Ð¹"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "uv.none"
+      TermType: 0
+      Description:
+      Languages:
+      - "UV: none"
+      - "Ð£Ð¤: Ð½ÐµÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "uv.shade"
+      TermType: 0
+      Description:
+      Languages:
+      - "in shade"
+      - "Ð² ÑÐµÐ½Ð¸"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "badge.starving"
+      TermType: 0
+      Description:
+      Languages:
+      - "STARVING"
+      - "ÐÐÐÐÐÐÐÐ¢"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "badge.fighting"
+      TermType: 0
+      Description:
+      Languages:
+      - "FIGHTING"
+      - "ÐÐÐ ÐÐ¢Ð¡Ð¯"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.None"
+      TermType: 0
+      Description:
+      Languages:
+      - "Just being"
+      - "ÐÑÐ¾ÑÑÐ¾ ÑÑÑÐµÑÑÐ²ÑÐµÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.Idle"
+      TermType: 0
+      Description:
+      Languages:
+      - "Taking a break"
+      - "ÐÑÐ´ÑÑ
+Ð°ÐµÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.Eat"
+      TermType: 0
+      Description:
+      Languages:
+      - "Wants to eat"
+      - "Ð¥Ð¾ÑÐµÑ Ð¿Ð¾ÐµÑÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.GetFood"
+      TermType: 0
+      Description:
+      Languages:
+      - "Looking for food"
+      - "ÐÑÐµÑ ÐµÐ´Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.Sleep"
+      TermType: 0
+      Description:
+      Languages:
+      - "Wants to sleep"
+      - "Ð¥Ð¾ÑÐµÑ ÑÐ¿Ð°ÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.Sit"
+      TermType: 0
+      Description:
+      Languages:
+      - "Wants to rest"
+      - "Ð¥Ð¾ÑÐµÑ Ð¿ÑÐ¸ÑÐµÑÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.Dress"
+      TermType: 0
+      Description:
+      Languages:
+      - "Wants to dress"
+      - "Ð¥Ð¾ÑÐµÑ Ð¾Ð´ÐµÑÑÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.Undress"
+      TermType: 0
+      Description:
+      Languages:
+      - "Too warm to wear that"
+      - "Ð Ð°Ð·Ð´ÐµÐ²Ð°ÐµÑÑÑ â Ð¶Ð°ÑÐºÐ¾"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.Socialize"
+      TermType: 0
+      Description:
+      Languages:
+      - "Wants company"
+      - "Ð¥Ð¾ÑÐµÑ Ð¿Ð¾Ð¾Ð±ÑÐ°ÑÑÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.Explore"
+      TermType: 0
+      Description:
+      Languages:
+      - "Exploring"
+      - "ÐÑÑÐ»ÐµÐ´ÑÐµÑ Ð¾ÑÑÑÐ¾Ð²"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.Flee"
+      TermType: 0
+      Description:
+      Languages:
+      - "Running for cover"
+      - "ÐÐµÐ¶Ð¸Ñ Ð² ÑÐºÑÑÑÐ¸Ðµ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.Drink"
+      TermType: 0
+      Description:
+      Languages:
+      - "Wants to drink"
+      - "Ð¥Ð¾ÑÐµÑ Ð¿Ð¸ÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.GatherTools"
+      TermType: 0
+      Description:
+      Languages:
+      - "Fetching tools"
+      - "ÐÑÐµÑ Ð¸Ð½ÑÑÑÑÐ¼ÐµÐ½ÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.GatherWood"
+      TermType: 0
+      Description:
+      Languages:
+      - "Gathering wood"
+      - "Ð¡Ð¾Ð±Ð¸ÑÐ°ÐµÑ Ð´ÑÐ¾Ð²Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.GatherStone"
+      TermType: 0
+      Description:
+      Languages:
+      - "Gathering stone"
+      - "Ð¡Ð¾Ð±Ð¸ÑÐ°ÐµÑ ÐºÐ°Ð¼Ð½Ð¸"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.TendFire"
+      TermType: 0
+      Description:
+      Languages:
+      - "Tending the fire"
+      - "ÐÐ¾Ð´Ð´ÐµÑÐ¶Ð¸Ð²Ð°ÐµÑ ÐºÐ¾ÑÑÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.Hunt"
+      TermType: 0
+      Description:
+      Languages:
+      - "Hunting"
+      - "ÐÑ
+Ð¾ÑÐ¸ÑÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.CraftSpear"
+      TermType: 0
+      Description:
+      Languages:
+      - "Making a spear"
+      - "ÐÐ°ÑÑÐµÑÐ¸Ñ ÐºÐ¾Ð¿ÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.CookMeat"
+      TermType: 0
+      Description:
+      Languages:
+      - "Cooking meat"
+      - "ÐÐ¾ÑÐ¾Ð²Ð¸Ñ Ð¼ÑÑÐ¾"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.CraftLeather"
+      TermType: 0
+      Description:
+      Languages:
+      - "Sewing clothes"
+      - "Ð¨ÑÑÑ Ð¾Ð´ÐµÐ¶Ð´Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.Mourn"
+      TermType: 0
+      Description:
+      Languages:
+      - "Mourning"
+      - "Ð¡ÐºÐ¾ÑÐ±Ð¸Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.Bury"
+      TermType: 0
+      Description:
+      Languages:
+      - "Burying the dead"
+      - "Ð¥Ð¾ÑÐ¾Ð½Ð¸Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.CraftAxe"
+      TermType: 0
+      Description:
+      Languages:
+      - "Making an axe"
+      - "ÐÐ°ÑÑÐµÑÐ¸Ñ ÑÐ¾Ð¿Ð¾Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.CraftPickaxe"
+      TermType: 0
+      Description:
+      Languages:
+      - "Making a pickaxe"
+      - "ÐÐ°ÑÑÐµÑÐ¸Ñ ÐºÐ¸ÑÐºÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.HarvestTree"
+      TermType: 0
+      Description:
+      Languages:
+      - "Felling a tree"
+      - "Ð ÑÐ±Ð¸Ñ Ð´ÐµÑÐµÐ²Ð¾"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.MineBoulder"
+      TermType: 0
+      Description:
+      Languages:
+      - "Breaking a boulder"
+      - "ÐÑÐ¾Ð±Ð¸Ñ ÐºÐ°Ð¼ÐµÐ½Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.Build"
+      TermType: 0
+      Description:
+      Languages:
+      - "Building the hut"
+      - "Ð¡ÑÑÐ¾Ð¸Ñ Ñ
+Ð¸Ð¶Ð¸Ð½Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.CoolOff"
+      TermType: 0
+      Description:
+      Languages:
+      - "Cooling off"
+      - "ÐÑÑÑÐ²Ð°ÐµÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.WarmUp"
+      TermType: 0
+      Description:
+      Languages:
+      - "Warming by the fire"
+      - "ÐÑÐµÐµÑÑÑ Ñ ÐºÐ¾ÑÑÑÐ°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.CraftRack"
+      TermType: 0
+      Description:
+      Languages:
+      - "Building a drying rack"
+      - "ÐÐ°ÑÑÐµÑÐ¸Ñ ÑÑÑÐ¸Ð»ÐºÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.DryClothes"
+      TermType: 0
+      Description:
+      Languages:
+      - "Drying clothes"
+      - "Ð¡ÑÑÐ¸Ñ Ð¾Ð´ÐµÐ¶Ð´Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.CraftBow"
+      TermType: 0
+      Description:
+      Languages:
+      - "Making a bow"
+      - "ÐÐ°ÑÑÐµÑÐ¸Ñ Ð»ÑÐº"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "goal.CraftArrows"
+      TermType: 0
+      Description:
+      Languages:
+      - "Making arrows"
+      - "ÐÐ°ÑÑÐµÑÐ¸Ñ ÑÑÑÐµÐ»Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "loading.world"
+      TermType: 0
+      Description:
+      Languages:
+      - "Shaping the island..."
+      - "Ð¡Ð¾Ð·Ð´Ð°ÑÐ¼ Ð¾ÑÑÑÐ¾Ð²..."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "loading.time"
+      TermType: 0
+      Description:
+      Languages:
+      - "Time is passing..."
+      - "ÐÐ´ÑÑ Ð²ÑÐµÐ¼Ñ..."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "loading.day"
+      TermType: 0
+      Description:
+      Languages:
+      - "Day"
+      - "ÐÐµÐ½Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "loading.island"
+      TermType: 0
+      Description:
+      Languages:
+      - "Waking the island..."
+      - "ÐÑÑÑÐ¾Ð² Ð¿ÑÐ¾ÑÑÐ¿Ð°ÐµÑÑÑ..."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "loading.warmup"
+      TermType: 0
+      Description:
+      Languages:
+      - "Meeting the girls..."
+      - "ÐÐ½Ð°ÐºÐ¾Ð¼Ð¸Ð¼ÑÑ Ñ Ð´ÐµÐ²Ð¾ÑÐºÐ°Ð¼Ð¸..."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "loading.done"
+      TermType: 0
+      Description:
+      Languages:
+      - "Welcome back"
+      - "Ð¡ Ð²Ð¾Ð·Ð²ÑÐ°ÑÐµÐ½Ð¸ÐµÐ¼"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "menu.continue"
+      TermType: 0
+      Description:
+      Languages:
+      - "Continue"
+      - "ÐÑÐ¾Ð´Ð¾Ð»Ð¶Ð¸ÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "menu.newgame"
+      TermType: 0
+      Description:
+      Languages:
+      - "New game"
+      - "ÐÐ¾Ð²Ð°Ñ Ð¸Ð³ÑÐ°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "menu.settings"
+      TermType: 0
+      Description:
+      Languages:
+      - "Settings"
+      - "ÐÐ°ÑÑÑÐ¾Ð¹ÐºÐ¸"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "menu.characters"
+      TermType: 0
+      Description:
+      Languages:
+      - "Characters"
+      - "ÐÐµÑÑÐ¾Ð½Ð°Ð¶Ð¸"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "menu.tagline"
+      TermType: 0
+      Description:
+      Languages:
+      - "Explore. Build. Survive.\nYour world. Your rules."
+      - "ÐÑÑÐ»ÐµÐ´ÑÐ¹. Ð¡ÑÑÐ¾Ð¹. ÐÑÐ¶Ð¸Ð²Ð°Ð¹.\nÐ¢Ð²Ð¾Ð¹ Ð¼Ð¸Ñ. Ð¢Ð²Ð¾Ð¸ Ð¿ÑÐ°Ð²Ð¸Ð»Ð°."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "panel.inventory"
+      TermType: 0
+      Description:
+      Languages:
+      - "Inventory"
+      - "ÐÐ½Ð²ÐµÐ½ÑÐ°ÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.button"
+      TermType: 0
+      Description:
+      Languages:
+      - "Backpack"
+      - "Ð ÑÐºÐ·Ð°Ðº"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.worn"
+      TermType: 0
+      Description:
+      Languages:
+      - "Worn"
+      - "ÐÐ°Ð´ÐµÑÐ¾"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.carried"
+      TermType: 0
+      Description:
+      Languages:
+      - "Carried"
+      - "Ð ÑÑÐºÐ·Ð°ÐºÐµ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.empty"
+      TermType: 0
+      Description:
+      Languages:
+      - "Nothing here yet."
+      - "ÐÐ¾ÐºÐ° Ð¿ÑÑÑÐ¾."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.back"
+      TermType: 0
+      Description:
+      Languages:
+      - "Back"
+      - "ÐÐ°Ð·Ð°Ð´"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.slots"
+      TermType: 0
+      Description:
+      Languages:
+      - "slots"
+      - "ÑÐ»Ð¾ÑÐ¾Ð²"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.covers"
+      TermType: 0
+      Description:
+      Languages:
+      - "Covers"
+      - "ÐÐ°ÐºÑÑÐ²Ð°ÐµÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.warmth"
+      TermType: 0
+      Description:
+      Languages:
+      - "Warmth"
+      - "Ð¢ÐµÐ¿Ð»Ð¾"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.armor"
+      TermType: 0
+      Description:
+      Languages:
+      - "Armor"
+      - "ÐÑÐ¾Ð½Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.layer"
+      TermType: 0
+      Description:
+      Languages:
+      - "Layer"
+      - "Ð¡Ð»Ð¾Ð¹"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.wetness"
+      TermType: 0
+      Description:
+      Languages:
+      - "Wetness"
+      - "ÐÐ»Ð°Ð¶Ð½Ð¾ÑÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.durability"
+      TermType: 0
+      Description:
+      Languages:
+      - "Durability"
+      - "ÐÑÐ¾ÑÐ½Ð¾ÑÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.stack"
+      TermType: 0
+      Description:
+      Languages:
+      - "Stack"
+      - "Ð¡ÑÐµÐº"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.clothing_hp"
+      TermType: 0
+      Description:
+      Languages:
+      - "Clothing HP"
+      - "HP Ð¾Ð´ÐµÐ¶Ð´Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.water_container"
+      TermType: 0
+      Description:
+      Languages:
+      - "Water container"
+      - "ÐÐ¼ÐºÐ¾ÑÑÑ Ð´Ð»Ñ Ð²Ð¾Ð´Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.water_left"
+      TermType: 0
+      Description:
+      Languages:
+      - "Water left"
+      - "ÐÑÑÐ°Ð»Ð¾ÑÑ Ð²Ð¾Ð´Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.liters"
+      TermType: 0
+      Description:
+      Languages:
+      - "L"
+      - "Ð»"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.condition_ok"
+      TermType: 0
+      Description:
+      Languages:
+      - "all good"
+      - "Ð²ÑÑ Ð¾Ðº"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.condition_good"
+      TermType: 0
+      Description:
+      Languages:
+      - "light wear"
+      - "ÑÐ»ÐµÐ³ÐºÐ° Ð¸Ð·Ð½Ð¾ÑÐµÐ½Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.condition_worn"
+      TermType: 0
+      Description:
+      Languages:
+      - "worn"
+      - "Ð¸Ð·Ð½Ð¾ÑÐµÐ½Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.condition_torn"
+      TermType: 0
+      Description:
+      Languages:
+      - "critical wear"
+      - "ÐºÑÐ¸ÑÐ¸ÑÐµÑÐºÐ¸Ð¹ Ð¸Ð·Ð½Ð¾Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.restores"
+      TermType: 0
+      Description:
+      Languages:
+      - "Restores hunger"
+      - "Ð£ÑÐ¾Ð»ÑÐµÑ Ð³Ð¾Ð»Ð¾Ð´"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.hydrates"
+      TermType: 0
+      Description:
+      Languages:
+      - "Quenches thirst"
+      - "Ð£ÑÐ¾Ð»ÑÐµÑ Ð¶Ð°Ð¶Ð´Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.dry"
+      TermType: 0
+      Description:
+      Languages:
+      - "dry"
+      - "ÑÑÑ
+Ð°Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.soaked"
+      TermType: 0
+      Description:
+      Languages:
+      - "soaked"
+      - "Ð¿ÑÐ¾Ð¼Ð¾ÐºÐ»Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.definition_id"
+      TermType: 0
+      Description:
+      Languages:
+      - "Definition"
+      - "ID Ð¿ÑÐµÐ´Ð¼ÐµÑÐ°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.status"
+      TermType: 0
+      Description:
+      Languages:
+      - "Status"
+      - "Ð¡ÑÐ°ÑÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "inv.missing_definition"
+      TermType: 0
+      Description:
+      Languages:
+      - "Missing definition"
+      - "ÐÐµÑ Ð¾Ð¿Ð¸ÑÐ°Ð½Ð¸Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "layer.underwear"
+      TermType: 0
+      Description:
+      Languages:
+      - "Underwear"
+      - "ÐÐµÐ»ÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "layer.wear"
+      TermType: 0
+      Description:
+      Languages:
+      - "Clothing"
+      - "ÐÐ´ÐµÐ¶Ð´Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "layer.outerwear"
+      TermType: 0
+      Description:
+      Languages:
+      - "Outerwear"
+      - "ÐÐµÑÑ
+Ð½ÑÑ Ð¾Ð´ÐµÐ¶Ð´Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "part.head"
+      TermType: 0
+      Description:
+      Languages:
+      - "head"
+      - "Ð³Ð¾Ð»Ð¾Ð²Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "part.torso"
+      TermType: 0
+      Description:
+      Languages:
+      - "torso"
+      - "ÑÐ¾ÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "part.pelvis"
+      TermType: 0
+      Description:
+      Languages:
+      - "hips"
+      - "ÑÐ°Ð·"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "part.arml"
+      TermType: 0
+      Description:
+      Languages:
+      - "left arm"
+      - "Ð»ÐµÐ²Ð°Ñ ÑÑÐºÐ°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "part.armr"
+      TermType: 0
+      Description:
+      Languages:
+      - "right arm"
+      - "Ð¿ÑÐ°Ð²Ð°Ñ ÑÑÐºÐ°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "part.legl"
+      TermType: 0
+      Description:
+      Languages:
+      - "left leg"
+      - "Ð»ÐµÐ²Ð°Ñ Ð½Ð¾Ð³Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "part.legr"
+      TermType: 0
+      Description:
+      Languages:
+      - "right leg"
+      - "Ð¿ÑÐ°Ð²Ð°Ñ Ð½Ð¾Ð³Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "itemcat.weapon.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Weapon"
+      - "ÐÑÑÐ¶Ð¸Ðµ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "itemcat.weapon.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A weapon for hunting and fending off predators."
+      - "ÐÑÑÐ¶Ð¸Ðµ Ð´Ð»Ñ Ð¾Ñ
+Ð¾ÑÑ Ð¸ Ð·Ð°ÑÐ¸ÑÑ Ð¾Ñ Ñ
+Ð¸ÑÐ½Ð¸ÐºÐ¾Ð²."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "itemcat.tool.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Tool"
+      - "ÐÐ½ÑÑÑÑÐ¼ÐµÐ½Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "itemcat.tool.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A tool for gathering and crafting."
+      - "ÐÐ½ÑÑÑÑÐ¼ÐµÐ½Ñ Ð´Ð»Ñ ÑÐ±Ð¾ÑÐ° ÑÐµÑÑÑÑÐ¾Ð² Ð¸ ÑÐµÐ¼ÐµÑÐ»Ð°."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "itemcat.clothing.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Clothing"
+      - "ÐÐ´ÐµÐ¶Ð´Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "itemcat.clothing.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A garment â adds a little warmth and covers bare skin from the sun."
+      - "ÐÐ´ÐµÐ¶Ð´Ð° â Ð½ÐµÐ¼Ð½Ð¾Ð³Ð¾ Ð³ÑÐµÐµÑ Ð¸ Ð¿ÑÐ¸ÐºÑÑÐ²Ð°ÐµÑ ÐºÐ¾Ð¶Ñ Ð¾Ñ ÑÐ¾Ð»Ð½ÑÐ°."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "itemcat.armor.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Armor"
+      - "ÐÑÐ¾Ð½Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "itemcat.armor.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Protective gear â soaks up bites on the parts it covers."
+      - "ÐÐ°ÑÐ¸ÑÐ½Ð¾Ðµ ÑÐ½Ð°ÑÑÐ¶ÐµÐ½Ð¸Ðµ â Ð¿Ð¾Ð³Ð»Ð¾ÑÐ°ÐµÑ ÑÐºÑÑÑ Ð½Ð° Ð·Ð°ÐºÑÑÑÑÑ
+ ÑÐ°ÑÑÑÑ
+ ÑÐµÐ»Ð°."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "itemcat.food.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Food"
+      - "ÐÐ´Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "itemcat.food.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Something to eat â staves off hunger."
+      - "Ð§ÑÐ¾-ÑÐ¾ ÑÑÐµÐ´Ð¾Ð±Ð½Ð¾Ðµ â ÑÑÐ¾Ð»ÑÐµÑ Ð³Ð¾Ð»Ð¾Ð´."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "itemcat.water.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Water"
+      - "ÐÐ¾Ð´Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "itemcat.water.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Drinking water â quenches thirst."
+      - "ÐÐ¸ÑÑÐµÐ²Ð°Ñ Ð²Ð¾Ð´Ð° â ÑÑÐ¾Ð»ÑÐµÑ Ð¶Ð°Ð¶Ð´Ñ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "itemcat.medicine.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Medicine"
+      - "ÐÐµÐºÐ°ÑÑÑÐ²Ð¾"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "itemcat.medicine.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "First aid â dresses wounds and stops bleeding."
+      - "ÐÐµÑÐ²Ð°Ñ Ð¿Ð¾Ð¼Ð¾ÑÑ â Ð¿ÐµÑÐµÐ²ÑÐ·ÑÐ²Ð°ÐµÑ ÑÐ°Ð½Ñ Ð¸ Ð¾ÑÑÐ°Ð½Ð°Ð²Ð»Ð¸Ð²Ð°ÐµÑ ÐºÑÐ¾Ð²Ñ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "itemcat.resource.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Resource"
+      - "Ð ÐµÑÑÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "itemcat.resource.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A raw material for building and crafting."
+      - "Ð¡ÑÑÑÑ Ð´Ð»Ñ ÑÑÑÐ¾Ð¸ÑÐµÐ»ÑÑÑÐ²Ð° Ð¸ ÑÐµÐ¼ÐµÑÐ»Ð°."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "itemcat.misc.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Item"
+      - "ÐÑÐµÐ´Ð¼ÐµÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "itemcat.misc.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A carried item."
+      - "ÐÐ¾ÑÐ¸Ð¼ÑÐ¹ Ð¿ÑÐµÐ´Ð¼ÐµÑ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.unknown.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Unknown item"
+      - "ÐÐµÐ¸Ð·Ð²ÐµÑÑÐ½ÑÐ¹ Ð¿ÑÐµÐ´Ð¼ÐµÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.unknown.category"
+      TermType: 0
+      Description:
+      Languages:
+      - "Unknown"
+      - "ÐÐµÐ¸Ð·Ð²ÐµÑÑÐ½Ð¾"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.unknown.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "This item is in the inventory, but its definition is missing: {0}."
+      - "Ð­ÑÐ¾Ñ Ð¿ÑÐµÐ´Ð¼ÐµÑ ÐµÑÑÑ Ð² Ð¸Ð½Ð²ÐµÐ½ÑÐ°ÑÐµ, Ð½Ð¾ ÐµÐ³Ð¾ Ð¾Ð¿Ð¸ÑÐ°Ð½Ð¸Ðµ Ð½Ðµ Ð½Ð°Ð¹Ð´ÐµÐ½Ð¾: {0}."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.food_coconut.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Coconut"
+      - "ÐÐ¾ÐºÐ¾Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.food_coconut.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A ripe coconut â crack it open to drink the water, then eat the flesh."
+      - "Ð¡Ð¿ÐµÐ»ÑÐ¹ ÐºÐ¾ÐºÐ¾Ñ â ÑÐ°ÑÐºÐ¾Ð»Ð¸, Ð²ÑÐ¿ÐµÐ¹ Ð²Ð¾Ð´Ñ, Ð¿Ð¾ÑÐ¾Ð¼ ÑÑÐµÑÑ Ð¼ÑÐºÐ¾ÑÑ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.food_coconut_pierced.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Pierced Coconut"
+      - "ÐÑÑÑÐ²ÑÐ¹ ÐºÐ¾ÐºÐ¾Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.food_coconut_pierced.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A pierced coconut holding drinkable water."
+      - "ÐÐ¾ÐºÐ¾Ñ Ñ Ð´ÑÑÐºÐ¾Ð¹, Ð²Ð½ÑÑÑÐ¸ ÐµÑÑ ÐµÑÑÑ Ð¿Ð¸ÑÑÐµÐ²Ð°Ñ Ð²Ð¾Ð´Ð°."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.food_coconut_open.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Opened Coconut"
+      - "Ð Ð°ÑÐºÐ¾Ð»Ð¾ÑÑÐ¹ ÐºÐ¾ÐºÐ¾Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.food_coconut_open.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A cracked coconut â the water is gone, but the flesh is a filling meal."
+      - "Ð Ð°ÑÐºÐ¾Ð»Ð¾ÑÑÐ¹ ÐºÐ¾ÐºÐ¾Ñ â Ð²Ð¾Ð´Ð° Ð²ÑÐ¿Ð¸ÑÐ°, Ð½Ð¾ Ð¼ÑÐºÐ¾ÑÑ ÐµÑÑ ÑÑÑÐ½Ð°Ñ ÐµÐ´Ð°."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.food_meat_cooked.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Cooked Meat"
+      - "ÐÐ°ÑÐµÐ½Ð¾Ðµ Ð¼ÑÑÐ¾"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.food_meat_cooked.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Meat roasted over the fire â the most filling food on the island."
+      - "ÐÑÑÐ¾, Ð·Ð°Ð¶Ð°ÑÐµÐ½Ð½Ð¾Ðµ Ð½Ð° ÐºÐ¾ÑÑÑÐµ â ÑÐ°Ð¼Ð°Ñ ÑÑÑÐ½Ð°Ñ ÐµÐ´Ð° Ð½Ð° Ð¾ÑÑÑÐ¾Ð²Ðµ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.food_meat_raw.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Raw Meat"
+      - "Ð¡ÑÑÐ¾Ðµ Ð¼ÑÑÐ¾"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.food_meat_raw.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Raw game â inedible until it's cooked over the fire."
+      - "Ð¡ÑÑÐ°Ñ Ð´Ð¸ÑÑ â Ð½ÐµÑÑÐµÐ´Ð¾Ð±Ð½Ð°, Ð¿Ð¾ÐºÐ° Ð½Ðµ Ð·Ð°Ð¶Ð°ÑÐ¸ÑÑ Ð½Ð° ÐºÐ¾ÑÑÑÐµ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.tool_bottle.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Water Bottle"
+      - "ÐÑÑÑÐ»ÐºÐ° Ð²Ð¾Ð´Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.tool_bottle.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A personal bottle â fill it at a spring or boil water in it before drinking."
+      - "ÐÐ¸ÑÐ½Ð°Ñ Ð±ÑÑÑÐ»ÐºÐ° â Ð½Ð°Ð¿Ð¾Ð»Ð½ÑÐ¹ Ñ Ð¸ÑÑÐ¾ÑÐ½Ð¸ÐºÐ° Ð¸Ð»Ð¸ ÐºÐ¸Ð¿ÑÑÐ¸ Ð²Ð¾Ð´Ñ Ð¿ÐµÑÐµÐ´ Ð¿Ð¸ÑÑÑÐ¼."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.tool_pot.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Pot"
+      - "ÐÐ¾ÑÐµÐ»Ð¾Ðº"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.tool_pot.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A cooking pot â boils river water safe to drink over the campfire."
+      - "ÐÐ¾ÑÐµÐ»Ð¾Ðº â ÐºÐ¸Ð¿ÑÑÐ¸Ñ ÑÐµÑÐ½ÑÑ Ð²Ð¾Ð´Ñ Ð½Ð° ÐºÐ¾ÑÑÑÐµ, Ð´ÐµÐ»Ð°Ñ ÐµÑ Ð±ÐµÐ·Ð¾Ð¿Ð°ÑÐ½Ð¾Ð¹."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.tool_lighter.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Lighter"
+      - "ÐÐ°Ð¶Ð¸Ð³Ð°Ð»ÐºÐ°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.tool_lighter.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A lighter â sparks a campfire in an instant, no friction needed."
+      - "ÐÐ°Ð¶Ð¸Ð³Ð°Ð»ÐºÐ° â Ð¼Ð³Ð½Ð¾Ð²ÐµÐ½Ð½Ð¾ ÑÐ°Ð·Ð¶Ð¸Ð³Ð°ÐµÑ ÐºÐ¾ÑÑÑÑ Ð±ÐµÐ· Ð²Ð¾Ð·Ð½Ð¸ Ñ ÑÑÐµÐ½Ð¸ÐµÐ¼."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.tool_axe_stone.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Stone Axe"
+      - "ÐÐ°Ð¼ÐµÐ½Ð½ÑÐ¹ ÑÐ¾Ð¿Ð¾Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.tool_axe_stone.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A stone-headed axe â fells trees and splits firewood."
+      - "Ð¢Ð¾Ð¿Ð¾Ñ Ñ ÐºÐ°Ð¼ÐµÐ½Ð½ÑÐ¼ Ð»ÐµÐ·Ð²Ð¸ÐµÐ¼ â Ð²Ð°Ð»Ð¸Ñ Ð´ÐµÑÐµÐ²ÑÑ Ð¸ ÐºÐ¾Ð»ÐµÑ Ð´ÑÐ¾Ð²Ð°."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.tool_pickaxe_stone.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Stone Pickaxe"
+      - "ÐÐ°Ð¼ÐµÐ½Ð½Ð°Ñ ÐºÐ¸ÑÐºÐ°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.tool_pickaxe_stone.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A stone pickaxe â breaks boulders down into usable stone."
+      - "ÐÐ°Ð¼ÐµÐ½Ð½Ð°Ñ ÐºÐ¸ÑÐºÐ° â Ð´ÑÐ¾Ð±Ð¸Ñ Ð²Ð°Ð»ÑÐ½Ñ Ð½Ð° Ð¿ÑÐ¸Ð³Ð¾Ð´Ð½ÑÐ¹ ÐºÐ°Ð¼ÐµÐ½Ñ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.tool_saw.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Saw"
+      - "ÐÐ¸Ð»Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.tool_saw.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A saw â cuts timber far faster than an axe."
+      - "ÐÐ¸Ð»Ð° â ÑÐµÐ¶ÐµÑ Ð´ÑÐµÐ²ÐµÑÐ¸Ð½Ñ ÐºÑÐ´Ð° Ð±ÑÑÑÑÐµÐµ ÑÐ¾Ð¿Ð¾ÑÐ°."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.tool_bow.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Bow"
+      - "ÐÑÐº"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.tool_bow.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A hunting bow â brings down game from a safe distance."
+      - "ÐÑ
+Ð¾ÑÐ½Ð¸ÑÐ¸Ð¹ Ð»ÑÐº â Ð±ÑÑÑ Ð´Ð¸ÑÑ Ñ Ð±ÐµÐ·Ð¾Ð¿Ð°ÑÐ½Ð¾Ð³Ð¾ ÑÐ°ÑÑÑÐ¾ÑÐ½Ð¸Ñ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.tool_spear.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Spear"
+      - "ÐÐ¾Ð¿ÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.tool_spear.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A wooden spear â for hunting up close and standing off dogs."
+      - "ÐÐµÑÐµÐ²ÑÐ½Ð½Ð¾Ðµ ÐºÐ¾Ð¿ÑÑ â Ð´Ð»Ñ Ð¾Ñ
+Ð¾ÑÑ Ð²Ð±Ð»Ð¸Ð·Ð¸ Ð¸ Ð¾Ð±Ð¾ÑÐ¾Ð½Ñ Ð¾Ñ ÑÐ¾Ð±Ð°Ðº."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.resource_arrow.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Arrow"
+      - "Ð¡ÑÑÐµÐ»Ð°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.resource_arrow.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "An arrow â ammunition for the bow."
+      - "Ð¡ÑÑÐµÐ»Ð° â Ð±Ð¾ÐµÐ¿ÑÐ¸Ð¿Ð°Ñ Ð´Ð»Ñ Ð»ÑÐºÐ°."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.resource_stone.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Stone"
+      - "ÐÐ°Ð¼ÐµÐ½Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.resource_stone.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A chunk of stone â for tools and building."
+      - "ÐÑÑÐ¾Ðº ÐºÐ°Ð¼Ð½Ñ â Ð´Ð»Ñ Ð¸Ð½ÑÑÑÑÐ¼ÐµÐ½ÑÐ¾Ð² Ð¸ Ð¿Ð¾ÑÑÑÐ¾ÐµÐº."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.resource_log.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Log"
+      - "ÐÑÐµÐ²Ð½Ð¾"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.resource_log.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A felled log â split it into sticks, build with it, or raft it."
+      - "ÐÑÐµÐ²Ð½Ð¾ â ÑÐ°ÑÐºÐ¾Ð»Ð¸ Ð½Ð° Ð¿Ð°Ð»ÐºÐ¸, ÑÑÑÐ¾Ð¹ Ð¸Ð· Ð½ÐµÐ³Ð¾ Ð¸Ð»Ð¸ ÑÐ¿Ð»Ð°Ð²Ñ Ð½Ð° Ð¿Ð»Ð¾Ñ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.resource_stick.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Stick"
+      - "ÐÐ°Ð»ÐºÐ°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.resource_stick.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A wooden stick â feeds the fire and frames tools."
+      - "ÐÐµÑÐµÐ²ÑÐ½Ð½Ð°Ñ Ð¿Ð°Ð»ÐºÐ° â ÑÐ¾Ð¿Ð»Ð¸Ð²Ð¾ Ð´Ð»Ñ ÐºÐ¾ÑÑÑÐ° Ð¸ Ð¾ÑÐ½Ð¾Ð²Ð° Ð¸Ð½ÑÑÑÑÐ¼ÐµÐ½ÑÐ¾Ð²."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.resource_fiber.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Plant fiber"
+      - "Ð Ð°ÑÑÐ¸ÑÐµÐ»ÑÐ½Ð¾Ðµ Ð²Ð¾Ð»Ð¾ÐºÐ½Ð¾"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.resource_fiber.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Loose plant fiber â twisted into rope or woven into cloth."
+      - "Ð Ð°ÑÑÐ¸ÑÐµÐ»ÑÐ½Ð¾Ðµ Ð²Ð¾Ð»Ð¾ÐºÐ½Ð¾ â Ð²ÑÑÑÑÑ Ð² Ð²ÐµÑÑÐ²ÐºÑ Ð¸Ð»Ð¸ ÑÐºÑÑÑÑ Ð² ÑÐºÐ°Ð½Ñ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.resource_rope.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Rope"
+      - "ÐÐµÑÑÐ²ÐºÐ°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.resource_rope.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A coil of rope â lashing for bows and builds."
+      - "ÐÐ¾ÑÐ¾Ðº Ð²ÐµÑÑÐ²ÐºÐ¸ â Ð¾Ð±Ð²ÑÐ·ÐºÐ° Ð´Ð»Ñ Ð»ÑÐºÐ¾Ð² Ð¸ Ð¿Ð¾ÑÑÑÐ¾ÐµÐº."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.resource_cloth.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Cloth"
+      - "Ð¢ÐºÐ°Ð½Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.resource_cloth.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A bolt of woven cloth â for shelters and dressings."
+      - "ÐÑÑÐµÐ· ÑÐºÐ°Ð½Ð¾Ð³Ð¾ Ð¿Ð¾Ð»Ð¾ÑÐ½Ð° â Ð´Ð»Ñ ÑÐºÑÑÑÐ¸Ð¹ Ð¸ Ð¿ÐµÑÐµÐ²ÑÐ·Ð¾Ðº."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.tool_knife.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Knife"
+      - "ÐÐ¾Ð¶"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.tool_knife.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A stone knife â the tool for butchering a carcass."
+      - "ÐÐ°Ð¼ÐµÐ½Ð½ÑÐ¹ Ð½Ð¾Ð¶ â Ð¸Ð½ÑÑÑÑÐ¼ÐµÐ½Ñ Ð´Ð»Ñ ÑÐ°Ð·Ð´ÐµÐ»ÐºÐ¸ ÑÑÑÐ¸."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.resource_hide.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Rabbit Hide"
+      - "ÐÑÐ¾Ð»Ð¸ÑÑÑ ÑÐºÑÑÐ°"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.resource_hide.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A cured hide â the raw stock for leather clothing."
+      - "ÐÑÐ´ÐµÐ»Ð°Ð½Ð½Ð°Ñ ÑÐºÑÑÐ° â ÑÑÑÑÑ Ð´Ð»Ñ ÐºÐ¾Ð¶Ð°Ð½Ð¾Ð¹ Ð¾Ð´ÐµÐ¶Ð´Ñ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.resource_palm_leaf.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Palm Leaf"
+      - "ÐÐ°Ð»ÑÐ¼Ð¾Ð²ÑÐ¹ Ð»Ð¸ÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.resource_palm_leaf.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A broad palm leaf â woven into mats, tents and shelter."
+      - "Ð¨Ð¸ÑÐ¾ÐºÐ¸Ð¹ Ð¿Ð°Ð»ÑÐ¼Ð¾Ð²ÑÐ¹ Ð»Ð¸ÑÑ â Ð¿Ð»ÐµÑÑÑÑÑ Ð² ÑÐ¸Ð½Ð¾Ð²ÐºÐ¸, ÑÐµÐ½ÑÑ Ð¸ ÑÐºÑÑÑÐ¸Ñ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.resource_herb_leaf.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Herb Leaf"
+      - "ÐÐ¸ÑÑ ÑÐµÐ»ÐµÐ±Ð½Ð¾Ð¹ ÑÑÐ°Ð²Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.resource_herb_leaf.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A healing leaf â two make a herbal bandage at the fire."
+      - "Ð¦ÐµÐ»ÐµÐ±Ð½ÑÐ¹ Ð»Ð¸ÑÑ â Ð¸Ð· Ð´Ð²ÑÑ
+ Ñ ÐºÐ¾ÑÑÑÐ° Ð²ÑÑ
+Ð¾Ð´Ð¸Ñ ÑÑÐ°Ð²ÑÐ½Ð°Ñ Ð¿Ð¾Ð²ÑÐ·ÐºÐ°."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.item_bandage.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Bandage"
+      - "ÐÐ¸Ð½Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.item_bandage.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A gauze bandage â dresses the worst wound and stops the bleeding."
+      - "ÐÐ°ÑÐ»ÐµÐ²ÑÐ¹ Ð±Ð¸Ð½Ñ â Ð¿ÐµÑÐµÐ²ÑÐ·ÑÐ²Ð°ÐµÑ Ñ
+ÑÐ´ÑÑÑ ÑÐ°Ð½Ñ Ð¸ Ð¾ÑÑÐ°Ð½Ð°Ð²Ð»Ð¸Ð²Ð°ÐµÑ ÐºÑÐ¾Ð²Ñ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.clothing_coat.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Coat"
+      - "ÐÐ°Ð»ÑÑÐ¾"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.clothing_coat.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A warm coat over the torso and arms â real cover against the cold."
+      - "Ð¢ÑÐ¿Ð»Ð¾Ðµ Ð¿Ð°Ð»ÑÑÐ¾ Ð½Ð° ÑÐ¾ÑÑ Ð¸ ÑÑÐºÐ¸ â Ð½Ð°ÑÑÐ¾ÑÑÐ°Ñ Ð·Ð°ÑÐ¸ÑÐ° Ð¾Ñ Ñ
+Ð¾Ð»Ð¾Ð´Ð°."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.clothing_leather_pants.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Leather Pants"
+      - "ÐÐ¾Ð¶Ð°Ð½ÑÐµ ÑÑÐ°Ð½Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.clothing_leather_pants.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Sturdy leather pants â warm the legs and blunt bites to them."
+      - "ÐÑÐ¾ÑÐ½ÑÐµ ÐºÐ¾Ð¶Ð°Ð½ÑÐµ ÑÑÐ°Ð½Ñ â Ð³ÑÐµÑÑ Ð½Ð¾Ð³Ð¸ Ð¸ ÑÐ¼ÑÐ³ÑÐ°ÑÑ ÑÐºÑÑÑ Ð¿Ð¾ Ð½Ð¸Ð¼."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.underwear_cloth.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Cloth Underwear"
+      - "Ð¢ÐºÐ°Ð½ÐµÐ²Ð¾Ðµ Ð±ÐµÐ»ÑÑ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.underwear_cloth.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Plain cloth underwear â the starting layer, barely any warmth."
+      - "ÐÑÐ¾ÑÑÐ¾Ðµ ÑÐºÐ°Ð½ÐµÐ²Ð¾Ðµ Ð±ÐµÐ»ÑÑ â ÑÑÐ°ÑÑÐ¾Ð²ÑÐ¹ ÑÐ»Ð¾Ð¹, ÑÐµÐ¿Ð»Ð° Ð¿Ð¾ÑÑÐ¸ Ð½Ðµ Ð´Ð°ÑÑ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.clothing_top_tropic.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Tropic Top"
+      - "Ð¢ÑÐ¾Ð¿Ð¸ÑÐµÑÐºÐ¸Ð¹ ÑÐ¾Ð¿"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.clothing_top_tropic.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A light printed summer top â a whisper of warmth, purely for looks."
+      - "ÐÑÐ³ÐºÐ¸Ð¹ Ð»ÐµÑÐ½Ð¸Ð¹ ÑÐ¾Ð¿ Ñ Ð¿ÑÐ¸Ð½ÑÐ¾Ð¼ â ÑÑÑÑ Ð³ÑÐµÐµÑ, Ð² Ð¾ÑÐ½Ð¾Ð²Ð½Ð¾Ð¼ Ð´Ð»Ñ Ð²Ð¸Ð´Ð°."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.clothing_top_tiedye.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Tie-Dye Top"
+      - "Ð¢Ð¾Ð¿ ÑÐ°Ð¹-Ð´Ð°Ð¹"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.clothing_top_tiedye.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "A tie-dye summer top â light and cheerful, barely any warmth."
+      - "ÐÐµÑÐ½Ð¸Ð¹ ÑÐ¾Ð¿ ÑÐ°Ð¹-Ð´Ð°Ð¹ â Ð»ÑÐ³ÐºÐ¸Ð¹ Ð¸ ÑÑÐºÐ¸Ð¹, ÑÐµÐ¿Ð»Ð° Ð¿Ð¾ÑÑÐ¸ Ð½Ðµ Ð´Ð°ÑÑ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.underwear_panty_leo.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Leopard Panties"
+      - "ÐÐµÐ¾Ð¿Ð°ÑÐ´Ð¾Ð²ÑÐµ ÑÑÑÑÐ¸ÐºÐ¸"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.underwear_panty_leo.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Leopard-print panties â decorative underwear."
+      - "Ð¢ÑÑÑÐ¸ÐºÐ¸ Ñ Ð»ÐµÐ¾Ð¿Ð°ÑÐ´Ð¾Ð²ÑÐ¼ Ð¿ÑÐ¸Ð½ÑÐ¾Ð¼ â Ð´ÐµÐºÐ¾ÑÐ°ÑÐ¸Ð²Ð½Ð¾Ðµ Ð±ÐµÐ»ÑÑ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.underwear_panty_stars.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Star Panties"
+      - "Ð¢ÑÑÑÐ¸ÐºÐ¸ ÑÐ¾ Ð·Ð²ÑÐ·Ð´Ð°Ð¼Ð¸"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.underwear_panty_stars.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Star-print panties â decorative underwear."
+      - "Ð¢ÑÑÑÐ¸ÐºÐ¸ Ñ Ð¿ÑÐ¸Ð½ÑÐ¾Ð¼-Ð·Ð²ÑÐ·Ð´Ð°Ð¼Ð¸ â Ð´ÐµÐºÐ¾ÑÐ°ÑÐ¸Ð²Ð½Ð¾Ðµ Ð±ÐµÐ»ÑÑ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.armor_leather.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Leather Armor"
+      - "ÐÐ¾Ð¶Ð°Ð½Ð°Ñ Ð±ÑÐ¾Ð½Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.armor_leather.desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Leather chest armor â soaks up bites to the torso at some midday heat."
+      - "ÐÐ¾Ð¶Ð°Ð½Ð°Ñ Ð½Ð°Ð³ÑÑÐ´Ð½Ð°Ñ Ð±ÑÐ¾Ð½Ñ â Ð³Ð°ÑÐ¸Ñ ÑÐºÑÑÑ Ð² ÑÐ¾ÑÑ ÑÐµÐ½Ð¾Ð¹ Ð´Ð½ÐµÐ²Ð½Ð¾Ð¹ Ð¶Ð°ÑÑ."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "item.armor_heavy.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Heavy Armor"
+      - "Ð¢ÑÐ¶ÑÐ»Ð°Ñ Ð±ÑÐ¾Ð½Ñ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "common.yes"
+      TermType: 0
+      Description:
+      Languages:
+      - "yes"
+      - "да"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "common.no"
+      TermType: 0
+      Description:
+      Languages:
+      - "no"
+      - "нет"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "common.ok"
+      TermType: 0
+      Description:
+      Languages:
+      - "OK"
+      - "OK"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "debug.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "DEBUG"
+      - "ОТЛАДКА"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "debug.target_all"
+      TermType: 0
+      Description:
+      Languages:
+      - "target: everyone"
+      - "цель: все"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "debug.target_npc"
+      TermType: 0
+      Description:
+      Languages:
+      - "target: NPC #{0}"
+      - "цель: NPC #{0}"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "debug.random_wound"
+      TermType: 0
+      Description:
+      Languages:
+      - "+ Random wound"
+      - "+ случайная рана"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "debug.clear_wounds"
+      TermType: 0
+      Description:
+      Languages:
+      - "Clear wounds"
+      - "Залечить раны"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "debug.dirt_plus"
+      TermType: 0
+      Description:
+      Languages:
+      - "+ Dirt"
+      - "+ грязь"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "debug.dirt_minus"
+      TermType: 0
+      Description:
+      Languages:
+      - "- Dirt (wash)"
+      - "- грязь (помыть)"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "debug.tan_plus"
+      TermType: 0
+      Description:
+      Languages:
+      - "+ Tan"
+      - "+ загар"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "debug.tan_minus"
+      TermType: 0
+      Description:
+      Languages:
+      - "- Tan"
+      - "- загар"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "debug.sweat_plus"
+      TermType: 0
+      Description:
+      Languages:
+      - "+ Sweat"
+      - "+ пот"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "debug.sweat_minus"
+      TermType: 0
+      Description:
+      Languages:
+      - "- Sweat"
+      - "- пот"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "debug.tear_clothes"
+      TermType: 0
+      Description:
+      Languages:
+      - "+ Tear clothes"
+      - "+ порвать одежду"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "debug.hide_clothes"
+      TermType: 0
+      Description:
+      Languages:
+      - "Hide clothes"
+      - "Скрыть одежду"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "debug.show_clothes"
+      TermType: 0
+      Description:
+      Languages:
+      - "Show clothes"
+      - "Показать одежду"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "hex.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Map point"
+      - "Точка карты"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "hex.no_data"
+      TermType: 0
+      Description:
+      Languages:
+      - "No hex data in the current snapshot."
+      - "В текущем снимке нет данных клетки."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "hex.game_info"
+      TermType: 0
+      Description:
+      Languages:
+      - "Game info"
+      - "Игровая информация"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "hex.no_objects"
+      TermType: 0
+      Description:
+      Languages:
+      - "No items or objects on this point."
+      - "В этой точке нет предметов или объектов."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "hex.hex_data"
+      TermType: 0
+      Description:
+      Languages:
+      - "Hex data"
+      - "Данные клетки"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "hex.debug_junctions"
+      TermType: 0
+      Description:
+      Languages:
+      - "Debug: junctions"
+      - "Отладка: стыки"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "hex.walkable"
+      TermType: 0
+      Description:
+      Languages:
+      - "Walkable"
+      - "Проходимо"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "hex.blocked"
+      TermType: 0
+      Description:
+      Languages:
+      - "Blocked"
+      - "Заблокировано"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "hex.indoor"
+      TermType: 0
+      Description:
+      Languages:
+      - "Indoor"
+      - "В помещении"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "hex.water"
+      TermType: 0
+      Description:
+      Languages:
+      - "Water"
+      - "Вода"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "hex.elevation"
+      TermType: 0
+      Description:
+      Languages:
+      - "Elevation"
+      - "Высота"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "hex.coord"
+      TermType: 0
+      Description:
+      Languages:
+      - "Coord"
+      - "Координаты"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "hex.build_site"
+      TermType: 0
+      Description:
+      Languages:
+      - "Build site"
+      - "Стройплощадка"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "hex.logs"
+      TermType: 0
+      Description:
+      Languages:
+      - "Logs"
+      - "Брёвна"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "hex.stones"
+      TermType: 0
+      Description:
+      Languages:
+      - "Stones"
+      - "Камни"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "hex.leaves"
+      TermType: 0
+      Description:
+      Languages:
+      - "Leaves"
+      - "Листья"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "hex.sticks"
+      TermType: 0
+      Description:
+      Languages:
+      - "Sticks"
+      - "Палки"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "hex.rope"
+      TermType: 0
+      Description:
+      Languages:
+      - "Rope"
+      - "Верёвка"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "hex.resource"
+      TermType: 0
+      Description:
+      Languages:
+      - "Resource"
+      - "Ресурс"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "hex.owner_npc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Owner NPC"
+      - "Владелец NPC"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "hex.variant"
+      TermType: 0
+      Description:
+      Languages:
+      - "Variant"
+      - "Вариант"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "hex.tags"
+      TermType: 0
+      Description:
+      Languages:
+      - "Tags"
+      - "Теги"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "hex.character"
+      TermType: 0
+      Description:
+      Languages:
+      - "Character"
+      - "Персонаж"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "hex.junction"
+      TermType: 0
+      Description:
+      Languages:
+      - "Junction"
+      - "Стык"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "hex.object"
+      TermType: 0
+      Description:
+      Languages:
+      - "Object"
+      - "Объект"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "hex.object_data_desc"
+      TermType: 0
+      Description:
+      Languages:
+      - "Data is available from the object model."
+      - "Данные доступны из модели объекта."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.npc_hud"
+      TermType: 0
+      Description:
+      Languages:
+      - "NPC HUD"
+      - "HUD NPC"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.npc"
+      TermType: 0
+      Description:
+      Languages:
+      - "NPC"
+      - "NPC"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.tile"
+      TermType: 0
+      Description:
+      Languages:
+      - "Tile"
+      - "Клетка"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.goal"
+      TermType: 0
+      Description:
+      Languages:
+      - "Goal"
+      - "Цель"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.interaction"
+      TermType: 0
+      Description:
+      Languages:
+      - "Interaction"
+      - "Взаимодействие"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.inventory"
+      TermType: 0
+      Description:
+      Languages:
+      - "Inventory"
+      - "Инвентарь"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.worn"
+      TermType: 0
+      Description:
+      Languages:
+      - "Worn"
+      - "Надето"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.body"
+      TermType: 0
+      Description:
+      Languages:
+      - "Body"
+      - "Тело"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.needs"
+      TermType: 0
+      Description:
+      Languages:
+      - "Needs"
+      - "Потребности"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.health"
+      TermType: 0
+      Description:
+      Languages:
+      - "Health"
+      - "Здоровье"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.health_tip"
+      TermType: 0
+      Description:
+      Languages:
+      - "Hit points; regenerates while fed"
+      - "Очки здоровья; восстанавливаются при сытости"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.hunger"
+      TermType: 0
+      Description:
+      Languages:
+      - "Hunger"
+      - "Голод"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.hunger_tip"
+      TermType: 0
+      Description:
+      Languages:
+      - "Pressure to find food"
+      - "Нужда найти еду"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.thirst"
+      TermType: 0
+      Description:
+      Languages:
+      - "Thirst"
+      - "Жажда"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.thirst_tip"
+      TermType: 0
+      Description:
+      Languages:
+      - "Pressure to find water"
+      - "Нужда найти воду"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.energy"
+      TermType: 0
+      Description:
+      Languages:
+      - "Energy"
+      - "Энергия"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.energy_tip"
+      TermType: 0
+      Description:
+      Languages:
+      - "Current rest reserve"
+      - "Текущий запас отдыха"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.comfort"
+      TermType: 0
+      Description:
+      Languages:
+      - "Comfort"
+      - "Комфорт"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.comfort_tip"
+      TermType: 0
+      Description:
+      Languages:
+      - "Current comfort level"
+      - "Текущий уровень комфорта"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.social"
+      TermType: 0
+      Description:
+      Languages:
+      - "Social"
+      - "Общение"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.social_tip"
+      TermType: 0
+      Description:
+      Languages:
+      - "Social fulfillment"
+      - "Социальная насыщенность"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.thermal"
+      TermType: 0
+      Description:
+      Languages:
+      - "Thermal"
+      - "Температура"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.thermal_tip"
+      TermType: 0
+      Description:
+      Languages:
+      - "Temperature discomfort"
+      - "Температурный дискомфорт"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.relations"
+      TermType: 0
+      Description:
+      Languages:
+      - "Relations"
+      - "Отношения"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.tools"
+      TermType: 0
+      Description:
+      Languages:
+      - "Debug Tools"
+      - "Отладочные инструменты"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.ready"
+      TermType: 0
+      Description:
+      Languages:
+      - "Ready"
+      - "Готово"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.tick"
+      TermType: 0
+      Description:
+      Languages:
+      - "Tick"
+      - "Тик"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.paused"
+      TermType: 0
+      Description:
+      Languages:
+      - "Paused"
+      - "Пауза"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.speed"
+      TermType: 0
+      Description:
+      Languages:
+      - "Speed"
+      - "Скорость"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.controls"
+      TermType: 0
+      Description:
+      Languages:
+      - "Controls"
+      - "Управление"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.pause_resume"
+      TermType: 0
+      Description:
+      Languages:
+      - "Pause / Resume"
+      - "Пауза / продолжить"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.step_tick"
+      TermType: 0
+      Description:
+      Languages:
+      - "Step Tick"
+      - "Шаг тика"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.speed_presets"
+      TermType: 0
+      Description:
+      Languages:
+      - "Speed Presets"
+      - "Пресеты скорости"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.simulation"
+      TermType: 0
+      Description:
+      Languages:
+      - "Simulation"
+      - "Симуляция"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.plan"
+      TermType: 0
+      Description:
+      Languages:
+      - "Plan"
+      - "План"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.goal_lock"
+      TermType: 0
+      Description:
+      Languages:
+      - "Goal Lock"
+      - "Блок цели"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.cooldowns"
+      TermType: 0
+      Description:
+      Languages:
+      - "Cooldowns"
+      - "Кулдауны"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.memory"
+      TermType: 0
+      Description:
+      Languages:
+      - "Memory"
+      - "Память"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.target_tile"
+      TermType: 0
+      Description:
+      Languages:
+      - "Target Tile"
+      - "Целевая клетка"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.movement"
+      TermType: 0
+      Description:
+      Languages:
+      - "Movement"
+      - "Движение"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.execution"
+      TermType: 0
+      Description:
+      Languages:
+      - "Execution"
+      - "Выполнение"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.path"
+      TermType: 0
+      Description:
+      Languages:
+      - "Path"
+      - "Путь"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.time"
+      TermType: 0
+      Description:
+      Languages:
+      - "Time"
+      - "Время"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.temperature"
+      TermType: 0
+      Description:
+      Languages:
+      - "Temperature"
+      - "Температура"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.reserved_pts"
+      TermType: 0
+      Description:
+      Languages:
+      - "Reserved Pts"
+      - "Резерв точек"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.occupied_pts"
+      TermType: 0
+      Description:
+      Languages:
+      - "Occupied Pts"
+      - "Занятые точки"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.goal_scores"
+      TermType: 0
+      Description:
+      Languages:
+      - "Goal Scores"
+      - "Оценки целей"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.trace_log"
+      TermType: 0
+      Description:
+      Languages:
+      - "Trace Log"
+      - "Журнал трассировки"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "WARDROBE TEST"
+      - "ТЕСТ ГАРДЕРОБА"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.girl"
+      TermType: 0
+      Description:
+      Languages:
+      - "Girl"
+      - "Девушка"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.animation"
+      TermType: 0
+      Description:
+      Languages:
+      - "Animation"
+      - "Анимация"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.cycle_on"
+      TermType: 0
+      Description:
+      Languages:
+      - "Cycle: on"
+      - "Цикл: вкл"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.cycle_off"
+      TermType: 0
+      Description:
+      Languages:
+      - "Cycle: off"
+      - "Цикл: выкл"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.anim_hint"
+      TermType: 0
+      Description:
+      Languages:
+      - "sit -> sleep 5s -> stand"
+      - "сесть → сон 5с → встать"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.undress_all"
+      TermType: 0
+      Description:
+      Languages:
+      - "Undress all"
+      - "Снять всё"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.clothes"
+      TermType: 0
+      Description:
+      Languages:
+      - "Clothes"
+      - "Одежда"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.click_hint"
+      TermType: 0
+      Description:
+      Languages:
+      - "click: wear/select · click again: remove"
+      - "клик: надеть/выбрать · ещё клик: снять"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.scale_none"
+      TermType: 0
+      Description:
+      Languages:
+      - "Scale: nothing selected"
+      - "Масштаб: ничего не выбрано"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.scale_selected"
+      TermType: 0
+      Description:
+      Languages:
+      - "“{0}” on {1}"
+      - "«{0}» на {1}"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.scale_hint"
+      TermType: 0
+      Description:
+      Languages:
+      - "←/→ — step 0.01, with Shift — 0.001"
+      - "←/→ — шаг 0.01, с Shift — 0.001"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.save_prefabs"
+      TermType: 0
+      Description:
+      Languages:
+      - "Save to prefabs"
+      - "Сохранить в префабы"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.save_prefabs_count"
+      TermType: 0
+      Description:
+      Languages:
+      - "Save to prefabs ({0})"
+      - "Сохранить в префабы ({0})"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "History"
+      - "История"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.subtitle"
+      TermType: 0
+      Description:
+      Languages:
+      - "important events in this world"
+      - "важные события текущего мира"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.empty"
+      TermType: 0
+      Description:
+      Languages:
+      - "No important events yet."
+      - "Пока нет важных событий."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.show_older"
+      TermType: 0
+      Description:
+      Languages:
+      - "Show older"
+      - "Показать раньше"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.refresh"
+      TermType: 0
+      Description:
+      Languages:
+      - "Refresh"
+      - "Обновить"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.AidStarted"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} went to help {1}."
+      - "{0} пошла помогать {1}."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.AidRequested"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} noticed {1} needs help."
+      - "{0} заметила, что {1} нужна помощь."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.AidWaitTimeout"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} stopped waiting for help."
+      - "{0} перестала ждать помощи."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.Aided"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} helped {1}."
+      - "{0} помогла {1}."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.RelationshipChangedPositive"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} warmed toward {1}."
+      - "{0} стала теплее к {1}."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.RelationshipChangedNegative"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} grew colder toward {1}."
+      - "{0} стала хуже относиться к {1}."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.RelationshipChanged"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0}'s relationship with {1} changed."
+      - "Отношение {0} к {1} изменилось."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.TalkRequested"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} invited {1} to talk."
+      - "{0} позвала {1} поговорить."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.TalkStarted"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} started a conversation with {1}."
+      - "{0} начала разговор с {1}."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.TalkCompleted"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} had a good talk with {1}."
+      - "{0} хорошо поговорила с {1}."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.TalkQuarreled"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} quarreled with {1}."
+      - "{0} поссорилась с {1}."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.TalkWaitTimeout"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} stopped waiting for the conversation."
+      - "{0} перестала ждать разговора."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.InteractionBlocked"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} could not use a busy object."
+      - "{0} не смогла воспользоваться занятым объектом."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.InteractionRejected"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0}'s talk was refused."
+      - "{0} отказали в разговоре."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.FoodShared"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} received food from {1}."
+      - "{0} получила еду от {1}."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.FoodStolen"
+      TermType: 0
+      Description:
+      Languages:
+      - "Food was stolen in the camp."
+      - "В лагере украли еду."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.Grieving"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} is grieving."
+      - "{0} скорбит."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.Mourned"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} paid respects to the dead."
+      - "{0} почтила память погибшей."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.VisitedGrave"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} visited a grave."
+      - "{0} посетила могилу."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.NpcDied"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} died."
+      - "{0} погибла."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.BledOut"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} bled out."
+      - "{0} истекла кровью."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.StarvedToDeath"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} died from hunger or thirst."
+      - "{0} умерла от голода или жажды."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.VitalPartDestroyed"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} suffered a fatal wound."
+      - "{0} получила смертельную рану."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.DogFight"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} was attacked by a dog."
+      - "{0} атакована собакой."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.DogAggro"
+      TermType: 0
+      Description:
+      Languages:
+      - "A wild dog noticed the camp."
+      - "Дикая собака заметила лагерь."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.DogKilled"
+      TermType: 0
+      Description:
+      Languages:
+      - "A dog was killed."
+      - "Собаку убили."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.DogShot"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} fired at a dog."
+      - "{0} выстрелила в собаку."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.NightRaid"
+      TermType: 0
+      Description:
+      Languages:
+      - "Dogs raided the camp at dusk."
+      - "На закате на лагерь напали собаки."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.Preyed"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} attacked a housemate."
+      - "{0} напала на соседку."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.PreyFoughtBack"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} fought back."
+      - "{0} дала отпор."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.PreyFled"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} fled from an attacker."
+      - "{0} сбежала от нападавшей."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.PredatorKilled"
+      TermType: 0
+      Description:
+      Languages:
+      - "An attacker was killed in self-defence."
+      - "Нападавшую убили при самообороне."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.Murdered"
+      TermType: 0
+      Description:
+      Languages:
+      - "A housemate was killed for meat."
+      - "Соседку убили ради мяса."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.SharkBite"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} was bitten by a shark."
+      - "{0} укусила акула."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.LimbSevered"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} lost a limb."
+      - "{0} потеряла конечность."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.Fainted"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} fainted."
+      - "{0} потеряла сознание."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.Bandaged"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} dressed the wounds."
+      - "{0} перевязала раны."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.Medicated"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} used medicine."
+      - "{0} приняла лекарство."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.StatusStarving"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} is starving."
+      - "{0} голодает."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.StatusDehydrated"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} is dehydrated."
+      - "{0} обезвожена."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.StatusOverheated"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} is overheating."
+      - "{0} перегревается."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.Sunburn"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} was burned by the sun."
+      - "{0} обгорела на солнце."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.RainStarted"
+      TermType: 0
+      Description:
+      Languages:
+      - "Rain started."
+      - "Начался дождь."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.RainStopped"
+      TermType: 0
+      Description:
+      Languages:
+      - "Rain stopped."
+      - "Дождь закончился."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.StormSurge"
+      TermType: 0
+      Description:
+      Languages:
+      - "A storm surge hit the island."
+      - "Штормовой нагон ударил по острову."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.TreeChopped"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} felled a tree."
+      - "{0} срубила дерево."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.BoulderBroken"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} broke a boulder."
+      - "{0} разбила валун."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.LogSplit"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} split a log into sticks."
+      - "{0} расколола бревно на палки."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.CrownChopped"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} cut palm leaves."
+      - "{0} нарубила пальмовых листьев."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.CoconutProcessed"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} opened a coconut."
+      - "{0} вскрыла кокос."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.CoconutDrank"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} drank coconut water."
+      - "{0} выпила кокосовую воду."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.CoconutEaten"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} ate coconut."
+      - "{0} съела кокос."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.BottleFilled"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} filled a bottle."
+      - "{0} наполнила бутылку."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.DrankBottle"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} drank from a bottle."
+      - "{0} попила из бутылки."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.FireLit"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} lit the fire."
+      - "{0} разожгла костер."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.FireFueled"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} fed the fire."
+      - "{0} подбросила топлива в костер."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.FireOut"
+      TermType: 0
+      Description:
+      Languages:
+      - "The fire went out."
+      - "Костер погас."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.RaftProgress"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} worked on the raft."
+      - "{0} строит плот."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.RaftLaunched"
+      TermType: 0
+      Description:
+      Languages:
+      - "The raft is finished."
+      - "Плот готов."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.BuildProgress"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} built part of the shelter."
+      - "{0} построила часть укрытия."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.FurnitureBuilt"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} finished furniture."
+      - "{0} закончила мебель."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.HutCompleted"
+      TermType: 0
+      Description:
+      Languages:
+      - "The hut is complete."
+      - "Хижина достроена."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.BedCrafted"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} made a bed."
+      - "{0} сделала постель."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.TentCrafted"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} made a sun shelter."
+      - "{0} сделала навес от солнца."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.RackCrafted"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} made a drying rack."
+      - "{0} сделала сушилку."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.Buried"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} buried the dead."
+      - "{0} похоронила погибшую."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.Butchered"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} butchered a body."
+      - "{0} разделала тушу."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.EmergencyUnload"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} dropped supplies to make room for food."
+      - "{0} сбросила припасы, чтобы освободить место для еды."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.DireStraits"
+      TermType: 0
+      Description:
+      Languages:
+      - "The colony is in crisis."
+      - "Колония в критическом состоянии."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.CraftedAny"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} crafted something useful."
+      - "{0} что-то смастерила."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.Unknown"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0}: {1}"
+      - "{0}: {1}"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.detail.help"
+      TermType: 0
+      Description:
+      Languages:
+      - "Help: {0}"
+      - "Помощь: {0}"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.detail.AidWaitTimeout"
+      TermType: 0
+      Description:
+      Languages:
+      - "The promised helper did not arrive in time."
+      - "Помощница не успела прийти вовремя."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.detail.Aided"
+      TermType: 0
+      Description:
+      Languages:
+      - "Help: {0}. Relationship improved."
+      - "Помощь: {0}. Отношения улучшились."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.detail.TalkRequested"
+      TermType: 0
+      Description:
+      Languages:
+      - "Affinity before invite: {0}"
+      - "Отношение перед приглашением: {0}"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.detail.TalkStarted"
+      TermType: 0
+      Description:
+      Languages:
+      - "Topic: {0}"
+      - "Тема: {0}"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.detail.TalkCompleted"
+      TermType: 0
+      Description:
+      Languages:
+      - "Social need rose. Relationship improved."
+      - "Общение стало лучше. Отношения улучшились."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.detail.TalkQuarreled"
+      TermType: 0
+      Description:
+      Languages:
+      - "Both gained some social contact, but affinity fell."
+      - "Общение случилось, но отношения ухудшились."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.detail.TalkWaitTimeout"
+      TermType: 0
+      Description:
+      Languages:
+      - "The invited NPC did not arrive in time."
+      - "Собеседница не успела подойти вовремя."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.detail.InteractionRejected"
+      TermType: 0
+      Description:
+      Languages:
+      - "A personal refusal can hurt affinity."
+      - "Личный отказ может ухудшить отношения."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.detail.DireStraits"
+      TermType: 0
+      Description:
+      Languages:
+      - "Several survivors need urgent attention."
+      - "Нескольким выжившим срочно нужна помощь."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.detail.RelationshipAffinity"
+      TermType: 0
+      Description:
+      Languages:
+      - "Affinity now {0}."
+      - "Отношение теперь {0}."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.detail.RelationshipAffinityDelta"
+      TermType: 0
+      Description:
+      Languages:
+      - "Affinity now {0} ({1})."
+      - "Отношение теперь {0} ({1})."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.detail.Cause"
+      TermType: 0
+      Description:
+      Languages:
+      - "Cause: {0}."
+      - "Причина: {0}."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.detail.OccupiedBy"
+      TermType: 0
+      Description:
+      Languages:
+      - "Occupied by {0}."
+      - "Занято: {0}."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.cause.BledOut"
+      TermType: 0
+      Description:
+      Languages:
+      - "blood loss"
+      - "кровопотеря"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.cause.DogFight"
+      TermType: 0
+      Description:
+      Languages:
+      - "dog attack"
+      - "нападение собаки"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.cause.Heatstroke"
+      TermType: 0
+      Description:
+      Languages:
+      - "heatstroke"
+      - "перегрев"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.cause.Hypothermia"
+      TermType: 0
+      Description:
+      Languages:
+      - "hypothermia"
+      - "переохлаждение"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.cause.LimbSevered"
+      TermType: 0
+      Description:
+      Languages:
+      - "lost limb"
+      - "потеря конечности"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.cause.Preyed"
+      TermType: 0
+      Description:
+      Languages:
+      - "housemate attack"
+      - "нападение соседки"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.cause.PreyFoughtBack"
+      TermType: 0
+      Description:
+      Languages:
+      - "self-defence fight"
+      - "бой при самообороне"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.cause.SharkBite"
+      TermType: 0
+      Description:
+      Languages:
+      - "shark bite"
+      - "укус акулы"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.cause.StarvedToDeath"
+      TermType: 0
+      Description:
+      Languages:
+      - "hunger or thirst"
+      - "голод или жажда"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.cause.Sunburn"
+      TermType: 0
+      Description:
+      Languages:
+      - "sun exposure"
+      - "солнце"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.cause.VitalPartDestroyed"
+      TermType: 0
+      Description:
+      Languages:
+      - "fatal wound"
+      - "смертельная рана"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.time.day"
+      TermType: 0
+      Description:
+      Languages:
+      - "Day {0}, {1}"
+      - "День {0}, {1}"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.npc.colony"
+      TermType: 0
+      Description:
+      Languages:
+      - "Colony"
+      - "Колония"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.aid.Feed"
+      TermType: 0
+      Description:
+      Languages:
+      - "food"
+      - "еда"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.aid.Treat"
+      TermType: 0
+      Description:
+      Languages:
+      - "treatment"
+      - "лечение ран"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.aid.Medicate"
+      TermType: 0
+      Description:
+      Languages:
+      - "medicine"
+      - "лекарство"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.aid.Console"
+      TermType: 0
+      Description:
+      Languages:
+      - "comfort"
+      - "утешение"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.topic.SmallTalk"
+      TermType: 0
+      Description:
+      Languages:
+      - "small talk"
+      - "разговор ни о чем"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.topic.Escape"
+      TermType: 0
+      Description:
+      Languages:
+      - "escape"
+      - "побег с острова"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.topic.Sharks"
+      TermType: 0
+      Description:
+      Languages:
+      - "sharks"
+      - "акулы"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.topic.Dogs"
+      TermType: 0
+      Description:
+      Languages:
+      - "dogs"
+      - "собаки"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.topic.Weather"
+      TermType: 0
+      Description:
+      Languages:
+      - "weather"
+      - "погода"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.topic.Food"
+      TermType: 0
+      Description:
+      Languages:
+      - "food"
+      - "еда"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.topic.Fire"
+      TermType: 0
+      Description:
+      Languages:
+      - "fire"
+      - "костер"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.topic.Home"
+      TermType: 0
+      Description:
+      Languages:
+      - "home"
+      - "дом"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.topic.Gossip"
+      TermType: 0
+      Description:
+      Languages:
+      - "gossip"
+      - "слухи"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.topic.Flirt"
+      TermType: 0
+      Description:
+      Languages:
+      - "flirting"
+      - "флирт"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.topic.Joke"
+      TermType: 0
+      Description:
+      Languages:
+      - "jokes"
+      - "шутки"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.topic.Grumble"
+      TermType: 0
+      Description:
+      Languages:
+      - "complaints"
+      - "ворчание"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.BandageCrafted"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} made a bandage."
+      - "{0} сделала бинт."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.event.MeatCooked"
+      TermType: 0
+      Description:
+      Languages:
+      - "{0} cooked meat."
+      - "{0} приготовила мясо."
+      Flags: 0000
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
-    mTerm_AppName: 
-    mLanguages: []
+    mTerm_AppName:
+    mLanguages:
+    - Name: English
+      Code: en
+      Flags: 0
+    - Name: Russian
+      Code: ru
+      Flags: 0
     IgnoreDeviceLanguage: 0
     _AllowUnloadingLanguages: 0
-    Google_WebServiceURL: 
-    Google_SpreadsheetKey: 
-    Google_SpreadsheetName: 
-    Google_LastUpdatedVersion: 
+    Google_WebServiceURL:
+    Google_SpreadsheetKey:
+    Google_SpreadsheetName:
+    Google_LastUpdatedVersion:
     Google_Password: change_this
     GoogleUpdateFrequency: 3
     GoogleInEditorCheckFrequency: 2
     GoogleUpdateSynchronization: 1
     GoogleUpdateDelay: 0
     Assets: []
-    Spreadsheet_LocalFileName: 
+    Spreadsheet_LocalFileName:
     Spreadsheet_LocalCSVSeparator: ','
     Spreadsheet_LocalCSVEncoding: utf-8
     Spreadsheet_SpecializationAsRows: 1

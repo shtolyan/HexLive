@@ -23,6 +23,7 @@ namespace HexLive.UnityPresentation.History
         public int? EntityId { get; }
         public string Type { get; }
         public string Message { get; }
+        public string LocalizationKey => "history.event." + Type;
         public bool IsValid => !string.IsNullOrEmpty(Type);
 
         public static GameHistoryRecord FromEvent(SimulationEvent simulationEvent) =>

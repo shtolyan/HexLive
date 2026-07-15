@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using HexLive.Simulation.Debug;
 using HexLive.UnityPresentation.Bootstrap;
+using HexLive.UnityPresentation.Localization;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
@@ -112,11 +113,13 @@ namespace HexLive.UnityDebug.UI
 
         private void OnEnable()
         {
+            Loc.LanguageChanged += BuildUi;
             WorldSnapshotExporter.IncludeDebugDetails = _visible;
         }
 
         private void OnDisable()
         {
+            Loc.LanguageChanged -= BuildUi;
             WorldSnapshotExporter.IncludeDebugDetails = false;
         }
 
@@ -177,19 +180,19 @@ namespace HexLive.UnityDebug.UI
 
         private void BuildHud(VisualElement panel)
         {
-            panel.Add(CreateHeader("NPC HUD"));
+            panel.Add(CreateHeader(Loc.Get("simdebug.npc_hud")));
 
             var infoSection = CreateSection();
-            _hudNpcName = AddKeyValue(infoSection, "NPC");
-            _hudTileValue = AddKeyValue(infoSection, "Tile");
-            _hudGoalValue = AddKeyValue(infoSection, "Goal");
-            _hudInteractionValue = AddKeyValue(infoSection, "Interaction");
-            _hudInventoryValue = AddKeyValue(infoSection, "Inventory");
-            _hudWornValue = AddKeyValue(infoSection, "Worn");
-            _hudBodyValue = AddKeyValue(infoSection, "Body");
+            _hudNpcName = AddKeyValue(infoSection, Loc.Get("simdebug.npc"));
+            _hudTileValue = AddKeyValue(infoSection, Loc.Get("simdebug.tile"));
+            _hudGoalValue = AddKeyValue(infoSection, Loc.Get("simdebug.goal"));
+            _hudInteractionValue = AddKeyValue(infoSection, Loc.Get("simdebug.interaction"));
+            _hudInventoryValue = AddKeyValue(infoSection, Loc.Get("simdebug.inventory"));
+            _hudWornValue = AddKeyValue(infoSection, Loc.Get("simdebug.worn"));
+            _hudBodyValue = AddKeyValue(infoSection, Loc.Get("simdebug.body"));
             panel.Add(infoSection);
 
-            _hudStarvingBadge = new Label("STARVING");
+            _hudStarvingBadge = new Label(Loc.Get("badge.starving"));
             _hudStarvingBadge.style.color = Color.white;
             _hudStarvingBadge.style.backgroundColor = new Color(0.75f, 0.12f, 0.12f);
             _hudStarvingBadge.style.unityFontStyleAndWeight = FontStyle.Bold;
@@ -200,21 +203,21 @@ namespace HexLive.UnityDebug.UI
             _hudStarvingBadge.style.display = DisplayStyle.None;
             panel.Add(_hudStarvingBadge);
 
-            panel.Add(CreateSectionTitle("Needs"));
+            panel.Add(CreateSectionTitle(Loc.Get("simdebug.needs")));
 
             var needsSection = CreateSection();
-            _healthBar = AddNeedBar(needsSection, "Health", "Hit points; regenerates while fed", HealthColor, out _healthLabel);
-            _hungerBar = AddNeedBar(needsSection, "Hunger", "Pressure to find food", HungerColor, out _hungerLabel);
-            _thirstBar = AddNeedBar(needsSection, "Thirst", "Pressure to find water", ThirstColor, out _thirstLabel);
-            _energyBar = AddNeedBar(needsSection, "Energy", "Current rest reserve", EnergyColor, out _energyLabel);
-            _comfortBar = AddNeedBar(needsSection, "Comfort", "Current comfort level", ComfortColor, out _comfortLabel);
-            _socialBar = AddNeedBar(needsSection, "Social", "Social fulfillment", SocialColor, out _socialLabel);
-            _thermalBar = AddNeedBar(needsSection, "Thermal", "Temperature discomfort", ThermalColor, out _thermalLabel);
+            _healthBar = AddNeedBar(needsSection, Loc.Get("simdebug.health"), Loc.Get("simdebug.health_tip"), HealthColor, out _healthLabel);
+            _hungerBar = AddNeedBar(needsSection, Loc.Get("simdebug.hunger"), Loc.Get("simdebug.hunger_tip"), HungerColor, out _hungerLabel);
+            _thirstBar = AddNeedBar(needsSection, Loc.Get("simdebug.thirst"), Loc.Get("simdebug.thirst_tip"), ThirstColor, out _thirstLabel);
+            _energyBar = AddNeedBar(needsSection, Loc.Get("simdebug.energy"), Loc.Get("simdebug.energy_tip"), EnergyColor, out _energyLabel);
+            _comfortBar = AddNeedBar(needsSection, Loc.Get("simdebug.comfort"), Loc.Get("simdebug.comfort_tip"), ComfortColor, out _comfortLabel);
+            _socialBar = AddNeedBar(needsSection, Loc.Get("simdebug.social"), Loc.Get("simdebug.social_tip"), SocialColor, out _socialLabel);
+            _thermalBar = AddNeedBar(needsSection, Loc.Get("simdebug.thermal"), Loc.Get("simdebug.thermal_tip"), ThermalColor, out _thermalLabel);
             panel.Add(needsSection);
 
-            panel.Add(CreateSectionTitle("Relations"));
+            panel.Add(CreateSectionTitle(Loc.Get("simdebug.relations")));
             var relationsSection = CreateSection();
-            _hudRelationsValue = AddKeyValue(relationsSection, "Relations");
+            _hudRelationsValue = AddKeyValue(relationsSection, Loc.Get("simdebug.relations"));
             panel.Add(relationsSection);
         }
 
@@ -228,26 +231,26 @@ namespace HexLive.UnityDebug.UI
             var content = scroll.contentContainer;
 
             // Status section
-            content.Add(CreateHeader("Debug Tools"));
+            content.Add(CreateHeader(Loc.Get("simdebug.tools")));
 
             var statusSection = CreateSection();
-            _readyValue = AddKeyValue(statusSection, "Ready");
-            _tickValue = AddKeyValue(statusSection, "Tick");
-            _pausedValue = AddKeyValue(statusSection, "Paused");
-            _speedValue = AddKeyValue(statusSection, "Speed");
+            _readyValue = AddKeyValue(statusSection, Loc.Get("simdebug.ready"));
+            _tickValue = AddKeyValue(statusSection, Loc.Get("simdebug.tick"));
+            _pausedValue = AddKeyValue(statusSection, Loc.Get("simdebug.paused"));
+            _speedValue = AddKeyValue(statusSection, Loc.Get("simdebug.speed"));
             content.Add(statusSection);
 
             // Controls
-            content.Add(CreateSectionTitle("Controls"));
+            content.Add(CreateSectionTitle(Loc.Get("simdebug.controls")));
             var controlsSection = CreateSection();
 
             var mainRow = CreateRow();
-            _pauseButton = CreateStyledButton("Pause / Resume", OnTogglePause);
+            _pauseButton = CreateStyledButton(Loc.Get("simdebug.pause_resume"), OnTogglePause);
             mainRow.Add(_pauseButton);
-            mainRow.Add(CreateStyledButton("Step Tick", OnStepTick));
+            mainRow.Add(CreateStyledButton(Loc.Get("simdebug.step_tick"), OnStepTick));
             controlsSection.Add(mainRow);
 
-            var speedLabel = new Label("Speed Presets");
+            var speedLabel = new Label(Loc.Get("simdebug.speed_presets"));
             speedLabel.style.color = TextMuted;
             speedLabel.style.fontSize = 10;
             speedLabel.style.marginBottom = 4f;
@@ -269,29 +272,29 @@ namespace HexLive.UnityDebug.UI
             content.Add(controlsSection);
 
             // Simulation details
-            content.Add(CreateSectionTitle("Simulation"));
+            content.Add(CreateSectionTitle(Loc.Get("simdebug.simulation")));
             var simSection = CreateSection();
-            _planValue = AddKeyValue(simSection, "Plan");
-            _goalLockValue = AddKeyValue(simSection, "Goal Lock");
-            _cooldownsValue = AddKeyValue(simSection, "Cooldowns");
-            _memoryValue = AddKeyValue(simSection, "Memory");
-            _targetTileValue = AddKeyValue(simSection, "Target Tile");
-            _movementValue = AddKeyValue(simSection, "Movement");
-            _executionValue = AddKeyValue(simSection, "Execution");
-            _pathValue = AddKeyValue(simSection, "Path");
-            _clockValue = AddKeyValue(simSection, "Time");
-            _temperatureValue = AddKeyValue(simSection, "Temperature");
-            _reservedValue = AddKeyValue(simSection, "Reserved Pts");
-            _occupiedValue = AddKeyValue(simSection, "Occupied Pts");
+            _planValue = AddKeyValue(simSection, Loc.Get("simdebug.plan"));
+            _goalLockValue = AddKeyValue(simSection, Loc.Get("simdebug.goal_lock"));
+            _cooldownsValue = AddKeyValue(simSection, Loc.Get("simdebug.cooldowns"));
+            _memoryValue = AddKeyValue(simSection, Loc.Get("simdebug.memory"));
+            _targetTileValue = AddKeyValue(simSection, Loc.Get("simdebug.target_tile"));
+            _movementValue = AddKeyValue(simSection, Loc.Get("simdebug.movement"));
+            _executionValue = AddKeyValue(simSection, Loc.Get("simdebug.execution"));
+            _pathValue = AddKeyValue(simSection, Loc.Get("simdebug.path"));
+            _clockValue = AddKeyValue(simSection, Loc.Get("simdebug.time"));
+            _temperatureValue = AddKeyValue(simSection, Loc.Get("simdebug.temperature"));
+            _reservedValue = AddKeyValue(simSection, Loc.Get("simdebug.reserved_pts"));
+            _occupiedValue = AddKeyValue(simSection, Loc.Get("simdebug.occupied_pts"));
             content.Add(simSection);
 
             // Goal Scores
-            content.Add(CreateSectionTitle("Goal Scores"));
+            content.Add(CreateSectionTitle(Loc.Get("simdebug.goal_scores")));
             _scoresContainer = CreateSection();
             content.Add(_scoresContainer);
 
             // Trace Log
-            content.Add(CreateSectionTitle("Trace Log"));
+            content.Add(CreateSectionTitle(Loc.Get("simdebug.trace_log")));
             var traceSection = CreateSection();
             traceSection.style.maxHeight = 400f;
             traceSection.style.overflow = Overflow.Hidden;

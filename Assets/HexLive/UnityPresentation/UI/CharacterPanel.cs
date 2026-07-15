@@ -616,7 +616,7 @@ namespace HexLive.UnityPresentation.UI
 
             if (magnitude < 0.05f)
             {
-                _thermalPct.text = "OK";
+                _thermalPct.text = Loc.Get("common.ok");
                 _thermalPct.style.color = Good;
                 _thermalLabel.style.color = Text;
             }
@@ -2126,7 +2126,7 @@ namespace HexLive.UnityPresentation.UI
             hIcon.style.height = 14f;
             hIcon.style.marginRight = 6f;
             hIcon.style.flexShrink = 0f;
-            var hCap = MakeCaption("HP");
+            var hCap = MakeCaption(Loc.Get("end.hp"));
             hCap.style.flexGrow = 1f;
             _healthValue = new Label("—");
             _healthValue.style.color = Text;

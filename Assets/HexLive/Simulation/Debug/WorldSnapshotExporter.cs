@@ -524,6 +524,7 @@ public static class WorldSnapshotExporter
             TargetTile = npc.Plan.TargetTile,
             IsStarving = npc.Mind.IsStarving,
             InventoryCapacity = npc.Inventory.Capacity,
+            InventoryUsedSlots = npc.Inventory.UsedSlots,
             GoalLockEndTick = npc.Mind.GoalLock is { } goalLock &&
                 goalLock.Goal == npc.Mind.CurrentGoal && goalLock.EndTick > world.Tick
                     ? goalLock.EndTick
@@ -540,8 +541,31 @@ public static class WorldSnapshotExporter
             ? 0f
             : world.Environment.UvIndex * (npcSnapshot.IsShaded ? 0.2f : 1f);
 
+        var stackCounts = new Dictionary<string, int>();
+        var stackOrder = new List<string>();
         foreach (var item in npc.Inventory.Items)
         {
+            if (!InventoryState.IsStackable(item.DefinitionId))
+            {
+                continue;
+            }
+
+            if (!stackCounts.ContainsKey(item.DefinitionId))
+            {
+                stackOrder.Add(item.DefinitionId);
+                stackCounts[item.DefinitionId] = 0;
+            }
+
+            stackCounts[item.DefinitionId]++;
+        }
+
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (InventoryState.IsStackable(item.DefinitionId))
+            {
+                continue;
+            }
+
             npcSnapshot.InventoryItems.Add(item);
             npcSnapshot.InventoryDurability.Add($"{item.DefinitionId}\t{item.Durability:0.###}");
             if (item.DefinitionId == "tool.bottle")
@@ -554,6 +578,13 @@ public static class WorldSnapshotExporter
                 npcSnapshot.InventoryWater.Add(
                     $"{item.DefinitionId}\t{item.ResourceAmount.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)}\t{Runtime.SimBalance.CoconutWaterCapacity.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
             }
+        }
+
+        foreach (var definitionId in stackOrder)
+        {
+            npcSnapshot.InventoryItems.Add(definitionId);
+            npcSnapshot.InventoryStacks.Add(
+                $"{definitionId}\t{stackCounts[definitionId].ToString(System.Globalization.CultureInfo.InvariantCulture)}");
         }
 
         foreach (var item in npc.WornItems)

@@ -78,6 +78,12 @@ public static class PrototypeContentCatalog
                         DurationTicks = 20,
                         Effects = { HungerDelta = -SimBalance.CoconutHunger, ComfortDelta = 0.05f }
                     },
+                    new InteractionDefinition
+                    {
+                        Id = "pickup.coconut_open",
+                        Type = InteractionType.PickUp,
+                        DurationTicks = 4
+                    },
                 },
                 Tags = { "Food" }
             },

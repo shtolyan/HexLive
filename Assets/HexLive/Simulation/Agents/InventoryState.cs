@@ -58,11 +58,10 @@ public sealed class InventoryState
     public static bool IsPersonalEffect(string definitionId) =>
         definitionId == "tool.bottle";
 
-    // §54.10: bulk raw materials STACK — a bundle of identical leaves/sticks/etc.
-    // rides in ONE pocket slot (up to the stack size), so hauling a bed's worth of
-    // pieces is a trip or two, not a dozen. Slots are NOT expanded; only the
-    // accounting stacks. Items stays a flat list of instances, so every existing
-    // Add/Remove/Contains/Count path is unchanged — only slot counting groups.
+    // §54.10: bulk resources STACK — a bundle of identical leaves/sticks/logs/etc.
+    // rides in ONE pocket slot (up to the stack size). Items stays a flat list of
+    // instances so recipes, weapon checks and per-item removals keep working; slot
+    // counting and snapshot/UI presentation fold stackable resources together.
     public const int StackSize = 20;
 
     // §54.2: leaves stack 3× deeper — a bed's mattress is ~46-50 leaves, so a
@@ -73,13 +72,9 @@ public sealed class InventoryState
     public static int StackSizeFor(string definitionId) =>
         definitionId == "resource.palm_leaf" ? LeafStackSize : StackSize;
 
-    private static readonly HashSet<string> StackableIds = new()
-    {
-        "resource.palm_leaf", "resource.stick", "resource.stone",
-        "resource.fiber", "resource.rope",
-    };
-
-    public static bool IsStackable(string definitionId) => StackableIds.Contains(definitionId);
+    public static bool IsStackable(string definitionId) =>
+        !string.IsNullOrEmpty(definitionId) &&
+        definitionId.StartsWith("resource.", System.StringComparison.Ordinal);
 
     // Pocketed items only — personal effects (the bottle) ride free; stackable
     // bulk resources fold into one slot per StackSize of the same definition.

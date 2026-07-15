@@ -666,7 +666,7 @@ public sealed class DecisionSystem : ISimulationSystem
             var getFoodHungerThreshold = SimBalance.GetFoodHungerThreshold;
 
             var eatAvail = hasFoodInInventory || hasCoconutMeal;
-            var getFoodAvail = !hasFoodInInventory && !hasCoconutMeal && npc.Inventory.HasSpace &&
+            var getFoodAvail = !hasFoodInInventory && !hasCoconutMeal &&
                 npc.Needs.Hunger >= getFoodHungerThreshold &&
                 (HasReachableFoodForCurrentTools(npc, world) || KnowsReachableProducer(npc, world));
             // Spec 29G: the land itself is furniture — a bed is better, but
@@ -903,9 +903,11 @@ public sealed class DecisionSystem : ISimulationSystem
             // Spec §54: "wood in hand" for fire/craft now means a STICK.
             var hasWood = npc.Inventory.Items.Contains("resource.stick");
             var (campfireSeen, campfireFuel) = FindCampfire(npc, world);
-            var drinkAvail = npc.Needs.Thirst >= 0.35f && hasCoconutWater;
+            var hasBottleWater = HasBottleWater(npc);
+            var drinkAvail = npc.Needs.Thirst >= 0.35f && (hasBottleWater || hasCoconutWater);
             var getWaterAvail = hasCoconutBlade && npc.Needs.Thirst >= 0.35f && !hasCoconutWater &&
-                npc.Inventory.HasSpace && HasReachableDefinition(npc, world, "food.coconut");
+                !hasBottleWater &&
+                HasReachableDefinitionWorthCarrying(npc, world, "food.coconut");
             var coconutToolPressure = !hasCoconutBlade &&
                 (npc.Needs.Thirst >= 0.35f || npc.Needs.Hunger >= getFoodHungerThreshold) &&
                 HasCoconutOpportunity(npc, world);
@@ -916,8 +918,7 @@ public sealed class DecisionSystem : ISimulationSystem
             // "boil" bonus, only warmth/cooking motivate it now.
             var wantsBoil = false;
             // Spec 35.2: any reachable Tool not carried (saw, dropped gear).
-            var gatherToolsAvail = npc.Inventory.HasSpace &&
-                HasMissingToolReachable(npc, world);
+            var gatherToolsAvail = HasMissingToolReachable(npc, world);
             var fuelLow = campfireSeen && campfireFuel < 600f;
             // Spec 40.15 r3: the raft is a wood SINK of its own — with only
             // fire/build demand the endgame rode on leftover logs and crawled
@@ -1695,6 +1696,44 @@ public sealed class DecisionSystem : ISimulationSystem
         return false;
     }
 
+    internal static bool HasBottleWater(NPCState npc) =>
+        npc.BottleWater != WaterKind.None && npc.BottleCharges > 0;
+
+    internal static bool HasInventoryCoconutMeal(NPCState npc)
+    {
+        if (npc.Inventory.Items.Contains("food.coconut_open"))
+        {
+            return true;
+        }
+
+        return HasCoconutBlade(npc) &&
+            (npc.Inventory.Items.Contains("food.coconut") ||
+             npc.Inventory.Items.Contains("food.coconut_pierced"));
+    }
+
+    internal static bool HasInventoryCoconutWater(NPCState npc)
+    {
+        if (HasBottleWater(npc))
+        {
+            return true;
+        }
+
+        if (HasCoconutBlade(npc) && npc.Inventory.Items.Contains("food.coconut"))
+        {
+            return true;
+        }
+
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (item.DefinitionId == "food.coconut_pierced" && item.ResourceAmount > 0f)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     internal static bool HasCoconutBlade(NPCState npc) =>
         npc.Inventory.Items.Contains("tool.knife") ||
         npc.Inventory.Items.Contains("tool.axe_stone");
@@ -1722,6 +1761,7 @@ public sealed class DecisionSystem : ISimulationSystem
             if (!obj.IsReachable ||
                 !ObjectUsableBy(obj, npc.Id) ||
                 !obj.AvailableInteractions.Contains(InteractionType.PickUp) ||
+                !InventoryMath.CanMakeRoomFor(world, npc, obj.DefinitionId) ||
                 !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
                 !definition.Tags.Contains("Food"))
             {
@@ -1824,6 +1864,22 @@ public sealed class DecisionSystem : ISimulationSystem
         return false;
     }
 
+    internal static bool HasReachableDefinitionWorthCarrying(
+        NPCState npc, WorldState world, string definitionId)
+    {
+        foreach (var obj in npc.Perception.Objects)
+        {
+            if (obj.IsReachable && ObjectUsableBy(obj, npc.Id) &&
+                obj.DefinitionId == definitionId &&
+                InventoryMath.CanMakeRoomFor(world, npc, obj.DefinitionId))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     // §47 comfort: like HasReachableWithTag but counts — used for the
     // bed-per-girl deficit. Occupancy is ignored on purpose (a bed someone
     // sleeps in right now still exists as furniture).
@@ -1873,6 +1929,7 @@ public sealed class DecisionSystem : ISimulationSystem
         {
             if (obj.IsReachable && ObjectUsableBy(obj, npc.Id) &&
                 !npc.Inventory.Items.Contains(obj.DefinitionId) &&
+                InventoryMath.CanMakeRoomFor(world, npc, obj.DefinitionId) &&
                 world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
                 definition.Tags.Contains("Tool"))
             {
@@ -2219,61 +2276,74 @@ public sealed class PlanningSystem : ISimulationSystem
 
             if (npc.Mind.CurrentGoal == GoalType.Eat)
             {
+                // Eating happens in place from inventory (spec 29B.3):
+                // no target object, no junction reservation.
+                var foodDefinitionId = npc.Inventory.FindFirstFood(world.Content);
+                if (foodDefinitionId is not null)
+                {
+                    npc.Plan.TargetItemDefinitionId = foodDefinitionId;
+                    npc.Plan.Steps.Add(new PlanStep
+                    {
+                        Type = PlanStepType.ConsumeInventoryItem,
+                        Interaction = InteractionType.Eat
+                    });
+                    npc.Plan.CurrentStepIndex = 0;
+                    npc.Plan.Status = PlanStatus.Active;
+                    Trace.Emit(world, npc.Id, "PlanBuilt",
+                        $"Goal=Eat Item={foodDefinitionId} Steps=[ConsumeInventoryItem]");
+                    continue;
+                }
+
                 if (BuildCoconutEatPlan(world, npc))
                 {
                     continue;
                 }
 
-                // Eating happens in place from inventory (spec 29B.3):
-                // no target object, no junction reservation.
-                var foodDefinitionId = npc.Inventory.FindFirstFood(world.Content);
-                if (foodDefinitionId is null)
-                {
-                    npc.Plan.Status = PlanStatus.Failed;
-                    Trace.Emit(world, npc.Id, "PlanFailed",
-                        "Goal=Eat but no food in inventory");
-                    continue;
-                }
-
-                npc.Plan.TargetItemDefinitionId = foodDefinitionId;
-                npc.Plan.Steps.Add(new PlanStep
-                {
-                    Type = PlanStepType.ConsumeInventoryItem,
-                    Interaction = InteractionType.Eat
-                });
-                npc.Plan.CurrentStepIndex = 0;
-                npc.Plan.Status = PlanStatus.Active;
-                Trace.Emit(world, npc.Id, "PlanBuilt",
-                    $"Goal=Eat Item={foodDefinitionId} Steps=[ConsumeInventoryItem]");
+                npc.Plan.Status = PlanStatus.Failed;
+                Trace.Emit(world, npc.Id, "PlanFailed",
+                    "Goal=Eat but no food in inventory");
                 continue;
             }
 
             if (npc.Mind.CurrentGoal == GoalType.Drink)
             {
+                if (DecisionSystem.HasBottleWater(npc))
+                {
+                    npc.Plan.Steps.Add(new PlanStep
+                    {
+                        Type = PlanStepType.DrinkBottle
+                    });
+                    npc.Plan.CurrentStepIndex = 0;
+                    npc.Plan.Status = PlanStatus.Active;
+                    Trace.Emit(world, npc.Id, "PlanBuilt",
+                        $"Goal=Drink Item=tool.bottle Steps=[DrinkBottle] Charges={npc.BottleCharges}");
+                    continue;
+                }
+
+                var drinkDefinitionId = npc.Inventory.FindFirstDrink(world.Content);
+                if (drinkDefinitionId is not null)
+                {
+                    npc.Plan.TargetItemDefinitionId = drinkDefinitionId;
+                    npc.Plan.Steps.Add(new PlanStep
+                    {
+                        Type = PlanStepType.ConsumeInventoryItem,
+                        Interaction = InteractionType.Drink
+                    });
+                    npc.Plan.CurrentStepIndex = 0;
+                    npc.Plan.Status = PlanStatus.Active;
+                    Trace.Emit(world, npc.Id, "PlanBuilt",
+                        $"Goal=Drink Item={drinkDefinitionId} Steps=[ConsumeInventoryItem]");
+                    continue;
+                }
+
                 if (BuildCoconutDrinkPlan(world, npc))
                 {
                     continue;
                 }
 
-                var drinkDefinitionId = npc.Inventory.FindFirstDrink(world.Content);
-                if (drinkDefinitionId is null)
-                {
-                    npc.Plan.Status = PlanStatus.Failed;
-                    Trace.Emit(world, npc.Id, "PlanFailed",
-                        "Goal=Drink but nothing drinkable in inventory");
-                    continue;
-                }
-
-                npc.Plan.TargetItemDefinitionId = drinkDefinitionId;
-                npc.Plan.Steps.Add(new PlanStep
-                {
-                    Type = PlanStepType.ConsumeInventoryItem,
-                    Interaction = InteractionType.Drink
-                });
-                npc.Plan.CurrentStepIndex = 0;
-                npc.Plan.Status = PlanStatus.Active;
-                Trace.Emit(world, npc.Id, "PlanBuilt",
-                    $"Goal=Drink Item={drinkDefinitionId} Steps=[ConsumeInventoryItem]");
+                npc.Plan.Status = PlanStatus.Failed;
+                Trace.Emit(world, npc.Id, "PlanFailed",
+                    "Goal=Drink but nothing drinkable in inventory");
                 continue;
             }
 
@@ -2436,6 +2506,14 @@ public sealed class PlanningSystem : ISimulationSystem
                 // Spec 29E.4: per-goal target filtering by tags.
                 if (!IsValidTargetFor(world, npc, npc.Mind.CurrentGoal, perceived))
                 {
+                    continue;
+                }
+
+                if (interactionType == InteractionType.PickUp &&
+                    !InventoryMath.CanMakeRoomFor(world, npc, perceived.DefinitionId))
+                {
+                    Trace.Emit(world, npc.Id, "PlanCandidateSkipped",
+                        $"Obj={perceived.Id.Value} Def={perceived.DefinitionId} NoRoomForImportance");
                     continue;
                 }
 
@@ -2616,28 +2694,28 @@ public sealed class PlanningSystem : ISimulationSystem
 
     private static bool BuildCoconutDrinkPlan(WorldState world, NPCState npc)
     {
-        if (TryFindCoconutObject(npc, world, "food.coconut_pierced", requireWater: true, out var pierced))
-        {
-            return BuildCoconutWorldPlan(world, npc, GoalType.Drink, pierced, InteractionType.Drink);
-        }
-
         if (TryFindInventoryItem(npc, "food.coconut_pierced", requireWater: true, out _))
         {
             return false;
         }
 
         if (HasCoconutBlade(npc) &&
-            TryFindCoconutObject(npc, world, "food.coconut", requireWater: false, out var whole))
-        {
-            return BuildCoconutWorldPlan(world, npc, GoalType.Drink, whole,
-                InteractionType.Process, InteractionType.Drink);
-        }
-
-        if (HasCoconutBlade(npc) &&
             TryFindInventoryItem(npc, "food.coconut", out var carriedWhole))
         {
             return BuildCoconutInventoryPlan(world, npc, GoalType.Drink, carriedWhole,
-                InteractionType.Process, InteractionType.Drink);
+                InteractionType.Process, InteractionType.PickUp);
+        }
+
+        if (TryFindCoconutObject(npc, world, "food.coconut_pierced", requireWater: true, out var pierced))
+        {
+            return BuildCoconutWorldPlan(world, npc, GoalType.Drink, pierced, InteractionType.PickUp);
+        }
+
+        if (HasCoconutBlade(npc) &&
+            TryFindCoconutObject(npc, world, "food.coconut", requireWater: false, out var whole))
+        {
+            return BuildCoconutWorldPlan(world, npc, GoalType.Drink, whole,
+                InteractionType.Process, InteractionType.PickUp);
         }
 
         return false;
@@ -2645,43 +2723,42 @@ public sealed class PlanningSystem : ISimulationSystem
 
     private static bool BuildCoconutEatPlan(WorldState world, NPCState npc)
     {
-        if (TryFindCoconutObject(npc, world, "food.coconut_open", requireWater: false, out var open))
+        if (TryFindInventoryItem(npc, "food.coconut_open", out _))
         {
-            return BuildCoconutWorldPlan(world, npc, GoalType.Eat, open, InteractionType.Eat);
-        }
-
-        if (HasCoconutBlade(npc) &&
-            TryFindCoconutObject(npc, world, "food.coconut_pierced", requireWater: false, out var pierced))
-        {
-            return BuildCoconutWorldPlan(world, npc, GoalType.Eat, pierced,
-                InteractionType.Process, InteractionType.Eat);
-        }
-
-        if (HasCoconutBlade(npc) &&
-            TryFindCoconutObject(npc, world, "food.coconut", requireWater: false, out var whole))
-        {
-            return BuildCoconutWorldPlan(world, npc, GoalType.Eat, whole,
-                InteractionType.Process, InteractionType.Process, InteractionType.Eat);
-        }
-
-        if (TryFindInventoryItem(npc, "food.coconut_open", out var carriedOpen))
-        {
-            return BuildCoconutInventoryPlan(world, npc, GoalType.Eat, carriedOpen,
-                InteractionType.Eat);
+            return false;
         }
 
         if (HasCoconutBlade(npc) &&
             TryFindInventoryItem(npc, "food.coconut_pierced", out var carriedPierced))
         {
             return BuildCoconutInventoryPlan(world, npc, GoalType.Eat, carriedPierced,
-                InteractionType.Process, InteractionType.Eat);
+                InteractionType.Process, InteractionType.PickUp);
         }
 
         if (HasCoconutBlade(npc) &&
             TryFindInventoryItem(npc, "food.coconut", out var carriedWhole))
         {
             return BuildCoconutInventoryPlan(world, npc, GoalType.Eat, carriedWhole,
-                InteractionType.Process, InteractionType.Process, InteractionType.Eat);
+                InteractionType.Process, InteractionType.Process, InteractionType.PickUp);
+        }
+
+        if (TryFindCoconutObject(npc, world, "food.coconut_open", requireWater: false, out var open))
+        {
+            return BuildCoconutWorldPlan(world, npc, GoalType.Eat, open, InteractionType.PickUp);
+        }
+
+        if (HasCoconutBlade(npc) &&
+            TryFindCoconutObject(npc, world, "food.coconut_pierced", requireWater: false, out var pierced))
+        {
+            return BuildCoconutWorldPlan(world, npc, GoalType.Eat, pierced,
+                InteractionType.Process, InteractionType.PickUp);
+        }
+
+        if (HasCoconutBlade(npc) &&
+            TryFindCoconutObject(npc, world, "food.coconut", requireWater: false, out var whole))
+        {
+            return BuildCoconutWorldPlan(world, npc, GoalType.Eat, whole,
+                InteractionType.Process, InteractionType.Process, InteractionType.PickUp);
         }
 
         return false;
@@ -4550,6 +4627,27 @@ public sealed class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
+            if (npc.Mind.CurrentGoal == GoalType.GetFood &&
+                (npc.Inventory.FindFirstFood(world.Content) is not null ||
+                 DecisionSystem.HasInventoryCoconutMeal(npc)))
+            {
+                PlanInterruption.Abort(world, npc, "Food already available in inventory");
+                npc.Mind.CurrentGoal = GoalType.None;
+                Trace.Emit(world, npc.Id, "PlanAborted",
+                    "GetFood stopped: inventory food is available");
+                continue;
+            }
+
+            if (npc.Mind.CurrentGoal == GoalType.GetWater &&
+                DecisionSystem.HasInventoryCoconutWater(npc))
+            {
+                PlanInterruption.Abort(world, npc, "Water already available in inventory");
+                npc.Mind.CurrentGoal = GoalType.None;
+                Trace.Emit(world, npc.Id, "PlanAborted",
+                    "GetWater stopped: inventory water is available");
+                continue;
+            }
+
             if (npc.Plan.Steps.Count > 0 && npc.Plan.Steps[0].Type == PlanStepType.ConsumeInventoryItem)
             {
                 RunConsumeInventoryItem(world, npc);
@@ -4980,6 +5078,17 @@ public sealed class ExecutionSystem : ISimulationSystem
 
                 if (completedInteraction.Type == InteractionType.PickUp)
                 {
+                    if (!InventoryMath.MakeRoomFor(world, npc, worldObject.DefinitionId))
+                    {
+                        worldObject.IsOccupied = false;
+                        worldObject.CurrentUser = null;
+                        Trace.Emit(world, npc.Id, "PickupBlocked",
+                            $"Def={worldObject.DefinitionId} Obj={worldObject.Id.Value} " +
+                            $"Inventory=[{string.Join(",", npc.Inventory.Items)}] " +
+                            $"({npc.Inventory.UsedSlots}/{npc.Inventory.Capacity})");
+                        continue;
+                    }
+
                     // Item moves from world to inventory; the world object is gone,
                     // so occupancy flags die with it (spec 29B.2).
                     npc.Inventory.Items.Add(new ItemInstance(worldObject.DefinitionId)
@@ -10252,6 +10361,72 @@ internal static class InventoryMath
         world.Content.ObjectDefinitions.TryGetValue(definitionId, out var def)
             ? ItemCatalog.Importance(def)
             : ItemCatalog.ImportanceById(definitionId);
+
+    public static bool CanMakeRoomFor(WorldState world, NPCState npc, string incomingDefinitionId)
+    {
+        if (npc.Inventory.HasSpace || FitsExistingStack(npc, incomingDefinitionId))
+        {
+            return true;
+        }
+
+        var victim = LowestImportanceDroppable(world, npc);
+        return victim is not null &&
+            Importance(world, incomingDefinitionId) > Importance(world, victim.DefinitionId);
+    }
+
+    public static bool MakeRoomFor(WorldState world, NPCState npc, string incomingDefinitionId)
+    {
+        if (npc.Inventory.HasSpace || FitsExistingStack(npc, incomingDefinitionId))
+        {
+            return true;
+        }
+
+        var incomingImportance = Importance(world, incomingDefinitionId);
+        var guard = 0;
+        while (!npc.Inventory.HasSpace &&
+               !FitsExistingStack(npc, incomingDefinitionId) &&
+               guard++ < 64)
+        {
+            var victim = LowestImportanceDroppable(world, npc);
+            if (victim is null)
+            {
+                return false;
+            }
+
+            var victimImportance = Importance(world, victim.DefinitionId);
+            if (victimImportance >= incomingImportance)
+            {
+                return false;
+            }
+
+            npc.Inventory.Items.Remove(victim);
+            ExecutionSystem.DropItemAtFeet(world, npc, victim);
+            Trace.Emit(world, npc.Id, "InventoryMadeRoom",
+                $"Dropped {victim.DefinitionId}({victimImportance}) for " +
+                $"{incomingDefinitionId}({incomingImportance})");
+        }
+
+        return npc.Inventory.HasSpace || FitsExistingStack(npc, incomingDefinitionId);
+    }
+
+    private static bool FitsExistingStack(NPCState npc, string definitionId)
+    {
+        if (!InventoryState.IsStackable(definitionId))
+        {
+            return false;
+        }
+
+        var count = 0;
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (item.DefinitionId == definitionId)
+            {
+                count++;
+            }
+        }
+
+        return count > 0 && count % InventoryState.StackSizeFor(definitionId) != 0;
+    }
 
     // The least-wanted pocket item — the first to go when room is tight.
     // Personal effects (the bottle) are never candidates.

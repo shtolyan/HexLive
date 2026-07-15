@@ -375,6 +375,7 @@ namespace HexLive.UnityPresentation.Localization
             ["inv.layer"] = new[] { "Layer", "Слой" },
             ["inv.wetness"] = new[] { "Wetness", "Влажность" },
             ["inv.durability"] = new[] { "Durability", "Прочность" },
+            ["inv.stack"] = new[] { "Stack", "Стек" },
             ["inv.clothing_hp"] = new[] { "Clothing HP", "HP одежды" },
             ["inv.water_container"] = new[] { "Water container", "Ёмкость для воды" },
             ["inv.water_left"] = new[] { "Water left", "Осталось воды" },

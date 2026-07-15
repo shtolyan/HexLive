@@ -1066,23 +1066,25 @@ namespace HexLive.UnityPresentation.UI
             }
 
             var capacity = npc.InventoryCapacity > 0 ? npc.InventoryCapacity : 10;
-            _inventoryCapacity.text = $"{npc.InventoryItems.Count}/{capacity} {Loc.Get("inv.slots")}";
+            _inventoryCapacity.text = $"{npc.InventoryUsedSlots}/{capacity} {Loc.Get("inv.slots")}";
 
             var wornDurability = ParseKv(npc.WornDurability);
             var carriedDurability = ParseKv(npc.InventoryDurability);
             var carriedWater = ParseWaterKv(npc.InventoryWater);
+            var carriedStacks = ParseIntKv(npc.InventoryStacks);
             var wetness = ParseKv(npc.WornWetness);
 
             var sig = string.Join(",", npc.WornItems) + "|" + string.Join(",", npc.InventoryItems)
                 + "|" + string.Join(",", npc.WornWetness) + "|" + string.Join(",", npc.WornDurability)
-                + "|" + string.Join(",", npc.InventoryDurability) + "|" + string.Join(",", npc.InventoryWater);
+                + "|" + string.Join(",", npc.InventoryDurability) + "|" + string.Join(",", npc.InventoryWater)
+                + "|" + string.Join(",", npc.InventoryStacks) + "|" + npc.InventoryUsedSlots;
             if (sig == _invSig)
             {
                 return;
             }
 
             _invSig = sig;
-            RebuildItemList(npc, wornDurability, carriedDurability, carriedWater, wetness);
+            RebuildItemList(npc, wornDurability, carriedDurability, carriedWater, carriedStacks, wetness);
 
             // Keep the detail view coherent: if the shown item is still present,
             // re-render it (its wetness/durability may have moved); else drop back.
@@ -1093,7 +1095,7 @@ namespace HexLive.UnityPresentation.UI
                 if (present)
                 {
                     var selectedDurability = _invSelectedWorn ? wornDurability : carriedDurability;
-                    ShowItemDetail(_invSelectedId, _invSelectedWorn, selectedDurability, carriedWater, wetness);
+                    ShowItemDetail(_invSelectedId, _invSelectedWorn, selectedDurability, carriedWater, carriedStacks, wetness);
                 }
                 else
                 {
@@ -1107,6 +1109,7 @@ namespace HexLive.UnityPresentation.UI
             Dictionary<string, float> wornDurability,
             Dictionary<string, float> carriedDurability,
             Dictionary<string, WaterContainerState> carriedWater,
+            Dictionary<string, int> carriedStacks,
             Dictionary<string, float> wetness)
         {
             _invListBody.Clear();
@@ -1117,7 +1120,7 @@ namespace HexLive.UnityPresentation.UI
                 _invListBody.Add(MakeInvSectionHeader(Loc.Get("inv.worn")));
                 foreach (var id in npc.WornItems)
                 {
-                    _invListBody.Add(BuildItemRow(id, true, wornDurability, carriedWater, wetness));
+                    _invListBody.Add(BuildItemRow(id, true, wornDurability, carriedWater, carriedStacks, wetness));
                 }
 
                 any = true;
@@ -1128,7 +1131,7 @@ namespace HexLive.UnityPresentation.UI
                 _invListBody.Add(MakeInvSectionHeader(Loc.Get("inv.carried")));
                 foreach (var id in npc.InventoryItems)
                 {
-                    _invListBody.Add(BuildItemRow(id, false, carriedDurability, carriedWater, wetness));
+                    _invListBody.Add(BuildItemRow(id, false, carriedDurability, carriedWater, carriedStacks, wetness));
                 }
 
                 any = true;
@@ -1162,11 +1165,13 @@ namespace HexLive.UnityPresentation.UI
             bool worn,
             Dictionary<string, float> durability,
             Dictionary<string, WaterContainerState> water,
+            Dictionary<string, int> stacks,
             Dictionary<string, float> wetness)
         {
             var def = ResolveDef(id);
             var info = def != null ? ItemCatalog.Resolve(def) : ItemCatalog.Resolve(id);
             var isWaterContainer = !worn && IsWaterContainerId(id);
+            var stackCount = !worn && stacks.TryGetValue(id, out var count) ? count : 1;
             var accent = isWaterContainer ? CategoryColor(ItemCategory.Water) : CategoryColor(info.Category);
 
             var row = new VisualElement();
@@ -1232,6 +1237,24 @@ namespace HexLive.UnityPresentation.UI
             mid.Add(cat);
             row.Add(mid);
 
+            if (stackCount > 1)
+            {
+                var countLabel = new Label($"x{stackCount}");
+                countLabel.style.color = Text;
+                countLabel.style.fontSize = 12f;
+                countLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+                countLabel.style.backgroundColor = Panel;
+                countLabel.style.paddingLeft = 7f;
+                countLabel.style.paddingRight = 7f;
+                countLabel.style.paddingTop = 3f;
+                countLabel.style.paddingBottom = 3f;
+                countLabel.style.marginRight = 10f;
+                countLabel.style.flexShrink = 0f;
+                SetBorder(countLabel, new Color(accent.r, accent.g, accent.b, 0.35f), 1f);
+                SetRadius(countLabel, 8f);
+                row.Add(countLabel);
+            }
+
             // A little coloured category pip on the right.
             var pip = new VisualElement();
             pip.style.width = 8f;
@@ -1245,7 +1268,7 @@ namespace HexLive.UnityPresentation.UI
             row.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(row, Stroke));
             row.RegisterCallback<MouseDownEvent>(evt =>
             {
-                ShowItemDetail(id, worn, durability, water, wetness);
+                ShowItemDetail(id, worn, durability, water, stacks, wetness);
                 evt.StopPropagation();
             });
 
@@ -1257,6 +1280,7 @@ namespace HexLive.UnityPresentation.UI
             bool worn,
             Dictionary<string, float> durability,
             Dictionary<string, WaterContainerState> water,
+            Dictionary<string, int> stacks,
             Dictionary<string, float> wetness)
         {
             _invSelectedId = id;
@@ -1287,7 +1311,7 @@ namespace HexLive.UnityPresentation.UI
             _invDetailCategory.style.color = accent;
             _invDetailDesc.text = ItemDesc(info);
 
-            BuildItemStats(def, info, worn, durability, water, wetness);
+            BuildItemStats(def, info, worn, durability, water, stacks, wetness);
 
             _invListView.style.display = DisplayStyle.None;
             _invDetailView.style.display = DisplayStyle.Flex;
@@ -1301,12 +1325,19 @@ namespace HexLive.UnityPresentation.UI
             bool worn,
             Dictionary<string, float> durability,
             Dictionary<string, WaterContainerState> water,
+            Dictionary<string, int> stacks,
             Dictionary<string, float> wetness)
         {
             _invDetailStats.Clear();
             if (def == null)
             {
                 return;
+            }
+
+            if (!worn && stacks.TryGetValue(info.DefinitionId, out var stackCount) && stackCount > 1)
+            {
+                _invDetailStats.Add(MakeStatRow(
+                    Loc.Get("inv.stack"), $"x{stackCount}", CategoryColor(ItemCategory.Resource)));
             }
 
             // Aggregate the interaction effects that matter for a summary.
@@ -1590,6 +1621,32 @@ namespace HexLive.UnityPresentation.UI
                 if (float.TryParse(
                         raw.Substring(tab + 1),
                         System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out var value))
+                {
+                    map[key] = value;
+                }
+            }
+
+            return map;
+        }
+
+        // Parse "definitionId\tcount" entries for inventory stacks.
+        private static Dictionary<string, int> ParseIntKv(List<string> pairs)
+        {
+            var map = new Dictionary<string, int>();
+            foreach (var raw in pairs)
+            {
+                var tab = raw.IndexOf('\t');
+                if (tab < 0)
+                {
+                    continue;
+                }
+
+                var key = raw.Substring(0, tab);
+                if (int.TryParse(
+                        raw.Substring(tab + 1),
+                        System.Globalization.NumberStyles.Integer,
                         System.Globalization.CultureInfo.InvariantCulture,
                         out var value))
                 {

@@ -326,6 +326,11 @@ public sealed class NpcSnapshot
 
     public List<string> InventoryItems { get; } = new();
 
+    public int InventoryUsedSlots { get; set; }
+
+    // "definitionId\tcount" for stackable carried resources folded into one row.
+    public List<string> InventoryStacks { get; } = new();
+
     // Spec 40.11: "definitionId\tdurability" per carried item — lets the
     // inventory detail view show clothing HP even after a damaged garment is
     // taken off.

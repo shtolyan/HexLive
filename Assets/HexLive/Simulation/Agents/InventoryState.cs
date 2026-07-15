@@ -55,11 +55,19 @@ public sealed class InventoryState
         definitionId == "tool.bottle";
 
     // §54.10: bulk raw materials STACK — a bundle of identical leaves/sticks/etc.
-    // rides in ONE pocket slot (up to StackSize), so hauling a bed's worth of
+    // rides in ONE pocket slot (up to the stack size), so hauling a bed's worth of
     // pieces is a trip or two, not a dozen. Slots are NOT expanded; only the
     // accounting stacks. Items stays a flat list of instances, so every existing
     // Add/Remove/Contains/Count path is unchanged — only slot counting groups.
     public const int StackSize = 20;
+
+    // §54.2: leaves stack 3× deeper — a bed's mattress is ~46-50 leaves, so a
+    // whole bed's worth of leaves rides in a single pocket instead of three.
+    public const int LeafStackSize = 60;
+
+    // Per-item stack depth (leaves get the deep stack; everything else the default).
+    public static int StackSizeFor(string definitionId) =>
+        definitionId == "resource.palm_leaf" ? LeafStackSize : StackSize;
 
     private static readonly HashSet<string> StackableIds = new()
     {
@@ -100,7 +108,8 @@ public sealed class InventoryState
             {
                 foreach (var kv in stacks)
                 {
-                    loose += (kv.Value + StackSize - 1) / StackSize; // ceil to whole slots
+                    var size = StackSizeFor(kv.Key);
+                    loose += (kv.Value + size - 1) / size; // ceil to whole slots
                 }
             }
 

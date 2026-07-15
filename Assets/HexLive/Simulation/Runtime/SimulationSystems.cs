@@ -26,9 +26,16 @@ public static class Spec49
 {
     // Feature toggles (harness bisect).
     public static bool Rearm = true;         // sleep re-arm (kill empty get-ups)
+    public static bool CoolRearm = true;     // spec 35.4: cool-off dwell re-arm (kill None→CoolOff spam)
     public static bool SleepComfort = true;  // unified sleep-comfort formula
     public static bool AmbientSocial = true; // passive proximity socialising
     public static bool SickDoT = true;       // delayed raw-water sickness
+
+    // Spec 35.4: cool-off dwell — how long one "stay in the shade" beat lasts
+    // before ShouldKeepCooling re-checks, and the max number of re-arms before a
+    // fallback tile that never cools aborts the dwell (safety against a frozen NPC).
+    public static int CoolOffDwellTicks = 40;
+    public static int CoolOffMaxRearms = 6;
 
     // Talk tuning (longer, less rewarding).
     public static int TalkDuration = 90;
@@ -552,6 +559,7 @@ public sealed class DecisionSystem : ISimulationSystem
 
             UpdateStarvingStatus(world, npc);
             UpdateDehydratedStatus(world, npc);
+            UpdateOverheatedStatus(world, npc);
             var emergencyBoost = npc.Mind.IsStarving ? StarvingBoost : 0f;
             var drinkBoost = npc.Mind.IsDehydrated ? StarvingBoost : 0f;
 
@@ -1239,9 +1247,12 @@ public sealed class DecisionSystem : ISimulationSystem
                 InventoryMath.Importance(world, haulVictim.DefinitionId) <= 25;
             AddGoalScore(npc, world.Tick, GoalType.HaulToFire, 0.28f, haulToFireAvail);
 
-            // Spec 35.4: overheating drives a trip to shade or the river.
+            // Spec 35.4: overheating drives a trip to shade or the river. Gate on
+            // the latched IsOverheated (enter 0.35 / clear 0.20) rather than a raw
+            // 0.35 compare, so availability doesn't flicker on/off around the edge
+            // and re-win at zero margin every tick (the old None→CoolOff churn).
             var coolOffUrge = System.MathF.Max(npc.Needs.ThermalDiscomfort, npc.SunExposure - 0.4f);
-            var coolOffAvail = ((effectiveTemp > 20f && npc.Needs.ThermalDiscomfort >= 0.35f) ||
+            var coolOffAvail = ((effectiveTemp > 20f && npc.Mind.IsOverheated) ||
                     npc.SunExposure >= 0.6f) &&
                 (HasReachableWithTag(npc, world, "Shade") || HasReachableWithTag(npc, world, "Water"));
             AddGoalScore(npc, world.Tick, GoalType.CoolOff,
@@ -1798,6 +1809,25 @@ public sealed class DecisionSystem : ISimulationSystem
             npc.Mind.IsStarving = false;
             Trace.Emit(world, npc.Id, "StatusStarving",
                 $"Cleared (Hunger={npc.Needs.Hunger:F2} < {StarvingClearThreshold})");
+        }
+    }
+
+    // Spec 35.4: overheating latch. Enter at CoolOffEnterThreshold, clear at
+    // CoolOffClearThreshold — the hysteresis stops CoolOff's availability from
+    // flickering around the entry edge (the tight None→CoolOff→None churn loop).
+    private static void UpdateOverheatedStatus(WorldState world, NPCState npc)
+    {
+        if (!npc.Mind.IsOverheated && npc.Needs.ThermalDiscomfort >= SimBalance.CoolOffEnterThreshold)
+        {
+            npc.Mind.IsOverheated = true;
+            Trace.Emit(world, npc.Id, "StatusOverheated",
+                $"Entered (Thermal={npc.Needs.ThermalDiscomfort:F2} >= {SimBalance.CoolOffEnterThreshold})");
+        }
+        else if (npc.Mind.IsOverheated && npc.Needs.ThermalDiscomfort < SimBalance.CoolOffClearThreshold)
+        {
+            npc.Mind.IsOverheated = false;
+            Trace.Emit(world, npc.Id, "StatusOverheated",
+                $"Cleared (Thermal={npc.Needs.ThermalDiscomfort:F2} < {SimBalance.CoolOffClearThreshold})");
         }
     }
 
@@ -2485,76 +2515,76 @@ public sealed class PlanningSystem : ISimulationSystem
             $"Tile={Trace.FormatTile(npc.Plan.TargetTile)} Steps=[MoveToJunction]");
     }
 
-    // Spec 35.4: a move-only trip to the nearest shade tree or water spot.
+    // Spec 35.4: is standing on this tile genuinely cooling? Either the cast-
+    // shadow map shades it, or it's a walkable water tile (the shallows). This is
+    // the tile TemperatureSystem reads (npc.Tile == junction.Tiles[0] on arrival),
+    // so a plan that lands her here actually sheds heat — unlike the old plan that
+    // parked her on an approach *neighbour* of the shade object and never cooled.
+    private static bool IsCoolingTile(WorldState world, Common.TileCoord tile)
+    {
+        if (TemperatureSystem.IsShaded(world, tile))
+        {
+            return true;
+        }
+
+        return world.Tiles.Items.TryGetValue(tile, out var t) &&
+            t.Flags.HasFlag(TileFlags.Water);
+    }
+
+    // Spec 35.4: walk to the nearest genuinely cool tile (real shade or the
+    // shallows) and DWELL there until cooled. Mirrors BuildGroundSitPlan — a
+    // move + an in-place GroundCool step — rather than the old move-only trip
+    // that completed on arrival and re-won None→CoolOff every tick.
     private void BuildCoolOffPlan(WorldState world, NPCState npc)
     {
-        PerceivedObject? spot = null;
-        foreach (var obj in npc.Perception.Objects)
+        if (npc.CurrentJunction is not { } from)
         {
-            if (!obj.IsReachable ||
-                !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
-                (!definition.Tags.Contains("Shade") && !definition.Tags.Contains("Water")))
+            npc.Plan.Status = PlanStatus.Failed;
+            SetGoalCooldown(world, npc, GoalType.CoolOff);
+            Trace.Emit(world, npc.Id, "PlanFailed", "Goal=CoolOff NoJunction");
+            return;
+        }
+
+        // Nearest reachable, free junction whose standing tile actually cools.
+        Junction best = null;
+        var bestDist = float.MaxValue;
+        foreach (var junction in world.Junctions.Items.Values)
+        {
+            if (junction.Blocked || junction.Tiles.Count == 0 ||
+                !SpatialQueries.IsJunctionFree(world, junction.Id) ||
+                !IsCoolingTile(world, junction.Tiles[0]))
             {
                 continue;
             }
 
-            if (spot is null || obj.Distance < spot.Distance)
+            var d = HexSpatialMath.Distance(junction.WorldPosition, npc.Position);
+            if (d < bestDist && d < HexSpatialMath.HexRadius * 12f &&
+                Connectivity.Reachable(world, from, junction.Id))
             {
-                spot = obj;
+                bestDist = d;
+                best = junction;
             }
         }
 
-        JunctionId? anchor = null;
-        if (spot is not null)
-        {
-            if (world.Entities.Objects.TryGetValue(spot.Id, out var spotObject))
-            {
-                anchor = spotObject.Junctions.Count > 0 ? spotObject.Junctions[0] : null;
-            }
-            else if (npc.Memory.KnownObjects.TryGetValue(spot.Id, out var remembered))
-            {
-                anchor = remembered.Junction;
-            }
-        }
-
-        if (anchor is not { } target)
+        if (best is null ||
+            !SpatialMutations.TryReserveJunction(world, best.Id, npc.Id, world.Tick, 96))
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, GoalType.CoolOff);
-            Trace.Emit(world, npc.Id, "PlanFailed", "Goal=CoolOff NoCoolSpot");
+            Trace.Emit(world, npc.Id, "PlanFailed", "Goal=CoolOff NoCoolTile");
             return;
         }
 
-        JunctionId? approach = null;
-        foreach (var neighbor in SpatialQueries.GetPassableNeighbors(world, target))
-        {
-            if (SpatialQueries.IsJunctionFree(world, neighbor) &&
-                SpatialMutations.TryReserveJunction(world, neighbor, npc.Id, world.Tick, 48))
-            {
-                approach = neighbor;
-                break;
-            }
-        }
-
-        if (approach is not { } approachJunction)
-        {
-            npc.Plan.Status = PlanStatus.Failed;
-            SetGoalCooldown(world, npc, GoalType.CoolOff);
-            Trace.Emit(world, npc.Id, "PlanFailed", "Goal=CoolOff NoFreeApproach");
-            return;
-        }
-
-        npc.Plan.TargetJunctionId = approachJunction;
-        npc.Plan.TargetTile = spot!.Tile;
-        npc.Plan.Steps.Add(new PlanStep
-        {
-            Type = PlanStepType.MoveToJunction,
-            TargetJunction = approachJunction
-        });
+        npc.Plan.TargetJunctionId = best.Id;
+        npc.Plan.TargetTile = best.Tiles[0];
+        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.MoveToJunction, TargetJunction = best.Id });
+        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.GroundCool, TargetJunction = best.Id });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
+        npc.Mind.CoolRearmCount = 0;
         Trace.Emit(world, npc.Id, "CoolOffPlanned",
-            $"To {spot.DefinitionId} Tile={spot.Tile.Q},{spot.Tile.R}");
+            $"Junction={best.Id.Value} Tile={Trace.FormatTile(npc.Plan.TargetTile)} " +
+            $"Shade={TemperatureSystem.IsShaded(world, best.Tiles[0])}");
     }
 
     // Spec 29G: does perception offer real furniture for this interaction?
@@ -4070,7 +4100,7 @@ public sealed class ExecutionSystem : ISimulationSystem
             // Spec 29G: ground rest plans have no target object — the last
             // step says what to do once the walk (if any) is over.
             var lastStep = npc.Plan.Steps.Count > 0 ? npc.Plan.Steps[npc.Plan.Steps.Count - 1] : null;
-            if (lastStep is { Type: PlanStepType.GroundSit or PlanStepType.GroundSleep })
+            if (lastStep is { Type: PlanStepType.GroundSit or PlanStepType.GroundSleep or PlanStepType.GroundCool })
             {
                 RunGroundRestPlan(world, npc, lastStep);
                 continue;
@@ -4658,7 +4688,21 @@ public sealed class ExecutionSystem : ISimulationSystem
                             $"{worldObject.DefinitionId} felled -> logs scattered");
                     }
 
+                    // §54.2: a felled palm leaves a sit-able stump obstacle at its
+                    // spot. Capture its placement, despawn the palm (unblocks its
+                    // junction), then spawn the stump there (re-blocks it).
+                    var leavesStump = definition.Tags.Contains("Palm");
+                    var stumpTile = worldObject.Tile;
+                    var stumpFragment = worldObject.Fragment;
+                    var stumpJunction = worldObject.Junctions.Count > 0
+                        ? (JunctionId?)worldObject.Junctions[0] : null;
+
                     WorldObjectMutations.DespawnObject(world, worldObject.Id);
+
+                    if (leavesStump && stumpJunction is { } sj)
+                    {
+                        WorldObjectMutations.SpawnObject(world, "stump.palm", stumpFragment, stumpTile, sj);
+                    }
                 }
                 else if (completedInteraction.Type == InteractionType.Process)
                 {
@@ -6025,6 +6069,13 @@ public sealed class ExecutionSystem : ISimulationSystem
                     ? SimBalance.GroundSitComfortLedge : SimBalance.GroundSitComfort,
                 SimBalance.GroundSitEnergy);
         }
+        else if (step.Type == PlanStepType.GroundCool)
+        {
+            // Spec 35.4: dwell in shade/water shedding heat — no comfort/energy
+            // gain, the cooling is delivered for free by TemperatureSystem now
+            // that she's standing on a genuinely cool tile.
+            RunGroundCool(world, npc, step);
+        }
         else
         {
             // Sleep restores as well as a bed (a night is a night) — the
@@ -6185,6 +6236,131 @@ public sealed class ExecutionSystem : ISimulationSystem
         // genuinely tired.
         var night = world.Environment.Phase is DayPhase.Night or DayPhase.Evening;
         return night || npc.Needs.Energy < SleepWakeEnergyDay;
+    }
+
+    // Spec 35.4: dwell in the shade / shallows shedding heat. This is the
+    // cool-off twin of RunGroundRest — a timed in-place interaction with no
+    // object and no comfort/energy payoff; the cooling itself is delivered by
+    // TemperatureSystem because the plan parked her on a genuinely cool tile
+    // (shaded or water). At the end of each beat it re-arms in place (like the
+    // sleep re-arm) until she has actually cooled, a more urgent need crosses,
+    // or the safety cap trips — instead of completing→None and re-winning the
+    // goal at zero margin every tick (the old None→CoolOff churn, ~40% of all).
+    private static void RunGroundCool(WorldState world, NPCState npc, PlanStep step)
+    {
+        if (npc.Execution.Status == ExecutionStatus.None)
+        {
+            npc.Execution.Status = ExecutionStatus.InProgress;
+            npc.Execution.CurrentInteraction = InteractionType.CoolOff;
+            npc.Execution.TargetObject = null;
+            npc.Execution.StartTick = world.Tick;
+            npc.Execution.EndTick = world.Tick + Spec49.CoolOffDwellTicks;
+
+            if (step.TargetJunction is { } spot)
+            {
+                SpatialMutations.OccupyJunction(world, spot, npc.Id);
+            }
+
+            Trace.Emit(world, npc.Id, "InteractionStarted",
+                $"CoolOff on the ground Duration={Spec49.CoolOffDwellTicks}ticks");
+            return;
+        }
+
+        if (npc.Execution.Status != ExecutionStatus.InProgress)
+        {
+            return;
+        }
+
+        if (npc.Execution.EndTick - world.Tick > 0)
+        {
+            return;
+        }
+
+        // Re-arm the dwell in place (hold the junction occupancy + reservation)
+        // while still hot and nothing more urgent calls — bounded by CoolOffMaxRearms
+        // so a fallback tile that never actually cools can't freeze her here forever.
+        if (Spec49.CoolRearm &&
+            npc.Mind.CoolRearmCount < Spec49.CoolOffMaxRearms &&
+            ShouldKeepCooling(world, npc))
+        {
+            npc.Mind.CoolRearmCount++;
+            npc.Execution.StartTick = world.Tick;
+            npc.Execution.EndTick = world.Tick + Spec49.CoolOffDwellTicks;
+            Trace.Emit(world, npc.Id, "CoolContinued",
+                $"Rearm={npc.Mind.CoolRearmCount} Thermal={npc.Needs.ThermalDiscomfort:F2} Sun={npc.SunExposure:F2}");
+            return;
+        }
+
+        ReleaseClaims(world, npc);
+        if (step.TargetJunction is { } done)
+        {
+            SpatialMutations.FreeJunction(world, done, npc.Id);
+            SpatialMutations.ReleaseJunctionReservation(world, done, npc.Id);
+        }
+
+        Trace.Emit(world, npc.Id, "CooledOff",
+            $"Thermal={npc.Needs.ThermalDiscomfort:F2} Sun={npc.SunExposure:F2} Rearms={npc.Mind.CoolRearmCount}");
+
+        // A short refractory window so she doesn't instantly re-select CoolOff even
+        // if discomfort still hovers just under the clear edge (mirrors Sit's 240t).
+        npc.Mind.Cooldowns.Add(new GoalCooldown
+        {
+            Goal = GoalType.CoolOff,
+            EndTick = world.Tick + SimBalance.CoolOffSettleTicks
+        });
+
+        // Canonical cycle reset (same as RunGroundRest / InteractionCompleted).
+        npc.Plan.Status = PlanStatus.Completed;
+        npc.Plan.Steps.Clear();
+        npc.Plan.TargetObjectId = null;
+        npc.Plan.TargetJunctionId = null;
+        npc.Plan.TargetTile = null;
+        npc.Plan.TargetItemDefinitionId = null;
+        npc.Plan.TargetAgentId = null;
+        npc.Mind.CurrentGoal = GoalType.None;
+        npc.Mind.CoolRearmCount = 0;
+        npc.Execution.Status = ExecutionStatus.None;
+        npc.Execution.CurrentInteraction = null;
+        npc.Execution.TargetObject = null;
+        npc.Execution.StartTick = 0;
+        npc.Execution.EndTick = 0;
+        npc.Movement.JunctionPath.Clear();
+        npc.Movement.PathIndex = 0;
+
+        Trace.Emit(world, npc.Id, "CycleReset",
+            "Goal->None Plan->Completed Execution->Cleared (cool-off done)");
+    }
+
+    // Spec 35.4: should the finished cool-off beat re-arm in place? Yes while she
+    // is still hot AND no more-urgent need/threat has crossed its threshold —
+    // reusing the sleep-interrupt thresholds so she leaves the shade exactly when
+    // there's something better to do. Stops once cooled below the clear edge.
+    private static bool ShouldKeepCooling(WorldState world, NPCState npc)
+    {
+        if (!Spec49.CoolRearm)
+        {
+            return false;
+        }
+
+        // A real, actionable need or a threat ends the dwell — the decision system
+        // then takes over (she'll re-pick CoolOff only if still overheated and the
+        // settle cooldown has lapsed).
+        if (npc.Memory.Dangers.Count > 0 ||
+            npc.Needs.Hunger >= SleepInterruptHunger ||
+            npc.Needs.Thirst >= SleepInterruptThirst)
+        {
+            return false;
+        }
+
+        // Cooled enough: both the heat discomfort and the sun-exposure meter have
+        // fallen below their clear edges (hysteresis vs the 0.35 entry).
+        if (npc.Needs.ThermalDiscomfort < SimBalance.CoolOffClearThreshold &&
+            npc.SunExposure < SimBalance.CoolOffSunClear)
+        {
+            return false;
+        }
+
+        return true;
     }
 
     // Spec 29G: the lying body covers junctions within half a hex radius.
@@ -9018,6 +9194,7 @@ public sealed class BedSiteSystem : ISimulationSystem
         site.BuildProduct = "bed.leaf";
         site.BillLeaves = SimBalance.BedLeafBillLeaves;
         site.BillSticks = SimBalance.BedLeafBillSticks;
+        site.BillRope = SimBalance.BedLeafBillRope;
         Trace.EmitSystem(world, "BedSitePlaced",
             $"bed.leaf site staked by the hearth ({beds}/{livingGirls} beds)");
     }

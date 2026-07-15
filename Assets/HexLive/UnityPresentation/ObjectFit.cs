@@ -26,6 +26,8 @@ namespace HexLive.UnityPresentation
         public static float TargetWorldSize(string definitionId)
         {
             var r = SimulationUnityMapper.HexRadius;
+            // §54.2: tree.palm is NOT sized here — the palm_final prefab is authored
+            // 1:1 in Blender and instantiated as-is by PalmTreeFactory (no fit).
             if (definitionId.Contains("tree")) return r * 2.2f;
             if (definitionId.Contains("bed")) return r * 0.95f;
             if (definitionId.StartsWith("food.")) return r * 0.12f;

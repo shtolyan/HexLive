@@ -7507,13 +7507,34 @@ the current spatial system, not bolted on.
   on a Water tile (the river) by 3° and blocks UV — the river is the
   midday refuge the user asked for.
 - **CoolOff goal** (score 0.1 + 0.5 × max(Thermal, SunExposure − 0.4),
-  when effective temp > 20 with Thermal >= 0.35 **or** SunExposure >= 0.6
-  — heat and sunburn risk are separate reasons to seek cover; the first
-  soak showed the heat-only gate never trips in this climate): move-only
-  trip to the nearest Shade or Water spot; standing there cools and
-  shields, and exposure recovery drains the urge so the NPC naturally
-  resumes work. Chopping palms for leaves (35.2) now visibly costs the
-  colony its parasols.
+  when effective temp > 20 with the **overheat latch** on **or** SunExposure
+  >= 0.6 — heat and sunburn risk are separate reasons to seek cover; the first
+  soak showed the heat-only gate never trips in this climate): walk to the
+  nearest genuinely cooling tile — one the cast-shadow map shades or a walkable
+  Water tile — and **dwell there** until cooled. Chopping palms for leaves
+  (35.2) now visibly costs the colony its parasols.
+- **Anti-churn rework (spec 35.4a).** CoolOff used to be a *move-only* trip that
+  parked the NPC on an *approach neighbour* of the shade object — a tile that
+  was neither shaded nor water, so she never actually cooled — then completed on
+  arrival, reset her goal to None, and (still hot) re-won CoolOff at zero margin
+  the very next tick. In a 25-day × 6-seed soak that tight `None→CoolOff→None`
+  loop was **~40 % of all goal churn** (5847 switches) and the single biggest
+  thrash source. Fix, mirroring the sleep re-arm (49.1):
+  1. **Overheat latch** (`IsOverheated`, enter `CoolOffEnterThreshold` 0.35 /
+     clear `CoolOffClearThreshold` 0.20) gates availability so it stops
+     flickering on/off around the entry edge.
+  2. The plan now targets a **cooling tile** (`IsShaded` or `TileFlags.Water`)
+     she'll actually stand on (`junction.Tiles[0]`), and appends a `GroundCool`
+     **dwell** step — cooling is then delivered for free by TemperatureSystem.
+  3. `RunGroundCool` **re-arms in place** while `ShouldKeepCooling` holds (still
+     hot, nothing more urgent), bounded by `CoolOffMaxRearms` (6 × `CoolOffDwellTicks`
+     40 = 240 ticks) so a fallback tile that never cools can't freeze her; on
+     exit a `CoolOffSettleTicks` (120) refractory blocks an instant re-win.
+  Result (same soak): total goal changes **−48 %** (32.3 → 16.7 / npc-day),
+  `None→CoolOff` **−94 %** (5847 → 351), ping-pong A→B→A 54 % → 21 %, median goal
+  dwell 8 → 40 ticks. Survival at 10 days unchanged (12/18 alive either way).
+  Knobs in `SimBalance` (thresholds/settle) + `Spec49` (`CoolRearm`, dwell,
+  max-rearms).
 
 ### 35.5 Iteration 21 — Weather, Rain & Wet Clothes (implemented)
 

@@ -15,34 +15,9 @@ namespace HexLive.UnityPresentation.Environment
     {
         public void Fell(float hexRadius)
         {
-            LeaveStump(hexRadius);
+            // The stump is now a real sim object (stump.palm) spawned in place and
+            // rendered by StumpFactory — TreeFall only topples the trunk view.
             StartCoroutine(FallRoutine());
-        }
-
-        private void LeaveStump(float hexRadius)
-        {
-            var stump = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            stump.name = "Stump";
-            // Parent to the world root (this object's parent) so it survives when
-            // the fallen trunk is destroyed.
-            stump.transform.SetParent(transform.parent, false);
-            stump.transform.position = transform.position;
-            stump.transform.localScale = new Vector3(hexRadius * 0.5f, 0.12f, hexRadius * 0.5f);
-
-            var mr = stump.GetComponent<MeshRenderer>();
-            if (mr != null)
-            {
-                var mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-                mat.SetColor("_BaseColor", new Color(0.34f, 0.22f, 0.12f));
-                mat.SetFloat("_Smoothness", 0.1f);
-                mr.sharedMaterial = mat;
-            }
-
-            var col = stump.GetComponent<Collider>();
-            if (col != null)
-            {
-                Destroy(col);
-            }
         }
 
         private IEnumerator FallRoutine()

@@ -4,6 +4,7 @@ using HexLive.Simulation.Agents;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
 
 namespace HexLive.Simulation.Bootstrap
@@ -261,12 +262,16 @@ public sealed class WorldStateFactory
         var site = WorldObjectMutations.SpawnObject(
             world, "build.site", new FragmentId(1), spots[0].Tile, spots[0].Junction);
         site.BuildProduct = "bed.basic";
-        // §52: an all-stone frame — 3 stones, no logs. Logs are always eaten by
-        // the hearth before they reach a site, so a log-billed bed starves; a
-        // stone bill uses the lightly-contested GatherStone chain and reliably
-        // finishes. (The bill is one line — retune freely.)
-        site.BillLogs = 0;
-        site.BillStones = 2;
+        // §54.2: the premium bedroll bill = the assembled bed_basic_final prefab's
+        // real pieces (4 log rails + stick slats + rope lashings + leaf mattress),
+        // so the progressive site reveals piece-per-delivery into a whole bed.
+        // ⚠ Logs are heavily contested (the hearth eats them first), so a log-billed
+        // starter bed can stall — if it never finishes in soak, zero BillLogs here
+        // (fall back to the old all-stone frame) rather than desyncing bill/model.
+        site.BillLogs = SimBalance.BedBasicBillLogs;
+        site.BillSticks = SimBalance.BedBasicBillSticks;
+        site.BillRope = SimBalance.BedBasicBillRope;
+        site.BillLeaves = SimBalance.BedBasicBillLeaves;
 
         // §52: two builder's hammers near the hearth — a second girl can build
         // while the first carries one off. Placed on the remaining free spots.

@@ -364,7 +364,7 @@ public static class PrototypeContentCatalog
                     {
                         Id = "build.furniture",
                         Type = InteractionType.Build,
-                        DurationTicks = 12
+                        DurationTicks = 36 // ×3 slower (longer hammer strikes)
                     }
                 }
             },
@@ -821,6 +821,26 @@ public static class PrototypeContentCatalog
                     }
                 },
                 Tags = { "Chair" }
+            },
+            // §54.2: a felled palm leaves a STUMP — a low obstacle you can perch
+            // on (sit like on a ledge). Spawned in place when the palm is chopped
+            // (id has no "tree" so it isn't treated as a fellable tree).
+            ["stump.palm"] = new ObjectDefinition
+            {
+                Id = "stump.palm",
+                DisplayName = "Stump",
+                ObstacleRadius = 0.3f * HexLive.Simulation.Spatial.HexSpatialMath.HexRadius,
+                Interactions =
+                {
+                    new InteractionDefinition
+                    {
+                        Id = "sit.stump",
+                        Type = InteractionType.Sit,
+                        DurationTicks = 70,
+                        Effects = { ComfortDelta = SimBalance.GroundSitComfortLedge, EnergyDelta = SimBalance.ChairEnergy }
+                    }
+                },
+                Tags = { "Stump", "Obstacle" }
             },
             ["bed.basic"] = new ObjectDefinition
             {

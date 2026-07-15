@@ -1106,10 +1106,21 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 // Spec §54: builds are log-framed.
                 return npc.InventoryItems.Contains("resource.log")
                     ? "resource.log" : null;
-            // Spec 29H: fill the bottle and drink from it — the bottle shows
-            // in hand for both.
+            // Spec 29H: fill the bottle and drink from it — the bottle shows in hand.
             case "FillBottle":
+                return "tool.bottle";
+            // §55: coconut water is sipped straight from the husk, so the coconut
+            // shows in hand; plain water is drunk from the bottle. (Was always the
+            // bottle — a coconut drink wrongly raised a bottle / nothing.)
             case "Drink":
+                foreach (var item in npc.InventoryItems)
+                {
+                    if (item.StartsWith("food.coconut"))
+                    {
+                        return item;
+                    }
+                }
+
                 return "tool.bottle";
             default:
                 return null;
@@ -1136,7 +1147,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
     };
 
     // Spec 20.16: the weapon an NPC fights/hunts with — bow (with arrows)
-    // preferred, else spear. Null when unarmed (bare-handed brawl).
+    // preferred, then spear, then the knife as a last-ditch melee blade. Null
+    // only when truly unarmed (bare-handed brawl).
     private static string WeaponFor(NpcSnapshot npc)
     {
         if (npc.InventoryItems.Contains("tool.bow") && npc.InventoryItems.Contains("resource.arrow"))
@@ -1144,7 +1156,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return "tool.bow";
         }
 
-        return npc.InventoryItems.Contains("tool.spear") ? "tool.spear" : null;
+        if (npc.InventoryItems.Contains("tool.spear"))
+        {
+            return "tool.spear";
+        }
+
+        return npc.InventoryItems.Contains("tool.knife") ? "tool.knife" : null;
     }
 
     // The bed she is sleeping on: nearest bed object view within ~a tile.
@@ -1674,6 +1691,22 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
         }
 
+        // §54.2: the felled-palm stump — a short standing ring-cut log you can
+        // perch on (a sim obstacle with a Sit interaction).
+        if (worldObject.DefinitionId == "stump.palm")
+        {
+            var stumpRoot = new GameObject("Object stump.palm");
+            stumpRoot.transform.SetParent(_objectsRoot, false);
+            var stump = HexLive.UnityPresentation.Environment.StumpFactory.Build(HexRadius);
+            stump.transform.SetParent(stumpRoot.transform, false);
+            stump.transform.localPosition = new Vector3(
+                0f, HexLive.UnityPresentation.Environment.StumpFactory.BaseLift, 0f);
+            var stumpAnchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
+            stumpRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
+                stumpAnchor, GroundY(worldObject.Tile));
+            return stumpRoot;
+        }
+
         // Spec §54.2: the dropped palm crown is a fluffy cluster of leaves — no
         // trunk. Same builder the standing palm's top uses; the big palm's crown
         // is fuller than the small one's (matching its leaf drop).
@@ -1696,11 +1729,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
         }
 
-        // Spec §54.2: the beds are ASSEMBLED from the game's own primitives —
-        // logs, sticks, leaves, rope — so they read as built from those bits.
+        // Spec §54.2: the beds are the assembled prefab (bed_leaf_final /
+        // bed_basic_final) with every piece toggled on — the same prefab a
+        // build-site grows piece by piece, so finished and in-progress match.
         if (HexLive.UnityPresentation.Environment.BedFactory.IsBed(worldObject.DefinitionId))
         {
-            var bed = HexLive.UnityPresentation.Environment.BedFactory.Build(worldObject.DefinitionId);
+            var bed = HexLive.UnityPresentation.Environment.BedAssembly.BuildFinished(worldObject.DefinitionId);
             if (bed != null)
             {
                 bed.transform.SetParent(_objectsRoot, false);

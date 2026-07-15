@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 5104217784021054108}
   - component: {fileID: 1322995414673764210}
   m_Layer: 0
-  m_Name: palm_frond
+  m_Name: palm_frond__old
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -40,7 +40,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1446933654725735466}
-  m_Mesh: {fileID: 4690115946491950023, guid: e76e61d258a3b498d8f2484f4b023ce8, type: 3}
+  m_Mesh: {fileID: 4300000, guid: 6b2877310d91c4928b92fe55dc779c11, type: 2}
 --- !u!23 &1322995414673764210
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -66,7 +66,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 5693146556522302955, guid: e76e61d258a3b498d8f2484f4b023ce8, type: 3}
+  - {fileID: 2100000, guid: d38eda979f4a24d3c8dce0bc1264f0d3, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0

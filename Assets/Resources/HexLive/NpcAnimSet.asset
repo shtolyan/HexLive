@@ -27,3 +27,7 @@ MonoBehaviour:
     idle: {fileID: 0}
     attacks:
     - {fileID: -203655887218126122, guid: 5dd0fd96d3fa64b62bc3c1272fde5a39, type: 3}
+  - weaponId: tool.knife
+    idle: {fileID: 0}
+    attacks:
+    - {fileID: -203655887218126122, guid: 5dd0fd96d3fa64b62bc3c1272fde5a39, type: 3}

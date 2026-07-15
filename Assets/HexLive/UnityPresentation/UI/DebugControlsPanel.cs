@@ -41,6 +41,12 @@ namespace HexLive.UnityPresentation.UI
         private UIDocument _document;
         private Label _targetLabel;
 
+        // Collapsible like the bottom character bar: hidden by default, a small
+        // arrow tab pops it open, the header arrow tucks it away again.
+        private bool _collapsed = true;
+        private VisualElement _box;
+        private VisualElement _expandTab;
+
         public void SetRunner(SimulationRunnerBehaviour runner) => _runner = runner;
 
         private void Awake()
@@ -86,6 +92,7 @@ namespace HexLive.UnityPresentation.UI
             root.pickingMode = PickingMode.Ignore;
 
             var box = new VisualElement();
+            _box = box;
             box.style.position = Position.Absolute;
             box.style.left = 14f;
             box.style.top = 150f; // below the top-left weather widget
@@ -104,12 +111,28 @@ namespace HexLive.UnityPresentation.UI
             box.RegisterCallback<PointerLeaveEvent>(_ => NpcSelection.PointerOverUi = false);
             root.Add(box);
 
+            // Header row: DEBUG title on the left, a collapse arrow on the right.
+            var header = new VisualElement();
+            header.style.flexDirection = FlexDirection.Row;
+            header.style.alignItems = Align.Center;
+            header.style.justifyContent = Justify.SpaceBetween;
+            header.style.marginBottom = 2f;
+            box.Add(header);
+
             var title = new Label("DEBUG");
             title.style.color = new Color(0.604f, 0.651f, 0.678f);
             title.style.fontSize = 11;
             title.style.unityFontStyleAndWeight = FontStyle.Bold;
-            title.style.marginBottom = 2f;
-            box.Add(title);
+            header.Add(title);
+
+            var collapse = new Label("‹");
+            collapse.style.color = Text;
+            collapse.style.fontSize = 16;
+            collapse.style.unityFontStyleAndWeight = FontStyle.Bold;
+            collapse.style.paddingLeft = 6f;
+            collapse.style.paddingRight = 6f;
+            collapse.RegisterCallback<MouseDownEvent>(evt => { SetCollapsed(true); evt.StopPropagation(); });
+            header.Add(collapse);
 
             _targetLabel = new Label("target: everyone");
             _targetLabel.style.color = new Color(0.55f, 0.60f, 0.63f);
@@ -130,6 +153,57 @@ namespace HexLive.UnityPresentation.UI
             _clothesButton = MakeButton("Hide clothes", Raised, ToggleClothes);
             _clothesLabel = (Label)_clothesButton[0];
             box.Add(_clothesButton);
+
+            BuildExpandTab(root);
+            ApplyCollapsed(); // hidden by default
+        }
+
+        // Small arrow tab (where the panel sits) shown while the panel is hidden;
+        // clicking it opens the panel again.
+        private void BuildExpandTab(VisualElement root)
+        {
+            _expandTab = new VisualElement();
+            _expandTab.style.position = Position.Absolute;
+            _expandTab.style.left = 14f;
+            _expandTab.style.top = 150f;
+            _expandTab.style.width = 30f;
+            _expandTab.style.height = 30f;
+            _expandTab.style.flexDirection = FlexDirection.Row;
+            _expandTab.style.alignItems = Align.Center;
+            _expandTab.style.justifyContent = Justify.Center;
+            _expandTab.style.backgroundColor = Panel;
+            SetBorder(_expandTab, Stroke);
+            SetRadius(_expandTab, 8f);
+            _expandTab.RegisterCallback<PointerEnterEvent>(_ => NpcSelection.PointerOverUi = true);
+            _expandTab.RegisterCallback<PointerLeaveEvent>(_ => NpcSelection.PointerOverUi = false);
+            _expandTab.RegisterCallback<MouseDownEvent>(evt => { SetCollapsed(false); evt.StopPropagation(); });
+
+            var arrow = new Label("›"); // ›
+            arrow.style.color = Text;
+            arrow.style.fontSize = 16;
+            arrow.style.unityFontStyleAndWeight = FontStyle.Bold;
+            _expandTab.Add(arrow);
+
+            root.Add(_expandTab);
+        }
+
+        private void SetCollapsed(bool collapsed)
+        {
+            _collapsed = collapsed;
+            ApplyCollapsed();
+        }
+
+        private void ApplyCollapsed()
+        {
+            if (_box != null)
+            {
+                _box.style.display = _collapsed ? DisplayStyle.None : DisplayStyle.Flex;
+            }
+
+            if (_expandTab != null)
+            {
+                _expandTab.style.display = _collapsed ? DisplayStyle.Flex : DisplayStyle.None;
+            }
         }
 
         private VisualElement _clothesButton;

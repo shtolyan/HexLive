@@ -84,9 +84,9 @@ namespace HexLive.Simulation.Bootstrap
                     // now findable wilderness loot — see AddNaturalFeatures).
                     Object(104, "tree.palm", 1, -2, 2, 1),
                     Object(105, "tree.palm", 1, 1, 4, 1),
-                    // §54.2: a mix of big (3-log) and small (2-log) palms.
-                    Object(107, "tree.palm_small", 1, 3, 2, 1),
-                    Object(108, "tree.palm_small", 1, 6, 1, 1),
+                    // §54.2: only big palms now (small palm retired).
+                    Object(107, "tree.palm", 1, 3, 2, 1),
+                    Object(108, "tree.palm", 1, 6, 1, 1),
                     Object(122, "forest.deadfall", 1, 6, 3, 2),
                     Object(123, "forest.deadfall", 1, -4, 4, 2)
                 },
@@ -337,10 +337,10 @@ namespace HexLive.Simulation.Bootstrap
 
             Place("rock.boulder", 8, 331, 1);
             Place("resource.stone", 12, 443, 2);
-            // §54.2: the old big tree is RETIRED — the two tree types are now our
-            // two palms: big (3 logs + crown) and small (2 logs + crown).
+            // §54.2: the old big tree is RETIRED, and the small palm too — only the
+            // big palm (3 logs + crown) spawns now.
             Place("tree.palm", 6, 661, 1);        // big palms (3 logs)
-            Place("tree.palm_small", 6, 557, 1);  // small palms (2 logs)
+            Place("tree.palm", 6, 557, 1);        // (was small palms — now big)
             Place("tool.saw", 1, 773, 2); // spec 35.2: findable wilderness loot
             // Spec 40.12: more scattered gear — the wilds reward exploring, and
             // a found tool saves a craft. GatherTools already collects any

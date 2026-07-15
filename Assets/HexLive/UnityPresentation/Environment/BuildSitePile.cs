@@ -33,9 +33,11 @@ namespace HexLive.UnityPresentation.Environment
                 Object.Destroy(transform.GetChild(i).gameObject);
             }
 
-            // Spec §54.2: a BED site assembles via BedFactory's real slot layout —
-            // each delivered leaf/stick/log/rope drops onto its final slot, so the
-            // mat grows exactly into the finished bed (not a generic scatter pile).
+            // Spec §54.2: a BED site is the SAME assembled prefab as the finished
+            // bed (bed_leaf_final / bed_basic_final) with only its delivered pieces
+            // toggled on — each hauled leaf/stick/log/rope lights up one more piece,
+            // so the mat grows exactly into the finished bed. One prefab, no slot
+            // table to keep in sync (see BedAssembly).
             if (BedFactory.IsBed(site.BuildProduct))
             {
                 var delivered = site.DeliveredLeaves + site.DeliveredSticks +
@@ -46,17 +48,11 @@ namespace HexLive.UnityPresentation.Environment
                     return;
                 }
 
-                var partial = BedFactory.Build(site.BuildProduct, mat => mat switch
-                {
-                    "resource.palm_leaf" => site.DeliveredLeaves,
-                    "resource.stick" => site.DeliveredSticks,
-                    "resource.log" => site.DeliveredLogs,
-                    "resource.rope" => site.DeliveredRope,
-                    _ => 0
-                });
+                var partial = BedAssembly.BuildPartial(site.BuildProduct,
+                    site.DeliveredLogs, site.DeliveredSticks, site.DeliveredRope, site.DeliveredLeaves);
                 if (partial != null)
                 {
-                    partial.transform.SetParent(transform, false); // BedFactory is absolute-sized
+                    partial.transform.SetParent(transform, false); // absolute-sized (1:1)
                 }
 
                 return;

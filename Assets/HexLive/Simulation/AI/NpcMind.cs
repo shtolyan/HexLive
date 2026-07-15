@@ -13,6 +13,16 @@ public sealed class NPCMind
     // Spec 29E.1: same hysteresis pattern for water.
     public bool IsDehydrated { get; set; }
 
+    // Spec 35.4: overheating latch — enter at CoolOffEnterThreshold, clear at
+    // CoolOffClearThreshold. Gates CoolOff availability so it doesn't flicker
+    // around the entry edge and re-win at zero margin every tick.
+    public bool IsOverheated { get; set; }
+
+    // Spec 35.4: how many times the in-place cool-off dwell has re-armed without
+    // the goal actually clearing (safety cap against an infinite dwell on a
+    // fallback tile that never cools). Reset when CoolOff is (re)selected.
+    public int CoolRearmCount { get; set; }
+
     // Spec 28.15C: mourning period and which bodies were already grieved for.
     public int GrievingUntilTick { get; set; }
 

@@ -133,7 +133,8 @@ public enum InteractionType
     FeedOther,     // spec 53: share a meal with a starving housemate
     TreatOther,    // spec 53: dress a wounded housemate's wound
     MedicateOther, // spec 53: hand a pill to a sick / gravely weak housemate
-    ConsoleOther   // spec 53: sit with a grieving / stressed housemate
+    ConsoleOther,  // spec 53: sit with a grieving / stressed housemate
+    CoolOff        // spec 35.4: dwell in shade/water to shed heat
 }
 
 }

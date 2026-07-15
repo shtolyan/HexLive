@@ -146,6 +146,20 @@ namespace HexLive.Simulation.Runtime
         public static float FireWarmthRange2 = 4f;      // campfire warmth at 2 tiles
 
         // ─────────────────────────────────────────────────────────────
+        // Spec 35.4: cool-off goal stability. CoolOff used to be a move-only
+        // "walk near shade" plan that completed the instant she arrived, reset
+        // CurrentGoal→None, and — because ThermalDiscomfort was still above the
+        // 0.35 entry edge — re-won at zero margin the very next tick. That tight
+        // None→CoolOff loop was ~40% of ALL goal churn (and she never actually
+        // cooled, since the plan parked her on an approach tile, not the shade).
+        // Fix: a latched entry (enter 0.35 / clear 0.20) + an in-place dwell that
+        // holds on a genuinely cooling tile until the clear threshold is reached.
+        public static float CoolOffEnterThreshold = 0.35f; // overheat latch turns on
+        public static float CoolOffClearThreshold = 0.20f;  // ...and off (hysteresis)
+        public static float CoolOffSunClear = 0.45f;        // sun exposure must also fall below this to stop
+        public static int CoolOffSettleTicks = 120;         // refractory after a completed cool-off (no instant re-win)
+
+        // ─────────────────────────────────────────────────────────────
         // Sun / tan / sunburn (on uncovered parts, in open sun).
         // ─────────────────────────────────────────────────────────────
         public static float TanRate = 0.0018f;        // tan gained per (UV−0.5) per uncovered part
@@ -209,25 +223,42 @@ namespace HexLive.Simulation.Runtime
         // Wood chain: a log is chopped into this many sticks (the fuel/craft
         // currency), over this many ticks (needs an axe).
         public static int LogSplitYield = 4;
-        public static int LogSplitDurationTicks = 40;
+        public static int LogSplitDurationTicks = 120; // ×3 slower (longer axe-chop to make sticks)
 
         // Cold start: the campfire is built by piling this many stones at the
         // hearth build-site (no hammer needed), then lit with sticks.
         public static int CampfireStoneBill = 6;
 
-        // §54.2: the leaf sleeping-mat is now raised at a progressive build-site
-        // (haul each leaf/stick, it grows piece by piece, a hammer finishes it) —
-        // NOT an atomic craft. The bill is EXACTLY the mat's prefab pieces (see
-        // BedFactory.BillFor("bed.leaf")): 16 leaf blades + 6 stick rails.
-        public static int BedLeafBillLeaves = 16;
-        public static int BedLeafBillSticks = 6;
+        // §54.2: beds are raised at a progressive build-site (haul each piece, it
+        // grows piece by piece, a hammer finishes it) — NOT an atomic craft. The
+        // bill = EXACTLY the assembled prefab's piece counts, so every delivery
+        // reveals one piece and the finished bed is whole. Re-count the prefab
+        // children (bed_leaf_final / bed_basic_final) to retune.
+        //
+        // bed.leaf (leaf mat, bed_leaf_final): stick frame + rope lashings + leaf
+        // mattress — no logs. (Counts jumped from the old 16/6 to match the new,
+        // fuller model; if soak survival suffers, thin the mattress in Blender and
+        // re-count rather than desyncing bill from model.)
+        public static int BedLeafBillLeaves = 46;
+        public static int BedLeafBillSticks = 8;
+        public static int BedLeafBillRope = 8;
+
+        // bed.basic (premium bedroll, bed_basic_final): 4 log side-rails (two per
+        // side) + stick cross-slats + rope lashings + a full leaf mattress.
+        public static int BedBasicBillLogs = 4;
+        public static int BedBasicBillSticks = 5;
+        public static int BedBasicBillRope = 10;
+        public static int BedBasicBillLeaves = 50;
 
         // §54.2: how many fronds each palm's crown is built from AND how many
         // loose leaves drop when that crown is chopped — the SAME number per size
         // (the visual crown = the yield). Big palm has a fuller crown / bigger
         // yield than the small one. Read by PalmCrownFactory (look) and the crown
         // defs' Process yields (drop). Tune to move both look and yield together.
-        public static int BigPalmCrownLeaves = 14;
+        // ×3 vs the old 14: beds now use ~3× more leaves, so one felled palm drops
+        // roughly enough for a bed (was 14 → ~3 palms per bed). Approximate balance,
+        // not a per-frond count. (SmallPalm retired — only big palms spawn now.)
+        public static int BigPalmCrownLeaves = 42;
         public static int SmallPalmCrownLeaves = 8;
 
         // Fiber → rope / cloth (crafted at the fire); knife = sticks + stone.

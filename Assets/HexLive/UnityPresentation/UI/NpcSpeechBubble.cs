@@ -19,8 +19,11 @@ namespace HexLive.UnityPresentation.UI
 public sealed class NpcSpeechBubble : MonoBehaviour
 {
     private const float HeightOffset = 0.34f;    // world units above the head bone
-    private const float BubbleUnitsTall = 0.62f; // on-screen bubble height
-    private const float EmojiUnitsTall = 0.36f;  // emoji height inside the body
+    private const float BubbleUnitsTall = 0.70f; // on-screen bubble height (bigger white bg)
+    private const float EmojiUnitsTall = 0.26f;  // emoji height inside the body (smaller, well inside)
+    // Round-body centre as a fraction of the bubble height (pivot is near the
+    // tail): keeps the emoji centred in the white bg at any bubble size.
+    private const float BodyCentreFrac = 0.339f;
     private const float PopUnitsTall = 0.19f;    // "+/-" height (≈half the old size)
     private const float PopRiseSpeed = 0.42f;    // units/sec the "+/-" floats up
     private const float PopLifetime = 1.25f;
@@ -63,8 +66,8 @@ public sealed class NpcSpeechBubble : MonoBehaviour
         emojiGo.transform.SetParent(transform, false);
         _emoji = emojiGo.AddComponent<SpriteRenderer>();
         _emoji.sortingOrder = sortingBase + 1;
-        // Body spans ~[-0.1, +0.52] of its height above the root, so centre ≈ 0.21.
-        _emoji.transform.localPosition = new Vector3(0f, 0.21f, -0.01f);
+        // Centre the emoji in the round body (scales with the bubble height).
+        _emoji.transform.localPosition = new Vector3(0f, BodyCentreFrac * BubbleUnitsTall, -0.01f);
 
         // Relationship "+/-" pop (independent of the bubble; can fire alone).
         var popGo = new GameObject("RelationshipPop");

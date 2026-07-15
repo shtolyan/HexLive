@@ -914,6 +914,14 @@ public sealed class DecisionSystem : ISimulationSystem
             var coconutToolBoost = coconutToolPressure
                 ? System.MathF.Max(npc.Needs.Thirst, npc.Needs.Hunger)
                 : 0f;
+            var coconutEmergencyBoost =
+                coconutToolPressure &&
+                (npc.Needs.Thirst >= SimBalance.SleepInterruptThirst ||
+                 npc.Needs.Hunger >= SimBalance.SleepInterruptHunger ||
+                 npc.Mind.IsDehydrated ||
+                 npc.Mind.IsStarving)
+                    ? SimBalance.StarvingBoost
+                    : 0f;
             // §55: boiling water is retired — the fire chain no longer earns a
             // "boil" bonus, only warmth/cooking motivate it now.
             var wantsBoil = false;
@@ -951,8 +959,10 @@ public sealed class DecisionSystem : ISimulationSystem
             var tendFireAvail = hasWood && fuelLow &&
                 (campfireFuel > 0f || hasLighter || canFrictionLight);
 
-            AddGoalScore(npc, world.Tick, GoalType.Drink, npc.Needs.Thirst, drinkAvail, drinkBoost);
-            AddGoalScore(npc, world.Tick, GoalType.GetWater, npc.Needs.Thirst, getWaterAvail, drinkBoost);
+            var drinkNeedScore = npc.Needs.Thirst +
+                (npc.Needs.Thirst >= npc.Needs.Hunger ? 0.05f : 0f);
+            AddGoalScore(npc, world.Tick, GoalType.Drink, drinkNeedScore, drinkAvail, drinkBoost);
+            AddGoalScore(npc, world.Tick, GoalType.GetWater, drinkNeedScore, getWaterAvail, drinkBoost);
             // Spec 42: cold drives the WHOLE fire chain, not just the last
             // link — a freezing girl fetches the lighter and hauls wood with
             // fire-priority, otherwise the chain never outbids water/food and
@@ -965,14 +975,16 @@ public sealed class DecisionSystem : ISimulationSystem
             // the suppressed raw goal just leaves her thirsty by a dead fire.
             var boilChain = wantsBoil ? Spec49.BoilChainWeight : 0f;
             AddGoalScore(npc, world.Tick, GoalType.GatherTools,
-                0.25f + 0.2f * npc.Needs.Thirst + coldChain + boilChain, gatherToolsAvail);
+                0.25f + 0.2f * npc.Needs.Thirst + coldChain + boilChain,
+                gatherToolsAvail, coconutEmergencyBoost);
             // The raft pull mirrors BuildRaft's weight: stocking logs for the
             // coast run must win the auction as often as the run itself, or
             // the demand flag never turns into wood in hand (soak: GatherWood
             // won 8-10 times in 15 days while the raft starved).
             AddGoalScore(npc, world.Tick, GoalType.GatherWood,
                 0.2f + 0.3f * npc.Needs.Thirst + coldChain + boilChain +
-                (raftWoodDemand ? 0.3f : 0f) + coconutToolBoost, gatherWoodAvail);
+                (raftWoodDemand ? 0.3f : 0f) + coconutToolBoost,
+                gatherWoodAvail, coconutEmergencyBoost);
             // Spec 42: cold is the second reason to light the fire — a
             // freezing girl with wood and a lighter prioritizes the flame
             // over almost everything (this is THE way to warm up now).
@@ -1128,7 +1140,8 @@ public sealed class DecisionSystem : ISimulationSystem
                     : 0f;
             // §54 cold start: fetching stones for the first hearth is urgent too.
             AddGoalScore(npc, world.Tick, GoalType.GatherStone,
-                (hearthUrgent ? 0.9f : 0.25f) + freeHands + coconutToolBoost, gatherStoneAvail);
+                (hearthUrgent ? 0.9f : 0.25f) + freeHands + coconutToolBoost,
+                gatherStoneAvail, coconutEmergencyBoost);
             AddGoalScore(npc, world.Tick, GoalType.CraftAxe, 0.3f + freeHands, craftAxeAvail);
             AddGoalScore(npc, world.Tick, GoalType.CraftPickaxe, 0.25f + freeHands, craftPickaxeAvail);
             // §47 comfort: the bed-chain pull — mirrors the spec-42 cold
@@ -1207,7 +1220,7 @@ public sealed class DecisionSystem : ISimulationSystem
             AddGoalScore(npc, world.Tick, GoalType.CraftRope, 0.28f + freeHands + bedRopePull, craftRopeAvail);
             AddGoalScore(npc, world.Tick, GoalType.CraftCloth, 0.28f + freeHands, craftClothAvail);
             AddGoalScore(npc, world.Tick, GoalType.CraftKnife,
-                0.34f + freeHands + coconutToolBoost, craftKnifeAvail);
+                0.34f + freeHands + coconutToolBoost, craftKnifeAvail, coconutEmergencyBoost);
 
             // Spec §54: butcher a carcass (or, starving, a housemate's body) with
             // a knife — hunger-driven, since the payoff is meat.
@@ -6543,7 +6556,7 @@ public sealed class ExecutionSystem : ISimulationSystem
             {
                 if (!drop.Scatter)
                 {
-                    GiveOrDrop(world, npc, new ItemInstance(drop.DefinitionId));
+                    GiveOrDrop(world, npc, CreateYieldItem(drop.DefinitionId));
                     continue;
                 }
 
@@ -6558,10 +6571,21 @@ public sealed class ExecutionSystem : ISimulationSystem
                 else
                 {
                     // No free spot in the ring — don't lose the item, hand it over.
-                    GiveOrDrop(world, npc, new ItemInstance(drop.DefinitionId));
+                    GiveOrDrop(world, npc, CreateYieldItem(drop.DefinitionId));
                 }
             }
         }
+    }
+
+    private static ItemInstance CreateYieldItem(string definitionId)
+    {
+        var item = new ItemInstance(definitionId);
+        if (definitionId == "food.coconut_pierced")
+        {
+            item.ResourceAmount = SimBalance.CoconutWaterCapacity;
+        }
+
+        return item;
     }
 
     private static WorldObjectState? ReplaceWithYields(
@@ -6594,7 +6618,7 @@ public sealed class ExecutionSystem : ISimulationSystem
                     var scatter = FindScatterSpot(world, source, used);
                     if (scatter.Item2 is not { } freeJunction)
                     {
-                        GiveOrDrop(world, npc, new ItemInstance(drop.DefinitionId));
+                        GiveOrDrop(world, npc, CreateYieldItem(drop.DefinitionId));
                         continue;
                     }
 
@@ -6936,9 +6960,17 @@ public sealed class ExecutionSystem : ISimulationSystem
         npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort + comfort * restShare);
         npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy + energy * restShare);
 
-        if (npc.Execution.EndTick - world.Tick > 0)
+        var interruptedSleep = kind == InteractionType.Sleep && HasSleepInterrupt(world, npc);
+        if (!interruptedSleep && npc.Execution.EndTick - world.Tick > 0)
         {
             return;
+        }
+
+        if (interruptedSleep)
+        {
+            Trace.Emit(world, npc.Id, "SleepInterrupted",
+                $"Hunger={npc.Needs.Hunger:F2} Thirst={npc.Needs.Thirst:F2} " +
+                $"Danger={npc.Memory.Dangers.Count}");
         }
 
         // Spec §49: sleep the night in ONE continuous lie. Instead of ending the
@@ -7029,9 +7061,7 @@ public sealed class ExecutionSystem : ISimulationSystem
         // discomfort she usually can't fix, so waking her only produced the
         // "empty get-up" churn; the cold HP hit lands whether she's up or lying,
         // and lying still conserves. (A fire she could tend is a daytime chore.)
-        if (npc.Memory.Dangers.Count > 0 ||
-            npc.Needs.Hunger >= SleepInterruptHunger ||
-            npc.Needs.Thirst >= SleepInterruptThirst)
+        if (HasSleepInterrupt(world, npc))
         {
             return false;
         }
@@ -7042,6 +7072,11 @@ public sealed class ExecutionSystem : ISimulationSystem
         var night = world.Environment.Phase is DayPhase.Night or DayPhase.Evening;
         return night || npc.Needs.Energy < SleepWakeEnergyDay;
     }
+
+    private static bool HasSleepInterrupt(WorldState world, NPCState npc) =>
+        npc.Memory.Dangers.Count > 0 ||
+        npc.Needs.Hunger >= SleepInterruptHunger ||
+        npc.Needs.Thirst >= SleepInterruptThirst;
 
     // Spec 35.4: dwell in the shade / shallows shedding heat. This is the
     // cool-off twin of RunGroundRest — a timed in-place interaction with no
@@ -9194,7 +9229,7 @@ public sealed class DogSystem : ISimulationSystem
             foreach (var npc in world.Entities.Npcs.Values)
             {
                 // Sanctuary (spec 29C.4A): indoor NPCs are never targets.
-                if (IsIndoorTile(world, npc.Tile))
+                if (IsNpcInSanctuary(world, npc))
                 {
                     continue;
                 }
@@ -9218,13 +9253,13 @@ public sealed class DogSystem : ISimulationSystem
             }
         }
         else if (HexSpatialMath.HexDistance(dog.Tile, target.Tile) > AggroRadiusTiles + 3 ||
-                 IsIndoorTile(world, target.Tile))
+                 IsNpcInSanctuary(world, target))
         {
             // Lost interest — target got far away or reached sanctuary
             // (spec 29C.4A: dogs give up at the door).
             Trace.EmitSystem(world, "DogLostTarget",
                 $"Dog={dog.Id} lost NPC{target.Id.Value}" +
-                $"{(IsIndoorTile(world, target.Tile) ? " (went indoors)" : "")}");
+                $"{(IsNpcInSanctuary(world, target) ? " (went indoors)" : "")}");
             dog.TargetNpc = null;
             dog.Status = Wildlife.DogStatus.Roaming;
             target = null;
@@ -9388,6 +9423,10 @@ public sealed class DogSystem : ISimulationSystem
         return world.Junctions.Items.TryGetValue(junctionId, out var junction) &&
             junction.Tiles.Count > 0 && IsIndoorTile(world, junction.Tiles[0]);
     }
+
+    private static bool IsNpcInSanctuary(WorldState world, NPCState npc) =>
+        IsIndoorTile(world, npc.Tile) ||
+        (npc.CurrentJunction is { } junction && IsIndoorJunction(world, junction));
 
     private static int CountAdjacentDogs(WorldState world, NPCState npc)
     {

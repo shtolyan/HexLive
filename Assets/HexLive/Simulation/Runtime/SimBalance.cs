@@ -201,20 +201,78 @@ namespace HexLive.Simulation.Runtime
         // Combat — dogs & sharks.
         // ─────────────────────────────────────────────────────────────
         public static float BiteDamagePerPass = 0.06f;  // dog bite per attack pass
-        public static float NpcStrikePerPass = 0.15f;   // an NPC's strike back at a dog per pass
+        public static float NpcStrikePerPass = 0.15f;   // an NPC's bare strike-back baseline per pass
         public static float RaidChancePerDay = 0.08f;   // night dog-raid probability per day
         public static int RaidPackSize = 3;             // dogs per night raid
         public static int AggroRadiusTiles = 2;         // dog aggro range
         public static float RoamChance = 0.2f;          // dog roam probability
         public static float SharkBiteDamage = 0.2f;     // shark bite to the leg (also a sever trigger)
-        // Spec §52: a readied two-handed spear multiplies the strike-back — a
-        // real thrust, not a bare-handed swat. Needs both hands free.
-        public static float SpearStrikeBonus = 1.8f;
-        // Spec §54: melee tools also fight — a one-handed swing, weaker than the
-        // two-handed spear thrust but far better than bare fists. The axe (a
-        // chopping edge) hits harder than the knife. Need only one intact hand.
-        public static float AxeStrikeBonus = 1.5f;
+        // Melee weapon balance. Knife stays at its shipped strike value; axe
+        // and spear scale from that while slower weapons pay attack speed.
+        public static float FistStrikeBonus = 1f;
         public static float KnifeStrikeBonus = 1.25f;
+        public static float AxeStrikeBonus = 1.875f;   // 1.5x knife damage
+        public static float SpearStrikeBonus = 2.5f;   // 2x knife damage, two-handed
+        public static float FistAttackSpeed = 1f;
+        public static float KnifeAttackSpeed = 1f;
+        public static float AxeAttackSpeed = 0.8f;
+        public static float SpearAttackSpeed = 0.6f;
+
+        public static string BestMeleeWeapon(
+            System.Collections.Generic.IEnumerable<Agents.ItemInstance> items, int intactHands)
+        {
+            var hasSpear = false;
+            var hasAxe = false;
+            var hasKnife = false;
+            foreach (var item in items)
+            {
+                if (item.DefinitionId == "tool.spear") hasSpear = true;
+                else if (item.DefinitionId == "tool.axe_stone") hasAxe = true;
+                else if (item.DefinitionId == "tool.knife") hasKnife = true;
+            }
+
+            if (hasSpear && intactHands >= 2) return "tool.spear";
+            if (hasAxe && intactHands >= 1) return "tool.axe_stone";
+            if (hasKnife && intactHands >= 1) return "tool.knife";
+            return string.Empty;
+        }
+
+        public static float MeleeStrikeBonus(string weaponId)
+        {
+            return weaponId switch
+            {
+                "tool.spear" => SpearStrikeBonus,
+                "tool.axe_stone" => AxeStrikeBonus,
+                "tool.knife" => KnifeStrikeBonus,
+                _ => FistStrikeBonus
+            };
+        }
+
+        public static float MeleeAttackSpeed(string weaponId)
+        {
+            return weaponId switch
+            {
+                "tool.spear" => SpearAttackSpeed,
+                "tool.axe_stone" => AxeAttackSpeed,
+                "tool.knife" => KnifeAttackSpeed,
+                _ => FistAttackSpeed
+            };
+        }
+
+        public static bool MeleeStrikeReady(int tick, int actorId, string weaponId)
+        {
+            var speed = MeleeAttackSpeed(weaponId);
+            if (speed >= 0.999f)
+            {
+                return true;
+            }
+
+            const int cadenceWindow = 5;
+            var strikesPerWindow = System.Math.Max(1,
+                System.Math.Min(cadenceWindow, (int)System.Math.Round(speed * cadenceWindow)));
+            var phase = System.Math.Abs(tick + actorId * 37) % cadenceWindow;
+            return phase < strikesPerWindow;
+        }
 
         // ─────────────────────────────────────────────────────────────
         // Spec §54 — Stranded-Deep resource loop (placeholder values; balance
@@ -224,6 +282,7 @@ namespace HexLive.Simulation.Runtime
         // currency), over this many ticks (needs an axe).
         public static int LogSplitYield = 4;
         public static int LogSplitDurationTicks = 120; // ×3 slower (longer axe-chop to make sticks)
+        public static int CoconutProcessDurationTicks => System.Math.Max(1, LogSplitDurationTicks / 3);
 
         // Cold start: the campfire is built by piling this many stones at the
         // hearth build-site (no hammer needed), then lit with sticks.
@@ -235,13 +294,14 @@ namespace HexLive.Simulation.Runtime
         // reveals one piece and the finished bed is whole. Re-count the prefab
         // children (bed_leaf_final / bed_basic_final) to retune.
         //
-        // bed.leaf (leaf mat, bed_leaf_final): stick frame + rope lashings + leaf
-        // mattress — no logs. (Counts jumped from the old 16/6 to match the new,
-        // fuller model; if soak survival suffers, thin the mattress in Blender and
-        // re-count rather than desyncing bill from model.)
-        public static int BedLeafBillLeaves = 46;
-        public static int BedLeafBillSticks = 8;
-        public static int BedLeafBillRope = 8;
+        // bed.leaf (early survival mat): a leaf bundle, stick ribs and a couple
+        // of rope lashings. The assembled prefab has more visual pieces, but the
+        // sim bill is grouped into buildable bundles; counting every blade/lashing
+        // turned the first bed into a multi-day project that missed the survival
+        // window entirely.
+        public static int BedLeafBillLeaves = 16;
+        public static int BedLeafBillSticks = 4;
+        public static int BedLeafBillRope = 2;
 
         // bed.basic (premium bedroll, bed_basic_final): 4 log side-rails (two per
         // side) + stick cross-slats + rope lashings + a full leaf mattress.
@@ -262,8 +322,10 @@ namespace HexLive.Simulation.Runtime
         public static int SmallPalmCrownLeaves = 8;
 
         // Fiber → rope / cloth (crafted at the fire); knife = sticks + stone.
-        public static int FiberPerPlant = 2;    // fiber yielded per fibrous plant
-        public static int RopeFiberCost = 3;
+        // Enough cordage that a couple of cut yucca can supply the first bed's
+        // lashings without exhausting the island's entire rope economy.
+        public static int FiberPerPlant = 4;    // fiber yielded per fibrous plant
+        public static int RopeFiberCost = 1;
         public static int ClothFiberCost = 4;
         public static int KnifeStickCost = 1;
         public static int KnifeStoneCost = 1;

@@ -9670,27 +9670,30 @@ separately — the §54 values are functional placeholders.
 ### §54.9 Progressive bed build-site (leaf mat)
 The leaf sleeping-mat (`bed.leaf`) is no longer an atomic craft — it is raised at
 a **progressive furniture build-site**, Stranded-Deep style: the pieces are hauled
-in one at a time and the mat **grows into its finished shape** before a hammer taps
-it done.
+in one at a time and the mat **grows into its finished shape** before it is
+hand-lashed into a usable bed.
 
 - **Placement.** `BedSiteSystem` (a Slow-tick colony intent, deliberately outside
   the per-NPC auction so the fragile survival balance is untouched) stakes ONE
   `build.site` with `BuildProduct = "bed.leaf"` beside a **lit hearth** when the
   colony has fewer beds than living girls and none is currently under construction.
-  Bill = `SimBalance.BedLeafBillLeaves`(16) + `BedLeafBillSticks`(6) — EXACTLY the
-  mat's prefab pieces (`BedFactory.BillFor("bed.leaf")`).
+  The site is also inserted into every living NPC's permanent object memory, since
+  it is a colony intent point rather than something each girl must personally see.
+  Bill = `SimBalance.BedLeafBillLeaves`(16) + `BedLeafBillSticks`(4) +
+  `BedLeafBillRope`(2): grouped survival bundles, not one simulation item per
+  visual blade/lashing.
 - **Bill channels.** The §52 furniture bill gained two material channels beyond
   log/stone/leaf: **stick** and **rope** (`WorldObjectState.BillSticks/BillRope`,
   `BuildSiteMath.AllMaterials` + `MaterialSticks/Rope`). Deposit/read-back iterate
   `AllMaterials`, so a bed can bill sticks (and, for the premium bedroll, rope).
 - **Hauling.** The existing `BuildFurniture` chain delivers: the gather feeders
-  (`ChopCrown`/`GatherLeaves`, `SplitLog`) fetch what the site needs (`siteNeeds
-  Leaves/Sticks`), and each `Build` interaction deposits whatever needed pieces are
-  in hand into `Contents` (partial delivery). Girls carry ~2 items, so a mat is
-  many trips — it accretes visibly.
-- **Finish.** `ApplyFurnitureSite` raises the bed once stocked and a **hammer** is
-  carried or lying at the site (`tool.hammer`, now findable wilderness loot);
-  the site despawns and the finished `bed.leaf` is spawned.
+  (`ChopCrown`/`GatherLeaves`, `SplitLog`, `HarvestYucca`/`GatherFiber`/`CraftRope`)
+  fetch what the site needs (`siteNeedsLeaves/Sticks/Rope`), and each `Build`
+  interaction deposits whatever needed pieces are in hand into `Contents` (partial
+  delivery). The mat accretes visibly.
+- **Finish.** `ApplyFurnitureSite` raises `bed.leaf` once stocked without a hammer
+  (it is hand-lashed); rigid furniture still needs a carried/nearby `tool.hammer`.
+  The site despawns and the finished `bed.leaf` is spawned.
 - **Bugfix.** `InteractionType.Build` is shared by the hut (`GoalType.Build`) and
   furniture sites (`BuildFurniture`); the start-gate that requires the full HUT
   piece bill in hand now skips furniture sites (`!BuildSiteMath.IsSite`), which had
@@ -9718,13 +9721,13 @@ pieces. Three changes free the time without touching the fragile survival needs
   Add/Remove/Contains/Count path is unchanged; only `UsedSlots` groups stacks. A
   whole bed's leaves now ride in one slot, so hauling is a trip or two, not a dozen.
 - **Gather to the bill.** When a bed site needs material the per-trip cap rises
-  from 3 to the full bill (`wantsLeaves` → 16, `splitLog` stick cap → 6), so a
-  stacked bundle actually fills before delivery.
+  from 3 to the full bill (`wantsLeaves` → 16, `splitLog` stick cap → 4, rope target
+  → remaining rope bill), so a stacked bundle actually fills before delivery.
 - **Bed chain outranks leisure.** With a staked site waiting, `ChopCrown`,
-  `GatherLeaves`, `SplitLog` and `BuildFurniture` get a peacetime pull
-  (`bedLeafPull`/`bedStickPull` +0.35, delivery +0.2) so they beat Sit/Socialize/
-  idle. Still peacetime-gated — hunger/thirst/danger always preempt, so survival is
-  never traded for a bed.
+  `GatherLeaves`, `SplitLog`, `HarvestYucca`, `GatherFiber`, `CraftRope` and
+  `BuildFurniture` get a peacetime pull (`bedLeafPull`/`bedStickPull`/`bedRopePull`
+  +0.35, delivery +0.2) so they beat Sit/Socialize/idle. Still peacetime-gated —
+  hunger/thirst/danger always preempt, so survival is never traded for a bed.
 - **The communal hut is retired.** `CreateBuildProject` is no longer called
   (`world.Project` stays null ⇒ `GoalType.Build`/hut piece-placement never fires).
   It was never seen in play, competed for logs/stones/time, and its only reward was

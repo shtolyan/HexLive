@@ -15,6 +15,10 @@ namespace HexLive.UnityPresentation.Environment
     public sealed class BuildSitePile : MonoBehaviour
     {
         private int _signature = -1;
+        private string _bedProduct = string.Empty;
+        private GameObject? _bedRoot;
+        private BedAssembly? _bedAssembly;
+        private GameObject? _stake;
 
         // Cheap per-frame check: only rebuild when the delivered mix changed.
         public void Refresh(ObjectSnapshot site)
@@ -28,10 +32,6 @@ namespace HexLive.UnityPresentation.Environment
         public void Rebuild(ObjectSnapshot site)
         {
             _signature = Signature(site);
-            for (var i = transform.childCount - 1; i >= 0; i--)
-            {
-                Object.Destroy(transform.GetChild(i).gameObject);
-            }
 
             // Spec §54.2: a BED site is the SAME assembled prefab as the finished
             // bed (bed_leaf_final / bed_basic_final) with only its delivered pieces
@@ -40,24 +40,11 @@ namespace HexLive.UnityPresentation.Environment
             // table to keep in sync (see BedAssembly).
             if (BedFactory.IsBed(site.BuildProduct))
             {
-                var delivered = site.DeliveredLeaves + site.DeliveredSticks +
-                    site.DeliveredLogs + site.DeliveredRope;
-                if (delivered == 0)
-                {
-                    AddStake(); // nothing hauled in yet → the intent stake
-                    return;
-                }
-
-                var partial = BedAssembly.BuildPartial(site.BuildProduct,
-                    site.DeliveredLogs, site.DeliveredSticks, site.DeliveredRope, site.DeliveredLeaves);
-                if (partial != null)
-                {
-                    partial.transform.SetParent(transform, false); // absolute-sized (1:1)
-                }
-
+                RefreshBed(site);
                 return;
             }
 
+            ClearChildren();
             var placed = 0;
             placed = Pile("resource.stone", site.DeliveredStones, placed);
             placed = Pile("resource.log", site.DeliveredLogs, placed);
@@ -95,7 +82,77 @@ namespace HexLive.UnityPresentation.Environment
             return placed;
         }
 
-        private void AddStake()
+        private void RefreshBed(ObjectSnapshot site)
+        {
+            EnsureBed(site.BuildProduct);
+            _bedAssembly?.Apply(site.DeliveredLogs, site.DeliveredSticks, site.DeliveredRope, site.DeliveredLeaves);
+
+            var delivered = site.DeliveredLeaves + site.DeliveredSticks +
+                site.DeliveredLogs + site.DeliveredRope;
+            if (delivered == 0)
+            {
+                EnsureStake(); // nothing hauled in yet -> the intent stake
+            }
+            else
+            {
+                RemoveStake();
+            }
+        }
+
+        private void EnsureBed(string product)
+        {
+            if (_bedRoot != null && _bedProduct == product)
+            {
+                return;
+            }
+
+            ClearChildren();
+            _bedProduct = product;
+            _bedRoot = BedAssembly.BuildPartial(product, 0, 0, 0, 0);
+            if (_bedRoot == null)
+            {
+                return;
+            }
+
+            _bedRoot.transform.SetParent(transform, false); // absolute-sized (1:1)
+            _bedAssembly = _bedRoot.GetComponent<BedAssembly>();
+        }
+
+        private void ClearChildren()
+        {
+            for (var i = transform.childCount - 1; i >= 0; i--)
+            {
+                Object.Destroy(transform.GetChild(i).gameObject);
+            }
+
+            _bedProduct = string.Empty;
+            _bedRoot = null;
+            _bedAssembly = null;
+            _stake = null;
+        }
+
+        private void EnsureStake()
+        {
+            if (_stake != null)
+            {
+                return;
+            }
+
+            _stake = AddStake();
+        }
+
+        private void RemoveStake()
+        {
+            if (_stake == null)
+            {
+                return;
+            }
+
+            Object.Destroy(_stake);
+            _stake = null;
+        }
+
+        private GameObject AddStake()
         {
             var stake = GameObject.CreatePrimitive(PrimitiveType.Cube);
             stake.name = "SiteStake";
@@ -110,13 +167,22 @@ namespace HexLive.UnityPresentation.Environment
                 mat.SetFloat("_Smoothness", 0.1f);
                 r.sharedMaterial = mat;
             }
+
+            return stake;
         }
 
-        private static int Signature(ObjectSnapshot site) =>
-            site.DeliveredStones +
-            site.DeliveredLogs * 100 +
-            site.DeliveredLeaves * 10000 +
-            site.DeliveredSticks * 1000000 +
-            site.DeliveredRope * 100000000;
+        private static int Signature(ObjectSnapshot site)
+        {
+            unchecked
+            {
+                var signature = site.BuildProduct.GetHashCode();
+                signature = signature * 31 + site.DeliveredStones;
+                signature = signature * 31 + site.DeliveredLogs;
+                signature = signature * 31 + site.DeliveredLeaves;
+                signature = signature * 31 + site.DeliveredSticks;
+                signature = signature * 31 + site.DeliveredRope;
+                return signature;
+            }
+        }
     }
 }

@@ -62,8 +62,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // fall animation + leaves a stump instead of a hard cut.
     private readonly HashSet<int> _treeViewKeys = new();
 
-    // §Wardrobe-anim: garment world objects hidden on the ground this frame
-    // because their owner has picked them up into hand for the "don" beat.
+    // World objects hidden on the ground this frame because their owner has
+    // picked the same object up into hand for the active animation beat.
     // Must match ExecutionSystem.WardrobeHandoffFraction.
     private const float WardrobeHandoffFraction = 0.5f;
     private readonly HashSet<int> _wardrobeHiddenObjects = new();
@@ -664,9 +664,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             _corpseBodyViews.Remove(key);
         }
 
-        // §Wardrobe-anim: a garment being donned vanishes from the ground the
-        // moment its owner lifts it into hand (the "don" beat), so we never show
-        // the same piece both on the floor and in the hand.
+        // Items picked up only for the animation beat vanish from the ground,
+        // so we never show the same piece both on the floor and in the hand.
         _wardrobeHiddenObjects.Clear();
         foreach (var n in snapshot.Npcs)
         {
@@ -675,6 +674,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 n.TargetObjectId is { } hiddenId)
             {
                 _wardrobeHiddenObjects.Add(hiddenId);
+            }
+            else if (IsGroundCoconutHandInteraction(snapshot, n) &&
+                     n.TargetObjectId is { } coconutId)
+            {
+                _wardrobeHiddenObjects.Add(coconutId);
             }
         }
 
@@ -909,7 +913,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 : 0f,
             npc.HopKind.Length > 0 && _swimCoords.Contains(npc.HopTargetTile));
         actorView.SyncWorn(npc.WornItems);
-        actorView.SetInteraction(npc.CurrentInteraction, HeldItemFor(npc));
+        actorView.SetInteraction(npc.CurrentInteraction, npc.HeldItemId);
         // §Wardrobe-anim: the two-beat dress/undress sequence (gather + garment
         // in hand). Runs after SetInteraction, which it overrides for these verbs.
         actorView.SetWardrobeAction(npc.CurrentInteraction, npc.InteractionProgress, npc.HeldGarmentId);
@@ -1029,6 +1033,15 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
         }
 
+        if (ShouldLookAtInteractionTarget(npc) &&
+            TryGetTargetObject(snapshot, npc, out var targetObject))
+        {
+            var targetPoint = GetObjectAnchorPosition(snapshot, targetObject);
+            targetPoint.y += HexRadius * NpcHeightFactor * 0.8f;
+            actorView.LookAtPoint(targetPoint);
+            return;
+        }
+
         if (npc.MovementStatus == "Moving" && npc.TargetTile is { } target)
         {
             var ahead = SimulationUnityMapper.ToUnityPosition(
@@ -1041,92 +1054,25 @@ public sealed class HexWorldRenderer : MonoBehaviour
         actorView.ClearGaze();
     }
 
-    // Spec 31C.6: what she visibly holds — food while eating, the tool
-    // while chopping/mining, the pot while drinking boiled water.
-    private static string HeldItemFor(NpcSnapshot npc)
+    private bool IsGroundCoconutHandInteraction(WorldSnapshot snapshot, NpcSnapshot npc)
     {
-        switch (npc.CurrentInteraction)
+        if ((npc.CurrentInteraction != "Eat" && npc.CurrentInteraction != "Drink") ||
+            string.IsNullOrEmpty(npc.HeldItemId) ||
+            !IsCoconutDefinition(npc.HeldItemId) ||
+            !TryGetTargetObject(snapshot, npc, out var targetObject))
         {
-            case "Eat":
-                foreach (var item in npc.InventoryItems)
-                {
-                    if (item.StartsWith("food."))
-                    {
-                        return item;
-                    }
-                }
-
-                return "food.coconut";
-            case "Harvest":
-                // The goal says WHAT is being harvested: a boulder wants the
-                // pickaxe; a tree wants the axe, or the saw when that's the
-                // chopper's tool (the saw era showed empty-handed logging).
-                if (npc.CurrentGoal == "MineBoulder" &&
-                    npc.InventoryItems.Contains("tool.pickaxe_stone"))
-                {
-                    return "tool.pickaxe_stone";
-                }
-
-                if (npc.InventoryItems.Contains("tool.axe_stone"))
-                {
-                    return "tool.axe_stone";
-                }
-
-                if (npc.InventoryItems.Contains("tool.saw"))
-                {
-                    return "tool.saw";
-                }
-
-                return npc.InventoryItems.Contains("tool.pickaxe_stone")
-                    ? "tool.pickaxe_stone" : null;
-            case "Process":
-                // Spec §54: splitting a log — the axe (or saw) is in hand.
-                if (npc.InventoryItems.Contains("tool.axe_stone"))
-                {
-                    return "tool.axe_stone";
-                }
-
-                return npc.InventoryItems.Contains("tool.saw") ? "tool.saw" : null;
-            case "Butcher":
-                // Spec §54: the knife is in hand while butchering.
-                return npc.InventoryItems.Contains("tool.knife") ? "tool.knife" : null;
-            case "Fuel":
-                // Spec §54: a stick feeds the fire.
-                return npc.InventoryItems.Contains("resource.stick")
-                    ? "resource.stick" : null;
-            case "Craft":
-                if (npc.CurrentGoal == "CookMeat" &&
-                    npc.InventoryItems.Contains("food.meat_raw"))
-                {
-                    return "food.meat_raw";
-                }
-
-                return npc.InventoryItems.Contains("resource.stick")
-                    ? "resource.stick" : null;
-            case "Build":
-                // Spec §54: builds are log-framed.
-                return npc.InventoryItems.Contains("resource.log")
-                    ? "resource.log" : null;
-            // Spec 29H: fill the bottle and drink from it — the bottle shows in hand.
-            case "FillBottle":
-                return "tool.bottle";
-            // §55: coconut water is sipped straight from the husk, so the coconut
-            // shows in hand; plain water is drunk from the bottle. (Was always the
-            // bottle — a coconut drink wrongly raised a bottle / nothing.)
-            case "Drink":
-                foreach (var item in npc.InventoryItems)
-                {
-                    if (item.StartsWith("food.coconut"))
-                    {
-                        return item;
-                    }
-                }
-
-                return "tool.bottle";
-            default:
-                return null;
+            return false;
         }
+
+        return npc.HeldItemId == targetObject.DefinitionId &&
+            IsCoconutDefinition(targetObject.DefinitionId);
     }
+
+    private static bool ShouldLookAtInteractionTarget(NpcSnapshot npc) =>
+        npc.CurrentInteraction is "Process" or "Harvest" or "Butcher";
+
+    private static bool IsCoconutDefinition(string definitionId) =>
+        definitionId.StartsWith("food.coconut", System.StringComparison.Ordinal);
 
     // Spec 33.1: the weapon slung on the back — the carried spear/bow, so it
     // is always visibly "equipped" even when idle. SetBackWeapon hides it if
@@ -1147,9 +1093,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
         "Head", "Torso", "Pelvis", "ArmL", "ArmR", "LegL", "LegR"
     };
 
-    // Spec 20.16: the weapon an NPC fights/hunts with — bow (with arrows)
-    // preferred, then spear, then the knife as a last-ditch melee blade. Null
-    // only when truly unarmed (bare-handed brawl).
+    // Spec 20.16/weapon balance: the weapon an NPC fights/hunts with — bow
+    // (with arrows) preferred, then spear, axe, then knife. Null means fists.
     private static string WeaponFor(NpcSnapshot npc)
     {
         if (npc.InventoryItems.Contains("tool.bow") && npc.InventoryItems.Contains("resource.arrow"))
@@ -1160,6 +1105,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
         if (npc.InventoryItems.Contains("tool.spear"))
         {
             return "tool.spear";
+        }
+
+        if (npc.InventoryItems.Contains("tool.axe_stone"))
+        {
+            return "tool.axe_stone";
         }
 
         return npc.InventoryItems.Contains("tool.knife") ? "tool.knife" : null;
@@ -2834,7 +2784,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private static Color GetObjectColor(string definitionId)
     {
-        if (definitionId == "food.coconut")
+        if (definitionId == "food.coconut" || definitionId == "food.coconut_pierced")
         {
             return new Color(0.42f, 0.28f, 0.15f); // coconut husk
         }

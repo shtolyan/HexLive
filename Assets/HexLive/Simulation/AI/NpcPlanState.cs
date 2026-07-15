@@ -45,6 +45,7 @@ public enum PlanStepType
 {
     MoveToJunction,
     Interact,
+    DropInventoryItem,
     ConsumeInventoryItem,
     UndressItem,
     GroundSit,   // sit in place on the land (spec 29G)

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using RootMotion.FinalIK;
 using UnityEngine;
+using HexLive.Simulation.Runtime;
 using HexLive.UnityPresentation.UI;
 
 namespace HexLive.UnityPresentation.Wearing
@@ -88,6 +89,9 @@ public sealed class NpcActorView : MonoBehaviour
     private bool _wantsTalk;          // sim says CurrentInteraction == "Talk"
     private bool _talkTurnOn;         // this NPC's turn to speak right now
     private bool _wasFighting;        // rising-edge detect for the attack trigger
+    private float _combatAttackPhase;
+    private float _attackSpeed = 1f;
+    private string _combatWeaponId;
     private const float TalkTurnSeconds = 2.2f; // one speaks, then the other
     private static readonly int SwimmingParam = Animator.StringToHash("Swimming");
     private string _currentPropId;
@@ -1631,7 +1635,7 @@ public sealed class NpcActorView : MonoBehaviour
         {
             _animator.SetBool(GatheringParam, gathering);
             _animator.SetBool(DrinkingParam, drinking);
-            _animator.SetBool(WorkingParam, !chopping && interaction is "Harvest" or "Build" or "Craft");
+            _animator.SetBool(WorkingParam, !chopping && interaction is "Harvest" or "Build" or "BuildRaft" or "Craft");
             _animator.SetBool(ChoppingParam, chopping);
             _animator.SetBool(SittingParam, interaction == "Sit");
             // Clip source: config override if present, else the state's base clip.
@@ -1895,6 +1899,7 @@ public sealed class NpcActorView : MonoBehaviour
                 return ActionKind.Work;
             case "PickUp":
             case "Build":
+            case "BuildRaft":
             case "Craft":
             case "Fuel":
             case "Bury":
@@ -1916,8 +1921,21 @@ public sealed class NpcActorView : MonoBehaviour
         if (!fighting)
         {
             _wasFighting = false;
+            _combatAttackPhase = 0f;
+            _attackSpeed = 1f;
+            _combatWeaponId = null;
             return;
         }
+
+        var weaponChanged = _combatWeaponId != weaponId;
+        if (!_wasFighting || weaponChanged)
+        {
+            _combatAttackPhase = 1f; // fire the first strike immediately
+            _actionPhase = 0f;
+            _combatWeaponId = weaponId;
+        }
+
+        _attackSpeed = SimBalance.MeleeAttackSpeed(weaponId);
 
         // Weapon architecture: the equipped weapon's config row supplies the
         // attack clip (spear -> Bayonet Stab now; knife/etc. add a row later).
@@ -1925,10 +1943,12 @@ public sealed class NpcActorView : MonoBehaviour
         var wa = _animSet != null ? _animSet.WeaponFor(weaponId) : null;
         if (wa != null && wa.attacks != null && wa.attacks.Length > 0 && _animator != null)
         {
-            if (!_wasFighting) // one strike per engagement (rising edge)
+            _combatAttackPhase += Time.deltaTime * _simSpeed * _attackSpeed;
+            if (_combatAttackPhase >= 1f)
             {
                 OverrideClip(AttackBaseClip, wa.attacks[Random.Range(0, wa.attacks.Length)]);
                 _animator.SetTrigger(AttackParam);
+                _combatAttackPhase = 0f;
             }
             _action = ActionKind.None;
         }
@@ -2104,6 +2124,8 @@ public sealed class NpcActorView : MonoBehaviour
                 localScale = new Vector3(0.349494f, 0.349494f, 0.349494f);
                 break;
             case "food.coconut":
+            case "food.coconut_pierced":
+            case "food.coconut_open":
                 localPosition = new Vector3(0.061f, -0.142f, 0.001f);
                 localRotation = Quaternion.Euler(0.808f, 0f, 0f);
                 localScale = new Vector3(0.7718072f, 0.9210232f, 0.7718072f);
@@ -2698,7 +2720,10 @@ public sealed class NpcActorView : MonoBehaviour
             return;
         }
 
-        _actionPhase += Time.deltaTime * _simSpeed;
+        var actionSpeed = (_action == ActionKind.Attack || _action == ActionKind.SpearThrust)
+            ? _attackSpeed
+            : 1f;
+        _actionPhase += Time.deltaTime * _simSpeed * actionSpeed;
         var right = _bodyRoot.right;
 
         float shldr;

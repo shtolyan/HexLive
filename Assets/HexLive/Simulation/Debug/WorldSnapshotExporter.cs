@@ -277,6 +277,198 @@ public static class WorldSnapshotExporter
         return string.Empty;
     }
 
+    // Single source of truth for the ordinary hand prop. Simulation already knows
+    // the active verb, goal, target inventory item and carried items; presentation
+    // should not have to guess these from strings.
+    private static string ResolveHeldItem(WorldState world, NPCState npc)
+    {
+        if (npc.Execution.CurrentInteraction is not { } interaction)
+        {
+            return string.Empty;
+        }
+
+        switch (interaction)
+        {
+            case InteractionType.Eat:
+            {
+                var groundCoconut = ResolveGroundCoconutInteractionItem(world, npc, InteractionType.Eat);
+                return !string.IsNullOrEmpty(groundCoconut)
+                    ? groundCoconut
+                    : ResolveInventoryInteractionItem(world, npc, InteractionType.Eat);
+            }
+
+            case InteractionType.Drink:
+            {
+                var groundCoconut = ResolveGroundCoconutInteractionItem(world, npc, InteractionType.Drink);
+                if (!string.IsNullOrEmpty(groundCoconut))
+                {
+                    return groundCoconut;
+                }
+
+                var drink = ResolveInventoryInteractionItem(world, npc, InteractionType.Drink);
+                if (!string.IsNullOrEmpty(drink))
+                {
+                    return drink;
+                }
+
+                return InventoryContains(npc, "tool.bottle") ? "tool.bottle" : string.Empty;
+            }
+
+            case InteractionType.FillBottle:
+                return InventoryContains(npc, "tool.bottle") ? "tool.bottle" : string.Empty;
+
+            case InteractionType.Harvest:
+                if (npc.Mind.CurrentGoal == GoalType.MineBoulder &&
+                    InventoryContains(npc, "tool.pickaxe_stone"))
+                {
+                    return "tool.pickaxe_stone";
+                }
+
+                return FirstCarried(npc, "tool.axe_stone", "tool.saw", "tool.pickaxe_stone");
+
+            case InteractionType.Process:
+                if ((npc.Mind.CurrentGoal == GoalType.Drink || npc.Mind.CurrentGoal == GoalType.Eat) &&
+                    InventoryContains(npc, "tool.knife"))
+                {
+                    return "tool.knife";
+                }
+
+                if ((npc.Mind.CurrentGoal == GoalType.Drink || npc.Mind.CurrentGoal == GoalType.Eat) &&
+                    InventoryContains(npc, "tool.axe_stone"))
+                {
+                    return "tool.axe_stone";
+                }
+
+                return FirstCarried(npc, "tool.axe_stone", "tool.saw");
+
+            case InteractionType.Butcher:
+                return InventoryContains(npc, "tool.knife") ? "tool.knife" : string.Empty;
+
+            case InteractionType.Fuel:
+                return InventoryContains(npc, "resource.stick") ? "resource.stick" : string.Empty;
+
+            case InteractionType.Craft:
+                if (npc.Mind.CurrentGoal == GoalType.CookMeat &&
+                    InventoryContains(npc, "food.meat_raw"))
+                {
+                    return "food.meat_raw";
+                }
+
+                return InventoryContains(npc, "resource.stick") ? "resource.stick" : string.Empty;
+
+            case InteractionType.Build:
+            case InteractionType.BuildRaft:
+                return InventoryContains(npc, "resource.log") ? "resource.log" : string.Empty;
+
+            case InteractionType.FeedOther:
+                return npc.Inventory.FindFirstFood(world.Content) ?? string.Empty;
+
+            default:
+                return string.Empty;
+        }
+    }
+
+    private static string ResolveGroundCoconutInteractionItem(
+        WorldState world,
+        NPCState npc,
+        InteractionType interaction)
+    {
+        var target = npc.Execution.TargetObject ?? npc.Plan.TargetObjectId;
+        if (target is not { } targetId ||
+            !world.Entities.Objects.TryGetValue(targetId, out var worldObject) ||
+            !IsCoconutDefinition(worldObject.DefinitionId) ||
+            !DefinitionHasInteraction(world, worldObject.DefinitionId, interaction))
+        {
+            return string.Empty;
+        }
+
+        return worldObject.DefinitionId;
+    }
+
+    private static bool IsCoconutDefinition(string definitionId) =>
+        definitionId.StartsWith("food.coconut", StringComparison.Ordinal);
+
+    private static string ResolveInventoryInteractionItem(
+        WorldState world,
+        NPCState npc,
+        InteractionType interaction)
+    {
+        if (npc.Plan.TargetItemDefinitionId is { } target &&
+            InventoryContains(npc, target) &&
+            DefinitionHasInteraction(world, target, interaction))
+        {
+            return target;
+        }
+
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (DefinitionHasInteraction(world, item.DefinitionId, interaction))
+            {
+                return item.DefinitionId;
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private static bool DefinitionHasInteraction(
+        WorldState world,
+        string definitionId,
+        InteractionType interaction)
+    {
+        if (!world.Content.ObjectDefinitions.TryGetValue(definitionId, out var definition))
+        {
+            return false;
+        }
+
+        foreach (var candidate in definition.Interactions)
+        {
+            if (candidate.Type == interaction)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool InventoryContains(NPCState npc, string definitionId)
+    {
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (item.DefinitionId == definitionId)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string FirstCarried(
+        NPCState npc,
+        string first,
+        string second = "",
+        string third = "")
+    {
+        if (InventoryContains(npc, first))
+        {
+            return first;
+        }
+
+        if (second.Length > 0 && InventoryContains(npc, second))
+        {
+            return second;
+        }
+
+        if (third.Length > 0 && InventoryContains(npc, third))
+        {
+            return third;
+        }
+
+        return string.Empty;
+    }
+
     private static NpcSnapshot ExportNpc(WorldState world, NPCState npc)
     {
         // §Wardrobe-anim: progress + the garment in hand + the target object,
@@ -324,6 +516,7 @@ public static class WorldSnapshotExporter
             MovementStatus = npc.Movement.Status.ToString(),
             ExecutionStatus = npc.Execution.Status.ToString(),
             CurrentInteraction = npc.Execution.CurrentInteraction?.ToString() ?? "-",
+            HeldItemId = ResolveHeldItem(world, npc),
             // Spec 28.15E: conversation subject + last outcome for the bubble.
             TalkTopic = npc.Execution.CurrentTalkTopic?.ToString() ?? string.Empty,
             TalkResultTick = npc.Execution.LastTalkResultTick,

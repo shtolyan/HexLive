@@ -48,6 +48,10 @@ namespace HexLive.UnityPresentation.Environment
                 case "resource.hide": BuildHide(root.transform); break;
                 case "resource.palm_leaf": BuildPalmLeaf(root.transform); break;
                 case "food.coconut": AddBox(root.transform, new Vector3(0.42f, 0.42f, 0.42f), new Vector3(0f, 0.21f, 0f), Vector3.zero, Coconut); break;
+                case "food.coconut_pierced":
+                    AddBox(root.transform, new Vector3(0.42f, 0.42f, 0.42f), new Vector3(0f, 0.21f, 0f), Vector3.zero, Coconut);
+                    AddBox(root.transform, new Vector3(0.08f, 0.03f, 0.08f), new Vector3(0f, 0.43f, 0f), Vector3.zero, MeatCooked);
+                    break;
                 // §55: the cracked-open coconut — the eaten meal. Was propless, so
                 // eating it from the inventory showed NOTHING in hand. Brown shell
                 // with a cream flesh top so it reads as an opened husk.

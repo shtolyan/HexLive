@@ -94,6 +94,7 @@ namespace HexLive.Simulation.Content
         private static readonly Dictionary<string, string> EmojiById = new()
         {
             ["food.coconut"] = "🥥",
+            ["food.coconut_pierced"] = "🥥",
             ["food.coconut_open"] = "🥥",
             ["food.meat_cooked"] = "🍖",
             ["food.meat_raw"] = "🥩",

@@ -140,8 +140,7 @@ public sealed class InventoryState
         return null;
     }
 
-    // §55: the first carried item that can be drunk (a whole coconut). Mirrors
-    // FindFirstFood — thirst now comes from cracking a coconut, not a bottle.
+    // Kept for non-coconut drinkables; whole coconuts are opened on the ground.
     public string? FindFirstDrink(ContentCatalog content)
     {
         foreach (var item in Items)

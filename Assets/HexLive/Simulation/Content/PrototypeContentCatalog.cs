@@ -10,11 +10,8 @@ public static class PrototypeContentCatalog
     {
         var defs = new Dictionary<string, ObjectDefinition>
         {
-            // §55: a WHOLE coconut. Drinking = crack it open (Stranded Deep):
-            // it quenches thirst and yields a food.coconut_open husk with the
-            // flesh still to eat. Rivers/sea are no longer drinkable, so the
-            // coconut is the only water source. Eating a whole coconut directly
-            // still works (the water is just wasted).
+            // A whole coconut is inert food/water: it must lie on the ground
+            // and be opened with a blade before anyone can drink it.
             ["food.coconut"] = new ObjectDefinition
             {
                 Id = "food.coconut",
@@ -23,28 +20,10 @@ public static class PrototypeContentCatalog
                 {
                     new InteractionDefinition
                     {
-                        // §55: crack open & drink the coconut water — thirst
-                        // relief, then the shell becomes an openable meal.
-                        Id = "drink.coconut",
-                        Type = InteractionType.Drink,
-                        DurationTicks = 16,
-                        Effects = { ThirstDelta = -SimBalance.CoconutThirst, ComfortDelta = 0.05f },
-                        // The cracked shell (with flesh) drops straight into the
-                        // hand — Scatter=false keeps it in inventory, not on the
-                        // ground.
-                        Yields = { new HarvestDrop { DefinitionId = "food.coconut_open", Count = 1, Scatter = false } }
-                    },
-                    new InteractionDefinition
-                    {
-                        Id = "eat.coconut",
-                        Type = InteractionType.Eat,
-
-                        // Spec 29C.9 (iter 30): a proper meal, eaten mouthful
-                        // by mouthful (hunger fills gradually), not a gulp.
-                        DurationTicks = 20,
-                        // -0.60 since iteration 6: nights produce nothing, so a
-                        // meal must carry an NPC through more dark ticks.
-                        Effects = { HungerDelta = -SimBalance.CoconutHunger, ComfortDelta = 0.05f }
+                        Id = "pierce.coconut",
+                        Type = InteractionType.Process,
+                        DurationTicks = SimBalance.CoconutProcessDurationTicks,
+                        Yields = { new HarvestDrop { DefinitionId = "food.coconut_pierced", Count = 1, Scatter = false } }
                     },
                     new InteractionDefinition
                     {
@@ -54,16 +33,36 @@ public static class PrototypeContentCatalog
                         DurationTicks = 4
                     }
                 },
-                // "Coconut" tags it as the fetch target for the thirst chain
-                // (GetWater), on top of "Food" for the hunger chain.
                 Tags = { "Food", "Coconut" }
             },
-            // §55: an OPENED coconut — the cracked husk left after drinking. The
-            // water is gone (no Drink interaction); the flesh remains to eat.
+            ["food.coconut_pierced"] = new ObjectDefinition
+            {
+                Id = "food.coconut_pierced",
+                DisplayName = "Pierced Coconut",
+                Interactions =
+                {
+                    new InteractionDefinition
+                    {
+                        Id = "drink.coconut_pierced",
+                        Type = InteractionType.Drink,
+                        DurationTicks = 16,
+                        Effects = { ThirstDelta = -SimBalance.CoconutThirst, ComfortDelta = 0.05f }
+                    },
+                    new InteractionDefinition
+                    {
+                        Id = "split.coconut",
+                        Type = InteractionType.Process,
+                        DurationTicks = SimBalance.CoconutProcessDurationTicks,
+                        Yields = { new HarvestDrop { DefinitionId = "food.coconut_open", Count = 1, Scatter = false } }
+                    }
+                },
+                Tags = { "Coconut", "CoconutWater" }
+            },
+            // Split coconut halves: edible flesh, no drinkable water.
             ["food.coconut_open"] = new ObjectDefinition
             {
                 Id = "food.coconut_open",
-                DisplayName = "Opened Coconut",
+                DisplayName = "Split Coconut",
                 Interactions =
                 {
                     new InteractionDefinition
@@ -73,13 +72,6 @@ public static class PrototypeContentCatalog
                         DurationTicks = 20,
                         Effects = { HungerDelta = -SimBalance.CoconutHunger, ComfortDelta = 0.05f }
                     },
-                    new InteractionDefinition
-                    {
-                        Id = "pickup.coconut_open",
-                        Type = InteractionType.PickUp,
-
-                        DurationTicks = 4
-                    }
                 },
                 Tags = { "Food" }
             },

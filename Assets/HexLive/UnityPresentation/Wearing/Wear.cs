@@ -130,9 +130,11 @@ public sealed class Wear : MonoBehaviour
     // pristine clothes and hair keep their original material untouched
     // (same-named URP Lit properties carry over on the swap). TUNING KNOB:
     // TearBiteDurability — wear starts showing below this durability.
-    // Holes start early (worn-in look grows over the garment's whole life),
-    // not only after damage — natural wear frays cloth too.
-    private const float TearBiteDurability = 0.85f;
+    // Kept below the UI's "light wear" band so the cloth no longer looks
+    // shredded while the HP bar is still mostly green.
+    private const float TearBiteDurability = 0.72f;
+    private const float TearProgressGamma = 1.35f;
+    private const float DamageHoleRevealFloor = 0.08f;
     private const int MaxDamageSpheres = 8;
     // Spec 40.10-D: holes + dirt PAINTED into per-garment textures (UV-stable
     // — the world-space sphere clip breathed with the bones and flickered).
@@ -214,7 +216,8 @@ public sealed class Wear : MonoBehaviour
     public void SetErosion(float durability01)
     {
         // 0 at the bite threshold, 1 at rags (near-fully dissolved).
-        _tear = Mathf.InverseLerp(TearBiteDurability, 0f, Mathf.Clamp01(durability01));
+        var rawTear = Mathf.InverseLerp(TearBiteDurability, 0f, Mathf.Clamp01(durability01));
+        _tear = Mathf.Pow(rawTear, TearProgressGamma);
         PushCondition();
     }
 
@@ -283,7 +286,7 @@ public sealed class Wear : MonoBehaviour
         // Painted bite holes are near-black in the mask: a small floor tear
         // amount clips them open even while overall durability is high.
         var effectiveTear = PaintWearIntoTexture && _wearPainter != null && _wearPainter.HasDamageHoles
-            ? Mathf.Max(_tear, 0.12f)
+            ? Mathf.Max(_tear, DamageHoleRevealFloor)
             : _tear;
 
         // Per material slot: tear/dirt/spheres are shared, but smoothness and

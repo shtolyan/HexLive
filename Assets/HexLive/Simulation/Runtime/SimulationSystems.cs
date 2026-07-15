@@ -9281,7 +9281,8 @@ public sealed class DogSystem : ISimulationSystem
 
         // Spec 35.6: the cloth gets chewed either way — every garment
         // covering the bitten part loses durability; rags fall apart.
-        EquipmentMath.WearCoveringItems(world, target, bitPart, 0.05f);
+        EquipmentMath.WearCoveringItems(world, target, bitPart,
+            SimBalance.ClothingBiteDurabilityWear);
 
         if (target.Body.VitalDestroyed(out var vitalPart))
         {
@@ -11436,13 +11437,13 @@ public sealed class MoistureSystem : ISimulationSystem
             UpdateItems(world, npc, npc.WornItems, wetting, dryRate, worn: true);
             UpdateItems(world, npc, npc.Inventory.Items, wetting, dryRate, worn: false);
 
-            // Spec 35.6: worn cloth wears 0.02 per game-day (150 slow ticks) —
-            // doubled so natural wear VISIBLY frays clothes within ~a week
-            // (holes start below durability 0.85; rags fall apart ~day 50).
+            // Spec 35.6: worn cloth loses durability every game-day (150 slow
+            // ticks). Visual tearing now starts later, so the HP bar and cloth
+            // condition read closer together.
             _wornOutScratch.Clear();
             foreach (var item in npc.WornItems)
             {
-                item.Durability -= 0.02f / 150f;
+                item.Durability -= SimBalance.ClothingPassiveWearPerDay / 150f;
                 if (item.Durability <= 0f)
                 {
                     _wornOutScratch.Add(item);

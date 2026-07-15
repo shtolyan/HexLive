@@ -208,6 +208,12 @@ namespace HexLive.Simulation.Runtime
         public static int AggroRadiusTiles = 2;         // dog aggro range
         public static float RoamChance = 0.2f;          // dog roam probability
         public static float SharkBiteDamage = 0.2f;     // shark bite to the leg (also a sever trigger)
+
+        // Clothing condition. Durability is also the inventory HP bar, so
+        // combat wear should stay close to what the player sees.
+        public static float ClothingBiteDurabilityWear = 0.065f; // per covering garment on a dog bite
+        public static float ClothingPassiveWearPerDay = 0.025f;  // natural worn-cloth wear per game day
+
         // Melee weapon balance. Knife stays at its shipped strike value; axe
         // and spear scale from that while slower weapons pay attack speed.
         public static float FistStrikeBonus = 1f;

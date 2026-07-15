@@ -217,8 +217,8 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             AddHoleAt(triangle,
-                0.055f + Mathf.Clamp01(sphere.w) * 0.06f,
-                depth: 0.02f); // bites clip open almost immediately
+                0.04f + Mathf.Clamp01(sphere.w) * 0.04f,
+                depth: 0.08f); // bites start as punctures; heavy wear opens them
             return true;
         }
 

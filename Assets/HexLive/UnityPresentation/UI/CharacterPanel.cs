@@ -76,6 +76,7 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement _invListBody;
         private VisualElement _invDetailView; // the item detail (detail)
         private Label _invDetailEmoji;
+        private Image _invDetailIcon;
         private Label _invDetailName;
         private Label _invDetailCategory;
         private Label _invDetailDesc;
@@ -946,6 +947,13 @@ namespace HexLive.UnityPresentation.UI
             _invDetailEmoji.pickingMode = PickingMode.Ignore;
             _invDetailEmoji.style.unityTextAlign = TextAnchor.MiddleCenter;
             tile.Add(_invDetailEmoji);
+            _invDetailIcon = new Image();
+            _invDetailIcon.scaleMode = ScaleMode.ScaleToFit;
+            _invDetailIcon.style.width = 60f;
+            _invDetailIcon.style.height = 60f;
+            _invDetailIcon.pickingMode = PickingMode.Ignore;
+            _invDetailIcon.style.display = DisplayStyle.None;
+            tile.Add(_invDetailIcon);
             hero.Add(tile);
 
             var heroText = new VisualElement();
@@ -1100,6 +1108,18 @@ namespace HexLive.UnityPresentation.UI
             }
         }
 
+        // Real image icon for an item, if one exists at
+        // Resources/HexLive/UI/Items/<id>. Returns null so callers fall back
+        // to the emoji glyph when no bespoke icon has been added.
+        private static Sprite LoadItemIcon(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+            {
+                return null;
+            }
+            return Resources.Load<Sprite>($"HexLive/UI/Items/{id}");
+        }
+
         private VisualElement BuildItemRow(
             string id,
             bool worn,
@@ -1132,11 +1152,25 @@ namespace HexLive.UnityPresentation.UI
             tile.style.justifyContent = Justify.Center;
             tile.style.backgroundColor = Panel;
             SetRadius(tile, 8f);
-            var glyph = new Label(info.Emoji);
-            glyph.style.fontSize = 22;
-            glyph.pickingMode = PickingMode.Ignore;
-            glyph.style.unityTextAlign = TextAnchor.MiddleCenter;
-            tile.Add(glyph);
+            var icon = LoadItemIcon(id);
+            if (icon != null)
+            {
+                var iconImage = new Image();
+                iconImage.sprite = icon;
+                iconImage.scaleMode = ScaleMode.ScaleToFit;
+                iconImage.style.width = 34f;
+                iconImage.style.height = 34f;
+                iconImage.pickingMode = PickingMode.Ignore;
+                tile.Add(iconImage);
+            }
+            else
+            {
+                var glyph = new Label(info.Emoji);
+                glyph.style.fontSize = 22;
+                glyph.pickingMode = PickingMode.Ignore;
+                glyph.style.unityTextAlign = TextAnchor.MiddleCenter;
+                tile.Add(glyph);
+            }
             row.Add(tile);
 
             var mid = new VisualElement();
@@ -1192,7 +1226,19 @@ namespace HexLive.UnityPresentation.UI
             var info = def != null ? ItemCatalog.Resolve(def) : ItemCatalog.Resolve(id);
             var accent = CategoryColor(info.Category);
 
-            _invDetailEmoji.text = info.Emoji;
+            var detailIcon = LoadItemIcon(id);
+            if (detailIcon != null)
+            {
+                _invDetailIcon.sprite = detailIcon;
+                _invDetailIcon.style.display = DisplayStyle.Flex;
+                _invDetailEmoji.style.display = DisplayStyle.None;
+            }
+            else
+            {
+                _invDetailIcon.style.display = DisplayStyle.None;
+                _invDetailEmoji.style.display = DisplayStyle.Flex;
+                _invDetailEmoji.text = info.Emoji;
+            }
             _invDetailName.text = ItemName(def, info);
             _invDetailCategory.text = Loc.Get(info.CategoryNameKey).ToUpperInvariant();
             _invDetailCategory.style.color = accent;

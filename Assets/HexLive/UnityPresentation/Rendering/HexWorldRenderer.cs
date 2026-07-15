@@ -850,6 +850,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     var corpseId = worldObject.Id.Value;
                     deadActor.SetLedgeSit(false);
                     deadActor.ClearGaze();
+                    deadActor.ClearActionTarget();
                     // Spec 40.13 v2: death is a quiet lie-down, then the pose
                     // freezes (SetDead) — NO ragdoll: the hex tiles carry no
                     // colliders, so physics bodies spun out and fell through.
@@ -1021,6 +1022,16 @@ public sealed class HexWorldRenderer : MonoBehaviour
             actorView.SetLaying(false, null);
         }
 
+        var hasTargetObject = TryGetTargetObject(snapshot, npc, out var targetObject);
+        if (TryGetActionTargetPoint(snapshot, npc, hasTargetObject, targetObject, out var actionTarget))
+        {
+            actorView.SetActionTargetPoint(actionTarget);
+        }
+        else
+        {
+            actorView.ClearActionTarget();
+        }
+
         if (npc.CurrentInteraction == "Talk")
         {
             var partner = FindNearestOtherNpc(snapshot, npc);
@@ -1033,8 +1044,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
         }
 
-        if (ShouldLookAtInteractionTarget(npc) &&
-            TryGetTargetObject(snapshot, npc, out var targetObject))
+        if (ShouldLookAtInteractionTarget(npc) && hasTargetObject)
         {
             var targetPoint = GetObjectAnchorPosition(snapshot, targetObject);
             targetPoint.y += HexRadius * NpcHeightFactor * 0.8f;
@@ -1071,8 +1081,145 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private static bool ShouldLookAtInteractionTarget(NpcSnapshot npc) =>
         npc.CurrentInteraction is "Process" or "Harvest" or "Butcher";
 
+    private bool TryGetActionTargetPoint(
+        WorldSnapshot snapshot,
+        NpcSnapshot npc,
+        bool hasTargetObject,
+        ObjectSnapshot targetObject,
+        out Vector3 point)
+    {
+        if (hasTargetObject && ShouldUseObjectActionTarget(npc))
+        {
+            point = GetObjectActionTargetPosition(snapshot, targetObject);
+            return true;
+        }
+
+        if (npc.IsFighting && TryGetCombatActionTargetPosition(snapshot, npc, out point))
+        {
+            return true;
+        }
+
+        point = default;
+        return false;
+    }
+
+    private static bool ShouldUseObjectActionTarget(NpcSnapshot npc) =>
+        npc.CurrentInteraction is "Harvest" or "Process" or "Butcher";
+
     private static bool IsCoconutDefinition(string definitionId) =>
         definitionId.StartsWith("food.coconut", System.StringComparison.Ordinal);
+
+    private Vector3 GetObjectActionTargetPosition(WorldSnapshot snapshot, ObjectSnapshot worldObject)
+    {
+        var point = GetObjectAnchorPosition(snapshot, worldObject);
+        point.y += ActionTargetLift(worldObject.DefinitionId);
+        return point;
+    }
+
+    private float ActionTargetLift(string definitionId)
+    {
+        if (definitionId == "tree.palm")
+        {
+            return HexRadius * TreeHeightFactor * 0.65f;
+        }
+
+        if (definitionId == "tree.palm_small")
+        {
+            return HexRadius * TreeHeightFactor * 0.45f;
+        }
+
+        if (definitionId == "rock.boulder")
+        {
+            return HexRadius * 0.28f;
+        }
+
+        if (definitionId == "carcass.animal" || definitionId == "corpse.npc")
+        {
+            return HexRadius * 0.18f;
+        }
+
+        return HexRadius * FoodRadiusFactor * 1.8f;
+    }
+
+    private bool TryGetCombatActionTargetPosition(
+        WorldSnapshot snapshot, NpcSnapshot npc, out Vector3 point)
+    {
+        if (TryGetNearestDogPosition(snapshot, npc, out point))
+        {
+            return true;
+        }
+
+        if (TryGetNearestFightingNpcPosition(snapshot, npc, out point))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool TryGetNearestDogPosition(WorldSnapshot snapshot, NpcSnapshot npc, out Vector3 point)
+    {
+        var bestSq = float.MaxValue;
+        DogSnapshot? best = null;
+        foreach (var dog in snapshot.Dogs)
+        {
+            if (dog.Health <= 0f)
+            {
+                continue;
+            }
+
+            var dx = dog.Position.X - npc.Position.X;
+            var dy = dog.Position.Y - npc.Position.Y;
+            var sq = dx * dx + dy * dy;
+            if (sq < bestSq)
+            {
+                bestSq = sq;
+                best = dog;
+            }
+        }
+
+        if (best is null)
+        {
+            point = default;
+            return false;
+        }
+
+        point = SimulationUnityMapper.ToUnityPosition(best.Position, GroundY(best.Tile));
+        point.y += HexRadius * NpcHeightFactor * 0.6f;
+        return true;
+    }
+
+    private bool TryGetNearestFightingNpcPosition(WorldSnapshot snapshot, NpcSnapshot npc, out Vector3 point)
+    {
+        NpcSnapshot? best = null;
+        var bestSq = float.MaxValue;
+        foreach (var other in snapshot.Npcs)
+        {
+            if (other.Id.Value == npc.Id.Value || !other.IsFighting)
+            {
+                continue;
+            }
+
+            var dx = other.Position.X - npc.Position.X;
+            var dy = other.Position.Y - npc.Position.Y;
+            var sq = dx * dx + dy * dy;
+            if (sq < bestSq)
+            {
+                bestSq = sq;
+                best = other;
+            }
+        }
+
+        if (best is null)
+        {
+            point = default;
+            return false;
+        }
+
+        point = SimulationUnityMapper.ToUnityPosition(best.Position, ActorGroundY(best.Tile));
+        point.y += HexRadius * NpcHeightFactor * 1.1f;
+        return true;
+    }
 
     // Spec 33.1: the weapon slung on the back — the carried spear/bow, so it
     // is always visibly "equipped" even when idle. SetBackWeapon hides it if

@@ -5128,7 +5128,7 @@ public sealed class ExecutionSystem : ISimulationSystem
                 {
                     if (definition.Tags.Contains("Coconut"))
                     {
-                        var nextObject = ReplaceWithSingleYield(world, worldObject, completedInteraction.Yields);
+                        var nextObject = ReplaceWithYields(world, npc, worldObject, completedInteraction.Yields);
                         Trace.Emit(world, npc.Id, "CoconutProcessed",
                             $"{worldObject.DefinitionId} -> {nextObject?.DefinitionId ?? "nothing"}");
 
@@ -6383,8 +6383,9 @@ public sealed class ExecutionSystem : ISimulationSystem
         }
     }
 
-    private static WorldObjectState? ReplaceWithSingleYield(
+    private static WorldObjectState? ReplaceWithYields(
         WorldState world,
+        NPCState npc,
         WorldObjectState source,
         System.Collections.Generic.IReadOnlyList<HarvestDrop> yields)
     {
@@ -6394,15 +6395,41 @@ public sealed class ExecutionSystem : ISimulationSystem
             return null;
         }
 
-        var definitionId = yields[0].DefinitionId;
         var tile = source.Tile;
         var junction = source.Junctions[0];
         var fragment = source.Fragment;
         WorldObjectMutations.DespawnObject(world, source.Id);
-        var spawned = WorldObjectMutations.SpawnObject(world, definitionId, fragment, tile, junction);
-        spawned.SpawnTick = world.Tick;
-        spawned.ResourceAmount = definitionId == "food.coconut_pierced" ? 1f : 0f;
-        return spawned;
+
+        WorldObjectState? primary = null;
+        var used = new System.Collections.Generic.HashSet<JunctionId> { junction };
+        foreach (var drop in yields)
+        {
+            for (var i = 0; i < drop.Count; i++)
+            {
+                var spawnTile = tile;
+                var spawnJunction = junction;
+                if (primary is not null)
+                {
+                    var scatter = FindScatterSpot(world, source, used);
+                    if (scatter.Item2 is not { } freeJunction)
+                    {
+                        GiveOrDrop(world, npc, new ItemInstance(drop.DefinitionId));
+                        continue;
+                    }
+
+                    spawnTile = scatter.Item1;
+                    spawnJunction = freeJunction;
+                    used.Add(freeJunction);
+                }
+
+                var spawned = WorldObjectMutations.SpawnObject(world, drop.DefinitionId, fragment, spawnTile, spawnJunction);
+                spawned.SpawnTick = world.Tick;
+                spawned.ResourceAmount = drop.DefinitionId == "food.coconut_pierced" ? 1f : 0f;
+                primary ??= spawned;
+            }
+        }
+
+        return primary;
     }
 
     private static bool TryContinueWorldPlanAfterInteraction(
@@ -6508,23 +6535,71 @@ public sealed class ExecutionSystem : ISimulationSystem
     // Spec 35.5: dropped items keep their instance state on the ground.
     internal static WorldObjectState DropItemAtFeet(WorldState world, NPCState npc, ItemInstance item)
     {
-        var dropJunction = npc.CurrentJunction;
-        if (dropJunction is null &&
-            world.Tiles.Items.TryGetValue(npc.Tile, out var tile) && tile.Junctions.Count > 0)
-        {
-            dropJunction = tile.Junctions[0];
-        }
-
-        if (dropJunction is { } junction)
+        if (TryFindDropSpotAtFeet(world, npc, out var dropTile, out var dropJunction))
         {
             var dropped = WorldObjectMutations.SpawnObject(
-                world, item.DefinitionId, npc.Fragment, npc.Tile, junction);
+                world, item.DefinitionId, npc.Fragment, dropTile, dropJunction);
             dropped.Wetness = item.Wetness;
             dropped.Durability = item.Durability;
             return dropped;
         }
 
         return null;
+    }
+
+    private static bool TryFindDropSpotAtFeet(
+        WorldState world,
+        NPCState npc,
+        out TileCoord tile,
+        out JunctionId junction)
+    {
+        // Prefer a genuinely free ground junction near the actor so dropped
+        // items become ordinary world objects immediately. The actor's current
+        // junction is usually occupied by the actor, so keep it as a fallback
+        // rather than the first choice.
+        var source = new WorldObjectState
+        {
+            Tile = npc.Tile,
+            Fragment = npc.Fragment
+        };
+        var used = new System.Collections.Generic.HashSet<JunctionId>();
+        if (npc.CurrentJunction is { } current)
+        {
+            used.Add(current);
+        }
+
+        var scatter = FindScatterSpot(world, source, used);
+        if (scatter.Item2 is { } freeJunction)
+        {
+            tile = scatter.Item1;
+            junction = freeJunction;
+            return true;
+        }
+
+        if (npc.CurrentJunction is { } fallback &&
+            world.Junctions.Items.ContainsKey(fallback))
+        {
+            tile = npc.Tile;
+            junction = fallback;
+            return true;
+        }
+
+        if (world.Tiles.Items.TryGetValue(npc.Tile, out var tileState))
+        {
+            foreach (var candidate in tileState.Junctions)
+            {
+                if (SpatialQueries.IsJunctionPassable(world, candidate))
+                {
+                    tile = npc.Tile;
+                    junction = candidate;
+                    return true;
+                }
+            }
+        }
+
+        tile = npc.Tile;
+        junction = default;
+        return false;
     }
 
     // Spec §52: take a garment off the body and lay it on the ground carrying
@@ -9414,7 +9489,8 @@ public sealed class DogSystem : ISimulationSystem
             }
         }
 
-        // Spec 31A.5A: everything worn drops at the death site.
+        // Spec 31A.5A: everything worn/carried drops at the death site through
+        // the same ground-drop path as inventory overflow and explicit drops.
         var dropJunction = npc.CurrentJunction;
         if (dropJunction is null &&
             world.Tiles.Items.TryGetValue(npc.Tile, out var deathTile) &&
@@ -9423,31 +9499,22 @@ public sealed class DogSystem : ISimulationSystem
             dropJunction = deathTile.Junctions[0];
         }
 
-        if (dropJunction is { } junction)
+        foreach (var item in npc.WornItems)
         {
-            foreach (var item in npc.WornItems)
+            ExecutionSystem.DropItemAtFeet(world, npc, item);
+        }
+
+        foreach (var item in npc.Inventory.Items)
+        {
+            // Spec 29H: the bottle is a personal effect — it stays with
+            // its owner, never litters the world (and never lets a
+            // survivor hoard empty bottles via GatherTools).
+            if (item.DefinitionId == "tool.bottle")
             {
-                var droppedWorn = WorldObjectMutations.SpawnObject(
-                    world, item.DefinitionId, npc.Fragment, npc.Tile, junction);
-                droppedWorn.Wetness = item.Wetness;
-                droppedWorn.Durability = item.Durability;
+                continue;
             }
 
-            foreach (var item in npc.Inventory.Items)
-            {
-                // Spec 29H: the bottle is a personal effect — it stays with
-                // its owner, never litters the world (and never lets a
-                // survivor hoard empty bottles via GatherTools).
-                if (item.DefinitionId == "tool.bottle")
-                {
-                    continue;
-                }
-
-                var droppedCarried = WorldObjectMutations.SpawnObject(
-                    world, item.DefinitionId, npc.Fragment, npc.Tile, junction);
-                droppedCarried.Wetness = item.Wetness;
-                droppedCarried.Durability = item.Durability;
-            }
+            ExecutionSystem.DropItemAtFeet(world, npc, item);
         }
 
         // Spec 28.15C: the body remains; witnesses grieve immediately.

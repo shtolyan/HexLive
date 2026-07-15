@@ -53,7 +53,7 @@ public static class PrototypeContentCatalog
                         Id = "split.coconut",
                         Type = InteractionType.Process,
                         DurationTicks = SimBalance.CoconutProcessDurationTicks,
-                        Yields = { new HarvestDrop { DefinitionId = "food.coconut_open", Count = 1, Scatter = false } }
+                        Yields = { new HarvestDrop { DefinitionId = "food.coconut_open", Count = 2, Scatter = false } }
                     }
                 },
                 Tags = { "Coconut", "CoconutWater" }

@@ -18,6 +18,7 @@ public sealed class NpcActorView : MonoBehaviour
     private BodyBones _bodyBones;
     private Animator _animator;
     private LookAtIK _lookAtIK;
+    private FullBodyBipedIK _fullBodyIK;
     private ActorName _actorMesh;
     private readonly Dictionary<string, int> _equippedSimItems = new();
     private readonly List<string> _removeScratch = new();
@@ -98,6 +99,7 @@ public sealed class NpcActorView : MonoBehaviour
     // Right-handed by default; flipped at runtime via SetHandedness.
     private bool _leftHanded;
     private GameObject _handProp;
+    private Renderer[] _handPropRenderers = new Renderer[0];
 
     // Spec 33.1 (iter 33): a slung weapon rides on the back when carried but
     // not in the hand — a knife/spear/bow/sword mounted like equipment.
@@ -273,13 +275,21 @@ public sealed class NpcActorView : MonoBehaviour
     private enum ActionKind { None, Chop, Work, RaiseToMouth, BowDraw, SpearThrust, Attack }
     private Transform _rShldr;
     private Transform _rForearm;
+    private Transform _rHand;
     // Spec 40.7: the cold shiver is a two-sided hug — left arm + a spine curl
     // and head tuck, not just the right arm (the old one-armed hunch read as a
     // bug). Bound alongside the right arm in Construct.
     private Transform _lShldr;
     private Transform _lForearm;
+    private Transform _lHand;
     private Transform _thermalChest;
     private Transform _thermalHead;
+    private bool _actionTargetActive;
+    private Vector3 _actionTargetPoint;
+    private const float ActionTargetIkCenter = 0.5f;
+    private const float ActionTargetIkWidth = 0.4f;
+    private const float ActionTargetIkMaxHandWeight = 0.9f;
+    private const float ActionTargetIkBodyLean = 0.35f;
 
     // Spec 40.7: cold-shiver knobs, exposed static so the ShiverTest dev scene
     // can tune them live with sliders (all amplitudes in degrees; Frequency is
@@ -660,6 +670,7 @@ public sealed class NpcActorView : MonoBehaviour
         _bodyBones = GetComponentInChildren<BodyBones>();
         _animator = GetComponentInChildren<Animator>();
         _lookAtIK = GetComponentInChildren<LookAtIK>();
+        _fullBodyIK = GetComponentInChildren<FullBodyBipedIK>();
 
         // Cache the authored length of the jump clip so StartJumpArc can scale
         // it to the sim hop window (§21.21B). Both JumpUp/JumpDown share one
@@ -717,10 +728,12 @@ public sealed class NpcActorView : MonoBehaviour
             // body's right axis, so their local orientation doesn't matter.
             _rShldr = _bodyBones.GetBone("rShldrBend");
             _rForearm = _bodyBones.GetBone("rForearmBend");
+            _rHand = _bodyBones.GetBone("rHand");
             // Spec 40.7: left arm + upper spine + head for the two-sided cold
             // shiver (all three actors share the Genesis naming).
             _lShldr = _bodyBones.GetBone("lShldrBend");
             _lForearm = _bodyBones.GetBone("lForearmBend");
+            _lHand = _bodyBones.GetBone("lHand");
             _thermalChest = _bodyBones.GetBone("chestUpper");
             _thermalHead = _bodyBones.GetBone("head");
 
@@ -786,12 +799,17 @@ public sealed class NpcActorView : MonoBehaviour
             _face.Construct(_bodySkins);
         }
 
-        // Spec 31B.5: FBBIK stays dormant — its effector targets lived on
-        // stripped components; an unfed solver freezes the whole pose.
-        var fbbik = GetComponentInChildren<FullBodyBipedIK>();
-        if (fbbik != null)
+        // Spec 31B.5: FBBIK stays dormant until the renderer feeds an action
+        // target. An unfed solver can freeze the pose; tool/weapon actions
+        // enable it only for the weighted hit window.
+        if (_fullBodyIK != null)
         {
-            fbbik.enabled = false;
+            _fullBodyIK.enabled = false;
+            if (_fullBodyIK.solver != null)
+            {
+                _fullBodyIK.solver.OnPreUpdate += DriveActionTargetIK;
+                ResetActionTargetIKWeights();
+            }
         }
 
         if (_lookAtIK != null)
@@ -821,6 +839,14 @@ public sealed class NpcActorView : MonoBehaviour
 
         _gazeProxy = new GameObject("GazeTarget").transform;
         _gazeProxy.SetParent(transform.parent, false);
+    }
+
+    private void OnDestroy()
+    {
+        if (_fullBodyIK != null && _fullBodyIK.solver != null)
+        {
+            _fullBodyIK.solver.OnPreUpdate -= DriveActionTargetIK;
+        }
     }
 
     // The whole actor hierarchy lives on the "Actors" layer so the portrait
@@ -1332,6 +1358,26 @@ public sealed class NpcActorView : MonoBehaviour
         LookAt(_gazeProxy);
     }
 
+    public void SetActionTargetPoint(Vector3 worldPoint)
+    {
+        _actionTargetPoint = worldPoint;
+        _actionTargetActive = true;
+        if (_fullBodyIK != null)
+        {
+            _fullBodyIK.enabled = true;
+        }
+    }
+
+    public void ClearActionTarget()
+    {
+        _actionTargetActive = false;
+        ResetActionTargetIKWeights();
+        if (_fullBodyIK != null)
+        {
+            _fullBodyIK.enabled = false;
+        }
+    }
+
     // Sim worn list -> visual garments. A sim item may map to several wear
     // prefabs (underwear = bra + panties); each equips under its own key.
     public void SyncWorn(IReadOnlyList<string> wornDefinitionIds)
@@ -1595,6 +1641,11 @@ public sealed class NpcActorView : MonoBehaviour
         if (_lookAtIK != null)
         {
             _lookAtIK.enabled = !active;
+        }
+
+        if (active)
+        {
+            ClearActionTarget();
         }
 
         foreach (var rb in _ragdollBodies)
@@ -1981,6 +2032,7 @@ public sealed class NpcActorView : MonoBehaviour
             Destroy(_handProp);
             _handProp = null;
         }
+        _handPropRenderers = new Renderer[0];
 
         if (string.IsNullOrEmpty(itemId) || _bodyBones == null)
         {
@@ -2013,6 +2065,7 @@ public sealed class NpcActorView : MonoBehaviour
         }
 
         _handProp.name = $"HandProp {itemId}";
+        _handPropRenderers = _handProp.GetComponentsInChildren<Renderer>();
 
         // Size: normalize to the SAME world size the ground uses (ObjectFit), so a
         // tool/coconut is identical in hand and on the ground. ItemAttachConfig's
@@ -2124,10 +2177,14 @@ public sealed class NpcActorView : MonoBehaviour
                 localScale = new Vector3(0.349494f, 0.349494f, 0.349494f);
                 break;
             case "food.coconut":
-            case "food.coconut_pierced":
-            case "food.coconut_open":
                 localPosition = new Vector3(0.061f, -0.142f, 0.001f);
                 localRotation = Quaternion.Euler(0.808f, 0f, 0f);
+                localScale = new Vector3(0.7718072f, 0.9210232f, 0.7718072f);
+                break;
+            case "food.coconut_pierced":
+            case "food.coconut_open":
+                localPosition = new Vector3(0.09f, -0.111f, -0.089f);
+                localRotation = Quaternion.Euler(-24.896f, 16.767f, 16.891f);
                 localScale = new Vector3(0.7718072f, 0.9210232f, 0.7718072f);
                 break;
             case "tool.spear":
@@ -2700,6 +2757,114 @@ public sealed class NpcActorView : MonoBehaviour
     public void ClearGaze()
     {
         _gazeWeightTarget = 0f;
+    }
+
+    private void ResetActionTargetIKWeights()
+    {
+        if (_fullBodyIK == null || _fullBodyIK.solver == null)
+        {
+            return;
+        }
+
+        var solver = _fullBodyIK.solver;
+        solver.IKPositionWeight = 0f;
+        solver.rightHandEffector.positionWeight = 0f;
+        solver.rightHandEffector.rotationWeight = 0f;
+        solver.leftHandEffector.positionWeight = 0f;
+        solver.leftHandEffector.rotationWeight = 0f;
+    }
+
+    private void DriveActionTargetIK()
+    {
+        if (_fullBodyIK == null || _fullBodyIK.solver == null)
+        {
+            return;
+        }
+
+        var solver = _fullBodyIK.solver;
+        var hand = _leftHanded ? _lHand : _rHand;
+        var effector = _leftHanded ? solver.leftHandEffector : solver.rightHandEffector;
+        var otherEffector = _leftHanded ? solver.rightHandEffector : solver.leftHandEffector;
+        otherEffector.positionWeight = 0f;
+        otherEffector.rotationWeight = 0f;
+
+        var weight = _actionTargetActive && !_ragdollActive && !_laying && !_swimming && hand != null
+            ? CurrentActionTargetIKWeight()
+            : 0f;
+        if (weight <= 0.001f)
+        {
+            solver.IKPositionWeight = 0f;
+            effector.positionWeight = 0f;
+            effector.rotationWeight = 0f;
+            return;
+        }
+
+        var contact = ActionPropContactPoint(_actionTargetPoint, hand);
+        solver.IKPositionWeight = 1f;
+        solver.pullBodyHorizontal = ActionTargetIkBodyLean;
+        effector.target = null;
+        effector.position = _actionTargetPoint - (contact - hand.position);
+        effector.positionWeight = weight;
+        effector.rotationWeight = 0f;
+    }
+
+    private float CurrentActionTargetIKWeight()
+    {
+        var phase = ActionTargetPhase();
+        if (phase < 0f)
+        {
+            return 0f;
+        }
+
+        var d = Mathf.Repeat(phase - (ActionTargetIkCenter - ActionTargetIkWidth * 0.5f), 1f);
+        if (d > ActionTargetIkWidth)
+        {
+            return 0f;
+        }
+
+        var t = Mathf.Clamp01(d / ActionTargetIkWidth);
+        var peak = 1f - Mathf.Abs(t * 2f - 1f);
+        return Mathf.SmoothStep(0f, 1f, peak) * ActionTargetIkMaxHandWeight;
+    }
+
+    private float ActionTargetPhase()
+    {
+        if (_animator != null)
+        {
+            var state = _animator.GetCurrentAnimatorStateInfo(0);
+            if (state.IsName("Chop") || state.IsName("Attack"))
+            {
+                return Mathf.Repeat(state.normalizedTime, 1f);
+            }
+        }
+
+        if (_action == ActionKind.None)
+        {
+            return -1f;
+        }
+
+        return Mathf.Repeat(_actionPhase, 1f);
+    }
+
+    private Vector3 ActionPropContactPoint(Vector3 target, Transform hand)
+    {
+        if (_handProp == null)
+        {
+            return hand.position;
+        }
+
+        if (_handPropRenderers == null || _handPropRenderers.Length == 0)
+        {
+            return _handProp.transform.position;
+        }
+
+        var bounds = _handPropRenderers[0].bounds;
+        for (var i = 1; i < _handPropRenderers.Length; i++)
+        {
+            bounds.Encapsulate(_handPropRenderers[i].bounds);
+        }
+
+        return bounds.ClosestPoint(target);
     }
 
     // Spec 20.16: a procedural arm swing for the current action, layered on

@@ -871,6 +871,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             _npcViews.Remove(key);
             _actorViews.Remove(key);
+            _lastTalkResultTick.Remove(key);
             _prevNpcPoses.Remove(key);
             _currNpcPoses.Remove(key);
             _npcOnWater.Remove(key);
@@ -916,12 +917,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
              seenTick != npc.TalkResultTick))
         {
             _lastTalkResultTick[npc.Id.Value] = npc.TalkResultTick;
-            // Skip the very first observation per NPC (avoid a stale pop when a
-            // view is created for an NPC that already talked before we looked).
-            if (seenTick != 0 || npc.TalkResultTick == snapshot.Tick)
-            {
-                actorView.PopRelationship(npc.TalkResultDelta);
-            }
+            actorView.PopRelationship(npc.TalkResultDelta);
         }
         // Iter 28: ledge seat — the sim flags a sit at a one-step seam; the
         // view lifts the butt onto the upper step (knobs in NpcActorView).
@@ -1997,6 +1993,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 var view = actorRoot.AddComponent<NpcActorView>();
                 view.Construct(npc.ActorMesh, npc.Id.Value);
                 _actorViews[npc.Id.Value] = view;
+                _lastTalkResultTick[npc.Id.Value] = npc.TalkResultTick;
                 return actorRoot;
             }
         }

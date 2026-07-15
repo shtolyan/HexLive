@@ -1457,11 +1457,22 @@ namespace HexLive.UnityPresentation.UI
             rn.style.color = Text;
             rn.style.fontSize = 14;
             rn.style.unityFontStyleAndWeight = FontStyle.Bold;
+            var detail = new VisualElement();
+            detail.style.flexDirection = FlexDirection.Row;
+            detail.style.alignItems = Align.Center;
             var rk = new Label(RelationKind(rel.Affinity));
             rk.style.color = TextMute;
             rk.style.fontSize = 10;
+            rk.style.flexGrow = 1f;
+            var score = new Label(RelationScore(rel.Affinity));
+            score.style.color = RelationColor(rel.Affinity);
+            score.style.fontSize = 10;
+            score.style.unityFontStyleAndWeight = FontStyle.Bold;
+            detail.Add(rk);
+            detail.Add(score);
             mid.Add(rn);
-            mid.Add(rk);
+            mid.Add(detail);
+            mid.Add(BuildRelationMeter(rel.Affinity));
             chip.Add(mid);
 
             var hearts = new VisualElement();
@@ -2129,13 +2140,47 @@ namespace HexLive.UnityPresentation.UI
             return Mathf.Clamp(Mathf.RoundToInt(Mathf.Clamp01(affinity) * 4f), 0, 4);
         }
 
+        private static VisualElement BuildRelationMeter(float affinity)
+        {
+            var track = MakeTrack(4f);
+            track.style.marginTop = 4f;
+
+            var fill = new VisualElement();
+            fill.style.position = Position.Absolute;
+            fill.style.top = 0f;
+            fill.style.bottom = 0f;
+            fill.style.width = Length.Percent(Mathf.Clamp01(Mathf.Abs(affinity)) * 50f);
+            fill.style.left = Length.Percent(affinity >= 0f
+                ? 50f
+                : 50f - Mathf.Clamp01(-affinity) * 50f);
+            fill.style.backgroundColor = RelationColor(affinity);
+            track.Add(fill);
+
+            return track;
+        }
+
+        private static string RelationScore(float affinity)
+        {
+            var pct = Mathf.RoundToInt(affinity * 100f);
+            return pct > 0 ? $"+{pct}%" : $"{pct}%";
+        }
+
+        private static Color RelationColor(float affinity)
+        {
+            var pct = Mathf.RoundToInt(affinity * 100f);
+            if (pct > 0) return Health;
+            if (pct < 0) return Crit;
+            return TextMute;
+        }
+
         private static string RelationKind(float affinity)
         {
+            if (affinity <= -0.25f) return Loc.Get("rel.hostile");
+            if (affinity < 0f) return Loc.Get("rel.tense");
             if (affinity >= 0.75f) return Loc.Get("rel.close");
             if (affinity >= 0.50f) return Loc.Get("rel.friend");
             if (affinity >= 0.25f) return Loc.Get("rel.acquaint");
-            if (affinity >= 0.10f) return Loc.Get("rel.neutral");
-            return Loc.Get("rel.tense");
+            return Loc.Get("rel.neutral");
         }
 
         private static string InitialOf(string name)

@@ -21,9 +21,10 @@ public sealed class NpcSpeechBubble : MonoBehaviour
     private const float HeightOffset = 0.34f;    // world units above the head bone
     private const float BubbleUnitsTall = 0.70f; // on-screen bubble height (bigger white bg)
     private const float EmojiUnitsTall = 0.26f;  // emoji height inside the body (smaller, well inside)
-    // Round-body centre as a fraction of the bubble height (pivot is near the
-    // tail): keeps the emoji centred in the white bg at any bubble size.
-    private const float BodyCentreFrac = 0.339f;
+    // Centre of the white oval body in speech_bubble.png, measured in sprite
+    // texture space from the bottom-left. The tail/outline make the full image's
+    // geometric centre wrong for the emoji.
+    private static readonly Vector2 BubbleBodyCenterFrac = new(0.5205f, 0.5918f);
     private const float PopUnitsTall = 0.19f;    // "+/-" height (≈half the old size)
     private const float PopRiseSpeed = 0.42f;    // units/sec the "+/-" floats up
     private const float PopLifetime = 1.25f;
@@ -61,13 +62,13 @@ public sealed class NpcSpeechBubble : MonoBehaviour
         _bubble.sortingOrder = sortingBase;
 
         // Emoji sprite, centred in the bubble body (bubble pivot is near the
-        // tail, so the body centre sits a little above the pivot).
+        // tail, so the body centre sits above/right of the pivot).
         var emojiGo = new GameObject("Emoji");
         emojiGo.transform.SetParent(transform, false);
         _emoji = emojiGo.AddComponent<SpriteRenderer>();
         _emoji.sortingOrder = sortingBase + 1;
-        // Centre the emoji in the round body (scales with the bubble height).
-        _emoji.transform.localPosition = new Vector3(0f, BodyCentreFrac * BubbleUnitsTall, -0.01f);
+        _emojiLocalPosition = BubbleBodyCenterLocal();
+        _emoji.transform.localPosition = _emojiLocalPosition;
 
         // Relationship "+/-" pop (independent of the bubble; can fire alone).
         var popGo = new GameObject("RelationshipPop");
@@ -216,6 +217,10 @@ public sealed class NpcSpeechBubble : MonoBehaviour
         {
             _emoji.enabled = s > 0.01f && _emoji.sprite != null;
             _emoji.transform.localScale = Vector3.one * (_emojiBaseScale * s);
+            _emoji.transform.localPosition = new Vector3(
+                _emojiLocalPosition.x * s,
+                _emojiLocalPosition.y * s,
+                _emojiLocalPosition.z);
         }
     }
 
@@ -224,6 +229,23 @@ public sealed class NpcSpeechBubble : MonoBehaviour
     private float _bubbleBaseScale = 1f;
     private float _emojiBaseScale = 1f;
     private float _popBaseScale = 1f;
+    private Vector3 _emojiLocalPosition = new(0f, 0.24f, -0.01f);
+
+    private Vector3 BubbleBodyCenterLocal()
+    {
+        var sprite = _bubble != null ? _bubble.sprite : null;
+        if (sprite == null || sprite.rect.width <= 0f || sprite.rect.height <= 0f ||
+            sprite.pixelsPerUnit <= 0.0001f)
+        {
+            return _emojiLocalPosition;
+        }
+
+        var centerPx = new Vector2(
+            BubbleBodyCenterFrac.x * sprite.rect.width,
+            BubbleBodyCenterFrac.y * sprite.rect.height);
+        var local = (centerPx - sprite.pivot) / sprite.pixelsPerUnit * _bubbleBaseScale;
+        return new Vector3(local.x, local.y, -0.01f);
+    }
 
     private void FitSpriteHeight(SpriteRenderer sr, float targetTall)
     {

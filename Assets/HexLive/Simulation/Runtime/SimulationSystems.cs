@@ -186,8 +186,8 @@ public static class Spec53
     public static float ConsoleStressRelief = 0.3f; // target Stress down (+ grief eased)
 
     // Relationship gain on BOTH sides of a completed aid — deliberately larger
-    // than a chat's 0.05: kindness under hardship bonds hard.
-    public static float AidRelationshipGain = 0.12f;
+    // than a chat: kindness under hardship bonds hard.
+    public static float AidRelationshipGain = 0.36f;
 
     // How long the aid interaction runs (ticks), mirroring a talk.
     public static int AidDuration = 70;
@@ -5117,16 +5117,16 @@ public sealed class ExecutionSystem : ISimulationSystem
     private static int TalkDurationTicks => Spec49.TalkDuration;
     private static float TalkInitiatorSocialGain => Spec49.TalkInitGain;
     private static float TalkListenerSocialGain => Spec49.TalkListenGain;
-    private const float TalkRelationshipGain = 0.05f;
+    private const float TalkRelationshipGain = 0.15f;
 
     // Spec 28.15B: quarrels and refusal-by-dislike.
     private const float QuarrelInitiatorSocialGain = 0.15f;
     private const float QuarrelListenerSocialGain = 0.10f;
-    private const float QuarrelAffinityLoss = 0.12f;
+    private const float QuarrelAffinityLoss = 0.36f;
     private const float QuarrelEmbarrassment = 0.30f;
     private const float RefusalAffinityThreshold = -0.25f;
     private const float LonelinessOverrideThreshold = 0.25f;
-    private const float RejectionAffinityPenalty = 0.05f;
+    private const float RejectionAffinityPenalty = 0.15f;
 
     private static void RunTalk(WorldState world, NPCState npc)
     {
@@ -5296,10 +5296,12 @@ public sealed class ExecutionSystem : ISimulationSystem
             }
             Trace.Emit(world, npc.Id, "RelationshipChanged",
                 $"NPC{npc.Id.Value}->NPC{target.Id.Value} " +
-                $"Fam={initiatorRel.Familiarity:F2} Aff={initiatorRel.Affinity:F2} (+{TalkRelationshipGain:F2})");
+                $"Fam={initiatorRel.Familiarity:F2} (+{TalkRelationshipGain:F2}) " +
+                $"Aff={initiatorRel.Affinity:F2} ({affinityDelta:+0.00;-0.00})");
             Trace.Emit(world, target.Id, "RelationshipChanged",
                 $"NPC{target.Id.Value}->NPC{npc.Id.Value} " +
-                $"Fam={listenerRel.Familiarity:F2} Aff={listenerRel.Affinity:F2} (+{TalkRelationshipGain:F2})");
+                $"Fam={listenerRel.Familiarity:F2} (+{TalkRelationshipGain:F2}) " +
+                $"Aff={listenerRel.Affinity:F2} ({affinityDelta:+0.00;-0.00})");
 
             if (target.Mind.PendingTalkFrom is { } inviterId && inviterId.Equals(npc.Id))
             {

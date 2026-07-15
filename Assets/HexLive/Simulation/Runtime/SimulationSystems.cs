@@ -2738,7 +2738,16 @@ public sealed class PlanningSystem : ISimulationSystem
             return true;
         }
 
-        var targetJunction = worldObject.Junctions[0];
+        var anchorJunction = worldObject.Junctions[0];
+        if (!TryReserveBesideJunction(world, npc, anchorJunction, 48, out var targetJunction))
+        {
+            npc.Plan.Status = PlanStatus.Failed;
+            SetGoalCooldown(world, npc, goal);
+            Trace.Emit(world, npc.Id, "ReservationFailed",
+                $"Coconut Anchor={anchorJunction.Value} has no free junction beside it");
+            return true;
+        }
+
         if (npc.CurrentJunction is not { } current || !current.Equals(targetJunction))
         {
             if (!SpatialMutations.TryReserveJunction(world, targetJunction, npc.Id, world.Tick, 48))
@@ -2746,7 +2755,7 @@ public sealed class PlanningSystem : ISimulationSystem
                 npc.Plan.Status = PlanStatus.Failed;
                 SetGoalCooldown(world, npc, goal);
                 Trace.Emit(world, npc.Id, "ReservationFailed",
-                    $"Coconut Junction={targetJunction.Value} already reserved or occupied");
+                    $"Coconut beside Junction={targetJunction.Value} already reserved or occupied");
                 return true;
             }
         }
@@ -2775,8 +2784,46 @@ public sealed class PlanningSystem : ISimulationSystem
         npc.Plan.Status = PlanStatus.Active;
         Trace.Emit(world, npc.Id, "PlanBuilt",
             $"Goal={goal} Target={target.DefinitionId} Tile={target.Tile.Q},{target.Tile.R} " +
+            $"Anchor={anchorJunction.Value} Junction={targetJunction.Value} " +
             $"Steps=[MoveToJunction,{FormatInteractions(interactions)}]");
         return true;
+    }
+
+    private static bool TryReserveBesideJunction(
+        WorldState world,
+        NPCState npc,
+        JunctionId anchorId,
+        int durationTicks,
+        out JunctionId beside)
+    {
+        SpatialQueries.CollectStandableAround(world, anchorId, _rimScratch);
+        if (npc.CurrentJunction is { } current && _rimScratch.Contains(current))
+        {
+            beside = current;
+            return true;
+        }
+
+        _rimScratch.Sort((a, b) =>
+        {
+            var da = world.Junctions.Items.TryGetValue(a, out var ja)
+                ? HexSpatialMath.Distance(ja.WorldPosition, npc.Position) : float.MaxValue;
+            var db = world.Junctions.Items.TryGetValue(b, out var jb)
+                ? HexSpatialMath.Distance(jb.WorldPosition, npc.Position) : float.MaxValue;
+            return da.CompareTo(db);
+        });
+
+        foreach (var rim in _rimScratch)
+        {
+            if (SpatialQueries.IsJunctionFree(world, rim) &&
+                SpatialMutations.TryReserveJunction(world, rim, npc.Id, world.Tick, durationTicks))
+            {
+                beside = rim;
+                return true;
+            }
+        }
+
+        beside = default;
+        return false;
     }
 
     private static string FormatInteractions(InteractionType[] interactions)
@@ -6454,13 +6501,19 @@ public sealed class ExecutionSystem : ISimulationSystem
         npc.Plan.CurrentStepIndex = nextInteract;
         npc.Plan.TargetObjectId = target.Id;
         npc.Plan.TargetTile = target.Tile;
-        npc.Plan.TargetJunctionId = target.Junctions.Count > 0 ? target.Junctions[0] : npc.Plan.TargetJunctionId;
+        var continuedJunction = npc.Plan.TargetJunctionId;
+        if (continuedJunction is null && target.Junctions.Count > 0)
+        {
+            continuedJunction = target.Junctions[0];
+        }
+
+        npc.Plan.TargetJunctionId = continuedJunction;
         for (var i = nextInteract; i < npc.Plan.Steps.Count; i++)
         {
             if (npc.Plan.Steps[i].Type == PlanStepType.Interact)
             {
                 npc.Plan.Steps[i].TargetObject = target.Id;
-                npc.Plan.Steps[i].TargetJunction = npc.Plan.TargetJunctionId;
+                npc.Plan.Steps[i].TargetJunction = continuedJunction;
             }
         }
 

@@ -146,6 +146,7 @@ namespace HexLive.UnityPresentation.Config
             SimBalance.DrinkThirstBoiled = c.drinkThirstBoiled;
             SimBalance.DrinkComfortBoiled = c.drinkComfortBoiled;
             SimBalance.BottleCapacity = c.bottleCapacity;   // §52
+            SimBalance.CoconutWaterCapacity = c.coconutWaterCapacity;
             SimBalance.HandSlots = c.handSlots;             // §52
 
             SimBalance.GroundSleepEnergy = c.groundSleepEnergy;
@@ -158,6 +159,7 @@ namespace HexLive.UnityPresentation.Config
             SimBalance.ChairEnergy = c.chairEnergy;
 
             SimBalance.CoconutHunger = c.coconutHunger;
+            SimBalance.CoconutThirst = c.coconutThirst;
             SimBalance.CookedMeatHunger = c.cookedMeatHunger;
 
             SimBalance.ColdBandTemp = c.coldBandTemp;
@@ -332,6 +334,8 @@ namespace HexLive.UnityPresentation.Config
             c.drinkThirstRaw = SimBalance.DrinkThirstRaw;
             c.drinkThirstBoiled = SimBalance.DrinkThirstBoiled;
             c.drinkComfortBoiled = SimBalance.DrinkComfortBoiled;
+            c.bottleCapacity = SimBalance.BottleCapacity;
+            c.coconutWaterCapacity = SimBalance.CoconutWaterCapacity;
 
             c.groundSleepEnergy = SimBalance.GroundSleepEnergy;
             c.groundSitEnergy = SimBalance.GroundSitEnergy;
@@ -343,6 +347,7 @@ namespace HexLive.UnityPresentation.Config
             c.chairEnergy = SimBalance.ChairEnergy;
 
             c.coconutHunger = SimBalance.CoconutHunger;
+            c.coconutThirst = SimBalance.CoconutThirst;
             c.cookedMeatHunger = SimBalance.CookedMeatHunger;
 
             c.coldBandTemp = SimBalance.ColdBandTemp;

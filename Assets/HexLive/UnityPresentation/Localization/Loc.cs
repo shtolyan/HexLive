@@ -375,6 +375,14 @@ namespace HexLive.UnityPresentation.Localization
             ["inv.layer"] = new[] { "Layer", "Слой" },
             ["inv.wetness"] = new[] { "Wetness", "Влажность" },
             ["inv.durability"] = new[] { "Durability", "Прочность" },
+            ["inv.clothing_hp"] = new[] { "Clothing HP", "HP одежды" },
+            ["inv.water_container"] = new[] { "Water container", "Ёмкость для воды" },
+            ["inv.water_left"] = new[] { "Water left", "Осталось воды" },
+            ["inv.liters"] = new[] { "L", "л" },
+            ["inv.condition_ok"] = new[] { "all good", "всё ок" },
+            ["inv.condition_good"] = new[] { "light wear", "слегка изношена" },
+            ["inv.condition_worn"] = new[] { "worn", "изношена" },
+            ["inv.condition_torn"] = new[] { "critical wear", "критический износ" },
             ["inv.restores"] = new[] { "Restores hunger", "Утоляет голод" },
             ["inv.hydrates"] = new[] { "Quenches thirst", "Утоляет жажду" },
             ["inv.dry"] = new[] { "dry", "сухая" },
@@ -453,6 +461,12 @@ namespace HexLive.UnityPresentation.Localization
             {
                 "A ripe coconut — crack it open to drink the water, then eat the flesh.",
                 "Спелый кокос — расколи, выпей воду, потом съешь мякоть."
+            },
+            ["item.food_coconut_pierced.name"] = new[] { "Pierced Coconut", "Дырявый кокос" },
+            ["item.food_coconut_pierced.desc"] = new[]
+            {
+                "A pierced coconut holding drinkable water.",
+                "Кокос с дыркой, внутри ещё есть питьевая вода."
             },
             ["item.food_coconut_open.name"] = new[] { "Opened Coconut", "Расколотый кокос" },
             ["item.food_coconut_open.desc"] = new[]

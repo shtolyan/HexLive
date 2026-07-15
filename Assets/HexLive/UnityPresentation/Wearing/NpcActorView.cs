@@ -2182,9 +2182,13 @@ public sealed class NpcActorView : MonoBehaviour
                 localScale = new Vector3(0.7718072f, 0.9210232f, 0.7718072f);
                 break;
             case "food.coconut_pierced":
-            case "food.coconut_open":
                 localPosition = new Vector3(0.09f, -0.111f, -0.089f);
                 localRotation = Quaternion.Euler(-24.896f, 16.767f, 16.891f);
+                localScale = new Vector3(0.7718072f, 0.9210232f, 0.7718072f);
+                break;
+            case "food.coconut_open":
+                localPosition = new Vector3(0.041f, -0.107f, -0.034f);
+                localRotation = Quaternion.Euler(1.22f, 5.477f, 32.526f);
                 localScale = new Vector3(0.7718072f, 0.9210232f, 0.7718072f);
                 break;
             case "tool.spear":

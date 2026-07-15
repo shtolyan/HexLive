@@ -222,6 +222,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 0.3f)] public float drinkComfortBoiled = 0.05f;
         [Tooltip("§52: сколько глотков в одной полной бутылке (наполняют, когда пустая).")]
         [Range(1, 8)] public int bottleCapacity = 3;
+        [Tooltip("Сколько маленьких глотков воды в дырявом кокосе.")]
+        [Range(1, 8)] public int coconutWaterCapacity = 4;
 
         [Header("Инвентарь (§52)")]
         [Tooltip("§52: сколько предметов держат голые руки. Общий инвентарь = руки + карманы всей надетой одежды.")]
@@ -248,6 +250,8 @@ namespace HexLive.UnityPresentation.Config
         [Header("Еда — сколько снимает голода")]
         [Tooltip("Кокос (базовая еда).")]
         [Range(0f, 1f)] public float coconutHunger = 0.6f;
+        [Tooltip("Сколько жажды снимает один глоток из дырявого кокоса.")]
+        [Range(0f, 1f)] public float coconutThirst = 0.25f;
         [Tooltip("Жареное мясо (сытнее).")]
         [Range(0f, 1f)] public float cookedMeatHunger = 0.9f;
 

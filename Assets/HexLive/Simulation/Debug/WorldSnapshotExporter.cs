@@ -543,6 +543,17 @@ public static class WorldSnapshotExporter
         foreach (var item in npc.Inventory.Items)
         {
             npcSnapshot.InventoryItems.Add(item);
+            npcSnapshot.InventoryDurability.Add($"{item.DefinitionId}\t{item.Durability:0.###}");
+            if (item.DefinitionId == "tool.bottle")
+            {
+                npcSnapshot.InventoryWater.Add(
+                    $"{item.DefinitionId}\t{npc.BottleCharges.ToString(System.Globalization.CultureInfo.InvariantCulture)}\t{Runtime.SimBalance.BottleCapacity.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+            }
+            else if (item.DefinitionId == "food.coconut_pierced")
+            {
+                npcSnapshot.InventoryWater.Add(
+                    $"{item.DefinitionId}\t{item.ResourceAmount.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)}\t{Runtime.SimBalance.CoconutWaterCapacity.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+            }
         }
 
         foreach (var item in npc.WornItems)

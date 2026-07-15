@@ -19,6 +19,10 @@ public sealed class ItemInstance : System.IEquatable<ItemInstance>
     // Spec 35.6 (mechanics pending): rides along at full condition.
     public float Durability { get; set; } = 1f;
 
+    // Portable container contents, in drink charges. Pierced coconuts use this
+    // like the NPC bottle: pickup/drop preserves the remaining water.
+    public float ResourceAmount { get; set; }
+
     public ItemInstance(string definitionId)
     {
         DefinitionId = definitionId;
@@ -145,6 +149,11 @@ public sealed class InventoryState
     {
         foreach (var item in Items)
         {
+            if (item.DefinitionId == "food.coconut_pierced" && item.ResourceAmount <= 0f)
+            {
+                continue;
+            }
+
             if (!content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var definition))
             {
                 continue;

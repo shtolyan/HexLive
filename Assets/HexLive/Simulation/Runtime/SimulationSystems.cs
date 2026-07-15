@@ -1659,11 +1659,17 @@ public sealed class DecisionSystem : ISimulationSystem
     internal static bool HasCoconutWater(NPCState npc, WorldState world)
     {
         var hasBlade = HasCoconutBlade(npc);
-        if (hasBlade &&
-            (npc.Inventory.Items.Contains("food.coconut") ||
-             npc.Inventory.Items.Contains("food.coconut_pierced")))
+        if (hasBlade && npc.Inventory.Items.Contains("food.coconut"))
         {
             return true;
+        }
+
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (item.DefinitionId == "food.coconut_pierced" && item.ResourceAmount > 0f)
+            {
+                return true;
+            }
         }
 
         foreach (var obj in npc.Perception.Objects)
@@ -2615,6 +2621,11 @@ public sealed class PlanningSystem : ISimulationSystem
             return BuildCoconutWorldPlan(world, npc, GoalType.Drink, pierced, InteractionType.Drink);
         }
 
+        if (TryFindInventoryItem(npc, "food.coconut_pierced", requireWater: true, out _))
+        {
+            return false;
+        }
+
         if (HasCoconutBlade(npc) &&
             TryFindCoconutObject(npc, world, "food.coconut", requireWater: false, out var whole))
         {
@@ -2627,12 +2638,6 @@ public sealed class PlanningSystem : ISimulationSystem
         {
             return BuildCoconutInventoryPlan(world, npc, GoalType.Drink, carriedWhole,
                 InteractionType.Process, InteractionType.Drink);
-        }
-
-        if (TryFindInventoryItem(npc, "food.coconut_pierced", out var carriedPierced))
-        {
-            return BuildCoconutInventoryPlan(world, npc, GoalType.Drink, carriedPierced,
-                InteractionType.Drink);
         }
 
         return false;
@@ -2840,9 +2845,19 @@ public sealed class PlanningSystem : ISimulationSystem
 
     private static bool TryFindInventoryItem(NPCState npc, string definitionId, out ItemInstance item)
     {
+        return TryFindInventoryItem(npc, definitionId, requireWater: false, out item);
+    }
+
+    private static bool TryFindInventoryItem(
+        NPCState npc,
+        string definitionId,
+        bool requireWater,
+        out ItemInstance item)
+    {
         foreach (var carried in npc.Inventory.Items)
         {
-            if (carried.DefinitionId == definitionId)
+            if (carried.DefinitionId == definitionId &&
+                (!requireWater || carried.ResourceAmount > 0f))
             {
                 item = carried;
                 return true;
@@ -4970,7 +4985,8 @@ public sealed class ExecutionSystem : ISimulationSystem
                     npc.Inventory.Items.Add(new ItemInstance(worldObject.DefinitionId)
                     {
                         Wetness = worldObject.Wetness,
-                        Durability = worldObject.Durability
+                        Durability = worldObject.Durability,
+                        ResourceAmount = worldObject.ResourceAmount
                     });
                     WorldObjectMutations.DespawnObject(world, worldObject.Id);
                     Trace.Emit(world, npc.Id, "ItemPickedUp",
@@ -5212,9 +5228,9 @@ public sealed class ExecutionSystem : ISimulationSystem
                 else if (completedInteraction.Type == InteractionType.Drink &&
                          definition.Tags.Contains("CoconutWater"))
                 {
-                    worldObject.ResourceAmount = 0f;
-                    Trace.Emit(world, npc.Id, "CoconutDrained",
-                        $"{worldObject.DefinitionId} water consumed");
+                    worldObject.ResourceAmount = System.MathF.Max(0f, worldObject.ResourceAmount - 1f);
+                    Trace.Emit(world, npc.Id, "CoconutDrank",
+                        $"{worldObject.DefinitionId} water left={worldObject.ResourceAmount:F0}");
 
                     if (TryContinueWorldPlanAfterInteraction(world, npc, worldObject, completedInteraction.Type))
                     {
@@ -6480,7 +6496,9 @@ public sealed class ExecutionSystem : ISimulationSystem
 
                 var spawned = WorldObjectMutations.SpawnObject(world, drop.DefinitionId, fragment, spawnTile, spawnJunction);
                 spawned.SpawnTick = world.Tick;
-                spawned.ResourceAmount = drop.DefinitionId == "food.coconut_pierced" ? 1f : 0f;
+                spawned.ResourceAmount = drop.DefinitionId == "food.coconut_pierced"
+                    ? SimBalance.CoconutWaterCapacity
+                    : 0f;
                 primary ??= spawned;
             }
         }
@@ -6603,6 +6621,7 @@ public sealed class ExecutionSystem : ISimulationSystem
                 world, item.DefinitionId, npc.Fragment, dropTile, dropJunction);
             dropped.Wetness = item.Wetness;
             dropped.Durability = item.Durability;
+            dropped.ResourceAmount = item.ResourceAmount;
             return dropped;
         }
 
@@ -7278,7 +7297,7 @@ public sealed class ExecutionSystem : ISimulationSystem
     private static void RunConsumeInventoryItem(WorldState world, NPCState npc)
     {
         var itemId = npc.Plan.TargetItemDefinitionId;
-        if (itemId is null || !npc.Inventory.Items.Contains(itemId) ||
+        if (itemId is null ||
             !world.Content.ObjectDefinitions.TryGetValue(itemId, out var itemDefinition))
         {
             npc.Plan.Status = PlanStatus.Failed;
@@ -7299,6 +7318,15 @@ public sealed class ExecutionSystem : ISimulationSystem
             npc.Plan.Status = PlanStatus.Failed;
             Trace.Emit(world, npc.Id, "ExecFailed",
                 $"ConsumeInventoryItem: '{itemId}' has no {verb} interaction");
+            return;
+        }
+
+        var item = FindConsumableInventoryItem(npc, itemId, verb, itemDefinition);
+        if (item is null)
+        {
+            npc.Plan.Status = PlanStatus.Failed;
+            Trace.Emit(world, npc.Id, "ExecFailed",
+                $"ConsumeInventoryItem: '{itemId}' not available for {verb}");
             return;
         }
 
@@ -7341,14 +7369,21 @@ public sealed class ExecutionSystem : ISimulationSystem
 
             var needsBefore = Trace.FormatNeeds(npc.Needs);
             ApplyEffectsScaled(npc, interaction.Effects, total > 0 ? 1f / total : 1f);
-            npc.Inventory.Items.Remove(itemId);
-            // §55: a consumed item may transform rather than vanish — cracking a
-            // coconut (Drink) yields the opened husk straight into the hand.
-            foreach (var yield in interaction.Yields)
+            if (IsPortableCoconutDrink(itemDefinition, verb))
             {
-                for (var n = 0; n < yield.Count; n++)
+                item.ResourceAmount = System.MathF.Max(0f, item.ResourceAmount - 1f);
+            }
+            else
+            {
+                npc.Inventory.Items.Remove(item);
+                // §55: a consumed item may transform rather than vanish — cracking a
+                // coconut (Drink) yields the opened husk straight into the hand.
+                foreach (var yield in interaction.Yields)
                 {
-                    npc.Inventory.Items.Add(yield.DefinitionId);
+                    for (var n = 0; n < yield.Count; n++)
+                    {
+                        npc.Inventory.Items.Add(yield.DefinitionId);
+                    }
                 }
             }
             var needsAfter = Trace.FormatNeeds(npc.Needs);
@@ -7359,7 +7394,10 @@ public sealed class ExecutionSystem : ISimulationSystem
             Trace.Emit(world, npc.Id, "ItemConsumed",
                 $"{itemId} {verb} from inventory " +
                 $"NeedsBefore=[{needsBefore}] NeedsAfter=[{needsAfter}] " +
-                $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
+                $"Inventory=[{string.Join(",", npc.Inventory.Items)}]" +
+                (IsPortableCoconutDrink(itemDefinition, verb)
+                    ? $" CoconutWaterLeft={item.ResourceAmount:F0}"
+                    : string.Empty));
 
             npc.Plan.Status = PlanStatus.Completed;
             npc.Plan.Steps.Clear();
@@ -7374,6 +7412,33 @@ public sealed class ExecutionSystem : ISimulationSystem
                 "Goal->None Plan->Completed Execution->Cleared (ate from inventory)");
         }
     }
+
+    private static ItemInstance? FindConsumableInventoryItem(
+        NPCState npc,
+        string definitionId,
+        InteractionType verb,
+        ObjectDefinition definition)
+    {
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (item.DefinitionId != definitionId)
+            {
+                continue;
+            }
+
+            if (IsPortableCoconutDrink(definition, verb) && item.ResourceAmount <= 0f)
+            {
+                continue;
+            }
+
+            return item;
+        }
+
+        return null;
+    }
+
+    private static bool IsPortableCoconutDrink(ObjectDefinition definition, InteractionType verb) =>
+        verb == InteractionType.Drink && definition.Tags.Contains("CoconutWater");
 
     // Spec 29H: drink in place from the carried bottle — thirst quenched,
     // raw water carries the 30 % sickness roll, then the bottle empties.

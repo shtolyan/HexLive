@@ -23,7 +23,9 @@ public static class WorldObjectMutations
             DefinitionId = definitionId,
             Fragment = fragment,
             Tile = tile,
-            ResourceAmount = 1f,
+            ResourceAmount = definitionId == "food.coconut_pierced"
+                ? SimBalance.CoconutWaterCapacity
+                : 1f,
             SpawnTick = world.Tick
         };
         worldObject.Junctions.Add(anchorJunction);

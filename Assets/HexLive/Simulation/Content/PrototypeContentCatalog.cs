@@ -45,7 +45,7 @@ public static class PrototypeContentCatalog
                     {
                         Id = "drink.coconut_pierced",
                         Type = InteractionType.Drink,
-                        DurationTicks = 16,
+                        DurationTicks = SimBalance.DrinkBottleDurationTicks,
                         Effects = { ThirstDelta = -SimBalance.CoconutThirst, ComfortDelta = 0.05f }
                     },
                     new InteractionDefinition
@@ -54,6 +54,12 @@ public static class PrototypeContentCatalog
                         Type = InteractionType.Process,
                         DurationTicks = SimBalance.CoconutProcessDurationTicks,
                         Yields = { new HarvestDrop { DefinitionId = "food.coconut_open", Count = 2, Scatter = false } }
+                    },
+                    new InteractionDefinition
+                    {
+                        Id = "pickup.coconut_pierced",
+                        Type = InteractionType.PickUp,
+                        DurationTicks = 4
                     }
                 },
                 Tags = { "Coconut", "CoconutWater" }

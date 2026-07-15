@@ -326,6 +326,15 @@ public sealed class NpcSnapshot
 
     public List<string> InventoryItems { get; } = new();
 
+    // Spec 40.11: "definitionId\tdurability" per carried item — lets the
+    // inventory detail view show clothing HP even after a damaged garment is
+    // taken off.
+    public List<string> InventoryDurability { get; } = new();
+
+    // "definitionId\tamountLiters\tcapacityLiters" for carried water containers.
+    // The UI treats bottle and pierced coconut as one water-container category.
+    public List<string> InventoryWater { get; } = new();
+
     public List<string> WornItems { get; } = new();
 
     // Spec 40.11: "definitionId\tdurability" per worn garment — for the

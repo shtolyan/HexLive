@@ -29,7 +29,7 @@ namespace HexLive.Simulation.Persistence
 //   on load, rebuilt on first pathfind).
 public static class WorldSaveSerializer
 {
-    public const int BlobVersion = 2; // v2: NPCNeeds.HerbalBandages (spec 44)
+    public const int BlobVersion = 3; // v3: ItemInstance.ResourceAmount (portable coconut water)
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
 
@@ -990,6 +990,7 @@ public static class WorldSaveSerializer
             w.Write(item.DefinitionId);
             w.Write(item.Wetness);
             w.Write(item.Durability);
+            w.Write(item.ResourceAmount);
         }
     }
 
@@ -1001,7 +1002,8 @@ public static class WorldSaveSerializer
             items.Add(new ItemInstance(r.ReadString())
             {
                 Wetness = r.ReadSingle(),
-                Durability = r.ReadSingle()
+                Durability = r.ReadSingle(),
+                ResourceAmount = r.ReadSingle()
             });
         }
     }

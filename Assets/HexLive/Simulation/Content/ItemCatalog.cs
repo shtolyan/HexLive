@@ -143,10 +143,22 @@ namespace HexLive.Simulation.Content
         // Importance of a specific item, category resolved from its definition
         // (falls back to the id-prefix heuristic when the def is absent).
         public static int Importance(ObjectDefinition def) =>
-            Importance(def != null ? Classify(def) : ItemCategory.Misc);
+            Importance(def != null && IsWaterSourceId(def.Id)
+                ? ItemCategory.Water
+                : def != null ? Classify(def) : ItemCategory.Misc);
 
         public static int ImportanceById(string definitionId) =>
-            Importance(ClassifyById(definitionId));
+            Importance(IsWaterSourceId(definitionId)
+                ? ItemCategory.Water
+                : ClassifyById(definitionId));
+
+        public static bool IsWaterContainerId(string definitionId) =>
+            definitionId == "tool.bottle" ||
+            definitionId == "food.coconut_pierced";
+
+        public static bool IsWaterSourceId(string definitionId) =>
+            IsWaterContainerId(definitionId) ||
+            definitionId == "food.coconut";
 
         // Resolve from a full definition (preferred — tags/layer drive category).
         public static ItemInfo Resolve(ObjectDefinition def)
@@ -177,6 +189,14 @@ namespace HexLive.Simulation.Content
             }
 
             var tags = def.Tags;
+
+            // Water containers are strategic inventory items regardless of their
+            // static authoring tags: bottle is technically a tool, pierced coconut
+            // is technically a coconut, but both are carried water.
+            if (IsWaterContainerId(def.Id) || tags.Contains("CoconutWater"))
+            {
+                return ItemCategory.Water;
+            }
 
             // Wearables first: a Layer (or the Clothing tag) makes it apparel;
             // the Armor tag splits protective gear from plain clothing.
@@ -234,6 +254,7 @@ namespace HexLive.Simulation.Content
                 return ItemCategory.Misc;
             }
 
+            if (IsWaterContainerId(id)) return ItemCategory.Water;
             if (id.StartsWith("armor.")) return ItemCategory.Armor;
             if (id.StartsWith("clothing.") || id.StartsWith("underwear.")) return ItemCategory.Clothing;
             if (id.StartsWith("food.")) return ItemCategory.Food;

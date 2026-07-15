@@ -89,6 +89,7 @@ namespace HexLive.Simulation.Runtime
         public static float DrinkComfortBoiled = 0.05f;    // boiled water is a small comfort too
         // Spec §52: a filled bottle holds several gulps — refill only when dry.
         public static int BottleCapacity = 3;              // drinks per fill
+        public static int CoconutWaterCapacity = 4;        // pierced coconut gulps
 
         // ─────────────────────────────────────────────────────────────
         // Spec §52: slot inventory. The pack has no base cap — the body
@@ -124,9 +125,9 @@ namespace HexLive.Simulation.Runtime
         // ─────────────────────────────────────────────────────────────
         public static float CoconutHunger = 0.6f;      // eating a coconut
         public static float CookedMeatHunger = 0.9f;   // eating cooked meat
-        // §55: cracking a coconut open quenches thirst (the only water source
-        // now that rivers/sea are undrinkable). Matches the old raw-bottle drink.
-        public static float CoconutThirst = 0.7f;      // drinking a coconut
+        // §55: pierced coconut water is drunk one small gulp at a time; the full
+        // coconut quenches roughly one thirst bar across CoconutWaterCapacity uses.
+        public static float CoconutThirst = 0.25f;     // thirst removed per coconut gulp
 
         // ─────────────────────────────────────────────────────────────
         // Temperature model. Effective temp = global + warmth×10 (+indoor/

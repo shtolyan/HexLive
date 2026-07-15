@@ -87,6 +87,12 @@ namespace HexLive.UnityPresentation.UI
         private string _invSelectedId;        // item shown in the detail view
         private bool _invSelectedWorn;
 
+        private struct WaterContainerState
+        {
+            public float Amount;
+            public float Capacity;
+        }
+
         // Static (re-labeled on language change)
         private Label _needsTitle;
         private Label _relationsTitle;
@@ -115,6 +121,11 @@ namespace HexLive.UnityPresentation.UI
         // only the bar slides away; a small bottom tab brings it back.
         private bool _collapsed;
         private VisualElement _expandTab;
+
+        private const float PanelBottomOffset = 36f;
+        private const float CharacterCardHeight = 286f;
+        private const float FloatingInventoryGap = 12f;
+        private const float InventoryWindowBottom = PanelBottomOffset + CharacterCardHeight + FloatingInventoryGap;
 
         // ── palette ───────────────────────────────────────────────────────
         private static readonly Color Text = new(0.906f, 0.925f, 0.937f);
@@ -313,12 +324,32 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            var barPixels = _card.layout.height * scale;      // bar height from the bottom
-            var overBar = mousePos.y <= barPixels;
+            var overBar = PointerOverElement(_stage, mousePos, scale);
 
             // The inventory window floats ABOVE the bar — its own bounds must
             // also swallow clicks, or picking one of its items deselects the NPC.
             NpcSelection.PointerOverUi = overBar || PointerOverInventory(mousePos, scale);
+        }
+
+        private static bool PointerOverElement(VisualElement element, Vector2 mousePos, float scale)
+        {
+            if (element == null)
+            {
+                return false;
+            }
+
+            var wb = element.worldBound;
+            if (float.IsNaN(wb.x) || wb.width < 1f || wb.height < 1f)
+            {
+                return false;
+            }
+
+            var left = wb.xMin * scale;
+            var right = wb.xMax * scale;
+            var top = Screen.height - wb.yMin * scale;
+            var bottom = Screen.height - wb.yMax * scale;
+            return mousePos.x >= left && mousePos.x <= right &&
+                   mousePos.y >= bottom && mousePos.y <= top;
         }
 
         // Is the cursor within the open inventory window? worldBound is in panel
@@ -826,7 +857,7 @@ namespace HexLive.UnityPresentation.UI
             _inventoryWindow = new VisualElement();
             _inventoryWindow.style.position = Position.Absolute;
             _inventoryWindow.style.left = 20f;
-            _inventoryWindow.style.bottom = 248f;   // clear of the card + its margin
+            _inventoryWindow.style.bottom = InventoryWindowBottom;
             _inventoryWindow.style.width = 440f;
             _inventoryWindow.style.maxHeight = 470f;
             _inventoryWindow.style.backgroundColor = Panel;
@@ -1037,18 +1068,21 @@ namespace HexLive.UnityPresentation.UI
             var capacity = npc.InventoryCapacity > 0 ? npc.InventoryCapacity : 10;
             _inventoryCapacity.text = $"{npc.InventoryItems.Count}/{capacity} {Loc.Get("inv.slots")}";
 
-            var durability = ParseKv(npc.WornDurability);
+            var wornDurability = ParseKv(npc.WornDurability);
+            var carriedDurability = ParseKv(npc.InventoryDurability);
+            var carriedWater = ParseWaterKv(npc.InventoryWater);
             var wetness = ParseKv(npc.WornWetness);
 
             var sig = string.Join(",", npc.WornItems) + "|" + string.Join(",", npc.InventoryItems)
-                + "|" + string.Join(",", npc.WornWetness) + "|" + string.Join(",", npc.WornDurability);
+                + "|" + string.Join(",", npc.WornWetness) + "|" + string.Join(",", npc.WornDurability)
+                + "|" + string.Join(",", npc.InventoryDurability) + "|" + string.Join(",", npc.InventoryWater);
             if (sig == _invSig)
             {
                 return;
             }
 
             _invSig = sig;
-            RebuildItemList(npc, durability, wetness);
+            RebuildItemList(npc, wornDurability, carriedDurability, carriedWater, wetness);
 
             // Keep the detail view coherent: if the shown item is still present,
             // re-render it (its wetness/durability may have moved); else drop back.
@@ -1058,7 +1092,8 @@ namespace HexLive.UnityPresentation.UI
                     .Contains(_invSelectedId);
                 if (present)
                 {
-                    ShowItemDetail(_invSelectedId, _invSelectedWorn, durability, wetness);
+                    var selectedDurability = _invSelectedWorn ? wornDurability : carriedDurability;
+                    ShowItemDetail(_invSelectedId, _invSelectedWorn, selectedDurability, carriedWater, wetness);
                 }
                 else
                 {
@@ -1069,7 +1104,9 @@ namespace HexLive.UnityPresentation.UI
 
         private void RebuildItemList(
             NpcSnapshot npc,
-            Dictionary<string, float> durability,
+            Dictionary<string, float> wornDurability,
+            Dictionary<string, float> carriedDurability,
+            Dictionary<string, WaterContainerState> carriedWater,
             Dictionary<string, float> wetness)
         {
             _invListBody.Clear();
@@ -1080,7 +1117,7 @@ namespace HexLive.UnityPresentation.UI
                 _invListBody.Add(MakeInvSectionHeader(Loc.Get("inv.worn")));
                 foreach (var id in npc.WornItems)
                 {
-                    _invListBody.Add(BuildItemRow(id, true, durability, wetness));
+                    _invListBody.Add(BuildItemRow(id, true, wornDurability, carriedWater, wetness));
                 }
 
                 any = true;
@@ -1091,7 +1128,7 @@ namespace HexLive.UnityPresentation.UI
                 _invListBody.Add(MakeInvSectionHeader(Loc.Get("inv.carried")));
                 foreach (var id in npc.InventoryItems)
                 {
-                    _invListBody.Add(BuildItemRow(id, false, durability, wetness));
+                    _invListBody.Add(BuildItemRow(id, false, carriedDurability, carriedWater, wetness));
                 }
 
                 any = true;
@@ -1124,11 +1161,13 @@ namespace HexLive.UnityPresentation.UI
             string id,
             bool worn,
             Dictionary<string, float> durability,
+            Dictionary<string, WaterContainerState> water,
             Dictionary<string, float> wetness)
         {
             var def = ResolveDef(id);
             var info = def != null ? ItemCatalog.Resolve(def) : ItemCatalog.Resolve(id);
-            var accent = CategoryColor(info.Category);
+            var isWaterContainer = !worn && IsWaterContainerId(id);
+            var accent = isWaterContainer ? CategoryColor(ItemCategory.Water) : CategoryColor(info.Category);
 
             var row = new VisualElement();
             row.style.flexDirection = FlexDirection.Row;
@@ -1184,7 +1223,7 @@ namespace HexLive.UnityPresentation.UI
             name.style.overflow = Overflow.Hidden;
             name.style.textOverflow = TextOverflow.Ellipsis;
             mid.Add(name);
-            var cat = new Label(Loc.Get(info.CategoryNameKey));
+            var cat = new Label(isWaterContainer ? Loc.Get("inv.water_container") : Loc.Get(info.CategoryNameKey));
             cat.style.color = accent;
             cat.style.fontSize = 10.5f;
             cat.style.unityFontStyleAndWeight = FontStyle.Bold;
@@ -1206,7 +1245,7 @@ namespace HexLive.UnityPresentation.UI
             row.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(row, Stroke));
             row.RegisterCallback<MouseDownEvent>(evt =>
             {
-                ShowItemDetail(id, worn, durability, wetness);
+                ShowItemDetail(id, worn, durability, water, wetness);
                 evt.StopPropagation();
             });
 
@@ -1217,6 +1256,7 @@ namespace HexLive.UnityPresentation.UI
             string id,
             bool worn,
             Dictionary<string, float> durability,
+            Dictionary<string, WaterContainerState> water,
             Dictionary<string, float> wetness)
         {
             _invSelectedId = id;
@@ -1224,7 +1264,8 @@ namespace HexLive.UnityPresentation.UI
 
             var def = ResolveDef(id);
             var info = def != null ? ItemCatalog.Resolve(def) : ItemCatalog.Resolve(id);
-            var accent = CategoryColor(info.Category);
+            var isWaterContainer = !worn && IsWaterContainerId(id);
+            var accent = isWaterContainer ? CategoryColor(ItemCategory.Water) : CategoryColor(info.Category);
 
             var detailIcon = LoadItemIcon(id);
             if (detailIcon != null)
@@ -1240,23 +1281,26 @@ namespace HexLive.UnityPresentation.UI
                 _invDetailEmoji.text = info.Emoji;
             }
             _invDetailName.text = ItemName(def, info);
-            _invDetailCategory.text = Loc.Get(info.CategoryNameKey).ToUpperInvariant();
+            _invDetailCategory.text = (isWaterContainer
+                ? Loc.Get("inv.water_container")
+                : Loc.Get(info.CategoryNameKey)).ToUpperInvariant();
             _invDetailCategory.style.color = accent;
             _invDetailDesc.text = ItemDesc(info);
 
-            BuildItemStats(def, info, worn, durability, wetness);
+            BuildItemStats(def, info, worn, durability, water, wetness);
 
             _invListView.style.display = DisplayStyle.None;
             _invDetailView.style.display = DisplayStyle.Flex;
         }
 
         // Derived stat lines: warmth/armor/coverage/layer for apparel, hunger
-        // restore for food, plus the live wetness/durability of a worn instance.
+        // restore for food, plus live per-instance clothing state.
         private void BuildItemStats(
             ObjectDefinition def,
             ItemInfo info,
             bool worn,
             Dictionary<string, float> durability,
+            Dictionary<string, WaterContainerState> water,
             Dictionary<string, float> wetness)
         {
             _invDetailStats.Clear();
@@ -1311,25 +1355,153 @@ namespace HexLive.UnityPresentation.UI
                     Loc.Get("inv.restores"), $"+{Mathf.RoundToInt(-hunger * 100f)}%", CategoryColor(ItemCategory.Food)));
             }
 
-            // Live per-instance state (worn garments only).
-            if (worn)
+            if (!worn && water.TryGetValue(info.DefinitionId, out var waterState))
             {
-                if (durability.TryGetValue(info.DefinitionId, out var dur))
-                {
-                    _invDetailStats.Add(MakeStatRow(
-                        Loc.Get("inv.durability"), $"{Mathf.RoundToInt(dur * 100f)}%",
-                        dur < 0.35f ? Crit : TextDim));
-                }
-
-                if (wetness.TryGetValue(info.DefinitionId, out var wet))
-                {
-                    var soaked = wet > 0.5f;
-                    var label = soaked ? Loc.Get("inv.soaked") : Loc.Get("inv.dry");
-                    _invDetailStats.Add(MakeStatRow(
-                        Loc.Get("inv.wetness"), $"{label} ({Mathf.RoundToInt(wet * 100f)}%)",
-                        soaked ? Thirst : TextDim));
-                }
+                _invDetailStats.Add(MakeWaterContainerBlock(waterState));
             }
+
+            if (def.Layer.HasValue &&
+                durability.TryGetValue(info.DefinitionId, out var dur))
+            {
+                _invDetailStats.Add(MakeClothingHpBlock(dur));
+            }
+
+            // Wetness is exported for worn garments, where it affects warmth
+            // and movement; carried item wetness stays hidden for now.
+            if (worn && wetness.TryGetValue(info.DefinitionId, out var wet))
+            {
+                var soaked = wet > 0.5f;
+                var label = soaked ? Loc.Get("inv.soaked") : Loc.Get("inv.dry");
+                _invDetailStats.Add(MakeStatRow(
+                    Loc.Get("inv.wetness"), $"{label} ({Mathf.RoundToInt(wet * 100f)}%)",
+                    soaked ? Thirst : TextDim));
+            }
+        }
+
+        private VisualElement MakeWaterContainerBlock(WaterContainerState state)
+        {
+            var capacity = Mathf.Max(0.001f, state.Capacity);
+            var amount = Mathf.Clamp(state.Amount, 0f, capacity);
+            var value = Mathf.Clamp01(amount / capacity);
+            var pct = Mathf.RoundToInt(value * 100f);
+            var color = CategoryColor(ItemCategory.Water);
+
+            var block = new VisualElement();
+            block.style.backgroundColor = PanelMid;
+            block.style.marginTop = 4f;
+            block.style.marginBottom = 8f;
+            block.style.paddingLeft = 10f;
+            block.style.paddingRight = 10f;
+            block.style.paddingTop = 9f;
+            block.style.paddingBottom = 10f;
+            SetBorder(block, new Color(color.r, color.g, color.b, 0.34f), 1f);
+            SetRadius(block, 8f);
+
+            var header = new VisualElement();
+            header.style.flexDirection = FlexDirection.Row;
+            header.style.alignItems = Align.Center;
+            header.style.justifyContent = Justify.SpaceBetween;
+            header.style.marginBottom = 8f;
+
+            var label = new Label(Loc.Get("inv.water_left"));
+            label.style.color = Text;
+            label.style.fontSize = 12.5f;
+            label.style.unityFontStyleAndWeight = FontStyle.Bold;
+            header.Add(label);
+
+            var liters = Loc.Get("inv.liters");
+            var valueLabel = new Label(
+                $"{FormatLiters(amount)} / {FormatLiters(capacity)} {liters} - {pct}%");
+            valueLabel.style.color = color;
+            valueLabel.style.fontSize = 12.5f;
+            valueLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            valueLabel.style.flexShrink = 0f;
+            valueLabel.style.marginLeft = 10f;
+            header.Add(valueLabel);
+            block.Add(header);
+
+            var track = MakeTrack(12f);
+            track.style.backgroundColor = new Color(0.035f, 0.046f, 0.054f);
+
+            var fill = MakeFill(color);
+            fill.style.width = Length.Percent(value * 100f);
+            fill.style.minWidth = value > 0f ? 4f : 0f;
+            track.Add(fill);
+
+            block.Add(track);
+            return block;
+        }
+
+        private VisualElement MakeClothingHpBlock(float durability)
+        {
+            var value = Mathf.Clamp01(durability);
+            var pct = Mathf.RoundToInt(value * 100f);
+            var color = DurabilityColor(value);
+
+            var block = new VisualElement();
+            block.style.backgroundColor = PanelMid;
+            block.style.marginTop = 4f;
+            block.style.marginBottom = 8f;
+            block.style.paddingLeft = 10f;
+            block.style.paddingRight = 10f;
+            block.style.paddingTop = 9f;
+            block.style.paddingBottom = 10f;
+            SetBorder(block, new Color(color.r, color.g, color.b, 0.34f), 1f);
+            SetRadius(block, 8f);
+
+            var header = new VisualElement();
+            header.style.flexDirection = FlexDirection.Row;
+            header.style.alignItems = Align.Center;
+            header.style.justifyContent = Justify.SpaceBetween;
+            header.style.marginBottom = 8f;
+
+            var label = new Label(Loc.Get("inv.clothing_hp"));
+            label.style.color = Text;
+            label.style.fontSize = 12.5f;
+            label.style.unityFontStyleAndWeight = FontStyle.Bold;
+            header.Add(label);
+
+            var valueLabel = new Label($"{pct}% - {DurabilityCondition(value)}");
+            valueLabel.style.color = color;
+            valueLabel.style.fontSize = 12.5f;
+            valueLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            valueLabel.style.flexShrink = 0f;
+            valueLabel.style.marginLeft = 10f;
+            header.Add(valueLabel);
+            block.Add(header);
+
+            var track = MakeTrack(12f);
+            track.style.backgroundColor = new Color(0.035f, 0.046f, 0.054f);
+
+            var fill = MakeFill(color);
+            fill.style.width = Length.Percent(value * 100f);
+            fill.style.minWidth = value > 0f ? 4f : 0f;
+
+            var shine = new VisualElement();
+            shine.style.position = Position.Absolute;
+            shine.style.left = 1f;
+            shine.style.right = 1f;
+            shine.style.top = 1f;
+            shine.style.height = 3f;
+            shine.style.backgroundColor = new Color(1f, 1f, 1f, 0.22f);
+            SetRadius(shine, 2f);
+            fill.Add(shine);
+            track.Add(fill);
+
+            for (var i = 1; i < 4; i++)
+            {
+                var tick = new VisualElement();
+                tick.style.position = Position.Absolute;
+                tick.style.top = 2f;
+                tick.style.bottom = 2f;
+                tick.style.left = Length.Percent(i * 25f);
+                tick.style.width = 1f;
+                tick.style.backgroundColor = new Color(1f, 1f, 1f, 0.16f);
+                track.Add(tick);
+            }
+
+            block.Add(track);
+            return block;
         }
 
         private VisualElement MakeStatRow(string label, string value, Color valueColor)
@@ -1399,6 +1571,9 @@ namespace HexLive.UnityPresentation.UI
             return Loc.Has(info.DescKey) ? Loc.Get(info.DescKey) : Loc.Get(info.CategoryDescKey);
         }
 
+        private static bool IsWaterContainerId(string id) =>
+            ItemCatalog.IsWaterContainerId(id);
+
         // Parse the "definitionId\tvalue" pairs the exporter packs (spec 40.11).
         private static Dictionary<string, float> ParseKv(List<string> pairs)
         {
@@ -1423,6 +1598,49 @@ namespace HexLive.UnityPresentation.UI
             }
 
             return map;
+        }
+
+        // Parse "definitionId\tamountLiters\tcapacityLiters" entries for
+        // portable water containers (bottle and pierced coconut).
+        private static Dictionary<string, WaterContainerState> ParseWaterKv(List<string> pairs)
+        {
+            var map = new Dictionary<string, WaterContainerState>();
+            foreach (var raw in pairs)
+            {
+                var parts = raw.Split('\t');
+                if (parts.Length < 3)
+                {
+                    continue;
+                }
+
+                if (float.TryParse(
+                        parts[1],
+                        System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out var amount) &&
+                    float.TryParse(
+                        parts[2],
+                        System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out var capacity))
+                {
+                    map[parts[0]] = new WaterContainerState
+                    {
+                        Amount = amount,
+                        Capacity = capacity
+                    };
+                }
+            }
+
+            return map;
+        }
+
+        private static string FormatLiters(float value)
+        {
+            var rounded = Mathf.Round(value);
+            return Mathf.Abs(value - rounded) < 0.05f
+                ? rounded.ToString("0", System.Globalization.CultureInfo.InvariantCulture)
+                : value.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
         }
 
         private static float RawNeed(NpcSnapshot npc, string key)
@@ -1561,18 +1779,19 @@ namespace HexLive.UnityPresentation.UI
             _stage.style.flexDirection = FlexDirection.Column;
             _stage.style.alignItems = Align.Stretch;
             _stage.style.width = Length.Percent(100);
-            _stage.style.marginBottom = 12f;
+            _stage.style.marginBottom = PanelBottomOffset;
             _stage.pickingMode = PickingMode.Ignore;
             _root.Add(_stage);
 
             BuildThought();
             BuildEffectsRow();
 
-            // Three-zone card; height fits two rows of needs.
+            // Three-zone card; height fits the full needs grid including
+            // Compassion, which can wrap onto its own row in RU/EN layouts.
             var card = new VisualElement();
             card.style.flexDirection = FlexDirection.Row;
             card.style.width = Length.Percent(100);
-            card.style.height = 224f;
+            card.style.height = CharacterCardHeight;
             card.style.backgroundColor = Stroke;
             SetBorder(card, StrokeStrong, 1f);
             SetRadius(card, 16f);
@@ -2179,6 +2398,21 @@ namespace HexLive.UnityPresentation.UI
             if (v >= 0.55f) return Good;
             if (v >= 0.30f) return Warn;
             return Crit;
+        }
+
+        private static Color DurabilityColor(float v)
+        {
+            if (v >= 0.65f) return Good;
+            if (v >= 0.35f) return Warn;
+            return Crit;
+        }
+
+        private static string DurabilityCondition(float v)
+        {
+            if (v >= 0.95f) return Loc.Get("inv.condition_ok");
+            if (v >= 0.65f) return Loc.Get("inv.condition_good");
+            if (v >= 0.35f) return Loc.Get("inv.condition_worn");
+            return Loc.Get("inv.condition_torn");
         }
 
         private static int HeartsFor(float affinity)

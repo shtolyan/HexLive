@@ -388,6 +388,9 @@ namespace HexLive.UnityPresentation.Localization
             ["inv.hydrates"] = new[] { "Quenches thirst", "Утоляет жажду" },
             ["inv.dry"] = new[] { "dry", "сухая" },
             ["inv.soaked"] = new[] { "soaked", "промокла" },
+            ["inv.definition_id"] = new[] { "Definition", "ID предмета" },
+            ["inv.status"] = new[] { "Status", "Статус" },
+            ["inv.missing_definition"] = new[] { "Missing definition", "Нет описания" },
 
             // Wear layers (spec 31A.5B).
             ["layer.underwear"] = new[] { "Underwear", "Бельё" },
@@ -454,6 +457,14 @@ namespace HexLive.UnityPresentation.Localization
             },
             ["itemcat.misc.name"] = new[] { "Item", "Предмет" },
             ["itemcat.misc.desc"] = new[] { "A carried item.", "Носимый предмет." },
+
+            ["item.unknown.name"] = new[] { "Unknown item", "Неизвестный предмет" },
+            ["item.unknown.category"] = new[] { "Unknown", "Неизвестно" },
+            ["item.unknown.desc"] = new[]
+            {
+                "This item is in the inventory, but its definition is missing: {0}.",
+                "Этот предмет есть в инвентаре, но его описание не найдено: {0}."
+            },
 
             // Core item names + descriptions (imported garments fall back to
             // their DisplayName + the clothing blurb above).

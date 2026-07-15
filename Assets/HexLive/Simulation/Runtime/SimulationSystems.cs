@@ -188,7 +188,7 @@ public static class Spec53
 
     // Relationship gain on BOTH sides of a completed aid — deliberately larger
     // than a chat: kindness under hardship bonds hard.
-    public static float AidRelationshipGain = 0.36f;
+    public static float AidRelationshipGain = 0.18f;
 
     // How long the aid interaction runs (ticks), mirroring a talk.
     public static int AidDuration = 70;
@@ -5751,16 +5751,16 @@ public sealed class ExecutionSystem : ISimulationSystem
     private static int TalkDurationTicks => Spec49.TalkDuration;
     private static float TalkInitiatorSocialGain => Spec49.TalkInitGain;
     private static float TalkListenerSocialGain => Spec49.TalkListenGain;
-    private const float TalkRelationshipGain = 0.15f;
+    private const float TalkRelationshipGain = 0.075f;
 
     // Spec 28.15B: quarrels and refusal-by-dislike.
     private const float QuarrelInitiatorSocialGain = 0.15f;
     private const float QuarrelListenerSocialGain = 0.10f;
-    private const float QuarrelAffinityLoss = 0.36f;
+    private const float QuarrelAffinityLoss = 0.18f;
     private const float QuarrelEmbarrassment = 0.30f;
     private const float RefusalAffinityThreshold = -0.25f;
     private const float LonelinessOverrideThreshold = 0.25f;
-    private const float RejectionAffinityPenalty = 0.15f;
+    private const float RejectionAffinityPenalty = 0.075f;
 
     private static void RunTalk(WorldState world, NPCState npc)
     {

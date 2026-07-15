@@ -370,8 +370,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 0.5f)] public float compassionMedicateHeal = 0.1f;
         [Tooltip("На сколько снижается СТРЕСС утешённого соседа.")]
         [Range(0f, 1f)] public float compassionConsoleStressRelief = 0.3f;
-        [Tooltip("Прибавка к отношениям с ОБЕИХ сторон за помощь (у разговора 0.15 — доброта роднит сильнее).")]
-        [Range(0f, 0.5f)] public float compassionAidRelationshipGain = 0.36f;
+        [Tooltip("Прибавка к отношениям с ОБЕИХ сторон за помощь (у разговора 0.075 — доброта роднит сильнее).")]
+        [Range(0f, 0.5f)] public float compassionAidRelationshipGain = 0.18f;
         [Tooltip("Длительность действия помощи (тиков).")]
         [Range(10, 200)] public int compassionAidDuration = 70;
         [Tooltip("Сколько своего сострадания восстанавливает завершённая помощь.")]

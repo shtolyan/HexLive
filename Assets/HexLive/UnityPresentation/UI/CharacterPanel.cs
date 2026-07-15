@@ -1169,7 +1169,7 @@ namespace HexLive.UnityPresentation.UI
             Dictionary<string, float> wetness)
         {
             var def = ResolveDef(id);
-            var info = def != null ? ItemCatalog.Resolve(def) : ItemCatalog.Resolve(id);
+            var info = ResolveItemInfo(id, def);
             var isWaterContainer = !worn && IsWaterContainerId(id);
             var stackCount = !worn && stacks.TryGetValue(id, out var count) ? count : 1;
             var accent = isWaterContainer ? CategoryColor(ItemCategory.Water) : CategoryColor(info.Category);
@@ -1228,7 +1228,7 @@ namespace HexLive.UnityPresentation.UI
             name.style.overflow = Overflow.Hidden;
             name.style.textOverflow = TextOverflow.Ellipsis;
             mid.Add(name);
-            var cat = new Label(isWaterContainer ? Loc.Get("inv.water_container") : Loc.Get(info.CategoryNameKey));
+            var cat = new Label(ItemCategoryName(def, info, isWaterContainer));
             cat.style.color = accent;
             cat.style.fontSize = 10.5f;
             cat.style.unityFontStyleAndWeight = FontStyle.Bold;
@@ -1287,7 +1287,7 @@ namespace HexLive.UnityPresentation.UI
             _invSelectedWorn = worn;
 
             var def = ResolveDef(id);
-            var info = def != null ? ItemCatalog.Resolve(def) : ItemCatalog.Resolve(id);
+            var info = ResolveItemInfo(id, def);
             var isWaterContainer = !worn && IsWaterContainerId(id);
             var accent = isWaterContainer ? CategoryColor(ItemCategory.Water) : CategoryColor(info.Category);
 
@@ -1305,11 +1305,9 @@ namespace HexLive.UnityPresentation.UI
                 _invDetailEmoji.text = info.Emoji;
             }
             _invDetailName.text = ItemName(def, info);
-            _invDetailCategory.text = (isWaterContainer
-                ? Loc.Get("inv.water_container")
-                : Loc.Get(info.CategoryNameKey)).ToUpperInvariant();
+            _invDetailCategory.text = ItemCategoryName(def, info, isWaterContainer).ToUpperInvariant();
             _invDetailCategory.style.color = accent;
-            _invDetailDesc.text = ItemDesc(info);
+            _invDetailDesc.text = ItemDesc(def, info);
 
             BuildItemStats(def, info, worn, durability, water, stacks, wetness);
 
@@ -1329,15 +1327,41 @@ namespace HexLive.UnityPresentation.UI
             Dictionary<string, float> wetness)
         {
             _invDetailStats.Clear();
-            if (def == null)
-            {
-                return;
-            }
-
             if (!worn && stacks.TryGetValue(info.DefinitionId, out var stackCount) && stackCount > 1)
             {
                 _invDetailStats.Add(MakeStatRow(
                     Loc.Get("inv.stack"), $"x{stackCount}", CategoryColor(ItemCategory.Resource)));
+            }
+
+            if (!worn && water.TryGetValue(info.DefinitionId, out var waterState))
+            {
+                _invDetailStats.Add(MakeWaterContainerBlock(waterState));
+            }
+
+            if ((def == null || def.Layer.HasValue) &&
+                durability.TryGetValue(info.DefinitionId, out var itemDurability))
+            {
+                _invDetailStats.Add(MakeClothingHpBlock(
+                    itemDurability,
+                    def != null && def.Layer.HasValue ? "inv.clothing_hp" : "inv.durability"));
+            }
+
+            if (worn && wetness.TryGetValue(info.DefinitionId, out var wet))
+            {
+                var soaked = wet > 0.5f;
+                var label = soaked ? Loc.Get("inv.soaked") : Loc.Get("inv.dry");
+                _invDetailStats.Add(MakeStatRow(
+                    Loc.Get("inv.wetness"), $"{label} ({Mathf.RoundToInt(wet * 100f)}%)",
+                    soaked ? Thirst : TextDim));
+            }
+
+            if (def == null)
+            {
+                _invDetailStats.Add(MakeStatRow(
+                    Loc.Get("inv.definition_id"), MissingItemId(info.DefinitionId), TextDim));
+                _invDetailStats.Add(MakeStatRow(
+                    Loc.Get("inv.status"), Loc.Get("inv.missing_definition"), Warn));
+                return;
             }
 
             // Aggregate the interaction effects that matter for a summary.
@@ -1386,27 +1410,6 @@ namespace HexLive.UnityPresentation.UI
                     Loc.Get("inv.restores"), $"+{Mathf.RoundToInt(-hunger * 100f)}%", CategoryColor(ItemCategory.Food)));
             }
 
-            if (!worn && water.TryGetValue(info.DefinitionId, out var waterState))
-            {
-                _invDetailStats.Add(MakeWaterContainerBlock(waterState));
-            }
-
-            if (def.Layer.HasValue &&
-                durability.TryGetValue(info.DefinitionId, out var dur))
-            {
-                _invDetailStats.Add(MakeClothingHpBlock(dur));
-            }
-
-            // Wetness is exported for worn garments, where it affects warmth
-            // and movement; carried item wetness stays hidden for now.
-            if (worn && wetness.TryGetValue(info.DefinitionId, out var wet))
-            {
-                var soaked = wet > 0.5f;
-                var label = soaked ? Loc.Get("inv.soaked") : Loc.Get("inv.dry");
-                _invDetailStats.Add(MakeStatRow(
-                    Loc.Get("inv.wetness"), $"{label} ({Mathf.RoundToInt(wet * 100f)}%)",
-                    soaked ? Thirst : TextDim));
-            }
         }
 
         private VisualElement MakeWaterContainerBlock(WaterContainerState state)
@@ -1463,7 +1466,7 @@ namespace HexLive.UnityPresentation.UI
             return block;
         }
 
-        private VisualElement MakeClothingHpBlock(float durability)
+        private VisualElement MakeClothingHpBlock(float durability, string labelKey = "inv.clothing_hp")
         {
             var value = Mathf.Clamp01(durability);
             var pct = Mathf.RoundToInt(value * 100f);
@@ -1486,7 +1489,7 @@ namespace HexLive.UnityPresentation.UI
             header.style.justifyContent = Justify.SpaceBetween;
             header.style.marginBottom = 8f;
 
-            var label = new Label(Loc.Get("inv.clothing_hp"));
+            var label = new Label(Loc.Get(labelKey));
             label.style.color = Text;
             label.style.fontSize = 12.5f;
             label.style.unityFontStyleAndWeight = FontStyle.Bold;
@@ -1594,13 +1597,56 @@ namespace HexLive.UnityPresentation.UI
                 return Loc.Get(info.NameKey);
             }
 
-            return def != null && !string.IsNullOrEmpty(def.DisplayName) ? def.DisplayName : info.DefinitionId;
+            if (def != null && !string.IsNullOrEmpty(def.DisplayName))
+            {
+                return def.DisplayName;
+            }
+
+            return Loc.Get("item.unknown.name");
         }
 
-        private static string ItemDesc(ItemInfo info)
+        private static ItemInfo ResolveItemInfo(string id, ObjectDefinition def)
         {
-            return Loc.Has(info.DescKey) ? Loc.Get(info.DescKey) : Loc.Get(info.CategoryDescKey);
+            if (def != null)
+            {
+                return ItemCatalog.Resolve(def);
+            }
+
+            var info = ItemCatalog.Resolve(id);
+            return Loc.Has(info.NameKey)
+                ? info
+                : new ItemInfo(id, ItemCategory.Misc, ItemCatalog.CategoryEmoji(ItemCategory.Misc));
         }
+
+        private static string ItemCategoryName(ObjectDefinition def, ItemInfo info, bool isWaterContainer)
+        {
+            if (isWaterContainer)
+            {
+                return Loc.Get("inv.water_container");
+            }
+
+            return def == null && !Loc.Has(info.NameKey)
+                ? Loc.Get("item.unknown.category")
+                : Loc.Get(info.CategoryNameKey);
+        }
+
+        private static string ItemDesc(ObjectDefinition def, ItemInfo info)
+        {
+            if (Loc.Has(info.DescKey))
+            {
+                return Loc.Get(info.DescKey);
+            }
+
+            if (def == null)
+            {
+                return string.Format(Loc.Get("item.unknown.desc"), MissingItemId(info.DefinitionId));
+            }
+
+            return Loc.Get(info.CategoryDescKey);
+        }
+
+        private static string MissingItemId(string id) =>
+            string.IsNullOrWhiteSpace(id) ? Loc.Get("panel.none") : id;
 
         private static bool IsWaterContainerId(string id) =>
             ItemCatalog.IsWaterContainerId(id);

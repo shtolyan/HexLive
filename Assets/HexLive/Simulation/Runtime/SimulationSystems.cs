@@ -4058,17 +4058,24 @@ public sealed class MovementSystem : ISimulationSystem
                 // clearance hop (takeoff EdgePadding out in the water, land on
                 // the shore) instead of a flush walk-up — she stops swimming
                 // right against the bank. All water is one elevation, so the
-                // scan below (Tiles[0] steps to a different level) can only fire
-                // on the climb-out; it never hops WITHIN the water.
+                // scan below (directed step tile changes level) can only fire on
+                // the climb-out; it never hops WITHIN the water.
                 var wallIndex = -1;
-                Tile wallTile = default;
+                var wallTile = hopStandTile;
+                Tile wallNearTile = hopStandTile;
                 var scanDist = 0f;
                 var scanFrom = npc.Position;
+                var scanTile = hopStandTile;
                 for (var i = npc.Movement.PathIndex;
                      i < npc.Movement.JunctionPath.Count && scanDist < HexHopTuning.EdgePadding + 1.2f;
                      i++)
                 {
-                    if (!world.Junctions.Items.TryGetValue(npc.Movement.JunctionPath[i], out var jn) ||
+                    var toJunctionId = npc.Movement.JunctionPath[i];
+                    var fromJunctionId = i > 0
+                        ? npc.Movement.JunctionPath[i - 1]
+                        : npc.CurrentJunction ?? toJunctionId;
+
+                    if (!world.Junctions.Items.TryGetValue(toJunctionId, out var jn) ||
                         jn.Tiles.Count == 0)
                     {
                         break;
@@ -4077,39 +4084,36 @@ public sealed class MovementSystem : ISimulationSystem
                     scanDist += HexSpatialMath.Distance(scanFrom, jn.WorldPosition);
                     scanFrom = jn.WorldPosition;
 
-                    // The tile she STEPS ONTO crossing this junction is Tiles[0]
-                    // — the exact rule normal walking uses (see the walk tile
-                    // update ~line 3102). Hop detection MUST use the same tile,
-                    // so it fires only when the tile she actually walks onto
-                    // steps to a different elevation (a drop into water counts).
-                    // Testing every tile of the junction instead fired at seam
-                    // junctions she merely walks ALONG — each borders both levels
-                    // — and she bounced hop-after-hop down the seam.
-                    if (world.Tiles.Items.TryGetValue(jn.Tiles[0], out var jt) &&
-                        jt.Elevation != hopStandTile.Elevation &&
-                        (!IsSwimTile(jt) || jt.Elevation < hopStandTile.Elevation))
+                    // The tile she steps onto is resolved from the direction of
+                    // this path edge. Testing every tile of a seam junction fired
+                    // when she merely walked ALONG the wall; using Tiles[0] made
+                    // the result depend on generation order. This matches normal
+                    // walking's tile update below.
+                    if (!HexPathfinder.TryGetDirectedStepTile(world, fromJunctionId, toJunctionId, out var jt))
+                    {
+                        break;
+                    }
+
+                    if (jt.Elevation != scanTile.Elevation &&
+                        (!IsSwimTile(jt) || jt.Elevation < scanTile.Elevation))
                     {
                         wallIndex = i;
                         wallTile = jt;
+                        wallNearTile = scanTile;
                         break;
                     }
+
+                    scanTile = jt;
                 }
 
                 if (wallIndex >= 0)
                 {
                     // The hop crosses exactly ONE elevation border: she leaves
                     // the tile just BEFORE the wall junction and lands on the
-                    // wall tile (Tiles[0]) — the same tile normal walking would
+                    // directed wall tile — the same tile normal walking would
                     // put her on — so the sim bookkeeping and the visual arc
                     // agree and she never re-arms the same crossing.
-                    var nearCoord = npc.Tile;
-                    if (wallIndex > npc.Movement.PathIndex &&
-                        world.Junctions.Items.TryGetValue(
-                            npc.Movement.JunctionPath[wallIndex - 1], out var beforeJn) &&
-                        beforeJn.Tiles.Count > 0)
-                    {
-                        nearCoord = beforeJn.Tiles[0];
-                    }
+                    var nearCoord = wallNearTile.Coord;
 
                     // Fly straight across the shared edge, near CENTRE -> wall
                     // CENTRE, symmetric EdgePadding before/after the border.
@@ -4131,7 +4135,7 @@ public sealed class MovementSystem : ISimulationSystem
                     npc.Movement.HopLandingIndex = wallIndex;
                     npc.Movement.HopFrom = takeoff;
                     npc.Movement.HopTo = landing;
-                    npc.Movement.HopUp = wallTile.Elevation > hopStandTile.Elevation;
+                    npc.Movement.HopUp = wallTile.Elevation > wallNearTile.Elevation;
                     npc.Movement.HopTargetTile = wallTile.Coord;
                 }
             }
@@ -4360,13 +4364,18 @@ public sealed class MovementSystem : ISimulationSystem
 
             if (distance <= movementPerTick)
             {
+                var previousJunctionId = targetIndex > 0
+                    ? npc.Movement.JunctionPath[targetIndex - 1]
+                    : npc.CurrentJunction ?? targetJunctionId;
+
                 npc.Position = target;
                 npc.CurrentJunction = targetJunctionId;
 
                 var previousTile = npc.Tile;
-                if (targetJunction.Tiles.Count > 0)
+                if (HexPathfinder.TryGetDirectedStepTile(
+                    world, previousJunctionId, targetJunctionId, out var targetTile))
                 {
-                    var newTile = targetJunction.Tiles[0];
+                    var newTile = targetTile.Coord;
                     if (newTile != previousTile)
                     {
                         npc.Tile = newTile;

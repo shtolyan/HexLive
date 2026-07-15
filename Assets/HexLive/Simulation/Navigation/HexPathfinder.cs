@@ -13,26 +13,87 @@ public static class HexPathfinder
         return FindPath(world, start, goal, null, true);
     }
 
-    // Spec §50: does crossing from `fromId` to `toId` need a jump? A hop is
-    // armed (MovementSystem) whenever the tile stepped onto (a junction's
-    // Tiles[0], the same rule normal walking uses) changes elevation — an
-    // up/down step or a drop into water. A survivor who can't jump (a lost leg)
-    // must not route across such an edge, so that terrain is off-limits to her.
+    // Spec §50: the tile reached by a directed step. Shared boundary junctions
+    // own two or three tiles, and Tiles[0] is generation order, not movement
+    // direction. Look just beyond the target junction along the travel vector:
+    // crossing a border picks the tile on the far side, while walking along the
+    // border has no strong forward tile and falls back to the shared current
+    // side. MovementSystem uses the same resolver for hop arming and tile
+    // bookkeeping, so pathability and execution agree.
+    public static bool TryGetDirectedStepTile(
+        WorldState world, JunctionId fromId, JunctionId toId, out Tile tile)
+    {
+        tile = default;
+        if (!world.Junctions.Items.TryGetValue(fromId, out var from) ||
+            !world.Junctions.Items.TryGetValue(toId, out var to) ||
+            to.Tiles.Count == 0)
+        {
+            return false;
+        }
+
+        if (to.Tiles.Count == 1)
+        {
+            return world.Tiles.Items.TryGetValue(to.Tiles[0], out tile);
+        }
+
+        var direction = HexSpatialMath.Normalize(to.WorldPosition - from.WorldPosition);
+        var bestForward = float.NegativeInfinity;
+        Tile bestTile = default;
+        var hasBest = false;
+        foreach (var coord in to.Tiles)
+        {
+            if (!world.Tiles.Items.TryGetValue(coord, out var candidate))
+            {
+                continue;
+            }
+
+            var fromTargetToCenter = HexSpatialMath.TileToWorld(coord) - to.WorldPosition;
+            var forward = fromTargetToCenter.X * direction.X + fromTargetToCenter.Y * direction.Y;
+            if (!hasBest || forward > bestForward)
+            {
+                bestForward = forward;
+                bestTile = candidate;
+                hasBest = true;
+            }
+        }
+
+        const float ForwardTileThreshold = 0.1f;
+        if (hasBest && bestForward > ForwardTileThreshold)
+        {
+            tile = bestTile;
+            return true;
+        }
+
+        foreach (var coord in from.Tiles)
+        {
+            if (to.Tiles.Contains(coord) &&
+                world.Tiles.Items.TryGetValue(coord, out tile))
+            {
+                return true;
+            }
+        }
+
+        if (hasBest)
+        {
+            tile = bestTile;
+            return true;
+        }
+
+        return false;
+    }
+
+    // Spec §50: does crossing from `fromId` to `toId` need a jump? A survivor
+    // who can't jump (a lost leg) must not route across an elevation edge, so
+    // that terrain is off-limits to her.
     public static bool RequiresJump(WorldState world, JunctionId fromId, JunctionId toId)
     {
-        if (!world.Junctions.Items.TryGetValue(fromId, out var from) || from.Tiles.Count == 0 ||
-            !world.Junctions.Items.TryGetValue(toId, out var to) || to.Tiles.Count == 0)
+        if (!TryGetDirectedStepTile(world, toId, fromId, out var fromTile) ||
+            !TryGetDirectedStepTile(world, fromId, toId, out var toTile))
         {
             return false;
         }
 
-        if (!world.Tiles.Items.TryGetValue(from.Tiles[0], out var ft) ||
-            !world.Tiles.Items.TryGetValue(to.Tiles[0], out var tt))
-        {
-            return false;
-        }
-
-        return ft.Elevation != tt.Elevation;
+        return fromTile.Elevation != toTile.Elevation;
     }
 
     // Spec 24.3 (iteration 24): housemates are soft obstacles — avoid the
@@ -94,6 +155,15 @@ public static class HexPathfinder
                 }
 
                 if (neighbor.Blocked && !neighborId.Equals(goal))
+                {
+                    continue;
+                }
+
+                // Climb-seam junctions are jump thresholds, not footpaths.
+                // Traversing seam->seam lets an NPC walk along the vertical lip
+                // and then wedge into the wall; legal routes must approach the
+                // seam from one side and leave on the other.
+                if (IsClimbSeamWalk(world, current, neighborId))
                 {
                     continue;
                 }
@@ -192,6 +262,11 @@ public static class HexPathfinder
         }
 
         return world.ClimbSeams.Contains(to) ? SeamCost : FlatCost;
+    }
+
+    private static bool IsClimbSeamWalk(WorldState world, JunctionId from, JunctionId to)
+    {
+        return world.ClimbSeams.Contains(from) && world.ClimbSeams.Contains(to);
     }
 }
 

@@ -46,6 +46,11 @@ public sealed class NpcSpeechBubble : MonoBehaviour
     private SpriteRenderer _popRenderer;
     private float _popTimer = -1f;
 
+    private Transform _cue;
+    private SpriteRenderer _cueRenderer;
+    private float _cueTimer = -1f;
+    private Color _cueColor = Color.white;
+
     private bool _shown;
     private float _shownAmount; // eased 0..1 for the pop-in scale/fade
 
@@ -77,6 +82,15 @@ public sealed class NpcSpeechBubble : MonoBehaviour
         _popRenderer.sortingOrder = sortingBase + 2;
         _pop = popGo.transform;
         _pop.gameObject.SetActive(false);
+
+        // Short social event pop: request/refusal/aid/quarrel/etc. It is
+        // separate from the relationship "+/-", so an insult can show both.
+        var cueGo = new GameObject("SocialCuePop");
+        cueGo.transform.SetParent(transform, false);
+        _cueRenderer = cueGo.AddComponent<SpriteRenderer>();
+        _cueRenderer.sortingOrder = sortingBase + 3;
+        _cue = cueGo.transform;
+        _cue.gameObject.SetActive(false);
 
         SetVisible(false);
     }
@@ -125,6 +139,21 @@ public sealed class NpcSpeechBubble : MonoBehaviour
         FitSpriteHeight(_popRenderer, PopUnitsTall);
         _pop.gameObject.SetActive(true);
         _popTimer = 0f;
+    }
+
+    public void PopSocialCue(string cueKind)
+    {
+        if (_cueRenderer == null || string.IsNullOrEmpty(cueKind))
+        {
+            return;
+        }
+
+        _cueRenderer.sprite = ResolveEmoji(SocialCueSprite(cueKind));
+        _cueColor = SocialCueColor(cueKind);
+        _cueRenderer.color = _cueColor;
+        FitSpriteHeight(_cueRenderer, EmojiUnitsTall * 0.92f);
+        _cue.gameObject.SetActive(true);
+        _cueTimer = 0f;
     }
 
     private void SetVisible(bool visible)
@@ -202,6 +231,31 @@ public sealed class NpcSpeechBubble : MonoBehaviour
                 }
             }
         }
+
+        if (_cueTimer >= 0f && _cue != null)
+        {
+            _cueTimer += Time.deltaTime;
+            var t = _cueTimer / PopLifetime;
+            if (t >= 1f)
+            {
+                _cueTimer = -1f;
+                _cue.gameObject.SetActive(false);
+            }
+            else
+            {
+                var rise = HeightOffset + 0.02f +
+                           _cueTimer * (PopRiseSpeed * 0.55f) / Mathf.Max(0.01f, transform.lossyScale.y);
+                _cue.localPosition = new Vector3(-0.18f, rise, -0.03f);
+                var punch = 1f + Mathf.Clamp01(1f - t * 4f) * 0.35f;
+                _cue.localScale = Vector3.one * (_cueBaseScale * punch);
+                if (_cueRenderer != null)
+                {
+                    var c = _cueColor;
+                    c.a = 1f - Mathf.SmoothStep(0.45f, 1f, t);
+                    _cueRenderer.color = c;
+                }
+            }
+        }
     }
 
     private void ApplyShownAmount()
@@ -229,6 +283,7 @@ public sealed class NpcSpeechBubble : MonoBehaviour
     private float _bubbleBaseScale = 1f;
     private float _emojiBaseScale = 1f;
     private float _popBaseScale = 1f;
+    private float _cueBaseScale = 1f;
     private Vector3 _emojiLocalPosition = new(0f, 0.24f, -0.01f);
 
     private Vector3 BubbleBodyCenterLocal()
@@ -263,8 +318,34 @@ public sealed class NpcSpeechBubble : MonoBehaviour
         {
             _popBaseScale = k;
         }
+        else if (sr == _cueRenderer)
+        {
+            _cueBaseScale = k;
+        }
 
         sr.transform.localScale = Vector3.one * k;
+    }
+
+    private static string SocialCueSprite(string cueKind)
+    {
+        return cueKind switch
+        {
+            "TalkRejected" or "TalkRefused" or "TalkQuarrel" or "Resentment" => "Grumble",
+            "AidRequest" or "AidIncoming" or "AidStarted" or "AidCompleted" => "Food",
+            "WitnessedMurder" => "Sharks",
+            "TalkSuccess" => "Joke",
+            _ => "SmallTalk"
+        };
+    }
+
+    private static Color SocialCueColor(string cueKind)
+    {
+        return cueKind switch
+        {
+            "TalkRejected" or "TalkRefused" or "TalkQuarrel" or "Resentment" or "WitnessedMurder" => NegColor,
+            "AidRequest" or "AidIncoming" or "AidStarted" or "AidCompleted" or "TalkSuccess" => PosColor,
+            _ => Color.white
+        };
     }
 
     private Sprite ResolveBubble()

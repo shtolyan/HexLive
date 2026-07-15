@@ -534,9 +534,14 @@ namespace HexLive.UnityPresentation.UI
                         HexLive.Simulation.Bootstrap.PrototypeWorldDefinitionFactory.Create(seed),
                         startPaused: true, initialSpeed: 1f);
                 }
+                else if (restoreEngine.World.Completed)
+                {
+                    _targetTick = restoreEngine.World.Tick;
+                }
             }
 
             var hasReplay = _runner.Engine is { } configured &&
+                !configured.World.Completed &&
                 configured.World.Tick < _targetTick;
             yield return null;
 
@@ -548,10 +553,11 @@ namespace HexLive.UnityPresentation.UI
                 _timeReadout.style.display = DisplayStyle.Flex;
                 var clock = System.Diagnostics.Stopwatch.StartNew();
                 var start = engine.World.Tick;
-                while (engine.World.Tick < _targetTick)
+                while (!engine.World.Completed && engine.World.Tick < _targetTick)
                 {
                     var frame = System.Diagnostics.Stopwatch.StartNew();
-                    while (engine.World.Tick < _targetTick &&
+                    while (!engine.World.Completed &&
+                           engine.World.Tick < _targetTick &&
                            frame.ElapsedMilliseconds < ReplayBudgetMsPerFrame)
                     {
                         engine.Step();
@@ -614,7 +620,11 @@ namespace HexLive.UnityPresentation.UI
             NpcSelection.Clear();
             NpcSelection.Select(FindJana(npcs));
 
-            _runner.Resume();
+            if (!_runner.IsCompleted)
+            {
+                _runner.Resume();
+            }
+
             _runner.AutosaveEnabled = true;
             Destroy(gameObject);
         }

@@ -20,6 +20,16 @@ public interface ISimulationSystem
     void Run(WorldState world);
 }
 
+internal static class SocialCueSignals
+{
+    public static void Stamp(WorldState world, NPCState npc, string kind, EntityId peerId)
+    {
+        npc.Execution.LastSocialCueTick = world.Tick;
+        npc.Execution.LastSocialCueKind = kind;
+        npc.Execution.LastSocialCuePeerId = peerId;
+    }
+}
+
 // Spec §49: sleep / social / water overhaul knobs. Static so the headless soak
 // harness can bisect features deterministically, and so HexTuningConfig can push
 // live slider values in the editor. Defaults = all features ON at design values.
@@ -3621,6 +3631,11 @@ public sealed class PlanningSystem : ISimulationSystem
         {
             claimedTarget.Mind.PendingTalkFrom = npc.Id;
             claimedTarget.Mind.PendingTalkSinceTick = world.Tick;
+            SocialCueSignals.Stamp(world, npc, "TalkRequest", target.Id);
+            SocialCueSignals.Stamp(world, claimedTarget, "TalkIncoming", npc.Id);
+            Trace.Emit(world, npc.Id, "TalkRequested",
+                $"Asked NPC{target.Id.Value} to talk " +
+                $"Affinity={npc.Social.GetOrCreate(target.Id).Affinity:F2}");
         }
 
         npc.Plan.Steps.Add(new PlanStep
@@ -3748,6 +3763,11 @@ public sealed class PlanningSystem : ISimulationSystem
         {
             claimedTarget.Mind.PendingAidFrom = npc.Id;
             claimedTarget.Mind.PendingAidSinceTick = world.Tick;
+            SocialCueSignals.Stamp(world, npc, "AidRequest", target.Id);
+            SocialCueSignals.Stamp(world, claimedTarget, "AidIncoming", npc.Id);
+            Trace.Emit(world, npc.Id, "AidRequested",
+                $"Going to help NPC{target.Id.Value} Kind={target.AidKind} " +
+                $"Suffering={target.Suffering:F2}");
         }
 
         npc.Plan.Steps.Add(new PlanStep
@@ -4779,6 +4799,9 @@ public sealed class ExecutionSystem : ISimulationSystem
                     {
                         var resentRel = npc.Social.GetOrCreate(occupant);
                         resentRel.Affinity = MathUtil.Clamp(resentRel.Affinity - 0.08f, -1f, 1f);
+                        npc.Execution.LastTalkResultTick = world.Tick;
+                        npc.Execution.LastTalkAffinityDelta = -0.08f;
+                        SocialCueSignals.Stamp(world, npc, "Resentment", occupant);
                         Trace.Emit(world, npc.Id, "RelationshipChanged",
                             $"NPC{npc.Id.Value}->NPC{occupant.Value} Aff={resentRel.Affinity:F2} " +
                             $"(-0.08 resentment: {worldObject.DefinitionId} taken)");
@@ -5282,6 +5305,7 @@ public sealed class ExecutionSystem : ISimulationSystem
                         $"+{deposited} logs -> {world.RaftProgress}/{WorldState.RaftTarget}");
                     if (world.RaftProgress >= WorldState.RaftTarget)
                     {
+                        world.Completed = true;
                         Trace.EmitSystem(world, "RaftLaunched",
                             "The raft is finished — the colony can leave the island!");
                     }
@@ -5832,8 +5856,16 @@ public sealed class ExecutionSystem : ISimulationSystem
                 {
                     rejectedRel.Affinity = MathUtil.Clamp(
                         rejectedRel.Affinity - RejectionAffinityPenalty, -1f, 1f);
+                    npc.Execution.LastTalkResultTick = world.Tick;
+                    npc.Execution.LastTalkAffinityDelta = -RejectionAffinityPenalty;
+                    Trace.Emit(world, npc.Id, "RelationshipChanged",
+                        $"NPC{npc.Id.Value}->NPC{target.Id.Value} " +
+                        $"Aff={rejectedRel.Affinity:F2} (-{RejectionAffinityPenalty:F2}) " +
+                        $"after talk refusal");
                 }
 
+                SocialCueSignals.Stamp(world, npc, "TalkRejected", target.Id);
+                SocialCueSignals.Stamp(world, target, "TalkRefused", npc.Id);
                 Trace.Emit(world, npc.Id, "InteractionRejected",
                     $"Talk rejected by NPC{targetId.Value} " +
                     $"(Busy={targetBusy} Starving={target.Mind.IsStarving} " +
@@ -5853,6 +5885,7 @@ public sealed class ExecutionSystem : ISimulationSystem
             // shows the matching emoji over the speaker's head for the talk.
             var topic = PickTalkTopic(world, npc, target);
             npc.Execution.CurrentTalkTopic = topic;
+            target.Execution.CurrentTalkTopic = topic;
             if (npc.Plan.TargetJunctionId is { } jId)
             {
                 SpatialMutations.OccupyJunction(world, jId, npc.Id);
@@ -5900,6 +5933,8 @@ public sealed class ExecutionSystem : ISimulationSystem
                 npc.Social.Embarrassment = MathUtil.Clamp01(npc.Social.Embarrassment + QuarrelEmbarrassment);
                 target.Social.Embarrassment = MathUtil.Clamp01(target.Social.Embarrassment + QuarrelEmbarrassment);
                 PlanningSystem.SetGoalCooldown(world, npc, GoalType.Socialize);
+                SocialCueSignals.Stamp(world, npc, "TalkQuarrel", target.Id);
+                SocialCueSignals.Stamp(world, target, "TalkQuarrel", npc.Id);
 
                 Trace.Emit(world, npc.Id, "TalkQuarreled",
                     $"With NPC{targetId.Value} Chance={quarrelChance:F2} Roll={roll:F2} " +
@@ -5912,6 +5947,8 @@ public sealed class ExecutionSystem : ISimulationSystem
                 target.Needs.Social = MathUtil.Clamp01(target.Needs.Social + TalkListenerSocialGain);
                 initiatorRel.Affinity = MathUtil.Clamp(initiatorRel.Affinity + TalkRelationshipGain, -1f, 1f);
                 listenerRel.Affinity = MathUtil.Clamp(listenerRel.Affinity + TalkRelationshipGain, -1f, 1f);
+                SocialCueSignals.Stamp(world, npc, "TalkSuccess", target.Id);
+                SocialCueSignals.Stamp(world, target, "TalkSuccess", npc.Id);
 
                 Trace.Emit(world, npc.Id, "TalkCompleted",
                     $"With NPC{targetId.Value} Chance={quarrelChance:F2} Roll={roll:F2} " +
@@ -5935,6 +5972,7 @@ public sealed class ExecutionSystem : ISimulationSystem
             npc.Execution.CurrentInteraction = null;
             // Spec 28.15E: talk's over — drop the topic so the bubble clears.
             npc.Execution.CurrentTalkTopic = null;
+            target.Execution.CurrentTalkTopic = null;
 
             if (npc.Plan.TargetJunctionId is { } jId)
             {
@@ -6139,6 +6177,8 @@ public sealed class ExecutionSystem : ISimulationSystem
                 SpatialMutations.OccupyJunction(world, jId, npc.Id);
             }
 
+            SocialCueSignals.Stamp(world, npc, "AidStarted", target.Id);
+            SocialCueSignals.Stamp(world, target, "AidStarted", npc.Id);
             Trace.Emit(world, npc.Id, "AidStarted",
                 $"Kind={kindNow} With NPC{targetId.Value} Severity={severity:F2} " +
                 $"Duration={Spec53.AidDuration}ticks");
@@ -6179,6 +6219,8 @@ public sealed class ExecutionSystem : ISimulationSystem
             npc.Execution.LastTalkAffinityDelta = gain;
             target.Execution.LastTalkResultTick = world.Tick;
             target.Execution.LastTalkAffinityDelta = gain;
+            SocialCueSignals.Stamp(world, npc, "AidCompleted", target.Id);
+            SocialCueSignals.Stamp(world, target, "AidCompleted", npc.Id);
 
             // Helping settles the helper's own compassion.
             npc.Needs.Compassion = MathUtil.Clamp01(npc.Needs.Compassion + Spec53.AidSelfRestore);
@@ -6195,9 +6237,12 @@ public sealed class ExecutionSystem : ISimulationSystem
 
             Trace.Emit(world, npc.Id, "Aided",
                 $"Kind={kind} NPC{npc.Id.Value}->NPC{target.Id.Value} " +
+                $"Trust={helperRel.Trust:F2} (+{gain:F2}) Fam={helperRel.Familiarity:F2} (+{gain:F2}) " +
                 $"Aff={helperRel.Affinity:F2} (+{gain:F2}) MyCompassion={npc.Needs.Compassion:F2}");
             Trace.Emit(world, target.Id, "RelationshipChanged",
-                $"NPC{target.Id.Value}->NPC{npc.Id.Value} Aff={wardRel.Affinity:F2} (aided)");
+                $"NPC{target.Id.Value}->NPC{npc.Id.Value} " +
+                $"Trust={wardRel.Trust:F2} (+{gain:F2}) Fam={wardRel.Familiarity:F2} (+{gain:F2}) " +
+                $"Aff={wardRel.Affinity:F2} (+{gain:F2}) aided");
 
             if (target.Mind.PendingAidFrom is { } aiderId && aiderId.Equals(npc.Id))
             {
@@ -9810,10 +9855,126 @@ public sealed class DogSystem : ISimulationSystem
             }
         }
 
-        Trace.EmitSystem(world, "NpcDied",
-            $"NPC{deadId.Value} died at Tile={npc.Tile.Q},{npc.Tile.R} " +
+        var deathCause = BuildDeathCause(world, npc);
+        world.DeathRecords.Add(new DeathRecord
+        {
+            EntityId = deadId,
+            DisplayName = npc.DisplayName,
+            Tick = world.Tick,
+            Tile = npc.Tile,
+            Cause = deathCause
+        });
+
+        Trace.Emit(world, deadId, "NpcDied",
+            $"NPC{deadId.Value} ({npc.DisplayName}) died at Tile={npc.Tile.Q},{npc.Tile.R} " +
+            $"Cause=[{deathCause}] " +
             $"dropping worn=[{string.Join(",", npc.WornItems)}] " +
             $"inventory=[{string.Join(",", npc.Inventory.Items)}]");
+    }
+
+    private static string BuildDeathCause(WorldState world, NPCState npc)
+    {
+        var recentCause = FindRecentDeathCauseEvent(world, npc);
+        var worstPart = FindWorstPart(npc, out var worstHp);
+        var vitals = npc.Body.VitalDestroyed(out var vital)
+            ? $" Vital={vital}:0"
+            : string.Empty;
+
+        return $"{recentCause}; Health={npc.Health:F2} Blood={npc.Needs.Blood:F2} " +
+               $"Hunger={npc.Needs.Hunger:F2} Thirst={npc.Needs.Thirst:F2} " +
+               $"Thermal={npc.Needs.ThermalComfort:+0.00;-0.00} " +
+               $"Worst={worstPart}:{worstHp:F2}{vitals}";
+    }
+
+    private static string FindRecentDeathCauseEvent(WorldState world, NPCState npc)
+    {
+        var events = world.Events.Items;
+        for (var i = events.Count - 1; i >= 0; i--)
+        {
+            var e = events[i];
+            if (e.EntityId != npc.Id.Value)
+            {
+                continue;
+            }
+
+            // Death cleanup happens in the same or a nearby tick as the hit,
+            // bleed-out, starvation or exposure event. Anything older is likely
+            // stale context rather than the reason this body just dropped.
+            if (world.Tick - e.Tick > 240)
+            {
+                break;
+            }
+
+            if (IsDeathCauseEvent(e.Type))
+            {
+                return $"{e.Type}: {e.Message}";
+            }
+        }
+
+        return InferDeathCause(npc);
+    }
+
+    private static bool IsDeathCauseEvent(string type) => type switch
+    {
+        "BledOut" or
+        "DogFight" or
+        "Heatstroke" or
+        "Hypothermia" or
+        "LimbSevered" or
+        "PreyFoughtBack" or
+        "Preyed" or
+        "SharkBite" or
+        "StarvedToDeath" or
+        "Sunburn" or
+        "VitalPartDestroyed" => true,
+        _ => false
+    };
+
+    private static string InferDeathCause(NPCState npc)
+    {
+        if (npc.Needs.Blood <= 0f)
+        {
+            return "BledOut: blood reached 0";
+        }
+
+        if (npc.Needs.Hunger >= SimBalance.StarveDeathThreshold &&
+            npc.Needs.Thirst >= SimBalance.StarveDeathThreshold)
+        {
+            return "StarvedToDeath: hunger and thirst reached the death threshold";
+        }
+
+        if (npc.Needs.Hunger >= SimBalance.StarveDeathThreshold)
+        {
+            return "StarvedToDeath: hunger reached the death threshold";
+        }
+
+        if (npc.Needs.Thirst >= SimBalance.StarveDeathThreshold)
+        {
+            return "StarvedToDeath: thirst reached the death threshold";
+        }
+
+        if (npc.Body.VitalDestroyed(out var vital))
+        {
+            return $"VitalPartDestroyed: {vital} reached 0 HP";
+        }
+
+        return "Health reached 0";
+    }
+
+    private static BodyPart FindWorstPart(NPCState npc, out float hp)
+    {
+        var worst = BodyPart.Torso;
+        hp = 1f;
+        foreach (var pair in npc.Body.Parts)
+        {
+            if (pair.Value < hp)
+            {
+                worst = pair.Key;
+                hp = pair.Value;
+            }
+        }
+
+        return worst;
     }
 }
 
@@ -11279,6 +11440,13 @@ public sealed class PredationSystem : ISimulationSystem
             var rel = witness.Social.GetOrCreate(killer.Id);
             rel.Affinity = MathUtil.Clamp(
                 rel.Affinity - SimBalance.PredationWitnessAffinityLoss, -1f, 1f);
+            witness.Execution.LastTalkResultTick = world.Tick;
+            witness.Execution.LastTalkAffinityDelta = -SimBalance.PredationWitnessAffinityLoss;
+            SocialCueSignals.Stamp(world, witness, "WitnessedMurder", killer.Id);
+            Trace.Emit(world, witness.Id, "RelationshipChanged",
+                $"NPC{witness.Id.Value}->NPC{killer.Id.Value} " +
+                $"Aff={rel.Affinity:F2} (-{SimBalance.PredationWitnessAffinityLoss:F2}) " +
+                $"after witnessing murder");
         }
 
         Trace.EmitSystem(world, "Murdered",

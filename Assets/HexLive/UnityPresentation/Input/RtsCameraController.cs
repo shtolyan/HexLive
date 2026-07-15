@@ -3,6 +3,8 @@ using HexLive.UnityPresentation.Rendering;
 using HexLive.UnityPresentation.Spatial;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using HexLive.Simulation.Debug;
+using HexLive.Simulation.Spatial;
 
 namespace HexLive.UnityPresentation.Input
 {
@@ -45,6 +47,9 @@ namespace HexLive.UnityPresentation.Input
         [SerializeField] private float _orbitRotationSmooth = 0.06f;
         [SerializeField] private float _pickRadiusPixels = 70f;
 
+        [Header("Hex picking")]
+        [SerializeField] private float _hexPickVerticalPadding = 0.04f;
+
         [Tooltip("Orbit pivot height above the NPC's feet, as a fraction of the hex radius (neck ≈ 0.62).")]
         [SerializeField] private float _orbitNeckFactor = 0.62f;
 
@@ -77,6 +82,8 @@ namespace HexLive.UnityPresentation.Input
 
         private Camera _camera;
         private HexWorldRenderer _worldRenderer;
+
+        private const float ElevationStep = 0.55f;
 
         public void SetRunner(SimulationRunnerBehaviour runner)
         {
@@ -137,11 +144,11 @@ namespace HexLive.UnityPresentation.Input
 
         private void UpdateFree()
         {
-            if (!UI.GameMenu.IsOpen)
+            if (!UI.GameMenu.IsOpen && !UI.EndSummaryPanel.IsOpen)
             {
                 HandlePan();
                 HandleZoom();
-                TryPickNpc();
+                TryHandleLeftClick();
             }
 
             ApplyFreeMovement();
@@ -201,8 +208,10 @@ namespace HexLive.UnityPresentation.Input
             transform.rotation = Quaternion.Euler(_startRotation);
         }
 
-        // Left-click on an NPC → enter orbit mode.
-        private void TryPickNpc()
+        // Left-click first tries an NPC, then falls back to the map hex under
+        // the cursor. Hex hit testing uses the sim snapshot rather than view
+        // colliders so invisible anchors and changed elevation still inspect.
+        private void TryHandleLeftClick()
         {
             var mouse = Mouse.current;
             if (mouse == null || !mouse.leftButton.wasPressedThisFrame)
@@ -211,24 +220,39 @@ namespace HexLive.UnityPresentation.Input
             }
 
             // Don't pick NPCs behind the character bar or through the menu.
-            if (NpcSelection.PointerOverUi || UI.GameMenu.IsOpen)
+            if (NpcSelection.PointerOverUi || UI.HexInspectorPanel.PointerOverPanel ||
+                UI.GameMenu.IsOpen || UI.EndSummaryPanel.IsOpen)
             {
                 return;
             }
 
+            if (TryPickNpc(mouse.position.ReadValue()))
+            {
+                HexSelection.Clear();
+                return;
+            }
+
+            if (TryPickHex(mouse.position.ReadValue(), out var coord))
+            {
+                HexSelection.Select(coord);
+            }
+        }
+
+        // Left-click on an NPC -> enter orbit mode.
+        private bool TryPickNpc(Vector2 mousePos)
+        {
             if (_camera == null)
             {
                 _camera = GetComponent<Camera>();
-                if (_camera == null) return;
+                if (_camera == null) return false;
             }
 
             var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
             if (snapshot == null || snapshot.Npcs.Count == 0)
             {
-                return;
+                return false;
             }
 
-            var mousePos = mouse.position.ReadValue();
             var bestId = -1;
             var bestDist = _pickRadiusPixels;
 
@@ -253,7 +277,74 @@ namespace HexLive.UnityPresentation.Input
             if (bestId >= 0)
             {
                 NpcSelection.Select(bestId);
+                return true;
             }
+
+            return false;
+        }
+
+        private bool TryPickHex(Vector2 mousePos, out HexLive.Simulation.Common.TileCoord coord)
+        {
+            coord = default;
+
+            if (_camera == null)
+            {
+                _camera = GetComponent<Camera>();
+                if (_camera == null) return false;
+            }
+
+            var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
+            if (snapshot == null || snapshot.Tiles.Count == 0)
+            {
+                return false;
+            }
+
+            var ray = _camera.ScreenPointToRay(mousePos);
+            if (Mathf.Abs(ray.direction.y) < 0.0001f)
+            {
+                return false;
+            }
+
+            var bestT = float.PositiveInfinity;
+            var found = false;
+            for (var i = 0; i < snapshot.Tiles.Count; i++)
+            {
+                var tile = snapshot.Tiles[i];
+                var topY = TileTopY(tile);
+                var t = (topY + _hexPickVerticalPadding - ray.origin.y) / ray.direction.y;
+                if (t <= 0f || t >= bestT)
+                {
+                    continue;
+                }
+
+                var hit = ray.origin + ray.direction * t;
+                if (!PointInsideHex(hit.x, hit.z, tile.Coord))
+                {
+                    continue;
+                }
+
+                bestT = t;
+                coord = tile.Coord;
+                found = true;
+            }
+
+            return found;
+        }
+
+        private static float TileTopY(TileSnapshot tile)
+        {
+            var y = SimulationUnityMapper.TileHeight + tile.Elevation * ElevationStep;
+            return tile.Water ? y - ElevationStep * 0.4f : y;
+        }
+
+        private static bool PointInsideHex(float x, float z, HexLive.Simulation.Common.TileCoord coord)
+        {
+            var center = HexSpatialMath.TileToWorld(coord);
+            var dx = Mathf.Abs(x - center.X);
+            var dz = Mathf.Abs(z - center.Y);
+            var radius = HexSpatialMath.HexRadius;
+            return dz <= radius &&
+                HexSpatialMath.Sqrt3 * dx + dz <= HexSpatialMath.Sqrt3 * radius;
         }
 
         // ---- Orbit mode ------------------------------------------------------
@@ -301,7 +392,7 @@ namespace HexLive.UnityPresentation.Input
 
             // Re-pick: clicking another NPC while orbiting switches focus to it
             // (left click is free here — rotation uses the right button).
-            TryPickNpc();
+            TryHandleLeftClick();
 
             if (!TryGetOrbitTarget(snapshot, _orbitTargetId, out var rawTarget))
             {

@@ -279,6 +279,44 @@ namespace HexLive.UnityPresentation.Localization
             ["menu.continue"] = new[] { "Continue", "Продолжить" },
             ["menu.quit"] = new[] { "Quit game", "Выйти из игры" },
 
+            // End summary (escape victory)
+            ["end.eyebrow"] = new[] { "ESCAPE COMPLETE", "ПОБЕГ УДАЛСЯ" },
+            ["end.title"] = new[] { "Escaped the island", "Выбрались с острова" },
+            ["end.subtitle"] = new[]
+            {
+                "{0} of {1} survivors reached the raft. The simulation is complete.",
+                "До плота добрались {0} из {1}. Симуляция завершена."
+            },
+            ["end.survivors"] = new[] { "Survivors", "Выжили" },
+            ["end.fallen"] = new[] { "Fallen", "Погибли" },
+            ["end.day"] = new[] { "Final day", "Финальный день" },
+            ["end.time"] = new[] { "Time", "Время" },
+            ["end.raft"] = new[] { "Raft", "Плот" },
+            ["end.avg_health"] = new[] { "Avg health", "Среднее HP" },
+            ["end.survivors_title"] = new[] { "Who survived", "Кто выжил" },
+            ["end.fallen_title"] = new[] { "Who did not make it", "Кто не добрался" },
+            ["end.no_fallen"] = new[] { "No one died on the way out.", "Никто не погиб по дороге." },
+            ["end.close_tooltip"] = new[] { "Close summary and inspect the island", "Закрыть итоги и осмотреть остров" },
+            ["end.hp"] = new[] { "HP", "HP" },
+            ["end.blood"] = new[] { "Blood", "Кровь" },
+            ["end.stamina"] = new[] { "Stamina", "Выносливость" },
+            ["end.wounds"] = new[] { "Wounds", "Раны" },
+            ["end.on_day"] = new[] { "day", "день" },
+            ["end.tile"] = new[] { "tile", "клетка" },
+            ["end.unknown"] = new[] { "Unknown survivor", "Неизвестный персонаж" },
+            ["end.cause_unknown"] = new[] { "unknown cause", "причина неизвестна" },
+            ["end.cause_bled_out"] = new[] { "blood loss", "кровопотеря" },
+            ["end.cause_dog"] = new[] { "dog attack", "нападение собак" },
+            ["end.cause_heat"] = new[] { "heatstroke", "перегрев" },
+            ["end.cause_cold"] = new[] { "hypothermia", "переохлаждение" },
+            ["end.cause_limb"] = new[] { "traumatic limb loss", "тяжёлая травма конечности" },
+            ["end.cause_self_defense"] = new[] { "victim fought back", "жертва дала отпор" },
+            ["end.cause_predation"] = new[] { "killed by a starving survivor", "убита голодным выжившим" },
+            ["end.cause_shark"] = new[] { "shark bite", "укус акулы" },
+            ["end.cause_starved"] = new[] { "starvation or dehydration", "голод или обезвоживание" },
+            ["end.cause_sun"] = new[] { "sun exposure", "солнечный ожог" },
+            ["end.cause_vital"] = new[] { "vital injury", "смертельная травма" },
+
             // Weather widget (top-left)
             ["weather.rain"] = new[] { "Rain", "Дождь" },
             ["weather.clear"] = new[] { "Clear", "Ясно" },
@@ -295,6 +333,9 @@ namespace HexLive.UnityPresentation.Localization
             ["rel.neutral"] = new[] { "neutral", "нейтрально" },
             ["rel.tense"] = new[] { "tense", "напряжённо" },
             ["rel.hostile"] = new[] { "hostile", "враждебно" },
+            ["rel.affinity"] = new[] { "Affinity", "Отношение" },
+            ["rel.familiarity"] = new[] { "Familiarity", "Знакомство" },
+            ["rel.trust"] = new[] { "Trust", "Доверие" },
 
             // Sun / UV exposure (character panel)
             ["uv.high"] = new[] { "UV: high", "УФ: высокий" },

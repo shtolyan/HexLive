@@ -2,6 +2,7 @@
 using HexLive.Simulation.Bootstrap;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
+using HexLive.UnityPresentation.History;
 using UnityEngine;
 
 namespace HexLive.UnityPresentation.Bootstrap
@@ -17,18 +18,25 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
     // killer — each entry captures a stack trace (frame cost at 50x speed)
     // and the console/Editor.log accumulate across play sessions, so the
     // editor got slower with every run. The debug panel reads the event
-    // buffer directly; flip this on only when console tracing is needed.
+    // buffer directly; keep the console on high-signal events by default and
+    // flip full trace on only when deep console tracing is needed.
+    [SerializeField] private bool _logImportantEventsToConsole = true;
     [SerializeField] private bool _logTraceEventsToConsole;
 
     private float _accumulator;
     private SimulationEngine? _engine;
     private SimulationClock? _clock;
     private SimulationSettings? _settings;
-    private int _lastLoggedEventIndex;
+    private SimulationEvent? _lastLoggedEvent;
+    private readonly GameHistoryLog _gameHistory = new();
 
     public SimulationEngine? Engine => _engine;
 
+    public GameHistoryLog GameHistory => _gameHistory;
+
     public bool IsReady => _engine is not null;
+
+    public bool IsCompleted => _engine?.World.Completed ?? false;
 
     public int CurrentTick => _engine?.World.Tick ?? 0;
 
@@ -89,6 +97,13 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
             return;
         }
 
+        if (_engine.World.Completed)
+        {
+            _clock.Pause();
+            _accumulator = 0f;
+            return;
+        }
+
         _accumulator += Time.unscaledDeltaTime * _clock.SpeedMultiplier;
 
         // Spec 41.1: a frame hitch (spawning, GC, shader compile) must never
@@ -102,6 +117,12 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
         {
             _accumulator -= _settings.TickDeltaTime;
             _engine.Step();
+            if (_engine.World.Completed)
+            {
+                _clock.Pause();
+                _accumulator = 0f;
+                break;
+            }
         }
 
         FlushEventsToConsole();
@@ -177,6 +198,8 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
         {
             WriteSaveNow();
         }
+
+        _gameHistory.Flush();
     }
 
     private void OnDestroy()
@@ -186,38 +209,72 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
         {
             WriteSaveNow();
         }
+
+        _gameHistory.Dispose();
     }
 
     private void FlushEventsToConsole()
     {
-        if (_engine is null) return;
-
-        var events = _engine.World.Events.Items;
-        if (events.Count == 0) return;
-
-        // Keep the index moving even while logging is off, so enabling the
-        // toggle mid-run starts from "now" instead of dumping the backlog.
-        if (!_logTraceEventsToConsole)
+        if (_engine is null)
         {
-            _lastLoggedEventIndex = events.Count;
             return;
         }
 
-        // If buffer was trimmed and our index is beyond start, reset
-        if (_lastLoggedEventIndex > events.Count)
+        var events = _engine.World.Events.Items;
+        if (events.Count == 0)
         {
-            _lastLoggedEventIndex = 0;
+            _gameHistory.Tick();
+            return;
         }
 
-        for (var i = _lastLoggedEventIndex; i < events.Count; i++)
+        var logAllTrace = _logTraceEventsToConsole;
+        var logImportant = _logImportantEventsToConsole;
+
+        var startIndex = 0;
+        if (_lastLoggedEvent is not null)
+        {
+            startIndex = -1;
+            for (var i = events.Count - 1; i >= 0; i--)
+            {
+                if (!ReferenceEquals(events[i], _lastLoggedEvent))
+                {
+                    continue;
+                }
+
+                startIndex = i + 1;
+                break;
+            }
+
+            if (startIndex < 0)
+            {
+                startIndex = 0;
+            }
+        }
+
+        for (var i = startIndex; i < events.Count; i++)
         {
             var e = events[i];
+            var isGameHistoryEvent = GameHistoryLog.IsGameHistoryEvent(e);
+            if (isGameHistoryEvent)
+            {
+                RecordGameHistoryEvent(e);
+            }
+
+            if (!logAllTrace && !(logImportant && isGameHistoryEvent))
+            {
+                continue;
+            }
+
             var entityTag = e.EntityId.HasValue ? $"NPC#{e.EntityId.Value}" : "SYS";
             Debug.Log($"[HexLive T{e.Tick}] [{entityTag}] {e.Type}: {e.Message}");
         }
 
-        _lastLoggedEventIndex = events.Count;
+        _lastLoggedEvent = events[events.Count - 1];
+        _gameHistory.Tick();
     }
+
+    private void RecordGameHistoryEvent(SimulationEvent simulationEvent) =>
+        _gameHistory.Record(simulationEvent);
 
     public void Pause() => _clock?.Pause();
 
@@ -241,7 +298,7 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
 
     public void StepSingleTick()
     {
-        if (_engine is null)
+        if (_engine is null || _engine.World.Completed)
         {
             return;
         }
@@ -284,6 +341,8 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
     {
         var factory = new WorldStateFactory();
         var world = factory.Create(definition);
+        var saveHeader = SaveGame.TryReadHeader();
+        _gameHistory.OpenForWorld(world.Seed, saveHeader != null && saveHeader.seed == world.Seed);
 
         _settings = new SimulationSettings
         {
@@ -307,7 +366,7 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
         _engine = new SimulationEngine(world, _settings, _clock);
         RegisterDefaultSystems(_engine);
         _accumulator = 0f;
-        _lastLoggedEventIndex = 0;
+        _lastLoggedEvent = null;
         _cachedSnapshot = null;
         _cachedSnapshotTick = -1;
     }

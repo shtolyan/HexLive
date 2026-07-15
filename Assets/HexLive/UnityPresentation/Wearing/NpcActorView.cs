@@ -1834,6 +1834,12 @@ public sealed class NpcActorView : MonoBehaviour
         _speechBubble?.PopRelationship(affinityDelta);
     }
 
+    public void PopSocialCue(string cueKind)
+    {
+        EnsureSpeechBubble();
+        _speechBubble?.PopSocialCue(cueKind);
+    }
+
     private void EnsureSpeechBubble()
     {
         // Anchor to the head bone (calibrated in Construct); until it exists the

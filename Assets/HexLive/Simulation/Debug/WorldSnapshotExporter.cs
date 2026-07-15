@@ -34,6 +34,7 @@ public static class WorldSnapshotExporter
         snapshot.UvIndex = world.Environment.UvIndex;
         snapshot.IsRaining = world.Environment.IsRaining;
         snapshot.RaftProgress = world.RaftProgress;
+        snapshot.Completed = world.Completed;
         snapshot.SunDirection = world.SunDirection;
         snapshot.SunElevationDegrees = world.SunElevationDegrees;
         snapshot.RaftTarget = HexLive.Simulation.Core.WorldState.RaftTarget;
@@ -89,6 +90,19 @@ public static class WorldSnapshotExporter
         foreach (var pair in world.Entities.Npcs)
         {
             snapshot.Npcs.Add(ExportNpc(world, pair.Value));
+        }
+
+        snapshot.DeathRecords.Clear();
+        foreach (var death in world.DeathRecords)
+        {
+            snapshot.DeathRecords.Add(new DeathRecordSnapshot
+            {
+                EntityId = death.EntityId.Value,
+                DisplayName = death.DisplayName,
+                Tick = death.Tick,
+                Tile = death.Tile,
+                Cause = death.Cause
+            });
         }
 
         snapshot.Crabs.Clear();
@@ -521,6 +535,9 @@ public static class WorldSnapshotExporter
             TalkTopic = npc.Execution.CurrentTalkTopic?.ToString() ?? string.Empty,
             TalkResultTick = npc.Execution.LastTalkResultTick,
             TalkResultDelta = npc.Execution.LastTalkAffinityDelta,
+            SocialCueTick = npc.Execution.LastSocialCueTick,
+            SocialCueKind = npc.Execution.LastSocialCueKind,
+            SocialCuePeerId = npc.Execution.LastSocialCuePeerId?.Value,
             TargetTile = npc.Plan.TargetTile,
             IsStarving = npc.Mind.IsStarving,
             InventoryCapacity = npc.Inventory.Capacity,

@@ -558,7 +558,6 @@ namespace HexLive.UnityPresentation.Wearing
             sizeU = Mathf.Min(sizeU, MaxDropletUvSize);
             sizeV = Mathf.Min(sizeV, MaxDropletUvSize);
             var cell = PickDropletCell(zoneName, ref state);
-            Debug.Log($"[SkinPaint] npc{_npcId} droplet {zoneName} cell={cell} -> slot={slot} uv=({uv.x:F2},{uv.y:F2}) size=({sizeU:F3},{sizeV:F3})");
             _stamps[key] = new Stamp
             {
                 Key = key,
@@ -763,7 +762,6 @@ namespace HexLive.UnityPresentation.Wearing
                 IsBandage = isBandage,
                 IsGauze = isGauze
             };
-            Debug.Log($"[SkinPaint] npc{_npcId} {key} zone={zoneName} -> slot={slot} uv=({uv.x:F3},{uv.y:F3}) size=({sizeU:F2},{sizeV:F2})");
         }
 
         // A dead stamp record: paints nothing (slot -1 never matches) but
@@ -1111,7 +1109,6 @@ namespace HexLive.UnityPresentation.Wearing
                 };
                 rt.Create();
                 _slotRt[slot] = rt;
-                Debug.Log($"[SkinPaint] npc{_npcId} slot={slot}: created {w}x{h} paint target");
             }
 
             // Fresh copy of the authored skin, then every live stamp on top —
@@ -1221,7 +1218,6 @@ namespace HexLive.UnityPresentation.Wearing
                 };
                 rt.Create();
                 _slotRtGloss[slot] = rt;
-                Debug.Log($"[SkinPaint] npc{_npcId} slot={slot}: gloss target {GlossRtSize}x{GlossRtSize}");
             }
 
             var previous = RenderTexture.active;
@@ -1331,8 +1327,6 @@ namespace HexLive.UnityPresentation.Wearing
                 };
                 rt.Create();
                 _slotRtNormal[slot] = rt;
-                Debug.Log($"[SkinPaint] npc{_npcId} slot={slot}: normal target {rt.width}x{rt.height} " +
-                          $"(authored bump: {(source != null ? source.name : "NONE — flat base")})");
             }
 
             var previous = RenderTexture.active;

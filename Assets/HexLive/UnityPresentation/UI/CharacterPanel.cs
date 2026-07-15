@@ -1777,53 +1777,64 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            var shown = 0;
-            foreach (var rel in npc.RelationshipDetails)
+            var relations = new List<RelationshipSnapshot>(npc.RelationshipDetails);
+            relations.Sort((a, b) =>
+            {
+                var byAffinity = Mathf.Abs(b.Affinity).CompareTo(Mathf.Abs(a.Affinity));
+                return byAffinity != 0
+                    ? byAffinity
+                    : string.Compare(a.OtherName, b.OtherName, StringComparison.OrdinalIgnoreCase);
+            });
+
+            foreach (var rel in relations)
             {
                 _relationsContainer.Add(BuildRelationChip(rel));
-                if (++shown >= 3)
-                {
-                    break;
-                }
             }
         }
 
         private VisualElement BuildRelationChip(RelationshipSnapshot rel)
         {
             var chip = new VisualElement();
-            chip.style.flexDirection = FlexDirection.Row;
-            chip.style.alignItems = Align.Center;
-            chip.style.backgroundColor = Panel;
+            chip.style.backgroundColor = Raised;
             SetBorder(chip, Stroke, 1f);
             SetRadius(chip, 8f);
-            chip.style.paddingLeft = 10f;
-            chip.style.paddingRight = 10f;
-            chip.style.paddingTop = 7f;
-            chip.style.paddingBottom = 7f;
+            chip.style.paddingLeft = 9f;
+            chip.style.paddingRight = 9f;
+            chip.style.paddingTop = 8f;
+            chip.style.paddingBottom = 9f;
             chip.style.marginBottom = 8f;
 
+            var head = new VisualElement();
+            head.style.flexDirection = FlexDirection.Row;
+            head.style.alignItems = Align.Center;
+            head.style.marginBottom = 7f;
+
             var av = new VisualElement();
-            av.style.width = 32f;
-            av.style.height = 32f;
+            av.style.width = 28f;
+            av.style.height = 28f;
             av.style.flexShrink = 0f;
-            SetRadius(av, 16f);
+            SetRadius(av, 14f);
             av.style.backgroundColor = AvatarColor(rel.OtherId);
             av.style.alignItems = Align.Center;
             av.style.justifyContent = Justify.Center;
             var initial = new Label(InitialOf(rel.OtherName));
             initial.style.color = new Color(0.06f, 0.086f, 0.102f);
             initial.style.unityFontStyleAndWeight = FontStyle.Bold;
-            initial.style.fontSize = 14;
+            initial.style.fontSize = 13;
             av.Add(initial);
-            chip.Add(av);
+            head.Add(av);
 
             var mid = new VisualElement();
             mid.style.flexGrow = 1f;
-            mid.style.marginLeft = 10f;
+            mid.style.flexShrink = 1f;
+            mid.style.marginLeft = 9f;
             var rn = new Label(rel.OtherName);
             rn.style.color = Text;
             rn.style.fontSize = 14;
             rn.style.unityFontStyleAndWeight = FontStyle.Bold;
+            rn.style.whiteSpace = WhiteSpace.NoWrap;
+            rn.style.overflow = Overflow.Hidden;
+            rn.style.textOverflow = TextOverflow.Ellipsis;
             var detail = new VisualElement();
             detail.style.flexDirection = FlexDirection.Row;
             detail.style.alignItems = Align.Center;
@@ -1835,27 +1846,36 @@ namespace HexLive.UnityPresentation.UI
             score.style.color = RelationColor(rel.Affinity);
             score.style.fontSize = 10;
             score.style.unityFontStyleAndWeight = FontStyle.Bold;
+            score.style.flexShrink = 0f;
             detail.Add(rk);
             detail.Add(score);
             mid.Add(rn);
             mid.Add(detail);
-            mid.Add(BuildRelationMeter(rel.Affinity));
-            chip.Add(mid);
+            head.Add(mid);
 
             var hearts = new VisualElement();
             hearts.style.flexDirection = FlexDirection.Row;
             hearts.style.flexShrink = 0f;
+            hearts.style.marginLeft = 8f;
             var filled = HeartsFor(rel.Affinity);
             for (var i = 0; i < 4; i++)
             {
                 var heart = new VectorIcon(VectorIcon.Kind.HeartFill,
                     i < filled ? Health : new Color(0.184f, 0.216f, 0.239f));
-                heart.style.width = 14f;
-                heart.style.height = 14f;
-                heart.style.marginLeft = 3f;
+                heart.style.width = 12f;
+                heart.style.height = 12f;
+                heart.style.marginLeft = 2f;
                 hearts.Add(heart);
             }
-            chip.Add(hearts);
+            head.Add(hearts);
+            chip.Add(head);
+
+            chip.Add(BuildRelationMetric(
+                Loc.Get("rel.affinity"), rel.Affinity, RelationColor(rel.Affinity), true));
+            chip.Add(BuildRelationMetric(
+                Loc.Get("rel.familiarity"), rel.Familiarity, Social, false));
+            chip.Add(BuildRelationMetric(
+                Loc.Get("rel.trust"), rel.Trust, Good, false));
 
             var otherId = rel.OtherId;
             chip.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(chip, GoldDim));
@@ -1863,6 +1883,39 @@ namespace HexLive.UnityPresentation.UI
             chip.RegisterCallback<MouseDownEvent>(_ => NpcSelection.Select(otherId));
 
             return chip;
+        }
+
+        private static VisualElement BuildRelationMetric(string labelText, float value, Color color, bool signed)
+        {
+            var row = new VisualElement();
+            row.style.marginTop = 4f;
+
+            var top = new VisualElement();
+            top.style.flexDirection = FlexDirection.Row;
+            top.style.alignItems = Align.Center;
+            top.style.marginBottom = 3f;
+
+            var label = new Label(labelText);
+            label.style.color = TextDim;
+            label.style.fontSize = 9.5f;
+            label.style.flexGrow = 1f;
+            label.style.whiteSpace = WhiteSpace.NoWrap;
+            label.style.overflow = Overflow.Hidden;
+            label.style.textOverflow = TextOverflow.Ellipsis;
+            top.Add(label);
+
+            var pct = signed ? Mathf.RoundToInt(value * 100f) : Mathf.RoundToInt(Mathf.Clamp01(value) * 100f);
+            var valueLabel = new Label(signed && pct > 0 ? $"+{pct}%" : $"{pct}%");
+            valueLabel.style.color = signed ? RelationColor(value) : color;
+            valueLabel.style.fontSize = 9.5f;
+            valueLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            valueLabel.style.flexShrink = 0f;
+            valueLabel.style.marginLeft = 7f;
+            top.Add(valueLabel);
+            row.Add(top);
+
+            row.Add(signed ? BuildRelationMeter(value) : BuildPositiveMeter(value, color));
+            return row;
         }
 
         // ── UI construction ───────────────────────────────────────────────
@@ -2422,7 +2475,12 @@ namespace HexLive.UnityPresentation.UI
             col.Add(header);
 
             _relationsContainer = new VisualElement();
-            col.Add(_relationsContainer);
+            var scroll = new ScrollView(ScrollViewMode.Vertical);
+            scroll.style.flexGrow = 1f;
+            scroll.style.minHeight = 0f;
+            scroll.style.maxHeight = 220f;
+            _relationsContainer = scroll.contentContainer;
+            col.Add(scroll);
 
             return col;
         }
@@ -2537,6 +2595,18 @@ namespace HexLive.UnityPresentation.UI
                 ? 50f
                 : 50f - Mathf.Clamp01(-affinity) * 50f);
             fill.style.backgroundColor = RelationColor(affinity);
+            track.Add(fill);
+
+            return track;
+        }
+
+        private static VisualElement BuildPositiveMeter(float value, Color color)
+        {
+            var track = MakeTrack(4f);
+            track.style.marginTop = 4f;
+
+            var fill = MakeFill(color);
+            fill.style.width = Length.Percent(Mathf.Clamp01(value) * 100f);
             track.Add(fill);
 
             return track;

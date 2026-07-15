@@ -87,6 +87,11 @@ public static class PrototypeRuntimeBootstrap
         panel.SetRunner(runner);
         panel.SetPortraitStage(portraitStage);
 
+        var hexPanelRoot = new GameObject("HexLive Hex Inspector");
+        hexPanelRoot.AddComponent<UIDocument>();
+        var hexPanel = hexPanelRoot.AddComponent<HexInspectorPanel>();
+        hexPanel.SetRunner(runner);
+
         // Always-visible time controls (pause / play / speed) at the top.
         var speedRoot = new GameObject("HexLive Speed Bar");
         speedRoot.AddComponent<UIDocument>();
@@ -99,11 +104,22 @@ public static class PrototypeRuntimeBootstrap
         var debugPanel = debugRoot.AddComponent<DebugControlsPanel>();
         debugPanel.SetRunner(runner);
 
+        var historyRoot = new GameObject("HexLive Game History");
+        historyRoot.AddComponent<UIDocument>();
+        var historyPanel = historyRoot.AddComponent<GameHistoryPanel>();
+        historyPanel.SetRunner(runner);
+
         // Escape menu (continue / quit) — Escape with nothing selected.
         var menuRoot = new GameObject("HexLive Game Menu");
         menuRoot.AddComponent<UIDocument>();
         var menu = menuRoot.AddComponent<GameMenu>();
         menu.SetRunner(runner);
+
+        // Victory/end-of-simulation summary — hidden until the raft launches.
+        var endRoot = new GameObject("HexLive End Summary");
+        endRoot.AddComponent<UIDocument>();
+        var endSummary = endRoot.AddComponent<EndSummaryPanel>();
+        endSummary.SetRunner(runner);
     }
 
     private static void InstallCamera(SimulationRunnerBehaviour runner)

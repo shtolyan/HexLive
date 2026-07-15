@@ -23,6 +23,8 @@ public sealed class WorldSnapshot
     public int RaftProgress { get; set; }
     public int RaftTarget { get; set; }
 
+    public bool Completed { get; set; }
+
     // Spec 43: sun path for the renderer — align the directional light to
     // the sim's shadow math so visual shadows match sim shade.
     public Float2 SunDirection { get; set; } = Float2.Zero;
@@ -36,6 +38,8 @@ public sealed class WorldSnapshot
 
     public List<NpcSnapshot> Npcs { get; } = new();
 
+    public List<DeathRecordSnapshot> DeathRecords { get; } = new();
+
     public List<DogSnapshot> Dogs { get; } = new();
 
     public List<CrabSnapshot> Crabs { get; } = new();
@@ -43,6 +47,19 @@ public sealed class WorldSnapshot
     public List<SharkSnapshot> Sharks { get; } = new();
 
     public List<TraceEventSnapshot> TraceEvents { get; } = new();
+}
+
+public sealed class DeathRecordSnapshot
+{
+    public int EntityId { get; set; }
+
+    public string DisplayName { get; set; } = string.Empty;
+
+    public int Tick { get; set; }
+
+    public TileCoord Tile { get; set; } = TileCoord.Zero;
+
+    public string Cause { get; set; } = string.Empty;
 }
 
 public sealed class CrabSnapshot
@@ -303,6 +320,12 @@ public sealed class NpcSnapshot
     // (+ good chat, - quarrel), whose magnitude drives single vs double glyph.
     public int TalkResultTick { get; set; } = -1;
     public float TalkResultDelta { get; set; }
+
+    // One-shot social cue for overhead bubbles: talk request, refusal, aid,
+    // quarrel, resentment, or shock. Empty when no recent cue.
+    public int SocialCueTick { get; set; } = -1;
+    public string SocialCueKind { get; set; } = string.Empty;
+    public int? SocialCuePeerId { get; set; }
 
     // §Wardrobe-anim: 0..1 fraction of the current timed interaction, so the
     // view can split dress/undress into their gather + garment-in-hand beats.

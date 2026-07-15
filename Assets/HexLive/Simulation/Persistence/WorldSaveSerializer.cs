@@ -29,7 +29,8 @@ namespace HexLive.Simulation.Persistence
 //   on load, rebuilt on first pathfind).
 public static class WorldSaveSerializer
 {
-    public const int BlobVersion = 3; // v3: ItemInstance.ResourceAmount (portable coconut water)
+    public const int BlobVersion = 4; // v4: completed end-state + death records
+    private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
 
@@ -40,6 +41,13 @@ public static class WorldSaveSerializer
         w.Write(world.Tick);
         w.Write(world.NextRuntimeObjectId);
         w.Write(world.RaftProgress);
+        w.Write(world.Completed);
+        w.Write(world.DeathRecords.Count);
+        foreach (var death in world.DeathRecords)
+        {
+            WriteDeathRecord(w, death);
+        }
+
         w.Write(world.ColonyInDireStraits);
         w.Write(world.NextDogId);
         w.Write(world.NextRabbitId);
@@ -197,7 +205,7 @@ public static class WorldSaveSerializer
     public static void Read(WorldState world, BinaryReader r)
     {
         var version = r.ReadInt32();
-        if (version != BlobVersion)
+        if (version < OldestReadableBlobVersion || version > BlobVersion)
         {
             throw new InvalidDataException($"Save blob version {version}, expected {BlobVersion}.");
         }
@@ -211,6 +219,19 @@ public static class WorldSaveSerializer
         world.Tick = r.ReadInt32();
         world.NextRuntimeObjectId = r.ReadInt32();
         world.RaftProgress = r.ReadInt32();
+        world.Completed = version >= 4
+            ? r.ReadBoolean()
+            : world.RaftProgress >= WorldState.RaftTarget;
+        world.DeathRecords.Clear();
+        if (version >= 4)
+        {
+            var deathCount = r.ReadInt32();
+            for (var i = 0; i < deathCount; i++)
+            {
+                world.DeathRecords.Add(ReadDeathRecord(r));
+            }
+        }
+
         world.ColonyInDireStraits = r.ReadBoolean();
         world.NextDogId = r.ReadInt32();
         world.NextRabbitId = r.ReadInt32();
@@ -418,6 +439,27 @@ public static class WorldSaveSerializer
         {
             WorldObjectMutations.DespawnObject(world, id);
         }
+    }
+
+    private static void WriteDeathRecord(BinaryWriter w, DeathRecord death)
+    {
+        w.Write(death.EntityId.Value);
+        w.Write(death.DisplayName);
+        w.Write(death.Tick);
+        WriteTile(w, death.Tile);
+        w.Write(death.Cause);
+    }
+
+    private static DeathRecord ReadDeathRecord(BinaryReader r)
+    {
+        return new DeathRecord
+        {
+            EntityId = new EntityId(r.ReadInt32()),
+            DisplayName = r.ReadString(),
+            Tick = r.ReadInt32(),
+            Tile = ReadTile(r),
+            Cause = r.ReadString()
+        };
     }
 
     private static void WriteObject(BinaryWriter w, WorldObjectState obj)

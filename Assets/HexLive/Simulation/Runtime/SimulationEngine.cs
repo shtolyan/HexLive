@@ -27,6 +27,11 @@ public sealed class SimulationEngine
 
     public void Step()
     {
+        if (World.Completed)
+        {
+            return;
+        }
+
         var isMedium = World.Tick % Settings.MediumInterval == 0;
         var isSlow = World.Tick % Settings.SlowInterval == 0;
 
@@ -41,12 +46,12 @@ public sealed class SimulationEngine
 
         RunLayer(TickLayer.Fast);
 
-        if (isMedium)
+        if (!World.Completed && isMedium)
         {
             RunLayer(TickLayer.Medium);
         }
 
-        if (isSlow)
+        if (!World.Completed && isSlow)
         {
             RunLayer(TickLayer.Slow);
         }
@@ -58,6 +63,11 @@ public sealed class SimulationEngine
     {
         foreach (var system in _systems)
         {
+            if (World.Completed)
+            {
+                break;
+            }
+
             if (system.Layer != layer)
             {
                 continue;

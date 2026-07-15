@@ -34,6 +34,12 @@ public sealed class NPCExecutionState
     public int LastTalkResultTick { get; set; } = -1;
     public float LastTalkAffinityDelta { get; set; }
 
+    // Presentation-only social cue: invitation, refusal, quarrel, aid, etc.
+    // The renderer fires a short overhead bubble once per fresh tick/kind.
+    public int LastSocialCueTick { get; set; } = -1;
+    public string LastSocialCueKind { get; set; } = string.Empty;
+    public EntityId? LastSocialCuePeerId { get; set; }
+
     // §Wardrobe-anim: the garment currently carried IN HAND during the second
     // beat of an undress (doffed off the body but not yet dropped on the floor).
     // Set at the mid-point of the undress window, cleared when it lands. The

@@ -81,6 +81,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // Spec 28.15E: the last talk-outcome tick popped per NPC, so the "+/-"
     // relationship glyph fires exactly once when a fresh outcome arrives.
     private readonly Dictionary<int, int> _lastTalkResultTick = new();
+    private readonly Dictionary<int, string> _lastSocialCueKey = new();
 
     // Spec 31C: the fauna is finally visible.
     private readonly Dictionary<int, GameObject> _dogViews = new();
@@ -881,6 +882,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             _npcViews.Remove(key);
             _actorViews.Remove(key);
             _lastTalkResultTick.Remove(key);
+            _lastSocialCueKey.Remove(key);
             _prevNpcPoses.Remove(key);
             _currNpcPoses.Remove(key);
             _npcOnWater.Remove(key);
@@ -921,6 +923,16 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // Spec 28.15E: overhead chat bubble — show the talk's emoji, and pop a
         // "+/-" once when a talk outcome resolves (new TalkResultTick).
         actorView.SetTalkTopic(npc.TalkTopic);
+        if (npc.SocialCueTick > 0 && !string.IsNullOrEmpty(npc.SocialCueKind))
+        {
+            var cueKey = $"{npc.SocialCueTick}:{npc.SocialCueKind}:{npc.SocialCuePeerId ?? -1}";
+            if (!_lastSocialCueKey.TryGetValue(npc.Id.Value, out var seenCue) || seenCue != cueKey)
+            {
+                _lastSocialCueKey[npc.Id.Value] = cueKey;
+                actorView.PopSocialCue(npc.SocialCueKind);
+            }
+        }
+
         if (npc.TalkResultTick > 0 &&
             (!_lastTalkResultTick.TryGetValue(npc.Id.Value, out var seenTick) ||
              seenTick != npc.TalkResultTick))
@@ -2136,6 +2148,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 view.Construct(npc.ActorMesh, npc.Id.Value);
                 _actorViews[npc.Id.Value] = view;
                 _lastTalkResultTick[npc.Id.Value] = npc.TalkResultTick;
+                _lastSocialCueKey[npc.Id.Value] =
+                    $"{npc.SocialCueTick}:{npc.SocialCueKind}:{npc.SocialCuePeerId ?? -1}";
                 return actorRoot;
             }
         }

@@ -40,6 +40,15 @@ public sealed class WorldState
     public int RaftProgress { get; set; }
     public const int RaftTarget = 10; // spec 45 r2: reachable endgame
 
+    // The colony has reached the scenario ending (currently: launched the raft).
+    // Runners and presentation use this as the stable "show results / stop time"
+    // latch, while saves keep loading back into the finished state.
+    public bool Completed { get; set; }
+
+    // Permanent end-screen history. The trace buffer is intentionally bounded,
+    // so deaths are also recorded here for the final summary and saved games.
+    public System.Collections.Generic.List<DeathRecord> DeathRecords { get; } = new();
+
     // Spec 40.16: latch for the joint-plan advisor's dire-straits trigger — set
     // while the colony is in crisis so the advisor is consulted once per onset,
     // not every tick.
@@ -123,6 +132,19 @@ public sealed class BuildProject
     public bool[] EdgeDone { get; } = new bool[6];
 
     public bool Completed { get; set; }
+}
+
+public sealed class DeathRecord
+{
+    public EntityId EntityId { get; set; }
+
+    public string DisplayName { get; set; } = string.Empty;
+
+    public int Tick { get; set; }
+
+    public TileCoord Tile { get; set; } = TileCoord.Zero;
+
+    public string Cause { get; set; } = string.Empty;
 }
 
 }

@@ -291,7 +291,7 @@ public static class WorldSnapshotExporter
         {
             InteractionProgress = interactionProgress,
             HeldGarmentId = heldGarmentId,
-            TargetObjectId = npc.Plan.TargetObjectId?.Value,
+            TargetObjectId = (npc.Execution.TargetObject ?? npc.Plan.TargetObjectId)?.Value,
             Id = npc.Id,
             DisplayName = npc.DisplayName,
             ActorMesh = npc.ActorMesh,
@@ -461,6 +461,7 @@ public static class WorldSnapshotExporter
         // Iter 28: sitting at a junction whose tiles step exactly one
         // level = a ledge seat; the view plants the butt on the upper step.
         if (npcSnapshot.CurrentInteraction == "Sit" &&
+            npc.Execution.TargetObject is null &&
             npc.CurrentJunction is { } sitJunctionId &&
             world.Junctions.Items.TryGetValue(sitJunctionId, out var sitJunction) &&
             sitJunction.Tiles.Count > 1)

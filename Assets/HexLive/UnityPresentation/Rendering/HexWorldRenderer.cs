@@ -753,9 +753,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // wave swell is added per render frame in InterpolateViews so the
             // swimmer bobs with the exact surface under her, not a snapshot.
             _npcOnWater[key] = _waterCoords.Contains(npc.Tile);
-            var targetPos = SimulationUnityMapper.ToUnityPosition(npc.Position, ActorGroundY(npc.Tile));
             var targetRot = Quaternion.Euler(0f, SimulationUnityMapper.ToUnityYawDegrees(npc.RotationDegrees), 0f);
-            var targetPose = new Pose(targetPos, targetRot);
+            var targetPose = TryGetStumpSeatPose(snapshot, npc, targetRot, out var stumpSeatPose)
+                ? stumpSeatPose
+                : new Pose(
+                    SimulationUnityMapper.ToUnityPosition(npc.Position, ActorGroundY(npc.Tile)),
+                    targetRot);
+            var targetPos = targetPose.Position;
 
             if (_currNpcPoses.TryGetValue(key, out var oldPose))
             {
@@ -919,9 +923,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
             _lastTalkResultTick[npc.Id.Value] = npc.TalkResultTick;
             actorView.PopRelationship(npc.TalkResultDelta);
         }
-        // Iter 28: ledge seat — the sim flags a sit at a one-step seam; the
-        // view lifts the butt onto the upper step (knobs in NpcActorView).
-        actorView.SetLedgeSit(npc.IsLedgeSit, npc.LedgeSeatStepsUp);
+        // Iter 28: ledge seat — applies only to objectless ground sitting.
+        // Furniture/object seats (including palm stumps) own their own anchor.
+        actorView.SetLedgeSit(npc.IsLedgeSit && !HasObjectSitTarget(snapshot, npc),
+            npc.LedgeSeatStepsUp);
         // Spec 20.16: hunting/combat shows the weapon and drives a draw/thrust.
         actorView.SetCombat(npc.IsFighting, WeaponFor(npc));
         // Spec 33.1: a carried weapon rides slung on the back when it isn't in
@@ -1227,6 +1232,46 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
 
         return point != null ? point : bedView.transform;
+    }
+
+    private bool TryGetStumpSeatPose(
+        WorldSnapshot snapshot, NpcSnapshot npc, Quaternion rotation, out Pose pose)
+    {
+        pose = default;
+        if (npc.CurrentInteraction != "Sit" ||
+            !TryGetTargetObject(snapshot, npc, out var seat) ||
+            seat.DefinitionId != "stump.palm")
+        {
+            return false;
+        }
+
+        pose = new Pose(GetObjectAnchorPosition(snapshot, seat), rotation);
+        return true;
+    }
+
+    private static bool HasObjectSitTarget(WorldSnapshot snapshot, NpcSnapshot npc)
+    {
+        return npc.CurrentInteraction == "Sit" &&
+            TryGetTargetObject(snapshot, npc, out _);
+    }
+
+    private static bool TryGetTargetObject(
+        WorldSnapshot snapshot, NpcSnapshot npc, out ObjectSnapshot target)
+    {
+        if (npc.TargetObjectId is { } targetId)
+        {
+            foreach (var worldObject in snapshot.Objects)
+            {
+                if (worldObject.Id.Value == targetId)
+                {
+                    target = worldObject;
+                    return true;
+                }
+            }
+        }
+
+        target = null!;
+        return false;
     }
 
     private static NpcSnapshot? FindNearestOtherNpc(WorldSnapshot snapshot, NpcSnapshot npc)

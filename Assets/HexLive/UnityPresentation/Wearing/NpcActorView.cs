@@ -297,11 +297,10 @@ public sealed class NpcActorView : MonoBehaviour
 
     // Iter 28: ledge seat — while sitting at a one-step seam the body is
     // lifted so the butt rests ON the upper step (feet reach the lower one)
-    // and tucked back onto the edge. She faces the LOW side (§29G), so local
-    // -Z (behind her back) points at the HIGH tile — LedgeSeatBack slides her
-    // butt back ONTO the rim so the lift lands on solid ground instead of
-    // floating over the low tile's open air. TUNING KNOBS (config-driven so
-    // they can be dialed without editing code — the step is ~0.55 world high):
+    // and tucked back onto the edge. She faces straight out into the drop
+    // (§29G), so local -Z points back at the HIGH tile — LedgeSeatBack slides
+    // her butt back ONTO the rim. TUNING KNOBS (config-driven so they can be
+    // dialed without editing code — the step is ~0.55 world high):
     //   LedgeSeatLift — DIRECT Y offset, ALWAYS applied (negative lowers her);
     //   LedgeSeatBack — slide back onto the rim (toward the high tile).
     public static float LedgeSeatLift = 0.40f;
@@ -2801,7 +2800,7 @@ public sealed class NpcActorView : MonoBehaviour
                 // `Lift * stepsUp` zeroed any value out). The per-step perch is
                 // a SEPARATE term that lifts her ~one elevation step when she
                 // perches UP onto a taller ledge from below (stepsUp>0), tucked
-                // back against the edge (local -Z = behind the back).
+                // back against the edge (local -Z = toward the high tile).
                 var rest = _ledgeSit
                     ? new Vector3(
                         0f,

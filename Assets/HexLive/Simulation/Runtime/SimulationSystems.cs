@@ -6405,27 +6405,57 @@ public sealed class ExecutionSystem : ISimulationSystem
         npc.ClaimedJunctions.Clear();
     }
 
-    // Spec 29G: legs over the edge — face the lowest neighboring tile.
+    // Spec 29G: legs over the edge. Face straight out into the drop: use the
+    // high-to-low tile-center normal, which is perpendicular to the hex edge.
     private static void FaceLowerSide(WorldState world, NPCState npc, Junction ledge)
     {
-        Tile lowest = null;
+        var minElevation = int.MaxValue;
+        var maxElevation = int.MinValue;
+        var lowCenterSum = Float2.Zero;
+        var highCenterSum = Float2.Zero;
+        var lowCount = 0;
+        var highCount = 0;
         foreach (var coord in ledge.Tiles)
         {
-            if (world.Tiles.Items.TryGetValue(coord, out var tile) &&
-                (lowest == null || tile.Elevation < lowest.Elevation))
+            if (!world.Tiles.Items.TryGetValue(coord, out var tile))
             {
-                lowest = tile;
+                continue;
+            }
+
+            var center = HexSpatialMath.TileToWorld(tile.Coord);
+            if (tile.Elevation < minElevation)
+            {
+                minElevation = tile.Elevation;
+                lowCenterSum = center;
+                lowCount = 1;
+            }
+            else if (tile.Elevation == minElevation)
+            {
+                lowCenterSum += center;
+                lowCount++;
+            }
+
+            if (tile.Elevation > maxElevation)
+            {
+                maxElevation = tile.Elevation;
+                highCenterSum = center;
+                highCount = 1;
+            }
+            else if (tile.Elevation == maxElevation)
+            {
+                highCenterSum += center;
+                highCount++;
             }
         }
 
-        if (lowest == null)
+        if (lowCount == 0 || highCount == 0 || minElevation == maxElevation)
         {
             return;
         }
 
-        var center = HexSpatialMath.TileToWorld(lowest.Coord);
-        var direction = HexSpatialMath.Normalize(new Float2(
-            center.X - npc.Position.X, center.Y - npc.Position.Y));
+        var lowCenter = lowCenterSum * (1f / lowCount);
+        var highCenter = highCenterSum * (1f / highCount);
+        var direction = HexSpatialMath.Normalize(lowCenter - highCenter);
         npc.RotationDegrees = HexSpatialMath.AngleDegrees(direction);
     }
 

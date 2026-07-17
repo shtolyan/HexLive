@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: HexTuningConfig
   m_EditorClassIdentifier: 
   hopSeconds: 2
-  hopTakeoffSeconds: 0.25
-  hopLandingSeconds: 1
+  hopTakeoffSeconds: 0.6
+  hopLandingSeconds: 0.5
   hopEdgePadding: 0.1
   hopDownUp: 0
   hopDownFallStartFrac: 0.225

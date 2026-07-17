@@ -78,6 +78,19 @@ namespace HexLive.UnityPresentation.History
                 "DogAggro" => T("A wild dog noticed the camp.", "Дикая собака заметила лагерь."),
                 "DogKilled" => T("A dog was killed.", "Собаку убили."),
                 "DogShot" => T($"{actor} fired at a dog.", $"{actor} выстрелила в собаку."),
+                "HelpCry" => T($"{actor} called for help.", $"{actor} позвала на помощь."),
+                "HelpCryAnswered" => T($"{actor} answered a call for help.",
+                    $"{actor} откликнулась на клич о помощи."),
+                "HelpCryIgnored" => T($"{actor} did not answer the call for help.",
+                    $"{actor} не откликнулась на клич о помощи."),
+                "HelpCryAssistStarted" => T($"{actor} ran to defend a housemate.",
+                    $"{actor} побежала защищать соседку."),
+                "HelpCryAssistArrived" => T($"{actor} joined the fight.",
+                    $"{actor} вступила в бой."),
+                "HelpCryAssistLost" => T($"{actor} lost the attacker.",
+                    $"{actor} потеряла нападающего."),
+                "HelpCryDefended" => T($"{actor} struck the attacker.",
+                    $"{actor} ударила нападающего."),
                 "NightRaid" => T("Dogs raided the camp at dusk.", "На закате на лагерь напали собаки."),
                 "Preyed" => T($"{actor} attacked a housemate.", $"{actor} напала на соседку."),
                 "PreyFoughtBack" => T($"{actor} fought back.", $"{actor} дала отпор."),
@@ -178,6 +191,10 @@ namespace HexLive.UnityPresentation.History
                 "NpcDied" => DeathDetail(record.Message),
                 "FoodStolen" => NpcArrowDetail(record.Message),
                 "Murdered" => NpcArrowDetail(record.Message),
+                "HelpCry" => HelpCryDetail(record.Message),
+                "HelpCryAnswered" => HelpCryDecisionDetail(record.Message),
+                "HelpCryIgnored" => HelpCryDecisionDetail(record.Message),
+                "HelpCryDefended" => CleanDetail(record.Message),
                 "RaftProgress" => record.Message,
                 "DireStraits" => T("Several survivors need urgent attention.",
                     "Нескольким выжившим срочно нужна помощь."),
@@ -230,7 +247,8 @@ namespace HexLive.UnityPresentation.History
         private static GameHistoryTone Tone(string type)
         {
             if (type is "Aided" or "AidRequested" or "AidStarted" or "TalkCompleted" or "TalkRequested" or
-                "TalkStarted" or "FoodShared" or "RelationshipChanged" or "Mourned" or "VisitedGrave")
+                "TalkStarted" or "FoodShared" or "RelationshipChanged" or "Mourned" or "VisitedGrave" or
+                "HelpCryAnswered")
             {
                 return GameHistoryTone.Social;
             }
@@ -243,14 +261,15 @@ namespace HexLive.UnityPresentation.History
             }
 
             if (type is "NpcDied" or "BledOut" or "StarvedToDeath" or "VitalPartDestroyed" or
-                "DogFight" or "NightRaid" or "Murdered" or "Preyed" or "SharkBite" or "LimbSevered")
+                "DogFight" or "NightRaid" or "Murdered" or "Preyed" or "SharkBite" or "LimbSevered" or
+                "HelpCry" or "HelpCryAssistStarted" or "HelpCryAssistArrived" or "HelpCryDefended")
             {
                 return GameHistoryTone.Danger;
             }
 
             if (type is "AidWaitTimeout" or "TalkQuarreled" or "TalkWaitTimeout" or "InteractionBlocked" or
                 "InteractionRejected" or "FoodStolen" or "Grieving" or "StatusStarving" or "StatusDehydrated" or
-                "StatusOverheated" or "Sunburn" or "Fainted")
+                "StatusOverheated" or "Sunburn" or "Fainted" or "HelpCryIgnored" or "HelpCryAssistLost")
             {
                 return GameHistoryTone.Bad;
             }
@@ -329,6 +348,7 @@ namespace HexLive.UnityPresentation.History
         private static string AidKind(string kind) => kind switch
         {
             "Feed" => T("food", "еда"),
+            "Hydrate" => T("water", "вода"),
             "Treat" => T("treatment", "лечение ран"),
             "Medicate" => T("medicine", "лекарство"),
             "Console" => T("comfort", "утешение"),
@@ -359,6 +379,34 @@ namespace HexLive.UnityPresentation.History
             return string.IsNullOrEmpty(second)
                 ? CleanDetail(message)
                 : T($"{first} -> {second}", $"{first} -> {second}");
+        }
+
+        private static string HelpCryDetail(string message)
+        {
+            var attacker = Token(message, "Dog=");
+            if (!string.IsNullOrEmpty(attacker))
+            {
+                return T($"Attacker: dog #{attacker}.", $"Нападающий: собака #{attacker}.");
+            }
+
+            attacker = Token(message, "Attacker=NPC");
+            return string.IsNullOrEmpty(attacker)
+                ? CleanDetail(message)
+                : T($"Attacker: NPC #{attacker}.", $"Нападающая: NPC #{attacker}.");
+        }
+
+        private static string HelpCryDecisionDetail(string message)
+        {
+            var victim = Token(message, "Victim=NPC");
+            var score = Token(message, "Score=");
+            var roll = Token(message, "Roll=");
+            if (string.IsNullOrEmpty(victim))
+            {
+                return CleanDetail(message);
+            }
+
+            return T($"For NPC #{victim}: score {score}, roll {roll}.",
+                $"За NPC #{victim}: шанс {score}, бросок {roll}.");
         }
 
         private static string BusyObjectDetail(string message)

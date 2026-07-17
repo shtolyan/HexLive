@@ -29,7 +29,7 @@ namespace HexLive.Simulation.Persistence
 //   on load, rebuilt on first pathfind).
 public static class WorldSaveSerializer
 {
-    public const int BlobVersion = 4; // v4: completed end-state + death records
+    public const int BlobVersion = 5; // v5: MobState.MobId (per-creature mob sheet)
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -49,9 +49,9 @@ public static class WorldSaveSerializer
         }
 
         w.Write(world.ColonyInDireStraits);
-        w.Write(world.NextDogId);
+        w.Write(world.NextMobId);
         w.Write(world.NextRabbitId);
-        w.Write(world.NextDogSpawnCheckTick);
+        w.Write(world.NextMobSpawnCheckTick);
         w.Write(world.NextRabbitSpawnCheckTick);
         w.Write(world.TopologyVersion);
 
@@ -102,10 +102,11 @@ public static class WorldSaveSerializer
             WriteNpc(w, npc);
         }
 
-        w.Write(world.Dogs.Count);
-        foreach (var dog in world.Dogs)
+        w.Write(world.Mobs.Count);
+        foreach (var dog in world.Mobs)
         {
             w.Write(dog.Id);
+            w.Write(string.IsNullOrEmpty(dog.MobId) ? Content.MobIds.Dog : dog.MobId); // v5
             WriteTile(w, dog.Tile);
             w.Write(dog.Junction.Value);
             WriteFloat2(w, dog.Position);
@@ -233,9 +234,9 @@ public static class WorldSaveSerializer
         }
 
         world.ColonyInDireStraits = r.ReadBoolean();
-        world.NextDogId = r.ReadInt32();
+        world.NextMobId = r.ReadInt32();
         world.NextRabbitId = r.ReadInt32();
-        world.NextDogSpawnCheckTick = r.ReadInt32();
+        world.NextMobSpawnCheckTick = r.ReadInt32();
         world.NextRabbitSpawnCheckTick = r.ReadInt32();
         world.TopologyVersion = r.ReadInt32();
 
@@ -308,20 +309,28 @@ public static class WorldSaveSerializer
             world.Entities.Npcs[npc.Id] = npc;
         }
 
-        world.Dogs.Clear();
+        world.Mobs.Clear();
         var dogCount = r.ReadInt32();
         for (var i = 0; i < dogCount; i++)
         {
-            world.Dogs.Add(new DogState
+            var dogPos = default(Float2);
+            var dog = new MobState
             {
                 Id = r.ReadInt32(),
+                // v5 field; older blobs are all-dog worlds.
+                MobId = version >= 5 ? r.ReadString() : Content.MobIds.Dog,
                 Tile = ReadTile(r),
                 Junction = new JunctionId(r.ReadInt32()),
-                Position = ReadFloat2(r),
+                Position = dogPos = ReadFloat2(r),
                 Health = r.ReadSingle(),
-                Status = (DogStatus)r.ReadInt32(),
+                Status = (MobStatus)r.ReadInt32(),
                 TargetNpc = ReadNullableEntity(r)
-            });
+            };
+            // The glide is a render-only smoothing; a loaded dog stands at its
+            // saved position with no pending hop, so anchor the target there.
+            dog.TargetPosition = dogPos;
+            dog.GlideAnchor = dogPos;
+            world.Mobs.Add(dog);
         }
 
         world.Rabbits.Clear();
@@ -571,7 +580,7 @@ public static class WorldSaveSerializer
         w.Write(needs.Stress);
 
         var mind = npc.Mind;
-        w.Write((int)mind.CurrentGoal);
+        w.Write((int)SaveGoal(mind.CurrentGoal));
         w.Write(mind.IsStarving);
         w.Write(mind.IsDehydrated);
         w.Write(mind.GrievingUntilTick);
@@ -588,7 +597,7 @@ public static class WorldSaveSerializer
         w.Write(mind.GoalLock is not null);
         if (mind.GoalLock is { } goalLock)
         {
-            w.Write((int)goalLock.Goal);
+            w.Write((int)SaveGoal(goalLock.Goal));
             w.Write(goalLock.StartTick);
             w.Write(goalLock.EndTick);
         }
@@ -596,12 +605,12 @@ public static class WorldSaveSerializer
         w.Write(mind.Cooldowns.Count);
         foreach (var cooldown in mind.Cooldowns)
         {
-            w.Write((int)cooldown.Goal);
+            w.Write((int)SaveGoal(cooldown.Goal));
             w.Write(cooldown.EndTick);
         }
 
         var plan = npc.Plan;
-        w.Write((int)plan.Goal);
+        w.Write((int)SaveGoal(plan.Goal));
         w.Write(plan.CurrentStepIndex);
         w.Write((int)plan.Status);
         WriteNullableObject(w, plan.TargetObjectId);
@@ -1104,6 +1113,9 @@ public static class WorldSaveSerializer
     }
 
     private static Float2 ReadFloat2(BinaryReader r) => new(r.ReadSingle(), r.ReadSingle());
+
+    private static GoalType SaveGoal(GoalType goal) =>
+        goal == GoalType.Defend ? GoalType.None : goal;
 
     private static void WriteNullableEntity(BinaryWriter w, EntityId? id)
     {

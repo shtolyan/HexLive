@@ -16,6 +16,12 @@ Unity View
 
 **Unity = View only. Simulation = Everything else.**
 
+Enforced at the assembly level: `HexLive.Simulation.asmdef` has
+`references: []` and `noEngineReferences: true` — the simulation cannot see
+UnityEngine or ANY plugin (no I2 Localization, no URP, no view code), and
+`dotnet build HexLive.Simulation.csproj` must always succeed without Unity
+(the headless soak/probe path depends on it). Never add references there.
+
 ## 2. Tick System (FOUNDATION)
 
 Tick = atomic simulation step
@@ -1487,6 +1493,14 @@ the sim and the presentation, so the two can never drift apart:
 - `LandIdleSeconds` (1.0): on reaching the edge junction the hop has landed —
   the NPC stands in plain idle (`ClimbPauseTimer`, status `Waiting`), then
   walks on.
+- windup regression fix: the saved `HexTuningConfig` asset had drifted to
+  Takeoff 0.25 / Landing 1.0 — the whole flight packed into the front of the
+  window, so the crouch beat was invisible and she seemed to launch
+  instantly. Asset restored to Takeoff 0.6 / Landing 0.5. Also the JumpUp
+  (65f) and JumpDown (50f) clips are different lengths, but the view cached
+  ONE shared clip length for the `JumpSpeed` compression — one direction
+  always played at the wrong speed, drifting the clip's crouch/plant off the
+  sim beats; the view now caches a length per direction.
 - The snapshot exports `HopKind` ("Up"/"Down"/"") while the hop is in flight;
   the presentation plays the JumpUp/JumpDown clip compressed to the same
   `HopSeconds` and carries the body's vertical arc (slight overshoot above
@@ -4724,7 +4738,7 @@ using. Other NPCs' relationships and invitations self-heal (28.8 rules).
 
 ### 29C.3 Dogs
 
-Dogs are lightweight creatures (`DogState`), not NPCs — a three-state machine
+Dogs are lightweight creatures (`MobState` — the generic mob record, MobId names the species), not NPCs — a three-state machine
 (Roam / Chase / Fight), no needs, plans, or perception pipeline.
 
 | Parameter | Value |
@@ -4733,10 +4747,12 @@ Dogs are lightweight creatures (`DogState`), not NPCs — a three-state machine
 | Spawn placement | random wilderness junction, hex distance >= 5 from every NPC |
 | Roam | ~20 % chance per medium tick to hop to a random passable neighbor junction |
 | Aggro | NPC within hex distance 2 → chase |
-| Chase | one junction hop per medium tick (slower than a walking NPC) |
+| Chase | sprints `DogChaseStepsPerTick` (3) junctions along the path per medium tick — a chasing dog visibly runs and outpaces a walking NPC; roam stays 1 hop |
 | Attack range | same or adjacent junction |
-| Dog HP | 0.9; NPC strike-back 0.15 per medium tick → dog dies in ~6 s |
-| Dog damage | 0.08 × (1 − EquippedArmor) per medium tick |
+| Dog HP | 1.8 (`DogMaxHealth`; doubled so the fight is readable) |
+| Dog attack | timed exchange: 0.5 s windup → bite lands → 0.8 s cooldown (`DogAttackWindup/CooldownSeconds`) |
+| Dog damage | 0.09 × (1 − part armor) per LANDED attack (`MobStats.AttackDamage` — bite, peck or paw swipe is presentation) |
+| NPC attack | 0.25 s windup → hit lands → per-weapon cooldown (1 s flat for now, `WeaponCatalog`) |
 
 **Intended balance:** one dog costs an unarmored NPC ~0.5 Health — a scary
 but survivable fight followed by days of healing. Two dogs at once out-damage
@@ -4744,8 +4760,81 @@ the kill rate — near-certain death. Armor tilts both fights.
 
 **Combat is reactive in v1:** a fought NPC has its plan aborted and is held
 in place (`IsFighting`); it strikes back automatically at one adjacent dog.
-No flee, no planned hunting, no fear memory yet — those are the next layers.
-Fighting NPCs count as busy for social purposes.
+No planned hunting yet. Fighting NPCs count as busy for social purposes.
+
+**Timed exchange (v2, `AnimalCombatSystem`, Fast layer):** blows are no longer
+per-medium-tick drains. Each side runs windup → hit → cooldown on the 0.25 s
+grid: the dog lunges (0.5 s), the bite lands (all damage at that instant:
+part damage, wound record, sever roll, cloth wear), then recovers (0.8 s);
+the girl swings (0.25 s), the strike lands (weapon damage × StrikeFactor from
+`WeaponCatalog` — damage/windup/cooldown are per-weapon data), then recovers
+(1 s flat for now). A STARTED windup always lands, even if the opponent moved
+away mid-charge; a fleeing girl is bitten but never trades hits. `DogSystem`
+(medium) keeps targeting, chase, flee assessment, defenders and spawning;
+defenders still strike on the old medium cadence. Combat timers are not
+persisted — a loaded save restarts any in-flight windup. Presentation: while
+Fighting, wolf and girl turn to face each other (`MobView.FaceOff`).
+
+**Presentation:** dogs render as the animal-pack wolf model (lowest LOD,
+`Resources/HexLive/Animals/wolf_dog.prefab`), scaled to the hex at spawn; the
+old primitive capsule dog is the fallback if the prefab is missing.
+`MobView` (generic — per-mob numbers from its MobConfig asset) drives the animator: measured planar speed gates Idle ↔ Walk,
+and also Walk ↔ Run — the run gait needs ≥ 1.8 body-lengths/s of real measured
+speed (exit < 1.4, hysteresis; sim `Chasing` status alone is NOT enough — a
+slow mover in the run clip reads as a treadmill). `AnimSpeed` (measured speed ÷
+body-length × stride rate, walk 1.1 / run 2.6 lengths/s) multiplies Walk/Run
+playback so foot cadence matches ground speed. `MobStatus.Fighting` loops the
+Bite attack clip. The controller also has a Hit state (GetHitFront, `Hit` trigger —
+not yet fired from code) and a terminal Death state (`Dead` bool). A dog's
+`carcass.animal` (Variant `dog`) renders as the same wolf dropped into Death:
+a fresh kill (SpawnTick within 10 ticks of the snapshot) plays the 2 s dying
+clip once, a carcass restored from a save skips to the final frame. Rabbit
+carcasses keep the procedural slumped-body prop.
+
+**Hit reaction (NPC side):** an NPC whose Health drops by ≥ 0.02 in one
+snapshot (a real bite/strike — the sick/starve DoT drain stays under the
+floor) plays a one-shot standing stagger (Mixamo "Standing React Large From
+Right", HitReact trigger on the NPC animator) — but only while standing
+still: walking, swimming, lying, ragdolled or dead bodies keep their own
+motion (`NpcActorView.SignalHealth`).
+
+**Mob blood & wounds (presentation, `MobView` + `MobWoundPainter`):**
+a health drop on a wolf fires the same RVFX blood splash the NPC wounds use,
+spawned at mid-body over the view root (NOT the skinned `bounds.center` — the
+world AABB lags the interpolated root by a frame and is stale right after the
+spawn-time scale normalization; both together used to throw bursts a hex+ away
+from the wolf), scaled by the bind-pose body length × lossyScale. Persistent
+wounds are the NPC skin-stamp tech reduced to its albedo-only core: the pelt's
+`_BaseMap` is blitted into an sRGB RT and blood stamps (same
+`Decals/wound_*` / `blood_splash` art, blood-only rule) are drawn at
+area-weighted random UV spots on the mesh (no zones — a wolf needs no per-limb
+readout). Stamp count is DERIVED, not event-driven:
+`ceil(lostHealth × maxWoundStamps)`, each placement seeded by `mobId + index`
+— idempotent per snapshot and deterministic across save/load. Requires the
+mob mesh Read/Write flag (SK_Wolf.FBX has it).
+
+**One view for every mob (`HexWorldRenderer.CreateMobView`):** dogs, crabs
+and any future tiger go through ONE factory keyed by mob id. Everything
+mob-specific lives in the per-mob `MobConfig` asset
+(`Resources/HexLive/Mobs/<mob>.asset`), "Вид / анимация" section, read only
+by presentation (never exported to `MobStats`/the sim): `footprintFraction`
+(body length on the hex, wolf 0.84), `walk/runStrideLengthsPerSecond` +
+`runEnter/ExitLengthsPerSecond` (the `MobView` gait numbers), `bloodSplash`,
+`woundStamps` + `maxWoundStamps`. A mob with no prefab path keeps its legacy
+primitive body (capsule dog / sphere crab); a config-less mob animates on the
+wolf defaults. Adding a creature = one MobConfig asset (combat sheet + view
+numbers + prefab path) — zero new view code.
+
+**No hardcoded species anywhere in the chain:** `MobState.MobId` (persisted,
+save blob v5; pre-v5 blobs read as all-dog) names the creature's MobCatalog
+sheet. `MobSystem`/`AnimalCombatSystem` read per-creature stats via
+`Stats(dog)` = `MobCatalog.For(dog.MobId)` (only the ambient spawner/raid
+stays keyed to the DOG sheet — it spawns dogs by definition). The snapshot
+exports `MobSnapshot.MobId`; the renderer picks the view AND the carcass body
+by it (`SpawnCarcass` receives `dead.MobId` as the variant; a variant with no
+configured prefab keeps the procedural slump prop). The view prefab comes
+ONLY from the config asset — the legacy `HexLive/Animals/wolf_dog` fallback
+path is gone (wolf.asset declares it). `MobIds.Crab` names the crab view.
 
 ### 29C.4 Armor & Overheating
 
@@ -6247,7 +6336,9 @@ tiles adjacent to water render sand-colored — the river gets banks.
 
 The land itself is furniture — worse than the real thing, but always there.
 
-**Sitting anywhere**
+**Sitting anywhere** *(superseded by §54.12: the plain-ground fallback is
+retired — sitting now needs a ledge, a stump or Sit-furniture; ground
+SLEEP below is unchanged)*
 
 - The Sit goal no longer requires a chair: chairs are preferred candidates;
   with none reachable the girl sits on the ground at a free junction.
@@ -9287,6 +9378,13 @@ reads `Severed` (pure classification, like Hobbled).
   bear-trap a map author places), at `HazardSeverChance` (1 = on contact). Like
   the shark, a fixed dangerous spot.
 
+**A stump can't be bitten.** Every attack that rolls a body part — the dog's
+leg-first table, the shark's fixed right leg, the §56 predator's kill table —
+runs the picked part through `AmputateSystemHelpers.RedirectFromStump` before
+damage lands: an attack aimed at a severed limb slides onto the mirror limb if
+it's still attached, otherwise onto the torso (for arms) / pelvis (for legs).
+Mobs only ever chew what's actually left on the body.
+
 ### §50.3 The consequence (hard)
 `Sever` dumps `LimbSeverBloodLoss` (0.4) of the Blood need instantly and files a
 deep stump wound (`LimbSeverWoundSeverity` 0.35) that §44 clotting keeps bleeding
@@ -9314,7 +9412,13 @@ wound there) — no special stump art (the "prosthetic-hole" look stays rejected
 `Crawling` animator bool → a dedicated `Crawl` state playing the imported
 `Zombie Crawl` clip (AnyState loop, cleared on death; built by
 `BuildNpcActionStates`). Crawl and Limp are now distinct animator states, never
-both at once; the old procedural Crawl shoulder-pose is gone. The dropped limb is
+both at once; the old procedural Crawl shoulder-pose is gone. While legless,
+every standing base clip (Idle/crouch/turn-on-spot) and standing verb —
+Gather/Talk/Dress, and **Eat/Drink** (raise-to-mouth suppressed, `X Bot@Drinking`
+overridden) — swaps to the prone idle `NpcAnimSet.proneIdle`: the `LayingBelly`
+clip (belly-down laying loop ported from the molly project, time-stretched 10×
+to match its 0.1-speed Laying state); Sit/Sleep/LieDown keep their own clips.
+The dropped limb is
 the **real geometry**: `SeveredLimbFactory` slices the owner's shared bind-pose
 mesh by bone-weight to the distal chain (independent of the runtime collapse)
 into a plain `MeshFilter`; when the mesh isn't Read/Write it falls back to a
@@ -9415,6 +9519,12 @@ A worn garment's pocketed items live in the shared pack; when the garment
   (perception) that her stone is "in those panties over there."
 - **Re-dress** — donning a garment pours its `Contents` back into the pack
   (capacity just grew); any overflow drops at her feet (`StashRecovered`).
+- **Pocket rifling** — a dropped garment whose `Contents` hold a **Tool** the
+  girl lacks is a valid `GatherTools` target (garment defs carry a `PickUp`
+  interaction for this): on arrival she takes the missing tools out
+  (`RecoverStashedTools`, trace `StashRecovered`) and leaves the garment — and
+  any non-tool stash — on the ground. This is how a knife that rode down with
+  an undressed jacket comes back without re-dressing in the heat.
 - **Destroyed clothing does NOT destroy its contents** — when a garment frays to
   rags (`DestroyWornItems`), the lost slots spill the overflow onto the ground
   (`SpillOverflow`): the bottle in the ripped panties simply falls out.
@@ -9426,9 +9536,19 @@ fireside stockpile (§52.3).
 ### §52.3 Item importance & the fireside stockpile
 
 Every item has an importance (`ItemCatalog.Importance`, by `ItemCategory`):
-**Water 100, Food 95**, Medicine 80, Weapon 65, Tool 60, Armor 45, Clothing 40,
+**Water 100, Food 95, Weapon 93**, Medicine 80, Tool 60, Armor 45, Clothing 40,
 Resource 20, Misc 10. It drives *what to drop first*: overflow, combat load-drop
 and haul-to-fire always shed the least-wanted item (`InventoryMath`).
+
+**Importance follows the instance, not the label.** A pierced coconut is Water
+(100) only while drink charges remain; drained (`ResourceAmount == 0`) it is an
+empty shell and ranks as Resource (20) on every *victim-side* check
+(`InventoryMath.Importance(world, ItemInstance)`, used by overflow, undress
+spill, make-room and haul-to-fire). Without this rule a dry shell outranked the
+knife (93) and fresh food (95), so nothing could ever displace it — the pack
+wedged shut and its owner died of thirst planning pickups that always bounced
+(seed 1104049673). The bottle is exempt: its charges live on the NPC
+(`BottleCharges`), and it is a personal effect that is never shed anyway.
 
 **HaulToFire goal** — a full pack, in peace, sends the girl to set her lowest-value
 item (importance ≤ 25) down at the hearth (`StashedAtFire`) to free a slot; it
@@ -9534,19 +9654,25 @@ neighbour is suffering above `SufferingThreshold` it **recovers** by
 The perception build tags each `PerceivedAgent` with a `Suffering` (0..1) and the
 single most-urgent **helpable** `AidKind`, in urgency order: **Treat** (open
 wounds / blood loss — a bleed-out clock), **Medicate** (sick, or gravely weak
-with nothing to dress), **Feed** (genuinely hungry), **Console** (grieving or
-breaking under stress). A helper re-assesses on arrival — she may have recovered,
-worsened, or died on the way.
+with nothing to dress), **Hydrate** (parched, `Thirst ≥ 0.55` — checked before
+Feed and beats it on ties, because thirst kills faster than hunger), **Feed**
+(genuinely hungry, `Hunger ≥ 0.55`), **Console** (grieving or breaking under
+stress). A helper re-assesses on arrival — she may have recovered, worsened, or
+died on the way. Hydrate was missing originally: a housemate dying of thirst
+registered *no* helpable suffering and got repeatedly fed instead (seed
+1104049673 — Molly died at Thirst 1.00, Hunger 0.33, with two friends 4 hexes
+away).
 
 ### §53.4 The aid behaviour
 A new `GoalType.Aid` bids into the same utility auction, cloning the talk
 pipeline: pick the **worst-off** reachable, unclaimed sufferer, reserve an
 arm's-length approach junction, claim her with `PendingAidFrom` (she holds still
 until arrival, timeout, or danger — hunger does **not** break her wait, she needs
-the help), then `MoveToJunction` + an aid interaction (`FeedOther` / `TreatOther`
-/ `MedicateOther` / `ConsoleOther`). On completion the **relief is applied
-straight to the target** — no food or bandage is spent, so aid can never bankrupt
-the knife-edge colony: Feed drops her Hunger, Treat lifts wounded parts + stops
+the help), then `MoveToJunction` + an aid interaction (`FeedOther` /
+`HydrateOther` / `TreatOther` / `MedicateOther` / `ConsoleOther`). On completion
+the **relief is applied straight to the target** — no food or bandage is spent,
+so aid can never bankrupt the knife-edge colony: Feed drops her Hunger, Hydrate
+drops her Thirst (`Spec53.HydrateRelief`), Treat lifts wounded parts + stops
 the bleed + drops a gauze wrap, Medicate lifts Health and clears the sickness
 window, Console eases Stress and shortens mourning. **Both** relationships rise by
 `AidRelationshipGain` (larger than a chat's 0.05) across Affinity/Familiarity/
@@ -9679,9 +9805,9 @@ hand-lashed into a usable bed.
   colony has fewer beds than living girls and none is currently under construction.
   The site is also inserted into every living NPC's permanent object memory, since
   it is a colony intent point rather than something each girl must personally see.
-  Bill = `SimBalance.BedLeafBillLeaves`(16) + `BedLeafBillSticks`(4) +
-  `BedLeafBillRope`(2): grouped survival bundles, not one simulation item per
-  visual blade/lashing.
+  Bill = `SimBalance.BedLeafBillLeaves`(46) + `BedLeafBillSticks`(8) +
+  `BedLeafBillRope`(8) — one simulation item per visual piece of the assembled
+  prefab (`bed_leaf_final`), demanded stage by stage (§54.12).
 - **Bill channels.** The §52 furniture bill gained two material channels beyond
   log/stone/leaf: **stick** and **rope** (`WorldObjectState.BillSticks/BillRope`,
   `BuildSiteMath.AllMaterials` + `MaterialSticks/Rope`). Deposit/read-back iterate
@@ -9699,14 +9825,18 @@ hand-lashed into a usable bed.
   piece bill in hand now skips furniture sites (`!BuildSiteMath.IsSite`), which had
   silently aborted every bed delivery (leaves/sticks don't satisfy a hut piece).
 - **Render.** `BuildSitePile` detects a bed product and draws it via
-  `BedFactory.Build(product, filled = deliveredCounts)` — each delivered
-  leaf/stick/log/rope drops onto its real slot, so the site grows exactly into the
-  finished bed (not a generic scatter pile). Snapshot carries `Bill/Delivered
-  Sticks/Rope` alongside the log/stone/leaf counts.
+  `BedAssembly` — the SAME assembled prefab (`bed_leaf_final`/`bed_basic_final`)
+  renders both the finished bed (all pieces on) and the site (only the delivered
+  pieces on, in stage order — §54.12), so the mat grows exactly into the finished
+  bed. Snapshot carries `Bill/Delivered Sticks/Rope` alongside the log/stone/leaf
+  counts.
 
-`bed.basic` (the premium bedroll: 20 leaf + 2 log + 4 stick + 1 rope) shares all
-this plumbing but is not yet staked by any system — its slot bill is ready for a
-future placer.
+`bed.basic` (the premium bedroll: 4 log + 5 stick + 10 rope + 50 leaf =
+`SimBalance.BedBasicBill*`) shares all this plumbing as the SECOND bed tier
+(§54.12): once every living girl has *a* bed, `BedSiteSystem` stakes premium
+bedrolls — each built from scratch at its OWN fireside site, one at a time, until
+each girl owns one (`SimBalance.BedBasicEnabled`). NOT an upgrade — the leaf mats
+stay untouched. Raising it needs the hammer (only the leaf mat is hand-lashed).
 
 ### §54.10 Build-time balance (stacking, hut retired, bed-chain priority)
 A goal-time histogram over the soak showed the colony spends ~48% of living time
@@ -9770,6 +9900,91 @@ the bonus, only show it.
 **dehydration ~73%** and **dog maulings ~27%** — starvation, cold, heat and sickness
 are ~0. Food and warmth are solved; the fragile axis is WATER (the §55 coconut-only
 WIP economy). Short 4-day runs see zero deaths.
+
+### §54.12 Staged construction (build stages)
+
+A build-site no longer demands its whole bill at once — construction proceeds in
+**ordered stages**, and the site only wants (and only accepts) the CURRENT stage's
+material. The stages mirror the numbered piece groups the assembled bed prefabs
+are authored with (children `"1".."4"` of `bed_leaf_final` / `bed_basic_final`):
+
+- `bed.leaf`: **4 sticks** (frame) → **4 sticks** (slats) → **8 rope** (lashing) →
+  **46 leaves** (mattress).
+- `bed.basic`: **4 logs** → **5 sticks** → **10 rope** → **50 leaves**.
+
+Mechanics (`BuildSiteMath`):
+
+- The stage tables live in `BuildSiteMath.BedLeafStages`/`BedBasicStages` — **keep
+  them in sync** with the prefab groups and with the `SimBalance.Bed*Bill*` totals
+  (= per-material sums across stages). Unstaged products (`campfire.spot`, hut
+  pieces) keep the old whole-bill behaviour.
+- The current stage is **derived, not stored**: delivered `Contents` are attributed
+  to stages in order, and the first stage left short is the active one — nothing
+  new to save.
+- `Remaining`/`Needs` now report only the active stage's shortfall (0 for any
+  material a later stage wants), so every consumer follows automatically: the
+  gather feeders (`siteNeedsLeaves/Sticks/Rope`), `CarriesSiteMaterial`, the
+  deposit loop in `ApplyFurnitureSite`, and the rope-craft target. `IsStocked`
+  (raise gate) still checks the TOTAL bill via `TotalRemaining`.
+- **Loose sticks feed the stick stage.** `GatherWood` gains a
+  `siteNeedsSticks` clause (+`bedStickPull` on its score): scattered ground sticks
+  are picked up for the bed even when the fire is fed and no log is around —
+  before, only `SplitLog` produced bed sticks and a stick lying two tiles away was
+  ignored.
+- **No premature hoarding.** The pre-stake "bed is coming, hold 3 leaves" clause of
+  `wantsLeaves` is gated to fire only while no bed site is staked (`!siteIsBed`) —
+  once staked, leaf demand follows the stage. (Hoarded leaves during the stick
+  stage read as junk, got stashed at the fire by `HaulToFire`, then re-gathered —
+  an endless churn loop.)
+- **Stage-sized gather caps.** The gather-to-the-bill trip caps (§54.10) now target
+  the CURRENT stage's shortfall via `BuildSiteMath.Remaining` (`wantsLeaves`,
+  `gatherWood` sticks, `SplitLog` stick cap) instead of the hardcoded leaf-mat bill,
+  so they size correctly for either bed.
+- **The second bed tier.** Once beds ≥ living girls, `BedSiteSystem` stakes
+  `bed.basic` sites (one at a time, each on its own structure-free fireside tile —
+  see below) until premium beds ≥ living girls; `SimBalance.BedBasicEnabled`
+  switches the tier off. Not an upgrade: nothing converts a leaf mat — the premium
+  bedroll is built from scratch beside it. The old hut-completion `bed.basic` spawn
+  remains dead code (the hut is retired).
+- **One structure per fireside tile.** `FindFiresideSpot` skips tiles already
+  holding a non-portable object (`TileHoldsStructure`: a bed, a build-site, the
+  rack, a grave — anything without a PickUp interaction; loose items don't claim a
+  tile). `IsJunctionFree` only sees NPC reservations, so the second bed's site used
+  to get staked ON TOP of the finished leaf mat — its stage-1 log rails rendered
+  across the mat and read as the mat "upgrading" into a log bed.
+- **Render.** `BedAssembly.Scan` walks the numbered stage groups in order (pieces
+  name-sorted within a group, flat children as a pre-stage fallback), so "the first
+  N delivered pieces of a material" light up in exact build order and the site
+  visibly assembles stage by stage.
+- **The hand shows the real material.** `ResolveHeldItem`'s hut-era rule "Build =
+  carry a log" spawned a log in her hand while she laid bed sticks. At a furniture
+  site the hand now shows the CURRENT stage's material she actually carries; a
+  stocked site shows the hammer for the raise (nothing for the hand-lashed mat).
+  The log rule survives only for the retired hut anchor and the raft.
+- **No useless log hauls.** The `GatherWood` target filter accepts a whole LOG only
+  when logs are billed somewhere (a site's log stage, the unfinished raft) or she
+  carries a chop tool to split it — a stick-stage demand no longer sends her home
+  hugging a log she can't use (`WholeLogsWanted`).
+- **Build plays the gather clip.** The `Build` verb moved from the crouch "Working"
+  state to the full-body Gathering clip-state (`NpcActorView.SetInteraction`) —
+  laying a piece reads as a stooping gather motion with the piece in hand.
+- **Sitting needs a real seat.** The §29G flat-ground fallback ("sit right where
+  she stands") is RETIRED — it had her plopping onto open ground and onto the
+  half-built bed she'd just stocked. A sit now happens only on a **ledge** (a hex
+  edge working as a step, legs over the drop), a **stump** (`stump.palm`) or
+  Sit-furniture (`chair.basic`, beds); ledge/CoolOff spot selection also excludes
+  build-site junctions (`CollectBuildSiteJunctions`). `sitAvail` gains a seat
+  gate — Sit-furniture in perception or a ledge within plan range (ledge list
+  cached per `TopologyVersion`) — so a flat island doesn't churn
+  Sit→NoLedgeOrSeat→cooldown. Ground-SLEEP is unchanged (lying on the land is
+  still how a bed-less colony sleeps).
+
+Verified headless (BedBuildTest world: both bills scattered, needs frozen): the
+leaf mat fills strictly `sticks 8/8 → rope 8/8 → leaves 46/46`, the premium site
+follows `logs 4/4 → sticks 5/5 → rope 10/10 → leaves 50/50`, zero out-of-stage
+deposits, both `FurnitureBuilt`. NB: camp life nibbles the same materials (the
+drying rack costs 2 sticks) — an exact scattered bill can deadlock a stage, which
+is why the test scene carries a small stick margin.
 
 ## §55 Rivers retired, drink from the coconut (iteration 55)
 
@@ -9923,3 +10138,155 @@ counter), `PreyFled` (defender bolts), `PredatorKilled` (defender wins),
 The strike can reuse an existing melee action pose via `NpcActorView`; a distinct
 predation read (bubble/marker) is a later visual pass. Not required for the sim
 to be correct.
+
+## §57 Limb-health window — the body doll (iteration 57)
+
+Clicking the **HP row** in the character bar pops a floating limb-health window
+(the same chrome/spot as the §51 backpack window; opening one closes the other).
+It answers "WHERE is she hurt?" the way StarCraft's unit wireframe answers it —
+a **3D body doll** whose parts are tinted by their zone HP, plus a per-limb
+readout list. Pure presentation: everything reads the existing `NpcSnapshot`
+zone lists (`BodyParts` "Zone=0.87", `SeveredParts`, `BandagedZones`
+"Zone"/"Zone|g", `Wounds` "Zone|Seed|Heal01"); the sim is untouched.
+
+### §57.1 The doll (`HealthDollStage`)
+
+`UI/HealthDollStage.cs` — a `PortraitStage`-style stage: its own camera renders
+into a 384×512 RenderTexture on the hidden **Portrait** layer (already culled
+from the main camera), parked far below the map.
+
+- **Built from the same actor prefab** the world spawns
+  (`Resources/HexLive/Actors/<ActorMesh>`), **static** — no idle spin. Pose:
+  ONE evaluated frame of the prefab's own locomotion controller (default
+  Idle state, `Animator.Update(0)` then the Animator is destroyed) — a
+  natural stance, arms relaxed at the sides. Never swing the shoulder bones
+  manually out of the T-pose: Genesis skinning without its authored poses
+  candy-wraps the shoulders («руки-крюки»). Front view, camera framed once
+  from the skinned bounds.
+- **Zone mesh without hand-authored masks**: the skin mesh is cloned and every
+  vertex is classified by its **dominant skinning bone** walked up the Genesis3
+  hierarchy to the zone roots (`neckLower`→Head, `abdomenUpper`→Torso,
+  `hip/pelvis/abdomenLower`→Pelvis, `l/rShldrBend`→Arms, `l/rThighBend`→Legs) —
+  the same segments `SkinTexturePainter` targets. Non-skin submeshes
+  (eyes/lashes/mouth/nails, the `NpcActorView` hint list) are dropped; other
+  renderers (hair) disabled.
+- **Colour** is per-vertex `Color32` shaded by `UI/HealthDoll.shader` (fixed
+  studio light + rim, no scene lighting): HP 1→0 ramps green→yellow→red
+  (panel palette), a **bandaged** zone lightens 30 % toward white, a **severed**
+  zone paints dark and its distal bone collapses (`lForearmBend`/`lShin` etc. —
+  §50 parity with the live body). Repaints only when the zone signature changes.
+
+### §57.2 The window (CharacterPanel)
+
+- The HP caption/track is now a hover-highlighted button → `ToggleHealth()`.
+- Window: doll viewport (3:4) + seven rows in `BodyPart` order, each with a
+  status dot (same colour ramp), localized zone name (`zone.*` keys), and a
+  value: `🩸n · 🩹 84%` (open wounds count, bandage/gauze mark, zone HP) or
+  red "severed"/"ампутирована" (`health.severed`).
+- The window swallows pointer events like the inventory window (extends the
+  `PointerOverUi` guard) and closes on selection change; the doll camera only
+  renders while the window is open.
+- Wired in `PrototypeRuntimeBootstrap.InstallCharacterUi` and the
+  `WolfFightTest` bootstrap (where limbs actually get mauled).
+
+## §58 Localization — I2 is the single source of strings (iteration 58)
+
+The in-code RU/EN string table that used to live in `Loc.cs` is retired. The
+project's localization system is the **I2 Localization** plugin (`Assets/I2/`),
+and its language source asset is the single source of truth for every
+player-facing string.
+
+### §58.1 Where strings live
+
+- **`Assets/Resources/I2Languages.asset`** — all terms, currently two
+  languages: **English** (`en`, column 0) and **Russian** (`ru`, column 1).
+  All ~312 terms of the legacy table were migrated 1:1.
+- Key convention (unchanged): dotted lowercase `area.key` — `panel.*`,
+  `need.*`, `menu.*`, `inv.*`, `zone.*`, `health.*`, `goal.<GoalEnum>`,
+  effect keys, etc.
+
+### §58.2 The `Loc` facade
+
+`UnityPresentation/Localization/Loc.cs` remains ONLY as a thin adapter over
+`I2.Loc.LocalizationManager` so the UI keeps its tiny API: `Get`, `Has`,
+`Goal`, `Toggle`, `Code`, `Current`, `LanguageChanged` (forwarded from I2's
+`OnLocalizeEvent`). Behaviour contracts preserved:
+
+- a **missing key renders as the raw key** in the UI (untranslated text must
+  be visible, never silently blank);
+- an empty RU translation falls back to EN;
+- F2 / the language button toggles EN↔RU; I2 persists the choice
+  (PlayerPrefs) and auto-picks the device language on first run.
+
+### §58.3 THE RULE — never author strings in code
+
+**Adding a locale entry to any C# file is a spec violation.** No new string
+tables, no `["key"] = new[] { "En", "Ru" }` dictionaries, no inline
+`lang == Russian ? "..." : "..."` branches. To add a new string:
+
+1. Add a **term** to `I2Languages.asset` — via the I2 editor window
+   (select the asset → Terms tab), or by editing the asset YAML directly
+   (`- Term: <key>` / `TermType: 0` / `Description:` / `Languages:` EN then RU
+   / `Flags: 0101` / `Languages_Touch: []`).
+2. Fill **both** EN and RU.
+3. Read it in code via `Loc.Get("your.key")` (UI Toolkit panels) or an I2
+   `Localize` component (GameObject text).
+
+### §58.4 Assemblies
+
+I2 got its own asmdefs so the `HexLive.UnityPresentation` assembly can
+reference it: `I2.Loc` (runtime, `Scripts/`) + `I2.Loc.Editor`
+(`Scripts/Editor/`, editor-only), both referencing `UnityEngine.UI` and
+`Unity.TextMeshPro` (the project defines `TextMeshPro` globally).
+
+## §59 Data-driven catalogs — SO-конфиги и headless-мост (iteration 59)
+
+Весь баланс сущностей вынесен из кода в НАСТРАИВАЕМЫЕ ОБЪЕКТЫ (ScriptableObjects);
+кодовые таблицы — лишь seed, из которого сгенерированы ассеты. Источник истины —
+ассеты. Никакой прогон не должен работать на «тихих дефолтах».
+
+**59.1 Каталоги и их ассеты.**
+- Мобы: `MobCatalog` ← `Resources/HexLive/Mobs/*.asset` (MobConfig): HP, укус,
+  замах/перезарядка, агро, роум, погоня, глайд, стайный налёт, префаб.
+- Снаряжение (оружие+инструменты едины): `GearCatalog` ←
+  `Resources/HexLive/Gear/*.asset` (GearConfig): урон, замах (hit-delay),
+  длительность/перезарядка, приоритет-оружия, двуручность, СПОСОБНОСТИ
+  (Cut/Butcher/ChopWood/Mine/Hammer + именованные строки, напр. Saw/Sew),
+  префаб, клипы анимаций, секция «Крафт».
+- Объекты мира: `WorldObjectLibrary` ← `Resources/HexLive/WorldObjects/*.asset`
+  (WorldObjectConfig): МАССИВ действий, у каждого — свои скиллы (enum
+  GearCapability, МАССИВ any-of: бревно рубится топором/ChopWood ИЛИ
+  ножом/Cut) и свои yields; merge-семантика (ассет добавляет глагол
+  существующему объекту или объявляет новый).
+- Рецепты: `RecipeCatalog` ← секции «Крафт» на карточке ВЫХОДНОГО предмета
+  (GearConfig/WorldObjectConfig): ингредиенты (ссылками), needsLitFire,
+  станция (enum CraftPlace; Anywhere = крафт на месте — план CraftInPlace).
+- СКЛАД: у объекта есть массив начального содержимого
+  (`ObjectDefinition.Storage`, enum StoredKind + amount) — дырявый кокос
+  декларирует Water × 4; спавн кладёт это в ResourceAmount (мир и инвентарь).
+  «Еда» — галочка isFood (добавляет тег Food). ПРОДЮСЕР — свойство объекта
+  (isProducer): сам спавнит ресурс рядом (что — ссылкой, интервал тиков, кап
+  непособранного, радиус в тайлах); пальма декларирует кокосы 300/2/1 — прежняя
+  скорость (FruitProductionSystem её и исполняет). Кокосовая цепочка на данных:
+  pierce [Cut] → дырявый (склад Water 4) → drink ×4 → split [Cut] → 2
+  половинки (Food) → eat. Пальма (chop.palm [ChopWood] → 3 бревна + крона) и
+  ветка с кокосами (palm.coconut_branch: cut [Cut] → 3 кокоса; объект описан,
+  спавн-источник подключается отдельно) — тоже ассеты.
+
+**59.2 Правила.**
+- Сим гейтится на СПОСОБНОСТИ, никогда на id инструментов; GOAP подбирает
+  инструмент под скилл (AddsValueOver: новая способность или лучшее оружие).
+- Новый моб / инструмент / объект / рецепт = новый ассет. Код нужен только для
+  нового ГЛАГОЛА (гол-слой: когда персонаж этого хочет) и построек (bed/tent/rack).
+
+**59.3 Headless-мост (ОБЯЗАТЕЛЕН для проб и соаков).**
+- Экспорт: меню Unity **HexLive ▸ Export Sim Data (JSON)** применяет все
+  тюнинги и пишет `SimData/simdata.json` (корень репо). Переэкспорт после
+  каждого тюна ассетов.
+- Импорт: ПЕРВАЯ строка любой headless-пробы —
+  `SimDataFile.Require("/Volumes/ORICO/HexLive/SimData/simdata.json")`.
+  Require БРОСАЕТ исключение, если файла нет или он не парсится: прогон на
+  кодовых дефолтах ЗАПРЕЩЁН — молчаливый дрейф между игрой и харнессом хуже
+  упавшей пробы. (LoadAndApply остаётся для явных экспериментов.)
+- Сериализация одна: `SimDataFile.ExportJson()` в сим-сборке (engine-free);
+  редакторное меню лишь применяет SO-слои и пишет файл.

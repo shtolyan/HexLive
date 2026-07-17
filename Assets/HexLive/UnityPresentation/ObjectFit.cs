@@ -11,7 +11,7 @@ namespace HexLive.UnityPresentation
     ///
     /// Size = a per-category fraction of <see cref="SimulationUnityMapper.HexRadius"/>,
     /// applied to the object's measured max dimension. Change a number here and it
-    /// moves everywhere (ground + hand) at once. `ItemAttachConfig.localScale` is a
+    /// moves everywhere (ground + hand) at once. The gear asset's hand scale is a
     /// per-item fine MULTIPLIER on top of this (default 1), not the absolute size.
     /// </summary>
     public static class ObjectFit

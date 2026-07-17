@@ -16,7 +16,7 @@ namespace HexLive.UnityPresentation.AxeChopTest
     /// — so this scene is where you tune WHERE it sits in the hand: nudge
     /// <see cref="axeLocalPosition"/> / <see cref="axeLocalEuler"/> /
     /// <see cref="axeLocalScale"/> live in the Inspector (or with the arrow keys),
-    /// watch it swing, then "Save" writes the pose back into ItemAttachConfig
+    /// watch it swing, then "Save" writes the pose into the tool's GearConfig
     /// (entry tool.axe_stone) — the same asset NpcActorView.SetHandProp reads at
     /// runtime, so the tuning carries into the real game.
     ///
@@ -27,8 +27,6 @@ namespace HexLive.UnityPresentation.AxeChopTest
     {
         [Tooltip("Какой инструмент тюним/спавним: tool.axe_stone, tool.knife, tool.pickaxe_stone…")]
         public string toolId = "tool.axe_stone";
-        private const string ConfigResource = "HexLive/ItemAttachConfig";
-        private const string ConfigAssetPath = "Assets/Resources/HexLive/ItemAttachConfig.asset";
         private static readonly int ChoppingParam = Animator.StringToHash("Chopping");
         private static readonly int AttackParam = Animator.StringToHash("Attack");
 
@@ -273,17 +271,18 @@ namespace HexLive.UnityPresentation.AxeChopTest
 
         private void SeedFromConfig()
         {
-            var cfg = Resources.Load<ItemAttachConfig>(ConfigResource);
-            if (cfg != null && cfg.TryGet(toolId, false, out var p, out var r, out var s))
+            // §gear: the hand pose lives on the tool's own GearConfig now.
+            Config.GearTuning.LoadAndApply();
+            if (Config.GearLibrary.TryGetHandPose(toolId, false, out var p, out var r, out var s))
             {
                 axeLocalPosition = p;
                 axeLocalEuler = r.eulerAngles;
                 axeLocalScale = s;
-                _status = "Seeded from ItemAttachConfig.";
+                _status = "Seeded from the gear asset.";
             }
             else
             {
-                _status = "No config entry — starting from defaults.";
+                _status = "No authored hand pose — starting from defaults.";
             }
         }
 
@@ -301,7 +300,7 @@ namespace HexLive.UnityPresentation.AxeChopTest
             _axe.name = "AxeProp";
             // Same world-size normalization the game uses (ObjectFit), so the
             // preview size == the in-game size. axeLocalScale is the fine MULTIPLIER
-            // on top (default 1), matching ItemAttachConfig semantics.
+            // on top (default 1), matching the gear asset's hand-scale semantics.
             _fit = HexLive.UnityPresentation.ObjectFit.FitScaleFactor(_axe, toolId);
             // Seed the pose ONCE from the fields/config; after that the AxeProp
             // transform is the source of truth (drag it in the Scene view / edit
@@ -504,7 +503,7 @@ namespace HexLive.UnityPresentation.AxeChopTest
             GUILayout.Label("Стрелки=XY, PgUp/PgDn=Z, Shift=точнее, Space=свинг вкл/выкл");
             chopping = GUILayout.Toggle(chopping, "Chop animation");
 #if UNITY_EDITOR
-            if (GUILayout.Button("Save → ItemAttachConfig")) SaveToConfig();
+            if (GUILayout.Button("Save → GearConfig")) SaveToConfig();
 #endif
             GUILayout.Space(6);
             aimStrike = GUILayout.Toggle(aimStrike, "Aim strike at StrikeTarget (Final IK)");
@@ -517,15 +516,18 @@ namespace HexLive.UnityPresentation.AxeChopTest
         }
 
 #if UNITY_EDITOR
-        [ContextMenu("Save Axe Attach → ItemAttachConfig")]
+        [ContextMenu("Save Axe Attach → GearConfig")]
         private void SaveToConfig()
         {
-            var cfg = Resources.Load<ItemAttachConfig>(ConfigResource);
+            // §gear: write straight onto the tool's own asset — one card per
+            // item holds EVERYTHING, hand pose included.
+            Config.GearTuning.LoadAndApply();
+            var cfg = Config.GearLibrary.ConfigFor(toolId);
             if (cfg == null)
             {
-                cfg = ScriptableObject.CreateInstance<ItemAttachConfig>();
-                System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(ConfigAssetPath));
-                AssetDatabase.CreateAsset(cfg, ConfigAssetPath);
+                _status = $"No GearConfig asset for '{toolId}' — create one under Resources/HexLive/Gear first.";
+                Debug.LogError($"[AxeChopTest] {_status}");
+                return;
             }
 
             // Read the axe's CURRENT transform (the source of truth), not stale fields.
@@ -534,18 +536,14 @@ namespace HexLive.UnityPresentation.AxeChopTest
             // Save the MULTIPLIER (strip the ObjectFit factor) — the game re-applies fit.
             var scale = _axe != null && _fit > 0.0001f ? _axe.transform.localScale / _fit : axeLocalScale;
 
-            var list = cfg.entries;
-            var idx = list.FindIndex(e => e.itemId == toolId);
-            var entry = idx >= 0 ? list[idx] : new ItemAttachConfig.Entry { itemId = toolId };
-            entry.itemId = toolId;
-            entry.localPosition = pos;
-            entry.localEuler = euler;
-            entry.localScale = scale;
-            if (idx >= 0) list[idx] = entry; else list.Add(entry);
+            cfg.handPoseAuthored = true;
+            cfg.handLocalPosition = pos;
+            cfg.handLocalEuler = euler;
+            cfg.handLocalScale = scale;
 
             EditorUtility.SetDirty(cfg);
             AssetDatabase.SaveAssets();
-            _status = $"Saved: pos={axeLocalPosition} euler={axeLocalEuler} scale={axeLocalScale}";
+            _status = $"Saved to {cfg.name}.asset: pos={pos} euler={euler} scale={scale}";
             Debug.Log($"[AxeChopTest] {_status}");
         }
 #endif

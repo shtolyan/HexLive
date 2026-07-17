@@ -1,0 +1,595 @@
+using System.Collections.Generic;
+
+namespace HexLive.Simulation.Content
+{
+    /// <summary>
+    /// The headless data bridge. In the editor every catalog (mobs, gear,
+    /// world objects, recipes) is tuned through ScriptableObjects; a headless
+    /// probe or soak harness cannot load those. Instead the editor EXPORTS the
+    /// applied catalogs to one JSON file (HexLive ▸ Export Sim Data — writes
+    /// <c>SimData/simdata.json</c> at the repo root), and a headless host calls
+    /// <see cref="LoadAndApply"/> as its first line — the sim then runs on the
+    /// exact numbers the game runs on, not on the code defaults.
+    ///
+    /// Engine-free on purpose: hand-rolled minimal JSON reader (objects,
+    /// arrays, strings, numbers, bools), no UnityEngine, no external packages.
+    /// </summary>
+    public static class SimDataFile
+    {
+        // Repo-root-relative conventional location of the export.
+        public const string DefaultRelativePath = "SimData/simdata.json";
+
+        /// <summary>§59.3: the MANDATORY form for probes/soaks — throws when
+        /// the export is missing or unparseable. Running on code defaults is
+        /// forbidden: silent drift between the tuned game and the harness is
+        /// worse than a failed probe. Export via HexLive ▸ Export Sim Data.</summary>
+        public static void Require(string path)
+        {
+            if (!LoadAndApply(path))
+            {
+                throw new System.InvalidOperationException(
+                    $"SimData export not found/unreadable at '{path}'. " +
+                    "Run Unity menu 'HexLive ▸ Export Sim Data (JSON)' first — " +
+                    "headless runs must NOT use code defaults (spec §59.3).");
+            }
+        }
+
+        /// <summary>Reads the export and applies every section onto the live
+        /// catalogs. Returns false (and changes nothing) when the file is
+        /// missing or unparseable. Prefer <see cref="Require"/> in harnesses.</summary>
+        public static bool LoadAndApply(string path)
+        {
+            string text;
+            try
+            {
+                text = System.IO.File.ReadAllText(path);
+            }
+            catch
+            {
+                return false;
+            }
+
+            return ApplyJson(text);
+        }
+
+        public static bool ApplyJson(string json)
+        {
+            if (MiniJson.Parse(json) is not Dictionary<string, object> root)
+            {
+                return false;
+            }
+
+            ApplyMobs(root);
+            ApplyGear(root);
+            ApplyWorldObjects(root);
+            ApplyRecipes(root);
+            return true;
+        }
+
+        private static void ApplyMobs(Dictionary<string, object> root)
+        {
+            if (root.TryGetValue("mobs", out var section) && section is List<object> mobs)
+            {
+                foreach (var entry in mobs)
+                {
+                    if (entry is not Dictionary<string, object> m)
+                    {
+                        continue;
+                    }
+
+                    MobCatalog.Override(new MobStats
+                    {
+                        Id = Str(m, "id"),
+                        MaxHealth = F(m, "maxHealth", 1f),
+                        // "biteDamage" is the legacy pre-rename key.
+                        AttackDamage = F(m, "attackDamage", F(m, "biteDamage", 0.09f)),
+                        AttackWindupSeconds = F(m, "attackWindupSeconds", 0.1f),
+                        AttackCooldownSeconds = F(m, "attackCooldownSeconds", 0.8f),
+                        AggroRadiusTiles = I(m, "aggroRadiusTiles", 2),
+                        RoamChance = F(m, "roamChance", 0.2f),
+                        ChaseStepsPerTick = I(m, "chaseStepsPerTick", 1),
+                        GlideSegmentSeconds = F(m, "glideSegmentSeconds", 1f),
+                        GlideSnapDistance = F(m, "glideSnapDistance", 6f),
+                        RaidChancePerDay = F(m, "raidChancePerDay", 0f),
+                        RaidPackSize = I(m, "raidPackSize", 0),
+                    });
+                }
+            }
+        }
+
+        private static void ApplyGear(Dictionary<string, object> root)
+        {
+            if (root.TryGetValue("gear", out var section) && section is List<object> gear)
+            {
+                foreach (var entry in gear)
+                {
+                    if (entry is not Dictionary<string, object> g)
+                    {
+                        continue;
+                    }
+
+                    var stats = new GearStats
+                    {
+                        Id = Str(g, "id"),
+                        Damage = F(g, "damage", 0.15f),
+                        HitDelaySeconds = F(g, "hitDelaySeconds", 1.5f),
+                        AttackDurationSeconds = F(g, "attackDurationSeconds", 2f),
+                        CooldownSeconds = F(g, "cooldownSeconds", 1f),
+                        AttackSpeed = F(g, "attackSpeed", 1f),
+                        MeleePriority = I(g, "meleePriority", 0),
+                        TwoHanded = B(g, "twoHanded"),
+                        HarvestSpeedMult = F(g, "harvestSpeedMult", 1f),
+                    };
+                    foreach (var name in Strings(g, "capabilities"))
+                    {
+                        if (System.Enum.TryParse<GearCapability>(name, true, out var flag))
+                        {
+                            stats.Capabilities |= flag;
+                        }
+                    }
+
+                    GearCatalog.Override(stats);
+                }
+            }
+        }
+
+        private static void ApplyWorldObjects(Dictionary<string, object> root)
+        {
+            if (root.TryGetValue("worldObjects", out var section) && section is List<object> objects)
+            {
+                foreach (var entry in objects)
+                {
+                    if (entry is not Dictionary<string, object> o)
+                    {
+                        continue;
+                    }
+
+                    var def = new ObjectDefinition
+                    {
+                        Id = Str(o, "id"),
+                        DisplayName = Str(o, "displayName"),
+                    };
+                    foreach (var tag in Strings(o, "tags"))
+                    {
+                        def.Tags.Add(tag);
+                    }
+
+                    if (o.TryGetValue("produce", out var pv) && pv is Dictionary<string, object> produce)
+                    {
+                        var producedId = Str(produce, "item");
+                        if (!string.IsNullOrEmpty(producedId))
+                        {
+                            def.Produce = new ProduceDefinition
+                            {
+                                ProducedDefinitionId = producedId,
+                                IntervalTicks = I(produce, "intervalTicks", 300),
+                                MaxConcurrent = I(produce, "maxConcurrent", 2),
+                                MaxDistanceTiles = I(produce, "radiusTiles", 1),
+                            };
+                        }
+                    }
+
+                    if (o.TryGetValue("storage", out var sv) && sv is List<object> storage)
+                    {
+                        foreach (var se in storage)
+                        {
+                            if (se is Dictionary<string, object> row &&
+                                System.Enum.TryParse<StoredKind>(Str(row, "kind"), true, out var kind))
+                            {
+                                def.Storage.Add(new StoredResource { Kind = kind, Amount = F(row, "amount", 1f) });
+                            }
+                        }
+                    }
+
+                    if (o.TryGetValue("interactions", out var iv) && iv is List<object> interactions)
+                    {
+                        foreach (var ie in interactions)
+                        {
+                            if (ie is not Dictionary<string, object> i)
+                            {
+                                continue;
+                            }
+
+                            var interaction = new InteractionDefinition
+                            {
+                                Id = Str(i, "id"),
+                                Type = System.Enum.TryParse<InteractionType>(Str(i, "type"), true, out var t)
+                                    ? t
+                                    : InteractionType.Process,
+                                DurationTicks = I(i, "durationTicks", 40),
+                            };
+                            // The serializer owns the string↔enum mapping —
+                            // JSON carries enum NAMES, unknown names are skipped.
+                            foreach (var cap in Strings(i, "requiredCapabilities"))
+                            {
+                                if (System.Enum.TryParse<GearCapability>(cap, true, out var flag) &&
+                                    flag != GearCapability.None &&
+                                    !interaction.RequiredCapabilities.Contains(flag))
+                                {
+                                    interaction.RequiredCapabilities.Add(flag);
+                                }
+                            }
+                            if (i.TryGetValue("yields", out var yv) && yv is List<object> yields)
+                            {
+                                foreach (var ye in yields)
+                                {
+                                    if (ye is Dictionary<string, object> y)
+                                    {
+                                        interaction.Yields.Add(new HarvestDrop
+                                        {
+                                            DefinitionId = Str(y, "id"),
+                                            Count = I(y, "count", 1),
+                                            Scatter = B(y, "scatter"),
+                                        });
+                                    }
+                                }
+                            }
+
+                            def.Interactions.Add(interaction);
+                        }
+                    }
+
+                    WorldObjectLibrary.Override(def);
+                }
+            }
+        }
+
+        private static void ApplyRecipes(Dictionary<string, object> root)
+        {
+            if (root.TryGetValue("recipes", out var section) && section is List<object> recipes)
+            {
+                foreach (var entry in recipes)
+                {
+                    if (entry is not Dictionary<string, object> r)
+                    {
+                        continue;
+                    }
+
+                    var inputs = new List<RecipeIngredient>();
+                    if (r.TryGetValue("inputs", out var iv) && iv is List<object> list)
+                    {
+                        foreach (var ie in list)
+                        {
+                            if (ie is Dictionary<string, object> i)
+                            {
+                                inputs.Add(new RecipeIngredient(Str(i, "id"), I(i, "count", 1)));
+                            }
+                        }
+                    }
+
+                    RecipeCatalog.Override(
+                        Str(r, "output"), inputs.ToArray(),
+                        B(r, "needsLitFire"), Str(r, "station"));
+                }
+            }
+        }
+
+        /// <summary>§59.3: serialize the LIVE catalogs to the export schema.
+        /// The single serializer — the editor menu applies the SO layers and
+        /// writes this string; a headless host can dump its state the same way.</summary>
+        public static string ExportJson()
+        {
+            // Deterministic order (sorted by id) — the export is committed, so
+            // stable diffs matter more than dictionary insertion order.
+            static List<T> Sorted<T>(IEnumerable<T> source, System.Func<T, string> key)
+            {
+                var list = new List<T>(source);
+                list.Sort((a, b) => string.CompareOrdinal(key(a), key(b)));
+                return list;
+            }
+
+            var sb = new System.Text.StringBuilder();
+            sb.Append("{\n  \"mobs\": [\n");
+            var first = true;
+            foreach (var pair in Sorted(MobCatalog.Active, p => p.Key))
+            {
+                var m = pair.Value;
+                if (!first) sb.Append(",\n");
+                first = false;
+                sb.Append("    {")
+                  .Append($"\"id\": {Q(m.Id)}, \"maxHealth\": {N(m.MaxHealth)}, \"attackDamage\": {N(m.AttackDamage)}, ")
+                  .Append($"\"attackWindupSeconds\": {N(m.AttackWindupSeconds)}, \"attackCooldownSeconds\": {N(m.AttackCooldownSeconds)}, ")
+                  .Append($"\"aggroRadiusTiles\": {m.AggroRadiusTiles}, \"roamChance\": {N(m.RoamChance)}, ")
+                  .Append($"\"chaseStepsPerTick\": {m.ChaseStepsPerTick}, \"glideSegmentSeconds\": {N(m.GlideSegmentSeconds)}, ")
+                  .Append($"\"glideSnapDistance\": {N(m.GlideSnapDistance)}, \"raidChancePerDay\": {N(m.RaidChancePerDay)}, ")
+                  .Append($"\"raidPackSize\": {m.RaidPackSize}}}");
+            }
+
+            sb.Append("\n  ],\n  \"gear\": [\n");
+            first = true;
+            foreach (var pair in Sorted(GearCatalog.Active, p => p.Key))
+            {
+                var g = pair.Value;
+                if (g.Id != pair.Key)
+                {
+                    continue; // fist-fallback cache rows
+                }
+
+                if (!first) sb.Append(",\n");
+                first = false;
+                var caps = new System.Text.StringBuilder();
+                foreach (GearCapability flag in System.Enum.GetValues(typeof(GearCapability)))
+                {
+                    if (flag != GearCapability.None && g.Has(flag))
+                    {
+                        if (caps.Length > 0) caps.Append(", ");
+                        caps.Append(Q(flag.ToString()));
+                    }
+                }
+
+                sb.Append("    {")
+                  .Append($"\"id\": {Q(g.Id)}, \"damage\": {N(g.Damage)}, \"hitDelaySeconds\": {N(g.HitDelaySeconds)}, ")
+                  .Append($"\"attackDurationSeconds\": {N(g.AttackDurationSeconds)}, \"cooldownSeconds\": {N(g.CooldownSeconds)}, ")
+                  .Append($"\"attackSpeed\": {N(g.AttackSpeed)}, \"meleePriority\": {g.MeleePriority}, ")
+                  .Append($"\"twoHanded\": {(g.TwoHanded ? "true" : "false")}, \"harvestSpeedMult\": {N(g.HarvestSpeedMult)}, ")
+                  .Append($"\"capabilities\": [{caps}]}}");
+            }
+
+            sb.Append("\n  ],\n  \"worldObjects\": [\n");
+            first = true;
+            foreach (var def in Sorted(WorldObjectLibrary.Registered, d => d.Id))
+            {
+                if (!first) sb.Append(",\n");
+                first = false;
+                sb.Append("    {").Append($"\"id\": {Q(def.Id)}, \"displayName\": {Q(def.DisplayName)}, \"tags\": [");
+                for (var i = 0; i < def.Tags.Count; i++)
+                {
+                    if (i > 0) sb.Append(", ");
+                    sb.Append(Q(def.Tags[i]));
+                }
+
+                if (def.Produce != null)
+                {
+                    sb.Append($"], \"produce\": {{\"item\": {Q(def.Produce.ProducedDefinitionId)}, ")
+                      .Append($"\"intervalTicks\": {def.Produce.IntervalTicks}, \"maxConcurrent\": {def.Produce.MaxConcurrent}, ")
+                      .Append($"\"radiusTiles\": {def.Produce.MaxDistanceTiles}}}, \"storage\": [");
+                }
+                else
+                {
+                    sb.Append("], \"storage\": [");
+                }
+                for (var i = 0; i < def.Storage.Count; i++)
+                {
+                    var st = def.Storage[i];
+                    if (i > 0) sb.Append(", ");
+                    sb.Append($"{{\"kind\": {Q(st.Kind.ToString())}, \"amount\": {N(st.Amount)}}}");
+                }
+
+                sb.Append("], \"interactions\": [");
+                for (var i = 0; i < def.Interactions.Count; i++)
+                {
+                    var it = def.Interactions[i];
+                    if (i > 0) sb.Append(", ");
+                    var caps = new System.Text.StringBuilder();
+                    foreach (var cap in it.RequiredCapabilities)
+                    {
+                        if (caps.Length > 0) caps.Append(", ");
+                        caps.Append(Q(cap.ToString()));
+                    }
+
+                    sb.Append("{")
+                      .Append($"\"id\": {Q(it.Id)}, \"type\": {Q(it.Type.ToString())}, ")
+                      .Append($"\"requiredCapabilities\": [{caps}], \"durationTicks\": {it.DurationTicks}, \"yields\": [");
+                    for (var y = 0; y < it.Yields.Count; y++)
+                    {
+                        var yd = it.Yields[y];
+                        if (y > 0) sb.Append(", ");
+                        sb.Append($"{{\"id\": {Q(yd.DefinitionId)}, \"count\": {yd.Count}, \"scatter\": {(yd.Scatter ? "true" : "false")}}}");
+                    }
+
+                    sb.Append("]}");
+                }
+
+                sb.Append("]}");
+            }
+
+            sb.Append("\n  ],\n  \"recipes\": [\n");
+            first = true;
+            foreach (var pair in Sorted(RecipeCatalog.ItemRecipes(), p => p.Key))
+            {
+                var r = pair.Value;
+                if (!first) sb.Append(",\n");
+                first = false;
+                sb.Append("    {")
+                  .Append($"\"output\": {Q(pair.Key)}, \"needsLitFire\": {(r.NeedsLitFire ? "true" : "false")}, ")
+                  .Append($"\"station\": {Q(r.Station)}, \"inputs\": [");
+                for (var i = 0; i < r.Inputs.Count; i++)
+                {
+                    if (i > 0) sb.Append(", ");
+                    sb.Append($"{{\"id\": {Q(r.Inputs[i].Id)}, \"count\": {r.Inputs[i].Count}}}");
+                }
+
+                sb.Append("]}");
+            }
+
+            sb.Append("\n  ]\n}\n");
+            return sb.ToString();
+        }
+
+        private static string Q(string s) =>
+            "\"" + (s ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+
+        private static string N(float v) =>
+            v.ToString("0.#####", System.Globalization.CultureInfo.InvariantCulture);
+
+        private static string Str(Dictionary<string, object> d, string key) =>
+            d.TryGetValue(key, out var v) && v is string s ? s : string.Empty;
+
+        private static float F(Dictionary<string, object> d, string key, float fallback) =>
+            d.TryGetValue(key, out var v) && v is double n ? (float)n : fallback;
+
+        private static int I(Dictionary<string, object> d, string key, int fallback) =>
+            d.TryGetValue(key, out var v) && v is double n ? (int)System.Math.Round(n) : fallback;
+
+        private static bool B(Dictionary<string, object> d, string key) =>
+            d.TryGetValue(key, out var v) && v is bool b && b;
+
+        private static IEnumerable<string> Strings(Dictionary<string, object> d, string key)
+        {
+            if (d.TryGetValue(key, out var v) && v is List<object> list)
+            {
+                foreach (var item in list)
+                {
+                    if (item is string s && !string.IsNullOrWhiteSpace(s))
+                    {
+                        yield return s.Trim();
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>A ~100-line JSON reader for the export schema: objects →
+    /// Dictionary&lt;string,object&gt;, arrays → List&lt;object&gt;, numbers →
+    /// double, plus string/bool/null. No writer here — the editor exporter
+    /// builds its JSON with a StringBuilder.</summary>
+    internal static class MiniJson
+    {
+        public static object Parse(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return null;
+            }
+
+            var pos = 0;
+            try
+            {
+                var value = ParseValue(text, ref pos);
+                return value;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static object ParseValue(string s, ref int p)
+        {
+            SkipWs(s, ref p);
+            switch (s[p])
+            {
+                case '{': return ParseObject(s, ref p);
+                case '[': return ParseArray(s, ref p);
+                case '"': return ParseString(s, ref p);
+                case 't': p += 4; return true;
+                case 'f': p += 5; return false;
+                case 'n': p += 4; return null;
+                default: return ParseNumber(s, ref p);
+            }
+        }
+
+        private static Dictionary<string, object> ParseObject(string s, ref int p)
+        {
+            var result = new Dictionary<string, object>();
+            p++; // {
+            SkipWs(s, ref p);
+            if (s[p] == '}')
+            {
+                p++;
+                return result;
+            }
+
+            while (true)
+            {
+                SkipWs(s, ref p);
+                var key = ParseString(s, ref p);
+                SkipWs(s, ref p);
+                p++; // :
+                result[key] = ParseValue(s, ref p);
+                SkipWs(s, ref p);
+                if (s[p] == ',')
+                {
+                    p++;
+                    continue;
+                }
+
+                p++; // }
+                return result;
+            }
+        }
+
+        private static List<object> ParseArray(string s, ref int p)
+        {
+            var result = new List<object>();
+            p++; // [
+            SkipWs(s, ref p);
+            if (s[p] == ']')
+            {
+                p++;
+                return result;
+            }
+
+            while (true)
+            {
+                result.Add(ParseValue(s, ref p));
+                SkipWs(s, ref p);
+                if (s[p] == ',')
+                {
+                    p++;
+                    continue;
+                }
+
+                p++; // ]
+                return result;
+            }
+        }
+
+        private static string ParseString(string s, ref int p)
+        {
+            var sb = new System.Text.StringBuilder();
+            p++; // opening quote
+            while (s[p] != '"')
+            {
+                if (s[p] == '\\')
+                {
+                    p++;
+                    sb.Append(s[p] switch
+                    {
+                        'n' => '\n',
+                        't' => '\t',
+                        'r' => '\r',
+                        'u' => ParseUnicode(s, ref p),
+                        var c => c
+                    });
+                }
+                else
+                {
+                    sb.Append(s[p]);
+                }
+
+                p++;
+            }
+
+            p++; // closing quote
+            return sb.ToString();
+        }
+
+        private static char ParseUnicode(string s, ref int p)
+        {
+            var code = System.Convert.ToInt32(s.Substring(p + 1, 4), 16);
+            p += 4;
+            return (char)code;
+        }
+
+        private static double ParseNumber(string s, ref int p)
+        {
+            var start = p;
+            while (p < s.Length && (char.IsDigit(s[p]) || s[p] is '-' or '+' or '.' or 'e' or 'E'))
+            {
+                p++;
+            }
+
+            return double.Parse(s.Substring(start, p - start),
+                System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        private static void SkipWs(string s, ref int p)
+        {
+            while (p < s.Length && char.IsWhiteSpace(s[p]))
+            {
+                p++;
+            }
+        }
+    }
+}

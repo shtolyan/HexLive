@@ -140,6 +140,10 @@ namespace HexLive.UnityPresentation.UI
             _targetLabel.style.marginBottom = 8f;
             box.Add(_targetLabel);
 
+            _hexInspectorButton = MakeButton("[ ] Hex inspector", Raised, ToggleHexInspector);
+            _hexInspectorLabel = (Label)_hexInspectorButton[0];
+            box.Add(_hexInspectorButton);
+
             box.Add(MakeButton("+ Random wound", Wound, AddRandomWound));
             box.Add(MakeButton("Clear wounds", Raised, ClearWounds));
             box.Add(MakeButton("+ Dirt", Dirt, () => AdjustHygiene(-0.25f)));
@@ -208,6 +212,24 @@ namespace HexLive.UnityPresentation.UI
 
         private VisualElement _clothesButton;
         private Label _clothesLabel;
+        private VisualElement _hexInspectorButton;
+        private Label _hexInspectorLabel;
+
+        private void ToggleHexInspector()
+        {
+            HexSelection.SetEnabled(!HexSelection.Enabled);
+            UpdateHexInspectorLabel();
+        }
+
+        private void UpdateHexInspectorLabel()
+        {
+            if (_hexInspectorLabel != null)
+            {
+                _hexInspectorLabel.text = HexSelection.Enabled
+                    ? "[x] Hex inspector"
+                    : "[ ] Hex inspector";
+            }
+        }
 
         private void ToggleClothes()
         {

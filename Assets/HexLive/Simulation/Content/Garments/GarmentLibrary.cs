@@ -96,6 +96,17 @@ namespace HexLive.Simulation.Content
                 dress.Effects.ThermalDelta = g.ThermalDelta;
                 def.Interactions.Add(dress);
 
+                // Spec §52: a dropped garment can be "picked at" without
+                // dressing — GatherTools rifles its pockets for stashed tools
+                // (the undress overflow may have carried the knife down with
+                // the jacket). Execution never pockets the garment itself.
+                def.Interactions.Add(new InteractionDefinition
+                {
+                    Id = "pickup." + g.Id,
+                    Type = InteractionType.PickUp,
+                    DurationTicks = 4
+                });
+
                 defs[g.Id] = def;
             }
         }

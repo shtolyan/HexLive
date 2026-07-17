@@ -138,6 +138,13 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
 
     public bool AutosaveEnabled { get; set; }
 
+    // Dev/test scenes set this: their throwaway worlds must NEVER touch the
+    // real hexlive_save.dat — not from the 60s tick, not on quit/play-mode
+    // exit, and not via the loader watchdog below (which otherwise flips
+    // AutosaveEnabled on in any scene that starts paused without a loading
+    // screen — exactly what a test bootstrap does).
+    public bool AutosaveSuppressed { get; set; }
+
     // Spec 41.1 safety net: if the loading coroutine dies without unpausing
     // (an in-play domain reload kills coroutines silently), the game must not
     // stay frozen behind a dead curtain — resume once the loader is gone.
@@ -161,13 +168,13 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
         {
             Debug.LogWarning("[HexLive] Loading screen died without finishing — resuming.");
             _clock.Resume();
-            AutosaveEnabled = true;
+            AutosaveEnabled = !AutosaveSuppressed;
         }
     }
 
     private void AutosaveTick()
     {
-        if (!AutosaveEnabled)
+        if (!AutosaveEnabled || AutosaveSuppressed)
         {
             return;
         }
@@ -194,7 +201,7 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
 
     private void OnApplicationQuit()
     {
-        if (AutosaveEnabled)
+        if (AutosaveEnabled && !AutosaveSuppressed)
         {
             WriteSaveNow();
         }
@@ -205,7 +212,7 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
     private void OnDestroy()
     {
         // Editor play-mode exit skips OnApplicationQuit — save here too.
-        if (AutosaveEnabled)
+        if (AutosaveEnabled && !AutosaveSuppressed)
         {
             WriteSaveNow();
         }
@@ -379,7 +386,8 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
         engine.Register(new PerceptionSystem());
         engine.Register(new DecisionSystem());
         engine.Register(new PlanningSystem());
-        engine.Register(new DogSystem());
+        engine.Register(new MobSystem());
+        engine.Register(new AnimalCombatSystem()); // 29C.3 v2: timed windup→hit→cooldown blows
         engine.Register(new PredationSystem()); // §56: kill-a-housemate-to-eat
         engine.Register(new RabbitSystem());
         engine.Register(new WeatherSystem());

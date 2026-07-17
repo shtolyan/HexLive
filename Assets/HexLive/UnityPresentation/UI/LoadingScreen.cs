@@ -501,8 +501,13 @@ namespace HexLive.UnityPresentation.UI
             else
             {
                 // Spec 41.4: new game wipes the save and rolls a fresh world.
+                // Dev one-shot override lets a known island seed be restarted
+                // cleanly without keeping the old mutable save.
                 SaveGame.Delete();
-                seed = System.Environment.TickCount;
+                if (!SaveGame.TryConsumeNewGameSeed(out seed))
+                {
+                    seed = System.Environment.TickCount;
+                }
                 _targetTick = 0;
                 Debug.Log($"[HexLive] New game: seed {seed}");
             }

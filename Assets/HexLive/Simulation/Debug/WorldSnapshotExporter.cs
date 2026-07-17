@@ -54,6 +54,7 @@ public static class WorldSnapshotExporter
                 ResourceAmount = obj.ResourceAmount,
                 OwnerNpcId = obj.CurrentUser?.Value,
                 Variant = obj.Variant,
+                SpawnTick = obj.SpawnTick,
                 // Spec §54: build-site payload for the progressive-assembly view.
                 BuildProduct = obj.BuildProduct,
                 BillLogs = obj.BillLogs,
@@ -127,16 +128,19 @@ public static class WorldSnapshotExporter
             });
         }
 
-        snapshot.Dogs.Clear();
-        foreach (var dog in world.Dogs)
+        snapshot.Mobs.Clear();
+        foreach (var dog in world.Mobs)
         {
-            snapshot.Dogs.Add(new DogSnapshot
+            snapshot.Mobs.Add(new MobSnapshot
             {
                 Id = dog.Id,
+                MobId = dog.MobId,
                 Tile = dog.Tile,
                 Position = dog.Position,
                 Health = dog.Health,
-                Status = dog.Status.ToString()
+                Status = dog.Status.ToString(),
+                TargetNpcId = dog.TargetNpc?.Value ?? -1,
+                IsAttacking = dog.AttackLandsAtTick > 0
             });
         }
 
@@ -371,11 +375,43 @@ public static class WorldSnapshotExporter
                 return InventoryContains(npc, "resource.stick") ? "resource.stick" : string.Empty;
 
             case InteractionType.Build:
+            {
+                // §54.12: at a furniture build-site the hand shows the material
+                // actually being DEPOSITED — the current stage's shortfall she
+                // carries. (The old hut-era "Build = carry a log" spawned a log
+                // in her hand while she laid bed sticks.) A stocked site shows
+                // the hammer for the raise, nothing for a hand-lashed one.
+                var buildTarget = npc.Execution.TargetObject ?? npc.Plan.TargetObjectId;
+                if (buildTarget is { } siteId &&
+                    world.Entities.Objects.TryGetValue(siteId, out var site) &&
+                    Runtime.BuildSiteMath.IsSite(site))
+                {
+                    foreach (var material in Runtime.BuildSiteMath.AllMaterials)
+                    {
+                        if (Runtime.BuildSiteMath.Needs(site, material) &&
+                            InventoryContains(npc, material))
+                        {
+                            return material;
+                        }
+                    }
+
+                    return Runtime.BuildSiteMath.IsStocked(site) && InventoryContains(npc, "tool.hammer")
+                        ? "tool.hammer"
+                        : string.Empty;
+                }
+
+                // The hut anchor (retired) and any non-site Build: the old log carry.
+                return InventoryContains(npc, "resource.log") ? "resource.log" : string.Empty;
+            }
+
             case InteractionType.BuildRaft:
                 return InventoryContains(npc, "resource.log") ? "resource.log" : string.Empty;
 
             case InteractionType.FeedOther:
                 return npc.Inventory.FindFirstFood(world.Content) ?? string.Empty;
+
+            case InteractionType.HydrateOther:
+                return FirstCarried(npc, "tool.bottle", "food.coconut_pierced");
 
             default:
                 return string.Empty;
@@ -506,6 +542,7 @@ public static class WorldSnapshotExporter
             RotationDegrees = npc.RotationDegrees,
             Health = npc.Health,
             IsFighting = npc.IsFighting,
+            IsSwinging = world.Tick < npc.AttackAnimUntilTick,
             Hunger = npc.Needs.Hunger,
             Thirst = npc.Needs.Thirst,
             Energy = npc.Needs.Energy,

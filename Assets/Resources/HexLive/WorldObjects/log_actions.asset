@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 360eed25a563486f889111cbe9ab95a6, type: 3}
+  m_Name: log_actions
+  m_EditorClassIdentifier: 
+  objectId: resource.log
+  displayName: 
+  tags: []
+  actions:
+  - actionId: split.log
+    type: 10
+    requiredCapabilities:
+    - 4
+    - 1
+    durationTicks: 120
+    yields:
+    - item: {fileID: 11400000, guid: d1e2f3a4b5c6470890123456789abc31, type: 2}
+      itemId: 
+      count: 4
+      scatter: 1
+  - actionId: saw.log
+    type: 10
+    requiredCapabilities:
+    - 128
+    durationTicks: 80
+    yields:
+    - item: {fileID: 11400000, guid: 7c8d5aa56da4441dbef0f58cf88c32d1, type: 2}
+      itemId: 
+      count: 2
+      scatter: 1
+  craftable: 0
+  craftStation: 0
+  craftNeedsLitFire: 0
+  craftIngredients: []
+

@@ -201,69 +201,42 @@ namespace HexLive.Simulation.Runtime
         // ─────────────────────────────────────────────────────────────
         // Combat — dogs & sharks.
         // ─────────────────────────────────────────────────────────────
-        public static float BiteDamagePerPass = 0.06f;  // dog bite per attack pass
-        public static float NpcStrikePerPass = 0.15f;   // an NPC's bare strike-back baseline per pass
-        public static float RaidChancePerDay = 0.08f;   // night dog-raid probability per day
-        public static int RaidPackSize = 3;             // dogs per night raid
-        public static int AggroRadiusTiles = 2;         // dog aggro range
-        public static float RoamChance = 0.2f;          // dog roam probability
-        public static float SharkBiteDamage = 0.2f;     // shark bite to the leg (also a sever trigger)
+        public static float NpcStrikePerPass = 0.15f;   // an NPC's bare strike-back baseline per landed hit
+        // Per-mob combat/behaviour (bite damage, HP, windup/cooldown, aggro,
+        // roam, chase, glide, pack-raid) moved OUT of here into MobCatalog —
+        // one config per mob type, tuned by its own MobConfig ScriptableObject.
+        // See Content/MobCatalog.cs. NpcStrikePerPass stays: it's the human,
+        // not a mob. Per-gear numbers live in Content.GearCatalog.
 
         // Clothing condition. Durability is also the inventory HP bar, so
         // combat wear should stay close to what the player sees.
         public static float ClothingBiteDurabilityWear = 0.065f; // per covering garment on a dog bite
         public static float ClothingPassiveWearPerDay = 0.025f;  // natural worn-cloth wear per game day
 
-        // Melee weapon balance. Knife stays at its shipped strike value; axe
-        // and spear scale from that while slower weapons pay attack speed.
-        public static float FistStrikeBonus = 1f;
-        public static float KnifeStrikeBonus = 1.25f;
-        public static float AxeStrikeBonus = 1.875f;   // 1.5x knife damage
-        public static float SpearStrikeBonus = 2.5f;   // 2x knife damage, two-handed
-        public static float FistAttackSpeed = 1f;
-        public static float KnifeAttackSpeed = 1f;
-        public static float AxeAttackSpeed = 0.8f;
-        public static float SpearAttackSpeed = 0.6f;
+        // Melee weapon numbers (damage, замах/hit-delay, animation length,
+        // cooldown, cadence) moved OUT of here into Content.GearCatalog —
+        // one GearStats per item, tuned by its own GearConfig asset
+        // (Resources/HexLive/Weapons/). The helpers below delegate so the
+        // legacy assist/predation call sites keep their exact formulas.
 
+        // Weapon pick is priority-driven from the gear sheets now — a new
+        // weapon asset with a MeleePriority joins the selection code-free.
         public static string BestMeleeWeapon(
             System.Collections.Generic.IEnumerable<Agents.ItemInstance> items, int intactHands)
         {
-            var hasSpear = false;
-            var hasAxe = false;
-            var hasKnife = false;
-            foreach (var item in items)
-            {
-                if (item.DefinitionId == "tool.spear") hasSpear = true;
-                else if (item.DefinitionId == "tool.axe_stone") hasAxe = true;
-                else if (item.DefinitionId == "tool.knife") hasKnife = true;
-            }
-
-            if (hasSpear && intactHands >= 2) return "tool.spear";
-            if (hasAxe && intactHands >= 1) return "tool.axe_stone";
-            if (hasKnife && intactHands >= 1) return "tool.knife";
-            return string.Empty;
+            return Content.GearCatalog.BestMeleeWeapon(items, intactHands);
         }
 
         public static float MeleeStrikeBonus(string weaponId)
         {
-            return weaponId switch
-            {
-                "tool.spear" => SpearStrikeBonus,
-                "tool.axe_stone" => AxeStrikeBonus,
-                "tool.knife" => KnifeStrikeBonus,
-                _ => FistStrikeBonus
-            };
+            return NpcStrikePerPass > 0f
+                ? Content.GearCatalog.Damage(weaponId) / NpcStrikePerPass
+                : 1f;
         }
 
         public static float MeleeAttackSpeed(string weaponId)
         {
-            return weaponId switch
-            {
-                "tool.spear" => SpearAttackSpeed,
-                "tool.axe_stone" => AxeAttackSpeed,
-                "tool.knife" => KnifeAttackSpeed,
-                _ => FistAttackSpeed
-            };
+            return Content.GearCatalog.AttackSpeed(weaponId);
         }
 
         public static bool MeleeStrikeReady(int tick, int actorId, string weaponId)
@@ -306,9 +279,11 @@ namespace HexLive.Simulation.Runtime
         // sim bill is grouped into buildable bundles; counting every blade/lashing
         // turned the first bed into a multi-day project that missed the survival
         // window entirely.
-        public static int BedLeafBillLeaves = 16;
-        public static int BedLeafBillSticks = 4;
-        public static int BedLeafBillRope = 2;
+        // §54.12: MUST equal the per-material sums of BuildSiteMath.BedLeafStages
+        // (which mirror the bed_leaf_final prefab's staged piece groups "1".."4").
+        public static int BedLeafBillLeaves = 46;
+        public static int BedLeafBillSticks = 8;
+        public static int BedLeafBillRope = 8;
 
         // bed.basic (premium bedroll, bed_basic_final): 4 log side-rails (two per
         // side) + stick cross-slats + rope lashings + a full leaf mattress.
@@ -316,6 +291,11 @@ namespace HexLive.Simulation.Runtime
         public static int BedBasicBillSticks = 5;
         public static int BedBasicBillRope = 10;
         public static int BedBasicBillLeaves = 50;
+        // §54.12: the SECOND bed tier. Once every girl has a leaf mat, the
+        // colony starts building premium bedrolls (bed.basic) from scratch —
+        // each at its OWN fireside site, one at a time, until every girl has
+        // one. NOT an upgrade: the leaf mats stay untouched.
+        public static bool BedBasicEnabled = true;
 
         // §54.2: how many fronds each palm's crown is built from AND how many
         // loose leaves drop when that crown is chopped — the SAME number per size

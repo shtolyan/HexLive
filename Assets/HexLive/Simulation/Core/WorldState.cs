@@ -82,14 +82,14 @@ public sealed class WorldState
     public int Seed { get; set; } = 12345;
 
     // Spec 29C.3: lightweight wildlife, not NPCs.
-    public System.Collections.Generic.List<Wildlife.DogState> Dogs { get; } = new();
+    public System.Collections.Generic.List<Wildlife.MobState> Mobs { get; } = new();
 
-    public int NextDogId { get; set; } = 1;
+    public int NextMobId { get; set; } = 1;
 
     // Spec 41.2 v2: wildlife respawn-check timers live in the MODEL — as
     // system-local fields they silently reset on load (an off-schedule
     // respawn roll right after every restore).
-    public int NextDogSpawnCheckTick { get; set; }
+    public int NextMobSpawnCheckTick { get; set; }
 
     public int NextRabbitSpawnCheckTick { get; set; }
 

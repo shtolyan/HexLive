@@ -29,22 +29,57 @@ namespace HexLive.UnityPresentation.Environment
             }
 
             _scanned = true;
+
+            // §54.12: pieces live either directly under the root (old flat
+            // prefabs) or inside numbered STAGE groups ("1".."4") that encode
+            // the build order (BuildSiteMath.BedLeafStages). Walk the groups
+            // in numeric order, each group's pieces name-sorted, so "the
+            // first N pieces of a material" always lights up stage by stage.
+            var stages = new List<Transform>();
+            var flat = new List<Transform>();
             foreach (Transform t in transform)
             {
-                var n = t.name;
-                if (n.StartsWith("log_")) _logs.Add(t.gameObject);
-                else if (n.StartsWith("stick_")) _sticks.Add(t.gameObject);
-                else if (n.StartsWith("rope_")) _ropes.Add(t.gameObject);
-                else if (n.StartsWith("leaf_")) _leaves.Add(t.gameObject);
+                if (int.TryParse(t.name, out _))
+                {
+                    stages.Add(t);
+                }
+                else
+                {
+                    flat.Add(t); // flat-prefab fallback
+                }
             }
 
-            _logs.Sort(ByName);
-            _sticks.Sort(ByName);
-            _ropes.Sort(ByName);
-            _leaves.Sort(ByName);
+            flat.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+            foreach (var piece in flat)
+            {
+                AddPiece(piece);
+            }
+
+            stages.Sort((a, b) => int.Parse(a.name).CompareTo(int.Parse(b.name)));
+            foreach (var stage in stages)
+            {
+                var pieces = new List<Transform>();
+                foreach (Transform t in stage)
+                {
+                    pieces.Add(t);
+                }
+
+                pieces.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+                foreach (var piece in pieces)
+                {
+                    AddPiece(piece);
+                }
+            }
         }
 
-        private static int ByName(GameObject a, GameObject b) => string.CompareOrdinal(a.name, b.name);
+        private void AddPiece(Transform t)
+        {
+            var n = t.name;
+            if (n.StartsWith("log_")) _logs.Add(t.gameObject);
+            else if (n.StartsWith("stick_")) _sticks.Add(t.gameObject);
+            else if (n.StartsWith("rope_")) _ropes.Add(t.gameObject);
+            else if (n.StartsWith("leaf_")) _leaves.Add(t.gameObject);
+        }
 
         /// Show the whole bed (every piece on).
         public void ApplyAll()

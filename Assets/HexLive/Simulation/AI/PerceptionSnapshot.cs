@@ -99,6 +99,7 @@ public enum AidKind
 {
     None,
     Feed,     // starving — a well-fed girl shares a meal
+    Hydrate,  // parched — bring her water (thirst kills faster than hunger)
     Treat,    // wounded / bleeding — dress the wound
     Medicate, // sick or gravely weak — hand over a pill
     Console   // grieving or breaking under stress — sit with her

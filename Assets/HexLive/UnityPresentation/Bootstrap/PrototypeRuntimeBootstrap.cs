@@ -21,6 +21,19 @@ public static class PrototypeRuntimeBootstrap
         // into GarmentLibrary before the world (and its content) is built.
         Config.GarmentTuning.LoadAndApply();
 
+        // Per-mob combat/behaviour from the MobConfig assets (one per mob) into
+        // MobCatalog, before the world spawns any creatures.
+        Config.MobTuning.LoadAndApply();
+
+        // Per-gear (weapon+tool) sheets from the GearConfig assets (one per
+        // item) into GearCatalog + GearLibrary (prefabs, animations).
+        Config.GearTuning.LoadAndApply();
+
+        // Per-world-object action sheets (skills → yields) from the
+        // WorldObjectConfig assets into WorldObjectLibrary (merged into the
+        // content catalog when a world is built).
+        Config.ObjectTuning.LoadAndApply();
+
         var existingRunner = Object.FindAnyObjectByType<SimulationRunnerBehaviour>();
         if (existingRunner is not null)
         {
@@ -79,6 +92,11 @@ public static class PrototypeRuntimeBootstrap
         var stageRoot = new GameObject("HexLive Portrait Stage");
         var portraitStage = stageRoot.AddComponent<PortraitStage>();
 
+        // Spec §57: the limb-health body doll — its own staged clone + camera
+        // on the hidden Portrait layer, far outside the world.
+        var dollRoot = new GameObject("HexLive Health Doll Stage");
+        var healthDollStage = dollRoot.AddComponent<HealthDollStage>();
+
         var panelRoot = new GameObject("HexLive Character Panel");
         var document = panelRoot.AddComponent<UIDocument>();
         document.panelSettings = Resources.Load<PanelSettings>("HexLive/DebugPanelSettings");
@@ -86,6 +104,7 @@ public static class PrototypeRuntimeBootstrap
         var panel = panelRoot.AddComponent<CharacterPanel>();
         panel.SetRunner(runner);
         panel.SetPortraitStage(portraitStage);
+        panel.SetHealthDollStage(healthDollStage);
 
         var hexPanelRoot = new GameObject("HexLive Hex Inspector");
         hexPanelRoot.AddComponent<UIDocument>();

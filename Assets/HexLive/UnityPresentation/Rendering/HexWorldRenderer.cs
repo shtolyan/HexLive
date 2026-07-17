@@ -84,7 +84,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private readonly Dictionary<int, string> _lastSocialCueKey = new();
 
     // Spec 31C: the fauna is finally visible.
-    private readonly Dictionary<int, GameObject> _dogViews = new();
+    private readonly Dictionary<int, GameObject> _mobViews = new();
     private readonly Dictionary<int, GameObject> _crabViews = new();
     private readonly Dictionary<int, Pose> _prevAnimalPoses = new();
     private readonly Dictionary<int, Pose> _currAnimalPoses = new();
@@ -694,7 +694,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             if (!_objectViews.TryGetValue(key, out var objectView))
             {
-                objectView = CreateObjectView(worldObject, junctionPositions);
+                objectView = CreateObjectView(worldObject, junctionPositions, snapshot.Tick);
                 _objectViews[key] = objectView;
                 // Spec §54: remember trees so felling them animates.
                 if (worldObject.DefinitionId.Contains("tree"))
@@ -916,7 +916,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 : 0f,
             npc.HopKind.Length > 0 && _swimCoords.Contains(npc.HopTargetTile));
         actorView.SyncWorn(npc.WornItems);
-        actorView.SetInteraction(npc.CurrentInteraction, npc.HeldItemId);
+        var earlyThermalForSweat = UI.DebugControlsPanel.SweatOverride ?? npc.ThermalComfort;
+        var earlyUncoveredForDecals = UI.DebugControlsPanel.HideClothing ? AllBodyZones : npc.UncoveredParts;
+        var earlyRainWet = snapshot.IsRaining && !_indoorCoords.Contains(npc.Tile) ? 1f : 0f;
+        actorView.SetBodyCondition(npc.BodyParts, earlyUncoveredForDecals, npc.Hygiene, earlyThermalForSweat,
+            earlyRainWet, npc.WornWetness, npc.Wounds, npc.BandagedZones, npc.SeveredParts);
+        var heldItemId = IsProne(npc) && IsToolOrWeapon(npc.HeldItemId) ? string.Empty : npc.HeldItemId;
+        actorView.SetInteraction(npc.CurrentInteraction, heldItemId);
         // §Wardrobe-anim: the two-beat dress/undress sequence (gather + garment
         // in hand). Runs after SetInteraction, which it overrides for these verbs.
         actorView.SetWardrobeAction(npc.CurrentInteraction, npc.InteractionProgress, npc.HeldGarmentId);
@@ -945,7 +951,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
         actorView.SetLedgeSit(npc.IsLedgeSit && !HasObjectSitTarget(snapshot, npc),
             npc.LedgeSeatStepsUp);
         // Spec 20.16: hunting/combat shows the weapon and drives a draw/thrust.
-        actorView.SetCombat(npc.IsFighting, WeaponFor(npc));
+        // Timed melee: IsSwinging spans the sim's attack-animation window.
+        actorView.SetCombat(npc.IsFighting, WeaponFor(npc), npc.IsSwinging);
+        // §29C.3-hit: a health drop staggers her — only while standing still.
+        actorView.SignalHealth(npc.Health);
         // Spec 33.1: a carried weapon rides slung on the back when it isn't in
         // the hand (SetBackWeapon hides it if it's the current hand prop).
         actorView.SetBackWeapon(BackWeaponFor(npc));
@@ -1172,8 +1181,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private bool TryGetNearestDogPosition(WorldSnapshot snapshot, NpcSnapshot npc, out Vector3 point)
     {
         var bestSq = float.MaxValue;
-        DogSnapshot? best = null;
-        foreach (var dog in snapshot.Dogs)
+        MobSnapshot? best = null;
+        foreach (var dog in snapshot.Mobs)
         {
             if (dog.Health <= 0f)
             {
@@ -1238,12 +1247,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // it happens to be in the hand this frame (fighting).
     private static string BackWeaponFor(NpcSnapshot npc)
     {
-        if (npc.InventoryItems.Contains("tool.bow"))
+        if (IsProne(npc))
         {
-            return "tool.bow";
+            return null;
         }
 
-        return npc.InventoryItems.Contains("tool.spear") ? "tool.spear" : null;
+        return npc.InventoryItems.Contains("tool.spear") ? "tool.spear" : null; // §gear: bow retired
     }
 
     // Debug clothes-off mode treats the whole body as bare for skin decals.
@@ -1253,26 +1262,34 @@ public sealed class HexWorldRenderer : MonoBehaviour
     };
 
     // Spec 20.16/weapon balance: the weapon an NPC fights/hunts with — bow
-    // (with arrows) preferred, then spear, axe, then knife. Null means fists.
+    // (with arrows, ranged special-case) preferred, then the SAME melee pick
+    // the sim makes (GearCatalog priority, hands-aware) — the view can never
+    // show a weapon the sim wouldn't actually draw (e.g. a two-handed spear
+    // on a one-armed girl). Null means fists.
     private static string WeaponFor(NpcSnapshot npc)
     {
-        if (npc.InventoryItems.Contains("tool.bow") && npc.InventoryItems.Contains("resource.arrow"))
+        if (IsProne(npc))
         {
-            return "tool.bow";
+            return null;
         }
 
-        if (npc.InventoryItems.Contains("tool.spear"))
-        {
-            return "tool.spear";
-        }
-
-        if (npc.InventoryItems.Contains("tool.axe_stone"))
-        {
-            return "tool.axe_stone";
-        }
-
-        return npc.InventoryItems.Contains("tool.knife") ? "tool.knife" : null;
+        // §gear: bow retired — the pick is pure catalog melee now.
+        var best = HexLive.Simulation.Content.GearCatalog.BestMeleeWeapon(
+            npc.InventoryItems, IntactHands(npc));
+        return string.IsNullOrEmpty(best) ? null : best;
     }
+
+    private static int IntactHands(NpcSnapshot npc) =>
+        (npc.SeveredParts.Contains("ArmL") ? 0 : 1) +
+        (npc.SeveredParts.Contains("ArmR") ? 0 : 1);
+
+    // §50-prone («лежит»): ANY lost leg — lying can't hold tools or weapons.
+    private static bool IsProne(NpcSnapshot npc) =>
+        npc.SeveredParts.Contains("LegL") || npc.SeveredParts.Contains("LegR");
+
+    private static bool IsToolOrWeapon(string itemId) =>
+        !string.IsNullOrEmpty(itemId) &&
+        itemId.StartsWith("tool.", System.StringComparison.Ordinal);
 
     // The bed she is sleeping on: nearest bed object view within ~a tile.
     private Transform? FindBedAttachPoint(WorldSnapshot snapshot, NpcSnapshot npc, out float surfaceY)
@@ -1409,7 +1426,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private void InterpolateMovables(float alpha)
     {
-        foreach (var kvp in _dogViews)
+        foreach (var kvp in _mobViews)
         {
             InterpolateAnimal(kvp.Value, kvp.Key, alpha);
         }
@@ -1740,7 +1757,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return go;
     }
 
-    private GameObject CreateObjectView(ObjectSnapshot worldObject, Dictionary<int, Float2> junctionPositions)
+    private GameObject CreateObjectView(
+        ObjectSnapshot worldObject, Dictionary<int, Float2> junctionPositions, int snapshotTick)
     {
         // Spec 31C.4: water interaction anchors have no gizmo — the river
         // and pond tiles ARE the visual; NPCs just come and drink.
@@ -1895,6 +1913,53 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
         }
 
+        // Spec §54/29C.3: a slain mob's carcass is its own model in the
+        // animator's Death state — a fresh kill plays the dying clip once, a
+        // carcass restored from a save skips straight to the final frame.
+        // Variant holds the mob id (the sim writes dead.MobId); a mob with no
+        // configured prefab (rabbit) keeps the procedural slumped-body prop.
+        if (worldObject.DefinitionId == "carcass.animal")
+        {
+            var deadMobConfig = Config.MobLibrary.Get(worldObject.Variant);
+            var deadMobPrefab = Config.MobLibrary.LoadPrefab(worldObject.Variant);
+            if (deadMobPrefab != null)
+            {
+                var carcassRoot = new GameObject($"Object {worldObject.DefinitionId} ({worldObject.Variant})");
+                carcassRoot.transform.SetParent(_objectsRoot, false);
+                var deadMob = Instantiate(deadMobPrefab, carcassRoot.transform);
+                deadMob.name = "Body";
+                var deadRenderer = deadMob.GetComponentInChildren<SkinnedMeshRenderer>();
+                if (deadRenderer != null)
+                {
+                    var deadSize = deadRenderer.bounds.size;
+                    var deadLength = Mathf.Max(deadSize.x, deadSize.z);
+                    var footprint = deadMobConfig != null ? deadMobConfig.footprintFraction : 0.84f;
+                    if (deadLength > 0.001f)
+                    {
+                        deadMob.transform.localScale *= HexRadius * footprint / deadLength;
+                    }
+
+                    // The death pose collapses far outside the bind-pose AABB.
+                    deadRenderer.updateWhenOffscreen = true;
+                }
+
+                deadMob.transform.localRotation =
+                    Quaternion.Euler(0f, (worldObject.Id.Value * 61) % 360, 0f);
+                var deadAnimator = deadMob.GetComponent<Animator>();
+                if (deadAnimator != null)
+                {
+                    var fresh = snapshotTick - worldObject.SpawnTick <= 10;
+                    deadAnimator.SetBool("Dead", true);
+                    deadAnimator.Play("Death", 0, fresh ? 0f : 1f);
+                }
+
+                var carcassAnchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
+                carcassRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
+                    carcassAnchor, GroundY(worldObject.Tile));
+                return carcassRoot;
+            }
+        }
+
         // Spec 31C.3: real prefabs first (Resources/HexLive/Objects/<id>),
         // primitives as the eternal fallback.
         var objectPrefab = Resources.Load<GameObject>($"HexLive/Objects/{worldObject.DefinitionId}");
@@ -2006,13 +2071,42 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private void SyncAnimalViews(WorldSnapshot snapshot)
     {
         var liveKeys = new HashSet<int>();
-        foreach (var dog in snapshot.Dogs)
+        foreach (var dog in snapshot.Mobs)
         {
             var key = dog.Id;
             liveKeys.Add(key);
-            if (!_dogViews.TryGetValue(key, out _))
+            if (!_mobViews.TryGetValue(key, out var mobView))
             {
-                _dogViews[key] = CreateDogView(dog.Id);
+                mobView = CreateMobView(dog.MobId, dog.Id);
+                _mobViews[key] = mobView;
+            }
+
+            if (mobView.TryGetComponent<MobView>(out var wolfView))
+            {
+                wolfView.SetStatus(dog.Status);
+                // Timed melee: pulse the bite snap exactly while the sim
+                // winds up; between bites the wolf stands recovering.
+                wolfView.SetAttacking(dog.IsAttacking);
+                // §29C.3-hit: a health drop = the quarry's strike landed —
+                // the view fires the short flinch.
+                wolfView.SignalHealth(dog.Health);
+
+                // Wound stamps catch up to lost HP (idempotent, seeded).
+                if (mobView.TryGetComponent<MobWoundPainter>(out var woundPainter))
+                {
+                    woundPainter.SetHealth(dog.Health);
+                }
+
+                // 29C.3 v2: fighters square up — both turn to face each other.
+                Transform? fightTarget = null;
+                if (dog.Status == "Fighting" && dog.TargetNpcId >= 0 &&
+                    _npcViews.TryGetValue(dog.TargetNpcId, out var quarryView) &&
+                    quarryView != null)
+                {
+                    fightTarget = quarryView.transform;
+                }
+
+                wolfView.SetFightTarget(fightTarget);
             }
 
             UpdateAnimalPose(key, dog.Position, dog.Tile);
@@ -2024,13 +2118,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
             liveKeys.Add(key);
             if (!_crabViews.TryGetValue(crab.Id, out _))
             {
-                _crabViews[crab.Id] = CreateCrabView(crab.Id);
+                _crabViews[crab.Id] = CreateMobView(HexLive.Simulation.Content.MobIds.Crab, crab.Id);
             }
 
             UpdateAnimalPose(key, crab.Position, crab.Tile);
         }
 
-        PruneAnimalViews(_dogViews, liveKeys, negate: false);
+        PruneAnimalViews(_mobViews, liveKeys, negate: false);
         PruneAnimalViews(_crabViews, liveKeys, negate: true);
     }
 
@@ -2064,6 +2158,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
     }
 
+    // Identical model to the NPC interpolation above: the sim now moves the
+    // dog's Position a small delta each fast tick (AnimalCombatSystem.GlideDog
+    // mirrors MovementSystem), so the pose pair spans one sim tick and a plain
+    // lerp with the shared TickAlpha is perfectly smooth — no more per-view
+    // glide bookkeeping. Facing follows the actual travel direction.
     private void InterpolateAnimal(GameObject view, int key, float alpha)
     {
         if (!_currAnimalPoses.TryGetValue(key, out var curr))
@@ -2073,14 +2172,17 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         if (_prevAnimalPoses.TryGetValue(key, out var prev))
         {
-            view.transform.position = Vector3.Lerp(prev.Position, curr.Position, alpha);
+            var pos = Vector3.Lerp(prev.Position, curr.Position, alpha);
             var direction = curr.Position - prev.Position;
             direction.y = 0f;
             if (direction.sqrMagnitude > 0.00001f)
             {
                 view.transform.rotation = Quaternion.Slerp(
-                    view.transform.rotation, Quaternion.LookRotation(direction), alpha);
+                    view.transform.rotation, Quaternion.LookRotation(direction),
+                    1f - Mathf.Exp(-10f * Time.deltaTime));
             }
+
+            view.transform.position = pos;
         }
         else
         {
@@ -2088,10 +2190,60 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
     }
 
-    private GameObject CreateDogView(int id)
+    // ONE view factory for every mob/wildlife body (spec §29C.3): the prefab
+    // and every per-mob view number come from the mob's MobConfig asset
+    // (footprint on the hex, stride tuning, blood splash, wound stamps).
+    // Adding a tiger = drop a MobConfig asset with a prefab path — no new
+    // view code. A mob with no prefab keeps its legacy primitive body.
+    private GameObject CreateMobView(string mobId, int id)
     {
-        var root = new GameObject($"Dog {id}");
+        var root = new GameObject($"Mob {mobId} #{id}");
         root.transform.SetParent(_npcsRoot, false);
+
+        var config = Config.MobLibrary.Get(mobId);
+        // The prefab comes ONLY from the mob's config asset (wolf.asset
+        // declares HexLive/Animals/wolf_dog) — no hardcoded paths; a mob
+        // without one gets its primitive body below.
+        var prefab = Config.MobLibrary.LoadPrefab(mobId);
+        if (prefab != null)
+        {
+            var body = Instantiate(prefab, root.transform);
+            body.name = "Body";
+            var renderer = body.GetComponentInChildren<SkinnedMeshRenderer>();
+            if (renderer != null)
+            {
+                // Pack models are authored at real-world size; normalize the
+                // footprint on the hex per config (wolf: 0.84×HexRadius).
+                var size = renderer.bounds.size;
+                var length = Mathf.Max(size.x, size.z);
+                var footprint = config != null ? config.footprintFraction : 0.84f;
+                if (length > 0.001f)
+                {
+                    body.transform.localScale *= HexRadius * footprint / length;
+                }
+            }
+
+            root.AddComponent<MobView>().Configure(config);
+
+            // Persistent wounds painted into the pelt (NPC stamp tech,
+            // random-spot edition) — seeded by id so save/load repaints the
+            // same pattern.
+            if (config == null || config.woundStamps)
+            {
+                root.AddComponent<MobWoundPainter>()
+                    .Configure(id, config != null ? config.maxWoundStamps : 8);
+            }
+
+            return root;
+        }
+
+        return mobId == HexLive.Simulation.Content.MobIds.Crab
+            ? BuildCrabPrimitive(root)
+            : BuildDogPrimitive(root);
+    }
+
+    private GameObject BuildDogPrimitive(GameObject root)
+    {
         var bodyLength = HexRadius * 0.28f;
         var body = CreatePrimitiveVisual(root.transform, PrimitiveType.Capsule,
             new Vector3(bodyLength * 0.45f, bodyLength * 0.5f, bodyLength * 0.45f),
@@ -2106,10 +2258,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return root;
     }
 
-    private GameObject CreateCrabView(int id)
+    private GameObject BuildCrabPrimitive(GameObject root)
     {
-        var root = new GameObject($"Crab {id}");
-        root.transform.SetParent(_npcsRoot, false);
         var size = HexRadius * 0.12f;
         var shell = CreatePrimitiveVisual(root.transform, PrimitiveType.Sphere,
             new Vector3(size * 1.6f, size * 0.6f, size * 1.2f), new Color(0.80f, 0.25f, 0.15f));

@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 360eed25a563486f889111cbe9ab95a6, type: 3}
+  m_Name: palm_branch
+  m_EditorClassIdentifier: 
+  objectId: palm.coconut_branch
+  displayName: Coconut Branch
+  tags:
+  - Flora
+  actions:
+  - actionId: cut.branch
+    type: 9
+    requiredCapabilities:
+    - 1
+    durationTicks: 30
+    yields:
+    - item: {fileID: 11400000, guid: e1a2b3c4d5e6470890123456789abc43, type: 2}
+      itemId: 
+      count: 3
+      scatter: 1
+  storage: []
+  isFood: 0
+  craftable: 0
+  craftStation: 0
+  craftNeedsLitFire: 0
+  craftIngredients: []
+

@@ -160,6 +160,15 @@ namespace HexLive.Simulation.Content
             IsWaterContainerId(definitionId) ||
             definitionId == "food.coconut";
 
+        // Spec §52: a pierced coconut is only "water" while charges remain —
+        // drained, it's a shell to crack open someday, not a drink. Ranking a
+        // dry shell as Water(100) wedged packs shut: it outranked the knife
+        // (93) and fresh food (95), so nothing could ever displace it (seed
+        // 1104049673: death by thirst over three empty shells). The bottle is
+        // excluded — its charges live on the NPC, not the item instance.
+        public static bool IsDrainedWaterShell(string definitionId, float resourceAmount) =>
+            definitionId == "food.coconut_pierced" && resourceAmount <= 0f;
+
         // Resolve from a full definition (preferred — tags/layer drive category).
         public static ItemInfo Resolve(ObjectDefinition def)
         {
@@ -282,5 +291,412 @@ namespace HexLive.Simulation.Content
                 _ => "❔"
             };
         }
+    }
+
+    // Melee weapon combat stats — the per-weapon data seam (user pass, July
+    // 2026): damage, windup and cooldown belong to the weapon, exactly like
+    // animal timings belong to the animal (SimBalance.Dog*). Damage resolves
+    // through the existing SimBalance strike tunables so HexTuningConfig keeps
+    // working; each piece of GEAR carries its own full sheet (GearStats).
+    //
+    // GEAR = weapons AND tools unified: the axe is both (chops wood, fights),
+    // the knife is both (cuts/butchers, fights), the pickaxe mines but can
+    // clobber a wolf too. One entry per item id, holding EVERYTHING the sim
+    // needs: combat numbers, the swing timing, tool CAPABILITIES (what verbs
+    // it enables) and weapon selection priority. Systems ask "does the
+    // inventory hold something that CanCut?" — never "is there a tool.knife" —
+    // so a brand-new tool works everywhere its capabilities say, code-free.
+    //
+    // The attack timing model (per gear): the attack ANIMATION starts the
+    // moment the swing starts; the damage, the victim's flinch AND the blood
+    // spray land HitDelaySeconds in — the strike moment inside the animation;
+    // the rest of the clip is follow-through until AttackDurationSeconds, then
+    // CooldownSeconds of standing recovery. Exchange cycle = duration + cooldown.
+    //
+    // Mirrors MobCatalog exactly: engine-free defaults below; the Unity layer
+    // overrides entries at startup from per-item GearConfig ScriptableObjects
+    // (Resources/HexLive/Gear/, via GearTuning). Adding a weapon or tool = one
+    // asset (a defaults entry here is optional — an asset alone fully defines
+    // a new item); no flat fields on any shared config.
+    public static class GearCatalog
+    {
+        public const string Fist = "";                  // bare hands (empty id)
+        public const string Knife = "tool.knife";
+        public const string Axe = "tool.axe_stone";
+        public const string Spear = "tool.spear";
+        public const string Pickaxe = "tool.pickaxe_stone";
+        public const string Hammer = "tool.hammer";
+        public const string Saw = "tool.saw";
+        public const string Lighter = "tool.lighter";
+        public const string Pot = "tool.pot";
+        public const string Bottle = "tool.bottle";
+        public const string Bandage = "item.bandage";
+
+        private static System.Collections.Generic.Dictionary<string, GearStats> _active;
+
+        public static System.Collections.Generic.IReadOnlyDictionary<string, GearStats> Defaults => BuildDefaults();
+
+        // The live table (defaults + overrides) — read by the SimData exporter.
+        public static System.Collections.Generic.IReadOnlyDictionary<string, GearStats> Active => _active ??= BuildDefaults();
+
+        /// <summary>Stats for a gear id ("" = fists). Unknown ids fall back to
+        /// (and cache) the fist sheet so callers can't NRE.</summary>
+        public static GearStats For(string gearId)
+        {
+            _active ??= BuildDefaults();
+            var key = gearId ?? Fist;
+            if (_active.TryGetValue(key, out var stats))
+            {
+                return stats;
+            }
+
+            var fallback = _active[Fist];
+            _active[key] = fallback;
+            return fallback;
+        }
+
+        public static void Override(GearStats stats)
+        {
+            if (stats == null || stats.Id == null)
+            {
+                return;
+            }
+
+            _active ??= BuildDefaults();
+            _active[stats.Id] = stats;
+        }
+
+        public static void ResetToDefaults()
+        {
+            _active = BuildDefaults();
+        }
+
+        // Convenience accessors (the shape the combat code reads).
+        public static float Damage(string gearId) => For(gearId).Damage;
+        public static float HitDelaySeconds(string gearId) => For(gearId).HitDelaySeconds;
+        public static float AttackDurationSeconds(string gearId) => For(gearId).AttackDurationSeconds;
+        public static float CooldownSeconds(string gearId) => For(gearId).CooldownSeconds;
+        public static float AttackSpeed(string gearId) => For(gearId).AttackSpeed;
+
+        /// <summary>The best harvest-speed multiplier among carried gear
+        /// (spec 35.2: saw = 2). Data-driven — no id checks at the call site.</summary>
+        public static float BestHarvestSpeedMult(
+            System.Collections.Generic.IEnumerable<Agents.ItemInstance> items)
+        {
+            var best = 1f;
+            foreach (var item in items)
+            {
+                var stats = For(item.DefinitionId);
+                if (stats.Id == item.DefinitionId && stats.HarvestSpeedMult > best)
+                {
+                    best = stats.HarvestSpeedMult;
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>Does the inventory hold any gear with this capability?</summary>
+        public static bool HasCapability(
+            System.Collections.Generic.IEnumerable<Agents.ItemInstance> items, GearCapability capability)
+        {
+            foreach (var item in items)
+            {
+                if (For(item.DefinitionId).Has(capability))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Named-capability variant ("Sew", "Fish"… or a built-in
+        /// name) — the seam future verbs gate on without touching the enum.</summary>
+        public static bool HasCapability(
+            System.Collections.Generic.IEnumerable<Agents.ItemInstance> items, string capabilityName)
+        {
+            foreach (var item in items)
+            {
+                if (For(item.DefinitionId).Has(capabilityName))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static readonly GearCapability[] AllCapabilities =
+        {
+            GearCapability.Cut, GearCapability.Butcher, GearCapability.ChopWood,
+            GearCapability.Mine, GearCapability.Hammer, GearCapability.Ignite,
+            GearCapability.Boil, GearCapability.Saw, GearCapability.Sew,
+            GearCapability.CarryWater, GearCapability.Dressing,
+        };
+
+        /// <summary>GOAP tool-pickup filter: does grabbing this gear ADD
+        /// anything over what the inventory already covers — a verb she can't
+        /// do yet, or a strictly better melee weapon her hands can wield?
+        /// Items outside the gear table (lighter, pot, bottle…) return true —
+        /// they keep the legacy "any missing Tool is worth taking" rule.</summary>
+        public static bool AddsValueOver(
+            System.Collections.Generic.IEnumerable<Agents.ItemInstance> items,
+            string gearId, int intactHands)
+        {
+            var stats = For(gearId);
+            if (stats.Id != gearId)
+            {
+                return true; // not gear-managed → legacy behavior
+            }
+
+            foreach (var capability in AllCapabilities)
+            {
+                if (stats.Has(capability) && !HasCapability(items, capability))
+                {
+                    return true;
+                }
+            }
+
+            return stats.MeleePriority >
+                       For(BestMeleeWeapon(items, intactHands)).MeleePriority &&
+                   intactHands >= (stats.TwoHanded ? 2 : 1);
+        }
+
+        /// <summary>The best usable melee weapon in the inventory by
+        /// MeleePriority (0 = not a weapon). Two-handed gear needs both hands.
+        /// Empty string = fists. Fully data-driven — a new SO with a priority
+        /// automatically joins the selection.</summary>
+        public static string BestMeleeWeapon(
+            System.Collections.Generic.IEnumerable<Agents.ItemInstance> items, int intactHands)
+        {
+            var bestId = Fist;
+            var bestPriority = 0;
+            foreach (var item in items)
+            {
+                Consider(item.DefinitionId, intactHands, ref bestId, ref bestPriority);
+            }
+
+            return bestId;
+        }
+
+        /// <summary>Same selection over raw item ids (presentation snapshots
+        /// carry strings) — ONE picker for sim and view, no duplicated
+        /// priority lists.</summary>
+        public static string BestMeleeWeapon(
+            System.Collections.Generic.IEnumerable<string> itemIds, int intactHands)
+        {
+            var bestId = Fist;
+            var bestPriority = 0;
+            foreach (var id in itemIds)
+            {
+                Consider(id, intactHands, ref bestId, ref bestPriority);
+            }
+
+            return bestId;
+        }
+
+        private static void Consider(string id, int intactHands, ref string bestId, ref int bestPriority)
+        {
+            var stats = For(id);
+            if (stats.MeleePriority <= bestPriority ||
+                intactHands < (stats.TwoHanded ? 2 : 1) ||
+                stats.Id != id)  // fist-fallback cache ≠ a weapon
+            {
+                return;
+            }
+
+            bestId = stats.Id;
+            bestPriority = stats.MeleePriority;
+        }
+
+        // Damage carries the old NpcStrikePerPass(0.15) × strike-bonus values
+        // verbatim (fist ×1, knife ×1.25, axe ×1.875, spear ×2.5). Every cycle
+        // stays 3.0 s (duration + cooldown) — same DPS as before the split.
+        // HitDelay sits at ~75% of the swing: that's where the procedural
+        // knife/axe arc actually crosses the target, so the wound, the flinch
+        // and the blood all fire ON the visible strike, not during the windup.
+        private static System.Collections.Generic.Dictionary<string, GearStats> BuildDefaults()
+        {
+            return new System.Collections.Generic.Dictionary<string, GearStats>
+            {
+                [Fist] = new GearStats
+                {
+                    Id = Fist,
+                    Damage = 0.15f,
+                    HitDelaySeconds = 1.1f,       // ~75% of the 1.5 s jab
+                    AttackDurationSeconds = 1.5f,
+                    CooldownSeconds = 1.5f,
+                    AttackSpeed = 1f,
+                    MeleePriority = 0,
+                },
+                [Knife] = new GearStats
+                {
+                    Id = Knife,
+                    Damage = 0.1875f,             // 0.15 × 1.25
+                    HitDelaySeconds = 1.5f,       // замах 1.5 s → hit → 0.5 s follow-through
+                    AttackDurationSeconds = 2.0f,
+                    CooldownSeconds = 1.0f,
+                    AttackSpeed = 1f,
+                    MeleePriority = 10,
+                    Capabilities = GearCapability.Cut | GearCapability.Butcher,
+                },
+                [Axe] = new GearStats
+                {
+                    Id = Axe,
+                    Damage = 0.28125f,            // 0.15 × 1.875 (1.5× knife)
+                    HitDelaySeconds = 1.65f,      // heavier windup
+                    AttackDurationSeconds = 2.2f,
+                    CooldownSeconds = 0.8f,
+                    AttackSpeed = 0.8f,
+                    MeleePriority = 20,
+                    Capabilities = GearCapability.Cut | GearCapability.ChopWood,
+                },
+                [Spear] = new GearStats
+                {
+                    Id = Spear,
+                    Damage = 0.375f,              // 0.15 × 2.5 (2× knife), two-handed
+                    HitDelaySeconds = 1.5f,
+                    AttackDurationSeconds = 2.0f,
+                    CooldownSeconds = 1.0f,
+                    AttackSpeed = 0.6f,
+                    MeleePriority = 30,
+                    TwoHanded = true,
+                },
+                [Pickaxe] = new GearStats
+                {
+                    Id = Pickaxe,
+                    Damage = 0.24f,
+                    HitDelaySeconds = 1.65f,
+                    AttackDurationSeconds = 2.2f,
+                    CooldownSeconds = 0.8f,
+                    AttackSpeed = 0.8f,
+                    MeleePriority = 8,            // a desperate swing, below the knife
+                    Capabilities = GearCapability.Mine,
+                },
+                [Hammer] = new GearStats
+                {
+                    Id = Hammer,
+                    Damage = 0.2f,
+                    HitDelaySeconds = 1.3f,
+                    AttackDurationSeconds = 1.8f,
+                    CooldownSeconds = 1.2f,
+                    AttackSpeed = 0.9f,
+                    MeleePriority = 6,
+                    Capabilities = GearCapability.Hammer,
+                },
+                [Saw] = new GearStats
+                {
+                    Id = Saw,
+                    Damage = 0.21f,               // toothed edge — between hammer and pickaxe
+                    HitDelaySeconds = 1.3f,
+                    AttackDurationSeconds = 1.8f,
+                    CooldownSeconds = 1.2f,
+                    AttackSpeed = 0.9f,
+                    MeleePriority = 7,            // оружие-инструмент: a desperate but real swing
+                    Capabilities = GearCapability.ChopWood | GearCapability.Saw,
+                    HarvestSpeedMult = 2f,        // spec 35.2: the saw fells twice as fast
+                },
+                // §gear-personal: the former "personal effects" live on the SAME
+                // rails as every item now — droppable, losable, GOAP-fetchable.
+                // No combat sheet (priority 0); their verbs are capabilities.
+                [Lighter] = new GearStats
+                {
+                    Id = Lighter,
+                    Damage = 0.15f,
+                    MeleePriority = 0,
+                    Capabilities = GearCapability.Ignite,
+                },
+                [Pot] = new GearStats
+                {
+                    Id = Pot,
+                    Damage = 0.15f,
+                    MeleePriority = 0,
+                    Capabilities = GearCapability.Boil,
+                },
+                // CarryWater/Dressing make the ex-personal items GOAP-fetchable:
+                // a girl WITHOUT a bottle walks over for a dropped one, a girl
+                // with one ignores duplicates (AddsValueOver).
+                [Bottle] = new GearStats
+                {
+                    Id = Bottle, Damage = 0.15f, MeleePriority = 0,
+                    Capabilities = GearCapability.CarryWater,
+                },
+                // The medkit bandage as a catalogued item (stub sheet — the §44
+                // dressing mechanics still run on Needs counters; migrating the
+                // counters onto instances is the next step).
+                [Bandage] = new GearStats
+                {
+                    Id = Bandage, Damage = 0.15f, MeleePriority = 0,
+                    Capabilities = GearCapability.Dressing,
+                },
+            };
+        }
+    }
+
+    /// <summary>What a piece of gear can DO — the verbs the sim gates on.
+    /// Systems query capabilities, never item ids, so new gear plugs in
+    /// data-only.</summary>
+    [System.Flags]
+    public enum GearCapability
+    {
+        None = 0,
+        Cut = 1 << 0,       // blade work: yucca fiber, coconut piercing, cordage
+        Butcher = 1 << 1,   // carcass/corpse butchering
+        ChopWood = 1 << 2,  // felling trees, splitting logs
+        Mine = 1 << 3,      // boulder/rock mining
+        Hammer = 1 << 4,    // raising build-sites
+        Ignite = 1 << 5,    // start a fire without friction (the lighter)
+        Boil = 1 << 6,      // boil/cook in a vessel (the pot)
+        Saw = 1 << 7,       // fine sawing (boards from a log)
+        Sew = 1 << 8,       // stitching (the needle, future)
+        CarryWater = 1 << 9, // holds drinking water (the bottle)
+        Dressing = 1 << 10, // wound dressing (the medkit bandage)
+    }
+
+    /// <summary>One gear item's full sheet — weapon numbers, swing timing and
+    /// tool capabilities. Plain mutable fields so asset overrides just assign.</summary>
+    public sealed class GearStats
+    {
+        public string Id = string.Empty;
+
+        // ── Weapon side ──
+        // Per-hit damage before the striker's StrikeFactor and target armor.
+        public float Damage = 0.15f;
+
+        // Замах: when the damage (and blood/flinch) lands inside the attack
+        // animation. Once the swing started, the hit always lands.
+        public float HitDelaySeconds = 1.5f;
+
+        // Full attack animation length (hit + follow-through).
+        public float AttackDurationSeconds = 2.0f;
+
+        // Standing recovery AFTER the animation finishes.
+        public float CooldownSeconds = 1.0f;
+
+        // Legacy cadence hint for the medium-pass assist paths (defenders,
+        // predation) — 1 = every pass, lower = skip passes.
+        public float AttackSpeed = 1f;
+
+        // Harvest speedup: tree-felling duration is divided by the best mult
+        // among carried gear (saw 2 = twice as fast). 1 = no bonus.
+        public float HarvestSpeedMult = 1f;
+
+        // Weapon selection: highest priority in the inventory is drawn for a
+        // fight; 0 = never used as a weapon. Needs both hands if TwoHanded.
+        public int MeleePriority;
+
+        public bool TwoHanded;
+
+        // ── Tool side ──
+        public GearCapability Capabilities = GearCapability.None;
+
+        public bool Has(GearCapability capability) => (Capabilities & capability) != 0;
+
+        // Name variant for the JSON bridge — resolves to the enum. A NEW verb
+        // is one enum member (§59: capabilities are typed, never free strings).
+        public bool Has(string capabilityName) =>
+            System.Enum.TryParse<GearCapability>(capabilityName, true, out var flag) &&
+            flag != GearCapability.None && Has(flag);
     }
 }

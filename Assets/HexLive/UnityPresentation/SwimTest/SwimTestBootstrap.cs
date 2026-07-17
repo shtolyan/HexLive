@@ -189,6 +189,9 @@ public sealed class SwimTestBootstrap : MonoBehaviour
 
         var root = new GameObject("HexLive SwimTest Sim");
         _runner = root.AddComponent<SimulationRunnerBehaviour>();
+        // Throwaway test world — never overwrite the real hexlive_save.dat
+        // (the loader watchdog otherwise enables autosave in paused starts).
+        _runner.AutosaveSuppressed = true;
         var worldRenderer = root.AddComponent<HexWorldRenderer>();
         worldRenderer.SetRunner(_runner);
         var sky = root.AddComponent<Environment.SkyDayNightController>();

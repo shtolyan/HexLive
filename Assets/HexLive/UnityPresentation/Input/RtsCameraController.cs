@@ -232,7 +232,7 @@ namespace HexLive.UnityPresentation.Input
                 return;
             }
 
-            if (TryPickHex(mouse.position.ReadValue(), out var coord))
+            if (HexSelection.Enabled && TryPickHex(mouse.position.ReadValue(), out var coord))
             {
                 HexSelection.Select(coord);
             }

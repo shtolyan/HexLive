@@ -11,6 +11,25 @@ public sealed class ObjectDefinition
 
     public List<InteractionDefinition> Interactions { get; } = new();
 
+    // §59-склад: начальное СОДЕРЖИМОЕ объекта (массив) — вода в дырявом
+    // кокосе и т.п. При спавне уходит в WorldObjectState.ResourceAmount /
+    // ItemInstance.ResourceAmount; ассеты объявляют это в разделе «Склад».
+    public List<StoredResource> Storage { get; } = new();
+
+    /// <summary>Заявленное количество ресурса на складе (0 — не заявлен).</summary>
+    public float StoredAmount(StoredKind kind)
+    {
+        foreach (var stored in Storage)
+        {
+            if (stored.Kind == kind)
+            {
+                return stored.Amount;
+            }
+        }
+
+        return 0f;
+    }
+
     public List<string> Tags { get; } = new();
 
     public ProduceDefinition? Produce { get; set; }
@@ -61,11 +80,34 @@ public sealed class ProduceDefinition
     public int MaxDistanceTiles { get; set; }
 }
 
+/// <summary>Виды складируемых ресурсов (типизировано — §59: никаких строк).
+/// Новый вид = новый член enum.</summary>
+public enum StoredKind
+{
+    Water = 0,
+}
+
+/// <summary>Одна строка «склада» объекта: что лежит и сколько. Дырявый кокос:
+/// Water × 4 (глотка́). Runtime кладёт Amount в ResourceAmount при спавне.</summary>
+public sealed class StoredResource
+{
+    public StoredKind Kind { get; set; } = StoredKind.Water;
+
+    public float Amount { get; set; } = 1f;
+}
+
 public sealed class InteractionDefinition
 {
     public string Id { get; set; } = string.Empty;
 
     public InteractionType Type { get; set; }
+
+    // §gear: the SKILLS this action accepts — TYPED capabilities, ANY-OF: a
+    // log splits under an axe (ChopWood) OR a knife (Cut) when both are
+    // listed. Empty = no tool needed. Execution gates GENERICALLY: the actor
+    // must hold any gear granting at least one listed capability — content
+    // names VERBS (enum), never tools and never free strings.
+    public List<GearCapability> RequiredCapabilities { get; } = new();
 
     public int DurationTicks { get; set; }
 
@@ -134,7 +176,9 @@ public enum InteractionType
     TreatOther,    // spec 53: dress a wounded housemate's wound
     MedicateOther, // spec 53: hand a pill to a sick / gravely weak housemate
     ConsoleOther,  // spec 53: sit with a grieving / stressed housemate
-    CoolOff        // spec 35.4: dwell in shade/water to shed heat
+    CoolOff,       // spec 35.4: dwell in shade/water to shed heat
+    HydrateOther   // spec 53: bring water to a parched housemate (appended —
+                   // InteractionType is saved as an int, keep old values stable)
 }
 
 }

@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7146726166aa464c8ed031473ef4889a, type: 3}
+  m_Name: fist
+  m_EditorClassIdentifier: 
+  gearId: 
+  prefab: {fileID: 0}
+  prefabResourcePath: 
+  damage: 0.15
+  hitDelaySeconds: 1.1
+  attackDurationSeconds: 1.5
+  cooldownSeconds: 1.5
+  attackSpeed: 1
+  harvestSpeedMult: 1
+  meleePriority: 0
+  twoHanded: 0
+  capabilities: []
+  craftable: 0
+  craftStation: 0
+  craftNeedsLitFire: 0
+  craftIngredients: []
+  attackClips: []
+  armedIdle: {fileID: 0}
+  armedWalk: {fileID: 0}
+  workClip: {fileID: 0}
+

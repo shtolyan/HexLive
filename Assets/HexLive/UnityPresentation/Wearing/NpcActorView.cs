@@ -14,6 +14,7 @@ namespace HexLive.UnityPresentation.Wearing
 public sealed class NpcActorView : MonoBehaviour
 {
     private static readonly int SpeedParam = Animator.StringToHash("Speed");
+    private static readonly int HitReactParam = Animator.StringToHash("HitReact");
 
     private BodyBones _bodyBones;
     private Animator _animator;
@@ -22,6 +23,8 @@ public sealed class NpcActorView : MonoBehaviour
     private ActorName _actorMesh;
     private readonly Dictionary<string, int> _equippedSimItems = new();
     private readonly List<string> _removeScratch = new();
+
+    public ActorName ActorMesh => _actorMesh;
 
     private Transform _gazeTarget;
     private float _gazeWeight;
@@ -68,6 +71,11 @@ public sealed class NpcActorView : MonoBehaviour
     // Base-clip take-names each action state plays (the override KEYS).
     private const string TalkBaseClip = "X Bot@Talking";
     private const string AttackBaseClip = "X Bot@Bayonet Stab";
+    // One full procedural swing = this many _actionPhase units (the Attack
+    // case repeats at phase*cycles) — shared with the sim-window pacing in
+    // SetCombat so ONE swing spans exactly the weapon's attack duration.
+    private const float AttackSwingCycles = 2.6f;
+    private const string ChopBaseClip = "Standing Melee Attack Horizontal";
     private const string DeathBaseClip = "X Bot@Death From Back Headshot";
     private static readonly int LimpingParam = Animator.StringToHash("Limping");
     private static readonly int CrawlingParam = Animator.StringToHash("Crawling"); // §50
@@ -78,7 +86,12 @@ public sealed class NpcActorView : MonoBehaviour
     // playthrough == HopSeconds), instead of running at its own ~2.6s length
     // and looping/overshooting the window.
     private static readonly int JumpSpeedParam = Animator.StringToHash("JumpSpeed");
-    private float _jumpClipLength;   // authored seconds of the shared jump clip
+    // Authored seconds PER DIRECTION — the JumpUp and JumpDown clips are
+    // different lengths (65 vs 50 frames), so compressing both with one shared
+    // length played one of them at the wrong speed and the crouch/landing
+    // beats drifted off the sim's takeoff/landing windows.
+    private float _jumpUpClipLength;
+    private float _jumpDownClipLength;
 
     // §NPC-anim: clip config (talk/death variants + weapon idle/attack) is a
     // shared asset loaded once; the override controller lets each actor swap the
@@ -90,7 +103,7 @@ public sealed class NpcActorView : MonoBehaviour
     private bool _wantsTalk;          // sim says CurrentInteraction == "Talk"
     private bool _talkTurnOn;         // this NPC's turn to speak right now
     private bool _wasFighting;        // rising-edge detect for the attack trigger
-    private float _combatAttackPhase;
+    private bool _wasSwinging;        // rising edge of the sim's swing window
     private float _attackSpeed = 1f;
     private string _combatWeaponId;
     private const float TalkTurnSeconds = 2.2f; // one speaks, then the other
@@ -243,6 +256,8 @@ public sealed class NpcActorView : MonoBehaviour
     // Spec §50: once a leg is gone she can't stand — every standing/idle clip is
     // swapped for the prone idle (and walking for the crawl) via the override
     // controller; sit/sleep/lie/drink keep their own clips.
+    // §50-prone («лежит»): ANY lost leg — she crawls; prone = no tools, no
+    // weapons, no work/fight poses. Mirrors sim BodyState.IsProne.
     private bool _legless;
 
     private AnimationClip ProneClip => _animSet != null ? _animSet.proneIdle : null;
@@ -498,9 +513,10 @@ public sealed class NpcActorView : MonoBehaviour
         // durationSimSeconds. Speed = clipLength / window (Unity multiplies this
         // by the global animator.speed, so fast-forward stays in sync with the
         // arc timer). Falls back to 1 if the clip length is unknown.
-        if (_jumpClipLength > 0.001f)
+        var jumpClipLength = _jumpUp ? _jumpUpClipLength : _jumpDownClipLength;
+        if (jumpClipLength > 0.001f)
         {
-            _animator.SetFloat(JumpSpeedParam, _jumpClipLength / _jumpDuration);
+            _animator.SetFloat(JumpSpeedParam, jumpClipLength / _jumpDuration);
         }
         _animator.ResetTrigger(_jumpUp ? JumpDownParam : JumpUpParam);
         _animator.SetTrigger(_jumpUp ? JumpUpParam : JumpDownParam);
@@ -685,9 +701,13 @@ public sealed class NpcActorView : MonoBehaviour
                 }
                 // §NPC-anim: index every clip by name (the override KEYS).
                 _clipsByName[clip.name] = clip;
-                if (clip.name.IndexOf("Jump", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                if (clip.name.IndexOf("JumpDown", System.StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    _jumpClipLength = clip.length;
+                    _jumpDownClipLength = clip.length;
+                }
+                else if (clip.name.IndexOf("Jump", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    _jumpUpClipLength = clip.length;
                 }
             }
 
@@ -1186,12 +1206,16 @@ public sealed class NpcActorView : MonoBehaviour
         }
 
         _severVfxPrimed = true;
+        if (_legless)
+        {
+            ApplyLeglessClipOverrides();
+        }
     }
 
     // Spec §50: the one-time clip swaps for a legless survivor — the states that
     // carry a FIXED clip (idle, walk, crouch, turn-on-spot). Gather/Talk/Dress
     // re-apply their clip each frame, so those are handled in Standing() at the
-    // call sites; Sit/Sleep/LieDown/Drink keep their own clips.
+    // call sites; Sit/Sleep/LieDown keep their own clips.
     private void ApplyLeglessClipOverrides()
     {
         OverrideClip("Walk", CrawlClip);                     // walk → crawl
@@ -1205,6 +1229,7 @@ public sealed class NpcActorView : MonoBehaviour
         OverrideClip("X Bot@Gathering Objects", ProneClip);
         OverrideClip("X Bot@Talking", ProneClip);
         OverrideClip("X Bot@Dressing", ProneClip);
+        OverrideClip("X Bot@Drinking", ProneClip);           // she drinks lying too
     }
 
     // Spec §50: ONE gentle blood fountain at the cut — a softer version of the
@@ -1364,6 +1389,7 @@ public sealed class NpcActorView : MonoBehaviour
         _actionTargetActive = true;
         if (_fullBodyIK != null)
         {
+            ResetActionTargetIKWeights();
             _fullBodyIK.enabled = true;
         }
     }
@@ -1616,6 +1642,30 @@ public sealed class NpcActorView : MonoBehaviour
         SetLaying(true, null, surfaceY);
     }
 
+    // §29C.3-hit: a standing damage stagger. The renderer feeds every snapshot's
+    // Health here; a drop past the DoT noise floor (a real bite/strike, not the
+    // slow sick/starve drain) fires the HitReact one-shot — but only while she
+    // stands still: walking/swimming/lying bodies keep their own motion.
+    private const float HitReactMinDrop = 0.02f;
+    private float _lastSignaledHealth = -1f;
+
+    public void SignalHealth(float health)
+    {
+        var previous = _lastSignaledHealth;
+        _lastSignaledHealth = health;
+        if (previous < 0f || health >= previous - HitReactMinDrop)
+        {
+            return;
+        }
+
+        if (_dead || _laying || _swimming || _ragdollActive || _wasWalking || _animator == null)
+        {
+            return;
+        }
+
+        _animator.SetTrigger(HitReactParam);
+    }
+
     // Spec 40.13: collapse (faint) => go limp; wake => animator takes over.
     public void SetRagdoll(bool active)
     {
@@ -1666,10 +1716,17 @@ public sealed class NpcActorView : MonoBehaviour
     // on Sit, and hold the relevant item in the right hand.
     public void SetInteraction(string interaction, string heldItemId)
     {
+        if (_legless && IsToolOrWeapon(heldItemId))
+        {
+            heldItemId = string.Empty;
+        }
+
         // Which imported full-body clip-state covers this verb, if any:
-        //   gather (pick up / scoop) and drink now play real clips; construction
-        //   (Build/Craft/Harvest) stays on the crouch "Working" state; Sit as-is.
-        var gathering = interaction is "PickUp" or "FillBottle" or "Fuel" or "Bury" or "Hang";
+        //   gather (pick up / scoop / deposit at a build-site) and drink play
+        //   real clips; Craft/Harvest stay on the crouch "Working" state; Sit
+        //   as-is. Build joined the gather set (§54.12): laying a bed piece
+        //   reads as the stooping gather motion, not the generic crouch.
+        var gathering = interaction is "PickUp" or "FillBottle" or "Fuel" or "Bury" or "Hang" or "Build";
         var drinking = interaction == "Drink";
         _wantsTalk = interaction == "Talk"; // the Talk bool is driven by turn-taking
 
@@ -1680,23 +1737,27 @@ public sealed class NpcActorView : MonoBehaviour
             : ActionFromInteraction(interaction, heldItemId);
         // §axe: chopping/mining with an axe or pickaxe now plays the looping Chop
         // clip instead of the crouch Working pose + procedural shoulder swing.
-        var chopping = actionKind == ActionKind.Chop;
+        var chopping = actionKind == ActionKind.Chop && !_legless;
 
         if (_animator != null)
         {
             _animator.SetBool(GatheringParam, gathering);
             _animator.SetBool(DrinkingParam, drinking);
-            _animator.SetBool(WorkingParam, !chopping && interaction is "Harvest" or "Build" or "BuildRaft" or "Craft");
+            _animator.SetBool(WorkingParam, !_legless && !chopping &&
+                interaction is "Harvest" or "BuildRaft" or "Craft");
             _animator.SetBool(ChoppingParam, chopping);
             _animator.SetBool(SittingParam, interaction == "Sit");
             // Clip source: config override if present, else the state's base clip.
             if (gathering && _animSet != null) OverrideClip("X Bot@Gathering Objects", Standing(_animSet.gather));
-            if (drinking && _animSet != null) OverrideClip("X Bot@Drinking", _animSet.drink); // drink-in-hand keeps its clip
+            if (drinking && _animSet != null) OverrideClip("X Bot@Drinking", Standing(_animSet.drink)); // legless drinks prone
         }
 
         // A full-body clip now covers these (incl. the axe swing) — suppress the
-        // procedural shoulder pose so it doesn't fight the clip. Eat keeps its own.
-        _action = chopping ? ActionKind.None : actionKind;
+        // procedural shoulder pose so it doesn't fight the clip. Eat keeps its own
+        // raise-to-mouth — except legless, where the prone idle carries eat/drink.
+        _action = _legless || chopping
+            ? ActionKind.None
+            : actionKind;
         SetHandProp(heldItemId);
     }
 
@@ -1871,29 +1932,47 @@ public sealed class NpcActorView : MonoBehaviour
         var armed = !string.IsNullOrEmpty(itemId) &&
                     itemId.StartsWith("tool.", System.StringComparison.Ordinal);
 
-        if (_animSet.armedIdle != null)
+        // Per-gear SO clips first; NpcAnimSet's shared armed set as fallback.
+        var gearIdle = Config.GearLibrary.ArmedIdleFor(itemId);
+        var gearWalk = Config.GearLibrary.ArmedWalkFor(itemId);
+        var idleClip = gearIdle != null ? gearIdle : _animSet.armedIdle;
+        var walkClip = gearWalk != null ? gearWalk : _animSet.armedWalk;
+
+        if (idleClip != null)
         {
             if (armed)
             {
-                OverrideClip("Idle", Standing(_animSet.armedIdle));
+                OverrideClip("Idle", Standing(idleClip));
             }
             else if (_clipsByName.TryGetValue("Idle", out var baseIdle))
             {
-                OverrideClip("Idle", baseIdle); // identity remap = restore default
+                OverrideClip("Idle", Standing(baseIdle)); // legless stays prone
             }
         }
 
         // Walk swap is skipped while legless — the crawl system owns "Walk".
-        if (_animSet.armedWalk != null && !_legless)
+        if (walkClip != null && !_legless)
         {
             if (armed)
             {
-                OverrideClip("Walk", _animSet.armedWalk);
+                OverrideClip("Walk", walkClip);
             }
             else if (_clipsByName.TryGetValue("Walk", out var baseWalk))
             {
                 OverrideClip("Walk", baseWalk);
             }
+        }
+
+        // Work clip (рубка/добыча/стройка): the gear SO can swap the Chop
+        // state's clip; restore the base take when the item declares none.
+        var workClip = Config.GearLibrary.WorkClipFor(itemId);
+        if (workClip != null)
+        {
+            OverrideClip(ChopBaseClip, workClip);
+        }
+        else if (_clipsByName.TryGetValue(ChopBaseClip, out var baseChop))
+        {
+            OverrideClip(ChopBaseClip, baseChop);
         }
     }
 
@@ -1948,14 +2027,16 @@ public sealed class NpcActorView : MonoBehaviour
         switch (interaction)
         {
             case "Harvest":
-                var chopping = heldItemId == "tool.axe_stone" || heldItemId == "tool.pickaxe_stone";
+                var gear = HexLive.Simulation.Content.GearCatalog.For(heldItemId);
+                var chopping = gear.Id == heldItemId &&
+                    (gear.Has(HexLive.Simulation.Content.GearCapability.ChopWood) ||
+                     gear.Has(HexLive.Simulation.Content.GearCapability.Mine));
                 return chopping ? ActionKind.Chop : ActionKind.Work;
             case "Process": // spec §54: splitting a log — an axe chop motion
                 return ActionKind.Chop;
             case "Butcher": // spec §54: knifing a carcass — a crouched working motion
                 return ActionKind.Work;
             case "PickUp":
-            case "Build":
             case "BuildRaft":
             case "Craft":
             case "Fuel":
@@ -1971,52 +2052,89 @@ public sealed class NpcActorView : MonoBehaviour
         }
     }
 
+    private static bool IsToolOrWeapon(string itemId) =>
+        !string.IsNullOrEmpty(itemId) &&
+        itemId.StartsWith("tool.", System.StringComparison.Ordinal);
+
     // Spec 20.16: combat/hunt overrides the idle interaction — the weapon
     // appears in hand and drives a draw (bow) or thrust (spear) motion.
-    public void SetCombat(bool fighting, string weaponId)
+    // Timed melee: the SIM owns the attack cadence. `swinging` is true across
+    // the whole attack-animation window (GearCatalog.AttackDurationSeconds
+    // from the swing start); the clip/procedural swing plays exactly then, the
+    // damage lands mid-window (HitDelaySeconds, sim-side), and between swings
+    // she stands recovering — no more view-local attack timer drifting out of
+    // sync with the actual blows.
+    public void SetCombat(bool fighting, string weaponId, bool swinging)
     {
+        if (_legless)  // §50-prone: lying — no weapons, no fight pose
+        {
+            fighting = false;
+            weaponId = null;
+            SetHandProp(null);
+        }
+
         if (!fighting)
         {
             _wasFighting = false;
-            _combatAttackPhase = 0f;
+            _wasSwinging = false;
             _attackSpeed = 1f;
             _combatWeaponId = null;
+            _action = ActionKind.None;
             return;
         }
 
         var weaponChanged = _combatWeaponId != weaponId;
         if (!_wasFighting || weaponChanged)
         {
-            _combatAttackPhase = 1f; // fire the first strike immediately
             _actionPhase = 0f;
             _combatWeaponId = weaponId;
         }
 
-        _attackSpeed = SimBalance.MeleeAttackSpeed(weaponId);
-
-        // Weapon architecture: the equipped weapon's config row supplies the
-        // attack clip (spear -> Bayonet Stab now; knife/etc. add a row later).
-        // Armed-idle swap is deferred (the "detail weapons later" pass).
-        var wa = _animSet != null ? _animSet.WeaponFor(weaponId) : null;
-        if (wa != null && wa.attacks != null && wa.attacks.Length > 0 && _animator != null)
+        // Attack clips: the gear SO first (data-driven), the NpcAnimSet
+        // weapon row as fallback — empty both = the procedural swing below.
+        var attackClips = Config.GearLibrary.AttackClipsFor(weaponId);
+        if (attackClips == null)
         {
-            _combatAttackPhase += Time.deltaTime * _simSpeed * _attackSpeed;
-            if (_combatAttackPhase >= 1f)
+            var wa = _animSet != null ? _animSet.WeaponFor(weaponId) : null;
+            attackClips = wa != null && wa.attacks != null && wa.attacks.Length > 0
+                ? wa.attacks
+                : null;
+        }
+
+        if (attackClips != null && _animator != null)
+        {
+            // Clip-based attack: fire the one-shot at the sim's swing start.
+            if (swinging && !_wasSwinging)
             {
-                OverrideClip(AttackBaseClip, wa.attacks[Random.Range(0, wa.attacks.Length)]);
+                OverrideClip(AttackBaseClip, attackClips[Random.Range(0, attackClips.Length)]);
                 _animator.SetTrigger(AttackParam);
-                _combatAttackPhase = 0f;
             }
+
             _action = ActionKind.None;
         }
-        else
+        else if (swinging)
         {
-            // No config row -> keep the procedural swing/draw/thrust.
+            // No config row -> the procedural swing/draw/thrust, paced so ONE
+            // full swing spans the sim's attack window (knife: 2 s).
             _action = weaponId == "tool.bow" ? ActionKind.BowDraw
                 : weaponId == "tool.spear" ? ActionKind.SpearThrust
                 : ActionKind.Attack;
+            if (!_wasSwinging)
+            {
+                _actionPhase = 0f;
+            }
+
+            var duration = Mathf.Max(0.25f,
+                HexLive.Simulation.Content.GearCatalog.AttackDurationSeconds(weaponId));
+            _attackSpeed = 1f / (AttackSwingCycles * duration);
+        }
+        else
+        {
+            // Between swings: arms rest — she stands out the recovery.
+            _action = ActionKind.None;
         }
 
+        _wasSwinging = swinging;
         _wasFighting = true;
         if (!string.IsNullOrEmpty(weaponId))
         {
@@ -2026,6 +2144,11 @@ public sealed class NpcActorView : MonoBehaviour
 
     private void SetHandProp(string itemId)
     {
+        if (_legless && IsToolOrWeapon(itemId))
+        {
+            itemId = null;
+        }
+
         if (_currentPropId == itemId)
         {
             return;
@@ -2053,7 +2176,7 @@ public sealed class NpcActorView : MonoBehaviour
 
         // Real prefab first; otherwise a procedural low-poly model so tools
         // are visible in hand (spec 20.16 — no prefab wiring required).
-        var model = Resources.Load<GameObject>($"HexLive/Objects/{itemId}");
+        var model = Config.GearLibrary.LoadPrefab(itemId);
         if (model != null)
         {
             _handProp = Instantiate(model, hand);
@@ -2074,21 +2197,43 @@ public sealed class NpcActorView : MonoBehaviour
         _handPropRenderers = _handProp.GetComponentsInChildren<Renderer>();
 
         // Size: normalize to the SAME world size the ground uses (ObjectFit), so a
-        // tool/coconut is identical in hand and on the ground. ItemAttachConfig's
-        // scale is now a fine MULTIPLIER on top of this (default 1), not absolute.
+        // tool/coconut is identical in hand and on the ground. The gear asset's
+        // hand scale is a fine MULTIPLIER on top of this (default 1), not absolute.
         var fit = ObjectFit.FitScaleFactor(_handProp, itemId);
 
-        // Placement priority (each higher tier wins): the tuned ItemAttachConfig
-        // asset (edited live in the ItemAttach test scene) → an "AttachPoint"
+        // Placement priority (each higher tier wins): the gear asset's tuned
+        // hand pose (edited live in the AxeChopTest scene) → an "AttachPoint"
         // child authored into the model → a built-in default table → the
         // automatic palm-fit below. All in the acting hand's local space.
-        var attachCfg = Config.ItemAttachConfig.Instance;
-        if (attachCfg != null &&
-            attachCfg.TryGet(itemId, _leftHanded, out var cfgPos, out var cfgRot, out var cfgScale))
+        if (Config.GearLibrary.TryGetHandPose(
+                itemId, _leftHanded, out var cfgPos, out var cfgRot, out var cfgScale))
         {
             _handProp.transform.localPosition = cfgPos;
             _handProp.transform.localRotation = cfgRot;
             _handProp.transform.localScale = cfgScale * fit; // config scale = multiplier
+            return;
+        }
+
+        // §54.12: RESOURCES (stick / leaf / log / fiber / rope…) ride in hand
+        // 1:1 — the prefab's NATIVE scale, exactly the size of the same piece
+        // on the ground or in the assembled bed, no palm-fit enlargement. One
+        // shared grip transform for all of them (dialed in the inspector on
+        // the stick), mirrored for the off hand. Tools and weapons are NOT
+        // touched — they keep their tuned gear-asset placements above.
+        if (itemId.StartsWith("resource.", System.StringComparison.Ordinal))
+        {
+            var gripPos = new Vector3(0.069f, -0.063f, 0.007f);
+            var gripRot = Quaternion.Euler(0f, -95.855f, 0f);
+            if (_leftHanded)
+            {
+                gripPos.x = -gripPos.x;
+                var e = gripRot.eulerAngles;
+                gripRot = Quaternion.Euler(e.x, -e.y, -e.z);
+            }
+
+            _handProp.transform.localPosition = gripPos;
+            _handProp.transform.localRotation = gripRot;
+            // localScale stays as instantiated (the prefab/factory's own) — 1:1.
             return;
         }
 
@@ -2270,7 +2415,7 @@ public sealed class NpcActorView : MonoBehaviour
             return;
         }
 
-        var model = Resources.Load<GameObject>($"HexLive/Objects/{itemId}");
+        var model = Config.GearLibrary.LoadPrefab(itemId);
         _backProp = model != null
             ? Instantiate(model, back)
             : HexLive.UnityPresentation.Environment.LowPolyToolFactory.Build(itemId);
@@ -2778,10 +2923,28 @@ public sealed class NpcActorView : MonoBehaviour
 
         var solver = _fullBodyIK.solver;
         solver.IKPositionWeight = 0f;
-        solver.rightHandEffector.positionWeight = 0f;
-        solver.rightHandEffector.rotationWeight = 0f;
-        solver.leftHandEffector.positionWeight = 0f;
-        solver.leftHandEffector.rotationWeight = 0f;
+        ResetEffector(solver.bodyEffector);
+        ResetEffector(solver.leftShoulderEffector);
+        ResetEffector(solver.rightShoulderEffector);
+        ResetEffector(solver.leftThighEffector);
+        ResetEffector(solver.rightThighEffector);
+        ResetEffector(solver.leftHandEffector);
+        ResetEffector(solver.rightHandEffector);
+        ResetEffector(solver.leftFootEffector);
+        ResetEffector(solver.rightFootEffector);
+    }
+
+    private static void ResetEffector(IKEffector effector)
+    {
+        if (effector == null)
+        {
+            return;
+        }
+
+        effector.target = null;
+        effector.positionWeight = 0f;
+        effector.rotationWeight = 0f;
+        effector.positionOffset = Vector3.zero;
     }
 
     private void DriveActionTargetIK()
@@ -2939,7 +3102,7 @@ public sealed class NpcActorView : MonoBehaviour
             }
             case ActionKind.Attack:
             {
-                var t = Mathf.Repeat(_actionPhase * 2.6f, 1f);
+                var t = Mathf.Repeat(_actionPhase * AttackSwingCycles, 1f);
                 shldr = t < 0.5f
                     ? Mathf.Lerp(-10f, 50f, t / 0.5f)
                     : Mathf.Lerp(50f, -10f, (t - 0.5f) / 0.5f);

@@ -87,6 +87,24 @@ namespace HexLive.UnityPresentation.UI
         private string _invSelectedId;        // item shown in the detail view
         private bool _invSelectedWorn;
 
+        // Spec §57: limb-health window — click the HP row to pop a floating
+        // window with the rotating body doll (per-zone green→yellow→red mesh)
+        // and a per-limb readout list.
+        private HealthDollStage _healthDollStage;
+        private VisualElement _healthWindow;
+        private Label _healthTitle;
+        private VisualElement _healthDollImage;
+        private bool _healthOpen;
+        private readonly List<ZoneRowBinding> _zoneRows = new();
+
+        private struct ZoneRowBinding
+        {
+            public string Zone;
+            public VisualElement Dot;
+            public Label Name;
+            public Label Value;
+        }
+
         private struct WaterContainerState
         {
             public float Amount;
@@ -216,6 +234,8 @@ namespace HexLive.UnityPresentation.UI
 
         public void SetPortraitStage(PortraitStage stage) => _portraitStage = stage;
 
+        public void SetHealthDollStage(HealthDollStage stage) => _healthDollStage = stage;
+
         private void Awake()
         {
             _document = GetComponent<UIDocument>();
@@ -326,9 +346,12 @@ namespace HexLive.UnityPresentation.UI
 
             var overBar = PointerOverElement(_stage, mousePos, scale);
 
-            // The inventory window floats ABOVE the bar — its own bounds must
-            // also swallow clicks, or picking one of its items deselects the NPC.
-            NpcSelection.PointerOverUi = overBar || PointerOverInventory(mousePos, scale);
+            // The floating windows (inventory / limb health) sit ABOVE the bar —
+            // their bounds must also swallow clicks, or picking inside them
+            // deselects the NPC.
+            NpcSelection.PointerOverUi = overBar ||
+                PointerOverFloating(_inventoryOpen, _inventoryWindow, mousePos, scale) ||
+                PointerOverFloating(_healthOpen, _healthWindow, mousePos, scale);
         }
 
         private static bool PointerOverElement(VisualElement element, Vector2 mousePos, float scale)
@@ -352,16 +375,16 @@ namespace HexLive.UnityPresentation.UI
                    mousePos.y >= bottom && mousePos.y <= top;
         }
 
-        // Is the cursor within the open inventory window? worldBound is in panel
+        // Is the cursor within an open floating window? worldBound is in panel
         // units with a top-left origin; convert to bottom-left screen pixels.
-        private bool PointerOverInventory(Vector2 mousePos, float scale)
+        private static bool PointerOverFloating(bool open, VisualElement window, Vector2 mousePos, float scale)
         {
-            if (!_inventoryOpen || _inventoryWindow == null)
+            if (!open || window == null)
             {
                 return false;
             }
 
-            var wb = _inventoryWindow.worldBound;
+            var wb = window.worldBound;
             if (float.IsNaN(wb.x) || wb.width < 1f)
             {
                 return false;
@@ -379,6 +402,7 @@ namespace HexLive.UnityPresentation.UI
         {
             _shown = npcId >= 0;
             CloseInventory(); // a new/cleared selection resets the backpack
+            CloseHealth();    // …and the limb-health window
             if (npcId >= 0)
             {
                 _root.style.display = DisplayStyle.Flex;
@@ -483,6 +507,7 @@ namespace HexLive.UnityPresentation.UI
             UpdateEffects(npc);
             UpdateRelations(npc);
             RefreshInventory(npc);
+            RefreshHealth(npc);
         }
 
         private void BindPortrait(int npcId)
@@ -1024,6 +1049,7 @@ namespace HexLive.UnityPresentation.UI
             }
             else
             {
+                CloseHealth(); // the two floating windows share the same spot
                 _inventoryOpen = true;
                 _invSig = null; // force a rebuild on the next refresh
                 _inventoryWindow.style.display = DisplayStyle.Flex;
@@ -1039,6 +1065,238 @@ namespace HexLive.UnityPresentation.UI
             if (_inventoryWindow != null)
             {
                 _inventoryWindow.style.display = DisplayStyle.None;
+            }
+        }
+
+        // ── limb health window (spec §57) ─────────────────────────────────
+
+        // Floating window over the identity column: the rotating body doll
+        // (per-zone green→yellow→red mesh from HealthDollStage) beside a
+        // per-limb readout list. Same chrome as the inventory window.
+        private void BuildHealthWindow()
+        {
+            _healthWindow = new VisualElement();
+            _healthWindow.style.position = Position.Absolute;
+            _healthWindow.style.left = 20f;
+            _healthWindow.style.bottom = InventoryWindowBottom;
+            _healthWindow.style.width = 470f;
+            _healthWindow.style.backgroundColor = Panel;
+            SetBorder(_healthWindow, StrokeStrong, 1f);
+            SetRadius(_healthWindow, 14f);
+            _healthWindow.style.paddingLeft = 16f;
+            _healthWindow.style.paddingRight = 16f;
+            _healthWindow.style.paddingTop = 13f;
+            _healthWindow.style.paddingBottom = 14f;
+            _healthWindow.style.display = DisplayStyle.None;
+            _healthWindow.pickingMode = PickingMode.Position;
+
+            var header = new VisualElement();
+            header.style.flexDirection = FlexDirection.Row;
+            header.style.alignItems = Align.Center;
+            header.style.marginBottom = 11f;
+
+            var headIcon = new VectorIcon(VectorIcon.Kind.Health, Health);
+            headIcon.style.width = 17f;
+            headIcon.style.height = 17f;
+            headIcon.style.marginRight = 9f;
+            headIcon.style.flexShrink = 0f;
+            header.Add(headIcon);
+
+            _healthTitle = new Label(Loc.Get("panel.health"));
+            _healthTitle.style.color = Text;
+            _healthTitle.style.fontSize = 17;
+            _healthTitle.style.unityFontStyleAndWeight = FontStyle.Bold;
+            _healthTitle.style.flexGrow = 1f;
+            header.Add(_healthTitle);
+
+            var close = new Label("✕");
+            close.style.color = TextDim;
+            close.style.fontSize = 15;
+            close.style.unityFontStyleAndWeight = FontStyle.Bold;
+            close.style.width = 24f;
+            close.style.height = 24f;
+            close.style.unityTextAlign = TextAnchor.MiddleCenter;
+            close.style.flexShrink = 0f;
+            SetRadius(close, 6f);
+            close.RegisterCallback<MouseEnterEvent>(_ => close.style.color = Text);
+            close.RegisterCallback<MouseLeaveEvent>(_ => close.style.color = TextDim);
+            close.RegisterCallback<MouseDownEvent>(evt =>
+            {
+                CloseHealth();
+                evt.StopPropagation();
+            });
+            header.Add(close);
+            _healthWindow.Add(header);
+
+            var body = new VisualElement();
+            body.style.flexDirection = FlexDirection.Row;
+
+            // Doll viewport (3:4, matches the stage RenderTexture aspect).
+            _healthDollImage = new VisualElement();
+            _healthDollImage.style.width = 195f;
+            _healthDollImage.style.height = 260f;
+            _healthDollImage.style.flexShrink = 0f;
+            _healthDollImage.style.backgroundColor = Track;
+            SetBorder(_healthDollImage, StrokeStrong, 1f);
+            SetRadius(_healthDollImage, 10f);
+            _healthDollImage.style.overflow = Overflow.Hidden;
+            body.Add(_healthDollImage);
+
+            // Per-limb readout rows.
+            var list = new VisualElement();
+            list.style.flexGrow = 1f;
+            list.style.marginLeft = 15f;
+            list.style.justifyContent = Justify.Center;
+
+            _zoneRows.Clear();
+            foreach (var zone in HealthDollStage.ZoneOrder)
+            {
+                var row = new VisualElement();
+                row.style.flexDirection = FlexDirection.Row;
+                row.style.alignItems = Align.Center;
+                row.style.marginBottom = 8f;
+
+                var dot = new VisualElement();
+                dot.style.width = 9f;
+                dot.style.height = 9f;
+                dot.style.flexShrink = 0f;
+                SetRadius(dot, 4.5f);
+                dot.style.marginRight = 9f;
+                row.Add(dot);
+
+                var name = new Label();
+                name.style.color = Text;
+                name.style.fontSize = 13.5f;
+                name.style.flexGrow = 1f;
+                row.Add(name);
+
+                var value = new Label();
+                value.style.color = TextDim;
+                value.style.fontSize = 12.5f;
+                value.style.flexShrink = 0f;
+                row.Add(value);
+
+                list.Add(row);
+                _zoneRows.Add(new ZoneRowBinding { Zone = zone, Dot = dot, Name = name, Value = value });
+            }
+
+            body.Add(list);
+            _healthWindow.Add(body);
+            _root.Add(_healthWindow);
+        }
+
+        private void ToggleHealth()
+        {
+            if (_healthOpen)
+            {
+                CloseHealth();
+                return;
+            }
+
+            CloseInventory(); // the two floating windows share the same spot
+            _healthOpen = true;
+            _healthWindow.style.display = DisplayStyle.Flex;
+            _healthDollStage?.SetActive(true);
+            _refreshedTick = -1; // pull a fresh snapshot into the window now
+        }
+
+        private void CloseHealth()
+        {
+            _healthOpen = false;
+            if (_healthWindow != null)
+            {
+                _healthWindow.style.display = DisplayStyle.None;
+            }
+
+            _healthDollStage?.SetActive(false);
+        }
+
+        // Called from Refresh() while the window is open: feed the doll stage
+        // and rebuild the readout rows off the snapshot's zone lists.
+        private void RefreshHealth(NpcSnapshot npc)
+        {
+            if (!_healthOpen)
+            {
+                return;
+            }
+
+            if (_healthDollStage != null)
+            {
+                _healthDollStage.SetTarget(npc.ActorMesh);
+                _healthDollStage.SetZones(npc.BodyParts, npc.SeveredParts, npc.BandagedZones);
+                var tex = _healthDollStage.Texture;
+                if (tex != null)
+                {
+                    _healthDollImage.style.backgroundImage =
+                        new StyleBackground(Background.FromRenderTexture(tex));
+                }
+            }
+
+            foreach (var binding in _zoneRows)
+            {
+                var hp = 1f;
+                foreach (var entry in npc.BodyParts)
+                {
+                    if (entry.StartsWith(binding.Zone) &&
+                        entry.Length > binding.Zone.Length && entry[binding.Zone.Length] == '=')
+                    {
+                        float.TryParse(entry[(binding.Zone.Length + 1)..],
+                            System.Globalization.NumberStyles.Float,
+                            System.Globalization.CultureInfo.InvariantCulture, out hp);
+                        break;
+                    }
+                }
+
+                var severed = npc.SeveredParts.Contains(binding.Zone);
+                var bandaged = false;
+                foreach (var entry in npc.BandagedZones)
+                {
+                    var bar = entry.IndexOf('|');
+                    if ((bar > 0 ? entry[..bar] : entry) == binding.Zone)
+                    {
+                        bandaged = true;
+                        break;
+                    }
+                }
+
+                var openWounds = 0;
+                foreach (var entry in npc.Wounds)
+                {
+                    // "Zone|Seed|Heal01" — count wounds still visibly open.
+                    var parts = entry.Split('|');
+                    if (parts.Length >= 3 && parts[0] == binding.Zone &&
+                        float.TryParse(parts[2], System.Globalization.NumberStyles.Float,
+                            System.Globalization.CultureInfo.InvariantCulture, out var heal) &&
+                        heal < 0.999f)
+                    {
+                        openWounds++;
+                    }
+                }
+
+                binding.Name.text = Loc.Get($"zone.{binding.Zone}");
+                binding.Dot.style.backgroundColor = HealthDollStage.StatusColor(hp, severed);
+
+                if (severed)
+                {
+                    binding.Value.text = Loc.Get("health.severed");
+                    binding.Value.style.color = Crit;
+                }
+                else
+                {
+                    var text = $"{Mathf.RoundToInt(Mathf.Clamp01(hp) * 100f)}%";
+                    if (bandaged)
+                    {
+                        text = $"🩹 {text}";
+                    }
+
+                    if (openWounds > 0)
+                    {
+                        text = $"🩸{openWounds} · {text}";
+                    }
+
+                    binding.Value.text = text;
+                    binding.Value.style.color = openWounds > 0 || hp < 0.5f ? Text : TextDim;
+                }
             }
         }
 
@@ -1964,6 +2222,7 @@ namespace HexLive.UnityPresentation.UI
             BuildExpandTab();
             BuildEffectTooltip();
             BuildInventoryWindow();
+            BuildHealthWindow();
         }
 
         // Small chevron-down in the card's top-right corner: hide the bar but
@@ -2137,6 +2396,21 @@ namespace HexLive.UnityPresentation.UI
             hRow.Add(_healthValue);
             info.Add(hRow);
 
+            // Spec §57: the HP row is a button — click pops the limb-health
+            // window (body doll + per-limb readout).
+            void HookHealthClick(VisualElement element)
+            {
+                element.RegisterCallback<MouseEnterEvent>(_ => hCap.style.color = Gold);
+                element.RegisterCallback<MouseLeaveEvent>(_ => hCap.style.color = TextMute);
+                element.RegisterCallback<MouseDownEvent>(evt =>
+                {
+                    ToggleHealth();
+                    evt.StopPropagation();
+                });
+            }
+
+            HookHealthClick(hRow);
+
             // Spec 40.8B: Fallout-style HP bar — green = current health,
             // red (right-anchored) = HP locked by open wounds; regen can only
             // fill the gap between them, the red shrinks as wounds close.
@@ -2152,6 +2426,7 @@ namespace HexLive.UnityPresentation.UI
             _healthLockedFill.style.backgroundColor = new Color(0.72f, 0.16f, 0.14f);
             hTrack.Add(_healthLockedFill);
             info.Add(hTrack);
+            HookHealthClick(hTrack);
 
             // Status chip + badge in a row
             var statusRow = new VisualElement();
@@ -2532,6 +2807,13 @@ namespace HexLive.UnityPresentation.UI
             }
 
             _invSig = null;
+
+            // Limb-health window (spec §57) — rows re-localize on the next
+            // refresh (the tick gate above is already invalidated).
+            if (_healthTitle != null)
+            {
+                _healthTitle.text = Loc.Get("panel.health");
+            }
         }
 
         // ── helpers ───────────────────────────────────────────────────────

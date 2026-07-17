@@ -38,6 +38,9 @@ namespace HexLive.UnityPresentation.Bootstrap
         private static string FilePath =>
             Path.Combine(Application.persistentDataPath, "hexlive_save.dat");
 
+        private static string NewSeedPath =>
+            Path.Combine(Application.persistentDataPath, "hexlive_new_seed.txt");
+
         // v1 (replay-based JSON) — deleted on sight, never read.
         private static string LegacyJsonPath =>
             Path.Combine(Application.persistentDataPath, "hexlive_save.json");
@@ -139,6 +142,27 @@ namespace HexLive.UnityPresentation.Bootstrap
             DeleteFile(FilePath);
             DeleteFile(FilePath + ".tmp");
             DeleteFile(LegacyJsonPath);
+        }
+
+        public static bool TryConsumeNewGameSeed(out int seed)
+        {
+            seed = 0;
+            try
+            {
+                if (!File.Exists(NewSeedPath))
+                {
+                    return false;
+                }
+
+                var text = File.ReadAllText(NewSeedPath).Trim();
+                DeleteFile(NewSeedPath);
+                return int.TryParse(text, out seed);
+            }
+            catch (Exception e)
+            {
+                UnityEngine.Debug.LogWarning($"[HexLive] New-game seed override unreadable: {e.Message}");
+                return false;
+            }
         }
 
         private static void DeleteFile(string path)

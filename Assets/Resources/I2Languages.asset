@@ -16,11 +16,2513 @@ MonoBehaviour:
     UserAgreesToHaveItOnTheScene: 0
     UserAgreesToHaveItInsideThePluginsFolder: 0
     GoogleLiveSyncIsUptoDate: 1
-    mTerms: []
+    mTerms:
+    - Term: 'panel.needs'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Needs'
+      - 'Потребности'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.relations'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Relationships'
+      - 'Отношения'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.wants'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Now wants'
+      - 'Сейчас хочет'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.health'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Health'
+      - 'Здоровье'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.role'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'islander'
+      - 'островитянка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.live'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'live'
+      - 'прямой эфир'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.none'
+      TermType: 0
+      Description: 
+      Languages:
+      - '—'
+      - '—'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'need.hunger'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fed'
+      - 'Сытость'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'need.thirst'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hydration'
+      - 'Жажда'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'need.energy'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Energy'
+      - 'Энергия'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'need.comfort'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Comfort'
+      - 'Комфорт'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'need.social'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Social'
+      - 'Общение'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'need.thermal'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Warmth'
+      - 'Тепло'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'need.temperature'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Temperature'
+      - 'Температура'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'need.stamina'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stamina'
+      - 'Выносливость'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'need.blood'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Blood'
+      - 'Кровь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'need.hygiene'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hygiene'
+      - 'Гигиена'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'need.stress'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stress'
+      - 'Стресс'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'need.compassion'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Compassion'
+      - 'Сострадание'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.effects'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Effects'
+      - 'Эффекты'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.bleeding.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bleeding'
+      - 'Кровотечение'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.bleeding.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'An open wound is draining her blood — dress it before she runs dry.'
+      - 'Открытая рана теряет кровь — перевяжите, пока она не истекла.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.injured.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Injured'
+      - 'Ранена'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.injured.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wounds slow her healing and lock part of her HP until they close.'
+      - 'Раны замедляют заживление и удерживают часть здоровья, пока не закроются.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.hobbled.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hobbled'
+      - 'Хромает'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.hobbled.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hurt legs — she moves slower than usual.'
+      - 'Повреждены ноги — двигается медленнее обычного.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.bandaged.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bandaged'
+      - 'Перевязана'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.bandaged.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A dressed wound: the bleeding is stopped and it closes faster.'
+      - 'Рана перевязана: кровотечение остановлено, заживает быстрее.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.strongsun.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strong sun'
+      - 'Палящее солнце'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.strongsun.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The UV is high right here — bare skin will burn without cover or shade.'
+      - 'Здесь высокий UV — без одежды или тени открытая кожа обгорит.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.sunstroke.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sunstroke'
+      - 'Солнечный удар'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.sunstroke.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Too long in the sun on bare skin — it burns her and saps comfort.'
+      - 'Долго на солнце с голой кожей — обжигает и снижает комфорт.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.sunburnt.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sunburnt'
+      - 'Обгорела'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.sunburnt.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Raw red skin from the sun. Cosmetic — it fades and tans over.'
+      - 'Кожа обгорела на солнце. Косметика — сходит и превращается в загар.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.hot.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hot'
+      - 'Жарко'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.hot.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Uncomfortably warm — and edging toward heatstroke. Shade or water would help.'
+      - 'Жарко и некомфортно — и клонит к перегреву. Не помешает тень или вода.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.heatstroke.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Heatstroke'
+      - 'Перегрев'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.heatstroke.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Far too hot — the heat is draining her health. She needs shade or water.'
+      - 'Слишком жарко — жара отнимает здоровье. Нужна тень или вода.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.cold.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cold'
+      - 'Холодно'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.cold.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Chilly and uncomfortable — and edging toward freezing. Warmth would help.'
+      - 'Зябко и некомфортно — и клонит к переохлаждению. Не помешало бы согреться.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.freezing.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Freezing'
+      - 'Замерзает'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.freezing.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Far too cold — she''s losing health. She needs warmth or clothes.'
+      - 'Слишком холодно — теряет здоровье. Нужно тепло или одежда.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.soaked.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Soaked'
+      - 'Промокла'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.soaked.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wet clothes give no warmth and weigh her down on the move.'
+      - 'Мокрая одежда не греет и замедляет движение.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.starving.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Starving'
+      - 'Голодает'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.starving.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hunger past the edge — her health is draining. She needs to eat now.'
+      - 'Голод за гранью — здоровье убывает. Срочно нужно поесть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.dehydrated.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Dehydrated'
+      - 'Обезвожена'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.dehydrated.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thirst past the edge — her health is draining. She needs to drink.'
+      - 'Жажда за гранью — здоровье убывает. Нужно пить.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.sick.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sick'
+      - 'Тошнит'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.sick.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Poisoned by raw water — nauseous and losing health. Boil water before drinking.'
+      - 'Отравилась сырой водой — тошнит, здоровье убывает. Воду нужно кипятить.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.exhausted.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Exhausted'
+      - 'Вымотана'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.exhausted.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stamina spent to the floor — winded and desperate to sit down.'
+      - 'Выносливость на нуле — запыхалась, хочет присесть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.fainted.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fainted'
+      - 'Без сознания'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.fainted.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Knocked out cold — she lies unable to act until she comes to.'
+      - 'Потеряла сознание — лежит и не может действовать, пока не очнётся.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.wellfed.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Well fed'
+      - 'Сыта'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.wellfed.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Freshly full — content and at her best.'
+      - 'Только поела — довольна и полна сил.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.rested.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Rested'
+      - 'Отдохнула'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.rested.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Energy and stamina both high — ready for anything.'
+      - 'Энергия и выносливость высоки — готова ко всему.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.snug.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Snug'
+      - 'В кровати'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.snug.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Asleep in a proper bed — resting deeply and recovering energy faster.'
+      - 'Спит в настоящей кровати — глубокий сон, энергия восстанавливается быстрее.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.stressed.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stressed'
+      - 'В стрессе'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.stressed.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stress is climbing toward the breaking point — enough can knock her out.'
+      - 'Стресс растёт к пределу — на грани может свалить с ног.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.grieving.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Grieving'
+      - 'Скорбит'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.grieving.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Mourning a fallen housemate.'
+      - 'Оплакивает погибшую подругу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.lonely.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lonely'
+      - 'Одинока'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.lonely.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Starved of company — she needs someone to talk to.'
+      - 'Не хватает общения — нужен кто-то рядом.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.miserable.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Miserable'
+      - 'Подавлена'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.miserable.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Comfort has bottomed out — everything feels wretched.'
+      - 'Комфорт на нуле — всё вокруг тягостно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.content.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Content'
+      - 'Довольна'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.content.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Comfortable and at ease.'
+      - 'Комфортно и спокойно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.filthy.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Filthy'
+      - 'Грязная'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.filthy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Grubby and long overdue a wash.'
+      - 'Замызгана — давно пора помыться.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.cozy.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cozy'
+      - 'Уют'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.cozy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Warmed by the campfire — its glow slowly restores comfort.'
+      - 'Греется у костра — его тепло создаёт уют и понемногу восполняет комфорт.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Menu'
+      - 'Меню'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.continue'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Continue'
+      - 'Продолжить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.quit'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Quit game'
+      - 'Выйти из игры'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.eyebrow'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'ESCAPE COMPLETE'
+      - 'ПОБЕГ УДАЛСЯ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Escaped the island'
+      - 'Выбрались с острова'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.subtitle'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} of {1} survivors reached the raft. The simulation is complete.'
+      - 'До плота добрались {0} из {1}. Симуляция завершена.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.survivors'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Survivors'
+      - 'Выжили'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.fallen'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fallen'
+      - 'Погибли'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.day'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Final day'
+      - 'Финальный день'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.time'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Time'
+      - 'Время'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.raft'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Raft'
+      - 'Плот'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.avg_health'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Avg health'
+      - 'Среднее HP'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.survivors_title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Who survived'
+      - 'Кто выжил'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.fallen_title'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Who did not make it'
+      - 'Кто не добрался'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.no_fallen'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'No one died on the way out.'
+      - 'Никто не погиб по дороге.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.close_tooltip'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Close summary and inspect the island'
+      - 'Закрыть итоги и осмотреть остров'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.hp'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'HP'
+      - 'HP'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.blood'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Blood'
+      - 'Кровь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.stamina'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stamina'
+      - 'Выносливость'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.wounds'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wounds'
+      - 'Раны'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.on_day'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'day'
+      - 'день'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.tile'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'tile'
+      - 'клетка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.unknown'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Unknown survivor'
+      - 'Неизвестный персонаж'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.cause_unknown'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'unknown cause'
+      - 'причина неизвестна'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.cause_bled_out'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'blood loss'
+      - 'кровопотеря'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.cause_dog'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'dog attack'
+      - 'нападение собак'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.cause_heat'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'heatstroke'
+      - 'перегрев'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.cause_cold'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'hypothermia'
+      - 'переохлаждение'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.cause_limb'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'traumatic limb loss'
+      - 'тяжёлая травма конечности'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.cause_self_defense'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'victim fought back'
+      - 'жертва дала отпор'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.cause_predation'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'killed by a starving survivor'
+      - 'убита голодным выжившим'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.cause_shark'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'shark bite'
+      - 'укус акулы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.cause_starved'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'starvation or dehydration'
+      - 'голод или обезвоживание'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.cause_sun'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'sun exposure'
+      - 'солнечный ожог'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'end.cause_vital'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'vital injury'
+      - 'смертельная травма'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'weather.rain'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Rain'
+      - 'Дождь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'weather.clear'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Clear'
+      - 'Ясно'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'weather.day'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Day'
+      - 'День'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'phase.Morning'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'morning'
+      - 'утро'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'phase.Day'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'day'
+      - 'день'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'phase.Evening'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'evening'
+      - 'вечер'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'phase.Night'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'night'
+      - 'ночь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'rel.close'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'close'
+      - 'близкие'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'rel.friend'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'friend'
+      - 'друг'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'rel.acquaint'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'acquaintance'
+      - 'знакомый'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'rel.neutral'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'neutral'
+      - 'нейтрально'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'rel.tense'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'tense'
+      - 'напряжённо'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'rel.hostile'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'hostile'
+      - 'враждебно'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'rel.affinity'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Affinity'
+      - 'Отношение'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'rel.familiarity'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Familiarity'
+      - 'Знакомство'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'rel.trust'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Trust'
+      - 'Доверие'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'uv.high'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'UV: high'
+      - 'УФ: высокий'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'uv.mid'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'UV: medium'
+      - 'УФ: средний'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'uv.low'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'UV: low'
+      - 'УФ: низкий'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'uv.none'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'UV: none'
+      - 'УФ: нет'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'uv.shade'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'in shade'
+      - 'в тени'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'badge.starving'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'STARVING'
+      - 'ГОЛОДАЕТ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'badge.fighting'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'FIGHTING'
+      - 'ДЕРЁТСЯ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.None'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Just being'
+      - 'Просто существует'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.Idle'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Taking a break'
+      - 'Отдыхает'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.Eat'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wants to eat'
+      - 'Хочет поесть'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.GetFood'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Looking for food'
+      - 'Ищет еду'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.Sleep'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wants to sleep'
+      - 'Хочет спать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.Sit'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wants to rest'
+      - 'Хочет присесть'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.Dress'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wants to dress'
+      - 'Хочет одеться'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.Undress'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Too warm to wear that'
+      - 'Раздевается — жарко'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.Socialize'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wants company'
+      - 'Хочет пообщаться'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.Explore'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Exploring'
+      - 'Исследует остров'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.Flee'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Running for cover'
+      - 'Бежит в укрытие'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.Defend'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Answering a help cry'
+      - 'Бежит на помощь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.Drink'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wants to drink'
+      - 'Хочет пить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.GatherTools'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fetching tools'
+      - 'Ищет инструменты'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.GatherWood'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Gathering wood'
+      - 'Собирает дрова'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.GatherStone'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Gathering stone'
+      - 'Собирает камни'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.TendFire'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tending the fire'
+      - 'Поддерживает костёр'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.Hunt'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hunting'
+      - 'Охотится'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.CraftSpear'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Making a spear'
+      - 'Мастерит копьё'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.CookMeat'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cooking meat'
+      - 'Готовит мясо'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.CraftLeather'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sewing clothes'
+      - 'Шьёт одежду'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.Mourn'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Mourning'
+      - 'Скорбит'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.Bury'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Burying the dead'
+      - 'Хоронит'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.CraftAxe'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Making an axe'
+      - 'Мастерит топор'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.CraftPickaxe'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Making a pickaxe'
+      - 'Мастерит кирку'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.HarvestTree'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Felling a tree'
+      - 'Рубит дерево'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.MineBoulder'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Breaking a boulder'
+      - 'Дробит камень'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.Build'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Building the hut'
+      - 'Строит хижину'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.CoolOff'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cooling off'
+      - 'Остывает'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.WarmUp'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Warming by the fire'
+      - 'Греется у костра'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.CraftRack'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Building a drying rack'
+      - 'Мастерит сушилку'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.DryClothes'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Drying clothes'
+      - 'Сушит одежду'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.CraftBow'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Making a bow'
+      - 'Мастерит лук'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.CraftArrows'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Making arrows'
+      - 'Мастерит стрелы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'loading.world'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Shaping the island...'
+      - 'Создаём остров...'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'loading.time'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Time is passing...'
+      - 'Идёт время...'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'loading.day'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Day'
+      - 'День'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'loading.island'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Waking the island...'
+      - 'Остров просыпается...'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'loading.warmup'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Meeting the girls...'
+      - 'Знакомимся с девочками...'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'loading.done'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Welcome back'
+      - 'С возвращением'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.newgame'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'New game'
+      - 'Новая игра'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.settings'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Settings'
+      - 'Настройки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.characters'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Characters'
+      - 'Персонажи'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.tagline'
+      TermType: 0
+      Description: 
+      Languages:
+      - "Explore. Build. Survive.\nYour world. Your rules."
+      - "Исследуй. Строй. Выживай.\nТвой мир. Твои правила."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'zone.Head'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Head'
+      - 'Голова'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'zone.Torso'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Torso'
+      - 'Торс'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'zone.Pelvis'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pelvis'
+      - 'Таз'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'zone.ArmL'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Left arm'
+      - 'Левая рука'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'zone.ArmR'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Right arm'
+      - 'Правая рука'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'zone.LegL'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Left leg'
+      - 'Левая нога'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'zone.LegR'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Right leg'
+      - 'Правая нога'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'health.severed'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'severed'
+      - 'ампутирована'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.inventory'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Inventory'
+      - 'Инвентарь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.button'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Backpack'
+      - 'Рюкзак'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.worn'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Worn'
+      - 'Надето'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.carried'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Carried'
+      - 'В рюкзаке'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.empty'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Nothing here yet.'
+      - 'Пока пусто.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.back'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Back'
+      - 'Назад'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.slots'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'slots'
+      - 'слотов'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.covers'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Covers'
+      - 'Закрывает'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.warmth'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Warmth'
+      - 'Тепло'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.armor'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Armor'
+      - 'Броня'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.layer'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Layer'
+      - 'Слой'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.wetness'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wetness'
+      - 'Влажность'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.durability'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Durability'
+      - 'Прочность'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.stack'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stack'
+      - 'Стек'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.clothing_hp'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Clothing HP'
+      - 'HP одежды'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.water_container'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Water container'
+      - 'Ёмкость для воды'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.water_left'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Water left'
+      - 'Осталось воды'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.liters'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'L'
+      - 'л'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.condition_ok'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'all good'
+      - 'всё ок'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.condition_good'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'light wear'
+      - 'слегка изношена'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.condition_worn'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'worn'
+      - 'изношена'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.condition_torn'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'critical wear'
+      - 'критический износ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.restores'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Restores hunger'
+      - 'Утоляет голод'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.hydrates'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Quenches thirst'
+      - 'Утоляет жажду'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.dry'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'dry'
+      - 'сухая'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.soaked'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'soaked'
+      - 'промокла'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.definition_id'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Definition'
+      - 'ID предмета'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.status'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Status'
+      - 'Статус'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.missing_definition'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Missing definition'
+      - 'Нет описания'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'layer.underwear'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Underwear'
+      - 'Бельё'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'layer.wear'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Clothing'
+      - 'Одежда'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'layer.outerwear'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Outerwear'
+      - 'Верхняя одежда'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'part.head'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'head'
+      - 'голова'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'part.torso'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'torso'
+      - 'торс'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'part.pelvis'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'hips'
+      - 'таз'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'part.arml'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'left arm'
+      - 'левая рука'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'part.armr'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'right arm'
+      - 'правая рука'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'part.legl'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'left leg'
+      - 'левая нога'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'part.legr'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'right leg'
+      - 'правая нога'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'itemcat.weapon.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Weapon'
+      - 'Оружие'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'itemcat.weapon.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A weapon for hunting and fending off predators.'
+      - 'Оружие для охоты и защиты от хищников.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'itemcat.tool.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tool'
+      - 'Инструмент'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'itemcat.tool.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A tool for gathering and crafting.'
+      - 'Инструмент для сбора ресурсов и ремесла.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'itemcat.clothing.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Clothing'
+      - 'Одежда'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'itemcat.clothing.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A garment — adds a little warmth and covers bare skin from the sun.'
+      - 'Одежда — немного греет и прикрывает кожу от солнца.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'itemcat.armor.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Armor'
+      - 'Броня'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'itemcat.armor.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Protective gear — soaks up bites on the parts it covers.'
+      - 'Защитное снаряжение — поглощает укусы на закрытых частях тела.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'itemcat.food.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Food'
+      - 'Еда'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'itemcat.food.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Something to eat — staves off hunger.'
+      - 'Что-то съедобное — утоляет голод.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'itemcat.water.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Water'
+      - 'Вода'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'itemcat.water.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Drinking water — quenches thirst.'
+      - 'Питьевая вода — утоляет жажду.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'itemcat.medicine.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Medicine'
+      - 'Лекарство'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'itemcat.medicine.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'First aid — dresses wounds and stops bleeding.'
+      - 'Первая помощь — перевязывает раны и останавливает кровь.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'itemcat.resource.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Resource'
+      - 'Ресурс'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'itemcat.resource.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A raw material for building and crafting.'
+      - 'Сырьё для строительства и ремесла.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'itemcat.misc.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Item'
+      - 'Предмет'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'itemcat.misc.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A carried item.'
+      - 'Носимый предмет.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.unknown.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Unknown item'
+      - 'Неизвестный предмет'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.unknown.category'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Unknown'
+      - 'Неизвестно'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.unknown.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'This item is in the inventory, but its definition is missing: {0}.'
+      - 'Этот предмет есть в инвентаре, но его описание не найдено: {0}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.food_coconut.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Coconut'
+      - 'Кокос'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.food_coconut.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A ripe coconut — crack it open to drink the water, then eat the flesh.'
+      - 'Спелый кокос — расколи, выпей воду, потом съешь мякоть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.food_coconut_pierced.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pierced Coconut'
+      - 'Дырявый кокос'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.food_coconut_pierced.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A pierced coconut holding drinkable water.'
+      - 'Кокос с дыркой, внутри ещё есть питьевая вода.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.food_coconut_open.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Opened Coconut'
+      - 'Расколотый кокос'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.food_coconut_open.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A cracked coconut — the water is gone, but the flesh is a filling meal.'
+      - 'Расколотый кокос — вода выпита, но мякоть ещё сытная еда.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.food_meat_cooked.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cooked Meat'
+      - 'Жареное мясо'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.food_meat_cooked.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Meat roasted over the fire — the most filling food on the island.'
+      - 'Мясо, зажаренное на костре — самая сытная еда на острове.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.food_meat_raw.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Raw Meat'
+      - 'Сырое мясо'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.food_meat_raw.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Raw game — inedible until it''s cooked over the fire.'
+      - 'Сырая дичь — несъедобна, пока не зажарить на костре.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.tool_bottle.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Water Bottle'
+      - 'Бутылка воды'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.tool_bottle.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A personal bottle — fill it at a spring or boil water in it before drinking.'
+      - 'Личная бутылка — наполняй у источника или кипяти воду перед питьём.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.tool_pot.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pot'
+      - 'Котелок'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.tool_pot.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A cooking pot — boils river water safe to drink over the campfire.'
+      - 'Котелок — кипятит речную воду на костре, делая её безопасной.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.tool_lighter.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lighter'
+      - 'Зажигалка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.tool_lighter.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A lighter — sparks a campfire in an instant, no friction needed.'
+      - 'Зажигалка — мгновенно разжигает костёр без возни с трением.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.tool_axe_stone.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stone Axe'
+      - 'Каменный топор'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.tool_axe_stone.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A stone-headed axe — fells trees and splits firewood.'
+      - 'Топор с каменным лезвием — валит деревья и колет дрова.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.tool_pickaxe_stone.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stone Pickaxe'
+      - 'Каменная кирка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.tool_pickaxe_stone.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A stone pickaxe — breaks boulders down into usable stone.'
+      - 'Каменная кирка — дробит валуны на пригодный камень.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.tool_saw.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Saw'
+      - 'Пила'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.tool_saw.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A saw — cuts timber far faster than an axe.'
+      - 'Пила — режет древесину куда быстрее топора.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.tool_bow.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bow'
+      - 'Лук'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.tool_bow.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A hunting bow — brings down game from a safe distance.'
+      - 'Охотничий лук — бьёт дичь с безопасного расстояния.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.tool_spear.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Spear'
+      - 'Копьё'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.tool_spear.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A wooden spear — for hunting up close and standing off dogs.'
+      - 'Деревянное копьё — для охоты вблизи и обороны от собак.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.resource_arrow.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Arrow'
+      - 'Стрела'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.resource_arrow.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'An arrow — ammunition for the bow.'
+      - 'Стрела — боеприпас для лука.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.resource_stone.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stone'
+      - 'Камень'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.resource_stone.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A chunk of stone — for tools and building.'
+      - 'Кусок камня — для инструментов и построек.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.resource_log.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Log'
+      - 'Бревно'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.resource_log.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A felled log — split it into sticks, build with it, or raft it.'
+      - 'Бревно — расколи на палки, строй из него или сплавь на плот.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.resource_stick.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stick'
+      - 'Палка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.resource_stick.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A wooden stick — feeds the fire and frames tools.'
+      - 'Деревянная палка — топливо для костра и основа инструментов.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.resource_fiber.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plant fiber'
+      - 'Растительное волокно'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.resource_fiber.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Loose plant fiber — twisted into rope or woven into cloth.'
+      - 'Растительное волокно — вьётся в верёвку или ткётся в ткань.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.resource_rope.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Rope'
+      - 'Верёвка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.resource_rope.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A coil of rope — lashing for bows and builds.'
+      - 'Моток верёвки — обвязка для луков и построек.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.resource_cloth.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cloth'
+      - 'Ткань'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.resource_cloth.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A bolt of woven cloth — for shelters and dressings.'
+      - 'Отрез тканого полотна — для укрытий и перевязок.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.tool_knife.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Knife'
+      - 'Нож'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.tool_knife.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A stone knife — the tool for butchering a carcass.'
+      - 'Каменный нож — инструмент для разделки туши.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.resource_hide.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Rabbit Hide'
+      - 'Кроличья шкура'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.resource_hide.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A cured hide — the raw stock for leather clothing.'
+      - 'Выделанная шкура — сырьё для кожаной одежды.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.resource_palm_leaf.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Palm Leaf'
+      - 'Пальмовый лист'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.resource_palm_leaf.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A broad palm leaf — woven into mats, tents and shelter.'
+      - 'Широкий пальмовый лист — плетётся в циновки, тенты и укрытия.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.resource_herb_leaf.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Herb Leaf'
+      - 'Лист целебной травы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.resource_herb_leaf.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A healing leaf — two make a herbal bandage at the fire.'
+      - 'Целебный лист — из двух у костра выходит травяная повязка.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.item_bandage.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bandage'
+      - 'Бинт'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.item_bandage.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A gauze bandage — dresses the worst wound and stops the bleeding.'
+      - 'Марлевый бинт — перевязывает худшую рану и останавливает кровь.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_coat.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Coat'
+      - 'Пальто'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_coat.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A warm coat over the torso and arms — real cover against the cold.'
+      - 'Тёплое пальто на торс и руки — настоящая защита от холода.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leather_pants.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leather Pants'
+      - 'Кожаные штаны'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leather_pants.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sturdy leather pants — warm the legs and blunt bites to them.'
+      - 'Прочные кожаные штаны — греют ноги и смягчают укусы по ним.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_cloth.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cloth Underwear'
+      - 'Тканевое бельё'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_cloth.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain cloth underwear — the starting layer, barely any warmth.'
+      - 'Простое тканевое бельё — стартовый слой, тепла почти не даёт.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_tropic.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tropic Top'
+      - 'Тропический топ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_tropic.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A light printed summer top — a whisper of warmth, purely for looks.'
+      - 'Лёгкий летний топ с принтом — чуть греет, в основном для вида.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_tiedye.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tie-Dye Top'
+      - 'Топ тай-дай'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_tiedye.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A tie-dye summer top — light and cheerful, barely any warmth.'
+      - 'Летний топ тай-дай — лёгкий и яркий, тепла почти не даёт.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_panty_leo.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leopard Panties'
+      - 'Леопардовые трусики'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_panty_leo.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leopard-print panties — decorative underwear.'
+      - 'Трусики с леопардовым принтом — декоративное бельё.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_panty_stars.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Star Panties'
+      - 'Трусики со звёздами'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_panty_stars.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Star-print panties — decorative underwear.'
+      - 'Трусики с принтом-звёздами — декоративное бельё.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.armor_leather.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leather Armor'
+      - 'Кожаная броня'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.armor_leather.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leather chest armor — soaks up bites to the torso at some midday heat.'
+      - 'Кожаная нагрудная броня — гасит укусы в торс ценой дневной жары.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.armor_heavy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Heavy Armor'
+      - 'Тяжёлая броня'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.armor_heavy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Heavy armor over torso and hips — the best protection, hot to wear.'
+      - 'Тяжёлая броня на торс и таз — лучшая защита, но в ней жарко.'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 
-    mLanguages: []
+    mLanguages:
+    - Name: English
+      Code: en
+      Flags: 0
+    - Name: Russian
+      Code: ru
+      Flags: 0
     IgnoreDeviceLanguage: 0
     _AllowUnloadingLanguages: 0
     Google_WebServiceURL: 

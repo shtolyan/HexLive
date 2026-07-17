@@ -79,12 +79,14 @@ namespace HexLive.UnityPresentation.UI
         private void OnEnable()
         {
             HexSelection.SelectionChanged += OnSelectionChanged;
+            HexSelection.EnabledChanged += OnEnabledChanged;
             Loc.LanguageChanged += Invalidate;
         }
 
         private void OnDisable()
         {
             HexSelection.SelectionChanged -= OnSelectionChanged;
+            HexSelection.EnabledChanged -= OnEnabledChanged;
             Loc.LanguageChanged -= Invalidate;
             PointerOverPanel = false;
         }
@@ -104,11 +106,20 @@ namespace HexLive.UnityPresentation.UI
             Refresh();
         }
 
+        private void OnEnabledChanged(bool enabled)
+        {
+            if (!enabled)
+            {
+                _root.style.display = DisplayStyle.None;
+                PointerOverPanel = false;
+            }
+        }
+
         private void OnSelectionChanged(TileCoord? coord)
         {
             _refreshedTick = -1;
             _refreshedCoord = null;
-            _root.style.display = coord.HasValue ? DisplayStyle.Flex : DisplayStyle.None;
+            _root.style.display = HexSelection.Enabled && coord.HasValue ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
         private void Invalidate()

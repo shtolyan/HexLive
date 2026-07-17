@@ -1,0 +1,38 @@
+{
+  "mobs": [
+    {"id": "dog", "maxHealth": 1.8, "attackDamage": 0.09, "attackWindupSeconds": 0.1, "attackCooldownSeconds": 0.8, "aggroRadiusTiles": 2, "roamChance": 0.2, "chaseStepsPerTick": 3, "glideSegmentSeconds": 1, "glideSnapDistance": 6, "raidChancePerDay": 0.08, "raidPackSize": 3},
+    {"id": "shark", "maxHealth": 1, "attackDamage": 0.2, "attackWindupSeconds": 0.1, "attackCooldownSeconds": 0.8, "aggroRadiusTiles": 2, "roamChance": 0.2, "chaseStepsPerTick": 1, "glideSegmentSeconds": 1, "glideSnapDistance": 6, "raidChancePerDay": 0, "raidPackSize": 0}
+  ],
+  "gear": [
+    {"id": "", "damage": 0.15, "hitDelaySeconds": 1.1, "attackDurationSeconds": 1.5, "cooldownSeconds": 1.5, "attackSpeed": 1, "meleePriority": 0, "twoHanded": false, "harvestSpeedMult": 1, "capabilities": []},
+    {"id": "item.bandage", "damage": 0.15, "hitDelaySeconds": 1.5, "attackDurationSeconds": 2, "cooldownSeconds": 1, "attackSpeed": 1, "meleePriority": 0, "twoHanded": false, "harvestSpeedMult": 1, "capabilities": ["Dressing"]},
+    {"id": "tool.axe_stone", "damage": 0.28125, "hitDelaySeconds": 1.65, "attackDurationSeconds": 2.2, "cooldownSeconds": 0.8, "attackSpeed": 0.8, "meleePriority": 20, "twoHanded": false, "harvestSpeedMult": 1, "capabilities": ["Cut", "ChopWood"]},
+    {"id": "tool.bottle", "damage": 0.15, "hitDelaySeconds": 1.5, "attackDurationSeconds": 2, "cooldownSeconds": 1, "attackSpeed": 1, "meleePriority": 0, "twoHanded": false, "harvestSpeedMult": 1, "capabilities": ["CarryWater"]},
+    {"id": "tool.hammer", "damage": 0.2, "hitDelaySeconds": 1.3, "attackDurationSeconds": 1.8, "cooldownSeconds": 1.2, "attackSpeed": 0.9, "meleePriority": 6, "twoHanded": false, "harvestSpeedMult": 1, "capabilities": ["Hammer"]},
+    {"id": "tool.knife", "damage": 0.1875, "hitDelaySeconds": 1.5, "attackDurationSeconds": 2, "cooldownSeconds": 1, "attackSpeed": 1, "meleePriority": 10, "twoHanded": false, "harvestSpeedMult": 1, "capabilities": ["Cut", "Butcher"]},
+    {"id": "tool.lighter", "damage": 0.15, "hitDelaySeconds": 1.5, "attackDurationSeconds": 2, "cooldownSeconds": 1, "attackSpeed": 1, "meleePriority": 0, "twoHanded": false, "harvestSpeedMult": 1, "capabilities": ["Ignite"]},
+    {"id": "tool.pickaxe_stone", "damage": 0.24, "hitDelaySeconds": 1.65, "attackDurationSeconds": 2.2, "cooldownSeconds": 0.8, "attackSpeed": 0.8, "meleePriority": 8, "twoHanded": false, "harvestSpeedMult": 1, "capabilities": ["Mine"]},
+    {"id": "tool.pot", "damage": 0.15, "hitDelaySeconds": 1.5, "attackDurationSeconds": 2, "cooldownSeconds": 1, "attackSpeed": 1, "meleePriority": 0, "twoHanded": false, "harvestSpeedMult": 1, "capabilities": ["Boil"]},
+    {"id": "tool.saw", "damage": 0.21, "hitDelaySeconds": 1.3, "attackDurationSeconds": 1.8, "cooldownSeconds": 1.2, "attackSpeed": 0.9, "meleePriority": 7, "twoHanded": false, "harvestSpeedMult": 2, "capabilities": ["ChopWood", "Saw"]},
+    {"id": "tool.spear", "damage": 0.375, "hitDelaySeconds": 1.5, "attackDurationSeconds": 2, "cooldownSeconds": 1, "attackSpeed": 0.6, "meleePriority": 30, "twoHanded": true, "harvestSpeedMult": 1, "capabilities": []}
+  ],
+  "worldObjects": [
+    {"id": "food.coconut", "displayName": "", "tags": [], "storage": [], "interactions": [{"id": "pierce.coconut", "type": "Process", "requiredCapabilities": ["Cut"], "durationTicks": 40, "yields": [{"id": "food.coconut_pierced", "count": 1, "scatter": false}]}]},
+    {"id": "food.coconut_pierced", "displayName": "", "tags": [], "storage": [{"kind": "Water", "amount": 4}], "interactions": [{"id": "split.coconut", "type": "Process", "requiredCapabilities": ["Cut"], "durationTicks": 40, "yields": [{"id": "food.coconut_open", "count": 2, "scatter": false}]}]},
+    {"id": "palm.coconut_branch", "displayName": "Coconut Branch", "tags": ["Flora"], "storage": [], "interactions": [{"id": "cut.branch", "type": "Harvest", "requiredCapabilities": ["Cut"], "durationTicks": 30, "yields": [{"id": "food.coconut", "count": 3, "scatter": true}]}]},
+    {"id": "resource.board", "displayName": "Board", "tags": ["Wood", "Resource"], "storage": [], "interactions": [{"id": "pickup.board", "type": "PickUp", "requiredCapabilities": [], "durationTicks": 4, "yields": []}]},
+    {"id": "resource.log", "displayName": "", "tags": [], "storage": [], "interactions": [{"id": "saw.log", "type": "Process", "requiredCapabilities": ["Saw"], "durationTicks": 80, "yields": [{"id": "resource.board", "count": 2, "scatter": true}]}, {"id": "split.log", "type": "Process", "requiredCapabilities": ["ChopWood", "Cut"], "durationTicks": 120, "yields": [{"id": "resource.stick", "count": 4, "scatter": true}]}]},
+    {"id": "tree.palm", "displayName": "", "tags": [], "produce": {"item": "food.coconut", "intervalTicks": 300, "maxConcurrent": 2, "radiusTiles": 1}, "storage": [], "interactions": [{"id": "chop.palm", "type": "Harvest", "requiredCapabilities": ["ChopWood"], "durationTicks": 60, "yields": [{"id": "resource.log", "count": 3, "scatter": true}, {"id": "resource.palm_crown", "count": 1, "scatter": true}]}]}
+  ],
+  "recipes": [
+    {"output": "food.meat_cooked", "needsLitFire": true, "station": "Campfire", "inputs": [{"id": "food.meat_raw", "count": 1}]},
+    {"output": "item.bandage", "needsLitFire": false, "station": "", "inputs": [{"id": "resource.herb_leaf", "count": 2}]},
+    {"output": "resource.cloth", "needsLitFire": false, "station": "", "inputs": [{"id": "resource.fiber", "count": 4}]},
+    {"output": "resource.leather", "needsLitFire": false, "station": "Campfire", "inputs": [{"id": "resource.hide", "count": 1}]},
+    {"output": "resource.rope", "needsLitFire": false, "station": "", "inputs": [{"id": "resource.fiber", "count": 1}]},
+    {"output": "tool.axe_stone", "needsLitFire": false, "station": "", "inputs": [{"id": "resource.stick", "count": 1}, {"id": "resource.stone", "count": 1}]},
+    {"output": "tool.knife", "needsLitFire": false, "station": "", "inputs": [{"id": "resource.stick", "count": 1}, {"id": "resource.stone", "count": 1}]},
+    {"output": "tool.pickaxe_stone", "needsLitFire": false, "station": "", "inputs": [{"id": "resource.stick", "count": 1}, {"id": "resource.stone", "count": 2}]},
+    {"output": "tool.spear", "needsLitFire": false, "station": "", "inputs": [{"id": "resource.stick", "count": 1}]}
+  ]
+}

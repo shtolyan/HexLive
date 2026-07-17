@@ -14,6 +14,8 @@ namespace HexLive.UnityPresentation.Wearing
 // unavailable (or the owner is gone) the caller falls back to a primitive.
 public static class SeveredLimbFactory
 {
+    private const string MartaActorResource = "HexLive/Actors/Marta";
+
     // Which bone sub-tree each severed zone carved off. Matches NpcActorView's
     // SeveredDistalBone so the dropped mesh is exactly what vanished on the body.
     private static readonly Dictionary<string, string> ZoneDistalBone = new()
@@ -34,7 +36,37 @@ public static class SeveredLimbFactory
             return null;
         }
 
-        var skin = owner.PrimaryBodySkin;
+        if (owner.ActorMesh == ActorName.Molly && IsMartaOverrideLimb(variant))
+        {
+            var martaLimb = BuildFromMartaLimb(variant, distalBoneName);
+            if (martaLimb != null)
+            {
+                return martaLimb;
+            }
+        }
+
+        return BuildFromSkin(owner.PrimaryBodySkin, variant, distalBoneName);
+    }
+
+    private static bool IsMartaOverrideLimb(string variant)
+    {
+        return variant == "ArmL" || variant == "ArmR" || variant == "LegL" || variant == "LegR";
+    }
+
+    private static GameObject BuildFromMartaLimb(string variant, string distalBoneName)
+    {
+        var marta = Resources.Load<GameObject>(MartaActorResource);
+        if (marta == null)
+        {
+            return null;
+        }
+
+        return BuildFromSkin(FindPrimaryBodySkin(marta), variant, distalBoneName);
+    }
+
+    private static GameObject BuildFromSkin(
+        SkinnedMeshRenderer skin, string variant, string distalBoneName)
+    {
         var mesh = skin != null ? skin.sharedMesh : null;
         if (mesh == null || !mesh.isReadable)
         {
@@ -97,6 +129,44 @@ public static class SeveredLimbFactory
         mat.SetFloat("_Smoothness", 0.2f);
         view.AddComponent<MeshRenderer>().sharedMaterial = mat;
         return root;
+    }
+
+    private static SkinnedMeshRenderer FindPrimaryBodySkin(GameObject actorRoot)
+    {
+        var skins = actorRoot.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+        foreach (var skin in skins)
+        {
+            if (skin != null && skin.sharedMesh != null && skin.bones != null &&
+                skin.name.IndexOf("Genesis", System.StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return skin;
+            }
+        }
+
+        SkinnedMeshRenderer best = null;
+        var bestVerts = -1;
+        foreach (var skin in skins)
+        {
+            if (skin == null || skin.sharedMesh == null || skin.bones == null ||
+                !skin.sharedMesh.isReadable)
+            {
+                continue;
+            }
+
+            var n = skin.name.ToLowerInvariant();
+            if (n.Contains("hair") || n.Contains("eyelash") || n.Contains("brow") || n.Contains("eye"))
+            {
+                continue;
+            }
+
+            if (skin.sharedMesh.vertexCount > bestVerts)
+            {
+                bestVerts = skin.sharedMesh.vertexCount;
+                best = skin;
+            }
+        }
+
+        return best;
     }
 
     private static bool DominantBoneInLimb(BoneWeight w, bool[] inLimb)

@@ -90,6 +90,7 @@ namespace HexLive.UnityPresentation.Config
             Spec53.SelfHealthGate = c.compassionSelfHealthGate;
             Spec53.SufferingThreshold = c.compassionSufferingThreshold;
             Spec53.FeedRelief = c.compassionFeedRelief;
+            Spec53.HydrateRelief = c.compassionHydrateRelief;
             Spec53.TreatHeal = c.compassionTreatHeal;
             Spec53.TreatBlood = c.compassionTreatBlood;
             Spec53.MedicateHeal = c.compassionMedicateHeal;
@@ -198,13 +199,9 @@ namespace HexLive.UnityPresentation.Config
             SimBalance.GashesPerHit = c.gashesPerHit;
             SimBalance.MinSplittableDamage = c.minSplittableDamage;
 
-            SimBalance.BiteDamagePerPass = c.dogBiteDamage;
+            // Per-mob combat/behaviour now applies via MobTuning (one MobConfig
+            // asset per mob → MobCatalog). Only the human's bare strike stays.
             SimBalance.NpcStrikePerPass = c.dogStrikeDamage;
-            SimBalance.RaidChancePerDay = c.dogRaidChancePerDay;
-            SimBalance.RaidPackSize = c.dogRaidPackSize;
-            SimBalance.AggroRadiusTiles = c.dogAggroRadiusTiles;
-            SimBalance.RoamChance = c.dogRoamChance;
-            SimBalance.SharkBiteDamage = c.sharkBiteDamage;
         }
 
         // Read the current live statics INTO the asset (the "save current
@@ -280,6 +277,7 @@ namespace HexLive.UnityPresentation.Config
             c.compassionSelfHealthGate = Spec53.SelfHealthGate;
             c.compassionSufferingThreshold = Spec53.SufferingThreshold;
             c.compassionFeedRelief = Spec53.FeedRelief;
+            c.compassionHydrateRelief = Spec53.HydrateRelief;
             c.compassionTreatHeal = Spec53.TreatHeal;
             c.compassionTreatBlood = Spec53.TreatBlood;
             c.compassionMedicateHeal = Spec53.MedicateHeal;
@@ -386,13 +384,7 @@ namespace HexLive.UnityPresentation.Config
             c.gashesPerHit = SimBalance.GashesPerHit;
             c.minSplittableDamage = SimBalance.MinSplittableDamage;
 
-            c.dogBiteDamage = SimBalance.BiteDamagePerPass;
             c.dogStrikeDamage = SimBalance.NpcStrikePerPass;
-            c.dogRaidChancePerDay = SimBalance.RaidChancePerDay;
-            c.dogRaidPackSize = SimBalance.RaidPackSize;
-            c.dogAggroRadiusTiles = SimBalance.AggroRadiusTiles;
-            c.dogRoamChance = SimBalance.RoamChance;
-            c.sharkBiteDamage = SimBalance.SharkBiteDamage;
         }
 
         // The game's startup path: load the asset from Resources and apply it,

@@ -102,7 +102,7 @@ session scratchpad — reuse it.)
 
 ## 6. Orient + pivot — CONVENTIONS (must match `tool.axe_stone`)
 
-Target frame (matches the reference hand-made FBX so `ItemAttachConfig` scale
+Target frame (matches the reference hand-made FBX so the GearConfig hand scale
 stays consistent):
 
 - **Handle / grip along +Y**, base of the grip at **y = 0** (the pivot sits at
@@ -116,7 +116,7 @@ stays consistent):
   so a tool is the same physical size everywhere. Tools normalize their max
   dimension to `0.216 × HexRadius`. To resize ALL tools, change that one number in
   `ObjectFit.TargetWorldSize`; never bake size into a mesh or the config.
-  `ItemAttachConfig.localScale` is a per-item fine MULTIPLIER on top (default 1).
+  The GearConfig `handLocalScale` is a per-item fine MULTIPLIER on top (default 1).
 
 AI meshes come in **diagonal** — an AABB axis-permute does NOT straighten them.
 Method that worked:
@@ -142,7 +142,7 @@ Method that worked:
 - If a hand-made `.fbx` already sits at that id, **rename it to a `__backup` name**
   (`AssetDatabase.RenameAsset` preserves the GUID → no broken refs) so
   `Resources.Load` resolves to the new `.prefab`.
-- Add an **`ItemAttachConfig`** entry (`Assets/Resources/HexLive/ItemAttachConfig.asset`)
+- Author the **hand pose** in the tool's `GearConfig` asset (раздел «Хват в руке»; AxeChopTest → Save)
   for the id: `localPosition / localEuler / localScale` in the acting hand's local
   space. Tune it live in the `AxeChopTest` scene (drag the prop / edit the fields →
   Save), then it's used by the game's `SetHandProp`.

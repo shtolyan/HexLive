@@ -11,20 +11,42 @@ namespace HexLive.UnityPresentation.Input
     public static class HexSelection
     {
         public static event Action<TileCoord?>? SelectionChanged;
+        public static event Action<bool>? EnabledChanged;
 
         private static TileCoord? _selectedCoord;
+        private static bool _enabled;
 
         [UnityEngine.RuntimeInitializeOnLoadMethod(
             UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
         {
             _selectedCoord = null;
+            _enabled = false;
             SelectionChanged = null;
+            EnabledChanged = null;
         }
+
+        public static bool Enabled => _enabled;
 
         public static bool HasSelection => _selectedCoord.HasValue;
 
         public static TileCoord SelectedCoord => _selectedCoord ?? TileCoord.Zero;
+
+        public static void SetEnabled(bool enabled)
+        {
+            if (_enabled == enabled)
+            {
+                return;
+            }
+
+            _enabled = enabled;
+            if (!_enabled)
+            {
+                Clear();
+            }
+
+            EnabledChanged?.Invoke(_enabled);
+        }
 
         public static void Select(TileCoord coord)
         {

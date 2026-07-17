@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7146726166aa464c8ed031473ef4889a, type: 3}
+  m_Name: bandage
+  m_EditorClassIdentifier: 
+  gearId: item.bandage
+  prefab: {fileID: 0}
+  prefabResourcePath: 
+  damage: 0.15
+  hitDelaySeconds: 1.1
+  attackDurationSeconds: 1.5
+  cooldownSeconds: 1.5
+  attackSpeed: 1
+  harvestSpeedMult: 1
+  meleePriority: 0
+  twoHanded: 0
+  capabilities:
+  - 1024
+  craftable: 1
+  craftStation: 0
+  craftNeedsLitFire: 0
+  craftIngredients:
+  - item: {fileID: 11400000, guid: d1e2f3a4b5c6470890123456789abc34, type: 2}
+    itemId: 
+    count: 2
+  attackClips: []
+  armedIdle: {fileID: -203655887218126122, guid: 4b1c7d0af5eb04d6e9a1658453475d94, type: 3}
+  armedWalk: {fileID: -203655887218126122, guid: 9e708ac3817d44062afa1909114df08c, type: 3}
+  workClip: {fileID: 0}
+

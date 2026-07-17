@@ -40,7 +40,7 @@ public sealed class WorldSnapshot
 
     public List<DeathRecordSnapshot> DeathRecords { get; } = new();
 
-    public List<DogSnapshot> Dogs { get; } = new();
+    public List<MobSnapshot> Mobs { get; } = new();
 
     public List<CrabSnapshot> Crabs { get; } = new();
 
@@ -71,9 +71,12 @@ public sealed class CrabSnapshot
     public Float2 Position { get; set; } = Float2.Zero;
 }
 
-public sealed class DogSnapshot
+public sealed class MobSnapshot
 {
     public int Id { get; set; }
+
+    // MobCatalog/MobConfig id ("dog", …) — presentation picks the view by it.
+    public string MobId { get; set; } = string.Empty;
 
     public TileCoord Tile { get; set; } = TileCoord.Zero;
 
@@ -82,6 +85,14 @@ public sealed class DogSnapshot
     public float Health { get; set; }
 
     public string Status { get; set; } = string.Empty;
+
+    // 29C.3 v2: the NPC this dog is chasing/fighting (-1 none) — presentation
+    // turns the fighters to face each other.
+    public int TargetNpcId { get; set; } = -1;
+
+    // Timed melee: true while the bite is winding up (the 0.2 s snap) —
+    // presentation pulses the attack animation on this flag.
+    public bool IsAttacking { get; set; }
 }
 
 // Spec 40.18: a shark patrolling the water (presentation renders a fin/model).
@@ -154,6 +165,10 @@ public sealed class ObjectSnapshot
     // so the view bakes the matching bone chain from the owner's mesh.
     public string Variant { get; set; } = string.Empty;
 
+    // Spec §54/29C.3: when the object appeared — lets the view distinguish a
+    // freshly slain carcass (play the death clip) from a restored one.
+    public int SpawnTick { get; set; }
+
     // Spec §54: build-site payload, so the view can assemble a piece from its
     // delivered components (a bed growing from hauled stones/logs). Empty
     // BuildProduct ⇒ not a site. Delivered* are how many of each material have
@@ -201,6 +216,11 @@ public sealed class NpcSnapshot
     public float Health { get; set; }
 
     public bool IsFighting { get; set; }
+
+    // Timed melee: true while this NPC's attack ANIMATION window is running
+    // (swing started, clip not finished) — presentation plays the attack clip
+    // across exactly this window.
+    public bool IsSwinging { get; set; }
 
     public List<string> BodyParts { get; } = new();
 

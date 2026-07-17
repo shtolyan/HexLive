@@ -35,6 +35,17 @@ public sealed class BodyState
     // hop an elevation step (or dive water) — that terrain becomes off-limits.
     public bool CanJump => !IsSevered(BodyPart.LegL) && !IsSevered(BodyPart.LegR);
 
+    public bool HasNoLegs => IsSevered(BodyPart.LegL) && IsSevered(BodyPart.LegR);
+
+    // §50-prone: «лежит». A lost leg (EITHER one) puts her on the ground — she
+    // crawls, she cannot stand. More prone states may join later (fainted,
+    // pinned…); gate on THIS, not on leg counts. Lying means: no tools, no
+    // weapons, no standing fight (the old gate checked BOTH legs, so a
+    // one-legged crawler stood up and boxed wolves — the bug).
+    public bool IsProne => IsSevered(BodyPart.LegL) || IsSevered(BodyPart.LegR);
+
+    public bool CanUseToolsOrWeapons => !IsProne;
+
     // Spec §52: how many hands can still hold things — one inventory slot each,
     // and the pair a two-handed weapon needs. Lose an arm, lose a hand slot.
     public int IntactHands =>
@@ -194,6 +205,19 @@ public sealed class NPCState
 
     // Spec 29C.3: set while a dog is engaging this NPC; combat is reactive.
     public bool IsFighting { get; set; }
+
+    // Timed melee exchange (AnimalCombatSystem): >0 while a swing is winding
+    // up — it lands at exactly this tick. Not persisted (restarts on load).
+    public int StrikeLandsAtTick { get; set; }
+
+    // Next tick a new swing may start (weapon cooldown gate).
+    public int StrikeReadyAtTick { get; set; }
+
+    // The current swing's attack ANIMATION runs until this tick (weapon
+    // AttackDurationSeconds from the swing start) — presentation plays the
+    // attack clip across exactly this window; the damage itself lands earlier
+    // (StrikeLandsAtTick = start + HitDelaySeconds). Not persisted.
+    public int AttackAnimUntilTick { get; set; }
 
     // Spec 35.4: accumulated sun exposure; burns at 1.0.
     public float SunExposure { get; set; }

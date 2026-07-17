@@ -16,7 +16,7 @@ MonoBehaviour:
   death: []
   gather: {fileID: 0}
   drink: {fileID: 0}
-  proneIdle: {fileID: -203655887218126122, guid: 0622f46928bb64c88804a44f388a6eff, type: 3}
+  proneIdle: {fileID: 7400000, guid: 6be58dd19dbe47869b6a09e45dec1f55, type: 2}
   crawl: {fileID: -203655887218126122, guid: a41ca94b2e1c14830af8da86e3454130, type: 3}
   dress: {fileID: 0}
   undress: {fileID: 0}
@@ -30,4 +30,4 @@ MonoBehaviour:
   - weaponId: tool.knife
     idle: {fileID: 0}
     attacks:
-    - {fileID: -203655887218126122, guid: 5dd0fd96d3fa64b62bc3c1272fde5a39, type: 3}
+    - {fileID: -203655887218126122, guid: a1cc1951777d74c508fb2386210e2817, type: 3}

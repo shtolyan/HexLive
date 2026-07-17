@@ -23,9 +23,12 @@ public static class WorldObjectMutations
             DefinitionId = definitionId,
             Fragment = fragment,
             Tile = tile,
-            ResourceAmount = definitionId == "food.coconut_pierced"
-                ? SimBalance.CoconutWaterCapacity
-                : 1f,
+            // §59-склад: начальный запас — из декларации объекта (вода в
+            // дырявом кокосе); без склада — легаси-единица.
+            ResourceAmount = world.Content.ObjectDefinitions.TryGetValue(definitionId, out var def) &&
+                def.StoredAmount(Content.StoredKind.Water) > 0f
+                    ? def.StoredAmount(Content.StoredKind.Water)
+                    : 1f,
             SpawnTick = world.Tick
         };
         worldObject.Junctions.Add(anchorJunction);

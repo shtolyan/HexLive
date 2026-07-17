@@ -39,6 +39,8 @@ namespace HexLive.UnityDebug.Editor
             AddParam(ac, "Undressing", AnimatorControllerParameterType.Bool);
             AddParam(ac, "Dead", AnimatorControllerParameterType.Bool);
             AddParam(ac, "Attack", AnimatorControllerParameterType.Trigger);
+            // §29C.3-hit: a standing stagger when damage lands while she stands still.
+            AddParam(ac, "HitReact", AnimatorControllerParameterType.Trigger);
             AddParam(ac, "Crawling", AnimatorControllerParameterType.Bool); // §50: lost a leg
             AddParam(ac, "Chopping", AnimatorControllerParameterType.Bool); // §axe: swinging an axe at work
 
@@ -56,6 +58,8 @@ namespace HexLive.UnityDebug.Editor
             var undress = AddState(sm, "Undress", Clip("X Bot@Dressing"));
             var attack = AddState(sm, "Attack", Clip("X Bot@Bayonet Stab"));
             var death = AddState(sm, "Death", Clip("X Bot@Death From Back Headshot"));
+            // §29C.3-hit: the one-shot damage stagger (fired only when standing).
+            var hitReact = AddState(sm, "HitReact", Clip("X Bot@Standing React Large From Right_once"));
             // §axe: chopping/mining with an axe or pickaxe (Harvest/Process) plays
             // a real looping swing clip instead of the old procedural shoulder pose.
             var chop = AddState(sm, "Chop", Clip("Standing Melee Attack Horizontal"));
@@ -82,6 +86,26 @@ namespace HexLive.UnityDebug.Editor
             ai.hasExitTime = false; ai.duration = 0.1f; ai.canTransitionToSelf = false;
             var ao = attack.AddTransition(idle);
             ao.hasExitTime = true; ao.exitTime = 0.9f; ao.duration = 0.15f;
+
+            // §29C.3-hit: like Attack — a trigger, plays once, exits by time. The
+            // view fires it only when the NPC is stationary (see SignalHealth).
+            // The flinch is a fast beat, not a scene: the clip runs at 1.5x and
+            // bails at half — combat reads bite-flinch-strike, and the stagger
+            // can never sit on top of the exchange. A pending Attack trigger
+            // cuts the flinch IMMEDIATELY (hit → attack, no exit time), so a
+            // landed hit never swallows her counter-swing.
+            ClearAny(sm, hitReact);
+            ClearOut(hitReact);
+            hitReact.speed = 1.5f;
+            var hi = sm.AddAnyStateTransition(hitReact);
+            hi.AddCondition(AnimatorConditionMode.If, 0, "HitReact");
+            hi.AddCondition(AnimatorConditionMode.IfNot, 0, "Dead");
+            hi.hasExitTime = false; hi.duration = 0.08f; hi.canTransitionToSelf = false;
+            var ha = hitReact.AddTransition(attack);
+            ha.AddCondition(AnimatorConditionMode.If, 0, "Attack");
+            ha.hasExitTime = false; ha.duration = 0.05f;
+            var ho = hitReact.AddTransition(idle);
+            ho.hasExitTime = true; ho.exitTime = 0.5f; ho.duration = 0.1f;
 
             // Death: enter on the Dead bool and HOLD (no exit) — the clip should
             // be Loop Time OFF so it freezes on the last frame.

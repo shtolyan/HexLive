@@ -29,6 +29,10 @@ public sealed class WorldStateFactory
             world.Content.ObjectDefinitions[pair.Key] = pair.Value;
         }
 
+        // Per-object assets (WorldObjectConfig → WorldObjectLibrary): merge
+        // asset-declared actions/tags over the defaults, add new object types.
+        WorldObjectLibrary.ApplyTo(world.Content.ObjectDefinitions);
+
         world.Environment.GlobalTemperature = bootstrap.Environment.GlobalTemperature;
 
         foreach (var fragmentBootstrap in bootstrap.Fragments)

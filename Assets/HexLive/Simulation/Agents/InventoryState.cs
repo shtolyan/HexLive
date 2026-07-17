@@ -55,8 +55,10 @@ public sealed class InventoryState
     // pocket, so they never count against the pocket budget and stay carryable
     // even naked. The bottle is one (spec 29H: "always there"); the future
     // weapon slot (spec §52) will join it.
-    public static bool IsPersonalEffect(string definitionId) =>
-        definitionId == "tool.bottle";
+    // §gear-personal: RETIRED — the bottle (and any future gear) lives by the
+    // same rules as everything: takes a slot, can be dropped, lost and fetched.
+    // Kept as a seam in case a future design reintroduces a bound slot.
+    public static bool IsPersonalEffect(string definitionId) => false;
 
     // §54.10: bulk resources STACK — a bundle of identical leaves/sticks/logs/etc.
     // rides in ONE pocket slot (up to the stack size). Items stays a flat list of

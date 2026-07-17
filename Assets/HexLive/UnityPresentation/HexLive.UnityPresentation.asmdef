@@ -3,6 +3,7 @@
   "rootNamespace": "HexLive.UnityPresentation",
   "references": [
     "HexLive.Simulation",
+    "I2.Loc",
     "Unity.InputSystem",
     "RootMotion",
     "Unity.RenderPipelines.Universal.Runtime",

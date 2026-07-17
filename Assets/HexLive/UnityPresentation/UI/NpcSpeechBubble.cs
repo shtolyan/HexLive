@@ -330,6 +330,9 @@ public sealed class NpcSpeechBubble : MonoBehaviour
     {
         return cueKind switch
         {
+            "HelpCry" or "HelpCryAssistStarted" or "HelpCryAssistArrived" or "HelpCryDefended" => "Dogs",
+            "HelpCryIgnored" => "Grumble",
+            "HelpCryAnswer" or "HelpCryAnswered" => "Home",
             "TalkRejected" or "TalkRefused" or "TalkQuarrel" or "Resentment" => "Grumble",
             "AidRequest" or "AidIncoming" or "AidStarted" or "AidCompleted" => "Food",
             "WitnessedMurder" => "Sharks",
@@ -342,8 +345,11 @@ public sealed class NpcSpeechBubble : MonoBehaviour
     {
         return cueKind switch
         {
-            "TalkRejected" or "TalkRefused" or "TalkQuarrel" or "Resentment" or "WitnessedMurder" => NegColor,
-            "AidRequest" or "AidIncoming" or "AidStarted" or "AidCompleted" or "TalkSuccess" => PosColor,
+            "TalkRejected" or "TalkRefused" or "TalkQuarrel" or "Resentment" or "WitnessedMurder" or
+                "HelpCry" or "HelpCryAssistStarted" or "HelpCryAssistArrived" or "HelpCryDefended" or
+                "HelpCryIgnored" => NegColor,
+            "AidRequest" or "AidIncoming" or "AidStarted" or "AidCompleted" or "TalkSuccess" or
+                "HelpCryAnswer" or "HelpCryAnswered" => PosColor,
             _ => Color.white
         };
     }

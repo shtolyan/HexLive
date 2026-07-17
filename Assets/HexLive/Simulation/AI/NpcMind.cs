@@ -55,6 +55,14 @@ public sealed class NPCMind
 
     public int PendingAidSinceTick { get; set; }
 
+    // Reactive combat aid: when a fleeing victim calls for help, responders
+    // get a short-lived Defend goal pointed at the attacker.
+    public int LastHelpCryTick { get; set; } = -999999;
+
+    public int? CombatAssistDogId { get; set; }
+
+    public HexLive.Simulation.Common.EntityId? CombatAssistAttackerNpcId { get; set; }
+
     // Spec §49 (water sickness v2): raw water no longer bites in one lump.
     // A positive roll opens a visible window (SickUntilTick, drives the 🤢 icon
     // + comfort malaise) and adds to a bounded damage budget
@@ -129,7 +137,8 @@ public enum GoalType
     DeliverToSite, // §52: haul a needed material to a build-site and deposit it
     BuildFurniture,// §52: raise a fully-stocked build-site with a hammer
     HaulToFire,    // §52: carry a low-value item to the fireside stockpile to free a slot
-    Idle
+    Idle,
+    Defend       // answer a combat help cry and attack the aggressor (append-only: saves store ints)
 }
 
 public sealed class GoalScore

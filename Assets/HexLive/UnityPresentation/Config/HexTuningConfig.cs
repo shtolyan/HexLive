@@ -327,21 +327,13 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Удары слабее этого не дробятся на порезы.")]
         [Range(0f, 0.3f)] public float minSplittableDamage = 0.09f;
 
-        [Header("Бой — собаки / акула")]
-        [Tooltip("Урон от одного укуса собаки за проход.")]
-        [Range(0f, 0.3f)] public float dogBiteDamage = 0.06f;
-        [Tooltip("Ответный удар NPC по собаке за проход.")]
+        [Header("Бой — ближний бой NPC")]
+        [Tooltip("Базовый ответный удар NPC голыми руками за попадание (оружие/инструменты — в GearCatalog).")]
         [Range(0f, 0.5f)] public float dogStrikeDamage = 0.15f;
-        [Tooltip("Вероятность ночного налёта стаи в день.")]
-        [Range(0f, 1f)] public float dogRaidChancePerDay = 0.08f;
-        [Tooltip("Сколько собак в ночном налёте.")]
-        [Range(1, 8)] public int dogRaidPackSize = 3;
-        [Tooltip("Радиус агро собак (тайлы).")]
-        [Range(1, 6)] public int dogAggroRadiusTiles = 2;
-        [Tooltip("Вероятность блуждания собаки за тик.")]
-        [Range(0f, 1f)] public float dogRoamChance = 0.2f;
-        [Tooltip("Урон укуса акулы по ноге (также триггер отрыва конечности).")]
-        [Range(0f, 0.5f)] public float sharkBiteDamage = 0.2f;
+        // Per-mob combat/behaviour (bite damage, HP, windup/cooldown, aggro,
+        // roam, chase, glide, pack-raid) is NO LONGER here — it moved to one
+        // MobConfig ScriptableObject per mob under Resources/HexLive/Mobs/
+        // (see MobConfig / MobCatalog). Add a mob = add an asset, not a field.
 
         [Header("Сострадание и взаимопомощь (§53)")]
         [Tooltip("Включить сострадание. Выкл — механика полностью спит (поведение как до §53).")]
@@ -362,6 +354,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 1f)] public float compassionSufferingThreshold = 0.3f;
         [Tooltip("На сколько падает ГОЛОД накормленного (помощь без затрат — предмет не тратится).")]
         [Range(0f, 1f)] public float compassionFeedRelief = 0.5f;
+        [Tooltip("На сколько падает ЖАЖДА напоенного (помощь без затрат — вода не тратится).")]
+        [Range(0f, 1f)] public float compassionHydrateRelief = 0.5f;
         [Tooltip("На сколько заживают раненые части при перевязке соседа.")]
         [Range(0f, 0.5f)] public float compassionTreatHeal = 0.15f;
         [Tooltip("На сколько прибавляется КРОВЬ перевязанного соседа.")]

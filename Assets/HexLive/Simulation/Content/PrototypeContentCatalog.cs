@@ -22,6 +22,7 @@ public static class PrototypeContentCatalog
                     {
                         Id = "pierce.coconut",
                         Type = InteractionType.Process,
+                        RequiredCapabilities = { GearCapability.Cut },
                         DurationTicks = SimBalance.CoconutProcessDurationTicks,
                         Yields = { new HarvestDrop { DefinitionId = "food.coconut_pierced", Count = 1, Scatter = false } }
                     },
@@ -62,7 +63,9 @@ public static class PrototypeContentCatalog
                         DurationTicks = 4
                     }
                 },
-                Tags = { "Coconut", "CoconutWater" }
+                Tags = { "Coconut", "CoconutWater" },
+                // §59-склад: вода внутри — 4 глотка (CoconutWaterCapacity).
+                Storage = { new StoredResource { Kind = StoredKind.Water, Amount = SimBalance.CoconutWaterCapacity } }
             },
             // Split coconut halves: edible flesh, no drinkable water.
             ["food.coconut_open"] = new ObjectDefinition
@@ -484,6 +487,7 @@ public static class PrototypeContentCatalog
                     {
                         Id = "butcher.body",
                         Type = InteractionType.Butcher,
+                        RequiredCapabilities = { GearCapability.Butcher },
                         DurationTicks = SimBalance.ButcherDurationTicks,
                         Yields =
                         {
@@ -507,6 +511,7 @@ public static class PrototypeContentCatalog
                     {
                         Id = "butcher.carcass",
                         Type = InteractionType.Butcher,
+                        RequiredCapabilities = { GearCapability.Butcher },
                         DurationTicks = SimBalance.ButcherDurationTicks,
                         Yields =
                         {
@@ -773,6 +778,7 @@ public static class PrototypeContentCatalog
                     {
                         Id = "split.log",
                         Type = InteractionType.Process,
+                        RequiredCapabilities = { GearCapability.ChopWood },
                         DurationTicks = SimBalance.LogSplitDurationTicks,
                         Yields = { new HarvestDrop { DefinitionId = "resource.stick", Count = SimBalance.LogSplitYield, Scatter = true } }
                     }

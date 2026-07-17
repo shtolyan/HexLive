@@ -37,12 +37,20 @@ public sealed class Recipe
     // Spec 35.5: only one drying rack in the colony.
     public bool RequiresNoRack { get; }
 
-    public Recipe(GoalType goal, RecipeIngredient[] inputs, bool needsLitFire = false, bool requiresNoRack = false)
+    // §gear-craft: WHERE the craft happens — a station tag ("Campfire"…).
+    // EMPTY means «где угодно»: the character crafts right where he stands,
+    // no walk to a workbench. Code defaults keep the campfire; an item's
+    // asset clears or changes it.
+    public string Station { get; }
+
+    public Recipe(GoalType goal, RecipeIngredient[] inputs, bool needsLitFire = false,
+        bool requiresNoRack = false, string station = "Campfire")
     {
         Goal = goal;
         Inputs = inputs;
         NeedsLitFire = needsLitFire;
         RequiresNoRack = requiresNoRack;
+        Station = needsLitFire && string.IsNullOrEmpty(station) ? "Campfire" : (station ?? "");
     }
 }
 
@@ -51,7 +59,103 @@ public static class RecipeCatalog
     // §54 phase 0: ids are still the pre-split materials (resource.firewood).
     // Phase 1 retargets the wood ingredients here (firewood → stick/log) in one
     // place instead of across two switches.
-    public static readonly IReadOnlyDictionary<GoalType, Recipe> ByGoal = Build();
+    //
+    // §gear-craft: the recipe now LIVES ON THE OUTPUT ITEM's asset — the
+    // knife's GearConfig / the rope's WorldObjectConfig declares its "Крафт"
+    // section (ingredients + станция), the tunings push it here via Override,
+    // and the code table below is only the engine-free default/fallback.
+    private static Dictionary<GoalType, Recipe> _byGoal;
+
+    public static IReadOnlyDictionary<GoalType, Recipe> ByGoal => _byGoal ??= Build();
+
+    // Which craft goal produces which item — the seam that lets an ASSET keyed
+    // by output id override the recipe without knowing GoalType. Crafts whose
+    // output is a placed object (bed/tent/rack) stay code-owned for now.
+    private static readonly Dictionary<string, GoalType> GoalByOutput = new()
+    {
+        ["tool.knife"] = GoalType.CraftKnife,
+        ["tool.spear"] = GoalType.CraftSpear,
+        ["tool.axe_stone"] = GoalType.CraftAxe,
+        ["tool.pickaxe_stone"] = GoalType.CraftPickaxe,
+        ["resource.rope"] = GoalType.CraftRope,
+        ["resource.cloth"] = GoalType.CraftCloth,
+        ["item.bandage"] = GoalType.CraftBandage,
+        ["food.meat_cooked"] = GoalType.CookMeat,
+        ["resource.leather"] = GoalType.CraftLeather,
+    };
+
+    /// <summary>Asset-driven recipe for an output item: replaces the default's
+    /// inputs/fire flag (RequiresNoRack is preserved). Unknown output ids are
+    /// ignored — a craft needs its goal-layer verb to exist.</summary>
+    public static void Override(string outputId, RecipeIngredient[] inputs, bool needsLitFire,
+        string station = "Campfire")
+    {
+        if (string.IsNullOrEmpty(outputId) || inputs == null ||
+            !GoalByOutput.TryGetValue(outputId, out var goal))
+        {
+            return;
+        }
+
+        _byGoal ??= Build();
+        var noRack = _byGoal.TryGetValue(goal, out var existing) && existing.RequiresNoRack;
+        _byGoal[goal] = new Recipe(goal, inputs, needsLitFire, noRack, station);
+    }
+
+    /// <summary>The craft's station tag; "" = craft in place, anywhere.</summary>
+    public static string StationOf(GoalType goal) =>
+        ByGoal.TryGetValue(goal, out var recipe) ? recipe.Station : "Campfire";
+
+    /// <summary>True for crafts whose output is an inventory ITEM (the ones an
+    /// asset can re-home/re-price); placed-object crafts (bed/tent/rack) are
+    /// station-bound by nature.</summary>
+    public static bool IsItemOutputGoal(GoalType goal)
+    {
+        foreach (var pair in GoalByOutput)
+        {
+            if (pair.Value == goal)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static void ResetToDefaults() => _byGoal = Build();
+
+    /// <summary>Every item-output recipe with its output id — read by the
+    /// SimData exporter (placed-object crafts stay code-owned).</summary>
+    public static IEnumerable<KeyValuePair<string, Recipe>> ItemRecipes()
+    {
+        foreach (var pair in GoalByOutput)
+        {
+            if (ByGoal.TryGetValue(pair.Value, out var recipe))
+            {
+                yield return new KeyValuePair<string, Recipe>(pair.Key, recipe);
+            }
+        }
+    }
+
+    /// <summary>How much of one ingredient this craft costs (0 if none) — the
+    /// decision layer reads THIS, not balance constants, so asset-tuned
+    /// recipes keep want/gather/craft consistent end-to-end.</summary>
+    public static int InputCount(GoalType goal, string itemId)
+    {
+        if (!ByGoal.TryGetValue(goal, out var recipe))
+        {
+            return 0;
+        }
+
+        foreach (var input in recipe.Inputs)
+        {
+            if (input.Id == itemId)
+            {
+                return input.Count;
+            }
+        }
+
+        return 0;
+    }
 
     private static Dictionary<GoalType, Recipe> Build()
     {
@@ -77,9 +181,8 @@ public static class RecipeCatalog
         Add(GoalType.CraftBed, new[] { I("resource.palm_leaf", 16), I("resource.stick", 6) });
         // Spec §54: a tent is lashed from leaves + a bolt of cloth.
         Add(GoalType.CraftTent, new[] { I("resource.palm_leaf", 4), I("resource.cloth", 1) });
-        // Spec §54: the bow needs a rope bowstring (lashing).
-        Add(GoalType.CraftBow, new[] { I("resource.stick", 2), I("resource.hide", 1), I("resource.rope", 1) });
-        Add(GoalType.CraftArrows, new[] { I("resource.stick", 1) });
+        // §gear: bow/arrow recipes removed — archery is retired pending the
+        // hunting rework (craft avails are hard-false in the decision layer).
         Add(GoalType.CraftBandage, new[] { I("resource.herb_leaf", 2) });
         // Spec §54: cordage & cloth from fiber; the knife from a stick + stone.
         Add(GoalType.CraftRope, new[] { I("resource.fiber", SimBalance.RopeFiberCost) });

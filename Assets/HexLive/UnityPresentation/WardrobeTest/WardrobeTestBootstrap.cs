@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using HexLive.UnityPresentation.Localization;
 using HexLive.UnityPresentation.Wearing;
 using RootMotion.FinalIK;
 using UnityEngine;
@@ -88,6 +89,16 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         CollectWearEntries();
         BuildUi();
         SpawnGirl(_girl);
+    }
+
+    private void OnEnable()
+    {
+        Loc.LanguageChanged += BuildUi;
+    }
+
+    private void OnDisable()
+    {
+        Loc.LanguageChanged -= BuildUi;
     }
 
     // ---- environment ----
@@ -488,9 +499,11 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         box.style.width = 190f;
         root.Add(box);
 
-        box.Add(MakeTitle("WARDROBE TEST"));
+        _girlButtons.Clear();
 
-        var girlsTitle = MakeTitle("Девушка");
+        box.Add(MakeTitle(Loc.Get("wardrobe.title")));
+
+        var girlsTitle = MakeTitle(Loc.Get("wardrobe.girl"));
         girlsTitle.style.marginTop = 6f;
         box.Add(girlsTitle);
 
@@ -502,21 +515,21 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
             box.Add(button);
         }
 
-        var animTitle = MakeTitle("Анимация");
+        var animTitle = MakeTitle(Loc.Get("wardrobe.animation"));
         animTitle.style.marginTop = 8f;
         box.Add(animTitle);
 
-        var cycleButton = MakeButton("Цикл: вкл", Raised, ToggleCycle);
+        var cycleButton = MakeButton(CycleText(), Raised, ToggleCycle);
         _cycleLabel = (Label)cycleButton[0];
         box.Add(cycleButton);
 
-        var hint = new Label("сесть → сон 5с → встать");
+        var hint = new Label(Loc.Get("wardrobe.anim_hint"));
         hint.style.color = Muted;
         hint.style.fontSize = 10;
         hint.style.marginBottom = 8f;
         box.Add(hint);
 
-        box.Add(MakeButton("Снять всё", Raised, UndressAll));
+        box.Add(MakeButton(Loc.Get("wardrobe.undress_all"), Raised, UndressAll));
 
         RefreshGirlButtons();
     }
@@ -526,8 +539,13 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         _cycleOn = !_cycleOn;
         if (_cycleLabel != null)
         {
-            _cycleLabel.text = _cycleOn ? "Цикл: вкл" : "Цикл: выкл";
+            _cycleLabel.text = CycleText();
         }
+    }
+
+    private string CycleText()
+    {
+        return Loc.Get(_cycleOn ? "wardrobe.cycle_on" : "wardrobe.cycle_off");
     }
 
     private void BuildWardrobePanel(VisualElement root)
@@ -539,9 +557,9 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         box.style.width = 260f;
         root.Add(box);
 
-        box.Add(MakeTitle("Одежда"));
+        box.Add(MakeTitle(Loc.Get("wardrobe.clothes")));
 
-        var hint = new Label("клик: надеть/выбрать · ещё клик: снять");
+        var hint = new Label(Loc.Get("wardrobe.click_hint"));
         hint.style.color = Muted;
         hint.style.fontSize = 10;
         hint.style.marginBottom = 6f;
@@ -584,7 +602,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         _scaleBox.style.width = 320f;
         root.Add(_scaleBox);
 
-        _scaleTitle = MakeTitle("Масштаб: ничего не выбрано");
+        _scaleTitle = MakeTitle(Loc.Get("wardrobe.scale_none"));
         _scaleBox.Add(_scaleTitle);
 
         var row = new VisualElement();
@@ -612,13 +630,13 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         plus.style.justifyContent = Justify.Center;
         row.Add(plus);
 
-        var hint = new Label("←/→ — шаг 0.01, с Shift — 0.001");
+        var hint = new Label(Loc.Get("wardrobe.scale_hint"));
         hint.style.color = Muted;
         hint.style.fontSize = 10;
         hint.style.marginBottom = 6f;
         _scaleBox.Add(hint);
 
-        var save = MakeButton("Сохранить в префабы", Accent, SaveDirty);
+        var save = MakeButton(Loc.Get("wardrobe.save_prefabs"), Accent, SaveDirty);
         _saveLabel = (Label)save[0];
         _scaleBox.Add(save);
 
@@ -659,20 +677,20 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
 
         if (_selectedKey != null && _byKey.TryGetValue(_selectedKey, out var entry))
         {
-            _scaleTitle.text = $"«{entry.DisplayName}» на {_girl}";
+            _scaleTitle.text = string.Format(Loc.Get("wardrobe.scale_selected"), entry.DisplayName, _girl);
             _scaleValue.text = entry.Asset.GetConfigScale(_girl).ToString("0.000");
         }
         else
         {
-            _scaleTitle.text = "Масштаб: ничего не выбрано";
+            _scaleTitle.text = Loc.Get("wardrobe.scale_none");
             _scaleValue.text = "—";
         }
 
         if (_saveLabel != null)
         {
             _saveLabel.text = _dirty.Count > 0
-                ? $"Сохранить в префабы ({_dirty.Count})"
-                : "Сохранить в префабы";
+                ? string.Format(Loc.Get("wardrobe.save_prefabs_count"), _dirty.Count)
+                : Loc.Get("wardrobe.save_prefabs");
         }
 
         RefreshAllRows();

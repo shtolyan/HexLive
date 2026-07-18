@@ -2545,6 +2545,526 @@ MonoBehaviour:
       - 'Тяжёлая броня на торс и таз — лучшая защита, но в ней жарко.'
       Flags: 0101
       Languages_Touch: []
+    - Term: "history.empty"
+      TermType: 0
+      Description:
+      Languages:
+      - "No important events yet."
+      - "Пока нет важных событий."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.refresh"
+      TermType: 0
+      Description:
+      Languages:
+      - "Refresh"
+      - "Обновить"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.show_older"
+      TermType: 0
+      Description:
+      Languages:
+      - "Show older"
+      - "Показать раньше"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.subtitle"
+      TermType: 0
+      Description:
+      Languages:
+      - "important events in this world"
+      - "важные события текущего мира"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "history.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "History"
+      - "История"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.body"
+      TermType: 0
+      Description:
+      Languages:
+      - "Body"
+      - "Тело"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.comfort"
+      TermType: 0
+      Description:
+      Languages:
+      - "Comfort"
+      - "Комфорт"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.comfort_tip"
+      TermType: 0
+      Description:
+      Languages:
+      - "Current comfort level"
+      - "Текущий уровень комфорта"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.controls"
+      TermType: 0
+      Description:
+      Languages:
+      - "Controls"
+      - "Управление"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.cooldowns"
+      TermType: 0
+      Description:
+      Languages:
+      - "Cooldowns"
+      - "Кулдауны"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.energy"
+      TermType: 0
+      Description:
+      Languages:
+      - "Energy"
+      - "Энергия"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.energy_tip"
+      TermType: 0
+      Description:
+      Languages:
+      - "Current rest reserve"
+      - "Текущий запас отдыха"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.execution"
+      TermType: 0
+      Description:
+      Languages:
+      - "Execution"
+      - "Выполнение"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.goal"
+      TermType: 0
+      Description:
+      Languages:
+      - "Goal"
+      - "Цель"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.goal_lock"
+      TermType: 0
+      Description:
+      Languages:
+      - "Goal Lock"
+      - "Блок цели"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.goal_scores"
+      TermType: 0
+      Description:
+      Languages:
+      - "Goal Scores"
+      - "Оценки целей"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.health"
+      TermType: 0
+      Description:
+      Languages:
+      - "Health"
+      - "Здоровье"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.health_tip"
+      TermType: 0
+      Description:
+      Languages:
+      - "Hit points; regenerates while fed"
+      - "Очки здоровья; восстанавливаются при сытости"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.hunger"
+      TermType: 0
+      Description:
+      Languages:
+      - "Hunger"
+      - "Голод"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.hunger_tip"
+      TermType: 0
+      Description:
+      Languages:
+      - "Pressure to find food"
+      - "Нужда найти еду"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.interaction"
+      TermType: 0
+      Description:
+      Languages:
+      - "Interaction"
+      - "Взаимодействие"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.inventory"
+      TermType: 0
+      Description:
+      Languages:
+      - "Inventory"
+      - "Инвентарь"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.memory"
+      TermType: 0
+      Description:
+      Languages:
+      - "Memory"
+      - "Память"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.movement"
+      TermType: 0
+      Description:
+      Languages:
+      - "Movement"
+      - "Движение"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.needs"
+      TermType: 0
+      Description:
+      Languages:
+      - "Needs"
+      - "Потребности"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.npc"
+      TermType: 0
+      Description:
+      Languages:
+      - "NPC"
+      - "NPC"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.npc_hud"
+      TermType: 0
+      Description:
+      Languages:
+      - "NPC HUD"
+      - "HUD NPC"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.occupied_pts"
+      TermType: 0
+      Description:
+      Languages:
+      - "Occupied Pts"
+      - "Занятые точки"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.path"
+      TermType: 0
+      Description:
+      Languages:
+      - "Path"
+      - "Путь"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.pause_resume"
+      TermType: 0
+      Description:
+      Languages:
+      - "Pause / Resume"
+      - "Пауза / продолжить"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.paused"
+      TermType: 0
+      Description:
+      Languages:
+      - "Paused"
+      - "Пауза"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.plan"
+      TermType: 0
+      Description:
+      Languages:
+      - "Plan"
+      - "План"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.ready"
+      TermType: 0
+      Description:
+      Languages:
+      - "Ready"
+      - "Готово"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.relations"
+      TermType: 0
+      Description:
+      Languages:
+      - "Relations"
+      - "Отношения"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.reserved_pts"
+      TermType: 0
+      Description:
+      Languages:
+      - "Reserved Pts"
+      - "Резерв точек"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.simulation"
+      TermType: 0
+      Description:
+      Languages:
+      - "Simulation"
+      - "Симуляция"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.social"
+      TermType: 0
+      Description:
+      Languages:
+      - "Social"
+      - "Общение"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.social_tip"
+      TermType: 0
+      Description:
+      Languages:
+      - "Social fulfillment"
+      - "Социальная насыщенность"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.speed"
+      TermType: 0
+      Description:
+      Languages:
+      - "Speed"
+      - "Скорость"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.speed_presets"
+      TermType: 0
+      Description:
+      Languages:
+      - "Speed Presets"
+      - "Пресеты скорости"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.step_tick"
+      TermType: 0
+      Description:
+      Languages:
+      - "Step Tick"
+      - "Шаг тика"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.target_tile"
+      TermType: 0
+      Description:
+      Languages:
+      - "Target Tile"
+      - "Целевая клетка"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.temperature"
+      TermType: 0
+      Description:
+      Languages:
+      - "Temperature"
+      - "Температура"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.thermal"
+      TermType: 0
+      Description:
+      Languages:
+      - "Thermal"
+      - "Температура"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.thermal_tip"
+      TermType: 0
+      Description:
+      Languages:
+      - "Temperature discomfort"
+      - "Температурный дискомфорт"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.thirst"
+      TermType: 0
+      Description:
+      Languages:
+      - "Thirst"
+      - "Жажда"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.thirst_tip"
+      TermType: 0
+      Description:
+      Languages:
+      - "Pressure to find water"
+      - "Нужда найти воду"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.tick"
+      TermType: 0
+      Description:
+      Languages:
+      - "Tick"
+      - "Тик"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.tile"
+      TermType: 0
+      Description:
+      Languages:
+      - "Tile"
+      - "Клетка"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.time"
+      TermType: 0
+      Description:
+      Languages:
+      - "Time"
+      - "Время"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.tools"
+      TermType: 0
+      Description:
+      Languages:
+      - "Debug Tools"
+      - "Отладочные инструменты"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.trace_log"
+      TermType: 0
+      Description:
+      Languages:
+      - "Trace Log"
+      - "Журнал трассировки"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "simdebug.worn"
+      TermType: 0
+      Description:
+      Languages:
+      - "Worn"
+      - "Надето"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.anim_hint"
+      TermType: 0
+      Description:
+      Languages:
+      - "sit -> sleep 5s -> stand"
+      - "сесть → сон 5с → встать"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.animation"
+      TermType: 0
+      Description:
+      Languages:
+      - "Animation"
+      - "Анимация"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.click_hint"
+      TermType: 0
+      Description:
+      Languages:
+      - "click: wear/select · click again: remove"
+      - "клик: надеть/выбрать · ещё клик: снять"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.clothes"
+      TermType: 0
+      Description:
+      Languages:
+      - "Clothes"
+      - "Одежда"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.girl"
+      TermType: 0
+      Description:
+      Languages:
+      - "Girl"
+      - "Девушка"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.save_prefabs"
+      TermType: 0
+      Description:
+      Languages:
+      - "Save to prefabs"
+      - "Сохранить в префабы"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.save_prefabs_count"
+      TermType: 0
+      Description:
+      Languages:
+      - "Save to prefabs ({0})"
+      - "Сохранить в префабы ({0})"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.scale_hint"
+      TermType: 0
+      Description:
+      Languages:
+      - "←/→ — step 0.01, with Shift — 0.001"
+      - "←/→ — шаг 0.01, с Shift — 0.001"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.scale_none"
+      TermType: 0
+      Description:
+      Languages:
+      - "Scale: nothing selected"
+      - "Масштаб: ничего не выбрано"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.scale_selected"
+      TermType: 0
+      Description:
+      Languages:
+      - "“{0}” on {1}"
+      - "«{0}» на {1}"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.title"
+      TermType: 0
+      Description:
+      Languages:
+      - "WARDROBE TEST"
+      - "ТЕСТ ГАРДЕРОБА"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.undress_all"
+      TermType: 0
+      Description:
+      Languages:
+      - "Undress all"
+      - "Снять всё"
+      Flags: 0000
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

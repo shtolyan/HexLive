@@ -29,7 +29,7 @@ namespace HexLive.Simulation.Persistence
 //   on load, rebuilt on first pathfind).
 public static class WorldSaveSerializer
 {
-    public const int BlobVersion = 7; // v7: per-item garment dirtiness
+    public const int BlobVersion = 8; // v8: blood contributes to garment dirtiness
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -512,6 +512,10 @@ public static class WorldSaveSerializer
         obj.Durability = r.ReadSingle();
         obj.Dirtiness = version >= 7 ? r.ReadSingle() : 0f;
         obj.Bloodiness = version >= 7 ? r.ReadSingle() : 0f;
+        if (version == 7)
+        {
+            obj.Dirtiness = MathUtil.Clamp01(obj.Dirtiness + obj.Bloodiness);
+        }
         obj.SpawnTick = r.ReadInt32();
         ReadJunctionList(r, obj.BlockedJunctions);
         obj.NextProductionTick = r.ReadInt32();
@@ -1058,14 +1062,20 @@ public static class WorldSaveSerializer
         var count = r.ReadInt32();
         for (var i = 0; i < count; i++)
         {
-            items.Add(new ItemInstance(r.ReadString())
+            var item = new ItemInstance(r.ReadString())
             {
                 Wetness = r.ReadSingle(),
                 Durability = r.ReadSingle(),
                 ResourceAmount = r.ReadSingle(),
                 Dirtiness = version >= 7 ? r.ReadSingle() : 0f,
                 Bloodiness = version >= 7 ? r.ReadSingle() : 0f
-            });
+            };
+            if (version == 7)
+            {
+                item.Dirtiness = MathUtil.Clamp01(item.Dirtiness + item.Bloodiness);
+            }
+
+            items.Add(item);
         }
     }
 

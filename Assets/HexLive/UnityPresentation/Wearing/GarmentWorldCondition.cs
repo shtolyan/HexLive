@@ -95,7 +95,8 @@ namespace HexLive.UnityPresentation.Wearing
             _block ??= new MaterialPropertyBlock();
             foreach (var piece in _pieces)
             {
-                piece.Painter.SetDroppedState(tear, dirtiness, bloodiness);
+                var dust = Mathf.Max(0f, dirtiness - bloodiness);
+                piece.Painter.SetDroppedState(tear, dust, bloodiness);
                 for (var i = 0; i < piece.DrySmoothness.Length; i++)
                 {
                     piece.Renderer.GetPropertyBlock(_block, i);

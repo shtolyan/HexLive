@@ -295,7 +295,8 @@ public sealed class Wear : MonoBehaviour
                 _wearPainter.Construct(_meshRenderer);
             }
 
-            _wearPainter.SetState(_tear, _dirt, _blood, _damageSpheres, _damageSphereCount);
+            var dust = Mathf.Max(0f, _dirt - _blood);
+            _wearPainter.SetState(_tear, dust, _blood, _damageSpheres, _damageSphereCount);
         }
 
         // Per material slot: tear/dirt/spheres are shared, but smoothness and

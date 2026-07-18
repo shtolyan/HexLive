@@ -21,6 +21,7 @@ namespace HexLive.UnityPresentation.UI
             Health,
             Think,
             HeartFill,
+            Shield,
             Pause,
             Play,
             Sun,
@@ -76,6 +77,7 @@ namespace HexLive.UnityPresentation.UI
                 case Kind.Thermal: DrawThermal(p, P, k); break;
                 case Kind.Health: DrawHeart(p, P, false); break;
                 case Kind.HeartFill: DrawHeart(p, P, true); break;
+                case Kind.Shield: DrawShield(p, P); break;
                 case Kind.Think: DrawThink(p, P); break;
                 case Kind.Pause: DrawPause(p, P); break;
                 case Kind.Play: DrawPlay(p, P); break;
@@ -97,6 +99,26 @@ namespace HexLive.UnityPresentation.UI
         }
 
         private delegate Vector2 Pt(float x, float y);
+
+        private static void DrawShield(Painter2D p, Pt P)
+        {
+            p.BeginPath();
+            p.MoveTo(P(12f, 3.2f));
+            p.BezierCurveTo(P(15f, 4.9f), P(17.8f, 5.3f), P(19.6f, 5.6f));
+            p.LineTo(P(19.1f, 11.3f));
+            p.BezierCurveTo(P(18.7f, 16.1f), P(15.8f, 19.3f), P(12f, 21f));
+            p.BezierCurveTo(P(8.2f, 19.3f), P(5.3f, 16.1f), P(4.9f, 11.3f));
+            p.LineTo(P(4.4f, 5.6f));
+            p.BezierCurveTo(P(6.2f, 5.3f), P(9f, 4.9f), P(12f, 3.2f));
+            p.ClosePath();
+            p.Stroke();
+
+            p.BeginPath();
+            p.MoveTo(P(8.2f, 12f));
+            p.LineTo(P(10.8f, 14.6f));
+            p.LineTo(P(16.2f, 9.1f));
+            p.Stroke();
+        }
 
         // Apple: round body + short stem.
         private static void DrawHunger(Painter2D p, Pt P, float k)

@@ -12,8 +12,8 @@ namespace HexLive.UnityPresentation.Wearing
     /// bones and holes flickered in and out. Holes come ONLY from the
     /// garment's own durability (natural wear) — body wounds never rip cloth;
     /// their sole cloth feedback is blood painted into the albedo near the
-    /// wound. Dirt uses the same dirt_dust sheet as skin. Blood stays on the
-    /// garment; dirt opacity follows its washable simulation state.
+    /// wound. Dirt uses the same dirt_dust sheet as skin. Both visual layers
+    /// persist on the garment and fade with their washable simulation state.
     /// Placement: bake the garment's skinned pose, pick a seeded triangle on
     /// the mesh → slot + wrapped UV (always on a UV island).
     /// Everything is event-driven on state buckets — no per-frame work.
@@ -69,6 +69,7 @@ namespace HexLive.UnityPresentation.Wearing
         private readonly Dictionary<int, PaintStain> _bloodStainsByCell = new();
         private int _naturalHolesPlaced;
         private int _lastObservedDirtTarget;
+        private int _lastObservedBloodBucket;
         private int _lastBloodInputHash;
         private int _lastStateHash;
 
@@ -82,6 +83,7 @@ namespace HexLive.UnityPresentation.Wearing
 
         // Baked-pose working set (small meshes — garments are a few k tris).
         private Mesh? _bakedMesh;
+        private bool _bakeUnavailable;
         private int[] _triangles = System.Array.Empty<int>();
         private int[] _triangleSlot = System.Array.Empty<int>();
         private Vector2[] _uvs = System.Array.Empty<Vector2>();
@@ -118,8 +120,8 @@ namespace HexLive.UnityPresentation.Wearing
 
         /// <summary>
         /// Event-driven: tear follows current durability, while dirt/blood
-        /// inputs append UV stains owned by this garment. Blood is permanent;
-        /// dirt opacity follows the item's wash state.
+        /// inputs append UV stains owned by this garment. Their opacity follows
+        /// the item's wash state.
         /// </summary>
         public void SetState(float tear01, float dirt01, float blood01,
             Vector4[] damageSpheres, int damageSphereCount)
@@ -144,6 +146,7 @@ namespace HexLive.UnityPresentation.Wearing
                 _naturalHolesPlaced++;
             }
 
+            placedNew |= UpdateBloodWashState(blood01);
             placedNew |= AccumulateDirtStains(dirt01);
             placedNew |= AccumulateBloodStains(blood01, damageSpheres, damageSphereCount);
 
@@ -171,7 +174,9 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             var tear = Mathf.Clamp01(tear01);
-            var changed = AccumulateDirtStains(dirt01) | AccumulateDroppedBlood(blood01);
+            var changed = UpdateBloodWashState(blood01);
+            changed |= AccumulateDirtStains(dirt01);
+            changed |= AccumulateDroppedBlood(blood01);
             var naturalTarget = Mathf.Min(MaxNaturalHoles,
                 Mathf.FloorToInt(tear * MaxNaturalHoles + 0.0001f));
             while (_naturalHolesPlaced < naturalTarget)
@@ -223,6 +228,39 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             return changed;
+        }
+
+        private bool UpdateBloodWashState(float blood01)
+        {
+            var blood = Mathf.Clamp01(blood01);
+            var bucket = Mathf.RoundToInt(blood / BloodInputBucket);
+            var previousBucket = _lastObservedBloodBucket;
+            _lastObservedBloodBucket = bucket;
+
+            if (blood <= 0.001f)
+            {
+                if (_bloodStains.Count == 0)
+                {
+                    return false;
+                }
+
+                _bloodStains.Clear();
+                _bloodStainsByCell.Clear();
+                return true;
+            }
+
+            if (bucket >= previousBucket)
+            {
+                return false;
+            }
+
+            var washedAlpha = Mathf.Lerp(0.03f, 0.55f, blood);
+            foreach (var stain in _bloodStains)
+            {
+                stain.Alpha = Mathf.Min(stain.Alpha, washedAlpha);
+            }
+
+            return _bloodStains.Count > 0;
         }
 
         private bool AccumulateDirtStains(float dirt01)
@@ -385,7 +423,8 @@ namespace HexLive.UnityPresentation.Wearing
 
         private bool BakePose()
         {
-            if (_renderer == null || (_skinnedRenderer == null && _staticMesh == null))
+            if (_bakeUnavailable ||
+                _renderer == null || (_skinnedRenderer == null && _staticMesh == null))
             {
                 return false;
             }
@@ -397,6 +436,17 @@ namespace HexLive.UnityPresentation.Wearing
             }
             else if (_bakedMesh == null && _staticMesh != null)
             {
+                if (!_staticMesh.isReadable)
+                {
+                    // Retrying every Sync would spam the console with the
+                    // same read-access error — fail once and stay quiet.
+                    _bakeUnavailable = true;
+                    Debug.LogWarning(
+                        $"[GarmentWear] mesh '{_staticMesh.name}' has no Read/Write — wear painting disabled for '{name}'",
+                        this);
+                    return false;
+                }
+
                 _bakedMesh = Instantiate(_staticMesh);
             }
 
@@ -420,6 +470,7 @@ namespace HexLive.UnityPresentation.Wearing
                 _triangleSlot = slots.ToArray();
                 if (_triangles.Length == 0 || _uvs.Length == 0)
                 {
+                    _bakeUnavailable = true; // topology never changes — don't retry
                     return false;
                 }
             }

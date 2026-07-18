@@ -2358,16 +2358,9 @@ namespace HexLive.UnityPresentation.UI
             tags.style.flexWrap = Wrap.Wrap;
             tags.style.marginBottom = 4f;
             tags.Add(BuildSocialTag(RelationTag(rel.Affinity), RelationColor(rel.Affinity)));
-            tags.Add(BuildSocialTag(Loc.Get("rel.familiarity"), Social));
-            tags.Add(BuildSocialTag(Loc.Get("rel.trust"), Good));
             body.Add(tags);
 
-            body.Add(BuildRelationMetricCompact(
-                Loc.Get("rel.affinity"), rel.Affinity, RelationColor(rel.Affinity), true));
-            body.Add(BuildRelationMetricCompact(
-                Loc.Get("rel.familiarity"), rel.Familiarity, Social, false));
-            body.Add(BuildRelationMetricCompact(
-                Loc.Get("rel.trust"), rel.Trust, Good, false));
+            body.Add(BuildRelationRings(rel));
 
             card.Add(body);
 
@@ -2392,41 +2385,86 @@ namespace HexLive.UnityPresentation.UI
             return tag;
         }
 
-        private static VisualElement BuildRelationMetricCompact(string labelText, float value, Color color, bool signed)
+        private static VisualElement BuildRelationRings(RelationshipSnapshot rel)
         {
             var row = new VisualElement();
-            row.style.height = 29f;
-            row.style.flexShrink = 0f;
-            row.style.marginTop = 2f;
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.alignItems = Align.Center;
+            row.style.justifyContent = Justify.SpaceBetween;
+            row.style.flexGrow = 1f;
+            row.style.marginTop = 4f;
+            row.style.paddingRight = 10f;
 
-            var top = new VisualElement();
-            top.style.flexDirection = FlexDirection.Row;
-            top.style.alignItems = Align.Center;
-            top.style.height = 15f;
+            row.Add(BuildRelationRingMetric(
+                Loc.Get("rel.affinity"),
+                rel.Affinity,
+                RelationColor(rel.Affinity),
+                VectorIcon.Kind.HeartFill,
+                true));
+            row.Add(BuildRelationRingMetric(
+                Loc.Get("rel.familiarity"),
+                rel.Familiarity,
+                Social,
+                VectorIcon.Kind.Social,
+                false));
+            row.Add(BuildRelationRingMetric(
+                Loc.Get("rel.trust"),
+                rel.Trust,
+                Good,
+                VectorIcon.Kind.Shield,
+                false));
 
-            var label = new Label(labelText);
-            label.style.color = TextDim;
-            label.style.fontSize = 9.5f;
-            label.style.flexGrow = 1f;
-            label.style.whiteSpace = WhiteSpace.NoWrap;
-            label.style.overflow = Overflow.Hidden;
-            label.style.textOverflow = TextOverflow.Ellipsis;
-            top.Add(label);
+            return row;
+        }
+
+        private static VisualElement BuildRelationRingMetric(
+            string labelText,
+            float value,
+            Color color,
+            VectorIcon.Kind iconKind,
+            bool signed)
+        {
+            var metric = new VisualElement();
+            metric.style.flexDirection = FlexDirection.Column;
+            metric.style.alignItems = Align.Center;
+            metric.style.justifyContent = Justify.Center;
+            metric.style.width = 86f;
+            metric.style.flexShrink = 0f;
 
             var pct = signed ? Mathf.RoundToInt(value * 100f) : Mathf.RoundToInt(Mathf.Clamp01(value) * 100f);
-            var valueLabel = new Label(signed && pct > 0 ? $"+{pct}%" : $"{pct}%");
-            valueLabel.style.color = signed ? RelationColor(value) : color;
-            valueLabel.style.fontSize = 9.5f;
-            valueLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-            valueLabel.style.flexShrink = 0f;
-            valueLabel.style.marginLeft = 8f;
-            top.Add(valueLabel);
-            row.Add(top);
+            var text = signed && pct > 0 ? $"+{pct}%" : $"{pct}%";
+            metric.tooltip = $"{labelText}: {text}";
 
-            var meter = signed ? BuildRelationMeter(value) : BuildPositiveMeter(value, color);
-            meter.style.marginTop = 2f;
-            row.Add(meter);
-            return row;
+            var ringWrap = new VisualElement();
+            ringWrap.style.width = 54f;
+            ringWrap.style.height = 54f;
+            ringWrap.style.alignItems = Align.Center;
+            ringWrap.style.justifyContent = Justify.Center;
+            ringWrap.style.flexShrink = 0f;
+
+            var ring = new RingMeter(signed ? Mathf.Abs(value) : value, color);
+            ring.style.position = Position.Absolute;
+            ring.style.left = 0f;
+            ring.style.right = 0f;
+            ring.style.top = 0f;
+            ring.style.bottom = 0f;
+            ringWrap.Add(ring);
+
+            var icon = new VectorIcon(iconKind, color);
+            icon.style.width = 22f;
+            icon.style.height = 22f;
+            ringWrap.Add(icon);
+            metric.Add(ringWrap);
+
+            var valueLabel = new Label(text);
+            valueLabel.style.color = signed ? RelationColor(value) : color;
+            valueLabel.style.fontSize = 12;
+            valueLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            valueLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+            valueLabel.style.marginTop = 4f;
+            metric.Add(valueLabel);
+
+            return metric;
         }
 
         private static VisualElement BuildSignalDots(RelationshipSnapshot rel)
@@ -3372,6 +3410,50 @@ namespace HexLive.UnityPresentation.UI
                 3 => "✧",
                 _ => affinity < 0f ? "…" : "+"
             };
+        }
+
+        private sealed class RingMeter : VisualElement
+        {
+            private readonly float _value;
+            private readonly Color _color;
+
+            public RingMeter(float value, Color color)
+            {
+                _value = Mathf.Clamp01(value);
+                _color = color;
+                pickingMode = PickingMode.Ignore;
+                generateVisualContent += OnGenerate;
+            }
+
+            private void OnGenerate(MeshGenerationContext ctx)
+            {
+                var rect = contentRect;
+                if (rect.width < 2f || rect.height < 2f)
+                {
+                    return;
+                }
+
+                var p = ctx.painter2D;
+                var center = rect.center;
+                var radius = Mathf.Min(rect.width, rect.height) * 0.5f - 4f;
+
+                p.lineCap = LineCap.Round;
+                p.lineJoin = LineJoin.Round;
+                p.lineWidth = 5f;
+
+                p.strokeColor = new Color(1f, 1f, 1f, 0.095f);
+                p.BeginPath();
+                p.Arc(center, radius, Angle.Degrees(0f), Angle.Degrees(360f));
+                p.Stroke();
+
+                if (_value > 0.003f)
+                {
+                    p.strokeColor = new Color(_color.r, _color.g, _color.b, 0.95f);
+                    p.BeginPath();
+                    p.Arc(center, radius, Angle.Degrees(-90f), Angle.Degrees(-90f + 359.9f * _value));
+                    p.Stroke();
+                }
+            }
         }
 
         private static string InitialOf(string name)

@@ -8387,12 +8387,17 @@ public sealed class ExecutionSystem : ISimulationSystem
             return;
         }
 
-        garment.Dirtiness = MathUtil.Clamp01(garment.Dirtiness -
-            1f / SimBalance.WashClothesDurationTicks);
+        // Dirtiness is the combined contamination score. Bloodiness remains a
+        // separate visual layer, but fades over the same washing progress.
+        var remainingTicks = System.Math.Max(0, npc.Execution.EndTick - world.Tick);
+        var retainedContamination = remainingTicks / (remainingTicks + 1f);
+        garment.Dirtiness = MathUtil.Clamp01(garment.Dirtiness * retainedContamination);
+        garment.Bloodiness = MathUtil.Clamp01(garment.Bloodiness * retainedContamination);
         garment.Wetness = 1f;
         if (npc.Execution.HeldGarment is { } held)
         {
             held.Dirtiness = garment.Dirtiness;
+            held.Bloodiness = garment.Bloodiness;
             held.Wetness = garment.Wetness;
         }
         if (world.Tick < npc.Execution.EndTick)
@@ -8401,6 +8406,7 @@ public sealed class ExecutionSystem : ISimulationSystem
         }
 
         garment.Dirtiness = 0f;
+        garment.Bloodiness = 0f;
         garment.Wetness = 1f;
         npc.Execution.HeldGarment = null;
         SpatialMutations.FreeJunction(world, target, npc.Id);
@@ -8467,7 +8473,7 @@ public sealed class ExecutionSystem : ISimulationSystem
     }
 
     // Spec 29G: the lying body covers junctions within half a hex radius.
-    private static void ClaimLyingFootprint(WorldState world, NPCState npc, JunctionId center)
+    internal static void ClaimLyingFootprint(WorldState world, NPCState npc, JunctionId center)
     {
         npc.ClaimedJunctions.Clear();
         if (!world.Junctions.Items.TryGetValue(center, out var origin))
@@ -9446,6 +9452,49 @@ public sealed class NeedsDecaySystem : ISimulationSystem
         PlanInterruption.Abort(world, npc, "Collapsed — coma");
         npc.Mind.CurrentGoal = GoalType.None;
         npc.IsFighting = false; // a body that just switched off holds no stance
+
+        // §60: lie down like a ground sleeper — centered in her own hex, not
+        // across a tile rim or an elevation cliff (a collapse mid-stride
+        // often lands exactly on an edge and the lying body pokes into the
+        // neighbouring hex). Snap to the free junction nearest the tile
+        // center, occupy it and claim the lying footprint (spec 29G) so
+        // housemates path around the body.
+        var center = HexSpatialMath.TileToWorld(npc.Tile);
+        JunctionId? spot = null;
+        var best = float.MaxValue;
+        if (world.Tiles.Items.TryGetValue(npc.Tile, out var comaTile))
+        {
+            foreach (var junctionId in comaTile.Junctions)
+            {
+                if (!world.Junctions.Items.TryGetValue(junctionId, out var junction) ||
+                    junction.Blocked ||
+                    !SpatialQueries.IsJunctionFree(world, junctionId))
+                {
+                    continue;
+                }
+
+                var d = HexSpatialMath.Distance(junction.WorldPosition, center);
+                if (d < best)
+                {
+                    best = d;
+                    spot = junctionId;
+                }
+            }
+        }
+
+        if (spot is { } lieSpot && world.Junctions.Items.TryGetValue(lieSpot, out var lie))
+        {
+            npc.Position = lie.WorldPosition;
+            npc.CurrentJunction = lieSpot;
+            SpatialMutations.OccupyJunction(world, lieSpot, npc.Id);
+            ExecutionSystem.ClaimLyingFootprint(world, npc, lieSpot);
+        }
+        else if (npc.CurrentJunction is { } here)
+        {
+            // Crowded tile — no free centered spot; at least claim where she is.
+            ExecutionSystem.ClaimLyingFootprint(world, npc, here);
+        }
+
         Trace.Emit(world, npc.Id, "Collapsed",
             $"Cause={cause} Energy={npc.Needs.Energy:F2} Blood={npc.Needs.Blood:F2} " +
             $"Health={npc.Health:F2}");
@@ -9471,6 +9520,16 @@ public sealed class NeedsDecaySystem : ISimulationSystem
         var cause = npc.Mind.ComaCause;
         npc.Mind.ComaCause = ComaCause.None;
         npc.Mind.WakeGraceUntilTick = world.Tick + 12; // spec 41.5 wake grace
+
+        // Release the lying footprint and the junction the body held
+        // (mirrors the ground-rest wake path).
+        ExecutionSystem.ReleaseClaims(world, npc);
+        if (npc.CurrentJunction is { } lay)
+        {
+            SpatialMutations.FreeJunction(world, lay, npc.Id);
+            SpatialMutations.ReleaseJunctionReservation(world, lay, npc.Id);
+        }
+
         Trace.Emit(world, npc.Id, "WokeUp",
             $"Cause={cause} Energy={npc.Needs.Energy:F2} Blood={npc.Needs.Blood:F2}");
     }
@@ -12661,7 +12720,9 @@ internal static class WoundMath
             if (world.Content.ObjectDefinitions.TryGetValue(garment.DefinitionId, out var definition) &&
                 definition.Covers.Contains(zone))
             {
-                garment.Bloodiness = MathUtil.Clamp01(garment.Bloodiness + damage * 1.5f);
+                var bloodContamination = damage * 1.5f;
+                garment.Bloodiness = MathUtil.Clamp01(garment.Bloodiness + bloodContamination);
+                garment.Dirtiness = MathUtil.Clamp01(garment.Dirtiness + bloodContamination);
             }
         }
 

@@ -110,6 +110,11 @@ namespace HexLive.Simulation.Agents.Effects
                 results.Add(new ActiveEffect(EffectKind.Maimed, 1f));
             }
 
+            if (currentTick < npc.Mind.AdrenalineUntilTick)
+            {
+                results.Add(new ActiveEffect(EffectKind.Adrenaline, 1f));
+            }
+
             // ── Environment: sun & temperature ────────────────────────────
             // Standing under a high UV index right now — an at-a-glance warning
             // before the exposure even builds (shade/water/indoors read 0 UV).
@@ -195,8 +200,7 @@ namespace HexLive.Simulation.Agents.Effects
             }
 
             // Spec §49: gut-rot from raw water — shown for the whole DoT window
-            // (Mind.SickUntilTick), not the instant it was drunk. This is the
-            // one effect driven by a real stored field, not pure classification.
+            // (Mind.SickUntilTick), not the instant it was drunk.
             if (currentTick < npc.Mind.SickUntilTick)
             {
                 results.Add(new ActiveEffect(EffectKind.Sick, 1f));

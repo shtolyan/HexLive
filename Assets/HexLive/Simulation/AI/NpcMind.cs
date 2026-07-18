@@ -33,14 +33,19 @@ public sealed class NPCMind
 
     // Spec §60: coma — the deep unconsciousness. Unlike the timed faint above,
     // a coma has no deadline: the body lies as if dead, recovering exactly as
-    // in sleep, until the STAT that felled it climbs back over
-    // SimBalance.ComaWakeThreshold. Entered when Energy or Blood hits 0.
+    // in sleep, until the STAT that felled it climbs back over its wake
+    // threshold. Entered when Energy hits 0 or Blood reaches the blood-loss
+    // coma line.
     public ComaCause ComaCause { get; set; }
 
     // Spec 41.5: just woke up — stand and come to your senses until this
     // tick (no goal scoring), so nobody sprints off the pillow and the
     // get-up animation has room to play.
     public int WakeGraceUntilTick { get; set; }
+
+    // Pain/fear spike after fresh damage. While active she should not start or
+    // continue sleeping; every new hit extends the window.
+    public int AdrenalineUntilTick { get; set; }
 
     public System.Collections.Generic.List<HexLive.Simulation.Common.ObjectId> GrievedCorpses { get; } = new();
 
@@ -95,7 +100,7 @@ public enum ComaCause
 {
     None,
     Exhaustion, // Energy drained to 0 — sleeps it off where she fell
-    BloodLoss   // Blood drained to 0 — out cold until the blood knits back
+    BloodLoss   // Blood fell below the coma line — out until it knits back
 }
 
 public enum GoalType

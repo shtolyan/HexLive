@@ -67,6 +67,7 @@ namespace HexLive.Simulation.Agents.Effects
             Add(EffectKind.Hobbled, EffectPolarity.Debuff, EffectCategory.Injury, "🦵");
             Add(EffectKind.Bandaged, EffectPolarity.Buff, EffectCategory.Injury, "🩹");
             Add(EffectKind.Maimed, EffectPolarity.Debuff, EffectCategory.Injury, "🦿");
+            Add(EffectKind.Adrenaline, EffectPolarity.Buff, EffectCategory.Injury, "⚡");
 
             // Environment
             Add(EffectKind.StrongSun, EffectPolarity.Debuff, EffectCategory.Environment, "🌞");

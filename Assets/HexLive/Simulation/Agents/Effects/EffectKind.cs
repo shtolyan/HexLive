@@ -1,9 +1,9 @@
 namespace HexLive.Simulation.Agents.Effects
 {
     // Spec §48: the canonical set of status effects (buffs/debuffs) a survivor
-    // can be under. These are DERIVED — the evaluator classifies them each tick
-    // from the existing need/body/environment fields; nothing here is a stored
-    // simulation field, so adding or retuning an effect never shifts balance.
+    // can be under. Most are DERIVED — the evaluator classifies them each tick
+    // from the existing need/body/environment fields. A few timed effects read
+    // stored "until tick" fields when the simulation itself needs the state.
     public enum EffectKind
     {
         // ── Injury / blood ────────────────────────────────────────────────
@@ -12,6 +12,7 @@ namespace HexLive.Simulation.Agents.Effects
         Hobbled,      // leg damage — slower on her feet
         Bandaged,     // a wound is dressed: the bleed is stopped, it's closing
         Maimed,       // spec §50: a limb is gone for good — severed, won't heal
+        Adrenaline,   // fresh pain/fear spike — too keyed-up to sleep
 
         // ── Environment: sun & temperature ────────────────────────────────
         StrongSun,    // standing under a high effective UV index right now

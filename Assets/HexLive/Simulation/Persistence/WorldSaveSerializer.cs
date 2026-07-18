@@ -29,7 +29,7 @@ namespace HexLive.Simulation.Persistence
 //   on load, rebuilt on first pathfind).
 public static class WorldSaveSerializer
 {
-    public const int BlobVersion = 8; // v8: blood contributes to garment dirtiness
+    public const int BlobVersion = 9; // v9: timed adrenaline after damage
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -595,6 +595,7 @@ public static class WorldSaveSerializer
         w.Write(mind.FaintedUntilTick);
         w.Write((int)mind.ComaCause); // v6, spec §60
         w.Write(mind.WakeGraceUntilTick);
+        w.Write(mind.AdrenalineUntilTick);
         w.Write(mind.PendingTalkSinceTick);
         WriteNullableEntity(w, mind.PendingTalkFrom);
         w.Write(mind.GrievedCorpses.Count);
@@ -833,6 +834,7 @@ public static class WorldSaveSerializer
         mind.FaintedUntilTick = r.ReadInt32();
         mind.ComaCause = version >= 6 ? (ComaCause)r.ReadInt32() : ComaCause.None; // spec §60
         mind.WakeGraceUntilTick = r.ReadInt32();
+        mind.AdrenalineUntilTick = version >= 9 ? r.ReadInt32() : 0;
         mind.PendingTalkSinceTick = r.ReadInt32();
         mind.PendingTalkFrom = ReadNullableEntity(r);
         var grievedCount = r.ReadInt32();

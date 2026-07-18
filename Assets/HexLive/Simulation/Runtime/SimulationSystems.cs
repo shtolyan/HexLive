@@ -39,6 +39,42 @@ internal static class SocialCueSignals
     }
 }
 
+internal static class DamageReactionSystemHelpers
+{
+    public static void GrantAdrenaline(WorldState world, NPCState npc, float damage, string reason)
+    {
+        if (world == null || npc == null || npc.Health <= 0f || damage <= 0f || SimBalance.AdrenalineTicks <= 0)
+        {
+            return;
+        }
+
+        ApplyAdrenalineEnergyFloor(npc);
+
+        var until = world.Tick + SimBalance.AdrenalineTicks;
+        if (until <= npc.Mind.AdrenalineUntilTick)
+        {
+            return;
+        }
+
+        npc.Mind.AdrenalineUntilTick = until;
+        Trace.Emit(world, npc.Id, "Adrenaline",
+            $"{reason} Damage={damage:F3} Until={npc.Mind.AdrenalineUntilTick}");
+    }
+
+    public static bool IsAdrenalineActive(WorldState world, NPCState npc) =>
+        world != null && npc != null && world.Tick < npc.Mind.AdrenalineUntilTick;
+
+    public static void ApplyAdrenalineEnergyFloor(NPCState npc)
+    {
+        if (npc == null || SimBalance.AdrenalineEnergyFloor <= 0f)
+        {
+            return;
+        }
+
+        npc.Needs.Energy = System.Math.Max(npc.Needs.Energy, SimBalance.AdrenalineEnergyFloor);
+    }
+}
+
 // Spec §49: sleep / social / water overhaul knobs. Static so the headless soak
 // harness can bisect features deterministically, and so HexTuningConfig can push
 // live slider values in the editor. Defaults = all features ON at design values.
@@ -624,6 +660,7 @@ public sealed class DecisionSystem : ISimulationSystem
             UpdateStarvingStatus(world, npc);
             UpdateDehydratedStatus(world, npc);
             UpdateOverheatedStatus(world, npc);
+            var bleedingCrisis = IsBleedingCrisis(npc);
             var emergencyBoost = npc.Mind.IsStarving ? StarvingBoost : 0f;
             var drinkBoost = npc.Mind.IsDehydrated ? StarvingBoost : 0f;
 
@@ -863,6 +900,7 @@ public sealed class DecisionSystem : ISimulationSystem
             var aidAvail = false;
             var bestSuffering = 0f;
             var bestSuffererAffinity = 0f;
+            var bestAidKind = AidKind.None;
             if (Spec53.Enabled)
             {
                 var selfOk = !npc.Mind.IsStarving && !npc.Mind.IsDehydrated &&
@@ -884,6 +922,7 @@ public sealed class DecisionSystem : ISimulationSystem
                         {
                             bestSuffering = agent.Suffering;
                             bestSuffererAffinity = agent.Relationship.Affinity;
+                            bestAidKind = agent.AidKind;
                             aidAvail = true;
                         }
                     }
@@ -903,10 +942,13 @@ public sealed class DecisionSystem : ISimulationSystem
                     aidAvail = true;
                 }
             }
+            var aidEmergency = bestAidKind == AidKind.Treat && bestSuffering >= 0.65f
+                ? StarvingBoost * 0.75f
+                : 0f;
             AddGoalScore(npc, world.Tick, GoalType.Aid,
                 bestSuffering * npc.CompassionTrait * Spec53.AidWeight +
                     (1f - npc.Needs.Compassion) * Spec53.PressureWeight,
-                aidAvail, social: System.Math.Max(0f, bestSuffererAffinity) * 0.05f);
+                aidAvail, aidEmergency, social: System.Math.Max(0f, bestSuffererAffinity) * 0.05f);
 
             // Spec 35.3: what the communal hut needs next (null = done/absent).
             // Construction is peacetime work: material hauling pauses while
@@ -1614,6 +1656,11 @@ public sealed class DecisionSystem : ISimulationSystem
 
             AddGoalScore(npc, world.Tick, GoalType.Idle, 0.05f, true);
 
+            if (bleedingCrisis)
+            {
+                SuppressPeacetimeDuringBleeding(npc);
+            }
+
             Trace.Emit(world, npc.Id, "DecisionInput",
                 $"Needs=[{Trace.FormatNeeds(npc.Needs)}] " +
                 $"Available=[Eat={eatAvail} GetFood={getFoodAvail} Sleep={sleepAvail} Sit={sitAvail} " +
@@ -1711,6 +1758,69 @@ public sealed class DecisionSystem : ISimulationSystem
                     $"(Starving={npc.Mind.IsStarving})");
             }
         }
+    }
+
+    private static bool IsBleedingCrisis(NPCState npc)
+    {
+        if (npc.Needs.Blood >= 0.45f)
+        {
+            return false;
+        }
+
+        var worstPart = 1f;
+        foreach (var part in npc.Body.Parts.Keys)
+        {
+            if (npc.Body.Parts[part] < worstPart)
+            {
+                worstPart = npc.Body.Parts[part];
+            }
+        }
+
+        if (worstPart >= 0.4f)
+        {
+            return false;
+        }
+
+        foreach (var wound in npc.Wounds)
+        {
+            if (wound.Heal01 < 0.3f && wound.Severity >= 0.05f)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static void SuppressPeacetimeDuringBleeding(NPCState npc)
+    {
+        foreach (var score in npc.Mind.LastScores)
+        {
+            if (IsBleedingCrisisGoal(score.Goal, npc))
+            {
+                if (score.Goal == GoalType.CraftBandage)
+                {
+                    score.EmergencyModifier = System.MathF.Max(score.EmergencyModifier, StarvingBoost * 0.5f);
+                    score.FinalScore += StarvingBoost * 0.5f;
+                }
+
+                continue;
+            }
+
+            score.FinalScore = 0f;
+        }
+    }
+
+    private static bool IsBleedingCrisisGoal(GoalType goal, NPCState npc)
+    {
+        return goal switch
+        {
+            GoalType.Idle or GoalType.None => true,
+            GoalType.Eat or GoalType.GetFood => npc.Mind.IsStarving,
+            GoalType.Drink or GoalType.GetWater => npc.Mind.IsDehydrated,
+            GoalType.CraftBandage => true,
+            _ => false
+        };
     }
 
     // Spec 35.3: materials bill for the pending hut piece.
@@ -2626,6 +2736,14 @@ public static class PlanInterruption
         npc.Movement.JunctionPath.Clear();
         npc.Movement.PathIndex = 0;
         npc.Movement.IsMoving = false;
+        npc.Movement.Status = MovementStatus.Idle;
+        npc.Movement.StopReason = reason;
+        npc.Movement.ClimbPauseTimer = 0f;
+        npc.Movement.HopTimer = 0f;
+        npc.Movement.HopArmed = false;
+        npc.Movement.HopCrossed = false;
+        npc.Movement.HopPathIndex = -1;
+        npc.Movement.HopLandingIndex = 0;
 
         Trace.Emit(world, npc.Id, "GoalInterrupted", reason);
     }
@@ -4796,14 +4914,14 @@ public sealed class PathfindingSystem : ISimulationSystem
 
     private static readonly System.Collections.Generic.HashSet<JunctionId> _avoidScratch = new();
 
-    // Spec 24.3: the junctions other housemates currently stand on.
+    // Spec 24.3: the junctions other living actors currently stand on.
     // NOTE (spec 34, climb): soft-avoiding elevation-step "climb seams" here
     // was tried to make hillside routes prefer the flat way around, but a hard
     // avoid over-penalizes (forces long detours) and whack-a-moled the fragile
     // economy across seeds. The correct form is a WEIGHTED path cost (climb =
     // 2x, per the user), which needs the BFS turned into a cost-aware search —
     // deferred to a focused pass (with the climb animation in Unity).
-    internal static System.Collections.Generic.HashSet<JunctionId> OtherNpcJunctions(
+    internal static System.Collections.Generic.HashSet<JunctionId> OtherActorJunctions(
         WorldState world, NPCState self)
     {
         _avoidScratch.Clear();
@@ -4822,6 +4940,14 @@ public sealed class PathfindingSystem : ISimulationSystem
             foreach (var claimed in other.ClaimedJunctions)
             {
                 _avoidScratch.Add(claimed);
+            }
+        }
+
+        foreach (var mob in world.Mobs)
+        {
+            if (mob.Health > 0f)
+            {
+                _avoidScratch.Add(mob.Junction);
             }
         }
 
@@ -4865,11 +4991,13 @@ public sealed class PathfindingSystem : ISimulationSystem
                 $"From={startJunction.Value.Value} To={npc.Plan.TargetJunctionId.Value.Value} " +
                 $"Pos={Trace.FormatPos(npc.Position)}");
 
-            // Spec 40.17: comfortable NPCs prefer the flat detour; hungry/thirsty
-            // ones take the short route to food/water (else they starve, 12345).
-            var preferFlat = npc.Needs.Hunger < 0.5f && npc.Needs.Thirst < 0.5f;
+            // Spec 40.17: prefer flat routes by default. The old gate exempted
+            // every hungry/thirsty route, including non-emergency material runs,
+            // so GatherStone could sawtooth over ledges as if hops were flat.
+            // Only immediate survival movement keeps the shortest-path override.
+            var preferFlat = ShouldWeightClimbs(npc);
             var path = HexPathfinder.FindPath(world, startJunction.Value, npc.Plan.TargetJunctionId.Value,
-                OtherNpcJunctions(world, npc), preferFlat, npc.Body.CanJump);
+                OtherActorJunctions(world, npc), preferFlat, npc.Body.CanJump);
             if (path.Count == 0)
             {
                 npc.Movement.Status = MovementStatus.Blocked;
@@ -4899,6 +5027,27 @@ public sealed class PathfindingSystem : ISimulationSystem
             Trace.Emit(world, npc.Id, "PathBuilt",
                 $"Length={path.Count} Route=[{pathJunctions}] IsMoving={npc.Movement.IsMoving}");
         }
+    }
+
+    private static bool ShouldWeightClimbs(NPCState npc)
+    {
+        if (!npc.Body.CanJump)
+        {
+            return true;
+        }
+
+        if (npc.Mind.CurrentGoal == GoalType.Flee)
+        {
+            return false;
+        }
+
+        return npc.Mind.CurrentGoal switch
+        {
+            GoalType.GetFood => !npc.Mind.IsStarving,
+            GoalType.GetWater => !npc.Mind.IsDehydrated,
+            GoalType.Drink => !npc.Mind.IsDehydrated,
+            _ => true
+        };
     }
 }
 
@@ -4973,10 +5122,22 @@ public sealed class MovementSystem : ISimulationSystem
             foreach (var other in world.Entities.Npcs.Values)
             {
                 if (other.Id.Value != npc.Id.Value && other.CurrentJunction is { } oj &&
-                    oj.Equals(targetJunctionId) && !other.Movement.IsMoving)
+                    oj.Equals(targetJunctionId))
                 {
                     stepOccupied = true;
                     break;
+                }
+            }
+
+            if (!stepOccupied)
+            {
+                foreach (var mob in world.Mobs)
+                {
+                    if (mob.Health > 0f && mob.Junction.Equals(targetJunctionId))
+                    {
+                        stepOccupied = true;
+                        break;
+                    }
                 }
             }
 
@@ -5309,6 +5470,10 @@ public sealed class MovementSystem : ISimulationSystem
             var movementPerTick = npc.MoveSpeed * npc.Body.MobilityFactor() *
                 EquipmentMath.WetMovementFactor(world, npc) *
                 alignmentFactor * world.TickDeltaTime;
+            if (DamageReactionSystemHelpers.IsAdrenalineActive(world, npc))
+            {
+                movementPerTick *= SimBalance.AdrenalineMoveSpeedFactor;
+            }
 
             // §40.18-B: deep-water strokes are slower than a walk on land.
             // Keyed off the SWIMMER's tile, so the slowdown starts once she is
@@ -7076,6 +7241,10 @@ public sealed class ExecutionSystem : ISimulationSystem
             Trace.Emit(world, npc.Id, "AidStarted",
                 $"Kind={kindNow} With NPC{targetId.Value} Severity={severity:F2} " +
                 $"Duration={Spec53.AidDuration}ticks");
+            if (kindNow == AidKind.Treat)
+            {
+                StabilizeBleedingOnAidStart(world, npc, target);
+            }
             return;
         }
 
@@ -7160,6 +7329,28 @@ public sealed class ExecutionSystem : ISimulationSystem
 
             Trace.Emit(world, npc.Id, "CycleReset", "Goal->None (aided)");
         }
+    }
+
+    private static void StabilizeBleedingOnAidStart(WorldState world, NPCState helper, NPCState target)
+    {
+        var stabilized = false;
+        foreach (var wound in target.Wounds)
+        {
+            if (wound.Heal01 < 0.3f && wound.Severity >= 0.05f)
+            {
+                wound.Heal01 = 0.3f;
+                stabilized = true;
+            }
+        }
+
+        if (!stabilized)
+        {
+            return;
+        }
+
+        target.Needs.Blood = MathUtil.Clamp01(target.Needs.Blood + Spec53.TreatBlood * 0.5f);
+        Trace.Emit(world, helper.Id, "AidStabilized",
+            $"NPC{target.Id.Value} bleeding stemmed (Blood={target.Needs.Blood:F2})");
     }
 
     private static void AbortAid(WorldState world, NPCState npc, string reason)
@@ -8087,6 +8278,7 @@ public sealed class ExecutionSystem : ISimulationSystem
     // (Molly, thirst 0.79 ≥ 0.6: the first sleep tick woke her, the auction
     // put her right back to bed, forever).
     internal static bool HasSleepInterrupt(WorldState world, NPCState npc) =>
+        world.Tick < npc.Mind.AdrenalineUntilTick ||
         npc.Memory.Dangers.Count > 0 ||
         npc.Needs.Hunger >= SleepInterruptHunger ||
         npc.Needs.Thirst >= SleepInterruptThirst;
@@ -9013,6 +9205,7 @@ public sealed class ExecutionSystem : ISimulationSystem
             {
                 // Baseline path (pre-§49): instant lump — torso -0.08 (floor 0.1,
                 // only above 0.2) + comfort -0.2. Kept for harness A/B bisect.
+                var beforeTorso = npc.Body.Parts[BodyPart.Torso];
                 if (npc.Body.Parts[BodyPart.Torso] > 0.2f)
                 {
                     npc.Body.Parts[BodyPart.Torso] =
@@ -9025,6 +9218,8 @@ public sealed class ExecutionSystem : ISimulationSystem
                     npc.Health = 0f;
                     Trace.Emit(world, npc.Id, "VitalPartDestroyed", $"{sickVital0} destroyed by sickness");
                 }
+                DamageReactionSystemHelpers.GrantAdrenaline(
+                    world, npc, beforeTorso - npc.Body.Parts[BodyPart.Torso], "Sickness");
                 Trace.Emit(world, npc.Id, "GotSick", $"Raw water (Roll={sickRoll:F2}) instant");
             }
             else if (sickRoll < SimBalance.RawWaterSickChance)
@@ -9508,7 +9703,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
         var recovered = npc.Mind.ComaCause switch
         {
             ComaCause.Exhaustion => npc.Needs.Energy >= SimBalance.ComaWakeThreshold,
-            ComaCause.BloodLoss => npc.Needs.Blood >= SimBalance.ComaWakeThreshold,
+            ComaCause.BloodLoss => npc.Needs.Blood >= SimBalance.ComaBloodWakeThreshold,
             _ => false
         };
 
@@ -9563,7 +9758,8 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             var sweat = 1f + SweatThirstFactor * System.Math.Max(0f, npc.Needs.ThermalComfort);
             npc.Needs.Hunger = MathUtil.Clamp01(npc.Needs.Hunger + HungerRate * metabolism);
             npc.Needs.Thirst = MathUtil.Clamp01(npc.Needs.Thirst + ThirstRate * metabolism * sweat);
-            npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy - EnergyRate);
+            var energyDrain = npc.IsFighting ? 0f : EnergyRate;
+            npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy - energyDrain);
 
             // §54.11: faster sleep recovery — a base lift (shorter nights) plus a
             // fireside bonus and a bed bonus, so a bed built by the fire pays off
@@ -9589,6 +9785,11 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 }
 
                 npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy + wake);
+            }
+
+            if (DamageReactionSystemHelpers.IsAdrenalineActive(world, npc))
+            {
+                DamageReactionSystemHelpers.ApplyAdrenalineEnergyFloor(npc);
             }
 
             // Spec §60: energy drained to nothing on her feet — the body
@@ -9697,6 +9898,8 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                         Trace.Emit(world, npc.Id, "VitalPartDestroyed",
                             $"{sickVital} destroyed by sickness");
                     }
+
+                    DamageReactionSystemHelpers.GrantAdrenaline(world, npc, dock, "Sickness");
                 }
                 else
                 {
@@ -10057,6 +10260,8 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     npc.Health = 0f;
                 }
 
+                DamageReactionSystemHelpers.GrantAdrenaline(world, npc, damage, "Starvation");
+
                 Trace.Emit(world, npc.Id, npc.Health <= 0f ? "StarvedToDeath" : "StarvationDamage",
                     $"Hunger={npc.Needs.Hunger:F2} Thirst={npc.Needs.Thirst:F2} " +
                     $"Damage=-{damage:F2} Health={npc.Health:F2}");
@@ -10143,7 +10348,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
 
             Trace.Emit(world, npc.Id, "NeedsDecay",
                 $"Hunger={prevHunger:F3}->{npc.Needs.Hunger:F3}(+{HungerRate}) " +
-                $"Energy={prevEnergy:F3}->{npc.Needs.Energy:F3}(-{EnergyRate}) " +
+                $"Energy={prevEnergy:F3}->{npc.Needs.Energy:F3}(-{energyDrain}) " +
                 $"Comfort={prevComfort:F3}->{npc.Needs.Comfort:F3}(-{ComfortRate}) " +
                 $"Social={prevSocial:F3}->{npc.Needs.Social:F3}(-{SocialRate}) " +
                 $"Sweat={sweat:F2}");
@@ -10305,6 +10510,8 @@ public sealed class TemperatureSystem : ISimulationSystem
                     npc.Health = 0f;
                 }
 
+                DamageReactionSystemHelpers.GrantAdrenaline(world, npc, thermalHpHit, signed > 0f ? "Heatstroke" : "Hypothermia");
+
                 Trace.Emit(world, npc.Id, signed > 0f ? "Heatstroke" : "Hypothermia",
                     $"ThermalComfort={signed:+0.00;-0.00} Health={npc.Health:F2}");
             }
@@ -10353,6 +10560,8 @@ public sealed class TemperatureSystem : ISimulationSystem
                         Trace.Emit(world, npc.Id, "VitalPartDestroyed",
                             $"{burntVital} destroyed by sunstroke");
                     }
+
+                    DamageReactionSystemHelpers.GrantAdrenaline(world, npc, SimBalance.SunburnBurnDamage, "Sunburn");
 
                     Trace.Emit(world, npc.Id, "Sunburn",
                         $"{burntPart} burnt (UV={effectiveUv:F2}) Part={npc.Body.Parts[burntPart]:F2}");
@@ -10883,6 +11092,8 @@ public sealed class MobSystem : ISimulationSystem
         _deadDogs.Clear();
         _deadNpcs.Clear();
 
+        ResolveMobOverlaps(world);
+
         foreach (var dog in world.Mobs)
         {
             RunDog(world, dog);
@@ -10913,6 +11124,39 @@ public sealed class MobSystem : ISimulationSystem
         foreach (var deadId in _deadNpcs)
         {
             RemoveDeadNpc(world, deadId);
+        }
+    }
+
+    private void ResolveMobOverlaps(WorldState world)
+    {
+        foreach (var dog in world.Mobs)
+        {
+            if (dog.Health <= 0f || !IsJunctionOccupiedByActor(world, dog.Junction, dog))
+            {
+                continue;
+            }
+
+            if (!world.Junctions.Items.TryGetValue(dog.Junction, out var junction))
+            {
+                continue;
+            }
+
+            foreach (var neighborId in junction.Neighbors)
+            {
+                if (!world.Junctions.Items.TryGetValue(neighborId, out var neighbor) ||
+                    neighbor.Blocked || neighbor.Door ||
+                    IsIndoorJunction(world, neighborId) ||
+                    SpatialQueries.IsAllWaterJunction(world, neighborId) ||
+                    IsJunctionOccupiedByActor(world, neighborId, dog))
+                {
+                    continue;
+                }
+
+                MoveDogTo(world, dog, neighbor);
+                Trace.EmitSystem(world, "DogUnstacked",
+                    $"Dog={dog.Id} moved to Junction={neighborId.Value}");
+                break;
+            }
         }
     }
 
@@ -11318,7 +11562,7 @@ public sealed class MobSystem : ISimulationSystem
             return;
         }
 
-        MoveDogTo(dog, next);
+        MoveDogTo(world, dog, next);
     }
 
     private static void ChaseStep(WorldState world, Wildlife.MobState dog, NPCState target)
@@ -11328,7 +11572,10 @@ public sealed class MobSystem : ISimulationSystem
             return;
         }
 
-        var path = HexPathfinder.FindPath(world, dog.Junction, targetJunction);
+        _mobPathAvoidScratch.Clear();
+        AddActorJunctions(world, _mobPathAvoidScratch, dog);
+
+        var path = HexPathfinder.FindPath(world, dog.Junction, targetJunction, _mobPathAvoidScratch);
         if (path.Count < 2)
         {
             return;
@@ -11345,7 +11592,15 @@ public sealed class MobSystem : ISimulationSystem
                 break;
             }
 
-            MoveDogTo(dog, next);
+            if (IsJunctionOccupiedByActor(world, path[i], dog))
+            {
+                break;
+            }
+
+            if (!MoveDogTo(world, dog, next))
+            {
+                break;
+            }
         }
     }
 
@@ -11381,8 +11636,15 @@ public sealed class MobSystem : ISimulationSystem
         }
     }
 
-    private static void MoveDogTo(Wildlife.MobState dog, Junction next)
+    private static readonly System.Collections.Generic.HashSet<JunctionId> _mobPathAvoidScratch = new();
+
+    private static bool MoveDogTo(WorldState world, Wildlife.MobState dog, Junction next)
     {
+        if (IsJunctionOccupiedByActor(world, next.Id, dog))
+        {
+            return false;
+        }
+
         dog.Junction = next.Id;
         // Logical position (Junction/Tile) jumps NOW — combat, aggro and
         // pathing read those. The RENDERED Position is left to glide toward
@@ -11393,6 +11655,54 @@ public sealed class MobSystem : ISimulationSystem
         {
             dog.Tile = next.Tiles[0];
         }
+
+        return true;
+    }
+
+    private static void AddActorJunctions(
+        WorldState world,
+        System.Collections.Generic.HashSet<JunctionId> occupied,
+        Wildlife.MobState self)
+    {
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            if (npc.Health > 0f && npc.CurrentJunction is { } npcJunction)
+            {
+                occupied.Add(npcJunction);
+            }
+        }
+
+        foreach (var other in world.Mobs)
+        {
+            if (!ReferenceEquals(other, self) && other.Health > 0f)
+            {
+                occupied.Add(other.Junction);
+            }
+        }
+    }
+
+    private static bool IsJunctionOccupiedByActor(
+        WorldState world,
+        JunctionId junctionId,
+        Wildlife.MobState self)
+    {
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            if (npc.Health > 0f && npc.CurrentJunction is { } npcJunction && npcJunction.Equals(junctionId))
+            {
+                return true;
+            }
+        }
+
+        foreach (var other in world.Mobs)
+        {
+            if (!ReferenceEquals(other, self) && other.Health > 0f && other.Junction.Equals(junctionId))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private bool TrySpawnDog(WorldState world)
@@ -11402,7 +11712,8 @@ public sealed class MobSystem : ISimulationSystem
         {
             if (junction.Blocked || junction.Tiles.Count == 0 ||
                 IsIndoorTile(world, junction.Tiles[0]) ||
-                SpatialQueries.IsAllWaterJunction(world, junction.Id))
+                SpatialQueries.IsAllWaterJunction(world, junction.Id) ||
+                IsJunctionOccupiedByActor(world, junction.Id, self: null))
             {
                 continue;
             }
@@ -12013,6 +12324,7 @@ public sealed class AnimalCombatSystem : ISimulationSystem
         var damage = Stats(dog).AttackDamage * (1f - partArmor);
         target.Body.Parts[bitPart] = System.Math.Max(0f, target.Body.Parts[bitPart] - damage);
         target.Health = target.Body.Mean();
+        DamageReactionSystemHelpers.GrantAdrenaline(world, target, damage, "DogBite");
         // Spec 40.8B: the landed bite leaves a wound record (drives the decal;
         // heals & fades on its own clock). Starvation/heat never create these.
         WoundMath.Inflict(world, target, bitPart, damage);
@@ -12179,6 +12491,7 @@ public static class AmputateSystemHelpers
 
         npc.Body.Parts[part] = System.Math.Max(0f, npc.Body.Parts[part] - damage);
         npc.Health = npc.Body.Mean();
+        DamageReactionSystemHelpers.GrantAdrenaline(world, npc, damage, "DebugBite");
         npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood - damage * 0.5f);
         WoundMath.Inflict(world, npc, part, damage);
 
@@ -13749,6 +14062,7 @@ public sealed class PredationSystem : ISimulationSystem
                 predator.Body.StrikeFactor() * weaponMult * (1f - partArmor);
             victim.Body.Parts[part] = System.Math.Max(0f, victim.Body.Parts[part] - damage);
             victim.Health = victim.Body.Mean();
+            DamageReactionSystemHelpers.GrantAdrenaline(world, victim, damage, "PredationStrike");
             WoundMath.Inflict(world, victim, part, damage);
             if (victim.Body.VitalDestroyed(out _))
             {
@@ -13838,6 +14152,7 @@ public sealed class PredationSystem : ISimulationSystem
             {
                 predator.Body.Parts[defPart] = System.Math.Max(0f, predator.Body.Parts[defPart] - defDamage);
                 predator.Health = predator.Body.Mean();
+                DamageReactionSystemHelpers.GrantAdrenaline(world, predator, defDamage, "PreyCounterStrike");
                 WoundMath.Inflict(world, predator, defPart, defDamage);
                 if (predator.Body.VitalDestroyed(out _))
                 {
@@ -13934,6 +14249,7 @@ public sealed class PredationSystem : ISimulationSystem
             {
                 attacker.Body.Parts[part] = System.Math.Max(0f, attacker.Body.Parts[part] - damage);
                 attacker.Health = attacker.Body.Mean();
+                DamageReactionSystemHelpers.GrantAdrenaline(world, attacker, damage, "HelpCryDefended");
                 WoundMath.Inflict(world, attacker, part, damage);
                 if (attacker.Body.VitalDestroyed(out _))
                 {
@@ -14093,6 +14409,7 @@ public sealed class SharkSystem : ISimulationSystem
             npc.Body.Parts[bitPart] =
                 System.Math.Max(0f, npc.Body.Parts[bitPart] - Content.MobCatalog.For(Content.MobIds.Shark).AttackDamage);
             npc.Health = npc.Body.Mean();
+            DamageReactionSystemHelpers.GrantAdrenaline(world, npc, Content.MobCatalog.For(Content.MobIds.Shark).AttackDamage, "SharkBite");
             npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood - 0.15f);
             WoundMath.Inflict(world, npc, bitPart, Content.MobCatalog.For(Content.MobIds.Shark).AttackDamage);
             // Spec §50: a shark's 0.2 bite clears the big-blow threshold — if it

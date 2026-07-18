@@ -226,14 +226,11 @@ public static class HexPathfinder
     // NO LONGER holds (777 wins d25 in the current soak). Balance is still
     // knife-edge — re-soak ALL seeds before touching these constants.
     private const long FlatCost = 10L;
-    // 1.2x, applied only when weightClimb (comfortable NPCs). A harness sweep
-    // 2026-07-13 (1.0x-4.0x, 12 seeds x 40d) confirmed raising it is NOT worth
-    // it: total hops stay ~8-10k at EVERY weight (the hops are FORCED survival
-    // crossings by hungry NPCs, who are weight-exempt — a detour can't route
-    // around the only path to food/water), while survival just reshuffles as
-    // noise (WIN bounced 6/6/5/4/6/7/6/6). 1.2x is the mild nudge that lets a
-    // COMFORTABLE NPC prefer a flat route WHEN one exists, with no survival hit.
-    private const long SeamCost = 12L;
+    // 3x, applied when weightClimb. A 1.2x nudge was too weak for short
+    // sawtooth paths: an NPC could still step down-up-down along a ledge while
+    // fetching non-emergency materials because the hop barely cost more than a
+    // flat move.
+    private const long SeamCost = 30L;
 
     // Spec 40.18: entering the swim ring costs 4x a land step — a slow, risky
     // last resort, so a route only takes to the water when there's no dry way.

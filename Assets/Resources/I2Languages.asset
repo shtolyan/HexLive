@@ -241,6 +241,22 @@ MonoBehaviour:
       - 'Рана перевязана: кровотечение остановлено, заживает быстрее.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'effect.adrenaline.title'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Adrenaline'
+      - 'Адреналин'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.adrenaline.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Fresh pain keeps her alert: she cannot sleep, keeps a sliver of energy, and runs faster for a short while.'
+      - 'Свежая боль держит в тонусе: нельзя уснуть, остается немного энергии, и бег временно быстрее.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'effect.strongsun.title'
       TermType: 0
       Description: 

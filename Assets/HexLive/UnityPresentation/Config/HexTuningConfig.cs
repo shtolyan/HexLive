@@ -332,6 +332,12 @@ namespace HexLive.UnityPresentation.Config
         [Header("Бой — ближний бой NPC")]
         [Tooltip("Базовый ответный удар NPC голыми руками за попадание (оружие/инструменты — в GearCatalog).")]
         [Range(0f, 0.5f)] public float dogStrikeDamage = 0.15f;
+        [Tooltip("Сколько тиков после урона держится адреналин: персонаж не может уснуть, эффект виден в панели.")]
+        [Range(0, 300)] public int adrenalineTicks = 80;
+        [Tooltip("Минимальная энергия при активном адреналине (0.05 = 5%).")]
+        [Range(0f, 0.25f)] public float adrenalineEnergyFloor = 0.05f;
+        [Tooltip("Множитель скорости движения при активном адреналине.")]
+        [Range(1f, 3f)] public float adrenalineMoveSpeedFactor = 1.5f;
         // Per-mob combat/behaviour (bite damage, HP, windup/cooldown, aggro,
         // roam, chase, glide, pack-raid) is NO LONGER here — it moved to one
         // MobConfig ScriptableObject per mob under Resources/HexLive/Mobs/

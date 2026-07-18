@@ -120,14 +120,12 @@ namespace HexLive.Simulation.Runtime
         public static float ChairComfort = 0.4f;            // comfort per sit in a chair
         public static float ChairEnergy = 0.1f;             // energy per sit in a chair
 
-        // Spec §60: coma. A body whose Energy hits 0 — or whose Blood drains
-        // to the enter line — drops where it stands and lies as if dead,
-        // recovering exactly as in sleep, until the felling stat climbs back
-        // over the wake threshold. Blood at 0 still KILLS (spec 40.2): the
-        // blood coma is the razor's edge before it, where the bleed races
-        // the healing sleep.
+        // Spec §60: coma. Exhaustion wakes at the shared threshold; blood-loss
+        // coma uses its own hysteresis so a survivor who is still low on blood
+        // does not stand up, act for a few ticks, then collapse again.
         public static float ComaWakeThreshold = 0.15f;
-        public static float ComaBloodEnterThreshold = 0.05f;
+        public static float ComaBloodEnterThreshold = 0.25f;
+        public static float ComaBloodWakeThreshold = 0.35f;
 
         // ─────────────────────────────────────────────────────────────
         // Food restore (hunger removed when eaten).
@@ -217,6 +215,9 @@ namespace HexLive.Simulation.Runtime
         // Combat — dogs & sharks.
         // ─────────────────────────────────────────────────────────────
         public static float NpcStrikePerPass = 0.15f;   // an NPC's bare strike-back baseline per landed hit
+        public static int AdrenalineTicks = 80;         // fresh damage keeps her too alert to sleep
+        public static float AdrenalineEnergyFloor = 0.05f;
+        public static float AdrenalineMoveSpeedFactor = 1.5f;
         // Per-mob combat/behaviour (bite damage, HP, windup/cooldown, aggro,
         // roam, chase, glide, pack-raid) moved OUT of here into MobCatalog —
         // one config per mob type, tuned by its own MobConfig ScriptableObject.

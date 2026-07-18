@@ -203,6 +203,9 @@ namespace HexLive.UnityPresentation.Config
             // Per-mob combat/behaviour now applies via MobTuning (one MobConfig
             // asset per mob → MobCatalog). Only the human's bare strike stays.
             SimBalance.NpcStrikePerPass = c.dogStrikeDamage;
+            SimBalance.AdrenalineTicks = c.adrenalineTicks;
+            SimBalance.AdrenalineEnergyFloor = c.adrenalineEnergyFloor;
+            SimBalance.AdrenalineMoveSpeedFactor = c.adrenalineMoveSpeedFactor;
         }
 
         // Read the current live statics INTO the asset (the "save current
@@ -387,6 +390,9 @@ namespace HexLive.UnityPresentation.Config
             c.minSplittableDamage = SimBalance.MinSplittableDamage;
 
             c.dogStrikeDamage = SimBalance.NpcStrikePerPass;
+            c.adrenalineTicks = SimBalance.AdrenalineTicks;
+            c.adrenalineEnergyFloor = SimBalance.AdrenalineEnergyFloor;
+            c.adrenalineMoveSpeedFactor = SimBalance.AdrenalineMoveSpeedFactor;
         }
 
         // The game's startup path: load the asset from Resources and apply it,

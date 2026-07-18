@@ -2302,6 +2302,15 @@ namespace HexLive.UnityPresentation.UI
             SetBorder(mood, Gold, 2f);
             left.Add(mood);
 
+            var relationState = new Label($"{RelationKind(rel.Affinity)}\n{RelationTag(rel.Affinity)}");
+            relationState.style.color = TextDim;
+            relationState.style.fontSize = 10;
+            relationState.style.unityFontStyleAndWeight = FontStyle.Bold;
+            relationState.style.unityTextAlign = TextAnchor.MiddleCenter;
+            relationState.style.marginTop = 4f;
+            relationState.style.whiteSpace = WhiteSpace.Normal;
+            left.Add(relationState);
+
             card.Add(left);
 
             var body = new VisualElement();
@@ -2326,11 +2335,6 @@ namespace HexLive.UnityPresentation.UI
             name.style.textOverflow = TextOverflow.Ellipsis;
             title.Add(name);
 
-            var state = new Label(RelationKind(rel.Affinity));
-            state.style.color = TextDim;
-            state.style.fontSize = 11;
-            state.style.marginTop = -2f;
-            title.Add(state);
             top.Add(title);
 
             var scoreBox = new VisualElement();
@@ -2352,13 +2356,6 @@ namespace HexLive.UnityPresentation.UI
             scoreBox.Add(score);
             top.Add(scoreBox);
             body.Add(top);
-
-            var tags = new VisualElement();
-            tags.style.flexDirection = FlexDirection.Row;
-            tags.style.flexWrap = Wrap.Wrap;
-            tags.style.marginBottom = 4f;
-            tags.Add(BuildSocialTag(RelationTag(rel.Affinity), RelationColor(rel.Affinity)));
-            body.Add(tags);
 
             body.Add(BuildRelationRings(rel));
 
@@ -2390,10 +2387,11 @@ namespace HexLive.UnityPresentation.UI
             var row = new VisualElement();
             row.style.flexDirection = FlexDirection.Row;
             row.style.alignItems = Align.Center;
-            row.style.justifyContent = Justify.SpaceBetween;
+            row.style.justifyContent = Justify.SpaceAround;
             row.style.flexGrow = 1f;
-            row.style.marginTop = 4f;
-            row.style.paddingRight = 10f;
+            row.style.marginTop = 0f;
+            row.style.paddingLeft = 2f;
+            row.style.paddingRight = 8f;
 
             row.Add(BuildRelationRingMetric(
                 Loc.Get("rel.affinity"),
@@ -2428,7 +2426,7 @@ namespace HexLive.UnityPresentation.UI
             metric.style.flexDirection = FlexDirection.Column;
             metric.style.alignItems = Align.Center;
             metric.style.justifyContent = Justify.Center;
-            metric.style.width = 86f;
+            metric.style.width = 104f;
             metric.style.flexShrink = 0f;
 
             var pct = signed ? Mathf.RoundToInt(value * 100f) : Mathf.RoundToInt(Mathf.Clamp01(value) * 100f);
@@ -2436,8 +2434,8 @@ namespace HexLive.UnityPresentation.UI
             metric.tooltip = $"{labelText}: {text}";
 
             var ringWrap = new VisualElement();
-            ringWrap.style.width = 54f;
-            ringWrap.style.height = 54f;
+            ringWrap.style.width = 72f;
+            ringWrap.style.height = 72f;
             ringWrap.style.alignItems = Align.Center;
             ringWrap.style.justifyContent = Justify.Center;
             ringWrap.style.flexShrink = 0f;
@@ -2451,17 +2449,17 @@ namespace HexLive.UnityPresentation.UI
             ringWrap.Add(ring);
 
             var icon = new VectorIcon(iconKind, color);
-            icon.style.width = 22f;
-            icon.style.height = 22f;
+            icon.style.width = 28f;
+            icon.style.height = 28f;
             ringWrap.Add(icon);
             metric.Add(ringWrap);
 
             var valueLabel = new Label(text);
             valueLabel.style.color = signed ? RelationColor(value) : color;
-            valueLabel.style.fontSize = 12;
+            valueLabel.style.fontSize = 13;
             valueLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
             valueLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-            valueLabel.style.marginTop = 4f;
+            valueLabel.style.marginTop = 5f;
             metric.Add(valueLabel);
 
             return metric;

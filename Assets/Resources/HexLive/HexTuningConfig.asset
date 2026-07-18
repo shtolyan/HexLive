@@ -141,6 +141,9 @@ MonoBehaviour:
   gashesPerHit: 3
   minSplittableDamage: 0.09
   dogStrikeDamage: 0.15
+  adrenalineTicks: 80
+  adrenalineEnergyFloor: 0.05
+  adrenalineMoveSpeedFactor: 1.5
   compassionEnabled: 1
   compassionRate: 0.02
   compassionRecoverRate: 0.01

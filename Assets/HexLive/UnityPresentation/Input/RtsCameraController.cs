@@ -334,7 +334,7 @@ namespace HexLive.UnityPresentation.Input
         private static float TileTopY(TileSnapshot tile)
         {
             var y = SimulationUnityMapper.TileHeight + tile.Elevation * ElevationStep;
-            return tile.Water ? y - ElevationStep * 0.4f : y;
+            return tile.Water ? y - ElevationStep * Rendering.SwimVisuals.SurfaceDropFrac : y;
         }
 
         private static bool PointInsideHex(float x, float z, HexLive.Simulation.Common.TileCoord coord)
@@ -426,7 +426,23 @@ namespace HexLive.UnityPresentation.Input
                 transform.eulerAngles.x, _currentPitch, ref _pitchVelocity, _orbitRotationSmooth);
 
             var rotation = Quaternion.Euler(smoothedPitch, smoothedYaw, 0f);
-            var desiredPosition = target - rotation * Vector3.forward * _orbitDistance;
+
+            // The character bar covers the bottom of the screen, so aiming the
+            // pivot at the screen center hides the NPC's legs behind the UI.
+            // Slide the frame down by half the bar's coverage: the pivot then
+            // lands in the middle of the strip that stays visible above the bar.
+            var uiLift = 0f;
+            var coverage = NpcSelection.BottomUiCoverage;
+            if (_camera != null && coverage > 0.001f)
+            {
+                var frustumHeight = 2f * _orbitDistance *
+                    Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+                uiLift = frustumHeight * coverage * 0.5f;
+            }
+
+            var desiredPosition = target
+                - rotation * Vector3.forward * _orbitDistance
+                - rotation * Vector3.up * uiLift;
 
             transform.position = Vector3.SmoothDamp(
                 transform.position, desiredPosition, ref _orbitVelocity, _orbitPositionSmooth);

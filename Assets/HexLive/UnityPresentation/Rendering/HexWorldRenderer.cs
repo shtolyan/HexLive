@@ -120,6 +120,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private readonly Dictionary<int, Vector3> _prevObjectPositions = new();
     private readonly Dictionary<int, Vector3> _currObjectPositions = new();
 
+    // §35.5B: drying-rack hanging — the junctions occupied by racks this
+    // snapshot, and each hung garment's hanger rank (object id → slot index).
+    private readonly HashSet<JunctionId> _rackJunctions = new();
+    private readonly Dictionary<int, int> _rackHangRank = new();
+    private readonly List<ObjectSnapshot> _rackHangScratch = new();
+    private readonly Dictionary<JunctionId, int> _rackRankScratch = new();
+
     private float HexRadius => SimulationUnityMapper.HexRadius;
 
     private float JunctionMarkerScale => HexRadius * JunctionMarkerScaleFactor;
@@ -496,7 +503,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return;
         }
 
-        var waterY = SimulationUnityMapper.TileHeight - ElevationStep * 0.45f;
+        // Slightly deeper than the tile water surfaces (+0.05 step) so the
+        // infinite sea never z-fights the playable water sheet.
+        var waterY = SimulationUnityMapper.TileHeight
+                   - ElevationStep * (SwimVisuals.SurfaceDropFrac + 0.05f);
 
         // Spec 20.16: an opaque deep sea floor well below the surface. It gives
         // the stylized water real depth everywhere (so open sea reads deep and
@@ -676,10 +686,52 @@ public sealed class HexWorldRenderer : MonoBehaviour
             {
                 _wardrobeHiddenObjects.Add(hiddenId);
             }
+            else if (n.CurrentInteraction == "WashClothes" &&
+                     n.TargetObjectId is { } washingId)
+            {
+                _wardrobeHiddenObjects.Add(washingId);
+            }
             else if (IsGroundCoconutHandInteraction(snapshot, n) &&
                      n.TargetObjectId is { } coconutId)
             {
                 _wardrobeHiddenObjects.Add(coconutId);
+            }
+        }
+
+        // §35.5B: map rack junctions and rank the garments hanging at each one
+        // (sorted by object id) so every hung garment gets a stable hanger slot.
+        _rackJunctions.Clear();
+        _rackHangRank.Clear();
+        foreach (var worldObject in snapshot.Objects)
+        {
+            if (worldObject.DefinitionId == "station.drying_rack" && worldObject.Junctions.Count > 0)
+            {
+                _rackJunctions.Add(worldObject.Junctions[0]);
+            }
+        }
+
+        if (_rackJunctions.Count > 0)
+        {
+            _rackHangScratch.Clear();
+            foreach (var worldObject in snapshot.Objects)
+            {
+                if (worldObject.Junctions.Count > 0 &&
+                    _rackJunctions.Contains(worldObject.Junctions[0]) &&
+                    worldObject.DefinitionId != "station.drying_rack" &&
+                    GarmentDropFactory.IsGarment(worldObject.DefinitionId))
+                {
+                    _rackHangScratch.Add(worldObject);
+                }
+            }
+
+            _rackHangScratch.Sort((a, b) => a.Id.Value.CompareTo(b.Id.Value));
+            _rackRankScratch.Clear();
+            var rankPerJunction = _rackRankScratch;
+            foreach (var hung in _rackHangScratch)
+            {
+                rankPerJunction.TryGetValue(hung.Junctions[0], out var rank);
+                _rackHangRank[hung.Id.Value] = rank;
+                rankPerJunction[hung.Junctions[0]] = rank + 1;
             }
         }
 
@@ -721,6 +773,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 }
             }
 
+            var garmentCondition = objectView.GetComponent<GarmentWorldCondition>();
+            if (garmentCondition != null)
+            {
+                garmentCondition.Sync(worldObject.Durability, worldObject.Dirtiness,
+                    worldObject.Bloodiness, worldObject.Wetness);
+            }
+
             // Spec §54: re-pile a build-site as its delivered materials grow.
             if (!string.IsNullOrEmpty(worldObject.BuildProduct))
             {
@@ -729,6 +788,15 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 {
                     pile.Refresh(worldObject);
                 }
+            }
+
+            // §35.5B: keep a hung garment on its (possibly re-ranked) hanger
+            // slot — when a neighbour is dressed off the rack the rest slide
+            // one slot over. Cheap: one localPosition write per hung garment.
+            if (_rackHangRank.TryGetValue(key, out var hangSlot) && objectView.transform.childCount > 0)
+            {
+                var hungChild = objectView.transform.GetChild(0);
+                hungChild.localPosition = HangSlotOffset(hungChild, hangSlot);
             }
 
             var objPos = GetObjectAnchorPosition(snapshot, worldObject);
@@ -795,7 +863,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // ground puddle underwater.
             if (_npcOnWater.TryGetValue(key, out var onWaterNow) && onWaterNow)
             {
-                var waterSurfaceY = GroundY(npc.Tile) - ElevationStep * 0.4f;
+                var waterSurfaceY = GroundY(npc.Tile) - ElevationStep * SwimVisuals.SurfaceDropFrac;
                 EnsureWaterBlood().OnNpcTick(key, npc.Blood, targetPos, waterSurfaceY, snapshot.Tick);
             }
             else
@@ -920,7 +988,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var earlyUncoveredForDecals = UI.DebugControlsPanel.HideClothing ? AllBodyZones : npc.UncoveredParts;
         var earlyRainWet = snapshot.IsRaining && !_indoorCoords.Contains(npc.Tile) ? 1f : 0f;
         actorView.SetBodyCondition(npc.BodyParts, earlyUncoveredForDecals, npc.Hygiene, earlyThermalForSweat,
-            earlyRainWet, npc.WornWetness, npc.Wounds, npc.BandagedZones, npc.SeveredParts);
+            earlyRainWet, npc.WornWetness, npc.WornDirtiness, npc.WornBloodiness,
+            npc.Wounds, npc.BandagedZones, npc.SeveredParts);
         var heldItemId = IsProne(npc) && IsToolOrWeapon(npc.HeldItemId) ? string.Empty : npc.HeldItemId;
         actorView.SetInteraction(npc.CurrentInteraction, heldItemId);
         // §Wardrobe-anim: the two-beat dress/undress sequence (gather + garment
@@ -946,13 +1015,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
             _lastTalkResultTick[npc.Id.Value] = npc.TalkResultTick;
             actorView.PopRelationship(npc.TalkResultDelta);
         }
-        // Iter 28: ledge seat — applies only to objectless ground sitting.
+        // Edge pose applies to objectless ground sitting and shore washing.
         // Furniture/object seats (including palm stumps) own their own anchor.
         actorView.SetLedgeSit(npc.IsLedgeSit && !HasObjectSitTarget(snapshot, npc),
             npc.LedgeSeatStepsUp);
         // Spec 20.16: hunting/combat shows the weapon and drives a draw/thrust.
         // Timed melee: IsSwinging spans the sim's attack-animation window.
-        actorView.SetCombat(npc.IsFighting, WeaponFor(npc), npc.IsSwinging);
+        actorView.SetCombat(npc.IsFighting, WeaponFor(npc), npc.IsSwinging, npc.StrikeIndex);
         // §29C.3-hit: a health drop staggers her — only while standing still.
         actorView.SignalHealth(npc.Health);
         // Spec 33.1: a carried weapon rides slung on the back when it isn't in
@@ -1004,7 +1073,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // their own sim wetness (soaked cloth shines/darkens, dries back).
         var rainWet = snapshot.IsRaining && !_indoorCoords.Contains(npc.Tile) ? 1f : 0f;
         actorView.SetBodyCondition(npc.BodyParts, uncoveredForDecals, npc.Hygiene, thermalForSweat,
-            rainWet, npc.WornWetness, npc.Wounds, npc.BandagedZones, npc.SeveredParts);
+            rainWet, npc.WornWetness, npc.WornDirtiness, npc.WornBloodiness,
+            npc.Wounds, npc.BandagedZones, npc.SeveredParts);
         actorView.SetClothingHidden(UI.DebugControlsPanel.HideClothing);
         // Portrait isolation: keep the whole actor hierarchy (incl. garments,
         // props and decals spawned this tick) on the Actors layer.
@@ -1025,7 +1095,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         // Spec 31C.2: sleeping happens lying on the bed's attach point.
         // Spec 40.13: a fainted body lies limp where it dropped (no bed).
-        if (npc.IsFainted)
+        // Spec §60: a comatose body lies EXACTLY like a ground sleeper — the
+        // same laying flow pins it to its own junction at the right surface
+        // height (the death clip left feet poking into neighbouring hexes);
+        // waking releases Laying so the usual GetUp plays.
+        if (npc.IsFainted || npc.IsUnconscious)
         {
             // Spec 40.13 v2: collapse lies down with the baked laying clip —
             // ragdoll physics is retired (no tile colliders to land on).
@@ -1541,9 +1615,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return GroundY(coord);
         }
 
-        // Water tiles render their surface sunken 40% of a step below the
-        // tile top (spec 31C.4) — mirror CreateTileView's formula.
-        var surfaceY = GroundY(coord) - ElevationStep * 0.4f;
+        // Water tiles render their surface sunken SurfaceDropFrac of a step
+        // below the tile top (spec 31C.4) — mirror CreateTileView's formula.
+        var surfaceY = GroundY(coord) - ElevationStep * SwimVisuals.SurfaceDropFrac;
         return surfaceY - (_swimCoords.Contains(coord)
             ? SwimVisuals.SinkDepth
             : SwimVisuals.WadeDepth);
@@ -1580,7 +1654,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var topHeight = SimulationUnityMapper.TileHeight + tile.Elevation * ElevationStep;
         if (tile.Water)
         {
-            topHeight -= ElevationStep * 0.4f; // sunken water surface
+            topHeight -= ElevationStep * SwimVisuals.SurfaceDropFrac; // sunken water surface
         }
 
         if (tile.Water)
@@ -1897,10 +1971,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
         }
 
-        // Spec §54.2: the beds are the assembled prefab (bed_leaf_final /
-        // bed_basic_final) with every piece toggled on — the same prefab a
-        // build-site grows piece by piece, so finished and in-progress match.
-        if (HexLive.UnityPresentation.Environment.BedFactory.IsBed(worldObject.DefinitionId))
+        // Spec §54.2/§35.5B: the beds and the drying rack are the assembled
+        // prefab with every piece toggled on — the same prefab a build-site
+        // grows piece by piece, so finished and in-progress match.
+        if (HexLive.UnityPresentation.Environment.BedFactory.IsBed(worldObject.DefinitionId) ||
+            worldObject.DefinitionId == "station.drying_rack")
         {
             var bed = HexLive.UnityPresentation.Environment.BedAssembly.BuildFinished(worldObject.DefinitionId);
             if (bed != null)
@@ -1976,6 +2051,35 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return prefabRoot;
         }
 
+        // §35.5B: a garment at a drying-rack junction HANGS on the rack instead
+        // of lying in the grass — upright on one of the 8 invisible hanger
+        // slots along the rails. The root stays on the shared junction anchor
+        // (interpolation repositions roots), the slot offset lives on the child.
+        if (worldObject.Junctions.Count > 0 && _rackJunctions.Contains(worldObject.Junctions[0]) &&
+            GarmentDropFactory.IsGarment(worldObject.DefinitionId))
+        {
+            var hung = GarmentDropFactory.BuildHanging(worldObject.DefinitionId);
+            if (hung != null)
+            {
+                var hungRoot = new GameObject($"Object {worldObject.DefinitionId} (hung)");
+                hungRoot.transform.SetParent(_objectsRoot, false);
+                hung.transform.SetParent(hungRoot.transform, false);
+                var hungScale = HexRadius * NpcHeightFactor * 2.4f / ActorSourceHeightMeters;
+                hung.transform.localScale = Vector3.one * hungScale;
+                _rackHangRank.TryGetValue(worldObject.Id.Value, out var slot);
+                hung.transform.localPosition = HangSlotOffset(hung.transform, slot);
+                // Face across the rail with a little per-item jitter so the row
+                // reads hand-hung, not machine-stamped.
+                hung.transform.localRotation =
+                    Quaternion.Euler(0f, (worldObject.Id.Value * 37) % 21 - 10f, 0f);
+                var hungPos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
+                hungRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
+                    hungPos, GroundY(worldObject.Tile));
+                AttachGarmentCondition(hungRoot, hung, worldObject);
+                return hungRoot;
+            }
+        }
+
         // Spec 40.19: dropped clothing shows the real garment lying flat on
         // the ground (footwear stands as-is). The factory's pivot is the
         // garment's own centre, so the drop sits exactly on its anchor.
@@ -1994,6 +2098,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             var garmentPos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
             garmentRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
                 garmentPos, GroundY(worldObject.Tile));
+            AttachGarmentCondition(garmentRoot, garment, worldObject);
             return garmentRoot;
         }
 
@@ -2023,6 +2128,39 @@ public sealed class HexWorldRenderer : MonoBehaviour
         root.transform.position = SimulationUnityMapper.ToUnityPosition(pos, GroundY(worldObject.Tile));
         MaybeAttachCampfire(root, worldObject.DefinitionId);
         return root;
+    }
+
+    private static void AttachGarmentCondition(GameObject root, GameObject visual,
+        ObjectSnapshot snapshot)
+    {
+        var condition = root.AddComponent<GarmentWorldCondition>();
+        condition.Construct(visual);
+        condition.Sync(snapshot.Durability, snapshot.Dirtiness, snapshot.Bloodiness, snapshot.Wetness);
+    }
+
+    // §35.5B: where a hung garment's CENTRE goes so its top edge drapes just
+    // over the hanger slot's rail — dropped by the garment's own half-height
+    // (bounds are translation-invariant, so this works before placement too),
+    // clamped so a long garment on the low rail doesn't clip the ground.
+    private static Vector3 HangSlotOffset(Transform hung, int slot)
+    {
+        var attach = HexLive.UnityPresentation.Environment.DryingRackHangers.Slot(slot);
+        var half = 0.15f;
+        var renderers = hung.GetComponentsInChildren<Renderer>();
+        if (renderers.Length > 0)
+        {
+            var bounds = renderers[0].bounds;
+            for (var i = 1; i < renderers.Length; i++)
+            {
+                bounds.Encapsulate(renderers[i].bounds);
+            }
+
+            half = Mathf.Max(0.02f, bounds.extents.y);
+        }
+
+        var y = attach.y + HexLive.UnityPresentation.Environment.DryingRackHangers.DrapeOverlap - half;
+        y = Mathf.Max(y, HexLive.UnityPresentation.Environment.DryingRackHangers.GroundClearance + half);
+        return new Vector3(attach.x, y, attach.z);
     }
 
     // Spec 20.16: the campfire actually burns — flame particles + a warm,
@@ -2494,7 +2632,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             var world = HexSpatialMath.TileToWorld(tile.Coord);
             var topHeight = SimulationUnityMapper.TileHeight
                           + tile.Elevation * ElevationStep
-                          - ElevationStep * 0.4f; // sunken water surface
+                          - ElevationStep * SwimVisuals.SurfaceDropFrac; // sunken water surface
             AppendSubdividedHexTop(vertices, uvs, tris, world.X, world.Y, topHeight, WaterSubdivisions);
         }
 
@@ -2716,7 +2854,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         _lyingTiles.Clear();
         foreach (var npc in snapshot.Npcs)
         {
-            if (npc.IsFainted ||
+            if (npc.IsFainted || npc.IsUnconscious || // §60: a coma flattens the grass too
                 (npc.CurrentInteraction == "Sleep" && npc.ExecutionStatus == "InProgress"))
             {
                 _lyingTiles.Add(npc.Tile);

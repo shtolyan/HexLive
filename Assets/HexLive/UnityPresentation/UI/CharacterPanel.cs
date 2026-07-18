@@ -102,6 +102,7 @@ namespace HexLive.UnityPresentation.UI
             public string Zone;
             public VisualElement Dot;
             public Label Name;
+            public Label Armor; // 🛡 worn-armor absorption for this zone
             public Label Value;
         }
 
@@ -118,6 +119,7 @@ namespace HexLive.UnityPresentation.UI
         private Button _langButton;
 
         private readonly List<NeedBinding> _needBindings = new();
+        private int _selectedRelationId = -1;
 
         // Bipolar temperature cell (signed ThermalComfort: − cold, + hot).
         private Label _thermalLabel;
@@ -445,12 +447,20 @@ namespace HexLive.UnityPresentation.UI
             {
                 _root.style.display = DisplayStyle.None;
                 NpcSelection.PointerOverUi = false;
+                NpcSelection.BottomUiCoverage = 0f;
                 return;
             }
 
             var eased = 1f - Mathf.Pow(1f - _anim, 3f); // easeOutCubic
             var height = _stage.layout.height > 1f ? _stage.layout.height + 40f : 320f;
             _stage.style.translate = new Translate(0f, (1f - eased) * height);
+
+            // Publish how much of the screen the bar covers (slide-in scales it)
+            // so the orbit camera can re-center the NPC in the visible strip.
+            var rootHeight = _root.layout.height;
+            NpcSelection.BottomUiCoverage = rootHeight > 1f
+                ? Mathf.Clamp01(_stage.layout.height * eased / rootHeight)
+                : 0f;
         }
 
         // ── refresh ───────────────────────────────────────────────────────
@@ -1170,6 +1180,15 @@ namespace HexLive.UnityPresentation.UI
                 name.style.flexGrow = 1f;
                 row.Add(name);
 
+                // Worn-armor absorption (hidden while the zone is bare).
+                var armor = new Label();
+                armor.style.color = Comfort;
+                armor.style.fontSize = 12f;
+                armor.style.flexShrink = 0f;
+                armor.style.marginRight = 8f;
+                armor.style.display = DisplayStyle.None;
+                row.Add(armor);
+
                 var value = new Label();
                 value.style.color = TextDim;
                 value.style.fontSize = 12.5f;
@@ -1177,7 +1196,10 @@ namespace HexLive.UnityPresentation.UI
                 row.Add(value);
 
                 list.Add(row);
-                _zoneRows.Add(new ZoneRowBinding { Zone = zone, Dot = dot, Name = name, Value = value });
+                _zoneRows.Add(new ZoneRowBinding
+                {
+                    Zone = zone, Dot = dot, Name = name, Armor = armor, Value = value
+                });
             }
 
             body.Add(list);
@@ -1247,6 +1269,20 @@ namespace HexLive.UnityPresentation.UI
                     }
                 }
 
+                // Worn-armor absorption for this zone ("Zone=0.35").
+                var armor = 0f;
+                foreach (var entry in npc.PartArmor)
+                {
+                    if (entry.StartsWith(binding.Zone) &&
+                        entry.Length > binding.Zone.Length && entry[binding.Zone.Length] == '=')
+                    {
+                        float.TryParse(entry[(binding.Zone.Length + 1)..],
+                            System.Globalization.NumberStyles.Float,
+                            System.Globalization.CultureInfo.InvariantCulture, out armor);
+                        break;
+                    }
+                }
+
                 var severed = npc.SeveredParts.Contains(binding.Zone);
                 var bandaged = false;
                 foreach (var entry in npc.BandagedZones)
@@ -1275,6 +1311,15 @@ namespace HexLive.UnityPresentation.UI
 
                 binding.Name.text = Loc.Get($"zone.{binding.Zone}");
                 binding.Dot.style.backgroundColor = HealthDollStage.StatusColor(hp, severed);
+
+                // 🛡 only when something actually covers the zone; a severed
+                // limb has nothing left to protect.
+                var showArmor = !severed && armor > 0.005f;
+                binding.Armor.style.display = showArmor ? DisplayStyle.Flex : DisplayStyle.None;
+                if (showArmor)
+                {
+                    binding.Armor.text = $"🛡 {Mathf.RoundToInt(armor * 100f)}%";
+                }
 
                 if (severed)
                 {
@@ -1315,7 +1360,7 @@ namespace HexLive.UnityPresentation.UI
         }
 
         // Called from Refresh() while the window is open. Rebuilds the list only
-        // when the item set (or a worn item's wetness/durability) changes.
+        // when the item set or a garment's live condition changes.
         private void RefreshInventory(NpcSnapshot npc)
         {
             if (!_inventoryOpen)
@@ -1330,11 +1375,18 @@ namespace HexLive.UnityPresentation.UI
             var carriedDurability = ParseKv(npc.InventoryDurability);
             var carriedWater = ParseWaterKv(npc.InventoryWater);
             var carriedStacks = ParseIntKv(npc.InventoryStacks);
-            var wetness = ParseKv(npc.WornWetness);
+            var wornWetness = ParseKv(npc.WornWetness);
+            var carriedWetness = ParseKv(npc.InventoryWetness);
+            var wornDirtiness = ParseKv(npc.WornDirtiness);
+            var carriedDirtiness = ParseKv(npc.InventoryDirtiness);
 
             var sig = string.Join(",", npc.WornItems) + "|" + string.Join(",", npc.InventoryItems)
                 + "|" + string.Join(",", npc.WornWetness) + "|" + string.Join(",", npc.WornDurability)
-                + "|" + string.Join(",", npc.InventoryDurability) + "|" + string.Join(",", npc.InventoryWater)
+                + "|" + string.Join(",", npc.WornDirtiness)
+                + "|" + string.Join(",", npc.InventoryDurability)
+                + "|" + string.Join(",", npc.InventoryWetness)
+                + "|" + string.Join(",", npc.InventoryDirtiness)
+                + "|" + string.Join(",", npc.InventoryWater)
                 + "|" + string.Join(",", npc.InventoryStacks) + "|" + npc.InventoryUsedSlots;
             if (sig == _invSig)
             {
@@ -1342,7 +1394,8 @@ namespace HexLive.UnityPresentation.UI
             }
 
             _invSig = sig;
-            RebuildItemList(npc, wornDurability, carriedDurability, carriedWater, carriedStacks, wetness);
+            RebuildItemList(npc, wornDurability, carriedDurability, carriedWater, carriedStacks,
+                wornWetness, carriedWetness, wornDirtiness, carriedDirtiness);
 
             // Keep the detail view coherent: if the shown item is still present,
             // re-render it (its wetness/durability may have moved); else drop back.
@@ -1353,7 +1406,10 @@ namespace HexLive.UnityPresentation.UI
                 if (present)
                 {
                     var selectedDurability = _invSelectedWorn ? wornDurability : carriedDurability;
-                    ShowItemDetail(_invSelectedId, _invSelectedWorn, selectedDurability, carriedWater, carriedStacks, wetness);
+                    var selectedWetness = _invSelectedWorn ? wornWetness : carriedWetness;
+                    var selectedDirtiness = _invSelectedWorn ? wornDirtiness : carriedDirtiness;
+                    ShowItemDetail(_invSelectedId, _invSelectedWorn, selectedDurability,
+                        carriedWater, carriedStacks, selectedWetness, selectedDirtiness);
                 }
                 else
                 {
@@ -1368,7 +1424,10 @@ namespace HexLive.UnityPresentation.UI
             Dictionary<string, float> carriedDurability,
             Dictionary<string, WaterContainerState> carriedWater,
             Dictionary<string, int> carriedStacks,
-            Dictionary<string, float> wetness)
+            Dictionary<string, float> wornWetness,
+            Dictionary<string, float> carriedWetness,
+            Dictionary<string, float> wornDirtiness,
+            Dictionary<string, float> carriedDirtiness)
         {
             _invListBody.Clear();
 
@@ -1378,7 +1437,8 @@ namespace HexLive.UnityPresentation.UI
                 _invListBody.Add(MakeInvSectionHeader(Loc.Get("inv.worn")));
                 foreach (var id in npc.WornItems)
                 {
-                    _invListBody.Add(BuildItemRow(id, true, wornDurability, carriedWater, carriedStacks, wetness));
+                    _invListBody.Add(BuildItemRow(id, true, wornDurability, carriedWater,
+                        carriedStacks, wornWetness, wornDirtiness));
                 }
 
                 any = true;
@@ -1389,7 +1449,8 @@ namespace HexLive.UnityPresentation.UI
                 _invListBody.Add(MakeInvSectionHeader(Loc.Get("inv.carried")));
                 foreach (var id in npc.InventoryItems)
                 {
-                    _invListBody.Add(BuildItemRow(id, false, carriedDurability, carriedWater, carriedStacks, wetness));
+                    _invListBody.Add(BuildItemRow(id, false, carriedDurability, carriedWater,
+                        carriedStacks, carriedWetness, carriedDirtiness));
                 }
 
                 any = true;
@@ -1424,7 +1485,8 @@ namespace HexLive.UnityPresentation.UI
             Dictionary<string, float> durability,
             Dictionary<string, WaterContainerState> water,
             Dictionary<string, int> stacks,
-            Dictionary<string, float> wetness)
+            Dictionary<string, float> wetness,
+            Dictionary<string, float> dirtiness)
         {
             var def = ResolveDef(id);
             var info = ResolveItemInfo(id, def);
@@ -1526,7 +1588,7 @@ namespace HexLive.UnityPresentation.UI
             row.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(row, Stroke));
             row.RegisterCallback<MouseDownEvent>(evt =>
             {
-                ShowItemDetail(id, worn, durability, water, stacks, wetness);
+                ShowItemDetail(id, worn, durability, water, stacks, wetness, dirtiness);
                 evt.StopPropagation();
             });
 
@@ -1539,7 +1601,8 @@ namespace HexLive.UnityPresentation.UI
             Dictionary<string, float> durability,
             Dictionary<string, WaterContainerState> water,
             Dictionary<string, int> stacks,
-            Dictionary<string, float> wetness)
+            Dictionary<string, float> wetness,
+            Dictionary<string, float> dirtiness)
         {
             _invSelectedId = id;
             _invSelectedWorn = worn;
@@ -1567,7 +1630,7 @@ namespace HexLive.UnityPresentation.UI
             _invDetailCategory.style.color = accent;
             _invDetailDesc.text = ItemDesc(def, info);
 
-            BuildItemStats(def, info, worn, durability, water, stacks, wetness);
+            BuildItemStats(def, info, worn, durability, water, stacks, wetness, dirtiness);
 
             _invListView.style.display = DisplayStyle.None;
             _invDetailView.style.display = DisplayStyle.Flex;
@@ -1582,7 +1645,8 @@ namespace HexLive.UnityPresentation.UI
             Dictionary<string, float> durability,
             Dictionary<string, WaterContainerState> water,
             Dictionary<string, int> stacks,
-            Dictionary<string, float> wetness)
+            Dictionary<string, float> wetness,
+            Dictionary<string, float> dirtiness)
         {
             _invDetailStats.Clear();
             if (!worn && stacks.TryGetValue(info.DefinitionId, out var stackCount) && stackCount > 1)
@@ -1604,13 +1668,20 @@ namespace HexLive.UnityPresentation.UI
                     def != null && def.Layer.HasValue ? "inv.clothing_hp" : "inv.durability"));
             }
 
-            if (worn && wetness.TryGetValue(info.DefinitionId, out var wet))
+            if (def != null && def.Layer.HasValue &&
+                wetness.TryGetValue(info.DefinitionId, out var wet))
             {
-                var soaked = wet > 0.5f;
-                var label = soaked ? Loc.Get("inv.soaked") : Loc.Get("inv.dry");
                 _invDetailStats.Add(MakeStatRow(
-                    Loc.Get("inv.wetness"), $"{label} ({Mathf.RoundToInt(wet * 100f)}%)",
-                    soaked ? Thirst : TextDim));
+                    Loc.Get("inv.wetness"), $"{Mathf.RoundToInt(wet * 100f)}%",
+                    Color.Lerp(TextDim, Thirst, Mathf.Clamp01(wet))));
+            }
+
+            if (def != null && def.Layer.HasValue &&
+                dirtiness.TryGetValue(info.DefinitionId, out var dirt))
+            {
+                _invDetailStats.Add(MakeStatRow(
+                    Loc.Get("inv.dirtiness"), $"{Mathf.RoundToInt(dirt * 100f)}%",
+                    Color.Lerp(TextDim, Hunger, Mathf.Clamp01(dirt))));
             }
 
             if (def == null)
@@ -2044,10 +2115,352 @@ namespace HexLive.UnityPresentation.UI
                     : string.Compare(a.OtherName, b.OtherName, StringComparison.OrdinalIgnoreCase);
             });
 
-            foreach (var rel in relations)
+            var selected = relations.Find(r => r.OtherId == _selectedRelationId);
+            if (selected == null)
             {
-                _relationsContainer.Add(BuildRelationChip(rel));
+                selected = relations[0];
+                _selectedRelationId = selected.OtherId;
             }
+
+            _relationsContainer.Add(BuildRelationTabs(relations, selected.OtherId, npc));
+            _relationsContainer.Add(BuildRelationFocusCard(selected));
+        }
+
+        private VisualElement BuildRelationTabs(List<RelationshipSnapshot> relations, int selectedId, NpcSnapshot npc)
+        {
+            var tabs = new VisualElement();
+            tabs.style.flexDirection = FlexDirection.Row;
+            tabs.style.alignItems = Align.Center;
+            tabs.style.height = 48f;
+            tabs.style.flexShrink = 0f;
+            tabs.style.marginBottom = 8f;
+            tabs.style.backgroundColor = new Color(0.054f, 0.069f, 0.080f, 0.72f);
+            SetBorder(tabs, Stroke, 1f);
+            SetRadius(tabs, 10f);
+            tabs.style.overflow = Overflow.Hidden;
+
+            var maxTabs = Mathf.Min(relations.Count, 5);
+            for (var i = 0; i < maxTabs; i++)
+            {
+                tabs.Add(BuildRelationTab(relations[i], relations[i].OtherId == selectedId, npc));
+            }
+
+            if (relations.Count > maxTabs)
+            {
+                var more = new Label($"+{relations.Count - maxTabs}");
+                more.style.color = TextDim;
+                more.style.fontSize = 12;
+                more.style.unityFontStyleAndWeight = FontStyle.Bold;
+                more.style.unityTextAlign = TextAnchor.MiddleCenter;
+                more.style.width = 34f;
+                more.style.flexShrink = 0f;
+                tabs.Add(more);
+            }
+
+            var plusWrap = new VisualElement();
+            plusWrap.style.width = 52f;
+            plusWrap.style.height = Length.Percent(100);
+            plusWrap.style.flexShrink = 0f;
+            plusWrap.style.alignItems = Align.Center;
+            plusWrap.style.justifyContent = Justify.Center;
+            plusWrap.style.backgroundColor = new Color(1f, 1f, 1f, 0.035f);
+            SetBorder(plusWrap, new Color(1f, 1f, 1f, 0.06f), 1f);
+
+            var plus = new Label("+");
+            plus.style.color = TextDim;
+            plus.style.fontSize = 24;
+            plus.style.unityFontStyleAndWeight = FontStyle.Bold;
+            plus.style.unityTextAlign = TextAnchor.MiddleCenter;
+            plus.style.width = 32f;
+            plus.style.height = 32f;
+            SetRadius(plus, 16f);
+            SetBorder(plus, StrokeStrong, 1f);
+            plusWrap.Add(plus);
+            tabs.Add(plusWrap);
+
+            return tabs;
+        }
+
+        private VisualElement BuildRelationTab(RelationshipSnapshot rel, bool selected, NpcSnapshot npc)
+        {
+            var tab = new VisualElement();
+            tab.style.flexDirection = FlexDirection.Row;
+            tab.style.alignItems = Align.Center;
+            tab.style.height = Length.Percent(100);
+            tab.style.flexGrow = 1f;
+            tab.style.flexShrink = 1f;
+            tab.style.minWidth = 76f;
+            tab.style.paddingLeft = 9f;
+            tab.style.paddingRight = 9f;
+            tab.style.backgroundColor = selected
+                ? new Color(1f, 1f, 1f, 0.035f)
+                : new Color(0f, 0f, 0f, 0f);
+
+            var avatar = new VisualElement();
+            avatar.style.width = selected ? 35f : 31f;
+            avatar.style.height = selected ? 35f : 31f;
+            avatar.style.flexShrink = 0f;
+            SetRadius(avatar, selected ? 17.5f : 15.5f);
+            avatar.style.backgroundColor = AvatarColor(rel.OtherId);
+            SetBorder(avatar, selected ? RelationColor(rel.Affinity) : StrokeStrong, selected ? 2f : 1f);
+            avatar.style.alignItems = Align.Center;
+            avatar.style.justifyContent = Justify.Center;
+
+            var initial = new Label(InitialOf(rel.OtherName));
+            initial.style.color = new Color(0.06f, 0.086f, 0.102f);
+            initial.style.unityFontStyleAndWeight = FontStyle.Bold;
+            initial.style.fontSize = 13;
+            initial.style.unityTextAlign = TextAnchor.MiddleCenter;
+            avatar.Add(initial);
+            tab.Add(avatar);
+
+            var name = new Label(rel.OtherName);
+            name.style.color = selected ? Text : TextDim;
+            name.style.fontSize = selected ? 13 : 12;
+            name.style.unityFontStyleAndWeight = selected ? FontStyle.Bold : FontStyle.Normal;
+            name.style.marginLeft = 8f;
+            name.style.flexShrink = 1f;
+            name.style.whiteSpace = WhiteSpace.NoWrap;
+            name.style.overflow = Overflow.Hidden;
+            name.style.textOverflow = TextOverflow.Ellipsis;
+            tab.Add(name);
+
+            if (selected)
+            {
+                var pointer = new VisualElement();
+                pointer.style.position = Position.Absolute;
+                pointer.style.bottom = 0f;
+                pointer.style.left = Length.Percent(50);
+                pointer.style.translate = new Translate(Length.Percent(-50), 0f);
+                pointer.style.width = 24f;
+                pointer.style.height = 3f;
+                pointer.style.backgroundColor = RelationColor(rel.Affinity);
+                SetRadius(pointer, 2f);
+                tab.Add(pointer);
+            }
+
+            tab.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(avatar, GoldDim));
+            tab.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(avatar, selected ? RelationColor(rel.Affinity) : StrokeStrong));
+            tab.RegisterCallback<MouseDownEvent>(evt =>
+            {
+                _selectedRelationId = rel.OtherId;
+                _refreshedTick = -1;
+                UpdateRelations(npc);
+                evt.StopPropagation();
+            });
+
+            return tab;
+        }
+
+        private VisualElement BuildRelationFocusCard(RelationshipSnapshot rel)
+        {
+            var card = new VisualElement();
+            card.style.flexDirection = FlexDirection.Row;
+            card.style.flexGrow = 1f;
+            card.style.minHeight = 0f;
+            card.style.overflow = Overflow.Hidden;
+            card.style.backgroundColor = new Color(0.071f, 0.091f, 0.106f, 0.86f);
+            SetBorder(card, new Color(0.941f, 0.706f, 0.361f, 0.42f), 1f);
+            SetRadius(card, 10f);
+            card.style.paddingLeft = 12f;
+            card.style.paddingRight = 14f;
+            card.style.paddingTop = 12f;
+            card.style.paddingBottom = 12f;
+
+            var left = new VisualElement();
+            left.style.width = 104f;
+            left.style.flexShrink = 0f;
+            left.style.alignItems = Align.Center;
+            left.style.justifyContent = Justify.Center;
+
+            var portrait = new VisualElement();
+            portrait.style.width = 74f;
+            portrait.style.height = 74f;
+            SetRadius(portrait, 37f);
+            portrait.style.backgroundColor = AvatarColor(rel.OtherId);
+            SetBorder(portrait, Gold, 2f);
+            portrait.style.alignItems = Align.Center;
+            portrait.style.justifyContent = Justify.Center;
+
+            var initial = new Label(InitialOf(rel.OtherName));
+            initial.style.color = new Color(0.06f, 0.086f, 0.102f);
+            initial.style.unityFontStyleAndWeight = FontStyle.Bold;
+            initial.style.fontSize = 30;
+            initial.style.unityTextAlign = TextAnchor.MiddleCenter;
+            portrait.Add(initial);
+            left.Add(portrait);
+
+            var mood = new Label(RelationMoodGlyph(rel.Affinity));
+            mood.style.width = 24f;
+            mood.style.height = 24f;
+            mood.style.marginTop = -18f;
+            mood.style.marginLeft = 50f;
+            mood.style.fontSize = 15;
+            mood.style.unityTextAlign = TextAnchor.MiddleCenter;
+            mood.style.backgroundColor = PanelMid;
+            SetRadius(mood, 14.5f);
+            SetBorder(mood, Gold, 2f);
+            left.Add(mood);
+
+            card.Add(left);
+
+            var body = new VisualElement();
+            body.style.flexGrow = 1f;
+            body.style.minWidth = 0f;
+
+            var top = new VisualElement();
+            top.style.flexDirection = FlexDirection.Row;
+            top.style.alignItems = Align.FlexStart;
+            top.style.marginBottom = 6f;
+
+            var title = new VisualElement();
+            title.style.flexGrow = 1f;
+            title.style.minWidth = 0f;
+
+            var name = new Label(rel.OtherName);
+            name.style.color = Text;
+            name.style.fontSize = 21;
+            name.style.unityFontStyleAndWeight = FontStyle.Bold;
+            name.style.whiteSpace = WhiteSpace.NoWrap;
+            name.style.overflow = Overflow.Hidden;
+            name.style.textOverflow = TextOverflow.Ellipsis;
+            title.Add(name);
+
+            var state = new Label(RelationKind(rel.Affinity));
+            state.style.color = TextDim;
+            state.style.fontSize = 11;
+            state.style.marginTop = -2f;
+            title.Add(state);
+            top.Add(title);
+
+            var scoreBox = new VisualElement();
+            scoreBox.style.flexDirection = FlexDirection.Row;
+            scoreBox.style.alignItems = Align.Center;
+            scoreBox.style.flexShrink = 0f;
+            scoreBox.style.marginLeft = 10f;
+
+            var heart = new VectorIcon(VectorIcon.Kind.HeartFill, RelationColor(rel.Affinity));
+            heart.style.width = 24f;
+            heart.style.height = 24f;
+            heart.style.marginRight = 6f;
+            scoreBox.Add(heart);
+
+            var score = new Label(RelationScore(rel.Affinity));
+            score.style.color = RelationColor(rel.Affinity);
+            score.style.fontSize = 17;
+            score.style.unityFontStyleAndWeight = FontStyle.Bold;
+            scoreBox.Add(score);
+            top.Add(scoreBox);
+            body.Add(top);
+
+            var tags = new VisualElement();
+            tags.style.flexDirection = FlexDirection.Row;
+            tags.style.flexWrap = Wrap.Wrap;
+            tags.style.marginBottom = 4f;
+            tags.Add(BuildSocialTag(RelationTag(rel.Affinity), RelationColor(rel.Affinity)));
+            tags.Add(BuildSocialTag(Loc.Get("rel.familiarity"), Social));
+            tags.Add(BuildSocialTag(Loc.Get("rel.trust"), Good));
+            body.Add(tags);
+
+            body.Add(BuildRelationMetricCompact(
+                Loc.Get("rel.affinity"), rel.Affinity, RelationColor(rel.Affinity), true));
+            body.Add(BuildRelationMetricCompact(
+                Loc.Get("rel.familiarity"), rel.Familiarity, Social, false));
+            body.Add(BuildRelationMetricCompact(
+                Loc.Get("rel.trust"), rel.Trust, Good, false));
+
+            card.Add(body);
+
+            return card;
+        }
+
+        private static VisualElement BuildSocialTag(string text, Color color)
+        {
+            var tag = new Label(text);
+            tag.style.color = TextDim;
+            tag.style.fontSize = 10;
+            tag.style.unityFontStyleAndWeight = FontStyle.Bold;
+            tag.style.backgroundColor = new Color(color.r, color.g, color.b, 0.13f);
+            SetBorder(tag, new Color(color.r, color.g, color.b, 0.26f), 1f);
+            SetRadius(tag, 999f);
+            tag.style.paddingLeft = 8f;
+            tag.style.paddingRight = 8f;
+            tag.style.paddingTop = 3f;
+            tag.style.paddingBottom = 3f;
+            tag.style.marginRight = 6f;
+            tag.style.marginBottom = 5f;
+            return tag;
+        }
+
+        private static VisualElement BuildRelationMetricCompact(string labelText, float value, Color color, bool signed)
+        {
+            var row = new VisualElement();
+            row.style.height = 29f;
+            row.style.flexShrink = 0f;
+            row.style.marginTop = 2f;
+
+            var top = new VisualElement();
+            top.style.flexDirection = FlexDirection.Row;
+            top.style.alignItems = Align.Center;
+            top.style.height = 15f;
+
+            var label = new Label(labelText);
+            label.style.color = TextDim;
+            label.style.fontSize = 9.5f;
+            label.style.flexGrow = 1f;
+            label.style.whiteSpace = WhiteSpace.NoWrap;
+            label.style.overflow = Overflow.Hidden;
+            label.style.textOverflow = TextOverflow.Ellipsis;
+            top.Add(label);
+
+            var pct = signed ? Mathf.RoundToInt(value * 100f) : Mathf.RoundToInt(Mathf.Clamp01(value) * 100f);
+            var valueLabel = new Label(signed && pct > 0 ? $"+{pct}%" : $"{pct}%");
+            valueLabel.style.color = signed ? RelationColor(value) : color;
+            valueLabel.style.fontSize = 9.5f;
+            valueLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            valueLabel.style.flexShrink = 0f;
+            valueLabel.style.marginLeft = 8f;
+            top.Add(valueLabel);
+            row.Add(top);
+
+            var meter = signed ? BuildRelationMeter(value) : BuildPositiveMeter(value, color);
+            meter.style.marginTop = 2f;
+            row.Add(meter);
+            return row;
+        }
+
+        private static VisualElement BuildSignalDots(RelationshipSnapshot rel)
+        {
+            var row = new VisualElement();
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.alignItems = Align.Center;
+            row.style.flexShrink = 0f;
+
+            var values = new[]
+            {
+                rel.Familiarity,
+                Mathf.Abs(rel.Affinity),
+                rel.Trust,
+                Mathf.Clamp01((rel.Familiarity + rel.Trust) * 0.5f),
+                Mathf.Clamp01(0.25f + Mathf.Abs(rel.Affinity))
+            };
+
+            for (var i = 0; i < values.Length; i++)
+            {
+                var dot = new Label(SignalGlyph(i, rel.Affinity));
+                dot.style.width = 28f;
+                dot.style.height = 28f;
+                dot.style.marginLeft = 6f;
+                dot.style.unityTextAlign = TextAnchor.MiddleCenter;
+                dot.style.fontSize = 13;
+                dot.style.backgroundColor = new Color(1f, 1f, 1f, 0.045f);
+                SetRadius(dot, 14f);
+                SetBorder(dot, values[i] > 0.2f ? new Color(1f, 1f, 1f, 0.12f) : Stroke, 1f);
+                dot.style.opacity = Mathf.Lerp(0.42f, 1f, Mathf.Clamp01(values[i]));
+                row.Add(dot);
+            }
+
+            return row;
         }
 
         private VisualElement BuildRelationChip(RelationshipSnapshot rel)
@@ -2219,10 +2632,36 @@ namespace HexLive.UnityPresentation.UI
             card.Add(BuildRelationsColumn());
 
             card.Add(BuildCollapseButton());
+            BuildLanguageButton();
             BuildExpandTab();
             BuildEffectTooltip();
             BuildInventoryWindow();
             BuildHealthWindow();
+        }
+
+        private void BuildLanguageButton()
+        {
+            _langButton = new Button(Loc.Toggle) { text = Loc.Code };
+            _langButton.style.position = Position.Absolute;
+            _langButton.style.top = 16f;
+            _langButton.style.right = 18f;
+            _langButton.style.width = 44f;
+            _langButton.style.height = 28f;
+            _langButton.style.backgroundColor = Panel;
+            SetBorder(_langButton, StrokeStrong, 1f);
+            SetRadius(_langButton, 8f);
+            _langButton.style.color = Text;
+            _langButton.style.fontSize = 11;
+            _langButton.style.unityFontStyleAndWeight = FontStyle.Bold;
+            _langButton.style.paddingLeft = 0f;
+            _langButton.style.paddingRight = 0f;
+            _langButton.style.paddingTop = 0f;
+            _langButton.style.paddingBottom = 0f;
+            _langButton.style.marginTop = 0f;
+            _langButton.style.marginBottom = 0f;
+            _langButton.style.marginLeft = 0f;
+            _langButton.style.marginRight = 0f;
+            _root.Add(_langButton);
         }
 
         // Small chevron-down in the card's top-right corner: hide the bar but
@@ -2712,14 +3151,14 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement BuildRelationsColumn()
         {
             var col = new VisualElement();
-            col.style.width = 372f;
+            col.style.width = 560f;
             col.style.flexShrink = 0f;
             col.style.backgroundColor = Panel;
-            col.style.paddingLeft = 22f;
-            col.style.paddingRight = 22f;
-            col.style.paddingTop = 16f;
-            col.style.paddingBottom = 16f;
-            col.style.justifyContent = Justify.Center;
+            col.style.paddingLeft = 14f;
+            col.style.paddingRight = 14f;
+            col.style.paddingTop = 10f;
+            col.style.paddingBottom = 10f;
+            col.style.justifyContent = Justify.FlexStart;
 
             var header = new VisualElement();
             header.style.flexDirection = FlexDirection.Row;
@@ -2731,31 +3170,12 @@ namespace HexLive.UnityPresentation.UI
             _relationsTitle.style.flexGrow = 1f;
             header.Add(_relationsTitle);
 
-            _langButton = new Button(Loc.Toggle) { text = Loc.Code };
-            _langButton.style.backgroundColor = Raised;
-            SetBorder(_langButton, Stroke, 1f);
-            SetRadius(_langButton, 6f);
-            _langButton.style.color = TextDim;
-            _langButton.style.fontSize = 10;
-            _langButton.style.unityFontStyleAndWeight = FontStyle.Bold;
-            _langButton.style.paddingLeft = 8f;
-            _langButton.style.paddingRight = 8f;
-            _langButton.style.paddingTop = 2f;
-            _langButton.style.paddingBottom = 2f;
-            _langButton.style.marginTop = 0f;
-            _langButton.style.marginBottom = 0f;
-            _langButton.style.marginLeft = 0f;
-            _langButton.style.marginRight = 0f;
-            header.Add(_langButton);
             col.Add(header);
 
             _relationsContainer = new VisualElement();
-            var scroll = new ScrollView(ScrollViewMode.Vertical);
-            scroll.style.flexGrow = 1f;
-            scroll.style.minHeight = 0f;
-            scroll.style.maxHeight = 220f;
-            _relationsContainer = scroll.contentContainer;
-            col.Add(scroll);
+            _relationsContainer.style.flexGrow = 1f;
+            _relationsContainer.style.minHeight = 0f;
+            col.Add(_relationsContainer);
 
             return col;
         }
@@ -2916,6 +3336,42 @@ namespace HexLive.UnityPresentation.UI
             if (affinity >= 0.50f) return Loc.Get("rel.friend");
             if (affinity >= 0.25f) return Loc.Get("rel.acquaint");
             return Loc.Get("rel.neutral");
+        }
+
+        private static string RelationMoodGlyph(float affinity)
+        {
+            if (affinity <= -0.25f) return "!";
+            if (affinity < 0f) return "…";
+            if (affinity >= 0.50f) return "♥";
+            return "☺";
+        }
+
+        private static string RelationTag(float affinity)
+        {
+            if (Loc.Current == Language.Russian)
+            {
+                if (affinity <= -0.25f) return "напряжение";
+                if (affinity < 0f) return "осторожно";
+                if (affinity >= 0.50f) return "тепло";
+                return "спокойно";
+            }
+
+            if (affinity <= -0.25f) return "tense";
+            if (affinity < 0f) return "cautious";
+            if (affinity >= 0.50f) return "warm";
+            return "calm";
+        }
+
+        private static string SignalGlyph(int index, float affinity)
+        {
+            return index switch
+            {
+                0 => "✦",
+                1 => affinity < 0f ? "!" : "♥",
+                2 => "•",
+                3 => "✧",
+                _ => affinity < 0f ? "…" : "+"
+            };
         }
 
         private static string InitialOf(string name)

@@ -7,6 +7,8 @@ public sealed class NPCNeeds
     // Spec 29E.1: higher = thirstier.
     public float Thirst { get; set; }
 
+    // Spec §60: at 0 (awake) the body switches off into an exhaustion coma —
+    // it lies as if dead, recovering at sleep pace, and wakes at 15%.
     public float Energy { get; set; }
 
     public float Comfort { get; set; }
@@ -45,6 +47,8 @@ public sealed class NPCNeeds
     // Spec 40.2: blood (1 = full). A badly wounded part (< 0.4) bleeds — blood
     // ebbs away; it refills slowly while fed and rested. At zero the NPC dies
     // of blood loss. Bandages stop the bleed and speed the refill.
+    // Spec §60: below 5% the body drops into a blood-loss coma first — the
+    // last chance before the death line, if the bleed can be outlasted.
     public float Blood { get; set; } = 1f;
 
     // Spec 40.3: first-aid stock, held apart from the general inventory (a

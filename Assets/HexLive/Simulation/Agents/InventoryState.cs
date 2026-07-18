@@ -19,6 +19,12 @@ public sealed class ItemInstance : System.IEquatable<ItemInstance>
     // Spec 35.6 (mechanics pending): rides along at full condition.
     public float Durability { get; set; } = 1f;
 
+    // Persistent garment soil. Unlike body hygiene this belongs to the item,
+    // follows it through dress/undress, and is washed only while worn at water.
+    public float Dirtiness { get; set; }
+
+    public float Bloodiness { get; set; }
+
     // Portable container contents, in drink charges. Pierced coconuts use this
     // like the NPC bottle: pickup/drop preserves the remaining water.
     public float ResourceAmount { get; set; }

@@ -14,6 +14,13 @@ public static class SwimVisuals
     // far below the water surface, so she crosses knee-deep instead of
     // walking ON the water like a saint.
     public static float WadeDepth = 0.2f;
+
+    // Spec 31C.4: how far the water SURFACE sits below its tile top, as a
+    // FRACTION of one elevation step. Every water height derives from this
+    // one number (tile water tops, the merged wave sheet, the sea plane,
+    // actor swim/wade/dive/climb-out heights), so raising the water level is
+    // this single knob. 0.1 => the surface laps just below the bank.
+    public static float SurfaceDropFrac = 0.1f;
 }
 
 }

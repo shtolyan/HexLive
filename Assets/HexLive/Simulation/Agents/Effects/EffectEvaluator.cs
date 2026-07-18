@@ -170,7 +170,15 @@ namespace HexLive.Simulation.Agents.Effects
             }
 
             // ── Survival needs at the danger edge ─────────────────────────
-            var fainted = currentTick < npc.Mind.FaintedUntilTick;
+            // Spec §60: a coma outranks the short faint — one "out cold" chip
+            // at a time, the deeper one.
+            var comatose = npc.Mind.ComaCause != AI.ComaCause.None;
+            if (comatose)
+            {
+                results.Add(new ActiveEffect(EffectKind.Coma, 1f));
+            }
+
+            var fainted = !comatose && currentTick < npc.Mind.FaintedUntilTick;
             if (fainted)
             {
                 results.Add(new ActiveEffect(EffectKind.Fainted, 1f));
@@ -195,7 +203,7 @@ namespace HexLive.Simulation.Agents.Effects
             }
 
             // Winded reads only while conscious — a faint already says it louder.
-            if (!fainted && needs.Stamina < WindedFloor)
+            if (!fainted && !comatose && needs.Stamina < WindedFloor)
             {
                 results.Add(new ActiveEffect(EffectKind.Exhausted, 1f - needs.Stamina / WindedFloor));
             }

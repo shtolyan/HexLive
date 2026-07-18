@@ -39,13 +39,18 @@ namespace HexLive.UnityPresentation
             if (definitionId == "resource.palm_leaf") return r * 0.55f;
             // The spear is a long two-handed weapon — much longer than a hand tool.
             if (definitionId == "tool.spear") return r * 0.9f;
+            // A rope coil is a small bundle — slightly smaller than a coconut
+            // half (food.* renders at 0.12), not tool-sized.
+            if (definitionId == "resource.rope") return r * 0.10f;
             // Tools & resources: 0.216 = the standard hand/ground tool size
             // (was 0.18; +20% after in-hand testing, applied to BOTH paths).
             if (definitionId.StartsWith("tool.") || definitionId.StartsWith("resource.")) return r * 0.216f;
             if (definitionId == "campfire.spot") return r * 0.55f;
             if (definitionId == "grave.npc") return r * 0.35f;
             if (definitionId == "rock.boulder") return r * 0.45f;
-            if (definitionId == "forest.deadfall" || definitionId == "station.drying_rack" ||
+            // §35.5B: station.drying_rack is NOT sized here — drying_rack_final
+            // is authored 1:1 like the beds and rendered via BedAssembly.
+            if (definitionId == "forest.deadfall" ||
                 definitionId == "construction.site") return r * 0.7f;
             return r * 0.6f;
         }
@@ -56,7 +61,7 @@ namespace HexLive.UnityPresentation
             if (definitionId.Contains("tree") || definitionId == "grave.npc") return b.size.y;
             if (definitionId.Contains("bed") || definitionId == "campfire.spot" ||
                 definitionId == "rock.boulder" || definitionId == "forest.deadfall" ||
-                definitionId == "station.drying_rack" || definitionId == "construction.site")
+                definitionId == "construction.site")
                 return Mathf.Max(b.size.x, b.size.z);
             return Mathf.Max(b.size.x, Mathf.Max(b.size.y, b.size.z)); // food / tool / resource / default
         }

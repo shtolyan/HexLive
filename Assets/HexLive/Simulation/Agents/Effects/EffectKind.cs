@@ -32,6 +32,8 @@ namespace HexLive.Simulation.Agents.Effects
                       // and a real DoT — the rest are pure UI classification.
         Exhausted,    // stamina spent to the floor — winded, wants to sit
         Fainted,      // knocked out — utterly spent, lying unable to act
+        Coma,         // spec §60: energy or blood hit 0 — lies as if dead,
+                      // healing at sleep pace, until the stat recovers past 15%
         WellFed,      // freshly full (buff)
         Rested,       // energy and stamina both high (buff)
         Snug,         // §54.11: asleep in a proper bed — resting deeply, recovering

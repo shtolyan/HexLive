@@ -136,7 +136,9 @@ public sealed class SwimTestBootstrap : MonoBehaviour
         _tuningConfig.waveAmplitude = _waveAmplitude;
         _tuningConfig.waveFrequency = _waveFrequency;
         _tuningConfig.waveSpeed = _waveSpeed;
-        // wadeDepth has no SwimTest slider — its config value is left as is.
+        // wadeDepth and waterSurfaceDrop have no SwimTest slider — their
+        // config values are left as is (the water meshes are built at scene
+        // start, so a live water-level slider would desync mesh vs actors).
     }
 
     // Editor button: the config asset -> the sliders (revert to saved).

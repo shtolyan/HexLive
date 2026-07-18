@@ -50,6 +50,8 @@ namespace HexLive.UnityPresentation.Config
         public string prefabResourcePath = "";
 
         [Header("Бой")]
+        [Tooltip("Можно использовать как оружие. Снята — предмет НИКОГДА не достаётся в драке (бутылка, зажигалка, бинт…), какой бы приоритет ни стоял. Кулаки — оружие-фолбэк (галочка стоит, приоритет 0).")]
+        public bool usableAsWeapon = true;
         [Tooltip("Урон одного попадания (до StrikeFactor бойца и брони цели).")]
         [Range(0f, 1f)] public float damage = 0.1875f;
         [Tooltip("Замах: через сколько секунд от старта анимации падает УРОН (плюс хит-реакция и кровь).")]
@@ -110,8 +112,25 @@ namespace HexLive.UnityPresentation.Config
         public Vector3 leftHandLocalPosition;
         public Vector3 leftHandLocalEuler;
 
+        [Header("Удары с индивидуальными таймингами (рукопашка: кулаки/ноги)")]
+        [Tooltip("По строке на удар: клип + свой замах/доигрыш/перезарядка. Сим случайно выбирает удар на каждый обмен и играет ИМЕННО его клип. Непусто — перекрывает attackClips и плоские тайминги боя выше.")]
+        public StrikeAnim[] strikes;
+
+        [System.Serializable]
+        public sealed class StrikeAnim
+        {
+            [Tooltip("Клип этого удара (Punch A/B, Kick A/B из AnimLibrary).")]
+            public AnimationClip clip;
+            [Tooltip("Замах: через сколько секунд от старта клипа падает урон.")]
+            [Range(0.05f, 3f)] public float hitDelaySeconds = 0.2f;
+            [Tooltip("Доигрыш ПОСЛЕ хита до конца анимации, сек.")]
+            [Range(0.05f, 3f)] public float followSeconds = 0.2f;
+            [Tooltip("Перезарядка после анимации, сек.")]
+            [Range(0f, 4f)] public float cooldownSeconds = 0.2f;
+        }
+
         [Header("Анимации (пусто = фолбэк: NpcAnimSet-ряд / процедурный взмах)")]
-        [Tooltip("Клипы атаки этим предметом (несколько — случайный).")]
+        [Tooltip("Клипы атаки этим предметом (несколько — случайный). Игнорируется, если задан список strikes.")]
         public AnimationClip[] attackClips;
         [Tooltip("Idle с предметом в руке (подменяет базовый Idle).")]
         public AnimationClip armedIdle;
@@ -130,7 +149,9 @@ namespace HexLive.UnityPresentation.Config
                 AttackDurationSeconds = attackDurationSeconds,
                 CooldownSeconds = cooldownSeconds,
                 AttackSpeed = attackSpeed,
-                MeleePriority = meleePriority,
+                // Снятая галочка «оружие» = приоритет 0 — существующая
+                // семантика GearStats «0 = никогда не оружие».
+                MeleePriority = usableAsWeapon ? meleePriority : 0,
                 TwoHanded = twoHanded,
                 HarvestSpeedMult = harvestSpeedMult,
             };
@@ -139,6 +160,23 @@ namespace HexLive.UnityPresentation.Config
                 foreach (var capability in capabilities)
                 {
                     stats.Capabilities |= capability;
+                }
+            }
+
+            // Per-strike timing rows → the sim's variant sheet; the clip order
+            // here IS the variant order the sim indexes into.
+            if (strikes != null && strikes.Length > 0)
+            {
+                stats.StrikeVariants = new StrikeVariant[strikes.Length];
+                for (var i = 0; i < strikes.Length; i++)
+                {
+                    var s = strikes[i];
+                    stats.StrikeVariants[i] = new StrikeVariant
+                    {
+                        HitDelaySeconds = s.hitDelaySeconds,
+                        AttackDurationSeconds = s.hitDelaySeconds + s.followSeconds,
+                        CooldownSeconds = s.cooldownSeconds,
+                    };
                 }
             }
 

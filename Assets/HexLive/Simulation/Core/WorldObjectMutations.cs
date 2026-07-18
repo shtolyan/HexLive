@@ -93,8 +93,23 @@ public static class WorldObjectMutations
     // spawn/despawn; felling a tree reopens the path via the same door.
     internal static void SetObstacleBlocking(WorldState world, WorldObjectState worldObject, bool blocked)
     {
-        if (!world.Content.ObjectDefinitions.TryGetValue(worldObject.DefinitionId, out var definition) ||
-            !definition.Tags.Contains("Obstacle"))
+        if (!world.Content.ObjectDefinitions.TryGetValue(worldObject.DefinitionId, out var definition))
+        {
+            return;
+        }
+
+        // §54.9A: a build-site claims the footprint of the piece it will
+        // BECOME — the site's rails must not thread through boulders, and no
+        // later placement may land across the growing bed. At SpawnObject time
+        // BuildProduct is still empty (the staker sets it right after), so the
+        // staker re-invokes this once the product is known.
+        if (!string.IsNullOrEmpty(worldObject.BuildProduct) &&
+            world.Content.ObjectDefinitions.TryGetValue(worldObject.BuildProduct, out var productDefinition))
+        {
+            definition = productDefinition;
+        }
+
+        if (!definition.Tags.Contains("Obstacle"))
         {
             return;
         }

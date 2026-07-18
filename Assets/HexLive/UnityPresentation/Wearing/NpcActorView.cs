@@ -103,6 +103,7 @@ public sealed class NpcActorView : MonoBehaviour
     private bool _wantsTalk;          // sim says CurrentInteraction == "Talk"
     private bool _talkTurnOn;         // this NPC's turn to speak right now
     private bool _wasFighting;        // rising-edge detect for the attack trigger
+    private bool _bareStance;         // fists fight: Idle swapped for the boxing stance
     private bool _wasSwinging;        // rising edge of the sim's swing window
     private float _attackSpeed = 1f;
     private string _combatWeaponId;
@@ -175,16 +176,14 @@ public sealed class NpcActorView : MonoBehaviour
     // bake-raycast placement + stamp records that fade with healing). Flip off
     // to fall back to the decal projectors.
     private const bool PaintWoundsIntoTexture = true;
-    // Spec 40.8 v4: sweat/rain as painted WATER DROPLETS — few large drops,
-    // each stamped into all three skin channels: dome relief in the normal
-    // map, refraction + wet darkening + meniscus rim baked into the albedo,
-    // and near-1 smoothness in a painted gloss map (per-pixel — the uniform
-    // smoothness bump alone could never make a discrete drop). This is the
-    // v3 normal-relief tech un-parked: the pox read came from the DENSE BEAD
-    // SPRAY sheet, not the relief itself, so v4 stamps single exaggerated
-    // drops and skips the face. (v3's spray sheet stays for future
-    // pox/insect-bite visuals — "оставим для болезней или укусов насекомых".)
-    private const bool PaintSweatDroplets = true;
+    // Spec 40.8 v4.3: painted sweat droplets are RETIRED (user verdict: the
+    // glassy RAIN decal droplets read right, the painted patches did not —
+    // and their refraction lens sampled the ORIGINAL albedo, so over a
+    // wound they showed skin-coloured discs). Sweat now reuses the rain
+    // droplet decals below — ONE droplet system for rain and sweat. The
+    // painted-droplet tech stays in SkinTexturePainter (wounds/bandages
+    // still paint; flip this back on to compare).
+    private const bool PaintSweatDroplets = false;
     // The v2 decal-projector bubbles ("не идеальные, но пока лучше не
     // получилось") retire while the painted droplets are on — two sweat
     // systems double-coat the skin. The projector RAIN pass stays (streaks
@@ -268,12 +267,13 @@ public sealed class NpcActorView : MonoBehaviour
     private AnimationClip Standing(AnimationClip standing) =>
         _legless && ProneClip != null ? ProneClip : standing;
 
-    // Spec 40.10-C: garment grime + zone-damage rips. Each hurt zone plants a
-    // world-space damage sphere at its bone anchor (knees/elbows — where cloth
-    // really rips) so the covering garment tears exactly there; dirt follows
-    // hygiene. Anchors mirror the SkinDecals zone segments.
+    // Spec 40.10-C: garment grime + wound blood soak. Each hurt zone plants a
+    // world-space damage sphere at its bone anchor so the blood soaking the
+    // covering cloth sits exactly over the wound; dirt follows hygiene.
+    // Spheres never rip holes — clothing damage is tracked separately (the
+    // garment's own durability drives tear). Anchors mirror SkinDecals zones.
     private const int MaxDamageSpheres = 8;
-    private const float DamageSphereBite = 0.9f; // zone health below this rips
+    private const float DamageSphereBite = 0.9f; // zone health below this bleeds through
     private readonly Vector4[] _damageSpheres = new Vector4[MaxDamageSpheres];
     private static readonly Dictionary<string, string> ZoneBoneAnchors = new()
     {
@@ -344,6 +344,14 @@ public sealed class NpcActorView : MonoBehaviour
 
     private bool _laying;
     private Transform _layingAttach;
+    // Wake-up ease: while asleep the body is pinned to the bed attach point
+    // while the actor root stands on the beside-junction — releasing the pin
+    // in one frame teleported her sideways off the bed. On wake the body
+    // starts where it lay and catches up to the root over this many seconds.
+    private const float WakeEaseSeconds = 0.6f;
+    private Vector3 _wakeFromPos;
+    private Quaternion _wakeFromRot;
+    private float _wakeBlend;
     // Spec 31C.2: world Y of the sleep surface (bed top / ground) passed from
     // the renderer. The LieDown/Sleep/GetUp clips are ground-authored with Y
     // baked into the pose, so the root is pinned to this height directly — no
@@ -936,6 +944,8 @@ public sealed class NpcActorView : MonoBehaviour
     public void SetBodyCondition(IReadOnlyList<string> bodyParts,
         IReadOnlyList<string> uncoveredParts, float hygiene, float thermal,
         float rainWet = 0f, IReadOnlyList<string> wornWetness = null,
+        IReadOnlyList<string> wornDirtiness = null,
+        IReadOnlyList<string> wornBloodiness = null,
         IReadOnlyList<string> wounds = null, IReadOnlyList<string> bandagedZones = null,
         IReadOnlyList<string> severedParts = null)
     {
@@ -1072,11 +1082,14 @@ public sealed class NpcActorView : MonoBehaviour
             _skinPainter.Sync(_woundScratch, _bandagedScratch,
                 PaintSweatDroplets ? _skinWetness : 0f, _uncoveredScratch, wetSmoothnessForPaint,
                 _gauzeScratch);
-            // Projector sweat is retired (v4 paints droplets instead); the
-            // projector "rain" pass keys off the RAIN-only inertial wetness —
-            // the unified pool made sweat spawn whitish rain rings.
+            // v4.3: the projector RAIN droplets serve rain AND sweat — the
+            // unified wetness pool (whichever of rain/sweat is stronger)
+            // feeds the rain pass, so a sweating body beads exactly like a
+            // rained-on one. The old sweat-cluster projector pass stays
+            // retired (SweatDropletProjectors).
             _skinDecals.Sync(null, _uncoveredScratch, hygiene,
-                SweatDropletProjectors ? thermal : 0f, _clothRainWetness, null);
+                SweatDropletProjectors ? thermal : 0f,
+                Mathf.Max(_clothRainWetness, _skinWetness), null);
         }
         else
         {
@@ -1113,8 +1126,8 @@ public sealed class NpcActorView : MonoBehaviour
             renderer.SetPropertyBlock(_skinMpb, index);
         }
 
-        // Spec 40.10-C: garments rip at hurt zones and soil as hygiene drops.
-        // Spheres are rebuilt every sync so they ride the animated bones.
+        // Spec 40.10-C: cloth soaks blood over hurt zones and soils as hygiene
+        // drops. Spheres are rebuilt every sync so they ride the animated bones.
         if (_bodyBones != null)
         {
             var sphereCount = 0;
@@ -1155,9 +1168,46 @@ public sealed class NpcActorView : MonoBehaviour
                 }
             }
 
-            _bodyBones.SetWearGrime(Mathf.Clamp01(1f - hygiene), _damageSpheres, sphereCount,
-                Mathf.Clamp01(bloodSoak * 0.7f), Mathf.Clamp01(thermal / 0.6f));
+            if (wornDirtiness != null)
+            {
+                foreach (var entry in wornDirtiness)
+                {
+                    var tab = entry.IndexOf('\t');
+                    if (tab > 0 && float.TryParse(entry.Substring(tab + 1),
+                            System.Globalization.NumberStyles.Float,
+                            System.Globalization.CultureInfo.InvariantCulture, out var dirt))
+                    {
+                        var definitionId = entry.Substring(0, tab);
+                        var storedBlood = FindWearValue(wornBloodiness, definitionId);
+                        _bodyBones.SetWearGrime(definitionId, Mathf.Clamp01(dirt),
+                            _damageSpheres, sphereCount,
+                            Mathf.Max(storedBlood, Mathf.Clamp01(bloodSoak * 0.7f)));
+                    }
+                }
+            }
         }
+    }
+
+    private static float FindWearValue(IReadOnlyList<string> entries, string definitionId)
+    {
+        if (entries == null)
+        {
+            return 0f;
+        }
+
+        foreach (var entry in entries)
+        {
+            var tab = entry.IndexOf('\t');
+            if (tab > 0 && entry.Substring(0, tab) == definitionId &&
+                float.TryParse(entry.Substring(tab + 1),
+                    System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out var value))
+            {
+                return Mathf.Clamp01(value);
+            }
+        }
+
+        return 0f;
     }
 
     // Spec §50: collapse the bone sub-tree of every severed limb to nothing, so
@@ -1453,6 +1503,19 @@ public sealed class NpcActorView : MonoBehaviour
     // plays the Laying state; waking releases back to the renderer's flow.
     public void SetLaying(bool laying, Transform attachPoint, float surfaceY = 0f)
     {
+        if (_laying && !laying && _bodyRoot != null)
+        {
+            // Getting up: remember where the body actually lay so LateUpdate
+            // can ease it back to the root instead of snapping in one frame.
+            _wakeFromPos = _bodyRoot.position;
+            _wakeFromRot = _bodyRoot.rotation;
+            _wakeBlend = 1f;
+        }
+        else if (laying)
+        {
+            _wakeBlend = 0f; // lying back down cancels any in-flight ease
+        }
+
         _laying = laying;
         _layingAttach = attachPoint;
         _layingSurfaceY = surfaceY;
@@ -1777,7 +1840,8 @@ public sealed class NpcActorView : MonoBehaviour
     {
         var dressing = interaction == "Dress";
         var undressing = interaction == "Undress";
-        if (!dressing && !undressing)
+        var washing = interaction == "WashClothes";
+        if (!dressing && !undressing && !washing)
         {
             if (_animator != null)
             {
@@ -1791,10 +1855,10 @@ public sealed class NpcActorView : MonoBehaviour
 
         var afterHandoff = progress >= WardrobeHandoffFraction;
         // Dress: gather then don. Undress: doff then gather.
-        var showGather = dressing ? !afterHandoff : afterHandoff;
+        var showGather = washing || (dressing ? !afterHandoff : afterHandoff);
         var showDon = dressing && afterHandoff;
         var showDoff = undressing && !afterHandoff;
-        var showGarment = afterHandoff && !string.IsNullOrEmpty(garmentId);
+        var showGarment = (washing || afterHandoff) && !string.IsNullOrEmpty(garmentId);
 
         if (_animator != null)
         {
@@ -2064,7 +2128,10 @@ public sealed class NpcActorView : MonoBehaviour
     // damage lands mid-window (HitDelaySeconds, sim-side), and between swings
     // she stands recovering — no more view-local attack timer drifting out of
     // sync with the actual blows.
-    public void SetCombat(bool fighting, string weaponId, bool swinging)
+    // strikeIndex: the sim's picked strike variant for THIS swing (fists:
+    // punches/kicks — GearConfig.strikes order); -1 = single-timing gear,
+    // the view rolls a random clip like before.
+    public void SetCombat(bool fighting, string weaponId, bool swinging, int strikeIndex = -1)
     {
         if (_legless)  // §50-prone: lying — no weapons, no fight pose
         {
@@ -2080,6 +2147,13 @@ public sealed class NpcActorView : MonoBehaviour
             _attackSpeed = 1f;
             _combatWeaponId = null;
             _action = ActionKind.None;
+            if (_bareStance)
+            {
+                // Fight over: drop the boxing stance, restore the prop-driven idle.
+                _bareStance = false;
+                UpdateArmedStance(_currentPropId);
+            }
+
             return;
         }
 
@@ -2090,9 +2164,30 @@ public sealed class NpcActorView : MonoBehaviour
             _combatWeaponId = weaponId;
         }
 
+        // Кулачная стойка: bare-handed fighting swaps the Idle for the fist
+        // config's armedIdle (Boxing Stance) — hands up between swings. A
+        // weapon appearing mid-fight hands the idle back to the prop stance.
+        var bareHanded = string.IsNullOrEmpty(weaponId);
+        if (bareHanded && !_bareStance)
+        {
+            var stance = Config.GearLibrary.ArmedIdleFor(string.Empty);
+            if (stance != null)
+            {
+                OverrideClip("Idle", Standing(stance));
+                _bareStance = true;
+            }
+        }
+        else if (!bareHanded && _bareStance)
+        {
+            _bareStance = false;
+            UpdateArmedStance(_currentPropId);
+        }
+
         // Attack clips: the gear SO first (data-driven), the NpcAnimSet
         // weapon row as fallback — empty both = the procedural swing below.
-        var attackClips = Config.GearLibrary.AttackClipsFor(weaponId);
+        // Fists are the empty-id gear sheet (fists.asset, gearId "") — a null
+        // weapon still finds its strike clips.
+        var attackClips = Config.GearLibrary.AttackClipsFor(weaponId ?? string.Empty);
         if (attackClips == null)
         {
             var wa = _animSet != null ? _animSet.WeaponFor(weaponId) : null;
@@ -2104,10 +2199,19 @@ public sealed class NpcActorView : MonoBehaviour
         if (attackClips != null && _animator != null)
         {
             // Clip-based attack: fire the one-shot at the sim's swing start.
+            // The sim's strike pick (fists: which punch/kick) wins; -1 or a
+            // stale index = the old random roll.
             if (swinging && !_wasSwinging)
             {
-                OverrideClip(AttackBaseClip, attackClips[Random.Range(0, attackClips.Length)]);
-                _animator.SetTrigger(AttackParam);
+                var clip = strikeIndex >= 0 && strikeIndex < attackClips.Length
+                    ? attackClips[strikeIndex]
+                    : null;
+                clip ??= attackClips[Random.Range(0, attackClips.Length)];
+                if (clip != null)
+                {
+                    OverrideClip(AttackBaseClip, clip);
+                    _animator.SetTrigger(AttackParam);
+                }
             }
 
             _action = ActionKind.None;
@@ -3198,6 +3302,27 @@ public sealed class NpcActorView : MonoBehaviour
 
                 _bodyRoot.localPosition = rest;
                 _bodyRoot.localRotation = Quaternion.identity;
+
+                // Wake-up ease: blend from the remembered on-bed pose to the
+                // freshly computed rest pose, so she rises where she slept and
+                // glides onto her feet instead of teleporting sideways off the
+                // bed. Skipped when the gap is huge (an intended teleport).
+                if (_wakeBlend > 0f)
+                {
+                    _wakeBlend = Mathf.MoveTowards(
+                        _wakeBlend, 0f,
+                        Time.deltaTime * Mathf.Max(1f, _simSpeed) / WakeEaseSeconds);
+                    if ((_wakeFromPos - _bodyRoot.position).magnitude < _moveEpsilon * 300f)
+                    {
+                        var t = _wakeBlend * _wakeBlend * (3f - 2f * _wakeBlend);
+                        _bodyRoot.position = Vector3.Lerp(_bodyRoot.position, _wakeFromPos, t);
+                        _bodyRoot.rotation = Quaternion.Slerp(_bodyRoot.rotation, _wakeFromRot, t);
+                    }
+                    else
+                    {
+                        _wakeBlend = 0f;
+                    }
+                }
             }
         }
 

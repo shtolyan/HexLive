@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Globalization;
 using UnityEngine;
+using UnityEngine.Animations;
+using UnityEngine.Playables;
 
 namespace HexLive.UnityPresentation.UI
 {
@@ -291,25 +293,58 @@ namespace HexLive.UnityPresentation.UI
             var prefab = Resources.Load<GameObject>($"HexLive/Actors/{actorMesh}");
             if (prefab == null)
             {
+                FailBuild($"actor prefab HexLive/Actors/{actorMesh} not found");
                 return;
             }
 
-            _doll = Instantiate(prefab, transform);
+            // Instantiate DEAD: the actor prefab ships live components —
+            // FinalIK solvers, Magica cloth, colliders — that would keep
+            // simulating the doll every frame and slowly drag its bones into
+            // a flat sheet (they have no IK targets/floor down here). The
+            // clone is born under an inactive holder so nothing ever runs
+            // Awake, everything but bones/renderers/Animator is stripped,
+            // and only then the doll wakes up.
+            var holder = new GameObject("DollBuild");
+            holder.SetActive(false);
+            holder.transform.SetParent(transform, false);
+            _doll = Instantiate(prefab, holder.transform);
             _doll.name = $"Doll_{actorMesh}";
             _doll.transform.localPosition = Vector3.zero;
             _doll.transform.localRotation = Quaternion.identity;
+            StripLiveComponents(_doll);
+            _doll.transform.SetParent(transform, false);
+            Destroy(holder);
 
-            // Pose: one evaluated frame of the prefab's own locomotion
-            // controller (its default Idle state) — a natural stance with the
-            // arms relaxed at the sides. Manually swinging the shoulder bones
-            // out of the T-pose warped the shoulders/elbows (Genesis skinning
-            // wants its authored poses), so the idle clip does it instead;
-            // then the Animator dies and the bones keep the sampled pose.
+            // Pose: ONE evaluated frame of the Mixamo "Female Standing Pose"
+            // clip (Resources/HexLive/Poses, humanoid — retargets onto the
+            // figure via its avatar), falling back to the prefab controller's
+            // default Idle if the pose asset is missing. Never swing the
+            // shoulder bones manually — Genesis skinning without its authored
+            // poses candy-wraps the arms. After sampling the Animator dies
+            // and the bones keep the pose.
+            // humanMotion guard: a NON-humanoid import of the pose (seen once —
+            // the FBX imported before the Poses postprocessor compiled, came
+            // out Generic and mangled the figure into a flat sheet) must never
+            // reach the humanoid rig; fall back to the controller idle instead.
+            var poseClip = Resources.Load<AnimationClip>("HexLive/Poses/Female Standing Pose");
+            if (poseClip != null && !poseClip.humanMotion)
+            {
+                Debug.LogWarning("[HealthDoll] pose clip is not humanoid — reimport " +
+                    "Assets/Resources/HexLive/Poses (delete its .meta); using controller idle.");
+                poseClip = null;
+            }
+
             foreach (var animator in _doll.GetComponentsInChildren<Animator>(true))
             {
-                if (animator.runtimeAnimatorController != null)
+                animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                if (poseClip != null && animator.avatar != null)
                 {
-                    animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                    AnimationPlayableUtilities.PlayClip(animator, poseClip, out var graph);
+                    graph.Evaluate(0f);
+                    graph.Destroy();
+                }
+                else if (animator.runtimeAnimatorController != null)
+                {
                     animator.Update(0f);
                 }
 
@@ -342,6 +377,13 @@ namespace HexLive.UnityPresentation.UI
 
             if (primary == null || !primary.sharedMesh.isReadable)
             {
+                // A non-readable body mesh (Molly's re-saved MollyMesh.mesh
+                // shipped with m_IsReadable: 0) used to fail SILENTLY here —
+                // the camera never turned on and the window kept showing the
+                // PREVIOUS character's frozen frame («одна и та же кукла»).
+                FailBuild(primary == null
+                    ? $"{actorMesh}: no skinned body renderer found"
+                    : $"{actorMesh}: mesh '{primary.sharedMesh.name}' is not Read/Write enabled");
                 Destroy(_doll);
                 _doll = null;
                 return;
@@ -359,6 +401,7 @@ namespace HexLive.UnityPresentation.UI
             _dollMesh = BuildSkinOnlyMesh(primary, out _vertexZone);
             if (_dollMesh == null)
             {
+                FailBuild($"{actorMesh}: no skin submeshes survived the material filter");
                 Destroy(_doll);
                 _doll = null;
                 _dollSkin = null;
@@ -394,6 +437,22 @@ namespace HexLive.UnityPresentation.UI
             }
 
             _colorScratch = new Color32[_dollMesh.vertexCount];
+        }
+
+        // A failed doll build must be LOUD and leave a clean frame — never the
+        // previous character's last render frozen in the window.
+        private void FailBuild(string reason)
+        {
+            Debug.LogWarning($"[HealthDoll] doll build failed — {reason}");
+            if (_texture == null)
+            {
+                return;
+            }
+
+            var previous = RenderTexture.active;
+            RenderTexture.active = _texture;
+            GL.Clear(true, true, Backdrop);
+            RenderTexture.active = previous;
         }
 
         // One combined skin-only submesh + a per-vertex zone id derived from
@@ -441,23 +500,40 @@ namespace HexLive.UnityPresentation.UI
                 }
             }
 
-            var weights = source.boneWeights;
+            // Modern skin-weight API: the legacy mesh.boneWeights property can
+            // come back EMPTY (import-mode dependent), which silently dropped
+            // every vertex into zone 0 — the whole doll painted one colour
+            // (the uniform-green bug). GetAllBoneWeights works for 1/2/4/
+            // unlimited-weight imports; per-vertex weights are sorted most-
+            // significant first, so the dominant bone is just the first entry.
             vertexZone = new int[source.vertexCount];
-            for (var v = 0; v < vertexZone.Length; v++)
+            var bonesPerVertex = source.GetBonesPerVertex();
+            var allWeights = source.GetAllBoneWeights();
+            if (bonesPerVertex.Length != source.vertexCount)
             {
-                if (v >= weights.Length)
+                Debug.LogWarning($"[HealthDoll] {source.name}: no skin weights " +
+                    $"({bonesPerVertex.Length}/{source.vertexCount}) — doll zones default to Torso");
+                for (var v = 0; v < vertexZone.Length; v++)
                 {
-                    break;
+                    vertexZone[v] = 1;
                 }
+            }
+            else
+            {
+                var offset = 0;
+                for (var v = 0; v < vertexZone.Length; v++)
+                {
+                    var count = bonesPerVertex[v];
+                    var zone = 1; // unskinned stray verts read as Torso
+                    if (count > 0)
+                    {
+                        var dominant = allWeights[offset].boneIndex;
+                        zone = dominant >= 0 && dominant < boneZone.Length ? boneZone[dominant] : 1;
+                    }
 
-                var w = weights[v];
-                var best = w.boneIndex0;
-                var bestWeight = w.weight0;
-                if (w.weight1 > bestWeight) { best = w.boneIndex1; bestWeight = w.weight1; }
-                if (w.weight2 > bestWeight) { best = w.boneIndex2; bestWeight = w.weight2; }
-                if (w.weight3 > bestWeight) { best = w.boneIndex3; }
-
-                vertexZone[v] = best >= 0 && best < boneZone.Length ? boneZone[best] : 1;
+                    vertexZone[v] = zone;
+                    offset += count;
+                }
             }
 
             var mesh = Instantiate(source);
@@ -484,6 +560,44 @@ namespace HexLive.UnityPresentation.UI
             }
 
             return true;
+        }
+
+        // Kill every live component on the clone while it is still INACTIVE
+        // (nothing has run Awake): all scripts (FinalIK, cloth, views...),
+        // physics and particles. Survivors: Transform, renderers (the doll's
+        // body), MeshFilter (renderer data) and Animator (needed once, to
+        // sample the pose — destroyed right after). Multiple passes untangle
+        // [RequireComponent] chains: a blocked destroy succeeds on a later
+        // pass once its dependents are gone.
+        private static void StripLiveComponents(GameObject root)
+        {
+            for (var pass = 0; pass < 4; pass++)
+            {
+                var survivors = 0;
+                foreach (var component in root.GetComponentsInChildren<Component>(true))
+                {
+                    if (component == null ||
+                        component is Transform ||
+                        component is MeshFilter ||
+                        component is Animator ||
+                        (component is Renderer && component is not ParticleSystemRenderer
+                                               && component is not TrailRenderer))
+                    {
+                        continue;
+                    }
+
+                    DestroyImmediate(component);
+                    if (component != null)
+                    {
+                        survivors++;
+                    }
+                }
+
+                if (survivors == 0)
+                {
+                    return;
+                }
+            }
         }
 
         private static Transform FindDeep(Transform root, string name)
@@ -525,12 +639,27 @@ namespace HexLive.UnityPresentation.UI
                 zoneColors[i] = color;
             }
 
+            var histogram = new int[ZoneOrder.Length];
             for (var v = 0; v < _colorScratch.Length; v++)
             {
                 _colorScratch[v] = zoneColors[_vertexZone[v]];
+                histogram[_vertexZone[v]]++;
             }
 
             _dollMesh.colors32 = _colorScratch;
+
+            // One line per ACTUAL repaint (sig-gated, so this is rare): the
+            // readout each zone got and how many vertices it owns. A doll
+            // painted one flat colour shows up here instantly — either every
+            // zone at the same hp (data problem) or one zone owning all the
+            // vertices (classification problem).
+            var log = new System.Text.StringBuilder("[HealthDoll] repaint ");
+            for (var i = 0; i < ZoneOrder.Length; i++)
+            {
+                log.Append($"{ZoneOrder[i]}={_zoneHp[i]:0.##}/{histogram[i]}v ");
+            }
+
+            Debug.Log(log.ToString());
 
             // Collapse / restore the stump bones (same trick as the live body:
             // near-zero scale — exact zero NaNs the skinning).

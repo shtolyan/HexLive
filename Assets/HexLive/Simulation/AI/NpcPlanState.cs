@@ -53,7 +53,10 @@ public enum PlanStepType
     GroundCool,  // dwell on a shaded/water tile until cooled (spec 35.4)
     DrinkBottle, // drink in place from the carried bottle (spec 29H)
     CraftInPlace, // §gear-craft: recipe has no station — craft right here
-    Wait
+    Wait,
+    PrepareBathe,
+    SwimBathe,
+    WashClothes
 }
 
 public enum PlanStatus

@@ -462,7 +462,7 @@ namespace HexLive.UnityPresentation.UI
 
         private static int DayNumber(int tick)
         {
-            return tick / EnvironmentSystem.DayLengthTicks + 1;
+            return EnvironmentSystem.CalendarDay(tick);
         }
 
         private static float AverageHealth(IReadOnlyList<NpcSnapshot> npcs)

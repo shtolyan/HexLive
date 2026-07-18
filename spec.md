@@ -4758,6 +4758,28 @@ Dogs are lightweight creatures (`MobState` — the generic mob record, MobId nam
 but survivable fight followed by days of healing. Two dogs at once out-damage
 the kill rate — near-certain death. Armor tilts both fights.
 
+**Рукопашная (кулаки, strike variants).** Безоружная атака идёт тем же
+таймед-мили циклом (замах → хит → доигрыш → перезарядка), но у кулаков не один
+плоский тайминг, а НАБОР УДАРОВ: `GearStats.StrikeVariants` — по строке на удар
+(два удара руками + два ногами), каждая со своими `HitDelay / Duration /
+Cooldown` (плейсхолдер 0.2 с замах/доигрыш/перезарядка). На каждый обмен сим
+детерминированно (hash от seed/tick/npc) выбирает один удар
+(`NpcState.SwingStrikeIndex`, в снапшоте `StrikeIndex`), его тайминги правят
+этот обмен, а презентация играет ИМЕННО его клип — ряды `strikes` в
+`Resources/HexLive/Gear/fist.asset` (GearConfig с пустым gearId; клипы
+Punch A/B + Kick A/B из molly-боксинга/MMA-киков, меню
+**HexLive ▸ Build Unarmed Combat (fists)** собирает ассет идемпотентно).
+Пер-ударные ползунки — на этом же ассете; там же обычные урон / перезарядка /
+приоритет — рукопашка оформлена КАК ОРУЖИЕ, единой логикой. Пока кулачный бой
+идёт, Idle подменяется на боксёрскую стойку (`armedIdle` кулаков, луп Boxing
+Stance). Механизм общий: любой гир может объявить НЕСКОЛЬКО ударов (например,
+два разных замаха топора) — непустой `strikes` перекрывает `attackClips` и
+плоские тайминги. Оружие с одним таймингом идёт прежним путём: `StrikeVariants`
+пуст, индекс −1, клип — случайный из `attackClips`.
+На GearConfig есть галочка `usableAsWeapon`: снята — предмет никогда не
+достаётся в драке (бутылка, зажигалка, котелок, бинт), в сим это транслируется
+как `MeleePriority = 0`.
+
 **Combat is reactive in v1:** a fought NPC has its plan aborted and is held
 in place (`IsFighting`); it strikes back automatically at one adjacent dog.
 No planned hunting yet. Fighting NPCs count as busy for social purposes.
@@ -4911,6 +4933,32 @@ active — nothing outbids running for your life.
   highest-ArmorDelta reachable item instead of the nearest — the NPC
   consciously puts on armor *because the world got dangerous*, accepting the
   overheating cost (29C.4).
+
+### 29C.4B Combat help — the cry and the friend-guard
+
+Two ways a housemate ends up in someone else's fight, both landing on the
+same `Defend` goal (`CombatAssistDogId` / `CombatAssistAttackerNpcId` +
+goal lock; the planner paths to the aggressor via `BuildDefendPlan`, and
+the medium fight pass makes adjacent defenders strike):
+
+**The help cry (`CombatHelpSystem.CallForHelp`)** — fired when a victim
+*flees* (dog or NPC attacker). Radius `HelpCryRadiusTiles` (6), answered
+probabilistically: score = compassion trait 0.55 + affinity 0.35 +
+compassion-need pressure 0.10 vs a hash roll, gated by health/blood ≥ 0.65,
+not starving/dehydrated/fighting/fleeing; at most `MaxHelpCryResponders`
+(2) answer, cooldown 240 ticks.
+
+**The friend-guard (`CombatHelpSystem.RallyFriends`)** — no cry needed.
+Runs every medium fight pass (dog melee AND §56 predation), from the first
+blow — the victim does not have to flee. Any housemate within
+`FriendGuardRadiusTiles` (**6 hexes**) whose affinity toward the victim is
+≥ `FriendGuardAffinity` (0.25 — good relations) **drops everything**
+(plan/execution aborted) and takes the `Defend` goal at the aggressor —
+no compassion score, no roll, no health gate, no responder cap. Friendship
+is the trigger. Skipped only if the helper is dead, prone, already
+fighting, already defending, fleeing, or is the attacker. Trace:
+`FriendGuard` (also in the game history log); the helper stamps the same
+help-answer social cues as a cry response. Knobs live in `Spec57`.
 
 ### 29C.5 Explore Goal (23.2 addition)
 
@@ -6282,11 +6330,18 @@ until it earns art.
 
 ### 31C.4 Water depth & sand
 
-Water tiles render **sunken and translucent**: the hex top drops ~40 % of
-tile height below ground level with an alpha-blended blue material — an
-NPC wading the shallows visibly sinks to the ankles (the simulation
-already walks through Water tiles; this is pure visual depth). Walkable
-tiles adjacent to water render sand-colored — the river gets banks.
+Water tiles render **sunken and translucent**: the hex top drops
+`SwimVisuals.SurfaceDropFrac` of an elevation step below ground level
+(tuned via `HexTuningConfig.waterSurfaceDrop`; default 0.1 — the surface
+laps just below the bank; originally 0.4) with an alpha-blended blue
+material — an NPC wading the shallows visibly sinks to the ankles (the
+simulation already walks through Water tiles; this is pure visual depth).
+Every water height derives from this one knob — tile water tops, the merged
+wave sheet, the sea plane (drop + 0.05 step, so it never z-fights the
+playable sheet), and the actor swim/wade/dive/climb-out heights — so
+raising the water level moves them all together. The meshes are built at
+scene start, so it is a config value, not a live slider. Walkable tiles
+adjacent to water render sand-colored — the river gets banks.
 
 ### 31C.5 Post-play fixes (user report)
 
@@ -6323,14 +6378,16 @@ tiles adjacent to water render sand-colored — the river gets banks.
   obstacle "stand beside" mechanism.
 - **The bed is solid** (24.3 amendment): `ObjectDefinition.ObstacleRadius`
   (world units) blocks every junction within that radius of the anchor —
-  not just the anchor itself. `bed.basic` gets Obstacle + radius **0.3 x
-  hex radius** — the bedroll core; the first soak at 0.45 blocked so much
-  of the small home interior that traffic starved the colony (starving
-  38 -> 22 on the control run). Nobody paths through the bed and the
-  sleeper approaches from beside it. Blocked junctions are recorded
-  per object (`WorldObjectState.BlockedJunctions`) so despawn unblocks
-  exactly what the object blocked — overlapping obstacles and walls stay
-  intact.
+  not just the anchor itself. History: `bed.basic` first shipped at 0.45×R
+  (traffic starved the small hut interior, starving 38 -> 22), was cut to
+  the 0.3×R "bedroll core", and since **§54.9A** claims its full PHYSICAL
+  footprint (1.25 wu, measured off `bed_basic_final`) — safe now because
+  the hut is retired (§54.10), beds live in the open fireside yard, and
+  placement itself guarantees the footprint fits (`FootprintClear`).
+  Nobody paths through the bed and the sleeper approaches from beside it.
+  Blocked junctions are recorded per object
+  (`WorldObjectState.BlockedJunctions`) so despawn unblocks exactly what
+  the object blocked — overlapping obstacles and walls stay intact.
 
 ### 29G Ground Rest & The Crafted Bed (iteration 28)
 
@@ -7687,21 +7744,35 @@ the current spatial system, not bolted on.
   of: ×3 in direct sun (effective UV > 0.3 at the holder's/item's tile,
   shade/indoor rules from 35.4 apply), ×4 within 1 tile of a lit campfire,
   ×5 hanging on the drying rack, else ×1. Multipliers do not stack.
-- **Drying rack**: `station.drying_rack` object; `CraftRack` goal (score
-  0.3 + 0.2 when raining or any worn item wet; the first soak scored it
-  0.1+0.3 and it lost all 811 available ticks to the busy goal field —
-  infrastructure competes like CraftLeather 0.35, not like filler;
-  requires 2 logs carried, none exists yet) — crafted at the campfire and placed on a free
-  neighbor junction. "Holds one item" v1: hanging = the NPC undresses the
-  wettest worn garment and it spawns as a ground object **at the rack's
-  junction**; a wearable at the rack junction dries ×5. Hung clothes are
-  ownerless loot (28.15D rule) — anyone cold just dresses from the rack.
+- **Drying rack (§35.5B — staged build-site)**: `station.drying_rack`.
+  The old instant `CraftRack` goal is RETIRED — the rack is now a staged
+  fireside furniture build-site exactly like the beds (§54.12).
+  `BedSiteSystem` stakes ONE communal rack site by the hearth as soon as a
+  hearth exists (before the first bed — it is cheap); the generic
+  BuildFurniture haul/raise chain does the rest. Stages
+  (`BuildSiteMath.DryingRackStages`, bill knobs
+  `SimBalance.RackBillSticks=4` / `RackBillRope=4`): **2 sticks (uprights
+  planted in the ground) → 2 sticks (rails across them) → 4 rope
+  (lashings at the joints)**. Hand-lashed like the leaf mat — no hammer.
+  The view is the assembled `drying_rack_final` prefab (authored 1:1 from
+  the game's own stick pieces + rope lashings, BedAssembly stage groups
+  "1".."3") — the site visibly grows into the finished rack.
+- **Hanging (§35.5B — 8 hanger slots)**: the rack holds up to
+  `SimBalance.RackCapacity = 8` garments (`RackIsFull` counts wearables at
+  the rack's junction). Hanging = the NPC undresses the wettest worn
+  garment and it spawns as a ground object **at the rack's junction**; a
+  wearable at the rack junction dries ×5. Presentation: a garment at a
+  rack junction renders HANGING on one of 8 invisible hanger slots along
+  the two rails (`DryingRackHangers`, 4 per rail, draped from the rail
+  top by its own half-height, slot = rank of object id among the hung) —
+  not lying in the grass. Hung clothes are ownerless loot (28.15D rule) —
+  anyone cold just dresses from the rack.
 - **DryClothes goal** (score 0.15 + 0.4 × max worn wetness; available when
-  a worn item has Wetness > 0.5, it is not raining, and a free rack or lit
-  campfire is known reachable): if the rack junction is free → walk there
-  and hang the wettest item (`ItemHung` trace); else a move-only trip to
-  the lit campfire — standing there dries the whole outfit at ×4.
-  Cooldown 40 ticks on completion/failure.
+  a worn item has Wetness > 0.5, it is not raining, and a rack with a free
+  slot or lit campfire is known reachable): if the rack has a free hanger
+  slot → walk there and hang the wettest item (`ItemHung` trace); else a
+  move-only trip to the lit campfire — standing there dries the whole
+  outfit at ×4. Cooldown 40 ticks on completion/failure.
 - Deliberate v1 simplifications: rain has no sound/visual sim side; no
   puddles; rabbits/dogs ignore rain; boiled-water pots don't collect rain.
 
@@ -7950,8 +8021,9 @@ pass — order chosen to add robustness before difficulty.
   reads it as the red channel over the tan, masked by garment coverage.
 - **Rate & shade:** tan builds only on bare parts under the sun, gated by
   `effectiveUv > 0.5`, which already carries the shade penalty (shaded tiles
-  cut UV ×0.2), so you tan **less in shade**. Rate `0.0018/slow-tick·part`
-  ≈ ~10 game days to max at open-sun exposure. Presentation tans THROUGH
+  cut UV ×0.2), so you tan **less in shade**. Rate `0.0009/slow-tick·part`
+  ≈ ~20 game days to max at open-sun exposure (halved from 0.0018 —
+  tanning deliberately slow). Presentation tans THROUGH
   red: pale skin first flushes toward a fresh-burn red (`0.79, 0.55, 0.57`
   by TanLevel 0.35 — the retired low-HP flush color, which read exactly
   like "just caught the sun"), then deepens into the full-tan **deep
@@ -8105,7 +8177,20 @@ pass — order chosen to add robustness before difficulty.
     lens trick) and an additive meniscus rim baked into the albedo; and a
     **painted gloss map** — the third channel: `_MetallicGlossMap` alpha
     carries ABSOLUTE smoothness (base = the current wetness gloss, 0.95
-    in drops, BlendOp Max for overlaps). URP 17 Lit multiplies map alpha
+    in drops, BlendOp Max for overlaps). **v4.3: painted sweat droplets
+    are OFF** (`PaintSweatDroplets = false` in `NpcActorView`) — the user
+    verdict landed on the glassy projector RAIN decal droplets as the ONE
+    droplet look for rain and sweat (the rain pass now keys off
+    `max(rain wetness, unified wetness)`, so a sweating body beads like a
+    rained-on one). Known flaw of the painted patches: their refraction
+    lens samples the ORIGINAL albedo, so over a wound they read as
+    skin-coloured discs. The painted-droplet tech stays behind the flag
+    (wounds/bandages still paint). Tuning gotcha for any future gloss
+    work: smoothness EXACTLY 1.0 is a URP dead-zone — zero roughness
+    collapses the GGX highlight to a subpixel point and reads MATTE; and
+    the visible-from-any-angle wet sheen needs more than smoothness
+    (dielectric skin reflects only ~4% of the sky cubemap; a noon sun
+    never mirror-aligns on vertical skin — verified in-editor). URP 17 Lit multiplies map alpha
     × the `_Smoothness` scalar (verified in `LitInput.hlsl`
     `SampleMetallicSpecGloss`; map R replaces `_Metallic` — kept 0), so
     `NpcActorView` pins the property-block scalar to **1.0 on slots where
@@ -8169,7 +8254,8 @@ pass — order chosen to add robustness before difficulty.
 - **SHIPPED (40.8-C, shader layers instead of decals): blood & sweat on
   cloth.** The GarmentTear shader gained two artistic layers alongside the
   dust: **blood soak** — deep venous red wicking through the fabric exactly
-  over the wound (localized by the SAME damage spheres that rip the cloth,
+  over the wound (localized by the wound-anchored damage spheres — which
+  since the 40.10-E decouple ONLY place blood, never rip holes;
   noise-spread like real wicking; intensity = Σ unhealed wound hostage,
   fades as wounds close; stain brightness scales with the cloth's own
   luminance) — and **sweat damp** — noise patches that darken the fabric a
@@ -8363,8 +8449,19 @@ pass — order chosen to add robustness before difficulty.
   летают") and samples `_MetallicGlossMap` (metallic R × `_Metallic`,
   smoothness A × `_Smoothness`, white default = old constants — losing
   the gloss map flattened worn leather/satin to uniform plastic). Known limit: natural-hole
-  seeds use instance ids, so their spots reshuffle across a save reload
-  (bite holes re-derive from wounds and stay).
+  seeds use instance ids, so their spots reshuffle across a save reload.
+- **UPDATE — §40.10-E: wounds DECOUPLED from cloth holes.** Body wounds no
+  longer rip the covering garment (an NPC with fresh bites but a 96%-HP
+  vest showed holes — wrong: **дырки в одежде = только износ самой одежды**;
+  clothing damage is its own durability stat, spec 40.10/§52). Removed the
+  bite-hole path end to end: `GarmentWearPainter` no longer takes damage
+  spheres (`SetState(tear, dirt)` — natural seeded holes from the garment's
+  own erosion only), `Wear` dropped the `HasDamageHoles` tear floor and
+  forces `_SphereTearOn 0` in both painted and procedural modes (shader
+  default now 0 too). The damage spheres themselves REMAIN — they still
+  localize the 40.8-C **blood soak** over fresh wounds (blood on cloth is
+  the wound's only garment feedback), and `NpcActorView` keeps rebuilding
+  them per sync for that.
 
 ### 40.11 Character UI panel
 - Select an NPC → a **button** opens a panel showing: **equipment slots**
@@ -8599,7 +8696,7 @@ Flow of one crossing (sim leads, view follows):
   curve carries the body from the bank INTO the water.
 - **Sink, don't snap.** A swimmer's root hangs `SwimVisuals.SinkDepth`
   (default 0.35 wu) BELOW the water surface (`HexWorldRenderer.ActorGroundY`;
-  surface = tile top − 0.4·step per §31C.4). Deep water only — walkable river
+  surface = tile top − `SurfaceDropFrac`·step per §31C.4). Deep water only — walkable river
   shallows still wade ankle-deep. Feet never snap onto the surface.
 - **Tread a beat.** `MovementSystem` holds the swimmer still for
   `SwimEntryPauseSeconds` (default 0.75 s, `SwimEnter` trace) on entering a
@@ -8740,11 +8837,22 @@ RESTORED state (v2: load first, then simulate the absence) and finishes
 BEFORE any view spawns — the player returns to "time really passed":
 resources regrown, needs drifted, maybe someone got bitten.
 
+While winding, the screen shows a big **«День N · ЧЧ:ММ»** readout using the
+sim's own clock formatter. The displayed day is the **calendar day**
+(`EnvironmentSystem.CalendarDay`): the tick-day starts at 06:00 (tick 0 =
+Day 1, 06:00), but the day NUMBER rolls over at **midnight** — 23:59 of
+day N is followed by 00:00 of day N+1, not by six more hours of day N.
+Every player-facing day readout (loading wind, weather widget, game
+history, end summary) uses this helper; sim logic (raids, storms,
+spoilage) stays on raw tick-days.
+
 ### 41.4 Main menu (iteration 38, restyled iteration 43)
 The loading screen opens with a MENU over the island art, before any world
 exists — a dark rounded card docked bottom-left, icon rows painted with
 Painter2D (no texture assets): **«Продолжить»** (gold primary; dimmed and
-unclickable without a save), **«Новая игра»** (deletes the save, rolls a
+unclickable without a save), **«Перезапустить остров»** (deletes the save
+but keeps its seed — rebuilds the SAME island from day 1; dimmed without a
+save), **«Новая игра»** (deletes the save, rolls a
 fresh seed), **«Настройки»** and **«Персонажи»** (visible placeholders,
 disabled for now), **«Выйти из игры»** (`Application.Quit`, stops play mode
 in-editor), then a divider and the tagline («Исследуй. Строй. Выживай.»).
@@ -8823,14 +8931,20 @@ a pure function of TimeOfDayNormalized (up for p in [0,0.5] = 06:00-18:00):
 azimuth sweeps east -> south -> west, elevation follows sin (peak ~65 deg at
 noon, ~8 deg at dawn/dusk). Every medium tick EnvironmentSystem rebuilds
 `WorldState.ShadedTiles` (derived, never serialized): for each tile a ray
-marches TOWARD the sun up to 5 hex steps; a blocker shades it when
+marches TOWARD the sun up to 7 hex steps; a blocker shades it when
 `blockerElev >= myElev + k * tan(sunElev) * (stepWorld/ElevationStep)` —
 tall hexes cast real directional shadows (long at dawn, none at noon for a
-1-step cliff). Shade-tagged objects (palms/big trees) add +2 virtual steps
-on their tile and always shade their OWN tile (canopy); Indoor tiles block
-as +2 (the hut wall). `IsShaded` now reads the map, so UV exposure, tan,
-sunburn and CoolOff inherit directional shade for free. Presentation: the
-snapshot exports the sun azimuth/elevation so SkyDayNightController can
+1-step cliff). Shade-tagged objects add `ObjectDefinition.ShadeSteps`
+virtual steps on their tile and always shade their OWN tile (canopy). The
+steps are matched to the RENDERED mesh height so the sim shadow lands
+roughly where the player sees one (0.55 wu per step): `tree.palm` = 7
+(palm_final is 3.9 wu tall — at midday sun it shades ~1 neighbor tile,
+exactly like the drawn shadow), `tree.palm_small` = 5, low canopies
+(tent) default to 2; Indoor tiles block as +2 (the hut wall). A stump
+(`stump.palm`) carries no Shade tag and casts nothing — felling a palm
+removes its shade with it. `IsShaded` now reads the map, so UV exposure,
+tan, sunburn and CoolOff inherit directional shade for free. Presentation:
+the snapshot exports the sun azimuth/elevation so SkyDayNightController can
 align the rendered light to the same path (visual shadows == sim shade).
 
 ## §44 Blood, rest & herbal bandages (iteration 40)
@@ -9580,9 +9694,9 @@ a **build-site** — an intent point every NPC knows from the start:
 - Build work is **peacetime** (like the hut/raft): it pauses under hunger/thirst
   ≥ 0.55 or fresh danger. Building is a slow surplus activity — the bed, like the
   hut, completes only when the colony has spare hands and stone, by design.
-- Scope note: **bed + hut** run the build-site model in v1; tent & drying-rack
-  keep their campfire craft for now (identical machinery — one table row each to
-  migrate). The old `CraftBed` path is retired.
+- Scope note: **bed + hut + drying-rack (§35.5B)** run the build-site model;
+  the tent keeps its campfire craft for now (identical machinery — one table
+  row to migrate). The old `CraftBed` and `CraftRack` paths are retired.
 
 ### §52.5 The hands — two-handed weapons & combat
 
@@ -9808,6 +9922,32 @@ hand-lashed into a usable bed.
   Bill = `SimBalance.BedLeafBillLeaves`(46) + `BedLeafBillSticks`(8) +
   `BedLeafBillRope`(8) — one simulation item per visual piece of the assembled
   prefab (`bed_leaf_final`), demanded stage by stage (§54.12).
+- **§54.9A Physical footprint.** A bed occupies the junctions it PHYSICALLY
+  covers, and is never placed across another object. The finished prefabs are
+  authored 1:1, so the footprint radius is measured off their real bounds:
+  `bed_leaf_final` 1.47×2.36 wu → `ObstacleRadius = 1.39` (half-diagonal);
+  `bed_basic_final` 1.20×2.20 wu → `1.25`. Both beds carry the `Obstacle` tag
+  (the leaf mat is a framed bed since §54.9, no longer a step-over flat mat).
+  Three consequences, all soak-probed:
+  - *Site claims the product's footprint.* `SetObstacleBlocking` resolves the
+    effective obstacle definition through `BuildProduct` when set — a
+    `build.site` blocks the junctions of the piece it will BECOME (~55 points
+    for the leaf bed at junction spacing ~0.37 wu). `BedSiteSystem` re-invokes
+    it right after staking (at `SpawnObject` time the product is still empty).
+    Despawn stays symmetric via `BlockedJunctions`; raising hands the same
+    points from site to finished bed.
+  - *Placement requires the footprint clear.* `SpatialQueries.FootprintClear`
+    walks every junction within the footprint radius of a candidate anchor
+    (anchor tile + neighbours) and rejects the spot if any is blocked
+    (boulders, palms, the hearth's ember ring, other beds/sites) or water.
+    `FindFiresideSpot` scans hearth ring 1 then ring 2 (fallback when the
+    fireside is cluttered) and takes the closest valid junction to the flames;
+    `FindSpacedFurnitureSpot` (crafted rack/tent path) runs the same check in
+    its first two passes (pass 3 stays a heap-beats-nowhere fallback).
+  - *Interactions still work* — the planner's beside-arrival
+    (`CollectStandableAround`) already handles blocked anchors, so hauls
+    deposit and the raise fires from the standable rim (probe-verified:
+    62-piece bill delivered and raised with the full footprint blocked).
 - **Bill channels.** The §52 furniture bill gained two material channels beyond
   log/stone/leaf: **stick** and **rope** (`WorldObjectState.BillSticks/BillRope`,
   `BuildSiteMath.AllMaterials` + `MaterialSticks/Rope`). Deposit/read-back iterate
@@ -9983,8 +10123,52 @@ Verified headless (BedBuildTest world: both bills scattered, needs frozen): the
 leaf mat fills strictly `sticks 8/8 → rope 8/8 → leaves 46/46`, the premium site
 follows `logs 4/4 → sticks 5/5 → rope 10/10 → leaves 50/50`, zero out-of-stage
 deposits, both `FurnitureBuilt`. NB: camp life nibbles the same materials (the
-drying rack costs 2 sticks) — an exact scattered bill can deadlock a stage, which
-is why the test scene carries a small stick margin.
+drying rack site bills 4 sticks + 4 rope, §35.5B) — an exact scattered bill can
+deadlock a stage, which is why the test scene carries a small stick margin.
+
+### §54.13 Bed build-time rescue (window, fiber economy, bundle hauls)
+
+A 10-day 6-seed soak (predators off, colony healthy: 3/3 alive, fed and watered)
+still finished **zero** beds — the site starved even in peace. Instrumented
+delivery timelines exposed four independent leaks; all four are fixed:
+
+- **The peacetime window barely opened.** `buildPeacetime` demanded
+  hunger/thirst < 0.55 and ZERO danger memories. But the girls *equilibrate*
+  around 0.5–0.6 thirst (drinking only unlocks at 0.35 and must win the
+  auction), and one wolf sighting is remembered a full day (2400 ticks) —
+  together the window held only ~1–36% of npc-ticks. Build work now pauses at
+  `SimBalance.BuildNeedGate` (0.65 — the same bar `lifeThreatened` uses) and
+  only for FRESH danger, seen within `SimBalance.BuildDangerFreshTicks` (600):
+  day-old ghosts don't stop the hammer, a live wolf still does.
+- **Fiber was gathered one rope at a time.** `fiberNeed` was priced at ONE
+  rope's cost, so a girl cut a yucca (4 fibers scatter), picked up a single
+  fiber, crafted a single rope, delivered it and walked back — seven more
+  times. `fiberNeed` now covers the whole current rope shortfall (fiber
+  stacks, §54.10).
+- **Cutting outbid picking.** `HarvestYucca` (0.26) > `GatherFiber` (0.24), so
+  the colony felled EVERY yucca on the island (they're consumed!) while 32
+  fibers lay on the ground unpicked and the site waited. Cutting a new plant is
+  now unavailable while any loose fiber is reachable — pick the ground clean
+  first.
+- **Delivery stole the girl after the first piece.** `BuildFurniture` (0.55 +
+  pulls ≈ 1.05) outbid every gather goal (≤ 0.95) the moment ONE stage material
+  was in hand — the 46-leaf mattress literally arrived as 46 round trips
+  (soak: `leaves 1/46, 2/46, 3/46…` spaced ~50–200 ticks). A STAGED site (the
+  beds) now takes **bundles**: delivery only becomes available once the girl
+  carries the current stage's shortfall (capped at half a stack — leaves 30,
+  sticks/rope 10), or carries *something* and none of the stage's feeder goals
+  (`SplitLog`/`GatherWood`, `CraftRope`/`GatherFiber`/`HarvestYucca`,
+  `GatherLeaves`/`ChopCrown`) can currently produce more. Unstaged sites (the
+  hearth's stones, hut pieces) still take any piece — stones don't stack.
+
+Result (same soak, predators off): **0 → 6 beds** across 6 seeds; on one seed
+all three girls got mats AND started the premium bedroll. Stage times fell from
+"never" to sticks ~0.1–3d, rope ~0.4–2d, leaves ~1–2d; follow-up beds (tools
+already crafted, piles known) complete in 1–3 days. With predators on, survival
+is unchanged-to-better and 2 beds still complete despite the §55-era water
+scarcity and wolf pressure — the residual slow seeds trace to thirst spending
+half the day above even the 0.65 gate (the §55 water economy), not to the build
+chain. Knobs: `BuildNeedGate`, `BuildDangerFreshTicks` (SimBalance).
 
 ## §55 Rivers retired, drink from the coconut (iteration 55)
 
@@ -10156,13 +10340,20 @@ into a 384×512 RenderTexture on the hidden **Portrait** layer (already culled
 from the main camera), parked far below the map.
 
 - **Built from the same actor prefab** the world spawns
-  (`Resources/HexLive/Actors/<ActorMesh>`), **static** — no idle spin. Pose:
-  ONE evaluated frame of the prefab's own locomotion controller (default
-  Idle state, `Animator.Update(0)` then the Animator is destroyed) — a
-  natural stance, arms relaxed at the sides. Never swing the shoulder bones
-  manually out of the T-pose: Genesis skinning without its authored poses
-  candy-wraps the shoulders («руки-крюки»). Front view, camera framed once
-  from the skinned bounds.
+  (`Resources/HexLive/Actors/<ActorMesh>`), **static** — no idle spin, and
+  the clone is a DEAD mannequin: it is instantiated under an inactive holder
+  and every live component (FinalIK solvers, Magica cloth, colliders,
+  physics — everything but bones/renderers/Animator) is stripped BEFORE the
+  first Awake. Left alive, those solvers kept simulating the doll with no IK
+  targets/floor and slowly dragged it into a flat sheet. Pose: ONE evaluated
+  frame of the Mixamo "Female Standing Pose" clip
+  (`Resources/HexLive/Poses/`, humanoid — the AnimLibrary postprocessor also
+  watches this folder; a non-humanoid import is rejected at runtime via
+  `clip.humanMotion` with fallback to the controller's Idle frame 0), then
+  the Animator is destroyed and the bones keep the pose. Never swing the
+  shoulder bones manually out of the T-pose: Genesis skinning without its
+  authored poses candy-wraps the shoulders («руки-крюки»). Front view,
+  camera framed once from the skinned bounds.
 - **Zone mesh without hand-authored masks**: the skin mesh is cloned and every
   vertex is classified by its **dominant skinning bone** walked up the Genesis3
   hierarchy to the zone roots (`neckLower`→Head, `abdomenUpper`→Torso,
@@ -10180,8 +10371,11 @@ from the main camera), parked far below the map.
 
 - The HP caption/track is now a hover-highlighted button → `ToggleHealth()`.
 - Window: doll viewport (3:4) + seven rows in `BodyPart` order, each with a
-  status dot (same colour ramp), localized zone name (`zone.*` keys), and a
-  value: `🩸n · 🩹 84%` (open wounds count, bandage/gauze mark, zone HP) or
+  status dot (same colour ramp), localized zone name (`zone.*` keys), a
+  blue `🛡 35%` armor readout (worn-garment absorption for the zone —
+  `EquipmentMath.ArmorForPart` exported per part as `NpcSnapshot.PartArmor`
+  "Zone=0.35"; hidden while the zone is bare or severed), and a value:
+  `🩸n · 🩹 84%` (open wounds count, bandage/gauze mark, zone HP) or
   red "severed"/"ампутирована" (`health.severed`).
 - The window swallows pointer events like the inventory window (extends the
   `PointerOverUi` guard) and closes on selection change; the doll camera only
@@ -10252,7 +10446,10 @@ reference it: `I2.Loc` (runtime, `Scripts/`) + `I2.Loc.Editor`
   `Resources/HexLive/Gear/*.asset` (GearConfig): урон, замах (hit-delay),
   длительность/перезарядка, приоритет-оружия, двуручность, СПОСОБНОСТИ
   (Cut/Butcher/ChopWood/Mine/Hammer + именованные строки, напр. Saw/Sew),
-  префаб, клипы анимаций, секция «Крафт».
+  префаб, клипы анимаций, секция «Крафт»; галочка `usableAsWeapon`
+  (снята = никогда не оружие, приоритет обнуляется); опциональные ряды
+  `strikes` (клип + пер-ударные замах/доигрыш/перезарядка →
+  `StrikeVariants`, рукопашка §29C.3 — `fist.asset` с пустым gearId).
 - Объекты мира: `WorldObjectLibrary` ← `Resources/HexLive/WorldObjects/*.asset`
   (WorldObjectConfig): МАССИВ действий, у каждого — свои скиллы (enum
   GearCapability, МАССИВ any-of: бревно рубится топором/ChopWood ИЛИ
@@ -10290,3 +10487,72 @@ reference it: `I2.Loc` (runtime, `Scripts/`) + `I2.Loc.Editor`
   упавшей пробы. (LoadAndApply остаётся для явных экспериментов.)
 - Сериализация одна: `SimDataFile.ExportJson()` в сим-сборке (engine-free);
   редакторное меню лишь применяет SO-слои и пишет файл.
+
+## §60 Кома — глубокое бессознательное (iteration 60)
+
+Раньше у тела было два конечных состояния: короткий обморок (§40.13, 80 тиков
+от нулевой стамины) и смерть. §60 добавляет между ними **кому** — долгое
+бессознательное, из которого тело выходит не по таймеру, а по фактическому
+восстановлению.
+
+**60.1 Входы (две комы).**
+- **Истощение:** `Energy == 0` наяву (во сне энергия только растёт — спящая не
+  «догорает» до комы). Тело выключается там, где стоит.
+- **Кровопотеря:** `Blood ≤ ComaBloodEnterThreshold` (0.05). Это лезвие бритвы
+  ПЕРЕД смертью: кровь на нуле по-прежнему УБИВАЕТ (spec 40.2 не отменён) —
+  кома лишь даёт шанс, если кровотечение удастся пережить.
+  Попутно закрыт старый баг: у СЫТОЙ истекающей кровью fed-heal (§45 r5)
+  пересчитывал `Health = Body.Mean()` ПОСЛЕ ветки смерти и «воскрешал» её в том
+  же тике (части тела > 0, умирала-то от крови). Теперь `Blood ≤ 0` жёстко
+  пиннит `Health = 0` в конце прохода NeedsDecay — смерть от кровопотери
+  надёжна независимо от сытости.
+
+**60.2 Пока в коме.** Тело лежит как мёртвое и для всех правил восстановления
+СЧИТАЕТСЯ СПЯЩИМ: метаболизм ×0.4, сонный прирост энергии (базовый + у костра),
+сонный комфорт, кровь вяжется ×3 (гейт по сытости spec 44 сохраняется), раны
+закрываются ×2, стамина отдыхает. Решения/планы/движение полностью отключены
+(планы срублены через PlanInterruption при входе); тело беспомощно: не убегает,
+не отбивается и не встаёт — собаки и хищники (§56) догрызают лежащую (кома
+рядом с собаками почти всегда смертельна). Как и спящая, она ВНЕ социума:
+никто не выбирает её собеседницей (перцепция несёт `IsUnconscious`; все три
+пути разговора — доступность цели, выбор партнёра в плане, приём при подходе —
+её пропускают; коллапс после начала подхода читается как нейтральное «занята»,
+без обиды). Запросы она ИГНОРИРУЕТ ПОЛНОСТЬЮ — и спящая, и кома: клич о помощи
+(§57 HelpCry/friend-guard) её не будит, не даёт Defend и не лепит даже
+«проигнорировала»-смайл; единая воронка эмодзи-сигналов
+(`SocialCueSignals.Stamp`) молчит для спящего/бессознательного тела — над ним
+не появляется НИКАКОЙ пузырь-реакция. (Это же закрывает старое поведение, когда
+спящую будил чужой клич о помощи.) Единственное исключение из «как во сне»: соседки видят страдание и
+могут кормить/лечить кому по §53 (Treat по крови работает как обычно) — в
+отличие от спящей, сама она проснуться и помочь себе не может.
+При кровопотере кровотечение в коме ПРОДОЛЖАЕТСЯ, но глубокий отдых частично
+компенсирует его (бинты/уход решают гонку в пользу жизни; голодная — истекает).
+Смерть в коме возможна: голод/жажда, холод/жара, добитые жизненно важные зоны,
+кровь до нуля.
+
+**60.3 Выход.** Кома кончается, когда СВАЛИВШИЙ показатель поднялся до
+`ComaWakeThreshold` (0.15): Exhaustion — Energy ≥ 0.15, BloodLoss — Blood ≥
+0.15. Пробуждение получает обычный wake-грейс (spec 41.5, 12 тиков) — встаёт,
+приходит в себя, никакого спринта с «подушки».
+
+**60.4 Модель.** `NPCMind.ComaCause {None, Exhaustion, BloodLoss}` (сейв v6,
+append-only). `NPCState.IsUnconscious(tick)` — единый вопрос «может ли тело
+вообще действовать» (обморок §40.13 ИЛИ кома) — на него гейтятся бой/решения/
+презентация. Вход/выход и восстановление живут в `NeedsDecaySystem`
+(`EnterComa`/`TryWakeFromComa`); ручки — `SimBalance.ComaWakeThreshold`,
+`SimBalance.ComaBloodEnterThreshold`.
+
+**60.5 Эффект и журнал (§48.6).** Видимый эффект `Coma` (😵‍💫, Debuff/Survival,
+`effect.coma.title/.desc` EN+RU); он вытесняет чипы Fainted/Exhausted (один
+«без сознания» за раз — более глубокий). Трейсы `Collapsed` (причина + статы) и
+`WokeUp` — оба в журнале истории (`{она} впала в кому.` / `{она} пришла в
+себя.`).
+
+**60.6 Презентация.** Кома лежит РОВНО КАК СОН НА ЗЕМЛЕ: тот же путь
+`SetLaying(true, null, GroundY)` что у обморока/наземного сна — тело
+пришпиливается к своей развязке на правильной высоте поверхности (первый
+вариант с клипом смерти отбракован: тело торчало ногами в соседний гекс и в
+перепады высот). Трава под телом приминается, лицо закрывает глаза. На
+пробуждении Laying снимается — контроллер сам играет `GetUp` («Situp To
+Idle», тот же подъём, что после сна) → Idle. Снапшот несёт `IsUnconscious`
+(+PostureHint=Faint для поза-слоя).

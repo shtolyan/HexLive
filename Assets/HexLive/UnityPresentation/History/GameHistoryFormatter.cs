@@ -91,6 +91,8 @@ namespace HexLive.UnityPresentation.History
                     $"{actor} потеряла нападающего."),
                 "HelpCryDefended" => T($"{actor} struck the attacker.",
                     $"{actor} ударила нападающего."),
+                "FriendGuard" => T($"{actor} rushed to defend a friend.",
+                    $"{actor} бросилась защищать подругу."),
                 "NightRaid" => T("Dogs raided the camp at dusk.", "На закате на лагерь напали собаки."),
                 "Preyed" => T($"{actor} attacked a housemate.", $"{actor} напала на соседку."),
                 "PreyFoughtBack" => T($"{actor} fought back.", $"{actor} дала отпор."),
@@ -101,6 +103,8 @@ namespace HexLive.UnityPresentation.History
                 "SharkBite" => T($"{actor} was bitten by a shark.", $"{actor} укусила акула."),
                 "LimbSevered" => T($"{actor} lost a limb.", $"{actor} потеряла конечность."),
                 "Fainted" => T($"{actor} fainted.", $"{actor} потеряла сознание."),
+                "Collapsed" => T($"{actor} collapsed into a coma.", $"{actor} впала в кому."),
+                "WokeUp" => T($"{actor} came to.", $"{actor} пришла в себя."),
                 "Bandaged" => T($"{actor} dressed the wounds.", $"{actor} перевязала раны."),
                 "Medicated" => T($"{actor} used medicine.", $"{actor} приняла лекарство."),
                 "StatusStarving" => T($"{actor} is starving.", $"{actor} голодает."),
@@ -269,7 +273,8 @@ namespace HexLive.UnityPresentation.History
 
             if (type is "AidWaitTimeout" or "TalkQuarreled" or "TalkWaitTimeout" or "InteractionBlocked" or
                 "InteractionRejected" or "FoodStolen" or "Grieving" or "StatusStarving" or "StatusDehydrated" or
-                "StatusOverheated" or "Sunburn" or "Fainted" or "HelpCryIgnored" or "HelpCryAssistLost")
+                "StatusOverheated" or "Sunburn" or "Fainted" or "Collapsed" or
+                "HelpCryIgnored" or "HelpCryAssistLost")
             {
                 return GameHistoryTone.Bad;
             }
@@ -279,7 +284,7 @@ namespace HexLive.UnityPresentation.History
 
         private static string FormatTime(int tick)
         {
-            var day = tick / EnvironmentSystem.DayLengthTicks + 1;
+            var day = EnvironmentSystem.CalendarDay(tick);
             var progress = (tick % EnvironmentSystem.DayLengthTicks) /
                            (float)EnvironmentSystem.DayLengthTicks;
             var clock = EnvironmentSystem.FormatClock(progress);

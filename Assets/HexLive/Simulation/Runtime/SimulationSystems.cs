@@ -24,6 +24,15 @@ internal static class SocialCueSignals
 {
     public static void Stamp(WorldState world, NPCState npc, string kind, EntityId peerId)
     {
+        // §60: no cue bubbles over a body that cannot react — a sleeping,
+        // fainted or comatose girl shows no emoji at all (she ignores every
+        // request; the single funnel here silences every stamp source).
+        if (npc.IsUnconscious(world.Tick) ||
+            npc.Execution.CurrentInteraction == InteractionType.Sleep)
+        {
+            return;
+        }
+
         npc.Execution.LastSocialCueTick = world.Tick;
         npc.Execution.LastSocialCueKind = kind;
         npc.Execution.LastSocialCuePeerId = peerId;
@@ -223,6 +232,13 @@ public static class Spec57
     public static int MaxHelpCryResponders = 2;
     public static float HelpCryDecisionThreshold = 0.56f;
     public static float HelpCryHealthGate = 0.65f;
+
+    // 29C.4B friend-guard: no cry needed — a friend who is close enough to
+    // see the fight drops everything and goes for the aggressor. Friendship
+    // is the trigger (affinity gate), not a compassion roll.
+    public static bool FriendGuardEnabled = true;
+    public static int FriendGuardRadiusTiles = 6;
+    public static float FriendGuardAffinity = 0.25f;
 }
 
 public enum TickLayer
@@ -424,7 +440,8 @@ public sealed class PerceptionSystem : ISimulationSystem
                     IsBusy = other.IsFighting ||
                         (other.Execution.Status == ExecutionStatus.InProgress &&
                          other.Execution.CurrentInteraction != InteractionType.Talk),
-                    IsMoving = other.Movement.IsMoving
+                    IsMoving = other.Movement.IsMoving,
+                    IsUnconscious = other.IsUnconscious(world.Tick) // §60: no chatting with a body
                 };
                 perceivedAgent.Relationship.Trust = relationship.Trust;
                 perceivedAgent.Relationship.Affinity = relationship.Affinity;
@@ -544,6 +561,14 @@ public sealed class DecisionSystem : ISimulationSystem
         {
             // Spec 29C.3: combat is reactive and consumes the NPC entirely.
             if (npc.IsFighting)
+            {
+                continue;
+            }
+
+            // Spec §60: comatose — the body lies as if dead; recovery runs in
+            // NeedsDecaySystem (sleep rules) and the wake check lives there
+            // too. No decisions of any kind while out.
+            if (npc.Mind.ComaCause != ComaCause.None)
             {
                 continue;
             }
@@ -713,8 +738,13 @@ public sealed class DecisionSystem : ISimulationSystem
             // out of boredom: sleep is for the tired or for the dark hours
             // (without this gate the first soak showed 73 ground naps eating
             // every idle minute — no explores, the fire never lit).
-            var sleepAvail = npc.Needs.Energy < SimBalance.SleepEnergyThreshold ||
-                world.Environment.Phase is DayPhase.Night or DayPhase.Evening;
+            // §49-parity: never LIE DOWN when the sleep interrupt would fire on
+            // the first tick (hunger/thirst over the wake threshold, danger
+            // remembered) — the same condition execution wakes on. Without
+            // this the thirsty-and-tired girl loops lie-down→wake forever.
+            var sleepAvail = (npc.Needs.Energy < SimBalance.SleepEnergyThreshold ||
+                    world.Environment.Phase is DayPhase.Night or DayPhase.Evening) &&
+                !ExecutionSystem.HasSleepInterrupt(world, npc);
             // Spec 31C.7A: sit because you need it — and never settle into a
             // chair on an empty stomach. Sitting yields to sleep hours (the
             // Sit->Sleep churn was 47 interrupts/soak before this gate).
@@ -751,7 +781,8 @@ public sealed class DecisionSystem : ISimulationSystem
             float? bestAffinity = null;
             foreach (var agent in npc.Perception.Agents)
             {
-                if (!agent.IsReachable || agent.IsBusy || agent.IsMoving)
+                if (!agent.IsReachable || agent.IsBusy || agent.IsMoving ||
+                    agent.IsUnconscious) // §60: a comatose girl is no company
                 {
                     continue;
                 }
@@ -911,8 +942,23 @@ public sealed class DecisionSystem : ISimulationSystem
             var buildSite = FindBuildSite(npc, world);
             var hasHammer = Content.GearCatalog.HasCapability(
                 npc.Inventory.Items, Content.GearCapability.Hammer);
-            var buildPeacetime = npc.Needs.Hunger < 0.55f && npc.Needs.Thirst < 0.55f &&
-                npc.Memory.Dangers.Count == 0;
+            // §54.13: the old 0.55/any-danger gate held the window open only
+            // ~1-36% of npc-ticks (10-day soak) — thirst equilibrates at
+            // 0.5-0.6 and a day-old wolf memory froze building colony-wide.
+            // Pause for real pressure (0.65, the lifeThreatened bar) and for
+            // FRESH danger only.
+            var freshDanger = false;
+            foreach (var danger in npc.Memory.Dangers)
+            {
+                if (world.Tick - danger.Tick <= SimBalance.BuildDangerFreshTicks)
+                {
+                    freshDanger = true;
+                    break;
+                }
+            }
+
+            var buildPeacetime = npc.Needs.Hunger < SimBalance.BuildNeedGate &&
+                npc.Needs.Thirst < SimBalance.BuildNeedGate && !freshDanger;
             // Spec §54 cold start: raising the FIRST hearth is survival-critical
             // (no fire ⇒ no warmth, no cooking, no crafting), so building the
             // campfire-site bypasses the peacetime gate and outranks everything —
@@ -945,11 +991,15 @@ public sealed class DecisionSystem : ISimulationSystem
             // it still needs, or raise it once stocked — with a hammer, except a
             // §54 campfire (piled from stones) and the leaf mat (hand-lashed).
             var siteIsBed = buildSite?.BuildProduct is "bed.leaf" or "bed.basic";
-            var siteWaivesHammer = siteIsHearth || buildSite?.BuildProduct == "bed.leaf";
-            var buildFurnitureAvail = buildSite != null && buildWindow &&
-                (CarriesSiteMaterial(npc, buildSite) ||
-                 (BuildSiteMath.IsStocked(buildSite) &&
-                  (siteWaivesHammer || (canUseToolsOrWeapons && hasHammer))));
+            // §35.5B: the rack is lashed sticks like the leaf mat — no hammer.
+            var siteWaivesHammer = siteIsHearth ||
+                buildSite?.BuildProduct is "bed.leaf" or "station.drying_rack";
+            // §54.13: this is only the RAISE half. The deliver half is decided
+            // next to the BuildFurniture score, where the gather flags exist —
+            // staged sites take bundles, not single pieces (see below).
+            var buildFurnitureRaise = buildSite != null && buildWindow &&
+                BuildSiteMath.IsStocked(buildSite) &&
+                (siteWaivesHammer || (canUseToolsOrWeapons && hasHammer));
 
             // Spec 29E: the fire chain still needs these — a pot/lighter/wood
             // and a seen campfire drive the fuel/craft goals further below.
@@ -1307,12 +1357,24 @@ public sealed class DecisionSystem : ISimulationSystem
             var wantRope = (siteNeedsRope && carriedRope < ropeTarget) ||
                 (!hasBow && hideCount >= 1 && carriedRope == 0);
             var wantCloth = bedDeficit && carriedCloth == 0;
-            var fiberNeed = (wantRope ? SimBalance.RopeFiberCost : 0) +
+            // §54.13: gather fiber for the WHOLE rope shortfall, not one rope's
+            // worth — the old cost-of-one made a girl cut a yucca (4 fibers
+            // scatter), pick up ONE, craft one rope, deliver it, and walk all
+            // the way back seven more times. Fiber stacks (§54.10), so carrying
+            // the full lashing bill is one pocket slot.
+            var ropeShortfall = wantRope ? System.Math.Max(1, ropeTarget - carriedRope) : 0;
+            var fiberNeed = ropeShortfall * SimBalance.RopeFiberCost +
                 (wantCloth ? SimBalance.ClothFiberCost : 0);
             // Fiber now comes from CUTTING a yucca with a blade (knife/axe); the
             // cut fibers scatter, then get picked up. So: cut yucca → gather fiber.
+            // §54.13: pick the ground CLEAN before cutting another plant. The
+            // rope-stage soak showed HarvestYucca (0.26) outbidding GatherFiber
+            // (0.24) until every yucca on the island was felled — 32 fibers lay
+            // scattered while the site waited. Cutting is only available while
+            // no loose fiber is reachable; yuccas are consumed, don't waste them.
             var harvestYuccaAvail = canUseToolsOrWeapons && carriedFiber < fiberNeed && npc.Inventory.HasSpace &&
-                (hasKnife || hasAxe) && HasReachableWithTag(npc, world, "Yucca");
+                (hasKnife || hasAxe) && !HasReachableWithTag(npc, world, "Fiber") &&
+                HasReachableWithTag(npc, world, "Yucca");
             var gatherFiberAvail = carriedFiber < fiberNeed && npc.Inventory.HasSpace &&
                 HasReachableWithTag(npc, world, "Fiber");
             var craftRopeAvail = canUseToolsOrWeapons && wantRope && carriedFiber >= SimBalance.RopeFiberCost && CraftPlaceOk(GoalType.CraftRope);
@@ -1365,6 +1427,52 @@ public sealed class DecisionSystem : ISimulationSystem
             // §54 cold start: raising the first hearth outranks the day's chores.
             // §54.10: a bed delivery is lifted over peacetime leisure too, so a
             // girl carrying a bundle actually walks it to the site and taps it home.
+            // §54.13: a STAGED site (the beds) takes BUNDLES, not single pieces.
+            // Delivery (0.55+) outbid every gather goal (≤0.95) the moment ONE
+            // piece was in hand, so the 46-leaf mattress became 46 round trips
+            // (soak: leaf deliveries 1/46, 2/46, 3/46… spaced ~50-200 ticks).
+            // A girl now keeps gathering until she carries the stage's shortfall
+            // (capped at half a stack) — or until nothing more can be produced —
+            // and only then walks the pile over. Unstaged sites (the hearth's
+            // stones, hut pieces) still take any piece: stones don't stack.
+            var deliverWorthwhile = buildSite != null && buildWindow &&
+                CarriesSiteMaterial(npc, buildSite);
+            if (deliverWorthwhile && siteIsBed)
+            {
+                foreach (var mat in BuildSiteMath.AllMaterials)
+                {
+                    var stageRemaining = BuildSiteMath.Remaining(buildSite, mat);
+                    if (stageRemaining <= 0)
+                    {
+                        continue;
+                    }
+
+                    var carriedOfStage = 0;
+                    foreach (var item in npc.Inventory.Items)
+                    {
+                        if (item.DefinitionId == mat)
+                        {
+                            carriedOfStage++;
+                        }
+                    }
+
+                    var canGetMore = mat switch
+                    {
+                        BuildSiteMath.MaterialSticks => splitLogAvail || gatherWoodAvail,
+                        BuildSiteMath.MaterialRope => craftRopeAvail || gatherFiberAvail || harvestYuccaAvail,
+                        BuildSiteMath.MaterialLeaves => gatherLeavesAvail || chopCrownAvail,
+                        BuildSiteMath.MaterialLogs => gatherWoodAvail,
+                        _ => false
+                    };
+                    var bundle = System.Math.Min(
+                        stageRemaining, InventoryState.StackSizeFor(mat) / 2);
+                    deliverWorthwhile = carriedOfStage >= bundle ||
+                        (carriedOfStage > 0 && !canGetMore);
+                    break;
+                }
+            }
+
+            var buildFurnitureAvail = buildFurnitureRaise || deliverWorthwhile;
             var buildFurniturePull = (siteNeedsLeaves || siteNeedsSticks || siteNeedsRope) ? 0.2f : 0f;
             AddGoalScore(npc, world.Tick, GoalType.BuildFurniture,
                 (hearthUrgent ? 0.95f : 0.55f) + freeHands + buildFurniturePull, buildFurnitureAvail);
@@ -1392,6 +1500,23 @@ public sealed class DecisionSystem : ISimulationSystem
             AddGoalScore(npc, world.Tick, GoalType.CoolOff,
                 0.1f + 0.5f * coolOffUrge, coolOffAvail);
 
+            var batheNeed = 1f - npc.Needs.Hygiene;
+            var batheAvail = batheNeed >= SimBalance.BatheNeedThreshold &&
+                HasReachableBathTile(world, npc) && npc.Body.CanUseToolsOrWeapons;
+            if (npc.Mind.CurrentGoal == GoalType.Bathe && npc.Plan.Status == PlanStatus.Active)
+            {
+                batheAvail = true;
+            }
+            AddGoalScore(npc, world.Tick, GoalType.Bathe, batheNeed * 0.7f, batheAvail);
+
+            var washNeed = DirtyGarmentWashNeed(world, npc);
+            var washAvail = washNeed >= SimBalance.WashClothesNeedThreshold;
+            if (npc.Mind.CurrentGoal == GoalType.WashClothes && npc.Plan.Status == PlanStatus.Active)
+            {
+                washAvail = true;
+            }
+            AddGoalScore(npc, world.Tick, GoalType.WashClothes, washNeed * 0.75f, washAvail);
+
             // Spec 35.5: rain, wet clothes, and the drying chain.
             var wornWetness = 0f;
             foreach (var wornItem in npc.WornItems)
@@ -1399,7 +1524,6 @@ public sealed class DecisionSystem : ISimulationSystem
                 wornWetness = System.MathF.Max(wornWetness, wornItem.Wetness);
             }
 
-            var craftRackAvail = canUseToolsOrWeapons && !RackExists(world) && carriedSticks >= 2 && campfireSeen;
 
             // Spec 29G: the bed must be earned — 2 logs + 3 palm leaves.
             // The hearth outranks the mattress: never spend logs on a bed
@@ -1456,9 +1580,8 @@ public sealed class DecisionSystem : ISimulationSystem
             // watered and safe when she commits to the coast run.
             AddGoalScore(npc, world.Tick, GoalType.BuildRaft,
                 0.4f + freeHands + 0.05f * carriedLogs, buildRaftAvail);
-            AddGoalScore(npc, world.Tick, GoalType.CraftRack,
-                0.3f + (world.Environment.IsRaining || wornWetness > 0.5f ? 0.2f : 0f),
-                craftRackAvail);
+            // §35.5B: CraftRack retired — the rack is a staged fireside
+            // build-site now (BedSiteSystem stakes it; BuildFurniture raises).
 
             var dryAvail = wornWetness > 0.5f && !world.Environment.IsRaining &&
                 (HasReachableWithTag(npc, world, "Rack") ||
@@ -1852,8 +1975,11 @@ public sealed class DecisionSystem : ISimulationSystem
         return false;
     }
 
+    // §50-prone: piercing a coconut is LIGHT hand-work — a one-legged crawler
+    // with a knife still opens her dinner (Marta starved to death at day 28
+    // sitting NEXT to coconuts because the blanket prone-gate blocked this).
+    // Fighting and heavy tool work stay forbidden while lying.
     internal static bool HasCoconutBlade(NPCState npc) =>
-        npc.Body.CanUseToolsOrWeapons &&
         Content.GearCatalog.HasCapability(npc.Inventory.Items, Content.GearCapability.Cut);
 
     internal static bool HasCoconutOpportunity(NPCState npc, WorldState world)
@@ -2299,6 +2425,49 @@ public sealed class DecisionSystem : ISimulationSystem
         npc.Mind.LastScores.Add(score);
     }
 
+    private static bool HasReachableBathTile(WorldState world, NPCState npc)
+    {
+        if (npc.CurrentJunction is not { } from)
+        {
+            return false;
+        }
+
+        foreach (var junction in world.Junctions.Items.Values)
+        {
+            if (junction.Blocked || junction.Tiles.Count == 0 ||
+                !HygieneMath.IsShoreTile(world, junction.Tiles[0]))
+            {
+                continue;
+            }
+
+            if (Connectivity.Reachable(world, from, junction.Id))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static float DirtyGarmentWashNeed(WorldState world, NPCState npc)
+    {
+        var need = 0f;
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (obj.Dirtiness <= need ||
+                !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
+                definition.Layer is null ||
+                !HygieneMath.IsBathingTile(world, obj.Tile))
+            {
+                continue;
+            }
+
+            need = obj.Dirtiness;
+        }
+
+        return need;
+    }
+
     private static bool HasInteraction(NPCState npc, InteractionType interactionType)
     {
         foreach (var obj in npc.Perception.Objects)
@@ -2605,6 +2774,18 @@ public sealed class PlanningSystem : ISimulationSystem
             if (npc.Mind.CurrentGoal == GoalType.CoolOff)
             {
                 BuildCoolOffPlan(world, npc);
+                continue;
+            }
+
+            if (npc.Mind.CurrentGoal == GoalType.Bathe)
+            {
+                BuildBathePlan(world, npc);
+                continue;
+            }
+
+            if (npc.Mind.CurrentGoal == GoalType.WashClothes)
+            {
+                BuildWashClothesPlan(world, npc);
                 continue;
             }
 
@@ -3211,9 +3392,11 @@ public sealed class PlanningSystem : ISimulationSystem
         return best is not null;
     }
 
+    // ONE truth — DecisionSystem owns the rule (§50-prone: piercing a coconut
+    // is light hand-work, allowed lying). This private duplicate silently kept
+    // the old stand-up-only body and starved one-legged Marta at day 28.
     private static bool HasCoconutBlade(NPCState npc) =>
-        npc.Body.CanUseToolsOrWeapons &&
-        Content.GearCatalog.HasCapability(npc.Inventory.Items, Content.GearCapability.Cut);
+        DecisionSystem.HasCoconutBlade(npc);
 
     // Spec 29C.5: wander to a seeded-random unblocked junction 3-8 tiles away.
     // Discoveries along the way land in spatial memory.
@@ -3365,6 +3548,143 @@ public sealed class PlanningSystem : ISimulationSystem
             $"Shade={TemperatureSystem.IsShaded(world, best.Tiles[0])}");
     }
 
+    private void BuildBathePlan(WorldState world, NPCState npc)
+    {
+        if (npc.CurrentJunction is not { } from)
+        {
+            npc.Plan.Status = PlanStatus.Failed;
+            SetGoalCooldown(world, npc, GoalType.Bathe);
+            return;
+        }
+
+        Junction best = null;
+        var bestDist = float.MaxValue;
+        foreach (var junction in world.Junctions.Items.Values)
+        {
+            if (junction.Blocked || junction.Tiles.Count == 0 ||
+                !SpatialQueries.IsJunctionFree(world, junction.Id) ||
+                !HygieneMath.IsShoreTile(world, junction.Tiles[0]) ||
+                !Connectivity.Reachable(world, from, junction.Id))
+            {
+                continue;
+            }
+
+            var distance = HexSpatialMath.Distance(junction.WorldPosition, npc.Position);
+            if (distance < bestDist && distance < HexSpatialMath.HexRadius * 12f)
+            {
+                bestDist = distance;
+                best = junction;
+            }
+        }
+
+        if (best is null ||
+            !SpatialMutations.TryReserveJunction(world, best.Id, npc.Id, world.Tick, 96))
+        {
+            npc.Plan.Status = PlanStatus.Failed;
+            SetGoalCooldown(world, npc, GoalType.Bathe);
+            Trace.Emit(world, npc.Id, "PlanFailed", "Goal=Bathe NoWaterTile");
+            return;
+        }
+
+        npc.Plan.TargetJunctionId = best.Id;
+        npc.Plan.TargetTile = best.Tiles[0];
+        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.MoveToJunction, TargetJunction = best.Id });
+        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.PrepareBathe, TargetJunction = best.Id });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Mind.CoolRearmCount = 0;
+        Trace.Emit(world, npc.Id, "BathePlanned",
+            $"Junction={best.Id.Value} BodyHygiene={npc.Needs.Hygiene:F2} " +
+            $"ClothingDirt={EquipmentMath.AverageDirtiness(npc):F2}");
+    }
+
+    private void BuildWashClothesPlan(WorldState world, NPCState npc)
+    {
+        if (npc.CurrentJunction is not { } from)
+        {
+            npc.Plan.Status = PlanStatus.Failed;
+            SetGoalCooldown(world, npc, GoalType.WashClothes);
+            return;
+        }
+
+        WorldObjectState best = null;
+        JunctionId bestTarget = default;
+        TileCoord bestStandTile = default;
+        var bestDistance = float.MaxValue;
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (obj.Dirtiness < SimBalance.WashClothesNeedThreshold ||
+                !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
+                definition.Layer is null || !HygieneMath.IsBathingTile(world, obj.Tile) ||
+                obj.Junctions.Count == 0)
+            {
+                continue;
+            }
+
+            var objectPosition = world.Junctions.Items.TryGetValue(obj.Junctions[0], out var objectJunction)
+                ? objectJunction.WorldPosition
+                : HexSpatialMath.TileToWorld(obj.Tile);
+            foreach (var junction in world.Junctions.Items.Values)
+            {
+                if (!TryGetEdgeSeatGeometry(world, junction, waterOnly: true,
+                        out var standTile, out _) ||
+                    !JunctionAvailableFor(world, junction.Id, npc.Id) ||
+                    !Connectivity.Reachable(world, from, junction.Id))
+                {
+                    continue;
+                }
+
+                var garmentDistance = HexSpatialMath.Distance(junction.WorldPosition, objectPosition);
+                if (garmentDistance > HexSpatialMath.HexRadius * 2.2f)
+                {
+                    continue;
+                }
+
+                var distance = HexSpatialMath.Distance(npc.Position, junction.WorldPosition) +
+                               garmentDistance * 0.5f;
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    best = obj;
+                    bestTarget = junction.Id;
+                    bestStandTile = standTile;
+                }
+            }
+        }
+
+        if (best is null ||
+            !SpatialMutations.TryReserveJunction(world, bestTarget, npc.Id, world.Tick,
+                SimBalance.WashClothesDurationTicks + 96))
+        {
+            npc.Plan.Status = PlanStatus.Failed;
+            SetGoalCooldown(world, npc, GoalType.WashClothes);
+            return;
+        }
+
+        npc.Plan.TargetObjectId = best.Id;
+        npc.Plan.TargetJunctionId = bestTarget;
+        npc.Plan.TargetTile = bestStandTile;
+        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.MoveToJunction, TargetJunction = bestTarget });
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.WashClothes,
+            TargetJunction = bestTarget,
+            TargetObject = best.Id,
+            Interaction = InteractionType.WashClothes
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        Trace.Emit(world, npc.Id, "WashClothesPlanned",
+            $"Object={best.Id.Value} Def={best.DefinitionId} Dirt={best.Dirtiness:F2} " +
+            $"Edge={bestTarget.Value} StandTile={bestStandTile.Q},{bestStandTile.R}");
+    }
+
+    private static bool JunctionAvailableFor(WorldState world, JunctionId junction, EntityId npc)
+    {
+        return !world.Occupancy.JunctionOwner.TryGetValue(junction, out var owner) ||
+               owner is null || owner.Value == npc;
+    }
+
     // Spec 29G: does perception offer real furniture for this interaction?
     private static bool HasFurnitureCandidate(WorldState world, NPCState npc, InteractionType interaction)
     {
@@ -3418,7 +3738,7 @@ public sealed class PlanningSystem : ISimulationSystem
             foreach (var junction in world.Junctions.Items.Values)
             {
                 if (junction.Blocked || junction.Tiles.Count < 2 ||
-                    !IsLedge(world, junction) ||
+                    !TryGetEdgeSeatGeometry(world, junction, waterOnly: false, out _, out _) ||
                     !SpatialQueries.IsJunctionFree(world, junction.Id) ||
                     siteJunctions.Contains(junction.Id))
                 {
@@ -3597,6 +3917,115 @@ public sealed class PlanningSystem : ISimulationSystem
         return world.Junctions.Items.TryGetValue(id, out var junction) && IsLedge(world, junction);
     }
 
+    // Picks one stable point per hex edge: the lattice point nearest the
+    // midpoint shared by the upper/dry tile and the lower/water tile. Choosing
+    // merely the nearest ledge junction made sitters drift toward edge corners.
+    // Facing is the tile-centre normal, exactly perpendicular to that edge.
+    internal static bool TryGetEdgeSeatGeometry(
+        WorldState world, Junction junction, bool waterOnly,
+        out TileCoord standTile, out Float2 facing)
+    {
+        standTile = default;
+        facing = Float2.Zero;
+        if (junction.Blocked || junction.Tiles.Count < 2)
+        {
+            return false;
+        }
+
+        Tile high = null;
+        Tile low = null;
+        var bestPairDistance = float.MaxValue;
+        foreach (var aCoord in junction.Tiles)
+        {
+            if (!world.Tiles.Items.TryGetValue(aCoord, out var a))
+            {
+                continue;
+            }
+
+            foreach (var bCoord in junction.Tiles)
+            {
+                if (aCoord == bCoord || !world.Tiles.Items.TryGetValue(bCoord, out var b))
+                {
+                    continue;
+                }
+
+                Tile pairHigh;
+                Tile pairLow;
+                if (waterOnly)
+                {
+                    if (a.Flags.HasFlag(TileFlags.Water) ||
+                        !a.Flags.HasFlag(TileFlags.Walkable) ||
+                        !b.Flags.HasFlag(TileFlags.Water))
+                    {
+                        continue;
+                    }
+
+                    pairHigh = a;
+                    pairLow = b;
+                }
+                else
+                {
+                    if (a.Elevation <= b.Elevation ||
+                        !a.Flags.HasFlag(TileFlags.Walkable) ||
+                        a.Elevation - b.Elevation < 1)
+                    {
+                        continue;
+                    }
+
+                    pairHigh = a;
+                    pairLow = b;
+                }
+
+                var highCenter = HexSpatialMath.TileToWorld(pairHigh.Coord);
+                var lowCenter = HexSpatialMath.TileToWorld(pairLow.Coord);
+                var midpoint = (highCenter + lowCenter) * 0.5f;
+                var pairDistance = HexSpatialMath.Distance(junction.WorldPosition, midpoint);
+                if (pairDistance < bestPairDistance)
+                {
+                    bestPairDistance = pairDistance;
+                    high = pairHigh;
+                    low = pairLow;
+                }
+            }
+        }
+
+        if (high is null || low is null)
+        {
+            return false;
+        }
+
+        var edgeMidpoint = (HexSpatialMath.TileToWorld(high.Coord) +
+                            HexSpatialMath.TileToWorld(low.Coord)) * 0.5f;
+        var canonical = junction.Id;
+        var canonicalDistance = float.MaxValue;
+        foreach (var id in high.Junctions)
+        {
+            if (!low.Junctions.Contains(id) ||
+                !world.Junctions.Items.TryGetValue(id, out var shared) || shared.Blocked)
+            {
+                continue;
+            }
+
+            var distance = HexSpatialMath.Distance(shared.WorldPosition, edgeMidpoint);
+            if (distance < canonicalDistance - 0.0001f ||
+                System.MathF.Abs(distance - canonicalDistance) <= 0.0001f && id.Value < canonical.Value)
+            {
+                canonicalDistance = distance;
+                canonical = id;
+            }
+        }
+
+        if (canonical != junction.Id)
+        {
+            return false;
+        }
+
+        standTile = high.Coord;
+        facing = HexSpatialMath.Normalize(
+            HexSpatialMath.TileToWorld(low.Coord) - HexSpatialMath.TileToWorld(high.Coord));
+        return HexSpatialMath.Distance(facing, Float2.Zero) > 0.0001f;
+    }
+
     // Spec 35.5: is a free drying rack within reach?
     private static bool HasFreeRackCandidate(WorldState world, NPCState npc)
     {
@@ -3606,7 +4035,7 @@ public sealed class PlanningSystem : ISimulationSystem
                 world.Content.ObjectDefinitions.TryGetValue(perceived.DefinitionId, out var definition) &&
                 definition.Tags.Contains("Rack") &&
                 world.Entities.Objects.TryGetValue(perceived.Id, out var rack) &&
-                !ExecutionSystem.RackHoldsItem(world, rack))
+                !ExecutionSystem.RackIsFull(world, rack))
             {
                 return true;
             }
@@ -3796,7 +4225,8 @@ public sealed class PlanningSystem : ISimulationSystem
         PerceivedAgent? target = null;
         foreach (var agent in npc.Perception.Agents)
         {
-            if (!agent.IsReachable || agent.IsBusy || agent.IsMoving)
+            if (!agent.IsReachable || agent.IsBusy || agent.IsMoving ||
+                agent.IsUnconscious) // §60: never plan a chat with a body
             {
                 continue;
             }
@@ -4309,10 +4739,10 @@ public sealed class PlanningSystem : ISimulationSystem
             case GoalType.CraftArrows:
                 return definition.Tags.Contains("Campfire");
             case GoalType.DryClothes:
-                // Spec 35.5: only a free rack (nothing hanging on it yet).
+                // §35.5B: only a rack with a free hanger slot (capacity 8).
                 return definition.Tags.Contains("Rack") &&
                     world.Entities.Objects.TryGetValue(perceived.Id, out var rack) &&
-                    !ExecutionSystem.RackHoldsItem(world, rack);
+                    !ExecutionSystem.RackIsFull(world, rack);
             case GoalType.GatherStone:
                 return definition.Tags.Contains("Stone");
             case GoalType.HarvestTree:
@@ -5110,6 +5540,24 @@ public sealed class ExecutionSystem : ISimulationSystem
             // Spec 29G: ground rest plans have no target object — the last
             // step says what to do once the walk (if any) is over.
             var lastStep = npc.Plan.Steps.Count > 0 ? npc.Plan.Steps[npc.Plan.Steps.Count - 1] : null;
+            if (lastStep is { Type: PlanStepType.PrepareBathe })
+            {
+                RunPrepareBathe(world, npc, lastStep);
+                continue;
+            }
+
+            if (lastStep is { Type: PlanStepType.SwimBathe })
+            {
+                RunSwimBathe(world, npc, lastStep);
+                continue;
+            }
+
+            if (lastStep is { Type: PlanStepType.WashClothes })
+            {
+                RunWashClothes(world, npc, lastStep);
+                continue;
+            }
+
             if (lastStep is { Type: PlanStepType.GroundSit or PlanStepType.GroundSleep or PlanStepType.GroundCool })
             {
                 RunGroundRestPlan(world, npc, lastStep);
@@ -5232,11 +5680,11 @@ public sealed class ExecutionSystem : ISimulationSystem
                 if (interaction.Type == InteractionType.Hang)
                 {
                     var wetWorn = FindWettestWornItem(npc);
-                    if (wetWorn is null || wetWorn.Wetness <= 0.5f || RackHoldsItem(world, worldObject))
+                    if (wetWorn is null || wetWorn.Wetness <= 0.5f || RackIsFull(world, worldObject))
                     {
                         PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
                         PlanInterruption.Abort(world, npc,
-                            "Cannot hang (nothing wet or rack occupied)");
+                            "Cannot hang (nothing wet or rack full)");
                         npc.Mind.CurrentGoal = GoalType.None;
                         continue;
                     }
@@ -5382,7 +5830,10 @@ public sealed class ExecutionSystem : ISimulationSystem
                 if (interaction.Type == InteractionType.Process &&
                     interaction.RequiredCapabilities.Count == 0)
                 {
-                    if (!npc.Body.CanUseToolsOrWeapons)
+                    var isCoconut = definition.Tags.Contains("Coconut");
+                    // §50-prone: coconuts are light hand-work — allowed lying.
+                    // Heavy processing (log splitting) still needs standing.
+                    if (!isCoconut && !npc.Body.CanUseToolsOrWeapons)
                     {
                         PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
                         PlanInterruption.Abort(world, npc,
@@ -5391,7 +5842,6 @@ public sealed class ExecutionSystem : ISimulationSystem
                         continue;
                     }
 
-                    var isCoconut = definition.Tags.Contains("Coconut");
                     var hasChopTool = Content.GearCatalog.HasCapability(
                         npc.Inventory.Items, Content.GearCapability.ChopWood);
                     var hasCoconutBlade = Content.GearCatalog.HasCapability(
@@ -5600,7 +6050,9 @@ public sealed class ExecutionSystem : ISimulationSystem
                         {
                             Wetness = worldObject.Wetness,
                             Durability = worldObject.Durability,
-                            ResourceAmount = worldObject.ResourceAmount
+                            ResourceAmount = worldObject.ResourceAmount,
+                            Dirtiness = worldObject.Dirtiness,
+                            Bloodiness = worldObject.Bloodiness
                         });
                         WorldObjectMutations.DespawnObject(world, worldObject.Id);
                         Trace.Emit(world, npc.Id, "ItemPickedUp",
@@ -5619,7 +6071,9 @@ public sealed class ExecutionSystem : ISimulationSystem
                     npc.WornItems.Add(new ItemInstance(worldObject.DefinitionId)
                     {
                         Wetness = worldObject.Wetness,
-                        Durability = worldObject.Durability
+                        Durability = worldObject.Durability,
+                        Dirtiness = worldObject.Dirtiness,
+                        Bloodiness = worldObject.Bloodiness
                     });
                     // Spec §52: putting the garment back on recovers whatever it
                     // was carrying — the pockets pour into the pack (capacity just
@@ -5885,6 +6339,8 @@ public sealed class ExecutionSystem : ISimulationSystem
                             worldObject.Tile, worldObject.Junctions[0]);
                         hung.Wetness = wetWorn.Wetness;
                         hung.Durability = wetWorn.Durability;
+                        hung.Dirtiness = wetWorn.Dirtiness;
+                        hung.Bloodiness = wetWorn.Bloodiness;
                         Trace.Emit(world, npc.Id, "ItemHung",
                             $"{wetWorn.DefinitionId} Wetness={wetWorn.Wetness:F2} on rack " +
                             $"Obj={worldObject.Id.Value}");
@@ -6018,9 +6474,10 @@ public sealed class ExecutionSystem : ISimulationSystem
             }
         }
 
-        // Spec §54: a campfire is piled from stones, and the leaf mat is
-        // hand-lashed. Rigid furniture still needs the builder's hammer.
-        var needsHammer = site.BuildProduct != "campfire.spot" && site.BuildProduct != "bed.leaf";
+        // Spec §54: a campfire is piled from stones, and the leaf mat and the
+        // drying rack (§35.5B) are hand-lashed. Rigid furniture still needs
+        // the builder's hammer.
+        var needsHammer = site.BuildProduct is not ("campfire.spot" or "bed.leaf" or "station.drying_rack");
         if (BuildSiteMath.IsStocked(site) &&
             (!needsHammer ||
              Content.GearCatalog.HasCapability(npc.Inventory.Items, Content.GearCapability.Hammer) ||
@@ -6267,8 +6724,12 @@ public sealed class ExecutionSystem : ISimulationSystem
             target.RotationDegrees = HexSpatialMath.AngleDegrees(
                 new Float2(-faceDirection.X, -faceDirection.Y));
 
-            var targetBusy = target.Execution.Status == ExecutionStatus.InProgress &&
-                target.Execution.CurrentInteraction != InteractionType.Talk;
+            // §60: a listener who collapsed while the initiator was walking
+            // over counts as busy — the neutral "sorry, busy" refusal, no
+            // resentment (you can't be insulted by a coma).
+            var targetBusy = (target.Execution.Status == ExecutionStatus.InProgress &&
+                target.Execution.CurrentInteraction != InteractionType.Talk) ||
+                target.IsUnconscious(world.Tick);
             var listenerAffinity = target.Social.GetOrCreate(npc.Id).Affinity;
             var dislikes = listenerAffinity < RefusalAffinityThreshold &&
                 target.Needs.Social >= LonelinessOverrideThreshold;
@@ -6827,14 +7288,16 @@ public sealed class ExecutionSystem : ISimulationSystem
         }
     }
 
-    // Spec 35.5: the rack holds one item — a wearable at its junction.
-    internal static bool RackHoldsItem(WorldState world, WorldObjectState rack)
+    // §35.5B: the rack holds up to SimBalance.RackCapacity garments — the
+    // wearables at its junction, one per hanger slot on the assembled prefab.
+    internal static bool RackIsFull(WorldState world, WorldObjectState rack)
     {
         if (rack.Junctions.Count == 0)
         {
-            return false;
+            return true;
         }
 
+        var hung = 0;
         foreach (var obj in world.Entities.Objects.Values)
         {
             if (obj.Id.Value != rack.Id.Value && obj.Junctions.Count > 0 &&
@@ -6842,7 +7305,11 @@ public sealed class ExecutionSystem : ISimulationSystem
                 world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
                 definition.Layer is not null)
             {
-                return true;
+                hung++;
+                if (hung >= SimBalance.RackCapacity)
+                {
+                    return true;
+                }
             }
         }
 
@@ -6866,7 +7333,7 @@ public sealed class ExecutionSystem : ISimulationSystem
     // Spec 29G: crafted furniture lands on a free junction by the fire.
     private static void PlaceCraftedFurniture(WorldState world, NPCState npc, WorldObjectState campfire, string definitionId)
     {
-        var spot = FindSpacedFurnitureSpot(world, campfire) ?? npc.CurrentJunction;
+        var spot = FindSpacedFurnitureSpot(world, campfire, definitionId) ?? npc.CurrentJunction;
         if (spot is not { } junction)
         {
             return;
@@ -6882,12 +7349,20 @@ public sealed class ExecutionSystem : ISimulationSystem
     // only if the near ones are all taken.
     private static readonly string[] OtherFurnitureTags = { "Bed", "Rack" };
 
-    private static JunctionId? FindSpacedFurnitureSpot(WorldState world, WorldObjectState campfire)
+    private static JunctionId? FindSpacedFurnitureSpot(
+        WorldState world, WorldObjectState campfire, string definitionId)
     {
         if (campfire.Junctions.Count == 0)
         {
             return null;
         }
+
+        // §54.9A: the piece must PHYSICALLY fit — its footprint (ObstacleRadius
+        // measured off the real prefab) may not cross boulders, palms, the
+        // ember ring, or other furniture.
+        var footprint = world.Content.ObjectDefinitions.TryGetValue(definitionId, out var placedDef)
+            ? placedDef.ObstacleRadius
+            : 0f;
 
         var anchor = campfire.Junctions[0];
         // Pass 1: a free junction on the standable rim just OUTSIDE the
@@ -6901,7 +7376,8 @@ public sealed class ExecutionSystem : ISimulationSystem
         {
             if (SpatialQueries.IsJunctionFree(world, neighbor) &&
                 world.Junctions.Items.TryGetValue(neighbor, out var j) && j.Tiles.Count > 0 &&
-                !IsNearOtherFurniture(world, j.Tiles[0]))
+                !IsNearOtherFurniture(world, j.Tiles[0]) &&
+                SpatialQueries.FootprintClear(world, j, footprint))
             {
                 return neighbor;
             }
@@ -6920,7 +7396,8 @@ public sealed class ExecutionSystem : ISimulationSystem
             }
 
             if (HexSpatialMath.HexDistance(junction.Tiles[0], campfire.Tile) == 2 &&
-                !IsNearOtherFurniture(world, junction.Tiles[0]))
+                !IsNearOtherFurniture(world, junction.Tiles[0]) &&
+                SpatialQueries.FootprintClear(world, junction, footprint))
             {
                 ring = junction.Id;
                 break;
@@ -6973,7 +7450,7 @@ public sealed class ExecutionSystem : ISimulationSystem
     private static void PlaceRack(WorldState world, NPCState npc, WorldObjectState campfire)
     {
         // Spec 35.7: spaced away from the fire and the bed (no more heap).
-        var spot = FindSpacedFurnitureSpot(world, campfire) ?? npc.CurrentJunction;
+        var spot = FindSpacedFurnitureSpot(world, campfire, "station.drying_rack") ?? npc.CurrentJunction;
         if (spot is not { } junction)
         {
             GiveOrDrop(world, npc, "resource.stick");
@@ -7241,6 +7718,8 @@ public sealed class ExecutionSystem : ISimulationSystem
             dropped.Wetness = item.Wetness;
             dropped.Durability = item.Durability;
             dropped.ResourceAmount = item.ResourceAmount;
+            dropped.Dirtiness = item.Dirtiness;
+            dropped.Bloodiness = item.Bloodiness;
             return dropped;
         }
 
@@ -7442,6 +7921,15 @@ public sealed class ExecutionSystem : ISimulationSystem
     {
         if (npc.Execution.Status == ExecutionStatus.None)
         {
+            if (step.TargetJunction is { } reserved &&
+                !SpatialMutations.TryReserveJunction(
+                    world, reserved, npc.Id, world.Tick, durationTicks + 8))
+            {
+                PlanInterruption.Abort(world, npc, "Ground rest edge was claimed");
+                npc.Mind.CurrentGoal = GoalType.None;
+                return;
+            }
+
             npc.Execution.Status = ExecutionStatus.InProgress;
             npc.Execution.CurrentInteraction = kind;
             npc.Execution.TargetObject = null;
@@ -7452,10 +7940,11 @@ public sealed class ExecutionSystem : ISimulationSystem
             {
                 SpatialMutations.OccupyJunction(world, spot, npc.Id);
 
-                if (kind == InteractionType.Sit &&
-                    world.Junctions.Items.TryGetValue(spot, out var ledge) && PlanningSystem.IsLedge(world, ledge))
+                if (kind == InteractionType.Sit && world.Junctions.Items.TryGetValue(spot, out var ledge) &&
+                    PlanningSystem.TryGetEdgeSeatGeometry(
+                        world, ledge, waterOnly: false, out var standTile, out var facing))
                 {
-                    FaceLowerSide(world, npc, ledge);
+                    PlaceAtEdge(world, npc, ledge, standTile, facing);
                 }
 
                 if (kind == InteractionType.Sleep)
@@ -7593,7 +8082,11 @@ public sealed class ExecutionSystem : ISimulationSystem
         return night || npc.Needs.Energy < SleepWakeEnergyDay;
     }
 
-    private static bool HasSleepInterrupt(WorldState world, NPCState npc) =>
+    // §49-parity: the DECISION layer reads this too — going to sleep while an
+    // interrupt condition is already true produced the lie-down/stand-up loop
+    // (Molly, thirst 0.79 ≥ 0.6: the first sleep tick woke her, the auction
+    // put her right back to bed, forever).
+    internal static bool HasSleepInterrupt(WorldState world, NPCState npc) =>
         npc.Memory.Dangers.Count > 0 ||
         npc.Needs.Hunger >= SleepInterruptHunger ||
         npc.Needs.Thirst >= SleepInterruptThirst;
@@ -7608,6 +8101,7 @@ public sealed class ExecutionSystem : ISimulationSystem
     // goal at zero margin every tick (the old None→CoolOff churn, ~40% of all).
     private static void RunGroundCool(WorldState world, NPCState npc, PlanStep step)
     {
+        var bathing = npc.Plan.Goal == GoalType.Bathe;
         if (npc.Execution.Status == ExecutionStatus.None)
         {
             npc.Execution.Status = ExecutionStatus.InProgress;
@@ -7622,7 +8116,7 @@ public sealed class ExecutionSystem : ISimulationSystem
             }
 
             Trace.Emit(world, npc.Id, "InteractionStarted",
-                $"CoolOff on the ground Duration={Spec49.CoolOffDwellTicks}ticks");
+                $"{(bathing ? "Bathe" : "CoolOff")} Duration={Spec49.CoolOffDwellTicks}ticks");
             return;
         }
 
@@ -7641,13 +8135,14 @@ public sealed class ExecutionSystem : ISimulationSystem
         // so a fallback tile that never actually cools can't freeze her here forever.
         if (Spec49.CoolRearm &&
             npc.Mind.CoolRearmCount < Spec49.CoolOffMaxRearms &&
-            ShouldKeepCooling(world, npc))
+            (bathing ? ShouldKeepBathing(npc) : ShouldKeepCooling(world, npc)))
         {
             npc.Mind.CoolRearmCount++;
             npc.Execution.StartTick = world.Tick;
             npc.Execution.EndTick = world.Tick + Spec49.CoolOffDwellTicks;
-            Trace.Emit(world, npc.Id, "CoolContinued",
-                $"Rearm={npc.Mind.CoolRearmCount} Thermal={npc.Needs.ThermalDiscomfort:F2} Sun={npc.SunExposure:F2}");
+            Trace.Emit(world, npc.Id, bathing ? "BatheContinued" : "CoolContinued",
+                $"Rearm={npc.Mind.CoolRearmCount} Hygiene={npc.Needs.Hygiene:F2} " +
+                $"ClothingDirt={EquipmentMath.AverageDirtiness(npc):F2}");
             return;
         }
 
@@ -7658,14 +8153,15 @@ public sealed class ExecutionSystem : ISimulationSystem
             SpatialMutations.ReleaseJunctionReservation(world, done, npc.Id);
         }
 
-        Trace.Emit(world, npc.Id, "CooledOff",
-            $"Thermal={npc.Needs.ThermalDiscomfort:F2} Sun={npc.SunExposure:F2} Rearms={npc.Mind.CoolRearmCount}");
+        Trace.Emit(world, npc.Id, bathing ? "Bathed" : "CooledOff",
+            $"Hygiene={npc.Needs.Hygiene:F2} ClothingDirt={EquipmentMath.AverageDirtiness(npc):F2} " +
+            $"Rearms={npc.Mind.CoolRearmCount}");
 
         // A short refractory window so she doesn't instantly re-select CoolOff even
         // if discomfort still hovers just under the clear edge (mirrors Sit's 240t).
         npc.Mind.Cooldowns.Add(new GoalCooldown
         {
-            Goal = GoalType.CoolOff,
+            Goal = bathing ? GoalType.Bathe : GoalType.CoolOff,
             EndTick = world.Tick + SimBalance.CoolOffSettleTicks
         });
 
@@ -7689,6 +8185,253 @@ public sealed class ExecutionSystem : ISimulationSystem
 
         Trace.Emit(world, npc.Id, "CycleReset",
             "Goal->None Plan->Completed Execution->Cleared (cool-off done)");
+    }
+
+    private static bool ShouldKeepBathing(NPCState npc) =>
+        npc.Needs.Hygiene < 0.95f || EquipmentMath.AverageDirtiness(npc) > 0.05f;
+
+    private static void RunPrepareBathe(WorldState world, NPCState npc, PlanStep step)
+    {
+        if (npc.Movement.IsMoving || npc.CurrentJunction is not { } current ||
+            step.TargetJunction is not { } shore || !current.Equals(shore))
+        {
+            return;
+        }
+
+        if (npc.Execution.Status == ExecutionStatus.InProgress &&
+            npc.Execution.CurrentInteraction == InteractionType.Undress)
+        {
+            var garment = npc.Execution.HeldGarment;
+            if (garment is null && npc.Plan.TargetItemDefinitionId is { } definitionId)
+            {
+                for (var i = npc.WornItems.Count - 1; i >= 0; i--)
+                {
+                    if (npc.WornItems[i].DefinitionId == definitionId)
+                    {
+                        garment = npc.WornItems[i];
+                        break;
+                    }
+                }
+            }
+
+            if (garment is null)
+            {
+                PlanInterruption.Abort(world, npc, "Bathe: active garment disappeared");
+                npc.Mind.CurrentGoal = GoalType.None;
+                return;
+            }
+
+            var total = npc.Execution.EndTick - npc.Execution.StartTick;
+            var progress = total > 0 ? (float)(world.Tick - npc.Execution.StartTick) / total : 1f;
+            if (npc.Execution.HeldGarment is null && progress >= WardrobeHandoffFraction)
+            {
+                npc.WornItems.Remove(garment);
+                npc.Execution.HeldGarment = garment;
+                EquipmentMath.Recalculate(world, npc);
+            }
+
+            if (world.Tick < npc.Execution.EndTick)
+            {
+                return;
+            }
+
+            npc.WornItems.Remove(garment);
+            DropGarmentWithContents(world, npc, garment);
+            npc.Execution.HeldGarment = null;
+            npc.Execution.Status = ExecutionStatus.None;
+            npc.Execution.CurrentInteraction = null;
+            npc.Execution.StartTick = 0;
+            npc.Execution.EndTick = 0;
+            npc.Plan.TargetItemDefinitionId = null;
+            EquipmentMath.Recalculate(world, npc);
+            return;
+        }
+
+        if (npc.WornItems.Count > 0)
+        {
+            var garment = npc.WornItems[npc.WornItems.Count - 1];
+            npc.Plan.TargetItemDefinitionId = garment.DefinitionId;
+            npc.Execution.Status = ExecutionStatus.InProgress;
+            npc.Execution.CurrentInteraction = InteractionType.Undress;
+            npc.Execution.StartTick = world.Tick;
+            npc.Execution.EndTick = world.Tick + UndressDurationTicks;
+            npc.Execution.HeldGarment = null;
+            return;
+        }
+
+        Junction swim = null;
+        var bestDistance = float.MaxValue;
+        foreach (var junction in world.Junctions.Items.Values)
+        {
+            if (junction.Blocked || junction.Tiles.Count == 0 ||
+                !world.Tiles.Items.TryGetValue(junction.Tiles[0], out var tile) ||
+                !tile.Flags.HasFlag(TileFlags.Water) ||
+                !Connectivity.Reachable(world, shore, junction.Id))
+            {
+                continue;
+            }
+
+            var distance = HexSpatialMath.Distance(junction.WorldPosition, npc.Position);
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                swim = junction;
+            }
+        }
+
+        if (swim is null)
+        {
+            PlanInterruption.Abort(world, npc, "Bathe: no reachable water junction");
+            npc.Mind.CurrentGoal = GoalType.None;
+            return;
+        }
+
+        SpatialMutations.ReleaseJunctionReservation(world, shore, npc.Id);
+        npc.Plan.TargetJunctionId = swim.Id;
+        npc.Plan.TargetTile = swim.Tiles[0];
+        npc.Plan.Steps.Clear();
+        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.MoveToJunction, TargetJunction = swim.Id });
+        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.SwimBathe, TargetJunction = swim.Id });
+        npc.Movement.JunctionPath.Clear();
+        npc.Movement.PathIndex = 0;
+        npc.Movement.IsMoving = false;
+        Trace.Emit(world, npc.Id, "BatheReady", $"Naked; swimming to {swim.Id.Value}");
+    }
+
+    private static void RunSwimBathe(WorldState world, NPCState npc, PlanStep step)
+    {
+        if (npc.Movement.IsMoving || npc.CurrentJunction is not { } current ||
+            step.TargetJunction is not { } target || !current.Equals(target))
+        {
+            return;
+        }
+
+        if (npc.WornItems.Count > 0)
+        {
+            PlanInterruption.Abort(world, npc, "Bathe requires complete undressing");
+            npc.Mind.CurrentGoal = GoalType.None;
+            return;
+        }
+
+        if (npc.Execution.Status == ExecutionStatus.None)
+        {
+            npc.Execution.Status = ExecutionStatus.InProgress;
+            npc.Execution.CurrentInteraction = InteractionType.CoolOff;
+            npc.Execution.StartTick = world.Tick;
+            npc.Execution.EndTick = world.Tick + SimBalance.BatheDurationTicks;
+            Trace.Emit(world, npc.Id, "BatheStarted",
+                $"Duration={SimBalance.BatheDurationTicks} ticks (one game hour)");
+            return;
+        }
+
+        npc.Needs.Hygiene = MathUtil.Clamp01(npc.Needs.Hygiene +
+            1f / SimBalance.BatheDurationTicks);
+        if (world.Tick < npc.Execution.EndTick)
+        {
+            return;
+        }
+
+        npc.Needs.Hygiene = 1f;
+        FinishPersonalCare(world, npc, target, GoalType.Bathe, "Bathed");
+    }
+
+    private static void RunWashClothes(WorldState world, NPCState npc, PlanStep step)
+    {
+        if (npc.Movement.IsMoving || npc.CurrentJunction is not { } current ||
+            step.TargetJunction is not { } target || !current.Equals(target))
+        {
+            return;
+        }
+
+        if (npc.Plan.TargetObjectId is not { } objectId ||
+            !world.Entities.Objects.TryGetValue(objectId, out var garment) ||
+            !world.Junctions.Items.TryGetValue(target, out var edge) ||
+            !PlanningSystem.TryGetEdgeSeatGeometry(
+                world, edge, waterOnly: true, out var standTile, out var facing))
+        {
+            SpatialMutations.FreeJunction(world, target, npc.Id);
+            SpatialMutations.ReleaseJunctionReservation(world, target, npc.Id);
+            PlanInterruption.Abort(world, npc, "WashClothes edge or garment disappeared");
+            npc.Mind.CurrentGoal = GoalType.None;
+            return;
+        }
+
+        // Hold the exact edge midpoint and its water-facing normal throughout
+        // the gathering clip; other systems cannot slowly turn the washer away.
+        PlaceAtEdge(world, npc, edge, standTile, facing);
+
+        if (npc.Execution.Status == ExecutionStatus.None)
+        {
+            if (!SpatialMutations.TryReserveJunction(world, target, npc.Id, world.Tick,
+                    SimBalance.WashClothesDurationTicks + 8))
+            {
+                PlanInterruption.Abort(world, npc, "WashClothes edge was claimed");
+                npc.Mind.CurrentGoal = GoalType.None;
+                return;
+            }
+
+            SpatialMutations.OccupyJunction(world, target, npc.Id);
+            garment.Wetness = 1f;
+            npc.Execution.Status = ExecutionStatus.InProgress;
+            npc.Execution.CurrentInteraction = InteractionType.WashClothes;
+            npc.Execution.TargetObject = objectId;
+            npc.Execution.StartTick = world.Tick;
+            npc.Execution.EndTick = world.Tick + SimBalance.WashClothesDurationTicks;
+            npc.Execution.HeldGarment = new ItemInstance(garment.DefinitionId)
+            {
+                Wetness = 1f,
+                Durability = garment.Durability,
+                Dirtiness = garment.Dirtiness,
+                Bloodiness = garment.Bloodiness
+            };
+            return;
+        }
+
+        garment.Dirtiness = MathUtil.Clamp01(garment.Dirtiness -
+            1f / SimBalance.WashClothesDurationTicks);
+        garment.Wetness = 1f;
+        if (npc.Execution.HeldGarment is { } held)
+        {
+            held.Dirtiness = garment.Dirtiness;
+            held.Wetness = garment.Wetness;
+        }
+        if (world.Tick < npc.Execution.EndTick)
+        {
+            return;
+        }
+
+        garment.Dirtiness = 0f;
+        garment.Wetness = 1f;
+        npc.Execution.HeldGarment = null;
+        SpatialMutations.FreeJunction(world, target, npc.Id);
+        FinishPersonalCare(world, npc, step.TargetJunction, GoalType.WashClothes,
+            $"ClothesWashed {garment.DefinitionId} (fully wet)");
+    }
+
+    private static void FinishPersonalCare(WorldState world, NPCState npc, JunctionId? junction,
+        GoalType goal, string trace)
+    {
+        if (junction is { } occupied)
+        {
+            SpatialMutations.ReleaseJunctionReservation(world, occupied, npc.Id);
+        }
+
+        npc.Plan.Status = PlanStatus.Completed;
+        npc.Plan.Steps.Clear();
+        npc.Plan.TargetObjectId = null;
+        npc.Plan.TargetJunctionId = null;
+        npc.Plan.TargetTile = null;
+        npc.Plan.TargetItemDefinitionId = null;
+        npc.Mind.CurrentGoal = GoalType.None;
+        npc.Mind.Cooldowns.Add(new GoalCooldown { Goal = goal, EndTick = world.Tick + 40 });
+        npc.Execution.Status = ExecutionStatus.None;
+        npc.Execution.CurrentInteraction = null;
+        npc.Execution.TargetObject = null;
+        npc.Execution.StartTick = 0;
+        npc.Execution.EndTick = 0;
+        npc.Movement.JunctionPath.Clear();
+        npc.Movement.PathIndex = 0;
+        Trace.Emit(world, npc.Id, trace, $"Hygiene={npc.Needs.Hygiene:F2}");
     }
 
     // Spec 35.4: should the finished cool-off beat re-arm in place? Yes while she
@@ -7763,58 +8506,20 @@ public sealed class ExecutionSystem : ISimulationSystem
         npc.ClaimedJunctions.Clear();
     }
 
-    // Spec 29G: legs over the edge. Face straight out into the drop: use the
-    // high-to-low tile-center normal, which is perpendicular to the hex edge.
-    private static void FaceLowerSide(WorldState world, NPCState npc, Junction ledge)
+    private static void PlaceAtEdge(
+        WorldState world, NPCState npc, Junction edge, TileCoord standTile, Float2 facing)
     {
-        var minElevation = int.MaxValue;
-        var maxElevation = int.MinValue;
-        var lowCenterSum = Float2.Zero;
-        var highCenterSum = Float2.Zero;
-        var lowCount = 0;
-        var highCount = 0;
-        foreach (var coord in ledge.Tiles)
+        if (npc.Tile != standTile)
         {
-            if (!world.Tiles.Items.TryGetValue(coord, out var tile))
-            {
-                continue;
-            }
-
-            var center = HexSpatialMath.TileToWorld(tile.Coord);
-            if (tile.Elevation < minElevation)
-            {
-                minElevation = tile.Elevation;
-                lowCenterSum = center;
-                lowCount = 1;
-            }
-            else if (tile.Elevation == minElevation)
-            {
-                lowCenterSum += center;
-                lowCount++;
-            }
-
-            if (tile.Elevation > maxElevation)
-            {
-                maxElevation = tile.Elevation;
-                highCenterSum = center;
-                highCount = 1;
-            }
-            else if (tile.Elevation == maxElevation)
-            {
-                highCenterSum += center;
-                highCount++;
-            }
+            var previous = npc.Tile;
+            npc.Tile = standTile;
+            SpatialMutations.MoveEntityToTile(world, npc.Id, previous, standTile);
         }
 
-        if (lowCount == 0 || highCount == 0 || minElevation == maxElevation)
-        {
-            return;
-        }
-
-        var lowCenter = lowCenterSum * (1f / lowCount);
-        var highCenter = highCenterSum * (1f / highCount);
-        var direction = HexSpatialMath.Normalize(lowCenter - highCenter);
-        npc.RotationDegrees = HexSpatialMath.AngleDegrees(direction);
+        npc.Position = edge.WorldPosition;
+        npc.Movement.DesiredDirection = facing;
+        npc.Movement.DesiredRotationDegrees = HexSpatialMath.AngleDegrees(facing);
+        npc.RotationDegrees = npc.Movement.DesiredRotationDegrees;
     }
 
     private static void RunUndressItem(WorldState world, NPCState npc)
@@ -8468,12 +9173,14 @@ public sealed class EnvironmentSystem : ISimulationSystem
     // Spec 43: cast shadows. The sun rises east (p=0, 06:00), peaks south at
     // noon (p=0.25) and sets west (p=0.5); elevation follows the same sine
     // (8° at the horizons, 65° at noon). Every tile marches a short ray
-    // TOWARD the sun: a blocker (tall hex, +2 for canopy/indoor walls)
-    // shades it when its silhouette clears the sun line. Dawn/dusk throw
-    // 3-5 tile shadows off a cliff; at noon a 1-step ledge shades nothing.
-    private const int ShadowRaySteps = 5;
+    // TOWARD the sun: a blocker (tall hex, +ShadeSteps for canopy, +2 for
+    // indoor walls) shades it when its silhouette clears the sun line.
+    // Dawn/dusk throw multi-tile shadows off a cliff or a palm; at noon a
+    // 1-step ledge shades nothing. Ray length covers a 7-step palm down to
+    // ~15° sun so the sim shadow keeps up with the rendered one.
+    private const int ShadowRaySteps = 7;
     private const float ElevationWorldStep = 0.55f; // renderer's step height
-    private const float CanopyVirtualSteps = 2f;
+    private const float CanopyVirtualSteps = 2f; // indoor walls
 
     private static void RebuildShadows(WorldState world, float progress)
     {
@@ -8497,15 +9204,17 @@ public sealed class EnvironmentSystem : ISimulationSystem
         var risePerStep = System.MathF.Tan(elevationDeg * System.MathF.PI / 180f)
             * (stepWorld / ElevationWorldStep);
 
-        // Canopy/wall blockers: +2 virtual steps on their tile; a canopy tile
-        // is also always shaded itself (standing under the palm).
+        // Canopy/wall blockers: the definition's ShadeSteps on their tile
+        // (matched to the rendered mesh height — palm 7, tent 2); a canopy
+        // tile is also always shaded itself (standing under the palm).
         _shadowExtra.Clear();
         foreach (var obj in world.Entities.Objects.Values)
         {
             if (world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def) &&
                 def.Tags.Contains("Shade"))
             {
-                _shadowExtra[obj.Tile] = CanopyVirtualSteps;
+                _shadowExtra.TryGetValue(obj.Tile, out var prior);
+                _shadowExtra[obj.Tile] = System.Math.Max(prior, def.ShadeSteps);
                 world.ShadedTiles.Add(obj.Tile);
             }
         }
@@ -8586,6 +9295,16 @@ public sealed class EnvironmentSystem : ISimulationSystem
         var h = (int)hours;
         var m = (int)((hours - h) * 60f);
         return $"{h:D2}:{m:D2}";
+    }
+
+    // Display-only calendar day, 1-based. The tick-day starts at 06:00
+    // (tick 0 = Day 1, 06:00), but the CALENDAR day must roll over at
+    // midnight — shifting by the quarter-day between 00:00 and 06:00 moves
+    // the boundary there. Sim logic (raids, storms, spoilage) stays on raw
+    // tick-days; only player-facing readouts use this.
+    public static int CalendarDay(int tick)
+    {
+        return (tick + DayLengthTicks / 4) / DayLengthTicks + 1;
     }
 }
 
@@ -8714,24 +9433,46 @@ public sealed class NeedsDecaySystem : ISimulationSystem
         BodyPart.ArmL, BodyPart.ArmR, BodyPart.LegL, BodyPart.LegR
     };
 
-    // Spec 40.6: standing on or next to a water tile (the bank you drink from).
-    private static bool IsAtOrBesideWater(WorldState world, TileCoord tile)
+    // Spec §60: drop the body into a coma. The full plan teardown mirrors the
+    // stamina faint (spec 40.13); idempotent while already out.
+    internal static void EnterComa(WorldState world, NPCState npc, ComaCause cause)
     {
-        if (world.Tiles.Items.TryGetValue(tile, out var here) && here.Flags.HasFlag(TileFlags.Water))
+        if (npc.Mind.ComaCause != ComaCause.None || npc.Health <= 0f)
         {
-            return true;
+            return;
         }
 
-        foreach (var dir in HexDirection.All)
+        npc.Mind.ComaCause = cause;
+        PlanInterruption.Abort(world, npc, "Collapsed — coma");
+        npc.Mind.CurrentGoal = GoalType.None;
+        npc.IsFighting = false; // a body that just switched off holds no stance
+        Trace.Emit(world, npc.Id, "Collapsed",
+            $"Cause={cause} Energy={npc.Needs.Energy:F2} Blood={npc.Needs.Blood:F2} " +
+            $"Health={npc.Health:F2}");
+    }
+
+    // Spec §60: the coma ends the moment the stat that felled the body climbs
+    // back over the wake threshold — she comes to like waking from a bed
+    // (same wake grace as an ordinary morning, so the get-up plays out).
+    private static void TryWakeFromComa(WorldState world, NPCState npc)
+    {
+        var recovered = npc.Mind.ComaCause switch
         {
-            if (world.Tiles.Items.TryGetValue(new TileCoord(tile.Q + dir.DQ, tile.R + dir.DR), out var n) &&
-                n.Flags.HasFlag(TileFlags.Water))
-            {
-                return true;
-            }
+            ComaCause.Exhaustion => npc.Needs.Energy >= SimBalance.ComaWakeThreshold,
+            ComaCause.BloodLoss => npc.Needs.Blood >= SimBalance.ComaWakeThreshold,
+            _ => false
+        };
+
+        if (!recovered)
+        {
+            return;
         }
 
-        return false;
+        var cause = npc.Mind.ComaCause;
+        npc.Mind.ComaCause = ComaCause.None;
+        npc.Mind.WakeGraceUntilTick = world.Tick + 12; // spec 41.5 wake grace
+        Trace.Emit(world, npc.Id, "WokeUp",
+            $"Cause={cause} Energy={npc.Needs.Energy:F2} Blood={npc.Needs.Blood:F2}");
     }
 
     public void Run(WorldState world)
@@ -8743,9 +9484,18 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             var prevComfort = npc.Needs.Comfort;
             var prevSocial = npc.Needs.Social;
 
+            // Spec §60: coma wake check — the body comes to the moment the
+            // stat that felled it climbs back over the threshold. Checked
+            // before this tick's decay so a recovered body never oversleeps
+            // its own wake line.
+            TryWakeFromComa(world, npc);
+
             // Spec 31C.7A: a sleeping body burns less — hour-long sleep
             // blocks must not guarantee a starving wake-up.
-            var sleeping = npc.Execution.CurrentInteraction == InteractionType.Sleep;
+            // Spec §60: a comatose body IS a sleeping body for every recovery
+            // rule — same low metabolism, same energy/comfort restore.
+            var sleeping = npc.Execution.CurrentInteraction == InteractionType.Sleep ||
+                npc.Mind.ComaCause != ComaCause.None;
             var metabolism = sleeping ? 0.4f : 1f;
             // Spec 42.A: sweating burns water — overheating scales thirst by
             // up to +25% at heatstroke-level heat (ThermalComfort +1). Reads
@@ -8780,6 +9530,14 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 }
 
                 npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy + wake);
+            }
+
+            // Spec §60: energy drained to nothing on her feet — the body
+            // simply switches off where it stands. (Asleep she is already
+            // recovering; only an awake body can burn to the collapse line.)
+            if (!sleeping && npc.Needs.Energy <= 0f)
+            {
+                EnterComa(world, npc, ComaCause.Exhaustion);
             }
 
             // Spec §49: unified sleep-comfort. Asleep, comfort no longer drains —
@@ -8817,6 +9575,14 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             if (maxWornWet > 0.5f)
             {
                 npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort - Spec49.WetComfortPenalty);
+            }
+
+
+            var dirtyClothing = EquipmentMath.AverageDirtiness(npc);
+            if (dirtyClothing > 0f)
+            {
+                npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort -
+                    dirtyClothing * SimBalance.DirtyClothingComfortLoss);
             }
 
             // Spec §49: passive "second action" socialising — being near an
@@ -8896,7 +9662,8 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 0.30f + 0.35f * (1f - npc.Needs.Hunger) + 0.25f * npc.Needs.Energy +
                 0.10f * npc.Needs.Comfort);
             var resting = npc.Execution.CurrentInteraction is
-                InteractionType.Sit or InteractionType.Sleep;
+                InteractionType.Sit or InteractionType.Sleep ||
+                npc.Mind.ComaCause != ComaCause.None; // §60: a coma rests the body too
             var working = npc.Execution.Status == ExecutionStatus.InProgress && !resting;
             var staminaDelta = resting ? SimBalance.StaminaRestGain
                 : working ? -SimBalance.StaminaWorkDrain : SimBalance.StaminaIdleGain;
@@ -8930,8 +9697,11 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // Grubbying takes ~10 game days from clean to filthy (0.0004/slow
             // tick; was 0.004 — a single day, way too fast once dirt got real
             // smudge decals).
-            npc.Needs.Hygiene = MathUtil.Clamp01(
-                npc.Needs.Hygiene + (IsAtOrBesideWater(world, npc.Tile) ? SimBalance.HygieneWashGain : -SimBalance.HygieneDriftLoss));
+            npc.Needs.Hygiene = MathUtil.Clamp01(npc.Needs.Hygiene - SimBalance.HygieneDriftLoss);
+            foreach (var worn in npc.WornItems)
+            {
+                worn.Dirtiness = MathUtil.Clamp01(worn.Dirtiness + SimBalance.ClothingDirtGain);
+            }
 
             // Spec 40.2: blood. A badly wounded part (< 0.4) bleeds — the worse
             // the wound, the faster; blood refills slowly while fed and rested.
@@ -9035,7 +9805,18 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     // teeth back, and bleeding is the "sharp" death channel
                     // (dramatic, fightable with bandages) rather than the
                     // slow-grind ones we deliberately softened.
-                    npc.Needs.Blood = System.Math.Max(0f, npc.Needs.Blood - (0.4f - worstPart) * SimBalance.BleedRateFactor);
+                    // Spec §60: in a blood-loss coma the wound still bleeds, but
+                    // the coma's deep rest knits some of it back (same fed gate
+                    // as spec 44) — a race between the open wound and the
+                    // healing sleep. Reaching 0 is still death (spec 40.2).
+                    var bleed = (0.4f - worstPart) * SimBalance.BleedRateFactor;
+                    if (npc.Mind.ComaCause == ComaCause.BloodLoss &&
+                        npc.Needs.Hunger < SimBalance.HealHungerGate)
+                    {
+                        bleed -= SimBalance.BloodRefillPerTick * 3f;
+                    }
+
+                    npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood - bleed);
                     if (npc.Needs.Blood <= 0f)
                     {
                         npc.Health = 0f;
@@ -9052,10 +9833,21 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             {
                 // Spec 44: bed rest — sleeping knits blood x3, huddling by a
                 // burning fire x2; a fed girl who lies low pulls through.
-                var bloodPace = npc.Execution.CurrentInteraction == InteractionType.Sleep ? 3f
+                // Spec §60: a coma counts as the deepest bed rest there is.
+                var bloodPace = npc.Execution.CurrentInteraction == InteractionType.Sleep ||
+                    npc.Mind.ComaCause != ComaCause.None ? 3f
                     : TemperatureSystem.NearbyFireWarmth(world, npc.Tile, out _) > 0f ? 2f
                     : 1f;
                 npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood + SimBalance.BloodRefillPerTick * bloodPace); // spec 44
+            }
+
+            // Spec §60: blood at the coma line — whatever drained it (the
+            // bleed above, a heavy hit, a severed limb) — drops the body.
+            // At 0 she is already dead (EnterComa guards Health), so this
+            // only catches the razor's-edge band above the death line.
+            if (npc.Needs.Blood <= SimBalance.ComaBloodEnterThreshold)
+            {
+                EnterComa(world, npc, ComaCause.BloodLoss);
             }
 
             // Spec 28.15B: post-quarrel embarrassment fades with time.
@@ -9249,7 +10041,9 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // health comes back exactly as the wounds close, wound by wound.
             if (npc.Wounds.Count > 0)
             {
-                var pace = npc.Execution.CurrentInteraction == InteractionType.Sleep ? 2f
+                // §60: a coma knits flesh at the sleeping pace too.
+                var pace = npc.Execution.CurrentInteraction == InteractionType.Sleep ||
+                    npc.Mind.ComaCause != ComaCause.None ? 2f
                     : npc.Movement.Status == MovementStatus.Moving ? 0.5f
                     : 1f;
 
@@ -9276,6 +10070,16 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 }
 
                 npc.Health = npc.Body.Mean();
+            }
+
+            // Spec 40.2/§60: blood at 0 IS death — pin it after every branch
+            // above, because the fed-heal and wound-close paths recompute
+            // Health from the body parts and would otherwise "resurrect" a
+            // bled-out body in the same pass (parts stay > 0 when the death
+            // came from the drained blood, not from destroyed zones).
+            if (npc.Needs.Blood <= 0f)
+            {
+                npc.Health = 0f;
             }
 
             Trace.Emit(world, npc.Id, "NeedsDecay",
@@ -9375,7 +10179,9 @@ public sealed class TemperatureSystem : ISimulationSystem
             // Tier B: a sleeping body accrues cold/heat discomfort more slowly
             // (only the rising side is slowed; recovery in the comfy band stays
             // full). Lets her sleep through a mild night without spiralling.
-            var sleeping = npc.Execution.CurrentInteraction == InteractionType.Sleep;
+            // §60: a comatose body counts as sleeping here too.
+            var sleeping = npc.Execution.CurrentInteraction == InteractionType.Sleep ||
+                npc.Mind.ComaCause != ComaCause.None;
             if (sleeping && pressure > 0f)
             {
                 pressure *= Spec49.ThermalSleepFactor;
@@ -9791,6 +10597,10 @@ internal static class CombatHelpSystem
         {
             if (helper.Id == victim.Id ||
                 helper.Health <= 0f ||
+                // §60: asleep or out cold — the cry does not register at all:
+                // no waking into Defend, no "ignored" cue, not even an emoji.
+                helper.IsUnconscious(world.Tick) ||
+                helper.Execution.CurrentInteraction == InteractionType.Sleep ||
                 HexSpatialMath.HexDistance(helper.Tile, victim.Tile) > Spec57.HelpCryRadiusTiles)
             {
                 continue;
@@ -9851,6 +10661,73 @@ internal static class CombatHelpSystem
             {
                 break;
             }
+        }
+    }
+
+    // 29C.4B friend-guard: runs every medium fight pass, BEFORE any cry.
+    // A friend (affinity >= FriendGuardAffinity) within FriendGuardRadiusTiles
+    // of the victim needs no cry and no compassion roll — she aborts whatever
+    // she is doing and takes the Defend goal at the aggressor. The cry
+    // (score + roll + health gate) stays as the wider-radius fallback for
+    // everyone who is not that close a friend.
+    public static void RallyFriends(
+        WorldState world,
+        NPCState victim,
+        int? dogId,
+        EntityId? attackerId,
+        string attackerLabel)
+    {
+        if (!Spec57.FriendGuardEnabled || (!dogId.HasValue && !attackerId.HasValue))
+        {
+            return;
+        }
+
+        foreach (var helper in world.Entities.Npcs.Values)
+        {
+            if (helper.Id == victim.Id ||
+                helper.Health <= 0f ||
+                helper.Body.IsProne ||
+                helper.IsUnconscious(world.Tick) || // §60: out cold — no rushing anywhere
+                helper.Execution.CurrentInteraction == InteractionType.Sleep || // §60: sleepers ignore cries too
+                helper.IsFighting ||
+                helper.Mind.CurrentGoal == GoalType.Defend ||
+                helper.Mind.CurrentGoal == GoalType.Flee ||
+                (attackerId is { } aId && helper.Id.Equals(aId)) ||
+                HexSpatialMath.HexDistance(helper.Tile, victim.Tile) > Spec57.FriendGuardRadiusTiles)
+            {
+                continue;
+            }
+
+            var relationship = helper.Social.GetOrCreate(victim.Id);
+            if (relationship.Affinity < Spec57.FriendGuardAffinity)
+            {
+                continue;
+            }
+
+            if (helper.Plan.Status == PlanStatus.Active ||
+                helper.Execution.Status == ExecutionStatus.InProgress)
+            {
+                PlanInterruption.Abort(world, helper,
+                    $"Rushing to defend friend NPC{victim.Id.Value}");
+            }
+
+            helper.Mind.CurrentGoal = GoalType.Defend;
+            helper.Mind.GoalLock = new GoalLock
+            {
+                Goal = GoalType.Defend,
+                StartTick = world.Tick,
+                EndTick = world.Tick + Spec57.HelpCryCooldownTicks
+            };
+            helper.Mind.CombatAssistDogId = dogId;
+            helper.Mind.CombatAssistAttackerNpcId = attackerId;
+            helper.Mind.PendingTalkFrom = null;
+            helper.Mind.PendingAidFrom = null;
+            SocialCueSignals.Stamp(world, helper, "HelpCryAnswer", victim.Id);
+            SocialCueSignals.Stamp(world, victim, "HelpCryAnswered", helper.Id);
+            Trace.Emit(world, helper.Id, "FriendGuard",
+                $"Victim=NPC{victim.Id.Value} {attackerLabel} " +
+                $"Affinity={relationship.Affinity:F2} " +
+                $"Dist={HexSpatialMath.HexDistance(helper.Tile, victim.Tile)}");
         }
     }
 
@@ -10061,14 +10938,19 @@ public sealed class MobSystem : ISimulationSystem
         // manages statuses, flee assessment and helpers.
         dog.Status = Wildlife.MobStatus.Fighting;
         RememberDanger(world, target);
+        CombatHelpSystem.RallyFriends(world, target, dog.Id, null, $"Dog={dog.Id}");
         RunDogDefenders(world, dog, target);
         if (dog.Health <= 0f)
         {
             return;
         }
 
+        // Spec §60: an unconscious body neither flees nor fights — it lies
+        // where it fell and takes the bites. Collapsing near dogs is lethal.
+        var helpless = target.IsUnconscious(world.Tick);
+
         var fleeing = target.Mind.CurrentGoal == GoalType.Flee;
-        if (!fleeing)
+        if (!fleeing && !helpless)
         {
             var attackers = CountAdjacentDogs(world, target);
             // §50-prone: a girl on the ground CANNOT stand and trade blows —
@@ -10082,7 +10964,7 @@ public sealed class MobSystem : ISimulationSystem
 
         // §50-prone: no refuge to crawl to still never means standing up —
         // a prone girl lies where she is (and takes the bites; §50 is HARD).
-        if (!fleeing && !target.Body.IsProne)
+        if (!fleeing && !helpless && !target.Body.IsProne)
         {
             var wasFighting = target.IsFighting;
             target.IsFighting = true;
@@ -10943,6 +11825,7 @@ public sealed class AnimalCombatSystem : ISimulationSystem
         // girl does not trade hits). One engaged dog per NPC per pass so a
         // pack doesn't multiply her swings.
         if (target.IsFighting && !target.Body.IsProne &&
+            !target.IsUnconscious(world.Tick) && // §60: no swings from a coma
             dog.Health > 0f && _struckNpcs.Add(target.Id.Value))
         {
             RunCounterStrike(world, dog, target, inMelee);
@@ -10957,6 +11840,7 @@ public sealed class AnimalCombatSystem : ISimulationSystem
     {
         if (target.Health <= 0f || target.IsFighting ||
             target.Body.IsProne ||  // §50-prone: lying — never pinned standing
+            target.IsUnconscious(world.Tick) || // §60: out cold — can't stand to fight
             target.Mind.CurrentGoal == GoalType.Flee)
         {
             return;
@@ -11001,13 +11885,15 @@ public sealed class AnimalCombatSystem : ISimulationSystem
         // the blow connects HitDelaySeconds in. The next swing waits out the
         // REST of the attack animation plus the standing recovery — knife:
         // hit at 0.21 s, animation to 2.0 s, then 1.0 s recovery (3 s cycle).
+        // Variant gear (fists) reads the timings of the strike PICKED at the
+        // swing start instead of the flat sheet values.
         if (npc.StrikeLandsAtTick > 0 && world.Tick >= npc.StrikeLandsAtTick)
         {
             npc.StrikeLandsAtTick = 0;
-            npc.StrikeReadyAtTick = world.Tick + SecondsToTicks(
-                Content.GearCatalog.AttackDurationSeconds(weaponId) -
-                Content.GearCatalog.HitDelaySeconds(weaponId) +
-                Content.GearCatalog.CooldownSeconds(weaponId));
+            StrikeTimings(Content.GearCatalog.For(weaponId), npc.SwingStrikeIndex,
+                out var hitDelay, out var duration, out var cooldown);
+            npc.StrikeReadyAtTick = world.Tick +
+                SecondsToTicks(duration - hitDelay + cooldown);
             // Spec 19.3C: hurt arms strike weaker; the weapon owns its damage.
             var strike = Content.GearCatalog.Damage(weaponId) * npc.Body.StrikeFactor();
             dog.Health -= strike;
@@ -11020,14 +11906,42 @@ public sealed class AnimalCombatSystem : ISimulationSystem
 
         // Start the swing (замах) when recovered and the dog is in reach. The
         // attack animation begins NOW; presentation plays it across the whole
-        // AttackAnimUntilTick window while the damage lands mid-clip.
+        // AttackAnimUntilTick window while the damage lands mid-clip. Variant
+        // gear picks ONE strike (deterministic hash) — fists roll a random
+        // punch/kick each exchange, and the view plays that exact clip.
         if (npc.StrikeLandsAtTick == 0 && inMelee && world.Tick >= npc.StrikeReadyAtTick)
         {
-            npc.StrikeLandsAtTick = world.Tick +
-                SecondsToTicks(Content.GearCatalog.HitDelaySeconds(weaponId));
-            npc.AttackAnimUntilTick = world.Tick +
-                SecondsToTicks(Content.GearCatalog.AttackDurationSeconds(weaponId));
+            var gear = Content.GearCatalog.For(weaponId);
+            npc.SwingStrikeIndex = gear.HasStrikeVariants
+                ? System.Math.Min(gear.StrikeVariants.Length - 1,
+                    (int)(MathUtil.Hash01(world.Seed, world.Tick, npc.Id.Value, 777) *
+                        gear.StrikeVariants.Length))
+                : -1;
+            StrikeTimings(gear, npc.SwingStrikeIndex,
+                out var hitDelay, out var duration, out _);
+            npc.StrikeLandsAtTick = world.Tick + SecondsToTicks(hitDelay);
+            npc.AttackAnimUntilTick = world.Tick + SecondsToTicks(duration);
         }
+    }
+
+    // The current swing's timing sheet: the picked strike variant when the
+    // gear has one (fists), the flat gear numbers otherwise.
+    private static void StrikeTimings(Content.GearStats gear, int strikeIndex,
+        out float hitDelaySeconds, out float durationSeconds, out float cooldownSeconds)
+    {
+        if (gear.HasStrikeVariants && strikeIndex >= 0 &&
+            strikeIndex < gear.StrikeVariants.Length)
+        {
+            var variant = gear.StrikeVariants[strikeIndex];
+            hitDelaySeconds = variant.HitDelaySeconds;
+            durationSeconds = variant.AttackDurationSeconds;
+            cooldownSeconds = variant.CooldownSeconds;
+            return;
+        }
+
+        hitDelaySeconds = gear.HitDelaySeconds;
+        durationSeconds = gear.AttackDurationSeconds;
+        cooldownSeconds = gear.CooldownSeconds;
     }
 
     private static void LandBite(WorldState world, Wildlife.MobState dog, NPCState target)
@@ -11398,6 +12312,8 @@ public sealed class BedSiteSystem : ISimulationSystem
         var beds = 0;
         var basicBeds = 0;
         var bedSitesInProgress = 0;
+        var racks = 0;
+        var rackSitesInProgress = 0;
         WorldObjectState hearth = null;
         foreach (var obj in world.Entities.Objects.Values)
         {
@@ -11407,8 +12323,17 @@ public sealed class BedSiteSystem : ISimulationSystem
                 {
                     bedSitesInProgress++;
                 }
+                else if (obj.BuildProduct == "station.drying_rack")
+                {
+                    rackSitesInProgress++;
+                }
 
                 continue;
+            }
+
+            if (obj.DefinitionId == "station.drying_rack")
+            {
+                racks++;
             }
 
             if (!world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def))
@@ -11430,6 +12355,27 @@ public sealed class BedSiteSystem : ISimulationSystem
             }
         }
 
+        // §35.5B: one communal drying rack, staked by the hearth like a bed —
+        // the same staged haul/raise chain builds it (2 uprights → 2 rails →
+        // 4 lashings). Cheap, so it goes up first; beds follow next tick.
+        if (hearth is not null && racks == 0 && rackSitesInProgress == 0)
+        {
+            var rackSpot = FindFiresideSpot(world, hearth, "station.drying_rack");
+            if (rackSpot is { } rackPlacement)
+            {
+                var rackSite = WorldObjectMutations.SpawnObject(
+                    world, "build.site", new FragmentId(1), rackPlacement.Tile, rackPlacement.Junction);
+                rackSite.BuildProduct = "station.drying_rack";
+                WorldObjectMutations.SetObstacleBlocking(world, rackSite, blocked: true);
+                rackSite.BillSticks = SimBalance.RackBillSticks;
+                rackSite.BillRope = SimBalance.RackBillRope;
+                RememberSiteForColony(world, rackSite);
+                Trace.EmitSystem(world, "RackSitePlaced",
+                    "station.drying_rack site staked by the hearth");
+                return;
+            }
+        }
+
         // Fire first (a lit hearth, not the cold pit-site). One bed at a time.
         // Cap at one bed per living girl. §54.12: once every girl sleeps on
         // SOMETHING, the colony moves to the second bed tier — premium
@@ -11446,7 +12392,7 @@ public sealed class BedSiteSystem : ISimulationSystem
             return;
         }
 
-        var spot = FindFiresideSpot(world, hearth);
+        var spot = FindFiresideSpot(world, hearth, product);
         if (spot is not { } placement)
         {
             return;
@@ -11455,6 +12401,9 @@ public sealed class BedSiteSystem : ISimulationSystem
         var site = WorldObjectMutations.SpawnObject(
             world, "build.site", new FragmentId(1), placement.Tile, placement.Junction);
         site.BuildProduct = product;
+        // §54.9A: the site now knows what it will become — claim the finished
+        // bed's physical footprint so nothing else is placed across the frame.
+        WorldObjectMutations.SetObstacleBlocking(world, site, blocked: true);
         if (product == "bed.leaf")
         {
             site.BillLeaves = SimBalance.BedLeafBillLeaves;
@@ -11491,39 +12440,71 @@ public sealed class BedSiteSystem : ISimulationSystem
         }
     }
 
-    // A free junction on a dry tile neighbouring the hearth.
-    private static (TileCoord Tile, JunctionId Junction)? FindFiresideSpot(WorldState world, WorldObjectState hearth)
+    // §54.9A: the spot where the bed PHYSICALLY fits. A junction is only a
+    // candidate when every point under the finished bed's footprint (the
+    // product's ObstacleRadius, measured off the real prefab) is clear of
+    // obstacle-blocked junctions (boulders, palms, the fire's ember ring,
+    // other beds/sites) and water. Fireside ring first; when the near tiles
+    // are too cluttered the search widens one ring so the colony still gets
+    // its bed — closest valid spot to the flames wins.
+    private static (TileCoord Tile, JunctionId Junction)? FindFiresideSpot(
+        WorldState world, WorldObjectState hearth, string product)
     {
-        foreach (var dir in HexDirection.All)
+        var footprint = world.Content.ObjectDefinitions.TryGetValue(product, out var productDef)
+            ? productDef.ObstacleRadius
+            : 0f;
+        if (hearth.Junctions.Count == 0 ||
+            !world.Junctions.Items.TryGetValue(hearth.Junctions[0], out var hearthAnchor))
         {
-            var coord = new TileCoord(hearth.Tile.Q + dir.DQ, hearth.Tile.R + dir.DR);
-            if (!world.Tiles.Items.TryGetValue(coord, out var tile) ||
-                tile.Flags.HasFlag(TileFlags.Water))
-            {
-                continue;
-            }
+            return null;
+        }
 
-            // §54.12: one STRUCTURE per fireside tile. IsJunctionFree only sees
-            // NPC reservations, so the premium-bed site used to get staked ON
-            // TOP of the finished leaf mat (its log rails rendered across the
-            // mat, and the raised bedroll would have stacked on the bed).
-            // Loose pickup-able items don't claim a tile — furniture does.
-            if (TileHoldsStructure(world, coord))
+        (TileCoord Tile, JunctionId Junction)? best = null;
+        var bestDist = float.MaxValue;
+        for (var dq = -2; dq <= 2; dq++)
+        {
+            for (var dr = -2; dr <= 2; dr++)
             {
-                continue;
-            }
-
-            foreach (var jid in tile.Junctions)
-            {
-                if (world.Junctions.Items.TryGetValue(jid, out var jn) && !jn.Blocked &&
-                    SpatialQueries.IsJunctionFree(world, jid))
+                var coord = new TileCoord(hearth.Tile.Q + dq, hearth.Tile.R + dr);
+                var ring = HexSpatialMath.HexDistance(coord, hearth.Tile);
+                if (ring is 0 or > 2 ||
+                    !world.Tiles.Items.TryGetValue(coord, out var tile) ||
+                    tile.Flags.HasFlag(TileFlags.Water))
                 {
-                    return (coord, jid);
+                    continue;
+                }
+
+                // §54.12: one STRUCTURE per fireside tile. IsJunctionFree only
+                // sees NPC reservations, so the premium-bed site used to get
+                // staked ON TOP of the finished leaf mat. Loose pickup-able
+                // items don't claim a tile — furniture does.
+                if (TileHoldsStructure(world, coord))
+                {
+                    continue;
+                }
+
+                foreach (var jid in tile.Junctions)
+                {
+                    if (!world.Junctions.Items.TryGetValue(jid, out var jn) || jn.Blocked ||
+                        !SpatialQueries.IsJunctionFree(world, jid) ||
+                        !SpatialQueries.FootprintClear(world, jn, footprint))
+                    {
+                        continue;
+                    }
+
+                    // Ring 1 always beats ring 2 — the bed stays fireside.
+                    var dist = HexSpatialMath.Distance(jn.WorldPosition, hearthAnchor.WorldPosition) +
+                        (ring == 2 ? 1000f : 0f);
+                    if (dist < bestDist)
+                    {
+                        bestDist = dist;
+                        best = (coord, jid);
+                    }
                 }
             }
         }
 
-        return null;
+        return best;
     }
 
     // A non-portable object (no PickUp interaction: a bed, a build-site, the
@@ -11675,6 +12656,15 @@ internal static class WoundMath
 
     public static void Inflict(WorldState world, NPCState npc, BodyPart zone, float damage)
     {
+        foreach (var garment in npc.WornItems)
+        {
+            if (world.Content.ObjectDefinitions.TryGetValue(garment.DefinitionId, out var definition) &&
+                definition.Covers.Contains(zone))
+            {
+                garment.Bloodiness = MathUtil.Clamp01(garment.Bloodiness + damage * 1.5f);
+            }
+        }
+
         var pieces = damage < MinSplittableDamage ? 1 : GashesPerHit;
         var share = damage / pieces;
         for (var i = 0; i < pieces; i++)
@@ -11971,10 +12961,20 @@ internal static class BuildSiteMath
         (MaterialLeaves, 50)  // stage 4: the mattress
     };
 
+    // §35.5B: drying_rack_final prefab groups "1".."3" — two uprights planted
+    // in the ground, two rails across them, four rope lashings at the joints.
+    private static readonly (string Material, int Count)[] DryingRackStages =
+    {
+        (MaterialSticks, 2),  // stage 1: the planted uprights
+        (MaterialSticks, 2),  // stage 2: the rails
+        (MaterialRope, 4)     // stage 3: the lashings
+    };
+
     private static (string Material, int Count)[] StagesFor(WorldObjectState site) => site.BuildProduct switch
     {
         "bed.leaf" => BedLeafStages,
         "bed.basic" => BedBasicStages,
+        "station.drying_rack" => DryingRackStages,
         _ => null
     };
 
@@ -12070,8 +13070,69 @@ public static class WardrobeDebugHelpers
     }
 }
 
+internal static class HygieneMath
+{
+    public static bool IsShoreTile(WorldState world, TileCoord tile)
+    {
+        if (!world.Tiles.Items.TryGetValue(tile, out var here) ||
+            here.Flags.HasFlag(TileFlags.Water) || !here.Flags.HasFlag(TileFlags.Walkable))
+        {
+            return false;
+        }
+
+        foreach (var direction in HexDirection.All)
+        {
+            var neighbour = new TileCoord(tile.Q + direction.DQ, tile.R + direction.DR);
+            if (world.Tiles.Items.TryGetValue(neighbour, out var adjacent) &&
+                adjacent.Flags.HasFlag(TileFlags.Water))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static bool IsBathingTile(WorldState world, TileCoord tile)
+    {
+        if (world.Tiles.Items.TryGetValue(tile, out var here) &&
+            here.Flags.HasFlag(TileFlags.Water))
+        {
+            return true;
+        }
+
+        foreach (var direction in HexDirection.All)
+        {
+            var neighbour = new TileCoord(tile.Q + direction.DQ, tile.R + direction.DR);
+            if (world.Tiles.Items.TryGetValue(neighbour, out var adjacent) &&
+                adjacent.Flags.HasFlag(TileFlags.Water))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+}
+
 internal static class EquipmentMath
 {
+    public static float AverageDirtiness(NPCState npc)
+    {
+        if (npc.WornItems.Count == 0)
+        {
+            return 0f;
+        }
+
+        var total = 0f;
+        foreach (var item in npc.WornItems)
+        {
+            total += MathUtil.Clamp01(item.Dirtiness);
+        }
+
+        return total / npc.WornItems.Count;
+    }
+
     public static void Recalculate(WorldState world, NPCState npc)
     {
         var warmth = 0f;
@@ -12655,6 +13716,15 @@ public sealed class PredationSystem : ISimulationSystem
             // trade a real blow at the attacker. An armed, healthy victim can
             // wound, kill, or outrun a starved predator — so predation can fail.
             MobSystem.RememberDanger(world, victim);
+            CombatHelpSystem.RallyFriends(world, victim, null, predator.Id,
+                $"Attacker=NPC{predator.Id.Value}");
+
+            // Spec §60: a comatose victim lies senseless — no flight, no
+            // counter-blow. Friends still rally to her defence above.
+            if (victim.IsUnconscious(world.Tick))
+            {
+                continue;
+            }
 
             var victimFleeing = victim.Mind.CurrentGoal == GoalType.Flee;
             if (!victimFleeing &&
@@ -13038,8 +14108,6 @@ public sealed class MoistureSystem : ISimulationSystem
 
     private static readonly System.Collections.Generic.List<ItemInstance> _wornOutScratch = new();
 
-    private const float RainWetRate = 0.04f;
-    private const float RiverWetRate = 0.15f;
     private const float DryBase = 0.02f;
 
     public void Run(WorldState world)
@@ -13049,12 +14117,11 @@ public sealed class MoistureSystem : ISimulationSystem
             var indoor = world.Tiles.Items.TryGetValue(npc.Tile, out var tile) &&
                 tile.Flags.HasFlag(TileFlags.Indoor);
             var onWater = tile is not null && tile.Flags.HasFlag(TileFlags.Water);
-            var wetting = onWater ? RiverWetRate :
-                world.Environment.IsRaining && !indoor ? RainWetRate : 0f;
+            var touchesWater = onWater || world.Environment.IsRaining && !indoor;
             var dryRate = DryBase * DryMultiplier(world, npc.Tile, indoor, rackBoost: false);
 
-            UpdateItems(world, npc, npc.WornItems, wetting, dryRate, worn: true);
-            UpdateItems(world, npc, npc.Inventory.Items, wetting, dryRate, worn: false);
+            UpdateItems(world, npc, npc.WornItems, touchesWater, dryRate, worn: true);
+            UpdateItems(world, npc, npc.Inventory.Items, touchesWater, dryRate, worn: false);
 
             // Spec 35.6: worn cloth loses durability every game-day (150 slow
             // ticks). Visual tearing now starts later, so the HP bar and cloth
@@ -13084,9 +14151,10 @@ public sealed class MoistureSystem : ISimulationSystem
 
             var indoor = world.Tiles.Items.TryGetValue(obj.Tile, out var tile) &&
                 tile.Flags.HasFlag(TileFlags.Indoor);
-            if (world.Environment.IsRaining && !indoor)
+            var onWater = tile is not null && tile.Flags.HasFlag(TileFlags.Water);
+            if (onWater || world.Environment.IsRaining && !indoor)
             {
-                obj.Wetness = MathUtil.Clamp01(obj.Wetness + RainWetRate);
+                obj.Wetness = 1f;
                 continue;
             }
 
@@ -13099,14 +14167,14 @@ public sealed class MoistureSystem : ISimulationSystem
     private static void UpdateItems(
         WorldState world, NPCState npc,
         System.Collections.Generic.List<ItemInstance> items,
-        float wetting, float dryRate, bool worn)
+        bool touchesWater, float dryRate, bool worn)
     {
         foreach (var item in items)
         {
-            if (wetting > 0f)
+            if (touchesWater)
             {
                 var before = item.Wetness;
-                item.Wetness = MathUtil.Clamp01(item.Wetness + wetting);
+                item.Wetness = 1f;
                 if (worn && before <= 0.5f && item.Wetness > 0.5f)
                 {
                     Trace.Emit(world, npc.Id, "SoakedThrough",

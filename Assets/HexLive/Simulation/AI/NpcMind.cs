@@ -31,6 +31,12 @@ public sealed class NPCMind
     // rises. 0 = conscious.
     public int FaintedUntilTick { get; set; }
 
+    // Spec §60: coma — the deep unconsciousness. Unlike the timed faint above,
+    // a coma has no deadline: the body lies as if dead, recovering exactly as
+    // in sleep, until the STAT that felled it climbs back over
+    // SimBalance.ComaWakeThreshold. Entered when Energy or Blood hits 0.
+    public ComaCause ComaCause { get; set; }
+
     // Spec 41.5: just woke up — stand and come to your senses until this
     // tick (no goal scoring), so nobody sprints off the pillow and the
     // get-up animation has room to play.
@@ -80,6 +86,16 @@ public sealed class NPCMind
     public List<GoalScore> LastScores { get; } = new();
 
     public DecisionResult LastDecision { get; set; } = new();
+}
+
+// Spec §60: what dropped the body into a coma — and therefore which stat must
+// recover past the wake threshold before it comes to. (Append-only: saves
+// store ints.)
+public enum ComaCause
+{
+    None,
+    Exhaustion, // Energy drained to 0 — sleeps it off where she fell
+    BloodLoss   // Blood drained to 0 — out cold until the blood knits back
 }
 
 public enum GoalType
@@ -138,7 +154,9 @@ public enum GoalType
     BuildFurniture,// §52: raise a fully-stocked build-site with a hammer
     HaulToFire,    // §52: carry a low-value item to the fireside stockpile to free a slot
     Idle,
-    Defend       // answer a combat help cry and attack the aggressor (append-only: saves store ints)
+    Defend,      // answer a combat help cry and attack the aggressor
+    Bathe,       // undress at shore, then swim long enough to wash the body
+    WashClothes  // wash one dirty ground garment at the shore
 }
 
 public sealed class GoalScore

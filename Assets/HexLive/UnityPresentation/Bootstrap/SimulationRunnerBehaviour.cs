@@ -90,8 +90,32 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
         }
     }
 
+    // Dead-world watchdog: with no world JSON, SOMETHING must call Configure
+    // shortly after startup (normally the LoadingScreen, in dev scenes their
+    // test bootstrap). If nothing has after a grace period and there is no
+    // LoadingScreen around to eventually do it, the game would just sit on a
+    // black screen forever — that is an ERROR, not a warning.
+    private const float UnconfiguredErrorAfterSeconds = 3f;
+    private float _unconfiguredTimer;
+    private bool _unconfiguredReported;
+
     private void Update()
     {
+        if (_engine is null)
+        {
+            _unconfiguredTimer += Time.unscaledDeltaTime;
+            if (!_unconfiguredReported &&
+                _unconfiguredTimer >= UnconfiguredErrorAfterSeconds &&
+                FindAnyObjectByType<HexLive.UnityPresentation.UI.LoadingScreen>(FindObjectsInactive.Include) == null)
+            {
+                _unconfiguredReported = true;
+                Debug.LogError(
+                    "Simulation runner is still UNCONFIGURED after " +
+                    $"{UnconfiguredErrorAfterSeconds:0}s: no world JSON asset, nobody called Configure, " +
+                    "and no LoadingScreen exists to do it — the world will never be created.", this);
+            }
+        }
+
         if (_engine is null || _clock is null || _settings is null || _clock.IsPaused)
         {
             return;
@@ -336,7 +360,11 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
     {
         if (_bootstrapAsset?.WorldJson is null)
         {
-            Debug.LogWarning("Simulation bootstrap skipped: no world JSON asset assigned.", this);
+            // Expected at Awake in the shipped flow: PrototypeRuntimeBootstrap
+            // adds the runner FIRST (Awake fires inside AddComponent) and only
+            // then creates the LoadingScreen, which calls Configure(definition)
+            // after the menu. A dead world (nothing ever configures us) is
+            // detected by the watchdog in Update instead.
             return;
         }
 

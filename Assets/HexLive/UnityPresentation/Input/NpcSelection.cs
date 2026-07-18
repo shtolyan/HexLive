@@ -17,6 +17,14 @@ namespace HexLive.UnityPresentation.Input
         /// </summary>
         public static bool PointerOverUi { get; set; }
 
+        /// <summary>
+        /// Fraction of the screen height (0..1) currently covered by the
+        /// bottom character bar. The orbit camera reads it to keep the
+        /// followed NPC centered in the strip of world that stays visible
+        /// above the bar. Written by the character panel every frame.
+        /// </summary>
+        public static float BottomUiCoverage { get; set; }
+
         private static int _selectedId = -1;
 
         // Editor runs without domain reload keep statics between play
@@ -28,6 +36,7 @@ namespace HexLive.UnityPresentation.Input
         {
             _selectedId = -1;
             PointerOverUi = false;
+            BottomUiCoverage = 0f;
             SelectionChanged = null;
         }
 

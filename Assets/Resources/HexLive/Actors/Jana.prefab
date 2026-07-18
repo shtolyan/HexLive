@@ -7476,7 +7476,7 @@ MonoBehaviour:
     stablizationTimeAfterReset: 0.1
     blendWeight: 1
     damping:
-      value: 0.1
+      value: 0.25
       useCurve: 0
       curve:
         serializedVersion: 2
@@ -7532,7 +7532,7 @@ MonoBehaviour:
     inertiaConstraint:
       anchor: {fileID: 0}
       anchorInertia: 0
-      worldInertia: 1
+      worldInertia: 0.5
       movementInertiaSmoothing: 0.4
       movementSpeedLimit:
         value: 5
@@ -7590,7 +7590,7 @@ MonoBehaviour:
     angleRestorationConstraint:
       useAngleRestoration: 1
       stiffness:
-        value: 0.35
+        value: 0.6
         useCurve: 0
         curve:
           serializedVersion: 2
@@ -7621,7 +7621,7 @@ MonoBehaviour:
     angleLimitConstraint:
       useAngleLimit: 1
       limitAngle:
-        value: 10
+        value: 5
         useCurve: 0
         curve:
           serializedVersion: 2
@@ -7781,7 +7781,7 @@ MonoBehaviour:
       movingWind: 0
     springConstraint:
       useSpring: 1
-      springPower: 0.3
+      springPower: 0.15
       limitDistance: 0.1
       normalLimitRatio: 1
       springNoise: 0

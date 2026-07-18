@@ -134,20 +134,36 @@ public sealed class Wear : MonoBehaviour
     // shredded while the HP bar is still mostly green.
     private const float TearBiteDurability = 0.72f;
     private const float TearProgressGamma = 1.35f;
-    private const float DamageHoleRevealFloor = 0.08f;
     private const int MaxDamageSpheres = 8;
     // Spec 40.10-D: holes + dirt PAINTED into per-garment textures (UV-stable
     // — the world-space sphere clip breathed with the bones and flickered).
     // Flip off to fall back to the fully procedural shader path.
     private const bool PaintWearIntoTexture = true;
     private GarmentWearPainter _wearPainter;
-    private static readonly int SphereTearOnId = Shader.PropertyToID("_SphereTearOn");
     private static readonly int TearAmountId = Shader.PropertyToID("_TearAmount");
     private static readonly int TearMaskTexId = Shader.PropertyToID("_TearMaskTex");
     private static readonly int TearTexOnId = Shader.PropertyToID("_TearTexOn");
-    private static readonly int DirtAmountId = Shader.PropertyToID("_DirtAmount");
-    private static readonly int DamageSphereCountId = Shader.PropertyToID("_DamageSphereCount");
-    private static readonly int DamageSpheresId = Shader.PropertyToID("_DamageSpheres");
+    private static readonly int BaseMapId = Shader.PropertyToID("_BaseMap");
+    private static readonly int BaseColorMapId = Shader.PropertyToID("_BaseColorMap");
+    private static readonly int CutoffId = Shader.PropertyToID("_Cutoff");
+    private static readonly int AlphaCutoffId = Shader.PropertyToID("_AlphaCutoff");
+    private static readonly int AlphaClipId = Shader.PropertyToID("_AlphaClip");
+    private static readonly int AlphaCutoffEnableId = Shader.PropertyToID("_AlphaCutoffEnable");
+    private static readonly int AlphaClipOnId = Shader.PropertyToID("_AlphaClipOn");
+    private static readonly int BumpMapId = Shader.PropertyToID("_BumpMap");
+    private static readonly int NormalMapId = Shader.PropertyToID("_NormalMap");
+    private static readonly int BumpScaleId = Shader.PropertyToID("_BumpScale");
+    private static readonly int NormalScaleId = Shader.PropertyToID("_NormalScale");
+    private static readonly int MetallicGlossMapId = Shader.PropertyToID("_MetallicGlossMap");
+    private static readonly int MaskMapId = Shader.PropertyToID("_MaskMap");
+    private static readonly int MaskMapOnId = Shader.PropertyToID("_MaskMapOn");
+    private static readonly int OcclusionMapId = Shader.PropertyToID("_OcclusionMap");
+    private static readonly int OcclusionMapOnId = Shader.PropertyToID("_OcclusionMapOn");
+    private static readonly int DetailMaskId = Shader.PropertyToID("_DetailMask");
+    private static readonly int DetailAlbedoMapId = Shader.PropertyToID("_DetailAlbedoMap");
+    private static readonly int DetailAlbedoMapOnId = Shader.PropertyToID("_DetailAlbedoMapOn");
+    private static readonly int DetailNormalMapId = Shader.PropertyToID("_DetailNormalMap");
+    private static readonly int DetailNormalMapOnId = Shader.PropertyToID("_DetailNormalMapOn");
     private static Shader _tearShader;
     private static bool _tearShaderSearched;
     private MaterialPropertyBlock _wearMpb;
@@ -155,9 +171,6 @@ public sealed class Wear : MonoBehaviour
     private float _tear;
     private float _dirt;
     private float _blood;
-    private float _sweat;
-    private static readonly int BloodAmountId = Shader.PropertyToID("_BloodAmount");
-    private static readonly int SweatAmountId = Shader.PropertyToID("_SweatAmount");
     private readonly Vector4[] _damageSpheres = new Vector4[MaxDamageSpheres];
     private int _damageSphereCount;
 
@@ -222,17 +235,17 @@ public sealed class Wear : MonoBehaviour
     }
 
     // Spec 40.10-C: dirt (1 − hygiene) + world-space damage spheres (xyz =
-    // bone anchor, w = strength), shared by all the NPC's garments — a sphere
-    // only bites fragments within _DamageRadius, so the wound zone maps to
-    // the covering garment spatially, no UV knowledge needed.
+    // bone anchor, w = strength), shared by all the NPC's garments. Spheres
+    // ONLY localize the blood soak over fresh wounds — they never rip holes:
+    // clothing damage is tracked separately (garment durability drives tear).
     public void SetGrime(float dirt01, Vector4[] spheres, int count,
         float blood01 = 0f, float sweat01 = 0f)
     {
         _dirt = Mathf.Clamp01(dirt01);
         // Spec 40.8-C: blood soaks the cloth over the wound (localized by the
-        // damage spheres below); sweat damps it in patches with a sheen.
+        // damage spheres below). Sweat stays in the skin/wetness path.
         _blood = Mathf.Clamp01(blood01);
-        _sweat = Mathf.Clamp01(sweat01);
+        _ = sweat01;
         _damageSphereCount = Mathf.Min(count, MaxDamageSpheres);
         for (var i = 0; i < _damageSphereCount; i++)
         {
@@ -253,10 +266,12 @@ public sealed class Wear : MonoBehaviour
         // dirt gate skips pointless swaps for barely-visible smudges).
         // Wetness alone does NOT swap in the tear shader — it only rides the
         // property block (works on the original URP Lit material too).
-        var tearActive = _tear > 0f || _dirt > 0.15f || _damageSphereCount > 0 ||
-            _blood > 0.05f || _sweat > 0.25f;
-        var active = tearActive || _wet > 0.01f || _wetTouched;
-        if (!active && !_tearShaderApplied)
+        // Damage spheres alone do NOT trigger the swap: wounds never rip
+        // cloth, spheres only localize blood (gated by _blood itself).
+        var tearActive = _tear > 0f;
+        var paintActive = _dirt > 0.05f || _blood > 0.05f;
+        var active = tearActive || paintActive || _wet > 0.01f || _wetTouched;
+        if (!active && !_tearShaderApplied && _wearPainter == null)
         {
             return;
         }
@@ -272,7 +287,7 @@ public sealed class Wear : MonoBehaviour
         // Spec 40.10-D: the painter stamps holes/dirt into textures; the
         // shader then must not ALSO rip via world spheres (flicker) or paint
         // its procedural dust (double filth). Blood soak keeps the spheres.
-        if (PaintWearIntoTexture && _tearShaderApplied)
+        if (PaintWearIntoTexture && (tearActive || paintActive || _wearPainter != null))
         {
             if (_wearPainter == null)
             {
@@ -280,14 +295,8 @@ public sealed class Wear : MonoBehaviour
                 _wearPainter.Construct(_meshRenderer);
             }
 
-            _wearPainter.SetState(_tear, _dirt, _damageSpheres, _damageSphereCount);
+            _wearPainter.SetState(_tear, _dirt, _blood, _damageSpheres, _damageSphereCount);
         }
-
-        // Painted bite holes are near-black in the mask: a small floor tear
-        // amount clips them open even while overall durability is high.
-        var effectiveTear = PaintWearIntoTexture && _wearPainter != null && _wearPainter.HasDamageHoles
-            ? Mathf.Max(_tear, DamageHoleRevealFloor)
-            : _tear;
 
         // Per material slot: tear/dirt/spheres are shared, but smoothness and
         // colour restore each slot's OWN dry values (a renderer-wide block
@@ -297,13 +306,7 @@ public sealed class Wear : MonoBehaviour
         for (var i = 0; i < slotCount; i++)
         {
             _meshRenderer.GetPropertyBlock(_wearMpb, i);
-            _wearMpb.SetFloat(TearAmountId, effectiveTear);
-            _wearMpb.SetFloat(DirtAmountId, PaintWearIntoTexture ? 0f : _dirt);
-            _wearMpb.SetFloat(SphereTearOnId, PaintWearIntoTexture ? 0f : 1f);
-            _wearMpb.SetFloat(BloodAmountId, _blood);
-            _wearMpb.SetFloat(SweatAmountId, _sweat);
-            _wearMpb.SetFloat(DamageSphereCountId, _damageSphereCount);
-            _wearMpb.SetVectorArray(DamageSpheresId, _damageSpheres);
+            _wearMpb.SetFloat(TearAmountId, _tear);
             // Spec 35.5: soaked cloth shines and darkens; dry restores base.
             // 0.72 matches the wet SKIN gloss — 0.85 here while the body wore
             // 0.72 read as mismatched smoothness across materials.
@@ -351,13 +354,60 @@ public sealed class Wear : MonoBehaviour
                 continue;
             }
 
+            var baseMap = GetTextureOrNull(material, BaseMapId) ??
+                GetTextureOrNull(material, BaseColorMapId);
+            var cutoff = material.HasProperty(CutoffId)
+                ? material.GetFloat(CutoffId)
+                : material.HasProperty(AlphaCutoffId)
+                    ? material.GetFloat(AlphaCutoffId)
+                    : 0.5f;
+            var alphaClipOn =
+                material.HasProperty(AlphaClipId) && material.GetFloat(AlphaClipId) > 0.5f ||
+                material.HasProperty(AlphaCutoffEnableId) && material.GetFloat(AlphaCutoffEnableId) > 0.5f;
+            var bumpMap = GetTextureOrNull(material, BumpMapId) ??
+                GetTextureOrNull(material, NormalMapId);
+            var bumpScale = material.HasProperty(BumpScaleId)
+                ? material.GetFloat(BumpScaleId)
+                : material.HasProperty(NormalScaleId)
+                    ? material.GetFloat(NormalScaleId)
+                    : 1f;
+            var metallicGloss = GetTextureOrNull(material, MetallicGlossMapId);
+            var maskMap = GetTextureOrNull(material, MaskMapId);
+            var occlusion = GetTextureOrNull(material, OcclusionMapId);
+            var detailMask = GetTextureOrNull(material, DetailMaskId);
+            var detailAlbedo = GetTextureOrNull(material, DetailAlbedoMapId);
+            var detailNormal = GetTextureOrNull(material, DetailNormalMapId);
+
             material.shader = _tearShader;
+            if (baseMap != null) material.SetTexture(BaseMapId, baseMap);
+            material.SetFloat(CutoffId, cutoff);
+            material.SetFloat(AlphaClipOnId, alphaClipOn ? 1f : 0f);
+            if (bumpMap != null) material.SetTexture(BumpMapId, bumpMap);
+            material.SetFloat(BumpScaleId, bumpScale);
+            if (metallicGloss != null) material.SetTexture(MetallicGlossMapId, metallicGloss);
+            if (maskMap != null) material.SetTexture(MaskMapId, maskMap);
+            material.SetFloat(MaskMapOnId, maskMap != null ? 1f : 0f);
+            if (occlusion != null) material.SetTexture(OcclusionMapId, occlusion);
+            material.SetFloat(OcclusionMapOnId, occlusion != null ? 1f : 0f);
+            if (detailMask != null) material.SetTexture(DetailMaskId, detailMask);
+            if (detailAlbedo != null) material.SetTexture(DetailAlbedoMapId, detailAlbedo);
+            material.SetFloat(DetailAlbedoMapOnId, detailAlbedo != null ? 1f : 0f);
+            if (detailNormal != null) material.SetTexture(DetailNormalMapId, detailNormal);
+            material.SetFloat(DetailNormalMapOnId, detailNormal != null ? 1f : 0f);
+
             if (tearMask != null)
             {
                 material.SetTexture(TearMaskTexId, tearMask);
                 material.SetFloat(TearTexOnId, 1f);
             }
         }
+    }
+
+    private static Texture GetTextureOrNull(Material material, int id)
+    {
+        return material != null && material.HasProperty(id)
+            ? material.GetTexture(id)
+            : null;
     }
 
     // URP Lit convention: _Surface 1 = Transparent; high queues too.

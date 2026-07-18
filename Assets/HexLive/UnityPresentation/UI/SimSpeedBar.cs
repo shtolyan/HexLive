@@ -226,9 +226,8 @@ namespace HexLive.UnityPresentation.UI
             _weatherTick = snapshot.Tick;
             _weatherLanguage = Loc.Current;
 
-            // Survival day, 1-based (a game day is DayLengthTicks ticks).
-            var day = snapshot.Tick /
-                HexLive.Simulation.Runtime.EnvironmentSystem.DayLengthTicks + 1;
+            // Calendar day, 1-based, rolling over at midnight.
+            var day = HexLive.Simulation.Runtime.EnvironmentSystem.CalendarDay(snapshot.Tick);
             _dayLabel.text = $"{Loc.Get("weather.day")} {day}";
 
             // Spec 42: sim temperatures are RELATIVE units tuned for the

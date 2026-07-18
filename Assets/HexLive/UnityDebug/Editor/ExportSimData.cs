@@ -17,15 +17,57 @@ namespace HexLive.UnityDebug.Editor
         [MenuItem("HexLive/Export Sim Data (JSON)")]
         public static void Export()
         {
-            HexLive.UnityPresentation.Config.MobTuning.LoadAndApply();
-            HexLive.UnityPresentation.Config.GearTuning.LoadAndApply();
-            HexLive.UnityPresentation.Config.ObjectTuning.LoadAndApply();
+            string path = null;
+            try
+            {
+                HexLive.UnityPresentation.Config.MobTuning.LoadAndApply();
+                HexLive.UnityPresentation.Config.GearTuning.LoadAndApply();
+                HexLive.UnityPresentation.Config.ObjectTuning.LoadAndApply();
 
-            var path = System.IO.Path.GetFullPath(
-                System.IO.Path.Combine(Application.dataPath, "..", SimDataFile.DefaultRelativePath));
-            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path));
-            System.IO.File.WriteAllText(path, SimDataFile.ExportJson());
-            Debug.Log($"[ExportSimData] Written {path}");
+                path = System.IO.Path.GetFullPath(
+                    System.IO.Path.Combine(Application.dataPath, "..", SimDataFile.DefaultRelativePath));
+                System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path));
+                var json = SimDataFile.ExportJson();
+
+                // Round-trip guard: the file is useless if the sim-side reader
+                // cannot parse what we just wrote.
+                if (!SimDataFile.ApplyJson(json))
+                {
+                    throw new System.InvalidOperationException(
+                        "Export produced JSON that SimDataFile.ApplyJson cannot parse — file NOT usable by headless probes.");
+                }
+
+                System.IO.File.WriteAllText(path, json);
+
+                var summary =
+                    $"mobs: {Count(json, "\"maxHealth\"")}, gear: {Count(json, "\"meleePriority\"")}, " +
+                    $"worldObjects: {Count(json, "\"displayName\"")}, recipes: {Count(json, "\"output\"")}";
+                Debug.Log($"[ExportSimData] OK — written {path} ({summary})");
+                EditorUtility.DisplayDialog(
+                    "Export Sim Data",
+                    $"Успешно выгружено:\n{path}\n\n{summary}",
+                    "OK");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[ExportSimData] FAILED: {e}");
+                EditorUtility.DisplayDialog(
+                    "Export Sim Data — ОШИБКА",
+                    $"Экспорт НЕ выполнен{(path != null ? $" ({path})" : "")}:\n\n{e.Message}",
+                    "OK");
+            }
+        }
+
+        private static int Count(string json, string marker)
+        {
+            var count = 0;
+            for (var i = json.IndexOf(marker, System.StringComparison.Ordinal); i >= 0;
+                 i = json.IndexOf(marker, i + marker.Length, System.StringComparison.Ordinal))
+            {
+                count++;
+            }
+
+            return count;
         }
     }
 }

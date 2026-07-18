@@ -443,10 +443,26 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: 'effect.fainted.desc'
       TermType: 0
-      Description: 
+      Description:
       Languages:
       - 'Knocked out cold — she lies unable to act until she comes to.'
       - 'Потеряла сознание — лежит и не может действовать, пока не очнётся.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.coma.title'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Coma'
+      - 'Кома'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.coma.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Out cold — the body lies as if dead, healing as in sleep, until it recovers enough to come to.'
+      - 'Глубоко без сознания — тело лежит как мёртвое и восстанавливается, как во сне, пока не окрепнет настолько, чтобы очнуться.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'effect.wellfed.title'
@@ -1401,6 +1417,14 @@ MonoBehaviour:
       - 'Новая игра'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'menu.restart'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Restart island'
+      - 'Перезапустить остров'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'menu.settings'
       TermType: 0
       Description: 
@@ -1583,6 +1607,14 @@ MonoBehaviour:
       Languages:
       - 'Wetness'
       - 'Влажность'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'inv.dirtiness'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Dirtiness'
+      - 'Загрязнение'
       Flags: 0101
       Languages_Touch: []
     - Term: 'inv.durability'

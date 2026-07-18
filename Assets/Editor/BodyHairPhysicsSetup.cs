@@ -88,17 +88,17 @@ public static class BodyHairPhysicsSetup
         sd.connectionMode = RenderSetupData.BoneConnectionMode.Line;
 
         sd.gravity = breast ? 1.0f : 3.0f;
-        sd.damping = new CurveSerializeData(0.10f);
+        sd.damping = new CurveSerializeData(breast ? 0.25f : 0.10f);
         sd.radius  = new CurveSerializeData(breast ? 0.06f : 0.02f);
 
         sd.angleRestorationConstraint.useAngleRestoration = true;
-        sd.angleRestorationConstraint.stiffness = new CurveSerializeData(breast ? 0.35f : 0.20f);
+        sd.angleRestorationConstraint.stiffness = new CurveSerializeData(breast ? 0.60f : 0.20f);
         sd.angleLimitConstraint.useAngleLimit = true;
-        sd.angleLimitConstraint.limitAngle    = new CurveSerializeData(breast ? 10f : 40f);
+        sd.angleLimitConstraint.limitAngle    = new CurveSerializeData(breast ? 5f : 40f);
         sd.springConstraint.useSpring   = true;
-        sd.springConstraint.springPower = breast ? 0.30f : 0.20f;
+        sd.springConstraint.springPower = breast ? 0.15f : 0.20f;
 
-        sd.inertiaConstraint.worldInertia = 1.0f;
+        sd.inertiaConstraint.worldInertia = breast ? 0.5f : 1.0f;
         sd.cullingSettings.cameraCullingMode     = CullingSettings.CameraCullingMode.AnimatorLinkage;
         sd.cullingSettings.distanceCullingLength = new CheckSliderSerializeData(true, 25f);
     }

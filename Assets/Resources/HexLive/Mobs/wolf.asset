@@ -15,8 +15,16 @@ MonoBehaviour:
   kind: 0
   prefab: {fileID: 0}
   prefabResourcePath: HexLive/Animals/wolf_dog
-  maxHealth: 1.8
-  biteDamage: 0.09
+  footprintFraction: 0.84
+  walkStrideLengthsPerSecond: 1.1
+  runStrideLengthsPerSecond: 2.6
+  runEnterLengthsPerSecond: 1.8
+  runExitLengthsPerSecond: 1.4
+  bloodSplash: 1
+  woundStamps: 1
+  maxWoundStamps: 8
+  maxHealth: 1.53
+  attackDamage: 0.067
   attackWindupSeconds: 0.1
   attackCooldownSeconds: 0.8
   aggroRadiusTiles: 2
@@ -26,4 +34,3 @@ MonoBehaviour:
   glideSnapDistance: 6
   raidChancePerDay: 0.08
   raidPackSize: 3
-

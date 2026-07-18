@@ -120,6 +120,15 @@ namespace HexLive.Simulation.Runtime
         public static float ChairComfort = 0.4f;            // comfort per sit in a chair
         public static float ChairEnergy = 0.1f;             // energy per sit in a chair
 
+        // Spec §60: coma. A body whose Energy hits 0 — or whose Blood drains
+        // to the enter line — drops where it stands and lies as if dead,
+        // recovering exactly as in sleep, until the felling stat climbs back
+        // over the wake threshold. Blood at 0 still KILLS (spec 40.2): the
+        // blood coma is the razor's edge before it, where the bleed races
+        // the healing sleep.
+        public static float ComaWakeThreshold = 0.15f;
+        public static float ComaBloodEnterThreshold = 0.05f;
+
         // ─────────────────────────────────────────────────────────────
         // Food restore (hunger removed when eaten).
         // ─────────────────────────────────────────────────────────────
@@ -163,7 +172,7 @@ namespace HexLive.Simulation.Runtime
         // ─────────────────────────────────────────────────────────────
         // Sun / tan / sunburn (on uncovered parts, in open sun).
         // ─────────────────────────────────────────────────────────────
-        public static float TanRate = 0.0018f;        // tan gained per (UV−0.5) per uncovered part
+        public static float TanRate = 0.0009f;        // tan gained per (UV−0.5) per uncovered part (halved — tanning takes ~2x longer)
         public static float SunburnRate = 0.004f;     // acute redness gained (faster than tan settles)
         public static float SunExposureRate = 0.3f;   // exposure meter gained (fills toward a burn event)
         public static float SunburnBurnDamage = 0.08f; // HP torn off a part by a burn event
@@ -173,6 +182,12 @@ namespace HexLive.Simulation.Runtime
         // ─────────────────────────────────────────────────────────────
         public static float HygieneWashGain = 0.05f;   // hygiene regained per tick at the waterside
         public static float HygieneDriftLoss = 0.0004f; // hygiene lost per tick living (~10 days clean→filthy)
+        public static float ClothingDirtGain = 0.00035f;
+        public static float DirtyClothingComfortLoss = 0.002f;
+        public static float BatheNeedThreshold = 0.4f;
+        public static int BatheDurationTicks = 100; // one in-game hour
+        public static int WashClothesDurationTicks = 40;
+        public static float WashClothesNeedThreshold = 0.2f;
 
         // ─────────────────────────────────────────────────────────────
         // Stamina / stress (soft — colour the UI, nudge rest, feed collapse).
@@ -297,6 +312,17 @@ namespace HexLive.Simulation.Runtime
         // one. NOT an upgrade: the leaf mats stay untouched.
         public static bool BedBasicEnabled = true;
 
+        // §35.5B: the drying rack is a staged fireside build-site like the beds
+        // (two planted uprights → two rails → four lashings), not an atomic
+        // craft. MUST equal the per-material sums of
+        // BuildSiteMath.DryingRackStages (which mirror the drying_rack_final
+        // prefab's staged piece groups "1".."3").
+        public static int RackBillSticks = 4;
+        public static int RackBillRope = 4;
+        // §35.5B: how many garments hang on the rack at once (one per hanger
+        // slot on the assembled prefab's rails).
+        public static int RackCapacity = 8;
+
         // §54.2: how many fronds each palm's crown is built from AND how many
         // loose leaves drop when that crown is chopped — the SAME number per size
         // (the visual crown = the yield). Big palm has a fuller crown / bigger
@@ -307,6 +333,19 @@ namespace HexLive.Simulation.Runtime
         // not a per-frond count. (SmallPalm retired — only big palms spawn now.)
         public static int BigPalmCrownLeaves = 42;
         public static int SmallPalmCrownLeaves = 8;
+
+        // §54.13 build-window tuning. A 10-day 6-seed soak showed the bed site
+        // starving: the peacetime window was open only ~1-36% of npc-ticks.
+        // Two gates ate it: (1) thirst/hunger >= 0.55 — the girls EQUILIBRATE
+        // around 0.5-0.6 (drinking only starts at 0.35 and must win the
+        // auction), so the old gate tracked the colony's resting state, not an
+        // emergency; (2) ANY danger memory — a single wolf sighting is
+        // remembered 2400 ticks (a full day) and froze construction colony-wide.
+        // Build now pauses at the same 0.65 the errand-canceling lifeThreatened
+        // check uses, and only for FRESH danger (seen within the last
+        // BuildDangerFreshTicks), not day-old ghosts.
+        public static float BuildNeedGate = 0.65f;
+        public static int BuildDangerFreshTicks = 600;
 
         // Fiber → rope / cloth (crafted at the fire); knife = sticks + stone.
         // Enough cordage that a couple of cut yucca can supply the first bed's

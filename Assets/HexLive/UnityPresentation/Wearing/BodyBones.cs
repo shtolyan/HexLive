@@ -111,6 +111,19 @@ public sealed class BodyBones : MonoBehaviour
         }
     }
 
+    public void SetWearGrime(string defId, float dirt01, Vector4[] spheres, int count,
+        float blood01 = 0f)
+    {
+        var prefix = defId + "#";
+        foreach (var pair in _wears)
+        {
+            if (pair.Key.StartsWith(prefix))
+            {
+                pair.Value.SetGrime(dirt01, spheres, count, blood01);
+            }
+        }
+    }
+
     // key = sim item definition id + index (a sim item may map to several
     // visual garments, each equipped under its own key).
     public void Equip(string key, Wear wearPrefab)

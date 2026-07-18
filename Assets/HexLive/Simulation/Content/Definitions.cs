@@ -32,6 +32,13 @@ public sealed class ObjectDefinition
 
     public List<string> Tags { get; } = new();
 
+    // Spec 43: height of this object's shade blocker in ELEVATION steps
+    // (0.55 wu each), read only for "Shade"-tagged objects. Must roughly match
+    // the rendered mesh so the sim shadow lands where the player sees one
+    // (palm_final is 3.9 wu tall -> 7 steps; the default 2 fits low canopies
+    // like the tent).
+    public float ShadeSteps { get; set; } = 2f;
+
     public ProduceDefinition? Produce { get; set; }
 
     // Spec 31C.7: > 0 blocks every junction within this world-unit radius
@@ -177,8 +184,8 @@ public enum InteractionType
     MedicateOther, // spec 53: hand a pill to a sick / gravely weak housemate
     ConsoleOther,  // spec 53: sit with a grieving / stressed housemate
     CoolOff,       // spec 35.4: dwell in shade/water to shed heat
-    HydrateOther   // spec 53: bring water to a parched housemate (appended —
-                   // InteractionType is saved as an int, keep old values stable)
+    HydrateOther,  // spec 53: bring water to a parched housemate
+    WashClothes    // gathering loop with a garment held at the shoreline
 }
 
 }

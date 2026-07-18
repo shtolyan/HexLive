@@ -23,10 +23,22 @@ public static class GarmentDropFactory
     // Gap between side-by-side pieces, as a fraction of the widest piece.
     private const float PieceGapFactor = 0.2f;
 
+    // §35.5B: does this sim item render as a real garment (and can therefore
+    // hang on the drying rack)?
+    public static bool IsGarment(string definitionId) =>
+        ActorWardrobe.GetVisuals(definitionId).Count > 0;
+
     // Builds a ground-drop visual for a sim item id, or null when the id has
     // no wear prefabs (caller falls back to its primitive). Root pivot = the
     // centre of the laid-out garment (group centre for multi-piece items).
-    public static GameObject Build(string definitionId)
+    public static GameObject Build(string definitionId) => Build(definitionId, hanging: false);
+
+    // §35.5B: a rack-hung visual — the same bind-pose garment kept UPRIGHT
+    // (squashed to cloth thickness front-to-back instead of lying flat), so it
+    // reads as clothes draped over the rail. Footwear stays 3D as on the ground.
+    public static GameObject BuildHanging(string definitionId) => Build(definitionId, hanging: true);
+
+    private static GameObject Build(string definitionId, bool hanging)
     {
         var visuals = ActorWardrobe.GetVisuals(definitionId);
         if (visuals.Count == 0)
@@ -35,7 +47,7 @@ public static class GarmentDropFactory
         }
 
         var flatten = !IsFootwear(definitionId);
-        var lieFlat = flatten ? Quaternion.Euler(-90f, 0f, 0f) : Quaternion.identity;
+        var lieFlat = flatten && !hanging ? Quaternion.Euler(-90f, 0f, 0f) : Quaternion.identity;
         var root = new GameObject($"GarmentDrop {definitionId}");
         var pieces = new List<Transform>();
         var widths = new List<float>();
@@ -52,7 +64,11 @@ public static class GarmentDropFactory
             piece.transform.SetParent(root.transform, false);
             if (flatten)
             {
-                piece.transform.localScale = new Vector3(1f, FlattenFactor, 1f);
+                // Lying: squash height. Hanging (§35.5B): stay upright, squash
+                // front-to-back to cloth thickness instead.
+                piece.transform.localScale = hanging
+                    ? new Vector3(1f, 1f, FlattenFactor)
+                    : new Vector3(1f, FlattenFactor, 1f);
             }
 
             var view = new GameObject("Mesh");

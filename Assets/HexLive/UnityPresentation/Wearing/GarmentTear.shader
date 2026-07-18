@@ -4,14 +4,16 @@
 // fuzz (the fabric's own hue, noise-ragged) and worn patches fade between
 // the holes as tear rises.
 // Property names match URP Lit so a runtime shader swap keeps the garment's
-// textures (_BaseMap/_BaseColor/_BumpMap). Cull Off shows the cloth inside
-// through holes; the ShadowCaster pass clips identically.
+// authored maps. Cull Off shows the cloth inside through holes; the
+// ShadowCaster pass clips identically.
 Shader "HexLive/GarmentTear"
 {
     Properties
     {
         _BaseMap ("Albedo", 2D) = "white" {}
         _BaseColor ("Color", Color) = (1, 1, 1, 1)
+        _Cutoff ("Alpha Cutoff", Range(0, 1)) = 0.5
+        _AlphaClipOn ("Alpha clip assigned", Float) = 0.0
         [Normal] _BumpMap ("Normal", 2D) = "bump" {}
         // Carried over from URP Lit on the swap: garments authored with a
         // neutralized bump (scale 0 / tiny) must STAY smooth — sampling at
@@ -21,6 +23,18 @@ Shader "HexLive/GarmentTear"
         // URP Lit convention: metallic in R, smoothness in A; white default
         // keeps constant-driven materials identical.
         _MetallicGlossMap ("Metallic (R) Gloss (A)", 2D) = "white" {}
+        _MaskMap ("Mask Map (R metal, G AO, A smooth)", 2D) = "white" {}
+        _MaskMapOn ("Mask map assigned", Float) = 0.0
+        _OcclusionMap ("Occlusion", 2D) = "white" {}
+        _OcclusionMapOn ("Occlusion map assigned", Float) = 0.0
+        _OcclusionStrength ("Occlusion Strength", Range(0, 1)) = 1.0
+        _DetailMask ("Detail Mask", 2D) = "white" {}
+        _DetailAlbedoMap ("Detail Albedo", 2D) = "grey" {}
+        _DetailAlbedoMapOn ("Detail albedo assigned", Float) = 0.0
+        _DetailAlbedoMapScale ("Detail albedo scale", Float) = 1.0
+        [Normal] _DetailNormalMap ("Detail Normal", 2D) = "bump" {}
+        _DetailNormalMapOn ("Detail normal assigned", Float) = 0.0
+        _DetailNormalMapScale ("Detail normal scale", Float) = 1.0
         _Smoothness ("Smoothness", Range(0, 1)) = 0.35
         _Metallic ("Metallic", Range(0, 1)) = 0.0
         _TearAmount ("Tear (0 none .. 1 rags)", Range(0, 1)) = 0.0
@@ -29,25 +43,10 @@ Shader "HexLive/GarmentTear"
         // depths — darker spots rip first. White default = procedural fallback.
         _TearMaskTex ("Artistic tear mask", 2D) = "white" {}
         _TearMaskTiling ("Tear mask tiling (per UV)", Float) = 1.0
-        // 0 = damage spheres do NOT clip holes (painted-wear mode: holes are
-        // stamped into the mask in UV space instead — world-space sphere
-        // thresholds breathe with the animated bones and flicker). Blood
-        // soak keeps using the spheres either way.
-        _SphereTearOn ("Spheres rip holes (0/1)", Float) = 1.0
         _TearTexOn ("Use artistic mask (0/1)", Float) = 0.0
         _TearEdgeWidth ("Frayed edge width", Range(0.001, 0.3)) = 0.09
         _TearEdgeTint ("Frayed edge tint", Color) = (0.45, 0.4, 0.38, 1)
-        _DirtAmount ("Dirt (0 clean .. 1 filthy)", Range(0, 1)) = 0.0
-        _DirtColor ("Dirt tint", Color) = (0.50, 0.42, 0.31, 1)
-        // Spec 40.8-C: blood soaks through the cloth over the wound (localized
-        // by the damage spheres); sweat = damp darkened patches with a sheen.
-        _BloodAmount ("Blood soak (0..1)", Range(0, 1)) = 0.0
-        _SweatAmount ("Sweat damp (0..1)", Range(0, 1)) = 0.0
-        // 1 = cloth (tear holes clip); 0 = SKIN mode — same paint layers
-        // (dirt/blood/sweat/bandage) but the surface never tears open.
         _HolesOn ("Holes enabled (cloth=1, skin=0)", Float) = 1.0
-        _DirtScale ("Dirt blotch density (per UV)", Float) = 14.0
-        _DamageRadius ("Zone damage rip radius (world)", Float) = 0.3
     }
 
     SubShader
@@ -65,40 +64,36 @@ Shader "HexLive/GarmentTear"
         CBUFFER_START(UnityPerMaterial)
             float4 _BaseMap_ST;
             half4 _BaseColor;
+            half _Cutoff;
+            half _AlphaClipOn;
             half _Smoothness;
             half _Metallic;
             half _BumpScale;
+            float4 _DetailAlbedoMap_ST;
+            half _MaskMapOn;
+            half _OcclusionMapOn;
+            half _OcclusionStrength;
+            half _DetailAlbedoMapOn;
+            half _DetailAlbedoMapScale;
+            half _DetailNormalMapOn;
+            half _DetailNormalMapScale;
             half _TearAmount;
             float _TearScale;
             float _TearMaskTiling;
-            float _SphereTearOn;
             half _TearTexOn;
             half _TearEdgeWidth;
             half4 _TearEdgeTint;
-            half _DirtAmount;
-            half4 _DirtColor;
-            float _DirtScale;
-            float _DamageRadius;
-            half _BloodAmount;
-            half _SweatAmount;
             half _HolesOn;
         CBUFFER_END
-
-        // Spec 40.10-C: world-space damage spheres (xyz = bone anchor,
-        // w = strength 0..1) — a hurt zone rips the garment covering it.
-        // Set per instance via property block; spatial locality maps the
-        // wound to the right garment for free.
-        float4 _DamageSpheres[8];
-        float _DamageSphereCount;
-
-        // Spec 44: bandaged-zone spheres — a leaf wrap is PAINTED on the skin
-        // around these anchors (skin mode only; cloth never gets them).
-        float4 _BandageSpheres[8];
-        float _BandageSphereCount;
 
         TEXTURE2D(_BaseMap); SAMPLER(sampler_BaseMap);
         TEXTURE2D(_BumpMap); SAMPLER(sampler_BumpMap);
         TEXTURE2D(_MetallicGlossMap); SAMPLER(sampler_MetallicGlossMap);
+        TEXTURE2D(_MaskMap); SAMPLER(sampler_MaskMap);
+        TEXTURE2D(_OcclusionMap); SAMPLER(sampler_OcclusionMap);
+        TEXTURE2D(_DetailMask); SAMPLER(sampler_DetailMask);
+        TEXTURE2D(_DetailAlbedoMap); SAMPLER(sampler_DetailAlbedoMap);
+        TEXTURE2D(_DetailNormalMap); SAMPLER(sampler_DetailNormalMap);
         TEXTURE2D(_TearMaskTex); SAMPLER(sampler_TearMaskTex);
 
         float2 TearHash(float2 p)
@@ -117,6 +112,17 @@ Shader "HexLive/GarmentTear"
             float c = TearHash(i + float2(0, 1)).x;
             float d = TearHash(i + float2(1, 1)).x;
             return lerp(lerp(a, b, u.x), lerp(c, d, u.x), u.y);
+        }
+
+        half3 ScaleDetailAlbedo(half3 detailAlbedo, half scale)
+        {
+            return half(2.0) * detailAlbedo * scale - scale + half(1.0);
+        }
+
+        half DetailMaskAt(float2 uv)
+        {
+            half texMask = SAMPLE_TEXTURE2D(_DetailMask, sampler_DetailMask, uv).r;
+            return saturate(max(_DetailAlbedoMapOn, _DetailNormalMapOn) * texMask);
         }
 
         float TearVoronoi(float2 p)
@@ -158,36 +164,9 @@ Shader "HexLive/GarmentTear"
             return lerp(proc, artistic, saturate(_TearTexOn));
         }
 
-        // Spec 40.10-C: local rip from the nearest damage sphere.
-        float LocalDamageTear(float3 positionWS)
+        float TearThresholdAt()
         {
-            float local = 0.0;
-            int count = (int)_DamageSphereCount;
-            for (int i = 0; i < 8; i++)
-            {
-                if (i >= count)
-                {
-                    break;
-                }
-
-                float4 s = _DamageSpheres[i];
-                float falloff = saturate(1.0 - distance(positionWS, s.xyz) / max(_DamageRadius, 1e-3));
-                local = max(local, s.w * falloff * falloff);
-            }
-
-            return local;
-        }
-
-        // Rags at amount 1 must clear ~the whole garment. Zone damage rips
-        // locally as if that spot were fully worn (max, not additive).
-        float TearThresholdAt(float3 positionWS)
-        {
-            // _HolesOn = 0 (skin mode): threshold 0 — nothing ever clips,
-            // the paint layers still work. _SphereTearOn = 0 (painted-wear
-            // mode): only the UV-stable mask/_TearAmount rip — no breathing
-            // holes from bone-anchored world spheres.
-            return saturate(max(_TearAmount,
-                LocalDamageTear(positionWS) * _SphereTearOn) * 1.08) * _HolesOn;
+            return saturate(_TearAmount * 1.08) * _HolesOn;
         }
         ENDHLSL
 
@@ -239,10 +218,11 @@ Shader "HexLive/GarmentTear"
             half4 Frag(Varyings input, bool isFront : SV_IsFrontFace) : SV_Target
             {
                 float mask = TearMask(input.uv);
-                float threshold = TearThresholdAt(input.positionWS);
+                float threshold = TearThresholdAt();
                 clip(mask - threshold);
 
                 half4 albedo = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv) * _BaseColor;
+                clip(lerp(1.0, albedo.a - _Cutoff, _AlphaClipOn));
 
                 // Frayed hem: real frayed cloth goes PALE at the edge — loose
                 // threads catch light. Push the fabric's own colour toward a
@@ -264,74 +244,12 @@ Shader "HexLive/GarmentTear"
                 half thinning = smoothstep(0.55, 0.95, wearNoise) * saturate(_TearAmount * 1.6);
                 albedo.rgb = lerp(albedo.rgb, fuzz, thinning * 0.5);
 
-                // Spec 40.10-C: dirt layer — noise-mottled blotches (own scale)
-                // creep from sparse smudges to near-full grime as dirt rises.
-                // Dust BLENDS toward an earthy tint instead of multiplying —
-                // a straight multiply turned dark fabrics (green jacket) into
-                // huge near-black blobs that read as broken rendering, not
-                // grime; capped cover keeps the cloth readable underneath.
-                float dirtNoise = TearValueNoise(input.uv * _DirtScale);
-                half dirtCover = smoothstep(1.0 - _DirtAmount * 1.1,
-                    1.3 - _DirtAmount * 1.1, dirtNoise);
-                // Sandy dust: blend toward the earth tint but never darken
-                // below ~80% of the cloth's own brightness — dust LIGHTENS
-                // dark fabric and dulls bright fabric, like real dry dirt.
-                // Kept gentle (0.45/0.35): the earlier 0.7/0.5 pull painted
-                // harsh beige speckle over dark garments.
-                half3 dust = lerp(albedo.rgb, _DirtColor.rgb, 0.45);
-                dust = max(dust, albedo.rgb * 0.8);
-                albedo.rgb = lerp(albedo.rgb, dust,
-                    dirtCover * saturate(_DirtAmount * 1.3) * 0.35);
-
-                // Spec 40.8-C: blood soaks THROUGH the garment right over the
-                // wound — localized by the same damage spheres that rip the
-                // cloth, wicking outward with noise like real fabric. Deep
-                // venous red, darker at the core, scaled by the cloth's own
-                // brightness so light shirts stain vividly, dark cloth deeply.
-                float woundLocal = LocalDamageTear(input.positionWS);
-                float soakNoise = TearValueNoise(input.uv * _DirtScale * 0.6 + 57.0);
-                half soak = smoothstep(0.12, 0.7, woundLocal * (0.55 + 0.6 * soakNoise))
-                    * saturate(_BloodAmount * 1.6);
-                half clothLum = dot(albedo.rgb, half3(0.299, 0.587, 0.114));
-                half3 bloodCol = lerp(half3(0.42, 0.05, 0.04), half3(0.22, 0.013, 0.011),
-                    saturate(woundLocal * 1.2));
-                albedo.rgb = lerp(albedo.rgb, bloodCol * (0.45 + 0.55 * clothLum), soak);
-
-                // Sweat: damp patches — the cloth darkens a touch and turns
-                // glossy (the sheen below sells the moisture).
-                float dampNoise = TearValueNoise(input.uv * _DirtScale * 0.45 + 113.0);
-                half damp = smoothstep(0.45, 0.8, dampNoise) * saturate(_SweatAmount * 1.2);
-                albedo.rgb *= 1.0 - damp * 0.20;
-                half wetGloss = max(soak * 0.55, damp * 0.8);
-
-                // Spec 44: the leaf bandage is PAINTED over the dressed zone —
-                // matte leafy pad bound with fiber twine, covering whatever
-                // blood/sweat sits beneath (skin mode only; cloth passes 0).
-                float bnd = 0.0;
-                int bcount = (int)_BandageSphereCount;
-                for (int bi = 0; bi < 8; bi++)
-                {
-                    if (bi >= bcount)
-                    {
-                        break;
-                    }
-
-                    float4 bs = _BandageSpheres[bi];
-                    float fall = saturate(1.0 - distance(input.positionWS, bs.xyz) / max(_DamageRadius * 0.9, 1e-3));
-                    bnd = max(bnd, bs.w * fall);
-                }
-
-                half wrap = smoothstep(0.30, 0.55, bnd);
-                if (wrap > 0.001)
-                {
-                    float leafN = TearValueNoise(input.uv * _DirtScale * 1.3 + 201.0);
-                    half3 leaf = lerp(half3(0.24, 0.42, 0.20), half3(0.36, 0.56, 0.27), leafN);
-                    float stripe = abs(frac((input.uv.x + input.uv.y) * _DirtScale * 1.6) - 0.5) * 2.0;
-                    half twine = smoothstep(0.78, 0.92, stripe);
-                    leaf = lerp(leaf, half3(0.70, 0.58, 0.40), twine * 0.85);
-                    albedo.rgb = lerp(albedo.rgb, leaf, wrap);
-                    wetGloss *= 1.0 - wrap; // the wrap is matte
-                }
+                float2 detailUv = TRANSFORM_TEX(input.uv, _DetailAlbedoMap);
+                half detailMask = DetailMaskAt(input.uv);
+                half3 detailAlbedo = SAMPLE_TEXTURE2D(_DetailAlbedoMap,
+                    sampler_DetailAlbedoMap, detailUv).rgb;
+                detailAlbedo = ScaleDetailAlbedo(detailAlbedo, _DetailAlbedoMapScale);
+                albedo.rgb *= lerp(half3(1, 1, 1), detailAlbedo, detailMask * _DetailAlbedoMapOn);
 
                 // _BumpScale honors the authored strength (0 = neutralized —
                 // URP Lit garments without the _NORMALMAP keyword rendered
@@ -339,6 +257,14 @@ Shader "HexLive/GarmentTear"
                 // "normals flying").
                 half3 normalTS = UnpackNormalScale(
                     SAMPLE_TEXTURE2D(_BumpMap, sampler_BumpMap, input.uv), _BumpScale);
+                half3 detailNormalTS = UnpackNormalScale(
+                    SAMPLE_TEXTURE2D(_DetailNormalMap, sampler_DetailNormalMap, detailUv),
+                    _DetailNormalMapScale);
+                detailNormalTS = normalize(detailNormalTS);
+                half detailNormalMask = detailMask * _DetailNormalMapOn;
+                normalTS = normalize(lerp(normalTS,
+                    half3(normalTS.xy + detailNormalTS.xy, normalTS.z * detailNormalTS.z),
+                    detailNormalMask));
                 half sgn = input.tangentWS.w;
                 half3 bitangent = sgn * cross(input.normalWS, input.tangentWS.xyz);
                 half3 normalWS = normalize(TransformTangentToWorld(
@@ -357,14 +283,20 @@ Shader "HexLive/GarmentTear"
                 // damage swap flattened worn leather/satin to uniform plastic.
                 half4 metallicGloss = SAMPLE_TEXTURE2D(_MetallicGlossMap,
                     sampler_MetallicGlossMap, input.uv);
+                half4 maskMap = SAMPLE_TEXTURE2D(_MaskMap, sampler_MaskMap, input.uv);
+                half occlusionMap = SAMPLE_TEXTURE2D(_OcclusionMap,
+                    sampler_OcclusionMap, input.uv).g;
+                half occlusion = lerp(1.0, occlusionMap, _OcclusionMapOn * _OcclusionStrength);
+                occlusion = lerp(occlusion, lerp(1.0, maskMap.g, _OcclusionStrength), _MaskMapOn);
+                half metallicFactor = lerp(metallicGloss.r, maskMap.r, _MaskMapOn);
+                half smoothnessFactor = lerp(metallicGloss.a, maskMap.a, _MaskMapOn);
 
                 SurfaceData surfaceData = (SurfaceData)0;
                 surfaceData.albedo = albedo.rgb;
                 surfaceData.alpha = 1;
-                surfaceData.metallic = _Metallic * metallicGloss.r;
-                // Wet patches (blood/sweat) gloss the fabric locally.
-                surfaceData.smoothness = saturate(_Smoothness * metallicGloss.a + wetGloss * 0.45);
-                surfaceData.occlusion = 1;
+                surfaceData.metallic = _Metallic * metallicFactor;
+                surfaceData.smoothness = saturate(_Smoothness * smoothnessFactor);
+                surfaceData.occlusion = occlusion;
                 surfaceData.normalTS = normalTS;
 
                 return UniversalFragmentPBR(inputData, surfaceData);
@@ -423,7 +355,9 @@ Shader "HexLive/GarmentTear"
 
             half4 ShadowFrag(Varyings input) : SV_Target
             {
-                clip(TearMask(input.uv) - TearThresholdAt(input.positionWS));
+                clip(TearMask(input.uv) - TearThresholdAt());
+                half alpha = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv).a * _BaseColor.a;
+                clip(lerp(1.0, alpha - _Cutoff, _AlphaClipOn));
                 return 0;
             }
             ENDHLSL

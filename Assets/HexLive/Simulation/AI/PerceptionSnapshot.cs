@@ -81,6 +81,11 @@ public sealed class PerceivedAgent
     // Walking agents are not talk targets in v1 (no chasing, spec 28.15A).
     public bool IsMoving { get; set; }
 
+    // Spec §60: out cold (faint or coma) — like a sleeper, never a chat
+    // partner. Kept separate from IsBusy so §53 Aid can still target her:
+    // unlike a sleeper she cannot wake to help herself.
+    public bool IsUnconscious { get; set; }
+
     // Spec §53: how badly this neighbour needs help (0 = fine, 1 = dying) and
     // the single most-urgent HELPABLE kind of aid. Populated by the perception
     // build so the Aid goal can bid on, and route to, the worst-off housemate

@@ -33,12 +33,12 @@ namespace HexLive.UnityPresentation.Environment
         {
             _signature = Signature(site);
 
-            // Spec §54.2: a BED site is the SAME assembled prefab as the finished
-            // bed (bed_leaf_final / bed_basic_final) with only its delivered pieces
-            // toggled on — each hauled leaf/stick/log/rope lights up one more piece,
-            // so the mat grows exactly into the finished bed. One prefab, no slot
+            // Spec §54.2/§35.5B: a BED or RACK site is the SAME assembled prefab
+            // as the finished piece with only its delivered pieces toggled on —
+            // each hauled leaf/stick/log/rope lights up one more piece, so the
+            // build grows exactly into the finished object. One prefab, no slot
             // table to keep in sync (see BedAssembly).
-            if (BedFactory.IsBed(site.BuildProduct))
+            if (BedAssembly.IsAssembled(site.BuildProduct))
             {
                 RefreshBed(site);
                 return;

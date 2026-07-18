@@ -27,9 +27,18 @@ public sealed class AnimLibraryImportPostprocessor : AssetPostprocessor
 {
     private const string AnimLibraryRoot = "Assets/ImportedActors/AnimLibrary";
 
+    // Pose clips the RUNTIME loads directly (Resources.Load<AnimationClip>) —
+    // e.g. the health-doll's "Female Standing Pose". Same humanoid import
+    // treatment; kept under Resources because AnimLibrary isn't loadable at
+    // runtime (its clips reach the game only through animator controllers).
+    private const string PosesRoot = "Assets/Resources/HexLive/Poses";
+
+    private static bool Watched(string path) =>
+        path.StartsWith(AnimLibraryRoot) || path.StartsWith(PosesRoot);
+
     private void OnPreprocessModel()
     {
-        if (!assetPath.StartsWith(AnimLibraryRoot) || !assetImporter.importSettingsMissing)
+        if (!Watched(assetPath) || !assetImporter.importSettingsMissing)
             return;
 
         var importer = (ModelImporter)assetImporter;
@@ -42,7 +51,7 @@ public sealed class AnimLibraryImportPostprocessor : AssetPostprocessor
 
     private void OnPreprocessAnimation()
     {
-        if (!assetPath.StartsWith(AnimLibraryRoot) || !assetImporter.importSettingsMissing)
+        if (!Watched(assetPath) || !assetImporter.importSettingsMissing)
             return;
 
         var importer = (ModelImporter)assetImporter;

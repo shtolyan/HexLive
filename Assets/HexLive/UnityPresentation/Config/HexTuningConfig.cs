@@ -93,6 +93,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 0.02f)] public float wetComfortPenalty = 0.004f;
 
         [Header("Вода — визуал")]
+        [Tooltip("УРОВЕНЬ ВОДЫ: на какую долю ступени высоты поверхность утоплена ниже берега. Меньше = вода выше. 0.1 — у самой кромки; от неё считаются и плавание, и нырок, и вылезание. Меши строятся на старте сцены — менять до запуска.")]
+        [Range(0.02f, 0.6f)] public float waterSurfaceDrop = 0.1f;
         [Tooltip("На сколько корень актёра проваливается НИЖЕ поверхности воды. 0 — ноги на поверхности.")]
         [Range(-0.5f, 1.5f)] public float sinkDepth = 0.6f;
         [Tooltip("Глубина, с которой начинается бредущая походка (wade) перед полноценным плаванием.")]
@@ -283,7 +285,7 @@ namespace HexLive.UnityPresentation.Config
 
         [Header("Солнце / загар / ожог")]
         [Tooltip("Скорость загара на открытой коже (за (UV−0.5) за часть).")]
-        [Range(0f, 0.01f)] public float tanRate = 0.0018f;
+        [Range(0f, 0.01f)] public float tanRate = 0.0009f;
         [Tooltip("Скорость покраснения (быстрее загара).")]
         [Range(0f, 0.02f)] public float sunburnRate = 0.004f;
         [Tooltip("Скорость набора «экспозиции» до события ожога.")]

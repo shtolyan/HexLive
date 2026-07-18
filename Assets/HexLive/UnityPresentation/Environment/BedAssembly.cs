@@ -111,9 +111,18 @@ namespace HexLive.UnityPresentation.Environment
         }
 
         // ── Factory ────────────────────────────────────────────────────────────
-        // Which assembled prefab renders each bed product.
-        private static string PrefabPath(string product) =>
-            "HexLive/Objects/" + (product == "bed.basic" ? "bed_basic_final" : "bed_leaf_final");
+        // Which assembled prefab renders each staged product.
+        private static string PrefabPath(string product) => "HexLive/Objects/" + product switch
+        {
+            "bed.basic" => "bed_basic_final",
+            "station.drying_rack" => "drying_rack_final",
+            _ => "bed_leaf_final"
+        };
+
+        /// §35.5B: every product rendered by a staged assembled prefab — the
+        /// beds and the drying rack share the grow-in-place build-site view.
+        public static bool IsAssembled(string product) =>
+            product is "bed.leaf" or "bed.basic" or "station.drying_rack";
 
         private static GameObject? Instantiate(string product, out BedAssembly asm)
         {

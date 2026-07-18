@@ -87,6 +87,59 @@ public static class SpatialQueries
         return true;
     }
 
+    // §54.9A: true when every junction inside `radius` of the anchor is
+    // passable dry ground — the piece's PHYSICAL footprint fits here without
+    // crossing walls, obstacle-blocked junctions (boulders, palms, the fire's
+    // ember ring, other furniture) or water. Radius 0 = point object, always fits.
+    public static bool FootprintClear(WorldState world, Junction anchor, float radius)
+    {
+        if (radius <= 0f)
+        {
+            return true;
+        }
+
+        if (anchor.Tiles.Count == 0)
+        {
+            return false;
+        }
+
+        var center = anchor.WorldPosition;
+        var radiusSq = radius * radius;
+        var home = anchor.Tiles[0];
+        for (var i = -1; i < HexDirection.All.Length; i++)
+        {
+            var coord = i < 0
+                ? home
+                : new TileCoord(home.Q + HexDirection.All[i].DQ, home.R + HexDirection.All[i].DR);
+            if (!world.Tiles.Items.TryGetValue(coord, out var tile))
+            {
+                continue;
+            }
+
+            foreach (var junctionId in tile.Junctions)
+            {
+                if (!world.Junctions.Items.TryGetValue(junctionId, out var junction))
+                {
+                    continue;
+                }
+
+                var dx = junction.WorldPosition.X - center.X;
+                var dy = junction.WorldPosition.Y - center.Y;
+                if (dx * dx + dy * dy > radiusSq)
+                {
+                    continue;
+                }
+
+                if (junction.Blocked || IsAllWaterJunction(world, junctionId))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
     public static bool IsJunctionPassable(WorldState world, JunctionId junctionId)
     {
         if (!world.Junctions.Items.TryGetValue(junctionId, out var junction))

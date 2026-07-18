@@ -85,6 +85,7 @@ namespace HexLive.Simulation.Agents.Effects
             Add(EffectKind.Sick, EffectPolarity.Debuff, EffectCategory.Survival, "🤢");
             Add(EffectKind.Exhausted, EffectPolarity.Debuff, EffectCategory.Survival, "😮‍💨");
             Add(EffectKind.Fainted, EffectPolarity.Debuff, EffectCategory.Survival, "😵");
+            Add(EffectKind.Coma, EffectPolarity.Debuff, EffectCategory.Survival, "😵‍💫"); // §60
             Add(EffectKind.WellFed, EffectPolarity.Buff, EffectCategory.Survival, "😋");
             Add(EffectKind.Rested, EffectPolarity.Buff, EffectCategory.Survival, "💪");
             Add(EffectKind.Snug, EffectPolarity.Buff, EffectCategory.Survival, "🛌");

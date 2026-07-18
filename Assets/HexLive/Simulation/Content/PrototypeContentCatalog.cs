@@ -231,6 +231,8 @@ public static class PrototypeContentCatalog
                 DisplayName = "Palm",
                 // Spec 31C.1: obstacle — the trunk blocks its anchor junction.
                 Tags = { "Flora", "Shade", "Palm", "Obstacle" },
+                // Spec 43: palm_final mesh is 3.9 wu tall (~7 elevation steps).
+                ShadeSteps = 7f,
                 Interactions =
                 {
                     new InteractionDefinition
@@ -277,6 +279,8 @@ public static class PrototypeContentCatalog
                 Id = "tree.palm_small",
                 DisplayName = "Palm",
                 Tags = { "Flora", "Shade", "Palm", "Obstacle" },
+                // Spec 43: two trunk segments instead of three (~2.7 wu tall).
+                ShadeSteps = 5f,
                 Interactions =
                 {
                     new InteractionDefinition
@@ -856,8 +860,10 @@ public static class PrototypeContentCatalog
             {
                 Id = "bed.basic",
                 DisplayName = "Bed",
-                // Spec 31C.7: the bedroll is solid furniture.
-                ObstacleRadius = 0.3f * HexLive.Simulation.Spatial.HexSpatialMath.HexRadius, // bedroll core (spec 31C.7: full footprint starved home traffic)
+                // Spec 31C.7 / §54.9A: the bedroll is solid furniture and claims
+                // its PHYSICAL footprint (bed_basic_final measures 1.20×2.20 wu
+                // → half-diagonal 1.25) so nothing else is placed across it.
+                ObstacleRadius = 1.25f,
                 Interactions =
                 {
                     new InteractionDefinition
@@ -901,13 +907,16 @@ public static class PrototypeContentCatalog
                 DisplayName = "Tent",
                 Tags = { "Shade", "Shelter" }
             },
-            // Spec 40.14: the cheap tier-1 sleeping mat — woven from 3 palm
-            // leaves (no logs). A little better than bare grass, well short of
-            // the bedroll. Not an obstacle (a flat mat you can step over).
+            // Spec 40.14 / §54.9: the tier-1 sleeping mat. Since §54.9 it is a
+            // framed bed (log rails + slats), not a flat mat — §54.9A makes it
+            // an obstacle claiming its PHYSICAL footprint (bed_leaf_final
+            // measures 1.47×2.36 wu → half-diagonal 1.39) so nothing else is
+            // ever placed across the frame.
             ["bed.leaf"] = new ObjectDefinition
             {
                 Id = "bed.leaf",
                 DisplayName = "Leaf mat",
+                ObstacleRadius = 1.39f,
                 Interactions =
                 {
                     new InteractionDefinition
@@ -919,7 +928,7 @@ public static class PrototypeContentCatalog
                         Effects = { EnergyDelta = SimBalance.LeafBedEnergy } // spec 42
                     }
                 },
-                Tags = { "Bed" }
+                Tags = { "Bed", "Obstacle" }
             },
             // Spec 31A.5B: everyone starts in "underwear.cloth" — that garment,
             // the coat, the armors and the imported wardrobe now all live in

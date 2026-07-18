@@ -52,6 +52,10 @@ public static class WorldSnapshotExporter
                 DefinitionId = obj.DefinitionId,
                 Tile = obj.Tile,
                 ResourceAmount = obj.ResourceAmount,
+                Wetness = obj.Wetness,
+                Durability = obj.Durability,
+                Dirtiness = obj.Dirtiness,
+                Bloodiness = obj.Bloodiness,
                 OwnerNpcId = obj.CurrentUser?.Value,
                 Variant = obj.Variant,
                 SpawnTick = obj.SpawnTick,
@@ -543,6 +547,7 @@ public static class WorldSnapshotExporter
             Health = npc.Health,
             IsFighting = npc.IsFighting,
             IsSwinging = world.Tick < npc.AttackAnimUntilTick,
+            StrikeIndex = npc.SwingStrikeIndex,
             Hunger = npc.Needs.Hunger,
             Thirst = npc.Needs.Thirst,
             Energy = npc.Needs.Energy,
@@ -560,6 +565,7 @@ public static class WorldSnapshotExporter
             Bandages = npc.Needs.Bandages,
             Pills = npc.Needs.Pills,
             IsFainted = world.Tick < npc.Mind.FaintedUntilTick,
+            IsUnconscious = npc.Mind.ComaCause != AI.ComaCause.None, // spec §60
             IsWaking = world.Tick < npc.Mind.WakeGraceUntilTick,
             Stress = npc.Needs.Stress,
             CurrentGoal = npc.Mind.CurrentGoal.ToString(),
@@ -622,6 +628,8 @@ public static class WorldSnapshotExporter
 
             npcSnapshot.InventoryItems.Add(item);
             npcSnapshot.InventoryDurability.Add($"{item.DefinitionId}\t{item.Durability:0.###}");
+            npcSnapshot.InventoryWetness.Add($"{item.DefinitionId}\t{item.Wetness:0.###}");
+            npcSnapshot.InventoryDirtiness.Add($"{item.DefinitionId}\t{item.Dirtiness:0.###}");
             if (item.DefinitionId == "tool.bottle")
             {
                 npcSnapshot.InventoryWater.Add(
@@ -649,6 +657,8 @@ public static class WorldSnapshotExporter
             // Spec 35.5: per-garment wetness — rain soaks, fire/rack dries;
             // presentation renders a wet sheen that fades as the cloth dries.
             npcSnapshot.WornWetness.Add($"{item.DefinitionId}\t{item.Wetness:0.###}");
+            npcSnapshot.WornDirtiness.Add($"{item.DefinitionId}\t{item.Dirtiness:0.###}");
+            npcSnapshot.WornBloodiness.Add($"{item.DefinitionId}\t{item.Bloodiness:0.###}");
             npcSnapshot.WornItems.Add(item);
         }
 
@@ -689,6 +699,8 @@ public static class WorldSnapshotExporter
         foreach (var part in npc.Body.Parts)
         {
             npcSnapshot.BodyParts.Add($"{part.Key}={part.Value:F2}");
+            npcSnapshot.PartArmor.Add(
+                $"{part.Key}={Runtime.EquipmentMath.ArmorForPart(world, npc, part.Key):F2}");
             if (part.Value < worstPartValue)
             {
                 worstPartValue = part.Value;
@@ -734,7 +746,8 @@ public static class WorldSnapshotExporter
         var legR = Part(BodyPart.LegR);
         var legLost = npc.Body.IsSevered(BodyPart.LegL) || npc.Body.IsSevered(BodyPart.LegR);
         npcSnapshot.PostureHint =
-            npcSnapshot.IsFainted ? "Faint"
+            npcSnapshot.IsUnconscious ? "Faint" // §60: comatose lies limp too
+            : npcSnapshot.IsFainted ? "Faint"
             : legLost || (legL < 0.4f && legR < 0.4f) ? "Crawl"
             : legL < 0.4f || legR < 0.4f ? "Limp"
             : Part(BodyPart.ArmL) < 0.4f || Part(BodyPart.ArmR) < 0.4f ? "ArmHang"
@@ -749,8 +762,9 @@ public static class WorldSnapshotExporter
 
         // Iter 28: sitting at a junction whose tiles step exactly one
         // level = a ledge seat; the view plants the butt on the upper step.
-        if (npcSnapshot.CurrentInteraction == "Sit" &&
-            npc.Execution.TargetObject is null &&
+        var usesEdgePose = npcSnapshot.CurrentInteraction == "WashClothes" ||
+            npcSnapshot.CurrentInteraction == "Sit" && npc.Execution.TargetObject is null;
+        if (usesEdgePose &&
             npc.CurrentJunction is { } sitJunctionId &&
             world.Junctions.Items.TryGetValue(sitJunctionId, out var sitJunction) &&
             sitJunction.Tiles.Count > 1)
@@ -766,7 +780,10 @@ public static class WorldSnapshotExporter
                 }
             }
 
-            npcSnapshot.IsLedgeSit = maxElevation - minElevation == 1;
+            npcSnapshot.IsLedgeSit = npcSnapshot.CurrentInteraction == "WashClothes"
+                ? Runtime.PlanningSystem.TryGetEdgeSeatGeometry(
+                    world, sitJunction, waterOnly: true, out _, out _)
+                : maxElevation - minElevation == 1;
 
             // How far below the seat (higher tile) her own tile sits: 0 if
             // she stands on the higher tile (a land/water rim — sit right on

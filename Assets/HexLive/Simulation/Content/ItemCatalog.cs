@@ -529,6 +529,17 @@ namespace HexLive.Simulation.Content
                     CooldownSeconds = 1.5f,
                     AttackSpeed = 1f,
                     MeleePriority = 0,
+                    // Рукопашка: 4 удара (левый/правый кулак, левая/правая
+                    // нога) — clip order in GearConfig.strikes (fist.asset).
+                    // Placeholder 0.2 s замах/доигрыш/перезарядка per strike;
+                    // tuned via the asset sliders (GearTuning override).
+                    StrikeVariants = new[]
+                    {
+                        new StrikeVariant(), // Punch A
+                        new StrikeVariant(), // Punch B
+                        new StrikeVariant(), // Kick A
+                        new StrikeVariant(), // Kick B
+                    },
                 },
                 [Knife] = new GearStats
                 {
@@ -688,6 +699,17 @@ namespace HexLive.Simulation.Content
 
         public bool TwoHanded;
 
+        // ── Strike variants (рукопашка) ──
+        // Optional per-strike timing rows: when non-empty, every swing picks
+        // ONE variant (deterministic hash) and its timings replace the flat
+        // HitDelay/Duration/Cooldown above for that exchange. The chosen index
+        // is mirrored to presentation (NpcState.SwingStrikeIndex) so the view
+        // plays the MATCHING clip — variant order == GearConfig.strikes order.
+        // Null/empty = single-timing gear (knife/axe path, unchanged).
+        public StrikeVariant[] StrikeVariants;
+
+        public bool HasStrikeVariants => StrikeVariants != null && StrikeVariants.Length > 0;
+
         // ── Tool side ──
         public GearCapability Capabilities = GearCapability.None;
 
@@ -698,5 +720,16 @@ namespace HexLive.Simulation.Content
         public bool Has(string capabilityName) =>
             System.Enum.TryParse<GearCapability>(capabilityName, true, out var flag) &&
             flag != GearCapability.None && Has(flag);
+    }
+
+    /// <summary>One strike's timing inside a variant-based attack (fists:
+    /// left/right punch, left/right kick). Same phase model as the flat gear
+    /// timing: замах → hit at HitDelaySeconds → follow-through until
+    /// AttackDurationSeconds → CooldownSeconds of recovery.</summary>
+    public sealed class StrikeVariant
+    {
+        public float HitDelaySeconds = 0.2f;
+        public float AttackDurationSeconds = 0.4f;
+        public float CooldownSeconds = 0.2f;
     }
 }

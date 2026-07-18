@@ -157,6 +157,14 @@ public sealed class ObjectSnapshot
     // Spec 29E.3: fuel ticks. For a campfire, > 0 means lit/burning.
     public float ResourceAmount { get; set; }
 
+    public float Wetness { get; set; }
+
+    public float Durability { get; set; } = 1f;
+
+    public float Dirtiness { get; set; }
+
+    public float Bloodiness { get; set; }
+
     // Spec 40.13: whose body/marker this is (corpse.npc / grave.npc carry the
     // dead NPC's id in CurrentUser) — lets the view adopt the actor's ragdoll.
     public int? OwnerNpcId { get; set; }
@@ -222,7 +230,16 @@ public sealed class NpcSnapshot
     // across exactly this window.
     public bool IsSwinging { get; set; }
 
+    // Which strike variant the current swing uses when the drawn gear has
+    // per-strike timings (fists: punches/kicks). The view plays the matching
+    // clip from GearConfig.strikes. -1 = single-timing gear (random clip).
+    public int StrikeIndex { get; set; } = -1;
+
     public List<string> BodyParts { get; } = new();
+
+    // "Zone=0.35" — worn-armor absorption per body part (EquipmentMath),
+    // for the health window's per-limb protection readout.
+    public List<string> PartArmor { get; } = new();
 
     // Spec §50: zones that have been severed (BodyPart names). The view hides
     // the matching bone chain and stamps a blood stump at the cut.
@@ -297,6 +314,11 @@ public sealed class NpcSnapshot
 
     // Spec 40.13: knocked out — the presentation lays the body limp.
     public bool IsFainted { get; set; }
+
+    // Spec §60: comatose — the presentation plays the death clip and holds
+    // the body motionless as if dead until IsUnconscious clears, then the
+    // get-up plays (the wake grace covers it).
+    public bool IsUnconscious { get; set; }
 
     // Iter 28: sitting at a one-step ledge junction — the presentation
     // lifts the body so the butt rests on the upper step. Export-only.
@@ -379,6 +401,11 @@ public sealed class NpcSnapshot
     // taken off.
     public List<string> InventoryDurability { get; } = new();
 
+    // Per-instance clothing condition for garments carried in the backpack.
+    public List<string> InventoryWetness { get; } = new();
+
+    public List<string> InventoryDirtiness { get; } = new();
+
     // "definitionId\tamountLiters\tcapacityLiters" for carried water containers.
     // The UI treats bottle and pierced coconut as one water-container category.
     public List<string> InventoryWater { get; } = new();
@@ -392,6 +419,11 @@ public sealed class NpcSnapshot
     // Spec 35.5: "definitionId\twetness" per worn garment — rain soaks cloth,
     // fire/racks dry it; presentation shows a wet sheen that fades as it dries.
     public List<string> WornWetness { get; } = new();
+
+    // "definitionId\tdirtiness" per worn garment.
+    public List<string> WornDirtiness { get; } = new();
+
+    public List<string> WornBloodiness { get; } = new();
 
     // Spec 40.8B: "Zone|seed|heal01" per open wound — each maps to ONE decal
     // whose exact spot/look derive from seed and whose alpha fades with heal.

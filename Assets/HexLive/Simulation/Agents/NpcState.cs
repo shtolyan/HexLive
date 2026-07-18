@@ -219,6 +219,12 @@ public sealed class NPCState
     // (StrikeLandsAtTick = start + HitDelaySeconds). Not persisted.
     public int AttackAnimUntilTick { get; set; }
 
+    // Which strike variant the current swing uses when the drawn gear has
+    // per-strike timings (fists: 2 punches + 2 kicks). Picked at swing start,
+    // mirrored to the snapshot so the view plays the MATCHING clip. -1 =
+    // single-timing gear (knife/axe). Not persisted.
+    public int SwingStrikeIndex { get; set; } = -1;
+
     // Spec 35.4: accumulated sun exposure; burns at 1.0.
     public float SunExposure { get; set; }
 
@@ -233,6 +239,12 @@ public sealed class NPCState
     public NPCNeeds Needs { get; } = new();
 
     public NPCMind Mind { get; } = new();
+
+    // Spec §60: out cold — either the short stamina faint (spec 40.13) or a
+    // stat-gated coma. One question every consumer asks the same way: can this
+    // body act at all right now? Combat/decision/presentation gate on THIS.
+    public bool IsUnconscious(int tick) =>
+        Mind.ComaCause != AI.ComaCause.None || tick < Mind.FaintedUntilTick;
 
     public NPCPlanState Plan { get; } = new();
 

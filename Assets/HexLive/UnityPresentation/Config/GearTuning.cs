@@ -89,7 +89,25 @@ namespace HexLive.UnityPresentation.Config
         public static AnimationClip[] AttackClipsFor(string gearId)
         {
             var config = ConfigFor(gearId);
-            return config != null && config.attackClips != null && config.attackClips.Length > 0
+            if (config == null)
+            {
+                return null;
+            }
+
+            // Strike rows first (fists: punches/kicks) — their order matches
+            // the sim's StrikeVariants, so the view can index by StrikeIndex.
+            if (config.strikes != null && config.strikes.Length > 0)
+            {
+                var clips = new AnimationClip[config.strikes.Length];
+                for (var i = 0; i < clips.Length; i++)
+                {
+                    clips[i] = config.strikes[i]?.clip;
+                }
+
+                return clips;
+            }
+
+            return config.attackClips != null && config.attackClips.Length > 0
                 ? config.attackClips
                 : null;
         }

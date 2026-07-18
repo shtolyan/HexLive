@@ -128,6 +128,27 @@ namespace HexLive.Simulation.Content
                         }
                     }
 
+                    // Per-strike variant timings (fists: punches/kicks).
+                    if (g.TryGetValue("strikes", out var strikesRaw) &&
+                        strikesRaw is List<object> strikes && strikes.Count > 0)
+                    {
+                        var variants = new List<StrikeVariant>();
+                        foreach (var strikeEntry in strikes)
+                        {
+                            if (strikeEntry is Dictionary<string, object> s)
+                            {
+                                variants.Add(new StrikeVariant
+                                {
+                                    HitDelaySeconds = F(s, "hitDelaySeconds", 0.2f),
+                                    AttackDurationSeconds = F(s, "attackDurationSeconds", 0.4f),
+                                    CooldownSeconds = F(s, "cooldownSeconds", 0.2f),
+                                });
+                            }
+                        }
+
+                        stats.StrikeVariants = variants.Count > 0 ? variants.ToArray() : null;
+                    }
+
                     GearCatalog.Override(stats);
                 }
             }
@@ -317,12 +338,24 @@ namespace HexLive.Simulation.Content
                     }
                 }
 
+                var strikes = new System.Text.StringBuilder();
+                if (g.HasStrikeVariants)
+                {
+                    foreach (var v in g.StrikeVariants)
+                    {
+                        if (strikes.Length > 0) strikes.Append(", ");
+                        strikes.Append($"{{\"hitDelaySeconds\": {N(v.HitDelaySeconds)}, ")
+                               .Append($"\"attackDurationSeconds\": {N(v.AttackDurationSeconds)}, ")
+                               .Append($"\"cooldownSeconds\": {N(v.CooldownSeconds)}}}");
+                    }
+                }
+
                 sb.Append("    {")
                   .Append($"\"id\": {Q(g.Id)}, \"damage\": {N(g.Damage)}, \"hitDelaySeconds\": {N(g.HitDelaySeconds)}, ")
                   .Append($"\"attackDurationSeconds\": {N(g.AttackDurationSeconds)}, \"cooldownSeconds\": {N(g.CooldownSeconds)}, ")
                   .Append($"\"attackSpeed\": {N(g.AttackSpeed)}, \"meleePriority\": {g.MeleePriority}, ")
                   .Append($"\"twoHanded\": {(g.TwoHanded ? "true" : "false")}, \"harvestSpeedMult\": {N(g.HarvestSpeedMult)}, ")
-                  .Append($"\"capabilities\": [{caps}]}}");
+                  .Append($"\"capabilities\": [{caps}], \"strikes\": [{strikes}]}}");
             }
 
             sb.Append("\n  ],\n  \"worldObjects\": [\n");

@@ -29,7 +29,7 @@ namespace HexLive.Simulation.Persistence
 //   on load, rebuilt on first pathfind).
 public static class WorldSaveSerializer
 {
-    public const int BlobVersion = 5; // v5: MobState.MobId (per-creature mob sheet)
+    public const int BlobVersion = 7; // v7: per-item garment dirtiness
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -297,7 +297,7 @@ public static class WorldSaveSerializer
         var objectCount = r.ReadInt32();
         for (var i = 0; i < objectCount; i++)
         {
-            var obj = ReadObject(r);
+            var obj = ReadObject(r, version);
             world.Entities.Objects[obj.Id] = obj;
         }
 
@@ -305,7 +305,7 @@ public static class WorldSaveSerializer
         var npcCount = r.ReadInt32();
         for (var i = 0; i < npcCount; i++)
         {
-            var npc = ReadNpc(r);
+            var npc = ReadNpc(r, version);
             world.Entities.Npcs[npc.Id] = npc;
         }
 
@@ -483,6 +483,8 @@ public static class WorldSaveSerializer
         w.Write(obj.ResourceAmount);
         w.Write(obj.Wetness);
         w.Write(obj.Durability);
+        w.Write(obj.Dirtiness);
+        w.Write(obj.Bloodiness);
         w.Write(obj.SpawnTick);
         WriteJunctionList(w, obj.BlockedJunctions);
         w.Write(obj.NextProductionTick);
@@ -493,7 +495,7 @@ public static class WorldSaveSerializer
         }
     }
 
-    private static WorldObjectState ReadObject(BinaryReader r)
+    private static WorldObjectState ReadObject(BinaryReader r, int version)
     {
         var obj = new WorldObjectState
         {
@@ -508,6 +510,8 @@ public static class WorldSaveSerializer
         obj.ResourceAmount = r.ReadSingle();
         obj.Wetness = r.ReadSingle();
         obj.Durability = r.ReadSingle();
+        obj.Dirtiness = version >= 7 ? r.ReadSingle() : 0f;
+        obj.Bloodiness = version >= 7 ? r.ReadSingle() : 0f;
         obj.SpawnTick = r.ReadInt32();
         ReadJunctionList(r, obj.BlockedJunctions);
         obj.NextProductionTick = r.ReadInt32();
@@ -585,6 +589,7 @@ public static class WorldSaveSerializer
         w.Write(mind.IsDehydrated);
         w.Write(mind.GrievingUntilTick);
         w.Write(mind.FaintedUntilTick);
+        w.Write((int)mind.ComaCause); // v6, spec §60
         w.Write(mind.WakeGraceUntilTick);
         w.Write(mind.PendingTalkSinceTick);
         WriteNullableEntity(w, mind.PendingTalkFrom);
@@ -751,7 +756,7 @@ public static class WorldSaveSerializer
         WriteItemList(w, npc.Inventory.Items);
     }
 
-    private static NPCState ReadNpc(BinaryReader r)
+    private static NPCState ReadNpc(BinaryReader r, int version)
     {
         var npc = new NPCState
         {
@@ -775,7 +780,7 @@ public static class WorldSaveSerializer
             BottleWater = (WaterKind)r.ReadInt32()
         };
 
-        ReadItemList(r, npc.WornItems);
+        ReadItemList(r, npc.WornItems, version);
         ReadJunctionList(r, npc.ClaimedJunctions);
 
         var partCount = r.ReadInt32();
@@ -822,6 +827,7 @@ public static class WorldSaveSerializer
         mind.IsDehydrated = r.ReadBoolean();
         mind.GrievingUntilTick = r.ReadInt32();
         mind.FaintedUntilTick = r.ReadInt32();
+        mind.ComaCause = version >= 6 ? (ComaCause)r.ReadInt32() : ComaCause.None; // spec §60
         mind.WakeGraceUntilTick = r.ReadInt32();
         mind.PendingTalkSinceTick = r.ReadInt32();
         mind.PendingTalkFrom = ReadNullableEntity(r);
@@ -990,7 +996,7 @@ public static class WorldSaveSerializer
         }
 
         npc.Inventory.Capacity = r.ReadInt32();
-        ReadItemList(r, npc.Inventory.Items);
+        ReadItemList(r, npc.Inventory.Items, version);
 
         return npc;
     }
@@ -1042,10 +1048,12 @@ public static class WorldSaveSerializer
             w.Write(item.Wetness);
             w.Write(item.Durability);
             w.Write(item.ResourceAmount);
+            w.Write(item.Dirtiness);
+            w.Write(item.Bloodiness);
         }
     }
 
-    private static void ReadItemList(BinaryReader r, List<ItemInstance> items)
+    private static void ReadItemList(BinaryReader r, List<ItemInstance> items, int version)
     {
         var count = r.ReadInt32();
         for (var i = 0; i < count; i++)
@@ -1054,7 +1062,9 @@ public static class WorldSaveSerializer
             {
                 Wetness = r.ReadSingle(),
                 Durability = r.ReadSingle(),
-                ResourceAmount = r.ReadSingle()
+                ResourceAmount = r.ReadSingle(),
+                Dirtiness = version >= 7 ? r.ReadSingle() : 0f,
+                Bloodiness = version >= 7 ? r.ReadSingle() : 0f
             });
         }
     }

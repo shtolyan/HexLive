@@ -9,24 +9,24 @@ namespace HexLive.UnityPresentation.Wearing
     /// tech applied to clothes). Holes are STAMPED into a per-garment copy of
     /// the artistic tear mask in UV space, so they are glued to the fabric —
     /// the previous world-space damage-sphere clip breathed with the animated
-    /// bones and holes flickered in and out. Dirt grains stamp into a copy of
-    /// the garment albedo with the SAME dirt_dust sheet the skin uses, so
-    /// filth reads consistently across skin and cloth (the shader's
-    /// procedural dust speckle is muted in this mode).
-    /// Placement is the proven molly pipeline: bake the garment's skinned
-    /// pose, nearest triangle to the damage point → slot + wrapped UV.
+    /// bones and holes flickered in and out. Holes come ONLY from the
+    /// garment's own durability (natural wear) — body wounds never rip cloth;
+    /// their sole cloth feedback is blood painted into the albedo near the
+    /// wound. Dirt uses the same dirt_dust sheet as skin. Blood stays on the
+    /// garment; dirt opacity follows its washable simulation state.
+    /// Placement: bake the garment's skinned pose, pick a seeded triangle on
+    /// the mesh → slot + wrapped UV (always on a UV island).
     /// Everything is event-driven on state buckets — no per-frame work.
     /// </summary>
     public sealed class GarmentWearPainter : MonoBehaviour
     {
         private const int MaskSize = 512;
         private const float TearBucket = 0.05f;
-        private const float DirtBucket = 0.1f;
-        // A damage sphere places/refreshes its hole when its strength crosses
-        // another quarter step (fresh wounds re-rip the same spot).
-        private const float SphereBucket = 0.25f;
         private const int MaxNaturalHoles = 9;
         private const int MaxDirtStamps = 14;
+        private const int MaxStoredDirtStains = 64;
+        private const float BloodInputBucket = 0.1f;
+        private const float BloodPlacementRadius = 0.3f;
 
         // GUI colour doubling: 0.5 gray = unmodified stamp colour.
         private static Color StampTint(float alpha) => new(0.5f, 0.5f, 0.5f, alpha * 0.5f);
@@ -36,10 +36,21 @@ namespace HexLive.UnityPresentation.Wearing
             public int Slot;
             public Vector2 Uv;
             public float Size;   // in mask UV space
-            public float Depth;  // 0 = clips at any tear amount
+            public float Depth;  // gray level — opens once tear passes it
         }
 
-        private SkinnedMeshRenderer? _renderer;
+        private sealed class PaintStain
+        {
+            public int Slot;
+            public Vector2 Uv;
+            public float Size;
+            public float Alpha;
+            public int Variant;
+        }
+
+        private Renderer? _renderer;
+        private SkinnedMeshRenderer? _skinnedRenderer;
+        private Mesh? _staticMesh;
         private Material[]? _materials;
         private Texture?[] _originalAlbedo = System.Array.Empty<Texture?>();
         private RenderTexture?[] _maskRt = System.Array.Empty<RenderTexture?>();
@@ -51,30 +62,46 @@ namespace HexLive.UnityPresentation.Wearing
         private float _lastTear;
 
         private readonly List<Hole> _holes = new();
-        private readonly float[] _sphereBuckets = new float[8];
+        // These belong to the garment, not to the current wound/hygiene
+        // snapshot. Healing removes the wound input but never these records.
+        private readonly List<PaintStain> _dirtStains = new();
+        private readonly List<PaintStain> _bloodStains = new();
+        private readonly Dictionary<int, PaintStain> _bloodStainsByCell = new();
         private int _naturalHolesPlaced;
+        private int _lastObservedDirtTarget;
+        private int _lastBloodInputHash;
         private int _lastStateHash;
 
         // Ragged hole stamp (dark core, noisy rim) + shared art, generated once.
         private static Texture2D? _holeStamp;
         private static Texture2D? _texDirt;
         private static Texture2D? _texTearMask;
+        private static Texture2D?[] _texBloodBrushes = System.Array.Empty<Texture2D?>();
         private static Material? _alphaErase;
         private static bool _artLoaded;
 
         // Baked-pose working set (small meshes — garments are a few k tris).
         private Mesh? _bakedMesh;
-        private readonly List<Vector3> _bakedVerts = new();
         private int[] _triangles = System.Array.Empty<int>();
         private int[] _triangleSlot = System.Array.Empty<int>();
         private Vector2[] _uvs = System.Array.Empty<Vector2>();
-        private Matrix4x4 _worldToLocal = Matrix4x4.identity;
-
-        public bool HasDamageHoles { get; private set; }
 
         public void Construct(SkinnedMeshRenderer renderer)
         {
             _renderer = renderer;
+            _skinnedRenderer = renderer;
+            ConstructRenderer(renderer);
+        }
+
+        public void Construct(MeshRenderer renderer, Mesh mesh)
+        {
+            _renderer = renderer;
+            _staticMesh = mesh;
+            ConstructRenderer(renderer);
+        }
+
+        private void ConstructRenderer(Renderer renderer)
+        {
             _materials = renderer.materials; // instances (ApplyTearShader made them)
             _originalAlbedo = new Texture?[_materials.Length];
             _maskRt = new RenderTexture?[_materials.Length];
@@ -90,11 +117,12 @@ namespace HexLive.UnityPresentation.Wearing
         }
 
         /// <summary>
-        /// Event-driven: repaints only when a tear/dirt bucket or a sphere
-        /// strength bucket changes. Spheres are world-space wound anchors —
-        /// their UVs freeze at placement, so animation can't move the holes.
+        /// Event-driven: tear follows current durability, while dirt/blood
+        /// inputs append UV stains owned by this garment. Blood is permanent;
+        /// dirt opacity follows the item's wash state.
         /// </summary>
-        public void SetState(float tear01, float dirt01, Vector4[] spheres, int sphereCount)
+        public void SetState(float tear01, float dirt01, float blood01,
+            Vector4[] damageSpheres, int damageSphereCount)
         {
             if (_renderer == null || _materials == null)
             {
@@ -102,25 +130,7 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             var tearB = Mathf.RoundToInt(Mathf.Clamp01(tear01) / TearBucket);
-            var dirtB = Mathf.RoundToInt(Mathf.Clamp01(dirt01) / DirtBucket);
-
             var placedNew = false;
-
-            // Damage holes: one per sphere slot, refreshed when the wound
-            // there deepens past another quarter.
-            for (var i = 0; i < Mathf.Min(sphereCount, _sphereBuckets.Length); i++)
-            {
-                var bucket = Mathf.Ceil(Mathf.Clamp01(spheres[i].w) / SphereBucket) * SphereBucket;
-                if (bucket > _sphereBuckets[i] + 0.001f && spheres[i].w > 0.2f)
-                {
-                    _sphereBuckets[i] = bucket;
-                    if (PlaceDamageHole(spheres[i]))
-                    {
-                        placedNew = true;
-                        HasDamageHoles = true;
-                    }
-                }
-            }
 
             // Natural wear: seeded holes accumulate as the garment erodes.
             var naturalTarget = Mathf.Min(MaxNaturalHoles, Mathf.FloorToInt(Mathf.Clamp01(tear01) * MaxNaturalHoles + 0.0001f));
@@ -134,10 +144,14 @@ namespace HexLive.UnityPresentation.Wearing
                 _naturalHolesPlaced++;
             }
 
+            placedNew |= AccumulateDirtStains(dirt01);
+            placedNew |= AccumulateBloodStains(blood01, damageSpheres, damageSphereCount);
+
             var stateHash = 17;
             stateHash = stateHash * 31 + tearB;
-            stateHash = stateHash * 31 + dirtB;
             stateHash = stateHash * 31 + _holes.Count;
+            stateHash = stateHash * 31 + _dirtStains.Count;
+            stateHash = stateHash * 31 + _bloodStains.Count;
             if (stateHash == _lastStateHash && !placedNew)
             {
                 return;
@@ -146,25 +160,249 @@ namespace HexLive.UnityPresentation.Wearing
             _lastStateHash = stateHash;
             _lastTear = Mathf.Clamp01(tear01);
             RepaintMasks();
-            RepaintDirt(dirt01);
+            RepaintAlbedo();
+        }
+
+        public void SetDroppedState(float tear01, float dirt01, float blood01)
+        {
+            if (_renderer == null || _materials == null)
+            {
+                return;
+            }
+
+            var tear = Mathf.Clamp01(tear01);
+            var changed = AccumulateDirtStains(dirt01) | AccumulateDroppedBlood(blood01);
+            var naturalTarget = Mathf.Min(MaxNaturalHoles,
+                Mathf.FloorToInt(tear * MaxNaturalHoles + 0.0001f));
+            while (_naturalHolesPlaced < naturalTarget)
+            {
+                changed |= PlaceNaturalHole(_naturalHolesPlaced++);
+            }
+
+            var hash = Mathf.RoundToInt(tear / TearBucket) * 397 ^
+                       _dirtStains.Count * 31 ^ _bloodStains.Count;
+            if (!changed && hash == _lastStateHash)
+            {
+                return;
+            }
+
+            _lastStateHash = hash;
+            _lastTear = tear;
+            RepaintMasks();
+            RepaintAlbedo();
+        }
+
+        private bool AccumulateDroppedBlood(float blood01)
+        {
+            var target = Mathf.Min(8, Mathf.FloorToInt(Mathf.Clamp01(blood01) * 8f + 0.0001f));
+            if (_bloodStains.Count >= target || !BakePose())
+            {
+                return false;
+            }
+
+            var changed = false;
+            while (_bloodStains.Count < target)
+            {
+                var index = _bloodStains.Count;
+                var state = (uint)(GetInstanceID() * 2246822519u) ^ (uint)(index * 3266489917u + 17u);
+                state = state * 1664525u + 1013904223u;
+                var triangle = (int)(state % (uint)(_triangles.Length / 3));
+                var i0 = _triangles[triangle * 3];
+                var i1 = _triangles[triangle * 3 + 1];
+                var i2 = _triangles[triangle * 3 + 2];
+                var uv = (_uvs[i0] + _uvs[i1] + _uvs[i2]) / 3f;
+                _bloodStains.Add(new PaintStain
+                {
+                    Slot = _triangleSlot[triangle],
+                    Uv = new Vector2(Mathf.Repeat(uv.x, 1f), Mathf.Repeat(uv.y, 1f)),
+                    Size = 0.07f + (state % 53u) / 53f * 0.05f,
+                    Alpha = Mathf.Clamp01(blood01) * 0.5f,
+                    Variant = index & 1
+                });
+                changed = true;
+            }
+
+            return changed;
+        }
+
+        private bool AccumulateDirtStains(float dirt01)
+        {
+            var target = Mathf.Min(MaxDirtStamps,
+                Mathf.FloorToInt(Mathf.Clamp01(dirt01) * MaxDirtStamps + 0.0001f));
+            var previousTarget = _lastObservedDirtTarget;
+            var addCount = Mathf.Max(0, target - previousTarget);
+            _lastObservedDirtTarget = target;
+
+            if (target < previousTarget)
+            {
+                if (target == 0)
+                {
+                    _dirtStains.Clear();
+                }
+                else
+                {
+                    var washedAlpha = Mathf.Lerp(0.05f, 0.55f, Mathf.Clamp01(dirt01));
+                    foreach (var stain in _dirtStains)
+                    {
+                        stain.Alpha = Mathf.Min(stain.Alpha, washedAlpha);
+                    }
+                }
+
+                return true;
+            }
+
+            if (addCount == 0 || _dirtStains.Count >= MaxStoredDirtStains || !BakePose())
+            {
+                return false;
+            }
+
+            var added = false;
+            for (var i = 0; i < addCount && _dirtStains.Count < MaxStoredDirtStains; i++)
+            {
+                var index = _dirtStains.Count;
+                var state = (uint)(GetInstanceID() * 40503u) ^ (uint)(index * 104729 + 5);
+                state = state * 1664525u + 1013904223u;
+                var triangle = (int)(state % (uint)(_triangles.Length / 3));
+                var i0 = _triangles[triangle * 3];
+                var i1 = _triangles[triangle * 3 + 1];
+                var i2 = _triangles[triangle * 3 + 2];
+                var uv = (_uvs[i0] + _uvs[i1] + _uvs[i2]) / 3f;
+                _dirtStains.Add(new PaintStain
+                {
+                    Slot = _triangleSlot[triangle],
+                    Uv = new Vector2(Mathf.Repeat(uv.x, 1f), Mathf.Repeat(uv.y, 1f)),
+                    Size = 0.14f + (state % 89u) / 89f * 0.10f,
+                    Alpha = Mathf.Lerp(0.25f, 0.55f, Mathf.Clamp01(dirt01)),
+                    Variant = 0
+                });
+                added = true;
+            }
+
+            return added;
+        }
+
+        private bool AccumulateBloodStains(float blood01, Vector4[] spheres, int sphereCount)
+        {
+            var blood = Mathf.Clamp01(blood01);
+            var inputs = spheres ?? System.Array.Empty<Vector4>();
+            var count = Mathf.Clamp(sphereCount, 0, Mathf.Min(8, inputs.Length));
+            var inputHash = Mathf.RoundToInt(blood / BloodInputBucket);
+            if (_renderer != null)
+            {
+                for (var i = 0; i < count; i++)
+                {
+                    var local = _renderer.transform.InverseTransformPoint(inputs[i]);
+                    inputHash = inputHash * 31 + Mathf.RoundToInt(local.x * 10f);
+                    inputHash = inputHash * 31 + Mathf.RoundToInt(local.y * 10f);
+                    inputHash = inputHash * 31 + Mathf.RoundToInt(local.z * 10f);
+                    inputHash = inputHash * 31 + Mathf.RoundToInt(inputs[i].w * 10f);
+                }
+            }
+
+            if (blood <= 0.05f || count == 0 || inputHash == _lastBloodInputHash || !BakePose())
+            {
+                _lastBloodInputHash = inputHash;
+                return false;
+            }
+
+            _lastBloodInputHash = inputHash;
+            var vertices = _bakedMesh!.vertices;
+            var localToWorld = _renderer!.localToWorldMatrix;
+            var changed = false;
+            for (var i = 0; i < count; i++)
+            {
+                var strength = Mathf.Clamp01(blood * inputs[i].w);
+                if (strength <= 0.05f)
+                {
+                    continue;
+                }
+
+                var bestTriangle = -1;
+                var bestDistance = float.MaxValue;
+                var bestBarycentric = Vector3.zero;
+                for (var triangle = 0; triangle < _triangles.Length / 3; triangle++)
+                {
+                    var i0 = _triangles[triangle * 3];
+                    var i1 = _triangles[triangle * 3 + 1];
+                    var i2 = _triangles[triangle * 3 + 2];
+                    var a = localToWorld.MultiplyPoint3x4(vertices[i0]);
+                    var b = localToWorld.MultiplyPoint3x4(vertices[i1]);
+                    var c = localToWorld.MultiplyPoint3x4(vertices[i2]);
+                    var closest = ClosestPointOnTriangle(inputs[i], a, b, c, out var barycentric);
+                    var distance = (closest - (Vector3)inputs[i]).sqrMagnitude;
+                    if (distance < bestDistance)
+                    {
+                        bestDistance = distance;
+                        bestTriangle = triangle;
+                        bestBarycentric = barycentric;
+                    }
+                }
+
+                if (bestTriangle < 0 || bestDistance > BloodPlacementRadius * BloodPlacementRadius)
+                {
+                    continue;
+                }
+
+                var v0 = _triangles[bestTriangle * 3];
+                var v1 = _triangles[bestTriangle * 3 + 1];
+                var v2 = _triangles[bestTriangle * 3 + 2];
+                var uv = _uvs[v0] * bestBarycentric.x +
+                         _uvs[v1] * bestBarycentric.y +
+                         _uvs[v2] * bestBarycentric.z;
+                uv = new Vector2(Mathf.Repeat(uv.x, 1f), Mathf.Repeat(uv.y, 1f));
+                var slot = _triangleSlot[bestTriangle];
+                var cellKey = slot * 10000 + Mathf.FloorToInt(uv.x * 10f) * 100 +
+                              Mathf.FloorToInt(uv.y * 10f);
+                if (_bloodStainsByCell.TryGetValue(cellKey, out var existing))
+                {
+                    var alpha = Mathf.Max(existing.Alpha, strength * 0.55f);
+                    if (alpha > existing.Alpha + 0.01f)
+                    {
+                        existing.Alpha = alpha;
+                        changed = true;
+                    }
+
+                    continue;
+                }
+
+                var stain = new PaintStain
+                {
+                    Slot = slot,
+                    Uv = uv,
+                    Size = Mathf.Lerp(0.07f, 0.12f, strength),
+                    Alpha = strength * 0.55f,
+                    Variant = (cellKey & 1)
+                };
+                _bloodStains.Add(stain);
+                _bloodStainsByCell[cellKey] = stain;
+                changed = true;
+            }
+
+            return changed;
         }
 
         // ---- placement (molly nearest-triangle on the garment mesh) ----
 
         private bool BakePose()
         {
-            if (_renderer == null || _renderer.sharedMesh == null)
+            if (_renderer == null || (_skinnedRenderer == null && _staticMesh == null))
             {
                 return false;
             }
 
-            _bakedMesh ??= new Mesh();
-            _renderer.BakeMesh(_bakedMesh);
-            _bakedMesh.GetVertices(_bakedVerts);
+            if (_skinnedRenderer != null)
+            {
+                _bakedMesh ??= new Mesh();
+                _skinnedRenderer.BakeMesh(_bakedMesh);
+            }
+            else if (_bakedMesh == null && _staticMesh != null)
+            {
+                _bakedMesh = Instantiate(_staticMesh);
+            }
 
             if (_triangles.Length == 0)
             {
-                var mesh = _bakedMesh;
+                var mesh = _bakedMesh!;
                 _uvs = mesh.uv;
                 var triangles = new List<int>();
                 var slots = new List<int>();
@@ -186,39 +424,6 @@ namespace HexLive.UnityPresentation.Wearing
                 }
             }
 
-            // Bake-scale detection like the skin painter, but against the
-            // renderer's own world bounds (garments have no canonical height).
-            var t = _renderer.transform;
-            var size = _bakedMesh.bounds.size;
-            var meshSpan = Mathf.Max(size.x, Mathf.Max(size.y, size.z));
-            var world = _renderer.bounds.size;
-            var worldSpan = Mathf.Max(world.x, Mathf.Max(world.y, world.z));
-            var lossy = Mathf.Max(0.0001f, t.lossyScale.y);
-            var scaleBakedIn = Mathf.Abs(meshSpan - worldSpan) <
-                               Mathf.Abs(meshSpan * lossy - worldSpan);
-            var localToWorld = Matrix4x4.TRS(t.position, t.rotation,
-                scaleBakedIn ? Vector3.one : t.lossyScale);
-            _worldToLocal = localToWorld.inverse;
-            return true;
-        }
-
-        private bool PlaceDamageHole(Vector4 sphere)
-        {
-            if (!BakePose())
-            {
-                return false;
-            }
-
-            var local = _worldToLocal.MultiplyPoint3x4(new Vector3(sphere.x, sphere.y, sphere.z));
-            var triangle = ClosestTriangle(local);
-            if (triangle < 0)
-            {
-                return false;
-            }
-
-            AddHoleAt(triangle,
-                0.04f + Mathf.Clamp01(sphere.w) * 0.04f,
-                depth: 0.08f); // bites start as punctures; heavy wear opens them
             return true;
         }
 
@@ -257,32 +462,75 @@ namespace HexLive.UnityPresentation.Wearing
             });
         }
 
-        private int ClosestTriangle(Vector3 point)
+        private static Vector3 ClosestPointOnTriangle(Vector3 point, Vector3 a, Vector3 b,
+            Vector3 c, out Vector3 barycentric)
         {
-            var best = -1;
-            var bestSqr = float.MaxValue;
-            for (var i = 0; i < _triangles.Length; i += 3)
+            var ab = b - a;
+            var ac = c - a;
+            var ap = point - a;
+            var d1 = Vector3.Dot(ab, ap);
+            var d2 = Vector3.Dot(ac, ap);
+            if (d1 <= 0f && d2 <= 0f)
             {
-                var centroid = (_bakedVerts[_triangles[i]] +
-                                _bakedVerts[_triangles[i + 1]] +
-                                _bakedVerts[_triangles[i + 2]]) / 3f;
-                var sqr = (centroid - point).sqrMagnitude;
-                if (sqr < bestSqr)
-                {
-                    bestSqr = sqr;
-                    best = i / 3;
-                }
+                barycentric = new Vector3(1f, 0f, 0f);
+                return a;
             }
 
-            return best;
+            var bp = point - b;
+            var d3 = Vector3.Dot(ab, bp);
+            var d4 = Vector3.Dot(ac, bp);
+            if (d3 >= 0f && d4 <= d3)
+            {
+                barycentric = new Vector3(0f, 1f, 0f);
+                return b;
+            }
+
+            var vc = d1 * d4 - d3 * d2;
+            if (vc <= 0f && d1 >= 0f && d3 <= 0f)
+            {
+                var v = d1 / (d1 - d3);
+                barycentric = new Vector3(1f - v, v, 0f);
+                return a + v * ab;
+            }
+
+            var cp = point - c;
+            var d5 = Vector3.Dot(ab, cp);
+            var d6 = Vector3.Dot(ac, cp);
+            if (d6 >= 0f && d5 <= d6)
+            {
+                barycentric = new Vector3(0f, 0f, 1f);
+                return c;
+            }
+
+            var vb = d5 * d2 - d1 * d6;
+            if (vb <= 0f && d2 >= 0f && d6 <= 0f)
+            {
+                var w = d2 / (d2 - d6);
+                barycentric = new Vector3(1f - w, 0f, w);
+                return a + w * ac;
+            }
+
+            var va = d3 * d6 - d5 * d4;
+            if (va <= 0f && d4 - d3 >= 0f && d5 - d6 >= 0f)
+            {
+                var w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+                barycentric = new Vector3(0f, 1f - w, w);
+                return b + w * (c - b);
+            }
+
+            var denominator = 1f / (va + vb + vc);
+            var faceV = vb * denominator;
+            var faceW = vc * denominator;
+            barycentric = new Vector3(1f - faceV - faceW, faceV, faceW);
+            return a + ab * faceV + ac * faceW;
         }
 
         // ---- painting ----
 
         // Per-slot tear mask: the shared artistic sheet as the base (keeps the
         // global erosion destruction sequence), this garment's holes darkened
-        // on top. Hole gray = its Depth: dark bites clip open right away,
-        // pale natural spots only once _TearAmount grows past them.
+        // on top. Hole gray = its Depth: a spot only clips open once
+        // _TearAmount grows past it.
         private void RepaintMasks()
         {
             if (_materials == null)
@@ -374,9 +622,10 @@ namespace HexLive.UnityPresentation.Wearing
             }
         }
 
-        // Dirt grains into the albedo copy — same sheet as the skin dirt, so
-        // a filthy girl reads consistently head to toe.
-        private void RepaintDirt(float dirt01)
+        // Dirt and blood are composited into one authored-resolution albedo
+        // copy. They remain separate lists so washing can remove dirt without
+        // touching old blood stains.
+        private void RepaintAlbedo()
         {
             if (_materials == null)
             {
@@ -384,7 +633,6 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             EnsureArt();
-            var count = Mathf.Min(MaxDirtStamps, Mathf.FloorToInt(Mathf.Clamp01(dirt01) * MaxDirtStamps + 0.0001f));
             for (var slot = 0; slot < _materials.Length; slot++)
             {
                 var source = _originalAlbedo[slot];
@@ -397,7 +645,8 @@ namespace HexLive.UnityPresentation.Wearing
                 // (their authored shader blends them out) — the albedo copy
                 // is needed even with zero dirt once a hole is open.
                 var punchHoles = _transparentSlot[slot] && AnyOpenHoleIn(slot);
-                if (count == 0 && !punchHoles)
+                var hasPaint = HasStainInSlot(_dirtStains, slot) || HasStainInSlot(_bloodStains, slot);
+                if (!hasPaint && !punchHoles)
                 {
                     if (_albedoRt[slot] != null)
                     {
@@ -407,16 +656,15 @@ namespace HexLive.UnityPresentation.Wearing
                     continue;
                 }
 
-                if (!BakePose())
-                {
-                    return;
-                }
-
                 var rt = _albedoRt[slot];
                 if (rt == null)
                 {
-                    var w = Mathf.Min(source.width, 1024);
-                    var h = Mathf.Min(source.height, 1024);
+                    // Keep the authored texel density. Many garments ship with
+                    // 4K albedo; downsampling the painted copy to 1024 made
+                    // clothing go visibly soft as soon as wear/dirt appeared.
+                    var max = Mathf.Max(1, SystemInfo.maxTextureSize);
+                    var w = Mathf.Min(source.width, max);
+                    var h = Mathf.Min(source.height, max);
                     rt = new RenderTexture(w, h, 0, RenderTextureFormat.ARGB32,
                         RenderTextureReadWrite.sRGB)
                     {
@@ -438,32 +686,37 @@ namespace HexLive.UnityPresentation.Wearing
                     RenderTexture.active = rt;
                     GL.PushMatrix();
                     GL.LoadPixelMatrix(0f, 1f, 1f, 0f);
-                    for (var i = 0; i < count; i++)
+                    foreach (var stain in _dirtStains)
                     {
-                        if (_texDirt == null)
+                        if (_texDirt == null || stain.Slot != slot || stain.Alpha <= 0.001f)
                         {
-                            break;
+                            continue;
                         }
 
-                        // Seeded triangle per stamp — deterministic, on-island.
-                        var state = (uint)(GetInstanceID() * 40503u) ^ (uint)(slot * 7919 + i * 104729 + 5);
-                        state = state * 1664525u + 1013904223u;
-                        var triangle = (int)(state % (uint)(_triangles.Length / 3));
-                        if (_triangleSlot[triangle] != slot)
-                        {
-                            continue; // grain belongs to another slot's island
-                        }
-
-                        var i0 = _triangles[triangle * 3];
-                        var i1 = _triangles[triangle * 3 + 1];
-                        var i2 = _triangles[triangle * 3 + 2];
-                        var uv = (_uvs[i0] + _uvs[i1] + _uvs[i2]) / 3f;
-                        var cx = Mathf.Repeat(uv.x, 1f);
-                        var cy = 1f - Mathf.Repeat(uv.y, 1f);
-                        var s = 0.14f + (state % 89u) / 89f * 0.10f;
+                        var cx = stain.Uv.x;
+                        var cy = 1f - stain.Uv.y;
+                        var s = stain.Size;
                         Graphics.DrawTexture(new Rect(cx - s * 0.5f, cy - s * 0.5f, s, s),
                             _texDirt, new Rect(0f, 0f, 1f, 1f), 0, 0, 0, 0,
-                            StampTint(Mathf.Clamp01(dirt01)));
+                            StampTint(stain.Alpha));
+                    }
+
+                    foreach (var stain in _bloodStains)
+                    {
+                        var brush = _texBloodBrushes.Length > 0
+                            ? _texBloodBrushes[Mathf.Clamp(stain.Variant, 0, _texBloodBrushes.Length - 1)]
+                            : null;
+                        if (brush == null || stain.Slot != slot || stain.Alpha <= 0.001f)
+                        {
+                            continue;
+                        }
+
+                        var cx = stain.Uv.x;
+                        var cy = 1f - stain.Uv.y;
+                        var s = stain.Size;
+                        Graphics.DrawTexture(new Rect(cx - s * 0.5f, cy - s * 0.5f, s, s),
+                            brush, new Rect(0f, 0f, 1f, 1f), 0, 0, 0, 0,
+                            StampTint(stain.Alpha));
                     }
 
                     // Punch the open holes out of the alpha (sheer garments).
@@ -501,9 +754,22 @@ namespace HexLive.UnityPresentation.Wearing
                 {
                     RenderTexture.active = previous;
                     _materials[slot].SetTexture("_BaseMap", source);
-                    Debug.LogWarning($"[GarmentWear] dirt repaint failed — {e.Message}");
+                    Debug.LogWarning($"[GarmentWear] albedo repaint failed — {e.Message}");
                 }
             }
+        }
+
+        private static bool HasStainInSlot(List<PaintStain> stains, int slot)
+        {
+            foreach (var stain in stains)
+            {
+                if (stain.Slot == slot && stain.Alpha > 0.001f)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         // No-domain-reload runs keep statics between plays — never cache a
@@ -514,20 +780,15 @@ namespace HexLive.UnityPresentation.Wearing
             _artLoaded = false;
             _texDirt = null;
             _texTearMask = null;
+            _texBloodBrushes = System.Array.Empty<Texture2D?>();
             _holeStamp = null;
             _alphaErase = null;
         }
 
-        // A hole's erase strength on sheer fabric: bite holes (depth ≈ 0) are
-        // open immediately; natural-wear holes open as erosion passes their
-        // authored depth — mirroring the tear-mask clip semantics.
+        // A hole's erase strength on sheer fabric: it opens as erosion passes
+        // its authored depth — mirroring the tear-mask clip semantics.
         private float HoleOpenStrength(Hole hole)
         {
-            if (hole.Depth <= 0.05f)
-            {
-                return 1f;
-            }
-
             return Mathf.Clamp01((_lastTear * 1.08f - hole.Depth) * 5f);
         }
 
@@ -546,7 +807,8 @@ namespace HexLive.UnityPresentation.Wearing
 
         private static void EnsureArt()
         {
-            if (_artLoaded && _texDirt != null && _texTearMask != null && _alphaErase != null)
+            if (_artLoaded && _texDirt != null && _texTearMask != null && _alphaErase != null &&
+                _texBloodBrushes.Length == 2)
             {
                 return;
             }
@@ -554,6 +816,11 @@ namespace HexLive.UnityPresentation.Wearing
             _artLoaded = true;
             _texDirt = Resources.Load<Texture2D>("HexLive/Decals/dirt_dust");
             _texTearMask = Resources.Load<Texture2D>("HexLive/Decals/tear_mask");
+            _texBloodBrushes = new Texture2D?[]
+            {
+                Resources.Load<Texture2D>("HexLive/Decals/wound_scratch"),
+                Resources.Load<Texture2D>("HexLive/Decals/blood_splat")
+            };
             var erase = Shader.Find("Hidden/HexLive/AlphaErase");
             _alphaErase = erase != null ? new Material(erase) : null;
 

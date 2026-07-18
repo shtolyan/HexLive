@@ -125,6 +125,7 @@ namespace HexLive.UnityPresentation.History
             "DogFight",
             "DogKilled",
             "DogShot",
+            "Collapsed",
             "DrankBottle",
             "EmergencyUnload",
             "Fainted",
@@ -133,6 +134,7 @@ namespace HexLive.UnityPresentation.History
             "FireOut",
             "FoodShared",
             "FoodStolen",
+            "FriendGuard",
             "FurnitureBuilt",
             "Grieving",
             "HelpCry",
@@ -178,7 +180,8 @@ namespace HexLive.UnityPresentation.History
             "TentCrafted",
             "TreeChopped",
             "VisitedGrave",
-            "VitalPartDestroyed"
+            "VitalPartDestroyed",
+            "WokeUp"
         };
 
         private StreamWriter? _writer;

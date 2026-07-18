@@ -34,6 +34,10 @@ public sealed class WorldObjectState
     // dress-churn loop would repair clothes for free.
     public float Durability { get; set; } = 1f;
 
+    public float Dirtiness { get; set; }
+
+    public float Bloodiness { get; set; }
+
     // Spec 31C.1: runtime spawn moment; produce rots 2400 ticks after it.
     public int SpawnTick { get; set; }
 

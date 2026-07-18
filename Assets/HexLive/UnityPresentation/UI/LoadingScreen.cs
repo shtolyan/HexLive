@@ -36,6 +36,7 @@ namespace HexLive.UnityPresentation.UI
         private SaveGameData _save;
         private bool _menuChosen;
         private bool _continueChosen;
+        private bool _restartChosen;
 
         private VisualElement _root;
         private VisualElement _menuBox;
@@ -163,6 +164,16 @@ namespace HexLive.UnityPresentation.UI
                 primary: true, enabled: _save != null, () =>
             {
                 _continueChosen = true;
+                _menuChosen = true;
+            }));
+
+            // Restart: the SAME island (the save's seed) from day 1 — only
+            // meaningful while a save exists, greyed out otherwise.
+            card.Add(MakeMenuRow("restart", Loc.Get("menu.restart"),
+                primary: false, enabled: _save != null, () =>
+            {
+                _continueChosen = false;
+                _restartChosen = true;
                 _menuChosen = true;
             }));
 
@@ -395,6 +406,20 @@ namespace HexLive.UnityPresentation.UI
                         p.Stroke();
                         break;
 
+                    case "restart":
+                        // Circular arrow: near-full ring with a gap at the
+                        // upper-right, arrowhead pointing into the gap.
+                        p.lineWidth = 3.0f;
+                        p.BeginPath();
+                        p.Arc(c, s * 0.34f, 60, 330);
+                        p.Stroke();
+                        p.BeginPath();
+                        p.MoveTo(new Vector2(s * 0.74f, s * 0.06f));
+                        p.LineTo(new Vector2(s * 0.82f, s * 0.30f));
+                        p.LineTo(new Vector2(s * 0.58f, s * 0.30f));
+                        p.Stroke();
+                        break;
+
                     case "gear":
                         p.lineWidth = 3.4f;
                         for (var i = 0; i < 8; i++)
@@ -460,7 +485,7 @@ namespace HexLive.UnityPresentation.UI
         private static string FormatDayTime(int tick)
         {
             const int dayLen = HexLive.Simulation.Runtime.EnvironmentSystem.DayLengthTicks;
-            var day = tick / dayLen + 1;
+            var day = HexLive.Simulation.Runtime.EnvironmentSystem.CalendarDay(tick);
             var progress = (tick % dayLen) / (float)dayLen;
             var clock = HexLive.Simulation.Runtime.EnvironmentSystem.FormatClock(progress);
             return $"{Loc.Get("loading.day")} {day}   {clock}";
@@ -501,15 +526,24 @@ namespace HexLive.UnityPresentation.UI
             else
             {
                 // Spec 41.4: new game wipes the save and rolls a fresh world.
-                // Dev one-shot override lets a known island seed be restarted
-                // cleanly without keeping the old mutable save.
+                // Restart keeps the CURRENT island — the save's seed rebuilds
+                // the same topology from day 1. Dev one-shot override lets a
+                // known island seed be restarted cleanly without keeping the
+                // old mutable save.
+                var restartSeed = _restartChosen && _save != null ? _save.seed : (int?)null;
                 SaveGame.Delete();
-                if (!SaveGame.TryConsumeNewGameSeed(out seed))
+                if (restartSeed.HasValue)
+                {
+                    seed = restartSeed.Value;
+                }
+                else if (!SaveGame.TryConsumeNewGameSeed(out seed))
                 {
                     seed = System.Environment.TickCount;
                 }
                 _targetTick = 0;
-                Debug.Log($"[HexLive] New game: seed {seed}");
+                Debug.Log(restartSeed.HasValue
+                    ? $"[HexLive] Restart same island: seed {seed}"
+                    : $"[HexLive] New game: seed {seed}");
             }
 
             SetProgress(0.02f, Loc.Get("loading.world"));

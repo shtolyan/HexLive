@@ -41,6 +41,9 @@ public sealed class NpcActorView : MonoBehaviour
     // (Standing Melee Attack Horizontal) via the Chop clip-state, replacing the
     // old procedural shoulder chop.
     private static readonly int ChoppingParam = Animator.StringToHash("Chopping");
+    // §gear-craft v2: the staged in-place craft kneels her into the planting-
+    // style work clip (state "CraftWork") instead of the generic crouch.
+    private static readonly int CraftingParam = Animator.StringToHash("Crafting");
     private static readonly int SittingParam = Animator.StringToHash("Sitting");
     // Clip-based action states (built by the "HexLive ▸ Build NPC Action States"
     // editor menu). Clips are swapped in via an AnimatorOverrideController.
@@ -164,6 +167,11 @@ public sealed class NpcActorView : MonoBehaviour
     // (renderer, materialIndex) pairs that are skin; everything eye/hair/mouth
     // related is excluded.
     private readonly List<(SkinnedMeshRenderer renderer, int index)> _skinTintTargets = new();
+
+    /// <summary>Spec §50: the owner's current skin tone (tan/sunburn/grime,
+    /// no pain flush) — a severed-limb drop bakes it into its material so the
+    /// limb matches the body it came off.</summary>
+    public Color SkinTint { get; private set; } = Color.white;
 
     private static readonly string[] NonSkinMaterialHints =
     {
@@ -1792,16 +1800,18 @@ public sealed class NpcActorView : MonoBehaviour
 
         // Which imported full-body clip-state covers this verb, if any:
         //   gather (pick up / scoop / deposit at a build-site) and drink play
-        //   real clips; Craft/Harvest stay on the crouch "Working" state; Sit
+        //   real clips; Craft kneels into the planting-style CraftWork clip
+        //   (§gear-craft v2); Harvest stays on the crouch "Working" state; Sit
         //   as-is. Build joined the gather set (§54.12): laying a bed piece
         //   reads as the stooping gather motion, not the generic crouch.
         var gathering = interaction is "PickUp" or "FillBottle" or "Fuel" or "Bury" or "Hang" or "Build";
         var drinking = interaction == "Drink";
+        var crafting = !_legless && interaction == "Craft";
         _wantsTalk = interaction == "Talk"; // the Talk bool is driven by turn-taking
 
         // Which procedural/clip action this verb wants (before touching the
         // animator, so the axe-chop clip-state can pre-empt the crouch Working pose).
-        var actionKind = (gathering || drinking || _wantsTalk)
+        var actionKind = (gathering || drinking || crafting || _wantsTalk)
             ? ActionKind.None
             : ActionFromInteraction(interaction, heldItemId);
         // §axe: chopping/mining with an axe or pickaxe now plays the looping Chop
@@ -1813,7 +1823,8 @@ public sealed class NpcActorView : MonoBehaviour
             _animator.SetBool(GatheringParam, gathering);
             _animator.SetBool(DrinkingParam, drinking);
             _animator.SetBool(WorkingParam, !_legless && !chopping &&
-                interaction is "Harvest" or "BuildRaft" or "Craft");
+                interaction is "Harvest" or "BuildRaft");
+            _animator.SetBool(CraftingParam, crafting);
             _animator.SetBool(ChoppingParam, chopping);
             _animator.SetBool(SittingParam, interaction == "Sit");
             // Clip source: config override if present, else the state's base clip.
@@ -1821,13 +1832,15 @@ public sealed class NpcActorView : MonoBehaviour
             if (drinking && _animSet != null) OverrideClip("X Bot@Drinking", Standing(_animSet.drink)); // legless drinks prone
         }
 
-        // A full-body clip now covers these (incl. the axe swing) — suppress the
-        // procedural shoulder pose so it doesn't fight the clip. Eat keeps its own
-        // raise-to-mouth — except legless, where the prone idle carries eat/drink.
-        _action = _legless || chopping
+        // A full-body clip now covers these (incl. the axe swing and the craft
+        // kneel) — suppress the procedural shoulder pose so it doesn't fight the
+        // clip. Eat keeps its own raise-to-mouth — except legless, where the
+        // prone idle carries eat/drink.
+        _action = _legless || chopping || crafting
             ? ActionKind.None
             : actionKind;
-        SetHandProp(heldItemId);
+        // Both hands work the craft — the held tool goes down for the ritual.
+        SetHandProp(crafting ? string.Empty : heldItemId);
     }
 
     // §Wardrobe-anim: drive the two-beat dress/undress sequence. Called every
@@ -2741,12 +2754,6 @@ public sealed class NpcActorView : MonoBehaviour
     // URP _BaseColor the property block is a harmless no-op.
     public void SetSkinWeathering(float tanLevel, float sunburn, float hurt = 0f, float hygiene = 1f)
     {
-        if (_skinTintTargets.Count == 0)
-        {
-            return;
-        }
-
-        _skinMpb ??= new MaterialPropertyBlock();
         // Spec 40.7: tanning goes THROUGH red — pale skin first flushes like a
         // fresh burn (the retired low-HP red, reused: it read exactly like
         // "just caught the sun"), then the red deepens into the brown. Full
@@ -2766,11 +2773,20 @@ public sealed class NpcActorView : MonoBehaviour
         // the overall filth. Half-strength earthy brown at zero hygiene.
         var grime = Mathf.Clamp01(1f - Mathf.Clamp01(hygiene));
         tint = Color.Lerp(tint, new Color(0.42f, 0.37f, 0.30f), grime * 0.5f);
+        // Spec §50: a severed-limb drop bakes this tone (tan/sunburn/grime,
+        // but NOT the live-pain flush below — a dropped limb no longer hurts).
+        SkinTint = tint;
         // Spec 40.8: a badly hurt body flushes bruised red-purple. First-pass
         // whole-body tint (per-zone wound decals need texture work); driven by
         // 1 - Health so it only shows when genuinely wounded.
         tint = Color.Lerp(tint, new Color(0.62f, 0.24f, 0.28f), Mathf.Clamp01(hurt) * 0.6f);
 
+        if (_skinTintTargets.Count == 0)
+        {
+            return;
+        }
+
+        _skinMpb ??= new MaterialPropertyBlock();
         // Per-submesh: only the skin material slots, never the eyes/lashes/etc.
         foreach (var (renderer, index) in _skinTintTargets)
         {

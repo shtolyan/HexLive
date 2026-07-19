@@ -18,7 +18,6 @@ namespace HexLive.UnityPresentation.Environment
         private string _bedProduct = string.Empty;
         private GameObject? _bedRoot;
         private BedAssembly? _bedAssembly;
-        private GameObject? _stake;
 
         // Cheap per-frame check: only rebuild when the delivered mix changed.
         public void Refresh(ObjectSnapshot site)
@@ -50,11 +49,8 @@ namespace HexLive.UnityPresentation.Environment
             placed = Pile("resource.log", site.DeliveredLogs, placed);
             placed = Pile("resource.palm_leaf", site.DeliveredLeaves, placed);
 
-            // Nothing hauled in yet → a small stake marks the intent point.
-            if (placed == 0)
-            {
-                AddStake();
-            }
+            // Nothing hauled in yet → nothing to show. The intent stake is
+            // retired (§54.14) — an empty site is a sim-side marker only.
         }
 
         private int Pile(string definitionId, int count, int placed)
@@ -85,18 +81,8 @@ namespace HexLive.UnityPresentation.Environment
         private void RefreshBed(ObjectSnapshot site)
         {
             EnsureBed(site.BuildProduct);
-            _bedAssembly?.Apply(site.DeliveredLogs, site.DeliveredSticks, site.DeliveredRope, site.DeliveredLeaves);
-
-            var delivered = site.DeliveredLeaves + site.DeliveredSticks +
-                site.DeliveredLogs + site.DeliveredRope;
-            if (delivered == 0)
-            {
-                EnsureStake(); // nothing hauled in yet -> the intent stake
-            }
-            else
-            {
-                RemoveStake();
-            }
+            _bedAssembly?.Apply(site.DeliveredLogs, site.DeliveredSticks, site.DeliveredRope,
+                site.DeliveredLeaves, site.DeliveredStones);
         }
 
         private void EnsureBed(string product)
@@ -128,47 +114,6 @@ namespace HexLive.UnityPresentation.Environment
             _bedProduct = string.Empty;
             _bedRoot = null;
             _bedAssembly = null;
-            _stake = null;
-        }
-
-        private void EnsureStake()
-        {
-            if (_stake != null)
-            {
-                return;
-            }
-
-            _stake = AddStake();
-        }
-
-        private void RemoveStake()
-        {
-            if (_stake == null)
-            {
-                return;
-            }
-
-            Object.Destroy(_stake);
-            _stake = null;
-        }
-
-        private GameObject AddStake()
-        {
-            var stake = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            stake.name = "SiteStake";
-            stake.transform.SetParent(transform, false);
-            stake.transform.localScale = new Vector3(0.06f, 0.4f, 0.06f);
-            stake.transform.localPosition = new Vector3(0f, 0.2f, 0f);
-            var r = stake.GetComponent<MeshRenderer>();
-            if (r != null)
-            {
-                var mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-                mat.SetColor("_BaseColor", new Color(0.72f, 0.58f, 0.30f));
-                mat.SetFloat("_Smoothness", 0.1f);
-                r.sharedMaterial = mat;
-            }
-
-            return stake;
         }
 
         private static int Signature(ObjectSnapshot site)

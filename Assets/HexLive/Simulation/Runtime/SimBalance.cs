@@ -280,9 +280,43 @@ namespace HexLive.Simulation.Runtime
         public static int LogSplitDurationTicks = 120; // ×3 slower (longer axe-chop to make sticks)
         public static int CoconutProcessDurationTicks => System.Math.Max(1, LogSplitDurationTicks / 3);
 
-        // Cold start: the campfire is built by piling this many stones at the
-        // hearth build-site (no hammer needed), then lit with sticks.
-        public static int CampfireStoneBill = 6;
+        // §54.14: the campfire is a STAGED build like the beds — a stick pile
+        // (a working fire from stage 1 on), then upgrades raised in place:
+        // a dense stone ring, then the roasting spit (2 planted forked posts →
+        // crossbar → rope lashings). No hammer at any stage.
+        // §54.12 rule: MUST equal the per-material sums of
+        // BuildSiteMath.CampfireStages (which mirror the campfire_final
+        // prefab's staged piece groups "1".."5").
+        public static int CampfireBillSticks = 12; // 9 pile + 2 posts + 1 crossbar
+        public static int CampfireBillStones = 18; // the dense ring
+        public static int CampfireBillRope = 2;    // one lashing per post joint
+
+        // §54.14 (r2): the stages are FUNCTIONAL, not only visual.
+        // Stage 1 (stick pile) = a working fire: warmth, comfort, crafting.
+        // Stage 2 (stone ring) insulates the pit — fuel burns at this fraction
+        // of the normal rate (0.5 = a load of wood lasts twice as long).
+        public static float CampfireRingBurnMultiplier = 0.5f;
+        // Stage 3 (the roasting spit) unlocks cooking: raw meat is HUNG on the
+        // spit and roasts over a lit fire for this long (100 ticks = 1 game
+        // hour), then turns into cooked meat that stays hanging until taken.
+        public static int MeatRoastDurationTicks = 200;
+        // How many chunks hang on the crossbar at once.
+        public static int CampfireSpitCapacity = 3;
+
+        // §54.14 (r2): loose sticks scattered around the marked hearth spot at
+        // world start. The site itself is EMPTY (the colony piles the fire with
+        // its own hands), but the material lies within reach — without it the
+        // cold start deadlocks: sticks otherwise come from splitting logs
+        // (axe) and the axe is crafted at the fire that doesn't exist yet;
+        // deadfall sheds too slowly and the knife chain eats every stick
+        // (probe: 0-4/9 piled in 2 days, 3 seeds). 9 pile + knife + first fuel.
+        public static int CampfireStarterSticks = 14;
+
+        // §54.14 (r2)/§45 r5: friction-lighting stays available this long
+        // after the girl was last below the freezing threshold (-0.35 TC) —
+        // the walk from wherever the cold caught her to the pit must not
+        // revoke the hand-drill (4 game hours; nights are long, dawns slow).
+        public static int FrictionLightGraceTicks = 400;
 
         // §54.2: beds are raised at a progressive build-site (haul each piece, it
         // grows piece by piece, a hammer finishes it) — NOT an atomic craft. The

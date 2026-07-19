@@ -68,18 +68,20 @@ public static class WorldSnapshotExporter
                 BillRope = obj.BillRope
             };
 
-            if (!string.IsNullOrEmpty(obj.BuildProduct))
+            var isSite = !string.IsNullOrEmpty(obj.BuildProduct);
+            foreach (var item in obj.Contents)
             {
-                foreach (var item in obj.Contents)
+                switch (item.DefinitionId)
                 {
-                    switch (item.DefinitionId)
-                    {
-                        case "resource.log": exported.DeliveredLogs++; break;
-                        case "resource.stone": exported.DeliveredStones++; break;
-                        case "resource.palm_leaf": exported.DeliveredLeaves++; break;
-                        case "resource.stick": exported.DeliveredSticks++; break;
-                        case "resource.rope": exported.DeliveredRope++; break;
-                    }
+                    case "resource.log": if (isSite) exported.DeliveredLogs++; break;
+                    case "resource.stone": if (isSite) exported.DeliveredStones++; break;
+                    case "resource.palm_leaf": if (isSite) exported.DeliveredLeaves++; break;
+                    case "resource.stick": if (isSite) exported.DeliveredSticks++; break;
+                    case "resource.rope": if (isSite) exported.DeliveredRope++; break;
+                    // §54.14 (r2): spit meat renders whether or not the
+                    // upgrade bill is still open.
+                    case "food.meat_raw": exported.RoastingRaw++; break;
+                    case "food.meat_cooked": exported.RoastingCooked++; break;
                 }
             }
 

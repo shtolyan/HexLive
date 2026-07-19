@@ -101,9 +101,13 @@ public static class HexPathfinder
     // the direct path (never hard-stuck).
     // Spec 40.17: weightClimb applies the climb-seam detour preference (false
     // for hungry/thirsty NPCs so food/water routes stay short — fixes 12345).
+    // Spec §62: `danger` junctions (the ring around a live mob) add
+    // `dangerCost` per step — a soft weight, not a wall, so an unfit girl
+    // detours around the wolf yet can still cross if the map leaves no choice.
     public static List<JunctionId> FindPath(
         WorldState world, JunctionId start, JunctionId goal,
-        HashSet<JunctionId> avoid, bool weightClimb = true, bool canJump = true)
+        HashSet<JunctionId> avoid, bool weightClimb = true, bool canJump = true,
+        HashSet<JunctionId> danger = null, long dangerCost = 0L)
     {
         if (start.Equals(goal))
         {
@@ -182,6 +186,11 @@ public static class HexPathfinder
                 }
 
                 var cost = gScore[current] + ClimbCost(world, current, neighborId, weightClimb);
+                if (danger is not null && danger.Contains(neighborId))
+                {
+                    cost += dangerCost;
+                }
+
                 gScore[neighborId] = cost;
                 cameFrom[neighborId] = current;
                 frontier.Add(cost * priorityScale + seq++, neighborId);
@@ -192,7 +201,7 @@ public static class HexPathfinder
         {
             // Fully enclosed by standing housemates: take the direct path.
             return avoid is not null
-                ? FindPath(world, start, goal, null, weightClimb, canJump)
+                ? FindPath(world, start, goal, null, weightClimb, canJump, danger, dangerCost)
                 : new List<JunctionId>();
         }
 

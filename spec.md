@@ -6210,6 +6210,80 @@ warmth; panties: Underwear/Pelvis, +0.03) and spawned as ground objects
 124–127 near home. Pipeline for more: generate print → copy base prefab →
 swap material GUID → drop the folder under `Resources/HexLive/Wear/<simId>/`.
 
+### 31B.4A Importing a NEW garment — agent checklist (MANDATORY order)
+
+New wardrobe content usually arrives as an asset-pack / Daz prefab with
+**per-actress fitted meshes** (a base garment plus "Marta"/"Jana"/… fits).
+Follow every step — skipping one produces a silent failure (invisible
+garment, cold sim item, or blood that never soaks the cloth).
+
+1. **Wear prefab (visual).** The prefab must contain: a root with the `Wear`
+   component, the garment's OWN skeleton under a `hip` bone (bones named
+   exactly like the body's Genesis bones — `Wear.Construct` stitches each
+   garment bone onto the matching body bone BY NAME), and a
+   SkinnedMeshRenderer child. On the `Wear` component fill: `layer`
+   (Underwear/Wear/Outerwear), `slots` (the `VisualWearSlot`s it occupies),
+   `noHideUnderwearSlots` when it should not hide underwear beneath.
+   - Default `sharedMesh` = one of the fits. Every OTHER actress's fit goes
+     into the `configs` list: one row per `ActorName` with that actress's
+     `mesh` + `scale`. Fit scale is tuned live in the **WardrobeTest** scene
+     (slider → `SetConfigScale` writes into the prefab asset).
+   - **Never dedupe/rename "same-looking" fit meshes.** Fits are NOT pure
+     morphs of one mesh: verified 2026-07-19, per-fit vertex counts all
+     differ (even the three body exports: 20571/20628/20276) and ~40% of
+     baked paint points diverge between fits (outliers 0.83 UV). Treat every
+     fitted mesh as its own asset. Meshes need no Read/Write checkbox
+     (painters bake topology once from a runtime bake; maps come from the
+     editor).
+   - Drop the prefab folder under `Resources/HexLive/Wear/<definitionId>/`
+     (several prefabs in the folder = all equip together as that sim item,
+     §31B.4).
+
+2. **Sim item.** Add the garment's `GarmentParams` row to the engine-free
+   defaults (`Simulation/Content/Garments/`, `GarmentLibrary`) so headless
+   soaks know it, plus its world `ObjectDefinition`/spawn if it should exist
+   on the island (`PrototypeContentCatalog`). Then run **HexLive → Garments →
+   Rebuild Catalog From Defaults** — it materializes the missing
+   `GarmentDefinition` asset (under `Wearing/Garments/Assets/<Layer>/`) and
+   registers it in `Resources/HexLive/GarmentCatalog.asset` non-destructively
+   (§31A.5C). Tune warmth/armor/thermal/capacity in the inspector afterwards.
+   The `id` is FROZEN once chosen — it keys the Resources art folder.
+
+3. **Localization (§58).** New I2 terms in `Resources/I2Languages.asset`:
+   `item.<id with '.'→'_'>.name` / `.desc` (EN + RU columns) — e.g.
+   `clothing.coat` → `item.clothing_coat.name`. Never author the strings in C#.
+
+4. **Inventory photo (item icon).** Every item shows a PHOTO in the
+   inventory/hex-inspector UI: a sprite at
+   `Resources/HexLive/UI/Items/<definitionId>.png` (the loader tries the sim
+   id first; the hex inspector also falls back to the `ItemInfo.Slug`, which
+   is how the older prefab-named PNGs like `Boots 20496.png` still resolve —
+   NEW items should use the sim id). Without the file the UI silently falls
+   back to the emoji glyph — that fallback in play is the "step 4 was
+   skipped" symptom. Format: **512×512 PNG, transparent background, imported
+   as Sprite (2D and UI)** (`textureType 8`, `alphaIsTransparency 1`) — match
+   the existing icons. There is no automated photographer tool: shoot the
+   garment prefab in the editor (instantiate it against an empty backdrop,
+   positioned camera render / `manage_camera` screenshot, crop square) or
+   photograph it worn if the piece only reads on a body.
+
+5. **Paint point maps (§40.8-G).** Run **HexLive → Paint Maps → Regenerate**.
+   It bakes `garment_<meshName>_<vertexCount>` for the default mesh AND every
+   `configs` fit automatically (and `skin_<Actor>` for any new actor prefab in
+   `Resources/HexLive/Actors/`). Check the console:
+   - a **key-collision error** means two different meshes share both name and
+     vertex count — rename one mesh in the source asset and re-run;
+   - at runtime a garment without its map logs ONE warning and silently skips
+     zone blood — that warning in play is the "step 5 was skipped" symptom.
+   Do NOT hand-author or share maps across fits/actresses — the generator is
+   the only source, per-mesh, for the data reasons in step 1.
+
+6. **Verify.** WardrobeTest scene: the girl cycles every prefab under
+   `Resources/HexLive/Wear` — check the fit on each actress (step 1 scale),
+   then a quick wound/dirt pass (debug panel buttons) to see blood/dirt land
+   on the new cloth; console must stay free of `[PaintPointMap]` /
+   `[GarmentWear]` warnings.
+
 ### 31B.5 Renderer bridge
 
 `HexWorldRenderer.CreateNpcView` instantiates
@@ -9968,18 +10042,19 @@ lights it themselves; the raft stays a coastal build-marker. Soak: the colony
 reliably lights the fire from scratch and runs the whole chain (axe/knife/spear
 crafted, trees felled, animals butchered), 6/6 seeds.
 
-(A build-from-loose-stones campfire-site was prototyped — `build.site` with
-`BuildProduct="campfire.spot"`, no hammer — but the cold/hungry start didn't
-reliably prioritise hauling the stones, so the simple cold pit ships instead. The
-dormant campfire-site scaffolding + `CampfireStoneBill` knob remain for a future
-staged-build pass.)
+(The cold pit is now stage 1 of the **staged, upgradeable campfire** — see
+§54.14. r2: the hearth no longer starts pre-piled — bootstrap leaves only a
+bare marked build-site, and the colony hauls the stage-1 sticks itself before
+there is anything to light; the ring and the roasting spit follow as in-place
+upgrades.)
 
 ### §54.7 Presentation
 Procedural low-poly models (`LowPolyToolFactory`) for log, stick, fiber, rope,
 cloth, knife and the animal carcass; `Process`→chop and `Butcher`→work actor
-poses with the right tool in hand. The campfire is ringed with real low-poly
-**stones** (`AddCampfireStoneRing`). Build-sites render their **delivered
-materials piled up** (`BuildSitePile`, fed by new `ObjectSnapshot`
+poses with the right tool in hand. The campfire renders as the staged
+`campfire_final` prefab — its stone ring is the prefab's stage-2 group, not
+code-built (§54.14; `AddCampfireStoneRing` retired). Build-sites render their
+**delivered materials piled up** (`BuildSitePile`, fed by new `ObjectSnapshot`
 `BuildProduct`/`Bill*`/`Delivered*` fields) so a piece assembles from its
 components. Felling a tree **tips the trunk over and leaves a stump** (`TreeFall`)
 in sync with the logs hitting the ground.
@@ -10253,6 +10328,120 @@ is unchanged-to-better and 2 beds still complete despite the §55-era water
 scarcity and wolf pressure — the residual slow seeds trace to thirst spending
 half the day above even the 0.65 gate (the §55 water economy), not to the build
 chain. Knobs: `BuildNeedGate`, `BuildDangerFreshTicks` (SimBalance).
+
+### §54.14 Staged, upgradeable campfire (stick pile → stone ring → roasting spit)
+
+The campfire is no longer a monolithic prop: it is a **staged build like the
+beds** (§54.12), rendered by the assembled `campfire_final` prefab (authored 1:1
+in Blender, `_ArtSource/campfire_stones.blend`) whose piece groups `"1".."5"`
+mirror `BuildSiteMath.CampfireStages`:
+
+| stage | pieces | material | meaning |
+|---|---|---|---|
+| 1 | 9 × `stick_*` | 9 sticks | the bare stick pile — **a working, lightable fire** |
+| 2 | 18 × `stone_*` | 18 stones | the dense stone ring (packed edge to edge) |
+| 3 | 2 × `stick_post_*` | 2 sticks | two forked posts planted either side |
+| 4 | 1 × `stick_bar` | 1 stick | the crossbar laid across the forks |
+| 5 | 2 × `rope_*` | 2 rope | the lashings tying the bar to the posts |
+
+The three visual tiers are also **functional tiers** (r2): the stick pile is
+a complete fire, the ring is a fuel saver, the spit is the cooker.
+
+| functional tier | complete when | what it gives |
+|---|---|---|
+| pile (stage 1) | 9 sticks delivered (site raises) | a real campfire: fuel/light, **full warmth + Cozy comfort**, crafting station |
+| ring (stage 2) | 18 stones delivered | fuel burns at `CampfireRingBurnMultiplier` (0.5) — the same wood lasts **2×** |
+| spit (stages 3-5) | full stick + rope bill delivered | **cooking unlocked** (§54.14A roasting) |
+
+Mechanics:
+
+- **Early raise.** A `build.site` with `BuildProduct="campfire.spot"` becomes a
+  real (cold) `campfire.spot` the moment stage 1 lands
+  (`ApplyFurnitureSite`) — the fire object KEEPS the open bill + delivered
+  `Contents` and accepts the remaining stages **in place**. Completion of the
+  last stage just clears `BuildProduct` (no despawn/respawn — that would snuff
+  a live fire). The fire is fuelable/lightable from stage 1 on; upgrades never
+  block warmth.
+- **Functional stage checks** read the delivered `Contents`
+  (`BuildSiteMath.CampfireRingComplete/CampfireSpitComplete`), so they hold
+  whether the bill is still open or closed. A legacy fire spawned without the
+  staged contents (dev scenes) reads as a bare stage-1 pile.
+- **Deliveries** land through a new `build.furniture` (Build) interaction on
+  `campfire.spot` itself. Hand-piled: **no hammer at any stage** (the §52
+  hammer exemption). Piece-by-piece delivery is fine — stones don't stack, and
+  the stage counts past the ring are tiny (2+1+2), so the §54.13 bed
+  bundle rule deliberately does not apply.
+- **Priorities.** Only a BARE hearth site (definition still `build.site`) gets
+  the §54 cold-start hearth priority in `FindBuildSite`/`hearthUrgent`; a live
+  campfire mid-upgrade queues like any other furniture site, behind the
+  survival gates, and pulls the existing stone/stick/rope gather feeders.
+  The hearth is built FOR warmth: a cold girl adds the fire-chain cold weight
+  (`coldChain`) to the hearth site's `BuildFurniture` score — GOAP reaches for
+  "build the campfire" as the way to get warm, not only as a chore.
+- **Bootstrap (r2).** The generator's hearth spot spawns as a **bare marked
+  `build.site`** (`BuildProduct="campfire.spot"`, §54.9A footprint claimed,
+  nothing pre-delivered): the colony knows WHERE the fire belongs from tick 0
+  (`SeedHomeKnowledge`), but must pile the 9 stage-1 sticks itself before
+  there is anything to light. Bill knobs:
+  `SimBalance.CampfireBillSticks/Stones/Rope` (12/18/2, per-material sums of
+  the stages — keep in sync with the prefab groups; replaces the dead
+  `CampfireStoneBill`).
+- **Starter sticks (r2).** `CampfireStarterSticks` (14) loose sticks scatter
+  on the tiles around the marked spot at world start. Without them the cold
+  start DEADLOCKS: sticks otherwise come from splitting logs (axe), the axe
+  is crafted at the fire that doesn't exist yet, and deadfall sheds too
+  slowly while the knife chain eats every stick (probe: 0-4/9 piled in 2
+  days). The colony still hauls and piles them itself.
+- **Friction-light hysteresis (r2).** §45 r5's hand-drill unlocks at
+  ThermalComfort < -0.35 — but the walk from wherever the cold caught her to
+  the pit used to warm her past the gate and the goal collapsed mid-route
+  (probe: TendFire held 50+ ticks, fire never lit in 4 days). The drill now
+  stays available for `FrictionLightGraceTicks` (400) past the last freezing
+  tick, in both the decision and the Fuel-execution gate
+  (`NpcMind.LastFreezingTick`).
+- **Life valve (r2).** `hearthUrgent` (the peacetime-gate bypass) shuts off
+  at hunger/thirst ≥ 0.8 — the first hearth is survival-critical, but a girl
+  must never starve to death with the pile sticks in her pack (probe: dead
+  at hunger 1.0 carrying 8/9 sticks).
+- **No stake marker (r2).** A freshly staked site (any product) renders as
+  NOTHING until the first material lands — the old `SiteStake` primitive is
+  removed from `BuildSitePile`. The mark is sim-side only.
+- **Presentation.** `campfire.spot` renders via `BedAssembly` (which gained a
+  `stone_*` piece category): partial while the bill is open — pieces light up
+  as materials land, same grow-in-place view as the beds — and `ApplyAll` once
+  closed. `CampfireEffect` (flame + light) attaches in both states, so a
+  mid-upgrade fire burns. The legacy `campfire.spot.fbx` + code-built stone
+  ring path survives only as a fallback if the prefab is missing.
+
+### §54.14A Roasting on the spit (cooking v2)
+
+`CookMeat` no longer conjures a cooked chunk on the spot. Cooking is a
+**process on the fire**:
+
+1. **Hang.** A girl with `food.meat_raw` and a lit, spit-complete fire in view
+   hangs the chunk on the crossbar (`CookMeat` → Craft at the fire; the raw
+   chunk moves from her pack into the fire's `Contents`). The crossbar holds
+   `SimBalance.CampfireSpitCapacity` (3) chunks — raw and cooked together; a
+   full bar (or a missing spit) makes `CookMeat` unavailable and no other lit
+   fire will do (`TargetMatchesGoal`).
+2. **Roast.** While the fire is LIT, `FireSystem` advances each hanging raw
+   chunk's progress (rides on the `ItemInstance.ResourceAmount`, in ticks); at
+   `SimBalance.MeatRoastDurationTicks` (200 = 2 game hours) the chunk becomes
+   `food.meat_cooked` and **stays hanging** (`MeatRoasted` trace). A dead fire
+   pauses the roast; meat never spoils on the spit (§54's ground-spoilage
+   clock does not run in `Contents`).
+3. **Take & eat.** Cooked meat on the spit counts as reachable food: `GetFood`
+   targets the campfire itself (new `take.from.spit` PickUp interaction), and
+   the PickUp completion transfers ONE cooked chunk to the pack
+   (`TakeMeatFromSpit` — the fire object is never pocketable). Eating then
+   follows the normal inventory path.
+
+The spit is thus a communal larder: one hunter hangs, anyone hungry takes.
+- **Stones economy.** `rock.boulder` is now modelled as five packed chunks
+  (`rock_boulder.glb`) and its pickaxe `Harvest` yields exactly **5 stones**
+  (was 4) — ~4 boulders ring one fire. `resource.stone`/`rock.boulder` ground
+  visuals are the new Blender prefabs (`resource.stone.prefab`,
+  `rock.boulder.prefab`; old fbx backed up as `*__handmade_backup.fbx`).
 
 ## §55 Rivers retired, drink from the coconut (iteration 55)
 
@@ -10645,3 +10834,107 @@ append-only). `NPCState.IsUnconscious(tick)` — единый вопрос «м�
 пробуждении Laying снимается — контроллер сам играет `GetUp` («Situp To
 Idle», тот же подъём, что после сна) → Idle. Снапшот несёт `IsUnconscious`
 (+PostureHint=Faint для поза-слоя).
+
+## §61 Поэтапный крафт на месте — выкладка, работа, взятие (iteration 61)
+
+Раньше крафт «на месте» (§59.1: станция Anywhere → план `CraftInPlace`) был
+голым таймером: 12 тиков позы Working — и предмет телепортировался в рюкзак.
+Теперь это видимый РИТУАЛ из трёх битов (один план-шаг, три фазы исполнения):
+
+**61.1 Выкладка (мгновенно на старте).** Ингредиенты рецепта ПОКИДАЮТ
+инвентарь и раскладываются на землю у ног — обычные предметы мира
+(`DropItemAtFeet`, соседние свободные развязки), с сохранением состояния
+(мокрость/прочность). Их id запоминаются в `NPCExecutionState.CraftLayout`
+(сейв v10). Если свободного места нет — штука «остаётся в подоле»: уже
+оплачена, просто не видна.
+
+**61.2 Работа.** Бит `Craft` длиной `CraftInPlaceDurationTicks = 24` (×2 от
+старых 12; 6 с). Вью ставит аниматор-бул `Crafting` → стейт `CraftWork` c
+клипом `X Bot@Plant A Plant` (миксамо-«посадка растения»: стоя на коленях
+работает руками по земле — читается как сборка разложенных деталей).
+Инструмент из руки на время ритуала убирается (обе руки заняты).
+
+**61.3 Взятие.** По концу работы выложенные ингредиенты исчезают (despawn;
+что растащили соседки — не пересчитывается, крафт всё равно завершается), и
+ГОТОВЫЙ ПРЕДМЕТ появляется НА ЗЕМЛЕ рядом. Начинается короткий бит `PickUp`
+(`CraftTakeDurationTicks = 6`) — она наклоняется (gather-клип) и берёт предмет
+в руку/рюкзак (состояние объекта переносится в `ItemInstance`). Только тут
+эмитятся легаси-трейсы `CraftedKnife`/`CraftedAxe`/… (имена стабильны для
+соак-метрик).
+
+**61.4 Не-предметные выходы.** Рецепты, чей выход не кладётся в инвентарь
+(`CraftBandage` — счётчик бинтов; `CraftLeather` — штаны надеваются сразу),
+выкладывают ингредиенты и работают 24 тика, но выдают результат мгновенно по
+концу работы — без бита взятия.
+
+**61.5 Прерывание.** Сорванный крафт (бой, аборт плана) просто ОСТАВЛЯЕТ
+разложенные предметы лежать: они обычные объекты мира, их подберёт штатная
+логика сбора. Дюпа нет — ингредиенты вышли из инвентаря в момент выкладки;
+недобранный выход тоже лежит и ждёт.
+
+**61.6 Станционные крафты не тронуты.** Крафт у костра (CookMeat — подвес на
+вертел §54.14; CraftLeather у огня) идёт прежним станционным путём.
+
+## §62 Дальнее обнаружение врага — ⚠️, атака первой или обход (iteration 62)
+
+До §62 мобы вообще не входили в восприятие: собака нюхала девушку с 2 тайлов,
+и вся реакция (стоять/бежать) начиналась, только когда зубы уже щёлкали в
+смежной развязке. §62 даёт NPC глаза НА ДИСТАНЦИИ и осознанную развилку ДО
+контакта. Реактивный ближний бой (29C.4A), flee-оценка и клич о помощи (§57)
+не тронуты — новый слой срабатывает строго РАНЬШЕ них.
+
+**62.1 Обнаружение.** `ThreatAlertSystem` (Medium): каждая дееспособная
+девушка (не мёртвая/без сознания/не спит, не в бою, не Flee/Defend, не в
+убежище-помещении) замечает живого моба в `Spec62.SpotRadiusTiles` (4; агро
+собаки — 2, т.е. два тайла форы). Свежая встреча помечается смайлом
+**⚠️ «опасность»** над головой — одноразовый cue `DangerSpotted` в общем
+канале `SocialCueSignals` (§28.15E), спрайт `Warning.png` в
+`Resources/HexLive/UI/Emoji/`. Повторный ⚠️ по той же паре (девушка, моб) — не
+чаще `CueCooldownTicks` (600); гейт живёт в самой системе (транзиентно, формат
+сейва не тронут). Трейс `ThreatSpotted` (Dist/Pack/Fit/WorstPart).
+
+**62.2 Развилка.** Оценка `IsFitToFight`:
+- **ГОДНА** — все части тела ≥ `FitBoneHealth` (0.8), ничего не отрублено, не
+  лежит, не голодает/не обезвожена, и в паке есть НАСТОЯЩЕЕ оружие, которым
+  она физически может махать (`BestMeleeWeapon` с учётом рук; кулаки —
+  никогда), И угроза одна (`AttackMaxPack` 1 — на стаю первой не бросаются,
+  melee-оценка всё равно бежит от 2 атакующих).
+  → **атакует первой**: готовая Defend-механика клича (goal-lock
+  `AttackLockTicks` 240, `CombatAssistDogId`, `BuildDefendPlan` подводит её к
+  мобу, двуручное копьё освобождает руки заранее через `ReadySpearHands`);
+  собака агрится на подходе, и обычный размен §29C.3 решает бой — но теперь
+  на ЕЁ условиях, полной и вооружённой. Трейс `ThreatAttack`.
+- **НЕ ГОДНА** (рана < 80%, культя, лежит, без оружия, голод/жажда или стая)
+  → **обходит**: тайл МОБА (не свой) пишется в память опасности (§29C.4A —
+  прочь производителей у логова), а активный маршрут, проходящий сквозь
+  опасное кольцо, срубается один раз на свежую встречу (трейс `ThreatAvoid`)
+  и перестраивается уже с учётом 62.3.
+
+**62.3 Кольцо опасности в pathfinder.** `PathfindingSystem.DangerRing(world)`
+— развязки в `DangerRingTiles` (2) от каждого живого моба (BFS от развязки
+моба, кэш на тик). Для «не годных» девушек (`AvoidsThreatRings`: не Flee — ей
+нужен кратчайший путь в убежище, не Defend — та сама идёт к мобу, не в бою)
+каждый шаг в кольце стоит `+DangerStepCost` (80 = 9× плоского шага 10) в
+`HexPathfinder.FindPath` — МЯГКИЙ вес, не стена: запертая карта всё ещё
+проходима сквозь кольцо (проверено пробой: два коридора — обычный путь идёт
+сквозь волка 41 пересечением, осторожный делает крюк длиннее на 12 развязок с
+0 пересечений и доходит).
+
+**62.4 Ручки.** Всё в статике `Spec62` (`SimulationSystems.cs`):
+`ThreatAlertEnabled`, `SpotRadiusTiles` 4, `CueCooldownTicks` 600,
+`FitBoneHealth` 0.8, `AttackMaxPack` 1, `AttackLockTicks` 240,
+`DangerRingTiles` 2, `DangerStepCost` 80.
+
+**62.5 Проверено пробой** (headless, simdata): годная с ножом — ⚠️ →
+`ThreatAttack` → сама дошла и убила волка 1v1 (вышла с 0.75 HP); при стае в
+радиусе Fit=False (Pack=2 — не лезет); раненая (нога 0.5) — только ⚠️ +
+`DangerRemembered` на тайлах волка, атаки нет. Балансовое следствие для
+соаков: вооружённые здоровые девушки теперь ВЫНОСЯТ одиночных волков
+превентивно — картина смертей от собак (см. dog-fragility) сместится, гонять
+полный соак-набор сидов перед тюнингом констант.
+
+**62.6 Презентация.** Один PNG `Warning.png` (⚠️ из Apple Color Emoji, 128px)
++ ветка `"DangerSpotted" => "Warning"` в `NpcSpeechBubble.SocialCueSprite`
+(тинт белый — спрайт уже жёлтый). Канал cue сквозной
+(снапшот/экспортёр/рендерер не менялись). Визуальная проверка в игре —
+pending.

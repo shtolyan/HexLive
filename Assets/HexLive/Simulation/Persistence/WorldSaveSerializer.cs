@@ -29,7 +29,7 @@ namespace HexLive.Simulation.Persistence
 //   on load, rebuilt on first pathfind).
 public static class WorldSaveSerializer
 {
-    public const int BlobVersion = 9; // v9: timed adrenaline after damage
+    public const int BlobVersion = 10; // v10: staged craft ground layout (§gear-craft v2)
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -666,6 +666,14 @@ public static class WorldSaveSerializer
         w.Write(execution.FailureReason);
         w.Write(execution.LastCompletedTick);
 
+        // §gear-craft v2: the staged craft's laid-out ground items (inputs
+        // during the work beat, the finished output during the take beat).
+        w.Write(execution.CraftLayout.Count);
+        foreach (var laid in execution.CraftLayout)
+        {
+            w.Write(laid.Value);
+        }
+
         var movement = npc.Movement;
         w.Write(movement.BlockedWaitTicks);
         w.Write(movement.IsMoving);
@@ -893,6 +901,16 @@ public static class WorldSaveSerializer
         execution.EndTick = r.ReadInt32();
         execution.FailureReason = r.ReadString();
         execution.LastCompletedTick = r.ReadInt32();
+
+        execution.CraftLayout.Clear();
+        if (version >= 10)
+        {
+            var craftLayoutCount = r.ReadInt32();
+            for (var i = 0; i < craftLayoutCount; i++)
+            {
+                execution.CraftLayout.Add(new ObjectId(r.ReadInt32()));
+            }
+        }
 
         var movement = npc.Movement;
         movement.BlockedWaitTicks = r.ReadInt32();

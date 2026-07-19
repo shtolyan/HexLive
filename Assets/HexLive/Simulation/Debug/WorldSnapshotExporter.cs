@@ -232,7 +232,7 @@ public static class WorldSnapshotExporter
                     break;
                 }
 
-                RefreshJunction(world, junction, cached);
+                RefreshJunctionFlags(world, junction, cached);
             }
 
             if (match)
@@ -250,30 +250,33 @@ public static class WorldSnapshotExporter
                 Id = junction.Id,
                 WorldPosition = junction.WorldPosition
             };
-            RefreshJunction(world, junction, js);
+            RefreshJunctionFlags(world, junction, js);
+            // Topology is IMMUTABLE after worldgen — copied once here, never
+            // in the per-tick refresh (re-filling ~14k junctions' Tiles +
+            // Neighbors lists every tick was one of the top CPU items in the
+            // 2026-07-19 deep capture: ~2M list ops + GC write barriers).
+            foreach (var tileCoord in junction.Tiles)
+            {
+                js.Tiles.Add(tileCoord);
+            }
+
+            foreach (var neighborId in junction.Neighbors)
+            {
+                js.Neighbors.Add(neighborId);
+            }
+
             junctions.Add(js);
         }
     }
 
-    private static void RefreshJunction(WorldState world, Junction junction, JunctionSnapshot js)
+    // Per-tick refresh: ONLY the mutable flags — see ExportJunctions.
+    private static void RefreshJunctionFlags(WorldState world, Junction junction, JunctionSnapshot js)
     {
         js.Blocked = junction.Blocked;
         js.Occupied = world.Occupancy.JunctionOwner.TryGetValue(junction.Id, out var owner) && owner is not null;
         js.Reserved = world.Reservations.Junctions.ContainsKey(junction.Id);
         js.IsClimbSeam = world.ClimbSeams.Contains(junction.Id);
         js.IsSwimmable = world.SwimJunctions.Contains(junction.Id);
-
-        js.Tiles.Clear();
-        foreach (var tileCoord in junction.Tiles)
-        {
-            js.Tiles.Add(tileCoord);
-        }
-
-        js.Neighbors.Clear();
-        foreach (var neighborId in junction.Neighbors)
-        {
-            js.Neighbors.Add(neighborId);
-        }
     }
 
     // §Wardrobe-anim: which garment is visually in the NPC's hand right now.

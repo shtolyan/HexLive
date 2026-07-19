@@ -323,13 +323,22 @@ namespace HexLive.UnityPresentation.Wearing
                 _ => 0.110f // dirt (0.150 read too loud on the thighs)
             } * _height * sizeJitter;
 
+            // No decal shader (stripped from a build) → no projector at all;
+            // a DecalProjector with a non-decal material draws the pink
+            // error shader in players.
+            var material = GetDecalMaterial(type);
+            if (material == null)
+            {
+                return;
+            }
+
             var go = new GameObject($"Decal {key}");
             go.transform.SetParent(boneA, true);
             go.transform.position = worldPos;
             go.transform.rotation = worldRot;
 
             var projector = go.AddComponent<DecalProjector>();
-            projector.material = GetDecalMaterial(type);
+            projector.material = material;
             // Depth reaches through the limb's front half so curved skin catches
             // the full image; it does NOT reach the far side (radius margin).
             projector.size = new Vector3(size, size, radius * 2.2f);
@@ -350,6 +359,7 @@ namespace HexLive.UnityPresentation.Wearing
         // ---- materials / textures ----
 
         private static readonly Dictionary<DecalType, Material> _materials = new();
+        private static bool _decalShaderWarned;
 
         // No-domain-reload runs keep this cache between plays — rebuilt so a
         // texture updated on disk (or imported mid-session) is picked up.
@@ -359,17 +369,29 @@ namespace HexLive.UnityPresentation.Wearing
             _materials.Clear();
         }
 
-        private static Material GetDecalMaterial(DecalType type)
+        private static Material? GetDecalMaterial(DecalType type)
         {
             if (_materials.TryGetValue(type, out var cached) && cached != null)
             {
                 return cached;
             }
 
-            // URP decal shader (needs the Decal renderer feature). If it's ever
-            // missing the projector just renders nothing — no pink, no crash.
+            // URP decal shader (needs the Decal renderer feature + an entry in
+            // GraphicsSettings' Always Included Shaders, or builds strip it —
+            // nothing else references it by asset). Missing → no decals.
             var shader = Shader.Find("Shader Graphs/Decal");
-            var material = new Material(shader != null ? shader : Shader.Find("Universal Render Pipeline/Lit"));
+            if (shader == null)
+            {
+                if (!_decalShaderWarned)
+                {
+                    _decalShaderWarned = true;
+                    Debug.LogWarning("[SkinDecals] 'Shader Graphs/Decal' not in build — skin decals disabled.");
+                }
+
+                return null;
+            }
+
+            var material = new Material(shader);
 
             // Wounds use fal.ai-generated textures (red-only, soft alpha edges —
             // pale baked-in "skin" was filtered out so they sit right on any

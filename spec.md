@@ -8033,6 +8033,64 @@ pass — order chosen to add robustness before difficulty.
 ### 40.8 Visible injuries (decals/texture)
 - Where a bone is hit (leg/arm/head/belly), draw a **wound** on the
   skin/clothing — texture paint or decal. Real, visible damage.
+- **SHIPPED (40.8-G — editor-baked paint point maps, the combat-FPS fix):**
+  profiling a 3-dog fight showed the wound/blood painters eating ~50 ms of
+  EVERY combat frame (editor FPS 113 → 3): each new wound re-baked the
+  skinned body (`SkinnedMeshRenderer.BakeMesh`, ~300 ms in
+  `Mesh.CalcBoneBounds`) and `GarmentWearPainter.AccumulateBloodStains`
+  hashed bone-driven WORLD positions — the cache missed on every animated
+  frame, re-baking the garment + allocating its full vertex array + brute
+  scanning all its triangles, per garment, twice per tick. The zone→UV
+  mapping is pose-independent (a skinned vertex rides its bone), so it is
+  now baked ONCE in the editor into **`PaintPointMap`** assets
+  (`Resources/HexLive/PaintMaps`, menu **HexLive ▸ Paint Maps ▸
+  Regenerate** — rerun after adding an actor/garment or re-exporting a
+  mesh):
+  - `skin_<actor>`: per zone a TSamples×Azimuth (8×16) grid of surface
+    points around the zone's bone axis, computed from the BIND pose
+    (`mesh.bindposes` — no instantiation); the runtime's seeded
+    (t, azimuth) rolls index the grid exactly where they used to aim a
+    ray, per-point UV density keeps stamps world-size-true;
+  - `garment_<mesh>_<verts>`: per zone the garment point nearest the
+    zone's anchor bone (vertex count in the key because per-actor variant
+    meshes are all named after the actor and collide on bare names).
+  Runtime effects: `SkinTexturePainter` places wounds/droplets by table
+  lookup (`BakeMesh` never runs; legacy bake path kept as a warned
+  fallback for missing maps); blood-on-cloth travels as **zone names +
+  strengths** end-to-end (`NpcActorView` → `BodyBones.SetWearGrime` →
+  `Wear.SetGrime` → `GarmentWearPainter.SetState`) with a STABLE input
+  hash (zone + 0.1-strength buckets), and the garment painter's
+  `BakePose` is topology-only (one bake per garment lifetime, for
+  hole/dirt seeded-triangle picks). The health-doll `SetZones` change
+  gate hashes entries instead of building a signature string
+  (allocation-free). Combat re-profiled after the change:
+  `HexWorldRenderer.Update` 51 → 12 ms/frame, `SyncActorView` with 25
+  wounds ≈ 0.4-0.6 ms, zero tombstones, `_bakedMesh` never allocated;
+  wounds/bra blood/ground stains visually verified in-fight.
+  **Round 2 — mobs + repaint coalescing:** (a) `MobWoundPainter` reads a
+  baked `mob_<mesh>_<verts>` map (zone `MobSurface`: 64 area-weighted
+  surface points, fixed-seed pool so saved mobs repaint the same pattern
+  after a rebake) — with a map the wolf mesh is NEVER read at runtime,
+  which also fixes the silent no-wounds-in-build failure the old
+  `mesh.isReadable` gate caused, and its albedo RT binds to the material
+  ONCE (later repaints only refresh RT contents). (b) All three painters
+  (skin / garment / mob) now COALESCE repaints: a state change only marks
+  the composite dirty; the actual blit+stamps+GenerateMips pass runs in
+  `LateUpdate` at most once per 0.25 s per painter, always painting the
+  LATEST state (a combat burst of bites = one composite instead of one
+  per tick), and the component disables itself while clean so idle
+  painters cost zero. Verified in a 3-dog fight: wolves at 0.35 HP show
+  6 map-placed stamps with `initFailed=false`, legacy topology never
+  built, no PaintPointMap warnings.
+- **SHIPPED (40.8-F v2 — toon blood splash):** the hit spray prefabs are
+  now **Epic Toon FX** blood splats copied (GUID-intact, with their two
+  URP Particles/Unlit materials + textures) from the w-empire-ios project
+  into `Resources/HexLive/VFX/ToonBlood/` — `BloodSplatDirectional`,
+  `BloodSplatDirectional2`, `BloodSplatWide`: 1-2 particle systems each,
+  ~1 s life (despawn backstop cut 8 s → 2 s), crisp red cartoon droplets
+  that fit the flat art style. They replace the RVFX sprays in
+  `MobView.SpawnBloodSplash` and both `NpcActorView` splash sites; the
+  RVFX pack stays on disk for the ground stains and unused goodies.
 - **SHIPPED (40.8-F — blood splash VFX on fresh wounds):** the purchased
   **RVFX Blood Effects Pack** (Assets/RVFX, URP variant extracted from its
   nested `BloodEffectPack_URP.unitypackage`) is wired in two ways. (1) A

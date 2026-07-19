@@ -90,7 +90,10 @@ namespace HexLive.UnityPresentation.UI
         private bool _framed;
         private Vector3 _focus;
 
-        private string _zoneSig;
+        // Int hash, not a joined string — SetZones runs every panel frame and
+        // the string signature allocated on each call (spec 40.8-G cleanup).
+        private int _zoneSig;
+        private bool _zoneSigValid;
         private readonly float[] _zoneHp = new float[ZoneOrder.Length];
         private readonly bool[] _zoneSevered = new bool[ZoneOrder.Length];
         private readonly bool[] _zoneBandaged = new bool[ZoneOrder.Length];
@@ -175,13 +178,20 @@ namespace HexLive.UnityPresentation.UI
             }
 
             // Cheap change gate — repaint only when the readout changes.
-            var sig = $"{Join(bodyParts)}#{Join(severedParts)}#{Join(bandagedZones)}";
-            if (sig == _zoneSig)
+            // Allocation-free: hash the entries instead of joining strings.
+            var sig = 17;
+            sig = HashEntries(sig, bodyParts);
+            sig = sig * 31 + 7;
+            sig = HashEntries(sig, severedParts);
+            sig = sig * 31 + 13;
+            sig = HashEntries(sig, bandagedZones);
+            if (_zoneSigValid && sig == _zoneSig)
             {
                 return;
             }
 
             _zoneSig = sig;
+            _zoneSigValid = true;
 
             for (var i = 0; i < ZoneOrder.Length; i++)
             {
@@ -238,20 +248,19 @@ namespace HexLive.UnityPresentation.UI
             RepaintDoll();
         }
 
-        private static string Join(IReadOnlyList<string> list)
+        private static int HashEntries(int hash, IReadOnlyList<string> list)
         {
-            if (list == null || list.Count == 0)
+            if (list == null)
             {
-                return string.Empty;
+                return hash;
             }
 
-            var sb = new System.Text.StringBuilder();
             for (var i = 0; i < list.Count; i++)
             {
-                sb.Append(list[i]).Append(';');
+                hash = hash * 31 + (list[i]?.GetHashCode() ?? 0);
             }
 
-            return sb.ToString();
+            return hash;
         }
 
         private static int ZoneIndex(string name)
@@ -288,7 +297,7 @@ namespace HexLive.UnityPresentation.UI
             _colorScratch = null;
             _distalBones.Clear();
             _framed = false;
-            _zoneSig = null; // force a repaint with the next SetZones
+            _zoneSigValid = false; // force a repaint with the next SetZones
 
             var prefab = Resources.Load<GameObject>($"HexLive/Actors/{actorMesh}");
             if (prefab == null)

@@ -398,6 +398,29 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
             _clock.Resume();
         }
 
+        // Player builds drop the per-tick trace chatter (TickStart/Movement*/
+        // ExecProgress… — nobody consumes it in-game; GameHistory has its own
+        // whitelist). Editor + development builds keep the full stream for
+        // debugging and the sim harness.
+        HexLive.Simulation.Runtime.SimTrace.Verbose =
+            Application.isEditor || UnityEngine.Debug.isDebugBuild;
+
+        // Spec 40.8-G: pull all wound/blood art into memory NOW, behind the
+        // loading curtain — lazily loading it on the first landed bite cost a
+        // ~2.4 s File.Read burst mid-combat (frame #20 of the deep capture).
+        Wearing.SkinTexturePainter.Prewarm();
+        Wearing.GarmentWearPainter.Prewarm();
+        Rendering.MobWoundPainter.Prewarm();
+        _ = Rendering.BloodSplashVfx.Prefabs;
+        // Mob prefabs too (wolf FBX + pelt textures): the view spawns the
+        // moment the sim spawns the mob — mid-game, typically right before
+        // the first fight — and the lazy Resources.Load there was the
+        // "small freeze just before the first combat".
+        foreach (var mobId in Config.MobLibrary.Ids)
+        {
+            Config.MobLibrary.LoadPrefab(mobId);
+        }
+
         _engine = new SimulationEngine(world, _settings, _clock);
         RegisterDefaultSystems(_engine);
         _accumulator = 0f;

@@ -100,26 +100,28 @@ public sealed class BodyBones : MonoBehaviour
         }
     }
 
-    // Spec 40.10-C: dirt + zone-damage spheres for every SIM garment. Hair is
+    // Spec 40.10-C: dirt + hurt zones (name + strength) for every SIM garment
+    // (spec 40.8-G: zone names replaced the world-space damage spheres — the
+    // painter resolves them through its baked point map). Hair is
     // instantiated directly in Construct (never in _wears), so it stays clean.
-    public void SetWearGrime(float dirt01, Vector4[] spheres, int count,
+    public void SetWearGrime(float dirt01, string[] zones, float[] strengths, int count,
         float blood01 = 0f, float sweat01 = 0f)
     {
         foreach (var pair in _wears)
         {
-            pair.Value.SetGrime(dirt01, spheres, count, blood01, sweat01);
+            pair.Value.SetGrime(dirt01, zones, strengths, count, blood01, sweat01);
         }
     }
 
-    public void SetWearGrime(string defId, float dirt01, Vector4[] spheres, int count,
-        float blood01 = 0f)
+    public void SetWearGrime(string defId, float dirt01, string[] zones, float[] strengths,
+        int count, float blood01 = 0f)
     {
         var prefix = defId + "#";
         foreach (var pair in _wears)
         {
             if (pair.Key.StartsWith(prefix))
             {
-                pair.Value.SetGrime(dirt01, spheres, count, blood01);
+                pair.Value.SetGrime(dirt01, zones, strengths, count, blood01);
             }
         }
     }

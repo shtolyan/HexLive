@@ -35,14 +35,17 @@ public sealed class SimulationEngine
         var isMedium = World.Tick % Settings.MediumInterval == 0;
         var isSlow = World.Tick % Settings.SlowInterval == 0;
 
-        World.Events.Add(new SimulationEvent
+        if (SimTrace.Verbose)
         {
-            Tick = World.Tick,
-            EntityId = null,
-            Type = "TickStart",
-            Message = $"Tick={World.Tick} Layers=[Fast{(isMedium ? ",Medium" : "")}{(isSlow ? ",Slow" : "")}] " +
-                      $"Npcs={World.Entities.Npcs.Count} Objects={World.Entities.Objects.Count}"
-        });
+            World.Events.Add(new SimulationEvent
+            {
+                Tick = World.Tick,
+                EntityId = null,
+                Type = "TickStart",
+                Message = $"Tick={World.Tick} Layers=[Fast{(isMedium ? ",Medium" : "")}{(isSlow ? ",Slow" : "")}] " +
+                          $"Npcs={World.Entities.Npcs.Count} Objects={World.Entities.Objects.Count}"
+            });
+        }
 
         RunLayer(TickLayer.Fast);
 

@@ -1,0 +1,343 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
+  MeshName: SK_Wolf_LOD3
+  VertexCount: 3263
+  TSamples: 1
+  AzimuthSamples: 64
+  TMin: 0
+  TMax: 1
+  Zones:
+  - Zone: MobSurface
+    Points:
+    - Slot: 0
+      Uv: {x: 0.10883184, y: 0.23216087}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.22390175, y: 0.8263184}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.51737636, y: 0.08566228}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.5634431, y: 0.39582855}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.21318361, y: 0.24738759}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.63919973, y: 0.46970963}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.8222961, y: 0.24532521}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.404831, y: 0.22253512}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.18888494, y: 0.42933294}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.67220736, y: 0.6596331}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.4711016, y: 0.34444547}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.2788177, y: 0.7573614}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.8445754, y: 0.7350204}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.78441536, y: 0.5982087}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.22878204, y: 0.8123543}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.8043375, y: 0.35697508}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.56918806, y: 0.37493807}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.21080457, y: 0.58312875}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.6741647, y: 0.53926843}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.37161636, y: 0.76695824}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.50042313, y: 0.42273033}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.66918916, y: 0.59831923}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.022174582, y: 0.043257788}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.15643121, y: 0.30123574}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.2178382, y: 0.46569905}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.5838416, y: 0.26539516}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.20068133, y: 0.6396687}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.48837948, y: 0.9170146}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.33418983, y: 0.14875245}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.8147845, y: 0.3122777}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.2131392, y: 0.8811723}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.8932786, y: 0.7703684}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.15200856, y: 0.7183784}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.26695627, y: 0.13121898}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.75960195, y: 0.7710945}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.27531946, y: 0.38221866}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.73604316, y: 0.28892887}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.8989192, y: 0.7969989}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.58436644, y: 0.44068754}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.19343095, y: 0.42605993}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.39542896, y: 0.8245512}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.41454187, y: 0.079726696}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.6805909, y: 0.08536986}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.17333458, y: 0.6888693}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.20479771, y: 0.6280475}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.12499312, y: 0.797153}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.92314863, y: 0.36183232}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.87501454, y: 0.45504576}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.6867865, y: 0.023012776}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.019427914, y: 0.84696436}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.43970835, y: 0.102645434}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.44771743, y: 0.6254536}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.13100462, y: 0.8047411}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.7787428, y: 0.83480674}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.37608403, y: 0.4627819}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.5004295, y: 0.28680155}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.77599347, y: 0.3760054}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.7212286, y: 0.29364896}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.16803554, y: 0.8582023}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.47940868, y: 0.6175146}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.17368236, y: 0.46388274}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.27802834, y: 0.8291609}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.7434423, y: 0.6915487}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1
+    - Slot: 0
+      Uv: {x: 0.90634716, y: 0.23956248}
+      BindPerU: 0
+      BindPerV: 0
+      Valid: 1

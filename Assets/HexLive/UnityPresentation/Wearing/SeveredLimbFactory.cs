@@ -30,13 +30,18 @@ public static class SeveredLimbFactory
     // Returns null when the owner/mesh can't provide it — caller uses a prop.
     public static GameObject Build(NpcActorView owner, string variant)
     {
-        if (owner == null || string.IsNullOrEmpty(variant) ||
+        if (string.IsNullOrEmpty(variant) ||
             !ZoneDistalBone.TryGetValue(variant, out var distalBoneName))
         {
             return null;
         }
 
-        if (owner.ActorMesh == ActorName.Molly && IsMartaOverrideLimb(variant))
+        // Molly's limbs always carve from Marta's readable Genesis mesh (her
+        // own re-saved mesh sliced wrong). Marta is ALSO the donor when the
+        // owner view is gone (e.g. the drop outlives/precedes the actor view)
+        // or its skin can't provide geometry — a real limb must never degrade
+        // to the capsule fallback just because the owner wasn't found.
+        if (owner == null || owner.ActorMesh == ActorName.Molly)
         {
             var martaLimb = BuildFromMartaLimb(variant, distalBoneName);
             if (martaLimb != null)
@@ -45,12 +50,10 @@ public static class SeveredLimbFactory
             }
         }
 
-        return BuildFromSkin(owner.PrimaryBodySkin, variant, distalBoneName);
-    }
-
-    private static bool IsMartaOverrideLimb(string variant)
-    {
-        return variant == "ArmL" || variant == "ArmR" || variant == "LegL" || variant == "LegR";
+        var ownLimb = owner != null
+            ? BuildFromSkin(owner.PrimaryBodySkin, variant, distalBoneName)
+            : null;
+        return ownLimb != null ? ownLimb : BuildFromMartaLimb(variant, distalBoneName);
     }
 
     private static GameObject BuildFromMartaLimb(string variant, string distalBoneName)

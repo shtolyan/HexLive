@@ -46,6 +46,11 @@ namespace HexLive.UnityPresentation.Config
     {
         private static readonly System.Collections.Generic.Dictionary<string, MobConfig> Configs = new();
 
+        /// <summary>Spec 40.8-G prewarm: every registered mob id, so the
+        /// runner can pull all mob prefabs into memory behind the loading
+        /// curtain (the first wolf spawn used to hitch on the disk read).</summary>
+        public static System.Collections.Generic.IEnumerable<string> Ids => Configs.Keys;
+
         public static void Clear() => Configs.Clear();
 
         public static void Register(MobConfig config)

@@ -1,4 +1,5 @@
 #nullable enable
+using HexLive.UnityPresentation.Wearing;
 using UnityEngine;
 
 namespace HexLive.UnityPresentation.Rendering
@@ -45,6 +46,24 @@ public sealed class MobWoundPainter : MonoBehaviour
         _woundOver = System.Array.Empty<Texture2D?>();
     }
 
+    /// <summary>Spec 40.8-G: load the shared wound art behind the loading
+    /// curtain instead of on the first landed bite (File.Read burst).</summary>
+    public static void Prewarm()
+    {
+        if (_artLoaded)
+        {
+            return;
+        }
+
+        _artLoaded = true;
+        _texSplash = Resources.Load<Texture2D>("HexLive/Decals/blood_splash");
+        _woundOver = new Texture2D?[WoundVariantNames.Length];
+        for (var i = 0; i < WoundVariantNames.Length; i++)
+        {
+            _woundOver[i] = Resources.Load<Texture2D>($"HexLive/Decals/{WoundVariantNames[i]}");
+        }
+    }
+
     private int _mobEntityId;
     private SkinnedMeshRenderer? _renderer;
     private Material? _material;
@@ -52,16 +71,32 @@ public sealed class MobWoundPainter : MonoBehaviour
     private RenderTexture? _rt;
     private int _placed;
     private bool _initFailed;
+    private bool _baseMapBound;
 
-    // Cumulative triangle areas for weighted random surface sampling.
+    // Spec 40.8-G: editor-baked surface points (area-weighted samples over
+    // the pelt) — with a map the mesh is never read at runtime, so wounds
+    // work even on meshes that ship without Read/Write (the legacy path
+    // silently disabled them in builds).
+    private PaintPointMap.Point[] _mapPoints = System.Array.Empty<PaintPointMap.Point>();
+
+    // Legacy fallback (no map): cumulative triangle areas for weighted
+    // random surface sampling — requires a CPU-readable mesh.
     private Vector2[]? _uv;
     private int[]? _triangles;
     private float[]? _cumulativeArea;
+
+    // Spec 40.8-G repaint coalescing: state changes only mark dirty; the
+    // actual blit+stamps+mips runs at most once per interval (a pack fight
+    // lands several bites per second — one composite covers them all).
+    private bool _repaintDirty;
+    private float _lastRepaintTime;
+    private const float RepaintIntervalSeconds = 0.25f;
 
     public void Configure(int mobEntityId, int maxStamps)
     {
         _mobEntityId = mobEntityId;
         _maxStamps = Mathf.Max(1, maxStamps);
+        enabled = false; // LateUpdate runs only while a repaint is pending
     }
 
     /// <summary>Renderer feeds every snapshot's health; stamps catch up.</summary>
@@ -85,6 +120,26 @@ public sealed class MobWoundPainter : MonoBehaviour
         }
 
         _placed = desired;
+        _repaintDirty = true;
+        enabled = true;
+    }
+
+    private void LateUpdate()
+    {
+        if (!_repaintDirty)
+        {
+            enabled = false;
+            return;
+        }
+
+        if (Time.unscaledTime - _lastRepaintTime < RepaintIntervalSeconds)
+        {
+            return; // coalesce: the next eligible frame paints the LATEST state
+        }
+
+        _repaintDirty = false;
+        _lastRepaintTime = Time.unscaledTime;
+        enabled = false;
         Repaint();
     }
 
@@ -97,7 +152,7 @@ public sealed class MobWoundPainter : MonoBehaviour
 
         _renderer = GetComponentInChildren<SkinnedMeshRenderer>();
         var mesh = _renderer != null ? _renderer.sharedMesh : null;
-        if (_renderer == null || mesh == null || !mesh.isReadable)
+        if (_renderer == null || mesh == null)
         {
             _initFailed = true;
             return false;
@@ -112,44 +167,51 @@ public sealed class MobWoundPainter : MonoBehaviour
             return false;
         }
 
-        if (!_artLoaded)
+        Prewarm();
+
+        // Spec 40.8-G: editor-baked surface points first — no mesh reads at
+        // all (and the only path that works on non-readable meshes).
+        var map = PaintPointMap.Load($"mob_{mesh.name}_{mesh.vertexCount}", mesh.vertexCount);
+        _mapPoints = map != null
+            ? map.PointsFor(PaintPointMap.MobSurfaceZone)
+            : System.Array.Empty<PaintPointMap.Point>();
+
+        if (_mapPoints.Length == 0)
         {
-            _artLoaded = true;
-            _texSplash = Resources.Load<Texture2D>("HexLive/Decals/blood_splash");
-            _woundOver = new Texture2D?[WoundVariantNames.Length];
-            for (var i = 0; i < WoundVariantNames.Length; i++)
+            // Legacy fallback: bind-pose topology + area table (stamps live
+            // in UV space, animation moves the painted skin for free).
+            if (!mesh.isReadable)
             {
-                _woundOver[i] = Resources.Load<Texture2D>($"HexLive/Decals/{WoundVariantNames[i]}");
+                _initFailed = true;
+                return false;
             }
-        }
 
-        // Bind-pose topology is enough — stamps live in UV space, animation
-        // moves the painted skin with the mesh for free.
-        _uv = mesh.uv;
-        _triangles = mesh.triangles;
-        if (_uv.Length == 0 || _triangles.Length < 3)
-        {
-            _initFailed = true;
-            return false;
-        }
+            _uv = mesh.uv;
+            _triangles = mesh.triangles;
+            if (_uv.Length == 0 || _triangles.Length < 3)
+            {
+                _initFailed = true;
+                return false;
+            }
 
-        var vertices = mesh.vertices;
-        var triCount = _triangles.Length / 3;
-        _cumulativeArea = new float[triCount];
-        var total = 0f;
-        for (var t = 0; t < triCount; t++)
-        {
-            var a = vertices[_triangles[t * 3]];
-            var b = vertices[_triangles[t * 3 + 1]];
-            var c = vertices[_triangles[t * 3 + 2]];
-            total += Vector3.Cross(b - a, c - a).magnitude * 0.5f;
-            _cumulativeArea[t] = total;
-        }
+            var vertices = mesh.vertices;
+            var triCount = _triangles.Length / 3;
+            _cumulativeArea = new float[triCount];
+            var total = 0f;
+            for (var t = 0; t < triCount; t++)
+            {
+                var a = vertices[_triangles[t * 3]];
+                var b = vertices[_triangles[t * 3 + 1]];
+                var c = vertices[_triangles[t * 3 + 2]];
+                total += Vector3.Cross(b - a, c - a).magnitude * 0.5f;
+                _cumulativeArea[t] = total;
+            }
 
-        if (total <= 0f)
-        {
-            _initFailed = true;
-            return false;
+            if (total <= 0f)
+            {
+                _initFailed = true;
+                return false;
+            }
         }
 
         var w = Mathf.Min(_originalAlbedo.width, MaxRenderTextureSize);
@@ -216,7 +278,9 @@ public sealed class MobWoundPainter : MonoBehaviour
             for (var i = 0; i < _placed; i++)
             {
                 var rng = new System.Random(_mobEntityId * 7919 + i * 131);
-                var uv = StampUv(i, rng);
+                var uv = _mapPoints.Length > 0
+                    ? _mapPoints[rng.Next(_mapPoints.Length)].Uv
+                    : StampUv(i, rng);
                 var cx = uv.x;
                 var cy = 1f - uv.y;
                 var size = 0.10f + 0.06f * (float)rng.NextDouble();
@@ -241,11 +305,17 @@ public sealed class MobWoundPainter : MonoBehaviour
             GL.PopMatrix();
             RenderTexture.active = previous;
             _rt.GenerateMips();
-            _material.SetTexture("_BaseMap", _rt);
+            // Bind once — later repaints only refresh the RT contents.
+            if (!_baseMapBound)
+            {
+                _baseMapBound = true;
+                _material.SetTexture("_BaseMap", _rt);
+            }
         }
         catch (System.Exception e)
         {
             RenderTexture.active = previous;
+            _baseMapBound = false;
             _material.SetTexture("_BaseMap", _originalAlbedo);
             Debug.LogWarning($"[MobWounds] mob{_mobEntityId}: repaint failed, original restored — {e.Message}");
         }

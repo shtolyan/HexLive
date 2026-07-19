@@ -2484,16 +2484,30 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return root;
     }
 
+    // Junction positions are immutable after worldgen — one id→position
+    // dictionary replaces the old linear scan of all ~14k snapshot junctions
+    // per object (~84 objects × full scan every tick was the single biggest
+    // self-time item in the 2026-07-19 deep capture).
+    private Dictionary<int, Float2> _junctionAnchorById;
+
     private Vector3 GetObjectAnchorPosition(WorldSnapshot snapshot, ObjectSnapshot worldObject)
     {
         if (worldObject.Junctions.Count > 0)
         {
-            foreach (var junction in snapshot.Junctions)
+            if (_junctionAnchorById == null ||
+                _junctionAnchorById.Count != snapshot.Junctions.Count)
             {
-                if (junction.Id.Equals(worldObject.Junctions[0]))
+                _junctionAnchorById ??= new Dictionary<int, Float2>(snapshot.Junctions.Count);
+                _junctionAnchorById.Clear();
+                foreach (var junction in snapshot.Junctions)
                 {
-                    return SimulationUnityMapper.ToUnityPosition(junction.WorldPosition, GroundY(worldObject.Tile));
+                    _junctionAnchorById[junction.Id.Value] = junction.WorldPosition;
                 }
+            }
+
+            if (_junctionAnchorById.TryGetValue(worldObject.Junctions[0].Value, out var pos))
+            {
+                return SimulationUnityMapper.ToUnityPosition(pos, GroundY(worldObject.Tile));
             }
         }
 

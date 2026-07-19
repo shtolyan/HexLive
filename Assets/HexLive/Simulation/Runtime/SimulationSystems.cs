@@ -4972,8 +4972,12 @@ public sealed class PathfindingSystem : ISimulationSystem
 
             if (npc.CurrentJunction.HasValue && npc.CurrentJunction.Value.Equals(npc.Plan.TargetJunctionId.Value))
             {
-                Trace.Emit(world, npc.Id, "PathAlreadyAtTarget",
-                    $"Junction={npc.CurrentJunction.Value.Value} (already at destination)");
+                if (SimTrace.Verbose)
+                {
+                    Trace.Emit(world, npc.Id, "PathAlreadyAtTarget",
+                        $"Junction={npc.CurrentJunction.Value.Value} (already at destination)");
+                }
+
                 continue;
             }
 
@@ -4987,9 +4991,12 @@ public sealed class PathfindingSystem : ISimulationSystem
                 continue;
             }
 
-            Trace.Emit(world, npc.Id, "PathSearching",
-                $"From={startJunction.Value.Value} To={npc.Plan.TargetJunctionId.Value.Value} " +
-                $"Pos={Trace.FormatPos(npc.Position)}");
+            if (SimTrace.Verbose)
+            {
+                Trace.Emit(world, npc.Id, "PathSearching",
+                    $"From={startJunction.Value.Value} To={npc.Plan.TargetJunctionId.Value.Value} " +
+                    $"Pos={Trace.FormatPos(npc.Position)}");
+            }
 
             // Spec 40.17: prefer flat routes by default. The old gate exempted
             // every hungry/thirsty route, including non-emergency material runs,
@@ -5307,10 +5314,13 @@ public sealed class MovementSystem : ISimulationSystem
                 {
                     npc.Movement.Status = MovementStatus.Rotating;
                     npc.Movement.PostTurnTimer = npc.PostTurnPause;
-                    Trace.Emit(world, npc.Id, "MovementRotating",
-                        $"Rot={prevRotation:F1}->{npc.RotationDegrees:F1} Desired={npc.Movement.DesiredRotationDegrees:F1} " +
-                        $"Error={facingError:F1}>{alignmentThreshold} ToJunction={targetJunctionId.Value} " +
-                        $"Step={targetIndex}/{npc.Movement.JunctionPath.Count}");
+                    if (SimTrace.Verbose)
+                    {
+                        Trace.Emit(world, npc.Id, "MovementRotating",
+                            $"Rot={prevRotation:F1}->{npc.RotationDegrees:F1} Desired={npc.Movement.DesiredRotationDegrees:F1} " +
+                            $"Error={facingError:F1}>{alignmentThreshold} ToJunction={targetJunctionId.Value} " +
+                            $"Step={targetIndex}/{npc.Movement.JunctionPath.Count}");
+                    }
                     continue;
                 }
 
@@ -5556,10 +5566,13 @@ public sealed class MovementSystem : ISimulationSystem
                     npc.RotationDegrees,
                     npc.Movement.DesiredRotationDegrees,
                     turnPerTick);
-                Trace.Emit(world, npc.Id, "MovementStep",
-                    $"Pos={Trace.FormatPos(npc.Position)} -> Junction={targetJunctionId.Value} " +
-                    $"Dist={distance:F3} Speed={movementPerTick:F3} Align={alignmentFactor:F2} " +
-                    $"Rot={npc.RotationDegrees:F1}");
+                if (SimTrace.Verbose)
+                {
+                    Trace.Emit(world, npc.Id, "MovementStep",
+                        $"Pos={Trace.FormatPos(npc.Position)} -> Junction={targetJunctionId.Value} " +
+                        $"Dist={distance:F3} Speed={movementPerTick:F3} Align={alignmentFactor:F2} " +
+                        $"Rot={npc.RotationDegrees:F1}");
+                }
             }
         }
     }
@@ -6134,9 +6147,13 @@ public sealed class ExecutionSystem : ISimulationSystem
                         ApplyEffectsScaled(npc, inProgressInteraction.Effects, 1f / total);
                     }
 
-                    Trace.Emit(world, npc.Id, "ExecProgress",
-                        $"{npc.Execution.CurrentInteraction} Progress={progress:P0} " +
-                        $"Remaining={remaining}ticks ({remaining * world.TickDeltaTime:F1}s)");
+                    if (SimTrace.Verbose)
+                    {
+                        Trace.Emit(world, npc.Id, "ExecProgress",
+                            $"{npc.Execution.CurrentInteraction} Progress={progress:P0} " +
+                            $"Remaining={remaining}ticks ({remaining * world.TickDeltaTime:F1}s)");
+                    }
+
                     continue;
                 }
 
@@ -8928,9 +8945,13 @@ public sealed class ExecutionSystem : ISimulationSystem
                     ApplyEffectsScaled(npc, interaction.Effects, 1f / total);
                 }
 
-                Trace.Emit(world, npc.Id, "ExecProgress",
-                    $"{verb} (inventory) Progress={progress:P0} " +
-                    $"Remaining={remaining}ticks ({remaining * world.TickDeltaTime:F1}s)");
+                if (SimTrace.Verbose)
+                {
+                    Trace.Emit(world, npc.Id, "ExecProgress",
+                        $"{verb} (inventory) Progress={progress:P0} " +
+                        $"Remaining={remaining}ticks ({remaining * world.TickDeltaTime:F1}s)");
+                }
+
                 return;
             }
 
@@ -14764,6 +14785,17 @@ internal static class Connectivity
         Trace.EmitSystem(world, "ConnectivityFlatRebuilt",
             $"Components={component} Junctions={world.Junctions.Items.Count}");
     }
+}
+
+/// <summary>Trace verbosity knob. The per-tick chatter events (TickStart,
+/// ExecProgress, Path*/Movement* step spam) allocate an interpolated string
+/// each — ~1600 strings per combat frame in the 2026-07-19 deep capture —
+/// yet nothing consumes them in a normal game (GameHistoryLog filters by its
+/// own whitelist). Presentation turns Verbose OFF in player builds; the
+/// editor and headless harness probes keep the full stream (default true).</summary>
+public static class SimTrace
+{
+    public static bool Verbose = true;
 }
 
 internal static class Trace

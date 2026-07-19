@@ -172,6 +172,28 @@ public sealed class NpcActorView : MonoBehaviour
         "lacrimal", "brow"
     };
 
+    /// <summary>Spec 40.8-G: shared skin-slot filter — the PaintPointMap
+    /// generator must pick the SAME material slots the runtime paints.
+    /// Unnamed slots read as non-skin (Molly's nameless Cornea).</summary>
+    public static bool IsSkinMaterialName(string materialName)
+    {
+        if (string.IsNullOrEmpty(materialName))
+        {
+            return false;
+        }
+
+        var lower = materialName.ToLowerInvariant();
+        foreach (var hint in NonSkinMaterialHints)
+        {
+            if (lower.Contains(hint))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     // Spec 40.8-D: wounds/bandages are PAINTED into the skin textures (molly
     // bake-raycast placement + stamp records that fade with healing). Flip off
     // to fall back to the decal projectors.
@@ -192,18 +214,6 @@ public sealed class NpcActorView : MonoBehaviour
     private SkinTexturePainter _skinPainter;
     private readonly List<(string zone, int seed, float heal)> _woundScratch = new();
 
-    // Spec 40.8-F: a FRESH wound sprays a short RVFX Blood Effects Pack
-    // splash from the hit zone (prefabs moved under Resources/HexLive/VFX).
-    private static GameObject[] _splashPrefabs;
-
-    // No-domain-reload runs keep statics between plays — a pre-import null
-    // load must not stick forever.
-    [UnityEngine.RuntimeInitializeOnLoadMethod(
-        UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void ResetStaticPrefabCache()
-    {
-        _splashPrefabs = null;
-    }
     private readonly HashSet<int> _seenWoundSeeds = new();
     private bool _woundVfxPrimed;
     private float _lastSplashTime;
@@ -267,14 +277,16 @@ public sealed class NpcActorView : MonoBehaviour
     private AnimationClip Standing(AnimationClip standing) =>
         _legless && ProneClip != null ? ProneClip : standing;
 
-    // Spec 40.10-C: garment grime + wound blood soak. Each hurt zone plants a
-    // world-space damage sphere at its bone anchor so the blood soaking the
-    // covering cloth sits exactly over the wound; dirt follows hygiene.
-    // Spheres never rip holes — clothing damage is tracked separately (the
-    // garment's own durability drives tear). Anchors mirror SkinDecals zones.
+    // Spec 40.10-C: garment grime + wound blood soak. Each hurt zone is
+    // forwarded by NAME + strength; the garment painter maps zone→UV through
+    // its editor-baked point map (spec 40.8-G — the old world-space spheres
+    // forced garment re-bakes as the animated bones moved). Zones never rip
+    // holes — clothing damage is tracked separately (the garment's own
+    // durability drives tear). Anchors mirror SkinDecals zones.
     private const int MaxDamageSpheres = 8;
     private const float DamageSphereBite = 0.9f; // zone health below this bleeds through
-    private readonly Vector4[] _damageSpheres = new Vector4[MaxDamageSpheres];
+    private readonly string[] _damageZoneNames = new string[MaxDamageSpheres];
+    private readonly float[] _damageZoneStrengths = new float[MaxDamageSpheres];
     private static readonly Dictionary<string, string> ZoneBoneAnchors = new()
     {
         ["Head"] = "head",
@@ -285,6 +297,10 @@ public sealed class NpcActorView : MonoBehaviour
         ["LegL"] = "lShin",
         ["LegR"] = "rShin",
     };
+
+    /// <summary>Spec 40.8-G: the PaintPointMap generator bakes garment
+    /// anchor points off the same per-zone bones the blood soak targets.</summary>
+    public static IReadOnlyDictionary<string, string> GarmentZoneAnchors => ZoneBoneAnchors;
 
     // Spec 20.16: procedural action motion layered on top of the Animator.
     private enum ActionKind { None, Chop, Work, RaiseToMouth, BowDraw, SpearThrust, Attack }
@@ -818,7 +834,8 @@ public sealed class NpcActorView : MonoBehaviour
                 {
                     _skinPainter = gameObject.AddComponent<SkinTexturePainter>();
                     _skinPainter.Construct(bodyRenderer, slotScratch, _bodyBones,
-                        _bodyRoot != null ? _bodyRoot : transform, _npcId);
+                        _bodyRoot != null ? _bodyRoot : transform, _npcId,
+                        _actorMesh.ToString());
                 }
             }
 
@@ -1127,27 +1144,22 @@ public sealed class NpcActorView : MonoBehaviour
         }
 
         // Spec 40.10-C: cloth soaks blood over hurt zones and soils as hygiene
-        // drops. Spheres are rebuilt every sync so they ride the animated bones.
+        // drops. Spec 40.8-G: zones travel by NAME — the garment painter
+        // resolves them through its editor-baked point map, so no bone
+        // positions (and no per-frame garment re-bakes) are involved.
         if (_bodyBones != null)
         {
-            var sphereCount = 0;
+            var zoneCount = 0;
             foreach (var pair in _zoneHealthScratch)
             {
-                if (pair.Value >= DamageSphereBite || sphereCount >= MaxDamageSpheres ||
-                    !ZoneBoneAnchors.TryGetValue(pair.Key, out var boneName))
+                if (pair.Value >= DamageSphereBite || zoneCount >= MaxDamageSpheres)
                 {
                     continue;
                 }
 
-                var bone = _bodyBones.GetBone(boneName);
-                if (bone == null)
-                {
-                    continue;
-                }
-
-                var position = bone.position;
-                _damageSpheres[sphereCount++] = new Vector4(
-                    position.x, position.y, position.z, Mathf.Clamp01(1f - pair.Value));
+                _damageZoneNames[zoneCount] = pair.Key;
+                _damageZoneStrengths[zoneCount] = Mathf.Clamp01(1f - pair.Value);
+                zoneCount++;
             }
 
             // Spec 40.8-C: blood soaks the covering cloth over FRESH wounds —
@@ -1180,7 +1192,7 @@ public sealed class NpcActorView : MonoBehaviour
                         var definitionId = entry.Substring(0, tab);
                         var storedBlood = FindWearValue(wornBloodiness, definitionId);
                         _bodyBones.SetWearGrime(definitionId, Mathf.Clamp01(dirt),
-                            _damageSpheres, sphereCount,
+                            _damageZoneNames, _damageZoneStrengths, zoneCount,
                             Mathf.Max(storedBlood, Mathf.Clamp01(bloodSoak * 0.7f)));
                     }
                 }
@@ -1299,13 +1311,7 @@ public sealed class NpcActorView : MonoBehaviour
             return;
         }
 
-        _splashPrefabs ??= new[]
-        {
-            Resources.Load<GameObject>("HexLive/VFX/Blood_Splash_01_URP"),
-            Resources.Load<GameObject>("HexLive/VFX/Blood_Splash_02_URP"),
-            Resources.Load<GameObject>("HexLive/VFX/Blood_Splash_03_URP")
-        };
-        var prefab = _splashPrefabs[Mathf.Abs(zone.GetHashCode()) % _splashPrefabs.Length];
+        var prefab = Rendering.BloodSplashVfx.Pick(zone.GetHashCode());
         if (prefab == null)
         {
             return;
@@ -2713,18 +2719,6 @@ public sealed class NpcActorView : MonoBehaviour
             return;
         }
 
-        _splashPrefabs ??= new[]
-        {
-            Resources.Load<GameObject>("HexLive/VFX/Blood_Splash_01_URP"),
-            Resources.Load<GameObject>("HexLive/VFX/Blood_Splash_02_URP"),
-            Resources.Load<GameObject>("HexLive/VFX/Blood_Splash_03_URP")
-        };
-        var prefab = _splashPrefabs[(splashSeed & int.MaxValue) % _splashPrefabs.Length];
-        if (prefab == null)
-        {
-            return;
-        }
-
         _lastSplashTime = Time.time;
         var root = _bodyRoot != null ? _bodyRoot : transform;
         var outward = bone.position - root.position;
@@ -2734,19 +2728,10 @@ public sealed class NpcActorView : MonoBehaviour
             outward = root.forward;
         }
 
-        var vfx = Instantiate(prefab, bone.position,
-            UnityEngine.Quaternion.LookRotation(outward.normalized + UnityEngine.Vector3.up * 0.35f));
         // The pack is authored for a full-size human; our actors are ~0.35
-        // scale — Hierarchy scaling shrinks sizes AND velocities together.
-        vfx.transform.localScale = UnityEngine.Vector3.one * root.lossyScale.y;
-        foreach (var ps in vfx.GetComponentsInChildren<UnityEngine.ParticleSystem>(true))
-        {
-            var main = ps.main;
-            main.scalingMode = UnityEngine.ParticleSystemScalingMode.Hierarchy;
-        }
-
-        // The pack's KillEffect self-destroys in 3-5 s; this is the backstop.
-        Destroy(vfx, 8f);
+        // scale — the shared spawner scales sizes AND velocities together.
+        Rendering.BloodSplashVfx.SpawnHitSplash(
+            bone.position, outward, root.lossyScale.y, splashSeed);
     }
 
     // Spec 40.7: paint the bare skin from tan (0..1) and acute sunburn (0..1).
@@ -2832,28 +2817,7 @@ public sealed class NpcActorView : MonoBehaviour
                     continue;
                 }
 
-                var name = mats[i].name.ToLowerInvariant();
-
-                // Some actor materials (e.g. Molly's Cornea) ship with an empty
-                // m_Name, so a name-based eye check can't recognise them. Treat
-                // any unnamed slot as non-skin — better to skip tinting a skin
-                // zone than to whiten an unidentifiable eye material.
-                if (string.IsNullOrEmpty(name))
-                {
-                    continue;
-                }
-
-                var nonSkin = false;
-                foreach (var hint in NonSkinMaterialHints)
-                {
-                    if (name.Contains(hint))
-                    {
-                        nonSkin = true;
-                        break;
-                    }
-                }
-
-                if (!nonSkin)
+                if (IsSkinMaterialName(mats[i].name))
                 {
                     _skinTintTargets.Add((skin, i));
                 }

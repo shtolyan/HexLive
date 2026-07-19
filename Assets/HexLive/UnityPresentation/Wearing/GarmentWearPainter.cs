@@ -26,7 +26,6 @@ namespace HexLive.UnityPresentation.Wearing
         private const int MaxDirtStamps = 14;
         private const int MaxStoredDirtStains = 64;
         private const float BloodInputBucket = 0.1f;
-        private const float BloodPlacementRadius = 0.3f;
 
         // GUI colour doubling: 0.5 gray = unmodified stamp colour.
         private static Color StampTint(float alpha) => new(0.5f, 0.5f, 0.5f, alpha * 0.5f);
@@ -72,6 +71,18 @@ namespace HexLive.UnityPresentation.Wearing
         private int _lastObservedBloodBucket;
         private int _lastBloodInputHash;
         private int _lastStateHash;
+        // Spec 40.8-G: editor-baked per-zone anchor points — blood soak
+        // placement without BakeMesh/triangle scans (the legacy world-space
+        // damage-sphere search re-baked the garment on every animated-bone
+        // hash miss: the top combat CPU cost after the skin painter).
+        private PaintPointMap? _map;
+        private bool _mapWarned;
+
+        // Spec 40.8-G repaint coalescing — see SkinTexturePainter: state
+        // changes mark dirty, LateUpdate composites at most once per interval.
+        private bool _repaintDirty;
+        private float _lastRepaintTime;
+        private const float RepaintIntervalSeconds = 0.25f;
 
         // Ragged hole stamp (dark core, noisy rim) + shared art, generated once.
         private static Texture2D? _holeStamp;
@@ -93,6 +104,18 @@ namespace HexLive.UnityPresentation.Wearing
             _renderer = renderer;
             _skinnedRenderer = renderer;
             ConstructRenderer(renderer);
+            // Spec 40.8-G: baked anchor points, keyed by the (possibly
+            // per-actor-swapped) mesh. The key carries the vertex count too:
+            // per-actor variant meshes are all named after the actor, so the
+            // bare name collides across garments. Dropped pieces (the
+            // MeshRenderer Construct) never place zone blood, so only worn
+            // garments load a map.
+            if (renderer.sharedMesh != null)
+            {
+                var mesh = renderer.sharedMesh;
+                _map = PaintPointMap.Load($"garment_{mesh.name}_{mesh.vertexCount}",
+                    mesh.vertexCount);
+            }
         }
 
         public void Construct(MeshRenderer renderer, Mesh mesh)
@@ -104,6 +127,7 @@ namespace HexLive.UnityPresentation.Wearing
 
         private void ConstructRenderer(Renderer renderer)
         {
+            enabled = false; // LateUpdate runs only while a repaint is pending
             _materials = renderer.materials; // instances (ApplyTearShader made them)
             _originalAlbedo = new Texture?[_materials.Length];
             _maskRt = new RenderTexture?[_materials.Length];
@@ -121,10 +145,12 @@ namespace HexLive.UnityPresentation.Wearing
         /// <summary>
         /// Event-driven: tear follows current durability, while dirt/blood
         /// inputs append UV stains owned by this garment. Their opacity follows
-        /// the item's wash state.
+        /// the item's wash state. Blood is localized by HURT ZONE names
+        /// (spec 40.8-G: the old world-space damage spheres re-baked the
+        /// garment mesh whenever the animated bones moved a rounded position).
         /// </summary>
         public void SetState(float tear01, float dirt01, float blood01,
-            Vector4[] damageSpheres, int damageSphereCount)
+            string[] damageZones, float[] damageStrengths, int damageZoneCount)
         {
             if (_renderer == null || _materials == null)
             {
@@ -148,7 +174,7 @@ namespace HexLive.UnityPresentation.Wearing
 
             placedNew |= UpdateBloodWashState(blood01);
             placedNew |= AccumulateDirtStains(dirt01);
-            placedNew |= AccumulateBloodStains(blood01, damageSpheres, damageSphereCount);
+            placedNew |= AccumulateBloodStains(blood01, damageZones, damageStrengths, damageZoneCount);
 
             var stateHash = 17;
             stateHash = stateHash * 31 + tearB;
@@ -162,6 +188,33 @@ namespace HexLive.UnityPresentation.Wearing
 
             _lastStateHash = stateHash;
             _lastTear = Mathf.Clamp01(tear01);
+            RequestRepaint();
+        }
+
+        // Spec 40.8-G: coalesced compositing — mark dirty, LateUpdate blits
+        // masks+albedo at most once per interval with the LATEST state.
+        private void RequestRepaint()
+        {
+            _repaintDirty = true;
+            enabled = true;
+        }
+
+        private void LateUpdate()
+        {
+            if (!_repaintDirty)
+            {
+                enabled = false;
+                return;
+            }
+
+            if (Time.unscaledTime - _lastRepaintTime < RepaintIntervalSeconds)
+            {
+                return;
+            }
+
+            _repaintDirty = false;
+            _lastRepaintTime = Time.unscaledTime;
+            enabled = false;
             RepaintMasks();
             RepaintAlbedo();
         }
@@ -193,8 +246,7 @@ namespace HexLive.UnityPresentation.Wearing
 
             _lastStateHash = hash;
             _lastTear = tear;
-            RepaintMasks();
-            RepaintAlbedo();
+            RequestRepaint();
         }
 
         private bool AccumulateDroppedBlood(float blood01)
@@ -319,76 +371,61 @@ namespace HexLive.UnityPresentation.Wearing
             return added;
         }
 
-        private bool AccumulateBloodStains(float blood01, Vector4[] spheres, int sphereCount)
+        // Spec 40.8-G: blood soak lands on the garment's baked per-zone anchor
+        // points. The input hash is STABLE now (zone identity + strength
+        // buckets — the old bone-driven world positions changed every animated
+        // frame, so the cache never hit during combat).
+        private bool AccumulateBloodStains(float blood01, string[] zones, float[] strengths,
+            int zoneCount)
         {
             var blood = Mathf.Clamp01(blood01);
-            var inputs = spheres ?? System.Array.Empty<Vector4>();
-            var count = Mathf.Clamp(sphereCount, 0, Mathf.Min(8, inputs.Length));
+            var count = zones == null || strengths == null
+                ? 0
+                : Mathf.Clamp(zoneCount, 0, Mathf.Min(zones.Length, strengths.Length));
             var inputHash = Mathf.RoundToInt(blood / BloodInputBucket);
-            if (_renderer != null)
+            for (var i = 0; i < count; i++)
             {
-                for (var i = 0; i < count; i++)
-                {
-                    var local = _renderer.transform.InverseTransformPoint(inputs[i]);
-                    inputHash = inputHash * 31 + Mathf.RoundToInt(local.x * 10f);
-                    inputHash = inputHash * 31 + Mathf.RoundToInt(local.y * 10f);
-                    inputHash = inputHash * 31 + Mathf.RoundToInt(local.z * 10f);
-                    inputHash = inputHash * 31 + Mathf.RoundToInt(inputs[i].w * 10f);
-                }
+                inputHash = inputHash * 31 + (zones![i]?.GetHashCode() ?? 0);
+                inputHash = inputHash * 31 + Mathf.RoundToInt(strengths![i] * 10f);
             }
 
-            if (blood <= 0.05f || count == 0 || inputHash == _lastBloodInputHash || !BakePose())
+            if (blood <= 0.05f || count == 0 || inputHash == _lastBloodInputHash)
             {
                 _lastBloodInputHash = inputHash;
                 return false;
             }
 
             _lastBloodInputHash = inputHash;
-            var vertices = _bakedMesh!.vertices;
-            var localToWorld = _renderer!.localToWorldMatrix;
+            if (_map == null)
+            {
+                if (!_mapWarned)
+                {
+                    _mapWarned = true;
+                    Debug.LogWarning(
+                        $"[GarmentWear] '{name}': no PaintPointMap — zone blood soak skipped " +
+                        "(run HexLive ▸ Paint Maps ▸ Regenerate).", this);
+                }
+
+                return false;
+            }
+
             var changed = false;
             for (var i = 0; i < count; i++)
             {
-                var strength = Mathf.Clamp01(blood * inputs[i].w);
+                var strength = Mathf.Clamp01(blood * strengths![i]);
                 if (strength <= 0.05f)
                 {
                     continue;
                 }
 
-                var bestTriangle = -1;
-                var bestDistance = float.MaxValue;
-                var bestBarycentric = Vector3.zero;
-                for (var triangle = 0; triangle < _triangles.Length / 3; triangle++)
+                var points = _map.PointsFor(zones![i]);
+                if (points.Length == 0 || !points[0].Valid)
                 {
-                    var i0 = _triangles[triangle * 3];
-                    var i1 = _triangles[triangle * 3 + 1];
-                    var i2 = _triangles[triangle * 3 + 2];
-                    var a = localToWorld.MultiplyPoint3x4(vertices[i0]);
-                    var b = localToWorld.MultiplyPoint3x4(vertices[i1]);
-                    var c = localToWorld.MultiplyPoint3x4(vertices[i2]);
-                    var closest = ClosestPointOnTriangle(inputs[i], a, b, c, out var barycentric);
-                    var distance = (closest - (Vector3)inputs[i]).sqrMagnitude;
-                    if (distance < bestDistance)
-                    {
-                        bestDistance = distance;
-                        bestTriangle = triangle;
-                        bestBarycentric = barycentric;
-                    }
+                    continue; // this garment does not cover the hurt zone
                 }
 
-                if (bestTriangle < 0 || bestDistance > BloodPlacementRadius * BloodPlacementRadius)
-                {
-                    continue;
-                }
-
-                var v0 = _triangles[bestTriangle * 3];
-                var v1 = _triangles[bestTriangle * 3 + 1];
-                var v2 = _triangles[bestTriangle * 3 + 2];
-                var uv = _uvs[v0] * bestBarycentric.x +
-                         _uvs[v1] * bestBarycentric.y +
-                         _uvs[v2] * bestBarycentric.z;
-                uv = new Vector2(Mathf.Repeat(uv.x, 1f), Mathf.Repeat(uv.y, 1f));
-                var slot = _triangleSlot[bestTriangle];
+                var uv = points[0].Uv;
+                var slot = points[0].Slot;
                 var cellKey = slot * 10000 + Mathf.FloorToInt(uv.x * 10f) * 100 +
                               Mathf.FloorToInt(uv.y * 10f);
                 if (_bloodStainsByCell.TryGetValue(cellKey, out var existing))
@@ -419,14 +456,25 @@ namespace HexLive.UnityPresentation.Wearing
             return changed;
         }
 
-        // ---- placement (molly nearest-triangle on the garment mesh) ----
+        // ---- placement (seeded triangles on the garment mesh) ----
 
+        // Spec 40.8-G: TOPOLOGY-ONLY now. Triangles/UVs never change, so the
+        // skinned mesh is baked AT MOST ONCE (first placement) purely to read
+        // them — sharedMesh often ships with Read/Write off, while a baked
+        // snapshot is always CPU-readable. Vertex positions are no longer
+        // consumed anywhere (zone blood uses the baked point map), so the
+        // old bake-per-hash-miss combat cost is gone.
         private bool BakePose()
         {
             if (_bakeUnavailable ||
                 _renderer == null || (_skinnedRenderer == null && _staticMesh == null))
             {
                 return false;
+            }
+
+            if (_triangles.Length > 0)
+            {
+                return true; // topology cached — nothing else is needed
             }
 
             if (_skinnedRenderer != null)
@@ -511,69 +559,6 @@ namespace HexLive.UnityPresentation.Wearing
                 Size = size,
                 Depth = depth
             });
-        }
-
-        private static Vector3 ClosestPointOnTriangle(Vector3 point, Vector3 a, Vector3 b,
-            Vector3 c, out Vector3 barycentric)
-        {
-            var ab = b - a;
-            var ac = c - a;
-            var ap = point - a;
-            var d1 = Vector3.Dot(ab, ap);
-            var d2 = Vector3.Dot(ac, ap);
-            if (d1 <= 0f && d2 <= 0f)
-            {
-                barycentric = new Vector3(1f, 0f, 0f);
-                return a;
-            }
-
-            var bp = point - b;
-            var d3 = Vector3.Dot(ab, bp);
-            var d4 = Vector3.Dot(ac, bp);
-            if (d3 >= 0f && d4 <= d3)
-            {
-                barycentric = new Vector3(0f, 1f, 0f);
-                return b;
-            }
-
-            var vc = d1 * d4 - d3 * d2;
-            if (vc <= 0f && d1 >= 0f && d3 <= 0f)
-            {
-                var v = d1 / (d1 - d3);
-                barycentric = new Vector3(1f - v, v, 0f);
-                return a + v * ab;
-            }
-
-            var cp = point - c;
-            var d5 = Vector3.Dot(ab, cp);
-            var d6 = Vector3.Dot(ac, cp);
-            if (d6 >= 0f && d5 <= d6)
-            {
-                barycentric = new Vector3(0f, 0f, 1f);
-                return c;
-            }
-
-            var vb = d5 * d2 - d1 * d6;
-            if (vb <= 0f && d2 >= 0f && d6 <= 0f)
-            {
-                var w = d2 / (d2 - d6);
-                barycentric = new Vector3(1f - w, 0f, w);
-                return a + w * ac;
-            }
-
-            var va = d3 * d6 - d5 * d4;
-            if (va <= 0f && d4 - d3 >= 0f && d5 - d6 >= 0f)
-            {
-                var w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
-                barycentric = new Vector3(0f, 1f - w, w);
-                return b + w * (c - b);
-            }
-
-            var denominator = 1f / (va + vb + vc);
-            var faceV = vb * denominator;
-            var faceW = vc * denominator;
-            barycentric = new Vector3(1f - faceV - faceW, faceV, faceW);
-            return a + ab * faceV + ac * faceW;
         }
 
         // ---- painting ----
@@ -855,6 +840,11 @@ namespace HexLive.UnityPresentation.Wearing
 
             return false;
         }
+
+        /// <summary>Spec 40.8-G: load/generate the shared art behind the
+        /// loading curtain instead of on the first stain (see
+        /// SkinTexturePainter.Prewarm).</summary>
+        public static void Prewarm() => EnsureArt();
 
         private static void EnsureArt()
         {

@@ -1,0 +1,4515 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
+  MeshName: MollyMesh
+  VertexCount: 20276
+  TSamples: 8
+  AzimuthSamples: 16
+  TMin: 0.15
+  TMax: 0.85
+  Zones:
+  - Zone: Head
+    Points:
+    - Slot: 10
+      Uv: {x: 0.08753335, y: 0.8872533}
+      BindPerU: 0.45511732
+      BindPerV: 0.290944
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.1366067, y: 0.8161524}
+      BindPerU: 1.2853217
+      BindPerV: 1.1942239
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.11421931, y: 0.8051636}
+      BindPerU: 1.2171284
+      BindPerV: 1.2385256
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.087439656, y: 0.80381036}
+      BindPerU: 1.1996151
+      BindPerV: 1.227367
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.9125594, y: 0.80381036}
+      BindPerU: 1.2003093
+      BindPerV: 1.2272148
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.88577974, y: 0.8051636}
+      BindPerU: 1.2189823
+      BindPerV: 1.2388278
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.86339235, y: 0.8161524}
+      BindPerU: 1.3006313
+      BindPerV: 1.1815214
+      Valid: 1
+    - Slot: 10
+      Uv: {x: 0.9124713, y: 0.8872533}
+      BindPerU: 0.46901903
+      BindPerV: 0.29986697
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.90454704, y: 0.31897566}
+      BindPerU: 0.275089
+      BindPerV: 0.22915712
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.78016037, y: 0.3377277}
+      BindPerU: 0.30204162
+      BindPerV: 0.32649875
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.686277, y: 0.3559487}
+      BindPerU: 0.37572625
+      BindPerV: 0.3433316
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.5815124, y: 0.365217}
+      BindPerU: 0.3988834
+      BindPerV: 0.3506504
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.41848564, y: 0.365217}
+      BindPerU: 0.37579203
+      BindPerV: 0.3675135
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.313721, y: 0.35594866}
+      BindPerU: 0.37630692
+      BindPerV: 0.35052204
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.21983767, y: 0.33772767}
+      BindPerU: 0.3019517
+      BindPerV: 0.32609278
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.10456267, y: 0.30981266}
+      BindPerU: 0.28029776
+      BindPerV: 0.2504672
+      Valid: 1
+    - Slot: 10
+      Uv: {x: 0.10846301, y: 0.9173654}
+      BindPerU: 0.38139272
+      BindPerV: 0.42541364
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.13294339, y: 0.82699734}
+      BindPerU: 1.2608237
+      BindPerV: 1.2287155
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.11441338, y: 0.82082206}
+      BindPerU: 1.2544932
+      BindPerV: 1.2398691
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.09244931, y: 0.812068}
+      BindPerU: 1.2182841
+      BindPerV: 1.249558
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.90754974, y: 0.812068}
+      BindPerU: 1.2186986
+      BindPerV: 1.2496262
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.8855858, y: 0.820822}
+      BindPerU: 1.2570206
+      BindPerV: 1.2394366
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.8670558, y: 0.82699734}
+      BindPerU: 1.2780842
+      BindPerV: 1.2247281
+      Valid: 1
+    - Slot: 10
+      Uv: {x: 0.8915424, y: 0.9173654}
+      BindPerU: 0.39480323
+      BindPerV: 0.42836538
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.91233635, y: 0.37874898}
+      BindPerU: 0.2986443
+      BindPerV: 0.22116613
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.79602295, y: 0.38438597}
+      BindPerU: 0.31722295
+      BindPerV: 0.30507508
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.69391066, y: 0.40698197}
+      BindPerU: 0.3545174
+      BindPerV: 0.34730712
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.586374, y: 0.41705036}
+      BindPerU: 0.35353196
+      BindPerV: 0.3967059
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.41362402, y: 0.41705033}
+      BindPerU: 0.3414851
+      BindPerV: 0.40494537
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.30608734, y: 0.40698203}
+      BindPerU: 0.35637167
+      BindPerV: 0.35102817
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.203975, y: 0.38438597}
+      BindPerU: 0.3175479
+      BindPerV: 0.30387262
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.08766166, y: 0.378749}
+      BindPerU: 0.29944912
+      BindPerV: 0.22211452
+      Valid: 1
+    - Slot: 10
+      Uv: {x: 0.14559333, y: 0.9385071}
+      BindPerU: 0.40390286
+      BindPerV: 0.46967676
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.13281262, y: 0.8451837}
+      BindPerU: 1.2395293
+      BindPerV: 1.2450912
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.10917938, y: 0.8336144}
+      BindPerU: 1.2665479
+      BindPerV: 1.2842759
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.085519314, y: 0.8270454}
+      BindPerU: 1.2437063
+      BindPerV: 1.2452356
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.91447973, y: 0.8270454}
+      BindPerU: 1.2438047
+      BindPerV: 1.2454689
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.89081967, y: 0.8336144}
+      BindPerU: 1.2675288
+      BindPerV: 1.2843819
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.8671862, y: 0.8451837}
+      BindPerU: 1.2553185
+      BindPerV: 1.2564131
+      Valid: 1
+    - Slot: 10
+      Uv: {x: 0.854415, y: 0.93850845}
+      BindPerU: 0.4114861
+      BindPerV: 0.46919203
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.908611, y: 0.44008267}
+      BindPerU: 0.2905721
+      BindPerV: 0.27175716
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.8051596, y: 0.4374137}
+      BindPerU: 0.3266625
+      BindPerV: 0.28223985
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.68904036, y: 0.44425}
+      BindPerU: 0.34404054
+      BindPerV: 0.38329914
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.5912154, y: 0.44373965}
+      BindPerU: 0.8146184
+      BindPerV: 12.039995
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.41055533, y: 0.44360998}
+      BindPerU: 0.58138484
+      BindPerV: 11.053774
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.30424103, y: 0.44067168}
+      BindPerU: 0.33328512
+      BindPerV: 0.38422173
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.19483833, y: 0.4374137}
+      BindPerU: 0.32756102
+      BindPerV: 0.28097957
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.09138701, y: 0.44008267}
+      BindPerU: 0.29154035
+      BindPerV: 0.2715103
+      Valid: 1
+    - Slot: 10
+      Uv: {x: 0.179298, y: 0.94840044}
+      BindPerU: 0.4083003
+      BindPerV: 0.45022464
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.13278973, y: 0.85642606}
+      BindPerU: 1.2478516
+      BindPerV: 1.2296693
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.10647571, y: 0.84307176}
+      BindPerU: 1.2634903
+      BindPerV: 1.3028672
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.07295978, y: 0.836287}
+      BindPerU: 1.2599195
+      BindPerV: 1.1939558
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.92703927, y: 0.836287}
+      BindPerU: 1.2599658
+      BindPerV: 1.194008
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.89352334, y: 0.84307176}
+      BindPerU: 1.2644726
+      BindPerV: 1.3029436
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.86720943, y: 0.856426}
+      BindPerU: 1.2555298
+      BindPerV: 1.230025
+      Valid: 1
+    - Slot: 10
+      Uv: {x: 0.8207037, y: 0.94840044}
+      BindPerU: 0.4149401
+      BindPerV: 0.44908583
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.9192707, y: 0.5045437}
+      BindPerU: 0.29968405
+      BindPerV: 0.2622849
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.80621666, y: 0.4966103}
+      BindPerU: 0.33688623
+      BindPerV: 0.3000384
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.71672434, y: 0.50829536}
+      BindPerU: 0.35932192
+      BindPerV: 0.30765784
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.5884917, y: 0.47809103}
+      BindPerU: 0.35475633
+      BindPerV: 0.37316614
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.390437, y: 0.44509766}
+      BindPerU: 0.8297825
+      BindPerV: 13.602864
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.28327367, y: 0.50829536}
+      BindPerU: 0.36260194
+      BindPerV: 0.31164965
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.19378133, y: 0.4966103}
+      BindPerU: 0.33839798
+      BindPerV: 0.29855692
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.08072734, y: 0.50454366}
+      BindPerU: 0.3008167
+      BindPerV: 0.2615021
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.14504969, y: 0.87796706}
+      BindPerU: 1.261203
+      BindPerV: 1.1542394
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.12883008, y: 0.8607684}
+      BindPerU: 1.2507952
+      BindPerV: 1.2909456
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.10432267, y: 0.857814}
+      BindPerU: 1.2793211
+      BindPerV: 1.3135474
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.06893337, y: 0.8558467}
+      BindPerU: 1.2733942
+      BindPerV: 1.1904607
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.93106556, y: 0.8558467}
+      BindPerU: 1.2733994
+      BindPerV: 1.1904699
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.89567626, y: 0.857814}
+      BindPerU: 1.2796162
+      BindPerV: 1.3135964
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.8711691, y: 0.8607684}
+      BindPerU: 1.2536952
+      BindPerV: 1.2908554
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.85494936, y: 0.87796706}
+      BindPerU: 1.2613131
+      BindPerV: 1.1496667
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.93244505, y: 0.56095004}
+      BindPerU: 0.30362937
+      BindPerV: 0.2749917
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.81450135, y: 0.5551203}
+      BindPerU: 0.34894577
+      BindPerV: 0.26974502
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.6998516, y: 0.5636744}
+      BindPerU: 0.34419522
+      BindPerV: 0.3040633
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.58051366, y: 0.57024497}
+      BindPerU: 0.31434926
+      BindPerV: 0.40691328
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.41948435, y: 0.57024497}
+      BindPerU: 0.31646183
+      BindPerV: 0.40479964
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.28456202, y: 0.54944366}
+      BindPerU: 0.35608009
+      BindPerV: 0.28756323
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.18549667, y: 0.5551203}
+      BindPerU: 0.35067403
+      BindPerV: 0.26850554
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.067553006, y: 0.56095004}
+      BindPerU: 0.30487734
+      BindPerV: 0.27349195
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.14522636, y: 0.888623}
+      BindPerU: 1.2654924
+      BindPerV: 1.161889
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.12171304, y: 0.8820967}
+      BindPerU: 1.2896743
+      BindPerV: 1.3025928
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.09550965, y: 0.873121}
+      BindPerU: 1.2973176
+      BindPerV: 1.3280684
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.077706695, y: 0.8627967}
+      BindPerU: 1.2933298
+      BindPerV: 1.2012416
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.92229235, y: 0.8627967}
+      BindPerU: 1.2932537
+      BindPerV: 1.2012402
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.9044894, y: 0.873121}
+      BindPerU: 1.297182
+      BindPerV: 1.3280048
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.878286, y: 0.8820967}
+      BindPerU: 1.2896324
+      BindPerV: 1.3045559
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.8547727, y: 0.888623}
+      BindPerU: 1.2683214
+      BindPerV: 1.1718357
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.8333727, y: 0.904706}
+      BindPerU: 1.2357963
+      BindPerV: 1.0814903
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.8002624, y: 0.6214524}
+      BindPerU: 0.32189605
+      BindPerV: 0.27696124
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.706152, y: 0.6276947}
+      BindPerU: 0.32661426
+      BindPerV: 0.31218663
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.569762, y: 0.63340634}
+      BindPerU: 0.3007182
+      BindPerV: 0.3606299
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.4124647, y: 0.6311887}
+      BindPerU: 0.31403172
+      BindPerV: 0.35629734
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.29384604, y: 0.6276947}
+      BindPerU: 0.3275622
+      BindPerV: 0.3097607
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.19973566, y: 0.6214524}
+      BindPerU: 0.32296497
+      BindPerV: 0.27654153
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.16662633, y: 0.904706}
+      BindPerU: 1.237069
+      BindPerV: 1.079927
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.14291608, y: 0.8997927}
+      BindPerU: 1.2777482
+      BindPerV: 1.2417772
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.11845338, y: 0.8870263}
+      BindPerU: 1.2898476
+      BindPerV: 1.3443228
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.09149635, y: 0.87884194}
+      BindPerU: 1.3004193
+      BindPerV: 1.270464
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.068406224, y: 0.8825264}
+      BindPerU: 1.2871898
+      BindPerV: 1.1854835
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.9315926, y: 0.8825264}
+      BindPerU: 1.2871438
+      BindPerV: 1.1854206
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.9085027, y: 0.87884206}
+      BindPerU: 1.3001657
+      BindPerV: 1.2703755
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.88154566, y: 0.88702637}
+      BindPerU: 1.2892237
+      BindPerV: 1.3445697
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.85708296, y: 0.8997927}
+      BindPerU: 1.278132
+      BindPerV: 1.2429003
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.842183, y: 0.91393167}
+      BindPerU: 1.2463021
+      BindPerV: 1.1463597
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.79851836, y: 0.67350966}
+      BindPerU: 0.29862255
+      BindPerV: 0.27306792
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.6945097, y: 0.67400473}
+      BindPerU: 0.31557864
+      BindPerV: 0.30552414
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.57198304, y: 0.68114734}
+      BindPerU: 0.28850144
+      BindPerV: 0.33762467
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.428015, y: 0.68114734}
+      BindPerU: 0.28994918
+      BindPerV: 0.338355
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.30548835, y: 0.67400473}
+      BindPerU: 0.31668875
+      BindPerV: 0.3068095
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.20147967, y: 0.6735098}
+      BindPerU: 0.29942307
+      BindPerV: 0.27343455
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.15781605, y: 0.91393167}
+      BindPerU: 1.2483302
+      BindPerV: 1.1459715
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.13361561, y: 0.9063864}
+      BindPerU: 1.2705822
+      BindPerV: 1.2917687
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.11225271, y: 0.8975477}
+      BindPerU: 1.2927802
+      BindPerV: 1.3312628
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.09353268, y: 0.89368266}
+      BindPerU: 1.2978724
+      BindPerV: 1.2807866
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.069829345, y: 0.8940561}
+      BindPerU: 1.25744
+      BindPerV: 1.2082095
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.9301697, y: 0.8940561}
+      BindPerU: 1.2574092
+      BindPerV: 1.2081583
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.90646636, y: 0.89368266}
+      BindPerU: 1.2975171
+      BindPerV: 1.2807587
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.88774633, y: 0.8975477}
+      BindPerU: 1.2922004
+      BindPerV: 1.3312776
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.8663832, y: 0.9063864}
+      BindPerU: 1.2690734
+      BindPerV: 1.2918199
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.84454966, y: 0.9174054}
+      BindPerU: 1.2324349
+      BindPerV: 1.1938754
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.78824496, y: 0.7191889}
+      BindPerU: 0.281225
+      BindPerV: 0.27060732
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.672225, y: 0.73518926}
+      BindPerU: 0.2996132
+      BindPerV: 0.29565954
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.55949765, y: 0.7291977}
+      BindPerU: 0.2617739
+      BindPerV: 0.33890182
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.44050035, y: 0.7291977}
+      BindPerU: 0.26244035
+      BindPerV: 0.33961383
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.327773, y: 0.73518926}
+      BindPerU: 0.30053383
+      BindPerV: 0.296826
+      Valid: 1
+    - Slot: 6
+      Uv: {x: 0.21175301, y: 0.7191889}
+      BindPerU: 0.2817767
+      BindPerV: 0.2714615
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.15544939, y: 0.9174054}
+      BindPerU: 1.2351613
+      BindPerV: 1.1940529
+      Valid: 1
+  - Zone: Torso
+    Points:
+    - Slot: 3
+      Uv: {x: 0.303733, y: 0.38243833}
+      BindPerU: 1.0453603
+      BindPerV: 1.1144581
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.2726394, y: 0.3751007}
+      BindPerU: 1.0452359
+      BindPerV: 1.1521373
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.24970567, y: 0.381645}
+      BindPerU: 1.0503792
+      BindPerV: 1.1756536
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.22462642, y: 0.3887047}
+      BindPerU: 1.109689
+      BindPerV: 1.2507466
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.7753726, y: 0.38870466}
+      BindPerU: 1.1117889
+      BindPerV: 1.2523509
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.7502934, y: 0.381645}
+      BindPerU: 1.0545739
+      BindPerV: 1.175463
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.7273598, y: 0.3751007}
+      BindPerU: 1.0502487
+      BindPerV: 1.1504444
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.69626606, y: 0.38243833}
+      BindPerU: 1.0480675
+      BindPerV: 1.1113844
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.64944935, y: 0.39629766}
+      BindPerU: 1.0860757
+      BindPerV: 1.1291213
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.6155729, y: 0.39880002}
+      BindPerU: 1.1362503
+      BindPerV: 1.1704034
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.57275593, y: 0.39252266}
+      BindPerU: 1.0315963
+      BindPerV: 1.3091248
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.5276631, y: 0.3870887}
+      BindPerU: 1.0374695
+      BindPerV: 1.3891121
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.47233593, y: 0.3870887}
+      BindPerU: 1.0376102
+      BindPerV: 1.3782463
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.4272431, y: 0.39252266}
+      BindPerU: 1.0286574
+      BindPerV: 1.2917348
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.38442612, y: 0.39880002}
+      BindPerU: 1.1357541
+      BindPerV: 1.1566929
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.3505497, y: 0.3962977}
+      BindPerU: 1.0864037
+      BindPerV: 1.127103
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.30656004, y: 0.41453966}
+      BindPerU: 1.0597985
+      BindPerV: 1.1031948
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.27755606, y: 0.40582266}
+      BindPerU: 1.0567377
+      BindPerV: 1.1029747
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.24954927, y: 0.41293168}
+      BindPerU: 1.0713723
+      BindPerV: 1.1764113
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.2273494, y: 0.41292736}
+      BindPerU: 1.1288793
+      BindPerV: 1.2425021
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.77264977, y: 0.41292736}
+      BindPerU: 1.1314614
+      BindPerV: 1.2560114
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.75044966, y: 0.41293168}
+      BindPerU: 1.0755707
+      BindPerV: 1.1894034
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.722443, y: 0.40582266}
+      BindPerU: 1.0612329
+      BindPerV: 1.1088579
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.693439, y: 0.4145397}
+      BindPerU: 1.0614299
+      BindPerV: 1.1089244
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.6494527, y: 0.412158}
+      BindPerU: 1.1355362
+      BindPerV: 1.140743
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.61513674, y: 0.41671732}
+      BindPerU: 1.1672109
+      BindPerV: 1.2129232
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.5691967, y: 0.41198036}
+      BindPerU: 1.1124489
+      BindPerV: 1.2800243
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.5268097, y: 0.4011937}
+      BindPerU: 1.0594802
+      BindPerV: 1.3516704
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.47318935, y: 0.4011937}
+      BindPerU: 1.0585908
+      BindPerV: 1.3405002
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.43080235, y: 0.4119803}
+      BindPerU: 1.1123416
+      BindPerV: 1.261497
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.3848623, y: 0.41671738}
+      BindPerU: 1.1726856
+      BindPerV: 1.1952537
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.35054636, y: 0.412158}
+      BindPerU: 1.1359867
+      BindPerV: 1.1363537
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.31190908, y: 0.44106102}
+      BindPerU: 1.0982314
+      BindPerV: 1.1461923
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.27815974, y: 0.43859968}
+      BindPerU: 1.1102599
+      BindPerV: 1.1371391
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.24859905, y: 0.4398017}
+      BindPerU: 1.0977277
+      BindPerV: 1.2211232
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.22104561, y: 0.434364}
+      BindPerU: 1.0557837
+      BindPerV: 1.328705
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.77895343, y: 0.434364}
+      BindPerU: 1.0539873
+      BindPerV: 1.347552
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.7514, y: 0.43980166}
+      BindPerU: 1.1021044
+      BindPerV: 1.2494591
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.7218393, y: 0.43859968}
+      BindPerU: 1.1114864
+      BindPerV: 1.16005
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.692873, y: 0.4311427}
+      BindPerU: 1.0852854
+      BindPerV: 1.1343879
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.6500393, y: 0.433598}
+      BindPerU: 1.1864558
+      BindPerV: 1.2079864
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.61473334, y: 0.4250897}
+      BindPerU: 1.1556569
+      BindPerV: 1.2514656
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.56864643, y: 0.42299166}
+      BindPerU: 1.1013387
+      BindPerV: 1.2808365
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.525349, y: 0.42091036}
+      BindPerU: 1.0896095
+      BindPerV: 1.2623758
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.47465003, y: 0.42091036}
+      BindPerU: 1.0903558
+      BindPerV: 1.2542404
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.43135273, y: 0.42299166}
+      BindPerU: 1.1001424
+      BindPerV: 1.2682611
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.37996256, y: 0.43229666}
+      BindPerU: 1.1579509
+      BindPerV: 1.2520465
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.34995973, y: 0.433598}
+      BindPerU: 1.186831
+      BindPerV: 1.2046871
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.3067124, y: 0.45894435}
+      BindPerU: 1.12827
+      BindPerV: 1.1728066
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.2671398, y: 0.45748702}
+      BindPerU: 1.1288993
+      BindPerV: 1.1770018
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.24704564, y: 0.455997}
+      BindPerU: 1.1033543
+      BindPerV: 1.2414438
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.21800935, y: 0.4498427}
+      BindPerU: 1.066913
+      BindPerV: 1.3231221
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.7819897, y: 0.44984266}
+      BindPerU: 1.0623411
+      BindPerV: 1.3450316
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.7529534, y: 0.455997}
+      BindPerU: 1.105646
+      BindPerV: 1.2696859
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.73285925, y: 0.45748702}
+      BindPerU: 1.1292684
+      BindPerV: 1.204871
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.6932868, y: 0.45894432}
+      BindPerU: 1.1258096
+      BindPerV: 1.1942248
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.6506561, y: 0.450413}
+      BindPerU: 1.193627
+      BindPerV: 1.2566754
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.613996, y: 0.44989768}
+      BindPerU: 1.1644785
+      BindPerV: 1.2565905
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.56733, y: 0.44311735}
+      BindPerU: 1.0428559
+      BindPerV: 1.1559016
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.52402246, y: 0.4347427}
+      BindPerU: 1.1479667
+      BindPerV: 1.1905423
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.47597682, y: 0.4347427}
+      BindPerU: 1.1525353
+      BindPerV: 1.1846844
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.43266904, y: 0.44311735}
+      BindPerU: 1.0411956
+      BindPerV: 1.156644
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.38600302, y: 0.44989768}
+      BindPerU: 1.1746616
+      BindPerV: 1.2492076
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.33966303, y: 0.45463237}
+      BindPerU: 1.1934141
+      BindPerV: 1.2521327
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.3054694, y: 0.48014602}
+      BindPerU: 1.1652095
+      BindPerV: 1.1987518
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.26536274, y: 0.483332}
+      BindPerU: 1.1639565
+      BindPerV: 1.2309514
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.2453494, y: 0.47163868}
+      BindPerU: 1.1161299
+      BindPerV: 1.2557056
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.21170962, y: 0.47441402}
+      BindPerU: 1.0816026
+      BindPerV: 1.3166106
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.7882894, y: 0.47441402}
+      BindPerU: 1.0742482
+      BindPerV: 1.3342932
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.75464964, y: 0.47163868}
+      BindPerU: 1.1158383
+      BindPerV: 1.2781944
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.7346363, y: 0.483332}
+      BindPerU: 1.1630362
+      BindPerV: 1.2491199
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.69452965, y: 0.48014602}
+      BindPerU: 1.161138
+      BindPerV: 1.215143
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.6610564, y: 0.46602133}
+      BindPerU: 1.1830153
+      BindPerV: 1.2423986
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.6187097, y: 0.46351668}
+      BindPerU: 1.3372248
+      BindPerV: 1.1826451
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.5667696, y: 0.45527866}
+      BindPerU: 1.0729183
+      BindPerV: 1.8360771
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.52275336, y: 0.455542}
+      BindPerU: 1.1771394
+      BindPerV: 1.0254921
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.4772457, y: 0.455542}
+      BindPerU: 1.186623
+      BindPerV: 1.0254688
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.43322933, y: 0.45527866}
+      BindPerU: 1.0736668
+      BindPerV: 1.8324187
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.38252974, y: 0.4685657}
+      BindPerU: 1.6317773
+      BindPerV: 1.4712088
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.33894265, y: 0.46602133}
+      BindPerU: 1.1866124
+      BindPerV: 1.2272029
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.29461944, y: 0.49694037}
+      BindPerU: 1.1897057
+      BindPerV: 1.1864284
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.26329935, y: 0.5030346}
+      BindPerU: 1.1876991
+      BindPerV: 1.2674632
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.23145902, y: 0.49262932}
+      BindPerU: 1.1296482
+      BindPerV: 1.270072
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.2078197, y: 0.48923767}
+      BindPerU: 1.0996442
+      BindPerV: 1.2680304
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.79217947, y: 0.48923767}
+      BindPerU: 1.0891027
+      BindPerV: 1.2881695
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.76854, y: 0.49262932}
+      BindPerU: 1.1236647
+      BindPerV: 1.289426
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.7405094, y: 0.48910132}
+      BindPerU: 1.173207
+      BindPerV: 1.2622224
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.6953026, y: 0.49007902}
+      BindPerU: 1.1609354
+      BindPerV: 1.20146
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.6626134, y: 0.48241034}
+      BindPerU: 1.1777695
+      BindPerV: 1.1337819
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.62466943, y: 0.48071668}
+      BindPerU: 2.450809
+      BindPerV: 1.3726689
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.56151235, y: 0.45387065}
+      BindPerU: 1.0214776
+      BindPerV: 0.92956644
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.5234629, y: 0.48108235}
+      BindPerU: 1.6828748
+      BindPerV: 1.1219746
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.47444928, y: 0.48323464}
+      BindPerU: 1.7847861
+      BindPerV: 1.2519948
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.4384867, y: 0.45387068}
+      BindPerU: 1.0214038
+      BindPerV: 0.92215914
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.37110603, y: 0.484983}
+      BindPerU: 2.181505
+      BindPerV: 1.4163978
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.33738565, y: 0.48241034}
+      BindPerU: 1.177543
+      BindPerV: 1.1096871
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.30249965, y: 0.50929266}
+      BindPerU: 1.1772816
+      BindPerV: 1.1738422
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.262169, y: 0.5126373}
+      BindPerU: 1.1855226
+      BindPerV: 1.2340177
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.22979903, y: 0.50746435}
+      BindPerU: 1.1684023
+      BindPerV: 1.2925383
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.19626606, y: 0.50967634}
+      BindPerU: 1.1084628
+      BindPerV: 1.2609106
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.803733, y: 0.5096764}
+      BindPerU: 1.0913417
+      BindPerV: 1.2828552
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.7701999, y: 0.50746435}
+      BindPerU: 1.1630341
+      BindPerV: 1.3099475
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.73783004, y: 0.5126373}
+      BindPerU: 1.1847185
+      BindPerV: 1.2464572
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.70640314, y: 0.50646967}
+      BindPerU: 1.1827977
+      BindPerV: 1.1920581
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.6604794, y: 0.51174664}
+      BindPerU: 1.303599
+      BindPerV: 1.1194015
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.6370491, y: 0.5007917}
+      BindPerU: 2.170925
+      BindPerV: 1.2222359
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.53832924, y: 0.46390304}
+      BindPerU: 1.4823318
+      BindPerV: 0.9392463
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.51788294, y: 0.49821433}
+      BindPerU: 1.7972151
+      BindPerV: 1.0746553
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.4821161, y: 0.49821436}
+      BindPerU: 1.7997462
+      BindPerV: 1.0799272
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.46166956, y: 0.46390304}
+      BindPerU: 1.4997181
+      BindPerV: 0.94093364
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.36581004, y: 0.5014334}
+      BindPerU: 2.0936134
+      BindPerV: 1.2045375
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.33951962, y: 0.51174664}
+      BindPerU: 1.3053945
+      BindPerV: 1.1016358
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.30065966, y: 0.52372235}
+      BindPerU: 1.1864403
+      BindPerV: 1.2276094
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.25507236, y: 0.527705}
+      BindPerU: 1.1818429
+      BindPerV: 1.263292
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.2224797, y: 0.52257967}
+      BindPerU: 1.1874617
+      BindPerV: 1.2837524
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.19990265, y: 0.52107865}
+      BindPerU: 1.0920806
+      BindPerV: 1.2839218
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.8091699, y: 0.52103204}
+      BindPerU: 1.1103776
+      BindPerV: 1.2812488
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.7775192, y: 0.52257967}
+      BindPerU: 1.1818315
+      BindPerV: 1.3056102
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.7449268, y: 0.527705}
+      BindPerU: 1.1813661
+      BindPerV: 1.2775986
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.6993393, y: 0.52372235}
+      BindPerU: 1.1850055
+      BindPerV: 1.241379
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.661386, y: 0.52729565}
+      BindPerU: 1.3227904
+      BindPerV: 1.1686207
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.6390861, y: 0.52604}
+      BindPerU: 2.00753
+      BindPerV: 1.1802244
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.56663644, y: 0.552038}
+      BindPerU: 1.385901
+      BindPerV: 1.8452678
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.51903975, y: 0.52619934}
+      BindPerU: 1.6772046
+      BindPerV: 1.1923144
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.48095942, y: 0.52619934}
+      BindPerU: 1.6758898
+      BindPerV: 1.1923138
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.4333626, y: 0.552038}
+      BindPerU: 1.3832948
+      BindPerV: 1.8675851
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.36091292, y: 0.52604}
+      BindPerU: 2.0093763
+      BindPerV: 1.1716535
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.33861303, y: 0.52729565}
+      BindPerU: 1.328079
+      BindPerV: 1.159774
+      Valid: 1
+  - Zone: Pelvis
+    Points:
+    - Slot: 3
+      Uv: {x: 0.2898091, y: 0.26885235}
+      BindPerU: 1.143003
+      BindPerV: 1.2197754
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.24027264, y: 0.25710234}
+      BindPerU: 1.2351671
+      BindPerV: 1.3295037
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.18263674, y: 0.256513}
+      BindPerU: 1.2198832
+      BindPerV: 1.4502907
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.90829945, y: 0.27574834}
+      BindPerU: 1.4325993
+      BindPerV: 1.4227381
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.09169972, y: 0.27574834}
+      BindPerU: 1.4352914
+      BindPerV: 1.423896
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.8141861, y: 0.25072366}
+      BindPerU: 1.2815045
+      BindPerV: 1.4613879
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.7597264, y: 0.25710234}
+      BindPerU: 1.2318015
+      BindPerV: 1.3199167
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.71018994, y: 0.26885235}
+      BindPerU: 1.1452087
+      BindPerV: 1.2151817
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.66035974, y: 0.27922633}
+      BindPerU: 1.0463176
+      BindPerV: 1.1112293
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.6194867, y: 0.30021402}
+      BindPerU: 1.0028704
+      BindPerV: 1.057562
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.57520294, y: 0.31972733}
+      BindPerU: 0.9292029
+      BindPerV: 1.2381932
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.51948345, y: 0.33608568}
+      BindPerU: 1.0177633
+      BindPerV: 1.4269224
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.4805156, y: 0.33608568}
+      BindPerU: 1.0161939
+      BindPerV: 1.4313047
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.4202423, y: 0.32499102}
+      BindPerU: 0.93240607
+      BindPerV: 1.192869
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.3850994, y: 0.309177}
+      BindPerU: 1.0056953
+      BindPerV: 1.0835382
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.3396393, y: 0.27922633}
+      BindPerU: 1.0462605
+      BindPerV: 1.1180221
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.2898091, y: 0.26885235}
+      BindPerU: 1.143003
+      BindPerV: 1.2197754
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.24027264, y: 0.25710234}
+      BindPerU: 1.2351671
+      BindPerV: 1.3295037
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.18263674, y: 0.256513}
+      BindPerU: 1.2198832
+      BindPerV: 1.4502907
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.90189564, y: 0.27162468}
+      BindPerU: 1.3507473
+      BindPerV: 1.4888659
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.098103404, y: 0.27162468}
+      BindPerU: 1.3486058
+      BindPerV: 1.4909801
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.8173624, y: 0.256513}
+      BindPerU: 1.2251284
+      BindPerV: 1.4340687
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.7597264, y: 0.25710234}
+      BindPerU: 1.2318015
+      BindPerV: 1.3199167
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.71018994, y: 0.26885235}
+      BindPerU: 1.1452087
+      BindPerV: 1.2151817
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.66035974, y: 0.27922633}
+      BindPerU: 1.0463176
+      BindPerV: 1.1112293
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.61489964, y: 0.309177}
+      BindPerU: 1.0075705
+      BindPerV: 1.0808591
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.57975674, y: 0.324991}
+      BindPerU: 0.93495506
+      BindPerV: 1.1921465
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.51948345, y: 0.33608568}
+      BindPerU: 1.0177633
+      BindPerV: 1.4269224
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.4805156, y: 0.33608568}
+      BindPerU: 1.0161939
+      BindPerV: 1.4313047
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.4202423, y: 0.32499102}
+      BindPerU: 0.93240607
+      BindPerV: 1.192869
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.3850994, y: 0.309177}
+      BindPerU: 1.0056953
+      BindPerV: 1.0835382
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.3396393, y: 0.27922633}
+      BindPerU: 1.0462605
+      BindPerV: 1.1180221
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.2898091, y: 0.26885235}
+      BindPerU: 1.143003
+      BindPerV: 1.2197754
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.24027264, y: 0.25710234}
+      BindPerU: 1.2351671
+      BindPerV: 1.3295037
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.18263674, y: 0.256513}
+      BindPerU: 1.2198832
+      BindPerV: 1.4502907
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.90189564, y: 0.27162468}
+      BindPerU: 1.3507473
+      BindPerV: 1.4888659
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.098103404, y: 0.27162468}
+      BindPerU: 1.3486058
+      BindPerV: 1.4909801
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.8173624, y: 0.256513}
+      BindPerU: 1.2251284
+      BindPerV: 1.4340687
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.7597264, y: 0.25710234}
+      BindPerU: 1.2318015
+      BindPerV: 1.3199167
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.71018994, y: 0.26885235}
+      BindPerU: 1.1452087
+      BindPerV: 1.2151817
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.67263937, y: 0.28921333}
+      BindPerU: 1.1183826
+      BindPerV: 1.0559245
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.61489964, y: 0.309177}
+      BindPerU: 1.0075705
+      BindPerV: 1.0808591
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.57975674, y: 0.324991}
+      BindPerU: 0.93495506
+      BindPerV: 1.1921465
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.51948345, y: 0.33608568}
+      BindPerU: 1.0177633
+      BindPerV: 1.4269224
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.4805156, y: 0.33608568}
+      BindPerU: 1.0161939
+      BindPerV: 1.4313047
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.4202423, y: 0.32499102}
+      BindPerU: 0.93240607
+      BindPerV: 1.192869
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.3850994, y: 0.309177}
+      BindPerU: 1.0056953
+      BindPerV: 1.0835382
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.32735968, y: 0.28921333}
+      BindPerU: 1.1170163
+      BindPerV: 1.0624719
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.2898091, y: 0.26885235}
+      BindPerU: 1.143003
+      BindPerV: 1.2197754
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.24027264, y: 0.25710234}
+      BindPerU: 1.2351671
+      BindPerV: 1.3295037
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.18792295, y: 0.26566234}
+      BindPerU: 1.2209762
+      BindPerV: 1.4386271
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.90189564, y: 0.27162468}
+      BindPerU: 1.3507473
+      BindPerV: 1.4888659
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.098103404, y: 0.27162468}
+      BindPerU: 1.3486058
+      BindPerV: 1.4909801
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.8173624, y: 0.256513}
+      BindPerU: 1.2251284
+      BindPerV: 1.4340687
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.7597264, y: 0.25710234}
+      BindPerU: 1.2318015
+      BindPerV: 1.3199167
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.71018994, y: 0.26885235}
+      BindPerU: 1.1452087
+      BindPerV: 1.2151817
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.67263937, y: 0.28921333}
+      BindPerU: 1.1183826
+      BindPerV: 1.0559245
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.6202563, y: 0.31529436}
+      BindPerU: 1.0072151
+      BindPerV: 1.0723339
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.57975674, y: 0.324991}
+      BindPerU: 0.93495506
+      BindPerV: 1.1921465
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.51948345, y: 0.33608568}
+      BindPerU: 1.0177633
+      BindPerV: 1.4269224
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.4805156, y: 0.33608568}
+      BindPerU: 1.0161939
+      BindPerV: 1.4313047
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.4202423, y: 0.32499102}
+      BindPerU: 0.93240607
+      BindPerV: 1.192869
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.37974262, y: 0.31529436}
+      BindPerU: 1.0057983
+      BindPerV: 1.0763572
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.32735968, y: 0.28921333}
+      BindPerU: 1.1170163
+      BindPerV: 1.0624719
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.2898091, y: 0.26885235}
+      BindPerU: 1.143003
+      BindPerV: 1.2197754
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.24027264, y: 0.25710234}
+      BindPerU: 1.2351671
+      BindPerV: 1.3295037
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.18792295, y: 0.26566234}
+      BindPerU: 1.2209762
+      BindPerV: 1.4386271
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.9000257, y: 0.27760002}
+      BindPerU: 1.3078157
+      BindPerV: 1.2589769
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.09997332, y: 0.27760002}
+      BindPerU: 1.3042538
+      BindPerV: 1.2644427
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.8120761, y: 0.26566234}
+      BindPerU: 1.2259895
+      BindPerV: 1.424688
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.7597264, y: 0.25710234}
+      BindPerU: 1.2318015
+      BindPerV: 1.3199167
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.71018994, y: 0.26885235}
+      BindPerU: 1.1452087
+      BindPerV: 1.2151817
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.67263937, y: 0.28921333}
+      BindPerU: 1.1183826
+      BindPerV: 1.0559245
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.6202563, y: 0.31529436}
+      BindPerU: 1.0072151
+      BindPerV: 1.0723339
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.5751734, y: 0.3347757}
+      BindPerU: 0.9348548
+      BindPerV: 1.3473814
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.51948345, y: 0.33608568}
+      BindPerU: 1.0177633
+      BindPerV: 1.4269224
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.4805156, y: 0.33608568}
+      BindPerU: 1.0161939
+      BindPerV: 1.4313047
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.42482567, y: 0.3347757}
+      BindPerU: 0.9325825
+      BindPerV: 1.3519456
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.37974262, y: 0.31529436}
+      BindPerU: 1.0057983
+      BindPerV: 1.0763572
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.32735968, y: 0.28921333}
+      BindPerU: 1.1170163
+      BindPerV: 1.0624719
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.2898091, y: 0.26885235}
+      BindPerU: 1.143003
+      BindPerV: 1.2197754
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.24027264, y: 0.25710234}
+      BindPerU: 1.2351671
+      BindPerV: 1.3295037
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.18792295, y: 0.26566234}
+      BindPerU: 1.2209762
+      BindPerV: 1.4386271
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.9000257, y: 0.27760002}
+      BindPerU: 1.3078157
+      BindPerV: 1.2589769
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.09997332, y: 0.27760002}
+      BindPerU: 1.3042538
+      BindPerV: 1.2644427
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.8120761, y: 0.26566234}
+      BindPerU: 1.2259895
+      BindPerV: 1.424688
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.7597264, y: 0.25710234}
+      BindPerU: 1.2318015
+      BindPerV: 1.3199167
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.71018994, y: 0.26885235}
+      BindPerU: 1.1452087
+      BindPerV: 1.2151817
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.67263937, y: 0.28921333}
+      BindPerU: 1.1183826
+      BindPerV: 1.0559245
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.6202563, y: 0.31529436}
+      BindPerU: 1.0072151
+      BindPerV: 1.0723339
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.5751734, y: 0.3347757}
+      BindPerU: 0.9348548
+      BindPerV: 1.3473814
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.51948345, y: 0.33608568}
+      BindPerU: 1.0177633
+      BindPerV: 1.4269224
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.47082567, y: 0.34034237}
+      BindPerU: 1.0124352
+      BindPerV: 1.4320207
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.42482567, y: 0.3347757}
+      BindPerU: 0.9325825
+      BindPerV: 1.3519456
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.37974262, y: 0.31529436}
+      BindPerU: 1.0057983
+      BindPerV: 1.0763572
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.32735968, y: 0.28921333}
+      BindPerU: 1.1170163
+      BindPerV: 1.0624719
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.2795124, y: 0.27882367}
+      BindPerU: 1.1598482
+      BindPerV: 1.2332647
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.24027264, y: 0.25710234}
+      BindPerU: 1.2351671
+      BindPerV: 1.3295037
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.18792295, y: 0.26566234}
+      BindPerU: 1.2209762
+      BindPerV: 1.4386271
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.12265968, y: 0.27483466}
+      BindPerU: 1.0862042
+      BindPerV: 1.4337459
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.87733936, y: 0.27483466}
+      BindPerU: 1.0985388
+      BindPerV: 1.4185886
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.8120761, y: 0.26566234}
+      BindPerU: 1.2259895
+      BindPerV: 1.424688
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.7597264, y: 0.25710234}
+      BindPerU: 1.2318015
+      BindPerV: 1.3199167
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.71018994, y: 0.26885235}
+      BindPerU: 1.1452087
+      BindPerV: 1.2151817
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.67263937, y: 0.28921333}
+      BindPerU: 1.1183826
+      BindPerV: 1.0559245
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.6202563, y: 0.31529436}
+      BindPerU: 1.0072151
+      BindPerV: 1.0723339
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.5751734, y: 0.3347757}
+      BindPerU: 0.9348548
+      BindPerV: 1.3473814
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.5291734, y: 0.34034237}
+      BindPerU: 1.0105789
+      BindPerV: 1.4276538
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.47082567, y: 0.34034237}
+      BindPerU: 1.0124352
+      BindPerV: 1.4320207
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.42482567, y: 0.3347757}
+      BindPerU: 0.9325825
+      BindPerV: 1.3519456
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.36938274, y: 0.31755435}
+      BindPerU: 1.0215782
+      BindPerV: 1.0756278
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.32735968, y: 0.28921333}
+      BindPerU: 1.1170163
+      BindPerV: 1.0624719
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.2795124, y: 0.27882367}
+      BindPerU: 1.1598482
+      BindPerV: 1.2332647
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.24027264, y: 0.25710234}
+      BindPerU: 1.2351671
+      BindPerV: 1.3295037
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.18792295, y: 0.26566234}
+      BindPerU: 1.2209762
+      BindPerV: 1.4386271
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.12265968, y: 0.27483466}
+      BindPerU: 1.0862042
+      BindPerV: 1.4337459
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.87733936, y: 0.27483466}
+      BindPerU: 1.0985388
+      BindPerV: 1.4185886
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.8120761, y: 0.26566234}
+      BindPerU: 1.2259895
+      BindPerV: 1.424688
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.7597264, y: 0.25710234}
+      BindPerU: 1.2318015
+      BindPerV: 1.3199167
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.72048664, y: 0.27882364}
+      BindPerU: 1.162732
+      BindPerV: 1.2246419
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.67263937, y: 0.28921333}
+      BindPerU: 1.1183826
+      BindPerV: 1.0559245
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.6306163, y: 0.31755435}
+      BindPerU: 1.0214393
+      BindPerV: 1.0715863
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.5751734, y: 0.3347757}
+      BindPerU: 0.9348548
+      BindPerV: 1.3473814
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.5291734, y: 0.34034237}
+      BindPerU: 1.0105789
+      BindPerV: 1.4276538
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.47082567, y: 0.34034237}
+      BindPerU: 1.0124352
+      BindPerV: 1.4320207
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.42482567, y: 0.3347757}
+      BindPerU: 0.9325825
+      BindPerV: 1.3519456
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.36938274, y: 0.31755435}
+      BindPerU: 1.0215782
+      BindPerV: 1.0756278
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.32363307, y: 0.300594}
+      BindPerU: 1.1216042
+      BindPerV: 1.0521502
+      Valid: 1
+  - Zone: ArmL
+    Points:
+    - Slot: 3
+      Uv: {x: 0.70438004, y: 0.6964264}
+      BindPerU: 1.0538727
+      BindPerV: 1.2075459
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.711383, y: 0.6838121}
+      BindPerU: 1.0810907
+      BindPerV: 1.1090255
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.71539557, y: 0.6583307}
+      BindPerU: 1.2698169
+      BindPerV: 1.0800186
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.7193464, y: 0.6447107}
+      BindPerU: 1.3434725
+      BindPerV: 1.2025882
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.095529795, y: 0.96727234}
+      BindPerU: 0.8096424
+      BindPerV: 0.94462883
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.101395845, y: 0.5843137}
+      BindPerU: 0.9936297
+      BindPerV: 0.7219814
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.09966636, y: 0.614332}
+      BindPerU: 1.0694984
+      BindPerV: 0.6603938
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.096606016, y: 0.6315724}
+      BindPerU: 1.3402368
+      BindPerV: 0.70817524
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.088136435, y: 0.6622227}
+      BindPerU: 1.6790104
+      BindPerV: 0.7547347
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.09100032, y: 0.68775463}
+      BindPerU: 1.1658733
+      BindPerV: 0.66980815
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.086872816, y: 0.7155333}
+      BindPerU: 1.0517092
+      BindPerV: 0.7444239
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.07174301, y: 0.73561865}
+      BindPerU: 0.84528947
+      BindPerV: 0.8330292
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.06985593, y: 0.7629526}
+      BindPerU: 0.75829035
+      BindPerV: 0.86001307
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.6658926, y: 0.6356897}
+      BindPerU: 1.4274027
+      BindPerV: 1.1204071
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.6792463, y: 0.6441054}
+      BindPerU: 1.3463032
+      BindPerV: 1.1556263
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.6773726, y: 0.6666637}
+      BindPerU: 1.2070177
+      BindPerV: 1.0975914
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.105992556, y: 0.8492727}
+      BindPerU: 0.66912746
+      BindPerV: 0.7675315
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.10468292, y: 0.87867934}
+      BindPerU: 0.67569625
+      BindPerV: 0.73062
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.121459246, y: 0.90636104}
+      BindPerU: 0.5558734
+      BindPerV: 0.7168743
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.12341952, y: 0.9296797}
+      BindPerU: 0.6240316
+      BindPerV: 0.70967853
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.121886015, y: 0.9423797}
+      BindPerU: 0.6230315
+      BindPerV: 0.72926825
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.13409615, y: 0.5850394}
+      BindPerU: 0.88415617
+      BindPerV: 0.6071801
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.1277132, y: 0.60789704}
+      BindPerU: 0.9821628
+      BindPerV: 0.6472151
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.11926007, y: 0.645644}
+      BindPerU: 1.0300183
+      BindPerV: 0.6154508
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.12116933, y: 0.6680367}
+      BindPerU: 0.82324654
+      BindPerV: 0.58139664
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.11412263, y: 0.693126}
+      BindPerU: 0.8314333
+      BindPerV: 0.65758336
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.1207695, y: 0.714034}
+      BindPerU: 0.7689911
+      BindPerV: 0.7023259
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.117486, y: 0.73267335}
+      BindPerU: 0.7682371
+      BindPerV: 0.72438174
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.11629605, y: 0.7584596}
+      BindPerU: 0.73148185
+      BindPerV: 0.6578223
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.111599684, y: 0.78140634}
+      BindPerU: 0.669247
+      BindPerV: 0.66908145
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.10466361, y: 0.80848795}
+      BindPerU: 0.6950556
+      BindPerV: 0.71000516
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.10391617, y: 0.83345175}
+      BindPerU: 0.67672104
+      BindPerV: 0.7718264
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.14390683, y: 0.84883875}
+      BindPerU: 0.7177936
+      BindPerV: 0.7192421
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.14769292, y: 0.88045835}
+      BindPerU: 0.7226308
+      BindPerV: 0.66286886
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.14588952, y: 0.89889175}
+      BindPerU: 0.72067976
+      BindPerV: 0.67110926
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.15861344, y: 0.91296035}
+      BindPerU: 0.7787762
+      BindPerV: 0.65801316
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.16700006, y: 0.9351987}
+      BindPerU: 0.8287752
+      BindPerV: 0.657153
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.1606834, y: 0.5933554}
+      BindPerU: 0.83749235
+      BindPerV: 0.6178889
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.15717316, y: 0.6120487}
+      BindPerU: 0.8634488
+      BindPerV: 0.6981951
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.15232587, y: 0.6450207}
+      BindPerU: 0.8914093
+      BindPerV: 0.64355284
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.15244961, y: 0.67138296}
+      BindPerU: 0.82445323
+      BindPerV: 0.59991795
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.15184593, y: 0.6892824}
+      BindPerU: 0.8374215
+      BindPerV: 0.6441232
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.15033603, y: 0.7082457}
+      BindPerU: 0.81735367
+      BindPerV: 0.70409256
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.1486628, y: 0.7279353}
+      BindPerU: 0.7819002
+      BindPerV: 0.7098067
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.14033246, y: 0.75879794}
+      BindPerU: 0.74582344
+      BindPerV: 0.6513704
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.14498591, y: 0.7786214}
+      BindPerU: 0.72026354
+      BindPerV: 0.64199793
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.14184284, y: 0.806216}
+      BindPerU: 0.69612634
+      BindPerV: 0.64325744
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.14052296, y: 0.8208284}
+      BindPerU: 0.69579196
+      BindPerV: 0.6759257
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.18281937, y: 0.85330075}
+      BindPerU: 0.7059192
+      BindPerV: 0.6512511
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.19175649, y: 0.8687811}
+      BindPerU: 0.7232055
+      BindPerV: 0.6761982
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.18350911, y: 0.8941217}
+      BindPerU: 0.7463772
+      BindPerV: 0.6435955
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.19260907, y: 0.90946865}
+      BindPerU: 0.7338187
+      BindPerV: 0.6500597
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.19383621, y: 0.9273281}
+      BindPerU: 0.75697345
+      BindPerV: 0.6121836
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.19143605, y: 0.5888646}
+      BindPerU: 0.73483676
+      BindPerV: 0.6744009
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.1871767, y: 0.6148897}
+      BindPerU: 0.82717764
+      BindPerV: 0.71068907
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.18294597, y: 0.64855605}
+      BindPerU: 0.841021
+      BindPerV: 0.6832484
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.180686, y: 0.6678857}
+      BindPerU: 0.8395527
+      BindPerV: 0.62864953
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.1789732, y: 0.6860257}
+      BindPerU: 0.8340987
+      BindPerV: 0.65887505
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.17693973, y: 0.7117041}
+      BindPerU: 0.7992523
+      BindPerV: 0.73404
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.17562294, y: 0.73174}
+      BindPerU: 0.7772837
+      BindPerV: 0.69686323
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.17606235, y: 0.76288134}
+      BindPerU: 0.7547829
+      BindPerV: 0.6595775
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.1785562, y: 0.78076535}
+      BindPerU: 0.72543985
+      BindPerV: 0.66714346
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.1745727, y: 0.799366}
+      BindPerU: 0.7008174
+      BindPerV: 0.64770967
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.17951274, y: 0.8231094}
+      BindPerU: 0.6966865
+      BindPerV: 0.64219487
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.21494603, y: 0.83626467}
+      BindPerU: 0.7196271
+      BindPerV: 0.6743833
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.21870637, y: 0.86887574}
+      BindPerU: 0.75432026
+      BindPerV: 0.70417875
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.22007942, y: 0.8857277}
+      BindPerU: 0.73482454
+      BindPerV: 0.7328704
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.22239566, y: 0.90234774}
+      BindPerU: 0.67342883
+      BindPerV: 0.69243276
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.22390628, y: 0.9191534}
+      BindPerU: 0.7585309
+      BindPerV: 0.5198638
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.22311306, y: 0.59734565}
+      BindPerU: 0.74547803
+      BindPerV: 0.7678518
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.21876979, y: 0.618009}
+      BindPerU: 0.7765435
+      BindPerV: 0.74896795
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.21590257, y: 0.6384533}
+      BindPerU: 0.7795267
+      BindPerV: 0.71492946
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.23158956, y: 0.67793274}
+      BindPerU: 0.73191196
+      BindPerV: 0.65278417
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.2300396, y: 0.68977374}
+      BindPerU: 0.7318018
+      BindPerV: 0.6717271
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.22776675, y: 0.708251}
+      BindPerU: 0.723442
+      BindPerV: 0.72629654
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.2252531, y: 0.734296}
+      BindPerU: 0.7024374
+      BindPerV: 0.70039517
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.22473979, y: 0.7643747}
+      BindPerU: 0.69472504
+      BindPerV: 0.68696094
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.22617269, y: 0.7864904}
+      BindPerU: 0.68850136
+      BindPerV: 0.6928235
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.21009278, y: 0.80399173}
+      BindPerU: 0.7052395
+      BindPerV: 0.68149114
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.21256638, y: 0.82012606}
+      BindPerU: 0.7057817
+      BindPerV: 0.6579573
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.2627728, y: 0.8432997}
+      BindPerU: 0.6932278
+      BindPerV: 0.6688439
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.26428604, y: 0.8533687}
+      BindPerU: 0.6948211
+      BindPerV: 0.7177863
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.2688625, y: 0.88198704}
+      BindPerU: 0.6833979
+      BindPerV: 0.7403334
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.27357602, y: 0.8940241}
+      BindPerU: 0.7546222
+      BindPerV: 0.6829991
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.27218556, y: 0.91867596}
+      BindPerU: 0.7877694
+      BindPerV: 0.6281193
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.273283, y: 0.6038127}
+      BindPerU: 0.78812546
+      BindPerV: 0.8306848
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.27036977, y: 0.6201303}
+      BindPerU: 0.76336455
+      BindPerV: 0.74298996
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.2668693, y: 0.64404935}
+      BindPerU: 0.739471
+      BindPerV: 0.7147326
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.26152635, y: 0.6797464}
+      BindPerU: 0.72341746
+      BindPerV: 0.67605793
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.25911975, y: 0.696934}
+      BindPerU: 0.71404964
+      BindPerV: 0.6740573
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.26649284, y: 0.7158196}
+      BindPerU: 0.709774
+      BindPerV: 0.7155803
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.2646997, y: 0.734863}
+      BindPerU: 0.70154476
+      BindPerV: 0.70876133
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.26329303, y: 0.76428133}
+      BindPerU: 0.695876
+      BindPerV: 0.7003775
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.25449944, y: 0.7854577}
+      BindPerU: 0.69056875
+      BindPerV: 0.69106644
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.2555163, y: 0.7957173}
+      BindPerU: 0.69060034
+      BindPerV: 0.69203705
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.26043677, y: 0.8289854}
+      BindPerU: 0.69124466
+      BindPerV: 0.6774023
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.3004427, y: 0.83544}
+      BindPerU: 0.697605
+      BindPerV: 0.6700579
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.29321933, y: 0.8517677}
+      BindPerU: 0.7048505
+      BindPerV: 0.70878685
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.29713917, y: 0.8786927}
+      BindPerU: 0.7370492
+      BindPerV: 0.7033103
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.2996788, y: 0.89757603}
+      BindPerU: 0.7799556
+      BindPerV: 0.53291184
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.30129266, y: 0.918519}
+      BindPerU: 0.8187419
+      BindPerV: 0.6436989
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.30274677, y: 0.93950605}
+      BindPerU: 0.8303052
+      BindPerV: 0.6382699
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.29733634, y: 0.63092035}
+      BindPerU: 0.7401694
+      BindPerV: 0.7221317
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.2949295, y: 0.647698}
+      BindPerU: 0.7375311
+      BindPerV: 0.7097045
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.30011964, y: 0.6766347}
+      BindPerU: 0.73518354
+      BindPerV: 0.6827175
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.29802322, y: 0.6929374}
+      BindPerU: 0.7240814
+      BindPerV: 0.6828796
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.29594636, y: 0.709889}
+      BindPerU: 0.7217004
+      BindPerV: 0.7079077
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.29263282, y: 0.74668866}
+      BindPerU: 0.70759094
+      BindPerV: 0.70936084
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.29212594, y: 0.763666}
+      BindPerU: 0.7022846
+      BindPerV: 0.706014
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.29240227, y: 0.7789526}
+      BindPerU: 0.7022121
+      BindPerV: 0.68722093
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.2939198, y: 0.7970333}
+      BindPerU: 0.6958222
+      BindPerV: 0.6731357
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.2981062, y: 0.82217795}
+      BindPerU: 0.6911347
+      BindPerV: 0.6670017
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.33051324, y: 0.8374781}
+      BindPerU: 0.6939441
+      BindPerV: 0.6522569
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.33330917, y: 0.8524516}
+      BindPerU: 0.708319
+      BindPerV: 0.6632301
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.3356495, y: 0.8676443}
+      BindPerU: 0.72501475
+      BindPerV: 0.681484
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.33861256, y: 0.8949577}
+      BindPerU: 0.7793019
+      BindPerV: 0.5516905
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.3387661, y: 0.91189104}
+      BindPerU: 0.7984308
+      BindPerV: 0.65436065
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.33846927, y: 0.9385843}
+      BindPerU: 0.7810229
+      BindPerV: 0.64176774
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.33182597, y: 0.63129604}
+      BindPerU: 0.76494664
+      BindPerV: 0.6866171
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.32854915, y: 0.6524574}
+      BindPerU: 0.72072035
+      BindPerV: 0.68216294
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.34082985, y: 0.6805914}
+      BindPerU: 0.69920194
+      BindPerV: 0.6843499
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.33972645, y: 0.695141}
+      BindPerU: 0.70801777
+      BindPerV: 0.6945507
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.33899283, y: 0.7105563}
+      BindPerU: 0.7109132
+      BindPerV: 0.71054524
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.33812594, y: 0.733718}
+      BindPerU: 0.7054174
+      BindPerV: 0.7174695
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.34235573, y: 0.7618584}
+      BindPerU: 0.69919705
+      BindPerV: 0.71258426
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.3330295, y: 0.779809}
+      BindPerU: 0.68824404
+      BindPerV: 0.70331895
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.33651328, y: 0.79632634}
+      BindPerU: 0.67356265
+      BindPerV: 0.66945034
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.34326625, y: 0.81831765}
+      BindPerU: 0.6657128
+      BindPerV: 0.65862775
+      Valid: 1
+  - Zone: ArmR
+    Points:
+    - Slot: 16
+      Uv: {x: 0.908406, y: 0.14161734}
+      BindPerU: 1.3641225
+      BindPerV: 0.7153489
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.90534616, y: 0.124379}
+      BindPerU: 1.0845863
+      BindPerV: 0.6612077
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.90361905, y: 0.09436033}
+      BindPerU: 1.00819
+      BindPerV: 0.72978926
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.90948296, y: 0.4773133}
+      BindPerU: 0.80815935
+      BindPerV: 0.9679909
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.28065264, y: 0.6447108}
+      BindPerU: 1.3564793
+      BindPerV: 1.2193254
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.28460336, y: 0.6583307}
+      BindPerU: 1.2808653
+      BindPerV: 1.0997069
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.28861606, y: 0.68381196}
+      BindPerU: 1.0829092
+      BindPerV: 1.1156344
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.295619, y: 0.6964264}
+      BindPerU: 1.0525589
+      BindPerV: 1.2101647
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.32262647, y: 0.6666637}
+      BindPerU: 1.2052971
+      BindPerV: 1.0990947
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.32075274, y: 0.6441054}
+      BindPerU: 1.3467659
+      BindPerV: 1.1578692
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.33410645, y: 0.6356897}
+      BindPerU: 1.4298037
+      BindPerV: 1.1262971
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.9351597, y: 0.27299967}
+      BindPerU: 0.75676703
+      BindPerV: 0.87097347
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.9332664, y: 0.245665}
+      BindPerU: 0.8456476
+      BindPerV: 0.8498379
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.9181392, y: 0.22558033}
+      BindPerU: 1.0535185
+      BindPerV: 0.7545694
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.9140136, y: 0.197801}
+      BindPerU: 1.1690048
+      BindPerV: 0.67601
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.91687274, y: 0.17226766}
+      BindPerU: 1.7000157
+      BindPerV: 0.76555204
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8857596, y: 0.15569067}
+      BindPerU: 1.0353289
+      BindPerV: 0.61902577
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8773031, y: 0.117944665}
+      BindPerU: 0.9907282
+      BindPerV: 0.6467446
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8709228, y: 0.09508601}
+      BindPerU: 0.8908401
+      BindPerV: 0.61094844
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8831227, y: 0.45242703}
+      BindPerU: 0.6209927
+      BindPerV: 0.7435334
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8815861, y: 0.43972635}
+      BindPerU: 0.62236655
+      BindPerV: 0.7212758
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.88355565, y: 0.41640833}
+      BindPerU: 0.55372876
+      BindPerV: 0.7280194
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.9003265, y: 0.38872668}
+      BindPerU: 0.6763807
+      BindPerV: 0.7337216
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.89901924, y: 0.35931933}
+      BindPerU: 0.66944796
+      BindPerV: 0.7683271
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.9010956, y: 0.34349835}
+      BindPerU: 0.67707336
+      BindPerV: 0.7723083
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.90034986, y: 0.31853402}
+      BindPerU: 0.69621927
+      BindPerV: 0.710654
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8934164, y: 0.29145235}
+      BindPerU: 0.6700638
+      BindPerV: 0.6726813
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.888716, y: 0.268507}
+      BindPerU: 0.7328355
+      BindPerV: 0.66257966
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8875227, y: 0.24271967}
+      BindPerU: 0.77059466
+      BindPerV: 0.7304729
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8842428, y: 0.224081}
+      BindPerU: 0.77168894
+      BindPerV: 0.70823336
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8908894, y: 0.20317268}
+      BindPerU: 0.83337694
+      BindPerV: 0.6628586
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.88384223, y: 0.17808501}
+      BindPerU: 0.8266247
+      BindPerV: 0.5856129
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8526926, y: 0.15506701}
+      BindPerU: 0.89341766
+      BindPerV: 0.64510566
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8478401, y: 0.12209467}
+      BindPerU: 0.86726564
+      BindPerV: 0.6975736
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.84432983, y: 0.10340167}
+      BindPerU: 0.8418581
+      BindPerV: 0.61940175
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8456166, y: 0.460336}
+      BindPerU: 0.81202704
+      BindPerV: 0.6662622
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8463962, y: 0.42300734}
+      BindPerU: 0.78005344
+      BindPerV: 0.6654706
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8591225, y: 0.4089377}
+      BindPerU: 0.7210041
+      BindPerV: 0.6755419
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.85731983, y: 0.390505}
+      BindPerU: 0.7239283
+      BindPerV: 0.6642143
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.86111, y: 0.358886}
+      BindPerU: 0.72011787
+      BindPerV: 0.7186125
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.86448646, y: 0.33087468}
+      BindPerU: 0.6979285
+      BindPerV: 0.6755201
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8631661, y: 0.3162627}
+      BindPerU: 0.6982585
+      BindPerV: 0.64393115
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.86002564, y: 0.28866866}
+      BindPerU: 0.72200376
+      BindPerV: 0.643657
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.86467934, y: 0.26884535}
+      BindPerU: 0.7466955
+      BindPerV: 0.65316826
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.85634923, y: 0.23798235}
+      BindPerU: 0.78365636
+      BindPerV: 0.7109744
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.854676, y: 0.21829267}
+      BindPerU: 0.8190167
+      BindPerV: 0.70647424
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8531592, y: 0.19932835}
+      BindPerU: 0.8397225
+      BindPerV: 0.64594793
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8525665, y: 0.18143}
+      BindPerU: 0.82602566
+      BindPerV: 0.60175496
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8220656, y: 0.15860166}
+      BindPerU: 0.84196556
+      BindPerV: 0.68349004
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.81783366, y: 0.124936335}
+      BindPerU: 0.82963514
+      BindPerV: 0.7102228
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.81357646, y: 0.098912}
+      BindPerU: 0.737243
+      BindPerV: 0.67409277
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.81117654, y: 0.43737435}
+      BindPerU: 0.7569724
+      BindPerV: 0.61315584
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8124068, y: 0.419516}
+      BindPerU: 0.73406345
+      BindPerV: 0.6503536
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8215029, y: 0.4041687}
+      BindPerU: 0.74674004
+      BindPerV: 0.6445279
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8214724, y: 0.38661003}
+      BindPerU: 0.7405446
+      BindPerV: 0.6574808
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8221929, y: 0.363348}
+      BindPerU: 0.7070743
+      BindPerV: 0.6505539
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.825506, y: 0.33315602}
+      BindPerU: 0.69782466
+      BindPerV: 0.6418655
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8304393, y: 0.30941167}
+      BindPerU: 0.7019126
+      BindPerV: 0.6481723
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.82645917, y: 0.2908117}
+      BindPerU: 0.726116
+      BindPerV: 0.6683849
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8289528, y: 0.272928}
+      BindPerU: 0.7557797
+      BindPerV: 0.6606176
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8293896, y: 0.24178733}
+      BindPerU: 0.77804303
+      BindPerV: 0.6964048
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8280697, y: 0.22175}
+      BindPerU: 0.80031633
+      BindPerV: 0.73418903
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.82603955, y: 0.19607098}
+      BindPerU: 0.8354422
+      BindPerV: 0.6590972
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.8243294, y: 0.17793167}
+      BindPerU: 0.840244
+      BindPerV: 0.62897253
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.78910947, y: 0.148499}
+      BindPerU: 0.7800235
+      BindPerV: 0.7149018
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7862432, y: 0.12805499}
+      BindPerU: 0.7772709
+      BindPerV: 0.74871886
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7818997, y: 0.10739267}
+      BindPerU: 0.74602133
+      BindPerV: 0.7669445
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.77926636, y: 0.446736}
+      BindPerU: 0.73263395
+      BindPerV: 0.61807007
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.78261924, y: 0.41239432}
+      BindPerU: 0.6732559
+      BindPerV: 0.69172037
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7849295, y: 0.395775}
+      BindPerU: 0.73461527
+      BindPerV: 0.7320882
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7863033, y: 0.37892234}
+      BindPerU: 0.7542414
+      BindPerV: 0.70304036
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.790066, y: 0.34631237}
+      BindPerU: 0.7194777
+      BindPerV: 0.673715
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.79244685, y: 0.3301727}
+      BindPerU: 0.7058924
+      BindPerV: 0.6576351
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.79491615, y: 0.31403935}
+      BindPerU: 0.70574623
+      BindPerV: 0.68157923
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7788427, y: 0.296538}
+      BindPerU: 0.6887138
+      BindPerV: 0.6931422
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7802727, y: 0.274421}
+      BindPerU: 0.6948374
+      BindPerV: 0.6871286
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7797661, y: 0.244343}
+      BindPerU: 0.7025512
+      BindPerV: 0.69965786
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7772491, y: 0.218298}
+      BindPerU: 0.72314644
+      BindPerV: 0.725687
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.774976, y: 0.19982101}
+      BindPerU: 0.7318922
+      BindPerV: 0.6710872
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7734263, y: 0.18797934}
+      BindPerU: 0.7320475
+      BindPerV: 0.65202355
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7381494, y: 0.15409635}
+      BindPerU: 0.73902124
+      BindPerV: 0.7146486
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7346494, y: 0.13017733}
+      BindPerU: 0.76291937
+      BindPerV: 0.7428878
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7317326, y: 0.113858335}
+      BindPerU: 0.78738916
+      BindPerV: 0.83028084
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7328255, y: 0.4287227}
+      BindPerU: 0.7869155
+      BindPerV: 0.6273466
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7314327, y: 0.40407035}
+      BindPerU: 0.7540444
+      BindPerV: 0.68150526
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7361462, y: 0.39203265}
+      BindPerU: 0.68287957
+      BindPerV: 0.7390521
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.74072933, y: 0.36341533}
+      BindPerU: 0.6939223
+      BindPerV: 0.7166752
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7422428, y: 0.35334697}
+      BindPerU: 0.6923376
+      BindPerV: 0.6679924
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.74457645, y: 0.33903232}
+      BindPerU: 0.69054043
+      BindPerV: 0.6766965
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.74949956, y: 0.3057657}
+      BindPerU: 0.6902266
+      BindPerV: 0.69195163
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7505195, y: 0.295506}
+      BindPerU: 0.69022554
+      BindPerV: 0.6909971
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7417164, y: 0.274329}
+      BindPerU: 0.6955717
+      BindPerV: 0.6999056
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7403128, y: 0.24491}
+      BindPerU: 0.7010171
+      BindPerV: 0.7076539
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.73851943, y: 0.225865}
+      BindPerU: 0.70943356
+      BindPerV: 0.7148912
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7458956, y: 0.20698066}
+      BindPerU: 0.7139653
+      BindPerV: 0.6730458
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.74348927, y: 0.18979335}
+      BindPerU: 0.7228212
+      BindPerV: 0.67503047
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7100823, y: 0.15774433}
+      BindPerU: 0.73653615
+      BindPerV: 0.70940214
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.70767665, y: 0.14096667}
+      BindPerU: 0.7396202
+      BindPerV: 0.7222491
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7022629, y: 0.44955167}
+      BindPerU: 0.82977617
+      BindPerV: 0.6376923
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7037194, y: 0.42856535}
+      BindPerU: 0.81841993
+      BindPerV: 0.6426916
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.70532894, y: 0.40762234}
+      BindPerU: 0.7792978
+      BindPerV: 0.5315497
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7078695, y: 0.38873935}
+      BindPerU: 0.73637396
+      BindPerV: 0.7019065
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.71179223, y: 0.36181435}
+      BindPerU: 0.703956
+      BindPerV: 0.70742756
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7045696, y: 0.345487}
+      BindPerU: 0.6972383
+      BindPerV: 0.669393
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7069063, y: 0.33222535}
+      BindPerU: 0.69017124
+      BindPerV: 0.66641295
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7110965, y: 0.30707967}
+      BindPerU: 0.6948067
+      BindPerV: 0.67297274
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.71261215, y: 0.28899968}
+      BindPerU: 0.7018185
+      BindPerV: 0.68701595
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.7128861, y: 0.27371266}
+      BindPerU: 0.70168155
+      BindPerV: 0.7056148
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.71237636, y: 0.256736}
+      BindPerU: 0.70700616
+      BindPerV: 0.708421
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.70906615, y: 0.21993534}
+      BindPerU: 0.72087306
+      BindPerV: 0.7069397
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.70698667, y: 0.20298433}
+      BindPerU: 0.7234682
+      BindPerV: 0.6817441
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.70488954, y: 0.18668099}
+      BindPerU: 0.7346062
+      BindPerV: 0.68166256
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.6764622, y: 0.16250335}
+      BindPerU: 0.7201294
+      BindPerV: 0.68189853
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.67318916, y: 0.14134334}
+      BindPerU: 0.7647734
+      BindPerV: 0.68664
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.66654277, y: 0.44863102}
+      BindPerU: 0.7805738
+      BindPerV: 0.64122266
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.6662462, y: 0.42193735}
+      BindPerU: 0.79823136
+      BindPerV: 0.65306264
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.6663997, y: 0.40500435}
+      BindPerU: 0.7790315
+      BindPerV: 0.55076236
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.6693628, y: 0.37769103}
+      BindPerU: 0.7244415
+      BindPerV: 0.67990535
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.6717024, y: 0.36249733}
+      BindPerU: 0.7077529
+      BindPerV: 0.6617639
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.6745031, y: 0.34752402}
+      BindPerU: 0.69303256
+      BindPerV: 0.65130305
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.66174626, y: 0.328365}
+      BindPerU: 0.66543025
+      BindPerV: 0.6581475
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.6684964, y: 0.30637333}
+      BindPerU: 0.672747
+      BindPerV: 0.6691906
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.67198586, y: 0.289856}
+      BindPerU: 0.6878746
+      BindPerV: 0.7030265
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.66265583, y: 0.271904}
+      BindPerU: 0.69850105
+      BindPerV: 0.7123602
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.6668825, y: 0.243764}
+      BindPerU: 0.7047087
+      BindPerV: 0.71658397
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.66601944, y: 0.22060233}
+      BindPerU: 0.7107329
+      BindPerV: 0.7095738
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.6652863, y: 0.20518799}
+      BindPerU: 0.70781976
+      BindPerV: 0.6934381
+      Valid: 1
+    - Slot: 16
+      Uv: {x: 0.6641829, y: 0.19063734}
+      BindPerU: 0.6989561
+      BindPerV: 0.6832902
+      Valid: 1
+  - Zone: LegL
+    Points:
+    - Slot: 3
+      Uv: {x: 0.7561197, y: 0.15429501}
+      BindPerU: 1.0489618
+      BindPerV: 1.3130552
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.78458977, y: 0.16157967}
+      BindPerU: 1.2213116
+      BindPerV: 1.3084022
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.8069061, y: 0.16849299}
+      BindPerU: 1.2635266
+      BindPerV: 1.4496092
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.84260607, y: 0.17571634}
+      BindPerU: 1.3972684
+      BindPerV: 1.5162603
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.9123697, y: 0.163101}
+      BindPerU: 1.3440291
+      BindPerV: 0.9408119
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.9313698, y: 0.17700236}
+      BindPerU: 1.4403168
+      BindPerV: 0.989171
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.9613296, y: 0.197185}
+      BindPerU: 1.3062422
+      BindPerV: 0.89405775
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.97257996, y: 0.20167701}
+      BindPerU: 1.2835445
+      BindPerV: 0.66802317
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.5060526, y: 0.067838006}
+      BindPerU: 0.9576252
+      BindPerV: 1.2074293
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.5431894, y: 0.086038016}
+      BindPerU: 0.8835679
+      BindPerV: 0.9933024
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.55519295, y: 0.107937336}
+      BindPerU: 0.8843845
+      BindPerV: 0.90591353
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.5828761, y: 0.11819166}
+      BindPerU: 1.0143642
+      BindPerV: 0.9670489
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.60287905, y: 0.12827468}
+      BindPerU: 1.0630035
+      BindPerV: 0.9865445
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.635646, y: 0.14142734}
+      BindPerU: 1.002352
+      BindPerV: 1.0931493
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.6939664, y: 0.14462467}
+      BindPerU: 1.0460285
+      BindPerV: 1.1863377
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.71517277, y: 0.15029432}
+      BindPerU: 1.0313082
+      BindPerV: 1.2186664
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.8002722, y: 0.9553327}
+      BindPerU: 1.05473
+      BindPerV: 1.0120366
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.808946, y: 0.12841967}
+      BindPerU: 1.0907849
+      BindPerV: 1.1864773
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.8455428, y: 0.13128601}
+      BindPerU: 1.1583326
+      BindPerV: 1.1789559
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.8765291, y: 0.13546534}
+      BindPerU: 1.1257883
+      BindPerV: 1.1933401
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.9005164, y: 0.14789134}
+      BindPerU: 1.1697932
+      BindPerV: 1.1767583
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.9188534, y: 0.15435667}
+      BindPerU: 1.22104
+      BindPerV: 1.0996702
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.9507531, y: 0.15624666}
+      BindPerU: 1.2501962
+      BindPerV: 1.1347277
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.5393833, y: 0.021484336}
+      BindPerU: 1.2387353
+      BindPerV: 1.1343911
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.5400431, y: 0.890965}
+      BindPerU: 1.1014073
+      BindPerV: 0.97312254
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.55653644, y: 0.8999087}
+      BindPerU: 1.0303485
+      BindPerV: 0.9412658
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.5884867, y: 0.9169044}
+      BindPerU: 1.1021185
+      BindPerV: 0.9500997
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.6054163, y: 0.92524034}
+      BindPerU: 1.1389602
+      BindPerV: 0.9361317
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.6384661, y: 0.93892175}
+      BindPerU: 0.98672956
+      BindPerV: 0.9226466
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.64986956, y: 0.100911}
+      BindPerU: 1.1139303
+      BindPerV: 1.0652343
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.7306564, y: 0.9592344}
+      BindPerU: 1.0315366
+      BindPerV: 1.0215775
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.7786226, y: 0.9588537}
+      BindPerU: 1.0278943
+      BindPerV: 1.0279431
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.8050926, y: 0.9220937}
+      BindPerU: 1.1329525
+      BindPerV: 0.9887653
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.83883286, y: 0.91446567}
+      BindPerU: 1.1484922
+      BindPerV: 0.98073286
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.86344314, y: 0.914352}
+      BindPerU: 1.1609066
+      BindPerV: 1.0008982
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.8921292, y: 0.900887}
+      BindPerU: 1.0889144
+      BindPerV: 1.0058583
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.9110193, y: 0.897234}
+      BindPerU: 1.0996884
+      BindPerV: 1.0030993
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.9488728, y: 0.89144}
+      BindPerU: 1.1347923
+      BindPerV: 1.0413562
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.96456265, y: 0.875964}
+      BindPerU: 1.0875396
+      BindPerV: 1.0723846
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.5262728, y: 0.840415}
+      BindPerU: 1.0810313
+      BindPerV: 1.0109221
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.54532695, y: 0.8499727}
+      BindPerU: 1.0480627
+      BindPerV: 1.0072595
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.58473563, y: 0.8677394}
+      BindPerU: 1.1092649
+      BindPerV: 0.9525667
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.59611917, y: 0.87272364}
+      BindPerU: 1.1868021
+      BindPerV: 0.95316577
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.6194067, y: 0.88203096}
+      BindPerU: 1.226575
+      BindPerV: 0.95796895
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.64152, y: 0.9074517}
+      BindPerU: 1.0698142
+      BindPerV: 0.9417768
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.6868131, y: 0.9202387}
+      BindPerU: 1.0365976
+      BindPerV: 0.9678062
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.7439625, y: 0.9262204}
+      BindPerU: 1.1155212
+      BindPerV: 0.9937563
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.7662296, y: 0.926003}
+      BindPerU: 1.0939342
+      BindPerV: 1.0034921
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.8018131, y: 0.873193}
+      BindPerU: 1.1528897
+      BindPerV: 1.0316848
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.834389, y: 0.86935943}
+      BindPerU: 1.1444386
+      BindPerV: 1.0209293
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.851449, y: 0.86671704}
+      BindPerU: 1.1333996
+      BindPerV: 1.0099831
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.88775325, y: 0.86061835}
+      BindPerU: 1.0811663
+      BindPerV: 1.0158606
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.90639305, y: 0.85789734}
+      BindPerU: 1.0891014
+      BindPerV: 1.0280695
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.93178296, y: 0.83832437}
+      BindPerU: 1.0971961
+      BindPerV: 1.1166496
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.9498596, y: 0.8352344}
+      BindPerU: 1.0836294
+      BindPerV: 1.1177833
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.54155636, y: 0.81621933}
+      BindPerU: 1.0858604
+      BindPerV: 1.0359802
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.562783, y: 0.80992}
+      BindPerU: 1.0884722
+      BindPerV: 1.0634594
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.59001327, y: 0.821575}
+      BindPerU: 1.1435066
+      BindPerV: 1.0240169
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.60940623, y: 0.8452944}
+      BindPerU: 1.1987649
+      BindPerV: 0.9587211
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.6269026, y: 0.85146636}
+      BindPerU: 1.2326565
+      BindPerV: 0.9728035
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.65692925, y: 0.8615567}
+      BindPerU: 1.1168872
+      BindPerV: 0.981472
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.68916917, y: 0.8698804}
+      BindPerU: 0.9121311
+      BindPerV: 1.0118626
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.74636936, y: 0.8749497}
+      BindPerU: 1.1883861
+      BindPerV: 1.0204785
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.78009987, y: 0.8830311}
+      BindPerU: 1.1410452
+      BindPerV: 1.0129182
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.7963097, y: 0.8310961}
+      BindPerU: 1.1591464
+      BindPerV: 1.0598629
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.8273027, y: 0.8286243}
+      BindPerU: 1.1443006
+      BindPerV: 1.0879303
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.8601234, y: 0.82458764}
+      BindPerU: 1.100125
+      BindPerV: 1.1129848
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.8719094, y: 0.8228671}
+      BindPerU: 1.086402
+      BindPerV: 1.1101309
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.8955028, y: 0.8196073}
+      BindPerU: 1.0792341
+      BindPerV: 1.123966
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.9241893, y: 0.815346}
+      BindPerU: 1.1004032
+      BindPerV: 1.1385741
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.9380224, y: 0.804339}
+      BindPerU: 1.1145319
+      BindPerV: 1.1056559
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.5540159, y: 0.77811533}
+      BindPerU: 1.0950636
+      BindPerV: 1.0605966
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.581743, y: 0.7824337}
+      BindPerU: 1.1659956
+      BindPerV: 1.0536999
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.60237265, y: 0.79129297}
+      BindPerU: 1.1904156
+      BindPerV: 1.0335019
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.6245334, y: 0.796024}
+      BindPerU: 1.1478832
+      BindPerV: 1.0296154
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.64787316, y: 0.81641227}
+      BindPerU: 1.2001213
+      BindPerV: 1.040404
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.6722529, y: 0.823955}
+      BindPerU: 0.8878971
+      BindPerV: 1.0152782
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.71894646, y: 0.8315277}
+      BindPerU: 1.2109002
+      BindPerV: 1.0419071
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.7429397, y: 0.83243436}
+      BindPerU: 1.2090129
+      BindPerV: 1.0462294
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.7738168, y: 0.8321376}
+      BindPerU: 1.1827474
+      BindPerV: 1.0433009
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.8083794, y: 0.7956647}
+      BindPerU: 1.1619086
+      BindPerV: 1.058093
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.8227227, y: 0.79488367}
+      BindPerU: 1.1151965
+      BindPerV: 1.0752355
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.85348296, y: 0.7926484}
+      BindPerU: 1.1165419
+      BindPerV: 1.113565
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.87029934, y: 0.791142}
+      BindPerU: 1.1128616
+      BindPerV: 1.1319273
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.8925731, y: 0.7718716}
+      BindPerU: 1.0945599
+      BindPerV: 1.1354282
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.9124756, y: 0.7682417}
+      BindPerU: 1.1060253
+      BindPerV: 1.1510831
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.92671585, y: 0.764551}
+      BindPerU: 1.128362
+      BindPerV: 1.1227127
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.57966924, y: 0.7330443}
+      BindPerU: 1.1409733
+      BindPerV: 1.0982093
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.5972254, y: 0.7416496}
+      BindPerU: 1.1450872
+      BindPerV: 1.0725868
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.62230015, y: 0.753112}
+      BindPerU: 1.1745378
+      BindPerV: 1.0822861
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.6294966, y: 0.75578266}
+      BindPerU: 1.1699449
+      BindPerV: 1.0740972
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.66706586, y: 0.76982194}
+      BindPerU: 1.1795361
+      BindPerV: 1.0823687
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.6939461, y: 0.7765146}
+      BindPerU: 0.7085816
+      BindPerV: 1.0595402
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.72686315, y: 0.79769534}
+      BindPerU: 1.177801
+      BindPerV: 1.0684736
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.76036954, y: 0.7979172}
+      BindPerU: 1.2224016
+      BindPerV: 1.0406576
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.77701974, y: 0.7973487}
+      BindPerU: 1.1870887
+      BindPerV: 1.038498
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.80517936, y: 0.7524163}
+      BindPerU: 1.1360083
+      BindPerV: 1.0163325
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.81793594, y: 0.752053}
+      BindPerU: 1.1103905
+      BindPerV: 1.0280112
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.84105587, y: 0.7513047}
+      BindPerU: 1.1246498
+      BindPerV: 1.0435456
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.85962296, y: 0.74229175}
+      BindPerU: 1.1000844
+      BindPerV: 1.0933341
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.885236, y: 0.748463}
+      BindPerU: 1.0949953
+      BindPerV: 1.1105019
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.8960159, y: 0.739003}
+      BindPerU: 1.1020144
+      BindPerV: 1.1397251
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.57754254, y: 0.6936157}
+      BindPerU: 1.0703152
+      BindPerV: 1.1246498
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.5933294, y: 0.701376}
+      BindPerU: 1.0998902
+      BindPerV: 1.1076113
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.6133156, y: 0.711154}
+      BindPerU: 1.1766676
+      BindPerV: 1.0945979
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.62904286, y: 0.7186807}
+      BindPerU: 1.1747363
+      BindPerV: 1.08958
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.64902306, y: 0.72807}
+      BindPerU: 1.1404376
+      BindPerV: 1.0805935
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.6724093, y: 0.7376067}
+      BindPerU: 1.1085951
+      BindPerV: 1.0723686
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.69691586, y: 0.744853}
+      BindPerU: 0.92140317
+      BindPerV: 1.0037572
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.7329626, y: 0.75202173}
+      BindPerU: 1.0451596
+      BindPerV: 1.0584605
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.7617595, y: 0.75490075}
+      BindPerU: 1.1802436
+      BindPerV: 0.9961044
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.772249, y: 0.7542558}
+      BindPerU: 1.1473184
+      BindPerV: 0.9935824
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.8000059, y: 0.7054183}
+      BindPerU: 1.0779686
+      BindPerV: 0.9880201
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.8119993, y: 0.7055766}
+      BindPerU: 1.0705152
+      BindPerV: 0.9910522
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.83711934, y: 0.70556265}
+      BindPerU: 1.100948
+      BindPerV: 1.0160722
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.85017586, y: 0.70538163}
+      BindPerU: 1.0966674
+      BindPerV: 1.0307543
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.8749325, y: 0.704649}
+      BindPerU: 1.1023356
+      BindPerV: 1.083555
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.8963299, y: 0.6980157}
+      BindPerU: 1.1077671
+      BindPerV: 1.20949
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.5941498, y: 0.6515894}
+      BindPerU: 1.0686493
+      BindPerV: 1.105065
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.6166997, y: 0.661634}
+      BindPerU: 1.0935935
+      BindPerV: 1.1153495
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.62886643, y: 0.6669963}
+      BindPerU: 1.1140527
+      BindPerV: 1.1091583
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.6495898, y: 0.67809606}
+      BindPerU: 1.1029736
+      BindPerV: 1.0692071
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.6625025, y: 0.6946576}
+      BindPerU: 1.1252302
+      BindPerV: 1.0827916
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.6850033, y: 0.70315045}
+      BindPerU: 1.0468172
+      BindPerV: 1.0195234
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.70710015, y: 0.70313436}
+      BindPerU: 0.9078036
+      BindPerV: 0.9209994
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.732486, y: 0.7050743}
+      BindPerU: 0.9210247
+      BindPerV: 0.9067147
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.75935364, y: 0.70492536}
+      BindPerU: 0.97266644
+      BindPerV: 0.94083065
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.7739465, y: 0.7059204}
+      BindPerU: 1.0759
+      BindPerV: 0.9543691
+      Valid: 1
+  - Zone: LegR
+    Points:
+    - Slot: 3
+      Uv: {x: 0.027418971, y: 0.20167701}
+      BindPerU: 1.2849884
+      BindPerV: 0.6775575
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.03866923, y: 0.197185}
+      BindPerU: 1.3070548
+      BindPerV: 0.9055916
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.068629265, y: 0.17700233}
+      BindPerU: 1.442452
+      BindPerV: 1.0000143
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.08762932, y: 0.163101}
+      BindPerU: 1.347739
+      BindPerV: 0.94403136
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.15739298, y: 0.17571634}
+      BindPerU: 1.3921834
+      BindPerV: 1.5188044
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.19309306, y: 0.16849299}
+      BindPerU: 1.2692548
+      BindPerV: 1.4448538
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.21540928, y: 0.16157967}
+      BindPerU: 1.2267556
+      BindPerV: 1.2961899
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.24387944, y: 0.15429501}
+      BindPerU: 1.0515192
+      BindPerV: 1.3008343
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.2848264, y: 0.15029432}
+      BindPerU: 1.033465
+      BindPerV: 1.2099805
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.30603266, y: 0.14462467}
+      BindPerU: 1.0483046
+      BindPerV: 1.1802591
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.36435306, y: 0.14142734}
+      BindPerU: 1.005563
+      BindPerV: 1.0935754
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.39712012, y: 0.12827466}
+      BindPerU: 1.0652548
+      BindPerV: 0.98499715
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.41712296, y: 0.11819167}
+      BindPerU: 1.0161301
+      BindPerV: 0.9629415
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.44621277, y: 0.09985966}
+      BindPerU: 0.9195934
+      BindPerV: 0.9607221
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.45680964, y: 0.086038016}
+      BindPerU: 0.88808626
+      BindPerV: 0.985986
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.49394643, y: 0.067838006}
+      BindPerU: 0.95226514
+      BindPerV: 1.208076
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.46061563, y: 0.021484332}
+      BindPerU: 1.2345638
+      BindPerV: 1.1373781
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.049246073, y: 0.15624666}
+      BindPerU: 1.2453382
+      BindPerV: 1.1378238
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.081145644, y: 0.15435667}
+      BindPerU: 1.2210239
+      BindPerV: 1.1038269
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.099482656, y: 0.14789134}
+      BindPerU: 1.1685711
+      BindPerV: 1.180093
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.12346995, y: 0.13546534}
+      BindPerU: 1.1243123
+      BindPerV: 1.1849926
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.15445626, y: 0.13128601}
+      BindPerU: 1.1596426
+      BindPerV: 1.1672735
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.19105303, y: 0.12841965}
+      BindPerU: 1.0925163
+      BindPerV: 1.1703283
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.1997335, y: 0.95533246}
+      BindPerU: 1.052697
+      BindPerV: 1.0011528
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.22138286, y: 0.9588564}
+      BindPerU: 1.028298
+      BindPerV: 1.0180798
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.269346, y: 0.9592357}
+      BindPerU: 1.0334888
+      BindPerV: 1.013664
+      Valid: 1
+    - Slot: 3
+      Uv: {x: 0.3501295, y: 0.100911}
+      BindPerU: 1.1184441
+      BindPerV: 1.0613523
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.36153293, y: 0.93892336}
+      BindPerU: 0.9864495
+      BindPerV: 0.91971904
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.39458275, y: 0.92524606}
+      BindPerU: 1.1387805
+      BindPerV: 0.9329945
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.41151237, y: 0.91690636}
+      BindPerU: 1.1019131
+      BindPerV: 0.9456105
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.44347215, y: 0.89991236}
+      BindPerU: 1.0305495
+      BindPerV: 0.93809795
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.45995903, y: 0.89096767}
+      BindPerU: 1.101743
+      BindPerV: 0.9727787
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.47372627, y: 0.84041667}
+      BindPerU: 1.0779737
+      BindPerV: 1.0088912
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.03543639, y: 0.8759634}
+      BindPerU: 1.0868473
+      BindPerV: 1.062651
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.05112648, y: 0.891443}
+      BindPerU: 1.1385816
+      BindPerV: 1.0291936
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.08898306, y: 0.89723605}
+      BindPerU: 1.107343
+      BindPerV: 0.988318
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.10786986, y: 0.9008873}
+      BindPerU: 1.0953556
+      BindPerV: 0.991375
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.13655591, y: 0.91435534}
+      BindPerU: 1.1637307
+      BindPerV: 0.98902464
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.16116619, y: 0.91446733}
+      BindPerU: 1.1491569
+      BindPerV: 0.9699769
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.19490981, y: 0.92209643}
+      BindPerU: 1.1299753
+      BindPerV: 0.97994447
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.23376942, y: 0.92600507}
+      BindPerU: 1.0948808
+      BindPerV: 0.99487954
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.25603986, y: 0.92622}
+      BindPerU: 1.1174612
+      BindPerV: 0.9860668
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.3131926, y: 0.92023903}
+      BindPerU: 1.0423145
+      BindPerV: 0.96191055
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.35847878, y: 0.907455}
+      BindPerU: 1.0669397
+      BindPerV: 0.93793756
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.38059235, y: 0.88203233}
+      BindPerU: 1.2250634
+      BindPerV: 0.95078576
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.40387964, y: 0.872726}
+      BindPerU: 1.1891489
+      BindPerV: 0.94728404
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.41526675, y: 0.8677404}
+      BindPerU: 1.1113114
+      BindPerV: 0.94701695
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.45467257, y: 0.849974}
+      BindPerU: 1.048735
+      BindPerV: 1.0059309
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.4584427, y: 0.81621975}
+      BindPerU: 1.0843685
+      BindPerV: 1.0326673
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.050146103, y: 0.8352367}
+      BindPerU: 1.0843922
+      BindPerV: 1.1078155
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.06822276, y: 0.8383274}
+      BindPerU: 1.1021795
+      BindPerV: 1.1019766
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.09360933, y: 0.8579014}
+      BindPerU: 1.0953307
+      BindPerV: 1.0134842
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.112249136, y: 0.8606214}
+      BindPerU: 1.0890399
+      BindPerV: 1.0005184
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.14855003, y: 0.86672276}
+      BindPerU: 1.1376753
+      BindPerV: 1.0001519
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.16561294, y: 0.86936504}
+      BindPerU: 1.1450061
+      BindPerV: 1.012301
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.19818616, y: 0.87319404}
+      BindPerU: 1.1504107
+      BindPerV: 1.023609
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.21989942, y: 0.88303035}
+      BindPerU: 1.1405003
+      BindPerV: 1.0073501
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.2536397, y: 0.87495065}
+      BindPerU: 1.1890892
+      BindPerV: 1.0156217
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.3108263, y: 0.8698843}
+      BindPerU: 0.91181856
+      BindPerV: 1.0062854
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.3430729, y: 0.8615584}
+      BindPerU: 1.1150676
+      BindPerV: 0.97494817
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.37310314, y: 0.85146767}
+      BindPerU: 1.2333748
+      BindPerV: 0.9650358
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.3905995, y: 0.8452968}
+      BindPerU: 1.2015742
+      BindPerV: 0.95186836
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.40999246, y: 0.8215761}
+      BindPerU: 1.1466388
+      BindPerV: 1.0197891
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.43722296, y: 0.80992097}
+      BindPerU: 1.0890352
+      BindPerV: 1.0602621
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.44795918, y: 0.7670817}
+      BindPerU: 1.113165
+      BindPerV: 1.0619177
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.06197667, y: 0.8043427}
+      BindPerU: 1.1136144
+      BindPerV: 1.1003828
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.07288289, y: 0.80657166}
+      BindPerU: 1.1067649
+      BindPerV: 1.0933765
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.10450268, y: 0.8196111}
+      BindPerU: 1.0863116
+      BindPerV: 1.1116334
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.12809229, y: 0.822872}
+      BindPerU: 1.0962416
+      BindPerV: 1.0959053
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.13987565, y: 0.824594}
+      BindPerU: 1.10855
+      BindPerV: 1.0996916
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.17269969, y: 0.82862777}
+      BindPerU: 1.1446178
+      BindPerV: 1.0777668
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.20368934, y: 0.83109635}
+      BindPerU: 1.156953
+      BindPerV: 1.0536976
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.22618556, y: 0.8321387}
+      BindPerU: 1.1816492
+      BindPerV: 1.0406879
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.257066, y: 0.83243734}
+      BindPerU: 1.2073575
+      BindPerV: 1.0436372
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.28105903, y: 0.83152896}
+      BindPerU: 1.2117126
+      BindPerV: 1.0403404
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.32270598, y: 0.8165397}
+      BindPerU: 0.86656165
+      BindPerV: 1.0116652
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.35212564, y: 0.8164157}
+      BindPerU: 1.1967331
+      BindPerV: 1.0383457
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.37546563, y: 0.79602766}
+      BindPerU: 1.1528044
+      BindPerV: 1.0269829
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.3976333, y: 0.791295}
+      BindPerU: 1.1927345
+      BindPerV: 1.0313812
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.41826272, y: 0.78243464}
+      BindPerU: 1.1685256
+      BindPerV: 1.0520442
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.42033315, y: 0.73304033}
+      BindPerU: 1.1390697
+      BindPerV: 1.1023244
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.07328677, y: 0.76455235}
+      BindPerU: 1.1284456
+      BindPerV: 1.1280086
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.08752656, y: 0.7682452}
+      BindPerU: 1.1079454
+      BindPerV: 1.1562812
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.107432604, y: 0.7718773}
+      BindPerU: 1.101198
+      BindPerV: 1.1385971
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.12970304, y: 0.79114467}
+      BindPerU: 1.1189727
+      BindPerV: 1.1263187
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.14651942, y: 0.7926523}
+      BindPerU: 1.1222211
+      BindPerV: 1.10736
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.17727971, y: 0.79488665}
+      BindPerU: 1.1172298
+      BindPerV: 1.0704732
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.19161916, y: 0.79566497}
+      BindPerU: 1.1618007
+      BindPerV: 1.0546559
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.22298598, y: 0.79735106}
+      BindPerU: 1.1852069
+      BindPerV: 1.0375226
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.23963594, y: 0.7979207}
+      BindPerU: 1.2195408
+      BindPerV: 1.0398937
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.2731428, y: 0.7976983}
+      BindPerU: 1.1742316
+      BindPerV: 1.067456
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.30605292, y: 0.77651364}
+      BindPerU: 0.7059493
+      BindPerV: 1.0606866
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.3329363, y: 0.76982266}
+      BindPerU: 1.1754451
+      BindPerV: 1.086257
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.37050557, y: 0.75578433}
+      BindPerU: 1.1764781
+      BindPerV: 1.0779485
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.37770247, y: 0.7531133}
+      BindPerU: 1.179089
+      BindPerV: 1.086376
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.40277672, y: 0.7416493}
+      BindPerU: 1.1470572
+      BindPerV: 1.0771732
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.40666962, y: 0.7013764}
+      BindPerU: 1.098892
+      BindPerV: 1.1123465
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.4224596, y: 0.6936154}
+      BindPerU: 1.069572
+      BindPerV: 1.1315559
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.1039896, y: 0.73900837}
+      BindPerU: 1.106031
+      BindPerV: 1.1471137
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.12625933, y: 0.74155706}
+      BindPerU: 1.0867368
+      BindPerV: 1.1258894
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.14037609, y: 0.7422944}
+      BindPerU: 1.1046871
+      BindPerV: 1.098486
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.15894628, y: 0.75130504}
+      BindPerU: 1.1284782
+      BindPerV: 1.0474637
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.1820631, y: 0.75205564}
+      BindPerU: 1.1114532
+      BindPerV: 1.0317707
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.19481969, y: 0.7524197}
+      BindPerU: 1.1359612
+      BindPerV: 1.0202616
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.22775006, y: 0.7542584}
+      BindPerU: 1.1453426
+      BindPerV: 0.9976793
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.23823953, y: 0.75490475}
+      BindPerU: 1.1769677
+      BindPerV: 1.0001355
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.26703954, y: 0.7520216}
+      BindPerU: 1.0435854
+      BindPerV: 1.0622102
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.30308318, y: 0.744852}
+      BindPerU: 0.9183368
+      BindPerV: 1.0070361
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.32759643, y: 0.73760825}
+      BindPerU: 1.1106057
+      BindPerV: 1.0767578
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.350976, y: 0.72807336}
+      BindPerU: 1.1426452
+      BindPerV: 1.0842712
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.37095952, y: 0.71867865}
+      BindPerU: 1.1767944
+      BindPerV: 1.0943232
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.38668323, y: 0.71115637}
+      BindPerU: 1.1779844
+      BindPerV: 1.0985733
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.38329935, y: 0.6616347}
+      BindPerU: 1.0935934
+      BindPerV: 1.117654
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.40584898, y: 0.651592}
+      BindPerU: 1.0670178
+      BindPerV: 1.1091992
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.10367274, y: 0.6980154}
+      BindPerU: 1.1086613
+      BindPerV: 1.2140644
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.12506628, y: 0.7046496}
+      BindPerU: 1.10715
+      BindPerV: 1.0877064
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.14982915, y: 0.70538163}
+      BindPerU: 1.1014563
+      BindPerV: 1.034806
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.1628828, y: 0.7055623}
+      BindPerU: 1.1044738
+      BindPerV: 1.0200819
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.18799973, y: 0.7055783}
+      BindPerU: 1.0713239
+      BindPerV: 0.99570024
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.19999647, y: 0.7054193}
+      BindPerU: 1.0764524
+      BindPerV: 0.99386173
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.2260592, y: 0.7059234}
+      BindPerU: 1.0743028
+      BindPerV: 0.9620455
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.24065232, y: 0.7049263}
+      BindPerU: 0.9705943
+      BindPerV: 0.94838053
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.26752257, y: 0.7050747}
+      BindPerU: 0.9212095
+      BindPerV: 0.91443676
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.29289937, y: 0.7031353}
+      BindPerU: 0.9119325
+      BindPerV: 0.92927486
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.31499577, y: 0.703152}
+      BindPerU: 1.0467923
+      BindPerV: 1.0235674
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.33749652, y: 0.694658}
+      BindPerU: 1.1275734
+      BindPerV: 1.0857675
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.35041595, y: 0.6780967}
+      BindPerU: 1.106815
+      BindPerV: 1.0707972
+      Valid: 1
+    - Slot: 12
+      Uv: {x: 0.3711326, y: 0.667}
+      BindPerU: 1.1168077
+      BindPerV: 1.110686
+      Valid: 1

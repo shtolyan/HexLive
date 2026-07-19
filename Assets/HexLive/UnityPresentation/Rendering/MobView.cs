@@ -55,10 +55,6 @@ public sealed class MobView : MonoBehaviour
     private float _lastSignaledHealth = -1f;
     private float _lastHitAt = -10f;
 
-    // Blood spray on a bite/strike — the same RVFX pack the NPC wounds use
-    // (Resources/HexLive/VFX/Blood_Splash_0X_URP), loaded once per process.
-    private static GameObject?[]? _splashPrefabs;
-
     /// <summary>Per-mob view numbers from the MobConfig asset (null = the
     /// wolf defaults above, so a config-less mob still animates sanely).</summary>
     public void Configure(Config.MobConfig? config)
@@ -161,24 +157,9 @@ public sealed class MobView : MonoBehaviour
     }
 
     // A blood burst at the mob's body, thrown outward+up from mid-body —
-    // mirrors NpcActorView's wound splash (same prefabs, same Hierarchy
-    // scaling so velocities shrink with the model).
+    // the same shared BloodSplashVfx the NPC wound splash uses.
     private void SpawnBloodSplash()
     {
-        _splashPrefabs ??= new[]
-        {
-            Resources.Load<GameObject>("HexLive/VFX/Blood_Splash_01_URP"),
-            Resources.Load<GameObject>("HexLive/VFX/Blood_Splash_02_URP"),
-            Resources.Load<GameObject>("HexLive/VFX/Blood_Splash_03_URP")
-        };
-
-        var prefab = _splashPrefabs[(int)(Time.time * 7f) % _splashPrefabs.Length]
-            ?? _splashPrefabs[0];
-        if (prefab == null)
-        {
-            return;
-        }
-
         if (_bodyLength <= 0.001f)
         {
             MeasureBodyLength();
@@ -202,17 +183,8 @@ public sealed class MobView : MonoBehaviour
             outward = transform.forward;
         }
 
-        var vfx = Instantiate(prefab, origin,
-            Quaternion.LookRotation(outward.normalized + Vector3.up * 0.4f));
         var scale = _bodyLength > 0.01f ? _bodyLength : transform.lossyScale.y;
-        vfx.transform.localScale = Vector3.one * scale;
-        foreach (var ps in vfx.GetComponentsInChildren<ParticleSystem>(true))
-        {
-            var main = ps.main;
-            main.scalingMode = ParticleSystemScalingMode.Hierarchy;
-        }
-
-        Destroy(vfx, 8f);
+        BloodSplashVfx.SpawnHitSplash(origin, outward, scale, (int)(Time.time * 7f));
     }
 
     private void Update()

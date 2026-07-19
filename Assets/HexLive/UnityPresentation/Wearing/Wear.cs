@@ -171,8 +171,12 @@ public sealed class Wear : MonoBehaviour
     private float _tear;
     private float _dirt;
     private float _blood;
-    private readonly Vector4[] _damageSpheres = new Vector4[MaxDamageSpheres];
-    private int _damageSphereCount;
+    // Spec 40.8-G: blood soak is localized by HURT ZONE names (the painter
+    // looks them up in its baked point map) — the old world-space spheres
+    // forced a garment-mesh re-bake whenever the animated bones moved.
+    private readonly string[] _damageZones = new string[MaxDamageSpheres];
+    private readonly float[] _damageStrengths = new float[MaxDamageSpheres];
+    private int _damageZoneCount;
 
     // Spec 35.5: rendering-layer bit for cloth — rain droplet projectors land
     // here (wounds/dirt/sweat decals stay skin-only).
@@ -234,22 +238,23 @@ public sealed class Wear : MonoBehaviour
         PushCondition();
     }
 
-    // Spec 40.10-C: dirt (1 − hygiene) + world-space damage spheres (xyz =
-    // bone anchor, w = strength), shared by all the NPC's garments. Spheres
-    // ONLY localize the blood soak over fresh wounds — they never rip holes:
-    // clothing damage is tracked separately (garment durability drives tear).
-    public void SetGrime(float dirt01, Vector4[] spheres, int count,
+    // Spec 40.10-C: dirt (1 − hygiene) + hurt zones (name + strength), shared
+    // by all the NPC's garments. Zones ONLY localize the blood soak over
+    // fresh wounds — they never rip holes: clothing damage is tracked
+    // separately (garment durability drives tear).
+    public void SetGrime(float dirt01, string[] zones, float[] strengths, int count,
         float blood01 = 0f, float sweat01 = 0f)
     {
         _dirt = Mathf.Clamp01(dirt01);
         // Spec 40.8-C: blood soaks the cloth over the wound (localized by the
-        // damage spheres below). Sweat stays in the skin/wetness path.
+        // hurt zones below). Sweat stays in the skin/wetness path.
         _blood = Mathf.Clamp01(blood01);
         _ = sweat01;
-        _damageSphereCount = Mathf.Min(count, MaxDamageSpheres);
-        for (var i = 0; i < _damageSphereCount; i++)
+        _damageZoneCount = Mathf.Min(count, MaxDamageSpheres);
+        for (var i = 0; i < _damageZoneCount; i++)
         {
-            _damageSpheres[i] = spheres[i];
+            _damageZones[i] = zones[i];
+            _damageStrengths[i] = strengths[i];
         }
 
         PushCondition();
@@ -296,7 +301,8 @@ public sealed class Wear : MonoBehaviour
             }
 
             var dust = Mathf.Max(0f, _dirt - _blood);
-            _wearPainter.SetState(_tear, dust, _blood, _damageSpheres, _damageSphereCount);
+            _wearPainter.SetState(_tear, dust, _blood, _damageZones, _damageStrengths,
+                _damageZoneCount);
         }
 
         // Per material slot: tear/dirt/spheres are shared, but smoothness and

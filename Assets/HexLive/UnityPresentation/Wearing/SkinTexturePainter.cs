@@ -46,6 +46,23 @@ namespace HexLive.UnityPresentation.Wearing
             ["LegR"] = new Zone { BoneA = "rThighBend", BoneB = "rShin", Radius = 0.042f },
         };
 
+        /// <summary>Spec 40.8-G: the zone table for the editor-time
+        /// PaintPointMap generator — bakes points off the SAME bone axes the
+        /// legacy runtime placement aimed at, so the two paths agree.</summary>
+        public static IEnumerable<(string zone, string boneA, string boneB, float radius)>
+            ZoneDefinitions()
+        {
+            foreach (var pair in Zones)
+            {
+                yield return (pair.Key, pair.Value.BoneA, pair.Value.BoneB, pair.Value.Radius);
+            }
+        }
+
+        // Sweat droplets sample t∈[0.15,0.85], wounds t∈[0.25,0.75] — the
+        // baked grid spans the superset so one map serves both.
+        public const float MapTMin = 0.15f;
+        public const float MapTMax = 0.85f;
+
         private sealed class Stamp
         {
             public string Key = string.Empty;
@@ -186,6 +203,9 @@ namespace HexLive.UnityPresentation.Wearing
         private int _npcId;
         private float _height = 1.7f;
         private HashSet<int> _skinSlots = new();
+        // Spec 40.8-G: editor-baked placement points — when present, wound/
+        // droplet placement is a table lookup and BakeMesh never runs.
+        private PaintPointMap? _map;
 
         private Material[]? _materials;      // per-NPC instances
         private Texture?[] _originalAlbedo = System.Array.Empty<Texture?>();
@@ -208,6 +228,14 @@ namespace HexLive.UnityPresentation.Wearing
         private readonly List<string> _stale = new();
         private int _lastStateHash;
 
+        // Spec 40.8-G repaint coalescing: Sync only marks the composite
+        // dirty; the actual per-slot blit+stamps+mips pass runs at most once
+        // per interval (combat reopens wounds every tick — one repaint
+        // covers the whole burst, always painting the LATEST state).
+        private bool _repaintDirty;
+        private float _lastRepaintTime;
+        private const float RepaintIntervalSeconds = 0.25f;
+
         // ---- raycast working set (lazy: built on the FIRST placement) ----
         // Triangle indices + per-triangle slot never change when a pose is
         // baked, so they are cached once; only vertex positions refresh.
@@ -220,14 +248,22 @@ namespace HexLive.UnityPresentation.Wearing
         private float _localToWorldScale = 1f;
 
         public void Construct(SkinnedMeshRenderer body, IEnumerable<int> skinSlots,
-            BodyBones bones, Transform bodyRoot, int npcId)
+            BodyBones bones, Transform bodyRoot, int npcId, string actorMesh = "")
         {
+            enabled = false; // LateUpdate runs only while a repaint is pending
             _body = body;
             _bones = bones;
             _bodyRoot = bodyRoot;
             _npcId = npcId;
             _height = 1.7f * bodyRoot.lossyScale.y;
             _skinSlots = new HashSet<int>(skinSlots);
+            // Spec 40.8-G: baked placement points (falls back to the legacy
+            // BakeMesh path — with its combat-frame cost — when missing).
+            if (!string.IsNullOrEmpty(actorMesh))
+            {
+                _map = PaintPointMap.Load($"skin_{actorMesh}",
+                    body.sharedMesh != null ? body.sharedMesh.vertexCount : 0);
+            }
 
             _materials = body.materials; // instantiate once, per NPC
             _originalAlbedo = new Texture?[_materials.Length];
@@ -250,6 +286,11 @@ namespace HexLive.UnityPresentation.Wearing
         /// <summary>The renderer whose material slots this painter owns —
         /// NpcActorView matches it against its tint targets.</summary>
         public SkinnedMeshRenderer? Body => _body;
+
+        /// <summary>Spec 40.8-G: load the stamp art behind the loading
+        /// curtain. Lazily loading it on the FIRST wound cost a ~2.4 s
+        /// File.Read burst mid-combat (slow external disk).</summary>
+        public static void Prewarm() => EnsureStampTextures();
 
         /// <summary>True while a slot's material carries the painted gloss
         /// map. The map's alpha is ABSOLUTE smoothness, so the caller must
@@ -428,6 +469,28 @@ namespace HexLive.UnityPresentation.Wearing
                 PlaceNewStamps(wounds, bandaged, sweat, uncovered, gauzed);
             }
 
+            // Coalesced: mark dirty, LateUpdate paints at most once per
+            // interval (spec 40.8-G).
+            _repaintDirty = true;
+            enabled = true;
+        }
+
+        private void LateUpdate()
+        {
+            if (!_repaintDirty)
+            {
+                enabled = false;
+                return;
+            }
+
+            if (Time.unscaledTime - _lastRepaintTime < RepaintIntervalSeconds)
+            {
+                return; // next eligible frame paints the latest state
+            }
+
+            _repaintDirty = false;
+            _lastRepaintTime = Time.unscaledTime;
+            enabled = false;
             RepaintAll();
         }
 
@@ -436,7 +499,10 @@ namespace HexLive.UnityPresentation.Wearing
         private void PlaceNewStamps(List<(string zone, int seed, float heal)> wounds, HashSet<string> bandaged,
             float sweat01, HashSet<string>? uncovered, HashSet<string>? gauzed = null)
         {
-            if (!BakePoseForRaycasts())
+            // Spec 40.8-G: with a baked point map every placement is a table
+            // lookup — no pose bake, no triangle scans (the legacy path bakes
+            // the skinned mesh, which was the top combat-frame CPU cost).
+            if (_map == null && !BakePoseForRaycasts())
             {
                 return;
             }
@@ -501,6 +567,46 @@ namespace HexLive.UnityPresentation.Wearing
             if (!Zones.TryGetValue(zoneName, out var zone))
             {
                 PlaceTombstone(key, seed, isBandage: false);
+                return;
+            }
+
+            // Spec 40.8-G fast path — see TryPlace.
+            if (_map != null)
+            {
+                var mapState = (uint)(_npcId * 19349663 ^ seed) | 1u;
+                var mapT = 0.15f + NextRand(ref mapState) * 0.7f;
+                var mapAzimuth = NextRand(ref mapState) * Mathf.PI * 2f;
+                var points = _map.PointsFor(zoneName);
+                var point = _map.PointAt(points, mapT, mapAzimuth);
+                if (points.Length == 0 || !point.Valid)
+                {
+                    PlaceTombstone(key, seed, isBandage: false);
+                    return;
+                }
+
+                EnsureStampTextures();
+                var mapTarget = (DropWorldSizeMin +
+                                 NextRand(ref mapState) * (DropWorldSizeMax - DropWorldSizeMin)) *
+                                (_height / 1.7f) *
+                                (zoneName == "Head" ? HeadPatchScale : 1f);
+                SizeFromDensity(point, mapTarget, out var mapSizeU, out var mapSizeV, minUv: 0.004f);
+                mapSizeU = Mathf.Min(mapSizeU, MaxDropletUvSize);
+                mapSizeV = Mathf.Min(mapSizeV, MaxDropletUvSize);
+                var mapCell = PickDropletCell(zoneName, ref mapState);
+                _stamps[key] = new Stamp
+                {
+                    Key = key,
+                    Slot = point.Slot,
+                    Uv = point.Uv,
+                    Seed = seed,
+                    UvSizeX = mapSizeU,
+                    UvSizeY = mapSizeV,
+                    OverNormal = SweatDropletSheet.Normal,
+                    Effect = SweatDropletSheet.Effect,
+                    CellRect = SweatDropletSheet.CellRect(mapCell),
+                    IsDroplet = true,
+                    IsBandage = false
+                };
                 return;
             }
 
@@ -648,6 +754,19 @@ namespace HexLive.UnityPresentation.Wearing
             return true;
         }
 
+        // Spec 40.8-G: StampSizeFor's twin for baked points — the map stores
+        // the bind-pose UV density (rig-scale metres per UV unit), the actor
+        // height scales it to the live world.
+        private void SizeFromDensity(in PaintPointMap.Point point, float targetWorld,
+            out float sizeU, out float sizeV, float minUv = 0.02f)
+        {
+            var heightScale = Mathf.Max(0.0001f, _height / 1.7f);
+            var worldPerU = Mathf.Max(0.0001f, point.BindPerU * heightScale);
+            var worldPerV = Mathf.Max(0.0001f, point.BindPerV * heightScale);
+            sizeU = Mathf.Clamp(targetWorld / worldPerU, minUv, 0.95f);
+            sizeV = Mathf.Clamp(targetWorld / worldPerV, minUv, 0.95f);
+        }
+
         // World-size-true stamp: measures the triangle's UV density along U
         // and V (world metres per UV unit) and returns per-axis UV sizes so
         // the painted stamp is SQUARE and `targetWorld` metres wide on the
@@ -683,6 +802,44 @@ namespace HexLive.UnityPresentation.Wearing
             if (!Zones.TryGetValue(zoneName, out var zone))
             {
                 PlaceTombstone(key, seed, isBandage, isGauze);
+                return;
+            }
+
+            // Spec 40.8-G fast path: the seeded (t, azimuth) rolls stay
+            // identical to the legacy raycast placement — they just index
+            // the baked grid instead of aiming a ray at the live pose.
+            if (_map != null)
+            {
+                var mapState = (uint)(_npcId * 73856093 ^ seed) | 1u;
+                var mapT = 0.25f + NextRand(ref mapState) * 0.5f;
+                var mapAzimuth = NextRand(ref mapState) * Mathf.PI * 2f;
+                var points = _map.PointsFor(zoneName);
+                var point = _map.PointAt(points, mapT, mapAzimuth);
+                if (points.Length == 0 || !point.Valid)
+                {
+                    PlaceTombstone(key, seed, isBandage, isGauze);
+                    return;
+                }
+
+                EnsureStampTextures();
+                var mapTarget = (isBandage ? 0.14f : 0.07f + NextRand(ref mapState) * 0.04f)
+                                * (_height / 1.7f);
+                SizeFromDensity(point, mapTarget, out var mapSizeU, out var mapSizeV);
+                var (mover, mgloss) = WoundVariant(seed);
+                _stamps[key] = new Stamp
+                {
+                    Key = key,
+                    Slot = point.Slot,
+                    Uv = point.Uv,
+                    Seed = seed,
+                    UvSizeX = mapSizeU,
+                    UvSizeY = mapSizeV,
+                    Under = isBandage ? null : _texSplash,
+                    Over = isGauze ? _texGauze : (isBandage ? _texBandage : mover),
+                    OverGloss = isBandage ? null : mgloss,
+                    IsBandage = isBandage,
+                    IsGauze = isGauze
+                };
                 return;
             }
 
@@ -884,7 +1041,11 @@ namespace HexLive.UnityPresentation.Wearing
         // Shared crisp-gauze pixel (u,v in -0.5..0.5). Warp/weft thread ridges
         // with sharp gaps read as real woven mesh; the holes drop alpha so a
         // hint of skin shows through, and two crossed wrap bands sit on top.
-        internal static Color GauzeSample(float u, float v)
+        // PUBLIC so the editor baker (HexLive ▸ Paint Maps ▸ Bake Gauze PNG)
+        // can render the exact same texture into Resources/HexLive/Decals/
+        // gauze_wrap.png — the 1024² per-pixel runtime bake was a ~1 s hitch
+        // on the first bandage of a session (2026-07-19 deep capture).
+        public static Color GauzeSample(float u, float v)
         {
             var r = Mathf.Sqrt(u * u + v * v);
             var pad = Mathf.Clamp01((0.40f - r) / 0.05f);

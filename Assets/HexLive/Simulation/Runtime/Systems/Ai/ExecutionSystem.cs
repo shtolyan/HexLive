@@ -180,6 +180,27 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
             if (npc.Execution.Status == ExecutionStatus.None)
             {
+                // Spec 26.3 r2: a Blocked route must FAIL the plan, not fall
+                // through — with an empty JunctionPath the old gate started the
+                // interaction from wherever she stood (campfires hammered up
+                // from across the camp). Mirrors RunGroundRestPlan.
+                if (npc.Movement.Status == MovementStatus.Blocked)
+                {
+                    PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
+                    PlanInterruption.Abort(world, npc,
+                        $"Target {worldObject.DefinitionId} unreachable (path blocked)");
+                    npc.Mind.CurrentGoal = GoalType.None;
+                    continue;
+                }
+
+                // Spec 26.3 r2: arrival is literal — standing ON the plan's
+                // junction. "Not currently walking" is no proof she got there.
+                if (npc.Plan.TargetJunctionId is { } wantJunction &&
+                    (npc.CurrentJunction is not { } atJunction || !atJunction.Equals(wantJunction)))
+                {
+                    continue; // PathfindingSystem re-routes next tick
+                }
+
                 // Memory promised a free object; reality may disagree
                 // (spec 27.18A): never stomp another NPC's occupancy.
                 if (worldObject.IsOccupied && worldObject.CurrentUser != npc.Id)
@@ -452,6 +473,22 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                         npc.Mind.CurrentGoal = GoalType.None;
                         continue;
                     }
+                }
+
+                // Face the work (spec 26.3 r2): builds/fuel run from the rim of
+                // the site's blocked footprint — hammering while looking away
+                // read as detached. Skip when she stands ON the anchor (seats,
+                // beds): a zero-length direction has no meaningful angle.
+                var anchorPosition = worldObject.Junctions.Count > 0 &&
+                    world.Junctions.Items.TryGetValue(worldObject.Junctions[0], out var anchorJunction)
+                        ? anchorJunction.WorldPosition
+                        : HexSpatialMath.TileToWorld(worldObject.Tile);
+                if (HexSpatialMath.Distance(anchorPosition, npc.Position) > 0.05f)
+                {
+                    var faceDirection = HexSpatialMath.Normalize(new Float2(
+                        anchorPosition.X - npc.Position.X, anchorPosition.Y - npc.Position.Y));
+                    npc.Movement.DesiredRotationDegrees = HexSpatialMath.AngleDegrees(faceDirection);
+                    npc.RotationDegrees = npc.Movement.DesiredRotationDegrees;
                 }
 
                 npc.Execution.Status = ExecutionStatus.InProgress;

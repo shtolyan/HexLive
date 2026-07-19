@@ -18,6 +18,7 @@ namespace HexLive.UnityPresentation.Environment
         private const float MeatScale = 0.8f;
 
         private int _signature = -1;
+        private Transform? _meatRoot;
 
         public void Refresh(int raw, int cooked)
         {
@@ -28,9 +29,18 @@ namespace HexLive.UnityPresentation.Environment
             }
 
             _signature = signature;
-            for (var i = transform.childCount - 1; i >= 0; i--)
+            // Own container: this component shares the campfire_final root with
+            // BedAssembly's staged pieces — clearing the whole root would wipe
+            // the fire itself (and did: MissingReferenceException render stall).
+            if (_meatRoot == null)
             {
-                Object.Destroy(transform.GetChild(i).gameObject);
+                _meatRoot = new GameObject("SpitMeat").transform;
+                _meatRoot.SetParent(transform, false);
+            }
+
+            for (var i = _meatRoot.childCount - 1; i >= 0; i--)
+            {
+                Object.Destroy(_meatRoot.GetChild(i).gameObject);
             }
 
             var total = raw + cooked;
@@ -44,7 +54,7 @@ namespace HexLive.UnityPresentation.Environment
                 }
 
                 piece.name = "Spit " + id;
-                piece.transform.SetParent(transform, false);
+                piece.transform.SetParent(_meatRoot, false);
                 // Even spread along the crossbar, hanging just beneath it.
                 var t = total == 1 ? 0.5f : i / (float)(total - 1);
                 piece.transform.localScale = Vector3.one * MeatScale;

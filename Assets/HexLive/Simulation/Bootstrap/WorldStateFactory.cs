@@ -95,8 +95,8 @@ public sealed class WorldStateFactory
         // dresses and sweater stay out — nobody washes ashore in a fur dress
         // (they're registered, dressable and tunable in the WardrobeTest
         // scene).
-        string[] startBottoms = { "Panty_11571", "Bikini Bottom", "underwear.panty_leo", "underwear.panty_stars", "underwear.panty_flair", "underwear.panty_basic", "underwear.swim_bottom" };
-        string[] startTops = { "Bikini top", "Top_11927", "CowTop", "clothing.top_tiedye", "clothing.top_tropic", "underwear.bra_basic", "underwear.swim_top" };
+        string[] startBottoms = { "Panty_11571", "Bikini Bottom", "underwear.panty_leo", "underwear.panty_stars", "underwear.panty_flair", "underwear.panty_basic", "underwear.swim_bottom", "underwear.panty_dots", "underwear.panty_stripe", "underwear.panty_cherry" };
+        string[] startTops = { "Bikini top", "Top_11927", "CowTop", "clothing.top_tiedye", "clothing.top_tropic", "underwear.bra_basic", "underwear.swim_top", "underwear.bra_dots", "underwear.bra_stripe", "underwear.bra_cherry" };
         string[] startShorts = { "Shorts Green", "Shorts short", "Shorts 1389" };
         foreach (var npc in world.Entities.Npcs.Values)
         {

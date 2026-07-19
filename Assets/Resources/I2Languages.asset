@@ -2545,6 +2545,102 @@ MonoBehaviour:
       - 'Простой белый лифчик — незатейливо и удобно.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'item.underwear_panty_dots.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Polka-Dot Panties'
+      - 'Трусики в горошек'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_panty_dots.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Coral panties dotted with cheerful white polka dots.'
+      - 'Коралловые трусики в задорный белый горошек.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_panty_stripe.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Striped Panties'
+      - 'Полосатые трусики'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_panty_stripe.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Mint-and-white striped panties with a breezy seaside look.'
+      - 'Мятно-белые полосатые трусики — что-то морское в них есть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_panty_cherry.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cherry Panties'
+      - 'Трусики с вишенками'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_panty_cherry.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cream panties sprinkled with sweet little cherries.'
+      - 'Кремовые трусики, усыпанные сладкими вишенками.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_dots.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Polka-Dot Bra'
+      - 'Лифчик в горошек'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_dots.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'A coral bra with white polka dots — pairs with the matching panties.'
+      - 'Коралловый лифчик в белый горошек — в комплект к трусикам.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_stripe.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Striped Bra'
+      - 'Полосатый лифчик'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_stripe.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'A mint-striped bra fresh as a sea breeze.'
+      - 'Мятный полосатый лифчик — свежий, как морской бриз.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_cherry.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cherry Bra'
+      - 'Лифчик с вишенками'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_cherry.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'A cream bra with a scatter of little cherries.'
+      - 'Кремовый лифчик с россыпью маленьких вишенок.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'item.underwear_swim_top.name'
       TermType: 0
       Description:

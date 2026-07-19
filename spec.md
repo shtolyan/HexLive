@@ -3235,6 +3235,21 @@ Execution and movement must cooperate, but stay separate.
 
 This keeps responsibilities clean.
 
+**Arrival is literal (r2).** An object interaction may only start when the NPC
+is standing ON the plan's target junction (`CurrentJunction == TargetJunctionId`);
+"not currently walking" is no proof of arrival. A `Blocked` movement status
+(pathfinder found no route — rim reserved, footprint claimed, crowd on the way)
+fails the plan with a goal cooldown instead of falling through. Before r2 a
+blocked walk with an empty path let the interaction start from wherever the NPC
+stood — campfires were visibly hammered up from across the camp (probe: PickUp
+from 19.8 wu, Dress 12.4, Process 8.4). At interaction start the NPC also
+**turns to face the object's anchor** (skipped when standing on the anchor
+itself — seats, beds): builds and fueling run from the rim of the site's blocked
+footprint, and hammering while looking away read as detached. Talk/Aid, whose
+targets move, keep a world-distance gate instead: talk starts within
+`4×HexRadius` (6.0 wu, call-over range), aid within `2×HexRadius` (3.0 wu,
+arm's-length plus wander tolerance); a blocked approach aborts and replans.
+
 ### 26.19 Coordination with Social / Joint Actions
 
 Some actions may require synchronized execution with another actor.
@@ -6179,6 +6194,9 @@ prefabs, all equipped/removed together as the visual of that sim item.
 | underwear.bra_basic | BraBasic (plain white bra) |
 | underwear.swim_top | SwimTop (striped swimsuit top) |
 | underwear.swim_bottom | SwimBottom (striped swimsuit bottom) |
+| underwear.panty_dots / underwear.bra_dots | PantyDots/BraDots (basic panty/bra, fal.ai coral polka-dot print) |
+| underwear.panty_stripe / underwear.bra_stripe | PantyStripe/BraStripe (basic panty/bra, fal.ai mint-stripe print) |
+| underwear.panty_cherry / underwear.bra_cherry | PantyCherry/BraCherry (basic panty/bra, fal.ai cherry print) |
 | clothing.sweater_flair | SweaterFlair (knit sweater, warmth 0.30) |
 | clothing.dress_night | NightDress (silky night dress, lace hem, gold clasp) |
 | clothing.dress_fur | FurDress (primal fur dress, warmth 0.35, armor 0.05) |
@@ -6208,6 +6226,12 @@ live in `Assets/ImportedActors/Wear/Prints/`). Sim side: registered in
 warmth; panties: Underwear/Pelvis, +0.03) and spawned as ground objects
 124–127 near home. Pipeline for more: generate print → copy base prefab →
 swap material GUID → drop the folder under `Resources/HexLive/Wear/<simId>/`.
+A second print wave (2026-07) reskinned the basic underwear the same way:
+three matching panty+bra sets (polka-dot / mint-stripe / cherry) baked into
+copies of the PantyBasic/BraBasic prefabs, one shared material per set
+(`Prints/Set{Dots,Stripes,Cherry}.{jpg,mat}`), registered as
+`underwear.{panty,bra}_{dots,stripe,cherry}` in `GarmentLibrary.BuildDefaults`
+and added to the §42 castaway start rotation.
 
 ### 31B.4A Importing a NEW garment — agent checklist (MANDATORY order)
 
@@ -9945,7 +9969,10 @@ the **relief is applied straight to the target** — no food or bandage is spent
 so aid can never bankrupt the knife-edge colony: Feed drops her Hunger, Hydrate
 drops her Thirst (`Spec53.HydrateRelief`), Treat lifts wounded parts + stops
 the bleed + drops a gauze wrap, Medicate lifts Health and clears the sickness
-window, Console eases Stress and shortens mourning. **Both** relationships rise by
+window, Console eases Stress and shortens mourning. The aid itself only starts
+within `2×HexRadius` (3.0 wu) of the ward — the walk aims at an arm's-length
+spot 0.9×R beside her, the range is just wander tolerance (was 4×R, which read
+as feeding from across the camp); a blocked approach aborts and replans. **Both** relationships rise by
 `AidRelationshipGain` (larger than a chat's 0.05) across Affinity/Familiarity/
 Trust, and the Sims-style "+/-" pop floats over both heads.
 

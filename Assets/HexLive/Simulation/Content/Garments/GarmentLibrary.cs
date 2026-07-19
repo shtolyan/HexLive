@@ -137,6 +137,13 @@ namespace HexLive.Simulation.Content
                 new("underwear.bra_basic",   "Cotton Bra",       WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, BodyPart.Torso),
                 new("underwear.swim_top",    "Swimsuit Top",     WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, BodyPart.Torso),
                 new("underwear.swim_bottom", "Swimsuit Bottom",  WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, BodyPart.Pelvis),
+                // AI-print skins of the basic panty/bra (2026-07, fal.ai prints — spec §31B.4).
+                new("underwear.panty_dots",  "Polka-Dot Panties", WearLayer.Underwear, 0.01f, 0.00f, 0.00f, dress, 1, BodyPart.Pelvis),
+                new("underwear.panty_stripe","Striped Panties",  WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, BodyPart.Pelvis),
+                new("underwear.panty_cherry","Cherry Panties",   WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, BodyPart.Pelvis),
+                new("underwear.bra_dots",    "Polka-Dot Bra",    WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, BodyPart.Torso),
+                new("underwear.bra_stripe",  "Striped Bra",      WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, BodyPart.Torso),
+                new("underwear.bra_cherry",  "Cherry Bra",       WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, BodyPart.Torso),
                 new("CowTop",                "Korotkij top",     WearLayer.Underwear, 0.03f, 0.00f,  0.00f, dress, 1, BodyPart.Torso),
                 new("Top_11927",             "Top",              WearLayer.Underwear, 0.03f, 0.00f,  0.00f, dress, 1, BodyPart.Torso),
                 new("NeckWarmer_1259",       "Sharf",            WearLayer.Underwear, 0.06f, 0.00f,  0.00f, dress, 0, BodyPart.Torso),

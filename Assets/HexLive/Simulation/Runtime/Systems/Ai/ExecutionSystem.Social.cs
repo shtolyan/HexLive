@@ -62,6 +62,15 @@ public sealed partial class ExecutionSystem
             return;
         }
 
+        // Spec 26.3 r2: a Blocked walk with an empty path fell through this
+        // gate and the chat started from wherever she stood.
+        if (npc.Execution.Status == ExecutionStatus.None &&
+            npc.Movement.Status == MovementStatus.Blocked)
+        {
+            AbortTalk(world, npc, "Talk approach blocked (no route)");
+            return;
+        }
+
         if (npc.Execution.Status == ExecutionStatus.None)
         {
             var talkRange = HexSpatialMath.HexRadius * 4f;
@@ -388,9 +397,20 @@ public sealed partial class ExecutionSystem
             return;
         }
 
+        // Spec 26.3 r2: a blocked walk means she never reached arm's length —
+        // abort and replan a fresh approach instead of feeding from afar.
+        if (npc.Execution.Status == ExecutionStatus.None &&
+            npc.Movement.Status == MovementStatus.Blocked)
+        {
+            AbortAid(world, npc, "Aid approach blocked (no route)");
+            return;
+        }
+
         if (npc.Execution.Status == ExecutionStatus.None)
         {
-            var aidRange = HexSpatialMath.HexRadius * 4f;
+            // Arm's length: the plan walks to a spot 0.9*R beside her; 2*R is
+            // just the wander tolerance (was 4*R — visibly feeding from afar).
+            var aidRange = HexSpatialMath.HexRadius * 2f;
             var distance = HexSpatialMath.Distance(npc.Position, target.Position);
             if (distance > aidRange)
             {

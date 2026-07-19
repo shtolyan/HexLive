@@ -139,10 +139,17 @@ public sealed partial class ExecutionSystem
         // furniture lands in the passable zone with a natural offset from
         // the flames, still fireside-close.
         SpatialQueries.CollectStandableAround(world, anchor, _furnitureRimScratch);
+        var firePosition = world.Junctions.Items.TryGetValue(anchor, out var fireJunction)
+            ? fireJunction.WorldPosition
+            : HexSpatialMath.TileToWorld(campfire.Tile);
         foreach (var neighbor in _furnitureRimScratch)
         {
             if (SpatialQueries.IsJunctionFree(world, neighbor) &&
                 world.Junctions.Items.TryGetValue(neighbor, out var j) && j.Tiles.Count > 0 &&
+                // §47.1 r2: the ember disc shrank to 0.4R so the WORK ring hugs
+                // the stones — furniture (rack/tent carry no footprint of their
+                // own) must not: keep placements off the toe-to-stone ring.
+                HexSpatialMath.Distance(j.WorldPosition, firePosition) >= 1.1f &&
                 !IsNearOtherFurniture(world, j.Tiles[0]) &&
                 SpatialQueries.FootprintClear(world, j, footprint))
             {

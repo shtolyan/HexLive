@@ -9367,10 +9367,21 @@ for an easier mode, raise for brutal).
 ### §47.1 Ember ring — the campfire is a ZONE, not a cell
 User: the fire should block a hex ring around itself, not one junction,
 and furniture must be built in the passable zone with an offset.
-`campfire.spot` now has `ObstacleRadius = 0.8 × HexRadius`: the anchor
-plus the tile's interior junction ring block (the fire hex is solid),
-while the corner junctions — the lattice the camp walks and sleeps on —
-stay passable. Interactions survive by construction: beside-arrival
+`campfire.spot` now has `ObstacleRadius = 0.55 × HexRadius` (r2; was
+0.8R): the anchor plus the first two point rings (0.375 / 0.65-0.75 wu)
+block — nobody paths through the flames — while the 1.10-1.18 wu ring
+and everything beyond stay passable. r2 rationale (user): build/craft/
+fuel/warm work must happen at the minimal distance, and at 0.8R all fire
+work ran from the 2.09-2.25 wu ring, which read as hammering the campfire
+from afar. **Measured ladder (same 10 seeds × 15d, alive at day 15):**
+0.8R = 10/30 with work at 2.09-2.25 wu; 0.4R = work at 0.75 wu but 2/30 —
+the wide ember disc doubles as the camp's NIGHT SHIELD and the dog raids
+shredded the colony without it; 0.55R keeps the shield (9/30, noise-level
+vs 0.8R) at half the work distance (1.12 wu). Furniture keeps clear of
+the tighter ring by an explicit ≥1.1 wu fire-clearance in
+`FindSpacedFurnitureSpot` (rack/tent carry no footprint of their own);
+bed placement is honest at any radius — FootprintClear rejects a bed
+whose 1.39 wu disc overlaps the fire's blocked points. Interactions survive by construction: beside-arrival
 (`CollectStandableAround`) BFS-walks through the blocked cluster to the
 first standable rim, still within 1 tile of the fire (full +8° warmth).
 Furniture placement (`FindSpacedFurnitureSpot`) now uses the same rim BFS

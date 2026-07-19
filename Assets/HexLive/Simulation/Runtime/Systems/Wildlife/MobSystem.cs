@@ -232,6 +232,32 @@ public sealed class MobSystem : ISimulationSystem
             dog.Status = Wildlife.MobStatus.Chasing;
             ChaseStep(world, dog, target);
             TryCoverFire(world, dog, target);
+
+            // Behavior audit (Jul 2026): a girl being RUN DOWN at arm's length
+            // kept strolling to her errand — IsFighting only latched in actual
+            // melee, so between bites (dog cooldown / one junction behind) the
+            // auction re-planned Drink/GatherTools and she walked, the dog
+            // caught up, bit, and the cycle repeated until she bled out.
+            // Within 1 tile of a charging dog she now squares up (same stance
+            // AnimalCombatSystem enforces in melee); an active flee keeps
+            // running, prone/unconscious bodies stay down. Radius 1, not 2 —
+            // a dog stuck two tiles away behind a ledge it can't path over
+            // kept the stance latched forever and the frozen girl starved
+            // mid-"siege" (iter-4 regression, seed 999).
+            if (!target.IsFighting && target.Health > 0f &&
+                target.Mind.CurrentGoal != GoalType.Flee &&
+                !target.Body.IsProne && !target.IsUnconscious(world.Tick) &&
+                HexSpatialMath.HexDistance(dog.Tile, target.Tile) <= 1)
+            {
+                target.IsFighting = true;
+                if (target.Plan.Status == PlanStatus.Active ||
+                    target.Execution.Status == ExecutionStatus.InProgress)
+                {
+                    PlanInterruption.Abort(world, target, $"Charged by dog {dog.Id}");
+                    target.Mind.CurrentGoal = GoalType.None;
+                }
+            }
+
             return;
         }
 
@@ -502,8 +528,13 @@ public sealed class MobSystem : ISimulationSystem
         var bestDistance = float.MaxValue;
         foreach (var junction in world.Junctions.Items.Values)
         {
+            // Jul 2026: the refuge must be FREE — three girls fleeing the same
+            // raid all targeted the same interior junction; the second one's
+            // route came up Blocked, the flee aborted, and she stood re-fleeing
+            // (681→668→667→…) while the dog chewed her down (seed 12345 d0.8).
             if (junction.Blocked || junction.Tiles.Count == 0 ||
-                !IsIndoorTile(world, junction.Tiles[0]))
+                !IsIndoorTile(world, junction.Tiles[0]) ||
+                !SpatialQueries.IsJunctionFree(world, junction.Id))
             {
                 continue;
             }

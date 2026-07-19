@@ -12,6 +12,18 @@ public sealed class MemoryState
 
     // Spec 29C.4A: places where this NPC was attacked. TTL 2400 ticks, cap 8.
     public List<DangerMemory> Dangers { get; } = new();
+
+    // Behavior audit (Jul 2026): objects that turned out occupied on arrival.
+    // A short personal "don't chase that one again" note so the planner picks
+    // a DIFFERENT source next time instead of oscillating against the same
+    // contested coconut for half a day (the thirst-death class of seed 12345).
+    // Transient by design — not persisted; an empty table after load is fine.
+    public Dictionary<ObjectId, int> ShunnedUntil { get; } = new();
+
+    public void Shun(ObjectId id, int untilTick) => ShunnedUntil[id] = untilTick;
+
+    public bool IsShunned(ObjectId id, int tick) =>
+        ShunnedUntil.TryGetValue(id, out var until) && until > tick;
 }
 
 public sealed class DangerMemory

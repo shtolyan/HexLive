@@ -642,8 +642,11 @@ public sealed partial class ExecutionSystem
         npc.Execution.HeldGarmentContents.Clear();
         npc.Execution.HeldGarment = null;
         SpatialMutations.FreeJunction(world, target, npc.Id);
+        // Jul 2026: the TYPE must stay the constant "ClothesWashed" — the
+        // garment id used to be interpolated into it, so every wash produced
+        // a unique event type that no whitelist/counter could match.
         FinishPersonalCare(world, npc, step.TargetJunction, GoalType.WashClothes,
-            $"ClothesWashed {held.DefinitionId} (fully wet)");
+            "ClothesWashed", $"{held.DefinitionId} (fully wet)");
     }
 
     // §40.6 r2: lift a ground garment into the washer's hand — the world
@@ -688,7 +691,7 @@ public sealed partial class ExecutionSystem
     }
 
     private static void FinishPersonalCare(WorldState world, NPCState npc, JunctionId? junction,
-        GoalType goal, string trace)
+        GoalType goal, string trace, string detail = null)
     {
         if (junction is { } occupied)
         {
@@ -710,7 +713,8 @@ public sealed partial class ExecutionSystem
         npc.Execution.EndTick = 0;
         npc.Movement.JunctionPath.Clear();
         npc.Movement.PathIndex = 0;
-        Trace.Emit(world, npc.Id, trace, $"Hygiene={npc.Needs.Hygiene:F2}");
+        Trace.Emit(world, npc.Id, trace,
+            $"{(detail is null ? string.Empty : detail + " ")}Hygiene={npc.Needs.Hygiene:F2}");
     }
 
     // Spec 35.4: should the finished cool-off beat re-arm in place? Yes while she

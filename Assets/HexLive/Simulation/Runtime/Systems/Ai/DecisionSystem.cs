@@ -73,6 +73,21 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 continue;
             }
 
+            // Behavior audit (Jul 2026): while a mob is actively trading blows
+            // with her, the errand auction stays CLOSED — the old code re-picked
+            // GatherTools mid-mauling and she walked off collecting a hammer
+            // while the dog ate her (seed 999: 12 wounds, head destroyed, goal
+            // never left GatherTools). IsFighting is recomputed by MobSystem
+            // every medium tick, so the gate can't stick after the fight ends;
+            // the flee assessment (health/pack thresholds) still runs there.
+            // Starvation/dehydration crack the gate back open — a standoff
+            // against a dog that can't close (ledge, blocked path) must never
+            // out-starve the girl it besieges (iter-4 freeze, seed 999).
+            if (npc.IsFighting && !npc.Mind.IsStarving && !npc.Mind.IsDehydrated)
+            {
+                continue;
+            }
+
             if (npc.Mind.CurrentGoal == GoalType.Defend &&
                 (npc.Plan.Status == PlanStatus.Active ||
                  npc.Mind.CombatAssistDogId.HasValue ||
@@ -241,7 +256,31 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // NPC reaching for more clothes is a doom loop.
             // Spec 29C.4A: fresh danger overrides the weather — arm up.
             var effectiveTemp = world.Environment.GlobalTemperature + npc.EquippedWarmth * 10f;
-            var wantsArmor = npc.Memory.Dangers.Count > 0 && npc.EquippedArmor < 0.3f &&
+            // Jul 2026: never reach for the wardrobe while a mob is actively
+            // hunting her — armor-up is for the lull AFTER the scare, not
+            // mid-chase (iter-5: Flee↔Dress churn under bites, seed 12345).
+            // "Hunted" = a live mob has HER as its target AND is close enough
+            // to matter (≤3 tiles). Distance cap added after iter-8: a wolf
+            // circling out of reach kept a girl's whole auction suppressed all
+            // night — no Sleep, no chores — and she stood by the fire until
+            // thirst took her (seed 42 d6.5).
+            var activelyHunted = npc.IsFighting;
+            if (!activelyHunted)
+            {
+                foreach (var mob in world.Mobs)
+                {
+                    if (mob.Health > 0f && mob.TargetNpc is { } hunted &&
+                        hunted.Equals(npc.Id) &&
+                        HexSpatialMath.HexDistance(mob.Tile, npc.Tile) <= 3)
+                    {
+                        activelyHunted = true;
+                        break;
+                    }
+                }
+            }
+
+            var wantsArmor = !activelyHunted &&
+                npc.Memory.Dangers.Count > 0 && npc.EquippedArmor < 0.3f &&
                 KnowsReachableArmor(npc, world);
             var dressAvail = wantsArmor ||
                 (npc.Needs.ThermalDiscomfort >= SimBalance.DressThermalThreshold &&
@@ -516,9 +555,15 @@ public sealed partial class DecisionSystem : ISimulationSystem
             }
             var hasBottleWater = HasBottleWater(npc);
             var drinkAvail = npc.Needs.Thirst >= 0.35f && (hasBottleWater || hasCoconutWater);
+            // Jul 2026: water forages like food — GetFood always had the
+            // "walk to a remembered palm" fallback, GetWater didn't, so once
+            // the camp's ground coconuts were eaten the colony sat at Thirst
+            // 1.0 with groves rotting 6 tiles away (whole-colony thirst wipes,
+            // seeds 42/999/2024).
             var getWaterAvail = hasCoconutBlade && npc.Needs.Thirst >= 0.35f && !hasCoconutWater &&
                 !hasBottleWater &&
-                HasReachableDefinitionWorthCarrying(npc, world, "food.coconut");
+                (HasReachableDefinitionWorthCarrying(npc, world, "food.coconut") ||
+                 KnowsReachableProducer(npc, world));
             // Costs come from the RECIPES (asset-overridable), not constants —
             // an asset that reprices a tool re-prices its gathering too.
             var axeStoneCost = Content.RecipeCatalog.InputCount(GoalType.CraftAxe, "resource.stone");
@@ -802,9 +847,16 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // Spec 45 r2: "good enough" beats "perfect" — the strict 0.45
             // gate never opened (thirst lives above it), so no surplus ever
             // reached the projects. Comfortable-ish and safe is enough.
+            // Behavior audit (Jul 2026): `Dangers.Count == 0` froze the whole
+            // industry chain — §62 sightings restamp the danger memory (TTL
+            // 2400) almost daily, so freeHands held ~never and 25-day soaks
+            // finished with 0 ropes, 0 mined stones, 0 site deliveries, 0
+            // beds. Same reasoning as buildPeacetime/raftDangerNear: only a
+            // FRESH scare (BuildDangerFreshTicks) stays the settled hands;
+            // day-old ghosts don't cancel the day's work.
             var freeHands = npc.Needs.Hunger < 0.55f && npc.Needs.Thirst < 0.55f &&
                 npc.Needs.Energy > 0.35f && npc.Needs.ThermalDiscomfort < 0.5f &&
-                npc.Memory.Dangers.Count == 0
+                !freshDanger
                     ? 0.3f
                     : 0f;
             // §54 cold start: fetching stones for the first hearth is urgent too.
@@ -1039,21 +1091,41 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // otherwise invisible to it: garments sat at dirt 0.7-1.0 forever).
             var batheNeed = System.MathF.Max(1f - npc.Needs.Hygiene,
                 EquipmentMath.WorstDirtiness(npc) * SimBalance.BatheWornDirtWeight);
+            // §63: no spa while bleeding out — a mauled girl (blood < 0.6)
+            // planned an 80-tick wash at the far shore between bleed ticks.
             var batheAvail = batheNeed >= SimBalance.BatheNeedThreshold &&
+                npc.Needs.Blood >= 0.6f &&
                 HasReachableBathTile(world, npc) && npc.Body.CanUseToolsOrWeapons;
             if (npc.Mind.CurrentGoal == GoalType.Bathe && npc.Plan.Status == PlanStatus.Active)
             {
                 batheAvail = true;
             }
-            AddGoalScore(npc, world.Tick, GoalType.Bathe, batheNeed * 0.7f, batheAvail);
+            // Behavior audit (Jul 2026): hygiene chores are settled-hands work
+            // too — at bare need×0.7 they NEVER beat Sit/Dress (25-day soaks:
+            // Bathed 0, WashClothes 0 across 10 seeds), so worn dirt/festering
+            // hygiene simply accumulated. The same freeHands surplus that sends
+            // a settled girl to the rope pile sends her to the waterline.
+            // …and once she has COMMITTED to the trip (plan active, walking to
+            // the waterline), petty leisure must not cancel it mid-way — the
+            // Jul 2026 trace showed every wash walk interrupted by Socialize/
+            // Sit at ~0.9 vs wash 0.75, so 15 attempts → 0 finished washes.
+            // Real needs (thirst/hunger ~2.0, danger) still preempt freely.
+            var batheActive = npc.Mind.CurrentGoal == GoalType.Bathe &&
+                npc.Plan.Status == PlanStatus.Active;
+            AddGoalScore(npc, world.Tick, GoalType.Bathe,
+                batheNeed * 0.7f + freeHands + (batheActive ? 0.35f : 0f), batheAvail);
 
             var washNeed = DirtyGarmentWashNeed(world, npc);
-            var washAvail = washNeed >= SimBalance.WashClothesNeedThreshold;
-            if (npc.Mind.CurrentGoal == GoalType.WashClothes && npc.Plan.Status == PlanStatus.Active)
+            var washAvail = washNeed >= SimBalance.WashClothesNeedThreshold &&
+                npc.Needs.Blood >= 0.6f;
+            var washActive = npc.Mind.CurrentGoal == GoalType.WashClothes &&
+                npc.Plan.Status == PlanStatus.Active;
+            if (washActive)
             {
                 washAvail = true;
             }
-            AddGoalScore(npc, world.Tick, GoalType.WashClothes, washNeed * 0.75f, washAvail);
+            AddGoalScore(npc, world.Tick, GoalType.WashClothes,
+                washNeed * 0.75f + freeHands + (washActive ? 0.35f : 0f), washAvail);
 
             // Spec 35.5: rain, wet clothes, and the drying chain.
             var wornWetness = 0f;
@@ -1163,6 +1235,25 @@ public sealed partial class DecisionSystem : ISimulationSystem
             if (bleedingCrisis)
             {
                 SuppressPeacetimeDuringBleeding(npc);
+            }
+
+            // Jul 2026: the starving/dehydrated exception that reopens the
+            // auction mid-fight is for SURVIVAL moves only — without this
+            // filter cold-Dress (1.1 at night, near-naked) kept winning the
+            // auction BETWEEN bites (IsFighting flickers while the dog closes
+            // again) and the girl re-dressed while being eaten (seed 12345).
+            // activelyHunted covers the whole chase, not just the melee ticks.
+            if (activelyHunted)
+            {
+                foreach (var score in npc.Mind.LastScores)
+                {
+                    var allowed = score.Goal is GoalType.Drink or GoalType.GetWater
+                        or GoalType.Eat or GoalType.GetFood or GoalType.Idle or GoalType.None;
+                    if (!allowed)
+                    {
+                        score.FinalScore = 0f;
+                    }
+                }
             }
 
             Trace.Emit(world, npc.Id, "DecisionInput",
@@ -1302,7 +1393,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
         {
             if (IsBleedingCrisisGoal(score.Goal, npc))
             {
-                if (score.Goal == GoalType.CraftBandage)
+                // Behavior audit (Jul 2026): the boost used to resurrect an
+                // UNAVAILABLE CraftBandage (no herbs carried → FinalScore 0 →
+                // +0.5) — the girl stood in a CraftBandage/ExecFailed loop
+                // ("missing herb x2" every tick) until she bled out, while the
+                // zeroed GatherHerb could have fetched the leaves. Boost only
+                // a genuinely available craft.
+                if (score.Goal == GoalType.CraftBandage && score.FinalScore > 0f)
                 {
                     score.EmergencyModifier = System.MathF.Max(score.EmergencyModifier, StarvingBoost * 0.5f);
                     score.FinalScore += StarvingBoost * 0.5f;
@@ -1322,7 +1419,9 @@ public sealed partial class DecisionSystem : ISimulationSystem
             GoalType.Idle or GoalType.None => true,
             GoalType.Eat or GoalType.GetFood => npc.Mind.IsStarving,
             GoalType.Drink or GoalType.GetWater => npc.Mind.IsDehydrated,
-            GoalType.CraftBandage => true,
+            // Fetching the bandage's herbs IS the crisis response — zeroing it
+            // left a herbless bleeder with literally nothing to do (Jul 2026).
+            GoalType.CraftBandage or GoalType.GatherHerb => true,
             _ => false
         };
     }

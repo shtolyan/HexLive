@@ -645,8 +645,17 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // GetFood can fire again. Last-resort by construction (hunger
             // >= 0.8), like food-sharing/theft — the healthy colony never
             // sees it.
-            if (npc.Needs.Hunger >= 0.8f && !npc.Inventory.HasSpace &&
-                npc.Inventory.FindFirstFood(world.Content) is null)
+            // Jul 2026: the same trap kills via THIRST — a pack full of
+            // logs/sticks blocks GetWater/forage exactly like it blocked
+            // GetFood, and the girl stood at Goal=None x362 cycles until the
+            // thirst threshold death (seed 42 d5-6, whole colony at one tile).
+            // Same last-resort construction, same junk order.
+            var packStarved = npc.Needs.Hunger >= 0.8f &&
+                npc.Inventory.FindFirstFood(world.Content) is null;
+            var packParched = npc.Needs.Thirst >= 0.8f &&
+                npc.Inventory.FindFirstDrink(world.Content) is null &&
+                !npc.Inventory.Items.Contains("food.coconut");
+            if ((packStarved || packParched) && !npc.Inventory.HasSpace)
             {
                 foreach (var junk in new[] { "resource.log", "resource.stick", "resource.palm_leaf", "resource.stone" })
                 {

@@ -221,6 +221,10 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     Trace.Emit(world, npc.Id, "InteractionBlocked",
                         $"{worldObject.DefinitionId} occupied by " +
                         $"NPC{worldObject.CurrentUser?.Value.ToString() ?? "?"}");
+                    // Jul 2026: remember the contested object briefly so the
+                    // next plan reaches for a DIFFERENT source (e.g. pierce a
+                    // fresh coconut) instead of re-targeting this one forever.
+                    npc.Memory.Shun(worldObject.Id, world.Tick + 600);
                     PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
                     PlanInterruption.Abort(world, npc,
                         $"Target {worldObject.DefinitionId} occupied on arrival");

@@ -72,7 +72,17 @@ public sealed partial class DecisionSystem
         // Spec §54: the hearth build-site wins over any other site — it only
         // exists during cold start (until the campfire is raised), and it must
         // be built first (fire gates warmth, cooking and all crafting).
+        //
+        // Behavior audit (Jul 2026): after the hearth, the queue is ORDERED,
+        // not first-perceived — the live campfire's open upgrade bill (12
+        // sticks + 18 stones + 2 rope) used to hijack the single buildSite
+        // slot for the whole run, so the bed's rope stage was never "the
+        // site's need" and CraftRope fired 0 times in 250 soak-days. Sleep
+        // furniture (bed, drying rack) finishes first; the stone ring and
+        // other upgrades take the surplus afterwards.
         WorldObjectState firstSite = null;
+        WorldObjectState furnitureSite = null;
+        WorldObjectState hearthUpgrade = null;
         foreach (var obj in npc.Perception.Objects)
         {
             if (!obj.IsReachable ||
@@ -90,10 +100,36 @@ public sealed partial class DecisionSystem
                 return site;
             }
 
+            if (site.DefinitionId == "campfire.spot")
+            {
+                hearthUpgrade ??= site;
+            }
+            else if (site.DefinitionId == "build.site" &&
+                site.BuildProduct is "bed.leaf" or "bed.basic" or "station.drying_rack")
+            {
+                furnitureSite ??= site;
+            }
+
             firstSite ??= site;
         }
 
-        return firstSite;
+        // §63: once the colony sleeps on its FIRST bed, the hearth's stone
+        // ring outranks bed #2/#3 — BedSiteSystem wants a bed per girl and
+        // used to monopolize the queue, so the campfire upgrade never saw a
+        // single stone in 25-day soaks.
+        var colonyHasBed = false;
+        foreach (var candidate in world.Entities.Objects.Values)
+        {
+            if (candidate.DefinitionId is "bed.leaf" or "bed.basic")
+            {
+                colonyHasBed = true;
+                break;
+            }
+        }
+
+        return colonyHasBed
+            ? hearthUpgrade ?? furnitureSite ?? firstSite
+            : furnitureSite ?? hearthUpgrade ?? firstSite;
     }
 
     internal static bool CarriesSiteMaterial(NPCState npc, WorldObjectState site)

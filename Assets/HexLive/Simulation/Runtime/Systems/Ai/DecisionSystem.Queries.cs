@@ -164,7 +164,14 @@ public sealed partial class DecisionSystem
 
         foreach (var obj in npc.Perception.Objects)
         {
-            if (!obj.IsReachable || !ObjectUsableBy(obj, npc.Id))
+            // Jul 2026: availability must mirror the PLANNER's own filters —
+            // shunned (recently contested) and stale (perceived but already
+            // despawned) objects made drinkAvail say "yes" while the plan
+            // said "nothing drinkable", and the girl spammed Drink/PlanFailed
+            // until she died of the thirst the goal was for.
+            if (!obj.IsReachable || !ObjectUsableBy(obj, npc.Id) ||
+                npc.Memory.IsShunned(obj.Id, world.Tick) ||
+                !world.Entities.Objects.TryGetValue(obj.Id, out var worldObject))
             {
                 continue;
             }
@@ -175,7 +182,6 @@ public sealed partial class DecisionSystem
             }
 
             if (obj.DefinitionId == "food.coconut_pierced" &&
-                world.Entities.Objects.TryGetValue(obj.Id, out var worldObject) &&
                 worldObject.ResourceAmount > 0f)
             {
                 return true;

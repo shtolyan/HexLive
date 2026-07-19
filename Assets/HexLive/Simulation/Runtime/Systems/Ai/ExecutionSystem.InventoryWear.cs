@@ -544,6 +544,29 @@ public sealed partial class ExecutionSystem
             if (IsPortableCoconutDrink(itemDefinition, verb))
             {
                 item.ResourceAmount = System.MathF.Max(0f, item.ResourceAmount - 1f);
+
+                // Jul 2026 (thirst-death class): a truly thirsty girl keeps
+                // sipping the same coconut in place — each sip is the ordinary
+                // interaction at the ordinary cost, without a full goal
+                // re-auction round-trip between mouthfuls (which used to hand
+                // the coconut to Eat and the girl to another errand while her
+                // thirst stayed critical).
+                // …but never sip past a STARVING stomach — with hunger at the
+                // damage band the auction must rebalance toward Eat between
+                // mouthfuls (iter-8: Marta died at Hunger 1.0 holding an open
+                // coconut she never got to eat because the sips kept coming).
+                if (npc.Needs.Thirst >= 0.4f && item.ResourceAmount > 0f &&
+                    npc.Needs.Hunger < 0.85f)
+                {
+                    npc.Execution.Status = ExecutionStatus.InProgress;
+                    npc.Execution.StartTick = world.Tick;
+                    npc.Execution.EndTick = world.Tick + interaction.DurationTicks;
+                    Trace.Emit(world, npc.Id, "InteractionStarted",
+                        $"{verb} (inventory, next sip) -> {itemId} " +
+                        $"Duration={interaction.DurationTicks}ticks " +
+                        $"WaterLeft={item.ResourceAmount:F0} Thirst={npc.Needs.Thirst:F2}");
+                    return;
+                }
             }
             else
             {

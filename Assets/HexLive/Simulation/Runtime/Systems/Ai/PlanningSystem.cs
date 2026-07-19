@@ -121,6 +121,23 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     continue;
                 }
 
+                // Jul 2026: a BLADELESS dehydrated girl far from the colony
+                // cannot make water appear where she stands — but the camp can
+                // (housemates craft knives and pierce coconuts day 0, and §53
+                // Hydrate-aid needs her in sight). Walking home IS her drink
+                // plan; the recurring seed-42 day-0.5 death was Marta chasing
+                // distant tools at the island's rim while thirst hit 1.0.
+                if (!DecisionSystem.HasCoconutBlade(npc) &&
+                    TryBuildSeekWaterHelpPlan(world, npc))
+                {
+                    continue;
+                }
+
+                // Jul 2026: cooldown on failure — without it a Drink the
+                // availability scan still believes in re-fires every tick
+                // (score ~2.15) and the girl stands in a PlanFailed loop
+                // instead of letting GetWater/forage chains run.
+                SetGoalCooldown(world, npc, GoalType.Drink);
                 npc.Plan.Status = PlanStatus.Failed;
                 Trace.Emit(world, npc.Id, "PlanFailed",
                     "Goal=Drink but nothing drinkable in inventory");
@@ -359,7 +376,10 @@ public sealed partial class PlanningSystem : ISimulationSystem
 
             if (selected is null)
             {
-                if (npc.Mind.CurrentGoal == GoalType.GetFood)
+                // Jul 2026: GetWater forages too — a coconut IS the island's
+                // water; walking to a remembered palm brings its dropped nuts
+                // into perception exactly like the food walk does.
+                if (npc.Mind.CurrentGoal is GoalType.GetFood or GoalType.GetWater)
                 {
                     BuildForagePlan(world, npc);
                     continue;

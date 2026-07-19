@@ -40,6 +40,12 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Через сколько тиков сгнивает неподобранный фрукт на земле.")]
         [Range(300, 9600)] public int fruitRotTicks = 2400;
 
+        [Header("Прибой приносит одежду (§63)")]
+        [Tooltip("Шанс в день, что прибой вынесет случайную вещь на берег (0.35 ≈ 2-3 вещи за 7 дней).")]
+        [Range(0f, 1f)] public float surfGiftChancePerDay = 0.35f;
+        [Tooltip("В какой момент дня прилив оставляет вещь (тики от начала суток, кратно 16).")]
+        [Range(0, 2400)] public int surfGiftOffsetTicks = 800;
+
         [Header("Собаки — директор стаи (§46)")]
         [Tooltip("Максимум собак на острове одновременно.")]
         [Range(0, 10)] public int maxDogs = 3;

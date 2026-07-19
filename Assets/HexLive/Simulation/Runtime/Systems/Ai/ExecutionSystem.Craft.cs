@@ -291,6 +291,11 @@ public sealed partial class ExecutionSystem
             {
                 if (DecisionSystem.CountInventory(npc, ing.Id) < ing.Count)
                 {
+                    // Cooldown the goal — without it a decision layer that
+                    // still believes the craft is possible re-selects it every
+                    // tick and the NPC stands in an ExecFailed loop (the
+                    // bled-out-at-CraftBandage death class, Jul 2026).
+                    PlanningSystem.SetGoalCooldown(world, npc, goal);
                     npc.Plan.Status = PlanStatus.Failed;
                     Trace.Emit(world, npc.Id, "ExecFailed",
                         $"CraftInPlace {goal}: missing {ing.Id} x{ing.Count}");

@@ -32,6 +32,13 @@ public static class WorldBalance
 
     // Ground fruit (coconuts) rots away after this many ticks unpicked.
     public static int FruitRotTicks = 2400;
+
+    // §63: the surf beaches a random garment on the shoreline — chance per
+    // day (0.35 ≈ 2-3 pieces per week) and when in the day the tide drops it
+    // (on the Slow 16-tick grid, mid-morning). Keeps the wardrobe (and with
+    // it pocket capacity) from wearing down to nothing.
+    public static float SurfGiftChancePerDay = 0.35f;
+    public static int SurfGiftOffsetTicks = 800;
 }
 
 }

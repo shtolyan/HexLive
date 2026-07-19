@@ -49,10 +49,16 @@ public sealed partial class PlanningSystem
             return false;
         }
 
+        // Jul 2026 (day-0 thirst deaths): the Eat chain used to grab the FIRST
+        // pierced coconut — including one still holding drink charges — and
+        // grind it into food, destroying the water the girl (or a housemate)
+        // was about to drink. Order now: drained husks first, then whole nuts;
+        // a watered pierced coconut is only eaten when nothing else is left.
         if (HasCoconutBlade(npc) &&
-            TryFindInventoryItem(npc, "food.coconut_pierced", out var carriedPierced))
+            TryFindInventoryItem(npc, "food.coconut_pierced", requireWater: false,
+                out var carriedDrained, requireDrained: true))
         {
-            return BuildCoconutInventoryPlan(world, npc, GoalType.Eat, carriedPierced,
+            return BuildCoconutInventoryPlan(world, npc, GoalType.Eat, carriedDrained,
                 InteractionType.Process, InteractionType.PickUp);
         }
 
@@ -69,17 +75,25 @@ public sealed partial class PlanningSystem
         }
 
         if (HasCoconutBlade(npc) &&
-            TryFindCoconutObject(npc, world, "food.coconut_pierced", requireWater: false, out var pierced))
+            TryFindCoconutObject(npc, world, "food.coconut", requireWater: false, out var whole))
+        {
+            return BuildCoconutWorldPlan(world, npc, GoalType.Eat, whole,
+                InteractionType.Process, InteractionType.Process, InteractionType.PickUp);
+        }
+
+        if (HasCoconutBlade(npc) &&
+            TryFindCoconutObject(npc, world, "food.coconut_pierced", requireWater: false,
+                out var pierced, preferDrained: true))
         {
             return BuildCoconutWorldPlan(world, npc, GoalType.Eat, pierced,
                 InteractionType.Process, InteractionType.PickUp);
         }
 
         if (HasCoconutBlade(npc) &&
-            TryFindCoconutObject(npc, world, "food.coconut", requireWater: false, out var whole))
+            TryFindInventoryItem(npc, "food.coconut_pierced", out var carriedWatered))
         {
-            return BuildCoconutWorldPlan(world, npc, GoalType.Eat, whole,
-                InteractionType.Process, InteractionType.Process, InteractionType.PickUp);
+            return BuildCoconutInventoryPlan(world, npc, GoalType.Eat, carriedWatered,
+                InteractionType.Process, InteractionType.PickUp);
         }
 
         return false;
@@ -192,6 +206,85 @@ public sealed partial class PlanningSystem
         return true;
     }
 
+    // Jul 2026: a bladeless dehydrated girl walks TO THE COLONY — housemates
+    // hold the knives that make water, §53 Hydrate needs her in perception,
+    // and the camp is where pierced coconuts appear. A plain move-only plan
+    // (like the forage walk): arrive, look around, re-decide.
+    private static bool TryBuildSeekWaterHelpPlan(WorldState world, NPCState npc)
+    {
+        if (npc.CurrentJunction is not { } from)
+        {
+            return false;
+        }
+
+        NPCState best = null;
+        var bestDistance = int.MaxValue;
+        foreach (var other in world.Entities.Npcs.Values)
+        {
+            if (other.Id.Equals(npc.Id) || other.Health <= 0f ||
+                other.CurrentJunction is not { } otherJunction ||
+                !Connectivity.Reachable(world, from, otherJunction))
+            {
+                continue;
+            }
+
+            var distance = HexSpatialMath.HexDistance(npc.Tile, other.Tile);
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                best = other;
+            }
+        }
+
+        // Standing next to her already — walking closer adds nothing; let the
+        // ordinary failure path cooldown the goal and the housemate's aid run.
+        if (best is null || bestDistance <= 2 || best.CurrentJunction is not { } anchor)
+        {
+            return false;
+        }
+
+        // Walk to a FREE junction beside her, not onto the spot she occupies.
+        JunctionId? targetPick = null;
+        if (world.Junctions.Items.TryGetValue(anchor, out var anchorJunction))
+        {
+            var bestNear = float.MaxValue;
+            foreach (var neighborId in anchorJunction.Neighbors)
+            {
+                if (!world.Junctions.Items.TryGetValue(neighborId, out var neighbor) ||
+                    neighbor.Blocked ||
+                    !SpatialQueries.IsJunctionFree(world, neighborId) ||
+                    !Connectivity.Reachable(world, from, neighborId))
+                {
+                    continue;
+                }
+
+                var d = HexSpatialMath.Distance(npc.Position, neighbor.WorldPosition);
+                if (d < bestNear)
+                {
+                    bestNear = d;
+                    targetPick = neighborId;
+                }
+            }
+        }
+
+        if (targetPick is not { } target)
+        {
+            return false;
+        }
+
+        npc.Plan.TargetObjectId = null;
+        npc.Plan.TargetItemDefinitionId = null;
+        npc.Plan.TargetJunctionId = target;
+        npc.Plan.TargetTile = best.Tile;
+        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.MoveToJunction, TargetJunction = target });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        Trace.Emit(world, npc.Id, "SeekWaterHelp",
+            $"No blade, nothing drinkable — walking to {best.DisplayName} " +
+            $"(Dist={bestDistance} Tile={best.Tile.Q},{best.Tile.R})");
+        return true;
+    }
+
     private static bool TryFindInventoryItem(NPCState npc, string definitionId, out ItemInstance item)
     {
         return TryFindInventoryItem(npc, definitionId, requireWater: false, out item);
@@ -201,12 +294,14 @@ public sealed partial class PlanningSystem
         NPCState npc,
         string definitionId,
         bool requireWater,
-        out ItemInstance item)
+        out ItemInstance item,
+        bool requireDrained = false)
     {
         foreach (var carried in npc.Inventory.Items)
         {
             if (carried.DefinitionId == definitionId &&
-                (!requireWater || carried.ResourceAmount > 0f))
+                (!requireWater || carried.ResourceAmount > 0f) &&
+                (!requireDrained || carried.ResourceAmount <= 0f))
             {
                 item = carried;
                 return true;
@@ -222,23 +317,36 @@ public sealed partial class PlanningSystem
         WorldState world,
         string definitionId,
         bool requireWater,
-        out PerceivedObject result)
+        out PerceivedObject result,
+        bool preferDrained = false)
     {
         PerceivedObject? best = null;
+        var bestDrained = false;
         foreach (var obj in npc.Perception.Objects)
         {
             if (!obj.IsReachable ||
                 obj.DefinitionId != definitionId ||
                 !DecisionSystem.ObjectUsableBy(obj, npc.Id) ||
+                // Jul 2026: skip a source that turned out occupied on arrival
+                // recently — chase a different one instead of oscillating.
+                npc.Memory.IsShunned(obj.Id, world.Tick) ||
                 !world.Entities.Objects.TryGetValue(obj.Id, out var worldObject) ||
                 (requireWater && worldObject.ResourceAmount <= 0f))
             {
                 continue;
             }
 
-            if (best is null || obj.Distance < best.Distance)
+            // Jul 2026: an EAT should reach for the drained husk first — a
+            // pierced coconut still holding water is somebody's drink; grinding
+            // it into food wasted the colony's scarcest resource (the day-0
+            // thirst-death class).
+            var drained = worldObject.ResourceAmount <= 0f;
+            if (best is null ||
+                (preferDrained && drained && !bestDrained) ||
+                (obj.Distance < best.Distance && (!preferDrained || drained == bestDrained)))
             {
                 best = obj;
+                bestDrained = drained;
             }
         }
 
@@ -256,7 +364,14 @@ public sealed partial class PlanningSystem
     // producer; arriving brings dropped fruit into perception radius.
     private void BuildForagePlan(WorldState world, NPCState npc)
     {
+        // Jul 2026: prefer a producer she CANNOT currently see under — the
+        // nearest palm was always the camp one whose bare ground she is
+        // already looking at, so "forage" degenerated into ForageWaiting at a
+        // dry tree while nuts rotted under the far groves (late-game colony
+        // thirst wipes). A tree ≥2 tiles away may hold the drop she needs;
+        // the close dry one is only the fallback.
         PerceivedObject? flora = null;
+        PerceivedObject? floraNear = null;
         foreach (var obj in npc.Perception.Objects)
         {
             if (!obj.IsReachable ||
@@ -273,17 +388,34 @@ public sealed partial class PlanningSystem
                 continue;
             }
 
+            if (HexSpatialMath.HexDistance(npc.Tile, obj.Tile) <= 1)
+            {
+                if (floraNear is null || obj.Distance < floraNear.Distance)
+                {
+                    floraNear = obj;
+                }
+
+                continue;
+            }
+
             if (flora is null || obj.Distance < flora.Distance)
             {
                 flora = obj;
             }
         }
 
+        flora ??= floraNear;
+
+        // Jul 2026: the forage walk serves GetWater too (a coconut IS water) —
+        // cooldown whichever goal actually sent her, not a hardcoded GetFood.
+        var forageGoal = npc.Mind.CurrentGoal == GoalType.GetWater
+            ? GoalType.GetWater
+            : GoalType.GetFood;
         if (flora is null)
         {
             npc.Plan.Status = PlanStatus.Failed;
-            SetGoalCooldown(world, npc, GoalType.GetFood);
-            Trace.Emit(world, npc.Id, "PlanFailed", "Goal=GetFood NoKnownProducer");
+            SetGoalCooldown(world, npc, forageGoal);
+            Trace.Emit(world, npc.Id, "PlanFailed", $"Goal={forageGoal} NoKnownProducer");
             return;
         }
 
@@ -292,7 +424,7 @@ public sealed partial class PlanningSystem
             // Already by the tree and still no fruit in sight: wait it out.
             npc.Plan.Status = PlanStatus.Completed;
             npc.Mind.CurrentGoal = GoalType.None;
-            SetGoalCooldown(world, npc, GoalType.GetFood);
+            SetGoalCooldown(world, npc, forageGoal);
             Trace.Emit(world, npc.Id, "ForageWaiting",
                 $"At producer {flora.DefinitionId} Tile={flora.Tile.Q},{flora.Tile.R}, no fruit visible");
             return;

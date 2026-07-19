@@ -70,6 +70,13 @@ public sealed class NPCMind
     // get a short-lived Defend goal pointed at the attacker.
     public int LastHelpCryTick { get; set; } = -999999;
 
+    // §54.14 (r2): the last tick she was genuinely freezing (ThermalComfort
+    // below the §45 r5 friction-light threshold). Friction-lighting stays
+    // unlocked for a grace window past this — she decided to light the fire
+    // while shivering, and the walk to the pit must not revoke the decision
+    // (probe: TendFire held 50+ ticks, then died mid-walk as dawn warmed her).
+    public int LastFreezingTick { get; set; } = -999999;
+
     public int? CombatAssistDogId { get; set; }
 
     public HexLive.Simulation.Common.EntityId? CombatAssistAttackerNpcId { get; set; }

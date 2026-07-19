@@ -167,6 +167,27 @@ public static class PrototypeContentCatalog
                         Type = InteractionType.Craft,
 
                         DurationTicks = 12
+                    },
+                    // §54.14: the fire is ALSO its own build-site while its
+                    // upgrade bill is open (stone ring, roasting spit) —
+                    // deliveries land through the same furniture-build verb.
+                    // Hand-piled: no hammer at any stage.
+                    new InteractionDefinition
+                    {
+                        Id = "build.furniture",
+                        Type = InteractionType.Build,
+                        DurationTicks = 24
+                    },
+                    // §54.14 (r2): take a cooked chunk off the roasting spit.
+                    // PickUp on the FIRE is intercepted in execution — it
+                    // transfers one food.meat_cooked out of Contents; the fire
+                    // itself is never pocketable (no Food tag, and GetFood only
+                    // targets it while cooked meat hangs).
+                    new InteractionDefinition
+                    {
+                        Id = "take.from.spit",
+                        Type = InteractionType.PickUp,
+                        DurationTicks = 6
                     }
                 }
             },
@@ -202,8 +223,9 @@ public static class PrototypeContentCatalog
 
                         // Spec 35.2 (iter 29): breaking rock is real labor.
                         DurationTicks = 80,
-                        // Spec §54: 4 stones scatter on the ground around the rock.
-                        Yields = { new HarvestDrop { DefinitionId = "resource.stone", Count = 4, Scatter = true } }
+                        // §54.14: the boulder model IS five packed chunks — the
+                        // pickaxe breaks it into exactly those 5 stones, scattered.
+                        Yields = { new HarvestDrop { DefinitionId = "resource.stone", Count = 5, Scatter = true } }
                     }
                 }
             },

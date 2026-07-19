@@ -771,6 +771,32 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 {
                     fire.SetLit(worldObject.ResourceAmount > 0f);
                 }
+
+                // §54.14: grow the staged pieces (stone ring, spit) as upgrade
+                // materials land; show everything once the bill is closed.
+                // Cheap per frame — Apply only flips pieces whose state changed.
+                var fireAsm = objectView.GetComponent<HexLive.UnityPresentation.Environment.BedAssembly>();
+                if (fireAsm != null)
+                {
+                    if (string.IsNullOrEmpty(worldObject.BuildProduct))
+                    {
+                        fireAsm.ApplyAll();
+                    }
+                    else
+                    {
+                        fireAsm.Apply(worldObject.DeliveredLogs, worldObject.DeliveredSticks,
+                            worldObject.DeliveredRope, worldObject.DeliveredLeaves,
+                            worldObject.DeliveredStones);
+                    }
+                }
+
+                // §54.14 (r2): meat hanging on the roasting spit — raw chunks
+                // roasting, cooked ones waiting to be taken.
+                var spitMeat = objectView.GetComponent<HexLive.UnityPresentation.Environment.CampfireSpitMeat>();
+                if (spitMeat != null)
+                {
+                    spitMeat.Refresh(worldObject.RoastingRaw, worldObject.RoastingCooked);
+                }
             }
 
             var garmentCondition = objectView.GetComponent<GarmentWorldCondition>();
@@ -1848,6 +1874,34 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return invisible;
         }
 
+        // §54.14: the campfire is the assembled staged prefab (stick pile →
+        // stone ring → roasting spit), authored 1:1 like the beds — partial
+        // while its upgrade bill is open, complete once it closes. The flame
+        // and light attach here so a mid-upgrade fire still burns.
+        if (worldObject.DefinitionId == "campfire.spot")
+        {
+            var fireGo = string.IsNullOrEmpty(worldObject.BuildProduct)
+                ? HexLive.UnityPresentation.Environment.BedAssembly.BuildFinished("campfire.spot")
+                : HexLive.UnityPresentation.Environment.BedAssembly.BuildPartial(
+                    "campfire.spot", worldObject.DeliveredLogs, worldObject.DeliveredSticks,
+                    worldObject.DeliveredRope, worldObject.DeliveredLeaves, worldObject.DeliveredStones);
+            if (fireGo != null)
+            {
+                fireGo.transform.SetParent(_objectsRoot, false);
+                var fireAnchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
+                fireGo.transform.position = SimulationUnityMapper.ToUnityPosition(
+                    fireAnchor, GroundY(worldObject.Tile));
+                var fireEffect = fireGo.AddComponent<HexLive.UnityPresentation.Environment.CampfireEffect>();
+                fireEffect.Construct(HexRadius);
+                // §54.14 (r2): the spit-meat view rides on the same root; the
+                // per-frame sync feeds it the hanging raw/cooked counts.
+                var spitView = fireGo.AddComponent<HexLive.UnityPresentation.Environment.CampfireSpitMeat>();
+                spitView.Refresh(worldObject.RoastingRaw, worldObject.RoastingCooked);
+                return fireGo;
+            }
+            // campfire_final prefab missing → fall through to the legacy path.
+        }
+
         // Spec §54: a build-site shows the piece ASSEMBLING from its delivered
         // materials — a pile of hauled stones/logs/leaves growing toward the
         // bill, instead of a flat pad. Refreshed each frame as more is delivered.
@@ -2165,8 +2219,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     // Spec 20.16: the campfire actually burns — flame particles + a warm,
     // flickering point light that lights nearby terrain and actors.
-    // Spec §54: ring the pit with real low-poly stones (like Stranded Deep's
-    // fire pit) so the hearth reads as "piled from stones", lit or not.
+    // §54.14: the stone ring is no longer code-built — it is stage 2 of the
+    // campfire_final staged prefab. This fallback only fires when that prefab
+    // is missing and the legacy fbx path renders the fire.
     private void MaybeAttachCampfire(GameObject root, string definitionId)
     {
         if (definitionId != "campfire.spot")
@@ -2174,35 +2229,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return;
         }
 
-        AddCampfireStoneRing(root.transform);
-
         var effect = root.AddComponent<HexLive.UnityPresentation.Environment.CampfireEffect>();
         effect.Construct(HexRadius);
-    }
-
-    // Spec §54: a ring of ~9 low-poly stones around the fire pit.
-    private void AddCampfireStoneRing(Transform parent)
-    {
-        const int stoneCount = 9;
-        var ringRadius = HexRadius * 0.42f;
-        for (var i = 0; i < stoneCount; i++)
-        {
-            var angle = (i / (float)stoneCount) * Mathf.PI * 2f;
-            var stone = HexLive.UnityPresentation.Environment.LowPolyToolFactory.Build("resource.stone");
-            if (stone == null)
-            {
-                continue;
-            }
-
-            stone.name = "RingStone";
-            stone.transform.SetParent(parent, false);
-            // Vary size/rotation a touch so the ring doesn't look stamped.
-            var s = 0.5f + 0.12f * Mathf.Sin(i * 2.3f);
-            stone.transform.localScale = new Vector3(s, s * 0.8f, s);
-            stone.transform.localPosition = new Vector3(
-                Mathf.Cos(angle) * ringRadius, 0f, Mathf.Sin(angle) * ringRadius);
-            stone.transform.localRotation = Quaternion.Euler(0f, i * 40f, 0f);
-        }
     }
 
     // Animal keys share one pose map: dogs get positive ids, crabs negative.

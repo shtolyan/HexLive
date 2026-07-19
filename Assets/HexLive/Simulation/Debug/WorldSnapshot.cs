@@ -204,6 +204,13 @@ public sealed class ObjectSnapshot
 
     public int DeliveredRope { get; set; }
 
+    // §54.14 (r2): meat hanging on the campfire's roasting spit — raw chunks
+    // still roasting and cooked ones waiting to be taken (the view hangs them
+    // on the crossbar).
+    public int RoastingRaw { get; set; }
+
+    public int RoastingCooked { get; set; }
+
     public List<JunctionId> Junctions { get; } = new();
 }
 

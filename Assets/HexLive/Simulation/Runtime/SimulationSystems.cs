@@ -1007,7 +1007,12 @@ public sealed class DecisionSystem : ISimulationSystem
             // the colony must pile the stones and light up before it can thrive.
             var noCampfireYet = !HasReachableWithTag(npc, world, "Campfire");
             var siteIsHearth = buildSite != null && buildSite.BuildProduct == "campfire.spot";
-            var hearthUrgent = siteIsHearth && noCampfireYet;
+            // §54.14 (r2): the bypass stops at the LIFE-critical band — the
+            // bare-site cold start made the first hearth a longer project, and
+            // a girl must never starve to death with the pile sticks in her
+            // pack (probe: Marta dead at hunger 1.0 carrying 8/9 sticks).
+            var hearthUrgent = siteIsHearth && noCampfireYet &&
+                npc.Needs.Hunger < 0.8f && npc.Needs.Thirst < 0.8f;
             var buildWindow = buildPeacetime || hearthUrgent;
             var siteNeedsLogs = buildSite != null && buildWindow &&
                 BuildSiteMath.Needs(buildSite, BuildSiteMath.MaterialLogs) && carriedLogs < 1;
@@ -1051,7 +1056,7 @@ public sealed class DecisionSystem : ISimulationSystem
                 npc.Inventory.Items, Content.GearCapability.Boil);
             // Spec §54: "wood in hand" for fire/craft now means a STICK.
             var hasWood = npc.Inventory.Items.Contains("resource.stick");
-            var (campfireSeen, campfireFuel) = FindCampfire(npc, world);
+            var (campfireSeen, campfireFuel, campfireObj) = FindCampfire(npc, world);
             // §gear-craft: a recipe with NO station crafts in place — its
             // availability must not demand a campfire in view.
             bool CraftPlaceOk(GoalType craftGoal)
@@ -1129,7 +1134,17 @@ public sealed class DecisionSystem : ISimulationSystem
             // pit, and seed 777 died of hypothermia around that lock. The
             // threshold (-0.35, before the -0.85 damage band) keeps the
             // lighter meaningful in mild weather.
-            var canFrictionLight = npc.Needs.ThermalComfort < -0.35f;
+            // §54.14 (r2) hysteresis: once she's been that cold, the drill
+            // stays in her hands for a grace window — the probe showed the
+            // walk to the pit warming her past the gate, the goal collapsing
+            // mid-route and the fire never lighting (cold start regression).
+            if (npc.Needs.ThermalComfort < -0.35f)
+            {
+                npc.Mind.LastFreezingTick = world.Tick;
+            }
+
+            var canFrictionLight = npc.Needs.ThermalComfort < -0.35f ||
+                world.Tick - npc.Mind.LastFreezingTick < SimBalance.FrictionLightGraceTicks;
             var tendFireAvail = hasWood && fuelLow &&
                 (campfireFuel > 0f || canFrictionLight || (canUseToolsOrWeapons && hasLighter));
 
@@ -1222,7 +1237,16 @@ public sealed class DecisionSystem : ISimulationSystem
                 npc.Needs.Hunger >= 0.3f && npc.Needs.Hunger < 0.8f &&
                 NearestVisibleRabbit(npc, world) is not null;
             var craftSpearAvail = canUseToolsOrWeapons && !hasSpear && hasWood && CraftPlaceOk(GoalType.CraftSpear);
-            var cookAvail = hasRawMeat && campfireSeen && campfireFuel > 0f;
+            // §54.14 (r2): cooking is the SPIT's job (stage 3) — CookMeat now
+            // HANGS a raw chunk on the crossbar of a lit fire; the roast itself
+            // runs in FireSystem over ~MeatRoastDurationTicks. No spit (or a
+            // full crossbar) = no cooking, whatever else the fire can do.
+            var spitReady = BuildSiteMath.CampfireSpitComplete(campfireObj);
+            var spitHooksFree = spitReady &&
+                BuildSiteMath.HangingMeat(campfireObj, "food.meat_raw") +
+                BuildSiteMath.HangingMeat(campfireObj, "food.meat_cooked") <
+                SimBalance.CampfireSpitCapacity;
+            var cookAvail = hasRawMeat && campfireSeen && campfireFuel > 0f && spitHooksFree;
             var craftLeatherAvail = hideCount >= 1 && CraftPlaceOk(GoalType.CraftLeather) &&
                 !npc.WornItems.Contains("clothing.leather_pants");
 
@@ -1475,8 +1499,9 @@ public sealed class DecisionSystem : ISimulationSystem
             // (soak: leaf deliveries 1/46, 2/46, 3/46… spaced ~50-200 ticks).
             // A girl now keeps gathering until she carries the stage's shortfall
             // (capped at half a stack) — or until nothing more can be produced —
-            // and only then walks the pile over. Unstaged sites (the hearth's
-            // stones, hut pieces) still take any piece: stones don't stack.
+            // and only then walks the pile over. Non-bed sites (the campfire's
+            // stone/spit upgrades §54.14, hut pieces) still take any piece:
+            // stones don't stack.
             var deliverWorthwhile = buildSite != null && buildWindow &&
                 CarriesSiteMaterial(npc, buildSite);
             if (deliverWorthwhile && siteIsBed)
@@ -1516,8 +1541,12 @@ public sealed class DecisionSystem : ISimulationSystem
 
             var buildFurnitureAvail = buildFurnitureRaise || deliverWorthwhile;
             var buildFurniturePull = (siteNeedsLeaves || siteNeedsSticks || siteNeedsRope) ? 0.2f : 0f;
+            // §54.14 (r2): the hearth is built FOR warmth/comfort — a cold girl
+            // pushes the stick-pile delivery with the same cold weight that
+            // drives the rest of the fire chain (there is no fire to tend yet).
             AddGoalScore(npc, world.Tick, GoalType.BuildFurniture,
-                (hearthUrgent ? 0.95f : 0.55f) + freeHands + buildFurniturePull, buildFurnitureAvail);
+                (hearthUrgent ? 0.95f : 0.55f) + freeHands + buildFurniturePull +
+                (siteIsHearth ? coldChain : 0f), buildFurnitureAvail);
 
             // Spec §52: free a slot by carrying a low-value item to the fireside
             // stockpile — but only in peace. Life-threatening pressure (a dog, a
@@ -2115,8 +2144,26 @@ public sealed class DecisionSystem : ISimulationSystem
             if (!obj.IsReachable ||
                 !ObjectUsableBy(obj, npc.Id) ||
                 !obj.AvailableInteractions.Contains(InteractionType.PickUp) ||
-                !InventoryMath.CanMakeRoomFor(world, npc, obj.DefinitionId) ||
-                !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
+                !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition))
+            {
+                continue;
+            }
+
+            // §54.14 (r2): cooked meat hanging on the spit counts as reachable
+            // food — the fire is the source object, the meat is what's taken.
+            if (definition.Tags.Contains("Campfire"))
+            {
+                if (world.Entities.Objects.TryGetValue(obj.Id, out var fire) &&
+                    BuildSiteMath.HangingMeat(fire, "food.meat_cooked") > 0 &&
+                    InventoryMath.CanMakeRoomFor(world, npc, "food.meat_cooked"))
+                {
+                    return true;
+                }
+
+                continue;
+            }
+
+            if (!InventoryMath.CanMakeRoomFor(world, npc, obj.DefinitionId) ||
                 !definition.Tags.Contains("Food"))
             {
                 continue;
@@ -2346,7 +2393,7 @@ public sealed class DecisionSystem : ISimulationSystem
         return false;
     }
 
-    internal static (bool Seen, float Fuel) FindCampfire(NPCState npc, WorldState world)
+    internal static (bool Seen, float Fuel, WorldObjectState Fire) FindCampfire(NPCState npc, WorldState world)
     {
         foreach (var obj in npc.Perception.Objects)
         {
@@ -2357,13 +2404,13 @@ public sealed class DecisionSystem : ISimulationSystem
                 continue;
             }
 
-            var fuel = world.Entities.Objects.TryGetValue(obj.Id, out var worldObject)
-                ? worldObject.ResourceAmount
-                : 0f;
-            return (true, fuel);
+            // §54.14 (r2): hand the live object back too — spit/ring stage
+            // checks and hanging-meat counts read it directly.
+            world.Entities.Objects.TryGetValue(obj.Id, out var worldObject);
+            return (true, worldObject?.ResourceAmount ?? 0f, worldObject);
         }
 
-        return (false, 0f);
+        return (false, 0f, null);
     }
 
     // Spec §52: the nearest reachable, unfinished furniture build-site the NPC
@@ -2383,7 +2430,10 @@ public sealed class DecisionSystem : ISimulationSystem
                 continue;
             }
 
-            if (site.BuildProduct == "campfire.spot")
+            // §54.14: only the BARE hearth site (no fire raised yet) gets the
+            // cold-start priority. A live campfire mid-upgrade (stone ring /
+            // spit outstanding) queues like any other furniture site.
+            if (site.BuildProduct == "campfire.spot" && site.DefinitionId == "build.site")
             {
                 return site;
             }
@@ -4788,6 +4838,14 @@ public sealed class PlanningSystem : ISimulationSystem
         switch (goal)
         {
             case GoalType.GetFood:
+                // §54.14 (r2): cooked meat hanging on the spit is takeable food —
+                // the campfire itself becomes a GetFood target while any hangs.
+                if (definition.Tags.Contains("Campfire"))
+                {
+                    return world.Entities.Objects.TryGetValue(perceived.Id, out var spitSource) &&
+                        BuildSiteMath.HangingMeat(spitSource, "food.meat_cooked") > 0;
+                }
+
                 return definition.Tags.Contains("Food") &&
                     (!definition.Tags.Contains("Coconut") || HasCoconutBlade(npc));
             case GoalType.GatherWood:
@@ -4840,13 +4898,21 @@ public sealed class PlanningSystem : ISimulationSystem
                 return definition.Tags.Contains("Yucca");
             case GoalType.GatherFiber:
                 return definition.Tags.Contains("Fiber");
+            case GoalType.CookMeat:
+                // §54.14 (r2): hanging meat needs a finished spit (stage 3)
+                // with a free hook — any other lit fire won't do.
+                return definition.Tags.Contains("Campfire") &&
+                    world.Entities.Objects.TryGetValue(perceived.Id, out var spitFire) &&
+                    BuildSiteMath.CampfireSpitComplete(spitFire) &&
+                    BuildSiteMath.HangingMeat(spitFire, "food.meat_raw") +
+                    BuildSiteMath.HangingMeat(spitFire, "food.meat_cooked") <
+                    SimBalance.CampfireSpitCapacity;
             case GoalType.CraftRope:
             case GoalType.CraftCloth:
             case GoalType.CraftKnife:
             case GoalType.CraftBandage:
             case GoalType.TendFire:
             case GoalType.CraftSpear:
-            case GoalType.CookMeat:
             case GoalType.CraftLeather:
             case GoalType.CraftAxe:
             case GoalType.CraftPickaxe:
@@ -6073,7 +6139,11 @@ public sealed class ExecutionSystem : ISimulationSystem
                     // showed 6007 "ready to light" freezing ticks converting to
                     // only 7 FireLit because the friction path was never wired
                     // into the Fuel interaction (only the lighter-carrier lit).
-                    var canFrictionLight = npc.Needs.ThermalComfort < -0.35f;
+                    // §54.14 (r2): same hysteresis as the decision layer — the
+                    // walk over must not revoke the drill (LastFreezingTick is
+                    // stamped in DecisionSystem each freezing tick).
+                    var canFrictionLight = npc.Needs.ThermalComfort < -0.35f ||
+                        world.Tick - npc.Mind.LastFreezingTick < SimBalance.FrictionLightGraceTicks;
                     var missingLighter = worldObject.ResourceAmount <= 0f &&
                         !Content.GearCatalog.HasCapability(
                             npc.Inventory.Items, Content.GearCapability.Ignite) &&
@@ -6205,10 +6275,16 @@ public sealed class ExecutionSystem : ISimulationSystem
 
                 if (completedInteraction.Type == InteractionType.PickUp)
                 {
+                    // §54.14 (r2): PickUp on the CAMPFIRE takes one cooked chunk
+                    // off the spit — the fire itself never leaves the ground.
+                    if (definition.Tags.Contains("Campfire"))
+                    {
+                        TakeMeatFromSpit(world, npc, worldObject);
+                    }
                     // Spec §52: "gathering a tool" that rides in a dropped
                     // garment's pockets — rifle the pockets and leave the
                     // garment (with any non-tool stash) on the ground.
-                    if (npc.Plan.Goal == GoalType.GatherTools &&
+                    else if (npc.Plan.Goal == GoalType.GatherTools &&
                         worldObject.Contents.Count > 0 &&
                         !definition.Tags.Contains("Tool"))
                     {
@@ -6290,6 +6366,38 @@ public sealed class ExecutionSystem : ISimulationSystem
                         Goal = GoalType.Dress,
                         EndTick = world.Tick + 160
                     });
+                }
+                else if (completedInteraction.Type == InteractionType.Craft &&
+                         npc.Plan.Goal == GoalType.CookMeat &&
+                         definition.Tags.Contains("Campfire"))
+                {
+                    // §54.14 (r2): "cooking" = HANGING the raw chunk on the
+                    // spit. The roast itself runs in FireSystem while the fire
+                    // burns; the cooked chunk stays on the crossbar until a
+                    // hungry housemate takes it (GetFood → PickUp).
+                    if (BuildSiteMath.CampfireSpitComplete(worldObject) &&
+                        BuildSiteMath.HangingMeat(worldObject, "food.meat_raw") +
+                        BuildSiteMath.HangingMeat(worldObject, "food.meat_cooked") <
+                        SimBalance.CampfireSpitCapacity)
+                    {
+                        ConsumeRecipeInputs(npc, npc.Plan.Goal);
+                        // ResourceAmount doubles as roast progress (ticks).
+                        worldObject.Contents.Add(new ItemInstance("food.meat_raw"));
+                        Trace.Emit(world, npc.Id, "MeatHungOnSpit",
+                            $"food.meat_raw on the spit at Tile={worldObject.Tile.Q},{worldObject.Tile.R} " +
+                            $"hanging raw={BuildSiteMath.HangingMeat(worldObject, "food.meat_raw")} " +
+                            $"cooked={BuildSiteMath.HangingMeat(worldObject, "food.meat_cooked")}");
+                    }
+                    else
+                    {
+                        Trace.Emit(world, npc.Id, "SpitHangFailed",
+                            $"spitComplete={BuildSiteMath.CampfireSpitComplete(worldObject)} " +
+                            $"hooksUsed={BuildSiteMath.HangingMeat(worldObject, "food.meat_raw") + BuildSiteMath.HangingMeat(worldObject, "food.meat_cooked")}" +
+                            $"/{SimBalance.CampfireSpitCapacity}");
+                    }
+
+                    worldObject.IsOccupied = false;
+                    worldObject.CurrentUser = null;
                 }
                 else if (completedInteraction.Type == InteractionType.Craft)
                 {
@@ -6636,6 +6744,33 @@ public sealed class ExecutionSystem : ISimulationSystem
                 $"rope {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialRope)}/{site.BillRope}");
         }
 
+        // §54.14: a campfire site raises EARLY — the moment the stage-1 stick
+        // pile is delivered it becomes a real (cold, lightable) campfire that
+        // keeps the open bill and accepts the upgrade stages in place. The
+        // bootstrap hearth is born past this point already.
+        if (site.DefinitionId == "build.site" && site.BuildProduct == "campfire.spot" &&
+            BuildSiteMath.Delivered(site, BuildSiteMath.MaterialSticks) >= BuildSiteMath.CampfireStage1Sticks)
+        {
+            var fireJunction = site.Junctions.Count > 0 ? site.Junctions[0] : npc.CurrentJunction;
+            var fireTile = site.Tile;
+            WorldObjectMutations.DespawnObject(world, site.Id);
+            if (fireJunction is { } fj)
+            {
+                var fire = WorldObjectMutations.SpawnObject(
+                    world, "campfire.spot", npc.Fragment, fireTile, fj);
+                fire.ResourceAmount = 0f; // born cold — light it like any fire
+                fire.BuildProduct = "campfire.spot";
+                fire.BillSticks = site.BillSticks;
+                fire.BillStones = site.BillStones;
+                fire.BillRope = site.BillRope;
+                fire.Contents.AddRange(site.Contents);
+                Trace.Emit(world, npc.Id, "FurnitureBuilt",
+                    $"campfire.spot raised at stage 1, Tile={fireTile.Q},{fireTile.R} (upgrades continue in place)");
+            }
+
+            return;
+        }
+
         // Raise it if it is now stocked and a hammer is at hand — carried, or
         // simply lying at the build site (the tool waits at the workbench). This
         // keeps the hammer a real requirement without demanding the one girl who
@@ -6665,6 +6800,17 @@ public sealed class ExecutionSystem : ISimulationSystem
              Content.GearCatalog.HasCapability(npc.Inventory.Items, Content.GearCapability.Hammer) ||
              hammerAtSite))
         {
+            // §54.14: an upgraded-in-place piece (the campfire) IS its own
+            // product — completion just closes the bill. Despawn/respawn here
+            // would snuff the live fire and reset its fuel.
+            if (site.DefinitionId == site.BuildProduct)
+            {
+                site.BuildProduct = string.Empty;
+                Trace.Emit(world, npc.Id, "FurnitureBuilt",
+                    $"{site.DefinitionId} upgrades finished in place at Tile={site.Tile.Q},{site.Tile.R}");
+                return;
+            }
+
             var junction = site.Junctions.Count > 0 ? site.Junctions[0] : npc.CurrentJunction;
             var tile = site.Tile;
             var product = site.BuildProduct;
@@ -8060,6 +8206,41 @@ public sealed class ExecutionSystem : ISimulationSystem
             $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
     }
 
+    // §54.14 (r2): take ONE cooked chunk off the spit into the pack — the fire
+    // (and any still-roasting raw meat) stays. Housemates share the crossbar,
+    // so a single grab per trip keeps the spit a communal larder.
+    private static void TakeMeatFromSpit(WorldState world, NPCState npc, WorldObjectState fire)
+    {
+        for (var i = 0; i < fire.Contents.Count; i++)
+        {
+            var item = fire.Contents[i];
+            if (item.DefinitionId != "food.meat_cooked")
+            {
+                continue;
+            }
+
+            if (!InventoryMath.MakeRoomFor(world, npc, item.DefinitionId))
+            {
+                break; // no room — leave it hanging
+            }
+
+            fire.Contents.RemoveAt(i);
+            npc.Inventory.Items.Add(item);
+            fire.IsOccupied = false;
+            fire.CurrentUser = null;
+            Trace.Emit(world, npc.Id, "MeatTakenFromSpit",
+                $"food.meat_cooked off the spit at Tile={fire.Tile.Q},{fire.Tile.R} " +
+                $"left hanging={BuildSiteMath.HangingMeat(fire, "food.meat_cooked")} " +
+                $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
+            return;
+        }
+
+        fire.IsOccupied = false;
+        fire.CurrentUser = null;
+        Trace.Emit(world, npc.Id, "SpitTakeFailed",
+            $"no takeable cooked meat on the spit at Tile={fire.Tile.Q},{fire.Tile.R}");
+    }
+
     // Spec 31A.5A: take off a worn item in place; it drops to the world at
     // the NPC's feet, retrievable by anyone.
     // §Wardrobe-anim: 8 ticks = 2.0s at 0.25s/tick — matches the dress window.
@@ -9057,11 +9238,9 @@ public sealed class ExecutionSystem : ISimulationSystem
                 Trace.Emit(world, npc.Id, "CraftedSpear",
                     $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
                 return true;
-            case GoalType.CookMeat:
-                GiveOrDrop(world, npc, "food.meat_cooked");
-                Trace.Emit(world, npc.Id, "MeatCooked",
-                    $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
-                return true;
+            // §54.14 (r2): CookMeat no longer grants here — the raw chunk is
+            // hung on the spit at the station-craft arm and FireSystem roasts
+            // it over time (a campfire-station recipe never crafts in place).
             case GoalType.CraftLeather:
                 ResolveWearConflicts(world, npc, "clothing.leather_pants");
                 npc.WornItems.Add("clothing.leather_pants");
@@ -10836,6 +11015,14 @@ public sealed class FireSystem : ISimulationSystem
             // eats fuel 4x faster, so a full stack dies in ~40 game minutes.
             // A dry night by the fire is the warm-up plan; a wet one isn't.
             var burn = BurnPerSlowTick * (world.Environment.IsRaining ? 4f : 1f);
+            // §54.14 (r2): a finished stone ring (stage 2) banks the coals —
+            // fuel burns at half rate, so the same wood keeps the fire twice
+            // as long.
+            if (BuildSiteMath.CampfireRingComplete(obj))
+            {
+                burn *= SimBalance.CampfireRingBurnMultiplier;
+            }
+
             obj.ResourceAmount = System.Math.Max(0f, obj.ResourceAmount - burn);
             if (obj.ResourceAmount <= 0f)
             {
@@ -10843,6 +11030,37 @@ public sealed class FireSystem : ISimulationSystem
                     $"{obj.DefinitionId} at Tile={obj.Tile.Q},{obj.Tile.R} burned out" +
                     (world.Environment.IsRaining ? " (doused by rain)" : ""));
             }
+
+            RoastHangingMeat(world, obj);
+        }
+    }
+
+    // §54.14 (r2): stage 3 — meat hung on the spit roasts while the fire is
+    // lit. Roast progress rides on the hanging ItemInstance's ResourceAmount
+    // (in ticks); when done the raw chunk becomes cooked meat and KEEPS
+    // hanging until someone takes it (GetFood). A dead fire pauses the roast,
+    // it never spoils on the spit.
+    private static void RoastHangingMeat(WorldState world, WorldObjectState fire)
+    {
+        for (var i = 0; i < fire.Contents.Count; i++)
+        {
+            var item = fire.Contents[i];
+            if (item.DefinitionId != "food.meat_raw")
+            {
+                continue;
+            }
+
+            item.ResourceAmount += BurnPerSlowTick; // slow tick = 16 base ticks
+            if (item.ResourceAmount < SimBalance.MeatRoastDurationTicks)
+            {
+                continue;
+            }
+
+            fire.Contents[i] = new ItemInstance("food.meat_cooked");
+            Trace.EmitSystem(world, "MeatRoasted",
+                $"food.meat_raw -> food.meat_cooked on the spit at " +
+                $"Tile={fire.Tile.Q},{fire.Tile.R} " +
+                $"(hanging cooked={BuildSiteMath.HangingMeat(fire, "food.meat_cooked")})");
         }
     }
 }
@@ -13365,11 +13583,26 @@ internal static class BuildSiteMath
         (MaterialRope, 4)     // stage 3: the lashings
     };
 
+    // §54.14: campfire_final prefab groups "1".."5" — the stick pile is a
+    // WORKING fire on its own (the site raises into a cold campfire the moment
+    // stage 1 lands, see ApplyFurnitureSite); the ring and the spit are
+    // upgrades delivered to the live fire and finished in place.
+    public const int CampfireStage1Sticks = 9;
+    private static readonly (string Material, int Count)[] CampfireStages =
+    {
+        (MaterialSticks, CampfireStage1Sticks), // stage 1: the stick pile (usable fire)
+        (MaterialStones, 18), // stage 2: the dense stone ring
+        (MaterialSticks, 2),  // stage 3: the two planted forked posts
+        (MaterialSticks, 1),  // stage 4: the crossbar
+        (MaterialRope, 2)     // stage 5: the lashings
+    };
+
     private static (string Material, int Count)[] StagesFor(WorldObjectState site) => site.BuildProduct switch
     {
         "bed.leaf" => BedLeafStages,
         "bed.basic" => BedBasicStages,
         "station.drying_rack" => DryingRackStages,
+        "campfire.spot" => CampfireStages,
         _ => null
     };
 
@@ -13435,6 +13668,38 @@ internal static class BuildSiteMath
 
     public static bool IsSite(WorldObjectState obj) =>
         obj != null && !string.IsNullOrEmpty(obj.BuildProduct);
+
+    // §54.14 (r2): FUNCTIONAL stage checks on a live campfire. Delivered
+    // materials stay in Contents after the bill closes, so these read the same
+    // whether the upgrade bill is still open or finished. A legacy fire spawned
+    // without the staged contents (old saves, dev scenes) reads as bare stage 1.
+    public static bool CampfireRingComplete(WorldObjectState fire) =>
+        fire != null && Delivered(fire, MaterialStones) >= SimBalance.CampfireBillStones;
+
+    // The spit = stages 3-5 (posts, crossbar, lashings) — complete when the
+    // full stick and rope bills are in (stage order guarantees the ring came
+    // first).
+    public static bool CampfireSpitComplete(WorldObjectState fire) =>
+        fire != null &&
+        Delivered(fire, MaterialSticks) >= SimBalance.CampfireBillSticks &&
+        Delivered(fire, MaterialRope) >= SimBalance.CampfireBillRope;
+
+    // §54.14 (r2): meat hanging on the spit (raw still roasting, or cooked
+    // waiting to be taken). Hanging items live in the fire's Contents next to
+    // the delivered build materials; food.* never collides with resource.*.
+    public static int HangingMeat(WorldObjectState fire, string definitionId)
+    {
+        var n = 0;
+        foreach (var item in fire.Contents)
+        {
+            if (item.DefinitionId == definitionId)
+            {
+                n++;
+            }
+        }
+
+        return n;
+    }
 
     // The tag a Gather* goal filters on to fetch what a site still needs.
     public static string TagForMaterial(string materialId) => materialId switch

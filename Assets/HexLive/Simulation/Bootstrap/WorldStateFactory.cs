@@ -192,12 +192,11 @@ public sealed class WorldStateFactory
     // right after). Bill = 3 logs + 2 stones; a hammer raises it once stocked.
     // Placed on a free junction of a tile neighbouring the hearth so it sits in
     // the yard, not on top of the fire.
-    // §54 cold start (simple): the yard's chosen hearth spot holds an UNLIT
-    // campfire — the pit is there, but stone-cold. The colony gathers sticks and
-    // lights it themselves (TendFire, by lighter or friction); nothing else is
-    // pre-built or handed out. Keeps the generator-chosen good location. (The
-    // "pile the pit from loose stones" build-flow is deferred to a later visual
-    // pass — the AI didn't reliably prioritise it from a cold, hungry start.)
+    // §54.14 (r2) cold start: the yard's chosen hearth spot holds only the
+    // MARK — a bare campfire build-site (BuildSiteMath.CampfireStages). The
+    // colony piles the stage-1 sticks itself, the site raises into a cold
+    // campfire, and TendFire lights it (lighter or friction). Nothing is
+    // pre-built or handed out; the generator-chosen good location is kept.
     private static void CreateCampfireSite(WorldState world)
     {
         var hearth = new TileCoord(0, 4);
@@ -221,9 +220,59 @@ public sealed class WorldStateFactory
             return;
         }
 
-        // Spawn it cold — the shared "campfires start cold" pass below zeroes
-        // ResourceAmount, so it renders as an unlit pit until someone fuels it.
-        WorldObjectMutations.SpawnObject(world, "campfire.spot", new FragmentId(1), hearth, j);
+        // §54.14 (r2): the hearth starts as a BARE marked build-site — nothing
+        // is pre-built or pre-delivered. The spot is chosen (the colony knows
+        // where the fire belongs, SeedHomeKnowledge), but the stick pile itself
+        // must be hauled in: the moment stage 1 (9 sticks) lands the site raises
+        // into a real cold campfire (ApplyFurnitureSite), and the upgrade stages
+        // (stone ring, roasting spit) keep growing in place. GOAP treats this
+        // site as survival-critical (hearthUrgent) — warmth, comfort and cooking
+        // all gate on it.
+        var site = WorldObjectMutations.SpawnObject(world, "build.site", new FragmentId(1), hearth, j);
+        site.BuildProduct = "campfire.spot";
+        site.BillSticks = SimBalance.CampfireBillSticks;
+        site.BillStones = SimBalance.CampfireBillStones;
+        site.BillRope = SimBalance.CampfireBillRope;
+
+        // §54.9A: the site claims the footprint of the campfire it will become
+        // (BuildProduct was empty at SpawnObject time — re-invoke now).
+        WorldObjectMutations.SetObstacleBlocking(world, site, blocked: true);
+
+        // §54.14 (r2): starter sticks scattered around the marked spot — the
+        // colony still hauls and piles them itself, but the material is at
+        // hand (see SimBalance.CampfireStarterSticks for why this must exist).
+        var scattered = 0;
+        for (var ring = 1; ring <= 2 && scattered < SimBalance.CampfireStarterSticks; ring++)
+        {
+            foreach (var dir in HexDirection.All)
+            {
+                if (scattered >= SimBalance.CampfireStarterSticks)
+                {
+                    break;
+                }
+
+                var coord = new TileCoord(hearth.Q + dir.DQ * ring, hearth.R + dir.DR * ring);
+                if (!world.Tiles.Items.TryGetValue(coord, out var around) ||
+                    around.Flags.HasFlag(TileFlags.Water))
+                {
+                    continue;
+                }
+
+                foreach (var jid in around.Junctions)
+                {
+                    if (scattered >= SimBalance.CampfireStarterSticks)
+                    {
+                        break;
+                    }
+
+                    if (world.Junctions.Items.TryGetValue(jid, out var jn) && !jn.Blocked)
+                    {
+                        WorldObjectMutations.SpawnObject(world, "resource.stick", new FragmentId(1), coord, jid);
+                        scattered++;
+                    }
+                }
+            }
+        }
     }
 
     private static void CreateBedSite(WorldState world)

@@ -19,6 +19,7 @@ namespace HexLive.UnityPresentation.Environment
         private readonly List<GameObject> _sticks = new();
         private readonly List<GameObject> _ropes = new();
         private readonly List<GameObject> _leaves = new();
+        private readonly List<GameObject> _stones = new(); // §54.14: campfire ring
         private bool _scanned;
 
         private void Scan()
@@ -79,23 +80,25 @@ namespace HexLive.UnityPresentation.Environment
             else if (n.StartsWith("stick_")) _sticks.Add(t.gameObject);
             else if (n.StartsWith("rope_")) _ropes.Add(t.gameObject);
             else if (n.StartsWith("leaf_")) _leaves.Add(t.gameObject);
+            else if (n.StartsWith("stone_")) _stones.Add(t.gameObject);
         }
 
         /// Show the whole bed (every piece on).
         public void ApplyAll()
         {
             Scan();
-            Apply(_logs.Count, _sticks.Count, _ropes.Count, _leaves.Count);
+            Apply(_logs.Count, _sticks.Count, _ropes.Count, _leaves.Count, _stones.Count);
         }
 
         /// Show only the delivered pieces: the first N of each material on, rest off.
-        public void Apply(int logs, int sticks, int ropes, int leaves)
+        public void Apply(int logs, int sticks, int ropes, int leaves, int stones = 0)
         {
             Scan();
             Toggle(_logs, logs);
             Toggle(_sticks, sticks);
             Toggle(_ropes, ropes);
             Toggle(_leaves, leaves);
+            Toggle(_stones, stones);
         }
 
         private static void Toggle(List<GameObject> list, int on)
@@ -116,13 +119,15 @@ namespace HexLive.UnityPresentation.Environment
         {
             "bed.basic" => "bed_basic_final",
             "station.drying_rack" => "drying_rack_final",
+            "campfire.spot" => "campfire_final",
             _ => "bed_leaf_final"
         };
 
-        /// §35.5B: every product rendered by a staged assembled prefab — the
-        /// beds and the drying rack share the grow-in-place build-site view.
+        /// §35.5B/§54.14: every product rendered by a staged assembled prefab —
+        /// the beds, the drying rack and the campfire share the grow-in-place
+        /// build-site view.
         public static bool IsAssembled(string product) =>
-            product is "bed.leaf" or "bed.basic" or "station.drying_rack";
+            product is "bed.leaf" or "bed.basic" or "station.drying_rack" or "campfire.spot";
 
         private static GameObject? Instantiate(string product, out BedAssembly asm)
         {
@@ -148,10 +153,11 @@ namespace HexLive.UnityPresentation.Environment
         }
 
         /// A build-site in progress — only the delivered pieces of each material.
-        public static GameObject? BuildPartial(string product, int logs, int sticks, int ropes, int leaves)
+        public static GameObject? BuildPartial(
+            string product, int logs, int sticks, int ropes, int leaves, int stones = 0)
         {
             var go = Instantiate(product, out var asm);
-            asm?.Apply(logs, sticks, ropes, leaves);
+            asm?.Apply(logs, sticks, ropes, leaves, stones);
             return go;
         }
     }

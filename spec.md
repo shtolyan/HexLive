@@ -10016,18 +10016,19 @@ lights it themselves; the raft stays a coastal build-marker. Soak: the colony
 reliably lights the fire from scratch and runs the whole chain (axe/knife/spear
 crafted, trees felled, animals butchered), 6/6 seeds.
 
-(A build-from-loose-stones campfire-site was prototyped — `build.site` with
-`BuildProduct="campfire.spot"`, no hammer — but the cold/hungry start didn't
-reliably prioritise hauling the stones, so the simple cold pit ships instead. The
-dormant campfire-site scaffolding + `CampfireStoneBill` knob remain for a future
-staged-build pass.)
+(The cold pit is now stage 1 of the **staged, upgradeable campfire** — see
+§54.14. r2: the hearth no longer starts pre-piled — bootstrap leaves only a
+bare marked build-site, and the colony hauls the stage-1 sticks itself before
+there is anything to light; the ring and the roasting spit follow as in-place
+upgrades.)
 
 ### §54.7 Presentation
 Procedural low-poly models (`LowPolyToolFactory`) for log, stick, fiber, rope,
 cloth, knife and the animal carcass; `Process`→chop and `Butcher`→work actor
-poses with the right tool in hand. The campfire is ringed with real low-poly
-**stones** (`AddCampfireStoneRing`). Build-sites render their **delivered
-materials piled up** (`BuildSitePile`, fed by new `ObjectSnapshot`
+poses with the right tool in hand. The campfire renders as the staged
+`campfire_final` prefab — its stone ring is the prefab's stage-2 group, not
+code-built (§54.14; `AddCampfireStoneRing` retired). Build-sites render their
+**delivered materials piled up** (`BuildSitePile`, fed by new `ObjectSnapshot`
 `BuildProduct`/`Bill*`/`Delivered*` fields) so a piece assembles from its
 components. Felling a tree **tips the trunk over and leaves a stump** (`TreeFall`)
 in sync with the logs hitting the ground.
@@ -10301,6 +10302,120 @@ is unchanged-to-better and 2 beds still complete despite the §55-era water
 scarcity and wolf pressure — the residual slow seeds trace to thirst spending
 half the day above even the 0.65 gate (the §55 water economy), not to the build
 chain. Knobs: `BuildNeedGate`, `BuildDangerFreshTicks` (SimBalance).
+
+### §54.14 Staged, upgradeable campfire (stick pile → stone ring → roasting spit)
+
+The campfire is no longer a monolithic prop: it is a **staged build like the
+beds** (§54.12), rendered by the assembled `campfire_final` prefab (authored 1:1
+in Blender, `_ArtSource/campfire_stones.blend`) whose piece groups `"1".."5"`
+mirror `BuildSiteMath.CampfireStages`:
+
+| stage | pieces | material | meaning |
+|---|---|---|---|
+| 1 | 9 × `stick_*` | 9 sticks | the bare stick pile — **a working, lightable fire** |
+| 2 | 18 × `stone_*` | 18 stones | the dense stone ring (packed edge to edge) |
+| 3 | 2 × `stick_post_*` | 2 sticks | two forked posts planted either side |
+| 4 | 1 × `stick_bar` | 1 stick | the crossbar laid across the forks |
+| 5 | 2 × `rope_*` | 2 rope | the lashings tying the bar to the posts |
+
+The three visual tiers are also **functional tiers** (r2): the stick pile is
+a complete fire, the ring is a fuel saver, the spit is the cooker.
+
+| functional tier | complete when | what it gives |
+|---|---|---|
+| pile (stage 1) | 9 sticks delivered (site raises) | a real campfire: fuel/light, **full warmth + Cozy comfort**, crafting station |
+| ring (stage 2) | 18 stones delivered | fuel burns at `CampfireRingBurnMultiplier` (0.5) — the same wood lasts **2×** |
+| spit (stages 3-5) | full stick + rope bill delivered | **cooking unlocked** (§54.14A roasting) |
+
+Mechanics:
+
+- **Early raise.** A `build.site` with `BuildProduct="campfire.spot"` becomes a
+  real (cold) `campfire.spot` the moment stage 1 lands
+  (`ApplyFurnitureSite`) — the fire object KEEPS the open bill + delivered
+  `Contents` and accepts the remaining stages **in place**. Completion of the
+  last stage just clears `BuildProduct` (no despawn/respawn — that would snuff
+  a live fire). The fire is fuelable/lightable from stage 1 on; upgrades never
+  block warmth.
+- **Functional stage checks** read the delivered `Contents`
+  (`BuildSiteMath.CampfireRingComplete/CampfireSpitComplete`), so they hold
+  whether the bill is still open or closed. A legacy fire spawned without the
+  staged contents (dev scenes) reads as a bare stage-1 pile.
+- **Deliveries** land through a new `build.furniture` (Build) interaction on
+  `campfire.spot` itself. Hand-piled: **no hammer at any stage** (the §52
+  hammer exemption). Piece-by-piece delivery is fine — stones don't stack, and
+  the stage counts past the ring are tiny (2+1+2), so the §54.13 bed
+  bundle rule deliberately does not apply.
+- **Priorities.** Only a BARE hearth site (definition still `build.site`) gets
+  the §54 cold-start hearth priority in `FindBuildSite`/`hearthUrgent`; a live
+  campfire mid-upgrade queues like any other furniture site, behind the
+  survival gates, and pulls the existing stone/stick/rope gather feeders.
+  The hearth is built FOR warmth: a cold girl adds the fire-chain cold weight
+  (`coldChain`) to the hearth site's `BuildFurniture` score — GOAP reaches for
+  "build the campfire" as the way to get warm, not only as a chore.
+- **Bootstrap (r2).** The generator's hearth spot spawns as a **bare marked
+  `build.site`** (`BuildProduct="campfire.spot"`, §54.9A footprint claimed,
+  nothing pre-delivered): the colony knows WHERE the fire belongs from tick 0
+  (`SeedHomeKnowledge`), but must pile the 9 stage-1 sticks itself before
+  there is anything to light. Bill knobs:
+  `SimBalance.CampfireBillSticks/Stones/Rope` (12/18/2, per-material sums of
+  the stages — keep in sync with the prefab groups; replaces the dead
+  `CampfireStoneBill`).
+- **Starter sticks (r2).** `CampfireStarterSticks` (14) loose sticks scatter
+  on the tiles around the marked spot at world start. Without them the cold
+  start DEADLOCKS: sticks otherwise come from splitting logs (axe), the axe
+  is crafted at the fire that doesn't exist yet, and deadfall sheds too
+  slowly while the knife chain eats every stick (probe: 0-4/9 piled in 2
+  days). The colony still hauls and piles them itself.
+- **Friction-light hysteresis (r2).** §45 r5's hand-drill unlocks at
+  ThermalComfort < -0.35 — but the walk from wherever the cold caught her to
+  the pit used to warm her past the gate and the goal collapsed mid-route
+  (probe: TendFire held 50+ ticks, fire never lit in 4 days). The drill now
+  stays available for `FrictionLightGraceTicks` (400) past the last freezing
+  tick, in both the decision and the Fuel-execution gate
+  (`NpcMind.LastFreezingTick`).
+- **Life valve (r2).** `hearthUrgent` (the peacetime-gate bypass) shuts off
+  at hunger/thirst ≥ 0.8 — the first hearth is survival-critical, but a girl
+  must never starve to death with the pile sticks in her pack (probe: dead
+  at hunger 1.0 carrying 8/9 sticks).
+- **No stake marker (r2).** A freshly staked site (any product) renders as
+  NOTHING until the first material lands — the old `SiteStake` primitive is
+  removed from `BuildSitePile`. The mark is sim-side only.
+- **Presentation.** `campfire.spot` renders via `BedAssembly` (which gained a
+  `stone_*` piece category): partial while the bill is open — pieces light up
+  as materials land, same grow-in-place view as the beds — and `ApplyAll` once
+  closed. `CampfireEffect` (flame + light) attaches in both states, so a
+  mid-upgrade fire burns. The legacy `campfire.spot.fbx` + code-built stone
+  ring path survives only as a fallback if the prefab is missing.
+
+### §54.14A Roasting on the spit (cooking v2)
+
+`CookMeat` no longer conjures a cooked chunk on the spot. Cooking is a
+**process on the fire**:
+
+1. **Hang.** A girl with `food.meat_raw` and a lit, spit-complete fire in view
+   hangs the chunk on the crossbar (`CookMeat` → Craft at the fire; the raw
+   chunk moves from her pack into the fire's `Contents`). The crossbar holds
+   `SimBalance.CampfireSpitCapacity` (3) chunks — raw and cooked together; a
+   full bar (or a missing spit) makes `CookMeat` unavailable and no other lit
+   fire will do (`TargetMatchesGoal`).
+2. **Roast.** While the fire is LIT, `FireSystem` advances each hanging raw
+   chunk's progress (rides on the `ItemInstance.ResourceAmount`, in ticks); at
+   `SimBalance.MeatRoastDurationTicks` (200 = 2 game hours) the chunk becomes
+   `food.meat_cooked` and **stays hanging** (`MeatRoasted` trace). A dead fire
+   pauses the roast; meat never spoils on the spit (§54's ground-spoilage
+   clock does not run in `Contents`).
+3. **Take & eat.** Cooked meat on the spit counts as reachable food: `GetFood`
+   targets the campfire itself (new `take.from.spit` PickUp interaction), and
+   the PickUp completion transfers ONE cooked chunk to the pack
+   (`TakeMeatFromSpit` — the fire object is never pocketable). Eating then
+   follows the normal inventory path.
+
+The spit is thus a communal larder: one hunter hangs, anyone hungry takes.
+- **Stones economy.** `rock.boulder` is now modelled as five packed chunks
+  (`rock_boulder.glb`) and its pickaxe `Harvest` yields exactly **5 stones**
+  (was 4) — ~4 boulders ring one fire. `resource.stone`/`rock.boulder` ground
+  visuals are the new Blender prefabs (`resource.stone.prefab`,
+  `rock.boulder.prefab`; old fbx backed up as `*__handmade_backup.fbx`).
 
 ## §55 Rivers retired, drink from the coconut (iteration 55)
 

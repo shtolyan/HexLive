@@ -2577,22 +2577,6 @@ MonoBehaviour:
       - 'Низ полосатого купальника — быстро сохнет, совсем не греет.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'item.clothing_skirt_flair.name'
-      TermType: 0
-      Description:
-      Languages:
-      - 'Flair Skirt'
-      - 'Юбка «Флэр»'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_skirt_flair.desc'
-      TermType: 0
-      Description:
-      Languages:
-      - 'A light patterned skirt with a waistband — swishes nicely, warms a little.'
-      - 'Лёгкая юбка с узором и пояском — красиво развевается, греет слегка.'
-      Flags: 0101
-      Languages_Touch: []
     - Term: 'item.clothing_sweater_flair.name'
       TermType: 0
       Description:

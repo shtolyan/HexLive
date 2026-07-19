@@ -111,10 +111,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Wear
   configs:
   - actorName: 0
-    scale: 1
+    scale: 1.02
     mesh: {fileID: 4300000, guid: bbe83ae65290bf7408f571bac2477cd0, type: 2}
   - actorName: 2
-    scale: 1
+    scale: 1.02
     mesh: {fileID: 4300000, guid: a61958aacd76858449f7e118b38f44b6, type: 2}
   - actorName: 5
     scale: 1

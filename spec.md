@@ -6179,15 +6179,14 @@ prefabs, all equipped/removed together as the visual of that sim item.
 | underwear.bra_basic | BraBasic (plain white bra) |
 | underwear.swim_top | SwimTop (striped swimsuit top) |
 | underwear.swim_bottom | SwimBottom (striped swimsuit bottom) |
-| clothing.skirt_flair | SkirtFlair (Flair skirt + waistband) |
 | clothing.sweater_flair | SweaterFlair (knit sweater, warmth 0.30) |
 | clothing.dress_night | NightDress (silky night dress, lace hem, gold clasp) |
 | clothing.dress_fur | FurDress (primal fur dress, warmth 0.35, armor 0.05) |
 
-**New-wear FBX extraction (2026-07 drop):** the nine garments above the
+**New-wear FBX extraction (2026-07 drop):** the eight garments above the
 prints line were pulled from three DAZ exports (`Assets/Temp/{jana new
-wear,marta new wear,molly new}.fbx` — same nine garments, each file fitted
-to one girl) by `Assets/Editor/NewWearExtractor.cs` (menu **HexLive ▸ Wear ▸
+wear,marta new wear,molly new}.fbx` — same garments, each file fitted
+to one girl; a ninth, the flair skirt, was extracted too but later cut) by `Assets/Editor/NewWearExtractor.cs` (menu **HexLive ▸ Wear ▸
 Extract New Wear**, auto-runs once while any target prefab is missing). Per
 garment it saves the three fitted meshes as
 `ImportedActors/Wear/<Folder>/Meshes/<Actor>.mesh`, builds flat URP/Lit
@@ -6197,8 +6196,8 @@ standard Wear prefab (root `Wear` + pruned `hip` bone subtree + one
 SkinnedMeshRenderer, WearConfig entries for Molly/Marta/Jana at scale 1 —
 fit-tune in WardrobeTest), then rebuilds the GarmentCatalog and re-exports
 SimData. Sim side: rows in `GarmentLibrary.BuildDefaults`; the
-underwear/swim pieces and the flair skirt joined the §42 castaway start
-rotation, the dresses/sweater are reachable via wardrobe tooling only.
+underwear/swim pieces joined the §42 castaway start rotation, the
+dresses/sweater are reachable via wardrobe tooling only.
 `Assets/Temp/` stays gitignored — the FBX sources are per-machine drops.
 
 **AI-print wardrobe experiment:** the four print items are fal.ai-generated

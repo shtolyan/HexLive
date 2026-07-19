@@ -162,7 +162,6 @@ namespace HexLive.Simulation.Content
                 new("Skirt 29046",           "Yubka",            WearLayer.Wear, 0.10f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
                 new("Skirt G3F_27980",       "Yubka",            WearLayer.Wear, 0.10f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
                 // New-wear drop (2026-07, Temp FBX extraction — spec §31B.4).
-                new("clothing.skirt_flair",  "Flair Skirt",      WearLayer.Wear, 0.10f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
                 new("clothing.sweater_flair","Flair Sweater",    WearLayer.Wear, 0.30f, 0.00f, -0.15f, dress, 4, BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR),
                 new("clothing.dress_night",  "Night Dress",      WearLayer.Wear, 0.10f, 0.00f,  0.00f, dress, 4, BodyPart.Torso, BodyPart.Pelvis),
                 new("clothing.dress_fur",    "Fur Dress",        WearLayer.Wear, 0.35f, 0.05f, -0.15f, dress, 4, BodyPart.Torso, BodyPart.Pelvis),

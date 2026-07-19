@@ -134,18 +134,6 @@ public static class NewWearExtractor
         },
         new()
         {
-            SourceKey = "fl-skirt_3552", Folder = "SkirtFlair", Name = "SkirtFlair",
-            SimId = "clothing.skirt_flair", Layer = VisualWearLayer.Wear,
-            Slots = new[] { VisualWearSlot.Pelvis },
-            NoHide = new[] { VisualWearSlot.Pelvis },
-            Materials = new[]
-            {
-                new MatSpec { Source = "skirt", Texture = "flair-skirt-01.jpg" },
-                new MatSpec { Source = "waistband", Texture = "flair-skirt-01.jpg" },
-            },
-        },
-        new()
-        {
             SourceKey = "fl-sweater_8621", Folder = "SweaterFlair", Name = "SweaterFlair",
             SimId = "clothing.sweater_flair", Layer = VisualWearLayer.Wear,
             Slots = new[]

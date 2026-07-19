@@ -6174,6 +6174,31 @@ prefabs, all equipped/removed together as the visual of that sim item.
 | clothing.top_tiedye | TopTiedye (tank top, fal.ai tie-dye print) |
 | underwear.panty_leo | PantyLeo (panty, fal.ai leopard print) |
 | underwear.panty_stars | PantyStars (panty, fal.ai stars print) |
+| underwear.panty_flair | PantyFlair (Amaranth Flair print panty) |
+| underwear.panty_basic | PantyBasic (plain white panties) |
+| underwear.bra_basic | BraBasic (plain white bra) |
+| underwear.swim_top | SwimTop (striped swimsuit top) |
+| underwear.swim_bottom | SwimBottom (striped swimsuit bottom) |
+| clothing.sweater_flair | SweaterFlair (knit sweater, warmth 0.30) |
+| clothing.dress_night | NightDress (silky night dress, lace hem, gold clasp) |
+| clothing.dress_fur | FurDress (primal fur dress, warmth 0.35, armor 0.05) |
+
+**New-wear FBX extraction (2026-07 drop):** the eight garments above the
+prints line were pulled from three DAZ exports (`Assets/Temp/{jana new
+wear,marta new wear,molly new}.fbx` — same garments, each file fitted
+to one girl; a ninth, the flair skirt, was extracted too but later cut) by `Assets/Editor/NewWearExtractor.cs` (menu **HexLive ▸ Wear ▸
+Extract New Wear**, auto-runs once while any target prefab is missing). Per
+garment it saves the three fitted meshes as
+`ImportedActors/Wear/<Folder>/Meshes/<Actor>.mesh`, builds flat URP/Lit
+materials (textures copied from the DAZ library; the fur dress gets an
+RGBA albedo with the PrDr_furTR mask in alpha + alpha-clip), assembles the
+standard Wear prefab (root `Wear` + pruned `hip` bone subtree + one
+SkinnedMeshRenderer, WearConfig entries for Molly/Marta/Jana at scale 1 —
+fit-tune in WardrobeTest), then rebuilds the GarmentCatalog and re-exports
+SimData. Sim side: rows in `GarmentLibrary.BuildDefaults`; the
+underwear/swim pieces joined the §42 castaway start rotation, the
+dresses/sweater are reachable via wardrobe tooling only.
+`Assets/Temp/` stays gitignored — the FBX sources are per-machine drops.
 
 **AI-print wardrobe experiment:** the four print items are fal.ai-generated
 all-over textile patterns baked into copies of the TankTop9_20034 / Panty_11571
@@ -10909,8 +10934,8 @@ Idle», тот же подъём, что после сна) → Idle. Снапш
 
 **62.1 Обнаружение.** `ThreatAlertSystem` (Medium): каждая дееспособная
 девушка (не мёртвая/без сознания/не спит, не в бою, не Flee/Defend, не в
-убежище-помещении) замечает живого моба в `Spec62.SpotRadiusTiles` (6; агро
-собаки — 2, т.е. четыре тайла форы). Свежая встреча помечается смайлом
+убежище-помещении) замечает живого моба в `Spec62.SpotRadiusTiles` (4; агро
+собаки — 2, т.е. два тайла форы). Свежая встреча помечается смайлом
 **⚠️ «опасность»** над головой — одноразовый cue `DangerSpotted` в общем
 канале `SocialCueSignals` (§28.15E), спрайт `Warning.png` в
 `Resources/HexLive/UI/Emoji/`. Повторный ⚠️ по той же паре (девушка, моб) — не
@@ -10945,7 +10970,7 @@ Idle», тот же подъём, что после сна) → Idle. Снапш
 0 пересечений и доходит).
 
 **62.4 Ручки.** Всё в статике `Spec62` (`SimulationSystems.cs`):
-`ThreatAlertEnabled`, `SpotRadiusTiles` 6, `CueCooldownTicks` 600,
+`ThreatAlertEnabled`, `SpotRadiusTiles` 4, `CueCooldownTicks` 600,
 `FitBoneHealth` 0.8, `AttackMaxPack` 1, `AttackLockTicks` 240,
 `DangerRingTiles` 2, `DangerStepCost` 80.
 

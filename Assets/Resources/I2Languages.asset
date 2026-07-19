@@ -2491,10 +2491,138 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: 'item.clothing_top_tiedye.desc'
       TermType: 0
-      Description: 
+      Description:
       Languages:
       - 'A tie-dye summer top — light and cheerful, barely any warmth.'
       - 'Летний топ тай-дай — лёгкий и яркий, тепла почти не даёт.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_panty_flair.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Flair Panties'
+      - 'Трусики «Флэр»'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_panty_flair.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Delicate printed panties — pretty, not warm.'
+      - 'Нежные трусики с принтом — красиво, но не греет.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_panty_basic.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cotton Panties'
+      - 'Хлопковые трусики'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_panty_basic.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Plain white cotton panties — the everyday basics.'
+      - 'Простые белые хлопковые трусики — повседневная база.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_basic.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cotton Bra'
+      - 'Хлопковый лифчик'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_basic.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'A plain white bra — simple and comfortable.'
+      - 'Простой белый лифчик — незатейливо и удобно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swim_top.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Swimsuit Top'
+      - 'Верх купальника'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swim_top.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The top half of a striped swimsuit — made for the beach, not the cold.'
+      - 'Верх полосатого купальника — для пляжа, не для холода.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swim_bottom.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Swimsuit Bottom'
+      - 'Низ купальника'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swim_bottom.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The bottom half of a striped swimsuit — dries fast, warms nothing.'
+      - 'Низ полосатого купальника — быстро сохнет, совсем не греет.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sweater_flair.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Flair Sweater'
+      - 'Свитер «Флэр»'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sweater_flair.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'A cozy knit sweater with long sleeves — real warmth for cold evenings.'
+      - 'Уютный вязаный свитер с длинными рукавами — настоящее тепло для холодных вечеров.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_night.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Night Dress'
+      - 'Ночное платье'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_night.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'A silky night dress with a lace hem and a golden clasp.'
+      - 'Шёлковое ночное платье с кружевным подолом и золотой застёжкой.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_fur.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Fur Dress'
+      - 'Меховое платье'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_fur.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'A primal fur dress — shaggy, warm, and a little bit wild.'
+      - 'Первобытное меховое платье — лохматое, тёплое и немного дикое.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'item.underwear_panty_leo.name'

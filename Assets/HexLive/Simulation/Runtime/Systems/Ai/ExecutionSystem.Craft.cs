@@ -235,6 +235,45 @@ public sealed partial class ExecutionSystem
         _ => "CraftedItem"
     };
 
+    // §61: she kneels FACING the work — turn toward the centroid of the
+    // laid-out pieces (beat 2) / the finished item (beat 3). Snap in the sim
+    // (like PlaceAtEdge); the view smooths the turn visually.
+    private static void FaceCraftLayout(WorldState world, NPCState npc)
+    {
+        var sumX = 0f;
+        var sumY = 0f;
+        var count = 0;
+        foreach (var laidId in npc.Execution.CraftLayout)
+        {
+            if (!world.Entities.Objects.TryGetValue(laidId, out var laid) ||
+                laid.Junctions.Count == 0 ||
+                !world.Junctions.Items.TryGetValue(laid.Junctions[0], out var junction))
+            {
+                continue;
+            }
+
+            sumX += junction.WorldPosition.X;
+            sumY += junction.WorldPosition.Y;
+            count++;
+        }
+
+        if (count == 0)
+        {
+            return;
+        }
+
+        var delta = new Float2(sumX / count - npc.Position.X, sumY / count - npc.Position.Y);
+        if (HexSpatialMath.Distance(Float2.Zero, delta) < 0.01f)
+        {
+            return; // the pile is underfoot — keep the current heading
+        }
+
+        var facing = HexSpatialMath.Normalize(delta);
+        npc.Movement.DesiredDirection = facing;
+        npc.Movement.DesiredRotationDegrees = HexSpatialMath.AngleDegrees(facing);
+        npc.RotationDegrees = npc.Movement.DesiredRotationDegrees;
+    }
+
     private static void RunCraftInPlace(WorldState world, NPCState npc)
     {
         var goal = npc.Plan.Goal != GoalType.None ? npc.Plan.Goal : npc.Mind.CurrentGoal;
@@ -288,6 +327,7 @@ public sealed partial class ExecutionSystem
             npc.Execution.TargetObject = null;
             npc.Execution.StartTick = world.Tick;
             npc.Execution.EndTick = world.Tick + CraftInPlaceDurationTicks;
+            FaceCraftLayout(world, npc); // §61: kneel TOWARD the laid-out pieces
             Trace.Emit(world, npc.Id, "InteractionStarted",
                 $"CraftInPlace {goal} Duration={CraftInPlaceDurationTicks}ticks " +
                 $"LaidOut={npc.Execution.CraftLayout.Count}");
@@ -337,6 +377,7 @@ public sealed partial class ExecutionSystem
             npc.Execution.CurrentInteraction = InteractionType.PickUp;
             npc.Execution.StartTick = world.Tick;
             npc.Execution.EndTick = world.Tick + CraftTakeDurationTicks;
+            FaceCraftLayout(world, npc); // §61: stoop TOWARD the finished item
             Trace.Emit(world, npc.Id, "CraftOutputLaid",
                 $"{goal} -> [{string.Join(",", outputs)}] on the ground; " +
                 $"take in {CraftTakeDurationTicks}ticks");

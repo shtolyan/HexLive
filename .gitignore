@@ -52,6 +52,11 @@ Assets/Screenshots/
 Assets/Screenshots.meta
 *.blob
 
+# Scratch import folder for source FBX drops (extracted assets are committed,
+# the multi-hundred-MB sources are not). The folder itself is caught by the
+# global [Tt]emp/ rule; the stray .meta needs its own line.
+Assets/Temp.meta
+
 # Huge third-party animal pack — kept locally, never committed (wolf assets copied to Assets/HexLive/Art/Wolf)
 /[Aa]ssets/ANIMALS FULL PACK/
 /[Aa]ssets/ANIMALS FULL PACK.meta

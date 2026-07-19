@@ -61,7 +61,7 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Включить раннее обнаружение (⚠️, атака первой или обход).")]
         public bool threatAlertEnabled = true;
         [Tooltip("Радиус обнаружения врага в тайлах.")]
-        [Range(1, 20)] public int spotRadiusTiles = 6;
+        [Range(1, 20)] public int spotRadiusTiles = 4;
         [Tooltip("Кулдаун ⚠️-реакции в тиках.")]
         [Range(0, 2400)] public int cueCooldownTicks = 600;
         [Tooltip("Минимальное здоровье всех костей (доля), чтобы решиться атаковать первой.")]

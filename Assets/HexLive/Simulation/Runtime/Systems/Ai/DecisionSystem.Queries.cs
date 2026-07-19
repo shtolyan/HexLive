@@ -1,0 +1,728 @@
+using HexLive.Simulation.Core;
+using HexLive.Simulation.Common;
+using HexLive.Simulation.Content;
+using HexLive.Simulation.Navigation;
+using HexLive.Simulation.Spatial;
+using HexLive.Simulation.Agents;
+using HexLive.Simulation.AI;
+using HexLive.Simulation.Memory;
+using HexLive.Simulation.Social;
+
+namespace HexLive.Simulation.Runtime
+{
+
+public sealed partial class DecisionSystem
+{
+    // Spec 29F helpers.
+    // Spec 35.5: one communal rack is enough for v1.
+    internal static bool RackExists(WorldState world)
+    {
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (obj.DefinitionId == "station.drying_rack")
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    internal static int CountInventory(NPCState npc, string definitionId)
+    {
+        var count = 0;
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (item == definitionId)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    // Spec 29F.1: rabbits are perceived by direct proximity scan (<= 4 tiles),
+    // no rabbit memory in v1. Spooked rabbits don't count.
+    internal static Wildlife.RabbitState? NearestVisibleRabbit(NPCState npc, WorldState world)
+    {
+        Wildlife.RabbitState? best = null;
+        var bestDistance = int.MaxValue;
+        foreach (var rabbit in world.Rabbits)
+        {
+            if (world.Tick < rabbit.SpookedUntilTick)
+            {
+                continue;
+            }
+
+            var distance = HexSpatialMath.HexDistance(npc.Tile, rabbit.Tile);
+            // Radius stays 4: 5-6 made hunts more frequent but the longer
+            // chases dragged NPCs into dog country (wipes on two seeds).
+            if (distance <= 4 && distance < bestDistance)
+            {
+                bestDistance = distance;
+                best = rabbit;
+            }
+        }
+
+        return best;
+    }
+
+    // §56: Prey unlocks only when EVERY softer food source is absent — carried
+    // food, ground food, a known fruit producer, a rabbit to hunt, an animal
+    // carcass, or an existing corpse to butcher. The corpse clause guarantees a
+    // found body is always eaten before anyone is killed (a killed housemate is
+    // strictly worse than one who died on their own).
+    internal static bool NoOtherFoodReachable(NPCState npc, WorldState world)
+    {
+        if (npc.Inventory.FindFirstFood(world.Content) is not null)
+        {
+            return false;
+        }
+
+        if (HasReachableFoodForCurrentTools(npc, world) || HasCoconutMeal(npc, world))
+        {
+            return false;
+        }
+
+        if (KnowsReachableProducer(npc, world))
+        {
+            return false;
+        }
+
+        if (NearestVisibleRabbit(npc, world) is not null)
+        {
+            return false;
+        }
+
+        if (HasReachableWithTag(npc, world, "Carcass"))
+        {
+            return false;
+        }
+
+        if (HasReachableWithTag(npc, world, "Corpse"))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    internal static bool HasCoconutMeal(NPCState npc, WorldState world)
+    {
+        if (npc.Inventory.Items.Contains("food.coconut_open"))
+        {
+            return true;
+        }
+
+        var hasBlade = HasCoconutBlade(npc);
+        if (hasBlade &&
+            (npc.Inventory.Items.Contains("food.coconut") ||
+             npc.Inventory.Items.Contains("food.coconut_pierced")))
+        {
+            return true;
+        }
+
+        foreach (var obj in npc.Perception.Objects)
+        {
+            if (!obj.IsReachable || !ObjectUsableBy(obj, npc.Id))
+            {
+                continue;
+            }
+
+            if (obj.DefinitionId == "food.coconut_open")
+            {
+                return true;
+            }
+
+            if (hasBlade &&
+                (obj.DefinitionId == "food.coconut" ||
+                 obj.DefinitionId == "food.coconut_pierced"))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    internal static bool HasCoconutWater(NPCState npc, WorldState world)
+    {
+        var hasBlade = HasCoconutBlade(npc);
+        if (hasBlade && npc.Inventory.Items.Contains("food.coconut"))
+        {
+            return true;
+        }
+
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (item.DefinitionId == "food.coconut_pierced" && item.ResourceAmount > 0f)
+            {
+                return true;
+            }
+        }
+
+        foreach (var obj in npc.Perception.Objects)
+        {
+            if (!obj.IsReachable || !ObjectUsableBy(obj, npc.Id))
+            {
+                continue;
+            }
+
+            if (hasBlade && obj.DefinitionId == "food.coconut")
+            {
+                return true;
+            }
+
+            if (obj.DefinitionId == "food.coconut_pierced" &&
+                world.Entities.Objects.TryGetValue(obj.Id, out var worldObject) &&
+                worldObject.ResourceAmount > 0f)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    internal static bool HasBottleWater(NPCState npc) =>
+        npc.BottleWater != WaterKind.None && npc.BottleCharges > 0;
+
+    internal static bool HasInventoryCoconutMeal(NPCState npc)
+    {
+        if (npc.Inventory.Items.Contains("food.coconut_open"))
+        {
+            return true;
+        }
+
+        return HasCoconutBlade(npc) &&
+            (npc.Inventory.Items.Contains("food.coconut") ||
+             npc.Inventory.Items.Contains("food.coconut_pierced"));
+    }
+
+    internal static bool HasInventoryCoconutWater(NPCState npc)
+    {
+        if (HasBottleWater(npc))
+        {
+            return true;
+        }
+
+        if (HasCoconutBlade(npc) && npc.Inventory.Items.Contains("food.coconut"))
+        {
+            return true;
+        }
+
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (item.DefinitionId == "food.coconut_pierced" && item.ResourceAmount > 0f)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // §50-prone: piercing a coconut is LIGHT hand-work — a one-legged crawler
+    // with a knife still opens her dinner (Marta starved to death at day 28
+    // sitting NEXT to coconuts because the blanket prone-gate blocked this).
+    // Fighting and heavy tool work stay forbidden while lying.
+    internal static bool HasCoconutBlade(NPCState npc) =>
+        Content.GearCatalog.HasCapability(npc.Inventory.Items, Content.GearCapability.Cut);
+
+    internal static bool HasCoconutOpportunity(NPCState npc, WorldState world)
+    {
+        if (npc.Inventory.Items.Contains("food.coconut") ||
+            npc.Inventory.Items.Contains("food.coconut_pierced") ||
+            npc.Inventory.Items.Contains("food.coconut_open"))
+        {
+            return true;
+        }
+
+        return HasReachableDefinition(npc, world, "food.coconut") ||
+            HasReachableDefinition(npc, world, "food.coconut_pierced") ||
+            HasReachableDefinition(npc, world, "food.coconut_open") ||
+            KnowsReachableCoconutProducer(npc, world);
+    }
+
+    internal static bool HasReachableFoodForCurrentTools(NPCState npc, WorldState world)
+    {
+        var hasBlade = HasCoconutBlade(npc);
+        foreach (var obj in npc.Perception.Objects)
+        {
+            if (!obj.IsReachable ||
+                !ObjectUsableBy(obj, npc.Id) ||
+                !obj.AvailableInteractions.Contains(InteractionType.PickUp) ||
+                !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition))
+            {
+                continue;
+            }
+
+            // §54.14 (r2): cooked meat hanging on the spit counts as reachable
+            // food — the fire is the source object, the meat is what's taken.
+            if (definition.Tags.Contains("Campfire"))
+            {
+                if (world.Entities.Objects.TryGetValue(obj.Id, out var fire) &&
+                    BuildSiteMath.HangingMeat(fire, "food.meat_cooked") > 0 &&
+                    InventoryMath.CanMakeRoomFor(world, npc, "food.meat_cooked"))
+                {
+                    return true;
+                }
+
+                continue;
+            }
+
+            if (!InventoryMath.CanMakeRoomFor(world, npc, obj.DefinitionId) ||
+                !definition.Tags.Contains("Food"))
+            {
+                continue;
+            }
+
+            if (definition.Tags.Contains("Coconut") && !hasBlade)
+            {
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    internal static bool KnowsReachableCoconutProducer(NPCState npc, WorldState world)
+    {
+        foreach (var obj in npc.Perception.Objects)
+        {
+            if (obj.IsReachable &&
+                world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
+                definition.Produce?.ProducedDefinitionId == "food.coconut")
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // §56: the victim of a predation — the weakest reachable housemate. Lowest
+    // health wins; a sleeper is discounted (an easy kill is preferred) and the
+    // nearest breaks remaining ties. A starved predator preys on the frail, so
+    // when no soft target is in reach the goal simply has no victim (it fails).
+    internal static NPCState? NearestPreyVictim(NPCState npc, WorldState world)
+    {
+        if (npc.CurrentJunction is not { } from)
+        {
+            return null;
+        }
+
+        NPCState? best = null;
+        var bestScore = float.MaxValue;
+        foreach (var other in world.Entities.Npcs.Values)
+        {
+            if (other.Id == npc.Id || other.Health <= 0f ||
+                other.CurrentJunction is not { } otherJunction)
+            {
+                continue;
+            }
+
+            if (!from.Equals(otherJunction) &&
+                !Connectivity.Reachable(world, from, otherJunction, npc.Body.CanJump))
+            {
+                continue;
+            }
+
+            var vulnerability = other.Health -
+                (other.Mind.CurrentGoal == GoalType.Sleep ? 0.25f : 0f) +
+                HexSpatialMath.HexDistance(npc.Tile, other.Tile) * 0.01f;
+            if (vulnerability < bestScore)
+            {
+                bestScore = vulnerability;
+                best = other;
+            }
+        }
+
+        return best;
+    }
+
+    // Spec 29E helpers.
+    internal static bool HasReachableWithTag(NPCState npc, WorldState world, string tag)
+    {
+        foreach (var obj in npc.Perception.Objects)
+        {
+            if (obj.IsReachable && ObjectUsableBy(obj, npc.Id) &&
+                world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
+                definition.Tags.Contains(tag))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    internal static bool HasReachableDefinition(NPCState npc, WorldState world, string definitionId)
+    {
+        foreach (var obj in npc.Perception.Objects)
+        {
+            if (obj.IsReachable && ObjectUsableBy(obj, npc.Id) &&
+                obj.DefinitionId == definitionId)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    internal static bool HasReachableDefinitionWorthCarrying(
+        NPCState npc, WorldState world, string definitionId)
+    {
+        foreach (var obj in npc.Perception.Objects)
+        {
+            if (obj.IsReachable && ObjectUsableBy(obj, npc.Id) &&
+                obj.DefinitionId == definitionId &&
+                InventoryMath.CanMakeRoomFor(world, npc, obj.DefinitionId))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // §47 comfort: like HasReachableWithTag but counts — used for the
+    // bed-per-girl deficit. Occupancy is ignored on purpose (a bed someone
+    // sleeps in right now still exists as furniture).
+    internal static int CountReachableWithTag(NPCState npc, WorldState world, string tag)
+    {
+        var count = 0;
+        foreach (var obj in npc.Perception.Objects)
+        {
+            if (obj.IsReachable &&
+                world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
+                definition.Tags.Contains(tag))
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    // Spec 40.15: a KNOWN object with this tag that's reachable overland —
+    // used for far, out-of-perception goals (the coastal raft) that NPCs
+    // remember from the start (SeedHomeKnowledge) even when they can't see it.
+    internal static bool KnowsReachableWithTag(NPCState npc, WorldState world, string tag)
+    {
+        if (npc.CurrentJunction is not { } from)
+        {
+            return false;
+        }
+
+        foreach (var known in npc.Memory.KnownObjects.Values)
+        {
+            if (known.Junction is { } j &&
+                world.Content.ObjectDefinitions.TryGetValue(known.DefinitionId, out var def) &&
+                def.Tags.Contains(tag) &&
+                (Connectivity.Reachable(world, from, j) || Connectivity.ReachableBeside(world, from, j)))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // §gear: any-of capability check over the inventory (typed).
+    internal static bool HasAnyCapability(
+        NPCState npc, System.Collections.Generic.List<Content.GearCapability> capabilities)
+    {
+        foreach (var capability in capabilities)
+        {
+            if (Content.GearCatalog.HasCapability(npc.Inventory.Items, capability))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // §gear-data: can the npc perform this object's interaction per its
+    // DECLARED capabilities? Undeclared (legacy) content falls back to the
+    // caller's own check — decision and execution stay in agreement.
+    internal static bool CanPerformDeclared(
+        WorldState world, NPCState npc, string definitionId, InteractionType type, bool legacyOk)
+    {
+        if (world.Content.ObjectDefinitions.TryGetValue(definitionId, out var def))
+        {
+            foreach (var interaction in def.Interactions)
+            {
+                if (interaction.Type == type)
+                {
+                    return interaction.RequiredCapabilities.Count == 0
+                        ? legacyOk
+                        : HasAnyCapability(npc, interaction.RequiredCapabilities);
+                }
+            }
+        }
+
+        return legacyOk;
+    }
+
+    private static bool HasMissingToolReachable(NPCState npc, WorldState world)
+    {
+        foreach (var obj in npc.Perception.Objects)
+        {
+            if (!obj.IsReachable || !ObjectUsableBy(obj, npc.Id))
+            {
+                continue;
+            }
+
+            if (!npc.Inventory.Items.Contains(obj.DefinitionId) &&
+                InventoryMath.CanMakeRoomFor(world, npc, obj.DefinitionId) &&
+                world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
+                definition.Tags.Contains("Tool") &&
+                Content.GearCatalog.AddsValueOver(
+                    npc.Inventory.Items, obj.DefinitionId, npc.Body.IntactHands))
+            {
+                return true;
+            }
+
+            // Spec §52: a tool stashed in a dropped garment's pockets counts
+            // as reachable too — GatherTools rifles the pockets on arrival.
+            if (world.Entities.Objects.TryGetValue(obj.Id, out var container) &&
+                container.Contents.Count > 0 &&
+                InventoryMath.StashHoldsWantedTool(world, npc, container))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    internal static (bool Seen, float Fuel, WorldObjectState Fire) FindCampfire(NPCState npc, WorldState world)
+    {
+        foreach (var obj in npc.Perception.Objects)
+        {
+            if (!obj.IsReachable ||
+                !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
+                !definition.Tags.Contains("Campfire"))
+            {
+                continue;
+            }
+
+            // §54.14 (r2): hand the live object back too — spit/ring stage
+            // checks and hanging-meat counts read it directly.
+            world.Entities.Objects.TryGetValue(obj.Id, out var worldObject);
+            return (true, worldObject?.ResourceAmount ?? 0f, worldObject);
+        }
+
+        return (false, 0f, null);
+    }
+
+    // Does the NPC carry at least one material this site still needs?
+    // §54.12: a perceived object she could actually sit ON (stump/chair/bed).
+    private static bool HasPerceivedSeat(NPCState npc)
+    {
+        foreach (var perceived in npc.Perception.Objects)
+        {
+            if (perceived.IsReachable && !perceived.IsOccupied &&
+                perceived.AvailableInteractions.Contains(InteractionType.Sit))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // §54.12: any ledge junction within the sit-plan search radius. Ledges only
+    // change with terrain, so the junction list is cached per TopologyVersion —
+    // the per-decision cost is a distance sweep over the (short) ledge list.
+    private static int _ledgeCacheTopology = -1;
+
+    private static readonly System.Collections.Generic.List<Junction> _ledgeCache = new();
+
+    private static bool AnyLedgeNear(WorldState world, NPCState npc, float radius)
+    {
+        if (_ledgeCacheTopology != world.TopologyVersion)
+        {
+            _ledgeCacheTopology = world.TopologyVersion;
+            _ledgeCache.Clear();
+            foreach (var junction in world.Junctions.Items.Values)
+            {
+                if (PlanningSystem.IsLedge(world, junction))
+                {
+                    _ledgeCache.Add(junction);
+                }
+            }
+        }
+
+        foreach (var junction in _ledgeCache)
+        {
+            if (!junction.Blocked &&
+                HexSpatialMath.Distance(junction.WorldPosition, npc.Position) < radius)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasReachableBathTile(WorldState world, NPCState npc)
+    {
+        if (npc.CurrentJunction is not { } from)
+        {
+            return false;
+        }
+
+        foreach (var junction in world.Junctions.Items.Values)
+        {
+            if (junction.Blocked || junction.Tiles.Count == 0 ||
+                !HygieneMath.IsShoreTile(world, junction.Tiles[0]))
+            {
+                continue;
+            }
+
+            if (Connectivity.Reachable(world, from, junction.Id))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static float DirtyGarmentWashNeed(WorldState world, NPCState npc)
+    {
+        var need = 0f;
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (obj.Dirtiness <= need ||
+                !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
+                definition.Layer is null ||
+                !HygieneMath.IsBathingTile(world, obj.Tile))
+            {
+                continue;
+            }
+
+            need = obj.Dirtiness;
+        }
+
+        return need;
+    }
+
+    private static bool HasInteraction(NPCState npc, InteractionType interactionType)
+    {
+        foreach (var obj in npc.Perception.Objects)
+        {
+            if (obj.IsReachable &&
+                ObjectUsableBy(obj, npc.Id) &&
+                obj.AvailableInteractions.Contains(interactionType))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Spec 24.3: occupied objects are unavailable — unless occupied by this
+    // NPC itself (an NPC mid-interaction must not lose its own target).
+    internal static bool ObjectUsableBy(PerceivedObject obj, EntityId self)
+    {
+        return !obj.IsOccupied ||
+            (obj.OccupiedBy.HasValue && obj.OccupiedBy.Value == self);
+    }
+
+    // Spec 31A.5A: warmest worn item that is safe to take off — armor stays
+    // on while any danger memory is fresh.
+    internal static string? FindRemovableItem(NPCState npc, WorldState world)
+    {
+        string? best = null;
+        var bestWarmth = -1f;
+        foreach (var itemId in npc.WornItems)
+        {
+            var (warmth, armor) = EquipmentMath.ItemValues(world, itemId);
+            if (armor > 0f && npc.Memory.Dangers.Count > 0)
+            {
+                continue; // protection beats comfort under threat
+            }
+
+            // Spec 42: heat never strips the girls naked — underwear stays on
+            // (it barely warms anyway), only real layers come off.
+            if (world.Content.ObjectDefinitions.TryGetValue(itemId, out var def) &&
+                def.Layer == WearLayer.Underwear)
+            {
+                continue;
+            }
+
+            if (warmth > bestWarmth)
+            {
+                best = itemId;
+                bestWarmth = warmth;
+            }
+        }
+
+        return best;
+    }
+
+    // Spec 29C.4A: does the NPC know a reachable Dress item with armor?
+    internal static bool KnowsReachableArmor(NPCState npc, WorldState world)
+    {
+        foreach (var obj in npc.Perception.Objects)
+        {
+            if (obj.IsReachable && ObjectUsableBy(obj, npc.Id) &&
+                CandidateArmor(world, obj) > npc.EquippedArmor)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    internal static float CandidateArmor(WorldState world, PerceivedObject obj)
+    {
+        if (!world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition))
+        {
+            return 0f;
+        }
+
+        var best = 0f;
+        foreach (var interaction in definition.Interactions)
+        {
+            if (interaction.Type == InteractionType.Dress &&
+                interaction.Effects.ArmorDelta > best)
+            {
+                best = interaction.Effects.ArmorDelta;
+            }
+        }
+
+        return best;
+    }
+
+    // Spec 27.18A foraging: food can also be sought at a known producer
+    // (an apple tree), even when no food item itself is known.
+    internal static bool KnowsReachableProducer(NPCState npc, WorldState world)
+    {
+        var hasBlade = HasCoconutBlade(npc);
+        foreach (var obj in npc.Perception.Objects)
+        {
+            if (obj.IsReachable &&
+                world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
+                definition.Produce != null &&
+                (definition.Produce.ProducedDefinitionId != "food.coconut" || hasBlade))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+}
+
+}

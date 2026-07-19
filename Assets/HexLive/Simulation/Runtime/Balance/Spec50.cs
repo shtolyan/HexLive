@@ -28,7 +28,7 @@ public static class Spec50
     //    zeroed legs stay attached-but-useless as before).
     // Both stay high/low so amputation is dramatic, not routine.
     public static float LimbSeverThreshold = 0.14f;
-    public static float GrindSeverChance = 0.25f;
+    public static float GrindSeverChance = 0.10f;
 
     // The instant blood loss (0..1 of the Blood need) when a limb comes off.
     public static float LimbSeverBloodLoss = 0.4f;
@@ -36,6 +36,16 @@ public static class Spec50
     // The severity of the fresh stump wound filed on sever — deep, so §44
     // clotting keeps it bleeding for a while (ongoing Blood drain).
     public static float LimbSeverWoundSeverity = 0.35f;
+
+    // A severed zone stays at 0 HP forever and can never be bandaged, so it
+    // used to pin the §40.2 bleed formula at its maximum for the whole fresh-
+    // wound window — ~3 full blood bars, i.e. every amputation was a death
+    // sentence (40-day soaks: 24/33 deaths BledOut). For BLEED-RATE purposes
+    // only, a stump reads as at least this part-HP: the one-off
+    // LimbSeverBloodLoss already charges the trauma, and the residual ooze
+    // adds ~0.2-0.3 blood over the clotting window — survivable with rest.
+    // Health/mobility math still sees the true 0.
+    public static float StumpBleedPartFloor = 0.35f;
 
     // Strike collapse for a severed ARM (below the 0.4 mauled floor). One arm
     // gone → strike ×this; both gone → ×this².

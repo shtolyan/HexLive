@@ -475,9 +475,16 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             var worstPart = 1f;
             foreach (var part in AllBodyParts)
             {
-                if (npc.Body.Parts[part] < worstPart)
+                // §50: a severed zone is 0 forever and unbandageable — without a
+                // floor it pins the bleed at maximum for the whole clotting
+                // window and every amputation bleeds out. The stump's trauma is
+                // already charged as the one-off LimbSeverBloodLoss.
+                var partHealth = npc.Body.IsSevered(part)
+                    ? System.Math.Max(npc.Body.Parts[part], Spec50.StumpBleedPartFloor)
+                    : npc.Body.Parts[part];
+                if (partHealth < worstPart)
                 {
-                    worstPart = npc.Body.Parts[part];
+                    worstPart = partHealth;
                 }
             }
 

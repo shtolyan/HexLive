@@ -233,6 +233,10 @@ namespace HexLive.UnityPresentation.Config
         [Range(10, 200)] public int washClothesDurationTicks = 40;
         [Tooltip("Чистота вещи, ниже которой её несут стирать.")]
         [Range(0f, 1f)] public float washClothesNeedThreshold = 0.2f;
+        [Tooltip("Вес худшей НАДЕТОЙ грязи в позыве искупаться (раздевание у воды делает кучу доступной стирке). 0 — грязная одежда не тянет купаться.")]
+        [Range(0f, 1f)] public float batheWornDirtWeight = 0.9f;
+        [Tooltip("Мокрота одежды, выше которой она идёт сушить (вешать на сушилку / стоять у огня).")]
+        [Range(0f, 1f)] public float dryClothesWetThreshold = 0.35f;
 
         [Header("Выносливость / стресс (мягкие)")]
         [Tooltip("Прирост выносливости за тик отдыха.")]

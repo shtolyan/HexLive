@@ -9,8 +9,8 @@ namespace HexLive.Simulation.Runtime
 public static class WildlifeBalance
 {
     // §46 dog-pack director.
-    public static int MaxDogs = 3;
-    public static int DogRespawnCheckTicks = 3600;
+    public static int MaxDogs = 2;
+    public static int DogRespawnCheckTicks = 7200;
     public static int RaidDuskOffsetTicks = 1800;
     public static int DogSpawnMinDistanceFromNpc = 5;
 

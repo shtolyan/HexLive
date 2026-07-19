@@ -25,7 +25,7 @@ MonoBehaviour:
   maxWoundStamps: 8
   maxHealth: 1.53
   attackDamage: 0.067
-  attackWindupSeconds: 0.1
+  attackWindupSeconds: 0.5
   attackCooldownSeconds: 0.8
   aggroRadiusTiles: 2
   roamChance: 0.2

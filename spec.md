@@ -8123,6 +8123,22 @@ pass — order chosen to add robustness before difficulty.
   and muddies the bare-skin tint toward a dull earthy brown as it drops
   (grime overlay via the same per-submesh property block, skin-only). Driven
   by exported `Hygiene`. Bathing/waterside already restores the param.
+- **Laundry actually runs (balance audit, Jul 2026).** Measured on 40-day
+  soaks: clothes were washed only 9-16 times per colony and NEVER dried on
+  the rack (`ItemHung`=0) — worn pieces sat at dirt 0.7-1.0. Two causes,
+  two fixes:
+  - *Wash:* `DirtyGarmentWashNeed` only scans garments already lying on a
+    bathing tile, so WORN dirt never triggered the chain. Dirty worn
+    clothing now pulls **Bathe** — `batheNeed = max(1−Hygiene,
+    worstWornDirt × SimBalance.BatheWornDirtWeight (0.9))`; she undresses at
+    the shore as always, and the beached pile is a valid target for the
+    existing WashClothes plan.
+  - *Dry:* the gate `wetness > 0.5` + score `0.15+0.4×wet` lost the auction
+    inside the ~0.2-day passive-drying window. Gate is now
+    `SimBalance.DryClothesWetThreshold` (0.35) and the score is
+    `0.2+0.6×wet`, so right after a wash (wet 1.0) the hang-on-rack /
+    stand-by-fire trip actually wins. Knobs mirror in
+    `CharacterBalanceConfig` (`batheWornDirtWeight`, `dryClothesWetThreshold`).
 
 ### 40.7 Sunburn → tan (skin system)
 - Skin **reddens where clothing doesn't cover**, sharply along garment
@@ -8714,6 +8730,17 @@ pass — order chosen to add robustness before difficulty.
   move on). Swimming risks a **shark** mob (attacks/kills mid-swim); a raft
   is the safe crossing. Endgame in the spirit of survival games (build up,
   then depart). NPCs must **organize together** for it.
+- **The raft gate (balance audit, Jul 2026).** `BuildRaft` and the
+  `raftWoodDemand` stock-up pull used to require Hunger/Thirst < 0.55 **and an
+  empty danger memory**. Measured on 40-day 12-seed soaks: the coconut economy
+  equilibrates needs at ~0.55–0.7 and §62 far-spotting restamps danger memory
+  daily, so the combined gate held open only 0.0–2.8% of NPC-slow-ticks
+  (danger alone blocking 61–95%) — surviving colonies finished at raft 0/10.
+  Now: needs gate is `SimBalance.RaftNeedGate` (0.7), and only danger
+  remembered within `SimBalance.RaftDangerRadiusTiles` (4) of the girl herself
+  cancels the coast run — a wolf seen across the island doesn't; the §62
+  danger-ring already detours the route. Both knobs mirror in
+  `ResourceLoopConfig`.
 
 ### 40.16 LLM assist
 - Wire an **LLM** to suggest **joint plans** when the colony is in dire
@@ -9687,6 +9714,16 @@ a while → a likely bleed-out spiral unless she's dressed. It never kills
 outright; death, if it comes, is through blood loss over the following ticks. Her
 current plan is interrupted (as a dog attack does).
 
+**Stump bleed floor (balance audit, Jul 2026).** A severed zone stays at 0 HP
+forever and can never be bandaged, so it used to pin the §40.2 bleed formula
+(`(0.4 − worstPart) × BleedRateFactor`) at its maximum for the whole clotting
+window — ~3 full blood bars, i.e. every amputation was a guaranteed death
+(40-day soaks: 24/33 deaths BledOut, 4-10 severs per seed). For BLEED-RATE
+purposes only, a severed part now reads as at least `Spec50.StumpBleedPartFloor`
+(0.35): the trauma is already charged as the one-off `LimbSeverBloodLoss`, and
+the residual ooze adds ~0.2-0.3 blood over the clotting window — survivable
+with rest and food. Health/mobility math still sees the true 0.
+
 ### §50.4 The limb in the world
 `Sever` spawns a `body.limb_severed` object at her feet (mirrors the corpse):
 `CurrentUser` = whose limb (which actor mesh), `Variant` = which `BodyPart`,
@@ -10102,6 +10139,14 @@ hand-lashed into a usable bed.
   the per-NPC auction so the fragile survival balance is untouched) stakes ONE
   `build.site` with `BuildProduct = "bed.leaf"` beside a **lit hearth** when the
   colony has fewer beds than living girls and none is currently under construction.
+  **Hearth recognition (balance audit, Jul 2026):** a stage-1+ campfire upgrading
+  in place (§54.14) keeps an open bill, so `BuildSiteMath.IsSite()` is true for
+  it — but it IS the hearth. `BedSiteSystem` counts only literal `build.site`
+  objects as in-progress sites; the live campfire falls through to the
+  `Campfire`-tag branch. (Before this fix the colony could not stake a single
+  bed or rack until the fire's full stone ring + spit bill closed — which needs
+  18 stones (a pickaxe) + 2 rope, so 40-day soaks finished with ZERO beds and a
+  chronic colony-wide energy pit.)
   The site is also inserted into every living NPC's permanent object memory, since
   it is a colony intent point rather than something each girl must personally see.
   Bill = `SimBalance.BedLeafBillLeaves`(46) + `BedLeafBillSticks`(8) +

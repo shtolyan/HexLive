@@ -34,7 +34,7 @@ public static class Spec62
 
     // Attack-first only against a lone threat — the melee assessment already
     // bails at 2 adjacent attackers, so charging a pack would be a suicide run.
-    public static int AttackMaxPack = 1;
+    public static int AttackMaxPack = 0;
 
     // Defend goal-lock length for the pre-emptive attack (help cry uses 240).
     public static int AttackLockTicks = 240;

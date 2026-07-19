@@ -41,7 +41,7 @@ MonoBehaviour:
   starveDamageOne: 0.03
   healHungerGate: 0.6
   healthRegenPerTick: 0.003
-  bleedRateFactor: 0.09
+  bleedRateFactor: 0.06
   bloodRefillPerTick: 0.005
   bandageBloodThreshold: 0.35
   rawWaterSickChance: 0.15
@@ -66,7 +66,7 @@ MonoBehaviour:
   leafBedEnergy: 0.15
   chairComfort: 0.4
   chairEnergy: 0.1
-  sleepEnergyBaseBonus: 0.01
+  sleepEnergyBaseBonus: 0.02
   sleepEnergyFireBonus: 0.005
   sleepEnergyLeafBedBonus: 0.006
   sleepEnergyBasicBedBonus: 0.01

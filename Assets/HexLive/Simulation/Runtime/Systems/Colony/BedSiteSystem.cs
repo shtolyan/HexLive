@@ -51,7 +51,13 @@ public sealed class BedSiteSystem : ISimulationSystem
         WorldObjectState hearth = null;
         foreach (var obj in world.Entities.Objects.Values)
         {
-            if (BuildSiteMath.IsSite(obj))
+            // §54.14: an in-place upgrading piece (the stage-1+ campfire) keeps
+            // an open bill, so IsSite() is true for it — but it is a REAL
+            // hearth, not a pending site. Only literal build.site objects count
+            // as in-progress here; otherwise the colony can never stake a bed
+            // until the fire's stone ring and spit are fully finished (40-day
+            // soaks: zero beds, chronic energy pit).
+            if (obj.DefinitionId == "build.site" && BuildSiteMath.IsSite(obj))
             {
                 if (obj.BuildProduct is "bed.leaf" or "bed.basic")
                 {

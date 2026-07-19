@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   limbLossEnabled: 1
   limbSeverThreshold: 0.14
-  grindSeverChance: 0.25
+  grindSeverChance: 0.1
   limbSeverBloodLoss: 0.4
   limbSeverWoundSeverity: 0.35
   severedLimbMobilityMult: 0.15
@@ -34,7 +34,7 @@ MonoBehaviour:
   spotRadiusTiles: 6
   cueCooldownTicks: 600
   fitBoneHealth: 0.8
-  attackMaxPack: 1
+  attackMaxPack: 0
   attackLockTicks: 240
   dangerRingTiles: 2
   dangerStepCost: 80

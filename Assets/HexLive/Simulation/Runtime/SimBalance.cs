@@ -65,7 +65,7 @@ namespace HexLive.Simulation.Runtime
         // ─────────────────────────────────────────────────────────────
         // Blood / first aid.
         // ─────────────────────────────────────────────────────────────
-        public static float BleedRateFactor = 0.09f;        // blood lost/tick = (0.4 − worstPart) × this
+        public static float BleedRateFactor = 0.06f;        // blood lost/tick = (0.4 − worstPart) × this
         public static float BloodRefillPerTick = 0.005f;    // blood regained/tick while fed (×3 asleep, ×2 fireside)
         public static float BandageBloodThreshold = 0.35f;  // auto-bandage fires below this blood
 
@@ -113,7 +113,7 @@ namespace HexLive.Simulation.Runtime
         // bonus. This is the payoff for building a bed and camping by the fire: you
         // recover faster ⇒ sleep less ⇒ more time on your feet to build/gather.
         // Added once per slow tick while asleep, on top of the base restore.
-        public static float SleepEnergyBaseBonus = 0.010f;    // always while asleep
+        public static float SleepEnergyBaseBonus = 0.020f;    // always while asleep
         public static float SleepEnergyFireBonus = 0.005f;    // + by a lit fire
         public static float SleepEnergyLeafBedBonus = 0.006f; // + on a leaf mat
         public static float SleepEnergyBasicBedBonus = 0.010f;// + on a premium bedroll
@@ -186,6 +186,22 @@ namespace HexLive.Simulation.Runtime
         public static int BatheDurationTicks = 100; // one in-game hour
         public static int WashClothesDurationTicks = 40;
         public static float WashClothesNeedThreshold = 0.2f;
+
+        // Laundry audit (Jul 2026): worn dirt never reached the wash chain —
+        // DirtyGarmentWashNeed only scans garments ALREADY lying on a bathing
+        // tile, so clothes were washed just 9-16 times per 40 days and worn
+        // pieces sat at dirt 0.7-1.0 forever. Dirty WORN clothing now pulls
+        // Bathe (she undresses at the shore anyway — the pile then becomes a
+        // valid wash target for the existing chain): batheNeed takes
+        // max(1-Hygiene, worstWornDirt × this weight).
+        public static float BatheWornDirtWeight = 0.9f;
+
+        // Drying audit (Jul 2026): DryClothes gated on wetness > 0.5 — after a
+        // wash (wet 1.0) passive on-body drying closes that window in ~0.2
+        // days, and the old 0.15+0.4×wet score lost the auction to Sit, so
+        // rack-hanging fired 0 times in 40-day soaks. Wider window via this
+        // threshold (score raised in DecisionSystem alongside).
+        public static float DryClothesWetThreshold = 0.35f;
 
         // ─────────────────────────────────────────────────────────────
         // Stamina / stress (soft — colour the UI, nudge rest, feed collapse).
@@ -269,6 +285,19 @@ namespace HexLive.Simulation.Runtime
             var phase = System.Math.Abs(tick + actorId * 37) % cadenceWindow;
             return phase < strikesPerWindow;
         }
+
+        // ─────────────────────────────────────────────────────────────
+        // Spec 40.15 — the escape raft gate (balance audit, Jul 2026).
+        // ─────────────────────────────────────────────────────────────
+        // BuildRaft used to demand hunger/thirst < 0.55 and an EMPTY danger
+        // memory. The coconut economy equilibrates needs at ~0.55-0.7 and §62
+        // spotting restamps danger daily, so surviving colonies sat at raft
+        // 0/10 for 40 days (gate fully open 0.0-2.8% of NPC-slow-ticks,
+        // danger alone blocking 61-95%). The gate now tolerates moderate
+        // needs and only fears danger remembered NEAR the girl herself —
+        // a wolf seen across the island must not cancel the coast run.
+        public static float RaftNeedGate = 0.7f;
+        public static int RaftDangerRadiusTiles = 4;
 
         // ─────────────────────────────────────────────────────────────
         // Spec §54 — Stranded-Deep resource loop (placeholder values; balance

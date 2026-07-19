@@ -29,6 +29,20 @@ internal static class EquipmentMath
         return total / npc.WornItems.Count;
     }
 
+    // Laundry (Jul 2026): the single dirtiest worn piece — the wash chain
+    // cares about the worst offender (a filthy leather vest on a clean
+    // outfit), which the average hides.
+    public static float WorstDirtiness(NPCState npc)
+    {
+        var worst = 0f;
+        foreach (var item in npc.WornItems)
+        {
+            worst = System.MathF.Max(worst, MathUtil.Clamp01(item.Dirtiness));
+        }
+
+        return worst;
+    }
+
     public static void Recalculate(WorldState world, NPCState npc)
     {
         var warmth = 0f;

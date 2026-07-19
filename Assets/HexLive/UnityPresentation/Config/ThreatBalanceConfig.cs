@@ -28,6 +28,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 1f)] public float limbSeverBloodLoss = 0.4f;
         [Tooltip("Глубина культёвой раны (тяжесть) — держит кровотечение.")]
         [Range(0f, 1f)] public float limbSeverWoundSeverity = 0.35f;
+        [Tooltip("Для расчёта кровотечения культя считается конечностью с этим HP (не 0): разовая кровопотеря уже снята при отрыве, культя лишь сочится. 0 = старое поведение (ампутация = смертный приговор).")]
+        [Range(0f, 0.4f)] public float stumpBleedPartFloor = 0.35f;
         [Tooltip("Множитель силы удара для ОТРУБЛЕННОЙ РУКИ. Одна рука — ×это, обе — ×это².")]
         [Range(0f, 0.5f)] public float severedLimbMobilityMult = 0.15f;
         [Tooltip("Доля скорости ходьбы при ползании (потеряна одна/обе ноги).")]

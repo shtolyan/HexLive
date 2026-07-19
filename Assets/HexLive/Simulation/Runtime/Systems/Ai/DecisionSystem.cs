@@ -545,14 +545,33 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // Spec 35.2: any reachable Tool not carried (saw, dropped gear).
             var gatherToolsAvail = HasMissingToolReachable(npc, world);
             var fuelLow = campfireSeen && campfireFuel < 600f;
+            // Balance audit (Jul 2026): the raft chain's gate — shared by
+            // raftWoodDemand here and buildRaftAvail below — used to demand
+            // needs < 0.55 and an EMPTY danger memory. Needs equilibrate at
+            // ~0.55-0.7 on coconuts and §62 sightings restamp danger daily,
+            // so the gate held 0.0-2.8% of NPC-slow-ticks and 40-day colonies
+            // finished at raft 0/10. Moderate needs are fine for a coast walk;
+            // only danger remembered NEAR HER cancels it (the §62 danger-ring
+            // detours the route itself).
+            var raftDangerNear = false;
+            foreach (var dangerMemory in npc.Memory.Dangers)
+            {
+                if (HexSpatialMath.HexDistance(npc.Tile, dangerMemory.Tile) <= SimBalance.RaftDangerRadiusTiles)
+                {
+                    raftDangerNear = true;
+                    break;
+                }
+            }
+
             // Spec 40.15 r3: the raft is a wood SINK of its own — with only
             // fire/build demand the endgame rode on leftover logs and crawled
             // (15-day soaks: 3 deposits). A settled girl who knows the raft
             // stocks up to 3 logs before the coast run so each trip counts.
             var raftWoodDemand = carriedLogs < 3 &&
                 world.RaftProgress < WorldState.RaftTarget &&
-                npc.Needs.Hunger < 0.55f && npc.Needs.Thirst < 0.55f &&
-                npc.Memory.Dangers.Count == 0 &&
+                npc.Needs.Hunger < SimBalance.RaftNeedGate &&
+                npc.Needs.Thirst < SimBalance.RaftNeedGate &&
+                !raftDangerNear &&
                 KnowsReachableWithTag(npc, world, "Raft");
             // Spec §54: fetch wood off the ground when the fire is dying and
             // there's nothing burnable in hand (no stick AND no log to split), or
@@ -1014,7 +1033,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
             AddGoalScore(npc, world.Tick, GoalType.CoolOff,
                 0.1f + 0.5f * coolOffUrge, coolOffAvail);
 
-            var batheNeed = 1f - npc.Needs.Hygiene;
+            // Laundry audit (Jul 2026): dirty WORN clothing pulls Bathe — she
+            // undresses at the shore anyway, and the beached pile is what the
+            // existing WashClothes chain can actually target (worn dirt was
+            // otherwise invisible to it: garments sat at dirt 0.7-1.0 forever).
+            var batheNeed = System.MathF.Max(1f - npc.Needs.Hygiene,
+                EquipmentMath.WorstDirtiness(npc) * SimBalance.BatheWornDirtWeight);
             var batheAvail = batheNeed >= SimBalance.BatheNeedThreshold &&
                 HasReachableBathTile(world, npc) && npc.Body.CanUseToolsOrWeapons;
             if (npc.Mind.CurrentGoal == GoalType.Bathe && npc.Plan.Status == PlanStatus.Active)
@@ -1082,9 +1106,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // soaks — either variant locks the endgame out permanently.
             // Hunger/thirst/danger already express "the household can spare
             // a pair of hands"; TendFire outbids the raft when fuel matters.
+            // Balance audit (Jul 2026): gate relaxed — see raftDangerNear /
+            // raftWoodDemand above for the rationale and the measurements.
             var buildRaftAvail = canUseToolsOrWeapons && carriedLogs >= 1 && world.RaftProgress < WorldState.RaftTarget &&
-                npc.Needs.Hunger < 0.55f && npc.Needs.Thirst < 0.55f &&
-                npc.Memory.Dangers.Count == 0 && KnowsReachableWithTag(npc, world, "Raft");
+                npc.Needs.Hunger < SimBalance.RaftNeedGate && npc.Needs.Thirst < SimBalance.RaftNeedGate &&
+                !raftDangerNear && KnowsReachableWithTag(npc, world, "Raft");
             // A loaded girl leans coastward: each carried log adds pull so
             // the stocked-up trip actually happens instead of dissolving
             // into strolls. Base 0.4 (was 0.28): plan statistics showed the
@@ -1097,11 +1123,17 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // §35.5B: CraftRack retired — the rack is a staged fireside
             // build-site now (BedSiteSystem stakes it; BuildFurniture raises).
 
-            var dryAvail = wornWetness > 0.5f && !world.Environment.IsRaining &&
+            // Drying audit (Jul 2026): the old gate (wetness > 0.5) plus a
+            // 0.15+0.4×wet score meant the rack was NEVER used (ItemHung=0
+            // across 40-day soaks) — passive on-body drying closed the window
+            // in ~0.2 days and Sit outbid the trip. Wider window + a score
+            // that actually wins the auction right after a wash or a soaking.
+            var dryAvail = wornWetness > SimBalance.DryClothesWetThreshold &&
+                !world.Environment.IsRaining &&
                 (HasReachableWithTag(npc, world, "Rack") ||
                  (campfireSeen && campfireFuel > 0f));
             AddGoalScore(npc, world.Tick, GoalType.DryClothes,
-                0.15f + 0.4f * wornWetness, dryAvail);
+                0.2f + 0.6f * wornWetness, dryAvail);
 
 
             // Spec 31A.5A: hot and safe → take something off. If everything

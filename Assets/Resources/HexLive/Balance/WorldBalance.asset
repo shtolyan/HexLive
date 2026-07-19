@@ -22,8 +22,8 @@ MonoBehaviour:
   moistureDryBase: 0.02
   fireBurnPerSlowTick: 16
   fruitRotTicks: 2400
-  maxDogs: 3
-  dogRespawnCheckTicks: 3600
+  maxDogs: 2
+  dogRespawnCheckTicks: 7200
   raidDuskOffsetTicks: 1800
   dogSpawnMinDistanceFromNpc: 5
   maxRabbits: 4

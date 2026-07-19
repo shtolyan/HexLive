@@ -457,7 +457,15 @@ namespace HexLive.UnityPresentation.Wearing
                 stateHash = stateHash * 31 + 1;
             }
 
-            if (stateHash == _lastStateHash && !needsPlacement)
+            // GPU-loss watchdog ("grey vinyl" bug): the painted skin lives in
+            // RenderTextures whose contents the GPU can discard mid-session
+            // (display sleep, fullscreen/resolution switch, device reset).
+            // The materials keep sampling the dead RT, so every painted slot
+            // renders as a uniform glossy-grey body until the next heal-bucket
+            // repaint — minutes away. IsCreated() flips false on loss, and
+            // binding the RT during a repaint re-creates it, so forcing a
+            // repaint here fully restores the skin the same frame.
+            if (stateHash == _lastStateHash && !needsPlacement && !AnyPaintRtLost())
             {
                 return; // nothing changed — no repaint
             }
@@ -1138,6 +1146,37 @@ namespace HexLive.UnityPresentation.Wearing
         }
 
         // ---- painting ----
+
+        // True when any live paint target lost its hardware resource (the GPU
+        // discarded it) — the cue for Sync's forced-repaint watchdog.
+        private bool AnyPaintRtLost()
+        {
+            foreach (var rt in _slotRt)
+            {
+                if (rt != null && !rt.IsCreated())
+                {
+                    return true;
+                }
+            }
+
+            foreach (var rt in _slotRtNormal)
+            {
+                if (rt != null && !rt.IsCreated())
+                {
+                    return true;
+                }
+            }
+
+            foreach (var rt in _slotRtGloss)
+            {
+                if (rt != null && !rt.IsCreated())
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
 
         private void RepaintAll()
         {

@@ -6184,6 +6184,80 @@ warmth; panties: Underwear/Pelvis, +0.03) and spawned as ground objects
 124–127 near home. Pipeline for more: generate print → copy base prefab →
 swap material GUID → drop the folder under `Resources/HexLive/Wear/<simId>/`.
 
+### 31B.4A Importing a NEW garment — agent checklist (MANDATORY order)
+
+New wardrobe content usually arrives as an asset-pack / Daz prefab with
+**per-actress fitted meshes** (a base garment plus "Marta"/"Jana"/… fits).
+Follow every step — skipping one produces a silent failure (invisible
+garment, cold sim item, or blood that never soaks the cloth).
+
+1. **Wear prefab (visual).** The prefab must contain: a root with the `Wear`
+   component, the garment's OWN skeleton under a `hip` bone (bones named
+   exactly like the body's Genesis bones — `Wear.Construct` stitches each
+   garment bone onto the matching body bone BY NAME), and a
+   SkinnedMeshRenderer child. On the `Wear` component fill: `layer`
+   (Underwear/Wear/Outerwear), `slots` (the `VisualWearSlot`s it occupies),
+   `noHideUnderwearSlots` when it should not hide underwear beneath.
+   - Default `sharedMesh` = one of the fits. Every OTHER actress's fit goes
+     into the `configs` list: one row per `ActorName` with that actress's
+     `mesh` + `scale`. Fit scale is tuned live in the **WardrobeTest** scene
+     (slider → `SetConfigScale` writes into the prefab asset).
+   - **Never dedupe/rename "same-looking" fit meshes.** Fits are NOT pure
+     morphs of one mesh: verified 2026-07-19, per-fit vertex counts all
+     differ (even the three body exports: 20571/20628/20276) and ~40% of
+     baked paint points diverge between fits (outliers 0.83 UV). Treat every
+     fitted mesh as its own asset. Meshes need no Read/Write checkbox
+     (painters bake topology once from a runtime bake; maps come from the
+     editor).
+   - Drop the prefab folder under `Resources/HexLive/Wear/<definitionId>/`
+     (several prefabs in the folder = all equip together as that sim item,
+     §31B.4).
+
+2. **Sim item.** Add the garment's `GarmentParams` row to the engine-free
+   defaults (`Simulation/Content/Garments/`, `GarmentLibrary`) so headless
+   soaks know it, plus its world `ObjectDefinition`/spawn if it should exist
+   on the island (`PrototypeContentCatalog`). Then run **HexLive → Garments →
+   Rebuild Catalog From Defaults** — it materializes the missing
+   `GarmentDefinition` asset (under `Wearing/Garments/Assets/<Layer>/`) and
+   registers it in `Resources/HexLive/GarmentCatalog.asset` non-destructively
+   (§31A.5C). Tune warmth/armor/thermal/capacity in the inspector afterwards.
+   The `id` is FROZEN once chosen — it keys the Resources art folder.
+
+3. **Localization (§58).** New I2 terms in `Resources/I2Languages.asset`:
+   `item.<id with '.'→'_'>.name` / `.desc` (EN + RU columns) — e.g.
+   `clothing.coat` → `item.clothing_coat.name`. Never author the strings in C#.
+
+4. **Inventory photo (item icon).** Every item shows a PHOTO in the
+   inventory/hex-inspector UI: a sprite at
+   `Resources/HexLive/UI/Items/<definitionId>.png` (the loader tries the sim
+   id first; the hex inspector also falls back to the `ItemInfo.Slug`, which
+   is how the older prefab-named PNGs like `Boots 20496.png` still resolve —
+   NEW items should use the sim id). Without the file the UI silently falls
+   back to the emoji glyph — that fallback in play is the "step 4 was
+   skipped" symptom. Format: **512×512 PNG, transparent background, imported
+   as Sprite (2D and UI)** (`textureType 8`, `alphaIsTransparency 1`) — match
+   the existing icons. There is no automated photographer tool: shoot the
+   garment prefab in the editor (instantiate it against an empty backdrop,
+   positioned camera render / `manage_camera` screenshot, crop square) or
+   photograph it worn if the piece only reads on a body.
+
+5. **Paint point maps (§40.8-G).** Run **HexLive → Paint Maps → Regenerate**.
+   It bakes `garment_<meshName>_<vertexCount>` for the default mesh AND every
+   `configs` fit automatically (and `skin_<Actor>` for any new actor prefab in
+   `Resources/HexLive/Actors/`). Check the console:
+   - a **key-collision error** means two different meshes share both name and
+     vertex count — rename one mesh in the source asset and re-run;
+   - at runtime a garment without its map logs ONE warning and silently skips
+     zone blood — that warning in play is the "step 5 was skipped" symptom.
+   Do NOT hand-author or share maps across fits/actresses — the generator is
+   the only source, per-mesh, for the data reasons in step 1.
+
+6. **Verify.** WardrobeTest scene: the girl cycles every prefab under
+   `Resources/HexLive/Wear` — check the fit on each actress (step 1 scale),
+   then a quick wound/dirt pass (debug panel buttons) to see blood/dirt land
+   on the new cloth; console must stay free of `[PaintPointMap]` /
+   `[GarmentWear]` warnings.
+
 ### 31B.5 Renderer bridge
 
 `HexWorldRenderer.CreateNpcView` instantiates

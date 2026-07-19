@@ -43,6 +43,9 @@ namespace HexLive.UnityDebug.Editor
             AddParam(ac, "HitReact", AnimatorControllerParameterType.Trigger);
             AddParam(ac, "Crawling", AnimatorControllerParameterType.Bool); // §50: lost a leg
             AddParam(ac, "Chopping", AnimatorControllerParameterType.Bool); // §axe: swinging an axe at work
+            // §gear-craft v2: the staged in-place craft — kneeling over the
+            // laid-out ingredients, working the ground (planting-style clip).
+            AddParam(ac, "Crafting", AnimatorControllerParameterType.Bool);
 
             var sm = ac.layers[0].stateMachine;
             var idle = Find(sm, "Idle");
@@ -63,6 +66,9 @@ namespace HexLive.UnityDebug.Editor
             // §axe: chopping/mining with an axe or pickaxe (Harvest/Process) plays
             // a real looping swing clip instead of the old procedural shoulder pose.
             var chop = AddState(sm, "Chop", Clip("Standing Melee Attack Horizontal"));
+            // §gear-craft v2: crafting kneels her over the ingredients laid out
+            // on the ground — the Mixamo planting loop reads as assembling them.
+            var craft = AddState(sm, "CraftWork", Clip("X Bot@Plant A Plant"));
             // §50: lost a leg → crawl. A 1D blend on Speed: at rest she lies in
             // a prone idle, moving she crawls (Zombie Crawl). Replaces the whole
             // stand/walk locomotion while Crawling; sim crawls her at 1/3 speed.
@@ -77,6 +83,7 @@ namespace HexLive.UnityDebug.Editor
             // §axe: enter Chop while the Chopping bool is set (axe/pickaxe work),
             // loop the swing, return to Idle when it clears.
             Loopy(sm, chop, idle, "Chopping");
+            Loopy(sm, craft, idle, "Crafting");
 
             // Attack: fired by a trigger, plays once, exits by time.
             ClearAny(sm, attack);

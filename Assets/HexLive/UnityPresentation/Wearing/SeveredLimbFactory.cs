@@ -36,6 +36,10 @@ public static class SeveredLimbFactory
             return null;
         }
 
+        // Spec §50 + 40.7: the drop keeps its owner's skin tone at sever time
+        // (tan/sunburn/grime baked into the flesh material below).
+        var skinTint = owner != null ? owner.SkinTint : Color.white;
+
         // Molly's limbs always carve from Marta's readable Genesis mesh (her
         // own re-saved mesh sliced wrong). Marta is ALSO the donor when the
         // owner view is gone (e.g. the drop outlives/precedes the actor view)
@@ -43,7 +47,7 @@ public static class SeveredLimbFactory
         // to the capsule fallback just because the owner wasn't found.
         if (owner == null || owner.ActorMesh == ActorName.Molly)
         {
-            var martaLimb = BuildFromMartaLimb(variant, distalBoneName);
+            var martaLimb = BuildFromMartaLimb(variant, distalBoneName, skinTint);
             if (martaLimb != null)
             {
                 return martaLimb;
@@ -51,12 +55,12 @@ public static class SeveredLimbFactory
         }
 
         var ownLimb = owner != null
-            ? BuildFromSkin(owner.PrimaryBodySkin, variant, distalBoneName)
+            ? BuildFromSkin(owner.PrimaryBodySkin, variant, distalBoneName, skinTint)
             : null;
-        return ownLimb != null ? ownLimb : BuildFromMartaLimb(variant, distalBoneName);
+        return ownLimb != null ? ownLimb : BuildFromMartaLimb(variant, distalBoneName, skinTint);
     }
 
-    private static GameObject BuildFromMartaLimb(string variant, string distalBoneName)
+    private static GameObject BuildFromMartaLimb(string variant, string distalBoneName, Color skinTint)
     {
         var marta = Resources.Load<GameObject>(MartaActorResource);
         if (marta == null)
@@ -64,11 +68,11 @@ public static class SeveredLimbFactory
             return null;
         }
 
-        return BuildFromSkin(FindPrimaryBodySkin(marta), variant, distalBoneName);
+        return BuildFromSkin(FindPrimaryBodySkin(marta), variant, distalBoneName, skinTint);
     }
 
     private static GameObject BuildFromSkin(
-        SkinnedMeshRenderer skin, string variant, string distalBoneName)
+        SkinnedMeshRenderer skin, string variant, string distalBoneName, Color skinTint)
     {
         var mesh = skin != null ? skin.sharedMesh : null;
         if (mesh == null || !mesh.isReadable)
@@ -126,9 +130,11 @@ public static class SeveredLimbFactory
         // A solid OPAQUE skin-tone material — NOT the actor's submesh-0 material,
         // which on a Genesis figure can be a transparent lashes/eyes material
         // (that rendered the limb near-invisible). A plain flesh colour reads as
-        // a limb reliably; the stump end is an open ring (the raw cut).
+        // a limb reliably; the stump end is an open ring (the raw cut). The
+        // owner's skin tint multiplies it — the same math the body shader does
+        // (texture × _BaseColor) — so a tanned body drops a tanned limb.
         var mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-        mat.SetColor("_BaseColor", new Color(0.80f, 0.60f, 0.52f));
+        mat.SetColor("_BaseColor", new Color(0.80f, 0.60f, 0.52f) * skinTint);
         mat.SetFloat("_Smoothness", 0.2f);
         view.AddComponent<MeshRenderer>().sharedMaterial = mat;
         return root;

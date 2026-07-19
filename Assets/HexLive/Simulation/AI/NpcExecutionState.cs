@@ -46,6 +46,13 @@ public sealed class NPCExecutionState
     // view spawns a hand prop from its DefinitionId; dropping preserves its
     // wetness/durability. Null whenever nothing is mid-handoff.
     public ItemInstance HeldGarment { get; set; }
+
+    // §gear-craft v2: ids of the ground objects the staged in-place craft is
+    // working over — the laid-out ingredients during the Craft beat, then the
+    // finished output item(s) during the take (PickUp) beat. Whatever is still
+    // alive at each beat's end gets consumed / taken; an aborted craft simply
+    // leaves them lying as ordinary world items.
+    public System.Collections.Generic.List<ObjectId> CraftLayout { get; } = new();
 }
 
 public enum ExecutionStatus

@@ -9290,10 +9290,50 @@ public sealed class ExecutionSystem : ISimulationSystem
         }
     }
 
-    // §gear-craft: craft with NO station — she stands where she is, works the
-    // craft timer, the output lands in her hands. Same duration as the
-    // campfire workbench (craft.at.fire, 12 ticks = 3 s).
-    private const int CraftInPlaceDurationTicks = 12;
+    // §gear-craft v2: the in-place craft is a STAGED ritual, not a bare timer.
+    //   1. Layout — the recipe inputs leave the pack and are laid out on the
+    //      ground at her feet as ordinary world items (everyone sees the work
+    //      spread out).
+    //   2. Work — the Craft beat, twice the old workbench window (12 -> 24
+    //      ticks = 6 s); the view kneels her into the craft-work clip.
+    //   3. Take — the ingredients are used up, the finished item appears ON
+    //      THE GROUND, and a short PickUp beat stoops her down to take it
+    //      into hand/pack.
+    // An interrupted craft leaves the laid-out pieces lying — they are normal
+    // world objects, recoverable by the usual gather logic (no dupes: the
+    // inputs left the inventory at layout time).
+    private const int CraftInPlaceDurationTicks = 24;
+    private const int CraftTakeDurationTicks = 6;
+
+    // §gear-craft v2: which inventory ITEMS the craft lays on the ground for
+    // the take beat. Non-item outputs (the bandage counter, leather worn
+    // straight onto the body) return null and grant instantly at work's end.
+    private static string[] CraftGroundOutputs(GoalType goal) => goal switch
+    {
+        GoalType.CraftSpear => new[] { "tool.spear" },
+        GoalType.CraftAxe => new[] { "tool.axe_stone" },
+        GoalType.CraftPickaxe => new[] { "tool.pickaxe_stone" },
+        GoalType.CraftKnife => new[] { "tool.knife" },
+        GoalType.CraftBow => new[] { "tool.bow" },
+        GoalType.CraftArrows => new[] { "resource.arrow", "resource.arrow", "resource.arrow" },
+        GoalType.CraftRope => new[] { "resource.rope" },
+        GoalType.CraftCloth => new[] { "resource.cloth" },
+        _ => null
+    };
+
+    // The legacy per-goal trace names, kept stable for soak metrics.
+    private static string CraftedTraceName(GoalType goal) => goal switch
+    {
+        GoalType.CraftSpear => "CraftedSpear",
+        GoalType.CraftAxe => "CraftedAxe",
+        GoalType.CraftPickaxe => "CraftedPickaxe",
+        GoalType.CraftKnife => "CraftedKnife",
+        GoalType.CraftBow => "CraftedBow",
+        GoalType.CraftArrows => "CraftedArrows",
+        GoalType.CraftRope => "CraftedRope",
+        GoalType.CraftCloth => "CraftedCloth",
+        _ => "CraftedItem"
+    };
 
     private static void RunCraftInPlace(WorldState world, NPCState npc)
     {
@@ -9305,6 +9345,7 @@ public sealed class ExecutionSystem : ISimulationSystem
             return;
         }
 
+        // Beat 1 — layout: the inputs leave the pack and land on the ground.
         if (npc.Execution.Status == ExecutionStatus.None)
         {
             foreach (var ing in recipe.Inputs)
@@ -9318,13 +9359,38 @@ public sealed class ExecutionSystem : ISimulationSystem
                 }
             }
 
+            npc.Execution.CraftLayout.Clear();
+            foreach (var ing in recipe.Inputs)
+            {
+                for (var i = 0; i < ing.Count; i++)
+                {
+                    var index = npc.Inventory.Items.IndexOf(ing.Id);
+                    if (index < 0)
+                    {
+                        continue;
+                    }
+
+                    var input = npc.Inventory.Items[index];
+                    npc.Inventory.Items.RemoveAt(index);
+                    var laid = DropItemAtFeet(world, npc, input);
+                    if (laid != null)
+                    {
+                        // Tracked: despawned (used up) when the work beat ends.
+                        npc.Execution.CraftLayout.Add(laid.Id);
+                    }
+                    // No free spot: the piece stays in her lap — already paid,
+                    // just never visible on the ground.
+                }
+            }
+
             npc.Execution.Status = ExecutionStatus.InProgress;
             npc.Execution.CurrentInteraction = InteractionType.Craft;
             npc.Execution.TargetObject = null;
             npc.Execution.StartTick = world.Tick;
             npc.Execution.EndTick = world.Tick + CraftInPlaceDurationTicks;
             Trace.Emit(world, npc.Id, "InteractionStarted",
-                $"CraftInPlace {goal} Duration={CraftInPlaceDurationTicks}ticks");
+                $"CraftInPlace {goal} Duration={CraftInPlaceDurationTicks}ticks " +
+                $"LaidOut={npc.Execution.CraftLayout.Count}");
             return;
         }
 
@@ -9334,9 +9400,76 @@ public sealed class ExecutionSystem : ISimulationSystem
             return;
         }
 
-        ConsumeRecipeInputs(npc, goal);
-        GrantCraftOutput(world, npc, goal);
+        // Beat 2 done — the work window just ended: the laid-out ingredients
+        // are used up and the finished item lands on the ground beside her.
+        if (npc.Execution.CurrentInteraction == InteractionType.Craft)
+        {
+            foreach (var laidId in npc.Execution.CraftLayout)
+            {
+                WorldObjectMutations.DespawnObject(world, laidId);
+            }
 
+            npc.Execution.CraftLayout.Clear();
+
+            var outputs = CraftGroundOutputs(goal);
+            if (outputs == null)
+            {
+                // Non-item output: grant instantly, no take beat.
+                GrantCraftOutput(world, npc, goal);
+                FinishCraftInPlace(world, npc, goal);
+                return;
+            }
+
+            foreach (var outputId in outputs)
+            {
+                var crafted = DropItemAtFeet(world, npc, CreateYieldItem(world, outputId));
+                if (crafted != null)
+                {
+                    npc.Execution.CraftLayout.Add(crafted.Id);
+                }
+                else
+                {
+                    // Nowhere to lay it — straight into the pack.
+                    GiveOrDrop(world, npc, CreateYieldItem(world, outputId));
+                }
+            }
+
+            npc.Execution.CurrentInteraction = InteractionType.PickUp;
+            npc.Execution.StartTick = world.Tick;
+            npc.Execution.EndTick = world.Tick + CraftTakeDurationTicks;
+            Trace.Emit(world, npc.Id, "CraftOutputLaid",
+                $"{goal} -> [{string.Join(",", outputs)}] on the ground; " +
+                $"take in {CraftTakeDurationTicks}ticks");
+            return;
+        }
+
+        // Beat 3 done — she stoops and takes the finished item into the pack.
+        foreach (var craftedId in npc.Execution.CraftLayout)
+        {
+            if (!world.Entities.Objects.TryGetValue(craftedId, out var crafted))
+            {
+                continue; // somebody took it first — the craft still ends
+            }
+
+            GiveOrDrop(world, npc, new ItemInstance(crafted.DefinitionId)
+            {
+                Wetness = crafted.Wetness,
+                Durability = crafted.Durability,
+                ResourceAmount = crafted.ResourceAmount,
+                Dirtiness = crafted.Dirtiness,
+                Bloodiness = crafted.Bloodiness
+            });
+            WorldObjectMutations.DespawnObject(world, craftedId);
+        }
+
+        npc.Execution.CraftLayout.Clear();
+        Trace.Emit(world, npc.Id, CraftedTraceName(goal),
+            $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
+        FinishCraftInPlace(world, npc, goal);
+    }
+
+    private static void FinishCraftInPlace(WorldState world, NPCState npc, GoalType goal)
+    {
         npc.Plan.Status = PlanStatus.Completed;
         npc.Plan.Steps.Clear();
         npc.Mind.CurrentGoal = GoalType.None;

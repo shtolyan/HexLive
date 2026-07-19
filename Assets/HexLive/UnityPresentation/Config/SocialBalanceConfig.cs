@@ -12,8 +12,33 @@ namespace HexLive.UnityPresentation.Config
     [CreateAssetMenu(menuName = "HexLive/Balance/Social", fileName = "SocialBalance")]
     [MirrorTarget(typeof(Spec49))]
     [MirrorTarget(typeof(Spec53))]
+    [MirrorTarget(typeof(SocialBalance))]
     public sealed class SocialBalanceConfig : ScriptableObject
     {
+        [Header("Разговор/ссора — дельты отношений (§28.15)")]
+        [Tooltip("Прибавка к отношениям обеим сторонам за завершённый разговор.")]
+        [Range(0f, 0.5f)] public float talkRelationshipGain = 0.075f;
+        [Tooltip("Социал инициатору за ссору (выговорилась).")]
+        [Range(0f, 0.5f)] public float quarrelInitiatorSocialGain = 0.15f;
+        [Tooltip("Социал слушателю за ссору.")]
+        [Range(0f, 0.5f)] public float quarrelListenerSocialGain = 0.10f;
+        [Tooltip("Потеря симпатии из-за ссоры.")]
+        [Range(0f, 0.5f)] public float quarrelAffinityLoss = 0.18f;
+        [Tooltip("Смущение начавшей ссору.")]
+        [Range(0f, 1f)] public float quarrelEmbarrassment = 0.30f;
+        [Tooltip("Ниже этой симпатии приглашённая отказывается говорить…")]
+        [Range(-1f, 1f)] public float refusalAffinityThreshold = -0.25f;
+        [Tooltip("…если только сама не одинока сильнее этого (социал выше порога).")]
+        [Range(0f, 1f)] public float lonelinessOverrideThreshold = 0.25f;
+        [Tooltip("Насколько отказ портит отношение пригласившей к отказавшей.")]
+        [Range(0f, 0.5f)] public float rejectionAffinityPenalty = 0.075f;
+
+        [Header("Нормировщики (§49)")]
+        [Tooltip("Пассивный социал растёт только до этого потолка — выше нужен настоящий разговор.")]
+        [Range(0f, 1f)] public float ambientSocialCap = 0.6f;
+        [Tooltip("Вечер+ночь ≈ столько медленных тиков (нормировка ночного комфорта сна).")]
+        [Range(30f, 200f)] public float sleepComfortNightSlowTicks = 75f;
+
         [Header("§49 — тумблеры фич")]
         [Tooltip("Sleep re-arm: убить пустые вставания (churn −47%).")]
         public bool rearm = true;

@@ -61,9 +61,9 @@ public sealed class WeatherSystem : ISimulationSystem
 
     // §46 v2: storm-surge catastrophe knobs. Offset 1600 keeps the tick on
     // the Slow (16-tick) grid this system runs on.
-    private const float StormChancePerDay = 0.08f; // §21.21B v4 recalibration: circle-climb reshuffle left 4/12 lone-survivor TIMEOUTS (6-10 storms outpaced a solo raft rebuild) — fewer surges converts stalls into decided runs
-    private const int StormRaftLogLoss = 2;
-    private const int StormSurgeOffsetTicks = 1600;
+    private static float StormChancePerDay => WorldBalance.StormChancePerDay; // §21.21B v4 recalibration: circle-climb reshuffle left 4/12 lone-survivor TIMEOUTS (6-10 storms outpaced a solo raft rebuild) — fewer surges converts stalls into decided runs
+    private static int StormRaftLogLoss => WorldBalance.StormRaftLogLoss;
+    private static int StormSurgeOffsetTicks => WorldBalance.StormSurgeOffsetTicks;
 }
 
 }

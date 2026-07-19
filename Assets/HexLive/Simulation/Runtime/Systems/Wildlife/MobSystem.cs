@@ -22,8 +22,8 @@ public sealed class MobSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Medium;
 
-    private const int MaxDogs = 3; // §46 difficulty pass: 2 -> 3 (12/12 wins at 2 — armed girls out-fought the pair)
-    private const int RespawnCheckTicks = 3600; // §46: every 1.5 game days (was 3) — sustained pack pressure, not one skirmish per arc
+    private static int MaxDogs => WildlifeBalance.MaxDogs; // §46 difficulty pass: 2 -> 3 (12/12 wins at 2 — armed girls out-fought the pair)
+    private static int RespawnCheckTicks => WildlifeBalance.DogRespawnCheckTicks; // §46: every 1.5 game days (was 3) — sustained pack pressure, not one skirmish per arc
 
     // Per-mob combat/behaviour lives in MobCatalog — one config per mob type,
     // tuned by its own ScriptableObject. The ambient spawner/raid is keyed to
@@ -33,8 +33,8 @@ public sealed class MobSystem : ISimulationSystem
     private static Content.MobStats Stats(Wildlife.MobState dog) => Content.MobCatalog.For(dog.MobId);
     private static float RaidChancePerDay => Dog.RaidChancePerDay;
     private static int RaidPackSize => Dog.RaidPackSize;
-    private const int RaidDuskOffsetTicks = 1800;
-    private const int SpawnMinDistanceFromNpc = 5;
+    private static int RaidDuskOffsetTicks => WildlifeBalance.RaidDuskOffsetTicks;
+    private static int SpawnMinDistanceFromNpc => WildlifeBalance.DogSpawnMinDistanceFromNpc;
     private static float NpcStrikePerPass => SimBalance.NpcStrikePerPass;
 
     private readonly System.Collections.Generic.List<Wildlife.MobState> _deadDogs = new();

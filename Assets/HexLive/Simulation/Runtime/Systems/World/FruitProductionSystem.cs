@@ -33,7 +33,7 @@ public sealed class FruitProductionSystem : ISimulationSystem
             if ((candidate.DefinitionId == "food.coconut" ||
                  candidate.DefinitionId == "food.coconut_pierced" ||
                  candidate.DefinitionId == "food.coconut_open") &&
-                candidate.SpawnTick > 0 && world.Tick - candidate.SpawnTick > 2400 &&
+                candidate.SpawnTick > 0 && world.Tick - candidate.SpawnTick > WorldBalance.FruitRotTicks &&
                 !candidate.IsOccupied)
             {
                 _rotted.Add(candidate.Id);

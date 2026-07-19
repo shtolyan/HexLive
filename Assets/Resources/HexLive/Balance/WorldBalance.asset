@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3ac004c90a3b4688801acef1a4e06ac6, type: 3}
+  m_Name: WorldBalance
+  m_EditorClassIdentifier: 
+  dayLengthTicks: 2400
+  shadowRaySteps: 7
+  elevationWorldStep: 0.55
+  canopyVirtualSteps: 2
+  stormChancePerDay: 0.08
+  stormRaftLogLoss: 2
+  stormSurgeOffsetTicks: 1600
+  moistureDryBase: 0.02
+  fireBurnPerSlowTick: 16
+  fruitRotTicks: 2400
+  maxDogs: 3
+  dogRespawnCheckTicks: 3600
+  raidDuskOffsetTicks: 1800
+  dogSpawnMinDistanceFromNpc: 5
+  maxRabbits: 4
+  rabbitRespawnCheckTicks: 2400
+  rabbitSpawnMinDistanceFromNpc: 3
+  rabbitFleeRadiusTiles: 2
+  rabbitHopChance: 0.2
+  rabbitKillChance: 0.5
+  rabbitSpookTicks: 150
+  rabbitBowHitChance: 0.6
+  arrowRecoverChance: 0.4
+  maxSharks: 2

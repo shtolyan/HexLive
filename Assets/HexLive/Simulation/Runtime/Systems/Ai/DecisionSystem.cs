@@ -25,14 +25,14 @@ public sealed partial class DecisionSystem : ISimulationSystem
     private static float StarvingBoost => SimBalance.StarvingBoost;
 
     // Spec 23.8–23.10 (iteration 3): goal stability.
-    private const int GoalLockTicks = 24;
+    private static int GoalLockTicks => AiBalance.GoalLockTicks;
 
-    private const float LockOverrideDelta = 0.5f;
+    private static float LockOverrideDelta => AiBalance.LockOverrideDelta;
 
-    private const float SwitchDelta = 0.15f;
+    private static float SwitchDelta => AiBalance.SwitchDelta;
 
     // Spec 28.8/28.15A: how long an invited NPC waits for the initiator.
-    private const int TalkWaitTimeoutTicks = 120;
+    private static int TalkWaitTimeoutTicks => AiBalance.TalkWaitTimeoutTicks;
 
     public void Run(WorldState world)
     {

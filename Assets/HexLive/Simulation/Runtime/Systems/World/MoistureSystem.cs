@@ -21,7 +21,7 @@ public sealed class MoistureSystem : ISimulationSystem
 
     private static readonly System.Collections.Generic.List<ItemInstance> _wornOutScratch = new();
 
-    private const float DryBase = 0.02f;
+    private static float DryBase => WorldBalance.MoistureDryBase;
 
     public void Run(WorldState world)
     {

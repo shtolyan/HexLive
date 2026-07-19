@@ -12,6 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6363f1f8bf748f29f4168feb604b68c, type: 3}
   m_Name: SocialBalance
   m_EditorClassIdentifier: 
+  talkRelationshipGain: 0.075
+  quarrelInitiatorSocialGain: 0.15
+  quarrelListenerSocialGain: 0.1
+  quarrelAffinityLoss: 0.18
+  quarrelEmbarrassment: 0.3
+  refusalAffinityThreshold: -0.25
+  lonelinessOverrideThreshold: 0.25
+  rejectionAffinityPenalty: 0.075
+  ambientSocialCap: 0.6
+  sleepComfortNightSlowTicks: 75
   rearm: 1
   coolRearm: 1
   sleepComfort: 1

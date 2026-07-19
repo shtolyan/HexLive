@@ -21,7 +21,7 @@ public sealed class SharkSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Medium;
 
-    private const int MaxSharks = 2;
+    private static int MaxSharks => WildlifeBalance.MaxSharks;
 
     private static readonly System.Collections.Generic.List<Common.JunctionId> _waterScratch = new();
 

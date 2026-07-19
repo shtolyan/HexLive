@@ -26,22 +26,22 @@ public sealed partial class ExecutionSystem
 
     private static float TalkListenerSocialGain => Spec49.TalkListenGain;
 
-    private const float TalkRelationshipGain = 0.075f;
+    private static float TalkRelationshipGain => SocialBalance.TalkRelationshipGain;
 
     // Spec 28.15B: quarrels and refusal-by-dislike.
-    private const float QuarrelInitiatorSocialGain = 0.15f;
+    private static float QuarrelInitiatorSocialGain => SocialBalance.QuarrelInitiatorSocialGain;
 
-    private const float QuarrelListenerSocialGain = 0.10f;
+    private static float QuarrelListenerSocialGain => SocialBalance.QuarrelListenerSocialGain;
 
-    private const float QuarrelAffinityLoss = 0.18f;
+    private static float QuarrelAffinityLoss => SocialBalance.QuarrelAffinityLoss;
 
-    private const float QuarrelEmbarrassment = 0.30f;
+    private static float QuarrelEmbarrassment => SocialBalance.QuarrelEmbarrassment;
 
-    private const float RefusalAffinityThreshold = -0.25f;
+    private static float RefusalAffinityThreshold => SocialBalance.RefusalAffinityThreshold;
 
-    private const float LonelinessOverrideThreshold = 0.25f;
+    private static float LonelinessOverrideThreshold => SocialBalance.LonelinessOverrideThreshold;
 
-    private const float RejectionAffinityPenalty = 0.075f;
+    private static float RejectionAffinityPenalty => SocialBalance.RejectionAffinityPenalty;
 
     private static void RunTalk(WorldState world, NPCState npc)
     {

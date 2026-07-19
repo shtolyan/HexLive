@@ -19,14 +19,14 @@ public sealed class RabbitSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Medium;
 
-    private const int MaxRabbits = 4;
-    private const int RespawnCheckTicks = 2400; // rabbits breed fast
+    private static int MaxRabbits => WildlifeBalance.MaxRabbits;
+    private static int RespawnCheckTicks => WildlifeBalance.RabbitRespawnCheckTicks; // rabbits breed fast
 
-    private const int SpawnMinDistanceFromNpc = 3;
-    private const int FleeRadiusTiles = 2;
-    private const float HopChance = 0.2f; // crabs scuttle, not sprint (spec 31C.1)
-    private const float KillChance = 0.5f;
-    private const int SpookTicks = 150;
+    private static int SpawnMinDistanceFromNpc => WildlifeBalance.RabbitSpawnMinDistanceFromNpc;
+    private static int FleeRadiusTiles => WildlifeBalance.RabbitFleeRadiusTiles;
+    private static float HopChance => WildlifeBalance.RabbitHopChance; // crabs scuttle, not sprint (spec 31C.1)
+    private static float KillChance => WildlifeBalance.RabbitKillChance;
+    private static int SpookTicks => WildlifeBalance.RabbitSpookTicks;
 
     private readonly System.Collections.Generic.List<Wildlife.RabbitState> _deadRabbits = new();
     private readonly System.Collections.Generic.List<JunctionId> _spawnCandidates = new();
@@ -103,10 +103,10 @@ public sealed class RabbitSystem : ISimulationSystem
             var hitRoll = MathUtil.Hash01(world.Seed, world.Tick, rabbit.Id * 173 + npc.Id.Value, 806);
             Trace.Emit(world, npc.Id, "BowShot",
                 $"Rabbit={rabbit.Id} Dist={HexSpatialMath.HexDistance(npc.Tile, rabbit.Tile)} Roll={hitRoll:F2}");
-            if (hitRoll < 0.6f)
+            if (hitRoll < WildlifeBalance.RabbitBowHitChance)
             {
                 // Spec §54: no instant loot — the kill drops a carcass to butcher.
-                if (MathUtil.Hash01(world.Seed, world.Tick, rabbit.Id * 211 + npc.Id.Value, 807) < 0.4f)
+                if (MathUtil.Hash01(world.Seed, world.Tick, rabbit.Id * 211 + npc.Id.Value, 807) < WildlifeBalance.ArrowRecoverChance)
                 {
                     ExecutionSystem.GiveOrDrop(world, npc, "resource.arrow");
                     Trace.Emit(world, npc.Id, "ArrowRecovered", $"From rabbit {rabbit.Id}");

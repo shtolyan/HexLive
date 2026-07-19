@@ -19,7 +19,7 @@ public sealed class EnvironmentSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Slow;
 
-    public const int DayLengthTicks = 2400;
+    public static int DayLengthTicks => WorldBalance.DayLengthTicks;
     // Spec 42: a real tropical swing — 25° at the 15:00 peak (dressed girls
     // cross the >24 undress gate and strip for the day), 6° at 03:00 (layers
     // and the campfire earn their keep at night).
@@ -73,9 +73,9 @@ public sealed class EnvironmentSystem : ISimulationSystem
     // Dawn/dusk throw multi-tile shadows off a cliff or a palm; at noon a
     // 1-step ledge shades nothing. Ray length covers a 7-step palm down to
     // ~15° sun so the sim shadow keeps up with the rendered one.
-    private const int ShadowRaySteps = 7;
-    private const float ElevationWorldStep = 0.55f; // renderer's step height
-    private const float CanopyVirtualSteps = 2f; // indoor walls
+    private static int ShadowRaySteps => WorldBalance.ShadowRaySteps;
+    private static float ElevationWorldStep => WorldBalance.ElevationWorldStep; // renderer's step height
+    private static float CanopyVirtualSteps => WorldBalance.CanopyVirtualSteps; // indoor walls
 
     private static void RebuildShadows(WorldState world, float progress)
     {

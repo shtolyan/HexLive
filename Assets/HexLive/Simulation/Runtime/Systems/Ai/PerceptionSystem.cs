@@ -18,8 +18,8 @@ public sealed class PerceptionSystem : ISimulationSystem
     public TickLayer Layer => TickLayer.Medium;
 
     // Spec 22.7 / 27.18A: live sight radius and memory TTL for discoveries.
-    private const int PerceptionRadiusTiles = 2;
-    private const int MemoryTtlTicks = 2400;
+    private static int PerceptionRadiusTiles => AiBalance.PerceptionRadiusTiles;
+    private static int MemoryTtlTicks => AiBalance.MemoryTtlTicks;
 
     private readonly System.Collections.Generic.List<ObjectId> _forgottenScratch = new();
 

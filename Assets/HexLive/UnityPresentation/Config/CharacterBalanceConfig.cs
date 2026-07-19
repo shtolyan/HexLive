@@ -13,8 +13,23 @@ namespace HexLive.UnityPresentation.Config
     /// </summary>
     [CreateAssetMenu(menuName = "HexLive/Balance/Character", fileName = "CharacterBalance")]
     [MirrorTarget(typeof(SimBalance))]
+    [MirrorTarget(typeof(AiBalance))]
     public sealed class CharacterBalanceConfig : ScriptableObject
     {
+        [Header("Восприятие и решения (AiBalance)")]
+        [Tooltip("Радиус восприятия в тайлах.")]
+        [Range(1, 6)] public int perceptionRadiusTiles = 2;
+        [Tooltip("Сколько тиков живёт пространственная память (виденные объекты/опасности).")]
+        [Range(300, 9600)] public int memoryTtlTicks = 2400;
+        [Tooltip("Свежевыигранная цель заперта столько тиков (анти-дребезг аукциона).")]
+        [Range(0, 200)] public int goalLockTicks = 24;
+        [Tooltip("Насколько лучше должна быть заявка, чтобы сломать замок цели досрочно.")]
+        [Range(0f, 2f)] public float lockOverrideDelta = 0.5f;
+        [Tooltip("Запас, с которым претендент перебивает текущую цель после замка.")]
+        [Range(0f, 1f)] public float switchDelta = 0.15f;
+        [Tooltip("Сколько тиков приглашённая ждёт начала разговора (§28.15).")]
+        [Range(20, 600)] public int talkWaitTimeoutTicks = 120;
+
         [Header("Нужды — скорость (за медленный тик, ~150/день)")]
         [Tooltip("Сколько ГОЛОДА набегает за медленный тик. Больше = быстрее хочет есть.")]
         [Range(0f, 0.05f)] public float hungerRate = 0.0055f;

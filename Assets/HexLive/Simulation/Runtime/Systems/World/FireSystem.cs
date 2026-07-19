@@ -18,7 +18,7 @@ public sealed class FireSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Slow;
 
-    private const float BurnPerSlowTick = 16f;
+    private static float BurnPerSlowTick => WorldBalance.FireBurnPerSlowTick;
 
     public void Run(WorldState world)
     {

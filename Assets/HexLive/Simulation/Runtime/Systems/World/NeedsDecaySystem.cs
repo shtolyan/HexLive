@@ -36,8 +36,8 @@ public sealed class NeedsDecaySystem : ISimulationSystem
     private static float SickTorsoFloor => SimBalance.SickTorsoFloor;          // sickness can't grind the torso below this
     private static float SickComfortPerSlowTick => SimBalance.SickComfortPerSlowTick; // feeling lousy while sick
     private static float AmbientSocialGain => Spec49.AmbientGain; // near company loneliness slowly reverses
-    private const float AmbientSocialCap = 0.6f;         // ...but only a real chat lifts you past this (§49 ambient social)
-    private const float SleepComfortNightSlowTicks = 75f; // Evening+Night ≈ 75 slow ticks
+    private static float AmbientSocialCap => SocialBalance.AmbientSocialCap;         // ...but only a real chat lifts you past this (§49 ambient social)
+    private static float SleepComfortNightSlowTicks => SocialBalance.SleepComfortNightSlowTicks; // Evening+Night ≈ 75 slow ticks
 
     // Spec §49: comfort gained per slow tick while sleeping, from surface +
     // fireside + sun/rain. A full ~75-slow-tick night sums to the design

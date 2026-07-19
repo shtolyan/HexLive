@@ -12,6 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d4457e13e3a04ba4a3dcbaa36f9ccd4b, type: 3}
   m_Name: CharacterBalance
   m_EditorClassIdentifier: 
+  perceptionRadiusTiles: 2
+  memoryTtlTicks: 2400
+  goalLockTicks: 24
+  lockOverrideDelta: 0.5
+  switchDelta: 0.15
+  talkWaitTimeoutTicks: 120
   hungerRate: 0.0055
   thirstRate: 0.01
   energyRate: 0.007

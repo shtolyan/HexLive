@@ -102,7 +102,7 @@ MonoBehaviour:
   dirtyClothingComfortLoss: 0.002
   batheNeedThreshold: 0.4
   batheDurationTicks: 100
-  washClothesDurationTicks: 40
+  washClothesDurationTicks: 80
   washClothesNeedThreshold: 0.2
   staminaRestGain: 0.06
   staminaWorkDrain: 0.05

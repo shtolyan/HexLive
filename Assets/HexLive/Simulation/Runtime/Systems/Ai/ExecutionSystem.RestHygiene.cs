@@ -489,6 +489,12 @@ public sealed partial class ExecutionSystem
         FinishPersonalCare(world, npc, target, GoalType.Bathe, "Bathed");
     }
 
+    // §40.6 r2 (laundry-in-hand): the piece is washed IN THE HAND, never in
+    // place. A worn source plays the doff beat first (off the body into the
+    // hand, warmth drops); a ground source is picked up off the shore (the
+    // world object despawns into the hand, pockets carried through). The held
+    // instance loses dirt/blood over the wash window and is laid back down at
+    // the edge fully clean and soaked.
     private static void RunWashClothes(WorldState world, NPCState npc, PlanStep step)
     {
         if (npc.Movement.IsMoving || npc.CurrentJunction is not { } current ||
@@ -497,15 +503,13 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        if (npc.Plan.TargetObjectId is not { } objectId ||
-            !world.Entities.Objects.TryGetValue(objectId, out var garment) ||
-            !world.Junctions.Items.TryGetValue(target, out var edge) ||
+        if (!world.Junctions.Items.TryGetValue(target, out var edge) ||
             !PlanningSystem.TryGetEdgeSeatGeometry(
                 world, edge, waterOnly: true, out var standTile, out var facing))
         {
             SpatialMutations.FreeJunction(world, target, npc.Id);
             SpatialMutations.ReleaseJunctionReservation(world, target, npc.Id);
-            PlanInterruption.Abort(world, npc, "WashClothes edge or garment disappeared");
+            PlanInterruption.Abort(world, npc, "WashClothes edge disappeared");
             npc.Mind.CurrentGoal = GoalType.None;
             return;
         }
@@ -517,7 +521,7 @@ public sealed partial class ExecutionSystem
         if (npc.Execution.Status == ExecutionStatus.None)
         {
             if (!SpatialMutations.TryReserveJunction(world, target, npc.Id, world.Tick,
-                    SimBalance.WashClothesDurationTicks + 8))
+                    UndressDurationTicks + SimBalance.WashClothesDurationTicks + 8))
             {
                 PlanInterruption.Abort(world, npc, "WashClothes edge was claimed");
                 npc.Mind.CurrentGoal = GoalType.None;
@@ -525,19 +529,92 @@ public sealed partial class ExecutionSystem
             }
 
             SpatialMutations.OccupyJunction(world, target, npc.Id);
-            garment.Wetness = 1f;
-            npc.Execution.Status = ExecutionStatus.InProgress;
-            npc.Execution.CurrentInteraction = InteractionType.WashClothes;
-            npc.Execution.TargetObject = objectId;
-            npc.Execution.StartTick = world.Tick;
-            npc.Execution.EndTick = world.Tick + SimBalance.WashClothesDurationTicks;
-            npc.Execution.HeldGarment = new ItemInstance(garment.DefinitionId)
+
+            if (step.TargetObject is { } objectId)
             {
-                Wetness = 1f,
-                Durability = garment.Durability,
-                Dirtiness = garment.Dirtiness,
-                Bloodiness = garment.Bloodiness
-            };
+                // Ground source: up off the shore and into the hand.
+                if (!TryPickGarmentIntoHand(world, npc, objectId))
+                {
+                    SpatialMutations.FreeJunction(world, target, npc.Id);
+                    PlanInterruption.Abort(world, npc, "WashClothes garment disappeared");
+                    npc.Mind.CurrentGoal = GoalType.None;
+                    return;
+                }
+
+                StartWashBeat(world, npc);
+                return;
+            }
+
+            // Worn source: the doff beat first — same two-beat undress window
+            // the wardrobe verbs use, so the view shows her taking it off.
+            if (npc.Plan.TargetItemDefinitionId is not { } wornId ||
+                !npc.WornItems.Contains(wornId))
+            {
+                SpatialMutations.FreeJunction(world, target, npc.Id);
+                PlanInterruption.Abort(world, npc, "WashClothes worn piece disappeared");
+                npc.Mind.CurrentGoal = GoalType.None;
+                return;
+            }
+
+            npc.Execution.Status = ExecutionStatus.InProgress;
+            npc.Execution.CurrentInteraction = InteractionType.Undress;
+            npc.Execution.StartTick = world.Tick;
+            npc.Execution.EndTick = world.Tick + UndressDurationTicks;
+            npc.Execution.HeldGarment = null;
+            npc.Execution.HeldGarmentContents.Clear();
+            return;
+        }
+
+        if (npc.Execution.CurrentInteraction == InteractionType.Undress)
+        {
+            var itemId = npc.Plan.TargetItemDefinitionId;
+            var garment = npc.Execution.HeldGarment;
+            if (garment is null && itemId is not null)
+            {
+                garment = npc.WornItems.Find(i => i.DefinitionId == itemId);
+            }
+
+            if (garment is null)
+            {
+                SpatialMutations.FreeJunction(world, target, npc.Id);
+                PlanInterruption.Abort(world, npc, "WashClothes worn piece disappeared");
+                npc.Mind.CurrentGoal = GoalType.None;
+                return;
+            }
+
+            var total = npc.Execution.EndTick - npc.Execution.StartTick;
+            var progress = total > 0 ? (float)(world.Tick - npc.Execution.StartTick) / total : 1f;
+            if (npc.Execution.HeldGarment is null && progress >= WardrobeHandoffFraction)
+            {
+                npc.WornItems.Remove(garment);
+                npc.Execution.HeldGarment = garment;
+                EquipmentMath.Recalculate(world, npc);
+                Trace.Emit(world, npc.Id, "GarmentInHand",
+                    $"Wash {garment.DefinitionId} doffed to hand " +
+                    $"Warmth={npc.EquippedWarmth:F2} Armor={npc.EquippedArmor:F2}");
+            }
+
+            if (world.Tick < npc.Execution.EndTick)
+            {
+                return;
+            }
+
+            if (npc.Execution.HeldGarment is null)
+            {
+                npc.WornItems.Remove(garment);
+                npc.Execution.HeldGarment = garment;
+                EquipmentMath.Recalculate(world, npc);
+            }
+
+            StartWashBeat(world, npc);
+            return;
+        }
+
+        if (npc.Execution.HeldGarment is not { } held)
+        {
+            SpatialMutations.FreeJunction(world, target, npc.Id);
+            PlanInterruption.Abort(world, npc, "WashClothes lost the held garment");
+            npc.Mind.CurrentGoal = GoalType.None;
             return;
         }
 
@@ -545,27 +622,69 @@ public sealed partial class ExecutionSystem
         // separate visual layer, but fades over the same washing progress.
         var remainingTicks = System.Math.Max(0, npc.Execution.EndTick - world.Tick);
         var retainedContamination = remainingTicks / (remainingTicks + 1f);
-        garment.Dirtiness = MathUtil.Clamp01(garment.Dirtiness * retainedContamination);
-        garment.Bloodiness = MathUtil.Clamp01(garment.Bloodiness * retainedContamination);
-        garment.Wetness = 1f;
-        if (npc.Execution.HeldGarment is { } held)
-        {
-            held.Dirtiness = garment.Dirtiness;
-            held.Bloodiness = garment.Bloodiness;
-            held.Wetness = garment.Wetness;
-        }
+        held.Dirtiness = MathUtil.Clamp01(held.Dirtiness * retainedContamination);
+        held.Bloodiness = MathUtil.Clamp01(held.Bloodiness * retainedContamination);
+        held.Wetness = 1f;
         if (world.Tick < npc.Execution.EndTick)
         {
             return;
         }
 
-        garment.Dirtiness = 0f;
-        garment.Bloodiness = 0f;
-        garment.Wetness = 1f;
+        held.Dirtiness = 0f;
+        held.Bloodiness = 0f;
+        held.Wetness = 1f;
+        var laid = DropItemAtFeet(world, npc, held);
+        if (laid != null && npc.Execution.HeldGarmentContents.Count > 0)
+        {
+            laid.Contents.AddRange(npc.Execution.HeldGarmentContents);
+        }
+
+        npc.Execution.HeldGarmentContents.Clear();
         npc.Execution.HeldGarment = null;
         SpatialMutations.FreeJunction(world, target, npc.Id);
         FinishPersonalCare(world, npc, step.TargetJunction, GoalType.WashClothes,
-            $"ClothesWashed {garment.DefinitionId} (fully wet)");
+            $"ClothesWashed {held.DefinitionId} (fully wet)");
+    }
+
+    // §40.6 r2: lift a ground garment into the washer's hand — the world
+    // object despawns for the duration; its pocket contents ride along in the
+    // execution state and are restored when the piece is laid back down.
+    private static bool TryPickGarmentIntoHand(WorldState world, NPCState npc, ObjectId objectId)
+    {
+        if (!world.Entities.Objects.TryGetValue(objectId, out var garment))
+        {
+            return false;
+        }
+
+        var held = new ItemInstance(garment.DefinitionId)
+        {
+            Wetness = garment.Wetness,
+            Durability = garment.Durability,
+            Dirtiness = garment.Dirtiness,
+            Bloodiness = garment.Bloodiness,
+            ResourceAmount = garment.ResourceAmount
+        };
+        npc.Execution.HeldGarmentContents.Clear();
+        npc.Execution.HeldGarmentContents.AddRange(garment.Contents);
+        WorldObjectMutations.DespawnObject(world, objectId);
+        npc.Plan.TargetObjectId = null;
+        npc.Execution.HeldGarment = held;
+        Trace.Emit(world, npc.Id, "GarmentInHand",
+            $"Wash {held.DefinitionId} picked up (Dirt={held.Dirtiness:F2} Blood={held.Bloodiness:F2})");
+        return true;
+    }
+
+    private static void StartWashBeat(WorldState world, NPCState npc)
+    {
+        npc.Execution.Status = ExecutionStatus.InProgress;
+        npc.Execution.CurrentInteraction = InteractionType.WashClothes;
+        npc.Execution.TargetObject = null;
+        npc.Execution.StartTick = world.Tick;
+        npc.Execution.EndTick = world.Tick + SimBalance.WashClothesDurationTicks;
+        if (npc.Execution.HeldGarment is { } held)
+        {
+            held.Wetness = 1f;
+        }
     }
 
     private static void FinishPersonalCare(WorldState world, NPCState npc, JunctionId? junction,

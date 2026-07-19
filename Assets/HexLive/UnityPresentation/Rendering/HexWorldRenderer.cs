@@ -1020,7 +1020,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
         actorView.SetInteraction(npc.CurrentInteraction, heldItemId);
         // §Wardrobe-anim: the two-beat dress/undress sequence (gather + garment
         // in hand). Runs after SetInteraction, which it overrides for these verbs.
-        actorView.SetWardrobeAction(npc.CurrentInteraction, npc.InteractionProgress, npc.HeldGarmentId);
+        actorView.SetWardrobeAction(npc.CurrentInteraction, npc.InteractionProgress, npc.HeldGarmentId,
+            npc.HeldGarmentDurability, npc.HeldGarmentDirt, npc.HeldGarmentBlood, npc.HeldGarmentWet);
         // Spec 28.15E: overhead chat bubble — show the talk's emoji, and pop a
         // "+/-" once when a talk outcome resolves (new TalkResultTick).
         actorView.SetTalkTopic(npc.TalkTopic);

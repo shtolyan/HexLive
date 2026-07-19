@@ -6197,6 +6197,7 @@ prefabs, all equipped/removed together as the visual of that sim item.
 | underwear.panty_dots / underwear.bra_dots | PantyDots/BraDots (basic panty/bra, fal.ai coral polka-dot print) |
 | underwear.panty_stripe / underwear.bra_stripe | PantyStripe/BraStripe (basic panty/bra, fal.ai mint-stripe print) |
 | underwear.panty_cherry / underwear.bra_cherry | PantyCherry/BraCherry (basic panty/bra, fal.ai cherry print) |
+| clothing.shorts_red / _olive / _cherry | ShortsRed/Olive/Cherry (Shorts_10_14636 denim re-dyes, seams kept) |
 | clothing.sweater_flair | SweaterFlair (knit sweater, warmth 0.30) |
 | clothing.dress_night | NightDress (silky night dress, lace hem, gold clasp) |
 | clothing.dress_fur | FurDress (primal fur dress, warmth 0.35, armor 0.05) |
@@ -6232,6 +6233,15 @@ copies of the PantyBasic/BraBasic prefabs, one shared material per set
 (`Prints/Set{Dots,Stripes,Cherry}.{jpg,mat}`), registered as
 `underwear.{panty,bra}_{dots,stripe,cherry}` in `GarmentLibrary.BuildDefaults`
 and added to the §42 castaway start rotation.
+
+**Detail-preserving retexture (complex garments):** for cloth with authored
+seams/pockets/zippers, do NOT swap in a flat pattern — re-dye the authored
+atlas instead (`_ArtSource/retex_shorts.py`): mask the fabric by hue in the
+original diffuse (hardware/stitching stays untouched), normalise luminance
+into a shading layer, then `new_color_or_pattern × shading`. Shipped proof:
+the denim `Shorts_10_14636` atlas re-dyed into `clothing.shorts_red` /
+`_olive` / `_cherry` (Prints/Shorts{Red,Olive,Cherry}.{jpg,mat} + Button
+mats — prefab copies, both slots re-pointed), in the §42 start-shorts roll.
 
 ### 31B.4A Importing a NEW garment — agent checklist (MANDATORY order)
 
@@ -7974,6 +7984,13 @@ pass — order chosen to add robustness before difficulty.
   is an unambiguous "bleeding now" signal (bandages/pills only raise it) and
   arms a ~20-tick grace window; while armed she leaves a droplet at her feet
   (±0.12 m jitter) every 6 ticks, so a walking wounded girl draws a trail.
+  **Pool merge:** a drip that lands inside an existing stain's footprint
+  (half its target width, floor 0.16 m) does NOT spawn a second projector —
+  it merges into that pool: target size grows +0.07 m per drip (cap 1.0 m),
+  the ease-out spread restarts from the pool's CURRENT size (smooth flow, no
+  snap-back), and `BornTick` resets so fresh blood re-wets it to full-alpha
+  fresh red. A girl asleep/standing with a bleed leaves ONE wide spreading
+  pool under her, not a stack of identical droplets.
   Each stain lands drip-small (0.09 m), spreads ease-out to a 0.26–0.46 m
   puddle over ~120 ticks, then dries: linear alpha fade to zero across
   **~3 game days (7200 ticks; `DayLengthTicks` = 2400)** — blood you walk
@@ -7982,7 +7999,8 @@ pass — order chosen to add robustness before difficulty.
   toward deep dried bordo over `AgeBuckets` (6) shared darker material copies
   per variant, swapped by age — a fading semi-transparent RED film over
   yellow sand read as bright "ketchup", darkening keeps old stains a dark
-  dried mark. Cap 130 stains, oldest recycled (each is a
+  dried mark. Cap 130 stains, stalest recycled (by `BornTick` — merges
+  refresh it, so an actively-fed pool is never the one evicted; each is a
   DBuffer DecalProjector rendered every frame — a dog swarm hits the cap
   fast, so the cap bounds overdraw; size stops being rewritten once fully
   spread — the only thing that expires blood early, no external cleanup
@@ -8139,6 +8157,30 @@ pass — order chosen to add robustness before difficulty.
     `0.2+0.6×wet`, so right after a wash (wet 1.0) the hang-on-rack /
     stand-by-fire trip actually wins. Knobs mirror in
     `CharacterBalanceConfig` (`batheWornDirtWeight`, `dryClothesWetThreshold`).
+- **§40.6 r2 — laundry-in-hand (Jul 2026).** Washing happens ON the piece in
+  her hand, never "at" a garment lying beside her (the old in-place wash read
+  as a no-op: she scrubbed empty-handed while the dirty piece kept lying
+  there).
+  - *Sources:* `DirtyGarmentWashNeed` and `BuildWashClothesPlan` now scan
+    WORN garments too. The dirtiest piece wins — worn beats ground on ties.
+    A worn winner: she walks to the water edge, plays the standard two-beat
+    Undress doff (warmth/armor drop at the handoff) and keeps the piece in
+    hand. A ground winner (the beached pile on a bathing tile, as before):
+    the world object **despawns into her hand** (`GarmentInHand` trace),
+    pocket contents ride along in `Execution.HeldGarmentContents`.
+  - *Wash beat:* dirt AND blood drain from the held instance across
+    `SimBalance.WashClothesDurationTicks` (**80**, doubled from 40; knob in
+    `CharacterBalanceConfig.washClothesDurationTicks`); wetness pins at 1.
+    On finish the clean soaked piece is laid at her feet on the shore
+    (pockets restored) — the drying chain takes it from there.
+  - *Interrupt safety:* `PlanInterruption.Abort` now drops any
+    `Execution.HeldGarment` at her feet with its pocket contents (also fixes
+    the pre-existing mid-Undress abort that silently vaporized the piece).
+  - *Presentation:* the snapshot exports the held piece's live condition
+    (`HeldGarmentDirt/Blood/Wet/Durability`); `NpcActorView` attaches the
+    ground-drop `GarmentWorldCondition` painter to the hand prop, so the
+    grime visibly washes OUT while she scrubs. Rain does NOT clean clothes —
+    it only wets them (wet cloth darkens, which can visually mask dirt).
 
 ### 40.7 Sunburn → tan (skin system)
 - Skin **reddens where clothing doesn't cover**, sharply along garment
@@ -8647,6 +8689,13 @@ pass — order chosen to add robustness before difficulty.
   smoothness A × `_Smoothness`, white default = old constants — losing
   the gloss map flattened worn leather/satin to uniform plastic). Known limit: natural-hole
   seeds use instance ids, so their spots reshuffle across a save reload.
+  **Update (2026-07):** dirt and blood are independent stain layers with
+  their own remembered UV spots — the old `dust = dirt − blood` input
+  suppression (blood eating the grime) is retired; a bloodied garment
+  keeps its dust. Dirt stamps tuned readable: brown `DirtTint` (the pale
+  dust sheet vanished on light cloth), up to 44 stamps, size 0.30–0.50 UV,
+  alpha 0.55–0.95. Zone blood grows jittered blots around the zone anchor
+  (golden-angle spiral, ≤6/zone) instead of re-inking one dot.
 - **UPDATE — §40.10-E: wounds DECOUPLED from cloth holes.** Body wounds no
   longer rip the covering garment (an NPC with fresh bites but a 96%-HP
   vest showed holes — wrong: **дырки в одежде = только износ самой одежды**;

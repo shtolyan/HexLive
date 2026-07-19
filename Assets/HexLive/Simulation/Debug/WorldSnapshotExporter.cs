@@ -542,6 +542,12 @@ public static class WorldSnapshotExporter
         {
             InteractionProgress = interactionProgress,
             HeldGarmentId = heldGarmentId,
+            // §40.6 r2: live condition of the held piece — the hand prop shows
+            // the dirt actually washing out during the scrub.
+            HeldGarmentDirt = npc.Execution.HeldGarment?.Dirtiness ?? 0f,
+            HeldGarmentBlood = npc.Execution.HeldGarment?.Bloodiness ?? 0f,
+            HeldGarmentWet = npc.Execution.HeldGarment?.Wetness ?? 0f,
+            HeldGarmentDurability = npc.Execution.HeldGarment?.Durability ?? 1f,
             TargetObjectId = (npc.Execution.TargetObject ?? npc.Plan.TargetObjectId)?.Value,
             Id = npc.Id,
             DisplayName = npc.DisplayName,
@@ -635,6 +641,7 @@ public static class WorldSnapshotExporter
             npcSnapshot.InventoryDurability.Add($"{item.DefinitionId}\t{item.Durability:0.###}");
             npcSnapshot.InventoryWetness.Add($"{item.DefinitionId}\t{item.Wetness:0.###}");
             npcSnapshot.InventoryDirtiness.Add($"{item.DefinitionId}\t{item.Dirtiness:0.###}");
+            npcSnapshot.InventoryBloodiness.Add($"{item.DefinitionId}\t{item.Bloodiness:0.###}");
             if (item.DefinitionId == "tool.bottle")
             {
                 npcSnapshot.InventoryWater.Add(

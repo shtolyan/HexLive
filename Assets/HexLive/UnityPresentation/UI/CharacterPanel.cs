@@ -115,7 +115,6 @@ namespace HexLive.UnityPresentation.UI
         // Static (re-labeled on language change)
         private Label _needsTitle;
         private Label _relationsTitle;
-        private Label _thoughtLabel;
         private Button _langButton;
 
         private readonly List<NeedBinding> _needBindings = new();
@@ -1379,13 +1378,19 @@ namespace HexLive.UnityPresentation.UI
             var carriedWetness = ParseKv(npc.InventoryWetness);
             var wornDirtiness = ParseKv(npc.WornDirtiness);
             var carriedDirtiness = ParseKv(npc.InventoryDirtiness);
+            // The dirt BAR shows total contamination: dirt + blood, clamped
+            // to full. The stains themselves stay separate layers visually.
+            MergeContamination(wornDirtiness, ParseKv(npc.WornBloodiness));
+            MergeContamination(carriedDirtiness, ParseKv(npc.InventoryBloodiness));
 
             var sig = string.Join(",", npc.WornItems) + "|" + string.Join(",", npc.InventoryItems)
                 + "|" + string.Join(",", npc.WornWetness) + "|" + string.Join(",", npc.WornDurability)
                 + "|" + string.Join(",", npc.WornDirtiness)
+                + "|" + string.Join(",", npc.WornBloodiness)
                 + "|" + string.Join(",", npc.InventoryDurability)
                 + "|" + string.Join(",", npc.InventoryWetness)
                 + "|" + string.Join(",", npc.InventoryDirtiness)
+                + "|" + string.Join(",", npc.InventoryBloodiness)
                 + "|" + string.Join(",", npc.InventoryWater)
                 + "|" + string.Join(",", npc.InventoryStacks) + "|" + npc.InventoryUsedSlots;
             if (sig == _invSig)
@@ -1981,6 +1986,18 @@ namespace HexLive.UnityPresentation.UI
             ItemCatalog.IsWaterContainerId(id);
 
         // Parse the "definitionId\tvalue" pairs the exporter packs (spec 40.11).
+        // Dirt bar = dirt + blood summed per item, clamped to a full bar (the
+        // logical sum may exceed 1 — a fully bloody AND dusty rag stays 100%).
+        private static void MergeContamination(Dictionary<string, float> dirt,
+            Dictionary<string, float> blood)
+        {
+            foreach (var pair in blood)
+            {
+                dirt[pair.Key] = Mathf.Min(1f,
+                    (dirt.TryGetValue(pair.Key, out var value) ? value : 0f) + pair.Value);
+            }
+        }
+
         private static Dictionary<string, float> ParseKv(List<string> pairs)
         {
             var map = new Dictionary<string, float>();
@@ -2778,29 +2795,31 @@ namespace HexLive.UnityPresentation.UI
             _thought.style.alignSelf = Align.FlexStart;
             _thought.style.marginLeft = 20f;
             _thought.style.marginBottom = 7f;
-            _thought.style.backgroundColor = Raised;
+            _thought.style.minWidth = 214f;
+            _thought.style.maxWidth = 360f;
+            _thought.style.minHeight = 46f;
+            _thought.style.backgroundColor = PanelMid;
             SetBorder(_thought, StrokeStrong, 1f);
-            SetRadius(_thought, 999f);
-            _thought.style.paddingLeft = 11f;
-            _thought.style.paddingRight = 14f;
-            _thought.style.paddingTop = 6f;
-            _thought.style.paddingBottom = 6f;
+            SetRadius(_thought, 12f);
+            _thought.style.paddingLeft = 13f;
+            _thought.style.paddingRight = 16f;
+            _thought.style.paddingTop = 9f;
+            _thought.style.paddingBottom = 9f;
 
             var icon = new VectorIcon(VectorIcon.Kind.Think, Gold);
-            icon.style.width = 17f;
-            icon.style.height = 17f;
-            icon.style.marginRight = 9f;
+            icon.style.width = 19f;
+            icon.style.height = 19f;
+            icon.style.marginRight = 11f;
             icon.style.flexShrink = 0f;
             _thought.Add(icon);
 
-            _thoughtLabel = MakeCaption("");
-            _thoughtLabel.style.marginRight = 9f;
             _thoughtValue = new Label();
             _thoughtValue.style.color = Text;
-            _thoughtValue.style.fontSize = 15;
+            _thoughtValue.style.fontSize = 16;
             _thoughtValue.style.unityFontStyleAndWeight = FontStyle.Bold;
+            _thoughtValue.style.whiteSpace = WhiteSpace.Normal;
+            _thoughtValue.style.flexShrink = 1f;
 
-            _thought.Add(_thoughtLabel);
             _thought.Add(_thoughtValue);
             _stage.Add(_thought);
         }
@@ -3229,7 +3248,6 @@ namespace HexLive.UnityPresentation.UI
 
             _needsTitle.text = Loc.Get("panel.needs");
             _relationsTitle.text = Loc.Get("panel.relations");
-            _thoughtLabel.text = Loc.Get("panel.wants");
             if (_langButton != null)
             {
                 _langButton.text = Loc.Code;

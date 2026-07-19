@@ -601,7 +601,8 @@ public sealed partial class DecisionSystem
         var need = 0f;
         foreach (var obj in world.Entities.Objects.Values)
         {
-            if (obj.Dirtiness <= need ||
+            var contamination = MathUtil.Clamp01(obj.Dirtiness + obj.Bloodiness);
+            if (contamination <= need ||
                 !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
                 definition.Layer is null ||
                 !HygieneMath.IsBathingTile(world, obj.Tile))
@@ -609,7 +610,15 @@ public sealed partial class DecisionSystem
                 continue;
             }
 
-            need = obj.Dirtiness;
+            need = contamination;
+        }
+
+        // §40.6 r2 (laundry-in-hand): worn pieces wash directly — she walks to
+        // the water edge, takes the dirtiest piece off into her hand and scrubs
+        // it there. No more waiting for a bathe-undress to beach the pile.
+        foreach (var item in npc.WornItems)
+        {
+            need = System.MathF.Max(need, MathUtil.Clamp01(item.Dirtiness + item.Bloodiness));
         }
 
         return need;

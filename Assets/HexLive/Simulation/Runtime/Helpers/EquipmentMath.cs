@@ -23,7 +23,9 @@ internal static class EquipmentMath
         var total = 0f;
         foreach (var item in npc.WornItems)
         {
-            total += MathUtil.Clamp01(item.Dirtiness);
+            // Contamination = dirt + blood (independent stain layers). The sum
+            // may logically exceed 1 — the stat clamps at 1 ("full" bar).
+            total += MathUtil.Clamp01(item.Dirtiness + item.Bloodiness);
         }
 
         return total / npc.WornItems.Count;
@@ -37,7 +39,7 @@ internal static class EquipmentMath
         var worst = 0f;
         foreach (var item in npc.WornItems)
         {
-            worst = System.MathF.Max(worst, MathUtil.Clamp01(item.Dirtiness));
+            worst = System.MathF.Max(worst, MathUtil.Clamp01(item.Dirtiness + item.Bloodiness));
         }
 
         return worst;

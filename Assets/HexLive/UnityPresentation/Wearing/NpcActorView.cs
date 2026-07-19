@@ -1855,7 +1855,9 @@ public sealed class NpcActorView : MonoBehaviour
     //           drops it and the renderer spawns the ground garment.
     // garmentId is the snapshot's HeldGarmentId (empty until the piece is in
     // hand). Progress is the sim interaction fraction 0..1.
-    public void SetWardrobeAction(string interaction, float progress, string garmentId)
+    public void SetWardrobeAction(string interaction, float progress, string garmentId,
+        float garmentDurability = 1f, float garmentDirt = 0f, float garmentBlood = 0f,
+        float garmentWet = 0f)
     {
         var dressing = interaction == "Dress";
         var undressing = interaction == "Undress";
@@ -1896,10 +1898,14 @@ public sealed class NpcActorView : MonoBehaviour
         // Full-body clips own the pose here — kill the procedural action arm.
         _action = ActionKind.None;
         SetHandGarment(showGarment ? garmentId : null);
+        // §40.6 r2 (laundry-in-hand): the hand prop mirrors the live item
+        // condition, so the dirt visibly washes OUT of the piece as she scrubs.
+        _handGarmentCondition?.Sync(garmentDurability, garmentDirt, garmentBlood, garmentWet);
     }
 
     private GameObject _handGarment;
     private string _handGarmentId;
+    private GarmentWorldCondition _handGarmentCondition;
 
     // §Wardrobe-anim: a folded-garment prop in the acting hand (the real cloth
     // mesh, reusing the ground-drop builder). Separate from the tool _handProp
@@ -1916,6 +1922,7 @@ public sealed class NpcActorView : MonoBehaviour
         {
             Destroy(_handGarment);
             _handGarment = null;
+            _handGarmentCondition = null;
         }
 
         if (string.IsNullOrEmpty(garmentId) || _bodyBones == null)
@@ -1959,6 +1966,11 @@ public sealed class NpcActorView : MonoBehaviour
 
         _handGarment.transform.localPosition = Vector3.zero;
         _handGarment.transform.localRotation = Quaternion.identity;
+
+        // §40.6 r2 (laundry-in-hand): the same tear/dirt/blood/wet paint the
+        // ground drops use, driven per snapshot from the held item's condition.
+        _handGarmentCondition = _handGarment.AddComponent<GarmentWorldCondition>();
+        _handGarmentCondition.Construct(_handGarment);
     }
 
     // Spec 28.15E: the overhead chat bubble. The renderer pushes the current

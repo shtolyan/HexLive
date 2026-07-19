@@ -230,7 +230,7 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Длительность купания в тиках (~1 игровой час).")]
         [Range(10, 400)] public int batheDurationTicks = 100;
         [Tooltip("Длительность стирки одной вещи в тиках.")]
-        [Range(10, 200)] public int washClothesDurationTicks = 40;
+        [Range(10, 200)] public int washClothesDurationTicks = 80;
         [Tooltip("Чистота вещи, ниже которой её несут стирать.")]
         [Range(0f, 1f)] public float washClothesNeedThreshold = 0.2f;
         [Tooltip("Вес худшей НАДЕТОЙ грязи в позыве искупаться (раздевание у воды делает кучу доступной стирке). 0 — грязная одежда не тянет купаться.")]

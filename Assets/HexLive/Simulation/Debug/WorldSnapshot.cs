@@ -387,6 +387,13 @@ public sealed class NpcSnapshot
     // it's the piece just taken off. Empty at all other times.
     public string HeldGarmentId { get; set; } = string.Empty;
 
+    // §40.6 r2 (laundry-in-hand): live condition of the held garment so the
+    // hand prop shows the dirt/blood actually washing OUT during the scrub.
+    public float HeldGarmentDirt { get; set; }
+    public float HeldGarmentBlood { get; set; }
+    public float HeldGarmentWet { get; set; }
+    public float HeldGarmentDurability { get; set; } = 1f;
+
     // §Wardrobe-anim: the world object this NPC is interacting with (if any),
     // so the renderer can hide a garment lying on the ground once its owner has
     // picked it up into hand for the "don" beat (no double-visible garment).
@@ -412,6 +419,8 @@ public sealed class NpcSnapshot
     public List<string> InventoryWetness { get; } = new();
 
     public List<string> InventoryDirtiness { get; } = new();
+
+    public List<string> InventoryBloodiness { get; } = new();
 
     // "definitionId\tamountLiters\tcapacityLiters" for carried water containers.
     // The UI treats bottle and pierced coconut as one water-container category.

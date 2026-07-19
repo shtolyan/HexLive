@@ -42,6 +42,21 @@ public static class PlanInterruption
             SpatialMutations.ReleaseJunctionReservation(world, jId, npc.Id);
         }
 
+        // A garment mid-carry (doffed for an undress, or picked up for a wash)
+        // must not vanish with the plan — lay it at her feet, pockets intact.
+        if (npc.Execution.HeldGarment is { } held)
+        {
+            var dropped = ExecutionSystem.DropItemAtFeet(world, npc, held);
+            if (dropped != null && npc.Execution.HeldGarmentContents.Count > 0)
+            {
+                dropped.Contents.AddRange(npc.Execution.HeldGarmentContents);
+            }
+
+            npc.Execution.HeldGarment = null;
+        }
+
+        npc.Execution.HeldGarmentContents.Clear();
+
         npc.Execution.Status = ExecutionStatus.None;
         npc.Execution.CurrentInteraction = null;
         npc.Execution.TargetObject = null;

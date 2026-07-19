@@ -47,6 +47,12 @@ public sealed class NPCExecutionState
     // wetness/durability. Null whenever nothing is mid-handoff.
     public ItemInstance HeldGarment { get; set; }
 
+    // §40.6 r2 (laundry-in-hand): pocket items riding inside a ground garment
+    // that was picked UP into the hand for washing — restored into the piece
+    // when it is laid back down (finish or interrupt), so a jacket's stashed
+    // knife survives the wash.
+    public System.Collections.Generic.List<ItemInstance> HeldGarmentContents { get; } = new();
+
     // §gear-craft v2: ids of the ground objects the staged in-place craft is
     // working over — the laid-out ingredients during the Craft beat, then the
     // finished output item(s) during the take (PickUp) beat. Whatever is still

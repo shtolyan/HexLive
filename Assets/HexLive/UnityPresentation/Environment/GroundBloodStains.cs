@@ -48,6 +48,13 @@ public sealed class GroundBloodStains : MonoBehaviour
     // + these makes it a clear wet pool.
     private const float PuddleScaleMin = 0.26f; // full spread, metres
     private const float PuddleScaleMax = 0.46f;
+    // A drip that lands inside an existing pool does NOT spawn a second
+    // projector on top of it — it merges: the pool re-wets (fresh red, full
+    // alpha) and its target size grows. A girl asleep with a bleed leaves ONE
+    // wide spreading pool under her, not a stack of identical droplets.
+    private const float PoolGrowth = 0.07f;     // metres added per merged drip
+    private const float MaxPoolScale = 1.0f;    // widest a single pool gets
+    private const float MergeRadiusMin = 0.16f; // even a fresh drip catches close hits
     private const float MaxAlpha = 1f;
     private const int DripIntervalTicks = 6;    // while bleeding, ~1.5 sim-s
     private const int BleedGraceTicks = 20;     // blood drops on SLOW ticks (16)
@@ -65,10 +72,15 @@ public sealed class GroundBloodStains : MonoBehaviour
     {
         public Transform Root;
         public DecalProjector Projector;
-        public int BornTick;
-        public float FullScale;
+        public int BornTick;        // last time fresh blood landed (drives fade/darken)
+        public float FullScale;     // target size the pool spreads toward
         public int Variant;   // which decal texture/material family
         public int Bucket;    // current darkening step (0 = fresh red)
+        // Spread runs from (SpreadFromScale @ SpreadStartTick) toward FullScale
+        // so a merge can restart the flow from the CURRENT size, not from a drip.
+        public int SpreadStartTick;
+        public float SpreadFromScale;
+        public float CurrentScale;
     }
 
     private sealed class BleedTracker
@@ -105,7 +117,11 @@ public sealed class GroundBloodStains : MonoBehaviour
         {
             tracker.NextDripTick = tick + DripIntervalTicks;
             var jitter = Random.insideUnitCircle * FootJitter;
-            Spawn(footWorld + new Vector3(jitter.x, 0f, jitter.y), tick);
+            var at = footWorld + new Vector3(jitter.x, 0f, jitter.y);
+            if (!TryMergeIntoPool(at, tick))
+            {
+                Spawn(at, tick);
+            }
         }
     }
 
@@ -123,14 +139,16 @@ public sealed class GroundBloodStains : MonoBehaviour
                 continue;
             }
 
-            // Ease-out spread: a drip lands small and flows outward. Once
-            // fully spread (age >= SpreadTicks) the size is fixed, so stop
-            // rewriting it — only the fade keeps changing across the day.
-            if (age < SpreadTicks)
+            // Ease-out spread: blood flows outward from wherever the pool was
+            // when the last drip landed. Once fully spread the size is fixed,
+            // so stop rewriting it — only the fade keeps changing.
+            var spreadAge = tick - stain.SpreadStartTick;
+            if (spreadAge < SpreadTicks)
             {
-                var spread = age / SpreadTicks;
+                var spread = spreadAge / SpreadTicks;
                 spread = 1f - (1f - spread) * (1f - spread);
-                var scale = Mathf.Lerp(DripScale, stain.FullScale, spread);
+                var scale = Mathf.Lerp(stain.SpreadFromScale, stain.FullScale, spread);
+                stain.CurrentScale = scale;
                 stain.Projector.size = new Vector3(scale, scale, ProjectorDepth);
             }
 
@@ -150,6 +168,44 @@ public sealed class GroundBloodStains : MonoBehaviour
         }
     }
 
+    // A drip landing inside (or right next to) an existing pool grows that
+    // pool instead of stacking a new projector on it: the target size steps
+    // up (capped), the spread restarts from the current size so the growth
+    // flows smoothly, and BornTick resets — fresh blood re-wets the pool back
+    // to full-alpha red. Returns false when no pool is close enough.
+    private bool TryMergeIntoPool(Vector3 at, int tick)
+    {
+        Stain best = null;
+        var bestDist = float.MaxValue;
+        for (var i = 0; i < _stains.Count; i++)
+        {
+            var stain = _stains[i];
+            var p = stain.Root.position;
+            var dx = p.x - at.x;
+            var dz = p.z - at.z;
+            var dist = Mathf.Sqrt(dx * dx + dz * dz);
+            // Inside the pool's footprint (half its target width), with a
+            // floor so drips clustered around a fresh droplet still merge.
+            var radius = Mathf.Max(stain.FullScale * 0.5f, MergeRadiusMin);
+            if (dist <= radius && dist < bestDist)
+            {
+                best = stain;
+                bestDist = dist;
+            }
+        }
+
+        if (best == null)
+        {
+            return false;
+        }
+
+        best.FullScale = Mathf.Min(best.FullScale + PoolGrowth, MaxPoolScale);
+        best.SpreadFromScale = best.CurrentScale;
+        best.SpreadStartTick = tick;
+        best.BornTick = tick; // re-wet: Advance resets fade + fresh-red bucket
+        return true;
+    }
+
     private void Spawn(Vector3 at, int tick)
     {
         EnsureAssets();
@@ -160,8 +216,19 @@ public sealed class GroundBloodStains : MonoBehaviour
 
         if (_stains.Count >= MaxStains)
         {
-            Destroy(_stains[0].Root.gameObject);
-            _stains.RemoveAt(0);
+            // Recycle the stalest stain — merges refresh BornTick, so list
+            // order no longer implies age and index 0 may be an active pool.
+            var oldest = 0;
+            for (var i = 1; i < _stains.Count; i++)
+            {
+                if (_stains[i].BornTick < _stains[oldest].BornTick)
+                {
+                    oldest = i;
+                }
+            }
+
+            Destroy(_stains[oldest].Root.gameObject);
+            _stains.RemoveAt(oldest);
         }
 
         var go = new GameObject("BloodStain");
@@ -193,6 +260,9 @@ public sealed class GroundBloodStains : MonoBehaviour
             FullScale = Random.Range(PuddleScaleMin, PuddleScaleMax),
             Variant = variant,
             Bucket = 0,
+            SpreadStartTick = tick,
+            SpreadFromScale = DripScale,
+            CurrentScale = DripScale,
         });
     }
 

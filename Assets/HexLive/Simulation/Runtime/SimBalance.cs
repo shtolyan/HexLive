@@ -184,16 +184,19 @@ namespace HexLive.Simulation.Runtime
         public static float DirtyClothingComfortLoss = 0.002f;
         public static float BatheNeedThreshold = 0.4f;
         public static int BatheDurationTicks = 100; // one in-game hour
-        public static int WashClothesDurationTicks = 40;
+        // §40.6 r2 (laundry-in-hand): 80 ticks — the piece is doffed off the
+        // body / picked up off the shore into the hand and scrubbed there.
+        public static int WashClothesDurationTicks = 80;
         public static float WashClothesNeedThreshold = 0.2f;
 
         // Laundry audit (Jul 2026): worn dirt never reached the wash chain —
         // DirtyGarmentWashNeed only scans garments ALREADY lying on a bathing
         // tile, so clothes were washed just 9-16 times per 40 days and worn
-        // pieces sat at dirt 0.7-1.0 forever. Dirty WORN clothing now pulls
-        // Bathe (she undresses at the shore anyway — the pile then becomes a
-        // valid wash target for the existing chain): batheNeed takes
-        // max(1-Hygiene, worstWornDirt × this weight).
+        // pieces sat at dirt 0.7-1.0 forever. Dirty WORN clothing also pulls
+        // Bathe (body hygiene chain): batheNeed takes
+        // max(1-Hygiene, worstWornDirt × this weight). Since §40.6 r2 the
+        // wash chain reads worn dirt DIRECTLY (weight 0.75 in the auction),
+        // so it usually outbids this pull and washes the piece in hand.
         public static float BatheWornDirtWeight = 0.9f;
 
         // Drying audit (Jul 2026): DryClothes gated on wetness > 0.5 — after a

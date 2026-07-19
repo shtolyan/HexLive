@@ -147,13 +147,32 @@ public sealed partial class PlanningSystem
             return;
         }
 
+        // §40.6 r2 (laundry-in-hand): the dirtiest WORN piece competes with the
+        // beached pile — whichever is filthier gets washed. A worn winner means
+        // she carries it on her body to the edge, doffs it into her hand there
+        // and scrubs; a ground winner is picked up off the shore into the hand.
+        string wornCandidate = null;
+        var wornContamination = 0f;
+        foreach (var item in npc.WornItems)
+        {
+            var contamination = MathUtil.Clamp01(item.Dirtiness + item.Bloodiness);
+            if (contamination >= SimBalance.WashClothesNeedThreshold &&
+                contamination > wornContamination)
+            {
+                wornContamination = contamination;
+                wornCandidate = item.DefinitionId;
+            }
+        }
+
         WorldObjectState best = null;
+        var bestContamination = 0f;
         JunctionId bestTarget = default;
         TileCoord bestStandTile = default;
         var bestDistance = float.MaxValue;
         foreach (var obj in world.Entities.Objects.Values)
         {
-            if (obj.Dirtiness < SimBalance.WashClothesNeedThreshold ||
+            var objContamination = MathUtil.Clamp01(obj.Dirtiness + obj.Bloodiness);
+            if (objContamination < SimBalance.WashClothesNeedThreshold ||
                 !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
                 definition.Layer is null || !HygieneMath.IsBathingTile(world, obj.Tile) ||
                 obj.Junctions.Count == 0)
@@ -186,10 +205,63 @@ public sealed partial class PlanningSystem
                 {
                     bestDistance = distance;
                     best = obj;
+                    bestContamination = objContamination;
                     bestTarget = junction.Id;
                     bestStandTile = standTile;
                 }
             }
+        }
+
+        // The worn piece wins ties — off-the-body washing is the primary path.
+        if (wornCandidate is not null && wornContamination >= bestContamination)
+        {
+            best = null;
+            bestDistance = float.MaxValue;
+            foreach (var junction in world.Junctions.Items.Values)
+            {
+                if (!TryGetEdgeSeatGeometry(world, junction, waterOnly: true,
+                        out var standTile, out _) ||
+                    !JunctionAvailableFor(world, junction.Id, npc.Id) ||
+                    !Connectivity.Reachable(world, from, junction.Id))
+                {
+                    continue;
+                }
+
+                var distance = HexSpatialMath.Distance(npc.Position, junction.WorldPosition);
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    bestTarget = junction.Id;
+                    bestStandTile = standTile;
+                }
+            }
+
+            if (bestDistance == float.MaxValue ||
+                !SpatialMutations.TryReserveJunction(world, bestTarget, npc.Id, world.Tick,
+                    SimBalance.WashClothesDurationTicks + 96))
+            {
+                npc.Plan.Status = PlanStatus.Failed;
+                SetGoalCooldown(world, npc, GoalType.WashClothes);
+                return;
+            }
+
+            npc.Plan.TargetObjectId = null;
+            npc.Plan.TargetItemDefinitionId = wornCandidate;
+            npc.Plan.TargetJunctionId = bestTarget;
+            npc.Plan.TargetTile = bestStandTile;
+            npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.MoveToJunction, TargetJunction = bestTarget });
+            npc.Plan.Steps.Add(new PlanStep
+            {
+                Type = PlanStepType.WashClothes,
+                TargetJunction = bestTarget,
+                Interaction = InteractionType.WashClothes
+            });
+            npc.Plan.CurrentStepIndex = 0;
+            npc.Plan.Status = PlanStatus.Active;
+            Trace.Emit(world, npc.Id, "WashClothesPlanned",
+                $"Worn={wornCandidate} Dirt={wornContamination:F2} " +
+                $"Edge={bestTarget.Value} StandTile={bestStandTile.Q},{bestStandTile.R}");
+            return;
         }
 
         if (best is null ||

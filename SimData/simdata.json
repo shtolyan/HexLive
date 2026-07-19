@@ -225,7 +225,7 @@
     "Spec62.DangerRingTiles": 2,
     "Spec62.DangerStepCost": 80,
     "Spec62.FitBoneHealth": 0.800000012,
-    "Spec62.SpotRadiusTiles": 4,
+    "Spec62.SpotRadiusTiles": 6,
     "Spec62.ThreatAlertEnabled": true,
     "AiBalance.GoalLockTicks": 24,
     "AiBalance.LockOverrideDelta": 0.5,

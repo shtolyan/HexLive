@@ -31,7 +31,7 @@ MonoBehaviour:
   friendGuardRadiusTiles: 6
   friendGuardAffinity: 0.25
   threatAlertEnabled: 1
-  spotRadiusTiles: 4
+  spotRadiusTiles: 6
   cueCooldownTicks: 600
   fitBoneHealth: 0.8
   attackMaxPack: 1

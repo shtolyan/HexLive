@@ -286,9 +286,9 @@ public static class Spec62
 {
     public static bool ThreatAlertEnabled = true;
 
-    // How far a girl notices a live hostile mob (dog aggro is 2 — four tiles
+    // How far a girl notices a live hostile mob (dog aggro is 2 — two tiles
     // of decision room before its nose finds her).
-    public static int SpotRadiusTiles = 6;
+    public static int SpotRadiusTiles = 4;
 
     // Re-warn per (girl, mob) at most this often: one ⚠️ per sighting, not
     // one per medium tick while the wolf hangs around.

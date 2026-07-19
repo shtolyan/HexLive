@@ -10859,8 +10859,8 @@ Idle», тот же подъём, что после сна) → Idle. Снапш
 
 **62.1 Обнаружение.** `ThreatAlertSystem` (Medium): каждая дееспособная
 девушка (не мёртвая/без сознания/не спит, не в бою, не Flee/Defend, не в
-убежище-помещении) замечает живого моба в `Spec62.SpotRadiusTiles` (6; агро
-собаки — 2, т.е. четыре тайла форы). Свежая встреча помечается смайлом
+убежище-помещении) замечает живого моба в `Spec62.SpotRadiusTiles` (4; агро
+собаки — 2, т.е. два тайла форы). Свежая встреча помечается смайлом
 **⚠️ «опасность»** над головой — одноразовый cue `DangerSpotted` в общем
 канале `SocialCueSignals` (§28.15E), спрайт `Warning.png` в
 `Resources/HexLive/UI/Emoji/`. Повторный ⚠️ по той же паре (девушка, моб) — не
@@ -10895,7 +10895,7 @@ Idle», тот же подъём, что после сна) → Idle. Снапш
 0 пересечений и доходит).
 
 **62.4 Ручки.** Всё в статике `Spec62` (`SimulationSystems.cs`):
-`ThreatAlertEnabled`, `SpotRadiusTiles` 6, `CueCooldownTicks` 600,
+`ThreatAlertEnabled`, `SpotRadiusTiles` 4, `CueCooldownTicks` 600,
 `FitBoneHealth` 0.8, `AttackMaxPack` 1, `AttackLockTicks` 240,
 `DangerRingTiles` 2, `DangerStepCost` 80.
 

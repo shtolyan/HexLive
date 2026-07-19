@@ -17,6 +17,11 @@ public static class PrototypeRuntimeBootstrap
         // spawns — the values that used to be hand-edited code constants.
         Config.HexTuning.LoadAndApply();
 
+        // §59: the themed balance configs (Character / ResourceLoop / Social /
+        // Threat) from Resources/HexLive/Balance → SimBalance + Spec statics
+        // via the reflection mirror.
+        Config.BalanceTuning.LoadAndApply();
+
         // Spec §42: load the wearable wardrobe from the GarmentCatalog asset
         // into GarmentLibrary before the world (and its content) is built.
         Config.GarmentTuning.LoadAndApply();

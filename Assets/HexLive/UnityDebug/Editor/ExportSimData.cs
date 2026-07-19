@@ -20,6 +20,15 @@ namespace HexLive.UnityDebug.Editor
             string path = null;
             try
             {
+                // §59: the coverage gate runs first — export refuses to write
+                // a file while any tuning static is missing from the asset layer.
+                var coverage = BalanceTuningEditor.Validate();
+                if (coverage.Count > 0)
+                {
+                    throw new System.InvalidOperationException(
+                        "Tuning coverage FAILED:\n" + string.Join("\n", coverage));
+                }
+
                 HexLive.UnityPresentation.Config.MobTuning.LoadAndApply();
                 HexLive.UnityPresentation.Config.GearTuning.LoadAndApply();
                 HexLive.UnityPresentation.Config.ObjectTuning.LoadAndApply();

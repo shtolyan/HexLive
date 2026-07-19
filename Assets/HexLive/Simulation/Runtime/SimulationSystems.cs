@@ -277,6 +277,43 @@ public static class Spec57
     public static float FriendGuardAffinity = 0.25f;
 }
 
+// §62: far threat detection — see the wolf before it sees you. Dogs aggro at
+// 2 tiles; a girl SPOTS one at SpotRadiusTiles and reacts before contact: a ⚠️
+// cue pops over her head, then she either attacks first (fit and armed, threat
+// alone) or files the spot as danger and routes around it. Reactive melee and
+// flee stay untouched — this layer only acts BEFORE the chase starts.
+public static class Spec62
+{
+    public static bool ThreatAlertEnabled = true;
+
+    // How far a girl notices a live hostile mob (dog aggro is 2 — four tiles
+    // of decision room before its nose finds her).
+    public static int SpotRadiusTiles = 6;
+
+    // Re-warn per (girl, mob) at most this often: one ⚠️ per sighting, not
+    // one per medium tick while the wolf hangs around.
+    public static int CueCooldownTicks = 600;
+
+    // "No significant wounds": EVERY body part at or above this — a single
+    // mauled leg below 80% and she no longer picks the fight.
+    public static float FitBoneHealth = 0.8f;
+
+    // Attack-first only against a lone threat — the melee assessment already
+    // bails at 2 adjacent attackers, so charging a pack would be a suicide run.
+    public static int AttackMaxPack = 1;
+
+    // Defend goal-lock length for the pre-emptive attack (help cry uses 240).
+    public static int AttackLockTicks = 240;
+
+    // Junctions within this many tiles of a live mob cost extra for an unfit
+    // girl's routes (soft — a sealed map still routes through the ring).
+    public static int DangerRingTiles = 2;
+
+    // Extra per-step cost inside the ring (flat step = 10, swim = 40): pay up
+    // to 9x to walk around the wolf rather than past its teeth.
+    public static long DangerStepCost = 80L;
+}
+
 public enum TickLayer
 {
     Fast,
@@ -5020,6 +5057,92 @@ public sealed class PathfindingSystem : ISimulationSystem
         return _avoidScratch;
     }
 
+    // Spec §62: the junctions within DangerRingTiles of any live mob — the
+    // soft-cost ring an unfit girl's routes detour around. Grown by BFS from
+    // each mob's junction (tile-distance gated), cached for the tick.
+    private static readonly System.Collections.Generic.HashSet<JunctionId> _dangerScratch = new();
+    private static readonly System.Collections.Generic.Queue<JunctionId> _dangerQueue = new();
+    private static int _dangerScratchTick = -1;
+
+    public static System.Collections.Generic.HashSet<JunctionId> DangerRing(WorldState world)
+    {
+        if (_dangerScratchTick == world.Tick)
+        {
+            return _dangerScratch;
+        }
+
+        _dangerScratchTick = world.Tick;
+        _dangerScratch.Clear();
+        foreach (var mob in world.Mobs)
+        {
+            if (mob.Health <= 0f)
+            {
+                continue;
+            }
+
+            _dangerQueue.Clear();
+            if (_dangerScratch.Add(mob.Junction))
+            {
+                _dangerQueue.Enqueue(mob.Junction);
+            }
+
+            while (_dangerQueue.Count > 0)
+            {
+                var currentId = _dangerQueue.Dequeue();
+                if (!world.Junctions.Items.TryGetValue(currentId, out var junction))
+                {
+                    continue;
+                }
+
+                foreach (var neighborId in junction.Neighbors)
+                {
+                    if (_dangerScratch.Contains(neighborId) ||
+                        !world.Junctions.Items.TryGetValue(neighborId, out var neighbor))
+                    {
+                        continue;
+                    }
+
+                    var within = false;
+                    foreach (var tile in neighbor.Tiles)
+                    {
+                        if (HexSpatialMath.HexDistance(tile, mob.Tile) <= Spec62.DangerRingTiles)
+                        {
+                            within = true;
+                            break;
+                        }
+                    }
+
+                    if (!within)
+                    {
+                        continue;
+                    }
+
+                    _dangerScratch.Add(neighborId);
+                    _dangerQueue.Enqueue(neighborId);
+                }
+            }
+        }
+
+        return _dangerScratch;
+    }
+
+    // Spec §62: who pays the danger-ring cost. Fit fighters walk wherever they
+    // like (they would attack anyway); a girl already fleeing or defending
+    // must not have her escape/approach route bent around the very mob she is
+    // running from or charging at.
+    internal static bool AvoidsThreatRings(NPCState npc)
+    {
+        if (!Spec62.ThreatAlertEnabled ||
+            npc.IsFighting ||
+            npc.Mind.CurrentGoal == GoalType.Flee ||
+            npc.Mind.CurrentGoal == GoalType.Defend)
+        {
+            return false;
+        }
+
+        return !ThreatAlertSystem.IsFitToFight(npc);
+    }
+
     public TickLayer Layer => TickLayer.Fast;
 
     public void Run(WorldState world)
@@ -5069,8 +5192,12 @@ public sealed class PathfindingSystem : ISimulationSystem
             // so GatherStone could sawtooth over ledges as if hops were flat.
             // Only immediate survival movement keeps the shortest-path override.
             var preferFlat = ShouldWeightClimbs(npc);
+            // Spec §62: wounded/unarmed girls pay a soft cost near live mobs,
+            // so their routes bend around a spotted wolf instead of past it.
+            var danger = AvoidsThreatRings(npc) ? DangerRing(world) : null;
             var path = HexPathfinder.FindPath(world, startJunction.Value, npc.Plan.TargetJunctionId.Value,
-                OtherActorJunctions(world, npc), preferFlat, npc.Body.CanJump);
+                OtherActorJunctions(world, npc), preferFlat, npc.Body.CanJump,
+                danger, Spec62.DangerStepCost);
             if (path.Count == 0)
             {
                 npc.Movement.Status = MovementStatus.Blocked;
@@ -11382,6 +11509,225 @@ internal static class CombatHelpSystem
     }
 }
 
+// Spec §62: far threat detection. Dogs smell a girl at 2 tiles; she SEES the
+// dog at Spec62.SpotRadiusTiles and reacts before contact. On a fresh sighting
+// a ⚠️ cue pops over her head, then one of two branches:
+//   FIT (every body part >= 80%, nothing severed, a real melee weapon she can
+//   swing, the threat is alone) — she attacks first: the existing Defend
+//   machinery walks her to the mob and the ordinary melee exchange resolves
+//   the fight, with her at full strength instead of ambushed mid-haul.
+//   UNFIT (wounded, prone, bare-handed, starving, or it's a pack) — the mob's
+//   tile goes into danger memory (§29C.4A producer bias) and a route that
+//   passes the §62 danger ring is torn up; the rebuild detours via the soft
+//   ring cost in HexPathfinder.
+// Reactive melee, flee assessment and help cries are untouched — this system
+// only ever acts BEFORE the chase starts.
+public sealed class ThreatAlertSystem : ISimulationSystem
+{
+    public string Name => nameof(ThreatAlertSystem);
+
+    public TickLayer Layer => TickLayer.Medium;
+
+    // Re-warn gate per (girl, mob). Deliberately transient system state, NOT
+    // NPCState — the save format stays untouched; a loaded save at worst
+    // re-pops one ⚠️ per pair.
+    private readonly System.Collections.Generic.Dictionary<long, int> _lastCueTick = new();
+
+    public void Run(WorldState world)
+    {
+        if (!Spec62.ThreatAlertEnabled)
+        {
+            return;
+        }
+
+        if (world.Mobs.Count == 0)
+        {
+            if (_lastCueTick.Count > 0)
+            {
+                _lastCueTick.Clear();
+            }
+
+            return;
+        }
+
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            if (npc.Health <= 0f ||
+                npc.IsUnconscious(world.Tick) ||
+                npc.Execution.CurrentInteraction == InteractionType.Sleep ||
+                npc.IsFighting ||
+                npc.Mind.CurrentGoal == GoalType.Flee ||
+                npc.Mind.CurrentGoal == GoalType.Defend ||
+                MobSystem.IsNpcInSanctuary(world, npc))
+            {
+                continue;
+            }
+
+            // Nearest live threat in sight, plus how many share the radius —
+            // a pack in view is never a first-strike target.
+            Wildlife.MobState threat = null;
+            var bestDistance = int.MaxValue;
+            var pack = 0;
+            foreach (var mob in world.Mobs)
+            {
+                if (mob.Health <= 0f)
+                {
+                    continue;
+                }
+
+                var distance = HexSpatialMath.HexDistance(npc.Tile, mob.Tile);
+                if (distance > Spec62.SpotRadiusTiles)
+                {
+                    continue;
+                }
+
+                pack++;
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    threat = mob;
+                }
+            }
+
+            if (threat is null)
+            {
+                continue;
+            }
+
+            var key = ((long)npc.Id.Value << 32) | (uint)threat.Id;
+            if (_lastCueTick.TryGetValue(key, out var lastTick) &&
+                world.Tick - lastTick < Spec62.CueCooldownTicks)
+            {
+                continue;
+            }
+
+            _lastCueTick[key] = world.Tick;
+            PruneStaleCues(world.Tick);
+
+            SocialCueSignals.Stamp(world, npc, "DangerSpotted", npc.Id);
+            var fit = IsFitToFight(npc) && pack <= Spec62.AttackMaxPack;
+            Trace.Emit(world, npc.Id, "ThreatSpotted",
+                $"Mob={threat.Id} Dist={bestDistance} Pack={pack} Fit={fit} " +
+                $"WorstPart={MobSystem.WorstPartHealth(npc):F2}");
+
+            if (fit)
+            {
+                StartFirstStrike(world, npc, threat);
+            }
+            else
+            {
+                AvoidThreat(world, npc, threat);
+            }
+        }
+    }
+
+    // §62 fitness: "no significant wounds" = every body part at 80%+ and no
+    // stump, "armed" = a melee weapon she can actually swing right now (fists
+    // never qualify; a spear with one hand doesn't either — BestMeleeWeapon
+    // already skips two-handed gear she can't hold). Starving or dehydrated
+    // girls have bigger problems than picking fights.
+    internal static bool IsFitToFight(NPCState npc)
+    {
+        if (npc.Body.AnySevered ||
+            !npc.Body.CanUseToolsOrWeapons ||
+            npc.Mind.IsStarving ||
+            npc.Mind.IsDehydrated ||
+            MobSystem.WorstPartHealth(npc) < Spec62.FitBoneHealth)
+        {
+            return false;
+        }
+
+        var weaponId = SimBalance.BestMeleeWeapon(npc.Inventory.Items, npc.Body.IntactHands);
+        return Content.GearCatalog.For(weaponId).MeleePriority > 0;
+    }
+
+    // The pre-emptive attack rides the help-cry Defend machinery unchanged:
+    // BuildDefendPlan walks her to a junction adjacent to the mob, the dog
+    // aggros on approach, and the standard melee exchange (where she is the
+    // healthy, armed side) settles it.
+    private static void StartFirstStrike(WorldState world, NPCState npc, Wildlife.MobState threat)
+    {
+        if (npc.Plan.Status == PlanStatus.Active ||
+            npc.Execution.Status == ExecutionStatus.InProgress)
+        {
+            PlanInterruption.Abort(world, npc, $"Attacking spotted dog {threat.Id} first");
+        }
+
+        npc.Mind.CurrentGoal = GoalType.Defend;
+        npc.Mind.GoalLock = new GoalLock
+        {
+            Goal = GoalType.Defend,
+            StartTick = world.Tick,
+            EndTick = world.Tick + Spec62.AttackLockTicks
+        };
+        npc.Mind.CombatAssistDogId = threat.Id;
+        npc.Mind.CombatAssistAttackerNpcId = null;
+        npc.Mind.PendingTalkFrom = null;
+        npc.Mind.PendingAidFrom = null;
+
+        // §52: both hands on the spear before the charge, not at first blood.
+        if (npc.Body.IntactHands >= 2 &&
+            Content.GearCatalog.For(SimBalance.BestMeleeWeapon(
+                npc.Inventory.Items, npc.Body.IntactHands)).TwoHanded)
+        {
+            MobSystem.ReadySpearHands(world, npc);
+        }
+
+        Trace.Emit(world, npc.Id, "ThreatAttack",
+            $"Mob={threat.Id} first strike (fit and armed)");
+    }
+
+    private static void AvoidThreat(WorldState world, NPCState npc, Wildlife.MobState threat)
+    {
+        MobSystem.RememberDangerAt(world, npc, threat.Tile);
+        if (npc.Plan.Status != PlanStatus.Active)
+        {
+            return;
+        }
+
+        // Tear up a route that passes the danger ring; the rebuild pathfinds
+        // with the §62 soft cost and detours. Only on the fresh sighting (the
+        // cue gate above), so a genuinely unavoidable crossing is not aborted
+        // again every medium tick.
+        var ring = PathfindingSystem.DangerRing(world);
+        for (var i = npc.Movement.PathIndex; i < npc.Movement.JunctionPath.Count; i++)
+        {
+            if (!ring.Contains(npc.Movement.JunctionPath[i]))
+            {
+                continue;
+            }
+
+            Trace.Emit(world, npc.Id, "ThreatAvoid",
+                $"Mob={threat.Id} Tile={threat.Tile.Q},{threat.Tile.R} rerouting");
+            PlanInterruption.Abort(world, npc,
+                $"Route passes spotted dog {threat.Id} — rerouting");
+            return;
+        }
+    }
+
+    private void PruneStaleCues(int tick)
+    {
+        if (_lastCueTick.Count <= 64)
+        {
+            return;
+        }
+
+        var stale = new System.Collections.Generic.List<long>();
+        foreach (var pair in _lastCueTick)
+        {
+            if (tick - pair.Value >= Spec62.CueCooldownTicks)
+            {
+                stale.Add(pair.Key);
+            }
+        }
+
+        foreach (var key in stale)
+        {
+            _lastCueTick.Remove(key);
+        }
+    }
+}
+
 // The ground-mob director (ex-DogSystem): targeting, chase, flee assessment,
 // pack raids, spawning and death cleanup for world.Mobs — today that list holds
 // the wolf/pack-dog, and every number it reads comes from MobCatalog per mob
@@ -11701,7 +12047,7 @@ public sealed class MobSystem : ISimulationSystem
             junction.Tiles.Count > 0 && IsIndoorTile(world, junction.Tiles[0]);
     }
 
-    private static bool IsNpcInSanctuary(WorldState world, NPCState npc) =>
+    internal static bool IsNpcInSanctuary(WorldState world, NPCState npc) =>
         IsIndoorTile(world, npc.Tile) ||
         (npc.CurrentJunction is { } junction && IsIndoorJunction(world, junction));
 
@@ -11805,7 +12151,7 @@ public sealed class MobSystem : ISimulationSystem
         "resource.log", "resource.stick", "resource.stone", "resource.palm_leaf"
     };
 
-    private static void ReadySpearHands(WorldState world, NPCState npc)
+    internal static void ReadySpearHands(WorldState world, NPCState npc)
     {
         var dropped = 0;
         foreach (var mat in _bulkyHandItems)
@@ -11829,23 +12175,30 @@ public sealed class MobSystem : ISimulationSystem
     // §56: also used by PredationSystem so a preyed-on victim flags the danger.
     internal static void RememberDanger(WorldState world, NPCState npc)
     {
+        RememberDangerAt(world, npc, npc.Tile);
+    }
+
+    // Spec §62: far-spotting files the MOB's tile (not the girl's own feet),
+    // so producer bias steers her away from where the wolf actually prowls.
+    internal static void RememberDangerAt(WorldState world, NPCState npc, TileCoord tile)
+    {
         foreach (var danger in npc.Memory.Dangers)
         {
-            if (danger.Tile == npc.Tile)
+            if (danger.Tile == tile)
             {
                 danger.Tick = world.Tick;
                 return;
             }
         }
 
-        npc.Memory.Dangers.Add(new Memory.DangerMemory { Tile = npc.Tile, Tick = world.Tick });
+        npc.Memory.Dangers.Add(new Memory.DangerMemory { Tile = tile, Tick = world.Tick });
         if (npc.Memory.Dangers.Count > 8)
         {
             npc.Memory.Dangers.RemoveAt(0);
         }
 
         Trace.Emit(world, npc.Id, "DangerRemembered",
-            $"Tile={npc.Tile.Q},{npc.Tile.R} (dogs)");
+            $"Tile={tile.Q},{tile.R} (dogs)");
     }
 
     // Spec 29C.4A: run for the nearest reachable indoor junction.

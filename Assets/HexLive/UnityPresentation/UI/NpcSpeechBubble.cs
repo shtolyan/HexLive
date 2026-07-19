@@ -336,6 +336,8 @@ public sealed class NpcSpeechBubble : MonoBehaviour
             "TalkRejected" or "TalkRefused" or "TalkQuarrel" or "Resentment" => "Grumble",
             "AidRequest" or "AidIncoming" or "AidStarted" or "AidCompleted" => "Food",
             "WitnessedMurder" => "Sharks",
+            // §62: spotted a predator from afar — the yellow warning triangle.
+            "DangerSpotted" => "Warning",
             "TalkSuccess" => "Joke",
             _ => "SmallTalk"
         };

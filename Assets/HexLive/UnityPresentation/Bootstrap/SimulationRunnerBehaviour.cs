@@ -440,6 +440,7 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
         engine.Register(new MobSystem());
         engine.Register(new AnimalCombatSystem()); // 29C.3 v2: timed windup→hit→cooldown blows
         engine.Register(new PredationSystem()); // §56: kill-a-housemate-to-eat
+        engine.Register(new ThreatAlertSystem()); // §62: spot the wolf early — ⚠️ cue, attack-first or detour
         engine.Register(new RabbitSystem());
         engine.Register(new WeatherSystem());
         engine.Register(new EnvironmentSystem());

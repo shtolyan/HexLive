@@ -57,7 +57,7 @@ MonoBehaviour:
     scale: 1
     mesh: {fileID: 4300000, guid: 15ba502676a3bd44e88ca4693864899b, type: 2}
   - actorName: 5
-    scale: 1
+    scale: 1.01
     mesh: {fileID: 4300000, guid: 17ae8417f9c864687a7cfb6947ef7f1e, type: 2}
   slots: 0c000000
   noHideUnderwearSlots: 
@@ -402,6 +402,8 @@ SkinnedMeshRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 257
   m_RendererPriority: 0
   m_Materials:
@@ -423,9 +425,11 @@ SkinnedMeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   serializedVersion: 2
   m_Quality: 0
   m_UpdateWhenOffscreen: 0

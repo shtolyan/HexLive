@@ -90,9 +90,14 @@ public sealed class WorldStateFactory
         // Custom-print underwear/tops (fal.ai textures, spec 42) join the
         // seeded rotation so castaways can wash ashore in the leopard/star
         // panties or the tie-dye/tropic tee.
-        string[] startBottoms = { "Panty_11571", "Bikini Bottom", "underwear.panty_leo", "underwear.panty_stars" };
-        string[] startTops = { "Bikini top", "Top_11927", "CowTop", "clothing.top_tiedye", "clothing.top_tropic" };
-        string[] startShorts = { "Shorts Green", "Shorts short", "Shorts 1389" };
+        // The 2026-07 new-wear drop (spec §31B.4) joins the rotation too: the
+        // extracted panties/bra/swimsuit read as castaway beachwear, the flair
+        // skirt slots into the "maybe something over it" roll. The dresses and
+        // sweater stay out — nobody washes ashore in a fur dress (they're
+        // registered, dressable and tunable in the WardrobeTest scene).
+        string[] startBottoms = { "Panty_11571", "Bikini Bottom", "underwear.panty_leo", "underwear.panty_stars", "underwear.panty_flair", "underwear.panty_basic", "underwear.swim_bottom" };
+        string[] startTops = { "Bikini top", "Top_11927", "CowTop", "clothing.top_tiedye", "clothing.top_tropic", "underwear.bra_basic", "underwear.swim_top" };
+        string[] startShorts = { "Shorts Green", "Shorts short", "Shorts 1389", "clothing.skirt_flair" };
         foreach (var npc in world.Entities.Npcs.Values)
         {
             var id = npc.Id.Value;

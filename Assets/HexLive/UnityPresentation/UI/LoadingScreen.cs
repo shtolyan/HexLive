@@ -484,7 +484,7 @@ namespace HexLive.UnityPresentation.UI
         // clock formatter, so the readout matches in-game time exactly.
         private static string FormatDayTime(int tick)
         {
-            const int dayLen = HexLive.Simulation.Runtime.EnvironmentSystem.DayLengthTicks;
+            var dayLen = HexLive.Simulation.Runtime.EnvironmentSystem.DayLengthTicks;
             var day = HexLive.Simulation.Runtime.EnvironmentSystem.CalendarDay(tick);
             var progress = (tick % dayLen) / (float)dayLen;
             var clock = HexLive.Simulation.Runtime.EnvironmentSystem.FormatClock(progress);

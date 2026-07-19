@@ -51,3 +51,7 @@ sysinfo.txt
 Assets/Screenshots/
 Assets/Screenshots.meta
 *.blob
+
+# Huge third-party animal pack — kept locally, never committed (wolf assets copied to Assets/HexLive/Art/Wolf)
+/[Aa]ssets/ANIMALS FULL PACK/
+/[Aa]ssets/ANIMALS FULL PACK.meta

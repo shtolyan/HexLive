@@ -10190,7 +10190,10 @@ Mechanics (`BuildSiteMath`):
 - The stage tables live in `BuildSiteMath.BedLeafStages`/`BedBasicStages` — **keep
   them in sync** with the prefab groups and with the `SimBalance.Bed*Bill*` totals
   (= per-material sums across stages). Unstaged products (`campfire.spot`, hut
-  pieces) keep the old whole-bill behaviour.
+  pieces) keep the old whole-bill behaviour. §59.4: the bill NUMBERS are now
+  tunable through the `ResourceLoopBalance` asset — the stage DECOMPOSITION stays
+  code-owned (it mirrors the prefab groups), so after retuning a bill re-check it
+  against the stage sums.
 - The current stage is **derived, not stored**: delivered `Contents` are attributed
   to stages in order, and the first stage left short is the active one — nothing
   new to save.
@@ -10705,6 +10708,15 @@ reference it: `I2.Loc` (runtime, `Scripts/`) + `I2.Loc.Editor`
 - Рецепты: `RecipeCatalog` ← секции «Крафт» на карточке ВЫХОДНОГО предмета
   (GearConfig/WorldObjectConfig): ингредиенты (ссылками), needsLitFire,
   станция (enum CraftPlace; Anywhere = крафт на месте — план CraftInPlace).
+- БАЛАНС-СТАТИКИ: тематические конфиги `Resources/HexLive/Balance/*.asset` —
+  `CharacterBalance` (SimBalance-блок персонажа + AiBalance: восприятие,
+  goal-lock), `ResourceLoopBalance` (§54: дерево-цепочка, биллы построек,
+  файбер, разделка/спойл), `SocialBalance` (Spec49 ЦЕЛИКОМ включая тумблеры,
+  Spec53, дельты разговора/ссоры), `ThreatBalance` (Spec50/57/62, каннибализм,
+  предация §56), `WorldBalance` (сутки/тени, штормы, сушка, топливо костра,
+  гниение фруктов + WildlifeBalance: директор собак/крабов/акул). Прыжки/вода
+  остаются в `HexTuningConfig` (hop-блок зеркалится в HexHopTuning). Механизм
+  зеркалирования и сторож покрытия — §59.4.
 - СКЛАД: у объекта есть массив начального содержимого
   (`ObjectDefinition.Storage`, enum StoredKind + amount) — дырявый кокос
   декларирует Water × 4; спавн кладёт это в ResourceAmount (мир и инвентарь).
@@ -10723,17 +10735,55 @@ reference it: `I2.Loc` (runtime, `Scripts/`) + `I2.Loc.Editor`
 - Новый моб / инструмент / объект / рецепт = новый ассет. Код нужен только для
   нового ГЛАГОЛА (гол-слой: когда персонаж этого хочет) и построек (bed/tent/rack).
 
-**59.3 Headless-мост (ОБЯЗАТЕЛЕН для проб и соаков).**
-- Экспорт: меню Unity **HexLive ▸ Export Sim Data (JSON)** применяет все
-  тюнинги и пишет `SimData/simdata.json` (корень репо). Переэкспорт после
-  каждого тюна ассетов.
+**59.3 Headless-мост (ОБЯЗАТЕЛЕН для проб и соаков). Схема v2.**
+- Экспорт: меню Unity **HexLive ▸ Export Sim Data (JSON)** применяет ВСЕ
+  тюнинг-слои (hop, баланс-конфиги §59.4, гарменты, мобы, gear, объекты) и
+  пишет `SimData/simdata.json` (корень репо). Переэкспорт после каждого тюна
+  ассетов. Перед записью гоняется сторож покрытия (§59.4) — экспорт
+  ОТКАЗЫВАЕТСЯ писать файл, пока хоть один тюнинг-статик не покрыт ассетом.
+- Схема v2 (`"version": 2`): к прежним `mobs/gear/worldObjects/recipes`
+  добавлены `balance` — ПЛОСКИЙ отсортированный словарь
+  `"Класс.Поле": значение` по ВСЕМ тюнинг-статикам (перечисление через
+  `BalanceReflection` с обеих сторон, поэтому новая ручка попадает в экспорт
+  без правки схемы; float пишутся G9 — точный round-trip), `garments`
+  (id/слой/warmth/armor/thermal/длительность/карманы/покрытие →
+  `GarmentLibrary.Override`) и per-interaction `effects` в worldObjects
+  (ненулевые дельты голода/жажды/комфорта/тепла/брони — раньше payoffs еды
+  и питья вообще не проезжали мост).
 - Импорт: ПЕРВАЯ строка любой headless-пробы —
   `SimDataFile.Require("/Volumes/ORICO/HexLive/SimData/simdata.json")`.
-  Require БРОСАЕТ исключение, если файла нет или он не парсится: прогон на
-  кодовых дефолтах ЗАПРЕЩЁН — молчаливый дрейф между игрой и харнессом хуже
-  упавшей пробы. (LoadAndApply остаётся для явных экспериментов.)
+  Require БРОСАЕТ исключение, если файла нет, он не парсится ИЛИ его схема
+  СТАРШЕ v2 (v1-файл не несёт баланса — проба тихо бежала бы на кодовых
+  дефолтах): прогон на кодовых дефолтах ЗАПРЕЩЁН — молчаливый дрейф между
+  игрой и харнессом хуже упавшей пробы. (LoadAndApply остаётся мягким для
+  явных экспериментов.)
 - Сериализация одна: `SimDataFile.ExportJson()` в сим-сборке (engine-free);
   редакторное меню лишь применяет SO-слои и пишет файл.
+
+**59.4 Рефлексивное зеркало конфигов и сторож покрытия.**
+- Ручные Apply/Capture-пары (2×N строк на конфиг) ДРЕЙФОВАЛИ — половина
+  SimBalance и Spec57/62 целиком жили без ассета. Их заменил
+  `SimConfigMirror`: конфиг-класс объявляет цели атрибутом
+  `[MirrorTarget(typeof(SimBalance))]` (повторяемый), каждое сериализованное
+  поле маппится на одноимённый public static по конвенции
+  camelCase → PascalCase; исключения — `[MirrorField(тип, "Имя")]`
+  (переименования, коллизии `Enabled`) и `[MirrorIgnore]` (поля,
+  зеркалящиеся руками в презентационные статики). Несмапленное/двусмысленное
+  поле или несовпадение типов = исключение, не молчание. ДОБАВИТЬ РУЧКУ =
+  одно поле в конфиге + один статик, больше ничего.
+- Тюнинг-статик = public static ПОЛЕ типа float/int/bool/long в классах из
+  канонического списка `BalanceReflection.BalanceClasses` (SimBalance,
+  Spec49/50/53/57/62, AiBalance, SocialBalance, WorldBalance,
+  WildlifeBalance, HexHopTuning); свойства и методы — производные, не ручки.
+  В системах на месте бывших констант остаются шимы `=> Класс.Поле`.
+- Сторож: меню **HexLive ▸ Validate Tuning Coverage** (и автоматически
+  внутри Export Sim Data) сверяет ПОЛНЫЙ список тюнинг-статиков с
+  объединением маппингов всех конфиг-ассетов: непокрытый статик или двойное
+  покрытие = ошибка. Новая константа НЕ МОЖЕТ молча избежать ассет-слоя.
+- Захват: меню **HexLive ▸ Capture Live Tuning** читает живые статики
+  обратно во все баланс-ассеты (+ HexTuningConfig) — «сфотографировать»
+  накрученное в рантайме. Кнопка SwimTest-сцены по-прежнему сохраняет свой
+  hop/swim-блок.
 
 ## §60 Кома — глубокое бессознательное (iteration 60)
 

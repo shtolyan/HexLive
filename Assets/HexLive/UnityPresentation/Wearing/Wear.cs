@@ -343,7 +343,12 @@ public sealed class Wear : MonoBehaviour
 
         if (_tearShader == null)
         {
-            return; // shader missing: erosion silently no-ops
+            // Build-stripping guard: HexLive/GarmentTear must live in Always
+            // Included Shaders (Shader.Find-only shaders vanish from builds).
+            Debug.LogWarning(
+                "[Wear] HexLive/GarmentTear shader not found — garment tear disabled. " +
+                "Check Project Settings ▸ Graphics ▸ Always Included Shaders.", this);
+            return;
         }
 
         // .materials instantiates per-garment copies, so each girl's shirt

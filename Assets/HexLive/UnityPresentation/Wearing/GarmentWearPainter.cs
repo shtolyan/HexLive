@@ -624,6 +624,14 @@ namespace HexLive.UnityPresentation.Wearing
                 if (_triangles.Length == 0 || _uvs.Length == 0)
                 {
                     _bakeUnavailable = true; // topology never changes — don't retry
+                    // In builds this is the no-Read/Write failure mode: the CPU
+                    // copy of the mesh is stripped, the baked snapshot comes
+                    // back without uv/index data, and dirt/holes silently never
+                    // paint. Flag it loudly — the fix is m_IsReadable on the mesh.
+                    Debug.LogWarning(
+                        $"[GarmentWear] '{name}': baked mesh has no topology " +
+                        $"(uvs={_uvs.Length} tris={_triangles.Length}) — wear painting " +
+                        "disabled. Enable Read/Write on the garment mesh.", this);
                     return false;
                 }
             }

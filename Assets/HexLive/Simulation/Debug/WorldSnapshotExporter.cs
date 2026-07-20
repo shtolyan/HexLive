@@ -575,15 +575,25 @@ public static class WorldSnapshotExporter
             Sunburn = npc.Needs.Sunburn,
             Bandages = npc.Needs.Bandages,
             Pills = npc.Needs.Pills,
+            // Spec §60 r2: only the blood-loss faint is "unconscious" (limp
+            // pose, Coma chip). An energy crash reads as ordinary SLEEP — see
+            // CurrentInteraction below, so the view plays the sleeping flow.
             IsFainted = world.Tick < npc.Mind.FaintedUntilTick,
-            IsUnconscious = npc.Mind.ComaCause != AI.ComaCause.None, // spec §60
+            IsUnconscious = npc.Mind.ComaCause == AI.ComaCause.BloodLoss,
             IsWaking = world.Tick < npc.Mind.WakeGraceUntilTick,
             Stress = npc.Needs.Stress,
             CurrentGoal = npc.Mind.CurrentGoal.ToString(),
             PlanStatus = npc.Plan.Status.ToString(),
             MovementStatus = npc.Movement.Status.ToString(),
-            ExecutionStatus = npc.Execution.Status.ToString(),
-            CurrentInteraction = npc.Execution.CurrentInteraction?.ToString() ?? "-",
+            // §60 r2: an exhausted crash IS a sleep for the whole presentation
+            // stack — the view keys the lying/sleeping flow off
+            // CurrentInteraction=Sleep + InProgress, so export exactly that.
+            ExecutionStatus = npc.Mind.ComaCause == AI.ComaCause.Exhaustion
+                ? AI.ExecutionStatus.InProgress.ToString()
+                : npc.Execution.Status.ToString(),
+            CurrentInteraction = npc.Mind.ComaCause == AI.ComaCause.Exhaustion
+                ? InteractionType.Sleep.ToString()
+                : npc.Execution.CurrentInteraction?.ToString() ?? "-",
             HeldItemId = ResolveHeldItem(world, npc),
             // Spec 28.15E: conversation subject + last outcome for the bubble.
             TalkTopic = npc.Execution.CurrentTalkTopic?.ToString() ?? string.Empty,

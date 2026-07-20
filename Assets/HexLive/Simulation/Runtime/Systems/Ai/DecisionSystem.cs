@@ -804,10 +804,15 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 npc.Inventory.Items, Content.GearCapability.Mine);
             var stoneCount = CountInventory(npc, "resource.stone");
             var stonesNeeded = (!hasAxe && !hasSaw ? axeStoneCost : 0) + (!hasPickaxe ? pickaxeStoneCost : 0);
+            // §63 r2: a stone-hungry site (the fire's 18-stone ring) is worth
+            // a real armful, not one pebble per round trip — carry up to 3.
+            var siteStoneWant = siteNeedsStones
+                ? System.Math.Min(3, BuildSiteMath.Remaining(buildSite, BuildSiteMath.MaterialStones))
+                : 0;
             var gatherStoneAvail = (stoneCount < stonesNeeded ||
                     (coconutToolPressure && stoneCount < knifeStoneCost) ||
                     (piece is { } pStone && stoneCount < pStone.Stones) ||
-                    (siteNeedsStones && stoneCount < 1)) &&
+                    (siteNeedsStones && stoneCount < siteStoneWant)) &&
                 npc.Inventory.HasSpace && HasReachableWithTag(npc, world, "Stone");
             var craftAxeAvail = canUseToolsOrWeapons && !hasAxe && !hasSaw && hasWood &&
                 stoneCount >= axeStoneCost && CraftPlaceOk(GoalType.CraftAxe);
@@ -837,7 +842,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
                    (piece is { } pLeaf && carriedLeaves < pLeaf.Leaves) ||
                    (bedDeficit && carriedLeaves < 3)) &&
                   HasReachableWithTag(npc, world, "Palm")));
-            var mineBoulderAvail = canUseToolsOrWeapons && hasPickaxe && stoneCount < 2 && npc.Inventory.HasSpace &&
+            // §63 r2: with a stone-hungry site open the miner keeps swinging
+            // until she carries a real load (3), not the old 2-stone stop.
+            var mineBoulderAvail = canUseToolsOrWeapons && hasPickaxe &&
+                stoneCount < System.Math.Max(2, siteStoneWant) && npc.Inventory.HasSpace &&
                 HasReachableWithTag(npc, world, "Boulder");
 
             // Spec 45: FREE HANDS — needs handled, no danger => the surplus
@@ -859,12 +867,33 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 !freshDanger
                     ? 0.3f
                     : 0f;
+            // §63 r2: the site's stone bill pulls the WHOLE mining chain the
+            // way the bed's stages pull leaves/sticks/rope — without it
+            // GatherStone/MineBoulder sat at 0.55-0.65 and lost every auction
+            // to Sit/Drink (MineBoulder selected 0 times in 15 soak-days
+            // while the ring waited on 18 stones).
+            // …but ONLY with settled hands and a fed fire — an unconditional
+            // pull ate TendFire/water time and wiped the probe colony. 0.5:
+            // at 0.35 the settled bid (~1.0) still tied with Sit/Dress and
+            // MineBoulder fired 0 times in 20 probe-days pickaxe-in-hand.
+            var siteStonePull = siteNeedsStones && freeHands > 0f && !fuelLow ? 0.5f : 0f;
             // §54 cold start: fetching stones for the first hearth is urgent too.
             AddGoalScore(npc, world.Tick, GoalType.GatherStone,
-                (hearthUrgent ? 0.9f : 0.25f) + freeHands + coconutToolBoost,
+                (hearthUrgent ? 0.9f : 0.25f) + freeHands + coconutToolBoost + siteStonePull,
                 gatherStoneAvail, coconutEmergencyBoost);
             AddGoalScore(npc, world.Tick, GoalType.CraftAxe, 0.3f + freeHands, craftAxeAvail);
-            AddGoalScore(npc, world.Tick, GoalType.CraftPickaxe, 0.25f + freeHands, craftPickaxeAvail);
+            // §63 r2: a site drowning in stone demand (the 18-stone fire ring)
+            // makes the PICKAXE the priority — without this pull the 0.55
+            // delivery bid swallowed the pickaxe's own 2-stone budget every
+            // time and the miner was never born (CraftedPickaxe 0 across every
+            // 25-day soak; boulders sat unbroken while the ring starved).
+            var pickaxeChainPull = siteNeedsStones && !hasPickaxe &&
+                buildSite != null &&
+                BuildSiteMath.Remaining(buildSite, BuildSiteMath.MaterialStones) > pickaxeStoneCost
+                    ? 0.5f
+                    : 0f;
+            AddGoalScore(npc, world.Tick, GoalType.CraftPickaxe,
+                0.25f + freeHands + pickaxeChainPull, craftPickaxeAvail);
             // §47 comfort: the bed-chain pull — mirrors the spec-42 cold
             // chain. Bedless nights are the colony's loudest churn (Sleep
             // plan-starts 787-995 per 25 days, ~all retries), yet at 0.3
@@ -875,7 +904,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
             var bedChainPull = bedDeficit && carriedLeaves < 3 && canChop ? 0.25f : 0f;
             AddGoalScore(npc, world.Tick, GoalType.HarvestTree,
                 0.3f + freeHands + bedChainPull, harvestTreeAvail);
-            AddGoalScore(npc, world.Tick, GoalType.MineBoulder, 0.25f + freeHands, mineBoulderAvail);
+            AddGoalScore(npc, world.Tick, GoalType.MineBoulder,
+                0.25f + freeHands + siteStonePull, mineBoulderAvail);
 
             // Spec §54: split a ground log into sticks (the fuel/craft currency)
             // when short on sticks and there's stick demand — chiefly a dying
@@ -1018,6 +1048,33 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // stones don't stack.
             var deliverWorthwhile = buildSite != null && buildWindow &&
                 CarriesSiteMaterial(npc, buildSite);
+            // §63 r2: the pickaxe's own 2-stone budget is RESERVED — while the
+            // site still wants more stones than she holds and no pickaxe
+            // exists, her stones go to the craft, not the pile (otherwise the
+            // 0.55 delivery bid ate the budget every round and the 18-stone
+            // ring could only ever be fed pebble-by-pebble from the ground).
+            if (deliverWorthwhile && siteNeedsStones && !hasPickaxe &&
+                stoneCount <= pickaxeStoneCost &&
+                BuildSiteMath.Remaining(buildSite, BuildSiteMath.MaterialStones) > pickaxeStoneCost)
+            {
+                var carriesOtherNeededMaterial = false;
+                foreach (var mat in BuildSiteMath.AllMaterials)
+                {
+                    if (mat != BuildSiteMath.MaterialStones &&
+                        BuildSiteMath.Needs(buildSite, mat) &&
+                        npc.Inventory.Items.Contains(mat))
+                    {
+                        carriesOtherNeededMaterial = true;
+                        break;
+                    }
+                }
+
+                if (!carriesOtherNeededMaterial)
+                {
+                    deliverWorthwhile = false;
+                }
+            }
+
             if (deliverWorthwhile && siteIsBed)
             {
                 foreach (var mat in BuildSiteMath.AllMaterials)

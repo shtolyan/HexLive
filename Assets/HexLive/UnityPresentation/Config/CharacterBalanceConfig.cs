@@ -154,8 +154,10 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Добавка за сон на премиум-лежанке (bed.basic).")]
         [Range(0f, 0.05f)] public float sleepEnergyBasicBedBonus = 0.010f;
 
-        [Header("Кома (§60)")]
-        [Tooltip("Энергия, при которой просыпается из комы истощения.")]
+        [Header("Сон без задних ног / обморок (§60 r2)")]
+        [Tooltip("Энергия, при которой просыпается из «сна без задних ног» (рухнула при 0 энергии; спит до этой отметки, боль будит раньше).")]
+        [Range(0f, 0.9f)] public float exhaustedSleepWakeEnergy = 0.45f;
+        [Tooltip("Устарело (§60 r2): порог пробуждения старой комы истощения.")]
         [Range(0f, 0.5f)] public float comaWakeThreshold = 0.15f;
         [Tooltip("Кровь, ниже которой падает в кому кровопотери.")]
         [Range(0f, 0.5f)] public float comaBloodEnterThreshold = 0.25f;

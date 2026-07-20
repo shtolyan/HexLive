@@ -120,9 +120,17 @@ namespace HexLive.Simulation.Runtime
         public static float ChairComfort = 0.4f;            // comfort per sit in a chair
         public static float ChairEnergy = 0.1f;             // energy per sit in a chair
 
-        // Spec §60: coma. Exhaustion wakes at the shared threshold; blood-loss
-        // coma uses its own hysteresis so a survivor who is still low on blood
-        // does not stand up, act for a few ticks, then collapse again.
+        // Spec §60 r2 (coma rework): energy 0 is a DEAD-TIRED SLEEP, not a
+        // death-lookalike — she crashes where she stands and sleeps it off
+        // like a normal ground sleeper (a landed wound jolts her awake).
+        // Waking at the old 0.15 line just re-drained to 0 within hours and
+        // the day became a chain of micro-collapses (100-200 per 25-day
+        // soak); sleeping through to a properly rested line turns the pit
+        // into ONE long nap.
+        public static float ExhaustedSleepWakeEnergy = 0.45f;
+        // Blood-loss unconsciousness keeps its own hysteresis so a survivor
+        // who is still low on blood does not stand up, act for a few ticks,
+        // then drop again. (ComaWakeThreshold retired with the rework.)
         public static float ComaWakeThreshold = 0.15f;
         public static float ComaBloodEnterThreshold = 0.25f;
         public static float ComaBloodWakeThreshold = 0.35f;

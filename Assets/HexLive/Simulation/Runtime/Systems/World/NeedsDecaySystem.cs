@@ -192,7 +192,10 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             ExecutionSystem.ClaimLyingFootprint(world, npc, here);
         }
 
-        Trace.Emit(world, npc.Id, "Collapsed",
+        // §60 r2: exhaustion reads as SLEEP (she crashed dead-tired), only
+        // blood loss reads as unconsciousness — the "coma" framing is gone.
+        Trace.Emit(world, npc.Id,
+            cause == ComaCause.Exhaustion ? "FellAsleepExhausted" : "FaintedBloodLoss",
             $"Cause={cause} Energy={npc.Needs.Energy:F2} Blood={npc.Needs.Blood:F2} " +
             $"Health={npc.Health:F2}");
     }
@@ -202,9 +205,12 @@ public sealed class NeedsDecaySystem : ISimulationSystem
     // (same wake grace as an ordinary morning, so the get-up plays out).
     private static void TryWakeFromComa(WorldState world, NPCState npc)
     {
+        // §60 r2: the exhausted sleeper sleeps THROUGH to a rested line (a
+        // wake at the old 0.15 re-drained to zero within hours — the chain
+        // of micro-collapses WAS the chronic energy pit).
         var recovered = npc.Mind.ComaCause switch
         {
-            ComaCause.Exhaustion => npc.Needs.Energy >= SimBalance.ComaWakeThreshold,
+            ComaCause.Exhaustion => npc.Needs.Energy >= SimBalance.ExhaustedSleepWakeEnergy,
             ComaCause.BloodLoss => npc.Needs.Blood >= SimBalance.ComaBloodWakeThreshold,
             _ => false
         };
@@ -214,12 +220,17 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             return;
         }
 
-        var cause = npc.Mind.ComaCause;
+        WakeFromComa(world, npc, npc.Mind.ComaCause.ToString());
+    }
+
+    // §60 r2: shared wake path — the recovery wake and the pain wake (a wound
+    // landing on an exhausted sleeper) both release the lying footprint and
+    // the junction the body held (mirrors the ground-rest wake path).
+    internal static void WakeFromComa(WorldState world, NPCState npc, string cause)
+    {
         npc.Mind.ComaCause = ComaCause.None;
         npc.Mind.WakeGraceUntilTick = world.Tick + 12; // spec 41.5 wake grace
 
-        // Release the lying footprint and the junction the body held
-        // (mirrors the ground-rest wake path).
         ExecutionSystem.ReleaseClaims(world, npc);
         if (npc.CurrentJunction is { } lay)
         {

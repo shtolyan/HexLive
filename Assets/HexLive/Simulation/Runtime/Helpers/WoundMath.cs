@@ -57,6 +57,15 @@ internal static class WoundMath
 
     public static void Inflict(WorldState world, NPCState npc, BodyPart zone, float damage)
     {
+        // §60 r2: pain jolts a DEAD-TIRED sleeper awake — she crashed from
+        // exhaustion, she is not brain-dark; a bite must not farm a sleeping
+        // body. Blood-loss unconsciousness stays helpless (that body CAN'T
+        // wake, that's the point).
+        if (npc.Mind.ComaCause == AI.ComaCause.Exhaustion)
+        {
+            NeedsDecaySystem.WakeFromComa(world, npc, $"Pain ({zone})");
+        }
+
         foreach (var garment in npc.WornItems)
         {
             if (world.Content.ObjectDefinitions.TryGetValue(garment.DefinitionId, out var definition) &&

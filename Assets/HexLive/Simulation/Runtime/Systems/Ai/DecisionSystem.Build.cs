@@ -113,23 +113,12 @@ public sealed partial class DecisionSystem
             firstSite ??= site;
         }
 
-        // §63: once the colony sleeps on its FIRST bed, the hearth's stone
-        // ring outranks bed #2/#3 — BedSiteSystem wants a bed per girl and
-        // used to monopolize the queue, so the campfire upgrade never saw a
-        // single stone in 25-day soaks.
-        var colonyHasBed = false;
-        foreach (var candidate in world.Entities.Objects.Values)
-        {
-            if (candidate.DefinitionId is "bed.leaf" or "bed.basic")
-            {
-                colonyHasBed = true;
-                break;
-            }
-        }
-
-        return colonyHasBed
-            ? hearthUpgrade ?? furnitureSite ?? firstSite
-            : furnitureSite ?? hearthUpgrade ?? firstSite;
+        // §63 r2 (user pass): the hearth's upgrades (stone ring → spit) come
+        // RIGHT AFTER the fire itself — the ring multiplies every fueling, so
+        // it outranks furniture. Queue: bare hearth > campfire upgrade >
+        // bed/rack sites > the rest. (BedSiteSystem's bed-per-girl backlog
+        // used to monopolize the slot and the ring never saw a stone.)
+        return hearthUpgrade ?? furnitureSite ?? firstSite;
     }
 
     internal static bool CarriesSiteMaterial(NPCState npc, WorldObjectState site)

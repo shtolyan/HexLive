@@ -123,7 +123,12 @@ public static class PrototypeContentCatalog
                 // BFS (CollectStandableAround) walks through the blocked
                 // cluster to the first standable rim, which stays within
                 // 1 tile of the fire — full +8° warmth reach.
-                Tags = { "Campfire", "Obstacle" },
+                // §63 r2: + FurnitureSite — the LIVE fire keeps its open §54.14
+                // upgrade bill (stone ring → spit), but without this tag the
+                // BuildFurniture planner could never TARGET it: stones for the
+                // ring were gathered, then had nowhere to go (0/18 delivered
+                // across every 25-day soak since the staged campfire shipped).
+                Tags = { "Campfire", "Obstacle", "FurnitureSite" },
                 // 0.55R (0.825 wu) blocks the anchor + the first two point
                 // rings (0.375 / 0.65-0.75 wu) — nobody paths through the
                 // flames — while the 1.10-1.18 wu ring stays standable, so
@@ -142,6 +147,15 @@ public static class PrototypeContentCatalog
                 ObstacleRadius = 0.55f * HexLive.Simulation.Spatial.HexSpatialMath.HexRadius,
                 Interactions =
                 {
+                    // §63 r2: deposit/raise the §54.14 upgrade stages (stone
+                    // ring, spit posts) at the LIVE fire — same one-verb flow
+                    // as build.site (ApplyFurnitureSite decides by state).
+                    new InteractionDefinition
+                    {
+                        Id = "build.upgrade",
+                        Type = InteractionType.Build,
+                        DurationTicks = 36
+                    },
                     // Spec 29H: fill the bottle with boiled (safe) water; the
                     // thirst/comfort payoff lands when she drinks it later.
                     new InteractionDefinition

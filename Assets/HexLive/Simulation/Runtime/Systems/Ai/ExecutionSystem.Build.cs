@@ -117,14 +117,19 @@ public sealed partial class ExecutionSystem
             var junction = site.Junctions.Count > 0 ? site.Junctions[0] : npc.CurrentJunction;
             var tile = site.Tile;
             var product = site.BuildProduct;
+            // §64: a personal bed's ownership rides from the site onto the
+            // finished piece — this is what makes the raised bed hers.
+            var owner = site.Owner;
             WorldObjectMutations.DespawnObject(world, site.Id);
             if (junction is { } j)
             {
-                WorldObjectMutations.SpawnObject(world, product, npc.Fragment, tile, j);
+                var raised = WorldObjectMutations.SpawnObject(world, product, npc.Fragment, tile, j);
+                raised.Owner = owner;
             }
 
             Trace.Emit(world, npc.Id, "FurnitureBuilt",
-                $"{product} raised at Tile={tile.Q},{tile.R}");
+                $"{product} raised at Tile={tile.Q},{tile.R}" +
+                (owner is { } ow ? $" for colonist {ow.Value}" : string.Empty));
         }
     }
 

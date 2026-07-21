@@ -228,6 +228,14 @@ public sealed class NPCState
     // Spec 35.4: accumulated sun exposure; burns at 1.0.
     public float SunExposure { get; set; }
 
+    // Spec 35.5: how wet the BODY itself is, 0 dry .. 1 soaked. Rain and
+    // water tiles wet the skin directly — independent of clothing — so a
+    // naked or near-naked survivor still reads as soaked (💦 effect + wet
+    // discomfort), not just a wet garment. MoistureSystem drives it exactly
+    // like item wetness (snap wet on exposure, dry gradually); the Soaked
+    // effect and the §49.7 comfort penalty take max(body, worn).
+    public float BodyWetness { get; set; }
+
     // Spec §53: this girl's personality weight for compassion (0..1). Seeded
     // once at spawn and fixed for life. It scales BOTH how fast her Compassion
     // need drains from others' suffering AND the strength of her Aid bid — a

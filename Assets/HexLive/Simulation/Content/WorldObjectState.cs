@@ -20,6 +20,13 @@ public sealed class WorldObjectState
 
     public EntityId? CurrentUser { get; set; }
 
+    // Spec §64: persistent ownership — the colonist a personal bed belongs to
+    // (stamped on the bed's build-site, carried onto the finished bed when it is
+    // raised). Distinct from the transient CurrentUser/IsOccupied, which only
+    // mark who is using it RIGHT NOW. null = shared/unowned. DreamSystem frees
+    // this back to null when the owner dies so a survivor can claim the bed.
+    public EntityId? Owner { get; set; }
+
     // Spec §50: a per-object variant tag the renderer reads (e.g. which limb a
     // "body.limb_severed" object is, so it bakes the matching bone chain).
     public string Variant { get; set; } = string.Empty;

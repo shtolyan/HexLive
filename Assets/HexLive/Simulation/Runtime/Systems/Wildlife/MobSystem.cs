@@ -249,12 +249,29 @@ public sealed class MobSystem : ISimulationSystem
                 !target.Body.IsProne && !target.IsUnconscious(world.Tick) &&
                 HexSpatialMath.HexDistance(dog.Tile, target.Tile) <= 1)
             {
-                target.IsFighting = true;
-                if (target.Plan.Status == PlanStatus.Active ||
-                    target.Execution.Status == ExecutionStatus.InProgress)
+                // Besieged-standoff fix (Fix B, Jul 2026): before squaring her up
+                // at arm's length, assess flee — a HURT or outnumbered girl (the
+                // same thresholds the melee branch uses) breaks for a refuge
+                // instead of latching into a "fight" a stuck dog can never land.
+                // That freeze out-starved the girl it besieged: pinned IsFighting,
+                // no blow either way, flee never assessed (it lived only in the
+                // melee branch), she starved and bled out where she stood (seed
+                // 308477163, Jana, day 4.79). A healthy girl still squares up (no
+                // regression to the run-down protection above); only a girl who
+                // would ALSO flee in melee now flees one tile-step sooner.
+                var attackers = CountAdjacentDogs(world, target);
+                var fledStandoff = (target.Health < 0.6f || WorstPartHealth(target) < 0.35f ||
+                    attackers >= 2) && TryStartFlee(world, target, attackers, dog.Id);
+
+                if (!fledStandoff)
                 {
-                    PlanInterruption.Abort(world, target, $"Charged by dog {dog.Id}");
-                    target.Mind.CurrentGoal = GoalType.None;
+                    target.IsFighting = true;
+                    if (target.Plan.Status == PlanStatus.Active ||
+                        target.Execution.Status == ExecutionStatus.InProgress)
+                    {
+                        PlanInterruption.Abort(world, target, $"Charged by dog {dog.Id}");
+                        target.Mind.CurrentGoal = GoalType.None;
+                    }
                 }
             }
 
@@ -871,15 +888,37 @@ public sealed class MobSystem : ISimulationSystem
             }
         }
 
-        // Spec 31A.5A: everything worn/carried drops at the death site through
-        // the same ground-drop path as inventory overflow and explicit drops.
-        var dropJunction = npc.CurrentJunction;
-        if (dropJunction is null &&
-            world.Tiles.Items.TryGetValue(npc.Tile, out var deathTile) &&
+        // §60.2a lying-body invariant: the corpse rests at the tile CENTRE like
+        // every other body on the ground (coma/faint/sleep) — anchor it to the
+        // centre-most junction of the death tile, NOT the rim junction the NPC
+        // happened to die on (npc.CurrentJunction), which left corpses hanging
+        // off the hex edge. The corpse object renders at Junctions[0], so the
+        // anchor junction IS its visible position.
+        JunctionId? dropJunction = null;
+        if (world.Tiles.Items.TryGetValue(npc.Tile, out var deathTile) &&
             deathTile.Junctions.Count > 0)
         {
-            dropJunction = deathTile.Junctions[0];
+            var deathCentre = HexSpatialMath.TileToWorld(npc.Tile);
+            var bestDist = float.MaxValue;
+            foreach (var jId in deathTile.Junctions)
+            {
+                if (!world.Junctions.Items.TryGetValue(jId, out var j) || j.Blocked)
+                {
+                    continue;
+                }
+
+                var d = HexSpatialMath.Distance(j.WorldPosition, deathCentre);
+                if (d < bestDist)
+                {
+                    bestDist = d;
+                    dropJunction = jId;
+                }
+            }
+
+            dropJunction ??= deathTile.Junctions[0];
         }
+
+        dropJunction ??= npc.CurrentJunction;
 
         foreach (var item in npc.WornItems)
         {

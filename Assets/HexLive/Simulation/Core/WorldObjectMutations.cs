@@ -98,11 +98,24 @@ public static class WorldObjectMutations
             return;
         }
 
-        // §54.9A: a build-site claims the footprint of the piece it will
-        // BECOME — the site's rails must not thread through boulders, and no
-        // later placement may land across the growing bed. At SpawnObject time
-        // BuildProduct is still empty (the staker sets it right after), so the
-        // staker re-invokes this once the product is known.
+        // §54.9A (revised): a build-site used to pre-claim the full physical
+        // footprint of the piece it will BECOME. But a large footprint (the
+        // 1.39-wu leaf bed) blocks not just the site's tile but its whole
+        // approach ring — so ReachableBeside fails and the builder can never
+        // walk up to deposit/raise it (0 deliveries; the bed is unbuildable on
+        // any tight fireside). A site is still just an intent marker, not a
+        // solid object, so while it is ASSEMBLING (DefinitionId "build.site")
+        // it does NOT obstacle-block; it stays walkable. Overlap is already
+        // prevented without the block: furniture sites stake ONE AT A TIME
+        // (bedSitesInProgress/rackSitesInProgress gates), TileHoldsStructure
+        // reserves the tile, and the RAISED piece claims the real footprint via
+        // its own SpawnObject. Only that finished piece (bed.leaf, campfire…)
+        // swaps in the product footprint below.
+        if (worldObject.DefinitionId == "build.site")
+        {
+            return;
+        }
+
         if (!string.IsNullOrEmpty(worldObject.BuildProduct) &&
             world.Content.ObjectDefinitions.TryGetValue(worldObject.BuildProduct, out var productDefinition))
         {

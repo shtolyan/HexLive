@@ -7,6 +7,13 @@ public sealed class NPCMind
 {
     public GoalType CurrentGoal { get; set; } = GoalType.None;
 
+    // Spec §64: the dream this NPC currently aspires to — the first entry in the
+    // colony dream queue she hasn't personally fulfilled (campfire is fulfilled
+    // for everyone at once; a bed is fulfilled per-NPC). Written each Slow tick
+    // by DreamSystem, surfaced in the character panel. DERIVED display state —
+    // recomputed on load, so it need not be serialized.
+    public DreamType CurrentDream { get; set; } = DreamType.Campfire;
+
     // Emergency appraisal (spec 23.17): hysteresis 0.85 enter / 0.60 clear.
     public bool IsStarving { get; set; }
 
@@ -92,6 +99,15 @@ public sealed class NPCMind
     public float SicknessDamageRemaining { get; set; }
 
     public GoalLock? GoalLock { get; set; }
+
+    // §40.6: garments doffed at the shore for a bathe. After washing her body
+    // she walks back to RedressShore and puts these EXACT ground pieces back
+    // on — the same clothes she took off. Holds the dropped pile's object ids
+    // (stale/taken pieces are skipped); RedressShore is the junction to return
+    // to. Both cleared once she is dressed again (or the pile is gone).
+    public List<HexLive.Simulation.Common.ObjectId> RedressGarments { get; } = new();
+
+    public HexLive.Simulation.Common.JunctionId? RedressShore { get; set; }
 
     public List<GoalCooldown> Cooldowns { get; } = new();
 

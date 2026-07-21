@@ -28,6 +28,34 @@ public sealed class BedSiteSystem : ISimulationSystem
 
     public void Run(WorldState world)
     {
+        // §bed-placement fix: sweep orphaned furniture build-sites. A
+        // "build.site" with an EMPTY BuildProduct is degenerate cruft (legacy
+        // saves — no current path stakes one without a product). They aren't
+        // real sites (IsSite=false), yet TileHoldsStructure still counts them,
+        // so they squat on the fireside ring and shove a real bed onto a cramped
+        // edge tile whose 1.39-wu footprint seals its own approach (0 deliveries
+        // ever). Clearing them frees FindFiresideSpot to stake on a good ring-1
+        // tile. Runs each slow tick; self-heals and stays a no-op once clean.
+        System.Collections.Generic.List<ObjectId> orphanSites = null;
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (obj.DefinitionId == "build.site" && string.IsNullOrEmpty(obj.BuildProduct))
+            {
+                (orphanSites ??= new System.Collections.Generic.List<ObjectId>()).Add(obj.Id);
+            }
+        }
+
+        if (orphanSites != null)
+        {
+            foreach (var id in orphanSites)
+            {
+                WorldObjectMutations.DespawnObject(world, id);
+            }
+
+            Trace.EmitSystem(world, "OrphanSitesCleared",
+                $"removed {orphanSites.Count} product-less build.site(s) squatting the fireside ring");
+        }
+
         var livingGirls = 0;
         foreach (var npc in world.Entities.Npcs.Values)
         {
@@ -49,6 +77,15 @@ public sealed class BedSiteSystem : ISimulationSystem
         var racks = 0;
         var rackSitesInProgress = 0;
         WorldObjectState hearth = null;
+        // §64: per-colonist bed ownership (personal beds). Who already owns a bed
+        // (any / a premium one), who has one under construction, and any finished
+        // bed left ownerless (a reclaimed bed, or the hut's free bed.basic) that a
+        // bedless colonist can simply claim instead of building anew.
+        var ownedAnyBed = new System.Collections.Generic.HashSet<EntityId>();
+        var ownedBasicBed = new System.Collections.Generic.HashSet<EntityId>();
+        var siteOwners = new System.Collections.Generic.HashSet<EntityId>();
+        var siteBasicOwners = new System.Collections.Generic.HashSet<EntityId>();
+        WorldObjectState ownerlessBed = null;
         foreach (var obj in world.Entities.Objects.Values)
         {
             // §54.14: an in-place upgrading piece (the stage-1+ campfire) keeps
@@ -62,6 +99,14 @@ public sealed class BedSiteSystem : ISimulationSystem
                 if (obj.BuildProduct is "bed.leaf" or "bed.basic")
                 {
                     bedSitesInProgress++;
+                    if (obj.Owner is { } siteOwner)
+                    {
+                        siteOwners.Add(siteOwner);
+                        if (obj.BuildProduct == "bed.basic")
+                        {
+                            siteBasicOwners.Add(siteOwner);
+                        }
+                    }
                 }
                 else if (obj.BuildProduct == "station.drying_rack")
                 {
@@ -87,6 +132,19 @@ public sealed class BedSiteSystem : ISimulationSystem
                 if (obj.DefinitionId == "bed.basic")
                 {
                     basicBeds++;
+                }
+
+                if (obj.Owner is { } bedOwner)
+                {
+                    ownedAnyBed.Add(bedOwner);
+                    if (obj.DefinitionId == "bed.basic")
+                    {
+                        ownedBasicBed.Add(bedOwner);
+                    }
+                }
+                else if (ownerlessBed is null)
+                {
+                    ownerlessBed = obj;
                 }
             }
             else if (hearth is null && def.Tags.Contains("Campfire"))
@@ -116,6 +174,61 @@ public sealed class BedSiteSystem : ISimulationSystem
             }
         }
 
+        // §64: beds are PERSONAL. Each colonist wants her own; the dream drives
+        // the staking, one bed at a time, until every living colonist owns one.
+        if (SpecDream.Enabled)
+        {
+            // Beds wait for the colony's first dream — a fire — to be fulfilled.
+            // (Today a bed could stake at a cold hearth; the dream holds it until
+            // the hearth is actually lit, per SpecDream.CampfireRequiresLit.)
+            if (!world.CampfireDreamDone)
+            {
+                return;
+            }
+
+            // Reuse before rebuild: hand any ownerless finished bed (a reclaimed
+            // one, or the hut's free bed.basic) to a colonist who has none.
+            if (ownerlessBed is not null)
+            {
+                var claimant = FirstLiving(world,
+                    id => !ownedAnyBed.Contains(id) && !siteOwners.Contains(id));
+                if (claimant is not null)
+                {
+                    ownerlessBed.Owner = claimant.Id;
+                    Trace.EmitSystem(world, "BedClaimed",
+                        $"{ownerlessBed.DefinitionId} {ownerlessBed.Id.Value} claimed by colonist {claimant.Id.Value}");
+                    return;
+                }
+            }
+
+            if (hearth is null || bedSitesInProgress > 0)
+            {
+                return;
+            }
+
+            // First tier: a leaf mat for anyone with no bed at all. Second tier
+            // (§54.12): once everyone owns a bed, premium bedrolls (bed.basic) for
+            // those without one — same owner-per-colonist rule.
+            var owner = FirstLiving(world,
+                id => !ownedAnyBed.Contains(id) && !siteOwners.Contains(id));
+            var dreamProduct = "bed.leaf";
+            if (owner is null && SimBalance.BedBasicEnabled)
+            {
+                owner = FirstLiving(world,
+                    id => !ownedBasicBed.Contains(id) && !siteBasicOwners.Contains(id));
+                dreamProduct = "bed.basic";
+            }
+
+            if (owner is null)
+            {
+                return; // everyone has their own bed — the dream is fulfilled
+            }
+
+            StakeBed(world, hearth, dreamProduct, owner.Id);
+            return;
+        }
+
+        // --- Pre-§64 baseline (SpecDream disabled): aggregate count path.
         // Fire first (a lit hearth, not the cold pit-site). One bed at a time.
         // Cap at one bed per living girl. §54.12: once every girl sleeps on
         // SOMETHING, the colony moves to the second bed tier — premium
@@ -132,6 +245,14 @@ public sealed class BedSiteSystem : ISimulationSystem
             return;
         }
 
+        StakeBed(world, hearth, product, null);
+    }
+
+    // §54.9A / §64: stake ONE bed build-site by the hearth, optionally stamped
+    // with the colonist it belongs to (null = shared). Owner rides onto the
+    // finished bed when it is raised (ExecutionSystem.ApplyFurnitureSite).
+    private static void StakeBed(WorldState world, WorldObjectState hearth, string product, EntityId? owner)
+    {
         var spot = FindFiresideSpot(world, hearth, product);
         if (spot is not { } placement)
         {
@@ -141,6 +262,7 @@ public sealed class BedSiteSystem : ISimulationSystem
         var site = WorldObjectMutations.SpawnObject(
             world, "build.site", new FragmentId(1), placement.Tile, placement.Junction);
         site.BuildProduct = product;
+        site.Owner = owner;
         // §54.9A: the site now knows what it will become — claim the finished
         // bed's physical footprint so nothing else is placed across the frame.
         WorldObjectMutations.SetObstacleBlocking(world, site, blocked: true);
@@ -160,7 +282,22 @@ public sealed class BedSiteSystem : ISimulationSystem
 
         RememberSiteForColony(world, site);
         Trace.EmitSystem(world, "BedSitePlaced",
-            $"{product} site staked by the hearth ({beds}/{livingGirls} beds, {basicBeds} premium)");
+            $"{product} site staked by the hearth" +
+            (owner is { } o ? $" for colonist {o.Value}" : string.Empty));
+    }
+
+    // First living colonist matching a predicate on her id (bed-target picking).
+    private static NPCState FirstLiving(WorldState world, System.Func<EntityId, bool> predicate)
+    {
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            if (npc.Health > 0f && predicate(npc.Id))
+            {
+                return npc;
+            }
+        }
+
+        return null;
     }
 
     private static void RememberSiteForColony(WorldState world, WorldObjectState site)

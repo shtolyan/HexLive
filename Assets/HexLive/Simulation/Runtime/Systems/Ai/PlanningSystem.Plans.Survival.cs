@@ -497,7 +497,8 @@ public sealed partial class PlanningSystem
             }
         }
 
-        return world.RaftProgress < WorldState.RaftTarget &&
+        return SimBalance.RaftEnabled &&
+            world.RaftProgress < WorldState.RaftTarget &&
             DecisionSystem.HasReachableWithTag(npc, world, "Raft");
     }
 }

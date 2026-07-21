@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: HexTuningConfig
   m_EditorClassIdentifier: 
   hopSeconds: 2
-  downHopSeconds: 2
+  downHopSeconds: 1
   hopTakeoffSeconds: 0.6
   hopLandingSeconds: 0.5
   hopEdgePadding: 0.1
@@ -24,6 +24,7 @@ MonoBehaviour:
   swimSpeedFactor: 0.6
   ledgeSeatLift: -0.344
   ledgeSeatBack: 0.2
+  waterShoreLevel: 1
   waterSurfaceDrop: 0.1
   sinkDepth: 0.6
   wadeDepth: 0.2

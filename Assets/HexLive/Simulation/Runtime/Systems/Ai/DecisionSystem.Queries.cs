@@ -720,6 +720,26 @@ public sealed partial class DecisionSystem
         return best;
     }
 
+    // §52.7: does the NPC know a reachable garment that would ACTUALLY warm her
+    // — a clamp-aware marginal gain of ≥ DressWarmthGainMin over what she wears
+    // now? Gates the cold-driven Dress bid (DecisionSystem) so she never even
+    // sets out for an identical/worse shirt, or reaches for cloth once already
+    // bundled to the warmth cap. Perception-scoped, mirroring KnowsReachableArmor.
+    internal static bool KnowsReachableWarmthUpgrade(NPCState npc, WorldState world)
+    {
+        foreach (var obj in npc.Perception.Objects)
+        {
+            if (obj.IsReachable && ObjectUsableBy(obj, npc.Id) &&
+                EquipmentMath.WarmthGainFromWearing(world, npc, obj.DefinitionId) >=
+                    SimBalance.DressWarmthGainMin)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     // Spec 27.18A foraging: food can also be sought at a known producer
     // (an apple tree), even when no food item itself is known.
     internal static bool KnowsReachableProducer(NPCState npc, WorldState world)

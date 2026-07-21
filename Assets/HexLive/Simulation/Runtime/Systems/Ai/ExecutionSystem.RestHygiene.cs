@@ -100,6 +100,12 @@ public sealed partial class ExecutionSystem
                 if (kind == InteractionType.Sleep)
                 {
                     ClaimLyingFootprint(world, npc, spot);
+                    // §29G: the sleeping body lies at the hex CENTRE, not the
+                    // reserved rim junction the planner picked — "nearest FREE
+                    // junction to centre" sits well off-centre once a footprint
+                    // covers the middle, so the sleeper used to hang over the
+                    // tile edge. One invariant, shared with the collapse paths.
+                    LieDownCentered(npc);
                 }
             }
 
@@ -119,7 +125,8 @@ public sealed partial class ExecutionSystem
         npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort + comfort * restShare);
         npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy + energy * restShare);
 
-        var interruptedSleep = kind == InteractionType.Sleep && HasSleepInterrupt(world, npc);
+        var interruptedSleep = kind == InteractionType.Sleep &&
+            HasSleepInterrupt(world, npc, alreadyAsleep: true);
         if (!interruptedSleep && npc.Execution.EndTick - world.Tick > 0)
         {
             return;
@@ -223,7 +230,9 @@ public sealed partial class ExecutionSystem
         // discomfort she usually can't fix, so waking her only produced the
         // "empty get-up" churn; the cold HP hit lands whether she's up or lying,
         // and lying still conserves. (A fire she could tend is a daytime chore.)
-        if (HasSleepInterrupt(world, npc))
+        // §65: already asleep → she sleeps THROUGH moderate hunger/thirst until
+        // rested, only waking for a real (starving/dehydrated) or dangerous need.
+        if (HasSleepInterrupt(world, npc, alreadyAsleep: true))
         {
             return false;
         }
@@ -239,11 +248,71 @@ public sealed partial class ExecutionSystem
     // interrupt condition is already true produced the lie-down/stand-up loop
     // (Molly, thirst 0.79 ≥ 0.6: the first sleep tick woke her, the auction
     // put her right back to bed, forever).
-    internal static bool HasSleepInterrupt(WorldState world, NPCState npc) =>
-        world.Tick < npc.Mind.AdrenalineUntilTick ||
-        npc.Memory.Dangers.Count > 0 ||
-        npc.Needs.Hunger >= SleepInterruptHunger ||
-        npc.Needs.Thirst >= SleepInterruptThirst;
+    internal static bool HasSleepInterrupt(WorldState world, NPCState npc, bool alreadyAsleep = false)
+    {
+        // A live threat always ends (or forbids) sleep — never bed down next to
+        // a mob, and a fresh scare (adrenaline) keeps her on her feet. §65: by
+        // default ANY remembered danger blocks (HasRecentDanger with the window
+        // OFF); the optional recency window (SleepDangerRecencyTicks > 0) would
+        // let a stale memory age out, but it ships off — see the knob's note.
+        if (world.Tick < npc.Mind.AdrenalineUntilTick || HasRecentDanger(world, npc))
+        {
+            return true;
+        }
+
+        // §65: a dead-tired body tolerates MODERATE hunger/thirst rather than
+        // being blocked from sleep and grinding to a work-site collapse — the
+        // wake ceiling climbs from the normal line to the starving/dehydrated
+        // line as she tires. She only bids sleep OVER eating when truly spent
+        // (Energy < DeadTiredEnergy); once asleep she sleeps THROUGH to rested
+        // (Energy < the day wake line) so there is no nap→eat→nap flutter. The
+        // cap is the starving line, NOT unbounded: a spent body must still WAKE
+        // to eat/drink before hunger/thirst can kill it — a soak with the cap
+        // removed let a besieged girl sleep her needs to 1.0 and die (seed 42
+        // d7). A reachable meal also still outbids sleep (Eat/Drink carry the
+        // StarvingBoost), so this only smooths the moderate band. Danger/
+        // adrenaline (above) still forbid lying down.
+        var hungerCeiling = SleepInterruptHunger;
+        var thirstCeiling = SleepInterruptThirst;
+        if (Spec49.DeadTiredSeek)
+        {
+            var tiredLine = alreadyAsleep ? SimBalance.SleepEnergyThreshold : Spec49.DeadTiredEnergy;
+            if (npc.Needs.Energy < tiredLine)
+            {
+                hungerCeiling = System.Math.Max(hungerCeiling, SimBalance.StarvingEnterThreshold);
+                thirstCeiling = System.Math.Max(thirstCeiling, SimBalance.StarvingEnterThreshold);
+            }
+        }
+
+        return npc.Needs.Hunger >= hungerCeiling || npc.Needs.Thirst >= thirstCeiling;
+    }
+
+    // §65: does the girl have a RECENT-enough danger to forbid sleep? The danger
+    // memory itself lingers a full day (DecisionSystem prune) so pathing/flee/
+    // arm-up keep steering clear of where the wolf prowled — but for SLEEP only
+    // a fresh sighting should keep her up. An actively-perceived wolf re-stamps
+    // its danger tile every sighting (MobSystem.RememberDangerAt), so it stays
+    // inside the window and still blocks; a wolf that wandered off ages out and
+    // she can finally rest at the fire. SleepDangerRecencyTicks <= 0 restores
+    // the legacy "any remembered danger blocks sleep".
+    private static bool HasRecentDanger(WorldState world, NPCState npc)
+    {
+        var window = Spec49.SleepDangerRecencyTicks;
+        if (window <= 0)
+        {
+            return npc.Memory.Dangers.Count > 0;
+        }
+
+        foreach (var danger in npc.Memory.Dangers)
+        {
+            if (world.Tick - danger.Tick <= window)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     // Spec 35.4: dwell in the shade / shallows shedding heat. This is the
     // cool-off twin of RunGroundRest — a timed in-place interaction with no
@@ -352,6 +421,10 @@ public sealed partial class ExecutionSystem
             return;
         }
 
+        // §40.6: remember where she is undressing so she can come back for the
+        // pile after her swim (the list is filled as each piece drops below).
+        npc.Mind.RedressShore = shore;
+
         if (npc.Execution.Status == ExecutionStatus.InProgress &&
             npc.Execution.CurrentInteraction == InteractionType.Undress)
         {
@@ -390,7 +463,14 @@ public sealed partial class ExecutionSystem
             }
 
             npc.WornItems.Remove(garment);
-            DropGarmentWithContents(world, npc, garment);
+            var doffed = DropGarmentWithContents(world, npc, garment);
+            // §40.6: remember this exact ground piece so she re-dons it after
+            // the swim (the same clothes she took off, not just any garment).
+            if (doffed != null)
+            {
+                npc.Mind.RedressGarments.Add(doffed.Id);
+            }
+
             npc.Execution.HeldGarment = null;
             npc.Execution.Status = ExecutionStatus.None;
             npc.Execution.CurrentInteraction = null;
@@ -486,7 +566,131 @@ public sealed partial class ExecutionSystem
         }
 
         npc.Needs.Hygiene = 1f;
+
+        // §40.6: she came out of the water naked — walk back to the shore pile
+        // and put the same clothes back on. Only falls through to a plain
+        // finish when there is nothing left to reclaim.
+        if (TryBeginPostBatheRedress(world, npc, target))
+        {
+            return;
+        }
+
         FinishPersonalCare(world, npc, target, GoalType.Bathe, "Bathed");
+    }
+
+    // §40.6: after bathing, retarget the plan to walk back to the shore where
+    // she left her clothes and re-dress. Returns false (caller finishes normally)
+    // when the pile is gone/empty or the shore junction is unknown.
+    private static bool TryBeginPostBatheRedress(WorldState world, NPCState npc, JunctionId batheJunction)
+    {
+        // Forget pieces that no longer exist (taken by someone, despawned).
+        npc.Mind.RedressGarments.RemoveAll(id => !world.Entities.Objects.ContainsKey(id));
+        if (npc.Mind.RedressGarments.Count == 0 || npc.Mind.RedressShore is not { } shore)
+        {
+            npc.Mind.RedressShore = null;
+            return false;
+        }
+
+        SpatialMutations.FreeJunction(world, batheJunction, npc.Id);
+        npc.Execution.Status = ExecutionStatus.None;
+        npc.Execution.CurrentInteraction = null;
+        npc.Execution.StartTick = 0;
+        npc.Execution.EndTick = 0;
+
+        npc.Plan.Steps.Clear();
+        npc.Plan.TargetObjectId = null;
+        npc.Plan.TargetJunctionId = shore;
+        npc.Plan.TargetTile = null;
+        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.MoveToJunction, TargetJunction = shore });
+        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.RedressAfterBathe, TargetJunction = shore });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Movement.JunctionPath.Clear();
+        npc.Movement.PathIndex = 0;
+        npc.Movement.IsMoving = false;
+        Trace.Emit(world, npc.Id, "PostBatheRedress",
+            $"Returning to {shore.Value} for {npc.Mind.RedressGarments.Count} garments");
+        return true;
+    }
+
+    // §40.6: back at the shore pile — play a short dressing beat, then put every
+    // still-present remembered garment back on (the same clothes she took off).
+    private static void RunRedressAfterBathe(WorldState world, NPCState npc, PlanStep step)
+    {
+        // Can't get back to the pile (someone took the spot, route blocked):
+        // give up the guided return — she is naked, so the ordinary Dress goal
+        // takes over and re-dresses her from the nearest garment (her pile).
+        if (!npc.Movement.IsMoving &&
+            npc.Movement.Status == MovementStatus.Blocked &&
+            (npc.CurrentJunction is not { } atShore || step.TargetJunction is not { } wantShore ||
+             !atShore.Equals(wantShore)))
+        {
+            npc.Mind.RedressGarments.Clear();
+            npc.Mind.RedressShore = null;
+            PlanInterruption.Abort(world, npc, "PostBatheRedress: shore unreachable");
+            npc.Mind.CurrentGoal = GoalType.None;
+            return;
+        }
+
+        if (npc.Movement.IsMoving || npc.CurrentJunction is not { } current ||
+            step.TargetJunction is not { } shore || !current.Equals(shore))
+        {
+            return;
+        }
+
+        if (npc.Execution.Status == ExecutionStatus.None)
+        {
+            npc.Execution.Status = ExecutionStatus.InProgress;
+            npc.Execution.CurrentInteraction = InteractionType.Dress;
+            npc.Execution.StartTick = world.Tick;
+            npc.Execution.EndTick = world.Tick + UndressDurationTicks;
+            return;
+        }
+
+        if (world.Tick < npc.Execution.EndTick)
+        {
+            return;
+        }
+
+        var reworn = 0;
+        foreach (var id in npc.Mind.RedressGarments)
+        {
+            if (!world.Entities.Objects.TryGetValue(id, out var garment) ||
+                !world.Content.ObjectDefinitions.TryGetValue(garment.DefinitionId, out var def) ||
+                def.Layer is null)
+            {
+                continue;
+            }
+
+            // She is naked out of the water, so there is normally no conflict;
+            // ResolveWearConflicts stays as the belt-and-braces layer guard.
+            ResolveWearConflicts(world, npc, garment.DefinitionId);
+            npc.WornItems.Add(new ItemInstance(garment.DefinitionId)
+            {
+                Wetness = garment.Wetness,
+                Durability = garment.Durability,
+                Dirtiness = garment.Dirtiness,
+                Bloodiness = garment.Bloodiness
+            });
+            _dressPourScratch.Clear();
+            _dressPourScratch.AddRange(garment.Contents);
+            garment.Contents.Clear();
+            WorldObjectMutations.DespawnObject(world, id);
+            EquipmentMath.Recalculate(world, npc);
+            foreach (var stashed in _dressPourScratch)
+            {
+                GiveOrDrop(world, npc, stashed);
+            }
+
+            DropDisplacedGarments(world, npc);
+            reworn++;
+        }
+
+        npc.Mind.RedressGarments.Clear();
+        npc.Mind.RedressShore = null;
+        Trace.Emit(world, npc.Id, "PostBatheDressed",
+            $"Re-donned {reworn} garments Warmth={npc.EquippedWarmth:F2}");
+        FinishPersonalCare(world, npc, shore, GoalType.Bathe, "Bathed");
     }
 
     // §40.6 r2 (laundry-in-hand): the piece is washed IN THE HAND, never in
@@ -633,6 +837,22 @@ public sealed partial class ExecutionSystem
         held.Dirtiness = 0f;
         held.Bloodiness = 0f;
         held.Wetness = 1f;
+
+        // §40.6: put the freshly-washed piece straight back ON — she is holding
+        // it and (for the worn source) its slot is now empty, so she re-dresses
+        // instead of dumping clean laundry on the sand. If the slot is taken
+        // (she washed some OTHER ground garment while already dressed there),
+        // fall back to laying it at her feet.
+        SpatialMutations.FreeJunction(world, target, npc.Id);
+        if (TryDonHeldGarment(world, npc, held, npc.Execution.HeldGarmentContents))
+        {
+            npc.Execution.HeldGarmentContents.Clear();
+            npc.Execution.HeldGarment = null;
+            FinishPersonalCare(world, npc, step.TargetJunction, GoalType.WashClothes,
+                "ClothesWashed", $"{held.DefinitionId} (re-dressed)");
+            return;
+        }
+
         var laid = DropItemAtFeet(world, npc, held);
         if (laid != null && npc.Execution.HeldGarmentContents.Count > 0)
         {
@@ -641,12 +861,65 @@ public sealed partial class ExecutionSystem
 
         npc.Execution.HeldGarmentContents.Clear();
         npc.Execution.HeldGarment = null;
-        SpatialMutations.FreeJunction(world, target, npc.Id);
         // Jul 2026: the TYPE must stay the constant "ClothesWashed" — the
         // garment id used to be interpolated into it, so every wash produced
         // a unique event type that no whitelist/counter could match.
         FinishPersonalCare(world, npc, step.TargetJunction, GoalType.WashClothes,
             "ClothesWashed", $"{held.DefinitionId} (fully wet)");
+    }
+
+    // §40.6: don a garment held in hand IF its (layer, body-part) slot is free.
+    // Returns false — leaving the piece in hand for the caller to drop — when
+    // wearing it would force stripping a currently-worn garment (never strip
+    // yourself to put on laundry). Pocket contents pour back into the pack.
+    private static bool TryDonHeldGarment(WorldState world, NPCState npc, ItemInstance held,
+        System.Collections.Generic.List<ItemInstance> contents)
+    {
+        if (!world.Content.ObjectDefinitions.TryGetValue(held.DefinitionId, out var def) ||
+            def.Layer is null || HasWearConflict(world, npc, def))
+        {
+            return false;
+        }
+
+        npc.WornItems.Add(held);
+        EquipmentMath.Recalculate(world, npc);
+        if (contents != null)
+        {
+            foreach (var stashed in contents)
+            {
+                GiveOrDrop(world, npc, stashed);
+            }
+        }
+
+        Trace.Emit(world, npc.Id, "ItemWorn",
+            $"Def={held.DefinitionId} (re-dressed) Worn=[{string.Join(",", npc.WornItems)}] " +
+            $"Warmth={npc.EquippedWarmth:F2} Armor={npc.EquippedArmor:F2}");
+        return true;
+    }
+
+    // Would wearing newDef displace an already-worn piece? (same layer +
+    // overlapping covered part). Non-destructive — unlike ResolveWearConflicts.
+    private static bool HasWearConflict(WorldState world, NPCState npc,
+        HexLive.Simulation.Content.ObjectDefinition newDef)
+    {
+        foreach (var wornId in npc.WornItems)
+        {
+            if (!world.Content.ObjectDefinitions.TryGetValue(wornId, out var wornDef) ||
+                wornDef.Layer != newDef.Layer)
+            {
+                continue;
+            }
+
+            foreach (var part in newDef.Covers)
+            {
+                if (wornDef.Covers.Contains(part))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     // §40.6 r2: lift a ground garment into the washer's hand — the world

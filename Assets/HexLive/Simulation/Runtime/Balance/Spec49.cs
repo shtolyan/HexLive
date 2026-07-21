@@ -67,6 +67,42 @@ public static class Spec49
     public static float SleepSpotFireWeight = 1.5f;
     public static float SleepSpotShadeWeight = 1.5f;
 
+    // §65: dead-tired → seek a proper fireside sleep BEFORE the body collapses.
+    // A body running on empty used to grind on until Energy hit zero and it
+    // simply switched off (§60 dead-tired coma) wherever it stood — often at
+    // the work site, out in dog country, cold. Once Energy falls under
+    // DeadTiredEnergy she DROPS the chore and beds down at the campfire spot
+    // (BuildGroundSleepPlan already anchors there) — the Sleep bid gets a
+    // decisive DeadTiredSleepBoost, and a spent body TOLERATES moderate
+    // hunger/thirst (up to the starving line) instead of being blocked by it.
+    // NOTE the real collapse driver was stale DANGER memory, not hunger — see
+    // SleepDangerRecencyTicks below; this energy-threshold seek is the smaller
+    // half of §65. The wake side sleeps THROUGH to rested
+    // (Energy >= SleepEnergyThreshold) but still wakes to eat at the starving
+    // line, so she can't sleep her needs to a death. Spec §65.
+    public static bool DeadTiredSeek = true;
+    public static float DeadTiredEnergy = 0.15f;      // below this: drop work, bed down
+    public static float DeadTiredSleepBoost = 0.30f;  // auction pull (cf. StarvingBoost 1.0)
+
+    // §65 (EXPERIMENTAL, default OFF): only a RECENTLY-seen threat forbids sleep.
+    // The soak found the #1 work-site-collapse cause is a STALE danger memory:
+    // a danger memory lingers a full day (DecisionSystem prune, 2400t) to steer
+    // pathing / flee / arm-up, and ~60% of faints were NPCs kept awake by a wolf
+    // that had wandered off ~a third of a day earlier (avg stale memory 875t old,
+    // no mob within 6 tiles). Letting them sleep once the coast has been clear
+    // for this many ticks slashes collapses (−45%) and more than doubles proper
+    // fireside bed-downs. BUT it is COMBAT-DESTABILISING: sleeping during a lull
+    // gets NPCs mauled by a returning wolf, and the death count is NON-MONOTONIC
+    // in the window (20-seed soak: 900t→0 deaths, 1100t→5, legacy→3) — a classic
+    // knife-edge-vs-dogs reshuffle (see spec §40 / dog-fragility notes). So it
+    // ships OFF (0 = legacy "any remembered danger blocks sleep"); enabling it
+    // needs a dedicated dog-balance re-soak to pick a window that is safe across
+    // seeds, not just lucky on one. An actively-perceived wolf re-stamps its
+    // danger tile every sighting (RememberDangerAt), so while it lingers the
+    // memory stays "recent" and still blocks — the risk is the wolf that returns
+    // AFTER the window lapses. Spec §65.
+    public static int SleepDangerRecencyTicks = 0;
+
     // Tier C: when only mildly thirsty, prefer to set up / drink BOILED water
     // rather than gamble on raw (which the fire being dead 90% of the time makes
     // the default). Only urgent thirst reaches for raw.

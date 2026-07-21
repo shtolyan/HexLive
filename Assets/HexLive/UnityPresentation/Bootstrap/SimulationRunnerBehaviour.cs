@@ -451,6 +451,7 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
         engine.Register(new FireSystem());
         engine.Register(new CorpseSystem());
         engine.Register(new MeatSpoilageSystem()); // §54: ground meat rots
+        engine.Register(new DreamSystem()); // §64: advances the colony dream queue (campfire → own bed); before BedSiteSystem
         engine.Register(new BedSiteSystem()); // §54.2: stakes progressive bed build-sites
         engine.Register(new HazardSystem()); // §50: prepared amputation hazards
     }

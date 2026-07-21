@@ -33,6 +33,18 @@ public sealed class MoistureSystem : ISimulationSystem
             var touchesWater = onWater || world.Environment.IsRaining && !indoor;
             var dryRate = DryBase * DryMultiplier(world, npc.Tile, indoor, rackBoost: false);
 
+            // Spec 35.5: the body soaks too — rain/water wet the skin directly,
+            // so a naked or near-naked survivor still reads as soaked even with
+            // no wet garment. Snap wet on exposure, dry gradually like an item.
+            if (touchesWater)
+            {
+                npc.BodyWetness = 1f;
+            }
+            else
+            {
+                npc.BodyWetness = System.MathF.Max(0f, npc.BodyWetness - dryRate);
+            }
+
             UpdateItems(world, npc, npc.WornItems, touchesWater, dryRate, worn: true);
             UpdateItems(world, npc, npc.Inventory.Items, touchesWater, dryRate, worn: false);
 

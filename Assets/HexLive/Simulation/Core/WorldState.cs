@@ -1,3 +1,4 @@
+using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Runtime;
@@ -110,6 +111,23 @@ public sealed class WorldState
 
     // Spec 35.3: the communal hut project (null once cleanup removes it).
     public BuildProject? Project { get; set; }
+
+    // Spec §64: the colony's ordered dream queue (campfire → own bed → …).
+    // Seeded lazily by DreamSystem from SpecDream.DefaultQueue, so fresh and
+    // loaded worlds both self-heal without touching the factory or serializer.
+    public System.Collections.Generic.List<DreamType> DreamQueue { get; } = new();
+
+    // Spec §64: monotonic latch — set the first tick a lit campfire is seen,
+    // never cleared. Deriving the campfire dream from the LIVE lit-state would
+    // flip the dream back every time a fire burns out; the latch is what keeps
+    // the colony's aspiration advancing. Serialized (a night reload with a dead
+    // fire must not re-activate the campfire dream).
+    public bool CampfireDreamDone { get; set; }
+
+    // Spec §64: the colony's current dream (first queue entry not colony-met),
+    // recomputed each Slow tick by DreamSystem. A plain field for cheap gate
+    // reads (BedSiteSystem, UI). DERIVED — not serialized; recomputed on load.
+    public DreamType ActiveDream { get; set; } = DreamType.Campfire;
 
     // Spec 29F.1: prey.
     public System.Collections.Generic.List<Wildlife.RabbitState> Rabbits { get; } = new();

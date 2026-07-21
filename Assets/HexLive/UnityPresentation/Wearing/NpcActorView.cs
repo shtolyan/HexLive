@@ -775,6 +775,12 @@ public sealed class NpcActorView : MonoBehaviour
         if (_bodyBones != null)
         {
             _bodyBones.Construct(_actorMesh);
+            // BodyBones.Construct wipes its worn-visual state; the worn-item
+            // cache must reset with it or a pooled/reused actor (or any
+            // re-Construct) starts thinking garments are equipped that no
+            // longer exist on the body — SyncWorn would then skip re-equipping
+            // and the girl stands nude while the sim still lists her clothes.
+            _equippedSimItems.Clear();
             // Right-arm bones for procedural action motion (all three actors
             // share the Genesis naming). Rotated in world space around the
             // body's right axis, so their local orientation doesn't matter.
@@ -1498,7 +1504,17 @@ public sealed class NpcActorView : MonoBehaviour
 
         foreach (var simId in wornDefinitionIds)
         {
-            if (_equippedSimItems.ContainsKey(simId))
+            // Trust BodyBones (the real render state), NOT just the cache. A
+            // cached item whose visuals BodyBones no longer holds — its wear
+            // state was wiped by a re-Construct, or an Equip that never
+            // stitched — is re-equipped here. Without this repair a view↔sim
+            // desync leaves the body stuck NUDE while the sim still lists the
+            // garment (panel shows "Надето", model is bare) until WornItems
+            // next changes. `count == 0` = a sim item with no visual prefab
+            // (e.g. a necklace): nothing to render, already in sync — skip so
+            // it never re-loads its (empty) visuals every frame.
+            if (_equippedSimItems.TryGetValue(simId, out var count) &&
+                (count == 0 || _bodyBones.IsEquipped($"{simId}#0")))
             {
                 continue;
             }
@@ -1506,7 +1522,7 @@ public sealed class NpcActorView : MonoBehaviour
             var prefabs = ActorWardrobe.GetVisuals(simId);
             for (var i = 0; i < prefabs.Count; i++)
             {
-                _bodyBones.Equip($"{simId}#{i}", prefabs[i]);
+                _bodyBones.Equip($"{simId}#{i}", prefabs[i]); // no-op if already on the body
             }
 
             _equippedSimItems[simId] = prefabs.Count;
@@ -2109,13 +2125,20 @@ public sealed class NpcActorView : MonoBehaviour
     // stepsUp = how many steps her butt must rise to reach the seat surface;
     // 0 = she's already on the higher tile (a land/water rim), so NO lift —
     // she sits right on her own edge instead of floating above it.
-    public void SetLedgeSit(bool ledgeSit, int stepsUp = 1)
+    public void SetLedgeSit(bool ledgeSit, int stepsUp = 1, bool washAtShore = false)
     {
         _ledgeSit = ledgeSit;
         _ledgeSeatStepsUp = stepsUp;
+        _washAtShore = washAtShore;
     }
 
     private int _ledgeSeatStepsUp = 1;
+    // §40.6: shore washing stands at the BANK (water now laps just below it) —
+    // NOT the sit-on-rim dangle (LedgeSeatLift is negative, tuned to swing the
+    // feet over the old low water and would sink the washer into the raised
+    // sea). Kept as its own knob so the crouch height can be tuned apart.
+    private bool _washAtShore;
+    public static float WashSeatLift = 0f;
 
     private static ActionKind ActionFromInteraction(string interaction, string heldItemId)
     {
@@ -2766,16 +2789,23 @@ public sealed class NpcActorView : MonoBehaviour
     // URP _BaseColor the property block is a harmless no-op.
     public void SetSkinWeathering(float tanLevel, float sunburn, float hurt = 0f, float hygiene = 1f)
     {
-        // Spec 40.7: tanning goes THROUGH red — pale skin first flushes like a
-        // fresh burn (the retired low-HP red, reused: it read exactly like
-        // "just caught the sun"), then the red deepens into the brown. Full
-        // tan is a deep brown — multiplies the skin texture, so at TanLevel 1
-        // the skin goes markedly dark, not just a light bronze.
+        // Spec 40.7: tanning eases IN — pale skin warms gently at the low end,
+        // then deepens toward a MID warm-brown at full tan. Two things changed
+        // on user note ("они слишком чёрные, и по низу пусть дольше/слабее"):
+        //   • the low end is softer and slower — the warm phase now needs tan
+        //     up to 0.5 (was 0.35) to fully arrive, so a fresh tan barely reads;
+        //   • the full-tan target is much LIGHTER (was 0.40,0.27,0.18 ≈ near
+        //     black on skin) so a maxed tan reads "bronzed/weathered", not dark.
         var tan = Mathf.Clamp01(tanLevel);
-        var redPhase = Mathf.Clamp01(tan / 0.35f);
-        var brownPhase = Mathf.Clamp01((tan - 0.35f) / 0.65f);
-        var tint = Color.Lerp(Color.white, new Color(0.79f, 0.55f, 0.57f), redPhase);
-        tint = Color.Lerp(tint, new Color(0.40f, 0.27f, 0.18f), brownPhase);
+        var redPhase = Mathf.Clamp01(tan / 0.5f);
+        var brownPhase = Mathf.Clamp01((tan - 0.5f) / 0.5f);
+        var tint = Color.Lerp(Color.white, new Color(0.90f, 0.75f, 0.66f), redPhase);
+        tint = Color.Lerp(tint, new Color(0.66f, 0.50f, 0.38f), brownPhase);
+        // Overall tan DARKNESS knob — CharacterBalance.asset (tanStrength) →
+        // SimBalance.TanStrength. Scales the whole tan back toward bare skin, so
+        // темноту можно крутить из конфига без пересборки (1 = как выше, 0 = без
+        // загара). Sunburn/grime ниже идут отдельно, на полную силу.
+        tint = Color.Lerp(Color.white, tint, Mathf.Clamp01(SimBalance.TanStrength));
         tint = Color.Lerp(tint, new Color(0.95f, 0.50f, 0.42f), Mathf.Clamp01(sunburn) * 0.75f);
         // Spec 40.6: grime — the filthier the skin (low hygiene), the more it
         // muddies toward a dull earthy brown. Applied before the injury flush so
@@ -2790,8 +2820,17 @@ public sealed class NpcActorView : MonoBehaviour
         SkinTint = tint;
         // Spec 40.8: a badly hurt body flushes bruised red-purple. First-pass
         // whole-body tint (per-zone wound decals need texture work); driven by
-        // 1 - Health so it only shows when genuinely wounded.
+        // 1 - Health so it only shows when genuinely wounded. (hurt is 0 in the
+        // live path — the flush was retired — so tint == SkinTint here.)
         tint = Color.Lerp(tint, new Color(0.62f, 0.24f, 0.28f), Mathf.Clamp01(hurt) * 0.6f);
+
+        // Spec 40.7 (user fix): wounds and bandages must NOT be tinted by the
+        // tan. The painter bakes this same skin tone into the BASE layer of
+        // the paint target, UNDER the wound/bandage stamps — so on any slot it
+        // is actively painting, the tan lives in the texture and we pin
+        // _BaseColor white below (painting it twice would re-darken the marks).
+        // Un-painted skin keeps the cheap _BaseColor tint — no extra RT cost.
+        _skinPainter?.SetSkinTone(SkinTint);
 
         if (_skinTintTargets.Count == 0)
         {
@@ -2807,8 +2846,15 @@ public sealed class NpcActorView : MonoBehaviour
                 continue;
             }
 
+            // Slots the painter is currently drawing marks into already carry
+            // the tan baked into their texture — tint them white so it isn't
+            // multiplied in a second time; elsewhere the _BaseColor multiply IS
+            // the tan (mirrors the gloss-map pin in SetBodyCondition).
+            var painted = _skinPainter != null &&
+                          ReferenceEquals(renderer, _skinPainter.Body) &&
+                          _skinPainter.SlotHasAlbedoPaint(index);
             renderer.GetPropertyBlock(_skinMpb, index);
-            _skinMpb.SetColor(BaseColorId, tint);
+            _skinMpb.SetColor(BaseColorId, painted ? Color.white : tint);
             renderer.SetPropertyBlock(_skinMpb, index);
         }
     }
@@ -3261,10 +3307,17 @@ public sealed class NpcActorView : MonoBehaviour
                 // perches UP onto a taller ledge from below (stepsUp>0), tucked
                 // back against the edge (local -Z = toward the high tile).
                 var rest = _ledgeSit
-                    ? new Vector3(
-                        0f,
-                        LedgeSeatLift + LedgeSeatPerStep * _ledgeSeatStepsUp,
-                        -LedgeSeatBack)
+                    ? _washAtShore
+                        // §40.6 shore wash: sit at the bank (no rim-dangle, no
+                        // back-tuck) — she crouches at the raised waterline.
+                        ? new Vector3(
+                            0f,
+                            WashSeatLift + LedgeSeatPerStep * _ledgeSeatStepsUp,
+                            0f)
+                        : new Vector3(
+                            0f,
+                            LedgeSeatLift + LedgeSeatPerStep * _ledgeSeatStepsUp,
+                            -LedgeSeatBack)
                     : Vector3.zero;
                 // §21.21B hex-step jump: the ballistic trajectory rides this
                 // local offset (world delta -> local handles root rotation

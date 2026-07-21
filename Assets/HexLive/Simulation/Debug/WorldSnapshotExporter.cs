@@ -366,7 +366,13 @@ public static class WorldSnapshotExporter
                     return "tool.axe_stone";
                 }
 
-                return FirstCarried(npc, "tool.axe_stone", "tool.saw");
+                // §54 SplitLog: a log splits under ChopWood OR Cut (simdata
+                // split.log = [ChopWood, Cut]), so a knife is a valid splitter,
+                // not only the axe — a knife-only girl was chopping bare-handed.
+                // Axe stays preferred (plays the Chop clip); knife is the
+                // fallback. ChopCrown still needs ChopWood, so it always shows
+                // the axe first and never falls through to the knife here.
+                return FirstCarried(npc, "tool.axe_stone", "tool.saw", "tool.knife");
 
             case InteractionType.Butcher:
                 return InventoryContains(npc, "tool.knife") ? "tool.knife" : string.Empty;
@@ -583,6 +589,7 @@ public static class WorldSnapshotExporter
             IsWaking = world.Tick < npc.Mind.WakeGraceUntilTick,
             Stress = npc.Needs.Stress,
             CurrentGoal = npc.Mind.CurrentGoal.ToString(),
+            CurrentDream = npc.Mind.CurrentDream.ToString(),
             PlanStatus = npc.Plan.Status.ToString(),
             MovementStatus = npc.Movement.Status.ToString(),
             // §60 r2: an exhausted crash IS a sleep for the whole presentation

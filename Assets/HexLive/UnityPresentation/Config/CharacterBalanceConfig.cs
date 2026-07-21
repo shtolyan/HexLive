@@ -63,6 +63,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 30f)] public float dressColdTemp = 14f;
         [Tooltip("Не одевается дальше, если уже утеплена выше этого (тогда спасает костёр, а не тряпки).")]
         [Range(0f, 1f)] public float dressWarmthCeiling = 0.5f;
+        [Tooltip("Переодевается, только если вещь реально поднимает тепло не меньше этого (с учётом потолка) — не надевает такую же/худшую рубаху. +0.1 тепла ≈ +1°C.")]
+        [Range(0f, 1f)] public float dressWarmthGainMin = 0.05f;
 
         [Header("Голод/жажда — истощение и смерть")]
         [Tooltip("Порог появления оценки «Голодает/Обезвожена» (аварийный буст цели).")]
@@ -74,9 +76,9 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Выше этого голода/жажды начинает течь HP (смертельный канал застрявшего).")]
         [Range(0.7f, 1f)] public float starveDeathThreshold = 0.95f;
         [Tooltip("Урон HP за тик, когда И голод И жажда на максимуме.")]
-        [Range(0f, 0.15f)] public float starveDamageBoth = 0.05f;
+        [Range(0f, 0.15f)] public float starveDamageBoth = 0.01f;
         [Tooltip("Урон HP за тик, когда лишь одно (голод ИЛИ жажда) на максимуме.")]
-        [Range(0f, 0.15f)] public float starveDamageOne = 0.03f;
+        [Range(0f, 0.15f)] public float starveDamageOne = 0.006f;
 
         [Header("Лечение / регенерация")]
         [Tooltip("Естественное лечение и восполнение крови идут только пока голод ниже этого.")]
@@ -125,6 +127,8 @@ namespace HexLive.UnityPresentation.Config
         [Header("Инвентарь (§52)")]
         [Tooltip("§52: сколько предметов держат голые руки. Общий инвентарь = руки + карманы всей надетой одежды.")]
         [Range(1, 6)] public int handSlots = 2;
+        [Tooltip("§52: постоянная носка сверх рук (пояс/за пазухой). Голышом = руки + это.")]
+        [Range(0, 6)] public int baseCarrySlots = 2;
 
         [Header("Отдых / сон — сколько восстанавливает")]
         [Tooltip("Энергия за ночь сна на голой земле.")]
@@ -209,8 +213,10 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 600)] public int coolOffSettleTicks = 120;
 
         [Header("Солнце / загар / ожог")]
-        [Tooltip("Скорость загара на открытой коже (за (UV−0.5) за часть).")]
+        [Tooltip("Скорость загара на открытой коже (за (UV−0.5) за часть). Меняет только СКОРОСТЬ набора, не темноту.")]
         [Range(0f, 0.01f)] public float tanRate = 0.0009f;
+        [Tooltip("Темнота/сила загара на максимуме: 1 = полный загорелый вид, ниже = светлее/менее тёмный (0 = кожа без загара). Крутит цвет, а не скорость.")]
+        [Range(0f, 1f)] public float tanStrength = 1f;
         [Tooltip("Скорость покраснения (быстрее загара).")]
         [Range(0f, 0.02f)] public float sunburnRate = 0.004f;
         [Tooltip("Скорость набора «экспозиции» до события ожога.")]

@@ -150,13 +150,17 @@ public sealed class NeedsDecaySystem : ISimulationSystem
         npc.Mind.CurrentGoal = GoalType.None;
         npc.IsFighting = false; // a body that just switched off holds no stance
 
-        // §60: lie down like a ground sleeper — centered in her own hex, not
-        // across a tile rim or an elevation cliff (a collapse mid-stride
-        // often lands exactly on an edge and the lying body pokes into the
-        // neighbouring hex). Snap to the free junction nearest the tile
-        // center, occupy it and claim the lying footprint (spec 29G) so
-        // housemates path around the body.
-        var center = HexSpatialMath.TileToWorld(npc.Tile);
+        // §60: lie down like a ground sleeper — always at the EXACT centre of
+        // her own hex, never across a tile rim (a collapse mid-stride used to
+        // lie down wherever the free-junction scan landed, and that scan
+        // excluded the junction she actually stood on, drifting the body off
+        // the edge; the no-free-junction fallback left her un-snapped entirely).
+        // The centre is pinned first and unconditionally; the scan below now
+        // only picks a free junction to anchor the lying footprint (spec 29G)
+        // so housemates path around the body — it no longer decides position.
+        ExecutionSystem.LieDownCentered(npc);
+
+        var center = npc.Position;
         JunctionId? spot = null;
         var best = float.MaxValue;
         if (world.Tiles.Items.TryGetValue(npc.Tile, out var comaTile))
@@ -179,16 +183,15 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             }
         }
 
-        if (spot is { } lieSpot && world.Junctions.Items.TryGetValue(lieSpot, out var lie))
+        if (spot is { } lieSpot)
         {
-            npc.Position = lie.WorldPosition;
             npc.CurrentJunction = lieSpot;
             SpatialMutations.OccupyJunction(world, lieSpot, npc.Id);
             ExecutionSystem.ClaimLyingFootprint(world, npc, lieSpot);
         }
         else if (npc.CurrentJunction is { } here)
         {
-            // Crowded tile — no free centered spot; at least claim where she is.
+            // Crowded tile — no free junction to anchor on; claim where she is.
             ExecutionSystem.ClaimLyingFootprint(world, npc, here);
         }
 
@@ -336,8 +339,10 @@ public sealed class NeedsDecaySystem : ISimulationSystem
 
             // §49.7: wet clothes cling — being soaked shaves a little comfort on
             // top (wet underwear counts here too: it doesn't slow you, but it's
-            // still miserable). Just the fact of being wet.
-            var maxWornWet = 0f;
+            // still miserable). Just the fact of being wet. Spec 35.5: a bare
+            // wet body counts as well, so a near-naked survivor in the rain is
+            // miserable even with no garment to soak.
+            var maxWornWet = npc.BodyWetness;
             foreach (var worn in npc.WornItems)
             {
                 if (worn.Wetness > maxWornWet)
@@ -462,6 +467,10 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 npc.Mind.FaintedUntilTick = world.Tick + 80;
                 PlanInterruption.Abort(world, npc, "Collapsed — unconscious");
                 npc.Mind.CurrentGoal = GoalType.None;
+                // Spec 40.13/§60: drop at the tile centre, not wherever the
+                // stride left her — this path never set the lying position
+                // before, so the limp body used to hang off the hex edge.
+                ExecutionSystem.LieDownCentered(npc);
                 Trace.Emit(world, npc.Id, "Fainted",
                     $"Stamina={npc.Needs.Stamina:F2} Hunger={npc.Needs.Hunger:F2} Blood={npc.Needs.Blood:F2}");
             }

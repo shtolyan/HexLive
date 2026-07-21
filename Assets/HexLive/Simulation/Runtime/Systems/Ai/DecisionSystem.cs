@@ -38,11 +38,18 @@ public sealed partial class DecisionSystem : ISimulationSystem
     {
         foreach (var npc in world.Entities.Npcs.Values)
         {
-            // Spec 29C.3: combat is reactive and consumes the NPC entirely.
-            if (npc.IsFighting)
-            {
-                continue;
-            }
+            // Besieged-starve fix (Jul 2026): refresh the starvation/dehydration
+            // flags at the TOP of the loop, BEFORE the IsFighting gate below.
+            // They used to be set further down (after the gate), so a girl pinned
+            // IsFighting by a wolf that can't close the last junction never
+            // re-flagged as starving — the escape valve read a stale `false` and
+            // she starved/bled where she stood (seed 308477163: Jana, day 4.79,
+            // Hunger=Thirst=1.00, wolf still at full health). The blunt
+            // "IsFighting -> continue" gate that used to sit here is GONE; the
+            // refined gate further down (which lets a starving/dehydrated fighter
+            // reopen her survival-only auction) now governs on its own.
+            UpdateStarvingStatus(world, npc);
+            UpdateDehydratedStatus(world, npc);
 
             // Spec §60: comatose — the body lies as if dead; recovery runs in
             // NeedsDecaySystem (sleep rules) and the wake check lives there
@@ -82,7 +89,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // the flee assessment (health/pack thresholds) still runs there.
             // Starvation/dehydration crack the gate back open — a standoff
             // against a dog that can't close (ledge, blocked path) must never
-            // out-starve the girl it besieges (iter-4 freeze, seed 999).
+            // out-starve the girl it besieges (iter-4 freeze, seed 999). This is
+            // now the SOLE IsFighting gate (the blunt duplicate above was removed)
+            // and it reads freshly-updated flags, so the exception actually fires
+            // instead of being dead code behind the blunt gate + a stale flag.
             if (npc.IsFighting && !npc.Mind.IsStarving && !npc.Mind.IsDehydrated)
             {
                 continue;
@@ -115,12 +125,20 @@ public sealed partial class DecisionSystem : ISimulationSystem
             npc.Mind.Cooldowns.RemoveAll(c => c.EndTick <= world.Tick);
             npc.Memory.Dangers.RemoveAll(d => world.Tick - d.Tick > 2400);
 
-            UpdateStarvingStatus(world, npc);
-            UpdateDehydratedStatus(world, npc);
+            // (UpdateStarvingStatus/UpdateDehydratedStatus now run at the top of
+            // the loop — see the besieged-starve fix — so the IsFighting escape
+            // valve reads fresh flags.)
             UpdateOverheatedStatus(world, npc);
             var bleedingCrisis = IsBleedingCrisis(npc);
             var emergencyBoost = npc.Mind.IsStarving ? StarvingBoost : 0f;
             var drinkBoost = npc.Mind.IsDehydrated ? StarvingBoost : 0f;
+            // §65: dead-tired → a decisive pull to bed down at the fireside
+            // before the body collapses at the work site (§60). Gated to genuine
+            // exhaustion so it never outbids ordinary chores until she truly
+            // needs sleep; sleepAvail (below) opens the moderate-hunger gate in
+            // the same regime, and starving/dehydrated/danger still block it.
+            var deadTiredBoost = Spec49.DeadTiredSeek && npc.Needs.Energy < Spec49.DeadTiredEnergy
+                ? Spec49.DeadTiredSleepBoost : 0f;
 
             // Spec 28.15C: discovering a body triggers grief on sight.
             foreach (var perceived in npc.Perception.Objects)
@@ -282,14 +300,23 @@ public sealed partial class DecisionSystem : ISimulationSystem
             var wantsArmor = !activelyHunted &&
                 npc.Memory.Dangers.Count > 0 && npc.EquippedArmor < 0.3f &&
                 KnowsReachableArmor(npc, world);
-            var dressAvail = wantsArmor ||
+            // §40.6: while she owes clothes to the post-bathe shore pile, the
+            // Bathe goal's redress plan re-dresses her (ALL the pieces she took
+            // off) — suppress the ordinary warmth-filtered Dress so it can't
+            // hijack her and put back only the one warming garment.
+            var pendingRedress = npc.Mind.RedressGarments.Count > 0;
+            var dressAvail = !pendingRedress && (wantsArmor ||
                 (npc.Needs.ThermalDiscomfort >= SimBalance.DressThermalThreshold &&
                  effectiveTemp < SimBalance.DressColdTemp && // spec 42: dress against REAL cold only —
                  // a merely-cool girl (14..16) must not circle the wardrobe all
                  // day while the fire/water chain starves (worn=183/soak once)
                  npc.EquippedWarmth < SimBalance.DressWarmthCeiling && // already bundled up: more cloth
                  // won't fix 10°C — the campfire will (stops armor-swap churn)
-                 HasInteraction(npc, InteractionType.Dress));
+                 HasInteraction(npc, InteractionType.Dress) &&
+                 // §52.7: ...and only when something in reach is a REAL warmth
+                 // upgrade — no trek to an equal/worse shirt (the girl's own
+                 // example: a top over an identical top warms her by nothing).
+                 KnowsReachableWarmthUpgrade(npc, world)));
             var dressNeed = wantsArmor
                 ? System.Math.Max(npc.Needs.ThermalDiscomfort, 0.6f)
                 : npc.Needs.ThermalDiscomfort;
@@ -355,7 +382,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
             AddGoalScore(npc, world.Tick, GoalType.Eat, npc.Needs.Hunger, eatAvail, emergencyBoost);
             AddGoalScore(npc, world.Tick, GoalType.GetFood, npc.Needs.Hunger, getFoodAvail, emergencyBoost);
             AddGoalScore(npc, world.Tick, GoalType.Sleep, 1f - npc.Needs.Energy, sleepAvail,
-                environment: sleepEnvironmentBonus);
+                emergency: deadTiredBoost, environment: sleepEnvironmentBonus);
             // Sitting anywhere is leisure, not survival: half-weight keeps it
             // an idle-time filler instead of outbidding fire and food chores
             // (full 1-Comfort made Sit >= 0.4 by construction of its gate).
@@ -612,7 +639,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // fire/build demand the endgame rode on leftover logs and crawled
             // (15-day soaks: 3 deposits). A settled girl who knows the raft
             // stocks up to 3 logs before the coast run so each trip counts.
-            var raftWoodDemand = carriedLogs < 3 &&
+            var raftWoodDemand = SimBalance.RaftEnabled &&
+                carriedLogs < 3 &&
                 world.RaftProgress < WorldState.RaftTarget &&
                 npc.Needs.Hunger < SimBalance.RaftNeedGate &&
                 npc.Needs.Thirst < SimBalance.RaftNeedGate &&
@@ -867,6 +895,21 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 !freshDanger
                     ? 0.3f
                     : 0f;
+            // §64: the dream pull. Once basic needs are met (freeHands), a
+            // colonist leans her build/gather effort toward HER OWN current dream
+            // — the colony campfire, or her personal bed site. freeHands-gated, so
+            // it collapses to 0 the instant any need tightens: it only tips among
+            // peacetime chores, never into a survival bid. (While the dream is the
+            // campfire, hearthUrgent already tops the auction, so it is harmlessly
+            // redundant there; the same path drives the personal-bed dream.) Each
+            // feeder it is mirrored onto is already availability-gated on the
+            // site's current stage, so the pull matters only when that material is
+            // actually wanted.
+            var dreamMatch = SpecDream.Enabled && freeHands > 0f && buildSite != null &&
+                ((npc.Mind.CurrentDream == DreamType.Campfire && siteIsHearth) ||
+                 (npc.Mind.CurrentDream == DreamType.OwnBed && siteIsBed &&
+                  buildSite.Owner is { } dreamOwner && dreamOwner.Equals(npc.Id)));
+            var dreamPull = dreamMatch ? SpecDream.BuildPull : 0f;
             // §63 r2: the site's stone bill pulls the WHOLE mining chain the
             // way the bed's stages pull leaves/sticks/rope — without it
             // GatherStone/MineBoulder sat at 0.55-0.65 and lost every auction
@@ -931,7 +974,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 npc.Inventory.HasSpace &&
                 HasReachableWithTag(npc, world, "Log") && wantsSticks;
             AddGoalScore(npc, world.Tick, GoalType.SplitLog,
-                (fuelLow ? 0.5f : 0.3f) + freeHands + bedStickPull, splitLogAvail);
+                (fuelLow ? 0.5f : 0.3f) + freeHands + bedStickPull + dreamPull, splitLogAvail);
 
             // Spec §54.2: chop a felled palm CROWN into loose leaves — when leaves
             // are wanted (a bed short, or a build/tent bill) and a crown lies
@@ -951,11 +994,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 (world.Environment.UvIndex > 0.4f && carriedLeaves < 4);
             var chopCrownAvail = wantsLeaves && canChop &&
                 npc.Inventory.HasSpace && HasReachableWithTag(npc, world, "PalmCrown");
-            AddGoalScore(npc, world.Tick, GoalType.ChopCrown, 0.3f + freeHands + bedLeafPull, chopCrownAvail);
+            AddGoalScore(npc, world.Tick, GoalType.ChopCrown, 0.3f + freeHands + bedLeafPull + dreamPull, chopCrownAvail);
             // Spec §54.2: pick scattered palm leaves off the ground when wanted.
             var gatherLeavesAvail = wantsLeaves && npc.Inventory.HasSpace &&
                 HasReachableWithTag(npc, world, "PalmLeaf");
-            AddGoalScore(npc, world.Tick, GoalType.GatherLeaves, 0.28f + freeHands + bedLeafPull, gatherLeavesAvail);
+            AddGoalScore(npc, world.Tick, GoalType.GatherLeaves, 0.28f + freeHands + bedLeafPull + dreamPull, gatherLeavesAvail);
 
             // Spec §54: the cordage & knife chain. Rope is wanted for bowstrings
             // and bed-site lashings; cloth when a sun-shelter is due; the knife is
@@ -993,8 +1036,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 carriedSticks >= knifeStickCost &&
                 stoneCount >= knifeStoneCost && CraftPlaceOk(GoalType.CraftKnife);
             AddGoalScore(npc, world.Tick, GoalType.HarvestYucca, 0.26f + freeHands + bedRopePull, harvestYuccaAvail);
-            AddGoalScore(npc, world.Tick, GoalType.GatherFiber, 0.24f + freeHands + bedRopePull, gatherFiberAvail);
-            AddGoalScore(npc, world.Tick, GoalType.CraftRope, 0.28f + freeHands + bedRopePull, craftRopeAvail);
+            AddGoalScore(npc, world.Tick, GoalType.GatherFiber, 0.24f + freeHands + bedRopePull + dreamPull, gatherFiberAvail);
+            AddGoalScore(npc, world.Tick, GoalType.CraftRope, 0.28f + freeHands + bedRopePull + dreamPull, craftRopeAvail);
             AddGoalScore(npc, world.Tick, GoalType.CraftCloth, 0.28f + freeHands, craftClothAvail);
             AddGoalScore(npc, world.Tick, GoalType.CraftKnife,
                 0.34f + freeHands + coconutToolBoost, craftKnifeAvail, coconutEmergencyBoost);
@@ -1116,7 +1159,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // pushes the stick-pile delivery with the same cold weight that
             // drives the rest of the fire chain (there is no fire to tend yet).
             AddGoalScore(npc, world.Tick, GoalType.BuildFurniture,
-                (hearthUrgent ? 0.95f : 0.55f) + freeHands + buildFurniturePull +
+                (hearthUrgent ? 0.95f : 0.55f) + freeHands + buildFurniturePull + dreamPull +
                 (siteIsHearth ? coldChain : 0f), buildFurnitureAvail);
 
             // Spec §52: free a slot by carrying a low-value item to the fireside
@@ -1146,13 +1189,20 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // undresses at the shore anyway, and the beached pile is what the
             // existing WashClothes chain can actually target (worn dirt was
             // otherwise invisible to it: garments sat at dirt 0.7-1.0 forever).
-            var batheNeed = System.MathF.Max(1f - npc.Needs.Hygiene,
-                EquipmentMath.WorstDirtiness(npc) * SimBalance.BatheWornDirtWeight);
+            // §40.6: an owed post-bathe redress forces Bathe to stay selected —
+            // its plan is what walks her back to the pile and re-dresses her.
+            // batheNeed pinned high so a wet-chill Dress urge can't outbid the
+            // very goal that will put her clothes back on.
+            var batheNeed = pendingRedress
+                ? 1f
+                : System.MathF.Max(1f - npc.Needs.Hygiene,
+                    EquipmentMath.WorstDirtiness(npc) * SimBalance.BatheWornDirtWeight);
             // §63: no spa while bleeding out — a mauled girl (blood < 0.6)
             // planned an 80-tick wash at the far shore between bleed ticks.
-            var batheAvail = batheNeed >= SimBalance.BatheNeedThreshold &&
-                npc.Needs.Blood >= 0.6f &&
-                HasReachableBathTile(world, npc) && npc.Body.CanUseToolsOrWeapons;
+            var batheAvail = pendingRedress ||
+                (batheNeed >= SimBalance.BatheNeedThreshold &&
+                 npc.Needs.Blood >= 0.6f &&
+                 HasReachableBathTile(world, npc) && npc.Body.CanUseToolsOrWeapons);
             if (npc.Mind.CurrentGoal == GoalType.Bathe && npc.Plan.Status == PlanStatus.Active)
             {
                 batheAvail = true;
@@ -1169,8 +1219,14 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // Real needs (thirst/hunger ~2.0, danger) still preempt freely.
             var batheActive = npc.Mind.CurrentGoal == GoalType.Bathe &&
                 npc.Plan.Status == PlanStatus.Active;
+            // §40.6: a pending redress adds a strong pull so the return-and-dress
+            // beats petty leisure AND the wet-chill Dress urge — but stays below
+            // the ~2.0 emergency band, so real danger/starvation still preempts
+            // (she resumes the redress afterwards via BuildBathePlan).
             AddGoalScore(npc, world.Tick, GoalType.Bathe,
-                batheNeed * 0.7f + freeHands + (batheActive ? 0.35f : 0f), batheAvail);
+                batheNeed * 0.7f + freeHands + (batheActive ? 0.35f : 0f) +
+                    (pendingRedress ? 1f : 0f),
+                batheAvail);
 
             var washNeed = DirtyGarmentWashNeed(world, npc);
             var washAvail = washNeed >= SimBalance.WashClothesNeedThreshold &&
@@ -1237,7 +1293,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // a pair of hands"; TendFire outbids the raft when fuel matters.
             // Balance audit (Jul 2026): gate relaxed — see raftDangerNear /
             // raftWoodDemand above for the rationale and the measurements.
-            var buildRaftAvail = canUseToolsOrWeapons && carriedLogs >= 1 && world.RaftProgress < WorldState.RaftTarget &&
+            var buildRaftAvail = SimBalance.RaftEnabled &&
+                canUseToolsOrWeapons && carriedLogs >= 1 && world.RaftProgress < WorldState.RaftTarget &&
                 npc.Needs.Hunger < SimBalance.RaftNeedGate && npc.Needs.Thirst < SimBalance.RaftNeedGate &&
                 !raftDangerNear && KnowsReachableWithTag(npc, world, "Raft");
             // A loaded girl leans coastward: each carried log adds pull so

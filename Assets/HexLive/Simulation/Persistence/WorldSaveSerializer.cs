@@ -29,7 +29,7 @@ namespace HexLive.Simulation.Persistence
 //   on load, rebuilt on first pathfind).
 public static class WorldSaveSerializer
 {
-    public const int BlobVersion = 10; // v10: staged craft ground layout (§gear-craft v2)
+    public const int BlobVersion = 11; // v11: §64 personal-bed Owner + CampfireDreamDone latch
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -42,6 +42,7 @@ public static class WorldSaveSerializer
         w.Write(world.NextRuntimeObjectId);
         w.Write(world.RaftProgress);
         w.Write(world.Completed);
+        w.Write(world.CampfireDreamDone); // §64: the campfire-dream latch survives a reload
         w.Write(world.DeathRecords.Count);
         foreach (var death in world.DeathRecords)
         {
@@ -223,6 +224,7 @@ public static class WorldSaveSerializer
         world.Completed = version >= 4
             ? r.ReadBoolean()
             : world.RaftProgress >= WorldState.RaftTarget;
+        world.CampfireDreamDone = version >= 11 && r.ReadBoolean(); // §64
         world.DeathRecords.Clear();
         if (version >= 4)
         {
@@ -493,6 +495,8 @@ public static class WorldSaveSerializer
         {
             w.Write(id.Value);
         }
+
+        WriteNullableEntity(w, obj.Owner); // §64: personal-bed ownership
     }
 
     private static WorldObjectState ReadObject(BinaryReader r, int version)
@@ -525,6 +529,7 @@ public static class WorldSaveSerializer
             obj.ProducedItems.Add(new ObjectId(r.ReadInt32()));
         }
 
+        obj.Owner = version >= 11 ? ReadNullableEntity(r) : null; // §64
         return obj;
     }
 

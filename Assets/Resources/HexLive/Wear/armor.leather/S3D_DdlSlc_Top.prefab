@@ -325,7 +325,7 @@ MonoBehaviour:
     mesh: {fileID: 4300000, guid: 789be35f844fc430a8945f3d8206c848, type: 2}
   slots: 04000000
   noHideUnderwearSlots:
-  layer: 1
+  layer: 0
   gender: 1
 --- !u!1 &2107349093590515043
 GameObject:

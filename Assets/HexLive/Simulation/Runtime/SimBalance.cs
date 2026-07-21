@@ -27,7 +27,7 @@ namespace HexLive.Simulation.Runtime
         // so NPCs stop obsessing over food/water and get on with building.
         public static float HungerRate = 0.0055f;       // hunger gained per slow tick (§52: was 0.011)
         public static float ThirstRate = 0.010f;        // thirst gained per slow tick (§52: was 0.013)
-        public static float EnergyRate = 0.007f;        // energy drained per slow tick awake (~1 bar/day)
+        public static float EnergyRate = 0.005f;        // energy drained per slow tick awake (~1 bar/1.4 days; was 0.007 — softened to cut exhaustion comas)
         public static float ComfortRate = 0.01f;        // comfort drained per slow tick awake
         public static float SocialRate = 0.008f;        // social drained per slow tick
         public static float SweatThirstFactor = 0.25f;  // extra thirst per unit of overheating
@@ -45,6 +45,7 @@ namespace HexLive.Simulation.Runtime
         public static float DressThermalThreshold = 0.45f;   // dress once cold discomfort crosses this (§52: was 0.35 — less fussy)
         public static float DressColdTemp = 14f;             // ...and only when effective temp is below this
         public static float DressWarmthCeiling = 0.5f;       // ...and not already bundled past this warmth
+        public static float DressWarmthGainMin = 0.05f;      // §52.7: ...and only if a reachable garment ACTUALLY raises warmth by ≥ this (clamp-aware) — never re-wear the same/worse shirt (~+0.5°C; +0.1 warmth = +1°C)
 
         // ─────────────────────────────────────────────────────────────
         // Starvation / dehydration — the "stuck agent" death channel.
@@ -53,8 +54,8 @@ namespace HexLive.Simulation.Runtime
         public static float StarvingClearThreshold = 0.60f;  // ...and off (hysteresis)
         public static float StarvingBoost = 1f;              // emergency goal-boost while starving
         public static float StarveDeathThreshold = 0.95f;    // above this, HP starts draining
-        public static float StarveDamageBoth = 0.05f;        // HP/part/slow tick when starved AND parched
-        public static float StarveDamageOne = 0.03f;         // HP/part/slow tick when only one is maxed
+        public static float StarveDamageBoth = 0.01f;        // HP/part/slow tick when starved AND parched (÷5 — hunger/thirst was draining HP too fast)
+        public static float StarveDamageOne = 0.006f;        // HP/part/slow tick when only one is maxed (÷5 — hunger/thirst was draining HP too fast)
 
         // ─────────────────────────────────────────────────────────────
         // Natural healing / regen.
@@ -93,10 +94,15 @@ namespace HexLive.Simulation.Runtime
 
         // ─────────────────────────────────────────────────────────────
         // Spec §52: slot inventory. The pack has no base cap — the body
-        // carries a couple of hand slots and every worn garment adds pockets
-        // (GarmentParams.Capacity). Naked ⇒ HandSlots only.
+        // carries a couple of hand slots + a small always-there base load, and
+        // every worn garment adds pockets (GarmentParams.Capacity).
+        // Naked ⇒ HandSlots + BaseCarrySlots.
         // ─────────────────────────────────────────────────────────────
         public static int HandSlots = 2;                   // items the bare hands can hold
+        // Always-there carry beyond the hands (belt/tuck/cradle). Naked girl =
+        // HandSlots + this. Raised the naked cap 2→4 so she can haul a leaf/rope
+        // bundle for the bed instead of deadlocking on a full bottle+tool pair.
+        public static int BaseCarrySlots = 2;
 
         // ─────────────────────────────────────────────────────────────
         // Rest / sleep restore.
@@ -113,7 +119,7 @@ namespace HexLive.Simulation.Runtime
         // bonus. This is the payoff for building a bed and camping by the fire: you
         // recover faster ⇒ sleep less ⇒ more time on your feet to build/gather.
         // Added once per slow tick while asleep, on top of the base restore.
-        public static float SleepEnergyBaseBonus = 0.020f;    // always while asleep
+        public static float SleepEnergyBaseBonus = 0.026f;    // always while asleep (was 0.020 — faster recovery to cut exhaustion comas)
         public static float SleepEnergyFireBonus = 0.005f;    // + by a lit fire
         public static float SleepEnergyLeafBedBonus = 0.006f; // + on a leaf mat
         public static float SleepEnergyBasicBedBonus = 0.010f;// + on a premium bedroll
@@ -178,7 +184,8 @@ namespace HexLive.Simulation.Runtime
         // ─────────────────────────────────────────────────────────────
         // Sun / tan / sunburn (on uncovered parts, in open sun).
         // ─────────────────────────────────────────────────────────────
-        public static float TanRate = 0.0009f;        // tan gained per (UV−0.5) per uncovered part (halved — tanning takes ~2x longer)
+        public static float TanRate = 0.0009f;        // tan gained per (UV−0.5) per uncovered part. DEFAULT ONLY — tune live via CharacterBalance.asset (tanRate); BalanceTuning mirrors it over this at boot.
+        public static float TanStrength = 1f;          // overall tan DARKNESS (presentation-only): NpcActorView scales the tan tint toward bare skin by this. 1 = full look, lower = paler/less dark. Tune live via CharacterBalance.asset (tanStrength).
         public static float SunburnRate = 0.004f;     // acute redness gained (faster than tan settles)
         public static float SunExposureRate = 0.3f;   // exposure meter gained (fills toward a burn event)
         public static float SunburnBurnDamage = 0.08f; // HP torn off a part by a burn event
@@ -309,6 +316,16 @@ namespace HexLive.Simulation.Runtime
         // a wolf seen across the island must not cancel the coast run.
         public static float RaftNeedGate = 0.7f;
         public static int RaftDangerRadiusTiles = 4;
+
+        // TEMPORARY kill-switch (Jul 2026): the §40.15 escape-raft mechanic is
+        // being reworked, so it is turned OFF for now — NPCs must not build it
+        // (or hoard wood for it) at all while it's observed. Flipping this back
+        // to true restores the old endgame verbatim: nothing was removed, the
+        // three raft motivations (BuildRaft goal, the GatherWood raft demand,
+        // and whole-log hoarding) are simply gated on this flag. Kept as a
+        // `static readonly` code switch, not a tunable knob, so the coverage
+        // gate skips it and it stays out of the balance assets / simdata.json.
+        public static readonly bool RaftEnabled = false;
 
         // ─────────────────────────────────────────────────────────────
         // Spec §54 — Stranded-Deep resource loop (placeholder values; balance

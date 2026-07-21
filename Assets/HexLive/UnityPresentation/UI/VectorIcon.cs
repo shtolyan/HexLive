@@ -26,7 +26,8 @@ namespace HexLive.UnityPresentation.UI
             Play,
             Sun,
             ChevronDown,
-            ChevronUp
+            ChevronUp,
+            Dream
         }
 
         private readonly Kind _kind;
@@ -84,7 +85,27 @@ namespace HexLive.UnityPresentation.UI
                 case Kind.Sun: DrawSun(p, P, k); break;
                 case Kind.ChevronDown: DrawChevron(p, P, true); break;
                 case Kind.ChevronUp: DrawChevron(p, P, false); break;
+                case Kind.Dream: DrawDream(p, P); break;
             }
+        }
+
+        // Spec §64: a filled five-point star — the colonist's aspiration.
+        private static void DrawDream(Painter2D p, Pt P)
+        {
+            p.BeginPath();
+            p.MoveTo(P(12f, 2.8f));
+            p.LineTo(P(14.29f, 8.84f));
+            p.LineTo(P(20.75f, 9.16f));
+            p.LineTo(P(15.71f, 13.21f));
+            p.LineTo(P(17.41f, 19.44f));
+            p.LineTo(P(12f, 15.9f));
+            p.LineTo(P(6.59f, 19.44f));
+            p.LineTo(P(8.29f, 13.21f));
+            p.LineTo(P(3.25f, 9.16f));
+            p.LineTo(P(9.71f, 8.84f));
+            p.ClosePath();
+            p.Fill();
+            p.Stroke();
         }
 
         private static void DrawChevron(Painter2D p, Pt P, bool down)

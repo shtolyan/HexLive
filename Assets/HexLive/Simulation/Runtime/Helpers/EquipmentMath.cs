@@ -74,6 +74,13 @@ internal static class EquipmentMath
         // Spec §52: hand slots = intact hands (arms severed via §50 remove them),
         // capped by the tunable HandSlots (normally 2 — the pair everyone has).
         var slots = System.Math.Min(npc.Body.IntactHands, SimBalance.HandSlots);
+        // §64-tune: plus a small always-there base load (belt/tuck), gated on
+        // having at least one hand — so a naked girl carries 4, not 2, and can
+        // haul a bundle for the bed. Fully armless (§50) keeps zero.
+        if (npc.Body.IntactHands > 0)
+        {
+            slots += SimBalance.BaseCarrySlots;
+        }
         foreach (var item in npc.WornItems)
         {
             if (world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var def))
@@ -212,6 +219,55 @@ internal static class EquipmentMath
         }
 
         return (warmth, armor);
+    }
+
+    // §52.7: the marginal warmth donning `candidateId` would ADD right now —
+    // clamp-aware and net of the same-(layer,part) piece it would displace
+    // (ResolveWearConflicts semantics, §31A.5B). ≤0 means "same or worse shirt":
+    // re-wearing an equal top on top of nothing new, or a colder one, buys no
+    // warmth (spec §31A.5B: warmth = clamp01(Σ)). Already at the clamp cap ⇒ 0.
+    // The candidate (lying on the ground) is priced DRY — the best case a girl
+    // walking toward it can expect; the wet-insulation penalty (Recalculate)
+    // bites only once it is actually on her.
+    public static float WarmthGainFromWearing(WorldState world, NPCState npc, string candidateId)
+    {
+        if (!world.Content.ObjectDefinitions.TryGetValue(candidateId, out var candidateDef) ||
+            candidateDef.Layer is not { } candidateLayer)
+        {
+            return 0f; // not a wearable
+        }
+
+        var (candidateWarmth, _) = ItemValues(world, candidateId);
+
+        var currentRaw = 0f;   // pre-clamp Σ over everything worn
+        var displacedRaw = 0f; // pre-clamp Σ over the piece(s) this candidate would take off
+        foreach (var item in npc.WornItems)
+        {
+            if (!world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var wornDef))
+            {
+                continue;
+            }
+
+            var (wornWarmth, _) = ItemValues(world, item.DefinitionId);
+            var effective = wornWarmth * (1f - 0.9f * MathUtil.Clamp01(item.Wetness));
+            currentRaw += effective;
+
+            // Same layer + an overlapping covered part ⇒ this worn piece comes off.
+            if (wornDef.Layer == candidateLayer)
+            {
+                foreach (var part in candidateDef.Covers)
+                {
+                    if (wornDef.Covers.Contains(part))
+                    {
+                        displacedRaw += effective;
+                        break;
+                    }
+                }
+            }
+        }
+
+        var afterRaw = currentRaw - displacedRaw + candidateWarmth;
+        return MathUtil.Clamp01(afterRaw) - MathUtil.Clamp01(currentRaw);
     }
 }
 

@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: armor.leather
   displayName: Leather Armor
-  layer: 2
+  layer: 0
   covers: 01000000
   warmth: 0.15
-  armor: 0.3
+  armor: 0.15
   thermalDelta: -0.1
   dressDurationTicks: 8

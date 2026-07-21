@@ -373,8 +373,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - 'Wet clothes give no warmth and weigh her down on the move.'
-      - 'Мокрая одежда не греет и замедляет движение.'
+      - 'Soaked to the skin — chilly and miserable; wet clothes give no warmth and slow her down.'
+      - 'Промокла до нитки — зябко и неуютно; мокрая одежда не греет и замедляет.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'effect.starving.title'
@@ -1107,10 +1107,26 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: 'goal.Idle'
       TermType: 0
-      Description: 
+      Description:
       Languages:
       - 'Taking a break'
       - 'Отдыхает'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'dream.Campfire'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Dreams of a campfire'
+      - 'Мечтает о костре'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'dream.OwnBed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Dreams of her own bed'
+      - 'Мечтает о своей кровати'
       Flags: 0101
       Languages_Touch: []
     - Term: 'goal.Eat'

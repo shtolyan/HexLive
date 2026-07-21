@@ -98,6 +98,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
+            if (lastStep is { Type: PlanStepType.RedressAfterBathe })
+            {
+                RunRedressAfterBathe(world, npc, lastStep);
+                continue;
+            }
+
             if (lastStep is { Type: PlanStepType.GroundSit or PlanStepType.GroundSleep or PlanStepType.GroundCool })
             {
                 RunGroundRestPlan(world, npc, lastStep);
@@ -658,7 +664,10 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 else if (completedInteraction.Type == InteractionType.Dress)
                 {
                     // Spec 31A.5B: one item per (layer, body part) — dressing
-                    // over an occupied slot takes the old garment off first.
+                    // over an occupied slot takes the old garment off. §52.7: the
+                    // displaced piece is only COLLECTED here; it is dropped after
+                    // the new garment is on and capacity recomputed, so its
+                    // pockets relocate into the new garment first.
                     ResolveWearConflicts(world, npc, worldObject.DefinitionId);
 
                     // Spec 31A.5A: dressing consumes the world object — only
@@ -687,6 +696,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                         Trace.Emit(world, npc.Id, "StashRecovered",
                             $"{worldObject.DefinitionId} returned [{string.Join(",", _dressPourScratch)}]");
                     }
+                    // §52.7: now that the new garment is on and the pack capacity
+                    // is live, lay the displaced garment(s) on the ground — items
+                    // that still fit stayed in the pack (backed by the new
+                    // garment's pockets); only the true overflow rides down inside
+                    // the dropped piece (lowest importance first).
+                    DropDisplacedGarments(world, npc);
                     Trace.Emit(world, npc.Id, "ItemWorn",
                         $"Def={worldObject.DefinitionId} Worn=[{string.Join(",", npc.WornItems)}] " +
                         $"Warmth={npc.EquippedWarmth:F2} Armor={npc.EquippedArmor:F2}");
@@ -1407,6 +1422,23 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         tile = npc.Tile;
         junction = default;
         return false;
+    }
+
+    // Spec §60/§29G/§40.13 — THE single place that decides where a body on the
+    // ground comes to rest. Every collapse / faint / ground-sleep path calls
+    // this, so the invariant holds everywhere at once: a lying body ALWAYS lies
+    // at its tile's exact geometric centre (identical to the centre junction,
+    // sub-axial (0,0)), never a rim junction and never the raw mid-stride spot
+    // it dropped on. The position is pinned unconditionally and DECOUPLED from
+    // junction occupancy on purpose: the per-site "nearest FREE junction" scans
+    // that used to place the body EXCLUDED the very junction it stood on
+    // (IsJunctionFree counts self-occupancy — and the lying footprint it just
+    // claimed — as taken), so they could never return the centre and always
+    // drifted the body sideways / off the tile edge. Footprint and occupancy
+    // bookkeeping stay the caller's job; this owns only the resting position.
+    internal static void LieDownCentered(NPCState npc)
+    {
+        npc.Position = HexSpatialMath.TileToWorld(npc.Tile);
     }
 
     // Spec 29G: the lying body covers junctions within half a hex radius.

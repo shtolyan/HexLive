@@ -346,6 +346,11 @@ public sealed class NpcSnapshot
 
     public string CurrentGoal { get; set; } = string.Empty;
 
+    // Spec §64: the colonist's current dream (aspiration) — the DreamType name,
+    // localized by presentation into the character-panel dream pill. "None" when
+    // she has nothing left to dream of.
+    public string CurrentDream { get; set; } = string.Empty;
+
     public string PlanStatus { get; set; } = string.Empty;
 
     public string MovementStatus { get; set; } = string.Empty;

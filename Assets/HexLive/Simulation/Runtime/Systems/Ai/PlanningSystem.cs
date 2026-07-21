@@ -304,10 +304,16 @@ public sealed partial class PlanningSystem : ISimulationSystem
             // §55: boiling is retired — GetWater now just fetches the nearest
             // coconut to crack open (no boiled-vs-raw source preference).
             var preferBoiled = false;
+            // §64: personal beds (SOFT). When choosing where to sleep, a colonist
+            // heads for HER OWN bed first — but any free bed stays a valid
+            // fallback (no hard filter), so a colonist whose bed isn't built yet
+            // never ground-sleeps beside an empty bed. Survival is unchanged.
+            var preferOwnBed = SpecDream.Enabled && interactionType == InteractionType.Sleep;
 
             PerceivedObject? selected = null;
             var selectedArmor = 0f;
             var selectedBoiled = false;
+            var selectedMine = false;
             var candidateCount = 0;
             foreach (var perceived in npc.Perception.Objects)
             {
@@ -340,6 +346,19 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     continue;
                 }
 
+                // §52.7: a cold-driven Dress only targets a REAL warmth upgrade —
+                // never walk to an identical/worse shirt (clamp-aware gain over
+                // what she wears now). Armor-driven dressing (preferArmor) keeps
+                // its own CandidateArmor gain rule below, untouched.
+                if (interactionType == InteractionType.Dress && !preferArmor &&
+                    EquipmentMath.WarmthGainFromWearing(world, npc, perceived.DefinitionId) <
+                        SimBalance.DressWarmthGainMin)
+                {
+                    Trace.Emit(world, npc.Id, "PlanCandidateSkipped",
+                        $"Obj={perceived.Id.Value} Def={perceived.DefinitionId} NoWarmthGain");
+                    continue;
+                }
+
                 candidateCount++;
                 Trace.Emit(world, npc.Id, "PlanCandidate",
                     $"Obj={perceived.Id.Value} Tile={perceived.Tile.Q},{perceived.Tile.R} " +
@@ -366,6 +385,19 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     {
                         selected = perceived;
                         selectedBoiled = isBoiled;
+                    }
+                }
+                else if (preferOwnBed)
+                {
+                    // Her own bed wins outright; otherwise nearest free bed.
+                    var mine = world.Entities.Objects.TryGetValue(perceived.Id, out var bedObj) &&
+                        bedObj.Owner is { } ow && ow.Equals(npc.Id);
+                    if (selected is null ||
+                        (mine && !selectedMine) ||
+                        (mine == selectedMine && perceived.Distance < selected.Distance))
+                    {
+                        selected = perceived;
+                        selectedMine = mine;
                     }
                 }
                 else if (selected is null || perceived.Distance < selected.Distance)

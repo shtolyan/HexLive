@@ -94,6 +94,14 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 5f)] public float sleepSpotFireWeight = 1.5f;
         [Tooltip("Вес тени при выборе места сна в жару (smartSleepSpot).")]
         [Range(0f, 5f)] public float sleepSpotShadeWeight = 1.5f;
+        [Tooltip("§65: заранее идти спать к костру, не падая замертво на месте работы.")]
+        public bool deadTiredSeek = true;
+        [Tooltip("§65: ниже этой энергии (0..1) — бросить дело и лечь спать у костра.")]
+        [Range(0.02f, 0.45f)] public float deadTiredEnergy = 0.15f;
+        [Tooltip("§65: добавка к желанию спать при полном изнеможении (ср. голод/жажда = 1.0).")]
+        [Range(0f, 1f)] public float deadTiredSleepBoost = 0.30f;
+        [Tooltip("§65 ЭКСПЕРИМЕНТ, по умолчанию 0=ВЫКЛ: >0 — сон запрещает только опасность за столько тиков (давно ушедший волк не держит без сна). Резко срезает коллапсы, НО дестабилизирует бой (спящих загрызают; смертей на соаке НЕмонотонно от окна). Включать только после отдельного соака баланса собак.")]
+        [Range(0, 2400)] public int sleepDangerRecencyTicks = 0;
         [Tooltip("Множитель скорости нарастания холода/жары ВО СНЕ (0.5 = вдвое медленнее).")]
         [Range(0.1f, 1f)] public float thermalSleepFactor = 0.5f;
 

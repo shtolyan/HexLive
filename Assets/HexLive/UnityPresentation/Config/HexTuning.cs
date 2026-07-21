@@ -34,6 +34,7 @@ namespace HexLive.UnityPresentation.Config
 
             SwimVisuals.SinkDepth = c.sinkDepth;
             SwimVisuals.WadeDepth = c.wadeDepth;
+            SwimVisuals.ShoreLevelSteps = c.waterShoreLevel;
             SwimVisuals.SurfaceDropFrac = c.waterSurfaceDrop;
             NpcActorView.SwimBodyLift = c.swimBodyLift;
             NpcActorView.LedgeSeatLift = c.ledgeSeatLift;
@@ -60,6 +61,7 @@ namespace HexLive.UnityPresentation.Config
 
             c.sinkDepth = SwimVisuals.SinkDepth;
             c.wadeDepth = SwimVisuals.WadeDepth;
+            c.waterShoreLevel = SwimVisuals.ShoreLevelSteps;
             c.waterSurfaceDrop = SwimVisuals.SurfaceDropFrac;
             c.swimBodyLift = NpcActorView.SwimBodyLift;
             c.ledgeSeatLift = NpcActorView.LedgeSeatLift;

@@ -90,6 +90,36 @@ public sealed partial class PlanningSystem
 
     private void BuildBathePlan(WorldState world, NPCState npc)
     {
+        // §40.6: an interrupted post-bathe redress RESUMES here — if she still
+        // owes clothes to the shore pile, walk back and put them on rather than
+        // starting a brand-new bathe (which would clear the pile memory and
+        // leave her naked). Stale pieces (taken/gone) are dropped first.
+        if (npc.Mind.RedressGarments.Count > 0 && npc.Mind.RedressShore is { } redressShore)
+        {
+            npc.Mind.RedressGarments.RemoveAll(id => !world.Entities.Objects.ContainsKey(id));
+            if (npc.Mind.RedressGarments.Count > 0)
+            {
+                npc.Plan.TargetObjectId = null;
+                npc.Plan.TargetJunctionId = redressShore;
+                npc.Plan.TargetTile = null;
+                npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.MoveToJunction, TargetJunction = redressShore });
+                npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.RedressAfterBathe, TargetJunction = redressShore });
+                npc.Plan.CurrentStepIndex = 0;
+                npc.Plan.Status = PlanStatus.Active;
+                Trace.Emit(world, npc.Id, "PostBatheRedress",
+                    $"Resume: returning to {redressShore.Value} for {npc.Mind.RedressGarments.Count} garments");
+                return;
+            }
+
+            npc.Mind.RedressShore = null;
+        }
+
+        // §40.6: a fresh bathe starts a fresh doffed-clothes pile — drop any
+        // stale ids from an earlier interrupted bathe so the redress that
+        // follows only reclaims the clothes she takes off THIS time.
+        npc.Mind.RedressGarments.Clear();
+        npc.Mind.RedressShore = null;
+
         if (npc.CurrentJunction is not { } from)
         {
             npc.Plan.Status = PlanStatus.Failed;

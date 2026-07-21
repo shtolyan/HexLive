@@ -33,12 +33,13 @@ MonoBehaviour:
   dressThermalThreshold: 0.45
   dressColdTemp: 14
   dressWarmthCeiling: 0.5
+  dressWarmthGainMin: 0.05
   starvingEnterThreshold: 0.85
   starvingClearThreshold: 0.6
   starvingBoost: 1
   starveDeathThreshold: 0.95
-  starveDamageBoth: 0.05
-  starveDamageOne: 0.03
+  starveDamageBoth: 0.01
+  starveDamageOne: 0.006
   healHungerGate: 0.6
   healthRegenPerTick: 0.003
   bleedRateFactor: 0.06
@@ -70,6 +71,7 @@ MonoBehaviour:
   sleepEnergyFireBonus: 0.005
   sleepEnergyLeafBedBonus: 0.006
   sleepEnergyBasicBedBonus: 0.01
+  exhaustedSleepWakeEnergy: 0.45
   comaWakeThreshold: 0.15
   comaBloodEnterThreshold: 0.25
   comaBloodWakeThreshold: 0.35
@@ -92,7 +94,8 @@ MonoBehaviour:
   coolOffClearThreshold: 0.2
   coolOffSunClear: 0.45
   coolOffSettleTicks: 120
-  tanRate: 0.00048
+  tanRate: 0.0003
+  tanStrength: 0.8
   sunburnRate: 0.004
   sunExposureRate: 0.3
   sunburnBurnDamage: 0.08
@@ -104,6 +107,8 @@ MonoBehaviour:
   batheDurationTicks: 100
   washClothesDurationTicks: 80
   washClothesNeedThreshold: 0.2
+  batheWornDirtWeight: 0.9
+  dryClothesWetThreshold: 0.35
   staminaRestGain: 0.06
   staminaWorkDrain: 0.05
   staminaIdleGain: 0.015

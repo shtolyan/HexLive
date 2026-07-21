@@ -53,6 +53,9 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement _needsContainer;
         private VisualElement _relationsContainer;
         private VisualElement _thought;
+        // Spec §64: the dream pill (aspiration) — a sibling of the thought pill.
+        private VisualElement _dream;
+        private Label _dreamValue;
 
         // Spec §48: status-effect chips (buff/debuff circles) + hover tooltip.
         private VisualElement _effectsRow;
@@ -141,7 +144,7 @@ namespace HexLive.UnityPresentation.UI
         private bool _collapsed;
         private VisualElement _expandTab;
 
-        private const float PanelBottomOffset = 36f;
+        private const float PanelBottomOffset = 0f;
         private const float CharacterCardHeight = 286f;
         private const float FloatingInventoryGap = 12f;
         private const float InventoryWindowBottom = PanelBottomOffset + CharacterCardHeight + FloatingInventoryGap;
@@ -489,6 +492,15 @@ namespace HexLive.UnityPresentation.UI
             _nameLabel.text = string.IsNullOrEmpty(npc.DisplayName) ? $"NPC #{npc.Id.Value}" : npc.DisplayName;
             _roleLabel.text = $"{Loc.Get("panel.role")} · #{npc.Id.Value}";
             _thoughtValue.text = Loc.Goal(npc.CurrentGoal);
+
+            // Spec §64: the dream pill — show her aspiration, hide it when she has
+            // nothing left to dream of ("None"/empty).
+            var hasDream = !string.IsNullOrEmpty(npc.CurrentDream) && npc.CurrentDream != "None";
+            _dream.style.display = hasDream ? DisplayStyle.Flex : DisplayStyle.None;
+            if (hasDream)
+            {
+                _dreamValue.text = Loc.Dream(npc.CurrentDream);
+            }
 
             if (_boundActorId != npc.Id.Value)
             {
@@ -2653,8 +2665,8 @@ namespace HexLive.UnityPresentation.UI
             _root.style.alignItems = Align.Stretch;
             _root.pickingMode = PickingMode.Ignore;
 
-            // Full-width bar, lifted slightly off the bottom edge so nothing
-            // hugs the screen border.
+            // Full-width bar, flush with the bottom edge of the screen
+            // (PanelBottomOffset = 0).
             _stage = new VisualElement();
             _stage.style.flexDirection = FlexDirection.Column;
             _stage.style.alignItems = Align.Stretch;
@@ -2664,6 +2676,7 @@ namespace HexLive.UnityPresentation.UI
             _root.Add(_stage);
 
             BuildThought();
+            BuildDream();
             BuildEffectsRow();
 
             // Three-zone card; height fits the full needs grid including
@@ -2822,6 +2835,45 @@ namespace HexLive.UnityPresentation.UI
 
             _thought.Add(_thoughtValue);
             _stage.Add(_thought);
+        }
+
+        // Spec §64: the dream pill — what she aspires to (campfire → own bed).
+        // Mirrors the thought pill; hidden when she has no dream left (None).
+        private void BuildDream()
+        {
+            _dream = new VisualElement();
+            _dream.style.flexDirection = FlexDirection.Row;
+            _dream.style.alignItems = Align.Center;
+            _dream.style.alignSelf = Align.FlexStart;
+            _dream.style.marginLeft = 20f;
+            _dream.style.marginBottom = 7f;
+            _dream.style.minWidth = 214f;
+            _dream.style.maxWidth = 360f;
+            _dream.style.minHeight = 40f;
+            _dream.style.backgroundColor = PanelMid;
+            SetBorder(_dream, StrokeStrong, 1f);
+            SetRadius(_dream, 12f);
+            _dream.style.paddingLeft = 13f;
+            _dream.style.paddingRight = 16f;
+            _dream.style.paddingTop = 8f;
+            _dream.style.paddingBottom = 8f;
+
+            var icon = new VectorIcon(VectorIcon.Kind.Dream, new Color(0.62f, 0.74f, 1f));
+            icon.style.width = 18f;
+            icon.style.height = 18f;
+            icon.style.marginRight = 11f;
+            icon.style.flexShrink = 0f;
+            _dream.Add(icon);
+
+            _dreamValue = new Label();
+            _dreamValue.style.color = Text;
+            _dreamValue.style.fontSize = 15;
+            _dreamValue.style.unityFontStyleAndWeight = FontStyle.Bold;
+            _dreamValue.style.whiteSpace = WhiteSpace.Normal;
+            _dreamValue.style.flexShrink = 1f;
+
+            _dream.Add(_dreamValue);
+            _stage.Add(_dream);
         }
 
         private VisualElement BuildIdentityColumn()

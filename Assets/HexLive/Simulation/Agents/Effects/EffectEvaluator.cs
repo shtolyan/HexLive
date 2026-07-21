@@ -152,7 +152,9 @@ namespace HexLive.Simulation.Agents.Effects
                 results.Add(new ActiveEffect(EffectKind.Cold, -needs.ThermalComfort));
             }
 
-            var maxWetness = 0f;
+            // Spec 35.5: the body itself soaks (rain/water on bare skin), so a
+            // naked or near-naked survivor reads soaked with no wet garment.
+            var maxWetness = npc.BodyWetness;
             foreach (var item in npc.WornItems)
             {
                 if (item.Wetness > maxWetness)

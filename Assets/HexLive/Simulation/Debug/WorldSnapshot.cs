@@ -327,6 +327,12 @@ public sealed class NpcSnapshot
     // get-up plays (the wake grace covers it).
     public bool IsUnconscious { get; set; }
 
+    // Spec §53 r2: while this NPC is aiding a housemate (Feed/Hydrate/Treat/…),
+    // is her WARD lying down (coma/faint/asleep/prone)? The kneeling "tending"
+    // craft pose only plays over a lying ward; over a standing ward the helper
+    // just stands and shows the item in hand. False when not aiding.
+    public bool AidTargetLyingDown { get; set; }
+
     // Iter 28: sitting at a one-step ledge junction — the presentation
     // lifts the body so the butt rests on the upper step. Export-only.
     public bool IsLedgeSit { get; set; }

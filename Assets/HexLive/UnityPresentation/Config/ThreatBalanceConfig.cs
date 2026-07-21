@@ -77,6 +77,12 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Штраф стоимости шага в danger-кольце для pathfinder'а.")]
         public long dangerStepCost = 80L;
 
+        [Header("Бой в углу — застрявший flee (§29C.4A)")]
+        [Tooltip("Сколько тиков подряд собака держит убегающую в мельке, прежде чем побег признаётся провалившимся и она встаёт драться до победного (4 тика/с). Меньше = решается быстрее.")]
+        [Range(4, 120)] public int fleeStallTicks = 16;
+        [Tooltip("Насколько тиков держится решение драться после последнего тика контакта (перезаряжается каждый тик боя; гасит качели flee↔бой, спадает когда враг мёртв/ушёл).")]
+        [Range(4, 240)] public int fightCommitGraceTicks = 40;
+
         [Header("Каннибализм (разделка найденного тела)")]
         [Tooltip("Разрешить разделку тела соседки (только при настоящем голоде).")]
         public bool cannibalismEnabled = true;

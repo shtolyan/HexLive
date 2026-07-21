@@ -118,6 +118,14 @@ internal static class BuildSiteMath
     // (unstaged sites: campfire, hut pieces).
     public static int Remaining(WorldObjectState site, string materialId)
     {
+        // §bed-force: when staged delivery is off, every material the bill still
+        // wants is "needed now" — a carried leaf/rope lands even while sticks are
+        // outstanding, instead of being hoarded uselessly against a locked stage.
+        if (!SimBalance.BedDeliveryStaged)
+        {
+            return TotalRemaining(site, materialId);
+        }
+
         var stages = StagesFor(site);
         if (stages is null)
         {

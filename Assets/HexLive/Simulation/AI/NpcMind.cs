@@ -54,6 +54,22 @@ public sealed class NPCMind
     // continue sleeping; every new hit extends the window.
     public int AdrenalineUntilTick { get; set; }
 
+    // Spec 29C.4A (cornered-fight amendment): the first tick a mob caught her
+    // in MELEE while she was fleeing. A flee only saves her if it BREAKS
+    // contact; if the dog is still on top of her SimBalance.FleeStallTicks
+    // later, the escape has plainly failed and she stops running to fight. 0 =
+    // not currently pinned mid-flee. Transient combat bookkeeping — deliberately
+    // NOT serialized (a save/load mid-flee simply grants a fresh grace window).
+    public int FleeContactSinceTick { get; set; }
+
+    // Spec 29C.4A (cornered-fight amendment): once a stalled flee converts to a
+    // stand, she is COMMITTED to the fight until this tick so the medium-pass
+    // flee assessment can't immediately send her running again (the re-flee
+    // that produced the endless-maul loop). Re-armed every melee tick the mob
+    // stays engaged, so the commitment lasts until the dog dies or breaks off.
+    // Transient — not serialized. 0 = not committed.
+    public int FightCommitUntilTick { get; set; }
+
     public System.Collections.Generic.List<HexLive.Simulation.Common.ObjectId> GrievedCorpses { get; } = new();
 
     // Spec 28.8 v1 handshake: someone is walking over to talk to this NPC.

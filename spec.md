@@ -4929,6 +4929,21 @@ strategy, not a metaphor.
 The decision system holds the `Flee` goal unconditionally while its plan is
 active — nothing outbids running for your life.
 
+**Cornered-fight valve (amendment):** a flee only saves her if it *breaks
+contact*. If a mob stays in **melee** with a fleeing girl for `FleeStallTicks`
+(≈4 s) past the first pinned tick — she is not gaining ground, the escape has
+failed — she abandons the run and **commits to the fight to the death** instead
+of being bitten for free until a limb tears off and she goes prone (`IsProne`,
+§50, is a one-way trip to death). The commitment (`FightCommitUntilTick`) is
+re-armed every engaged tick and suppresses the flee assessment until the mob is
+dead or has broken contact, so she can't ping-pong flee↔fight. The stall clock
+(`FleeContactSinceTick`) resets the instant she is out of melee, so a chase she
+is genuinely outrunning never trips it; both fields are transient (a save/load
+mid-fight simply grants a fresh grace window). Prone/unconscious bodies are
+exempt — they can only crawl, never stand. This closes the endless-maul loop
+where a girl fled a dog she could not shake, never struck back, and was
+amputated where she stood (seed 351193917).
+
 **Danger memory (27 integration):** every aggro/first bite records
 `{tile, tick}` in `MemoryState.Dangers` (deduped by tile, TTL 2400 ticks =
 1 day, cap 8). Effects:
@@ -6649,14 +6664,21 @@ weather gains real stakes.
   slow tick — `Hypothermia` / `Heatstroke` traces; a destroyed vital ends
   it. Weather can now kill the unprepared. (Dormant in the current mild
   climate — a safety net for genuine cold snaps / heat waves.)
-- **The campfire warms the DISPLAY**: a LIT campfire radiates warmth to
-  tiles within 2 (≈ +8 at 1 tile, +4 at 2), folded into the signed
-  ThermalComfort the UI shows — the player watches the dial pull toward
-  "ideal" by the fire on a cold night. This iteration keeps it DISPLAY
-  only: feeding the fire's warmth into the decision-driving discomfort NEED
-  reshuffled the dog-fragile colony (everyone comfortable → nobody
-  dresses/cools → repositioned into wipes). Likewise the "standing in the
-  fire burns you" HP hit is **deferred**: NPCs constantly path across the
+- **The campfire is a STRONG heat source**: a LIT campfire radiates warmth
+  to tiles within 2 (**+18° at 1 tile, +11° at 2**), folded into the effective
+  temperature and clamped to the comfy-band top (never overheats — a dressed
+  body caps sooner). The magnitude is deliberately enough that a near-naked
+  body in the fire ring reaches the comfy band even on the coldest rainy
+  night (floor ~3°): standing by ANY lit fire reads comfortable **instantly**,
+  and the per-tick warmth is **identical at every build stage** (the stick
+  pile at stage 1 warms exactly like the finished ring — the only stage
+  difference is fuel longevity: the stone ring halves burn, 75→150 slow ticks
+  per lighting). While comfy AND actively warmed by fire/indoors, the night's
+  accumulated `ThermalDiscomfort` sheds ~8× faster (`FireThawRecovery` 0.25
+  vs the ambient `ThermalComfyRecovery` 0.03) — she thaws in a few ticks, not
+  slowly. (Older iterations kept fire DISPLAY-only at +8/+4 to protect the
+  dog-fragile balance; warmth doesn't touch the dog channel, so this is safe.)
+  The "standing in the fire burns you" HP hit is **deferred**: NPCs constantly path across the
   central fire tile, so any hit whittles them down. Both land properly in
   the **campfire-as-obstacle** pass (approach from the edge, never stand on
   the flames) — `onFire`/`FireBurn` are already computed and traced,
@@ -9475,7 +9497,7 @@ the tighter ring by an explicit ≥1.1 wu fire-clearance in
 bed placement is honest at any radius — FootprintClear rejects a bed
 whose 1.39 wu disc overlaps the fire's blocked points. Interactions survive by construction: beside-arrival
 (`CollectStandableAround`) BFS-walks through the blocked cluster to the
-first standable rim, still within 1 tile of the fire (full +8° warmth).
+first standable rim, still within 1 tile of the fire (full +18° warmth).
 Furniture placement (`FindSpacedFurnitureSpot`) now uses the same rim BFS
 instead of the anchor's immediate neighbors, so beds/racks land just
 outside the ember ring, fireside-close with a natural offset.
@@ -10121,6 +10143,52 @@ the warmth cap → gain 0 → rejected. On replace (pants→skirt, pack 6/6→4/
 ends within capacity, the two overflow items ride down inside the dropped pants,
 nothing lost.
 
+### §52.8 The tool holster — dedicated, typed weapon slots
+
+The leg holster (`legHolster_2204`, "Kabura na nogu") is a special garment: it
+adds **no warmth, no armor, no thermal** — its whole job is extra, *typed*
+storage for the working tools. It is the "dedicated weapon slot" §52.5 deferred
+and the retired `IsPersonalEffect` seam foreshadowed.
+
+- **Typed slots, not pockets.** A holster carries a fixed list of tool ids —
+  one slot each (`HolsterCatalog`: leg holster = `tool.axe_stone`, `tool.knife`,
+  `tool.hammer`). Its `GarmentParams.Capacity` stays **0**: a holster slot is
+  *not* a generic pocket. It accepts only its specific tool and holds exactly
+  one of each.
+- **Holstered tools ride free of the pocket budget.** A carried tool the holster
+  slots for stops counting against `InventoryState.UsedSlots`/`HasSpace` — the
+  same "bound to the body" treatment the bottle once had. Wearing the holster
+  therefore *creates* up to three extra tool-carry slots without touching the
+  hand/pocket count. The tool still lives in the single authoritative inventory
+  list (no second store); it is merely marked in
+  `InventoryState.HolsteredDefinitionIds`, recomputed by
+  `EquipmentMath.RecalculateHolster` on every worn/inventory change: for each
+  worn holster, each listed id, the first matching carried item is holstered.
+- **"Always stores the weapon" is automatic.** There is no transfer action — if
+  she wears the holster and carries the axe, the axe is holstered (free +
+  shown). One slot per type: a second identical tool counts normally; an
+  unlisted tool (a pickaxe) is never holstered and takes a real pocket.
+- **Never shed for room.** A holstered tool is skipped by
+  `InventoryMath.LowestImportanceDroppable` (dropping it frees no pocket). It
+  leaves the pack only when the **holster comes off**: `RecalculateHolster`
+  clears the marks first, so the now-counted tools spill into the removed
+  holster's `Contents` by the normal undress path (§52.2) — the tools ride down
+  with the holster and can be rifled back out (`RecoverStashedTools`).
+- **The leg-slung look.** The holster prefab carries empty child anchors named
+  exactly by tool id (`tool.axe_stone` / `tool.knife` / `tool.hammer`) under the
+  thigh bones; each holstered tool is the same list the sim exposes on the
+  snapshot (`HolsteredItems`). `NpcActorView.SyncHolster` snaps the tool model
+  into its anchor at **local zero** (position/orientation authored on the
+  anchor, size normalized by `ObjectFit` like the hand). The tool currently
+  drawn in the acting hand is skipped, so it shows *in the holster only when not
+  in use* — take it out to work, and it returns to the thigh when done.
+
+**Verify** (headless, tuned catalog, ALL PASS): holster worn adds 0 capacity;
+axe+knife+hammer holstered ⇒ only the two non-tool items count; a second knife
+counts (one slot per type); a pickaxe is not holstered and takes a pocket;
+dropping the axe empties just its slot; taking the holster off clears all marks
+and every tool counts again. Visual verify (Unity, play-mode) pending.
+
 ## §53 Compassion & mutual aid (iteration 49)
 
 The survival stack now bites hard — a survivor can **starve**, **bleed**, fall
@@ -10194,6 +10262,25 @@ dying of hunger looks after herself first.
 A **Compassion** bar (rose, ❤ glyph) joins the CharacterPanel need rows (RU
 «Сострадание»), fed by `NpcSnapshot.Compassion`. Aid emits `AidStarted` / `Aided`
 traces and reuses the existing relationship-pop over both heads.
+
+**The tending pose (r2).** The helper always shows a **mediator prop** in hand:
+**Feed → `food.coconut`**, **Hydrate → the pierced `food.coconut_pierced`** (the
+water vessel); Treat/Medicate/Console tend bare-handed. The prop is cosmetic —
+aid still spends no inventory item (§53.4), so the coconut simply appears for the
+animation and clears when the interaction ends. **Only when the ward is lying
+down** (coma/faint/asleep/prone) does the helper kneel into the planting-style
+**CraftWork** clip (`CraftingParam`) beside her — the "tending" motion. Over a
+**standing** ward she just stands and holds the item, as before. The ward's
+posture travels to the view on `NpcSnapshot.AidTargetLyingDown`, computed
+sim-side from `target.IsLyingDown(tick)` (the view has no cross-NPC access).
+
+**A lying ward does not turn (r2).** The sim's caring-stance facing rotates the
+**helper** to face the ward, but a ward who is **lying down** — knocked out
+(coma/faint), asleep, or legless-prone — keeps her authored lying orientation:
+`RunAid`/`RunTalk` skip the `target.RotationDegrees` write when
+`target.IsLyingDown(tick)`. Re-pointing a flat body at whoever walks up spun it about
+its vertical axis to "face" them (the creepy head-turn-while-lying); only an
+upright ward turns to face back.
 
 ## §54 Stranded-Deep resource, processing & butchering loop (iteration 54)
 
@@ -11449,9 +11536,16 @@ int). На `WorldState`: `DreamQueue` (сеется лениво из `SpecDream
 
 **64.6 Персистентность.** `Owner` и `CampfireDreamDone` сериализуются
 (`BlobVersion` 10→11); `DreamQueue`/`ActiveDream`/`CurrentDream` не пишутся —
-`DreamSystem` пересчитывает их на первом Slow-тике (self-healing). Как и раньше,
-состояние строящегося сайта (bills/contents) не сохраняется — кровать «в работе»
-после загрузки становится инертным `build.site` и переставляется.
+`DreamSystem` пересчитывает их на первом Slow-тике (self-healing).
+**ИСПРАВЛЕНО (`BlobVersion` 11→12):** раньше состояние строящегося сайта
+(`BuildProduct` + bill + доставленные материалы в `Contents`) НЕ сохранялось —
+кровать «в работе» после загрузки теряла `BuildProduct`, становилась пустым
+`build.site` и сметалась `BedSiteSystem` как мусор, поэтому НИКОГДА не переживала
+перезагрузку и не достраивалась (готовых `bed.leaf` в сейве не появлялось). Теперь
+`WorldSaveSerializer.WriteObject/ReadObject` пишут `BuildProduct`, все `Bill*` и
+`Contents` (гейт `version >= 12`; сейвы v11 грузятся по-старому — их незавершённые
+сайты по-прежнему пустые и сметаются, персистят только НОВЫЕ стройки). Round-trip-
+проба: продукт/bill/доставленное переживают save→load 1:1.
 
 **64.7 Баланс.** Все ручки в `SpecDream` (`Enabled`, `DefaultQueue`, `BuildPull`,
 `BedExclusive`, `CampfireRequiresLit`). Проба (headless): логика `DreamSystem`

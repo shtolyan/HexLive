@@ -254,6 +254,15 @@ public sealed class NPCState
     public bool IsUnconscious(int tick) =>
         Mind.ComaCause != AI.ComaCause.None || tick < Mind.FaintedUntilTick;
 
+    // Spec §53/§60: is this body lying flat on the ground right now — knocked
+    // out (coma/faint), asleep, or legless-prone? A lying ward keeps her
+    // authored pose (helpers/chatters must not spin her to "face" them), and
+    // the aid animation kneels beside her only when she is DOWN.
+    public bool IsLyingDown(int tick) =>
+        IsUnconscious(tick) ||
+        Execution.CurrentInteraction == InteractionType.Sleep ||
+        Body.IsProne;
+
     public NPCPlanState Plan { get; } = new();
 
     public NPCExecutionState Execution { get; } = new();

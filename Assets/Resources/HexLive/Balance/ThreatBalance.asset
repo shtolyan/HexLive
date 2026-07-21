@@ -38,6 +38,8 @@ MonoBehaviour:
   attackLockTicks: 240
   dangerRingTiles: 2
   dangerStepCost: 80
+  fleeStallTicks: 16
+  fightCommitGraceTicks: 40
   cannibalismEnabled: 1
   cannibalismComfortPenalty: 0.25
   cannibalizeHungerGate: 0.85

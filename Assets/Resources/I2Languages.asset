@@ -651,10 +651,18 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: 'menu.quit'
       TermType: 0
-      Description: 
+      Description:
       Languages:
       - 'Quit game'
       - 'Выйти из игры'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.mainmenu'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Main menu'
+      - 'Вернуться в главное меню'
       Flags: 0101
       Languages_Touch: []
     - Term: 'end.eyebrow'

@@ -156,7 +156,13 @@ public sealed partial class PlanningSystem
         }
 
         var anchorJunction = worldObject.Junctions[0];
-        if (!TryReserveBesideJunction(world, npc, anchorJunction, 48, out var targetJunction))
+        // Cap "beside" to one hop of the coconut's footprint — never pierce/drink
+        // it from across a cliff (user's screenshot: nut at a palm base, reached
+        // from ~1.7 hex out). A boxed-in nut fails here and the forager retargets.
+        var coconutReach = SpatialQueries.BesideReach(
+            world.Content.ObjectDefinitions.TryGetValue(worldObject.DefinitionId, out var cocoDef)
+                ? cocoDef.ObstacleRadius : 0f);
+        if (!TryReserveBesideJunction(world, npc, anchorJunction, 48, out var targetJunction, coconutReach))
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, goal);

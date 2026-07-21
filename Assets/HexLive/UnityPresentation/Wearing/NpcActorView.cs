@@ -1807,7 +1807,7 @@ public sealed class NpcActorView : MonoBehaviour
 
     // Spec 31C.6: interaction poses — crouch while gathering/working, sit
     // on Sit, and hold the relevant item in the right hand.
-    public void SetInteraction(string interaction, string heldItemId)
+    public void SetInteraction(string interaction, string heldItemId, bool aidTargetLying = false)
     {
         if (_legless && IsToolOrWeapon(heldItemId))
         {
@@ -1823,11 +1823,28 @@ public sealed class NpcActorView : MonoBehaviour
         var gathering = interaction is "PickUp" or "FillBottle" or "Fuel" or "Bury" or "Hang" or "Build";
         var drinking = interaction == "Drink";
         var crafting = !_legless && interaction == "Craft";
+        // §53: tending a suffering housemate — the helper holds the mediator
+        // item (feed → whole coconut, water → the pierced drink coconut;
+        // treat/medicate/console tend bare-handed). She kneels into the
+        // planting-style CraftWork clip ONLY when the ward is LYING DOWN
+        // (coma/faint/asleep/prone); over a STANDING ward she just stands and
+        // shows the item, exactly as before.
+        var aidingOther = !_legless &&
+            interaction is "FeedOther" or "HydrateOther" or
+                           "TreatOther" or "MedicateOther" or "ConsoleOther";
+        var aidPropId = interaction switch
+        {
+            "FeedOther" => "food.coconut",
+            "HydrateOther" => "food.coconut_pierced",
+            _ => string.Empty
+        };
+        // The solo craft always kneels; an aid kneels only over a lying ward.
+        var kneelingCraft = crafting || (aidingOther && aidTargetLying);
         _wantsTalk = interaction == "Talk"; // the Talk bool is driven by turn-taking
 
         // Which procedural/clip action this verb wants (before touching the
         // animator, so the axe-chop clip-state can pre-empt the crouch Working pose).
-        var actionKind = (gathering || drinking || crafting || _wantsTalk)
+        var actionKind = (gathering || drinking || kneelingCraft || _wantsTalk)
             ? ActionKind.None
             : ActionFromInteraction(interaction, heldItemId);
         // §axe: chopping/mining with an axe or pickaxe now plays the looping Chop
@@ -1840,7 +1857,7 @@ public sealed class NpcActorView : MonoBehaviour
             _animator.SetBool(DrinkingParam, drinking);
             _animator.SetBool(WorkingParam, !_legless && !chopping &&
                 interaction is "Harvest" or "BuildRaft");
-            _animator.SetBool(CraftingParam, crafting);
+            _animator.SetBool(CraftingParam, kneelingCraft);
             _animator.SetBool(ChoppingParam, chopping);
             _animator.SetBool(SittingParam, interaction == "Sit");
             // Clip source: config override if present, else the state's base clip.
@@ -1852,11 +1869,15 @@ public sealed class NpcActorView : MonoBehaviour
         // kneel) — suppress the procedural shoulder pose so it doesn't fight the
         // clip. Eat keeps its own raise-to-mouth — except legless, where the
         // prone idle carries eat/drink.
-        _action = _legless || chopping || crafting
+        _action = _legless || chopping || kneelingCraft
             ? ActionKind.None
             : actionKind;
-        // Both hands work the craft — the held tool goes down for the ritual.
-        SetHandProp(crafting ? string.Empty : heldItemId);
+        // A solo craft puts both hands to work (tool goes down). An aid keeps
+        // the mediator prop in hand (coconut to feed/water; empty to treat/
+        // console). Everything else holds whatever the sim says.
+        SetHandProp(crafting ? string.Empty
+            : aidingOther ? aidPropId
+            : heldItemId);
     }
 
     // §Wardrobe-anim: drive the two-beat dress/undress sequence. Called every

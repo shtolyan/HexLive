@@ -189,6 +189,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 0.3f)] public float thermalPressureCap = 0.12f;
         [Tooltip("Сколько дискомфорта СБРАСЫВАЕТСЯ за тик в комфортной зоне.")]
         [Range(0f, 0.1f)] public float thermalComfyRecovery = 0.03f;
+        [Tooltip("Ускоренный сброс дискомфорта у СИЛЬНОГО источника тепла (кольцо костра / в помещении) — оттаивает за пару тиков, а не медленно.")]
+        [Range(0f, 0.5f)] public float fireThawRecovery = 0.25f;
         [Tooltip("|Знаковый комфорт| выше этого = урон от гипотермии/теплового удара.")]
         [Range(0.5f, 1f)] public float thermalDamageGate = 0.85f;
         [Tooltip("Урон HP на часть за тик при переохлаждении/перегреве.")]

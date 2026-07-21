@@ -207,6 +207,32 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     continue; // PathfindingSystem re-routes next tick
                 }
 
+                // Distance guarantee (user: craft/harvest/build must all happen at
+                // the smallest hop, never a whole hex out). The literal gate above
+                // proves she stands ON the reserved junction; this proves that
+                // junction actually hugs the object — within its footprint plus one
+                // sub-grid step. A reserved spot farther than that means the object
+                // is walled/cliffed off and was being reached ACROSS the gap, so
+                // fail + retarget instead of interacting from afar. Belt-and-braces
+                // over the planner cap: covers remembered targets and every kind.
+                if (worldObject.Junctions.Count > 0 &&
+                    world.Junctions.Items.TryGetValue(worldObject.Junctions[0], out var anchorJct))
+                {
+                    var reach = SpatialQueries.BesideReach(definition.ObstacleRadius);
+                    if (HexSpatialMath.Distance(npc.Position, anchorJct.WorldPosition) > reach)
+                    {
+                        Trace.Emit(world, npc.Id, "InteractionTooFar",
+                            $"{worldObject.DefinitionId} at " +
+                            $"{HexSpatialMath.Distance(npc.Position, anchorJct.WorldPosition):F2}wu > reach {reach:F2}wu");
+                        npc.Memory.Shun(worldObject.Id, world.Tick + 600);
+                        PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
+                        PlanInterruption.Abort(world, npc,
+                            $"Target {worldObject.DefinitionId} not adjacently reachable (too far to interact)");
+                        npc.Mind.CurrentGoal = GoalType.None;
+                        continue;
+                    }
+                }
+
                 // Memory promised a free object; reality may disagree
                 // (spec 27.18A): never stomp another NPC's occupancy.
                 if (worldObject.IsOccupied && worldObject.CurrentUser != npc.Id)
@@ -1353,8 +1379,16 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
     // Spec 35.5: dropped items keep their instance state on the ground.
     internal static WorldObjectState DropItemAtFeet(WorldState world, NPCState npc, ItemInstance item)
+        => DropItemAtFeet(world, npc, item, underFoot: false);
+
+    // underFoot=true lays the item on the NPC's OWN junction (directly beneath
+    // her) instead of a scattered neighbour — used when undressing so the doffed
+    // garment appears in the same cell she is standing in (user request), not one
+    // cell over.
+    internal static WorldObjectState DropItemAtFeet(
+        WorldState world, NPCState npc, ItemInstance item, bool underFoot)
     {
-        if (TryFindDropSpotAtFeet(world, npc, out var dropTile, out var dropJunction))
+        if (TryFindDropSpotAtFeet(world, npc, underFoot, out var dropTile, out var dropJunction))
         {
             var dropped = WorldObjectMutations.SpawnObject(
                 world, item.DefinitionId, npc.Fragment, dropTile, dropJunction);
@@ -1372,9 +1406,21 @@ public sealed partial class ExecutionSystem : ISimulationSystem
     private static bool TryFindDropSpotAtFeet(
         WorldState world,
         NPCState npc,
+        bool underFoot,
         out TileCoord tile,
         out JunctionId junction)
     {
+        // underFoot: lay it exactly where she stands — same cell, right beneath
+        // her (undressing). A ground garment is passable, so sharing her junction
+        // is fine; it stays put when she steps off.
+        if (underFoot && npc.CurrentJunction is { } feet &&
+            world.Junctions.Items.ContainsKey(feet))
+        {
+            tile = npc.Tile;
+            junction = feet;
+            return true;
+        }
+
         // Prefer a genuinely free ground junction near the actor so dropped
         // items become ordinary world objects immediately. The actor's current
         // junction is usually occupied by the actor, so keep it as a fallback
@@ -1484,8 +1530,27 @@ public sealed partial class ExecutionSystem : ISimulationSystem
     private static void PlaceAtEdge(
         WorldState world, NPCState npc, Junction edge, TileCoord standTile, Float2 facing)
     {
+        // The perch settles her onto the seat tile at the edge. Only ever nudge
+        // her ONE adjacent tile across a SINGLE elevation step — she must have
+        // walked up here. Never yank her across a gap or drop her off a height
+        // onto the seat (user: can't jump from a mountain onto the stump/ledge,
+        // can't seat from afar). If the seat tile isn't a gentle step from where
+        // she stands, skip the relocation and let her sit where she actually is.
         if (npc.Tile != standTile)
         {
+            var gentleStep =
+                HexSpatialMath.HexDistance(npc.Tile, standTile) <= 1 &&
+                world.Tiles.Items.TryGetValue(npc.Tile, out var fromTile) &&
+                world.Tiles.Items.TryGetValue(standTile, out var toTile) &&
+                System.Math.Abs(fromTile.Elevation - toTile.Elevation) <= 1;
+            if (!gentleStep)
+            {
+                npc.Movement.DesiredDirection = facing;
+                npc.Movement.DesiredRotationDegrees = HexSpatialMath.AngleDegrees(facing);
+                npc.RotationDegrees = npc.Movement.DesiredRotationDegrees;
+                return;
+            }
+
             var previous = npc.Tile;
             npc.Tile = standTile;
             SpatialMutations.MoveEntityToTile(world, npc.Id, previous, standTile);

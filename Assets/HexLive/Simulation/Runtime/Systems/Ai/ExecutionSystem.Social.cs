@@ -91,8 +91,13 @@ public sealed partial class ExecutionSystem
                 target.Position.Y - npc.Position.Y);
             var faceDirection = HexSpatialMath.Normalize(faceDelta);
             npc.RotationDegrees = HexSpatialMath.AngleDegrees(faceDirection);
-            target.RotationDegrees = HexSpatialMath.AngleDegrees(
-                new Float2(-faceDirection.X, -faceDirection.Y));
+            // §60: don't spin a lying listener (coma/asleep/prone) to face the
+            // speaker — she keeps her authored lying pose.
+            if (!target.IsLyingDown(world.Tick))
+            {
+                target.RotationDegrees = HexSpatialMath.AngleDegrees(
+                    new Float2(-faceDirection.X, -faceDirection.Y));
+            }
 
             // §60: a listener who collapsed while the initiator was walking
             // over counts as busy — the neutral "sorry, busy" refusal, no
@@ -427,13 +432,19 @@ public sealed partial class ExecutionSystem
                 return;
             }
 
-            // Turn to face her — a caring stance (both turn toward each other).
+            // Turn to face her — a caring stance. The HELPER kneels toward the
+            // patient; the patient, if she's lying (coma/asleep/prone), keeps
+            // her authored pose and is NOT rotated to face back (§60: a flat
+            // body pivoting to look at you reads as creepy).
             var faceDelta = new Float2(
                 target.Position.X - npc.Position.X, target.Position.Y - npc.Position.Y);
             var faceDirection = HexSpatialMath.Normalize(faceDelta);
             npc.RotationDegrees = HexSpatialMath.AngleDegrees(faceDirection);
-            target.RotationDegrees = HexSpatialMath.AngleDegrees(
-                new Float2(-faceDirection.X, -faceDirection.Y));
+            if (!target.IsLyingDown(world.Tick))
+            {
+                target.RotationDegrees = HexSpatialMath.AngleDegrees(
+                    new Float2(-faceDirection.X, -faceDirection.Y));
+            }
 
             npc.Execution.Status = ExecutionStatus.InProgress;
             npc.Execution.CurrentInteraction = kindNow switch

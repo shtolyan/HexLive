@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: lighter
   m_EditorClassIdentifier: 
   gearId: tool.lighter
-  prefab: {fileID: 0}
-  prefabResourcePath: 
+  prefab: {fileID: 304421549834419957, guid: 2f9c2d0bdd9d8459dabb2dec5cbe4654, type: 3}
+  prefabResourcePath:
   usableAsWeapon: 0
   damage: 0.15
   hitDelaySeconds: 1.1

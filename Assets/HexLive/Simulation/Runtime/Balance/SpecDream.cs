@@ -31,6 +31,13 @@ public static class SpecDream
     // the bed never got fed); 0.30 lets the dream beat sit/socialize/idle.
     public static float BuildPull = 0.30f;
 
+    // §bed-force: normally only a bed site's OWNER gets the dream pull toward it.
+    // true ⇒ EVERY colonist dreaming of a bed pitches in on the one staked bed
+    // (beds are staked one-at-a-time, so the colony finishes them in a line —
+    // fastest route to "every girl has her own bed"). Also lets the pull apply
+    // while hands are loaded, so the girl carrying materials actually delivers.
+    public static bool HelpAnyBed = true;
+
     // Bed ownership strength. false ⇒ SOFT: each girl prefers her own bed but
     // may use any free bed until hers is built (survival unchanged). true ⇒
     // STRICT: only the owner ever sleeps in a bed (more "personal" but a

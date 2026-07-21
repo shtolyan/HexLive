@@ -230,6 +230,10 @@ public sealed class MobSystem : ISimulationSystem
         if (!inMelee)
         {
             dog.Status = Wildlife.MobStatus.Chasing;
+            // Spec 29C.4A: out of melee = she has (for now) broken contact, so
+            // the flee-stall clock resets — the cornered-fight valve only fires
+            // on CONTINUOUS melee pinning, never on a chase she is outrunning.
+            target.Mind.FleeContactSinceTick = 0;
             ChaseStep(world, dog, target);
             TryCoverFire(world, dog, target);
 
@@ -260,7 +264,12 @@ public sealed class MobSystem : ISimulationSystem
                 // regression to the run-down protection above); only a girl who
                 // would ALSO flee in melee now flees one tile-step sooner.
                 var attackers = CountAdjacentDogs(world, target);
-                var fledStandoff = (target.Health < 0.6f || WorstPartHealth(target) < 0.35f ||
+                // Spec 29C.4A: a girl who just committed to the fight squares up
+                // instead of bolting the instant the dog gives her a step — the
+                // commitment window must not be undone by the square-up branch.
+                var standoffCommitted = world.Tick < target.Mind.FightCommitUntilTick;
+                var fledStandoff = !standoffCommitted &&
+                    (target.Health < 0.6f || WorstPartHealth(target) < 0.35f ||
                     attackers >= 2) && TryStartFlee(world, target, attackers, dog.Id);
 
                 if (!fledStandoff)
@@ -296,8 +305,46 @@ public sealed class MobSystem : ISimulationSystem
         // where it fell and takes the bites. Collapsing near dogs is lethal.
         var helpless = target.IsUnconscious(world.Tick);
 
-        var fleeing = target.Mind.CurrentGoal == GoalType.Flee;
-        if (!fleeing && !helpless)
+        // Spec 29C.4A cornered-fight valve. A flee only saves her if it BREAKS
+        // melee contact — she is in melee THIS tick, so if she is still fleeing,
+        // time the stall. Once the dog has stayed on her FleeStallTicks past the
+        // first pinned tick the escape has plainly failed, so she abandons the
+        // doomed run and COMMITS to the fight rather than be bitten for free
+        // until a limb tears off and she goes prone (seed 351193917: Молди fled
+        // a dog pinned at Dist=0 for 130+ ticks, never once striking back, LegR
+        // severed at t1095 → prone → dead). Prone/unconscious bodies can't stand,
+        // so they are exempt (§50 is HARD — a crawl-away is all they have).
+        var committedToFight = world.Tick < target.Mind.FightCommitUntilTick;
+        if (target.Mind.CurrentGoal == GoalType.Flee && !helpless &&
+            !target.Body.IsProne && !committedToFight)
+        {
+            if (target.Mind.FleeContactSinceTick == 0)
+            {
+                target.Mind.FleeContactSinceTick = world.Tick;
+            }
+            else if (world.Tick - target.Mind.FleeContactSinceTick >= SimBalance.FleeStallTicks)
+            {
+                committedToFight = true;
+                target.Mind.FleeContactSinceTick = 0;
+                Trace.Emit(world, target.Id, "FleeStalled",
+                    $"Cornered by dog {dog.Id} (Health={target.Health:F2}) — standing to fight");
+            }
+        }
+
+        // Hold the commitment as long as the dog stays engaged, so the flee
+        // assessment below can't ping-pong her back out of the stand mid-fight.
+        // Re-armed each melee tick; it only lapses once the mob is dead or has
+        // broken contact, after which a fresh flee is allowed again.
+        if (committedToFight)
+        {
+            target.Mind.FightCommitUntilTick = world.Tick + SimBalance.FightCommitGraceTicks;
+        }
+
+        // A committed fighter never re-opens the flee assessment (that re-flee
+        // was the endless-maul loop); a genuinely new flee only starts for a
+        // girl not currently standing her ground.
+        var fleeing = target.Mind.CurrentGoal == GoalType.Flee && !committedToFight;
+        if (!fleeing && !helpless && !committedToFight)
         {
             var attackers = CountAdjacentDogs(world, target);
             // §50-prone: a girl on the ground CANNOT stand and trade blows —
@@ -572,6 +619,9 @@ public sealed class MobSystem : ISimulationSystem
 
         PlanInterruption.Abort(world, npc, $"Fleeing from dogs (attackers={attackers})");
         npc.IsFighting = false;
+        // Spec 29C.4A: a fresh flee earns a fresh stall grace — clear any pin
+        // clock from a prior engagement so the new run is judged on its own.
+        npc.Mind.FleeContactSinceTick = 0;
         npc.Mind.CurrentGoal = GoalType.Flee;
         npc.Plan.Goal = GoalType.Flee;
         npc.Plan.TargetJunctionId = refuge;

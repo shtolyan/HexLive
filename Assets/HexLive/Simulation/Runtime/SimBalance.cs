@@ -160,12 +160,20 @@ namespace HexLive.Simulation.Runtime
         public static float HeatPressureSlope = 0.025f; // discomfort/tick per °C above the band
         public static float ThermalPressureCap = 0.12f; // max discomfort accrued per tick
         public static float ThermalComfyRecovery = 0.03f; // discomfort SHED per tick inside the band
+        // A body actively warmed by a strong heat source (fire ring / indoors)
+        // thaws ~8× faster: standing by the fire should CLEAR the night's cold
+        // in a few ticks, not slowly bleed it off. Only sheds — never adds.
+        public static float FireThawRecovery = 0.25f;   // discomfort SHED/tick when comfy AND fire/indoor is warming
         public static float ThermalDamageGate = 0.85f;  // |signed comfort| above this deals HP
         public static float ThermalHpHit = 0.012f;      // HP/part/tick from hypothermia/heatstroke
         public static float IndoorWarmthBonus = 4f;     // being indoors adds this to effective temp
         public static float WaterCoolBonus = 3f;        // being in water subtracts this
-        public static float FireWarmthRange1 = 8f;      // campfire warmth at 1 tile
-        public static float FireWarmthRange2 = 4f;      // campfire warmth at 2 tiles
+        // Fire is a STRONG heat source — huddling by it must reach the comfy
+        // band [16,22] even on the coldest rainy night (floor ~3°, naked).
+        // fireRelief is clamped to (HotBandTemp − baseTemp) below, so this can
+        // never overheat: it tops out AT 22° and a dressed body caps sooner.
+        public static float FireWarmthRange1 = 18f;     // campfire warmth at 1 tile (→ ~22° from 3° floor)
+        public static float FireWarmthRange2 = 11f;     // campfire warmth at 2 tiles
 
         // ─────────────────────────────────────────────────────────────
         // Spec 35.4: cool-off goal stability. CoolOff used to be a move-only
@@ -390,19 +398,38 @@ namespace HexLive.Simulation.Runtime
         // (which mirror the bed_leaf_final prefab's staged piece groups "1".."4").
         public static int BedLeafBillLeaves = 46;
         public static int BedLeafBillSticks = 8;
-        public static int BedLeafBillRope = 8;
+        // §bed-force: rope pulled to 0. Rope (fiber→craft→haul) was the ONE
+        // material that never accumulated under auction pressure — 40-day soaks
+        // stalled a bed at leaves 12/12 + sticks 3/3 + rope 0/1 forever. With it
+        // gone the leaf+stick chain finishes and EVERY colonist gets her bed
+        // (probe: 3/3 built, 3/3 survived). The finished bed still renders its
+        // full prefab (rope lashings included) — BedAssembly shows all pieces on
+        // the RAISED bed regardless of bill, so this costs nothing visually.
+        public static int BedLeafBillRope = 0;
 
         // bed.basic (premium bedroll, bed_basic_final): 4 log side-rails (two per
         // side) + stick cross-slats + rope lashings + a full leaf mattress.
         public static int BedBasicBillLogs = 4;
         public static int BedBasicBillSticks = 5;
-        public static int BedBasicBillRope = 10;
+        public static int BedBasicBillRope = 0; // §bed-force: same rope-stall relief as the leaf bed
         public static int BedBasicBillLeaves = 50;
         // §54.12: the SECOND bed tier. Once every girl has a leaf mat, the
         // colony starts building premium bedrolls (bed.basic) from scratch —
         // each at its OWN fireside site, one at a time, until every girl has
         // one. NOT an upgrade: the leaf mats stay untouched.
         public static bool BedBasicEnabled = true;
+
+        // ── Bed-build forcing knobs (make sure every girl actually gets a bed) ──
+        // The staged, full-bundle delivery chain kept starving the bed: colonists
+        // hoarded the WRONG stage's material (leaves while the site wanted sticks)
+        // and never reached the 8-piece bundle a delivery trip demanded, so 20-day
+        // soaks landed 1 stick total. These loosen it:
+        //  • DeliverBundleCap — max pieces to carry before a delivery trip is
+        //    "worthwhile". Low ⇒ deliver almost every piece as you gather it.
+        //  • BedDeliveryStaged=false ⇒ deliver toward the WHOLE bill in any order,
+        //    so a carried leaf/rope lands even while the "stick stage" is open.
+        public static int DeliverBundleCap = 4;
+        public static bool BedDeliveryStaged = false;
 
         // §35.5B: the drying rack is a staged fireside build-site like the beds
         // (two planted uprights → two rails → four lashings), not an atomic
@@ -496,5 +523,22 @@ namespace HexLive.Simulation.Runtime
         // BOLTS for an indoor refuge once its Health drops below this. So an
         // armed, healthy victim can wound, kill, or outrun a starved predator.
         public static float PredationFleeHealth = 0.6f;
+
+        // Spec 29C.4A cornered-fight valve. A flee is only worth it if it puts
+        // ground between the girl and the mob; if a dog stays in MELEE with her
+        // for this many ticks after she started running (TicksPerSecond = 4, so
+        // ~4 s), the escape has failed — she turns and fights to the death
+        // rather than be bitten for free until a limb tears off and she goes
+        // prone (seed 351193917: Молди fled a dog that pinned her at Dist=0 for
+        // 130+ ticks, never once striking back, LegR severed at t1095 → prone →
+        // dead). Generous enough that a genuine door-dash a step from sanctuary
+        // still completes; far short of the ~130-tick maul-to-amputation window.
+        public static int FleeStallTicks = 16;
+        // Once she commits to the stand, hold the commitment this long past the
+        // last melee tick so the flee assessment can't bounce her straight back
+        // into a run. Re-armed each engaged tick, so it only lapses once the mob
+        // is dead or has broken contact — then normal life (incl. a fresh flee)
+        // resumes.
+        public static int FightCommitGraceTicks = 40;
     }
 }

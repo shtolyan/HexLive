@@ -269,7 +269,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
             var sitAvail = npc.Needs.Comfort < SimBalance.SitComfortThreshold &&
                 npc.Needs.Hunger < SimBalance.SitNeedGate && npc.Needs.Thirst < SimBalance.SitNeedGate &&
                 !sleepAvail &&
-                (HasPerceivedSeat(npc) || AnyLedgeNear(world, npc, HexSpatialMath.HexRadius * 8f));
+                // Sitting is worth it only for a seat she's essentially next to —
+                // a ledge within ~2 hexes, not one hiked to across the map (user:
+                // walk right up to it, never sit "from afar"). Was 8R.
+                (HasPerceivedSeat(npc) || AnyLedgeNear(world, npc, HexSpatialMath.HexRadius * 2f));
             // Spec 29C.4 restraint: dress only against cold — an overheated
             // NPC reaching for more clothes is a doom loop.
             // Spec 29C.4A: fresh danger overrides the weather — arm up.
@@ -905,10 +908,15 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // feeder it is mirrored onto is already availability-gated on the
             // site's current stage, so the pull matters only when that material is
             // actually wanted.
-            var dreamMatch = SpecDream.Enabled && freeHands > 0f && buildSite != null &&
-                ((npc.Mind.CurrentDream == DreamType.Campfire && siteIsHearth) ||
+            // §bed-force: for the personal-bed dream, HelpAnyBed lets every
+            // colonist push the one staked bed (not just its owner) AND drops the
+            // free-hands gate so the girl CARRYING materials still gets the pull
+            // on her delivery bid. The campfire dream keeps the original gate.
+            var dreamMatch = SpecDream.Enabled && buildSite != null &&
+                ((npc.Mind.CurrentDream == DreamType.Campfire && siteIsHearth && freeHands > 0f) ||
                  (npc.Mind.CurrentDream == DreamType.OwnBed && siteIsBed &&
-                  buildSite.Owner is { } dreamOwner && dreamOwner.Equals(npc.Id)));
+                  (SpecDream.HelpAnyBed ||
+                   (freeHands > 0f && buildSite.Owner is { } dreamOwner && dreamOwner.Equals(npc.Id)))));
             var dreamPull = dreamMatch ? SpecDream.BuildPull : 0f;
             // §63 r2: the site's stone bill pulls the WHOLE mining chain the
             // way the bed's stages pull leaves/sticks/rope — without it
@@ -1145,8 +1153,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
                         BuildSiteMath.MaterialLogs => gatherWoodAvail,
                         _ => false
                     };
-                    var bundle = System.Math.Min(
-                        stageRemaining, InventoryState.StackSizeFor(mat) / 2);
+                    var bundle = System.Math.Max(1, System.Math.Min(stageRemaining,
+                        System.Math.Min(InventoryState.StackSizeFor(mat) / 2, SimBalance.DeliverBundleCap)));
                     deliverWorthwhile = carriedOfStage >= bundle ||
                         (carriedOfStage > 0 && !canGetMore);
                     break;

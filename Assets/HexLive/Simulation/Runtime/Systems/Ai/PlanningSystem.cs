@@ -468,8 +468,14 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // every claimant — without reserving here two sleepers fight
                 // over one spot forever (ReservationFailed loop). Nearest-to-NPC
                 // first, so "beside" is the CLOSEST reachable cell to the item.
+                // Capped to BesideReach: a boxed-in item yields no rim (fail +
+                // retarget) rather than a stand a whole hex out (user: interact
+                // at the smallest hop, never across a wall/cliff).
                 JunctionId? beside = null;
-                SpatialQueries.CollectStandableAround(world, anchorId, _rimScratch);
+                var besideReach = SpatialQueries.BesideReach(
+                    world.Content.ObjectDefinitions.TryGetValue(selected.DefinitionId, out var besideDef)
+                        ? besideDef.ObstacleRadius : 0f);
+                SpatialQueries.CollectStandableAround(world, anchorId, _rimScratch, 96, besideReach);
                 _rimScratch.Sort((a, b) =>
                 {
                     var da = world.Junctions.Items.TryGetValue(a, out var ja)
@@ -547,9 +553,10 @@ public sealed partial class PlanningSystem : ISimulationSystem
         NPCState npc,
         JunctionId anchorId,
         int durationTicks,
-        out JunctionId beside)
+        out JunctionId beside,
+        float maxBesideDist = float.MaxValue)
     {
-        SpatialQueries.CollectStandableAround(world, anchorId, _rimScratch);
+        SpatialQueries.CollectStandableAround(world, anchorId, _rimScratch, 96, maxBesideDist);
         if (npc.CurrentJunction is { } current && _rimScratch.Contains(current))
         {
             beside = current;

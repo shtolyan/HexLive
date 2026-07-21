@@ -42,6 +42,9 @@ namespace HexLive.UnityPresentation
             // A rope coil is a small bundle — slightly smaller than a coconut
             // half (food.* renders at 0.12), not tool-sized.
             if (definitionId == "resource.rope") return r * 0.10f;
+            // A lighter is a tiny pocket object — 1/3 of the standard tool size,
+            // applied to BOTH ground and hand (0.216 / 3).
+            if (definitionId == "tool.lighter") return r * 0.072f;
             // Tools & resources: 0.216 = the standard hand/ground tool size
             // (was 0.18; +20% after in-hand testing, applied to BOTH paths).
             if (definitionId.StartsWith("tool.") || definitionId.StartsWith("resource.")) return r * 0.216f;

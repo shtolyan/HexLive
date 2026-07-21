@@ -1018,7 +1018,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             earlyRainWet, npc.WornWetness, npc.WornDirtiness, npc.WornBloodiness,
             npc.Wounds, npc.BandagedZones, npc.SeveredParts);
         var heldItemId = IsProne(npc) && IsToolOrWeapon(npc.HeldItemId) ? string.Empty : npc.HeldItemId;
-        actorView.SetInteraction(npc.CurrentInteraction, heldItemId);
+        actorView.SetInteraction(npc.CurrentInteraction, heldItemId, npc.AidTargetLyingDown);
         // §Wardrobe-anim: the two-beat dress/undress sequence (gather + garment
         // in hand). Runs after SetInteraction, which it overrides for these verbs.
         actorView.SetWardrobeAction(npc.CurrentInteraction, npc.InteractionProgress, npc.HeldGarmentId,

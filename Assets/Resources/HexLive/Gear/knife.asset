@@ -15,17 +15,16 @@ MonoBehaviour:
   gearId: tool.knife
   prefab: {fileID: 6415803462449433575, guid: e65333b104ab245b0bc5fbe4eabc02c3, type: 3}
   prefabResourcePath: 
-  damage: 0.1875
+  usableAsWeapon: 1
+  damage: 0.221
   hitDelaySeconds: 1.5
   attackDurationSeconds: 2
-  cooldownSeconds: 1
-  attackSpeed: 1
-  harvestSpeedMult: 1
+  cooldownSeconds: 0.74
   meleePriority: 10
   twoHanded: 0
-  capabilities:
-  - 1
-  - 2
+  attackSpeed: 1
+  harvestSpeedMult: 1
+  capabilities: 0100000002000000
   craftable: 1
   craftStation: 0
   craftNeedsLitFire: 0
@@ -43,9 +42,9 @@ MonoBehaviour:
   handHasLeftOverride: 0
   leftHandLocalPosition: {x: 0, y: 0, z: 0}
   leftHandLocalEuler: {x: 0, y: 0, z: 0}
+  strikes: []
   attackClips:
   - {fileID: -203655887218126122, guid: a1cc1951777d74c508fb2386210e2817, type: 3}
   armedIdle: {fileID: -203655887218126122, guid: 4b1c7d0af5eb04d6e9a1658453475d94, type: 3}
   armedWalk: {fileID: -203655887218126122, guid: 9e708ac3817d44062afa1909114df08c, type: 3}
   workClip: {fileID: 0}
-

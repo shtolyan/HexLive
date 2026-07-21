@@ -74,7 +74,14 @@ public sealed class TemperatureSystem : ISimulationSystem
             }
             else
             {
-                pressure = -SimBalance.ThermalComfyRecovery; // comfortable band
+                // Comfortable band. A body actively warmed by a strong heat
+                // source (fire ring or indoors) sheds the accumulated cold much
+                // faster — standing by the fire thaws you in a few ticks instead
+                // of slowly bleeding the night's chill off at the ambient rate.
+                var activelyWarmed = fireWarmth > 0f || isIndoor;
+                pressure = -(activelyWarmed
+                    ? SimBalance.FireThawRecovery
+                    : SimBalance.ThermalComfyRecovery);
             }
 
             // Tier B: a sleeping body accrues cold/heat discomfort more slowly

@@ -10,11 +10,31 @@ namespace HexLive.UnityPresentation.Bootstrap
 
 public static class PrototypeRuntimeBootstrap
 {
+    private static bool _sceneHookInstalled;
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Install()
     {
+        // RuntimeInitializeOnLoadMethod fires ONCE at app startup, not on scene
+        // reloads. The Escape-menu "return to main menu" reloads the active
+        // scene, so we also (re)bootstrap on every scene load — otherwise the
+        // reloaded scene comes up empty (world gone, no menu UI). The
+        // existing-runner guard in Boot() prevents a double-boot on first load.
+        if (!_sceneHookInstalled)
+        {
+            _sceneHookInstalled = true;
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded += (_, __) => Boot();
+        }
+
+        Boot();
+    }
+
+    private static void Boot()
+    {
         // Apply the saved tuning asset (hop/swim/water feel) before anything
         // spawns — the values that used to be hand-edited code constants.
+        // Idempotent (each catalog clears/overrides), so re-running per scene
+        // load is safe.
         Config.HexTuning.LoadAndApply();
 
         // §59: the themed balance configs (Character / ResourceLoop / Social /

@@ -284,7 +284,9 @@ public sealed partial class ExecutionSystem
             _garmentSpillScratch.Add(victim);
         }
 
-        var dropped = DropItemAtFeet(world, npc, garment);
+        // §31A.5A: a doffed garment lands in the SAME cell she stands in, right
+        // under her — not scattered a cell over (user request).
+        var dropped = DropItemAtFeet(world, npc, garment, underFoot: true);
         if (dropped != null && _garmentSpillScratch.Count > 0)
         {
             dropped.Contents.AddRange(_garmentSpillScratch);

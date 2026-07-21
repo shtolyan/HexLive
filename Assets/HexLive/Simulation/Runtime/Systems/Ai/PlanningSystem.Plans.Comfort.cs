@@ -382,7 +382,9 @@ public sealed partial class PlanningSystem
                 }
 
                 var d = HexSpatialMath.Distance(junction.WorldPosition, npc.Position);
-                if (d < bestDist && d < HexSpatialMath.HexRadius * 8f &&
+                // Only a ledge she's basically beside — walk up to it, don't trek
+                // across the island to a scenic edge (user: sit close, not afar).
+                if (d < bestDist && d < HexSpatialMath.HexRadius * 2f &&
                     Connectivity.Reachable(world, from, junction.Id))
                 {
                     bestDist = d;

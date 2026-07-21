@@ -29,11 +29,13 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement _overlay;
         private Label _title;
         private Label _continueLabel;
+        private Label _mainMenuLabel;
         private Label _quitLabel;
 
         private static readonly Color Dim = new(0f, 0f, 0f, 0.55f);
         private static readonly Color Panel = new(0.075f, 0.094f, 0.110f, 0.98f);
         private static readonly Color Raised = new(0.133f, 0.165f, 0.192f);
+        private static readonly Color Hover = new(0.180f, 0.220f, 0.255f);
         private static readonly Color Stroke = new(1f, 1f, 1f, 0.12f);
         private static readonly Color Text = new(0.906f, 0.925f, 0.937f);
         private static readonly Color TextDim = new(0.604f, 0.651f, 0.678f);
@@ -200,6 +202,16 @@ namespace HexLive.UnityPresentation.UI
             continueButton.RegisterCallback<MouseDownEvent>(_ => SetOpen(false));
             card.Add(continueButton);
 
+            // Save the current game, tear the world down, and return to the
+            // boot menu (see ReturnToMainMenu).
+            var mainMenuButton = MakeButton(out _mainMenuLabel);
+            mainMenuButton.style.backgroundColor = Raised;
+            mainMenuButton.style.marginTop = 10f;
+            mainMenuButton.RegisterCallback<MouseEnterEvent>(_ => mainMenuButton.style.backgroundColor = Hover);
+            mainMenuButton.RegisterCallback<MouseLeaveEvent>(_ => mainMenuButton.style.backgroundColor = Raised);
+            mainMenuButton.RegisterCallback<MouseDownEvent>(_ => ReturnToMainMenu());
+            card.Add(mainMenuButton);
+
             var quitButton = MakeButton(out _quitLabel);
             quitButton.style.backgroundColor = Raised;
             quitButton.style.marginTop = 10f;
@@ -235,7 +247,31 @@ namespace HexLive.UnityPresentation.UI
 
             _title.text = Loc.Get("menu.title");
             _continueLabel.text = Loc.Get("menu.continue");
+            _mainMenuLabel.text = Loc.Get("menu.mainmenu");
             _quitLabel.text = Loc.Get("menu.quit");
+        }
+
+        // Save the current game, then reload the active scene. The world,
+        // runner and every HUD panel are destroyed with the old scene; the
+        // fresh load re-runs PrototypeRuntimeBootstrap.Install (AfterSceneLoad),
+        // which opens the LoadingScreen as the main menu again.
+        private void ReturnToMainMenu()
+        {
+            var runner = _runner != null ? _runner : FindAnyObjectByType<SimulationRunnerBehaviour>();
+            if (runner != null)
+            {
+                // Explicit user save — write unconditionally, independent of the
+                // autosave gates.
+                runner.WriteSaveNow();
+            }
+
+            // Menu paused the world (timeScale 0); the reload must start from a
+            // clean clock, and the overlay flag must not survive into boot.
+            IsOpen = false;
+            Time.timeScale = 1f;
+
+            var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+            UnityEngine.SceneManagement.SceneManager.LoadScene(scene.buildIndex);
         }
 
         private static void Quit()

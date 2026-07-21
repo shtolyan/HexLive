@@ -29,7 +29,7 @@ namespace HexLive.Simulation.Persistence
 //   on load, rebuilt on first pathfind).
 public static class WorldSaveSerializer
 {
-    public const int BlobVersion = 11; // v11: §64 personal-bed Owner + CampfireDreamDone latch
+    public const int BlobVersion = 12; // v12: §52 build-site payload (product + bill + delivered materials) survives reload
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -497,6 +497,19 @@ public static class WorldSaveSerializer
         }
 
         WriteNullableEntity(w, obj.Owner); // §64: personal-bed ownership
+
+        // v12: build-site payload — WHAT the site becomes, its material bill and
+        // the materials already hauled in (Contents). Without this an in-progress
+        // build (a half-raised bed) lost its BuildProduct on reload, became an
+        // empty "build.site", and BedSiteSystem swept it as cruft — so a bed
+        // could never survive a save/load, let alone finish (see §52/§54.2).
+        w.Write(obj.BuildProduct);
+        w.Write(obj.BillLogs);
+        w.Write(obj.BillStones);
+        w.Write(obj.BillLeaves);
+        w.Write(obj.BillSticks);
+        w.Write(obj.BillRope);
+        WriteItemList(w, obj.Contents);
     }
 
     private static WorldObjectState ReadObject(BinaryReader r, int version)
@@ -530,6 +543,21 @@ public static class WorldSaveSerializer
         }
 
         obj.Owner = version >= 11 ? ReadNullableEntity(r) : null; // §64
+
+        // v12: build-site payload (product + bill + delivered materials). Pre-v12
+        // saves never stored it, so those in-progress sites still load empty and
+        // BedSiteSystem sweeps them (the old behaviour) — only NEW builds persist.
+        if (version >= 12)
+        {
+            obj.BuildProduct = r.ReadString();
+            obj.BillLogs = r.ReadInt32();
+            obj.BillStones = r.ReadInt32();
+            obj.BillLeaves = r.ReadInt32();
+            obj.BillSticks = r.ReadInt32();
+            obj.BillRope = r.ReadInt32();
+            ReadItemList(r, obj.Contents, version);
+        }
+
         return obj;
     }
 

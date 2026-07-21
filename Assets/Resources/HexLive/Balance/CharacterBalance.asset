@@ -18,27 +18,27 @@ MonoBehaviour:
   lockOverrideDelta: 0.5
   switchDelta: 0.15
   talkWaitTimeoutTicks: 120
-  hungerRate: 0.0055
-  thirstRate: 0.01
-  energyRate: 0.007
+  hungerRate: 0.0037
+  thirstRate: 0.008
+  energyRate: 0.0053
   comfortRate: 0.01
   socialRate: 0.008
-  sweatThirstFactor: 0.25
+  sweatThirstFactor: 0.182
   getFoodHungerThreshold: 0.35
-  sleepEnergyThreshold: 0.45
-  sitComfortThreshold: 0.6
-  sitNeedGate: 0.6
-  sleepInterruptHunger: 0.6
-  sleepInterruptThirst: 0.6
+  sleepEnergyThreshold: 0.203
+  sitComfortThreshold: 0.29
+  sitNeedGate: 0.29
+  sleepInterruptHunger: 0.212
+  sleepInterruptThirst: 0.212
   dressThermalThreshold: 0.45
   dressColdTemp: 14
   dressWarmthCeiling: 0.5
   dressWarmthGainMin: 0.05
-  starvingEnterThreshold: 0.85
+  starvingEnterThreshold: 0.82
   starvingClearThreshold: 0.6
   starvingBoost: 1
   starveDeathThreshold: 0.95
-  starveDamageBoth: 0.01
+  starveDamageBoth: 0.0078
   starveDamageOne: 0.006
   healHungerGate: 0.6
   healthRegenPerTick: 0.003
@@ -59,24 +59,25 @@ MonoBehaviour:
   bottleCapacity: 3
   coconutWaterCapacity: 4
   handSlots: 2
-  groundSleepEnergy: 0.12
-  groundSitEnergy: 0.05
+  baseCarrySlots: 2
+  groundSleepEnergy: 0.314
+  groundSitEnergy: 0.173
   groundSitComfort: 0.15
   groundSitComfortLedge: 0.25
-  bedEnergy: 0.18
-  leafBedEnergy: 0.15
+  bedEnergy: 0.448
+  leafBedEnergy: 0.348
   chairComfort: 0.4
-  chairEnergy: 0.1
+  chairEnergy: 0.158
   sleepEnergyBaseBonus: 0.02
   sleepEnergyFireBonus: 0.005
   sleepEnergyLeafBedBonus: 0.006
   sleepEnergyBasicBedBonus: 0.01
-  exhaustedSleepWakeEnergy: 0.45
+  exhaustedSleepWakeEnergy: 0.249
   comaWakeThreshold: 0.15
   comaBloodEnterThreshold: 0.25
   comaBloodWakeThreshold: 0.35
-  coconutHunger: 0.6
-  coconutThirst: 0.25
+  coconutHunger: 0.675
+  coconutThirst: 0.338
   cookedMeatHunger: 0.9
   coldBandTemp: 14
   hotBandTemp: 22
@@ -84,12 +85,13 @@ MonoBehaviour:
   heatPressureSlope: 0.025
   thermalPressureCap: 0.12
   thermalComfyRecovery: 0.03
+  fireThawRecovery: 0.25
   thermalDamageGate: 0.85
   thermalHpHit: 0.012
   indoorWarmthBonus: 4
   waterCoolBonus: 3
-  fireWarmthRange1: 8
-  fireWarmthRange2: 4
+  fireWarmthRange1: 18
+  fireWarmthRange2: 11
   coolOffEnterThreshold: 0.35
   coolOffClearThreshold: 0.2
   coolOffSunClear: 0.45
@@ -109,11 +111,11 @@ MonoBehaviour:
   washClothesNeedThreshold: 0.2
   batheWornDirtWeight: 0.9
   dryClothesWetThreshold: 0.35
-  staminaRestGain: 0.06
-  staminaWorkDrain: 0.05
-  staminaIdleGain: 0.015
-  stressUpRate: 0.05
-  stressDownRate: 0.03
+  staminaRestGain: 0.1524
+  staminaWorkDrain: 0.0329
+  staminaIdleGain: 0.0082
+  stressUpRate: 0.0147
+  stressDownRate: 0.0684
   baseTemperature: 15.5
   temperatureAmplitude: 9.5
   rainTempDrop: 3

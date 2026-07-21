@@ -544,9 +544,22 @@ public static class WorldSnapshotExporter
             : 0f;
         var heldGarmentId = ResolveHeldGarment(world, npc, interactionProgress);
 
+        // Spec §53 r2: the kneeling "tending" pose only plays when the ward is
+        // lying down — over a standing ward the helper just shows the item in
+        // hand. Look up the aid target's posture here (the view has no cross-NPC
+        // access) so SetInteraction can pick the pose.
+        var aidTargetLying = npc.Execution.CurrentInteraction is
+                InteractionType.FeedOther or InteractionType.HydrateOther or
+                InteractionType.TreatOther or InteractionType.MedicateOther or
+                InteractionType.ConsoleOther &&
+            npc.Plan.TargetAgentId is { } aidWardId &&
+            world.Entities.Npcs.TryGetValue(aidWardId, out var aidWard) &&
+            aidWard.IsLyingDown(world.Tick);
+
         var npcSnapshot = new NpcSnapshot
         {
             InteractionProgress = interactionProgress,
+            AidTargetLyingDown = aidTargetLying,
             HeldGarmentId = heldGarmentId,
             // §40.6 r2: live condition of the held piece — the hand prop shows
             // the dirt actually washing out during the scrub.

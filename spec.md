@@ -6138,7 +6138,7 @@ falls back to Marta's body otherwise — so the colony names and the actor set
 stay in lockstep.
 
 **31B.1a Jolly (fourth colonist).** Imported from molly_copy the same way as
-the first three, with two deltas worth recording:
+the first three, with three deltas worth recording:
 
 - **Materials are rebuilt, not copied.** The source .mat files are still
   HDRP/Daz-flavoured (render queue 2225, `_CutoutOpacityMap`, HDRP-only
@@ -6155,12 +6155,15 @@ the first three, with two deltas worth recording:
   `Prae-OnyxHairRed_RGBA.png` / `Prae-OnyxHairRedCap_RGBA.png`, and the
   materials follow the LowPonytail recipe (URP Lit, Opaque + AlphaClip,
   cutoff 0.42, queue 2450).
-- **Wear fits are Marta's for the "new wear" drop.** The 15 garments built
-  by `NewWearExtractor` from the three DAZ FBX exports (31B.4) have no
-  Jolly fitting; her `WearConfig` entries reuse Marta's mesh and scale
-  (closest proportions). Re-export those garments fitted to Jolly to remove
-  the poke-through; per-actor scale is tunable live in the WardrobeTest
-  scene.
+- **The "new wear" drop needed a fourth DAZ export.** The garments built by
+  `NewWearExtractor` (31B.4) are per-girl fitted meshes, so Jolly had none
+  until `jolly new.fbx` was extracted alongside the original three. Her
+  `WearConfig` entries carry `scale: 1` — a correctly fitted mesh needs no
+  fudge factor, unlike the stand-ins. The print variants (bra/panty
+  cherry/dots/stripe) share the base garment's mesh folder, so they point at
+  the same `BraBasic`/`PantyBasic` Jolly fit as the plain versions; `Boots`
+  is one shared mesh for every girl by design. Per-actor scale stays tunable
+  live in the WardrobeTest scene.
 
 ### 31B.2 Source wear architecture (adopted)
 

@@ -1674,7 +1674,7 @@ namespace HexLive.UnityPresentation.UI
 
             if (!worn && water.TryGetValue(info.DefinitionId, out var waterState))
             {
-                _invDetailStats.Add(MakeWaterContainerBlock(waterState));
+                _invDetailStats.Add(MakeWaterContainerBlock(info.DefinitionId, waterState));
             }
 
             if ((def == null || def.Layer.HasValue) &&
@@ -1758,12 +1758,16 @@ namespace HexLive.UnityPresentation.UI
 
         }
 
-        private VisualElement MakeWaterContainerBlock(WaterContainerState state)
+        private VisualElement MakeWaterContainerBlock(string id, WaterContainerState state)
         {
             var capacity = Mathf.Max(0.001f, state.Capacity);
             var amount = Mathf.Clamp(state.Amount, 0f, capacity);
             var value = Mathf.Clamp01(amount / capacity);
             var pct = Mathf.RoundToInt(value * 100f);
+            // Display-only volume: the sim counts gulps, the panel shows litres.
+            var volumeCapacity = DisplayCapacityLiters(id, capacity);
+            var volumeAmount = volumeCapacity * value;
+            var millilitres = volumeCapacity < 1f;
             var color = CategoryColor(ItemCategory.Water);
 
             var block = new VisualElement();
@@ -1789,9 +1793,9 @@ namespace HexLive.UnityPresentation.UI
             label.style.unityFontStyleAndWeight = FontStyle.Bold;
             header.Add(label);
 
-            var liters = Loc.Get("inv.liters");
+            var unit = Loc.Get(millilitres ? "inv.milliliters" : "inv.liters");
             var valueLabel = new Label(
-                $"{FormatLiters(amount)} / {FormatLiters(capacity)} {liters} - {pct}%");
+                $"{FormatVolume(volumeAmount, millilitres)} / {FormatVolume(volumeCapacity, millilitres)} {unit} - {pct}%");
             valueLabel.style.color = color;
             valueLabel.style.fontSize = 12.5f;
             valueLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
@@ -2096,12 +2100,32 @@ namespace HexLive.UnityPresentation.UI
             return map;
         }
 
-        private static string FormatLiters(float value)
+        // Spec §52: water volume on screen is COSMETIC. The sim counts gulps
+        // (BottleCapacity / CoconutWaterCapacity); the panel turns that into a
+        // believable volume — one gulp reads as 0.1 L, so a 4-gulp pierced
+        // coconut is 400 ml. Named containers may pin their own volume: the
+        // bottle is a round 1 L regardless of how many gulps it holds.
+        private const float DisplayLitersPerGulp = 0.1f;
+
+        private static float DisplayCapacityLiters(string id, float gulpCapacity)
         {
-            var rounded = Mathf.Round(value);
-            return Mathf.Abs(value - rounded) < 0.05f
+            return id == "tool.bottle" ? 1f : gulpCapacity * DisplayLitersPerGulp;
+        }
+
+        private static string FormatVolume(float liters, bool millilitres)
+        {
+            if (millilitres)
+            {
+                // Round to the nearest 10 ml — gulp fractions shouldn't read
+                // as fake precision ("266 ml").
+                var ml = Mathf.Round(liters * 100f) * 10f;
+                return ml.ToString("0", System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            var rounded = Mathf.Round(liters);
+            return Mathf.Abs(liters - rounded) < 0.05f
                 ? rounded.ToString("0", System.Globalization.CultureInfo.InvariantCulture)
-                : value.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
+                : liters.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
         }
 
         private static float RawNeed(NpcSnapshot npc, string key)

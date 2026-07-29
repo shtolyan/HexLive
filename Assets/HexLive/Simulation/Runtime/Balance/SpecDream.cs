@@ -22,20 +22,18 @@ public static class SpecDream
     // append future dreams (a wall, a store, a workshop…) here and to DreamType.
     public static DreamType[] DefaultQueue = { DreamType.Campfire, DreamType.OwnBed };
 
-    // The owner's extra push toward HER OWN dream build, added to BuildFurniture
-    // and its active feeders — but ONLY while free-hands is open (needs met), so
-    // it can never enter a survival bid. Sized to WIN among peacetime chores:
-    // when comfort is low (wants to sit/rest) or social is low (wants to talk),
-    // the build-dream should still outrank that leisure. Survival (hunger/thirst
-    // /danger) always preempts it via the peacetime gate. Was 0.18 (too timid —
-    // the bed never got fed); 0.30 lets the dream beat sit/socialize/idle.
-    public static float BuildPull = 0.30f;
+    // The dream-build push, added to BuildFurniture and its active feeders — but
+    // it can never enter a survival bid (hunger/thirst/danger always preempt via
+    // the peacetime gate). Raised 0.18→0.30→0.50 (user passes): the colony should
+    // clearly PRIORITISE the bed over other peacetime chores (sit/socialize/wash/
+    // idle), only pausing for real survival needs.
+    public static float BuildPull = 0.50f;
 
-    // §bed-force: normally only a bed site's OWNER gets the dream pull toward it.
-    // true ⇒ EVERY colonist dreaming of a bed pitches in on the one staked bed
-    // (beds are staked one-at-a-time, so the colony finishes them in a line —
-    // fastest route to "every girl has her own bed"). Also lets the pull apply
-    // while hands are loaded, so the girl carrying materials actually delivers.
+    // §64: normally only a bed site's OWNER gets the dream pull toward it. true ⇒
+    // EVERY colonist dreaming of a bed pitches in on the one staked bed (beds are
+    // staked one-at-a-time, so the colony finishes them in a line — fastest route
+    // to "every girl has her own bed"). Also lets the pull apply while hands are
+    // loaded, so the girl CARRYING materials still bids to deliver them.
     public static bool HelpAnyBed = true;
 
     // Bed ownership strength. false ⇒ SOFT: each girl prefers her own bed but

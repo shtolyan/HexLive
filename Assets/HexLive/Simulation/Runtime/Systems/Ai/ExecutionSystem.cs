@@ -1005,6 +1005,10 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                         var hung = WorldObjectMutations.SpawnObject(
                             world, wetWorn.DefinitionId, npc.Fragment,
                             worldObject.Tile, worldObject.Junctions[0]);
+                        // §66: the rack stands at a yaw, and its hanger slots turn
+                        // with it — a garment hung on it must take the same yaw or
+                        // it floats beside the rails instead of on them.
+                        hung.RotationDegrees = worldObject.RotationDegrees;
                         hung.Wetness = wetWorn.Wetness;
                         hung.Durability = wetWorn.Durability;
                         hung.Dirtiness = wetWorn.Dirtiness;

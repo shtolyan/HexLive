@@ -34,7 +34,7 @@ public sealed class BedSiteSystem : ISimulationSystem
         // real sites (IsSite=false), yet TileHoldsStructure still counts them,
         // so they squat on the fireside ring and shove a real bed onto a cramped
         // edge tile whose 1.39-wu footprint seals its own approach (0 deliveries
-        // ever). Clearing them frees FindFiresideSpot to stake on a good ring-1
+        // ever). Clearing them frees FindFiresideHex to stake on a good ring-1
         // tile. Runs each slow tick; self-heals and stays a no-op once clean.
         System.Collections.Generic.List<ObjectId> orphanSites = null;
         foreach (var obj in world.Entities.Objects.Values)
@@ -158,12 +158,15 @@ public sealed class BedSiteSystem : ISimulationSystem
         // 4 lashings). Cheap, so it goes up first; beds follow next tick.
         if (hearth is not null && racks == 0 && rackSitesInProgress == 0)
         {
-            var rackSpot = FindFiresideSpot(world, hearth, "station.drying_rack");
+            var rackSpot = FindFiresideHex(world, hearth);
             if (rackSpot is { } rackPlacement)
             {
                 var rackSite = WorldObjectMutations.SpawnObject(
                     world, "build.site", new FragmentId(1), rackPlacement.Tile, rackPlacement.Junction);
                 rackSite.BuildProduct = "station.drying_rack";
+                // §66: the rack has no sleeper to warm — it simply faces the
+                // flames, so the hung garments dry turned toward the heat.
+                rackSite.RotationDegrees = rackPlacement.FacingYaw;
                 WorldObjectMutations.SetObstacleBlocking(world, rackSite, blocked: true);
                 rackSite.BillSticks = SimBalance.RackBillSticks;
                 rackSite.BillRope = SimBalance.RackBillRope;
@@ -253,7 +256,7 @@ public sealed class BedSiteSystem : ISimulationSystem
     // finished bed when it is raised (ExecutionSystem.ApplyFurnitureSite).
     private static void StakeBed(WorldState world, WorldObjectState hearth, string product, EntityId? owner)
     {
-        var spot = FindFiresideSpot(world, hearth, product);
+        var spot = FindFiresideHex(world, hearth);
         if (spot is not { } placement)
         {
             return;
@@ -263,6 +266,10 @@ public sealed class BedSiteSystem : ISimulationSystem
             world, "build.site", new FragmentId(1), placement.Tile, placement.Junction);
         site.BuildProduct = product;
         site.Owner = owner;
+        // §66: a bed is laid SIDE-ON to the hearth — the sleeper warms her flank,
+        // never her head or her feet. The yaw rides onto the raised bed, and the
+        // body pinned to the bed's sleep point turns with it.
+        site.RotationDegrees = placement.SideOnYaw;
         // §54.9A: the site now knows what it will become — claim the finished
         // bed's physical footprint so nothing else is placed across the frame.
         WorldObjectMutations.SetObstacleBlocking(world, site, blocked: true);
@@ -317,26 +324,23 @@ public sealed class BedSiteSystem : ISimulationSystem
         }
     }
 
-    // §54.9A: the spot where the bed PHYSICALLY fits. A junction is only a
-    // candidate when every point under the finished bed's footprint (the
-    // product's ObstacleRadius, measured off the real prefab) is clear of
-    // obstacle-blocked junctions (boulders, palms, the fire's ember ring,
-    // other beds/sites) and water. Fireside ring first; when the near tiles
-    // are too cluttered the search widens one ring so the colony still gets
-    // its bed — closest valid spot to the flames wins.
-    private static (TileCoord Tile, JunctionId Junction)? FindFiresideSpot(
-        WorldState world, WorldObjectState hearth, string product)
+    // §66 (was §54.9A): the HEX the piece is raised on. One build per hex, always
+    // at the hex centre — so the candidate is a whole fireside tile, never a
+    // random junction on it. A tile qualifies when it is dry walkable ground,
+    // holds no other structure, and its interior is clear of blocked points
+    // (boulders, palms, the fire's ember disc) — see StructurePlacement.
+    // Fireside ring first; when ring 1 is full the search widens one ring so the
+    // colony still gets its bed. Closest hex to the flames wins, and the yaw that
+    // lays the piece side-on / facing the fire comes back with it.
+    private static (TileCoord Tile, JunctionId Junction, float SideOnYaw, float FacingYaw)? FindFiresideHex(
+        WorldState world, WorldObjectState hearth)
     {
-        var footprint = world.Content.ObjectDefinitions.TryGetValue(product, out var productDef)
-            ? productDef.ObstacleRadius
-            : 0f;
-        if (hearth.Junctions.Count == 0 ||
-            !world.Junctions.Items.TryGetValue(hearth.Junctions[0], out var hearthAnchor))
-        {
-            return null;
-        }
+        var hearthPos = hearth.Junctions.Count > 0 &&
+            world.Junctions.Items.TryGetValue(hearth.Junctions[0], out var hearthAnchor)
+                ? hearthAnchor.WorldPosition
+                : HexSpatialMath.TileToWorld(hearth.Tile);
 
-        (TileCoord Tile, JunctionId Junction)? best = null;
+        (TileCoord Tile, JunctionId Junction, float SideOnYaw, float FacingYaw)? best = null;
         var bestDist = float.MaxValue;
         for (var dq = -2; dq <= 2; dq++)
         {
@@ -344,89 +348,31 @@ public sealed class BedSiteSystem : ISimulationSystem
             {
                 var coord = new TileCoord(hearth.Tile.Q + dq, hearth.Tile.R + dr);
                 var ring = HexSpatialMath.HexDistance(coord, hearth.Tile);
-                if (ring is 0 or > 2 ||
-                    !world.Tiles.Items.TryGetValue(coord, out var tile) ||
-                    tile.Flags.HasFlag(TileFlags.Water))
+                if (ring is 0 or > 2 || !StructurePlacement.HexFreeForBuild(world, coord))
                 {
                     continue;
                 }
 
-                // §54.12: one STRUCTURE per fireside tile. IsJunctionFree only
-                // sees NPC reservations, so the premium-bed site used to get
-                // staked ON TOP of the finished leaf mat. Loose pickup-able
-                // items don't claim a tile — furniture does.
-                if (TileHoldsStructure(world, coord))
+                if (StructurePlacement.CenterJunction(world, coord) is not { } center ||
+                    !world.Junctions.Items.TryGetValue(center, out var centerJn))
                 {
                     continue;
                 }
 
-                foreach (var jid in tile.Junctions)
+                // Ring 1 always beats ring 2 — the piece stays fireside.
+                var dist = HexSpatialMath.Distance(centerJn.WorldPosition, hearthPos) +
+                    (ring == 2 ? 1000f : 0f);
+                if (dist < bestDist)
                 {
-                    if (!world.Junctions.Items.TryGetValue(jid, out var jn) || jn.Blocked ||
-                        !SpatialQueries.IsJunctionFree(world, jid) ||
-                        !SpatialQueries.FootprintClear(world, jn, footprint))
-                    {
-                        continue;
-                    }
-
-                    // Ring 1 always beats ring 2 — the bed stays fireside.
-                    var dist = HexSpatialMath.Distance(jn.WorldPosition, hearthAnchor.WorldPosition) +
-                        (ring == 2 ? 1000f : 0f);
-                    if (dist < bestDist)
-                    {
-                        bestDist = dist;
-                        best = (coord, jid);
-                    }
+                    bestDist = dist;
+                    best = (coord, center,
+                        StructurePlacement.SideOnYaw(centerJn.WorldPosition, hearthPos),
+                        StructurePlacement.FacingYaw(centerJn.WorldPosition, hearthPos));
                 }
             }
         }
 
         return best;
-    }
-
-    // A non-portable object (no PickUp interaction: a bed, a build-site, the
-    // rack, a grave…) parked on the tile — the tile is spoken for.
-    private static bool TileHoldsStructure(WorldState world, TileCoord coord)
-    {
-        if (!world.Caches.ObjectsByTile.TryGetValue(coord, out var ids))
-        {
-            return false;
-        }
-
-        foreach (var id in ids)
-        {
-            if (!world.Entities.Objects.TryGetValue(id, out var obj))
-            {
-                continue;
-            }
-
-            if (BuildSiteMath.IsSite(obj))
-            {
-                return true;
-            }
-
-            if (!world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def))
-            {
-                continue;
-            }
-
-            var portable = false;
-            foreach (var interaction in def.Interactions)
-            {
-                if (interaction.Type == InteractionType.PickUp)
-                {
-                    portable = true;
-                    break;
-                }
-            }
-
-            if (!portable)
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 }
 

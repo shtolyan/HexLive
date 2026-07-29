@@ -908,10 +908,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // feeder it is mirrored onto is already availability-gated on the
             // site's current stage, so the pull matters only when that material is
             // actually wanted.
-            // §bed-force: for the personal-bed dream, HelpAnyBed lets every
-            // colonist push the one staked bed (not just its owner) AND drops the
-            // free-hands gate so the girl CARRYING materials still gets the pull
-            // on her delivery bid. The campfire dream keeps the original gate.
+            // §64 HelpAnyBed: every colonist dreaming of a bed pushes the one
+            // staked bed (not just its owner) AND gets the pull even while hands
+            // are loaded, so the girl carrying materials actually bids to deliver.
+            // The campfire dream keeps its original owner-agnostic + free-hands gate.
             var dreamMatch = SpecDream.Enabled && buildSite != null &&
                 ((npc.Mind.CurrentDream == DreamType.Campfire && siteIsHearth && freeHands > 0f) ||
                  (npc.Mind.CurrentDream == DreamType.OwnBed && siteIsBed &&
@@ -1153,8 +1153,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
                         BuildSiteMath.MaterialLogs => gatherWoodAvail,
                         _ => false
                     };
-                    var bundle = System.Math.Max(1, System.Math.Min(stageRemaining,
-                        System.Math.Min(InventoryState.StackSizeFor(mat) / 2, SimBalance.DeliverBundleCap)));
+                    var bundle = System.Math.Min(
+                        stageRemaining, InventoryState.StackSizeFor(mat) / 2);
                     deliverWorthwhile = carriedOfStage >= bundle ||
                         (carriedOfStage > 0 && !canGetMore);
                     break;

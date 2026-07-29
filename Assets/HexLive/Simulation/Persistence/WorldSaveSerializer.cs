@@ -29,7 +29,7 @@ namespace HexLive.Simulation.Persistence
 //   on load, rebuilt on first pathfind).
 public static class WorldSaveSerializer
 {
-    public const int BlobVersion = 12; // v12: §52 build-site payload (product + bill + delivered materials) survives reload
+    public const int BlobVersion = 13; // v13: §66 per-object build yaw (RotationDegrees)
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -510,6 +510,10 @@ public static class WorldSaveSerializer
         w.Write(obj.BillSticks);
         w.Write(obj.BillRope);
         WriteItemList(w, obj.Contents);
+
+        // v13 (§66): the yaw a built piece stands at. Pre-v13 saves read 0 —
+        // an old world's furniture keeps facing exactly where it always did.
+        w.Write(obj.RotationDegrees);
     }
 
     private static WorldObjectState ReadObject(BinaryReader r, int version)
@@ -557,6 +561,9 @@ public static class WorldSaveSerializer
             obj.BillRope = r.ReadInt32();
             ReadItemList(r, obj.Contents, version);
         }
+
+        // v13 (§66): built-piece yaw; absent before v13 ⇒ 0 (old placement).
+        obj.RotationDegrees = version >= 13 ? r.ReadSingle() : 0f;
 
         return obj;
     }

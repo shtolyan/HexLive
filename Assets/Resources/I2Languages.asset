@@ -1881,6 +1881,14 @@ MonoBehaviour:
       - 'л'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'inv.milliliters'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'ml'
+      - 'мл'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'inv.condition_ok'
       TermType: 0
       Description: 

@@ -126,14 +126,16 @@ namespace HexLive.UnityPresentation.Environment
             "bed.basic" => "bed_basic_final",
             "station.drying_rack" => "drying_rack_final",
             "campfire.spot" => "campfire_final",
+            "station.water_collector" => "water_collector_final",
             _ => "bed_leaf_final"
         };
 
         /// §35.5B/§54.14: every product rendered by a staged assembled prefab —
-        /// the beds, the drying rack and the campfire share the grow-in-place
-        /// build-site view.
+        /// the beds, the drying rack, the campfire and the water collector share
+        /// the grow-in-place build-site view.
         public static bool IsAssembled(string product) =>
-            product is "bed.leaf" or "bed.basic" or "station.drying_rack" or "campfire.spot";
+            product is "bed.leaf" or "bed.basic" or "station.drying_rack"
+                or "campfire.spot" or "station.water_collector";
 
         private static GameObject? Instantiate(string product, out BedAssembly asm)
         {

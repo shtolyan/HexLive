@@ -51,6 +51,7 @@ public static class WorldSnapshotExporter
                 Id = obj.Id,
                 DefinitionId = obj.DefinitionId,
                 Tile = obj.Tile,
+                RotationDegrees = obj.RotationDegrees, // §66: built pieces carry a yaw
                 ResourceAmount = obj.ResourceAmount,
                 Wetness = obj.Wetness,
                 Durability = obj.Durability,

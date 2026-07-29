@@ -16,6 +16,15 @@ public sealed class WorldObjectState
 
     public List<JunctionId> Junctions { get; } = new();
 
+    // Spec §66: the yaw a BUILT piece stands at (degrees CCW from +X — the same
+    // sim-angle convention as NPCState.RotationDegrees; the presentation maps it
+    // to a Unity yaw). Set when the build-site is staked and carried onto the
+    // raised piece, so a bed can lie side-on to the fire. EXACTLY 0 means "no
+    // facing assigned" — loose items, natural props, and every object staked
+    // before §66, which the view leaves unrotated so old worlds are untouched
+    // (StructurePlacement wraps a real facing into (0, 360], never 0).
+    public float RotationDegrees { get; set; }
+
     public bool IsOccupied { get; set; }
 
     public EntityId? CurrentUser { get; set; }

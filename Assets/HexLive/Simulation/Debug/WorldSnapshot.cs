@@ -154,6 +154,10 @@ public sealed class ObjectSnapshot
 
     public TileCoord Tile { get; set; } = TileCoord.Zero;
 
+    // Spec §66: the yaw a built piece stands at (sim angle, degrees CCW from
+    // +X). The view maps it through SimulationUnityMapper.ToUnityYawDegrees.
+    public float RotationDegrees { get; set; }
+
     // Spec 29E.3: fuel ticks. For a campfire, > 0 means lit/burning.
     public float ResourceAmount { get; set; }
 

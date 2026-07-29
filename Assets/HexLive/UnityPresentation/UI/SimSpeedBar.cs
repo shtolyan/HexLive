@@ -8,7 +8,7 @@ namespace HexLive.UnityPresentation.UI
 {
     /// <summary>
     /// Always-visible time controls, centered at the top of the screen: pause /
-    /// play and the 1× / 2× / 4× / 50× / 200× speed presets. Talks straight to the
+    /// play and the 1× / 2× / 4× / 50× / ∞ (MAX) speed presets. Talks straight to the
     /// simulation runner. Resolution-scaled like the character bar.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
@@ -16,7 +16,8 @@ namespace HexLive.UnityPresentation.UI
     {
         [SerializeField] private SimulationRunnerBehaviour _runner;
 
-        private static readonly float[] Speeds = { 1f, 2f, 4f, 50f, 200f };
+        // Last preset is MAX (∞): the runner ticks at CPU speed, uncapped.
+        private static readonly float[] Speeds = { 1f, 2f, 4f, 50f, float.PositiveInfinity };
 
         private UIDocument _document;
         private VisualElement _pauseButton;
@@ -128,7 +129,7 @@ namespace HexLive.UnityPresentation.UI
                 var button = MakeButton();
                 button.style.minWidth = 42f;
 
-                var label = new Label($"{speed:0}x");
+                var label = new Label(float.IsInfinity(speed) ? "∞" : $"{speed:0}x");
                 label.style.color = Text;
                 label.style.fontSize = 14;
                 label.style.unityFontStyleAndWeight = FontStyle.Bold;
@@ -276,7 +277,9 @@ namespace HexLive.UnityPresentation.UI
             var speed = _runner != null ? _runner.SpeedMultiplier : 1f;
             for (var i = 0; i < _speedButtons.Count; i++)
             {
-                var active = !paused && Mathf.Approximately(speed, Speeds[i]);
+                var active = !paused && (float.IsInfinity(Speeds[i])
+                    ? float.IsInfinity(speed)
+                    : Mathf.Approximately(speed, Speeds[i]));
                 _speedButtons[i].style.backgroundColor = active ? Gold : Raised;
                 if (_speedButtons[i].userData is Label label)
                 {

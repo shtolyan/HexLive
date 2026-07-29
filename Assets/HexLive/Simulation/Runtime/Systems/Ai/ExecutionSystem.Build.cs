@@ -63,6 +63,7 @@ public sealed partial class ExecutionSystem
                     world, "campfire.spot", npc.Fragment, fireTile, fj);
                 fire.ResourceAmount = 0f; // born cold — light it like any fire
                 fire.BuildProduct = "campfire.spot";
+                fire.RotationDegrees = site.RotationDegrees; // §66: the site's facing is the piece's
                 fire.BillSticks = site.BillSticks;
                 fire.BillStones = site.BillStones;
                 fire.BillRope = site.BillRope;
@@ -120,11 +121,15 @@ public sealed partial class ExecutionSystem
             // §64: a personal bed's ownership rides from the site onto the
             // finished piece — this is what makes the raised bed hers.
             var owner = site.Owner;
+            // §66: so does the yaw the site was staked at — the bed must come up
+            // lying side-on to the fire, not on whatever default the prefab has.
+            var yaw = site.RotationDegrees;
             WorldObjectMutations.DespawnObject(world, site.Id);
             if (junction is { } j)
             {
                 var raised = WorldObjectMutations.SpawnObject(world, product, npc.Fragment, tile, j);
                 raised.Owner = owner;
+                raised.RotationDegrees = yaw;
             }
 
             Trace.Emit(world, npc.Id, "FurnitureBuilt",

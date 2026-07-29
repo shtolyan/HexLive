@@ -10123,6 +10123,15 @@ The pack/build layer adds work, so the old food/cold panic is softened
 each `DrinkBottle` spends one; the bottle only empties (and warrants a refill trip)
 when the last charge is gone. Far fewer water runs.
 
+**Отображаемый объём — только косметика.** Сим считает ГЛОТКИ
+(`BottleCapacity` / `CoconutWaterCapacity`), панель персонажа переводит их в
+правдоподобный объём: **1 глоток = 0.1 л**, до литра пишем в миллилитрах
+(термин `inv.milliliters`), от литра — в литрах (`inv.liters`). Значит дырявый
+кокос (4 глотка) читается как **400 мл**, а бутылка ПРИБИТА к круглому
+**1 л** независимо от числа глотков (`CharacterPanel.DisplayCapacityLiters`).
+Заполненность бара и проценты по-прежнему берутся из глотков — никакая логика
+симуляции от этого не зависит.
+
 **Soak** (6 seeds, 10 game days): 6/6 green — all survive, structure/rhythm/QoL
 intact. Garment-stash and spear-ready fire every seed; the bed-site delivers on
 every seed and raises when surplus allows (like the hut). Deferred: dedicated

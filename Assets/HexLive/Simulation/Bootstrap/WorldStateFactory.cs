@@ -210,13 +210,25 @@ public sealed class WorldStateFactory
             return;
         }
 
-        JunctionId? junction = null;
-        foreach (var jid in tile.Junctions)
+        // §66: the hearth is a BUILD — it stands at the CENTRE of its hex, and
+        // the beds are then staked around it on whole hexes of their own. (New
+        // worlds only: an existing save keeps the junction its fire was born on.)
+        var junction = StructurePlacement.CenterJunction(world, hearth);
+        if (junction is { } centerId &&
+            world.Junctions.Items.TryGetValue(centerId, out var centerJn) && centerJn.Blocked)
         {
-            if (world.Junctions.Items.TryGetValue(jid, out var jn) && !jn.Blocked)
+            junction = null;
+        }
+
+        if (junction is null)
+        {
+            foreach (var jid in tile.Junctions)
             {
-                junction = jid;
-                break;
+                if (world.Junctions.Items.TryGetValue(jid, out var jn) && !jn.Blocked)
+                {
+                    junction = jid;
+                    break;
+                }
             }
         }
 

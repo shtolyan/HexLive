@@ -826,6 +826,22 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 hungChild.localPosition = HangSlotOffset(hungChild, hangSlot);
             }
 
+            // Spec §66: a BUILT piece stands at the yaw the sim staked it with —
+            // a bed lies side-on to the fire so the sleeper warms her flank. The
+            // yaw never changes for a given object, but writing it here (instead
+            // of only at view creation) also covers a view rebuilt mid-build.
+            // Exactly 0 = no §66 facing (loose props, pre-§66 worlds) — those
+            // keep the identity rotation they have always had.
+            if (worldObject.RotationDegrees != 0f)
+            {
+                var builtRot = Quaternion.Euler(
+                    0f, SimulationUnityMapper.ToUnityYawDegrees(worldObject.RotationDegrees), 0f);
+                if (objectView.transform.rotation != builtRot)
+                {
+                    objectView.transform.rotation = builtRot;
+                }
+            }
+
             var objPos = GetObjectAnchorPosition(snapshot, worldObject);
 
             if (_currObjectPositions.TryGetValue(key, out var oldObjPos))
@@ -1399,20 +1415,42 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // Default: the sleeper's own tile top, used when there is no bed.
         surfaceY = GroundY(npc.Tile);
 
+        // §66: beds sit at hex centres now, so the sleeper always stands on a
+        // NEIGHBOURING tile and two beds can be equally "one tile away". Trust
+        // the sim's own target first — that is the bed she walked to — and fall
+        // back to the nearest by real distance, not by hex ring.
         ObjectSnapshot? bed = null;
-        var bestSq = float.MaxValue;
-        foreach (var worldObject in snapshot.Objects)
+        if (npc.TargetObjectId is { } sleepTargetId)
         {
-            if (!worldObject.DefinitionId.Contains("bed"))
+            foreach (var worldObject in snapshot.Objects)
             {
-                continue;
+                if (worldObject.Id.Value == sleepTargetId &&
+                    worldObject.DefinitionId.Contains("bed"))
+                {
+                    bed = worldObject;
+                    break;
+                }
             }
+        }
 
-            var sq = (float)HexSpatialMath.HexDistance(worldObject.Tile, npc.Tile);
-            if (sq < bestSq && sq <= 1f)
+        var bestSq = float.MaxValue;
+        if (bed is null)
+        {
+            foreach (var worldObject in snapshot.Objects)
             {
-                bestSq = sq;
-                bed = worldObject;
+                if (!worldObject.DefinitionId.Contains("bed") ||
+                    HexSpatialMath.HexDistance(worldObject.Tile, npc.Tile) > 1)
+                {
+                    continue;
+                }
+
+                var d = HexSpatialMath.Distance(
+                    HexSpatialMath.TileToWorld(worldObject.Tile), npc.Position);
+                if (d < bestSq)
+                {
+                    bestSq = d;
+                    bed = worldObject;
+                }
             }
         }
 

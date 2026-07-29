@@ -398,38 +398,19 @@ namespace HexLive.Simulation.Runtime
         // (which mirror the bed_leaf_final prefab's staged piece groups "1".."4").
         public static int BedLeafBillLeaves = 46;
         public static int BedLeafBillSticks = 8;
-        // §bed-force: rope pulled to 0. Rope (fiber→craft→haul) was the ONE
-        // material that never accumulated under auction pressure — 40-day soaks
-        // stalled a bed at leaves 12/12 + sticks 3/3 + rope 0/1 forever. With it
-        // gone the leaf+stick chain finishes and EVERY colonist gets her bed
-        // (probe: 3/3 built, 3/3 survived). The finished bed still renders its
-        // full prefab (rope lashings included) — BedAssembly shows all pieces on
-        // the RAISED bed regardless of bill, so this costs nothing visually.
-        public static int BedLeafBillRope = 0;
+        public static int BedLeafBillRope = 8;
 
         // bed.basic (premium bedroll, bed_basic_final): 4 log side-rails (two per
         // side) + stick cross-slats + rope lashings + a full leaf mattress.
         public static int BedBasicBillLogs = 4;
         public static int BedBasicBillSticks = 5;
-        public static int BedBasicBillRope = 0; // §bed-force: same rope-stall relief as the leaf bed
+        public static int BedBasicBillRope = 10;
         public static int BedBasicBillLeaves = 50;
         // §54.12: the SECOND bed tier. Once every girl has a leaf mat, the
         // colony starts building premium bedrolls (bed.basic) from scratch —
         // each at its OWN fireside site, one at a time, until every girl has
         // one. NOT an upgrade: the leaf mats stay untouched.
         public static bool BedBasicEnabled = true;
-
-        // ── Bed-build forcing knobs (make sure every girl actually gets a bed) ──
-        // The staged, full-bundle delivery chain kept starving the bed: colonists
-        // hoarded the WRONG stage's material (leaves while the site wanted sticks)
-        // and never reached the 8-piece bundle a delivery trip demanded, so 20-day
-        // soaks landed 1 stick total. These loosen it:
-        //  • DeliverBundleCap — max pieces to carry before a delivery trip is
-        //    "worthwhile". Low ⇒ deliver almost every piece as you gather it.
-        //  • BedDeliveryStaged=false ⇒ deliver toward the WHOLE bill in any order,
-        //    so a carried leaf/rope lands even while the "stick stage" is open.
-        public static int DeliverBundleCap = 4;
-        public static bool BedDeliveryStaged = false;
 
         // §35.5B: the drying rack is a staged fireside build-site like the beds
         // (two planted uprights → two rails → four lashings), not an atomic

@@ -128,6 +128,19 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
             return;
         }
 
+        // MAX speed: step the sim at CPU speed, bypassing the fixed-timestep
+        // accumulator entirely. A wall-clock budget still caps how long one
+        // frame may spend ticking so the render thread gets a turn and the UI
+        // (including this speed bar) stays responsive.
+        if (float.IsPositiveInfinity(_clock.SpeedMultiplier))
+        {
+            _accumulator = 0f;
+            RunUncappedTicks();
+            FlushEventsToConsole();
+            AutosaveTick();
+            return;
+        }
+
         _accumulator += Time.unscaledDeltaTime * _clock.SpeedMultiplier;
 
         // Spec 41.1: a frame hitch (spawning, GC, shader compile) must never
@@ -151,6 +164,27 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
 
         FlushEventsToConsole();
         AutosaveTick();
+    }
+
+    // MAX-speed wall-clock budget: at MAX the sim steps as fast as the CPU
+    // allows, but no single frame may spend more than this ticking, so the
+    // frame still renders and the UI stays live. One tick always runs.
+    private const double MaxSpeedFrameBudgetMs = 25.0;
+    private static readonly System.Diagnostics.Stopwatch _maxSpeedWatch = new();
+
+    private void RunUncappedTicks()
+    {
+        _maxSpeedWatch.Restart();
+        do
+        {
+            _engine!.Step();
+            if (_engine.World.Completed)
+            {
+                _clock!.Pause();
+                break;
+            }
+        }
+        while (_maxSpeedWatch.Elapsed.TotalMilliseconds < MaxSpeedFrameBudgetMs);
     }
 
     // Spec 41.2 v2: autosave — every 60 real seconds while enabled (the

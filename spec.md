@@ -6130,10 +6130,37 @@ the simulation never branches on.
 |---|---|---|---|
 | 1 | Marta | Marta (`Daz3D/Martanaked`) | LowPonytail |
 | 2 | Molly | Molly (`MollyMesh.mesh`, 385 MB standalone) | ShilohHair |
-| 3 | Jolie | Jana (`Daz3D/Jana`) | JelikaHair_32434 |
+| 3 | Jana | Jana (`Daz3D/Jana`) | JelikaHair_32434 |
+| 4 | Jolly | Jolly (`Actors/Jolly/Jolly.mesh` + `Jolly.asset` avatar) | OnyxHair (red) |
 
-Jolie wears Jana's body — the actor set has no Jolie; the name belongs to
-the colony, the mesh to the source project.
+`DisplayName` must parse to an `ActorName` (31B.3) — `NpcActorView.Construct`
+falls back to Marta's body otherwise — so the colony names and the actor set
+stay in lockstep.
+
+**31B.1a Jolly (fourth colonist).** Imported from molly_copy the same way as
+the first three, with two deltas worth recording:
+
+- **Materials are rebuilt, not copied.** The source .mat files are still
+  HDRP/Daz-flavoured (render queue 2225, `_CutoutOpacityMap`, HDRP-only
+  keywords). Each Jolly skin material is regenerated from Molly's
+  URP-converted counterpart of the same name, keeping only Jolly's own
+  textures (`G3G8CS71*`) and her authored `_BaseColor`/`_Color` (black
+  pupils, tinted cornea/eye-moisture, black lashes). Result: identical
+  shader/queue/tag setup to the shipped girls, so the skin-slot filter
+  (40.8-G) classifies exactly the same six zones as skin.
+- **The hair opacity is baked into the albedo.** OnyxHair's cut-outs lived
+  in a separate `Prae-Onyx*Trans.jpg` bound to the HDRP `_CutoutOpacityMap`,
+  which URP ignores — the cards would render as solid rectangles. The RGB
+  and the transparency map are composited into
+  `Prae-OnyxHairRed_RGBA.png` / `Prae-OnyxHairRedCap_RGBA.png`, and the
+  materials follow the LowPonytail recipe (URP Lit, Opaque + AlphaClip,
+  cutoff 0.42, queue 2450).
+- **Wear fits are Marta's for the "new wear" drop.** The 15 garments built
+  by `NewWearExtractor` from the three DAZ FBX exports (31B.4) have no
+  Jolly fitting; her `WearConfig` entries reuse Marta's mesh and scale
+  (closest proportions). Re-export those garments fitted to Jolly to remove
+  the poke-through; per-actor scale is tunable live in the WardrobeTest
+  scene.
 
 ### 31B.2 Source wear architecture (adopted)
 

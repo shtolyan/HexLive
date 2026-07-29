@@ -141,6 +141,25 @@ namespace HexLive.Simulation.Bootstrap
                         Comfort = 0.55f,
                         Social = 0.45f,
                         ThermalDiscomfort = 0.35f
+                    },
+                    // Fourth inhabitant (Jolly, imported from molly_copy): the
+                    // redhead. Starts hungry and cold but rested — another
+                    // desynchronized profile, so the four never queue for the
+                    // same need at once. Beds still stay scarce (spec 33.4).
+                    new NpcBootstrap
+                    {
+                        Id = 4,
+                        DisplayName = "Jolly",
+                        ActorMesh = "Jolly",
+                        FragmentId = 1,
+                        TileQ = 2,
+                        TileR = 3,
+                        Hunger = 0.65f,
+                        Thirst = 0.45f,
+                        Energy = 0.6f,
+                        Comfort = 0.45f,
+                        Social = 0.7f,
+                        ThermalDiscomfort = 0.55f
                     }
                 }
             };

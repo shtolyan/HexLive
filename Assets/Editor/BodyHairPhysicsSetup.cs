@@ -32,6 +32,7 @@ public static class BodyHairPhysicsSetup
         "Assets/Resources/HexLive/Actors/Jana.prefab",
         "Assets/Resources/HexLive/Actors/Molly.prefab",
         "Assets/Resources/HexLive/Actors/Marta.prefab",
+        "Assets/Resources/HexLive/Actors/Jolly.prefab",
     };
 
     [MenuItem("HexLive/Physics/Setup Breast Jiggle (all girls)")]
@@ -52,7 +53,25 @@ public static class BodyHairPhysicsSetup
         AssetDatabase.SaveAssets();
     }
 
-    static bool Setup(string path, string[] boneNames, bool breast)
+    // Jolly's OnyxHair is one ponytail CHAIN (Tail1 -> Tail2 -> Tail3, ~0.26 m
+    // per joint = 0.79 m of hair), where LowPonytail is three childless 0.16 m
+    // stubs hanging off the head. Same recipe, but the deflection budget is
+    // split across the joints instead of spent on one: 14 deg x 3 joints lands
+    // on Marta's ~40 deg of total sway ("немножечко"), not triple it. The
+    // longer chain also needs a firmer pull back to the animated pose and less
+    // world inertia, or a walk cycle whips the tail around.
+    [MenuItem("HexLive/Physics/Setup Hair Spring (OnyxHair)")]
+    static void SetupOnyxHair()
+    {
+        Setup("Assets/ImportedActors/Wear/OnyxHair/OnyxHair.prefab",
+              new[] { "Tail1" }, breast: false,
+              limitAngle: 14f, restoreStiffness: 0.30f, worldInertia: 0.80f);
+        AssetDatabase.SaveAssets();
+    }
+
+    static bool Setup(string path, string[] boneNames, bool breast,
+                      float? limitAngle = null, float? restoreStiffness = null,
+                      float? worldInertia = null)
     {
         var asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
         if (asset == null) { Debug.LogError($"[Physics] not found: {path}"); return false; }
@@ -72,7 +91,8 @@ public static class BodyHairPhysicsSetup
             if (bones.Count == 0) { Debug.LogError($"[Physics] {path}: none of [{string.Join(",", boneNames)}] found"); return false; }
 
             var mc = inst.AddComponent<MagicaCloth>();
-            Configure(mc.SerializeData, bones, breast);
+            Configure(mc.SerializeData, bones, breast,
+                      limitAngle, restoreStiffness, worldInertia);
 
             PrefabUtility.ApplyAddedComponent(mc, path, InteractionMode.AutomatedAction);
             Debug.Log($"[Physics] {System.IO.Path.GetFileName(path)} -> BoneSpring on: {string.Join(", ", bones.Select(b => b.name))}");
@@ -81,7 +101,9 @@ public static class BodyHairPhysicsSetup
         finally { Object.DestroyImmediate(inst); }
     }
 
-    static void Configure(ClothSerializeData sd, List<Transform> bones, bool breast)
+    static void Configure(ClothSerializeData sd, List<Transform> bones, bool breast,
+                          float? limitAngle = null, float? restoreStiffness = null,
+                          float? worldInertia = null)
     {
         sd.clothType      = ClothProcess.ClothType.BoneSpring;
         sd.rootBones      = bones;
@@ -92,13 +114,15 @@ public static class BodyHairPhysicsSetup
         sd.radius  = new CurveSerializeData(breast ? 0.06f : 0.02f);
 
         sd.angleRestorationConstraint.useAngleRestoration = true;
-        sd.angleRestorationConstraint.stiffness = new CurveSerializeData(breast ? 0.60f : 0.20f);
+        sd.angleRestorationConstraint.stiffness =
+            new CurveSerializeData(restoreStiffness ?? (breast ? 0.60f : 0.20f));
         sd.angleLimitConstraint.useAngleLimit = true;
-        sd.angleLimitConstraint.limitAngle    = new CurveSerializeData(breast ? 5f : 40f);
+        sd.angleLimitConstraint.limitAngle =
+            new CurveSerializeData(limitAngle ?? (breast ? 5f : 40f));
         sd.springConstraint.useSpring   = true;
         sd.springConstraint.springPower = breast ? 0.15f : 0.20f;
 
-        sd.inertiaConstraint.worldInertia = breast ? 0.5f : 1.0f;
+        sd.inertiaConstraint.worldInertia = worldInertia ?? (breast ? 0.5f : 1.0f);
         sd.cullingSettings.cameraCullingMode     = CullingSettings.CameraCullingMode.AnimatorLinkage;
         sd.cullingSettings.distanceCullingLength = new CheckSliderSerializeData(true, 25f);
     }

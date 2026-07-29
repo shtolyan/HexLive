@@ -19,7 +19,8 @@ namespace HexLive.UnityPresentation.WardrobeTest
 [RequireComponent(typeof(UIDocument))]
 public sealed class WardrobeTestBootstrap : MonoBehaviour
 {
-    private static readonly ActorName[] Girls = { ActorName.Molly, ActorName.Marta, ActorName.Jana };
+    private static readonly ActorName[] Girls =
+        { ActorName.Molly, ActorName.Marta, ActorName.Jana, ActorName.Jolly };
 
     private static readonly int SittingParam = Animator.StringToHash("Sitting");
     private static readonly int LayingParam = Animator.StringToHash("Laying");

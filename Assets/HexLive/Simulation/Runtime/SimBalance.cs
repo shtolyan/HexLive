@@ -27,7 +27,7 @@ namespace HexLive.Simulation.Runtime
         // so NPCs stop obsessing over food/water and get on with building.
         public static float HungerRate = 0.0055f;       // hunger gained per slow tick (§52: was 0.011)
         public static float ThirstRate = 0.010f;        // thirst gained per slow tick (§52: was 0.013)
-        public static float EnergyRate = 0.007f;        // energy drained per slow tick awake (~1 bar/day)
+        public static float EnergyRate = 0.005f;        // energy drained per slow tick awake (~1 bar/1.4 days; was 0.007 — softened to cut exhaustion comas)
         public static float ComfortRate = 0.01f;        // comfort drained per slow tick awake
         public static float SocialRate = 0.008f;        // social drained per slow tick
         public static float SweatThirstFactor = 0.25f;  // extra thirst per unit of overheating
@@ -45,6 +45,7 @@ namespace HexLive.Simulation.Runtime
         public static float DressThermalThreshold = 0.45f;   // dress once cold discomfort crosses this (§52: was 0.35 — less fussy)
         public static float DressColdTemp = 14f;             // ...and only when effective temp is below this
         public static float DressWarmthCeiling = 0.5f;       // ...and not already bundled past this warmth
+        public static float DressWarmthGainMin = 0.05f;      // §52.7: ...and only if a reachable garment ACTUALLY raises warmth by ≥ this (clamp-aware) — never re-wear the same/worse shirt (~+0.5°C; +0.1 warmth = +1°C)
 
         // ─────────────────────────────────────────────────────────────
         // Starvation / dehydration — the "stuck agent" death channel.
@@ -53,8 +54,8 @@ namespace HexLive.Simulation.Runtime
         public static float StarvingClearThreshold = 0.60f;  // ...and off (hysteresis)
         public static float StarvingBoost = 1f;              // emergency goal-boost while starving
         public static float StarveDeathThreshold = 0.95f;    // above this, HP starts draining
-        public static float StarveDamageBoth = 0.05f;        // HP/part/slow tick when starved AND parched
-        public static float StarveDamageOne = 0.03f;         // HP/part/slow tick when only one is maxed
+        public static float StarveDamageBoth = 0.01f;        // HP/part/slow tick when starved AND parched (÷5 — hunger/thirst was draining HP too fast)
+        public static float StarveDamageOne = 0.006f;        // HP/part/slow tick when only one is maxed (÷5 — hunger/thirst was draining HP too fast)
 
         // ─────────────────────────────────────────────────────────────
         // Natural healing / regen.
@@ -65,7 +66,7 @@ namespace HexLive.Simulation.Runtime
         // ─────────────────────────────────────────────────────────────
         // Blood / first aid.
         // ─────────────────────────────────────────────────────────────
-        public static float BleedRateFactor = 0.09f;        // blood lost/tick = (0.4 − worstPart) × this
+        public static float BleedRateFactor = 0.06f;        // blood lost/tick = (0.4 − worstPart) × this
         public static float BloodRefillPerTick = 0.005f;    // blood regained/tick while fed (×3 asleep, ×2 fireside)
         public static float BandageBloodThreshold = 0.35f;  // auto-bandage fires below this blood
 
@@ -93,10 +94,15 @@ namespace HexLive.Simulation.Runtime
 
         // ─────────────────────────────────────────────────────────────
         // Spec §52: slot inventory. The pack has no base cap — the body
-        // carries a couple of hand slots and every worn garment adds pockets
-        // (GarmentParams.Capacity). Naked ⇒ HandSlots only.
+        // carries a couple of hand slots + a small always-there base load, and
+        // every worn garment adds pockets (GarmentParams.Capacity).
+        // Naked ⇒ HandSlots + BaseCarrySlots.
         // ─────────────────────────────────────────────────────────────
         public static int HandSlots = 2;                   // items the bare hands can hold
+        // Always-there carry beyond the hands (belt/tuck/cradle). Naked girl =
+        // HandSlots + this. Raised the naked cap 2→4 so she can haul a leaf/rope
+        // bundle for the bed instead of deadlocking on a full bottle+tool pair.
+        public static int BaseCarrySlots = 2;
 
         // ─────────────────────────────────────────────────────────────
         // Rest / sleep restore.
@@ -113,16 +119,24 @@ namespace HexLive.Simulation.Runtime
         // bonus. This is the payoff for building a bed and camping by the fire: you
         // recover faster ⇒ sleep less ⇒ more time on your feet to build/gather.
         // Added once per slow tick while asleep, on top of the base restore.
-        public static float SleepEnergyBaseBonus = 0.010f;    // always while asleep
+        public static float SleepEnergyBaseBonus = 0.026f;    // always while asleep (was 0.020 — faster recovery to cut exhaustion comas)
         public static float SleepEnergyFireBonus = 0.005f;    // + by a lit fire
         public static float SleepEnergyLeafBedBonus = 0.006f; // + on a leaf mat
         public static float SleepEnergyBasicBedBonus = 0.010f;// + on a premium bedroll
         public static float ChairComfort = 0.4f;            // comfort per sit in a chair
         public static float ChairEnergy = 0.1f;             // energy per sit in a chair
 
-        // Spec §60: coma. Exhaustion wakes at the shared threshold; blood-loss
-        // coma uses its own hysteresis so a survivor who is still low on blood
-        // does not stand up, act for a few ticks, then collapse again.
+        // Spec §60 r2 (coma rework): energy 0 is a DEAD-TIRED SLEEP, not a
+        // death-lookalike — she crashes where she stands and sleeps it off
+        // like a normal ground sleeper (a landed wound jolts her awake).
+        // Waking at the old 0.15 line just re-drained to 0 within hours and
+        // the day became a chain of micro-collapses (100-200 per 25-day
+        // soak); sleeping through to a properly rested line turns the pit
+        // into ONE long nap.
+        public static float ExhaustedSleepWakeEnergy = 0.45f;
+        // Blood-loss unconsciousness keeps its own hysteresis so a survivor
+        // who is still low on blood does not stand up, act for a few ticks,
+        // then drop again. (ComaWakeThreshold retired with the rework.)
         public static float ComaWakeThreshold = 0.15f;
         public static float ComaBloodEnterThreshold = 0.25f;
         public static float ComaBloodWakeThreshold = 0.35f;
@@ -146,12 +160,20 @@ namespace HexLive.Simulation.Runtime
         public static float HeatPressureSlope = 0.025f; // discomfort/tick per °C above the band
         public static float ThermalPressureCap = 0.12f; // max discomfort accrued per tick
         public static float ThermalComfyRecovery = 0.03f; // discomfort SHED per tick inside the band
+        // A body actively warmed by a strong heat source (fire ring / indoors)
+        // thaws ~8× faster: standing by the fire should CLEAR the night's cold
+        // in a few ticks, not slowly bleed it off. Only sheds — never adds.
+        public static float FireThawRecovery = 0.25f;   // discomfort SHED/tick when comfy AND fire/indoor is warming
         public static float ThermalDamageGate = 0.85f;  // |signed comfort| above this deals HP
         public static float ThermalHpHit = 0.012f;      // HP/part/tick from hypothermia/heatstroke
         public static float IndoorWarmthBonus = 4f;     // being indoors adds this to effective temp
         public static float WaterCoolBonus = 3f;        // being in water subtracts this
-        public static float FireWarmthRange1 = 8f;      // campfire warmth at 1 tile
-        public static float FireWarmthRange2 = 4f;      // campfire warmth at 2 tiles
+        // Fire is a STRONG heat source — huddling by it must reach the comfy
+        // band [16,22] even on the coldest rainy night (floor ~3°, naked).
+        // fireRelief is clamped to (HotBandTemp − baseTemp) below, so this can
+        // never overheat: it tops out AT 22° and a dressed body caps sooner.
+        public static float FireWarmthRange1 = 18f;     // campfire warmth at 1 tile (→ ~22° from 3° floor)
+        public static float FireWarmthRange2 = 11f;     // campfire warmth at 2 tiles
 
         // ─────────────────────────────────────────────────────────────
         // Spec 35.4: cool-off goal stability. CoolOff used to be a move-only
@@ -170,7 +192,8 @@ namespace HexLive.Simulation.Runtime
         // ─────────────────────────────────────────────────────────────
         // Sun / tan / sunburn (on uncovered parts, in open sun).
         // ─────────────────────────────────────────────────────────────
-        public static float TanRate = 0.0009f;        // tan gained per (UV−0.5) per uncovered part (halved — tanning takes ~2x longer)
+        public static float TanRate = 0.0009f;        // tan gained per (UV−0.5) per uncovered part. DEFAULT ONLY — tune live via CharacterBalance.asset (tanRate); BalanceTuning mirrors it over this at boot.
+        public static float TanStrength = 1f;          // overall tan DARKNESS (presentation-only): NpcActorView scales the tan tint toward bare skin by this. 1 = full look, lower = paler/less dark. Tune live via CharacterBalance.asset (tanStrength).
         public static float SunburnRate = 0.004f;     // acute redness gained (faster than tan settles)
         public static float SunExposureRate = 0.3f;   // exposure meter gained (fills toward a burn event)
         public static float SunburnBurnDamage = 0.08f; // HP torn off a part by a burn event
@@ -184,8 +207,27 @@ namespace HexLive.Simulation.Runtime
         public static float DirtyClothingComfortLoss = 0.002f;
         public static float BatheNeedThreshold = 0.4f;
         public static int BatheDurationTicks = 100; // one in-game hour
-        public static int WashClothesDurationTicks = 40;
+        // §40.6 r2 (laundry-in-hand): 80 ticks — the piece is doffed off the
+        // body / picked up off the shore into the hand and scrubbed there.
+        public static int WashClothesDurationTicks = 80;
         public static float WashClothesNeedThreshold = 0.2f;
+
+        // Laundry audit (Jul 2026): worn dirt never reached the wash chain —
+        // DirtyGarmentWashNeed only scans garments ALREADY lying on a bathing
+        // tile, so clothes were washed just 9-16 times per 40 days and worn
+        // pieces sat at dirt 0.7-1.0 forever. Dirty WORN clothing also pulls
+        // Bathe (body hygiene chain): batheNeed takes
+        // max(1-Hygiene, worstWornDirt × this weight). Since §40.6 r2 the
+        // wash chain reads worn dirt DIRECTLY (weight 0.75 in the auction),
+        // so it usually outbids this pull and washes the piece in hand.
+        public static float BatheWornDirtWeight = 0.9f;
+
+        // Drying audit (Jul 2026): DryClothes gated on wetness > 0.5 — after a
+        // wash (wet 1.0) passive on-body drying closes that window in ~0.2
+        // days, and the old 0.15+0.4×wet score lost the auction to Sit, so
+        // rack-hanging fired 0 times in 40-day soaks. Wider window via this
+        // threshold (score raised in DecisionSystem alongside).
+        public static float DryClothesWetThreshold = 0.35f;
 
         // ─────────────────────────────────────────────────────────────
         // Stamina / stress (soft — colour the UI, nudge rest, feed collapse).
@@ -271,6 +313,29 @@ namespace HexLive.Simulation.Runtime
         }
 
         // ─────────────────────────────────────────────────────────────
+        // Spec 40.15 — the escape raft gate (balance audit, Jul 2026).
+        // ─────────────────────────────────────────────────────────────
+        // BuildRaft used to demand hunger/thirst < 0.55 and an EMPTY danger
+        // memory. The coconut economy equilibrates needs at ~0.55-0.7 and §62
+        // spotting restamps danger daily, so surviving colonies sat at raft
+        // 0/10 for 40 days (gate fully open 0.0-2.8% of NPC-slow-ticks,
+        // danger alone blocking 61-95%). The gate now tolerates moderate
+        // needs and only fears danger remembered NEAR the girl herself —
+        // a wolf seen across the island must not cancel the coast run.
+        public static float RaftNeedGate = 0.7f;
+        public static int RaftDangerRadiusTiles = 4;
+
+        // TEMPORARY kill-switch (Jul 2026): the §40.15 escape-raft mechanic is
+        // being reworked, so it is turned OFF for now — NPCs must not build it
+        // (or hoard wood for it) at all while it's observed. Flipping this back
+        // to true restores the old endgame verbatim: nothing was removed, the
+        // three raft motivations (BuildRaft goal, the GatherWood raft demand,
+        // and whole-log hoarding) are simply gated on this flag. Kept as a
+        // `static readonly` code switch, not a tunable knob, so the coverage
+        // gate skips it and it stays out of the balance assets / simdata.json.
+        public static readonly bool RaftEnabled = false;
+
+        // ─────────────────────────────────────────────────────────────
         // Spec §54 — Stranded-Deep resource loop (placeholder values; balance
         // is tuned separately and later).
         // ─────────────────────────────────────────────────────────────
@@ -333,19 +398,38 @@ namespace HexLive.Simulation.Runtime
         // (which mirror the bed_leaf_final prefab's staged piece groups "1".."4").
         public static int BedLeafBillLeaves = 46;
         public static int BedLeafBillSticks = 8;
-        public static int BedLeafBillRope = 8;
+        // §bed-force: rope pulled to 0. Rope (fiber→craft→haul) was the ONE
+        // material that never accumulated under auction pressure — 40-day soaks
+        // stalled a bed at leaves 12/12 + sticks 3/3 + rope 0/1 forever. With it
+        // gone the leaf+stick chain finishes and EVERY colonist gets her bed
+        // (probe: 3/3 built, 3/3 survived). The finished bed still renders its
+        // full prefab (rope lashings included) — BedAssembly shows all pieces on
+        // the RAISED bed regardless of bill, so this costs nothing visually.
+        public static int BedLeafBillRope = 0;
 
         // bed.basic (premium bedroll, bed_basic_final): 4 log side-rails (two per
         // side) + stick cross-slats + rope lashings + a full leaf mattress.
         public static int BedBasicBillLogs = 4;
         public static int BedBasicBillSticks = 5;
-        public static int BedBasicBillRope = 10;
+        public static int BedBasicBillRope = 0; // §bed-force: same rope-stall relief as the leaf bed
         public static int BedBasicBillLeaves = 50;
         // §54.12: the SECOND bed tier. Once every girl has a leaf mat, the
         // colony starts building premium bedrolls (bed.basic) from scratch —
         // each at its OWN fireside site, one at a time, until every girl has
         // one. NOT an upgrade: the leaf mats stay untouched.
         public static bool BedBasicEnabled = true;
+
+        // ── Bed-build forcing knobs (make sure every girl actually gets a bed) ──
+        // The staged, full-bundle delivery chain kept starving the bed: colonists
+        // hoarded the WRONG stage's material (leaves while the site wanted sticks)
+        // and never reached the 8-piece bundle a delivery trip demanded, so 20-day
+        // soaks landed 1 stick total. These loosen it:
+        //  • DeliverBundleCap — max pieces to carry before a delivery trip is
+        //    "worthwhile". Low ⇒ deliver almost every piece as you gather it.
+        //  • BedDeliveryStaged=false ⇒ deliver toward the WHOLE bill in any order,
+        //    so a carried leaf/rope lands even while the "stick stage" is open.
+        public static int DeliverBundleCap = 4;
+        public static bool BedDeliveryStaged = false;
 
         // §35.5B: the drying rack is a staged fireside build-site like the beds
         // (two planted uprights → two rails → four lashings), not an atomic
@@ -439,5 +523,22 @@ namespace HexLive.Simulation.Runtime
         // BOLTS for an indoor refuge once its Health drops below this. So an
         // armed, healthy victim can wound, kill, or outrun a starved predator.
         public static float PredationFleeHealth = 0.6f;
+
+        // Spec 29C.4A cornered-fight valve. A flee is only worth it if it puts
+        // ground between the girl and the mob; if a dog stays in MELEE with her
+        // for this many ticks after she started running (TicksPerSecond = 4, so
+        // ~4 s), the escape has failed — she turns and fights to the death
+        // rather than be bitten for free until a limb tears off and she goes
+        // prone (seed 351193917: Молди fled a dog that pinned her at Dist=0 for
+        // 130+ ticks, never once striking back, LegR severed at t1095 → prone →
+        // dead). Generous enough that a genuine door-dash a step from sanctuary
+        // still completes; far short of the ~130-tick maul-to-amputation window.
+        public static int FleeStallTicks = 16;
+        // Once she commits to the stand, hold the commitment this long past the
+        // last melee tick so the flee assessment can't bounce her straight back
+        // into a run. Re-armed each engaged tick, so it only lapses once the mob
+        // is dead or has broken contact — then normal life (incl. a fresh flee)
+        // resumes.
+        public static int FightCommitGraceTicks = 40;
     }
 }

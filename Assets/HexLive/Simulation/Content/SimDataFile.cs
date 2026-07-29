@@ -19,19 +19,50 @@ namespace HexLive.Simulation.Content
         // Repo-root-relative conventional location of the export.
         public const string DefaultRelativePath = "SimData/simdata.json";
 
+        // v2: adds the "balance" (SimBalance/Spec*/HexHopTuning statics),
+        // "garments" and per-interaction "effects" sections — before v2 the
+        // headless harness ran on code-default balance despite §59.3.
+        public const int SchemaVersion = 2;
+
         /// <summary>§59.3: the MANDATORY form for probes/soaks — throws when
-        /// the export is missing or unparseable. Running on code defaults is
-        /// forbidden: silent drift between the tuned game and the harness is
-        /// worse than a failed probe. Export via HexLive ▸ Export Sim Data.</summary>
+        /// the export is missing, unparseable or a STALE schema version (a v1
+        /// file has no balance section, so the probe would silently run on
+        /// code-default balance). Running on code defaults is forbidden.
+        /// Export via HexLive ▸ Export Sim Data.</summary>
         public static void Require(string path)
         {
-            if (!LoadAndApply(path))
+            string text;
+            try
+            {
+                text = System.IO.File.ReadAllText(path);
+            }
+            catch
             {
                 throw new System.InvalidOperationException(
                     $"SimData export not found/unreadable at '{path}'. " +
                     "Run Unity menu 'HexLive ▸ Export Sim Data (JSON)' first — " +
                     "headless runs must NOT use code defaults (spec §59.3).");
             }
+
+            if (MiniJson.Parse(text) is not Dictionary<string, object> root)
+            {
+                throw new System.InvalidOperationException(
+                    $"SimData export at '{path}' is not valid JSON. " +
+                    "Re-export via Unity menu 'HexLive ▸ Export Sim Data (JSON)'.");
+            }
+
+            var version = root.TryGetValue("version", out var v) && v is double d
+                ? (int)System.Math.Round(d)
+                : 1;
+            if (version < SchemaVersion)
+            {
+                throw new System.InvalidOperationException(
+                    $"SimData export at '{path}' is schema v{version}, need v{SchemaVersion} " +
+                    "(no balance/garments sections — the probe would run on code-default balance). " +
+                    "Re-export via Unity menu 'HexLive ▸ Export Sim Data (JSON)'.");
+            }
+
+            Apply(root);
         }
 
         /// <summary>Reads the export and applies every section onto the live
@@ -59,11 +90,97 @@ namespace HexLive.Simulation.Content
                 return false;
             }
 
+            Apply(root);
+            return true;
+        }
+
+        private static void Apply(Dictionary<string, object> root)
+        {
+            ApplyBalance(root);
             ApplyMobs(root);
             ApplyGear(root);
+            ApplyGarments(root);
             ApplyWorldObjects(root);
             ApplyRecipes(root);
-            return true;
+        }
+
+        private static void ApplyBalance(Dictionary<string, object> root)
+        {
+            if (root.TryGetValue("balance", out var section) &&
+                section is Dictionary<string, object> balance)
+            {
+                foreach (var pair in balance)
+                {
+                    // Unknown keys are skipped (a newer export against older
+                    // code); both sides enumerate via BalanceReflection, so a
+                    // freshly added knob round-trips with zero schema churn.
+                    var field = BalanceReflection.Find(pair.Key);
+                    if (field == null)
+                    {
+                        continue;
+                    }
+
+                    var t = field.FieldType;
+                    if (t == typeof(float) && pair.Value is double f)
+                    {
+                        field.SetValue(null, (float)f);
+                    }
+                    else if (t == typeof(int) && pair.Value is double i)
+                    {
+                        field.SetValue(null, (int)System.Math.Round(i));
+                    }
+                    else if (t == typeof(long) && pair.Value is double l)
+                    {
+                        field.SetValue(null, (long)System.Math.Round(l));
+                    }
+                    else if (t == typeof(bool) && pair.Value is bool b)
+                    {
+                        field.SetValue(null, b);
+                    }
+                }
+            }
+        }
+
+        private static void ApplyGarments(Dictionary<string, object> root)
+        {
+            if (root.TryGetValue("garments", out var section) && section is List<object> garments)
+            {
+                var list = new List<GarmentParams>();
+                foreach (var entry in garments)
+                {
+                    if (entry is not Dictionary<string, object> g)
+                    {
+                        continue;
+                    }
+
+                    var covers = new List<BodyPart>();
+                    foreach (var name in Strings(g, "covers"))
+                    {
+                        if (System.Enum.TryParse<BodyPart>(name, true, out var part))
+                        {
+                            covers.Add(part);
+                        }
+                    }
+
+                    list.Add(new GarmentParams(
+                        Str(g, "id"),
+                        Str(g, "displayName"),
+                        System.Enum.TryParse<WearLayer>(Str(g, "layer"), true, out var layer)
+                            ? layer
+                            : WearLayer.Wear,
+                        F(g, "warmth", 0f),
+                        F(g, "armor", 0f),
+                        F(g, "thermalDelta", 0f),
+                        I(g, "dressDurationTicks", 20),
+                        I(g, "capacity", 0),
+                        covers.ToArray()));
+                }
+
+                if (list.Count > 0)
+                {
+                    GarmentLibrary.Override(list);
+                }
+            }
         }
 
         private static void ApplyMobs(Dictionary<string, object> root)
@@ -230,6 +347,21 @@ namespace HexLive.Simulation.Content
                                     interaction.RequiredCapabilities.Add(flag);
                                 }
                             }
+                            // v2: eat/drink/dress payoffs round-trip too — a
+                            // v1 export silently dropped them, leaving the
+                            // catalog's code defaults in headless runs.
+                            if (i.TryGetValue("effects", out var ev) &&
+                                ev is Dictionary<string, object> effects)
+                            {
+                                interaction.Effects.HungerDelta = F(effects, "hunger", 0f);
+                                interaction.Effects.EnergyDelta = F(effects, "energy", 0f);
+                                interaction.Effects.ComfortDelta = F(effects, "comfort", 0f);
+                                interaction.Effects.ThermalDelta = F(effects, "thermal", 0f);
+                                interaction.Effects.ThirstDelta = F(effects, "thirst", 0f);
+                                interaction.Effects.WarmthDelta = F(effects, "warmth", 0f);
+                                interaction.Effects.ArmorDelta = F(effects, "armor", 0f);
+                            }
+
                             if (i.TryGetValue("yields", out var yv) && yv is List<object> yields)
                             {
                                 foreach (var ye in yields)
@@ -300,7 +432,31 @@ namespace HexLive.Simulation.Content
             }
 
             var sb = new System.Text.StringBuilder();
-            sb.Append("{\n  \"mobs\": [\n");
+            sb.Append("{\n");
+            sb.Append($"  \"version\": {SchemaVersion},\n");
+
+            // v2: every tunable static (SimBalance, Spec bags, HexHopTuning) as
+            // a flat sorted "Class.Field": value map. Enumerated via
+            // BalanceReflection on BOTH sides, so a new knob round-trips with
+            // zero schema churn. G9 floats — the values must survive the trip
+            // bit-close, this section is balance, not prose.
+            sb.Append("  \"balance\": {\n");
+            var firstBalance = true;
+            foreach (var pair in BalanceReflection.EnumerateFields())
+            {
+                if (!firstBalance) sb.Append(",\n");
+                firstBalance = false;
+                var value = pair.Value.GetValue(null);
+                var text = value switch
+                {
+                    float f => f.ToString("G9", System.Globalization.CultureInfo.InvariantCulture),
+                    bool b => b ? "true" : "false",
+                    _ => System.Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture),
+                };
+                sb.Append($"    {Q(pair.Key)}: {text}");
+            }
+
+            sb.Append("\n  },\n  \"mobs\": [\n");
             var first = true;
             foreach (var pair in Sorted(MobCatalog.Active, p => p.Key))
             {
@@ -358,6 +514,26 @@ namespace HexLive.Simulation.Content
                   .Append($"\"capabilities\": [{caps}], \"strikes\": [{strikes}]}}");
             }
 
+            sb.Append("\n  ],\n  \"garments\": [\n");
+            first = true;
+            foreach (var g in Sorted(GarmentLibrary.Active, x => x.Id))
+            {
+                if (!first) sb.Append(",\n");
+                first = false;
+                var covers = new System.Text.StringBuilder();
+                foreach (var part in g.Covers)
+                {
+                    if (covers.Length > 0) covers.Append(", ");
+                    covers.Append(Q(part.ToString()));
+                }
+
+                sb.Append("    {")
+                  .Append($"\"id\": {Q(g.Id)}, \"displayName\": {Q(g.DisplayName)}, \"layer\": {Q(g.Layer.ToString())}, ")
+                  .Append($"\"warmth\": {N(g.Warmth)}, \"armor\": {N(g.Armor)}, \"thermalDelta\": {N(g.ThermalDelta)}, ")
+                  .Append($"\"dressDurationTicks\": {g.DressDurationTicks}, \"capacity\": {g.Capacity}, ")
+                  .Append($"\"covers\": [{covers}]}}");
+            }
+
             sb.Append("\n  ],\n  \"worldObjects\": [\n");
             first = true;
             foreach (var def in Sorted(WorldObjectLibrary.Registered, d => d.Id))
@@ -400,9 +576,28 @@ namespace HexLive.Simulation.Content
                         caps.Append(Q(cap.ToString()));
                     }
 
+                    // v2: non-zero effect deltas (eat/drink/dress payoffs).
+                    var fx = new System.Text.StringBuilder();
+                    void Fx(string name, float value)
+                    {
+                        if (value == 0f) return;
+                        if (fx.Length > 0) fx.Append(", ");
+                        fx.Append($"{Q(name)}: {N(value)}");
+                    }
+
+                    Fx("hunger", it.Effects.HungerDelta);
+                    Fx("energy", it.Effects.EnergyDelta);
+                    Fx("comfort", it.Effects.ComfortDelta);
+                    Fx("thermal", it.Effects.ThermalDelta);
+                    Fx("thirst", it.Effects.ThirstDelta);
+                    Fx("warmth", it.Effects.WarmthDelta);
+                    Fx("armor", it.Effects.ArmorDelta);
+
                     sb.Append("{")
                       .Append($"\"id\": {Q(it.Id)}, \"type\": {Q(it.Type.ToString())}, ")
-                      .Append($"\"requiredCapabilities\": [{caps}], \"durationTicks\": {it.DurationTicks}, \"yields\": [");
+                      .Append($"\"requiredCapabilities\": [{caps}], \"durationTicks\": {it.DurationTicks}, ")
+                      .Append(fx.Length > 0 ? $"\"effects\": {{{fx}}}, " : "")
+                      .Append("\"yields\": [");
                     for (var y = 0; y < it.Yields.Count; y++)
                     {
                         var yd = it.Yields[y];

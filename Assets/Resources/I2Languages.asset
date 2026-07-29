@@ -33,14 +33,6 @@ MonoBehaviour:
       - 'Отношения'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'panel.wants'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Now wants'
-      - 'Сейчас хочет'
-      Flags: 0101
-      Languages_Touch: []
     - Term: 'panel.health'
       TermType: 0
       Description: 
@@ -381,8 +373,8 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - 'Wet clothes give no warmth and weigh her down on the move.'
-      - 'Мокрая одежда не греет и замедляет движение.'
+      - 'Soaked to the skin — chilly and miserable; wet clothes give no warmth and slow her down.'
+      - 'Промокла до нитки — зябко и неуютно; мокрая одежда не греет и замедляет.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'effect.starving.title'
@@ -659,10 +651,18 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: 'menu.quit'
       TermType: 0
-      Description: 
+      Description:
       Languages:
       - 'Quit game'
       - 'Выйти из игры'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.mainmenu'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Main menu'
+      - 'Вернуться в главное меню'
       Flags: 0101
       Languages_Touch: []
     - Term: 'end.eyebrow'
@@ -1115,10 +1115,26 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: 'goal.Idle'
       TermType: 0
-      Description: 
+      Description:
       Languages:
       - 'Taking a break'
       - 'Отдыхает'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'dream.Campfire'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Dreams of a campfire'
+      - 'Мечтает о костре'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'dream.OwnBed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Dreams of her own bed'
+      - 'Мечтает о своей кровати'
       Flags: 0101
       Languages_Touch: []
     - Term: 'goal.Eat'
@@ -1375,6 +1391,190 @@ MonoBehaviour:
       Languages:
       - 'Making arrows'
       - 'Мастерит стрелы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.GetWater'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Fetching water'
+      - 'Ищет воду'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.SplitLog'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Splitting logs'
+      - 'Колет брёвна'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.ChopCrown'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Chopping palm leaves'
+      - 'Рубит пальмовые листья'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.GatherLeaves'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Gathering leaves'
+      - 'Собирает листья'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.Prey'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Desperate for meat'
+      - 'В отчаянии ищет мясо'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.GatherHerb'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Gathering herbs'
+      - 'Собирает травы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.CraftBandage'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Making a bandage'
+      - 'Делает повязку'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.HarvestYucca'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cutting yucca'
+      - 'Режет юкку'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.GatherFiber'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Gathering fiber'
+      - 'Собирает волокно'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.CraftRope'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Twisting rope'
+      - 'Вьёт верёвку'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.CraftCloth'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Weaving cloth'
+      - 'Плетёт ткань'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.CraftKnife'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Making a knife'
+      - 'Мастерит нож'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.Butcher'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Butchering'
+      - 'Разделывает тушу'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.CraftBed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Making a bed'
+      - 'Мастерит лежанку'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.CraftTent'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Making shelter'
+      - 'Мастерит укрытие'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.BuildRaft'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Building the raft'
+      - 'Строит плот'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.Aid'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Helping someone'
+      - 'Помогает подруге'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.PlaceSite'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Marking a build site'
+      - 'Размечает стройку'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.DeliverToSite'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Hauling materials'
+      - 'Несёт материалы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.BuildFurniture'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Building furniture'
+      - 'Собирает мебель'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.HaulToFire'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Stocking the fireside'
+      - 'Несёт к костру'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.Bathe'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Bathing'
+      - 'Купается'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.WashClothes'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Washing clothes'
+      - 'Стирает одежду'
       Flags: 0101
       Languages_Touch: []
     - Term: 'loading.world'
@@ -2545,6 +2745,150 @@ MonoBehaviour:
       - 'Простой белый лифчик — незатейливо и удобно.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'item.underwear_panty_dots.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Polka-Dot Panties'
+      - 'Трусики в горошек'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_panty_dots.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Coral panties dotted with cheerful white polka dots.'
+      - 'Коралловые трусики в задорный белый горошек.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_panty_stripe.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Striped Panties'
+      - 'Полосатые трусики'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_panty_stripe.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Mint-and-white striped panties with a breezy seaside look.'
+      - 'Мятно-белые полосатые трусики — что-то морское в них есть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_panty_cherry.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cherry Panties'
+      - 'Трусики с вишенками'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_panty_cherry.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cream panties sprinkled with sweet little cherries.'
+      - 'Кремовые трусики, усыпанные сладкими вишенками.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_dots.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Polka-Dot Bra'
+      - 'Лифчик в горошек'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_dots.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'A coral bra with white polka dots — pairs with the matching panties.'
+      - 'Коралловый лифчик в белый горошек — в комплект к трусикам.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_stripe.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Striped Bra'
+      - 'Полосатый лифчик'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_stripe.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'A mint-striped bra fresh as a sea breeze.'
+      - 'Мятный полосатый лифчик — свежий, как морской бриз.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_cherry.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cherry Bra'
+      - 'Лифчик с вишенками'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_cherry.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'A cream bra with a scatter of little cherries.'
+      - 'Кремовый лифчик с россыпью маленьких вишенок.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_red.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Red Shorts'
+      - 'Красные шорты'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_red.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Denim shorts re-dyed terracotta red — pockets, zipper and all.'
+      - 'Джинсовые шорты, перекрашенные в терракотовый — с карманами и молнией.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_olive.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Olive Shorts'
+      - 'Оливковые шорты'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_olive.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Sturdy denim shorts in a muted olive khaki.'
+      - 'Крепкие джинсовые шорты в приглушённом хаки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_cherry.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cherry Shorts'
+      - 'Шорты с вишенками'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_cherry.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Pale denim shorts printed with sweet little cherries.'
+      - 'Светлые джинсовые шорты с принтом из сладких вишенок.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'item.underwear_swim_top.name'
       TermType: 0
       Description:
@@ -2575,22 +2919,6 @@ MonoBehaviour:
       Languages:
       - 'The bottom half of a striped swimsuit — dries fast, warms nothing.'
       - 'Низ полосатого купальника — быстро сохнет, совсем не греет.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_skirt_flair.name'
-      TermType: 0
-      Description:
-      Languages:
-      - 'Flair Skirt'
-      - 'Юбка «Флэр»'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_skirt_flair.desc'
-      TermType: 0
-      Description:
-      Languages:
-      - 'A light patterned skirt with a waistband — swishes nicely, warms a little.'
-      - 'Лёгкая юбка с узором и пояском — красиво развевается, греет слегка.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'item.clothing_sweater_flair.name'
@@ -3167,6 +3495,62 @@ MonoBehaviour:
       Languages:
       - "Girl"
       - "Девушка"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.dirt_btn"
+      TermType: 0
+      Description:
+      Languages:
+      - "Dirt: {0}%"
+      - "Грязь: {0}%"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.tear_btn"
+      TermType: 0
+      Description:
+      Languages:
+      - "Tear: {0}%"
+      - "Рванина: {0}%"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.hit_clear"
+      TermType: 0
+      Description:
+      Languages:
+      - "Clear wounds"
+      - "Смыть раны"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.hit_hint"
+      TermType: 0
+      Description:
+      Languages:
+      - "Click the body: a wound lands there, blood soaks skin and cloth. RMB orbits."
+      - "Клик по телу — удар в это место, кровь на коже и одежде. ПКМ — камера."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.hit_off"
+      TermType: 0
+      Description:
+      Languages:
+      - "Hit on click: OFF"
+      - "Удар по клику: ВЫКЛ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.hit_on"
+      TermType: 0
+      Description:
+      Languages:
+      - "Hit on click: ON"
+      - "Удар по клику: ВКЛ"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.test_title"
+      TermType: 0
+      Description:
+      Languages:
+      - "Damage test"
+      - "Тест урона"
       Flags: 0000
       Languages_Touch: []
     - Term: "wardrobe.save_prefabs"

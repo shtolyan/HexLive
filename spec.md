@@ -3235,6 +3235,21 @@ Execution and movement must cooperate, but stay separate.
 
 This keeps responsibilities clean.
 
+**Arrival is literal (r2).** An object interaction may only start when the NPC
+is standing ON the plan's target junction (`CurrentJunction == TargetJunctionId`);
+"not currently walking" is no proof of arrival. A `Blocked` movement status
+(pathfinder found no route — rim reserved, footprint claimed, crowd on the way)
+fails the plan with a goal cooldown instead of falling through. Before r2 a
+blocked walk with an empty path let the interaction start from wherever the NPC
+stood — campfires were visibly hammered up from across the camp (probe: PickUp
+from 19.8 wu, Dress 12.4, Process 8.4). At interaction start the NPC also
+**turns to face the object's anchor** (skipped when standing on the anchor
+itself — seats, beds): builds and fueling run from the rim of the site's blocked
+footprint, and hammering while looking away read as detached. Talk/Aid, whose
+targets move, keep a world-distance gate instead: talk starts within
+`4×HexRadius` (6.0 wu, call-over range), aid within `2×HexRadius` (3.0 wu,
+arm's-length plus wander tolerance); a blocked approach aborts and replans.
+
 ### 26.19 Coordination with Social / Joint Actions
 
 Some actions may require synchronized execution with another actor.
@@ -4914,6 +4929,21 @@ strategy, not a metaphor.
 The decision system holds the `Flee` goal unconditionally while its plan is
 active — nothing outbids running for your life.
 
+**Cornered-fight valve (amendment):** a flee only saves her if it *breaks
+contact*. If a mob stays in **melee** with a fleeing girl for `FleeStallTicks`
+(≈4 s) past the first pinned tick — she is not gaining ground, the escape has
+failed — she abandons the run and **commits to the fight to the death** instead
+of being bitten for free until a limb tears off and she goes prone (`IsProne`,
+§50, is a one-way trip to death). The commitment (`FightCommitUntilTick`) is
+re-armed every engaged tick and suppresses the flee assessment until the mob is
+dead or has broken contact, so she can't ping-pong flee↔fight. The stall clock
+(`FleeContactSinceTick`) resets the instant she is out of melee, so a chase she
+is genuinely outrunning never trips it; both fields are transient (a save/load
+mid-fight simply grants a fresh grace window). Prone/unconscious bodies are
+exempt — they can only crawl, never stand. This closes the endless-maul loop
+where a girl fled a dog she could not shake, never struck back, and was
+amputated where she stood (seed 351193917).
+
 **Danger memory (27 integration):** every aggro/first bite records
 `{tile, tick}` in `MemoryState.Dangers` (deduped by tile, TTL 2400 ticks =
 1 day, cap 8). Effects:
@@ -6179,15 +6209,18 @@ prefabs, all equipped/removed together as the visual of that sim item.
 | underwear.bra_basic | BraBasic (plain white bra) |
 | underwear.swim_top | SwimTop (striped swimsuit top) |
 | underwear.swim_bottom | SwimBottom (striped swimsuit bottom) |
-| clothing.skirt_flair | SkirtFlair (Flair skirt + waistband) |
+| underwear.panty_dots / underwear.bra_dots | PantyDots/BraDots (basic panty/bra, fal.ai coral polka-dot print) |
+| underwear.panty_stripe / underwear.bra_stripe | PantyStripe/BraStripe (basic panty/bra, fal.ai mint-stripe print) |
+| underwear.panty_cherry / underwear.bra_cherry | PantyCherry/BraCherry (basic panty/bra, fal.ai cherry print) |
+| clothing.shorts_red / _olive / _cherry | ShortsRed/Olive/Cherry (Shorts_10_14636 denim re-dyes, seams kept) |
 | clothing.sweater_flair | SweaterFlair (knit sweater, warmth 0.30) |
 | clothing.dress_night | NightDress (silky night dress, lace hem, gold clasp) |
 | clothing.dress_fur | FurDress (primal fur dress, warmth 0.35, armor 0.05) |
 
-**New-wear FBX extraction (2026-07 drop):** the nine garments above the
+**New-wear FBX extraction (2026-07 drop):** the eight garments above the
 prints line were pulled from three DAZ exports (`Assets/Temp/{jana new
-wear,marta new wear,molly new}.fbx` — same nine garments, each file fitted
-to one girl) by `Assets/Editor/NewWearExtractor.cs` (menu **HexLive ▸ Wear ▸
+wear,marta new wear,molly new}.fbx` — same garments, each file fitted
+to one girl; a ninth, the flair skirt, was extracted too but later cut) by `Assets/Editor/NewWearExtractor.cs` (menu **HexLive ▸ Wear ▸
 Extract New Wear**, auto-runs once while any target prefab is missing). Per
 garment it saves the three fitted meshes as
 `ImportedActors/Wear/<Folder>/Meshes/<Actor>.mesh`, builds flat URP/Lit
@@ -6197,8 +6230,8 @@ standard Wear prefab (root `Wear` + pruned `hip` bone subtree + one
 SkinnedMeshRenderer, WearConfig entries for Molly/Marta/Jana at scale 1 —
 fit-tune in WardrobeTest), then rebuilds the GarmentCatalog and re-exports
 SimData. Sim side: rows in `GarmentLibrary.BuildDefaults`; the
-underwear/swim pieces and the flair skirt joined the §42 castaway start
-rotation, the dresses/sweater are reachable via wardrobe tooling only.
+underwear/swim pieces joined the §42 castaway start rotation, the
+dresses/sweater are reachable via wardrobe tooling only.
 `Assets/Temp/` stays gitignored — the FBX sources are per-machine drops.
 
 **AI-print wardrobe experiment:** the four print items are fal.ai-generated
@@ -6209,6 +6242,21 @@ live in `Assets/ImportedActors/Wear/Prints/`). Sim side: registered in
 warmth; panties: Underwear/Pelvis, +0.03) and spawned as ground objects
 124–127 near home. Pipeline for more: generate print → copy base prefab →
 swap material GUID → drop the folder under `Resources/HexLive/Wear/<simId>/`.
+A second print wave (2026-07) reskinned the basic underwear the same way:
+three matching panty+bra sets (polka-dot / mint-stripe / cherry) baked into
+copies of the PantyBasic/BraBasic prefabs, one shared material per set
+(`Prints/Set{Dots,Stripes,Cherry}.{jpg,mat}`), registered as
+`underwear.{panty,bra}_{dots,stripe,cherry}` in `GarmentLibrary.BuildDefaults`
+and added to the §42 castaway start rotation.
+
+**Detail-preserving retexture (complex garments):** for cloth with authored
+seams/pockets/zippers, do NOT swap in a flat pattern — re-dye the authored
+atlas instead (`_ArtSource/retex_shorts.py`): mask the fabric by hue in the
+original diffuse (hardware/stitching stays untouched), normalise luminance
+into a shading layer, then `new_color_or_pattern × shading`. Shipped proof:
+the denim `Shorts_10_14636` atlas re-dyed into `clothing.shorts_red` /
+`_olive` / `_cherry` (Prints/Shorts{Red,Olive,Cherry}.{jpg,mat} + Button
+mats — prefab copies, both slots re-pointed), in the §42 start-shorts roll.
 
 ### 31B.4A Importing a NEW garment — agent checklist (MANDATORY order)
 
@@ -6616,14 +6664,25 @@ weather gains real stakes.
   slow tick — `Hypothermia` / `Heatstroke` traces; a destroyed vital ends
   it. Weather can now kill the unprepared. (Dormant in the current mild
   climate — a safety net for genuine cold snaps / heat waves.)
-- **The campfire warms the DISPLAY**: a LIT campfire radiates warmth to
-  tiles within 2 (≈ +8 at 1 tile, +4 at 2), folded into the signed
-  ThermalComfort the UI shows — the player watches the dial pull toward
-  "ideal" by the fire on a cold night. This iteration keeps it DISPLAY
-  only: feeding the fire's warmth into the decision-driving discomfort NEED
-  reshuffled the dog-fragile colony (everyone comfortable → nobody
-  dresses/cools → repositioned into wipes). Likewise the "standing in the
-  fire burns you" HP hit is **deferred**: NPCs constantly path across the
+- **The campfire is a STRONG heat source**: a LIT campfire radiates warmth
+  to tiles within 2 (**+18° on the fire's own hex and at 1 tile, +11° at 2**
+  — the ~1.1 wu huddle rim sits inside the fire hex's 1.3 wu apothem and the
+  last directed step toward the flames books the arriver onto the fire's own
+  tile, so a dist-0 "no warmth" hole froze exactly the girl who lit the fire
+  while a later visitor on the adjacent hex thawed), folded into the effective
+  temperature and clamped to the comfy-band top (never overheats — a dressed
+  body caps sooner). The magnitude is deliberately enough that a near-naked
+  body in the fire ring reaches the comfy band even on the coldest rainy
+  night (floor ~3°): standing by ANY lit fire reads comfortable **instantly**,
+  and the per-tick warmth is **identical at every build stage** (the stick
+  pile at stage 1 warms exactly like the finished ring — the only stage
+  difference is fuel longevity: the stone ring halves burn, 75→150 slow ticks
+  per lighting). While comfy AND actively warmed by fire/indoors, the night's
+  accumulated `ThermalDiscomfort` sheds ~8× faster (`FireThawRecovery` 0.25
+  vs the ambient `ThermalComfyRecovery` 0.03) — she thaws in a few ticks, not
+  slowly. (Older iterations kept fire DISPLAY-only at +8/+4 to protect the
+  dog-fragile balance; warmth doesn't touch the dog channel, so this is safe.)
+  The "standing in the fire burns you" HP hit is **deferred**: NPCs constantly path across the
   central fire tile, so any hit whittles them down. Both land properly in
   the **campfire-as-obstacle** pass (approach from the edge, never stand on
   the flames) — `onFire`/`FireBurn` are already computed and traced,
@@ -7827,6 +7886,17 @@ the current spatial system, not bolted on.
   is tracked but has no effect in v1.
 - **Wetting rates** (per slow tick): rain outdoors +0.04 (soaked in ~12
   slow ticks); standing on a Water tile +0.15 (the river drenches).
+- **Body wetness** (`NPCState.BodyWetness 0..1`, MoistureSystem): the bare
+  skin soaks too — rain outdoors or a Water tile drives it exactly like an
+  item (snap toward soaked on exposure, dry gradually at the same rates), so
+  a **naked or near-naked** survivor still counts as wet with no garment to
+  soak. The `Soaked` status effect (💦) and the §49.7 wet-comfort penalty
+  both read **max(BodyWetness, wettest worn item)** — closing the old gap
+  where a survivor lying in the rain in only underwear showed no wet effect
+  and took no wet penalty. Warmth/movement penalties still key off *worn*
+  items only (a bare body has no insulation to lose), and the presentation
+  wet-skin sheen is unchanged (`rainWet` = raining && not indoor, body-level
+  since iteration 21).
 - **Natural wear rate ×2 (0.02/game-day) + early fraying**: holes start
   below durability **0.85** (was 0.6), so clothes visibly age within a week
   of wear — not only after combat damage; rags still fall apart at 0
@@ -7951,6 +8021,13 @@ pass — order chosen to add robustness before difficulty.
   is an unambiguous "bleeding now" signal (bandages/pills only raise it) and
   arms a ~20-tick grace window; while armed she leaves a droplet at her feet
   (±0.12 m jitter) every 6 ticks, so a walking wounded girl draws a trail.
+  **Pool merge:** a drip that lands inside an existing stain's footprint
+  (half its target width, floor 0.16 m) does NOT spawn a second projector —
+  it merges into that pool: target size grows +0.07 m per drip (cap 1.0 m),
+  the ease-out spread restarts from the pool's CURRENT size (smooth flow, no
+  snap-back), and `BornTick` resets so fresh blood re-wets it to full-alpha
+  fresh red. A girl asleep/standing with a bleed leaves ONE wide spreading
+  pool under her, not a stack of identical droplets.
   Each stain lands drip-small (0.09 m), spreads ease-out to a 0.26–0.46 m
   puddle over ~120 ticks, then dries: linear alpha fade to zero across
   **~3 game days (7200 ticks; `DayLengthTicks` = 2400)** — blood you walk
@@ -7959,7 +8036,8 @@ pass — order chosen to add robustness before difficulty.
   toward deep dried bordo over `AgeBuckets` (6) shared darker material copies
   per variant, swapped by age — a fading semi-transparent RED film over
   yellow sand read as bright "ketchup", darkening keeps old stains a dark
-  dried mark. Cap 130 stains, oldest recycled (each is a
+  dried mark. Cap 130 stains, stalest recycled (by `BornTick` — merges
+  refresh it, so an actively-fed pool is never the one evicted; each is a
   DBuffer DecalProjector rendered every frame — a dog swarm hits the cap
   fast, so the cap bounds overdraw; size stops being rewritten once fully
   spread — the only thing that expires blood early, no external cleanup
@@ -8100,6 +8178,70 @@ pass — order chosen to add robustness before difficulty.
   and muddies the bare-skin tint toward a dull earthy brown as it drops
   (grime overlay via the same per-submesh property block, skin-only). Driven
   by exported `Hygiene`. Bathing/waterside already restores the param.
+- **Laundry actually runs (balance audit, Jul 2026).** Measured on 40-day
+  soaks: clothes were washed only 9-16 times per colony and NEVER dried on
+  the rack (`ItemHung`=0) — worn pieces sat at dirt 0.7-1.0. Two causes,
+  two fixes:
+  - *Wash:* `DirtyGarmentWashNeed` only scans garments already lying on a
+    bathing tile, so WORN dirt never triggered the chain. Dirty worn
+    clothing now pulls **Bathe** — `batheNeed = max(1−Hygiene,
+    worstWornDirt × SimBalance.BatheWornDirtWeight (0.9))`; she undresses at
+    the shore as always, and the beached pile is a valid target for the
+    existing WashClothes plan.
+  - *Dry:* the gate `wetness > 0.5` + score `0.15+0.4×wet` lost the auction
+    inside the ~0.2-day passive-drying window. Gate is now
+    `SimBalance.DryClothesWetThreshold` (0.35) and the score is
+    `0.2+0.6×wet`, so right after a wash (wet 1.0) the hang-on-rack /
+    stand-by-fire trip actually wins. Knobs mirror in
+    `CharacterBalanceConfig` (`batheWornDirtWeight`, `dryClothesWetThreshold`).
+- **§40.6 r2 — laundry-in-hand (Jul 2026).** Washing happens ON the piece in
+  her hand, never "at" a garment lying beside her (the old in-place wash read
+  as a no-op: she scrubbed empty-handed while the dirty piece kept lying
+  there).
+  - *Sources:* `DirtyGarmentWashNeed` and `BuildWashClothesPlan` now scan
+    WORN garments too. The dirtiest piece wins — worn beats ground on ties.
+    A worn winner: she walks to the water edge, plays the standard two-beat
+    Undress doff (warmth/armor drop at the handoff) and keeps the piece in
+    hand. A ground winner (the beached pile on a bathing tile, as before):
+    the world object **despawns into her hand** (`GarmentInHand` trace),
+    pocket contents ride along in `Execution.HeldGarmentContents`.
+  - *Wash beat:* dirt AND blood drain from the held instance across
+    `SimBalance.WashClothesDurationTicks` (**80**, doubled from 40; knob in
+    `CharacterBalanceConfig.washClothesDurationTicks`); wetness pins at 1.
+  - *Re-dress on finish:* she puts the freshly-washed piece straight back ON
+    (`TryDonHeldGarment`) — she is already holding it — instead of dumping
+    clean laundry on the sand. Only when its (layer, part) slot is already
+    taken by another worn piece (`HasWearConflict`) does it fall back to
+    laying it at her feet. Worn-source washes always re-dress (the slot she
+    doffed is free); the drying chain then dries the wet clean garment.
+  - *Interrupt safety:* `PlanInterruption.Abort` now drops any
+    `Execution.HeldGarment` at her feet with its pocket contents (also fixes
+    the pre-existing mid-Undress abort that silently vaporized the piece).
+  - *Presentation:* the snapshot exports the held piece's live condition
+    (`HeldGarmentDirt/Blood/Wet/Durability`); `NpcActorView` attaches the
+    ground-drop `GarmentWorldCondition` painter to the hand prop, so the
+    grime visibly washes OUT while she scrubs. Rain does NOT clean clothes —
+    it only wets them (wet cloth darkens, which can visually mask dirt).
+- **§40.6 r3 — remember & re-dress after a bathe (Jul 2026).** A bathe strips
+  her naked at the shore (each piece dropped as a ground object). She now
+  remembers that exact pile and puts it all back on afterwards:
+  - *Memory:* `NPCMind.RedressGarments` (the dropped pieces' object ids) +
+    `RedressShore` (the junction to return to), filled in `RunPrepareBathe`
+    as each garment drops, cleared once she is dressed again.
+  - *Return & dress:* when `RunSwimBathe` finishes, `TryBeginPostBatheRedress`
+    retargets the plan to `[MoveToJunction(shore), RedressAfterBathe]`.
+    `RunRedressAfterBathe` walks her back, plays a short Dress beat and re-dons
+    every still-present remembered piece (the SAME clothes, with their exact
+    durability/dirt) — skipping any a housemate took. Shore unreachable ⇒ it
+    aborts and the ordinary Dress goal re-dresses her from the nearest garment.
+  - *Robustness:* while she owes the pile, `pendingRedress` pins the Bathe
+    score high (beats the wet-chill Dress urge but stays below the ~2.0
+    emergency band) and SUPPRESSES the ordinary warmth-filtered Dress (which
+    would put back only the one warming piece, leaving the bra off). A danger/
+    starvation preempt is fine — `BuildBathePlan` RESUMES the redress (walk
+    back + dress) instead of starting a fresh bathe whenever a pile is owed,
+    so she always ends up in her own clothes. Verified headless: fully
+    undressed to bathe → re-dressed the same 2 garments.
 
 ### 40.7 Sunburn → tan (skin system)
 - Skin **reddens where clothing doesn't cover**, sharply along garment
@@ -8608,6 +8750,13 @@ pass — order chosen to add robustness before difficulty.
   smoothness A × `_Smoothness`, white default = old constants — losing
   the gloss map flattened worn leather/satin to uniform plastic). Known limit: natural-hole
   seeds use instance ids, so their spots reshuffle across a save reload.
+  **Update (2026-07):** dirt and blood are independent stain layers with
+  their own remembered UV spots — the old `dust = dirt − blood` input
+  suppression (blood eating the grime) is retired; a bloodied garment
+  keeps its dust. Dirt stamps tuned readable: brown `DirtTint` (the pale
+  dust sheet vanished on light cloth), up to 44 stamps, size 0.30–0.50 UV,
+  alpha 0.55–0.95. Zone blood grows jittered blots around the zone anchor
+  (golden-angle spiral, ≤6/zone) instead of re-inking one dot.
 - **UPDATE — §40.10-E: wounds DECOUPLED from cloth holes.** Body wounds no
   longer rip the covering garment (an NPC with fresh bites but a 96%-HP
   vest showed holes — wrong: **дырки в одежде = только износ самой одежды**;
@@ -8686,11 +8835,30 @@ pass — order chosen to add robustness before difficulty.
   better than bare grass.
 
 ### 40.15 Global goal — escape the island
+- **⏸ TEMPORARILY DISABLED (Jul 2026) — this mechanic is being reworked.**
+  `SimBalance.RaftEnabled` is `false`, so NPCs form **no** raft motivation at
+  all: `BuildRaft` never scores, the `raftWoodDemand` wood stock-up is off, and
+  whole logs are hoarded only for real furniture build-sites — never the raft.
+  Nothing was removed (world-gen still places the `vessel.raft` object;
+  execution, serialization and the presentation/history hooks are intact);
+  flipping the flag back to `true` restores everything below verbatim. Verified
+  headless: 3 seeds × 20 k ticks → BuildRaft scored 0, RaftProgress 0/10.
 - Beyond "survive": **leave the island.** Build a **raft (with a motor)**
   and sail away, hopping between **multiple islands** (resources run out;
   move on). Swimming risks a **shark** mob (attacks/kills mid-swim); a raft
   is the safe crossing. Endgame in the spirit of survival games (build up,
   then depart). NPCs must **organize together** for it.
+- **The raft gate (balance audit, Jul 2026).** `BuildRaft` and the
+  `raftWoodDemand` stock-up pull used to require Hunger/Thirst < 0.55 **and an
+  empty danger memory**. Measured on 40-day 12-seed soaks: the coconut economy
+  equilibrates needs at ~0.55–0.7 and §62 far-spotting restamps danger memory
+  daily, so the combined gate held open only 0.0–2.8% of NPC-slow-ticks
+  (danger alone blocking 61–95%) — surviving colonies finished at raft 0/10.
+  Now: needs gate is `SimBalance.RaftNeedGate` (0.7), and only danger
+  remembered within `SimBalance.RaftDangerRadiusTiles` (4) of the girl herself
+  cancels the coast run — a wolf seen across the island doesn't; the §62
+  danger-ring already detours the route. Both knobs mirror in
+  `ResourceLoopConfig`.
 
 ### 40.16 LLM assist
 - Wire an **LLM** to suggest **joint plans** when the colony is in dire
@@ -9317,12 +9485,25 @@ for an easier mode, raise for brutal).
 ### §47.1 Ember ring — the campfire is a ZONE, not a cell
 User: the fire should block a hex ring around itself, not one junction,
 and furniture must be built in the passable zone with an offset.
-`campfire.spot` now has `ObstacleRadius = 0.8 × HexRadius`: the anchor
-plus the tile's interior junction ring block (the fire hex is solid),
-while the corner junctions — the lattice the camp walks and sleeps on —
-stay passable. Interactions survive by construction: beside-arrival
+`campfire.spot` now has `ObstacleRadius = 0.55 × HexRadius` (r2; was
+0.8R): the anchor plus the first two point rings (0.375 / 0.65-0.75 wu)
+block — nobody paths through the flames — while the 1.10-1.18 wu ring
+and everything beyond stay passable. r2 rationale (user): build/craft/
+fuel/warm work must happen at the minimal distance, and at 0.8R all fire
+work ran from the 2.09-2.25 wu ring, which read as hammering the campfire
+from afar. **Measured ladder (same 10 seeds × 15d, alive at day 15):**
+0.8R = 10/30 with work at 2.09-2.25 wu; 0.4R = work at 0.75 wu but 2/30 —
+the wide ember disc doubles as the camp's NIGHT SHIELD and the dog raids
+shredded the colony without it; 0.55R keeps the shield (9/30, noise-level
+vs 0.8R) at half the work distance (1.12 wu). Furniture keeps clear of
+the tighter ring by an explicit ≥1.1 wu fire-clearance in
+`FindSpacedFurnitureSpot` (rack/tent carry no footprint of their own);
+bed placement is honest at any radius — FootprintClear rejects a bed
+whose 1.39 wu disc overlaps the fire's blocked points. Interactions survive by construction: beside-arrival
 (`CollectStandableAround`) BFS-walks through the blocked cluster to the
-first standable rim, still within 1 tile of the fire (full +8° warmth).
+first standable rim — on the fire's own hex or 1 tile out, both full +18°
+warmth (the rim can be bookkept on the fire's own hex; a dist-0 warmth
+hole used to freeze the lighter at the flames while her neighbour thawed).
 Furniture placement (`FindSpacedFurnitureSpot`) now uses the same rim BFS
 instead of the anchor's immediate neighbors, so beds/racks land just
 outside the ember ring, fireside-close with a natural offset.
@@ -9664,6 +9845,16 @@ a while → a likely bleed-out spiral unless she's dressed. It never kills
 outright; death, if it comes, is through blood loss over the following ticks. Her
 current plan is interrupted (as a dog attack does).
 
+**Stump bleed floor (balance audit, Jul 2026).** A severed zone stays at 0 HP
+forever and can never be bandaged, so it used to pin the §40.2 bleed formula
+(`(0.4 − worstPart) × BleedRateFactor`) at its maximum for the whole clotting
+window — ~3 full blood bars, i.e. every amputation was a guaranteed death
+(40-day soaks: 24/33 deaths BledOut, 4-10 severs per seed). For BLEED-RATE
+purposes only, a severed part now reads as at least `Spec50.StumpBleedPartFloor`
+(0.35): the trauma is already charged as the one-off `LimbSeverBloodLoss`, and
+the residual ooze adds ~0.2-0.3 blood over the clotting window — survivable
+with rest and food. Health/mobility math still sees the true 0.
+
 ### §50.4 The limb in the world
 `Sever` spawns a `body.limb_severed` object at her feet (mirrors the corpse):
 `CurrentUser` = whose limb (which actor mesh), `Variant` = which `BodyPart`,
@@ -9855,6 +10046,19 @@ a **build-site** — an intent point every NPC knows from the start:
 - Scope note: **bed + hut + drying-rack (§35.5B)** run the build-site model;
   the tent keeps its campfire craft for now (identical machinery — one table
   row to migrate). The old `CraftBed` and `CraftRack` paths are retired.
+- **Presentation invariant — a build-site draws NOTHING of its own.** A
+  `build.site` is a sim-only intent point. The renderer MUST NOT spawn any
+  placeholder visual for it: no grey sphere, no stake, no gizmo. An empty /
+  planned site (no `BuildProduct` yet, or between plans) is **invisible**, exactly
+  like the water-drink and grave anchors. Only once materials are delivered does
+  the site show the **assembling pile / staged prefab** of those actual hauled
+  resources (§54.9, §54.12–14) — that is construction progress, not a site
+  marker. Why this is a standing rule: the generic object-view fallback
+  (`HexWorldRenderer.CreateObjectView` → `GetObjectPrimitive`) renders any
+  unmatched id as a grey `PrimitiveType.Sphere`, so **any** change that lets a
+  `build.site` reach that fallback reintroduces the ball. It has regressed
+  repeatedly. `CreateObjectView` returns an invisible anchor for an empty-product
+  `build.site`; keep it that way — do not add a marker visual here.
 
 ### §52.5 The hands — two-handed weapons & combat
 
@@ -9893,6 +10097,103 @@ when the last charge is gone. Far fewer water runs.
 intact. Garment-stash and spear-ready fire every seed; the bed-site delivers on
 every seed and raises when surplus allows (like the hut). Deferred: dedicated
 weapon slot; dynamic (non-bootstrap) site placement; tent/rack migration.
+
+### §52.7 Dressing must pay off; replaced garments spill their pockets
+
+Two rules close the gaps a swap used to leave — one for the decision, one for
+the execution.
+
+**Dress only for a real warmth gain (cold-driven Dress).** Warmth is
+`clamp01(Σ worn)` (§31A.5B), so re-donning an equal top over an identical one,
+or a colder one, warms her by *nothing* — yet the old planner walked to the
+*nearest* dressable object regardless. Now a cold-driven Dress weighs the
+**clamp-aware marginal gain**:
+
+```
+gain = clamp01(Σworn − displaced + candidate) − clamp01(Σworn)
+```
+
+where *displaced* is the same-(layer, part) piece the candidate would take off
+(`EquipmentMath.WarmthGainFromWearing`, candidate priced dry — the best case an
+approaching girl expects). A candidate qualifies only when `gain ≥
+SimBalance.DressWarmthGainMin` (default **0.05 ≈ +0.5 °C**; +0.1 warmth = +1 °C).
+
+- **Decision gate** — `KnowsReachableWarmthUpgrade` ANDs into the thermal branch
+  of `dressAvail` (`DecisionSystem`), so a girl with nothing better in reach
+  never even bids Dress for warmth — she leans on the campfire (WarmUp) instead,
+  the intended answer to real cold (§42). Mirrors the `KnowsReachableArmor` gate.
+- **Selection filter** — `PlanningSystem` skips any Dress candidate below the
+  threshold (`PlanCandidateSkipped … NoWarmthGain`), so even a passing gate never
+  resolves to a useless shirt.
+- **Untouched:** armor-driven dressing keeps its own `CandidateArmor >
+  EquippedArmor` gain check (§29C.4A); undress-for-heat (§31A.5A) is unchanged.
+  The rule is warmth-only, per the design call.
+
+**A replaced garment relocates its pockets, then lies on the ground.** Taking a
+worn piece off (dress-over-conflict §31A.5B, or `CraftLeather`) shrinks the pack
+by that garment's slots. The swap now runs in the order that lets the contents
+land correctly: `ResolveWearConflicts` **collects** the displaced piece(s)
+without dropping → the replacement is donned and `EquipmentMath.Recalculate`
+makes the new capacity live → `DropDisplacedGarments` lays each displaced garment
+on the ground, riding down only the pack **overflow** that still doesn't fit
+(lowest importance first, §52.3) inside its `Contents`. Net effect matching the
+design: pocket items that fit **stay in the pack (moved into the new garment)**;
+the true remainder **rides to the ground inside the removed garment**; the
+garment itself always goes to the ground — never kept as dead weight in the pack.
+Deliberate Undress already did this (`DropGarmentWithContents`); the replace path
+had bare-dropped and could leave the pack over capacity.
+
+**Verify** (headless, tuned catalog, 10/10): same/worse/negligible (+0.03) top →
+rejected; coat (+0.28) and armor-over-top layering (+0.25) → accepted; bundled to
+the warmth cap → gain 0 → rejected. On replace (pants→skirt, pack 6/6→4/4): pack
+ends within capacity, the two overflow items ride down inside the dropped pants,
+nothing lost.
+
+### §52.8 The tool holster — dedicated, typed weapon slots
+
+The leg holster (`legHolster_2204`, "Kabura na nogu") is a special garment: it
+adds **no warmth, no armor, no thermal** — its whole job is extra, *typed*
+storage for the working tools. It is the "dedicated weapon slot" §52.5 deferred
+and the retired `IsPersonalEffect` seam foreshadowed.
+
+- **Typed slots, not pockets.** A holster carries a fixed list of tool ids —
+  one slot each (`HolsterCatalog`: leg holster = `tool.axe_stone`, `tool.knife`,
+  `tool.hammer`). Its `GarmentParams.Capacity` stays **0**: a holster slot is
+  *not* a generic pocket. It accepts only its specific tool and holds exactly
+  one of each.
+- **Holstered tools ride free of the pocket budget.** A carried tool the holster
+  slots for stops counting against `InventoryState.UsedSlots`/`HasSpace` — the
+  same "bound to the body" treatment the bottle once had. Wearing the holster
+  therefore *creates* up to three extra tool-carry slots without touching the
+  hand/pocket count. The tool still lives in the single authoritative inventory
+  list (no second store); it is merely marked in
+  `InventoryState.HolsteredDefinitionIds`, recomputed by
+  `EquipmentMath.RecalculateHolster` on every worn/inventory change: for each
+  worn holster, each listed id, the first matching carried item is holstered.
+- **"Always stores the weapon" is automatic.** There is no transfer action — if
+  she wears the holster and carries the axe, the axe is holstered (free +
+  shown). One slot per type: a second identical tool counts normally; an
+  unlisted tool (a pickaxe) is never holstered and takes a real pocket.
+- **Never shed for room.** A holstered tool is skipped by
+  `InventoryMath.LowestImportanceDroppable` (dropping it frees no pocket). It
+  leaves the pack only when the **holster comes off**: `RecalculateHolster`
+  clears the marks first, so the now-counted tools spill into the removed
+  holster's `Contents` by the normal undress path (§52.2) — the tools ride down
+  with the holster and can be rifled back out (`RecoverStashedTools`).
+- **The leg-slung look.** The holster prefab carries empty child anchors named
+  exactly by tool id (`tool.axe_stone` / `tool.knife` / `tool.hammer`) under the
+  thigh bones; each holstered tool is the same list the sim exposes on the
+  snapshot (`HolsteredItems`). `NpcActorView.SyncHolster` snaps the tool model
+  into its anchor at **local zero** (position/orientation authored on the
+  anchor, size normalized by `ObjectFit` like the hand). The tool currently
+  drawn in the acting hand is skipped, so it shows *in the holster only when not
+  in use* — take it out to work, and it returns to the thigh when done.
+
+**Verify** (headless, tuned catalog, ALL PASS): holster worn adds 0 capacity;
+axe+knife+hammer holstered ⇒ only the two non-tool items count; a second knife
+counts (one slot per type); a pickaxe is not holstered and takes a pocket;
+dropping the axe empties just its slot; taking the holster off clears all marks
+and every tool counts again. Visual verify (Unity, play-mode) pending.
 
 ## §53 Compassion & mutual aid (iteration 49)
 
@@ -9946,7 +10247,10 @@ the **relief is applied straight to the target** — no food or bandage is spent
 so aid can never bankrupt the knife-edge colony: Feed drops her Hunger, Hydrate
 drops her Thirst (`Spec53.HydrateRelief`), Treat lifts wounded parts + stops
 the bleed + drops a gauze wrap, Medicate lifts Health and clears the sickness
-window, Console eases Stress and shortens mourning. **Both** relationships rise by
+window, Console eases Stress and shortens mourning. The aid itself only starts
+within `2×HexRadius` (3.0 wu) of the ward — the walk aims at an arm's-length
+spot 0.9×R beside her, the range is just wander tolerance (was 4×R, which read
+as feeding from across the camp); a blocked approach aborts and replans. **Both** relationships rise by
 `AidRelationshipGain` (larger than a chat's 0.05) across Affinity/Familiarity/
 Trust, and the Sims-style "+/-" pop floats over both heads.
 
@@ -9964,6 +10268,25 @@ dying of hunger looks after herself first.
 A **Compassion** bar (rose, ❤ glyph) joins the CharacterPanel need rows (RU
 «Сострадание»), fed by `NpcSnapshot.Compassion`. Aid emits `AidStarted` / `Aided`
 traces and reuses the existing relationship-pop over both heads.
+
+**The tending pose (r2).** The helper always shows a **mediator prop** in hand:
+**Feed → `food.coconut`**, **Hydrate → the pierced `food.coconut_pierced`** (the
+water vessel); Treat/Medicate/Console tend bare-handed. The prop is cosmetic —
+aid still spends no inventory item (§53.4), so the coconut simply appears for the
+animation and clears when the interaction ends. **Only when the ward is lying
+down** (coma/faint/asleep/prone) does the helper kneel into the planting-style
+**CraftWork** clip (`CraftingParam`) beside her — the "tending" motion. Over a
+**standing** ward she just stands and holds the item, as before. The ward's
+posture travels to the view on `NpcSnapshot.AidTargetLyingDown`, computed
+sim-side from `target.IsLyingDown(tick)` (the view has no cross-NPC access).
+
+**A lying ward does not turn (r2).** The sim's caring-stance facing rotates the
+**helper** to face the ward, but a ward who is **lying down** — knocked out
+(coma/faint), asleep, or legless-prone — keeps her authored lying orientation:
+`RunAid`/`RunTalk` skip the `target.RotationDegrees` write when
+`target.IsLyingDown(tick)`. Re-pointing a flat body at whoever walks up spun it about
+its vertical axis to "face" them (the creepy head-turn-while-lying); only an
+upright ward turns to face back.
 
 ## §54 Stranded-Deep resource, processing & butchering loop (iteration 54)
 
@@ -10076,6 +10399,14 @@ hand-lashed into a usable bed.
   the per-NPC auction so the fragile survival balance is untouched) stakes ONE
   `build.site` with `BuildProduct = "bed.leaf"` beside a **lit hearth** when the
   colony has fewer beds than living girls and none is currently under construction.
+  **Hearth recognition (balance audit, Jul 2026):** a stage-1+ campfire upgrading
+  in place (§54.14) keeps an open bill, so `BuildSiteMath.IsSite()` is true for
+  it — but it IS the hearth. `BedSiteSystem` counts only literal `build.site`
+  objects as in-progress sites; the live campfire falls through to the
+  `Campfire`-tag branch. (Before this fix the colony could not stake a single
+  bed or rack until the fire's full stone ring + spit bill closed — which needs
+  18 stones (a pickaxe) + 2 rope, so 40-day soaks finished with ZERO beds and a
+  chronic colony-wide energy pit.)
   The site is also inserted into every living NPC's permanent object memory, since
   it is a colony intent point rather than something each girl must personally see.
   Bill = `SimBalance.BedLeafBillLeaves`(46) + `BedLeafBillSticks`(8) +
@@ -10216,7 +10547,10 @@ Mechanics (`BuildSiteMath`):
 - The stage tables live in `BuildSiteMath.BedLeafStages`/`BedBasicStages` — **keep
   them in sync** with the prefab groups and with the `SimBalance.Bed*Bill*` totals
   (= per-material sums across stages). Unstaged products (`campfire.spot`, hut
-  pieces) keep the old whole-bill behaviour.
+  pieces) keep the old whole-bill behaviour. §59.4: the bill NUMBERS are now
+  tunable through the `ResourceLoopBalance` asset — the stage DECOMPOSITION stays
+  code-owned (it mirrors the prefab groups), so after retuning a bill re-check it
+  against the stage sums.
 - The current stage is **derived, not stored**: delivered `Contents` are attributed
   to stages in order, and the first stage left short is the active one — nothing
   new to save.
@@ -10731,6 +11065,15 @@ reference it: `I2.Loc` (runtime, `Scripts/`) + `I2.Loc.Editor`
 - Рецепты: `RecipeCatalog` ← секции «Крафт» на карточке ВЫХОДНОГО предмета
   (GearConfig/WorldObjectConfig): ингредиенты (ссылками), needsLitFire,
   станция (enum CraftPlace; Anywhere = крафт на месте — план CraftInPlace).
+- БАЛАНС-СТАТИКИ: тематические конфиги `Resources/HexLive/Balance/*.asset` —
+  `CharacterBalance` (SimBalance-блок персонажа + AiBalance: восприятие,
+  goal-lock), `ResourceLoopBalance` (§54: дерево-цепочка, биллы построек,
+  файбер, разделка/спойл), `SocialBalance` (Spec49 ЦЕЛИКОМ включая тумблеры,
+  Spec53, дельты разговора/ссоры), `ThreatBalance` (Spec50/57/62, каннибализм,
+  предация §56), `WorldBalance` (сутки/тени, штормы, сушка, топливо костра,
+  гниение фруктов + WildlifeBalance: директор собак/крабов/акул). Прыжки/вода
+  остаются в `HexTuningConfig` (hop-блок зеркалится в HexHopTuning). Механизм
+  зеркалирования и сторож покрытия — §59.4.
 - СКЛАД: у объекта есть массив начального содержимого
   (`ObjectDefinition.Storage`, enum StoredKind + amount) — дырявый кокос
   декларирует Water × 4; спавн кладёт это в ResourceAmount (мир и инвентарь).
@@ -10749,17 +11092,55 @@ reference it: `I2.Loc` (runtime, `Scripts/`) + `I2.Loc.Editor`
 - Новый моб / инструмент / объект / рецепт = новый ассет. Код нужен только для
   нового ГЛАГОЛА (гол-слой: когда персонаж этого хочет) и построек (bed/tent/rack).
 
-**59.3 Headless-мост (ОБЯЗАТЕЛЕН для проб и соаков).**
-- Экспорт: меню Unity **HexLive ▸ Export Sim Data (JSON)** применяет все
-  тюнинги и пишет `SimData/simdata.json` (корень репо). Переэкспорт после
-  каждого тюна ассетов.
+**59.3 Headless-мост (ОБЯЗАТЕЛЕН для проб и соаков). Схема v2.**
+- Экспорт: меню Unity **HexLive ▸ Export Sim Data (JSON)** применяет ВСЕ
+  тюнинг-слои (hop, баланс-конфиги §59.4, гарменты, мобы, gear, объекты) и
+  пишет `SimData/simdata.json` (корень репо). Переэкспорт после каждого тюна
+  ассетов. Перед записью гоняется сторож покрытия (§59.4) — экспорт
+  ОТКАЗЫВАЕТСЯ писать файл, пока хоть один тюнинг-статик не покрыт ассетом.
+- Схема v2 (`"version": 2`): к прежним `mobs/gear/worldObjects/recipes`
+  добавлены `balance` — ПЛОСКИЙ отсортированный словарь
+  `"Класс.Поле": значение` по ВСЕМ тюнинг-статикам (перечисление через
+  `BalanceReflection` с обеих сторон, поэтому новая ручка попадает в экспорт
+  без правки схемы; float пишутся G9 — точный round-trip), `garments`
+  (id/слой/warmth/armor/thermal/длительность/карманы/покрытие →
+  `GarmentLibrary.Override`) и per-interaction `effects` в worldObjects
+  (ненулевые дельты голода/жажды/комфорта/тепла/брони — раньше payoffs еды
+  и питья вообще не проезжали мост).
 - Импорт: ПЕРВАЯ строка любой headless-пробы —
   `SimDataFile.Require("/Volumes/ORICO/HexLive/SimData/simdata.json")`.
-  Require БРОСАЕТ исключение, если файла нет или он не парсится: прогон на
-  кодовых дефолтах ЗАПРЕЩЁН — молчаливый дрейф между игрой и харнессом хуже
-  упавшей пробы. (LoadAndApply остаётся для явных экспериментов.)
+  Require БРОСАЕТ исключение, если файла нет, он не парсится ИЛИ его схема
+  СТАРШЕ v2 (v1-файл не несёт баланса — проба тихо бежала бы на кодовых
+  дефолтах): прогон на кодовых дефолтах ЗАПРЕЩЁН — молчаливый дрейф между
+  игрой и харнессом хуже упавшей пробы. (LoadAndApply остаётся мягким для
+  явных экспериментов.)
 - Сериализация одна: `SimDataFile.ExportJson()` в сим-сборке (engine-free);
   редакторное меню лишь применяет SO-слои и пишет файл.
+
+**59.4 Рефлексивное зеркало конфигов и сторож покрытия.**
+- Ручные Apply/Capture-пары (2×N строк на конфиг) ДРЕЙФОВАЛИ — половина
+  SimBalance и Spec57/62 целиком жили без ассета. Их заменил
+  `SimConfigMirror`: конфиг-класс объявляет цели атрибутом
+  `[MirrorTarget(typeof(SimBalance))]` (повторяемый), каждое сериализованное
+  поле маппится на одноимённый public static по конвенции
+  camelCase → PascalCase; исключения — `[MirrorField(тип, "Имя")]`
+  (переименования, коллизии `Enabled`) и `[MirrorIgnore]` (поля,
+  зеркалящиеся руками в презентационные статики). Несмапленное/двусмысленное
+  поле или несовпадение типов = исключение, не молчание. ДОБАВИТЬ РУЧКУ =
+  одно поле в конфиге + один статик, больше ничего.
+- Тюнинг-статик = public static ПОЛЕ типа float/int/bool/long в классах из
+  канонического списка `BalanceReflection.BalanceClasses` (SimBalance,
+  Spec49/50/53/57/62, AiBalance, SocialBalance, WorldBalance,
+  WildlifeBalance, HexHopTuning); свойства и методы — производные, не ручки.
+  В системах на месте бывших констант остаются шимы `=> Класс.Поле`.
+- Сторож: меню **HexLive ▸ Validate Tuning Coverage** (и автоматически
+  внутри Export Sim Data) сверяет ПОЛНЫЙ список тюнинг-статиков с
+  объединением маппингов всех конфиг-ассетов: непокрытый статик или двойное
+  покрытие = ошибка. Новая константа НЕ МОЖЕТ молча избежать ассет-слоя.
+- Захват: меню **HexLive ▸ Capture Live Tuning** читает живые статики
+  обратно во все баланс-ассеты (+ HexTuningConfig) — «сфотографировать»
+  накрученное в рантайме. Кнопка SwimTest-сцены по-прежнему сохраняет свой
+  hop/swim-блок.
 
 ## §60 Кома — глубокое бессознательное (iteration 60)
 
@@ -10803,6 +11184,28 @@ reference it: `I2.Loc` (runtime, `Scripts/`) + `I2.Loc.Editor`
 Смерть в коме возможна: голод/жажда, холод/жара, добитые жизненно важные зоны,
 кровь до нуля.
 
+**60.2a Позиционирование — инвариант «тело всегда в центре своего гекса».**
+Любое тело на земле — кома обеих причин, обморок §40.13, сон на земле §29G И
+ТРУП (§28.15C) — лежит ТОЧНО в геометрическом центре своего гекса, не на кромке
+и не там, где застал коллапс/смерть на середине шага. Для ЖИВОГО тела это
+единый примитив `ExecutionSystem.LieDownCentered(npc)` = `npc.Position =
+HexSpatialMath.TileToWorld(npc.Tile)`, вызываемый из всех путей укладки. Позиция
+ставится безусловно и ОТВЯЗАНА от занятости джанкшнов: исторический баг «тело
+свисает с края» возникал оттого, что каждый путь сам искал «ближайший СВОБОДНЫЙ
+джанкшн к центру», а `IsJunctionFree` считает занятым тот джанкшн, на котором
+тело само стоит (и footprint, который оно только что застолбило), — поэтому скан
+структурно НЕ МОГ вернуть центр и всегда уносил тело вбок; обморок же вообще не
+задавал позицию. Скан свободного джанкшна теперь выбирает лишь ЯКОРЬ лежачего
+footprint (§29G, чтобы соседи обходили тело), но не видимую позицию. ТРУП — это
+не NPC (сущность удаляется в `MobSystem.RemoveDeadNpc`), а объект `corpse.npc`,
+который рендерится по `Junctions[0]`; поэтому его якорят на ЦЕНТРАЛЬНЫЙ джанкшн
+гибельного гекса (ближайший к `TileToWorld(tile)`), а не на `npc.CurrentJunction`
+(кромку, где NPC умер). Все смерти (голод, холод, кровь, собаки §29C, хищники
+§56) идут через один `RemoveDeadNpc`, так что центрируются все трупы разом.
+Правило: у ЛЮБОГО нового пути «тело падает на землю» — звать `LieDownCentered`
+(живое) или якорить на центральный джанкшн (труп), а НЕ выводить позицию из
+`IsJunctionFree`/`CurrentJunction`.
+
 **60.3 Выход.** Кома кончается, когда СВАЛИВШИЙ показатель поднялся до
 `ComaWakeThreshold` (0.15): Exhaustion — Energy ≥ 0.15, BloodLoss — Blood ≥
 0.15. Пробуждение получает обычный wake-грейс (spec 41.5, 12 тиков) — встаёт,
@@ -10834,6 +11237,30 @@ append-only). `NPCState.IsUnconscious(tick)` — единый вопрос «м�
 пробуждении Laying снимается — контроллер сам играет `GetUp` («Situp To
 Idle», тот же подъём, что после сна) → Idle. Снапшот несёт `IsUnconscious`
 (+PostureHint=Faint для поза-слоя).
+
+**60.6 r2 — переработка (Jul 2026, user pass): кома выпилена как концепт.**
+«Труп-двойник» читался криповато; теперь оба состояния — обычный СОН с
+условиями пробуждения (внутренняя машина состояний та же, ярлыки и
+презентация другие):
+
+- **Energy 0 → «сон без задних ног»** (`FellAsleepExhausted`): рухнула где
+  стояла и спит как обычный наземный сон (вид: та же лежачая поза сна,
+  `CurrentInteraction=Sleep` в снапшоте; чип 😵 «без сил», НЕ «кома»).
+  Просыпается не на старых 0.15, а выспавшись — `ExhaustedSleepWakeEnergy`
+  (0.45, зеркало в CharacterBalanceConfig): цепочка микро-коллапсов
+  (100-200 за 25-дневный соак — «хроническая энергетическая яма») стала
+  одним длинным сном. **Боль будит**: любая рана (укус, §56) мгновенно
+  поднимает — спящую нельзя «фармить» укусами.
+- **Кровопотеря → обморок без сознания** (`FaintedBloodLoss`): как раньше
+  (гистерезис ComaBloodEnter/Wake 0.25/0.35, x3 восстановление крови лёжа,
+  смерть на нуле остаётся) — но это единственное состояние с limp-позой
+  `IsUnconscious` и чипом Coma. Боль НЕ будит (тело не может очнуться —
+  в этом суть).
+- Забота о спящих (§53 Aid: накормить/напоить/перевязать) работает для
+  обоих состояний — лежащая без Execution-статуса остаётся aid-eligible.
+- Unity-pending: переименовать локализацию чипа Coma («Кома» → «Без
+  сознания») в I2Languages, пересохранить CharacterBalanceConfig
+  (новое поле exhaustedSleepWakeEnergy), переэкспортировать SimData.
 
 ## §61 Поэтапный крафт на месте — выкладка, работа, взятие (iteration 61)
 
@@ -10885,8 +11312,8 @@ Idle», тот же подъём, что после сна) → Idle. Снапш
 
 **62.1 Обнаружение.** `ThreatAlertSystem` (Medium): каждая дееспособная
 девушка (не мёртвая/без сознания/не спит, не в бою, не Flee/Defend, не в
-убежище-помещении) замечает живого моба в `Spec62.SpotRadiusTiles` (4; агро
-собаки — 2, т.е. два тайла форы). Свежая встреча помечается смайлом
+убежище-помещении) замечает живого моба в `Spec62.SpotRadiusTiles` (6; агро
+собаки — 2, т.е. четыре тайла форы). Свежая встреча помечается смайлом
 **⚠️ «опасность»** над головой — одноразовый cue `DangerSpotted` в общем
 канале `SocialCueSignals` (§28.15E), спрайт `Warning.png` в
 `Resources/HexLive/UI/Emoji/`. Повторный ⚠️ по той же паре (девушка, моб) — не
@@ -10921,7 +11348,7 @@ Idle», тот же подъём, что после сна) → Idle. Снапш
 0 пересечений и доходит).
 
 **62.4 Ручки.** Всё в статике `Spec62` (`SimulationSystems.cs`):
-`ThreatAlertEnabled`, `SpotRadiusTiles` 4, `CueCooldownTicks` 600,
+`ThreatAlertEnabled`, `SpotRadiusTiles` 6, `CueCooldownTicks` 600,
 `FitBoneHealth` 0.8, `AttackMaxPack` 1, `AttackLockTicks` 240,
 `DangerRingTiles` 2, `DangerStepCost` 80.
 
@@ -10938,3 +11365,256 @@ Idle», тот же подъём, что после сна) → Idle. Снапш
 (тинт белый — спрайт уже жёлтый). Канал cue сквозной
 (снапшот/экспортёр/рендерер не менялись). Визуальная проверка в игре —
 pending.
+
+## §63 Прибой приносит одежду + поведенческий аудит выживания (iteration 63)
+
+**63.1 Прибой-подарок (surf gift).** Одежда изнашивается насмерть (укусы,
+стирка времени) — а каждая потерянная вещь = потерянные карманы (§52:
+инвентарь = руки + карманы надетого). Чтобы гардероб острова не
+выкашивался в ноль, прилив периодически выносит на берег случайную вещь:
+
+- Сидированное расписание как у дождя/штормов (чистая функция seed+день):
+  в `WeatherSystem`, раз в день на тике `day*DayLength + SurfGiftOffsetTicks`
+  (800, середина утра) с шансом `SurfGiftChancePerDay` (0.35 ≈ 2-3 вещи в
+  7 дней; оба — `WorldBalance`, зеркалятся из `WorldBalanceConfig`).
+- Вещь — случайная строка `GarmentLibrary.Active` (весь гардероб, включая
+  импортированные); точка — случайный СВОБОДНЫЙ сухопутный junction, у
+  которого есть сосед-вода (кромка берега), сидированный слот дня.
+- Прибывает мокрой (Wetness 1.0), поношенной (Durability 0.55-0.95) и
+  слегка грязной (0.1-0.3) — «принесло море», не магазинная поставка.
+  Событие трассы: `SurfGift`.
+
+**63.2 Поведенческий аудит (Jul 2026) — исправленные классы смертей.**
+25-дневный 10-сидовый соак дал 10-14 смертей/прогон; хвосты поведения
+вскрыли шесть механических ловушек (все — решения/планы, баланс не тронут):
+
+1. **CraftBandage-петля при кровотечении**: `SuppressPeacetimeDuringBleeding`
+   воскрешал НЕДОСТУПНЫЙ CraftBandage (+0.5 к FinalScore=0 без трав), а
+   GatherHerb занулял. Девушка стояла в цикле ExecFailed «missing herb»
+   до полного истечения кровью. Фикс: буст только при FinalScore>0;
+   GatherHerb включён в разрешённые цели кризиса; провал CraftInPlace по
+   ингредиентам ставит кулдаун цели.
+2. **Аукцион целей во время боя**: IsFighting не закрывал выбор целей —
+   покусанная девушка «продолжала дела» (подбирала молоток, шла пить),
+   пока собака её грызла. Фикс: (а) гейт аукциона при IsFighting;
+   (б) собака в погоне ≤2 тайлов переводит жертву в боевую стойку
+   (MobSystem), а не только в мили.
+3. **Осцилляция об занятый источник воды**: план Drink нацеливался на
+   тот же занятый кокос каждые ~90 тиков полдня подряд. Фикс: память
+   «shun» (600 тиков) на объект, занятый на момент прихода; планнер
+   выбирает другой источник.
+4. **Eat сжирал воду**: цепочка еды брала ПЕРВЫЙ проколотый кокос — в том
+   числе с оставшейся водой — и перерабатывала его в мякоть. Фикс:
+   порядок еды «сухая скорлупа → целый орех → (последним) кокос с водой».
+5. **Drink-спам «nothing drinkable»**: доступность (HasCoconutWater) не
+   зеркалила фильтры планнера (shun, стейл-перцепция) → цель 2.15
+   перевыбиралась каждый тик при невозможном плане. Фикс: единые фильтры
+   + кулдаун при провале плана Drink. Один глоток за цикл тоже исправлен:
+   жаждущая (≥0.4) пьёт из кокоса в руке несколько глотков подряд без
+   пере-аукциона.
+6. **freeHands душился суточной памятью об опасности** (`Dangers.Count==0`
+   при §62-рестампах ≈ всегда false) → за 250 сид-дней 0 верёвок, 0 камней,
+   0 доставок, 0 кроватей, 0 стирок, 0 ванн. Фикс: как buildPeacetime —
+   только СВЕЖИЙ испуг (`BuildDangerFreshTicks`) отменяет работу. Плюс:
+   очередь `FindBuildSite` теперь упорядочена (голый очаг → кровать/сушилка
+   → апгрейд костра), а не «кто первый в перцепции» (открытый bill костра
+   монополизировал слот и верёвочная стадия кровати была невидима);
+   Bathe/WashClothes получают тот же freeHands-бонус и +0.35 приверженности
+   активному плану (иначе поход к воде вечно прерывался Socialize/Sit).
+
+**63.3 Второй проход аудита (продолжение).**
+7. **Пустой рюкзак-ловушка и для жажды**: аварийная разгрузка §45 r5
+   срабатывала только на голод — колонии умирали от жажды с полными
+   рюкзаками (Goal=None ×362 цикла). Разгрузка теперь и при Thirst ≥ 0.8
+   без питья в паке.
+8. **GetWater не умел фуражить**: у GetFood был поход «к запомненной
+   пальме», у воды — нет; когда кокосы у лагеря съедены, колония сидела
+   при жажде 1.0, пока орехи гнили в дальних рощах. GetWater получает тот
+   же forage-поход; фураж теперь предпочитает пальму ≥2 тайлов (под
+   ближней она уже стоит и видит голую землю — «ForageWaiting» у сухого
+   дерева был вечным).
+9. **Безножевая жаждущая девушка идёт к людям** (`SeekWaterHelp`): провал
+   плана Drink без лезвия → move-only план к ближайшей соседке (у лагеря
+   ножи, проколотые кокосы и §53 Hydrate-помощь). Лечит повторяющуюся
+   смерть Марты d0.5.
+10. **Охота на неё = никакого гардероба**: пока у моба TargetNpc == она
+    (вся погоня, не только мили-тики), аукцион урезан до выживания
+    (вода/еда/Idle) — ночной холодовой Dress 1.1 между укусами убивал.
+11. **Flee выбирает СВОБОДНЫЙ interior-junction**: три беглянки целились
+    в один и тот же угол хижины; второй путь приходил Blocked, побег
+    абортился каждые ~20 тиков, собака дожёвывала стоящую. 
+12. **Тип события стирки**: id вещи интерполировался в ТИП события
+    (`ClothesWashed underwear.bra …`) — ни один whitelist/счётчик его не
+    видел; тип теперь константный, вещь в сообщении.
+13. **Кулдаун цели при провале CraftInPlace без ингредиентов** и жёсткая
+    боевая стойка при заряде собаки ≤1 тайла (2 тайла замораживали её
+    навсегда, если собака не могла дойти за обрыв — крах iter-4).
+
+**63.4 Каменное кольцо костра — расшитая цепочка (r2, user pass).** Апгрейд
+§54.14 (18 камней) не случился НИ РАЗУ за ~500 сид-дней соаков. Червоточины:
+1. **У живого `campfire.spot` не было ни тега `FurnitureSite`, ни
+   Build-интеракции** — план BuildFurniture физически не мог принести камни
+   в кольцо (build.site их имел, а «апгрейд на месте» — нет). Добавлены;
+   exec-путь (ApplyFurnitureSite / «upgrades finished in place») уже был.
+2. Очередь `FindBuildSite`: голый очаг → **апгрейд костра** → кровать/сушилка
+   → остальное (пользовательский приоритет «Костёр делай!»).
+3. Кирка не рождалась: 0.55-доставка съедала её 2-камневый бюджет —
+   резерв камней под кирку при незакрытой каменной стадии + pickaxeChainPull
+   0.5 на CraftPickaxe; шахтёрша носит до 3 камней (siteStoneWant), валун
+   бьётся до полной ноши.
+4. `siteStonePull` 0.5 на GatherStone/MineBoulder — ТОЛЬКО при freeHands и
+   покормленном костре (безусловный пул уморил пробную колонию голодом).
+Итог соака: кирки крафтятся (2/колония), камни доставляются в кольцо
+(contents 9→10-12 к d20-25); полное кольцо за 25 дней — редкость (плот
+выигрывают раньше), длинная стройка по дизайну.
+
+## §64 Мечта — цель-стремление колонии, строим по плану (iteration 64)
+
+**Идея.** «Мечта» (dream) — это долгосрочное стремление колонии, которое
+направляет, ЧТО поселение СТРОИТ. Она стоит ВЫШЕ обычных комфортных желаний
+(купание, отдых, бытовой крафт), но преследуется, ТОЛЬКО когда базовые нужды
+закрыты (сыта, напоена, в тепле, нет свежей опасности) — то есть выживание
+всегда важнее. Симуляция выдаёт всем один и тот же упорядоченный список мечт;
+как только текущая исполнена — активируется следующая. Это даёт нам ручку,
+чтобы регулировать застройку.
+
+- **Мечта 1 — костёр** (общая на колонию, один очаг): выдана с тика 0.
+- **Мечта 2 — своя личная кровать** (у КАЖДОГО своя): кровати становятся
+  персональными.
+- Очередь расширяемая (`SpecDream.DefaultQueue`), будущие мечты (стена, склад,
+  мастерская) дописываются в `DreamType` + очередь.
+
+**Принцип: СЛОЙ, а не новый план.** Мечта переиспользует существующую машинерию
+стройки (общий `build.site` + цель `BuildFurniture` + фидеры + `BedSiteSystem`).
+Она лишь (а) публикует состояние мечты, (б) упорядочивает, какие интенты
+ставятся, (в) штампует владельца кровати, (г) добавляет небольшой «pull» в
+существующий аукцион — и этот pull активен ТОЛЬКО при закрытых нуждах (готовый
+`freeHands`-излишек), поэтому выживание всегда доминирует. Флаг
+`SpecDream.Enabled = false` откатывает поведение ровно к до-§64 базлайну (для
+harness-бисекта и отката баланса).
+
+**64.1 Данные.** `DreamType {None, Campfire, OwnBed}` (append-only, saves хранят
+int). На `WorldState`: `DreamQueue` (сеется лениво из `SpecDream.DefaultQueue`),
+`CampfireDreamDone` (монотонная защёлка), `ActiveDream` (выводится каждый Slow).
+На `NPCMind`: `CurrentDream` — что показываем в панели. На `WorldObjectState`:
+`Owner` (EntityId?) — постоянное владение кроватью, отдельно от временного
+`CurrentUser`/`IsOccupied`.
+
+**64.2 `DreamSystem`** (Slow, зарегистрирован ПЕРЕД `BedSiteSystem`). Каждый Run:
+(1) при `!Enabled` паркует `ActiveDream=None`; (2) сеет очередь; (3) защёлкивает
+костёр, когда впервые виден ГОРЯЩИЙ костёр (тег `Campfire` + `ResourceAmount>0`)
+— защёлка не даёт мечте «отыграть назад», когда костёр прогорает; (4) считает
+`ActiveDream` = первая невыполненная колонией мечта; (5) пишет каждой живой NPC
+`CurrentDream` = первая, которую ОНА лично не выполнила (костёр — общий,
+кровать — своя); (6) освобождает кровать умершей (`Owner=null`) обратно в пул.
+Система НЕ трогает нужды/планы — только публикует состояние, что и держит
+базлайн достижимым при `Enabled=false`.
+
+**64.3 Персональные кровати.** `BedSiteSystem` стал owner-aware: (а) ждёт, пока
+исполнена мечта-костёр (`CampfireDreamDone`) — кровати не ставятся раньше; (б)
+собирает `ownedIds` из готовых кроватей и строящихся сайтов; (в) «переиспользуй
+до постройки» — бесхозную готовую кровать (реклейм/бесплатная кровать хижины)
+отдаёт первой безкроватной; (г) целится в конкретную безкроватную живую NPC,
+штампует `site.Owner`; leaf-first, затем премиум `bed.basic` тем же правилом.
+Владелец переезжает с сайта на поднятую кровать в `ApplyFurnitureSite`. Выбор
+места сна — МЯГКИЙ (`SpecDream.BedExclusive=false`): в `PlanningSystem` ветка
+`preferOwnBed` предпочитает СВОЮ кровать, но любая свободная остаётся
+запасной (без жёсткого фильтра — колонистка без своей кровати не спит на земле
+рядом с пустой; выживание не меняется). Строгий эксклюзив (только владелец
+спит) оставлен флагом на будущее (потребует ещё фильтры в `IsValidTargetFor` +
+`HasFurnitureCandidate`).
+
+**64.4 Pull в аукционе.** В `DecisionSystem` после `freeHands`:
+`dreamMatch = Enabled && freeHands>0 && ((CurrentDream==Campfire && siteIsHearth)
+|| (CurrentDream==OwnBed && siteIsBed && site.Owner==self))`;
+`dreamPull = SpecDream.BuildPull (0.18)`. Прибавляется к `BuildFurniture` и к
+фидерам владельца (`ChopCrown/GatherLeaves/SplitLog/GatherFiber/CraftRope`).
+`freeHands`-гейт гарантирует: при любой поджимающей нужде `dreamPull→0` — мечта
+никогда не входит в выживательную ставку. Новых `GoalType`/планов/exec нет. Пока
+мечта = костёр, `hearthUrgent` и так вершит аукцион — pull там безвреден-избыточен
+и через тот же путь ведёт к мечте-кровати.
+
+**64.5 UI + локализация.** `NpcSnapshot.CurrentDream` (строка) пишется в
+`WorldSnapshotExporter`. В `CharacterPanel` — «pill мечты» рядом с pill мысли
+(звезда `VectorIcon.Kind.Dream` + `Loc.Dream(...)`), скрыт при `None`. Термины
+`dream.Campfire`/`dream.OwnBed` в `I2Languages.asset` (EN+RU, §58 — никаких строк
+в C#).
+
+**64.6 Персистентность.** `Owner` и `CampfireDreamDone` сериализуются
+(`BlobVersion` 10→11); `DreamQueue`/`ActiveDream`/`CurrentDream` не пишутся —
+`DreamSystem` пересчитывает их на первом Slow-тике (self-healing).
+**ИСПРАВЛЕНО (`BlobVersion` 11→12):** раньше состояние строящегося сайта
+(`BuildProduct` + bill + доставленные материалы в `Contents`) НЕ сохранялось —
+кровать «в работе» после загрузки теряла `BuildProduct`, становилась пустым
+`build.site` и сметалась `BedSiteSystem` как мусор, поэтому НИКОГДА не переживала
+перезагрузку и не достраивалась (готовых `bed.leaf` в сейве не появлялось). Теперь
+`WorldSaveSerializer.WriteObject/ReadObject` пишут `BuildProduct`, все `Bill*` и
+`Contents` (гейт `version >= 12`; сейвы v11 грузятся по-старому — их незавершённые
+сайты по-прежнему пустые и сметаются, персистят только НОВЫЕ стройки). Round-trip-
+проба: продукт/bill/доставленное переживают save→load 1:1.
+
+**64.7 Баланс.** Все ручки в `SpecDream` (`Enabled`, `DefaultQueue`, `BuildPull`,
+`BedExclusive`, `CampfireRequiresLit`). Проба (headless): логика `DreamSystem`
+8/8 (защёлка/адванс/пер-NPC дисплей/реклейм), A/B `Enabled=false` vs `true` —
+паритет выживания (16/16 за 12 дней). Достройка кровати в headless-прототипе не
+наблюдается — но она не строится и в чистом HEAD-базлайне (это свойство мелкого
+прототип-мира, не мечты); проверка владения при подъёме — в реальной сцене.
+
+## §65 Смертельно устал → спать у костра, а не падать на месте (iteration 65)
+
+Жалоба: персонажи часто «вырубаются» прямо там, где работали (§60 сон-от-
+истощения на месте), вместо того чтобы заранее дойти до костра и лечь нормально.
+Просьба: если энергии совсем мало — идти искать место для сна и ложиться по-
+человечески, чтобы меньше падать замертво.
+
+**65.1 Проактивный уход ко сну (то, что и просили — SHIPPED).** Как только
+`Energy < DeadTiredEnergy` (0.15), ставка Sleep получает решающую добавку
+`DeadTiredSleepBoost` (0.30): тело бросает дело и планирует наземный сон, а
+`BuildGroundSleepPlan` и так якорит место к костру (в холод — ближе к огню,
+§49 SmartSleepSpot). Вымотанное тело ТЕРПИТ умеренный голод/жажду — потолок
+пробуждения поднимается с 0.6 до линии голода 0.85 — поэтому «слегка голодная и
+уставшая» ложится нормально, а не грызёт себя до нуля и не падает на месте. НО не
+выше линии голода: спящая всё равно ПРОСЫПАЕТСЯ поесть/попить прежде, чем нужда её
+убьёт (соак без этого потолка дал смерть — осаждённая проспала нужды до 1.0,
+seed 42). Достижимая еда всё равно перебивает сон (Eat/Drink несут StarvingBoost),
+так что добавка сна не крадёт приоритет у еды — только сглаживает средний диапазон.
+Порог 0.15 (а не буквальные «5%») — чтобы успеть дойти до костра до нуля.
+
+**65.2 Пробуждение — без дёрганья.** `HasSleepInterrupt` общий для «начать спать»
+и «продолжать спать», поэтому оба конца согласованы (петли лечь-встать нет). Стартом
+командует низкий порог (0.15), а уже уснувшая терпит до дневной линии пробуждения
+(0.45): это ОДИН длинный сон до отдохнувшего состояния, а не серия дрёмов.
+
+**65.3 Диагноз: настоящая причина коллапсов — НЕ лень и НЕ голод, а ОПАСНОСТЬ.**
+Headless-соак замерил, ПОЧЕМУ падают. Коллапсов много (~0.86 на NPC в день), но 0
+упали по дороге к спальному месту и 0 «могла спать, но выбрала работу». **~96%
+коллапсов — это тело, которому сон ЗАПРЕЩЁН**, и запрещён не голодом (0 голодных
+коллапсов), а **памятью об опасности**: одно появление волка блокирует сон на ЦЕЛЫЕ
+СУТКИ (прун памяти = 2400т), даже когда волк давно ушёл (средняя «мёртвая» метка на
+момент коллапса — 875т, живого волка в радиусе 6 тайлов нет). Колония не тупит — она
+держит вахту в собачьем краю и догорает до обморока, потому что лечь «нельзя».
+
+**65.4 Почему это НЕ чинится снятием блока (важный отрицательный результат).**
+Ручка `SleepDangerRecencyTicks` (сон запрещает лишь опасность за последние N тиков;
+живой волк переставляет метку каждым замером и держит блок, ушедший — «протухает»)
+резко срезает коллапсы (−45%) и БОЛЕЕ ЧЕМ УДВАИВАЕТ нормальные укладки у костра. НО
+она ДЕСТАБИЛИЗИРУЕТ БОЙ: спящих в затишье загрызают вернувшиеся волки, и число
+смертей НЕмонотонно по окну (соак 20 сидов × 15 дней: 900т → 0 смертей, 1100т → 5,
+легаси → 3; 1100т опрокидывает seed 88 в вайп, которого в легаси нет). Это классический
+«knife-edge vs собаки» пересорт (спец §40, заметки о хрупкости к собакам). Поэтому
+ручка ШИППИТСЯ ВЫКЛЮЧЕННОЙ (`0` = старое «любая память блокирует сон»); включать —
+только после отдельного соака баланса собак, чтобы выбрать окно, безопасное по многим
+сидам, а не «повезло на одном». Механика и находка сохранены как настраиваемый рычаг.
+
+**65.5 Баланс.** Все ручки в `Spec49` (зеркалятся в `SocialBalanceConfig`):
+`DeadTiredSeek` (тумблер, ON), `DeadTiredEnergy=0.15`, `DeadTiredSleepBoost=0.30`,
+`SleepDangerRecencyTicks=0` (OFF; >0 — экспериментальный рычаг из 65.4). Соак
+(A/B на одном бинарнике через тумблер, headless, prototype-остров §59.3, 20 сидов ×
+15 дней): `DeadTiredSeek` — **паритет смертей с легаси (3=3)** и **−54% «свободных»
+коллапсов** (тело могло безопасно уснуть, но падало на месте: 35→16); общее число
+коллапсов ~без изменений (они опасность-блокированы, см. 65.3 — их безопасно не
+убрать), сон стал длиннее/цельнее (перепланов меньше при тех же прерываниях). Смерти
+пересорчиваются по сидам (у легаси падает seed 2718, у фичи — хрупкий thirst-trap
+seed 1104049673), но их ЧИСЛО не растёт — ожидаемо для knife-edge, откатывается
+тумблером. Рычаг 65.4 из соака: 900т→0 смертей, 1100т→5, легаси→3 (немонотонно) —
+поэтому OFF. Визуальная проверка в Unity — pending.

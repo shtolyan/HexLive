@@ -29,7 +29,7 @@ namespace HexLive.Simulation.Persistence
 //   on load, rebuilt on first pathfind).
 public static class WorldSaveSerializer
 {
-    public const int BlobVersion = 10; // v10: staged craft ground layout (§gear-craft v2)
+    public const int BlobVersion = 12; // v12: §52 build-site payload (product + bill + delivered materials) survives reload
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -42,6 +42,7 @@ public static class WorldSaveSerializer
         w.Write(world.NextRuntimeObjectId);
         w.Write(world.RaftProgress);
         w.Write(world.Completed);
+        w.Write(world.CampfireDreamDone); // §64: the campfire-dream latch survives a reload
         w.Write(world.DeathRecords.Count);
         foreach (var death in world.DeathRecords)
         {
@@ -223,6 +224,7 @@ public static class WorldSaveSerializer
         world.Completed = version >= 4
             ? r.ReadBoolean()
             : world.RaftProgress >= WorldState.RaftTarget;
+        world.CampfireDreamDone = version >= 11 && r.ReadBoolean(); // §64
         world.DeathRecords.Clear();
         if (version >= 4)
         {
@@ -493,6 +495,21 @@ public static class WorldSaveSerializer
         {
             w.Write(id.Value);
         }
+
+        WriteNullableEntity(w, obj.Owner); // §64: personal-bed ownership
+
+        // v12: build-site payload — WHAT the site becomes, its material bill and
+        // the materials already hauled in (Contents). Without this an in-progress
+        // build (a half-raised bed) lost its BuildProduct on reload, became an
+        // empty "build.site", and BedSiteSystem swept it as cruft — so a bed
+        // could never survive a save/load, let alone finish (see §52/§54.2).
+        w.Write(obj.BuildProduct);
+        w.Write(obj.BillLogs);
+        w.Write(obj.BillStones);
+        w.Write(obj.BillLeaves);
+        w.Write(obj.BillSticks);
+        w.Write(obj.BillRope);
+        WriteItemList(w, obj.Contents);
     }
 
     private static WorldObjectState ReadObject(BinaryReader r, int version)
@@ -523,6 +540,22 @@ public static class WorldSaveSerializer
         for (var i = 0; i < producedCount; i++)
         {
             obj.ProducedItems.Add(new ObjectId(r.ReadInt32()));
+        }
+
+        obj.Owner = version >= 11 ? ReadNullableEntity(r) : null; // §64
+
+        // v12: build-site payload (product + bill + delivered materials). Pre-v12
+        // saves never stored it, so those in-progress sites still load empty and
+        // BedSiteSystem sweeps them (the old behaviour) — only NEW builds persist.
+        if (version >= 12)
+        {
+            obj.BuildProduct = r.ReadString();
+            obj.BillLogs = r.ReadInt32();
+            obj.BillStones = r.ReadInt32();
+            obj.BillLeaves = r.ReadInt32();
+            obj.BillSticks = r.ReadInt32();
+            obj.BillRope = r.ReadInt32();
+            ReadItemList(r, obj.Contents, version);
         }
 
         return obj;

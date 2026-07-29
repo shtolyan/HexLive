@@ -123,16 +123,39 @@ public static class PrototypeContentCatalog
                 // BFS (CollectStandableAround) walks through the blocked
                 // cluster to the first standable rim, which stays within
                 // 1 tile of the fire — full +8° warmth reach.
-                Tags = { "Campfire", "Obstacle" },
-                // 0.8R blocks the anchor + the tile's interior junction ring
-                // (the fire hex itself is solid) while leaving the corner
-                // junctions — the lattice the camp actually walks and sleeps
-                // on — passable. 1.05R swallowed the fireside beds: Sleep
-                // plans failed 87-224 times/seed, sleepless girls met the
-                // night raids in the open (bites x5-10), wins fell 6/12→3/12.
-                ObstacleRadius = 0.8f * HexLive.Simulation.Spatial.HexSpatialMath.HexRadius,
+                // §63 r2: + FurnitureSite — the LIVE fire keeps its open §54.14
+                // upgrade bill (stone ring → spit), but without this tag the
+                // BuildFurniture planner could never TARGET it: stones for the
+                // ring were gathered, then had nowhere to go (0/18 delivered
+                // across every 25-day soak since the staged campfire shipped).
+                Tags = { "Campfire", "Obstacle", "FurnitureSite" },
+                // 0.55R (0.825 wu) blocks the anchor + the first two point
+                // rings (0.375 / 0.65-0.75 wu) — nobody paths through the
+                // flames — while the 1.10-1.18 wu ring stays standable, so
+                // building/cooking/fueling/warming happen close to the stones
+                // instead of two rings out (user: work distance must be
+                // minimal). MEASURED ladder (same 10 seeds x 15d, alive):
+                // 0.8R = 10/30 but all fire work at 2.09-2.25 wu (read as
+                // hammering the campfire from afar); 0.4R = work at 0.75 wu
+                // but 2/30 alive — the wide ember disc doubles as the camp's
+                // night shield, dogs shredded the colony without it; 0.55R
+                // keeps the shield (9/30, noise vs 0.8R) at HALF the work
+                // distance. History: 1.05R swallowed the fireside beds (Sleep
+                // failed 87-224x/seed). Bed placement stays honest at any
+                // radius: FootprintClear rejects a bed whose 1.39 wu disc
+                // overlaps the fire's blocked points.
+                ObstacleRadius = 0.55f * HexLive.Simulation.Spatial.HexSpatialMath.HexRadius,
                 Interactions =
                 {
+                    // §63 r2: deposit/raise the §54.14 upgrade stages (stone
+                    // ring, spit posts) at the LIVE fire — same one-verb flow
+                    // as build.site (ApplyFurnitureSite decides by state).
+                    new InteractionDefinition
+                    {
+                        Id = "build.upgrade",
+                        Type = InteractionType.Build,
+                        DurationTicks = 36
+                    },
                     // Spec 29H: fill the bottle with boiled (safe) water; the
                     // thirst/comfort payoff lands when she drinks it later.
                     new InteractionDefinition

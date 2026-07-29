@@ -327,6 +327,12 @@ public sealed class NpcSnapshot
     // get-up plays (the wake grace covers it).
     public bool IsUnconscious { get; set; }
 
+    // Spec §53 r2: while this NPC is aiding a housemate (Feed/Hydrate/Treat/…),
+    // is her WARD lying down (coma/faint/asleep/prone)? The kneeling "tending"
+    // craft pose only plays over a lying ward; over a standing ward the helper
+    // just stands and shows the item in hand. False when not aiding.
+    public bool AidTargetLyingDown { get; set; }
+
     // Iter 28: sitting at a one-step ledge junction — the presentation
     // lifts the body so the butt rests on the upper step. Export-only.
     public bool IsLedgeSit { get; set; }
@@ -345,6 +351,11 @@ public sealed class NpcSnapshot
     public float Stress { get; set; }
 
     public string CurrentGoal { get; set; } = string.Empty;
+
+    // Spec §64: the colonist's current dream (aspiration) — the DreamType name,
+    // localized by presentation into the character-panel dream pill. "None" when
+    // she has nothing left to dream of.
+    public string CurrentDream { get; set; } = string.Empty;
 
     public string PlanStatus { get; set; } = string.Empty;
 
@@ -387,6 +398,13 @@ public sealed class NpcSnapshot
     // it's the piece just taken off. Empty at all other times.
     public string HeldGarmentId { get; set; } = string.Empty;
 
+    // §40.6 r2 (laundry-in-hand): live condition of the held garment so the
+    // hand prop shows the dirt/blood actually washing OUT during the scrub.
+    public float HeldGarmentDirt { get; set; }
+    public float HeldGarmentBlood { get; set; }
+    public float HeldGarmentWet { get; set; }
+    public float HeldGarmentDurability { get; set; } = 1f;
+
     // §Wardrobe-anim: the world object this NPC is interacting with (if any),
     // so the renderer can hide a garment lying on the ground once its owner has
     // picked it up into hand for the "don" beat (no double-visible garment).
@@ -412,6 +430,8 @@ public sealed class NpcSnapshot
     public List<string> InventoryWetness { get; } = new();
 
     public List<string> InventoryDirtiness { get; } = new();
+
+    public List<string> InventoryBloodiness { get; } = new();
 
     // "definitionId\tamountLiters\tcapacityLiters" for carried water containers.
     // The UI treats bottle and pierced coconut as one water-container category.

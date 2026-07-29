@@ -8,7 +8,7 @@ namespace HexLive.UnityPresentation.UI
 {
     /// <summary>
     /// Always-visible time controls, centered at the top of the screen: pause /
-    /// play and the 1× / 2× / 4× / 50× speed presets. Talks straight to the
+    /// play and the 1× / 2× / 4× / 50× / 200× speed presets. Talks straight to the
     /// simulation runner. Resolution-scaled like the character bar.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
@@ -16,7 +16,7 @@ namespace HexLive.UnityPresentation.UI
     {
         [SerializeField] private SimulationRunnerBehaviour _runner;
 
-        private static readonly float[] Speeds = { 1f, 2f, 4f, 50f };
+        private static readonly float[] Speeds = { 1f, 2f, 4f, 50f, 200f };
 
         private UIDocument _document;
         private VisualElement _pauseButton;

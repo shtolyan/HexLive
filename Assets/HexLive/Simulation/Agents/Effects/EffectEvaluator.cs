@@ -152,7 +152,9 @@ namespace HexLive.Simulation.Agents.Effects
                 results.Add(new ActiveEffect(EffectKind.Cold, -needs.ThermalComfort));
             }
 
-            var maxWetness = 0f;
+            // Spec 35.5: the body itself soaks (rain/water on bare skin), so a
+            // naked or near-naked survivor reads soaked with no wet garment.
+            var maxWetness = npc.BodyWetness;
             foreach (var item in npc.WornItems)
             {
                 if (item.Wetness > maxWetness)
@@ -175,15 +177,18 @@ namespace HexLive.Simulation.Agents.Effects
             }
 
             // ── Survival needs at the danger edge ─────────────────────────
-            // Spec §60: a coma outranks the short faint — one "out cold" chip
-            // at a time, the deeper one.
-            var comatose = npc.Mind.ComaCause != AI.ComaCause.None;
+            // Spec §60 r2: only BLOOD LOSS is unconsciousness (Coma chip) —
+            // an energy crash is a dead-tired sleep and wears the Fainted
+            // ("utterly spent") chip like the short stamina faint.
+            var comatose = npc.Mind.ComaCause == AI.ComaCause.BloodLoss;
             if (comatose)
             {
                 results.Add(new ActiveEffect(EffectKind.Coma, 1f));
             }
 
-            var fainted = !comatose && currentTick < npc.Mind.FaintedUntilTick;
+            var fainted = !comatose &&
+                (npc.Mind.ComaCause == AI.ComaCause.Exhaustion ||
+                 currentTick < npc.Mind.FaintedUntilTick);
             if (fainted)
             {
                 results.Add(new ActiveEffect(EffectKind.Fainted, 1f));

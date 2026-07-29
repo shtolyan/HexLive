@@ -80,5 +80,13 @@ namespace HexLive.UnityPresentation.Localization
             var key = "goal." + goalName;
             return Has(key) ? Get(key) : goalName;
         }
+
+        /// <summary>Spec §64: localized "what she dreams of" phrase for a
+        /// DreamType enum name (e.g. "Campfire" → "Dreams of a campfire").</summary>
+        public static string Dream(string dreamName)
+        {
+            var key = "dream." + dreamName;
+            return Has(key) ? Get(key) : dreamName;
+        }
     }
 }

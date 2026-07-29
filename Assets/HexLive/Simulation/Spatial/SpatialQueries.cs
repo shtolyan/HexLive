@@ -24,15 +24,38 @@ public static class SpatialQueries
         return owner is null;
     }
 
+    // The largest gap between two adjacent sub-grid junctions (~0.75 wu on a
+    // boundary row). "One point away" from the object means a stand no farther
+    // than the object's footprint plus this single step — see BesideReach.
+    public const float StandStepAllowance = 0.80f;
+
+    // The farthest a legitimate "beside" stand may sit from an object's anchor:
+    // its solid footprint (ObstacleRadius) plus one sub-grid step. Anything past
+    // this is reaching ACROSS a wall/water/cliff — the object is not adjacently
+    // reachable and the plan must retarget, not interact from afar (user: crafts,
+    // harvesting and building must all happen at the smallest hop, never a whole
+    // hex out). Point items (radius 0) → one step; the campfire (0.55R) keeps its
+    // ~1.1 wu warming rim; a bed (1.39) its footprint edge.
+    public static float BesideReach(float obstacleRadius) =>
+        System.Math.Max(0f, obstacleRadius) + StandStepAllowance;
+
     // Spec 31C.7: walk the blocked/wet cluster outward from an anchor and
     // collect the passable dry junctions on its rim — "stand at the edge
     // of the furniture / on the river bank". BFS bounded by maxVisited.
+    // maxAnchorDist caps how far the rim may sit from the anchor (BesideReach):
+    // rim junctions past it are dropped and the BFS never walks beyond it, so a
+    // boxed-in object yields an EMPTY result (unreachable) instead of a spot a
+    // whole hex away.
     public static void CollectStandableAround(
         WorldState world, HexLive.Simulation.Common.JunctionId anchor,
         System.Collections.Generic.List<HexLive.Simulation.Common.JunctionId> results,
-        int maxVisited = 96)
+        int maxVisited = 96, float maxAnchorDist = float.MaxValue)
     {
         results.Clear();
+        var hasCap = maxAnchorDist < float.MaxValue;
+        var anchorPos = hasCap && world.Junctions.Items.TryGetValue(anchor, out var anchorJ)
+            ? anchorJ.WorldPosition : default;
+        var capSq = maxAnchorDist * maxAnchorDist;
         var visited = new System.Collections.Generic.HashSet<HexLive.Simulation.Common.JunctionId> { anchor };
         var frontier = new System.Collections.Generic.Queue<HexLive.Simulation.Common.JunctionId>();
         frontier.Enqueue(anchor);
@@ -50,6 +73,16 @@ public static class SpatialQueries
                     !world.Junctions.Items.TryGetValue(neighborId, out var neighbor))
                 {
                     continue;
+                }
+
+                if (hasCap)
+                {
+                    var dx = neighbor.WorldPosition.X - anchorPos.X;
+                    var dy = neighbor.WorldPosition.Y - anchorPos.Y;
+                    if (dx * dx + dy * dy > capSq)
+                    {
+                        continue; // beyond one hop of the footprint — prune, never reach here
+                    }
                 }
 
                 var wet = IsAllWaterJunction(world, neighborId);

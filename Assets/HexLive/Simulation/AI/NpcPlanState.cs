@@ -56,7 +56,8 @@ public enum PlanStepType
     Wait,
     PrepareBathe,
     SwimBathe,
-    WashClothes
+    WashClothes,
+    RedressAfterBathe // §40.6: return to the shore pile and re-don the clothes
 }
 
 public enum PlanStatus

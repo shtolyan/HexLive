@@ -7,6 +7,13 @@ public sealed class NPCMind
 {
     public GoalType CurrentGoal { get; set; } = GoalType.None;
 
+    // Spec §64: the dream this NPC currently aspires to — the first entry in the
+    // colony dream queue she hasn't personally fulfilled (campfire is fulfilled
+    // for everyone at once; a bed is fulfilled per-NPC). Written each Slow tick
+    // by DreamSystem, surfaced in the character panel. DERIVED display state —
+    // recomputed on load, so it need not be serialized.
+    public DreamType CurrentDream { get; set; } = DreamType.Campfire;
+
     // Emergency appraisal (spec 23.17): hysteresis 0.85 enter / 0.60 clear.
     public bool IsStarving { get; set; }
 
@@ -46,6 +53,22 @@ public sealed class NPCMind
     // Pain/fear spike after fresh damage. While active she should not start or
     // continue sleeping; every new hit extends the window.
     public int AdrenalineUntilTick { get; set; }
+
+    // Spec 29C.4A (cornered-fight amendment): the first tick a mob caught her
+    // in MELEE while she was fleeing. A flee only saves her if it BREAKS
+    // contact; if the dog is still on top of her SimBalance.FleeStallTicks
+    // later, the escape has plainly failed and she stops running to fight. 0 =
+    // not currently pinned mid-flee. Transient combat bookkeeping — deliberately
+    // NOT serialized (a save/load mid-flee simply grants a fresh grace window).
+    public int FleeContactSinceTick { get; set; }
+
+    // Spec 29C.4A (cornered-fight amendment): once a stalled flee converts to a
+    // stand, she is COMMITTED to the fight until this tick so the medium-pass
+    // flee assessment can't immediately send her running again (the re-flee
+    // that produced the endless-maul loop). Re-armed every melee tick the mob
+    // stays engaged, so the commitment lasts until the dog dies or breaks off.
+    // Transient — not serialized. 0 = not committed.
+    public int FightCommitUntilTick { get; set; }
 
     public System.Collections.Generic.List<HexLive.Simulation.Common.ObjectId> GrievedCorpses { get; } = new();
 
@@ -92,6 +115,15 @@ public sealed class NPCMind
     public float SicknessDamageRemaining { get; set; }
 
     public GoalLock? GoalLock { get; set; }
+
+    // §40.6: garments doffed at the shore for a bathe. After washing her body
+    // she walks back to RedressShore and puts these EXACT ground pieces back
+    // on — the same clothes she took off. Holds the dropped pile's object ids
+    // (stale/taken pieces are skipped); RedressShore is the junction to return
+    // to. Both cleared once she is dressed again (or the pile is gone).
+    public List<HexLive.Simulation.Common.ObjectId> RedressGarments { get; } = new();
+
+    public HexLive.Simulation.Common.JunctionId? RedressShore { get; set; }
 
     public List<GoalCooldown> Cooldowns { get; } = new();
 

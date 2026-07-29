@@ -366,7 +366,13 @@ public static class WorldSnapshotExporter
                     return "tool.axe_stone";
                 }
 
-                return FirstCarried(npc, "tool.axe_stone", "tool.saw");
+                // §54 SplitLog: a log splits under ChopWood OR Cut (simdata
+                // split.log = [ChopWood, Cut]), so a knife is a valid splitter,
+                // not only the axe — a knife-only girl was chopping bare-handed.
+                // Axe stays preferred (plays the Chop clip); knife is the
+                // fallback. ChopCrown still needs ChopWood, so it always shows
+                // the axe first and never falls through to the knife here.
+                return FirstCarried(npc, "tool.axe_stone", "tool.saw", "tool.knife");
 
             case InteractionType.Butcher:
                 return InventoryContains(npc, "tool.knife") ? "tool.knife" : string.Empty;
@@ -538,10 +544,29 @@ public static class WorldSnapshotExporter
             : 0f;
         var heldGarmentId = ResolveHeldGarment(world, npc, interactionProgress);
 
+        // Spec §53 r2: the kneeling "tending" pose only plays when the ward is
+        // lying down — over a standing ward the helper just shows the item in
+        // hand. Look up the aid target's posture here (the view has no cross-NPC
+        // access) so SetInteraction can pick the pose.
+        var aidTargetLying = npc.Execution.CurrentInteraction is
+                InteractionType.FeedOther or InteractionType.HydrateOther or
+                InteractionType.TreatOther or InteractionType.MedicateOther or
+                InteractionType.ConsoleOther &&
+            npc.Plan.TargetAgentId is { } aidWardId &&
+            world.Entities.Npcs.TryGetValue(aidWardId, out var aidWard) &&
+            aidWard.IsLyingDown(world.Tick);
+
         var npcSnapshot = new NpcSnapshot
         {
             InteractionProgress = interactionProgress,
+            AidTargetLyingDown = aidTargetLying,
             HeldGarmentId = heldGarmentId,
+            // §40.6 r2: live condition of the held piece — the hand prop shows
+            // the dirt actually washing out during the scrub.
+            HeldGarmentDirt = npc.Execution.HeldGarment?.Dirtiness ?? 0f,
+            HeldGarmentBlood = npc.Execution.HeldGarment?.Bloodiness ?? 0f,
+            HeldGarmentWet = npc.Execution.HeldGarment?.Wetness ?? 0f,
+            HeldGarmentDurability = npc.Execution.HeldGarment?.Durability ?? 1f,
             TargetObjectId = (npc.Execution.TargetObject ?? npc.Plan.TargetObjectId)?.Value,
             Id = npc.Id,
             DisplayName = npc.DisplayName,
@@ -569,15 +594,26 @@ public static class WorldSnapshotExporter
             Sunburn = npc.Needs.Sunburn,
             Bandages = npc.Needs.Bandages,
             Pills = npc.Needs.Pills,
+            // Spec §60 r2: only the blood-loss faint is "unconscious" (limp
+            // pose, Coma chip). An energy crash reads as ordinary SLEEP — see
+            // CurrentInteraction below, so the view plays the sleeping flow.
             IsFainted = world.Tick < npc.Mind.FaintedUntilTick,
-            IsUnconscious = npc.Mind.ComaCause != AI.ComaCause.None, // spec §60
+            IsUnconscious = npc.Mind.ComaCause == AI.ComaCause.BloodLoss,
             IsWaking = world.Tick < npc.Mind.WakeGraceUntilTick,
             Stress = npc.Needs.Stress,
             CurrentGoal = npc.Mind.CurrentGoal.ToString(),
+            CurrentDream = npc.Mind.CurrentDream.ToString(),
             PlanStatus = npc.Plan.Status.ToString(),
             MovementStatus = npc.Movement.Status.ToString(),
-            ExecutionStatus = npc.Execution.Status.ToString(),
-            CurrentInteraction = npc.Execution.CurrentInteraction?.ToString() ?? "-",
+            // §60 r2: an exhausted crash IS a sleep for the whole presentation
+            // stack — the view keys the lying/sleeping flow off
+            // CurrentInteraction=Sleep + InProgress, so export exactly that.
+            ExecutionStatus = npc.Mind.ComaCause == AI.ComaCause.Exhaustion
+                ? AI.ExecutionStatus.InProgress.ToString()
+                : npc.Execution.Status.ToString(),
+            CurrentInteraction = npc.Mind.ComaCause == AI.ComaCause.Exhaustion
+                ? InteractionType.Sleep.ToString()
+                : npc.Execution.CurrentInteraction?.ToString() ?? "-",
             HeldItemId = ResolveHeldItem(world, npc),
             // Spec 28.15E: conversation subject + last outcome for the bubble.
             TalkTopic = npc.Execution.CurrentTalkTopic?.ToString() ?? string.Empty,
@@ -635,6 +671,7 @@ public static class WorldSnapshotExporter
             npcSnapshot.InventoryDurability.Add($"{item.DefinitionId}\t{item.Durability:0.###}");
             npcSnapshot.InventoryWetness.Add($"{item.DefinitionId}\t{item.Wetness:0.###}");
             npcSnapshot.InventoryDirtiness.Add($"{item.DefinitionId}\t{item.Dirtiness:0.###}");
+            npcSnapshot.InventoryBloodiness.Add($"{item.DefinitionId}\t{item.Bloodiness:0.###}");
             if (item.DefinitionId == "tool.bottle")
             {
                 npcSnapshot.InventoryWater.Add(

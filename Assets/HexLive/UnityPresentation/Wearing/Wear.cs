@@ -300,8 +300,10 @@ public sealed class Wear : MonoBehaviour
                 _wearPainter.Construct(_meshRenderer);
             }
 
-            var dust = Mathf.Max(0f, _dirt - _blood);
-            _wearPainter.SetState(_tear, dust, _blood, _damageZones, _damageStrengths,
+            // Dirt and blood are SEPARATE stain layers with their own UV
+            // spots — both draw at full strength (the old dust = dirt − blood
+            // suppression made bloodied cloth lose its grime and was retired).
+            _wearPainter.SetState(_tear, _dirt, _blood, _damageZones, _damageStrengths,
                 _damageZoneCount);
         }
 
@@ -341,7 +343,12 @@ public sealed class Wear : MonoBehaviour
 
         if (_tearShader == null)
         {
-            return; // shader missing: erosion silently no-ops
+            // Build-stripping guard: HexLive/GarmentTear must live in Always
+            // Included Shaders (Shader.Find-only shaders vanish from builds).
+            Debug.LogWarning(
+                "[Wear] HexLive/GarmentTear shader not found — garment tear disabled. " +
+                "Check Project Settings ▸ Graphics ▸ Always Included Shaders.", this);
+            return;
         }
 
         // .materials instantiates per-garment copies, so each girl's shirt

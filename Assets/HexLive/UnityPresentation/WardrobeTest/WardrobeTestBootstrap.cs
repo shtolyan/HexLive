@@ -80,6 +80,37 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
     private float _keyHeldTime;
     private float _keyRepeatTimer;
 
+    // Click-to-wound test (§31B.4A step 6): toggle on, click the body — a
+    // wound lands on the nearest hurt zone, blood paints the skin AND soaks
+    // whatever cloth covers that zone (the same painter path the game runs).
+    private static readonly (string Zone, string BoneA, string BoneB)[] HitZones =
+    {
+        ("Head", "head", ""),
+        ("Torso", "abdomenUpper", "chestUpper"),
+        ("Pelvis", "hip", "abdomenLower"),
+        ("ArmL", "lShldrBend", "lForearmBend"),
+        ("ArmR", "rShldrBend", "rForearmBend"),
+        ("LegL", "lThighBend", "lShin"),
+        ("LegR", "rThighBend", "rShin"),
+    };
+
+    private const int MaxHitZones = 7;
+    private bool _hitMode;
+    private Camera _camera;
+    private SkinTexturePainter _skinPainter;
+    private readonly List<(string zone, int seed, float heal)> _wounds = new();
+    private readonly Dictionary<string, float> _zoneHealth = new();
+    private readonly HashSet<string> _noBandages = new();
+    private readonly string[] _hitZoneNames = new string[MaxHitZones];
+    private readonly float[] _hitZoneStrengths = new float[MaxHitZones];
+    private int _woundSeed = 4201;
+    private Label _hitLabel;
+    private VisualElement _hitButton;
+    private float _dirt01;
+    private float _tear01;
+    private Label _dirtLabel;
+    private Label _tearLabel;
+
     private void Awake()
     {
         // Fit tuning keeps running while the editor window is unfocused.
@@ -113,6 +144,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         cam.backgroundColor = new Color(0.16f, 0.19f, 0.23f);
         var orbit = camGo.AddComponent<WardrobeOrbitCamera>();
         orbit.Owner = this;
+        _camera = cam;
 
         var lightGo = new GameObject("Sun");
         var sun = lightGo.AddComponent<Light>();
@@ -229,6 +261,23 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         }
 
         _bodyBones?.Construct(girl);
+
+        // Fresh body = clean slate for the wound test.
+        _wounds.Clear();
+        _zoneHealth.Clear();
+        _dirt01 = 0f;
+        _tear01 = 0f;
+        if (_dirtLabel != null)
+        {
+            _dirtLabel.text = DirtText();
+        }
+
+        if (_tearLabel != null)
+        {
+            _tearLabel.text = TearText();
+        }
+
+        BuildSkinPainter(body);
 
         // Re-dress the outfit carried over from the previous girl.
         foreach (var key in new List<string>(_equipped))
@@ -376,6 +425,182 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
     {
         TickCycle();
         TickScaleKeys();
+        TickHitClick();
+    }
+
+    // ---- click-to-wound test ----
+
+    private void ToggleHitMode()
+    {
+        _hitMode = !_hitMode;
+        if (_hitLabel != null)
+        {
+            _hitLabel.text = HitModeText();
+        }
+
+        if (_hitButton != null)
+        {
+            _hitButton.style.backgroundColor = _hitMode ? AccentSel : Raised;
+        }
+    }
+
+    private string HitModeText()
+    {
+        return Loc.Get(_hitMode ? "wardrobe.hit_on" : "wardrobe.hit_off");
+    }
+
+    private void TickHitClick()
+    {
+        if (!_hitMode || _bodyBones == null || _camera == null)
+        {
+            return;
+        }
+
+        var mouse = Mouse.current;
+        if (mouse == null || !mouse.leftButton.wasPressedThisFrame)
+        {
+            return;
+        }
+
+        var position = mouse.position.ReadValue();
+        if (IsPointerOverUi(position))
+        {
+            return;
+        }
+
+        var ray = _camera.ScreenPointToRay(position);
+        string bestZone = null;
+        var bestDistance = 0.35f; // clicks past the silhouette miss
+        var bestPoint = Vector3.zero;
+        foreach (var (zone, boneA, boneB) in HitZones)
+        {
+            var a = _bodyBones.GetBone(boneA);
+            if (a == null)
+            {
+                continue;
+            }
+
+            var b = string.IsNullOrEmpty(boneB) ? null : _bodyBones.GetBone(boneB);
+            var start = a.position;
+            var end = b != null ? b.position : start + Vector3.up * 0.12f;
+            var distance = RaySegmentDistance(ray, start, end, out var rayPoint);
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                bestZone = zone;
+                bestPoint = rayPoint;
+            }
+        }
+
+        if (bestZone != null)
+        {
+            Strike(bestZone, bestPoint);
+        }
+    }
+
+    private void Strike(string zone, Vector3 hitPoint)
+    {
+        _wounds.Add((zone, _woundSeed++, 0f));
+        var health = _zoneHealth.TryGetValue(zone, out var current) ? current : 1f;
+        _zoneHealth[zone] = Mathf.Max(0.05f, health - 0.15f);
+        ApplyWounds();
+
+        // Click-accurate cloth blood: the blot lands on the garment point
+        // nearest to the actual hit, not the zone's single map anchor (the
+        // game path keeps the anchor; this is the test tool being precise).
+        if (_bodyBones != null)
+        {
+            foreach (var painter in _bodyBones.GetComponentsInChildren<GarmentWearPainter>(true))
+            {
+                painter.PlaceBloodBlotAtWorld(hitPoint, 0.9f);
+            }
+        }
+    }
+
+    private void ApplyWounds()
+    {
+        _skinPainter?.Sync(_wounds, _noBandages);
+
+        var count = 0;
+        foreach (var pair in _zoneHealth)
+        {
+            if (count >= MaxHitZones)
+            {
+                break;
+            }
+
+            _hitZoneNames[count] = pair.Key;
+            _hitZoneStrengths[count] = Mathf.Clamp01(1f - pair.Value);
+            count++;
+        }
+
+        // Blood level drives the wash/soak state; zone count 0 keeps the
+        // anchor-based stains OFF — Strike places click-accurate blots
+        // itself, so the two paths don't double-stamp the same hit.
+        // NOTE the game couples them: painter dust = dirt − blood, so heavy
+        // blood visually suppresses fresh dust (test dirt on a washed body).
+        var blood = _wounds.Count == 0 ? 0f : Mathf.Clamp01(0.3f + _wounds.Count * 0.1f);
+        _bodyBones?.SetWearGrime(_dirt01, _hitZoneNames, _hitZoneStrengths, 0, blood);
+    }
+
+    private void ClearWounds()
+    {
+        _wounds.Clear();
+        _zoneHealth.Clear();
+        SpawnGirl(_girl); // painters own their baked stains — a fresh body is the reset
+    }
+
+    private static float RaySegmentDistance(Ray ray, Vector3 a, Vector3 b, out Vector3 rayPoint)
+    {
+        var best = float.MaxValue;
+        rayPoint = ray.origin;
+        for (var i = 0; i <= 16; i++)
+        {
+            var point = Vector3.Lerp(a, b, i / 16f);
+            var distance = Vector3.Cross(ray.direction, point - ray.origin).magnitude;
+            if (distance < best)
+            {
+                best = distance;
+                // Where the click ray passes the limb — approximately the
+                // clicked surface point (the segment point sits INSIDE the body).
+                rayPoint = ray.origin + ray.direction *
+                    Mathf.Max(0f, Vector3.Dot(point - ray.origin, ray.direction));
+            }
+        }
+
+        return best;
+    }
+
+    private void BuildSkinPainter(GameObject body)
+    {
+        _skinPainter = null;
+        foreach (var skin in body.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+        {
+            if (skin.GetComponentInParent<Wear>() != null)
+            {
+                continue; // hair or a garment, never skin
+            }
+
+            var slots = new List<int>();
+            var materials = skin.sharedMaterials;
+            for (var i = 0; i < materials.Length; i++)
+            {
+                if (materials[i] != null && NpcActorView.IsSkinMaterialName(materials[i].name))
+                {
+                    slots.Add(i);
+                }
+            }
+
+            if (slots.Count == 0)
+            {
+                continue;
+            }
+
+            _skinPainter = body.AddComponent<SkinTexturePainter>();
+            _skinPainter.Construct(skin, slots, _bodyBones,
+                _animator != null ? _animator.transform : body.transform, 0, _girl.ToString());
+            break; // the first skin renderer is the body — NpcActorView's rule
+        }
     }
 
     private void TickCycle()
@@ -531,7 +756,59 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
 
         box.Add(MakeButton(Loc.Get("wardrobe.undress_all"), Raised, UndressAll));
 
+        var testTitle = MakeTitle(Loc.Get("wardrobe.test_title"));
+        testTitle.style.marginTop = 8f;
+        box.Add(testTitle);
+
+        _hitButton = MakeButton(HitModeText(), _hitMode ? AccentSel : Raised, ToggleHitMode);
+        _hitLabel = (Label)_hitButton[0];
+        box.Add(_hitButton);
+
+        var hitHint = new Label(Loc.Get("wardrobe.hit_hint"));
+        hitHint.style.color = Muted;
+        hitHint.style.fontSize = 10;
+        hitHint.style.whiteSpace = WhiteSpace.Normal;
+        hitHint.style.marginBottom = 5f;
+        box.Add(hitHint);
+
+        var dirtButton = MakeButton(DirtText(), Raised, CycleDirt);
+        _dirtLabel = (Label)dirtButton[0];
+        box.Add(dirtButton);
+
+        var tearButton = MakeButton(TearText(), Raised, CycleTear);
+        _tearLabel = (Label)tearButton[0];
+        box.Add(tearButton);
+
+        box.Add(MakeButton(Loc.Get("wardrobe.hit_clear"), Raised, ClearWounds));
+
         RefreshGirlButtons();
+    }
+
+    private string DirtText() => string.Format(Loc.Get("wardrobe.dirt_btn"), Mathf.RoundToInt(_dirt01 * 100f));
+
+    private string TearText() => string.Format(Loc.Get("wardrobe.tear_btn"), Mathf.RoundToInt(_tear01 * 100f));
+
+    private void CycleDirt()
+    {
+        _dirt01 = _dirt01 >= 0.99f ? 0f : Mathf.Min(1f, _dirt01 + 0.25f);
+        if (_dirtLabel != null)
+        {
+            _dirtLabel.text = DirtText();
+        }
+
+        ApplyWounds();
+    }
+
+    private void CycleTear()
+    {
+        _tear01 = _tear01 >= 0.99f ? 0f : Mathf.Min(1f, _tear01 + 0.25f);
+        if (_tearLabel != null)
+        {
+            _tearLabel.text = TearText();
+        }
+
+        // Erosion maps durability -> tear inside Wear (TearBiteDurability curve).
+        _bodyBones?.SetWearErosion(1f - _tear01);
     }
 
     private void ToggleCycle()

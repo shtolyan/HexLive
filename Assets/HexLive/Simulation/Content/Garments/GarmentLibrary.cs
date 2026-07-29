@@ -137,6 +137,13 @@ namespace HexLive.Simulation.Content
                 new("underwear.bra_basic",   "Cotton Bra",       WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, BodyPart.Torso),
                 new("underwear.swim_top",    "Swimsuit Top",     WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, BodyPart.Torso),
                 new("underwear.swim_bottom", "Swimsuit Bottom",  WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, BodyPart.Pelvis),
+                // AI-print skins of the basic panty/bra (2026-07, fal.ai prints — spec §31B.4).
+                new("underwear.panty_dots",  "Polka-Dot Panties", WearLayer.Underwear, 0.01f, 0.00f, 0.00f, dress, 1, BodyPart.Pelvis),
+                new("underwear.panty_stripe","Striped Panties",  WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, BodyPart.Pelvis),
+                new("underwear.panty_cherry","Cherry Panties",   WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, BodyPart.Pelvis),
+                new("underwear.bra_dots",    "Polka-Dot Bra",    WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, BodyPart.Torso),
+                new("underwear.bra_stripe",  "Striped Bra",      WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, BodyPart.Torso),
+                new("underwear.bra_cherry",  "Cherry Bra",       WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, BodyPart.Torso),
                 new("CowTop",                "Korotkij top",     WearLayer.Underwear, 0.03f, 0.00f,  0.00f, dress, 1, BodyPart.Torso),
                 new("Top_11927",             "Top",              WearLayer.Underwear, 0.03f, 0.00f,  0.00f, dress, 1, BodyPart.Torso),
                 new("NeckWarmer_1259",       "Sharf",            WearLayer.Underwear, 0.06f, 0.00f,  0.00f, dress, 0, BodyPart.Torso),
@@ -147,6 +154,9 @@ namespace HexLive.Simulation.Content
                 new("Tights Old",            "Kolgotki starye",  WearLayer.Underwear, 0.05f, 0.00f,  0.00f, dress, 0, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
                 new("Tights_1818",           "Kolgotki",         WearLayer.Underwear, 0.05f, 0.00f,  0.00f, dress, 0, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
                 new("Boots 20496",           "Sapozhki",         WearLayer.Underwear, 0.12f, 0.05f,  0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR),
+                // A dense leather bra (was Outerwear armor): worn against the skin,
+                // the one underwear piece that still dampens a torso bite (§29C.4).
+                new("armor.leather",         "Leather Armor",    WearLayer.Underwear, 0.15f, 0.15f, -0.10f, dress, 4, BodyPart.Torso),
 
                 // --- Wear: the main clothing layer, carries the warmth budget. --
                 new("clothing.coat",         "Coat",             WearLayer.Wear, 0.40f, 0.00f, -0.30f, dress, 6, BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR),
@@ -162,7 +172,6 @@ namespace HexLive.Simulation.Content
                 new("Skirt 29046",           "Yubka",            WearLayer.Wear, 0.10f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
                 new("Skirt G3F_27980",       "Yubka",            WearLayer.Wear, 0.10f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
                 // New-wear drop (2026-07, Temp FBX extraction — spec §31B.4).
-                new("clothing.skirt_flair",  "Flair Skirt",      WearLayer.Wear, 0.10f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
                 new("clothing.sweater_flair","Flair Sweater",    WearLayer.Wear, 0.30f, 0.00f, -0.15f, dress, 4, BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR),
                 new("clothing.dress_night",  "Night Dress",      WearLayer.Wear, 0.10f, 0.00f,  0.00f, dress, 4, BodyPart.Torso, BodyPart.Pelvis),
                 new("clothing.dress_fur",    "Fur Dress",        WearLayer.Wear, 0.35f, 0.05f, -0.15f, dress, 4, BodyPart.Torso, BodyPart.Pelvis),
@@ -170,6 +179,11 @@ namespace HexLive.Simulation.Content
                 new("Shorts 1389",           "Shorty",           WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
                 new("Shorts Green",          "Shorty zelyonye",  WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
                 new("Shorts_10_14636",       "Shorty",           WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
+                // Detail-preserving retextures of the denim shorts (2026-07,
+                // PIL recolor — seams/pockets/zipper kept, fabric re-dyed).
+                new("clothing.shorts_red",   "Red Shorts",       WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
+                new("clothing.shorts_olive", "Olive Shorts",     WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
+                new("clothing.shorts_cherry","Cherry Shorts",    WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
                 new("Shorts short",          "Mini-shorty",      WearLayer.Wear, 0.06f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
                 new("Glove_2245",            "Perchatki",        WearLayer.Wear, 0.04f, 0.00f,  0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR),
                 new("Gloves_17510",          "Perchatki",        WearLayer.Wear, 0.04f, 0.00f,  0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR),
@@ -179,7 +193,6 @@ namespace HexLive.Simulation.Content
 
                 // --- Outerwear: the top layer — jackets, boots, armor. ----------
                 new("armor.heavy",           "Heavy Armor",      WearLayer.Outerwear, 0.25f, 0.50f, -0.10f, dress, 6, BodyPart.Torso, BodyPart.Pelvis),
-                new("armor.leather",         "Leather Armor",    WearLayer.Outerwear, 0.15f, 0.30f, -0.10f, dress, 4, BodyPart.Torso),
                 new("Boots",                 "Sapogi",           WearLayer.Outerwear, 0.15f, 0.10f,  0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR),
                 new("Boots_155064",          "Botinki",          WearLayer.Outerwear, 0.14f, 0.10f,  0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR),
                 new("legHolster_2204",       "Kabura na nogu",   WearLayer.Outerwear, 0.00f, 0.00f,  0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR),

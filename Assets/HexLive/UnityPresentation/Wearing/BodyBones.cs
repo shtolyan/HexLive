@@ -74,6 +74,15 @@ public sealed class BodyBones : MonoBehaviour
 
     // Spec 40.10: erode every visual garment mapped from a sim item (a sim item
     // can map to several keys "defId#0", "defId#1", …) by its durability.
+    // Dev seam (WardrobeTest): erode every worn garment at once.
+    public void SetWearErosion(float durability01)
+    {
+        foreach (var pair in _wears)
+        {
+            pair.Value.SetErosion(durability01);
+        }
+    }
+
     public void SetWearErosion(string defId, float durability01)
     {
         var prefix = defId + "#";

@@ -20,6 +20,21 @@ namespace HexLive.UnityDebug.Editor
             string path = null;
             try
             {
+                // §59: the coverage gate runs first — export refuses to write
+                // a file while any tuning static is missing from the asset layer.
+                var coverage = BalanceTuningEditor.Validate();
+                if (coverage.Count > 0)
+                {
+                    throw new System.InvalidOperationException(
+                        "Tuning coverage FAILED:\n" + string.Join("\n", coverage));
+                }
+
+                // Apply EVERY tuning layer the game applies at boot — a layer
+                // skipped here exports stale (pre-v2 the garment/balance state
+                // was whatever the editor happened to have applied last).
+                HexLive.UnityPresentation.Config.HexTuning.LoadAndApply();
+                HexLive.UnityPresentation.Config.BalanceTuning.LoadAndApply();
+                HexLive.UnityPresentation.Config.GarmentTuning.LoadAndApply();
                 HexLive.UnityPresentation.Config.MobTuning.LoadAndApply();
                 HexLive.UnityPresentation.Config.GearTuning.LoadAndApply();
                 HexLive.UnityPresentation.Config.ObjectTuning.LoadAndApply();
@@ -40,8 +55,10 @@ namespace HexLive.UnityDebug.Editor
                 System.IO.File.WriteAllText(path, json);
 
                 var summary =
+                    $"v{SimDataFile.SchemaVersion}, balance: {Count(json, "\n    \"")}, " +
                     $"mobs: {Count(json, "\"maxHealth\"")}, gear: {Count(json, "\"meleePriority\"")}, " +
-                    $"worldObjects: {Count(json, "\"displayName\"")}, recipes: {Count(json, "\"output\"")}";
+                    $"garments: {Count(json, "\"dressDurationTicks\"")}, " +
+                    $"worldObjects: {Count(json, "\"interactions\"")}, recipes: {Count(json, "\"output\"")}";
                 Debug.Log($"[ExportSimData] OK — written {path} ({summary})");
                 EditorUtility.DisplayDialog(
                     "Export Sim Data",

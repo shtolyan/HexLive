@@ -503,10 +503,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return;
         }
 
-        // Slightly deeper than the tile water surfaces (+0.05 step) so the
-        // infinite sea never z-fights the playable water sheet.
+        // Slightly deeper than the tile water surfaces (−0.05 step) so the
+        // infinite sea never z-fights the playable water sheet. Rides the
+        // shared shore-anchored surface offset (§31C.4).
         var waterY = SimulationUnityMapper.TileHeight
-                   - ElevationStep * (SwimVisuals.SurfaceDropFrac + 0.05f);
+                   + ElevationStep * (SwimVisuals.SurfaceStepOffset - 0.05f);
 
         // Spec 20.16: an opaque deep sea floor well below the surface. It gives
         // the stylized water real depth everywhere (so open sea reads deep and
@@ -889,7 +890,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // ground puddle underwater.
             if (_npcOnWater.TryGetValue(key, out var onWaterNow) && onWaterNow)
             {
-                var waterSurfaceY = GroundY(npc.Tile) - ElevationStep * SwimVisuals.SurfaceDropFrac;
+                var waterSurfaceY = GroundY(npc.Tile) + ElevationStep * SwimVisuals.SurfaceStepOffset;
                 EnsureWaterBlood().OnNpcTick(key, npc.Blood, targetPos, waterSurfaceY, snapshot.Tick);
             }
             else
@@ -1017,10 +1018,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
             earlyRainWet, npc.WornWetness, npc.WornDirtiness, npc.WornBloodiness,
             npc.Wounds, npc.BandagedZones, npc.SeveredParts);
         var heldItemId = IsProne(npc) && IsToolOrWeapon(npc.HeldItemId) ? string.Empty : npc.HeldItemId;
-        actorView.SetInteraction(npc.CurrentInteraction, heldItemId);
+        actorView.SetInteraction(npc.CurrentInteraction, heldItemId, npc.AidTargetLyingDown);
         // §Wardrobe-anim: the two-beat dress/undress sequence (gather + garment
         // in hand). Runs after SetInteraction, which it overrides for these verbs.
-        actorView.SetWardrobeAction(npc.CurrentInteraction, npc.InteractionProgress, npc.HeldGarmentId);
+        actorView.SetWardrobeAction(npc.CurrentInteraction, npc.InteractionProgress, npc.HeldGarmentId,
+            npc.HeldGarmentDurability, npc.HeldGarmentDirt, npc.HeldGarmentBlood, npc.HeldGarmentWet);
         // Spec 28.15E: overhead chat bubble — show the talk's emoji, and pop a
         // "+/-" once when a talk outcome resolves (new TalkResultTick).
         actorView.SetTalkTopic(npc.TalkTopic);
@@ -1044,7 +1046,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // Edge pose applies to objectless ground sitting and shore washing.
         // Furniture/object seats (including palm stumps) own their own anchor.
         actorView.SetLedgeSit(npc.IsLedgeSit && !HasObjectSitTarget(snapshot, npc),
-            npc.LedgeSeatStepsUp);
+            npc.LedgeSeatStepsUp, npc.CurrentInteraction == "WashClothes");
         // Spec 20.16: hunting/combat shows the weapon and drives a draw/thrust.
         // Timed melee: IsSwinging spans the sim's attack-animation window.
         actorView.SetCombat(npc.IsFighting, WeaponFor(npc), npc.IsSwinging, npc.StrikeIndex);
@@ -1641,9 +1643,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return GroundY(coord);
         }
 
-        // Water tiles render their surface sunken SurfaceDropFrac of a step
-        // below the tile top (spec 31C.4) — mirror CreateTileView's formula.
-        var surfaceY = GroundY(coord) - ElevationStep * SwimVisuals.SurfaceDropFrac;
+        // Water tiles render their surface at the shore level minus the
+        // documented drop (spec 31C.4) — mirror CreateTileView's formula.
+        var surfaceY = GroundY(coord) + ElevationStep * SwimVisuals.SurfaceStepOffset;
         return surfaceY - (_swimCoords.Contains(coord)
             ? SwimVisuals.SinkDepth
             : SwimVisuals.WadeDepth);
@@ -1680,7 +1682,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var topHeight = SimulationUnityMapper.TileHeight + tile.Elevation * ElevationStep;
         if (tile.Water)
         {
-            topHeight -= ElevationStep * SwimVisuals.SurfaceDropFrac; // sunken water surface
+            // Shore-anchored surface: lift to the bank, then sink the drop.
+            topHeight += ElevationStep * SwimVisuals.SurfaceStepOffset;
         }
 
         if (tile.Water)
@@ -1865,9 +1868,17 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // Spec 40.13 v2: corpse.npc has no blob either — the dead actor's own
         // body (adopted, lying asleep) IS the corpse; and death spawns no
         // visible grave marker at all.
+        // Spec §52 build-site presentation invariant: a build-site is a SIM-ONLY
+        // intent marker. With no product/materials assigned yet it draws NOTHING —
+        // no placeholder ball, no gizmo (an unmatched id would otherwise fall to
+        // the grey PrimitiveType.Sphere fallback far below). Once materials are
+        // hauled in it takes the assembling-pile / staged-prefab path below, which
+        // shows the delivered resources — never an abstract site marker. Do NOT
+        // re-add a visual here; this has regressed repeatedly.
         if (worldObject.DefinitionId.StartsWith("water.") ||
             worldObject.DefinitionId == "corpse.npc" ||
-            worldObject.DefinitionId == "grave.npc")
+            worldObject.DefinitionId == "grave.npc" ||
+            (worldObject.DefinitionId == "build.site" && string.IsNullOrEmpty(worldObject.BuildProduct)))
         {
             var invisible = new GameObject($"Object {worldObject.DefinitionId} (anchor)");
             invisible.transform.SetParent(_objectsRoot, false);
@@ -2674,7 +2685,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             var world = HexSpatialMath.TileToWorld(tile.Coord);
             var topHeight = SimulationUnityMapper.TileHeight
                           + tile.Elevation * ElevationStep
-                          - ElevationStep * SwimVisuals.SurfaceDropFrac; // sunken water surface
+                          + ElevationStep * SwimVisuals.SurfaceStepOffset; // shore-anchored surface
             AppendSubdividedHexTop(vertices, uvs, tris, world.X, world.Y, topHeight, WaterSubdivisions);
         }
 

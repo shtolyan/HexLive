@@ -334,7 +334,7 @@ namespace HexLive.UnityPresentation.Input
         private static float TileTopY(TileSnapshot tile)
         {
             var y = SimulationUnityMapper.TileHeight + tile.Elevation * ElevationStep;
-            return tile.Water ? y - ElevationStep * Rendering.SwimVisuals.SurfaceDropFrac : y;
+            return tile.Water ? y + ElevationStep * Rendering.SwimVisuals.SurfaceStepOffset : y;
         }
 
         private static bool PointInsideHex(float x, float z, HexLive.Simulation.Common.TileCoord coord)

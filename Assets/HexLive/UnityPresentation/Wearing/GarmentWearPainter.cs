@@ -23,12 +23,17 @@ namespace HexLive.UnityPresentation.Wearing
         private const int MaskSize = 512;
         private const float TearBucket = 0.05f;
         private const int MaxNaturalHoles = 9;
-        private const int MaxDirtStamps = 14;
+        private const int MaxDirtStamps = 44;
         private const int MaxStoredDirtStains = 64;
         private const float BloodInputBucket = 0.1f;
+        private const int MaxBloodBlotsPerZone = 6;
 
         // GUI colour doubling: 0.5 gray = unmodified stamp colour.
         private static Color StampTint(float alpha) => new(0.5f, 0.5f, 0.5f, alpha * 0.5f);
+
+        // The dust brush is pale beige — near-invisible on light cloth. The
+        // tint darkens it into readable brown grime (DrawTexture doubles rgb).
+        private static Color DirtTint(float alpha) => new(0.33f, 0.26f, 0.19f, alpha * 0.6f);
 
         private sealed class Hole
         {
@@ -52,6 +57,7 @@ namespace HexLive.UnityPresentation.Wearing
         private Mesh? _staticMesh;
         private Material[]? _materials;
         private Texture?[] _originalAlbedo = System.Array.Empty<Texture?>();
+        private Color[] _originalColor = System.Array.Empty<Color>();
         private RenderTexture?[] _maskRt = System.Array.Empty<RenderTexture?>();
         private RenderTexture?[] _albedoRt = System.Array.Empty<RenderTexture?>();
         // Transparent slots (stockings, sheer sleeves) keep their authored
@@ -130,6 +136,7 @@ namespace HexLive.UnityPresentation.Wearing
             enabled = false; // LateUpdate runs only while a repaint is pending
             _materials = renderer.materials; // instances (ApplyTearShader made them)
             _originalAlbedo = new Texture?[_materials.Length];
+            _originalColor = new Color[_materials.Length];
             _maskRt = new RenderTexture?[_materials.Length];
             _albedoRt = new RenderTexture?[_materials.Length];
             _transparentSlot = new bool[_materials.Length];
@@ -138,6 +145,11 @@ namespace HexLive.UnityPresentation.Wearing
                 _originalAlbedo[i] = _materials[i] != null && _materials[i].HasProperty("_BaseMap")
                     ? _materials[i].GetTexture("_BaseMap")
                     : null;
+                // Plain-color cloth (no albedo map, e.g. the white basics)
+                // paints onto a solid RT of this color instead of being skipped.
+                _originalColor[i] = _materials[i] != null && _materials[i].HasProperty("_BaseColor")
+                    ? _materials[i].GetColor("_BaseColor")
+                    : Color.white;
                 _transparentSlot[i] = Wear.IsTransparentMaterial(_materials[i]);
             }
         }
@@ -189,6 +201,71 @@ namespace HexLive.UnityPresentation.Wearing
             _lastStateHash = stateHash;
             _lastTear = Mathf.Clamp01(tear01);
             RequestRepaint();
+        }
+
+        /// <summary>Dev seam (WardrobeTest click-to-wound): land a blood blot
+        /// at the garment point nearest to a world position — click-accurate,
+        /// bypassing the one-anchor-per-zone map. Returns false when the
+        /// cloth sits farther than ~20 cm from the point.</summary>
+        public bool PlaceBloodBlotAtWorld(Vector3 world, float strength)
+        {
+            if (_skinnedRenderer == null)
+            {
+                return false;
+            }
+
+            var baked = new Mesh();
+            _skinnedRenderer.BakeMesh(baked, true);
+            var verts = baked.vertices;
+            var uvs = baked.uv;
+            var local = _skinnedRenderer.transform.InverseTransformPoint(world);
+            var best = -1;
+            var bestD = float.MaxValue;
+            for (var i = 0; i < verts.Length; i++)
+            {
+                var d = (verts[i] - local).sqrMagnitude;
+                if (d < bestD)
+                {
+                    bestD = d;
+                    best = i;
+                }
+            }
+
+            var slot = -1;
+            if (best >= 0 && bestD <= 0.04f && uvs.Length > best)
+            {
+                for (var sub = 0; sub < baked.subMeshCount && slot < 0; sub++)
+                {
+                    foreach (var index in baked.GetTriangles(sub))
+                    {
+                        if (index == best)
+                        {
+                            slot = sub;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            var uv = slot >= 0 ? uvs[best] : default;
+            Destroy(baked);
+            if (slot < 0)
+            {
+                return false;
+            }
+
+            var clamped = Mathf.Clamp01(strength);
+            var stain = new PaintStain
+            {
+                Slot = slot,
+                Uv = uv,
+                Size = Mathf.Lerp(0.12f, 0.2f, clamped),
+                Alpha = clamped * 0.8f,
+                Variant = best & 1
+            };
+            _bloodStains.Add(stain);
+            RequestRepaint();
+            return true;
         }
 
         // Spec 40.8-G: coalesced compositing — mark dirty, LateUpdate blits
@@ -331,7 +408,7 @@ namespace HexLive.UnityPresentation.Wearing
                 }
                 else
                 {
-                    var washedAlpha = Mathf.Lerp(0.05f, 0.55f, Mathf.Clamp01(dirt01));
+                    var washedAlpha = Mathf.Lerp(0.05f, 0.9f, Mathf.Clamp01(dirt01));
                     foreach (var stain in _dirtStains)
                     {
                         stain.Alpha = Mathf.Min(stain.Alpha, washedAlpha);
@@ -361,8 +438,8 @@ namespace HexLive.UnityPresentation.Wearing
                 {
                     Slot = _triangleSlot[triangle],
                     Uv = new Vector2(Mathf.Repeat(uv.x, 1f), Mathf.Repeat(uv.y, 1f)),
-                    Size = 0.14f + (state % 89u) / 89f * 0.10f,
-                    Alpha = Mathf.Lerp(0.25f, 0.55f, Mathf.Clamp01(dirt01)),
+                    Size = 0.3f + (state % 89u) / 89f * 0.2f,
+                    Alpha = Mathf.Lerp(0.55f, 0.95f, Mathf.Clamp01(dirt01)),
                     Variant = 0
                 });
                 added = true;
@@ -424,19 +501,47 @@ namespace HexLive.UnityPresentation.Wearing
                     continue; // this garment does not cover the hurt zone
                 }
 
-                var uv = points[0].Uv;
-                var slot = points[0].Slot;
-                var cellKey = slot * 10000 + Mathf.FloorToInt(uv.x * 10f) * 100 +
-                              Mathf.FloorToInt(uv.y * 10f);
-                if (_bloodStainsByCell.TryGetValue(cellKey, out var existing))
+                var anchor = points[0];
+                var slot = anchor.Slot;
+
+                // Garment maps carry ONE anchor per zone — every input event
+                // grows a NEW blot jittered around it (golden-angle spiral),
+                // so repeated wounds read as spreading soak instead of
+                // re-inking one invisible dot. Existing blots re-ink to the
+                // fresh strength when it climbs.
+                var blotIndex = 0;
+                foreach (var s in _bloodStains)
                 {
-                    var alpha = Mathf.Max(existing.Alpha, strength * 0.55f);
-                    if (alpha > existing.Alpha + 0.01f)
+                    if (s.Slot == slot && (s.Uv - anchor.Uv).sqrMagnitude < 0.05f)
                     {
-                        existing.Alpha = alpha;
-                        changed = true;
+                        blotIndex++;
+                    }
+                }
+
+                if (blotIndex >= MaxBloodBlotsPerZone)
+                {
+                    foreach (var s in _bloodStains)
+                    {
+                        if (s.Slot == slot && (s.Uv - anchor.Uv).sqrMagnitude < 0.05f &&
+                            strength * 0.8f > s.Alpha + 0.01f)
+                        {
+                            s.Alpha = strength * 0.8f;
+                            changed = true;
+                        }
                     }
 
+                    continue;
+                }
+
+                var angle = blotIndex * 2.3999632f; // golden angle
+                var radius = blotIndex == 0 ? 0f : 0.03f + 0.02f * blotIndex;
+                var uv = anchor.Uv + new Vector2(
+                    Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius);
+                var cellKey = slot * 100000 + blotIndex * 10000 +
+                              Mathf.FloorToInt(Mathf.Repeat(uv.x, 1f) * 10f) * 100 +
+                              Mathf.FloorToInt(Mathf.Repeat(uv.y, 1f) * 10f);
+                if (_bloodStainsByCell.ContainsKey(cellKey))
+                {
                     continue;
                 }
 
@@ -444,8 +549,8 @@ namespace HexLive.UnityPresentation.Wearing
                 {
                     Slot = slot,
                     Uv = uv,
-                    Size = Mathf.Lerp(0.07f, 0.12f, strength),
-                    Alpha = strength * 0.55f,
+                    Size = Mathf.Lerp(0.12f, 0.2f, strength),
+                    Alpha = strength * 0.8f,
                     Variant = (cellKey & 1)
                 };
                 _bloodStains.Add(stain);
@@ -519,6 +624,14 @@ namespace HexLive.UnityPresentation.Wearing
                 if (_triangles.Length == 0 || _uvs.Length == 0)
                 {
                     _bakeUnavailable = true; // topology never changes — don't retry
+                    // In builds this is the no-Read/Write failure mode: the CPU
+                    // copy of the mesh is stripped, the baked snapshot comes
+                    // back without uv/index data, and dirt/holes silently never
+                    // paint. Flag it loudly — the fix is m_IsReadable on the mesh.
+                    Debug.LogWarning(
+                        $"[GarmentWear] '{name}': baked mesh has no topology " +
+                        $"(uvs={_uvs.Length} tris={_triangles.Length}) — wear painting " +
+                        "disabled. Enable Read/Write on the garment mesh.", this);
                     return false;
                 }
             }
@@ -672,10 +785,6 @@ namespace HexLive.UnityPresentation.Wearing
             for (var slot = 0; slot < _materials.Length; slot++)
             {
                 var source = _originalAlbedo[slot];
-                if (source == null)
-                {
-                    continue;
-                }
 
                 // Transparent slots erase their holes from the albedo alpha
                 // (their authored shader blends them out) — the albedo copy
@@ -687,6 +796,10 @@ namespace HexLive.UnityPresentation.Wearing
                     if (_albedoRt[slot] != null)
                     {
                         _materials[slot].SetTexture("_BaseMap", source); // washed clean
+                        if (source == null)
+                        {
+                            _materials[slot].SetColor("_BaseColor", _originalColor[slot]);
+                        }
                     }
 
                     continue;
@@ -698,18 +811,20 @@ namespace HexLive.UnityPresentation.Wearing
                     // Keep the authored texel density. Many garments ship with
                     // 4K albedo; downsampling the painted copy to 1024 made
                     // clothing go visibly soft as soon as wear/dirt appeared.
+                    // Plain-color cloth has no map to preserve — 1024 is plenty
+                    // for stains on a solid fill.
                     var max = Mathf.Max(1, SystemInfo.maxTextureSize);
-                    var w = Mathf.Min(source.width, max);
-                    var h = Mathf.Min(source.height, max);
+                    var w = source != null ? Mathf.Min(source.width, max) : 1024;
+                    var h = source != null ? Mathf.Min(source.height, max) : 1024;
                     rt = new RenderTexture(w, h, 0, RenderTextureFormat.ARGB32,
                         RenderTextureReadWrite.sRGB)
                     {
                         name = $"GarmentDirt_{GetInstanceID()}_{slot}",
                         useMipMap = true,
                         autoGenerateMips = false,
-                        filterMode = source.filterMode,
-                        anisoLevel = Mathf.Max(source.anisoLevel, 4),
-                        wrapMode = source.wrapMode
+                        filterMode = source != null ? source.filterMode : FilterMode.Bilinear,
+                        anisoLevel = source != null ? Mathf.Max(source.anisoLevel, 4) : 4,
+                        wrapMode = source != null ? source.wrapMode : TextureWrapMode.Repeat
                     };
                     rt.Create();
                     _albedoRt[slot] = rt;
@@ -718,7 +833,19 @@ namespace HexLive.UnityPresentation.Wearing
                 var previous = RenderTexture.active;
                 try
                 {
-                    Graphics.Blit(source, rt);
+                    if (source != null)
+                    {
+                        Graphics.Blit(source, rt);
+                    }
+                    else
+                    {
+                        // Solid fill stands in for the missing albedo; the
+                        // cloth color moves into the map so stains stay
+                        // unmodulated by _BaseColor (set to white below).
+                        RenderTexture.active = rt;
+                        GL.Clear(false, true, _originalColor[slot]);
+                    }
+
                     RenderTexture.active = rt;
                     GL.PushMatrix();
                     GL.LoadPixelMatrix(0f, 1f, 1f, 0f);
@@ -734,7 +861,7 @@ namespace HexLive.UnityPresentation.Wearing
                         var s = stain.Size;
                         Graphics.DrawTexture(new Rect(cx - s * 0.5f, cy - s * 0.5f, s, s),
                             _texDirt, new Rect(0f, 0f, 1f, 1f), 0, 0, 0, 0,
-                            StampTint(stain.Alpha));
+                            DirtTint(stain.Alpha));
                     }
 
                     foreach (var stain in _bloodStains)
@@ -785,11 +912,20 @@ namespace HexLive.UnityPresentation.Wearing
                     RenderTexture.active = previous;
                     rt.GenerateMips();
                     _materials[slot].SetTexture("_BaseMap", rt);
+                    if (source == null)
+                    {
+                        _materials[slot].SetColor("_BaseColor", Color.white);
+                    }
                 }
                 catch (System.Exception e)
                 {
                     RenderTexture.active = previous;
                     _materials[slot].SetTexture("_BaseMap", source);
+                    if (source == null)
+                    {
+                        _materials[slot].SetColor("_BaseColor", _originalColor[slot]);
+                    }
+
                     Debug.LogWarning($"[GarmentWear] albedo repaint failed — {e.Message}");
                 }
             }

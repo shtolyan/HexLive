@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1a468d32e5f409888fe36f13f531f2e, type: 3}
+  m_Name: ThreatBalance
+  m_EditorClassIdentifier: 
+  limbLossEnabled: 1
+  limbSeverThreshold: 0.14
+  grindSeverChance: 0.1
+  limbSeverBloodLoss: 0.4
+  limbSeverWoundSeverity: 0.35
+  severedLimbMobilityMult: 0.15
+  crawlSpeedFactor: 0.3333
+  severedLimbDecayTicks: 4800
+  hazardSeverChance: 1
+  helpCryEnabled: 1
+  helpCryRadiusTiles: 6
+  helpCryCooldownTicks: 240
+  maxHelpCryResponders: 2
+  helpCryDecisionThreshold: 0.56
+  helpCryHealthGate: 0.65
+  friendGuardEnabled: 1
+  friendGuardRadiusTiles: 6
+  friendGuardAffinity: 0.25
+  threatAlertEnabled: 1
+  spotRadiusTiles: 6
+  cueCooldownTicks: 600
+  fitBoneHealth: 0.8
+  attackMaxPack: 0
+  attackLockTicks: 240
+  dangerRingTiles: 2
+  dangerStepCost: 80
+  fleeStallTicks: 16
+  fightCommitGraceTicks: 40
+  cannibalismEnabled: 1
+  cannibalismComfortPenalty: 0.25
+  cannibalizeHungerGate: 0.85
+  predationEnabled: 1
+  predationHungerGate: 0.95
+  predationCompassionCeiling: 0.45
+  predationBaseScore: 0.05
+  predationStrikePerPass: 0.35
+  predationComfortPenalty: 0.6
+  predationWitnessAffinityLoss: 0.8
+  predationFleeHealth: 0.6

@@ -335,8 +335,12 @@ namespace HexLive.Simulation.Bootstrap
                 }
             }
 
-            Place("rock.boulder", 8, 331, 1);
-            Place("resource.stone", 12, 443, 2);
+            // More stone in the world: the campfire's stone ring alone wants 18,
+            // and stones are also eaten by the axe/pickaxe/knife recipes — the old
+            // 8 boulders + 12 loose ran the hearth short. Boulders yield 5 each
+            // (needs a pickaxe), loose stones are free to pick up.
+            Place("rock.boulder", 24, 331, 1);
+            Place("resource.stone", 48, 443, 2);
             // §54.2: the old big tree is RETIRED, and the small palm too — only the
             // big palm (3 logs + crown) spawns now.
             Place("tree.palm", 6, 661, 1);        // big palms (3 logs)

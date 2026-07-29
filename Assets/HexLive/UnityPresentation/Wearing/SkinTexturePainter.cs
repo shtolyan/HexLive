@@ -22,8 +22,11 @@ namespace HexLive.UnityPresentation.Wearing
     /// (slot, uv, seed, textures) persist, so healing just REPAINTS the
     /// composite with lower alpha until the mark dissolves — and a
     /// save-replay reproduces identical spots (seeded rays). Skin stays on
-    /// URP Lit: tan/sunburn tints multiply the repainted map exactly like
-    /// the original, clothing occludes it naturally.
+    /// URP Lit. Tan/sunburn/grime is baked into the paint target's BASE layer
+    /// (SetSkinTone → SkinTintBlit) so it sits UNDER the wound/bandage stamps —
+    /// the marks keep their true colour and NpcActorView pins _BaseColor white
+    /// on painted slots (un-painted skin still gets the cheap _BaseColor tint).
+    /// Clothing occludes it all naturally.
     /// </summary>
     public sealed class SkinTexturePainter : MonoBehaviour
     {
@@ -133,10 +136,19 @@ namespace HexLive.UnityPresentation.Wearing
         // ---- wound volume knobs (spec 40.8-D v5) ----
         // Fresh cuts glisten: absolute smoothness stamped into the wet core
         // (base skin stays at the caller's dry/wet value, 0.32 dry).
-        // Full 1.0 — the wound IS the volume cue now (relief was cut for
-        // UV-seam artifacts), so it must visibly out-shine everything,
-        // including the 0.72 sweat sheen and the 0.95 droplets.
+        // Full 1.0 — the wound IS the volume cue now, so it must visibly
+        // out-shine everything, including the 0.72 sweat sheen and the 0.95
+        // droplets.
         private const float WoundWetGloss = 1f;
+
+        // A LITTLE surface relief on the wound (v5 cut wound relief for UV-seam
+        // ridge artifacts — but a flat smooth-1 surface only mirrors a
+        // highlight at the exact angle, which is why the wet gloss never read
+        // as "shiny". Dirt reads shiny precisely because its normal map
+        // scatters glints across viewing angles). Re-added SUBTLY and separate
+        // from the heal fade so seam flares stay faint; 0 restores the fully
+        // flat v5 wound. ~half of dirt's 0.7 normal blend.
+        private const float WoundReliefStrength = 0.35f;
 
         private static readonly int UnderTexId = Shader.PropertyToID("_UnderTex");
         private static readonly int SlotRectId = Shader.PropertyToID("_SlotRect");
@@ -149,6 +161,7 @@ namespace HexLive.UnityPresentation.Wearing
         private static readonly int BaseGlossId = Shader.PropertyToID("_BaseGloss");
         private static readonly int DropGlossId = Shader.PropertyToID("_DropGloss");
         private static readonly int GlossMaxId = Shader.PropertyToID("_GlossMax");
+        private static readonly int SkinTintColorId = Shader.PropertyToID("_TintColor");
 
         // Stamp art loads once per session, not once per wound.
         // NOTE: the RVFX pack splatters were tried as underlay variants and
@@ -186,9 +199,19 @@ namespace HexLive.UnityPresentation.Wearing
         };
         private static Texture2D?[] _woundOver = System.Array.Empty<Texture2D?>();
         private static Texture2D?[] _woundGloss = System.Array.Empty<Texture2D?>();
+        // Optional matching relief per variant (_n). Only scratch/splat ship
+        // one; the gash variants fall back to the generic blood-bead normal
+        // (_texSplatN) in WoundVariant so every wound still beads a little.
+        private static Texture2D?[] _woundNormal = System.Array.Empty<Texture2D?>();
         // Decodes the (possibly DXT5nm) authored skin normal into plain RGB
         // before stamps blend on top (NormalDecodeBlit.shader).
         private static Material? _normalDecode;
+        // Multiplies the authored skin albedo by the current tan/sunburn/grime
+        // tone when laying the paint target's BASE layer, so the tan lives
+        // UNDER the wound/bandage stamps (SkinTintBlit.shader). Wounds then
+        // stamp on top at true colour; NpcActorView pins _BaseColor white on
+        // painted slots so the tone isn't multiplied in twice.
+        private static Material? _skinTintBlit;
         // Stamps wound wet-gloss into the map's alpha (WoundGlossStamp.shader:
         // BlendOp Max, ColorMask A — overlaps keep the shiniest value).
         private static Material? _glossStamp;
@@ -218,9 +241,17 @@ namespace HexLive.UnityPresentation.Wearing
         // where this map is live — see SlotHasGlossMap).
         private RenderTexture?[] _slotRtGloss = System.Array.Empty<RenderTexture?>();
         private bool[] _glossLive = System.Array.Empty<bool>();
+        // True while a slot's _BaseMap carries painted albedo (wounds/bandages/
+        // droplets) — the cue NpcActorView reads to pin that slot's _BaseColor
+        // white (the tan is baked into the texture there, see _skinTone).
+        private bool[] _albedoLive = System.Array.Empty<bool>();
         // Smoothness of wet-but-undropped skin — the gloss map's base value,
         // fed by NpcActorView from the unified wetness pool.
         private float _wetSmoothness = 0.32f;
+        // Current tan/sunburn/grime tone (NpcActorView.SkinTint). Multiplied
+        // into the paint target's base skin so wounds/bandages sit on a tanned
+        // body without being tanned themselves. White = no weathering.
+        private Color _skinTone = Color.white;
 
         private readonly Dictionary<string, Stamp> _stamps = new();
         private readonly Dictionary<string, float> _alpha = new(); // key -> current fade
@@ -272,6 +303,7 @@ namespace HexLive.UnityPresentation.Wearing
             _slotRtNormal = new RenderTexture?[_materials.Length];
             _slotRtGloss = new RenderTexture?[_materials.Length];
             _glossLive = new bool[_materials.Length];
+            _albedoLive = new bool[_materials.Length];
             for (var i = 0; i < _materials.Length; i++)
             {
                 _originalAlbedo[i] = _materials[i] != null && _materials[i].HasProperty("_BaseMap")
@@ -299,6 +331,25 @@ namespace HexLive.UnityPresentation.Wearing
         /// lerp everywhere else.</summary>
         public bool SlotHasGlossMap(int slot) =>
             slot >= 0 && slot < _glossLive.Length && _glossLive[slot];
+
+        /// <summary>True while a slot's albedo carries painted marks
+        /// (wounds/bandages/droplets). NpcActorView pins the _BaseColor
+        /// multiply white on these slots — the tan/sunburn/grime tone is
+        /// baked into the texture instead (SetSkinTone), so the marks on top
+        /// keep their true colour rather than being tinted by the tan.</summary>
+        public bool SlotHasAlbedoPaint(int slot) =>
+            slot >= 0 && slot < _albedoLive.Length && _albedoLive[slot];
+
+        /// <summary>Spec 40.7: the current tan/sunburn/grime skin tone. Baked
+        /// into the paint target's BASE layer (UNDER the wound/bandage stamps)
+        /// so a bandage or wound on a tanned body keeps its true colour instead
+        /// of browning. A tone change re-bakes painted slots on the next Sync
+        /// (it is folded into the repaint state hash); slots with no marks keep
+        /// the cheap _BaseColor tint on the material.</summary>
+        public void SetSkinTone(Color tone)
+        {
+            _skinTone = tone;
+        }
 
         // Spec 40.8 v4.1: PATCHES per zone (each carries 4-9 shaded drops —
         // full coverage lands ~200 drops body-wide). Counts scale with the
@@ -455,6 +506,17 @@ namespace HexLive.UnityPresentation.Wearing
             if (_stale.Count > 0)
             {
                 stateHash = stateHash * 31 + 1;
+            }
+
+            // A skin-tone change (tanning, sunburn fading, getting dirty) must
+            // re-bake the BASE layer of every painted slot — the tan lives in
+            // the texture now, under the stamps. Fold it into the hash so a
+            // pure-tone change still triggers one repaint. Only painted slots
+            // exist here (_desired non-empty), and it is quantized, so slow
+            // drift crosses a bucket every few seconds, not every frame.
+            if (_desired.Count > 0)
+            {
+                stateHash = stateHash * 31 + SkinToneHash(_skinTone);
             }
 
             // GPU-loss watchdog ("grey vinyl" bug): the painted skin lives in
@@ -833,7 +895,7 @@ namespace HexLive.UnityPresentation.Wearing
                 var mapTarget = (isBandage ? 0.14f : 0.07f + NextRand(ref mapState) * 0.04f)
                                 * (_height / 1.7f);
                 SizeFromDensity(point, mapTarget, out var mapSizeU, out var mapSizeV);
-                var (mover, mgloss) = WoundVariant(seed);
+                var (mover, mgloss, mnormal) = WoundVariant(seed);
                 _stamps[key] = new Stamp
                 {
                     Key = key,
@@ -845,6 +907,9 @@ namespace HexLive.UnityPresentation.Wearing
                     Under = isBandage ? null : _texSplash,
                     Over = isGauze ? _texGauze : (isBandage ? _texBandage : mover),
                     OverGloss = isBandage ? null : mgloss,
+                    // A little wet-core relief so the wound catches light (see
+                    // WoundReliefStrength); bandages/gauze stay smooth.
+                    OverNormal = isBandage ? null : mnormal,
                     IsBandage = isBandage,
                     IsGauze = isGauze
                 };
@@ -907,7 +972,7 @@ namespace HexLive.UnityPresentation.Wearing
             var targetWorld = (isBandage ? 0.14f : 0.07f + NextRand(ref state) * 0.04f)
                               * (_height / 1.7f);
             StampSizeFor(triangle, targetWorld, out var sizeU, out var sizeV);
-            var (wover, wgloss) = WoundVariant(seed);
+            var (wover, wgloss, wnormal) = WoundVariant(seed);
             _stamps[key] = new Stamp
             {
                 Key = key,
@@ -918,12 +983,13 @@ namespace HexLive.UnityPresentation.Wearing
                 UvSizeY = sizeV,
                 Under = isBandage ? null : _texSplash,
                 Over = isGauze ? _texGauze : (isBandage ? _texBandage : wover),
-                // NO wound relief (spec 40.8-D v5 revision): stamps often
-                // straddle a UV seam and the normal discontinuity flared as
-                // ugly lit ridges there; the depth gain never justified it.
-                // Wound volume = albedo darkness + wet gloss. Droplets keep
-                // their dome relief (single small stamp, seams rare).
                 OverGloss = isBandage ? null : wgloss,
+                // A LITTLE wet-core relief so the wound actually catches light.
+                // v5 cut wound relief because detailed normals flared as lit
+                // ridges at UV seams — re-added at WoundReliefStrength (0.35),
+                // soft enough to keep seam flares faint. Bandages stay smooth;
+                // droplets keep their own full dome relief.
+                OverNormal = isBandage ? null : wnormal,
                 IsBandage = isBandage,
                 IsGauze = isGauze
             };
@@ -963,21 +1029,24 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             stamp.Under ??= _texSplash;
-            var (wover, wgloss) = WoundVariant(stamp.Seed);
+            var (wover, wgloss, wnormal) = WoundVariant(stamp.Seed);
             stamp.Over ??= wover;
             stamp.OverGloss ??= wgloss;
+            stamp.OverNormal ??= wnormal;
         }
 
         // Deterministic per-seed wound art: the same seed always resolves to
         // the same shape, so a save-replay and a late RefreshStampArt agree.
         // Skips variants whose PNG hasn't imported yet (partial import paints
-        // fewer shapes, never crashes); index-aligned over+gloss stay paired.
-        private static (Texture? over, Texture? gloss) WoundVariant(int seed)
+        // fewer shapes, never crashes); index-aligned over+gloss+normal stay
+        // paired. Variants with no authored _n borrow the generic blood-bead
+        // normal so they still catch a little light.
+        private static (Texture? over, Texture? gloss, Texture? normal) WoundVariant(int seed)
         {
             var n = _woundOver.Length;
             if (n == 0)
             {
-                return (_texScratch, _texScratchG);
+                return (_texScratch, _texScratchG, _texScratchN);
             }
 
             var start = (int)((uint)seed % (uint)n);
@@ -986,11 +1055,11 @@ namespace HexLive.UnityPresentation.Wearing
                 var i = (start + k) % n;
                 if (_woundOver[i] != null)
                 {
-                    return (_woundOver[i], _woundGloss[i]);
+                    return (_woundOver[i], _woundGloss[i], _woundNormal[i] ?? _texSplatN);
                 }
             }
 
-            return (_texScratch, _texScratchG);
+            return (_texScratch, _texScratchG, _texScratchN);
         }
 
         // Closest-by-centroid skin triangle to a baked-local point.
@@ -1094,9 +1163,11 @@ namespace HexLive.UnityPresentation.Wearing
             _texScratchG = _texSplatG = null;
             _woundOver = System.Array.Empty<Texture2D?>();
             _woundGloss = System.Array.Empty<Texture2D?>();
+            _woundNormal = System.Array.Empty<Texture2D?>();
             _normalDecode = null;
             _dropletStamp = null;
             _glossStamp = null;
+            _skinTintBlit = null;
             _dropletShaderWarned = false;
         }
 
@@ -1105,7 +1176,8 @@ namespace HexLive.UnityPresentation.Wearing
             // Re-check while anything is missing (asset may import mid-session).
             if (_stampTexturesLoaded && _texScratchN != null && _texSplatN != null &&
                 _texSplashN != null && _texSweatN != null && _dropletStamp != null &&
-                _texScratchG != null && _texSplatG != null && _glossStamp != null)
+                _texScratchG != null && _texSplatG != null && _glossStamp != null &&
+                _skinTintBlit != null)
             {
                 return;
             }
@@ -1131,10 +1203,14 @@ namespace HexLive.UnityPresentation.Wearing
             // so a partial import just paints fewer shapes, never crashes.
             _woundOver = new Texture2D?[WoundVariantNames.Length];
             _woundGloss = new Texture2D?[WoundVariantNames.Length];
+            _woundNormal = new Texture2D?[WoundVariantNames.Length];
             for (var i = 0; i < WoundVariantNames.Length; i++)
             {
                 _woundOver[i] = Resources.Load<Texture2D>($"HexLive/Decals/{WoundVariantNames[i]}");
                 _woundGloss[i] = Resources.Load<Texture2D>($"HexLive/Decals/{WoundVariantNames[i]}_g");
+                // Most variants have no _n — WoundVariant falls back to the
+                // shared blood-bead normal for those.
+                _woundNormal[i] = Resources.Load<Texture2D>($"HexLive/Decals/{WoundVariantNames[i]}_n");
             }
 
             var decodeShader = Shader.Find("Hidden/HexLive/NormalDecodeBlit");
@@ -1143,6 +1219,8 @@ namespace HexLive.UnityPresentation.Wearing
             _dropletStamp = dropletShader != null ? new Material(dropletShader) : null;
             var glossShader = Shader.Find("Hidden/HexLive/WoundGlossStamp");
             _glossStamp = glossShader != null ? new Material(glossShader) : null;
+            var tintShader = Shader.Find("Hidden/HexLive/SkinTintBlit");
+            _skinTintBlit = tintShader != null ? new Material(tintShader) : null;
         }
 
         // ---- painting ----
@@ -1218,6 +1296,10 @@ namespace HexLive.UnityPresentation.Wearing
                     hasGloss |= droplet || stamp.OverGloss != null;
                 }
 
+                // Tell NpcActorView which slots hold painted albedo: it pins
+                // _BaseColor white on those (the tan is baked into the texture
+                // here), and keeps the cheap _BaseColor tan tint everywhere else.
+                _albedoLive[slot] = hasAlbedo;
                 if (hasAlbedo)
                 {
                     RepaintSlot(slot);
@@ -1311,15 +1393,27 @@ namespace HexLive.UnityPresentation.Wearing
                 _slotRt[slot] = rt;
             }
 
-            // Fresh copy of the authored skin, then every live stamp on top —
-            // fading is just repainting with lower alpha. The RT reaches the
-            // material ONLY after the base copy landed: if anything below
-            // throws, the skin keeps its original texture instead of showing
-            // an unfilled (black) target.
+            // Fresh copy of the authored skin — TANNED: the tan/sunburn/grime
+            // tone multiplies the base here (SkinTintBlit) so it lands UNDER
+            // the stamps, then every live stamp draws on top at its true
+            // colour (a bandage stays cream, a wound stays red, instead of
+            // being browned by the tan). Fading is just repainting with lower
+            // alpha. The RT reaches the material ONLY after the base copy
+            // landed: if anything below throws, the skin keeps its original
+            // texture instead of showing an unfilled (black) target.
             var previous = RenderTexture.active;
             try
             {
-                Graphics.Blit(source, rt);
+                if (_skinTintBlit != null)
+                {
+                    _skinTintBlit.SetColor(SkinTintColorId, _skinTone);
+                    Graphics.Blit(source, rt, _skinTintBlit);
+                }
+                else
+                {
+                    Graphics.Blit(source, rt); // shader missing: untinted base
+                }
+
                 RenderTexture.active = rt;
                 GL.PushMatrix();
                 GL.LoadPixelMatrix(0f, 1f, 1f, 0f); // (0,0) top-left, UV v flips below
@@ -1567,10 +1661,14 @@ namespace HexLive.UnityPresentation.Wearing
                     if (stamp.OverNormal != null)
                     {
                         // CellRect: droplets pick one drop out of the sheet's
-                        // atlas; wound art keeps the default full rect.
+                        // atlas; wound art keeps the default full rect. Wounds
+                        // blend their relief SUBTLY (WoundReliefStrength) so the
+                        // wet gloss catches light without flaring seam ridges;
+                        // droplets keep their full dome.
+                        var reliefAlpha = stamp.IsDroplet ? alpha : alpha * WoundReliefStrength;
                         Graphics.DrawTexture(new Rect(cx - stamp.UvSizeX * 0.5f, cy - stamp.UvSizeY * 0.5f,
                                 stamp.UvSizeX, stamp.UvSizeY),
-                            stamp.OverNormal, stamp.CellRect, 0, 0, 0, 0, StampTint(alpha));
+                            stamp.OverNormal, stamp.CellRect, 0, 0, 0, 0, StampTint(reliefAlpha));
                     }
                 }
 
@@ -1646,6 +1744,17 @@ namespace HexLive.UnityPresentation.Wearing
         {
             state = state * 1664525u + 1013904223u;
             return (state >> 8) / 16777216f;
+        }
+
+        // Quantized skin-tone key for the repaint state hash — ~5 bits per
+        // channel, so slow tan/sunburn/grime drift crosses a bucket every few
+        // seconds rather than forcing a repaint every frame.
+        private static int SkinToneHash(Color c)
+        {
+            var r = Mathf.RoundToInt(Mathf.Clamp01(c.r) * 31f);
+            var g = Mathf.RoundToInt(Mathf.Clamp01(c.g) * 31f);
+            var b = Mathf.RoundToInt(Mathf.Clamp01(c.b) * 31f);
+            return (r << 10) | (g << 5) | b;
         }
     }
 }

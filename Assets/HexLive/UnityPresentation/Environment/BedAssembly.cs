@@ -105,10 +105,16 @@ namespace HexLive.UnityPresentation.Environment
         {
             for (var i = 0; i < list.Count; i++)
             {
-                var active = i < on;
-                if (list[i].activeSelf != active)
+                var piece = list[i];
+                if (piece == null) // destroyed externally — don't stall the render loop
                 {
-                    list[i].SetActive(active);
+                    continue;
+                }
+
+                var active = i < on;
+                if (piece.activeSelf != active)
+                {
+                    piece.SetActive(active);
                 }
             }
         }

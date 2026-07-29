@@ -69,7 +69,7 @@ namespace HexLive.Simulation.Content
                     Id = MobIds.Dog,
                     MaxHealth = 1.8f,             // doubled from 0.9 so the fight is readable
                     AttackDamage = 0.09f,           // per landed bite (timed, not per-tick)
-                    AttackWindupSeconds = 0.1f,   // bite charge-up; once started it always lands
+                    AttackWindupSeconds = 0.5f,   // bite charge-up; once started it always lands
                     AttackCooldownSeconds = 0.8f, // anim tail + recovery before the next bite
                     AggroRadiusTiles = 2,
                     RoamChance = 0.2f,

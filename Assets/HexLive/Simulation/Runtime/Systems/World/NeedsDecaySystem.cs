@@ -1,0 +1,915 @@
+using HexLive.Simulation.Core;
+using HexLive.Simulation.Common;
+using HexLive.Simulation.Content;
+using HexLive.Simulation.Navigation;
+using HexLive.Simulation.Spatial;
+using HexLive.Simulation.Agents;
+using HexLive.Simulation.AI;
+using HexLive.Simulation.Memory;
+using HexLive.Simulation.Social;
+
+namespace HexLive.Simulation.Runtime
+{
+
+public sealed class NeedsDecaySystem : ISimulationSystem
+{
+    public string Name => nameof(NeedsDecaySystem);
+
+    public TickLayer Layer => TickLayer.Slow;
+
+    // Balance knobs (SimBalance / HexTuningConfig). The old const names are
+    // kept as live shims so every call site below is untouched.
+    private static float HungerRate => SimBalance.HungerRate; // pond removal + hex-hop ceremony rebalance: water/food trips got longer
+    private static float EnergyRate => SimBalance.EnergyRate; // spec 42: ~1 bar/day
+    private static float ComfortRate => SimBalance.ComfortRate;
+    private static float SocialRate => SimBalance.SocialRate; // spec 28.15A
+    // Spec 42.A: base eased 0.020 -> 0.018 as the compensating loosening for
+    // the sweat multiplier below — same multi-dimensional-budget lesson as
+    // §40.18 (0.020 + factor 0.25 broke seed 777; 0.05 alone was homeopathy).
+    private static float ThirstRate => SimBalance.ThirstRate; // spec 29E.1; pond removal + §21.21B v5 clamp rebalance
+
+    // Spec 42.A: extra thirst per unit of positive ThermalComfort (sweat).
+    private static float SweatThirstFactor => SimBalance.SweatThirstFactor;
+
+    // Spec §49 knobs (moved to HexTuningConfig in the tuning pass).
+    private static float SickTorsoPerSlowTick => SimBalance.SickTorsoPerSlowTick;   // pace the budget pay-down (~0.08 over ~40 slow ticks)
+    private static float SickTorsoFloor => SimBalance.SickTorsoFloor;          // sickness can't grind the torso below this
+    private static float SickComfortPerSlowTick => SimBalance.SickComfortPerSlowTick; // feeling lousy while sick
+    private static float AmbientSocialGain => Spec49.AmbientGain; // near company loneliness slowly reverses
+    private static float AmbientSocialCap => SocialBalance.AmbientSocialCap;         // ...but only a real chat lifts you past this (§49 ambient social)
+    private static float SleepComfortNightSlowTicks => SocialBalance.SleepComfortNightSlowTicks; // Evening+Night ≈ 75 slow ticks
+
+    // Spec §49: comfort gained per slow tick while sleeping, from surface +
+    // fireside + sun/rain. A full ~75-slow-tick night sums to the design
+    // targets; penalties shave the gain but never invert it (a bed in the rain
+    // still nets ~0.70, grass in the sun just nets ~0).
+    private static float SleepComfortPerSlowTick(WorldState world, NPCState npc)
+    {
+        var perNight = Spec49.SleepComfortGrassNight;
+        var onBed = false;
+        if (npc.Execution.TargetObject is { } objId &&
+            world.Entities.Objects.TryGetValue(objId, out var obj))
+        {
+            perNight = obj.DefinitionId switch
+            {
+                "bed.basic" => Spec49.SleepComfortBedNight,
+                "bed.leaf" => Spec49.SleepComfortLeafNight,
+                _ => perNight
+            };
+            onBed = obj.DefinitionId is "bed.basic" or "bed.leaf";
+        }
+
+        // A worn jacket/coat padding the bare ground beats sleeping on plain
+        // dirt (bunched under the body). A bed already provides its own
+        // surface, so this only sweetens the groundless case.
+        if (!onBed && WearsJacketOrCoat(world, npc))
+        {
+            perNight += Spec49.SleepComfortJacketPadNight;
+        }
+
+        if (TemperatureSystem.NearbyFireWarmth(world, npc.Tile, out _) > 0f)
+        {
+            perNight += Spec49.SleepComfortFireBonusNight;
+        }
+
+        var roofed = world.Tiles.Items.TryGetValue(npc.Tile, out var tile) &&
+            tile.Flags.HasFlag(TileFlags.Indoor);
+        var daytime = world.Environment.Phase is DayPhase.Day or DayPhase.Morning;
+        if (daytime && !roofed && !TemperatureSystem.IsShaded(world, npc.Tile))
+        {
+            perNight -= Spec49.SleepComfortSunPenaltyNight;
+        }
+
+        if (world.Environment.IsRaining && !roofed)
+        {
+            perNight -= Spec49.SleepComfortRainPenaltyNight;
+        }
+
+        if (perNight < 0f)
+        {
+            perNight = 0f;
+        }
+
+        return perNight / SleepComfortNightSlowTicks;
+    }
+
+    // A "jacket/coat" for padding = a torso-covering outer garment (the coat
+    // and the leather/heavy jackets qualify; bikini tops, tees and boots do
+    // not). Any future outer torso layer is picked up automatically.
+    private static bool WearsJacketOrCoat(WorldState world, NPCState npc)
+    {
+        foreach (var item in npc.WornItems)
+        {
+            if (!world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var def) ||
+                !def.Covers.Contains(BodyPart.Torso))
+            {
+                continue;
+            }
+
+            if (def.Layer == WearLayer.Outerwear || def.Id == "clothing.coat")
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Spec §49: is there an awake, settled housemate within perception right
+    // now? Powers the passive ambient-social trickle.
+    private static bool HasNearbyCompanion(NPCState npc)
+    {
+        foreach (var agent in npc.Perception.Agents)
+        {
+            if (agent.IsReachable && !agent.IsMoving)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static readonly BodyPart[] AllBodyParts =
+    {
+        BodyPart.Head, BodyPart.Torso, BodyPart.Pelvis,
+        BodyPart.ArmL, BodyPart.ArmR, BodyPart.LegL, BodyPart.LegR
+    };
+
+    // Spec §60: drop the body into a coma. The full plan teardown mirrors the
+    // stamina faint (spec 40.13); idempotent while already out.
+    internal static void EnterComa(WorldState world, NPCState npc, ComaCause cause)
+    {
+        if (npc.Mind.ComaCause != ComaCause.None || npc.Health <= 0f)
+        {
+            return;
+        }
+
+        npc.Mind.ComaCause = cause;
+        PlanInterruption.Abort(world, npc, "Collapsed — coma");
+        npc.Mind.CurrentGoal = GoalType.None;
+        npc.IsFighting = false; // a body that just switched off holds no stance
+
+        // §60: lie down like a ground sleeper — always at the EXACT centre of
+        // her own hex, never across a tile rim (a collapse mid-stride used to
+        // lie down wherever the free-junction scan landed, and that scan
+        // excluded the junction she actually stood on, drifting the body off
+        // the edge; the no-free-junction fallback left her un-snapped entirely).
+        // The centre is pinned first and unconditionally; the scan below now
+        // only picks a free junction to anchor the lying footprint (spec 29G)
+        // so housemates path around the body — it no longer decides position.
+        ExecutionSystem.LieDownCentered(npc);
+
+        var center = npc.Position;
+        JunctionId? spot = null;
+        var best = float.MaxValue;
+        if (world.Tiles.Items.TryGetValue(npc.Tile, out var comaTile))
+        {
+            foreach (var junctionId in comaTile.Junctions)
+            {
+                if (!world.Junctions.Items.TryGetValue(junctionId, out var junction) ||
+                    junction.Blocked ||
+                    !SpatialQueries.IsJunctionFree(world, junctionId))
+                {
+                    continue;
+                }
+
+                var d = HexSpatialMath.Distance(junction.WorldPosition, center);
+                if (d < best)
+                {
+                    best = d;
+                    spot = junctionId;
+                }
+            }
+        }
+
+        if (spot is { } lieSpot)
+        {
+            npc.CurrentJunction = lieSpot;
+            SpatialMutations.OccupyJunction(world, lieSpot, npc.Id);
+            ExecutionSystem.ClaimLyingFootprint(world, npc, lieSpot);
+        }
+        else if (npc.CurrentJunction is { } here)
+        {
+            // Crowded tile — no free junction to anchor on; claim where she is.
+            ExecutionSystem.ClaimLyingFootprint(world, npc, here);
+        }
+
+        // §60 r2: exhaustion reads as SLEEP (she crashed dead-tired), only
+        // blood loss reads as unconsciousness — the "coma" framing is gone.
+        Trace.Emit(world, npc.Id,
+            cause == ComaCause.Exhaustion ? "FellAsleepExhausted" : "FaintedBloodLoss",
+            $"Cause={cause} Energy={npc.Needs.Energy:F2} Blood={npc.Needs.Blood:F2} " +
+            $"Health={npc.Health:F2}");
+    }
+
+    // Spec §60: the coma ends the moment the stat that felled the body climbs
+    // back over the wake threshold — she comes to like waking from a bed
+    // (same wake grace as an ordinary morning, so the get-up plays out).
+    private static void TryWakeFromComa(WorldState world, NPCState npc)
+    {
+        // §60 r2: the exhausted sleeper sleeps THROUGH to a rested line (a
+        // wake at the old 0.15 re-drained to zero within hours — the chain
+        // of micro-collapses WAS the chronic energy pit).
+        var recovered = npc.Mind.ComaCause switch
+        {
+            ComaCause.Exhaustion => npc.Needs.Energy >= SimBalance.ExhaustedSleepWakeEnergy,
+            ComaCause.BloodLoss => npc.Needs.Blood >= SimBalance.ComaBloodWakeThreshold,
+            _ => false
+        };
+
+        if (!recovered)
+        {
+            return;
+        }
+
+        WakeFromComa(world, npc, npc.Mind.ComaCause.ToString());
+    }
+
+    // §60 r2: shared wake path — the recovery wake and the pain wake (a wound
+    // landing on an exhausted sleeper) both release the lying footprint and
+    // the junction the body held (mirrors the ground-rest wake path).
+    internal static void WakeFromComa(WorldState world, NPCState npc, string cause)
+    {
+        npc.Mind.ComaCause = ComaCause.None;
+        npc.Mind.WakeGraceUntilTick = world.Tick + 12; // spec 41.5 wake grace
+
+        ExecutionSystem.ReleaseClaims(world, npc);
+        if (npc.CurrentJunction is { } lay)
+        {
+            SpatialMutations.FreeJunction(world, lay, npc.Id);
+            SpatialMutations.ReleaseJunctionReservation(world, lay, npc.Id);
+        }
+
+        Trace.Emit(world, npc.Id, "WokeUp",
+            $"Cause={cause} Energy={npc.Needs.Energy:F2} Blood={npc.Needs.Blood:F2}");
+    }
+
+    public void Run(WorldState world)
+    {
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            var prevHunger = npc.Needs.Hunger;
+            var prevEnergy = npc.Needs.Energy;
+            var prevComfort = npc.Needs.Comfort;
+            var prevSocial = npc.Needs.Social;
+
+            // Spec §60: coma wake check — the body comes to the moment the
+            // stat that felled it climbs back over the threshold. Checked
+            // before this tick's decay so a recovered body never oversleeps
+            // its own wake line.
+            TryWakeFromComa(world, npc);
+
+            // Spec 31C.7A: a sleeping body burns less — hour-long sleep
+            // blocks must not guarantee a starving wake-up.
+            // Spec §60: a comatose body IS a sleeping body for every recovery
+            // rule — same low metabolism, same energy/comfort restore.
+            var sleeping = npc.Execution.CurrentInteraction == InteractionType.Sleep ||
+                npc.Mind.ComaCause != ComaCause.None;
+            var metabolism = sleeping ? 0.4f : 1f;
+            // Spec 42.A: sweating burns water — overheating scales thirst by
+            // up to +25% at heatstroke-level heat (ThermalComfort +1). Reads
+            // the previous slow tick's signed comfort; cold side is free (a
+            // shivering body does not sweat). SOFT knob: SweatThirstFactor.
+            var sweat = 1f + SweatThirstFactor * System.Math.Max(0f, npc.Needs.ThermalComfort);
+            npc.Needs.Hunger = MathUtil.Clamp01(npc.Needs.Hunger + HungerRate * metabolism);
+            npc.Needs.Thirst = MathUtil.Clamp01(npc.Needs.Thirst + ThirstRate * metabolism * sweat);
+            var energyDrain = npc.IsFighting ? 0f : EnergyRate;
+            npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy - energyDrain);
+
+            // §54.11: faster sleep recovery — a base lift (shorter nights) plus a
+            // fireside bonus and a bed bonus, so a bed built by the fire pays off
+            // in time awake. One place, both sleep paths (ground + bed) — `sleeping`
+            // is true for either; the bed bonus keys off the slept-on object.
+            if (sleeping)
+            {
+                var wake = SimBalance.SleepEnergyBaseBonus;
+                if (TemperatureSystem.NearbyFireWarmth(world, npc.Tile, out _) > 0f)
+                {
+                    wake += SimBalance.SleepEnergyFireBonus;
+                }
+
+                if (npc.Execution.TargetObject is { } bedId &&
+                    world.Entities.Objects.TryGetValue(bedId, out var bedObj))
+                {
+                    wake += bedObj.DefinitionId switch
+                    {
+                        "bed.basic" => SimBalance.SleepEnergyBasicBedBonus,
+                        "bed.leaf" => SimBalance.SleepEnergyLeafBedBonus,
+                        _ => 0f
+                    };
+                }
+
+                npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy + wake);
+            }
+
+            if (DamageReactionSystemHelpers.IsAdrenalineActive(world, npc))
+            {
+                DamageReactionSystemHelpers.ApplyAdrenalineEnergyFloor(npc);
+            }
+
+            // Spec §60: energy drained to nothing on her feet — the body
+            // simply switches off where it stands. (Asleep she is already
+            // recovering; only an awake body can burn to the collapse line.)
+            if (!sleeping && npc.Needs.Energy <= 0f)
+            {
+                EnterComa(world, npc, ComaCause.Exhaustion);
+            }
+
+            // Spec §49: unified sleep-comfort. Asleep, comfort no longer drains —
+            // the surface + fire + sun + rain formula fills it (bare grass
+            // ~0.05/night, +fire ~0.05, a bed ~1.0 minus sun/rain penalties).
+            // Awake, the usual slow drain applies — UNLESS she's by a lit fire,
+            // whose cosy warmth reverses the drain into a small comfort gain
+            // (spec §49.8; drives the "Cozy" status chip too).
+            if (sleeping && Spec49.SleepComfort)
+            {
+                npc.Needs.Comfort = MathUtil.Clamp01(
+                    npc.Needs.Comfort + SleepComfortPerSlowTick(world, npc));
+            }
+            else if (TemperatureSystem.NearbyFireWarmth(world, npc.Tile, out _) > 0f)
+            {
+                npc.Needs.Comfort = MathUtil.Clamp01(
+                    npc.Needs.Comfort + Spec49.AwakeFireComfortGain);
+            }
+            else
+            {
+                npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort - ComfortRate);
+            }
+
+            // §49.7: wet clothes cling — being soaked shaves a little comfort on
+            // top (wet underwear counts here too: it doesn't slow you, but it's
+            // still miserable). Just the fact of being wet. Spec 35.5: a bare
+            // wet body counts as well, so a near-naked survivor in the rain is
+            // miserable even with no garment to soak.
+            var maxWornWet = npc.BodyWetness;
+            foreach (var worn in npc.WornItems)
+            {
+                if (worn.Wetness > maxWornWet)
+                {
+                    maxWornWet = worn.Wetness;
+                }
+            }
+            if (maxWornWet > 0.5f)
+            {
+                npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort - Spec49.WetComfortPenalty);
+            }
+
+
+            var dirtyClothing = EquipmentMath.AverageDirtiness(npc);
+            if (dirtyClothing > 0f)
+            {
+                npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort -
+                    dirtyClothing * SimBalance.DirtyClothingComfortLoss);
+            }
+
+            // Spec §49: passive "second action" socialising — being near an
+            // awake, settled housemate while you do your own thing (eat, sit,
+            // tend the fire) eases loneliness a touch, Sims-style. A trickle, not
+            // a substitute: it can't lift Social past a modest cap, so a real
+            // chat is still wanted to feel truly social.
+            npc.Needs.Social = MathUtil.Clamp01(npc.Needs.Social - SocialRate);
+            if (Spec49.AmbientSocial && !sleeping && npc.Needs.Social < AmbientSocialCap && HasNearbyCompanion(npc))
+            {
+                npc.Needs.Social = System.Math.Min(
+                    AmbientSocialCap, npc.Needs.Social + AmbientSocialGain);
+            }
+
+            // Spec §53: compassion is SPENT witnessing un-helped suffering nearby
+            // — the drain scales with the worst reachable neighbour's plight and
+            // this girl's own CompassionTrait — and it recovers toward full when
+            // the colony around her is well. (A completed aid tops it up directly
+            // in RunAid.) Uses the perception snapshot's per-neighbour Suffering,
+            // refreshed earlier this tick.
+            if (Spec53.Enabled && !sleeping)
+            {
+                var worstNearby = 0f;
+                foreach (var agent in npc.Perception.Agents)
+                {
+                    if (agent.IsReachable && agent.Suffering > worstNearby)
+                    {
+                        worstNearby = agent.Suffering;
+                    }
+                }
+                npc.Needs.Compassion = worstNearby >= Spec53.SufferingThreshold
+                    ? MathUtil.Clamp01(npc.Needs.Compassion -
+                        Spec53.CompassionRate * worstNearby * npc.CompassionTrait)
+                    : MathUtil.Clamp01(npc.Needs.Compassion + Spec53.RecoverRate);
+            }
+
+            // Spec §49: raw-water gut-rot damage-over-time — pay down the bounded
+            // sickness budget a little each slow tick, floored at SickTorsoFloor
+            // (sickness alone still can't kill; it leaves you fragile). Comfort
+            // malaise rides the visible window so being ill feels bad.
+            if (npc.Mind.SicknessDamageRemaining > 0f)
+            {
+                if (npc.Body.Parts[BodyPart.Torso] > SickTorsoFloor)
+                {
+                    var dock = System.Math.Min(SickTorsoPerSlowTick, npc.Mind.SicknessDamageRemaining);
+                    npc.Body.Parts[BodyPart.Torso] =
+                        System.Math.Max(SickTorsoFloor, npc.Body.Parts[BodyPart.Torso] - dock);
+                    npc.Mind.SicknessDamageRemaining -= dock;
+                    npc.Health = npc.Body.Mean();
+                    if (npc.Body.VitalDestroyed(out var sickVital))
+                    {
+                        npc.Health = 0f;
+                        Trace.Emit(world, npc.Id, "VitalPartDestroyed",
+                            $"{sickVital} destroyed by sickness");
+                    }
+
+                    DamageReactionSystemHelpers.GrantAdrenaline(world, npc, dock, "Sickness");
+                }
+                else
+                {
+                    // torso already at the floor — the rest of the budget is a
+                    // no-op (sickness can't push a mauled body under), drain it.
+                    npc.Mind.SicknessDamageRemaining = 0f;
+                }
+            }
+
+            if (world.Tick < npc.Mind.SickUntilTick)
+            {
+                npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort - SickComfortPerSlowTick);
+            }
+
+            // Spec 40.1: stamina. Its ceiling is how fed/rested/comfortable the
+            // body is (you can't be spry starving). It drains while working or
+            // moving, recovers fast while resting (sit/sleep), slowly while
+            // idle — and moves toward that ceiling either way. Soft in v1: it
+            // does NOT gate actions (that would collapse the economy); it only
+            // colours the UI and nudges the rest goals (below).
+            var staminaCeiling = MathUtil.Clamp01(
+                0.30f + 0.35f * (1f - npc.Needs.Hunger) + 0.25f * npc.Needs.Energy +
+                0.10f * npc.Needs.Comfort);
+            var resting = npc.Execution.CurrentInteraction is
+                InteractionType.Sit or InteractionType.Sleep ||
+                npc.Mind.ComaCause != ComaCause.None; // §60: a coma rests the body too
+            var working = npc.Execution.Status == ExecutionStatus.InProgress && !resting;
+            var staminaDelta = resting ? SimBalance.StaminaRestGain
+                : working ? -SimBalance.StaminaWorkDrain : SimBalance.StaminaIdleGain;
+            npc.Needs.Stamina = MathUtil.Clamp(
+                npc.Needs.Stamina + staminaDelta, 0f, staminaCeiling);
+
+            // Spec 40.13: stress rises with danger/combat/pain/starvation and
+            // ebbs in calm. A UI param, and a third path to collapse.
+            var stressUp = npc.IsFighting || npc.Memory.Dangers.Count > 0 ||
+                npc.Health < 0.6f || npc.Needs.Hunger >= 0.85f || npc.Needs.Thirst >= 0.85f;
+            npc.Needs.Stress = MathUtil.Clamp01(npc.Needs.Stress + (stressUp ? SimBalance.StressUpRate : -SimBalance.StressDownRate));
+
+            // Spec 40.13: collapse. Utterly spent stamina AND a body pushed to
+            // the edge (starving, bleeding, or stress-overwhelmed) drops the
+            // NPC unconscious — it lies helpless for ~80 ticks, then rises.
+            // Rare by construction, so it barely perturbs the colony.
+            if (world.Tick >= npc.Mind.FaintedUntilTick && npc.Needs.Stamina <= 0.01f &&
+                (npc.Needs.Hunger >= 0.9f || npc.Needs.Blood < 0.25f || npc.Needs.Stress >= 0.95f) &&
+                npc.Health > 0f)
+            {
+                npc.Mind.FaintedUntilTick = world.Tick + 80;
+                PlanInterruption.Abort(world, npc, "Collapsed — unconscious");
+                npc.Mind.CurrentGoal = GoalType.None;
+                // Spec 40.13/§60: drop at the tile centre, not wherever the
+                // stride left her — this path never set the lying position
+                // before, so the limp body used to hang off the hex edge.
+                ExecutionSystem.LieDownCentered(npc);
+                Trace.Emit(world, npc.Id, "Fainted",
+                    $"Stamina={npc.Needs.Stamina:F2} Hunger={npc.Needs.Hunger:F2} Blood={npc.Needs.Blood:F2}");
+            }
+
+            // Spec 40.6: hygiene drifts down with living, up at the waterside
+            // (washing while drinking/filling). Soft v1 — tracked for the UI,
+            // no dedicated Bathe goal yet (that reshuffles the fragile colony).
+            // Grubbying takes ~10 game days from clean to filthy (0.0004/slow
+            // tick; was 0.004 — a single day, way too fast once dirt got real
+            // smudge decals).
+            npc.Needs.Hygiene = MathUtil.Clamp01(npc.Needs.Hygiene - SimBalance.HygieneDriftLoss);
+            foreach (var worn in npc.WornItems)
+            {
+                worn.Dirtiness = MathUtil.Clamp01(worn.Dirtiness + SimBalance.ClothingDirtGain);
+            }
+
+            // Spec 40.2: blood. A badly wounded part (< 0.4) bleeds — the worse
+            // the wound, the faster; blood refills slowly while fed and rested.
+            // Gentle rates so the healthy colony is unaffected: only a mauled
+            // NPC bleeds, and it's survivable if the wounds close. At zero the
+            // NPC dies of blood loss.
+            var worstPart = 1f;
+            foreach (var part in AllBodyParts)
+            {
+                // §50: a severed zone is 0 forever and unbandageable — without a
+                // floor it pins the bleed at maximum for the whole clotting
+                // window and every amputation bleeds out. The stump's trauma is
+                // already charged as the one-off LimbSeverBloodLoss.
+                var partHealth = npc.Body.IsSevered(part)
+                    ? System.Math.Max(npc.Body.Parts[part], Spec50.StumpBleedPartFloor)
+                    : npc.Body.Parts[part];
+                if (partHealth < worstPart)
+                {
+                    worstPart = partHealth;
+                }
+            }
+
+            // Spec 44: clotting — only a FRESH wound (heal01 < 0.3) bleeds;
+            // once it starts closing the blood stops, so the deadly window is
+            // the first hours after the mauling, not the whole two-day heal.
+            var freshWound = false;
+            foreach (var wound in npc.Wounds)
+            {
+                if (wound.Heal01 < 0.3f && wound.Severity >= 0.05f)
+                {
+                    freshWound = true;
+                    break;
+                }
+            }
+
+            if (worstPart < 0.4f && freshWound)
+            {
+                // Spec 40.3: a bandage in the pack dresses the worst wound —
+                // patch it up, stem the blood, and it's consumed. First aid
+                // that turns a mauling from fatal into survivable.
+                // Last resort: only when actually bleeding out (blood < 0.35),
+                // so it saves a life without re-shuffling the colony over
+                // every scratch (every mauling survivor would otherwise shift
+                // the deterministic dog-dance and tip fragile seeds).
+                if (npc.Needs.Bandages > 0 && npc.Needs.Blood < SimBalance.BandageBloodThreshold)
+                {
+                    // Spec 44: spend the pre-made medkit bandages (spec 40.3)
+                    // first; only a HERBAL dressing — crafted from gathered
+                    // plantain leaves — leaves the leaf-wrap decal, so the
+                    // plantain visual always means she actually gathered the
+                    // leaves. When all remaining bandages are herbal, this one is.
+                    bool herbal = npc.Needs.HerbalBandages >= npc.Needs.Bandages;
+                    npc.Needs.Bandages--;
+                    if (herbal) npc.Needs.HerbalBandages--;
+                    foreach (var part in AllBodyParts)
+                    {
+                        if (npc.Body.IsSevered(part)) continue; // §50: a severed zone can't be dressed or healed
+                        if (npc.Body.Parts[part] < 0.4f)
+                        {
+                            npc.Body.Parts[part] = MathUtil.Clamp01(npc.Body.Parts[part] + 0.15f); // spec 42
+                            // Spec 44: herbal -> leaf-wrap decal (gathered plantain);
+                            // medkit -> plain gauze decal. A zone shows one or the
+                            // other, never both.
+                            if (herbal)
+                            {
+                                npc.BandagedZones.Add(part);
+                                npc.GauzeZones.Remove(part);
+                            }
+                            else
+                            {
+                                npc.GauzeZones.Add(part);
+                                npc.BandagedZones.Remove(part);
+                            }
+                        }
+                    }
+
+                    npc.Health = npc.Body.Mean();
+                    npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood + 0.25f); // spec 42
+                    Trace.Emit(world, npc.Id, "Bandaged",
+                        $"Dressed the wounds (Health={npc.Health:F2})");
+                }
+                else if (npc.Needs.Pills > 0 && npc.Health < 0.3f)
+                {
+                    // Spec 40.3: pills — the last-resort backup to the bandage.
+                    // Only at the brink (Health < 0.3, no bandage fired): spend
+                    // a pill to lift the wounded parts and HP a step and stem
+                    // the blood a little. Fires only for an NPC about to die, so
+                    // it can save a life without shifting the healthy colony.
+                    npc.Needs.Pills--;
+                    foreach (var part in AllBodyParts)
+                    {
+                        if (npc.Body.IsSevered(part)) continue; // §50: a severed zone can't be healed
+                        if (npc.Body.Parts[part] < 0.4f)
+                        {
+                            npc.Body.Parts[part] = MathUtil.Clamp01(npc.Body.Parts[part] + 0.10f); // spec 42
+                        }
+                    }
+
+                    npc.Health = npc.Body.Mean();
+                    npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood + 0.15f); // spec 42
+                    Trace.Emit(world, npc.Id, "Medicated",
+                        $"Took a pill at the brink (Health={npc.Health:F2})");
+                }
+                else
+                {
+                    // §46 difficulty pass: 0.06 -> 0.09. With the r4/r5
+                    // survival fixes the colony won 6/6 — the game needs
+                    // teeth back, and bleeding is the "sharp" death channel
+                    // (dramatic, fightable with bandages) rather than the
+                    // slow-grind ones we deliberately softened.
+                    // Spec §60: in a blood-loss coma the wound still bleeds, but
+                    // the coma's deep rest knits some of it back (same fed gate
+                    // as spec 44) — a race between the open wound and the
+                    // healing sleep. Reaching 0 is still death (spec 40.2).
+                    var bleed = (0.4f - worstPart) * SimBalance.BleedRateFactor;
+                    if (npc.Mind.ComaCause == ComaCause.BloodLoss &&
+                        npc.Needs.Hunger < SimBalance.HealHungerGate)
+                    {
+                        bleed -= SimBalance.BloodRefillPerTick * 3f;
+                    }
+
+                    npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood - bleed);
+                    if (npc.Needs.Blood <= 0f)
+                    {
+                        npc.Health = 0f;
+                        Trace.Emit(world, npc.Id, "BledOut", $"Worst part {worstPart:F2} — blood loss");
+                    }
+                    else
+                    {
+                        Trace.Emit(world, npc.Id, "Bleeding",
+                            $"Worst={worstPart:F2} Blood={npc.Needs.Blood:F2}");
+                    }
+                }
+            }
+            else if (npc.Needs.Blood < 1f && npc.Needs.Hunger < SimBalance.HealHungerGate)
+            {
+                // Spec 44: bed rest — sleeping knits blood x3, huddling by a
+                // burning fire x2; a fed girl who lies low pulls through.
+                // Spec §60: a coma counts as the deepest bed rest there is.
+                var bloodPace = npc.Execution.CurrentInteraction == InteractionType.Sleep ||
+                    npc.Mind.ComaCause != ComaCause.None ? 3f
+                    : TemperatureSystem.NearbyFireWarmth(world, npc.Tile, out _) > 0f ? 2f
+                    : 1f;
+                npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood + SimBalance.BloodRefillPerTick * bloodPace); // spec 44
+            }
+
+            // Spec §60: blood at the coma line — whatever drained it (the
+            // bleed above, a heavy hit, a severed limb) — drops the body.
+            // At 0 she is already dead (EnterComa guards Health), so this
+            // only catches the razor's-edge band above the death line.
+            if (npc.Needs.Blood <= SimBalance.ComaBloodEnterThreshold)
+            {
+                EnterComa(world, npc, ComaCause.BloodLoss);
+            }
+
+            // Spec 28.15B: post-quarrel embarrassment fades with time.
+            npc.Social.Embarrassment = MathUtil.Clamp01(npc.Social.Embarrassment - 0.02f);
+
+            // Spec 28.15B: affinity drifts toward neutral asymmetrically —
+            // grudges fade fast, friendships cool slowly (a symmetric drift
+            // would outrun talk gains and cap warmth at ~+0.2).
+            foreach (var relationship in npc.Social.Relationships.Values)
+            {
+                var driftRate = relationship.Affinity < 0f ? 0.003f : 0.001f;
+                relationship.Affinity = MathUtil.MoveTowards(relationship.Affinity, 0f, driftRate);
+            }
+
+            // §45 r5: emergency unload — the raft/hearth stockpile must never
+            // cost a life. getFoodAvail requires inventory SPACE, and §45 r3
+            // fills packs (3 raft logs + leaves + tools) that nothing ever
+            // empties: on the r5 25-day soak 6 of 8 starvation deaths died at
+            // Hunger=1.00 with 10/10 slots of logs/leaves and ZERO food —
+            // coconuts abundant (25-39 on the ground, producers at cap) but
+            // un-pick-up-able. A genuinely starving girl with a full pack and
+            // no food in it now drops one carried resource per slow tick
+            // (wood, then leaves, then stone — never tools) at her feet, so
+            // GetFood can fire again. Last-resort by construction (hunger
+            // >= 0.8), like food-sharing/theft — the healthy colony never
+            // sees it.
+            // Jul 2026: the same trap kills via THIRST — a pack full of
+            // logs/sticks blocks GetWater/forage exactly like it blocked
+            // GetFood, and the girl stood at Goal=None x362 cycles until the
+            // thirst threshold death (seed 42 d5-6, whole colony at one tile).
+            // Same last-resort construction, same junk order.
+            var packStarved = npc.Needs.Hunger >= 0.8f &&
+                npc.Inventory.FindFirstFood(world.Content) is null;
+            var packParched = npc.Needs.Thirst >= 0.8f &&
+                npc.Inventory.FindFirstDrink(world.Content) is null &&
+                !npc.Inventory.Items.Contains("food.coconut");
+            if ((packStarved || packParched) && !npc.Inventory.HasSpace)
+            {
+                foreach (var junk in new[] { "resource.log", "resource.stick", "resource.palm_leaf", "resource.stone" })
+                {
+                    var idx = npc.Inventory.Items.FindIndex(i => i.DefinitionId == junk);
+                    if (idx >= 0)
+                    {
+                        var item = npc.Inventory.Items[idx];
+                        npc.Inventory.Items.RemoveAt(idx);
+                        ExecutionSystem.DropItemAtFeet(world, npc, item);
+                        Trace.Emit(world, npc.Id, "EmergencyUnload",
+                            $"Dropped {junk} (Hunger={npc.Needs.Hunger:F2}, full pack, no food)");
+                        break;
+                    }
+                }
+            }
+
+            // Spec 29C.2: starvation / dehydration cost HP. Without this an
+            // NPC whose needs maxed out (food/water unreachable) hangs forever
+            // — Health never falls, it never dies, its slot never frees. The
+            // 0.95 gate sits above the 0.85 starving appraisal, so healthy
+            // colonies that briefly spike lose nothing; only a truly stuck
+            // agent drains to death.
+            var starved = npc.Needs.Hunger >= SimBalance.StarveDeathThreshold;
+            var parched = npc.Needs.Thirst >= SimBalance.StarveDeathThreshold;
+
+            // Spec 40.5: emergent cooperation — a well-fed housemate already
+            // standing beside someone starving at the death-brink hands over a
+            // spare food item. Passive last-resort (no goal, no reroute): it
+            // fires only on this exact adjacency, so like the pill it saves a
+            // life without disturbing the healthy colony's routine.
+            if (starved && npc.CurrentJunction is { } hungryJct)
+            {
+                foreach (var other in world.Entities.Npcs.Values)
+                {
+                    if (other.Id.Equals(npc.Id) || other.Health <= 0f ||
+                        other.Needs.Hunger >= 0.4f || other.IsFighting ||
+                        other.Mind.CurrentGoal == GoalType.Flee ||
+                        other.CurrentJunction is not { } giverJct)
+                    {
+                        continue;
+                    }
+
+                    var adjacent = giverJct.Equals(hungryJct) ||
+                        (world.Junctions.Items.TryGetValue(giverJct, out var gj) &&
+                         gj.Neighbors.Contains(hungryJct));
+                    if (!adjacent)
+                    {
+                        continue;
+                    }
+
+                    var food = other.Inventory.FindFirstFood(world.Content);
+                    if (food is null)
+                    {
+                        continue;
+                    }
+
+                    other.Inventory.Items.Remove(food);
+                    npc.Needs.Hunger = MathUtil.Clamp01(npc.Needs.Hunger - 0.5f);
+                    starved = npc.Needs.Hunger >= SimBalance.StarveDeathThreshold;
+                    Trace.Emit(world, npc.Id, "FoodShared",
+                        $"Given {food} by NPC{other.Id.Value} (Hunger={npc.Needs.Hunger:F2})");
+                    break;
+                }
+            }
+
+            // Spec 40.5: theft — if still starving at the brink and nobody
+            // shared, take food from an adjacent housemate who has some (a hard
+            // choice under scarcity; the victim loses the meal). Mirrors the
+            // food-sharing block but takes regardless of the victim's own state.
+            if (starved && npc.CurrentJunction is { } thiefJct)
+            {
+                foreach (var victim in world.Entities.Npcs.Values)
+                {
+                    if (victim.Id.Equals(npc.Id) || victim.Health <= 0f ||
+                        victim.CurrentJunction is not { } victimJct)
+                    {
+                        continue;
+                    }
+
+                    var adjacent = victimJct.Equals(thiefJct) ||
+                        (world.Junctions.Items.TryGetValue(victimJct, out var vj) &&
+                         vj.Neighbors.Contains(thiefJct));
+                    if (!adjacent)
+                    {
+                        continue;
+                    }
+
+                    var loot = victim.Inventory.FindFirstFood(world.Content);
+                    if (loot is null)
+                    {
+                        continue;
+                    }
+
+                    victim.Inventory.Items.Remove(loot);
+                    npc.Needs.Hunger = MathUtil.Clamp01(npc.Needs.Hunger - 0.5f);
+                    starved = npc.Needs.Hunger >= SimBalance.StarveDeathThreshold;
+                    Trace.EmitSystem(world, "FoodStolen",
+                        $"NPC{npc.Id.Value} stole {loot} from NPC{victim.Id.Value}");
+                    break;
+                }
+            }
+
+            if (starved || parched)
+            {
+                // §45 r5: attrition eased 0.03/0.05 -> 0.02/0.035. The 25-day
+                // baseline showed every colony losing 1-2 girls to ACUTE
+                // starvation episodes (a pinned need grinds a full body in
+                // ~2.2 game hours — faster than the recovery loop can respond).
+                // Death stays certain for a truly stuck agent; a girl who
+                // reaches food/water mid-episode now lives to eat it.
+                var damage = starved && parched ? SimBalance.StarveDamageBoth : SimBalance.StarveDamageOne; // §46 difficulty: restored to pre-r5 — safe now that sickness/fire/cold are fixed; at 0.025/0.045 the colony still won 10/12
+                foreach (var part in AllBodyParts)
+                {
+                    npc.Body.Parts[part] = MathUtil.Clamp01(npc.Body.Parts[part] - damage);
+                }
+
+                npc.Health = npc.Body.Mean();
+                if (npc.Body.VitalDestroyed(out _))
+                {
+                    npc.Health = 0f;
+                }
+
+                DamageReactionSystemHelpers.GrantAdrenaline(world, npc, damage, "Starvation");
+
+                Trace.Emit(world, npc.Id, npc.Health <= 0f ? "StarvedToDeath" : "StarvationDamage",
+                    $"Hunger={npc.Needs.Hunger:F2} Thirst={npc.Needs.Thirst:F2} " +
+                    $"Damage=-{damage:F2} Health={npc.Health:F2}");
+            }
+            // Spec 29C.2/19.3C + 40.8B: eat and rest to heal — but only damage
+            // NOT held by open wounds. Each wound keeps its Severity "hostage":
+            // the zone can regen up to (1 − open wound damage) and no further,
+            // so a couple of coconuts never insta-heals a mauling.
+            else if (npc.Health < 1f && npc.Needs.Hunger < SimBalance.HealHungerGate)
+            {
+                // §45 r5: regen 0.0018 -> 0.0030 (~0.45/day) and the gate
+                // eased 0.5 -> 0.6 — the long-run colony hovers at hunger
+                // ~0.5-0.6, so the old gate barely ever opened and bodies
+                // never recovered between sickness/cold/hunger episodes;
+                // every r5-baseline death was a body ground down over days
+                // 15-24 with no regen in between. Still days, not hours.
+                foreach (var part in AllBodyParts)
+                {
+                    if (npc.Body.IsSevered(part)) continue; // §50: severed zones never regen
+                    var ceiling = MathUtil.Clamp01(1f - WoundMath.OpenWoundDamage(npc, part));
+                    if (npc.Body.Parts[part] < ceiling)
+                    {
+                        npc.Body.Parts[part] = System.Math.Min(ceiling, npc.Body.Parts[part] + SimBalance.HealthRegenPerTick);
+                    }
+
+                    // Spec 44: the dressing (leaf wrap or gauze) comes off once
+                    // the zone has healed.
+                    if (npc.Body.Parts[part] > 0.7f)
+                    {
+                        npc.BandagedZones.Remove(part);
+                        npc.GauzeZones.Remove(part);
+                    }
+                }
+
+                npc.Health = npc.Body.Mean();
+            }
+
+            // Spec 40.8B: every wound closes on its own clock, PACED BY
+            // ACTIVITY — sleeping knits flesh twice as fast, marching halves
+            // it. Each healed slice returns its share of the zone's HP, so
+            // health comes back exactly as the wounds close, wound by wound.
+            if (npc.Wounds.Count > 0)
+            {
+                // §60: a coma knits flesh at the sleeping pace too.
+                var pace = npc.Execution.CurrentInteraction == InteractionType.Sleep ||
+                    npc.Mind.ComaCause != ComaCause.None ? 2f
+                    : npc.Movement.Status == MovementStatus.Moving ? 0.5f
+                    : 1f;
+
+                for (var wi = npc.Wounds.Count - 1; wi >= 0; wi--)
+                {
+                    var wound = npc.Wounds[wi];
+                    var slice = System.Math.Min(WoundMath.HealPerSlowTick * pace, 1f - wound.Heal01);
+                    wound.Heal01 += slice;
+                    // §50: the stump wound on a severed zone still clots (heal01
+                    // climbs so the bleed eventually stops), but its HP never
+                    // returns — the limb is gone, not mending.
+                    if (!npc.Body.IsSevered(wound.Zone))
+                    {
+                        npc.Body.Parts[wound.Zone] = MathUtil.Clamp01(
+                            npc.Body.Parts[wound.Zone] + wound.Severity * slice);
+                    }
+
+                    if (wound.Heal01 >= 1f)
+                    {
+                        Trace.Emit(world, npc.Id, "WoundHealed",
+                            $"{wound.Zone} wound #{wound.Id} closed");
+                        npc.Wounds.RemoveAt(wi);
+                    }
+                }
+
+                npc.Health = npc.Body.Mean();
+            }
+
+            // Spec 40.2/§60: blood at 0 IS death — pin it after every branch
+            // above, because the fed-heal and wound-close paths recompute
+            // Health from the body parts and would otherwise "resurrect" a
+            // bled-out body in the same pass (parts stay > 0 when the death
+            // came from the drained blood, not from destroyed zones).
+            if (npc.Needs.Blood <= 0f)
+            {
+                npc.Health = 0f;
+            }
+
+            Trace.Emit(world, npc.Id, "NeedsDecay",
+                $"Hunger={prevHunger:F3}->{npc.Needs.Hunger:F3}(+{HungerRate}) " +
+                $"Energy={prevEnergy:F3}->{npc.Needs.Energy:F3}(-{energyDrain}) " +
+                $"Comfort={prevComfort:F3}->{npc.Needs.Comfort:F3}(-{ComfortRate}) " +
+                $"Social={prevSocial:F3}->{npc.Needs.Social:F3}(-{SocialRate}) " +
+                $"Sweat={sweat:F2}");
+        }
+
+        // Spec 40.16: joint-plan advisor trigger. On the rising edge of a
+        // colony-wide crisis, consult the advisor (a null-object by default, so
+        // this is inert) and trace the onset. Formalizes the trigger + I/O; a
+        // host swaps DireStraits.Advisor for an LLM-backed one to act on it.
+        var crisis = AI.DireStraits.Assess(world);
+        if (crisis is not null && !world.ColonyInDireStraits)
+        {
+            world.ColonyInDireStraits = true;
+            var advice = AI.DireStraits.Advisor.Advise(crisis);
+            Trace.EmitSystem(world, "DireStraits",
+                $"starving={crisis.StarvingCount} wounded={crisis.WoundedCount}/{crisis.LivingCount}" +
+                (string.IsNullOrEmpty(advice) ? "" : $" advice={advice}"));
+        }
+        else if (crisis is null)
+        {
+            world.ColonyInDireStraits = false;
+        }
+    }
+}
+
+}

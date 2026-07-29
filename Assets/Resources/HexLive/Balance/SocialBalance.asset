@@ -1,0 +1,74 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6363f1f8bf748f29f4168feb604b68c, type: 3}
+  m_Name: SocialBalance
+  m_EditorClassIdentifier: 
+  talkRelationshipGain: 0.075
+  quarrelInitiatorSocialGain: 0.15
+  quarrelListenerSocialGain: 0.1
+  quarrelAffinityLoss: 0.18
+  quarrelEmbarrassment: 0.3
+  refusalAffinityThreshold: -0.25
+  lonelinessOverrideThreshold: 0.25
+  rejectionAffinityPenalty: 0.075
+  ambientSocialCap: 0.6
+  sleepComfortNightSlowTicks: 75
+  rearm: 1
+  coolRearm: 1
+  sleepComfort: 1
+  ambientSocial: 1
+  sickDoT: 1
+  proactiveBoil: 1
+  smartSleepSpot: 1
+  coolOffDwellTicks: 40
+  coolOffMaxRearms: 6
+  talkDuration: 90
+  talkInitGain: 0.2
+  talkListenGain: 0.12
+  ambientGain: 0.012
+  socializeNeedGate: 0.55
+  sleepComfortGrassNight: 0.05
+  sleepComfortLeafNight: 0.3
+  sleepComfortBedNight: 1
+  sleepComfortFireBonusNight: 0.02
+  sleepComfortSunPenaltyNight: 0.15
+  sleepComfortRainPenaltyNight: 0.15
+  sleepComfortJacketPadNight: 0.06
+  awakeFireComfortGain: 0.003
+  sleepSpotFireWeight: 1.5
+  sleepSpotShadeWeight: 1.5
+  thermalSleepFactor: 0.5
+  shadeCooling: -7
+  boilThirstCeiling: 0.6
+  boilChainWeight: 0.1
+  wetDragPerGarment: 0.9
+  wetDragFloor: 0.8
+  wetComfortPenalty: 0.004
+  compassionEnabled: 1
+  compassionRate: 0.02
+  recoverRate: 0.01
+  aidWeight: 0.85
+  pressureWeight: 0.2
+  selfHungerGate: 0.6
+  selfHealthGate: 0.5
+  sufferingThreshold: 0.3
+  feedRelief: 0.5
+  hydrateRelief: 0.5
+  treatHeal: 0.15
+  treatBlood: 0.2
+  medicateHeal: 0.1
+  consoleStressRelief: 0.3
+  aidRelationshipGain: 0.18
+  aidDuration: 70
+  aidSelfRestore: 0.4
+  traitMin: 0.35
+  traitMax: 1

@@ -353,6 +353,9 @@ MonoBehaviour:
   - actorName: 5
     scale: 1
     mesh: {fileID: 4300000, guid: 3a00f5d41b7b52049afbaa5b82113588, type: 2}
+  - actorName: 1
+    scale: 1
+    mesh: {fileID: 4300000, guid: 39833064f24c81d43923c95c9b51d250, type: 2}
   slots: 04000000090000000c000000
   noHideUnderwearSlots: 04000000
   layer: 1

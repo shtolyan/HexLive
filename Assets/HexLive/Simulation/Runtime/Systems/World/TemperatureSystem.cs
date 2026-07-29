@@ -233,8 +233,14 @@ public sealed class TemperatureSystem : ISimulationSystem
         BodyPart.ArmL, BodyPart.ArmR, BodyPart.LegL, BodyPart.LegR
     };
 
-    // Spec 29C.10: warmth radiated by nearby LIT campfires. On the fire's own
-    // tile it is agony (onFire = true); a tile or two away it gently warms.
+    // Spec 29C.10: warmth radiated by nearby LIT campfires. The fire's OWN hex
+    // warms at full ring-1 strength: the ~1.1 wu huddle rim sits INSIDE the
+    // 1.3 wu hex apothem, and the last directed step toward the flames books
+    // the arriver onto the fire's tile — a dist==0 "no warmth" hole froze the
+    // girl who lit the fire while her neighbour on the adjacent hex thawed
+    // (same physical spot, different tile bookkeeping). onFire still flags the
+    // same-tile stand for the deferred FireBurn mechanic — flames themselves
+    // are unreachable by construction (the 0.825 wu obstacle blocks them).
     internal static float NearbyFireWarmth(WorldState world, TileCoord tile, out bool onFire)
     {
         onFire = false;
@@ -253,9 +259,14 @@ public sealed class TemperatureSystem : ISimulationSystem
             {
                 onFire = true;
             }
-            else if (dist <= 2)
+
+            if (dist <= 1)
             {
-                warmth = System.Math.Max(warmth, dist == 1 ? SimBalance.FireWarmthRange1 : SimBalance.FireWarmthRange2);
+                warmth = System.Math.Max(warmth, SimBalance.FireWarmthRange1);
+            }
+            else if (dist == 2)
+            {
+                warmth = System.Math.Max(warmth, SimBalance.FireWarmthRange2);
             }
         }
 

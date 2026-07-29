@@ -6665,7 +6665,11 @@ weather gains real stakes.
   it. Weather can now kill the unprepared. (Dormant in the current mild
   climate — a safety net for genuine cold snaps / heat waves.)
 - **The campfire is a STRONG heat source**: a LIT campfire radiates warmth
-  to tiles within 2 (**+18° at 1 tile, +11° at 2**), folded into the effective
+  to tiles within 2 (**+18° on the fire's own hex and at 1 tile, +11° at 2**
+  — the ~1.1 wu huddle rim sits inside the fire hex's 1.3 wu apothem and the
+  last directed step toward the flames books the arriver onto the fire's own
+  tile, so a dist-0 "no warmth" hole froze exactly the girl who lit the fire
+  while a later visitor on the adjacent hex thawed), folded into the effective
   temperature and clamped to the comfy-band top (never overheats — a dressed
   body caps sooner). The magnitude is deliberately enough that a near-naked
   body in the fire ring reaches the comfy band even on the coldest rainy
@@ -9497,7 +9501,9 @@ the tighter ring by an explicit ≥1.1 wu fire-clearance in
 bed placement is honest at any radius — FootprintClear rejects a bed
 whose 1.39 wu disc overlaps the fire's blocked points. Interactions survive by construction: beside-arrival
 (`CollectStandableAround`) BFS-walks through the blocked cluster to the
-first standable rim, still within 1 tile of the fire (full +18° warmth).
+first standable rim — on the fire's own hex or 1 tile out, both full +18°
+warmth (the rim can be bookkept on the fire's own hex; a dist-0 warmth
+hole used to freeze the lighter at the flames while her neighbour thawed).
 Furniture placement (`FindSpacedFurnitureSpot`) now uses the same rim BFS
 instead of the anchor's immediate neighbors, so beds/racks land just
 outside the ember ring, fireside-close with a natural offset.

@@ -6,3 +6,4 @@ Assets/StreamingAssets/HexLive/Sfx/*.ogg filter=lfs diff=lfs merge=lfs -text
 FMODStudio/HexLive/Assets/**/*.wav filter=lfs diff=lfs merge=lfs -text
 FMODStudio/HexLive/Assets/**/*.ogg filter=lfs diff=lfs merge=lfs -text
 FMODStudio/HexLive/Build/**/*.bank filter=lfs diff=lfs merge=lfs -text
+Assets/StreamingAssets/FMODBanks/*.bank filter=lfs diff=lfs merge=lfs -text

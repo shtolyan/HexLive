@@ -60,3 +60,13 @@ Assets/Temp.meta
 # Huge third-party animal pack — kept locally, never committed (wolf assets copied to Assets/HexLive/Art/Wolf)
 /[Aa]ssets/ANIMALS FULL PACK/
 /[Aa]ssets/ANIMALS FULL PACK.meta
+
+# §67.12: FMOD-интеграция — 297 МБ сторонних бинарников, качается с fmod.com
+# («FMOD for Unity», версия обязана совпадать с FMOD Studio: сейчас 2.03.14).
+/Assets/Plugins/FMOD/
+# §67.10: FMOD Studio при импорте КОПИРУЕТ аудио к себе — это байт-в-байт те же
+# реплики, что уже лежат в StreamingAssets (LFS). Восстанавливается прогоном
+# FMODStudio/Scripts/sync_voices.js, дублировать 205 МБ в LFS незачем.
+/FMODStudio/HexLive/Assets/
+# Лог редактора FMOD.
+/fmod_editor.log

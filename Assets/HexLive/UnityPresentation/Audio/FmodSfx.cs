@@ -297,6 +297,13 @@ namespace HexLive.UnityPresentation.Audio
         // вживую через Live Update. Если события нет (банк не собран, ид
         // отсутствует), звук играется по-старому из StreamingAssets: тишины
         // из-за рассинхрона проекта и кода быть не должно.
+        // §67.12 r2: играть ли ЛУПЫ (эмбиент, костёр) событиями Studio.
+        // Пока false — см. комментарий в StartLoop: у сгенерированных событий
+        // нет луп-региона, поэтому они одноразовые. Ставится в true сразу
+        // после того, как fix_ambience_loops.js добавит регионы и банк будет
+        // пересобран. One-shot'ы событиями идут всегда.
+        private const bool LoopsUseStudioEvents = false;
+
         private static readonly Dictionary<string, string> EventPaths = new();
 
         private static string EventPathFor(string id)
@@ -437,7 +444,18 @@ namespace HexLive.UnityPresentation.Audio
                 return default;
             }
 
-            if (EventPathFor(id) is { } eventPath)
+            // §67.12 r2: ЛУПЫ ПОКА НЕ ЧЕРЕЗ СОБЫТИЯ. У сгенерированных событий
+            // эмбиента стоит `looping` на инструменте, но НЕТ луп-региона на
+            // таймлайне — FMOD считает такое событие одноразовым
+            // (`isOneshot()==true`): оно отыгрывает свои 23 с и умирает, а
+            // стартуя на нулевой громкости (кроссфейд день/ночь) вдобавок
+            // виртуализируется и глохнет сразу. Из-за этого в билде пропали
+            // прибой и птицы. Файловый путь ниже зацикливает честно
+            // (MODE.LOOP_NORMAL), поэтому лупы возвращены на него.
+            // Вернуть события можно, когда в Studio-проекте у пяти событий
+            // Ambience появится Loop Region (FMODStudio/Scripts/fix_ambience_loops.js)
+            // и банк будет пересобран — тогда флаг ниже ставится в true.
+            if (LoopsUseStudioEvents && EventPathFor(id) is { } eventPath)
             {
                 var inst = FMODUnity.RuntimeManager.CreateInstance(eventPath);
                 inst.set3DAttributes(FMODUnity.RuntimeUtils.To3DAttributes(position));

@@ -30,6 +30,11 @@ public static class TalkTopicVisuals
 
     // Emoji chosen to avoid VS16 variation selectors where possible (some
     // Unity font stacks drop them). One glyph per subject.
+    //
+    // §67.10: LEGACY reference table — nothing reads For() any more. The bubble
+    // picture now comes from SpeechCatalog (id → PNG in Resources/.../Emoji),
+    // which is why the five personal-complaint topics are deliberately absent
+    // here. Only IsKnown() is still live.
     public static Topic For(string topicName)
     {
         switch (topicName)

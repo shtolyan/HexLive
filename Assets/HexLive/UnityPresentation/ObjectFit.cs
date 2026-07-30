@@ -30,6 +30,9 @@ namespace HexLive.UnityPresentation
             // 1:1 in Blender and instantiated as-is by PalmTreeFactory (no fit).
             if (definitionId.Contains("tree")) return r * 2.2f;
             if (definitionId.Contains("bed")) return r * 0.95f;
+            // A meat chunk reads bigger than a coconut half — 1.5× the standard
+            // food size. Ground, hand and the roasting spit all share this.
+            if (definitionId == "food.meat_raw" || definitionId == "food.meat_cooked") return r * 0.18f;
             if (definitionId.StartsWith("food.")) return r * 0.12f;
             // Spec §54.2: a log/stick is a full palm-trunk segment long (big, like
             // Stranded Deep) — measured by its long axis; the crown and leaf are
@@ -51,8 +54,12 @@ namespace HexLive.UnityPresentation
             if (definitionId == "campfire.spot") return r * 0.55f;
             if (definitionId == "grave.npc") return r * 0.35f;
             if (definitionId == "rock.boulder") return r * 0.45f;
-            // §35.5B: station.drying_rack is NOT sized here — drying_rack_final
-            // is authored 1:1 like the beds and rendered via BedAssembly.
+            // §35.5B/§54.15: station.drying_rack and station.water_collector are
+            // NOT sized here — drying_rack_final / water_collector_final are
+            // authored 1:1 like the beds and rendered via BedAssembly, whose
+            // renderer branch returns before FitObjectPrefab ever runs. Adding
+            // a factor here would be dead code today and a double-scale the
+            // day that branch changes.
             if (definitionId == "forest.deadfall" ||
                 definitionId == "construction.site") return r * 0.7f;
             return r * 0.6f;

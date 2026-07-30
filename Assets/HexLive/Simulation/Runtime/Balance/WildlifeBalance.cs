@@ -14,6 +14,16 @@ public static class WildlifeBalance
     public static int RaidDuskOffsetTicks = 1800;
     public static int DogSpawnMinDistanceFromNpc = 5;
 
+    // Spec 29C.3 (stuck-chase give-up): a chase that hasn't moved the dog for
+    // this many CONTINUOUS ticks (no walkable route — quarry behind the hut,
+    // approach ring occupied) is hopeless; the dog drops the target and roams
+    // off instead of standing frozen mid-camp. Melee resets the clock.
+    public static int DogChaseStallGiveUpTicks = 200;
+
+    // How long a dog that gave up ignores prey before hunting again — long
+    // enough to actually wander away from the camp it was wedged against.
+    public static int DogHuntCooldownTicks = 600;
+
     // Rabbits/crabs (spec 31C).
     public static int MaxRabbits = 4;
     public static int RabbitRespawnCheckTicks = 2400;

@@ -70,6 +70,29 @@ public sealed class NPCMind
     // Transient — not serialized. 0 = not committed.
     public int FightCommitUntilTick { get; set; }
 
+    // Spec 29C.4A (standoff-release valve): sliding window of CONTINUOUS
+    // square-up ticks — a mob tile-adjacent but never reaching melee (junction
+    // gap: ledge, water, claimed ring). SinceTick anchors the window,
+    // LastTick detects a broken run (the square-up branch runs on the Medium
+    // layer; a gap of several passes = contact was lost and the window
+    // restarts). Real melee contact resets both — the valve only ever judges
+    // a stand that produced no exchange at all. Transient — not serialized.
+    public int SquareUpSinceTick { get; set; }
+
+    public int SquareUpLastTick { get; set; }
+
+    // Spec 29C.4A: after StandoffReleaseTicks of blow-less square-up the girl
+    // stops honouring the latch until this tick — she may drink, walk, plan
+    // (the mob demonstrably cannot reach her). Melee contact cancels the
+    // release instantly. Transient — not serialized. 0 = not released.
+    public int StandoffReleaseUntilTick { get; set; }
+
+    // Spec 29C.4B (assist hold): first tick the defender found herself already
+    // ON STATION beside the attacker with nothing to do but wait for the
+    // exchange. Silences the Started→Arrived replan churn (17 pairs in 68
+    // ticks, seed 521091321 day 30). 0 = not holding. Transient.
+    public int AssistHoldSinceTick { get; set; }
+
     public System.Collections.Generic.List<HexLive.Simulation.Common.ObjectId> GrievedCorpses { get; } = new();
 
     // Spec 28.8 v1 handshake: someone is walking over to talk to this NPC.
@@ -200,7 +223,8 @@ public enum GoalType
     Idle,
     Defend,      // answer a combat help cry and attack the aggressor
     Bathe,       // undress at shore, then swim long enough to wash the body
-    WashClothes  // wash one dirty ground garment at the shore
+    WashClothes, // wash one dirty ground garment at the shore
+    StowBottle   // §54.15: park the empty bottle under the water collector's funnel
 }
 
 public sealed class GoalScore

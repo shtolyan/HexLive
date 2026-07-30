@@ -176,19 +176,25 @@ public sealed class MobSystem : ISimulationSystem
             dog.Status = Wildlife.MobStatus.Roaming;
 
             var bestDistance = int.MaxValue;
-            foreach (var npc in world.Entities.Npcs.Values)
+            // Spec 29C.3: after giving up a hopeless chase the dog ignores
+            // prey for the hunt cooldown — otherwise it re-acquired the same
+            // unreachable girl on the very next pass and never left the camp.
+            if (world.Tick >= dog.NextHuntAllowedTick)
             {
-                // Sanctuary (spec 29C.4A): indoor NPCs are never targets.
-                if (IsNpcInSanctuary(world, npc))
+                foreach (var npc in world.Entities.Npcs.Values)
                 {
-                    continue;
-                }
+                    // Sanctuary (spec 29C.4A): indoor NPCs are never targets.
+                    if (IsNpcInSanctuary(world, npc))
+                    {
+                        continue;
+                    }
 
-                var distance = HexSpatialMath.HexDistance(dog.Tile, npc.Tile);
-                if (distance <= Stats(dog).AggroRadiusTiles && distance < bestDistance)
-                {
-                    bestDistance = distance;
-                    target = npc;
+                    var distance = HexSpatialMath.HexDistance(dog.Tile, npc.Tile);
+                    if (distance <= Stats(dog).AggroRadiusTiles && distance < bestDistance)
+                    {
+                        bestDistance = distance;
+                        target = npc;
+                    }
                 }
             }
 
@@ -234,7 +240,40 @@ public sealed class MobSystem : ISimulationSystem
             // the flee-stall clock resets — the cornered-fight valve only fires
             // on CONTINUOUS melee pinning, never on a chase she is outrunning.
             target.Mind.FleeContactSinceTick = 0;
+            var junctionBefore = dog.Junction;
             ChaseStep(world, dog, target);
+
+            // Spec 29C.3 (stuck-chase give-up): the mob-side mirror of the
+            // girls' standoff-release valve. A chase that cannot move the dog
+            // at all (no walkable route — quarry behind the hut, approach ring
+            // sealed) is hopeless; after DogChaseStallGiveUpTicks of standing
+            // still it drops the target, takes a hunt cooldown so it actually
+            // wanders away, and stops being a statue mid-camp. Any successful
+            // step or melee contact resets the clock.
+            if (dog.Junction.Equals(junctionBefore))
+            {
+                if (dog.ChaseStallSinceTick == 0)
+                {
+                    dog.ChaseStallSinceTick = world.Tick;
+                }
+                else if (world.Tick - dog.ChaseStallSinceTick >=
+                    WildlifeBalance.DogChaseStallGiveUpTicks)
+                {
+                    dog.ChaseStallSinceTick = 0;
+                    dog.NextHuntAllowedTick = world.Tick + WildlifeBalance.DogHuntCooldownTicks;
+                    Trace.EmitSystem(world, "DogGaveUp",
+                        $"Dog={dog.Id} chase of NPC{target.Id.Value} stalled " +
+                        $"{WildlifeBalance.DogChaseStallGiveUpTicks} ticks — wandering off");
+                    dog.TargetNpc = null;
+                    dog.Status = Wildlife.MobStatus.Roaming;
+                    return;
+                }
+            }
+            else
+            {
+                dog.ChaseStallSinceTick = 0;
+            }
+
             TryCoverFire(world, dog, target);
 
             // Behavior audit (Jul 2026): a girl being RUN DOWN at arm's length
@@ -274,12 +313,42 @@ public sealed class MobSystem : ISimulationSystem
 
                 if (!fledStandoff)
                 {
-                    target.IsFighting = true;
-                    if (target.Plan.Status == PlanStatus.Active ||
-                        target.Execution.Status == ExecutionStatus.InProgress)
+                    // Spec 29C.4A standoff-release valve: Fix B above only frees
+                    // a HURT girl; a healthy one still latched "fighting" against
+                    // a dog that can never close the junction gap and stood
+                    // frozen until the player quit (seed 521091321 day 30 —
+                    // wolf beside the camp, badge «дерётся», no bite ever
+                    // landing). After StandoffReleaseTicks of continuous
+                    // blow-less square-up she stops honouring the latch for a
+                    // grace window — walks, drinks, re-plans. Melee contact
+                    // resets the window (see the fight branch), so a genuine
+                    // run-down — where the dog DOES reach melee between her
+                    // steps — can never trip the valve.
+                    var window = TrackSquareUpWindow(world, target);
+                    if (world.Tick < target.Mind.StandoffReleaseUntilTick)
                     {
-                        PlanInterruption.Abort(world, target, $"Charged by dog {dog.Id}");
-                        target.Mind.CurrentGoal = GoalType.None;
+                        // Released — the latch stays off while she clears out.
+                    }
+                    else if (!standoffCommitted &&
+                        window >= SimBalance.StandoffReleaseTicks)
+                    {
+                        target.Mind.StandoffReleaseUntilTick =
+                            world.Tick + SimBalance.StandoffReleaseGraceTicks;
+                        target.Mind.SquareUpSinceTick = 0;
+                        RememberDangerAt(world, target, dog.Tile);
+                        Trace.Emit(world, target.Id, "StandoffReleased",
+                            $"Dog={dog.Id} never reached melee in {window} ticks — " +
+                            $"dropping the stance (grace {SimBalance.StandoffReleaseGraceTicks})");
+                    }
+                    else
+                    {
+                        target.IsFighting = true;
+                        if (target.Plan.Status == PlanStatus.Active ||
+                            target.Execution.Status == ExecutionStatus.InProgress)
+                        {
+                            PlanInterruption.Abort(world, target, $"Charged by dog {dog.Id}");
+                            target.Mind.CurrentGoal = GoalType.None;
+                        }
                     }
                 }
             }
@@ -293,6 +362,13 @@ public sealed class MobSystem : ISimulationSystem
         // land in AnimalCombatSystem on the Fast layer; this medium pass only
         // manages statuses, flee assessment and helpers.
         dog.Status = Wildlife.MobStatus.Fighting;
+        // Spec 29C.4A: real contact — the standoff valve re-arms; from here the
+        // melee machinery (bites, strikes, flee assessment, commit) owns the
+        // fight and the release grace must not linger into a real exchange.
+        target.Mind.SquareUpSinceTick = 0;
+        target.Mind.StandoffReleaseUntilTick = 0;
+        // Spec 29C.3: melee = the chase worked; the stall clock re-arms.
+        dog.ChaseStallSinceTick = 0;
         RememberDanger(world, target);
         CombatHelpSystem.RallyFriends(world, target, dog.Id, null, $"Dog={dog.Id}");
         RunDogDefenders(world, dog, target);
@@ -395,6 +471,25 @@ public sealed class MobSystem : ISimulationSystem
         if (roll < 0.95f) return BodyPart.Torso;
         if (roll < 0.98f) return BodyPart.Pelvis;
         return BodyPart.Head;
+    }
+
+    // Spec 29C.4A: stamp the square-up window and return how long it has run.
+    // The branch executes on the Medium layer, so a silence of more than three
+    // passes (12 ticks at the default 4-tick interval) means contact was
+    // broken in between and the window restarts from this tick.
+    private const int SquareUpStaleGapTicks = 12;
+
+    private static int TrackSquareUpWindow(WorldState world, NPCState target)
+    {
+        var mind = target.Mind;
+        if (mind.SquareUpSinceTick == 0 ||
+            world.Tick - mind.SquareUpLastTick > SquareUpStaleGapTicks)
+        {
+            mind.SquareUpSinceTick = world.Tick;
+        }
+
+        mind.SquareUpLastTick = world.Tick;
+        return world.Tick - mind.SquareUpSinceTick;
     }
 
     internal static float WorstPartHealth(NPCState npc)
@@ -671,6 +766,36 @@ public sealed class MobSystem : ISimulationSystem
         MoveDogTo(world, dog, next);
     }
 
+    // Spec 29C.3 (chase-path fix): every junction a ground mob may never step
+    // on — indoor (sanctuary), doors, all-water. Fed to FindPath as hardAvoid
+    // so the chase plans routes the dog can actually WALK: without it the
+    // pathfinder returned the girls' shortest path THROUGH the hut, ChaseStep
+    // refused the first indoor step, and the dog stood frozen mid-camp every
+    // pass (seed 521091321 day 43, dog 13). Blocked junctions are skipped by
+    // FindPath itself. Rebuilt lazily when TopologyVersion moves.
+    private static System.Collections.Generic.HashSet<JunctionId> EnsureMobForbidden(WorldState world)
+    {
+        var cache = world.Caches.MobForbiddenJunctions;
+        if (world.Caches.MobForbiddenBuiltVersion == world.TopologyVersion)
+        {
+            return cache;
+        }
+
+        cache.Clear();
+        foreach (var junction in world.Junctions.Items.Values)
+        {
+            if (junction.Door ||
+                IsIndoorJunction(world, junction.Id) ||
+                SpatialQueries.IsAllWaterJunction(world, junction.Id))
+            {
+                cache.Add(junction.Id);
+            }
+        }
+
+        world.Caches.MobForbiddenBuiltVersion = world.TopologyVersion;
+        return cache;
+    }
+
     private static void ChaseStep(WorldState world, Wildlife.MobState dog, NPCState target)
     {
         if (target.CurrentJunction is not { } targetJunction)
@@ -681,7 +806,8 @@ public sealed class MobSystem : ISimulationSystem
         _mobPathAvoidScratch.Clear();
         AddActorJunctions(world, _mobPathAvoidScratch, dog);
 
-        var path = HexPathfinder.FindPath(world, dog.Junction, targetJunction, _mobPathAvoidScratch);
+        var path = HexPathfinder.FindPath(world, dog.Junction, targetJunction, _mobPathAvoidScratch,
+            hardAvoid: EnsureMobForbidden(world));
         if (path.Count < 2)
         {
             return;

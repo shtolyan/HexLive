@@ -24,8 +24,7 @@ Material:
   m_Shader: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords:
-  - _ALPHATEST_ON
+  m_ValidKeywords: []
   m_InvalidKeywords:
   - IRAYUBER_DUALLOBESPECULARREFLECTIVITYACTIVE
   - IRAYUBER_GLOSSYCOLORACTIVE
@@ -33,11 +32,11 @@ Material:
   - _DOUBLESIDED_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 1
-  m_CustomRenderQueue: 2450
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: 2000
   stringTagMap:
     MotionVector: User
-    RenderType: TransparentCutout
+    RenderType: Opaque
   disabledShaderPasses:
   - TransparentDepthPrepass
   - TransparentDepthPostpass
@@ -194,11 +193,11 @@ Material:
     - Vector1_644CECEF: 0
     - _AddPrecomputedVelocity: 0
     - _Alpha: 1
-    - _AlphaClip: 1
+    - _AlphaClip: 0
     - _AlphaCutoffEnable: 1
     - _AlphaDstBlend: 0
     - _AlphaSrcBlend: 1
-    - _AlphaToMask: 1
+    - _AlphaToMask: 0
     - _Blend: 0
     - _BlendMode: 0
     - _BlendModePreserveSpecular: 1
@@ -206,7 +205,7 @@ Material:
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
     - _ConservativeDepthOffsetEnable: 0
-    - _Cull: 0
+    - _Cull: 2
     - _CullMode: 0
     - _CullModeForward: 0
     - _Cutoff: 0.5
@@ -236,7 +235,7 @@ Material:
     - _MakeupEnable: 0
     - _MakeupRoughnessMultiplierValue: 1
     - _MakeupWeightValue: 1
-    - _Metallic: 1
+    - _Metallic: 0
     - _Normal: 0.2
     - _OcclusionStrength: 1
     - _OpaqueCullMode: 2
@@ -248,7 +247,7 @@ Material:
     - _RenderQueueType: 1
     - _RequireSplitLighting: 1
     - _Roughness: 0.2
-    - _Smoothness: 0.451
+    - _Smoothness: 0
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SpecularLobe1Roughness: 0
@@ -286,8 +285,8 @@ Material:
     - _ZTestTransparent: 4
     - _ZWrite: 1
     m_Colors:
-    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _BaseColor: {r: 0, g: 0, b: 0, a: 0}
+    - _Color: {r: 0, g: 0, b: 0, a: 0}
     - _DiffusionProfileAsset: {r: 0, g: 0, b: 0, a: 0}
     - _DoubleSidedConstants: {r: 1, g: 1, b: -1, a: 0}
     - _Emission: {r: 0, g: 0, b: 0, a: 1}

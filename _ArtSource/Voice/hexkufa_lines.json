@@ -1,0 +1,1265 @@
+{
+ "language": "hexkufa",
+ "groups": [
+  {
+   "code": "A1",
+   "id": "sad_hunger",
+   "priority": "P1",
+   "hook": "голод (`Hunger` низкий, цель `Eat`/`GetFood`)",
+   "lines": [
+    {
+     "text": "[sad] Asuno asmik teracho nip",
+     "ru": "Пусто внутри, ноет уже"
+    },
+    {
+     "text": "[sad] Bezpaku... moi asmik kusner",
+     "ru": "Нет еды... внутри пусто"
+    },
+    {
+     "text": "[sad, weak] Pakuuufa... paku... mifo",
+     "ru": "Еды бы... еды... сил нет"
+    }
+   ]
+  },
+  {
+   "code": "A2",
+   "id": "sad_thirst",
+   "priority": "P1",
+   "hook": "жажда (`Thirst`, цели `Drink`/`GetWater`)",
+   "lines": [
+    {
+     "text": "[sad] Siiipa... sipi nip",
+     "ru": "Воды... пить уже"
+    },
+    {
+     "text": "[sad] Kusner sipa, bota kusner",
+     "ru": "Воды нет, бутылка пуста"
+    },
+    {
+     "text": "[sad, hoarse] Nho... kopa zara, sipi",
+     "ru": "Ох... в голове жар, пить"
+    }
+   ]
+  },
+  {
+   "code": "A3",
+   "id": "sad_cold",
+   "priority": "P1",
+   "hook": "мёрзнет (`Warmth` низкий, `WarmUp`)",
+   "lines": [
+    {
+     "text": "[sad, shivering] Nhooo! Fipa piska... gufko",
+     "ru": "Ох! Холод в теле... дрожу"
+    },
+    {
+     "text": "[sad, shivering] Fipoooorka! Luvi nam!",
+     "ru": "Стужа! Тепла надо!"
+    },
+    {
+     "text": "[cry] Gufko-gufko... fugishka kudou?",
+     "ru": "Дрожу-дрожу... где ж костерок?"
+    }
+   ]
+  },
+  {
+   "code": "A4",
+   "id": "sad_heat",
+   "priority": "P2",
+   "hook": "перегрев (`CoolOff`)",
+   "lines": [
+    {
+     "text": "[tired] Zaaara... kopa zara nip",
+     "ru": "Пекло... голова горит уже"
+    },
+    {
+     "text": "[tired] Sumak kaka. Sipa piska!",
+     "ru": "Солнце злое. Воды на тело!"
+    },
+    {
+     "text": "[sad] Bezluvi... zada sumak!",
+     "ru": "Не тепло — жарко... уйди, солнце!"
+    }
+   ]
+  },
+  {
+   "code": "A5",
+   "id": "sleepy_tired",
+   "priority": "P1",
+   "hook": "вымотана (`Energy` низкий, §65)",
+   "lines": [
+    {
+     "text": "[sleepy] Nhooorm... peda mifo",
+     "ru": "Спааать... ноги не идут"
+    },
+    {
+     "text": "[sleepy, yawning] Zeeeva... noka nam nhormo",
+     "ru": "Зеваю... ночью спать надо"
+    },
+    {
+     "text": "[sleepy] Mifo... mifo... lesho nip",
+     "ru": "Не могу... не могу... лечь уже"
+    }
+   ]
+  },
+  {
+   "code": "A6",
+   "id": "sleepy_bed",
+   "priority": "P1",
+   "hook": "ложится (цель `Sleep`, дошла до кровати)",
+   "lines": [
+    {
+     "text": "[sleepy] Nhooorm... Pishapkin... Mmmnyaaaam",
+     "ru": "Спааать... в постельку... ммм"
+    },
+    {
+     "text": "[sleepy, content] Pisha moi... haro-haro",
+     "ru": "Постелька моя... хорошо-хорошо"
+    },
+    {
+     "text": "[whispering] Mira... mira nip... nhorm",
+     "ru": "Тихо... тихо уже... спать"
+    }
+   ]
+  },
+  {
+   "code": "A7",
+   "id": "sleepy_wake",
+   "priority": "P2",
+   "hook": "проснулась",
+   "lines": [
+    {
+     "text": "[sleepy, yawning] Nhaaa... dena nip?",
+     "ru": "Мнняа... уже день?"
+    },
+    {
+     "text": "[sleepy] Zeeeva... sumak, hoo",
+     "ru": "Зеваю... солнце, эй"
+    },
+    {
+     "text": "[sleepy] Kopa nhorm nip... gulanam",
+     "ru": "Голова ещё спит... идти надо"
+    }
+   ]
+  },
+  {
+   "code": "A8",
+   "id": "hurt_wound",
+   "priority": "P1",
+   "hook": "свежая рана (уже подключено, `SyncWoundSplashVfx`)",
+   "lines": [
+    {
+     "text": "[pain] Aaaaaooooi! Piiiisko belaaaa zig dada!",
+     "ru": "Ааай! Тело в кровь, ой-ой!"
+    },
+    {
+     "text": "[pain] Ooooiii! Moi piiiisko bi!",
+     "ru": "Ой! Тело болит!"
+    },
+    {
+     "text": "[pain] Dada-dada! Ronka! Beeela!",
+     "ru": "Ой-ой! Рана! Кровь!"
+    }
+   ]
+  },
+  {
+   "code": "A9",
+   "id": "hurt_sick",
+   "priority": "P2",
+   "hook": "больна / тошнит (`Sickness` DoT)",
+   "lines": [
+    {
+     "text": "[weak] Nho... asmik zig, kopa zara",
+     "ru": "Ох... внутри режет, голова горит"
+    },
+    {
+     "text": "[weak] Kaka piska... bezharo nip",
+     "ru": "Плохое тело... совсем не хорошо"
+    },
+    {
+     "text": "[cry, weak] Mifo... morishka gulao mia",
+     "ru": "Не могу... смертушка ко мне идёт"
+    }
+   ]
+  },
+  {
+   "code": "A10",
+   "id": "sad_dirty",
+   "priority": "P2",
+   "hook": "грязная (`Hygiene`, цель `Bathe`/`WashClothes`)",
+   "lines": [
+    {
+     "text": "[disgusted] Glisha! Moi pisko glisha nip",
+     "ru": "Грязь! Тело всё в грязи"
+    },
+    {
+     "text": "[sad] Bezshisto... sipa nam, plava nam",
+     "ru": "Не чисто... воды надо, плыть надо"
+    },
+    {
+     "text": "[disgusted] Fu-fu, glishka-glishka",
+     "ru": "Фу-фу, грязюка-грязюка"
+    }
+   ]
+  },
+  {
+   "code": "A11",
+   "id": "sad_lonely",
+   "priority": "P2",
+   "hook": "одиноко (`Compassion`/социальный голод)",
+   "lines": [
+    {
+     "text": "[sad] Kuna mia?.. Bezjaneiko nip",
+     "ru": "Кто со мной?.. Совсем без подруги"
+    },
+    {
+     "text": "[sad] Asun birka... kufi mia",
+     "ru": "Пусто на сердце... поговорить бы"
+    },
+    {
+     "text": "[sad] Hooo? Kudo janeikofa?",
+     "ru": "Эй? Где все подружки?"
+    }
+   ]
+  },
+  {
+   "code": "A12",
+   "id": "happy_relief",
+   "priority": "P1",
+   "hook": "облегчение (поела/попила/согрелась)",
+   "lines": [
+    {
+     "text": "[happy] Mmmnyaaaam! Sitko nip!",
+     "ru": "Ммням! Сытно уже!"
+    },
+    {
+     "text": "[relieved] Haaaro... asmik haro",
+     "ru": "Хорошо... внутри хорошо"
+    },
+    {
+     "text": "[happy] Luvi-luvi! Piska haro!",
+     "ru": "Тепло-тепло! Телу хорошо!"
+    }
+   ]
+  },
+  {
+   "code": "A13",
+   "id": "hurt_faint",
+   "priority": "P2",
+   "hook": "обморок / кома (§60, `Fainted`/`Collapsed`)",
+   "lines": [
+    {
+     "text": "[weak, fading] Nho... mifo... mo...",
+     "ru": "Ох... не могу... я..."
+    },
+    {
+     "text": "[weak, fading] Kopa... mora... nhooo",
+     "ru": "Голова... тьма... ох"
+    },
+    {
+     "text": "[gasping] Ai... bezluvi... bez...",
+     "ru": "Ай... не тепло... не..."
+    }
+   ]
+  },
+  {
+   "code": "A14",
+   "id": "sad_wet",
+   "priority": "P3",
+   "hook": "промокла (`Wetness`, дождь)",
+   "lines": [
+    {
+     "text": "[sad] Rasa-rasa! Lipko pisko nip",
+     "ru": "Дождь-дождь! Тело липкое"
+    },
+    {
+     "text": "[sad] Kroka nam! Rasa kaka!",
+     "ru": "Крыши надо! Дождь злой!"
+    },
+    {
+     "text": "[shivering] Lipko, fipa, gufko",
+     "ru": "Мокро, холодно, дрожу"
+    }
+   ]
+  },
+  {
+   "code": "B1",
+   "id": "work_chop",
+   "priority": "P1",
+   "hook": "рубит (топор/кирка, ударная фаза `Chop`)",
+   "lines": [
+    {
+     "text": "[effort] Tuk! Tuuuk! Ha!",
+     "ru": "Тук! Туук! Ха!"
+    },
+    {
+     "text": "[effort] Ha! Tuko-tuko!",
+     "ru": "Ха! Рублю-рублю!"
+    },
+    {
+     "text": "[effort] Hoi! Klado zig!",
+     "ru": "Хой! Бревно трещит!"
+    }
+   ]
+  },
+  {
+   "code": "B2",
+   "id": "work_haul",
+   "priority": "P2",
+   "hook": "тащит тяжёлое (`DeliverToSite`, `HaulToFire`)",
+   "lines": [
+    {
+     "text": "[effort] Uuuf... taska, taska",
+     "ru": "Ууф... тащу, тащу"
+    },
+    {
+     "text": "[effort] Klado bieeeno... uf!",
+     "ru": "Бревно долгое... уф!"
+    },
+    {
+     "text": "[effort] Lapa bi... taskanam",
+     "ru": "Руки болят... тащить надо"
+    }
+   ]
+  },
+  {
+   "code": "B3",
+   "id": "work_build",
+   "priority": "P1",
+   "hook": "стройка (`BuildFurniture`, `Build`, молоток)",
+   "lines": [
+    {
+     "text": "[effort] Tuk-tuk! Kladka!",
+     "ru": "Тук-тук! Стройка!"
+    },
+    {
+     "text": "[effort] Molka tuko, doma nam",
+     "ru": "Молотком бью, дом надо"
+    },
+    {
+     "text": "[determined] Shupa, shepa... haro!",
+     "ru": "Верёвка, палка... хорошо!"
+    }
+   ]
+  },
+  {
+   "code": "B4",
+   "id": "happy_done",
+   "priority": "P1",
+   "hook": "готово (крафт/постройка завершены)",
+   "lines": [
+    {
+     "text": "[proud] Fesh! Feeesh nip!",
+     "ru": "Готово! Готово уже!"
+    },
+    {
+     "text": "[happy] Mio! Moi tulka fesh!",
+     "ru": "Гляди! Инструмент готов!"
+    },
+    {
+     "text": "[proud] Haaaro! Mo kufesh — fesh!",
+     "ru": "Хорошо! Я сказала — сделано!"
+    }
+   ]
+  },
+  {
+   "code": "B5",
+   "id": "happy_fire_lit",
+   "priority": "P1",
+   "hook": "костёр загорелся (`TendFire` → зажгла)",
+   "lines": [
+    {
+     "text": "[excited] Miiio! Fugishka! Luvi-luvi!",
+     "ru": "Ой! Огонёчек! Тепло-тепло!"
+    },
+    {
+     "text": "[happy] Fugo fesh! Dimo haro!",
+     "ru": "Огонь готов! Дымок хороший!"
+    },
+    {
+     "text": "[excited] Yyeeeuff! Luviiii!",
+     "ru": "Ура! Теплооо!"
+    }
+   ]
+  },
+  {
+   "code": "B6",
+   "id": "sad_fire_out",
+   "priority": "P1",
+   "hook": "костёр потух",
+   "lines": [
+    {
+     "text": "[sad] Eeeh... fugo mora nip",
+     "ru": "Эх... огонь умер"
+    },
+    {
+     "text": "[worried] Bezfugo! Fipa gulao!",
+     "ru": "Нет огня! Холод идёт!"
+    },
+    {
+     "text": "[sad] Dimo kusner... shepa nam",
+     "ru": "Дыма нет... палок надо"
+    }
+   ]
+  },
+  {
+   "code": "B7",
+   "id": "happy_find_food",
+   "priority": "P1",
+   "hook": "нашла еду (`GetFood`, кокос, улов, туша)",
+   "lines": [
+    {
+     "text": "[excited] Miiiio! Ripka potrufa! Yyeeeuff!",
+     "ru": "Гляди! Рыбка попалась! Ура!"
+    },
+    {
+     "text": "[happy] Koko! Koko moi! Nyam nam!",
+     "ru": "Кокос! Мой кокос! Есть будем!"
+    },
+    {
+     "text": "[happy] Mesooo! Pakufa haro nip!",
+     "ru": "Мясо! Припасы хороши!"
+    }
+   ]
+  },
+  {
+   "code": "B8",
+   "id": "happy_water",
+   "priority": "P2",
+   "hook": "набрала воду (`GetWater`, `StowBottle`)",
+   "lines": [
+    {
+     "text": "[happy] Bota sipa fesh!",
+     "ru": "Бутылка с водой готова!"
+    },
+    {
+     "text": "[happy] Sipa shisto! Haro-haro",
+     "ru": "Вода чистая! Хорошо-хорошо"
+    },
+    {
+     "text": "[content] Rasa sipa dai... haro",
+     "ru": "Дождик воды дал... хорошо"
+    }
+   ]
+  },
+  {
+   "code": "B9",
+   "id": "angry_fail",
+   "priority": "P1",
+   "hook": "не вышло (нет материала, не дойти, `InteractionTooFar`)",
+   "lines": [
+    {
+     "text": "[frustrated] Kaka! Bezshepa, bezshupa!",
+     "ru": "Гадость! Ни палок, ни верёвок!"
+    },
+    {
+     "text": "[annoyed] Kush?! Bezgula nip!",
+     "ru": "Почему?! Не пройти же!"
+    },
+    {
+     "text": "[frustrated] Eeeh, kusner. Kusner nip!",
+     "ru": "Эх, пусто. Совсем пусто!"
+    }
+   ]
+  },
+  {
+   "code": "B10",
+   "id": "happy_wash",
+   "priority": "P2",
+   "hook": "стирка/купание (§40.6, `Bathe`)",
+   "lines": [
+    {
+     "text": "[content] Sipa-sipa, glisha zada",
+     "ru": "Водичка-водичка, грязь уходи"
+    },
+    {
+     "text": "[happy] Shiiisto! Pisko shisto nip!",
+     "ru": "Чисто! Тело чистое!"
+    },
+    {
+     "text": "[content] Plava-plava, haro birka",
+     "ru": "Плыву-плыву, сердцу хорошо"
+    }
+   ]
+  },
+  {
+   "code": "B11",
+   "id": "happy_eat",
+   "priority": "P1",
+   "hook": "ест (`Eat`)",
+   "lines": [
+    {
+     "text": "[chewing] Mmmnyam-nyam... haro",
+     "ru": "Ням-ням... хорошо"
+    },
+    {
+     "text": "[happy] Nyaaam! Sitko gulao!",
+     "ru": "Ням! Сытость приходит!"
+    },
+    {
+     "text": "[disgusted] Mn... gorko, nyam nam nip",
+     "ru": "Мн... горько, но есть надо"
+    }
+   ]
+  },
+  {
+   "code": "B12",
+   "id": "happy_drink",
+   "priority": "P2",
+   "hook": "пьёт (`Drink`)",
+   "lines": [
+    {
+     "text": "[relieved] Aaaah... sipa haro",
+     "ru": "Аах... вода хорошая"
+    },
+    {
+     "text": "[relieved] Sip-sip-sip... haaaro",
+     "ru": "Сип-сип-сип... хорошо"
+    },
+    {
+     "text": "[content] Bota moi... nip haro",
+     "ru": "Бутылочка моя... вот хорошо"
+    }
+   ]
+  },
+  {
+   "code": "B13",
+   "id": "work_craft",
+   "priority": "P2",
+   "hook": "крафт на месте (§61, выкладка + работа)",
+   "lines": [
+    {
+     "text": "[focused] Shepa, kamo... tuko-tuko",
+     "ru": "Палка, камень... стучу-стучу"
+    },
+    {
+     "text": "[focused] Shupa zig... noja nam",
+     "ru": "Верёвку режу... нож нужен"
+    },
+    {
+     "text": "[focused] Tak-tak... kladi, kladi",
+     "ru": "Так-так... кладу, кладу"
+    }
+   ]
+  },
+  {
+   "code": "B14",
+   "id": "happy_bed_done",
+   "priority": "P1",
+   "hook": "своя кровать готова (§64 мечта исполнена)",
+   "lines": [
+    {
+     "text": "[excited] Yyeeuff! Moi pisha! Moi nip!",
+     "ru": "Ура! Моя постелька! Моя!"
+    },
+    {
+     "text": "[proud] Dumka fesh! Pishapkin moi!",
+     "ru": "Мечта сбылась! Уют мой!"
+    },
+    {
+     "text": "[happy] Mio-mio! Nhorm haro nam!",
+     "ru": "Ой-ой! Спать будем хорошо!"
+    }
+   ]
+  },
+  {
+   "code": "C1",
+   "id": "fear_wolf",
+   "priority": "P1",
+   "hook": "заметила зверя (§62 дальнее обнаружение, `DogAggro`)",
+   "lines": [
+    {
+     "text": "[frightened] Ooi! Jevoooorka! Jevoorka!",
+     "ru": "Ой! Зверюга! Зверюга!"
+    },
+    {
+     "text": "[whispering, tense] Hoo... jeva gulao... mira",
+     "ru": "Тсс... зверь идёт... тихо"
+    },
+    {
+     "text": "[frightened] Shoop! Shoop nip! Zada!",
+     "ru": "Страшно! Совсем страшно! Уйди!"
+    }
+   ]
+  },
+  {
+   "code": "C2",
+   "id": "call_help",
+   "priority": "P1",
+   "hook": "крик о помощи (`HelpCry`)",
+   "lines": [
+    {
+     "text": "[shouting, scared] Pomiiii! Janeikofa, pomi!",
+     "ru": "Помогитее! Подруги, помогите!"
+    },
+    {
+     "text": "[shouting] Hooo! Jevoorka! Pomi nip!",
+     "ru": "Эй! Зверюга! Помогите же!"
+    },
+    {
+     "text": "[screaming] Ai-ai! Pomi! Pomiii!",
+     "ru": "Ай-ай! Помоги! Помогии!"
+    }
+   ]
+  },
+  {
+   "code": "C3",
+   "id": "angry_attack",
+   "priority": "P1",
+   "hook": "замах/удар (`SetCombat`, `DogFight` «struck»)",
+   "lines": [
+    {
+     "text": "[angry, shouting] Hoooiili! Hoili! Zada!",
+     "ru": "А ну! А ну! Пошёл!"
+    },
+    {
+     "text": "[angry] Ha! Pika zig! Ha!",
+     "ru": "Ха! Копьё колет! Ха!"
+    },
+    {
+     "text": "[angry, shouting] Besshooopi! Bezshoop nip!",
+     "ru": "Не страшно! Совсем не боюсь!"
+    }
+   ]
+  },
+  {
+   "code": "C4",
+   "id": "hurt_bitten",
+   "priority": "P1",
+   "hook": "укусили (`DogFight` «bit:», `SharkBite`)",
+   "lines": [
+    {
+     "text": "[screaming] Aaaai! Lapa! Lapaaa!",
+     "ru": "Ааай! Рука! Рукаа!"
+    },
+    {
+     "text": "[screaming] Dada! Zig! Beeela!",
+     "ru": "Ой-ой! Рвёт! Кровь!"
+    },
+    {
+     "text": "[screaming] Ooooi! Peda bi! Bi nip!",
+     "ru": "Оой! Нога болит! Как болит!"
+    }
+   ]
+  },
+  {
+   "code": "C5",
+   "id": "happy_victory",
+   "priority": "P2",
+   "hook": "зверь убит (`DogKilled`)",
+   "lines": [
+    {
+     "text": "[triumphant] Yyeeuff! Jevoorka mora!",
+     "ru": "Ура! Зверюга мёртв!"
+    },
+    {
+     "text": "[panting, proud] Ha... ha... zada nip, jeva",
+     "ru": "Ха... ха... вот и ушёл, зверь"
+    },
+    {
+     "text": "[triumphant] Hoili! Mo haro! Mo!",
+     "ru": "А ну! Я молодец! Я!"
+    }
+   ]
+  },
+  {
+   "code": "C6",
+   "id": "fear_flee",
+   "priority": "P1",
+   "hook": "убегает (`Flee`)",
+   "lines": [
+    {
+     "text": "[panicked] Bego-bego! Kroka! Kroka!",
+     "ru": "Бегу-бегу! Под крышу!"
+    },
+    {
+     "text": "[panicked, panting] Ai-ai-ai! Zada, zada!",
+     "ru": "Ай-ай-ай! Прочь, прочь!"
+    },
+    {
+     "text": "[panicked] Doma! Doma nam! Beeego!",
+     "ru": "Домой! Домой надо! Бегуу!"
+    }
+   ]
+  },
+  {
+   "code": "C7",
+   "id": "fear_shark",
+   "priority": "P2",
+   "hook": "акула / страх воды",
+   "lines": [
+    {
+     "text": "[frightened] Akooora! Akoora sipa!",
+     "ru": "Акула! Акула в воде!"
+    },
+    {
+     "text": "[frightened] Bezplava! Bezplava nip!",
+     "ru": "Не плыть! Ни за что!"
+    },
+    {
+     "text": "[whispering, tense] Sipa mora... shoop",
+     "ru": "Вода — смерть... страшно"
+    }
+   ]
+  },
+  {
+   "code": "C8",
+   "id": "hurt_death",
+   "priority": "P1",
+   "hook": "предсмертный вскрик (`NpcDied`/`BledOut`/`Murdered`)",
+   "lines": [
+    {
+     "text": "[screaming, dying] Aaaaai! Mo... moraaa...",
+     "ru": "Аай! Я... смерть..."
+    },
+    {
+     "text": "[gasping, dying] Nho... janeiko... bezmo...",
+     "ru": "Ох... милая... нет меня..."
+    },
+    {
+     "text": "[screaming, dying] Sumaaak... beeez...",
+     "ru": "Свеет... нет..."
+    }
+   ]
+  },
+  {
+   "code": "C9",
+   "id": "cry_corpse",
+   "priority": "P1",
+   "hook": "нашла тело / оплакивает (`Mourn`)",
+   "lines": [
+    {
+     "text": "[crying] Nhooo... janeiko morishka...",
+     "ru": "Ох... подружка мёртвая..."
+    },
+    {
+     "text": "[crying] Kush? Kush nip?! Bezto...",
+     "ru": "Почему? Почему же?! Нет тебя..."
+    },
+    {
+     "text": "[sobbing] Eeeh... birka zig... bieno...",
+     "ru": "Эх... сердце рвётся... долго..."
+    }
+   ]
+  },
+  {
+   "code": "C10",
+   "id": "cry_bury",
+   "priority": "P2",
+   "hook": "похороны (`Bury`)",
+   "lines": [
+    {
+     "text": "[solemn, sad] Mira nip, janeiko. Mira.",
+     "ru": "Покой тебе, милая. Покой."
+    },
+    {
+     "text": "[crying] Sumak toi... rekushnam",
+     "ru": "Свет твой... вернётся"
+    },
+    {
+     "text": "[solemn] Nuo birka toi nip",
+     "ru": "Наше сердце — твоё"
+    }
+   ]
+  },
+  {
+   "code": "C11",
+   "id": "angry_defend",
+   "priority": "P2",
+   "hook": "бежит на помощь (`Defend`)",
+   "lines": [
+    {
+     "text": "[shouting] Hoili! Mo gulao! Mo!",
+     "ru": "А ну! Я иду! Я!"
+    },
+    {
+     "text": "[angry, shouting] Zada janeiko! Zada nip!",
+     "ru": "Отойди от подруги! Ну-ка!"
+    },
+    {
+     "text": "[determined] Pomo! Pomo gulao!",
+     "ru": "Помощь! Помощь идёт!"
+    }
+   ]
+  },
+  {
+   "code": "C12",
+   "id": "fear_dark_alone",
+   "priority": "P3",
+   "hook": "ночь, одна, без огня",
+   "lines": [
+    {
+     "text": "[whispering, scared] Noka... bezfugo... shoop",
+     "ru": "Ночь... без огня... страшно"
+    },
+    {
+     "text": "[whispering] Kuna nip? Hooo?",
+     "ru": "Кто там? Эй?"
+    },
+    {
+     "text": "[scared] Mora gulao... nho...",
+     "ru": "Тьма идёт... ох..."
+    }
+   ]
+  },
+  {
+   "code": "D1",
+   "id": "happy_topic_smalltalk",
+   "priority": "P1",
+   "hook": "болтовня ни о чём",
+   "lines": [
+    {
+     "text": "[cheerful] Leva peleva! Boom boom birka janeiko!",
+     "ru": "Ля-ля-ля! Сердце тук-тук, подружка!"
+    },
+    {
+     "text": "[casual] Hoo, janeiko... dena haro, nip?",
+     "ru": "Эй, милая... день хороший, да?"
+    },
+    {
+     "text": "[casual] Tak-tak... gula, kufa, haro",
+     "ru": "Так-так... гуляем, болтаем, хорошо"
+    }
+   ]
+  },
+  {
+   "code": "D2",
+   "id": "sad_topic_escape",
+   "priority": "P1",
+   "hook": "уплыть с острова",
+   "lines": [
+    {
+     "text": "[wistful] Bieno sumak nam rekusho",
+     "ru": "Давно к свету надо вернуться"
+    },
+    {
+     "text": "[hopeful] Klado-klado... plava nam nip!",
+     "ru": "Брёвна-брёвна... уплывём же!"
+    },
+    {
+     "text": "[wistful] Sipa bieno... doma kudou?",
+     "ru": "Море долгое... где же дом?"
+    }
+   ]
+  },
+  {
+   "code": "D3",
+   "id": "fear_topic_sharks",
+   "priority": "P2",
+   "hook": "акулы",
+   "lines": [
+    {
+     "text": "[tense] Akoora sipa lesho... shoop",
+     "ru": "Акула в воде лежит... страшно"
+    },
+    {
+     "text": "[tense] Bezplava nam, janeiko. Bez.",
+     "ru": "Не плавать нам, милая. Не надо"
+    },
+    {
+     "text": "[whispering] Mo akoora vidnip... aaai",
+     "ru": "Я акулу видела... ааай"
+    }
+   ]
+  },
+  {
+   "code": "D4",
+   "id": "angry_topic_dogs",
+   "priority": "P1",
+   "hook": "звери и дозор",
+   "lines": [
+    {
+     "text": "[serious] Jevoorka noka gulao. Mira nam",
+     "ru": "Зверюга ночью ходит. Тихо надо"
+    },
+    {
+     "text": "[angry] Pika nam! Fugo nam! Bezshoop!",
+     "ru": "Копья надо! Огня надо! Не боимся!"
+    },
+    {
+     "text": "[serious] To nhorm, mo mira. Haro?",
+     "ru": "Ты спи, я посторожу. Ладно?"
+    }
+   ]
+  },
+  {
+   "code": "D5",
+   "id": "sad_topic_weather",
+   "priority": "P2",
+   "hook": "погода",
+   "lines": [
+    {
+     "text": "[tired] Rasa bieno nip... lipko fa",
+     "ru": "Дождь долгий... всё мокрое"
+    },
+    {
+     "text": "[sad] Fipoorka gulao. Luvi nam",
+     "ru": "Стужа идёт. Тепла надо"
+    },
+    {
+     "text": "[casual] Sumak zara nip. Kroka nam",
+     "ru": "Солнце палит. Тень нужна"
+    }
+   ]
+  },
+  {
+   "code": "D6",
+   "id": "happy_topic_food",
+   "priority": "P1",
+   "hook": "еда, кто готовит",
+   "lines": [
+    {
+     "text": "[cheerful] Koko-koko! Nyam nam nip!",
+     "ru": "Кокосы! Кушать будем!"
+    },
+    {
+     "text": "[happy] Meso fugo dai — haro nyam!",
+     "ru": "Мясо на огонь — вкусно будет!"
+    },
+    {
+     "text": "[worried] Pakufa kusner... paku nam",
+     "ru": "Припасов мало... еды надо"
+    }
+   ]
+  },
+  {
+   "code": "D7",
+   "id": "happy_topic_fire",
+   "priority": "P1",
+   "hook": "костёр",
+   "lines": [
+    {
+     "text": "[content] Fugishka luvi... haro nip",
+     "ru": "Костёрчик греет... хорошо"
+    },
+    {
+     "text": "[serious] Shepa dai fugo. Bezmora fugo",
+     "ru": "Дай палок огню. Пусть не гаснет"
+    },
+    {
+     "text": "[happy] Dimo haro, birka haro",
+     "ru": "Дымок хороший, на сердце хорошо"
+    }
+   ]
+  },
+  {
+   "code": "D8",
+   "id": "cry_topic_home",
+   "priority": "P2",
+   "hook": "тоска по дому",
+   "lines": [
+    {
+     "text": "[wistful, sad] Doma moi bieno... asun",
+     "ru": "Дом мой далеко... пусто"
+    },
+    {
+     "text": "[sad] Mama... pishapkin... bezto nip",
+     "ru": "Мама... уют... нет тебя"
+    },
+    {
+     "text": "[crying] Rekushi mia doma... rekushi",
+     "ru": "Вернуться бы домой... вернуться"
+    }
+   ]
+  },
+  {
+   "code": "D9",
+   "id": "happy_topic_gossip",
+   "priority": "P2",
+   "hook": "сплетни о третьей",
+   "lines": [
+    {
+     "text": "[whispering, amused] Hoo... soi kufa kaka nip",
+     "ru": "Слушай... она такое говорит"
+    },
+    {
+     "text": "[gossipy] Mio! Soi noja taska bieno!",
+     "ru": "Гляди! Она нож весь день таскает!"
+    },
+    {
+     "text": "[whispering] Bezkufo mia... shh, janeiko",
+     "ru": "Я молчу... тсс, подружка"
+    }
+   ]
+  },
+  {
+   "code": "D10",
+   "id": "happy_topic_flirt",
+   "priority": "P2",
+   "hook": "тепло, близость",
+   "lines": [
+    {
+     "text": "[warm, affectionate] Boom boom birka... toi nip",
+     "ru": "Тук-тук сердце... из-за тебя"
+    },
+    {
+     "text": "[playful] Janeiiiko... haro toi, haro",
+     "ru": "Милаая... хорошая ты, хорошая"
+    },
+    {
+     "text": "[affectionate] Lapa dai... luvi-luvi",
+     "ru": "Дай руку... тепло-тепло"
+    }
+   ]
+  },
+  {
+   "code": "D11",
+   "id": "happy_topic_joke",
+   "priority": "P1",
+   "hook": "шутка, поддразнивание",
+   "lines": [
+    {
+     "text": "[laughing] Ha-ha! Koko kopa tuk! Ha!",
+     "ru": "Ха-ха! Кокос по голове — тук!"
+    },
+    {
+     "text": "[playful] To krabka! Krabka-krabka!",
+     "ru": "Ты крабик! Крабик-крабик!"
+    },
+    {
+     "text": "[laughing] Leva peleva, kopa bez!",
+     "ru": "Ля-ля-ля, без головы!"
+    }
+   ]
+  },
+  {
+   "code": "D12",
+   "id": "angry_topic_grumble",
+   "priority": "P1",
+   "hook": "ворчание, ссора",
+   "lines": [
+    {
+     "text": "[annoyed] Kush mo fa? Kush bezto?!",
+     "ru": "Почему всё я? Почему не ты?!"
+    },
+    {
+     "text": "[angry] Kaka! Bezkufo mia nip!",
+     "ru": "Гадость! Не говори мне!"
+    },
+    {
+     "text": "[grumbling] Eeeh... bieno kaka fa",
+     "ru": "Эх... всё давно плохо"
+    }
+   ]
+  },
+  {
+   "code": "D13",
+   "id": "happy_laugh",
+   "priority": "P1",
+   "hook": "смех в ответ",
+   "lines": [
+    {
+     "text": "[laughing] Ha-ha-haaa! Yyeeuff!",
+     "ru": "Ха-ха-ха! Ух!"
+    },
+    {
+     "text": "[giggling] Hi-hi-hi! Haro nip!",
+     "ru": "Хи-хи-хи! Ну хорошо же!"
+    },
+    {
+     "text": "[laughing] Ha! Leva peleva!",
+     "ru": "Ха! Ля-ля-ля!"
+    }
+   ]
+  },
+  {
+   "code": "D14",
+   "id": "happy_agree",
+   "priority": "P1",
+   "hook": "«ага, точно» (короткий отклик)",
+   "lines": [
+    {
+     "text": "[agreeing] Aha... haro nip",
+     "ru": "Ага... хорошо"
+    },
+    {
+     "text": "[agreeing] Nam, nam. Haro",
+     "ru": "Надо, надо. Ладно"
+    },
+    {
+     "text": "[thoughtful] Mm-hm... tak nip",
+     "ru": "Мм-хм... так и есть"
+    }
+   ]
+  },
+  {
+   "code": "D15",
+   "id": "happy_bond_plus",
+   "priority": "P1",
+   "hook": "отношения выросли (`PopRelationship` +)",
+   "lines": [
+    {
+     "text": "[warm] Janeiko moi nip! Haro!",
+     "ru": "Подружка моя! Хорошо!"
+    },
+    {
+     "text": "[happy] Boom boom! Nuo birka!",
+     "ru": "Тук-тук! Сердца наши!"
+    },
+    {
+     "text": "[affectionate] To haro, mo haro. Fa haro",
+     "ru": "Ты хорошая, я хорошая. Всё хорошо"
+    }
+   ]
+  },
+  {
+   "code": "D16",
+   "id": "angry_bond_minus",
+   "priority": "P1",
+   "hook": "отношения упали (`PopRelationship` −)",
+   "lines": [
+    {
+     "text": "[angry] Zada! Bezjaneiko to!",
+     "ru": "Уйди! Не подруга ты!"
+    },
+    {
+     "text": "[cold] Bezkufo. Bezkufo nip.",
+     "ru": "Не разговариваю. Всё."
+    },
+    {
+     "text": "[hurt, sad] Eeeh... birka bi nip",
+     "ru": "Эх... сердцу больно"
+    }
+   ]
+  },
+  {
+   "code": "D17",
+   "id": "call_name",
+   "priority": "P2",
+   "hook": "окликнуть подругу издалека",
+   "lines": [
+    {
+     "text": "[calling out] Hooooo! Janeiko! Hoo!",
+     "ru": "Эээй! Подруга! Эй!"
+    },
+    {
+     "text": "[calling out] Kudou to?! Hoo!",
+     "ru": "Ты где?! Эй!"
+    },
+    {
+     "text": "[calling out] Gula mia! Hoo-hoo!",
+     "ru": "Иди ко мне! Эй-эй!"
+    }
+   ]
+  },
+  {
+   "code": "E1",
+   "id": "happy_aid_give",
+   "priority": "P1",
+   "hook": "помогает страдающей (`Aid`)",
+   "lines": [
+    {
+     "text": "[caring] Mira, janeiko. Mo nip tut",
+     "ru": "Тихо, милая. Я здесь"
+    },
+    {
+     "text": "[caring] Dai lapa. Paku dai. Haro nam",
+     "ru": "Дай руку. Вот еда. Всё будет хорошо"
+    },
+    {
+     "text": "[soothing] Mira-mira... ronka fesh nam",
+     "ru": "Тихо-тихо... рана заживёт"
+    }
+   ]
+  },
+  {
+   "code": "E2",
+   "id": "happy_aid_thanks",
+   "priority": "P2",
+   "hook": "благодарность",
+   "lines": [
+    {
+     "text": "[grateful] Haaaro toi... birka haro",
+     "ru": "Хорошая ты... на сердце тепло"
+    },
+    {
+     "text": "[grateful] Nho... haro nip. Haro toi",
+     "ru": "Ох... спасибо. Спасибо тебе"
+    },
+    {
+     "text": "[warm] Janeiko moi haro fa",
+     "ru": "Подружка моя, ты вся хорошая"
+    }
+   ]
+  },
+  {
+   "code": "E3",
+   "id": "sad_aid_ask",
+   "priority": "P2",
+   "hook": "просит о помощи (не бой)",
+   "lines": [
+    {
+     "text": "[weak] Janeiko... pomi mia... mifo",
+     "ru": "Милая... помоги мне... не могу"
+    },
+    {
+     "text": "[sad] Ronka bi... shupa dai nip",
+     "ru": "Рана болит... дай перевязать"
+    },
+    {
+     "text": "[weak] Paku... paku dai mia...",
+     "ru": "Еды... еды дай мне..."
+    }
+   ]
+  },
+  {
+   "code": "E4",
+   "id": "sleepy_dream",
+   "priority": "P3",
+   "hook": "мечтает вслух (§64 dream, у костра)",
+   "lines": [
+    {
+     "text": "[dreamy] Dumka moi... pisha moi... nhorm",
+     "ru": "Мечта моя... постелька моя... спать"
+    },
+    {
+     "text": "[dreamy] Doma nam nip... kroka, fugo, mira",
+     "ru": "Дом будет... крыша, огонь, покой"
+    },
+    {
+     "text": "[dreamy, sleepy] Sumak rekushnam... bieno...",
+     "ru": "Свет вернётся... когда-нибудь..."
+    }
+   ]
+  },
+  {
+   "code": "E5",
+   "id": "happy_gift",
+   "priority": "P3",
+   "hook": "прибой принёс вещь (§63 surf-gift)",
+   "lines": [
+    {
+     "text": "[excited] Miiio! Sipa dai! Dai nip!",
+     "ru": "Ой! Море подарило! Подарило!"
+    },
+    {
+     "text": "[happy] Potrufa! Moi nip, moi!",
+     "ru": "Находка! Моё, моё!"
+    },
+    {
+     "text": "[surprised] Hoo? Ku nip?.. Yyeuff!",
+     "ru": "Ой? Что это?.. Ура!"
+    }
+   ]
+  },
+  {
+   "code": "E6",
+   "id": "happy_dress",
+   "priority": "P3",
+   "hook": "оделась (`Dress`)",
+   "lines": [
+    {
+     "text": "[content] Luvi nip! Bezfipa!",
+     "ru": "Тепло! Не холодно!"
+    },
+    {
+     "text": "[happy] Haro-haro. Pisko luvi",
+     "ru": "Хорошо-хорошо. Телу тепло"
+    },
+    {
+     "text": "[content] Moi nip. Haro moi",
+     "ru": "Моё. Хорошее моё"
+    }
+   ]
+  }
+ ]
+}

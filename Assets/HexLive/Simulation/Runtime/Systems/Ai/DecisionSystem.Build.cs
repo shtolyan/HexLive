@@ -105,7 +105,8 @@ public sealed partial class DecisionSystem
                 hearthUpgrade ??= site;
             }
             else if (site.DefinitionId == "build.site" &&
-                site.BuildProduct is "bed.leaf" or "bed.basic" or "station.drying_rack")
+                site.BuildProduct is "bed.leaf" or "bed.basic" or "station.drying_rack"
+                    or "station.water_collector")
             {
                 furnitureSite ??= site;
             }

@@ -11,7 +11,7 @@ namespace HexLive.UnityPresentation.Wearing
 // Owns wardrobe sync (sim WornItems -> Equip/TakeOff), the walk/idle
 // animator, and the LookAtIK gaze (ported from molly_copy's pattern:
 // drive solver.target + weights, ease in/out smoothly).
-public sealed class NpcActorView : MonoBehaviour
+public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 {
     private static readonly int SpeedParam = Animator.StringToHash("Speed");
     private static readonly int HitReactParam = Animator.StringToHash("HitReact");
@@ -110,7 +110,11 @@ public sealed class NpcActorView : MonoBehaviour
     private bool _wasSwinging;        // rising edge of the sim's swing window
     private float _attackSpeed = 1f;
     private string _combatWeaponId;
-    private const float TalkTurnSeconds = 2.2f; // one speaks, then the other
+    // §67.10: длиннее реплики (кап 4.2 с) — иначе следующий ход начинается,
+    // пока предыдущая ещё звучит, и собеседницы говорят друг поверх друга.
+    // Оба актёра считают ход от ОБЩИХ часов без обмена сигналами, поэтому
+    // период должен покрывать самую длинную реплику, а не среднюю.
+    private const float TalkTurnSeconds = 4.6f; // one speaks, then the other
     private static readonly int SwimmingParam = Animator.StringToHash("Swimming");
     private string _currentPropId;
     // Right-handed by default; flipped at runtime via SetHandedness.
@@ -503,6 +507,14 @@ public sealed class NpcActorView : MonoBehaviour
             window,
             HexLive.Simulation.Navigation.HexHopTuning.TakeoffSeconds / hop,
             (hop - HexLive.Simulation.Navigation.HexHopTuning.LandingSeconds) / hop);
+
+        // §67: нырок в воду — всплеск на посадочной доле дуги.
+        if (intoWater && _simSpeed <= 4.01f)
+        {
+            Audio.SoundManager.Instance?.PlayDelayed(
+                Audio.FmodSfx.Sfx.Splash, transform.position,
+                window * 0.6f / Mathf.Max(0.25f, _simSpeed));
+        }
     }
 
     // Legacy pose-delta path — water dive-in / climb-out only.
@@ -715,6 +727,20 @@ public sealed class NpcActorView : MonoBehaviour
     public void Construct(string actorMeshName, int npcId = 0)
     {
         _npcId = npcId;
+        // §67.6: голосовой банк персонажа = его меш-имя (Molly/Jana/…) —
+        // файлы voice_<char>_<emotion>_<n> подхватываются по факту наличия.
+        _voiceChar = (actorMeshName ?? string.Empty).Trim().ToLowerInvariant();
+        // §67.7: липсинк на реплики — анализатору нужна голова с виземами
+        // (у примитивных фолбэк-капсул её нет, там и рта-то нет).
+        foreach (var smr in GetComponentsInChildren<SkinnedMeshRenderer>(true))
+        {
+            if (smr.sharedMesh != null && smr.sharedMesh.blendShapeCount > 50)
+            {
+                _voiceLipSync = gameObject.AddComponent<Audio.NpcVoiceLipSync>();
+                _voiceLipSync.Construct(smr);
+                break;
+            }
+        }
         _bodyBones = GetComponentInChildren<BodyBones>();
         _animator = GetComponentInChildren<Animator>();
         _lookAtIK = GetComponentInChildren<LookAtIK>();
@@ -974,7 +1000,7 @@ public sealed class NpcActorView : MonoBehaviour
     // bodyParts entries are "Zone=0.85" strings straight from the snapshot.
     public void SetBodyCondition(IReadOnlyList<string> bodyParts,
         IReadOnlyList<string> uncoveredParts, float hygiene, float thermal,
-        float rainWet = 0f, IReadOnlyList<string> wornWetness = null,
+        float rainWet = 0f, float waterWet = 0f, IReadOnlyList<string> wornWetness = null,
         IReadOnlyList<string> wornDirtiness = null,
         IReadOnlyList<string> wornBloodiness = null,
         IReadOnlyList<string> wounds = null, IReadOnlyList<string> bandagedZones = null,
@@ -1025,7 +1051,14 @@ public sealed class NpcActorView : MonoBehaviour
         // never drains below her sweat level.
         var sweatLevel = Mathf.Clamp01(thermal / 0.6f);
         var wetTarget = Mathf.Max(rainWet > 0.5f ? 1f : 0f, sweatLevel);
-        if (wetTarget > _skinWetness)
+        if (waterWet > 0.5f)
+        {
+            // A water tile dunks the body: the sim snaps BodyWetness to 1
+            // there (MoistureSystem) and this pool mirrors that — she climbs
+            // out fully glistening and dries through the drain branch below.
+            _skinWetness = 1f;
+        }
+        else if (wetTarget > _skinWetness)
         {
             var rise = rainWet > 0.5f ? RainSoakPerSecond : SweatSoakPerSecond;
             _skinWetness = Mathf.Min(wetTarget, _skinWetness + dt * rise);
@@ -1037,7 +1070,13 @@ public sealed class NpcActorView : MonoBehaviour
 
         // Cloth rain sheen is inertial too (rain-only — sweat doesn't soak the
         // shirt): fabric visibly darkens within seconds of standing in rain.
-        if (rainWet > 0.5f)
+        // Water snaps it like the skin — the sim soaks worn items on its Slow
+        // tick, this bridges the seconds until that value arrives.
+        if (waterWet > 0.5f)
+        {
+            _clothRainWetness = 1f;
+        }
+        else if (rainWet > 0.5f)
         {
             _clothRainWetness = Mathf.Min(1f, _clothRainWetness + dt * RainSoakPerSecond);
         }
@@ -1850,6 +1889,12 @@ public sealed class NpcActorView : MonoBehaviour
         // §axe: chopping/mining with an axe or pickaxe now plays the looping Chop
         // clip instead of the crouch Working pose + procedural shoulder swing.
         var chopping = actionKind == ActionKind.Chop && !_legless;
+        // §67: рубящий звук выбирает инструмент — кирка о камень, нож о
+        // кокос, топор о ствол (PollActionSounds бьёт его в такт клипу).
+        _chopSfxId = !chopping ? string.Empty
+            : heldItemId != null && heldItemId.Contains("pickaxe") ? Audio.FmodSfx.Sfx.MineStone
+            : heldItemId != null && heldItemId.Contains("knife") ? Audio.FmodSfx.Sfx.ChopCoco
+            : Audio.FmodSfx.Sfx.ChopWood;
 
         if (_animator != null)
         {
@@ -2013,24 +2058,59 @@ public sealed class NpcActorView : MonoBehaviour
     // Spec 28.15E: the overhead chat bubble. The renderer pushes the current
     // conversation topic every snapshot ("" = not talking → the bubble hides),
     // and fires a one-shot "+/-" relationship pop when a talk resolves.
+    // §67.10: the bubble is no longer driven from here directly — every
+    // utterance (chat turn, complaint, scream) goes through the speech director,
+    // which plays the voice and shows the matching picture in one call.
     private NpcSpeechBubble _speechBubble;
+    private UI.NpcSpeechDirector _speech;
 
     public void SetTalkTopic(string topicName)
     {
         EnsureSpeechBubble();
-        _speechBubble?.SetTopic(topicName);
+        _speech?.SetConversationTopic(topicName);
+    }
+
+    // §67.10: her body, for the ambient self-talk layer (hungry/parched/cold…).
+    // Pushed every snapshot; the director decides if and when she says anything.
+    public void SetSpeechState(in UI.SpeechCatalog.BodyState state)
+    {
+        EnsureSpeechBubble();
+        _speech?.SetState(state);
+    }
+
+    // §67.10: the verb she is doing right now — a work beat on the rising edge.
+    public void SetSpeechInteraction(string interaction)
+    {
+        EnsureSpeechBubble();
+        _speech?.OnInteraction(interaction);
+    }
+
+    /// <summary>§67.10: make her say a catalog line (voice + bubble + face).</summary>
+    public bool Say(string speechId)
+    {
+        EnsureSpeechBubble();
+        return _speech != null && _speech.Say(speechId);
     }
 
     public void PopRelationship(float affinityDelta)
     {
         EnsureSpeechBubble();
         _speechBubble?.PopRelationship(affinityDelta);
+
+        // §67.6/§67.10: исход беседы озвучивается той же эмоцией, что и «+/-»
+        // поп — ссора злит, удачный разговор радует, и в бабле висит своя
+        // картинка. Не каждый раз, чтобы финалы бесед не превращались в хор.
+        if (Random.value < 0.6f)
+        {
+            Say(affinityDelta < 0f ? "angry_bond_minus" : "happy_bond_plus");
+        }
     }
 
     public void PopSocialCue(string cueKind)
     {
         EnsureSpeechBubble();
         _speechBubble?.PopSocialCue(cueKind);
+        _speech?.OnCue(cueKind);
     }
 
     private void EnsureSpeechBubble()
@@ -2046,7 +2126,27 @@ public sealed class NpcActorView : MonoBehaviour
         go.transform.SetParent(transform, false);
         _speechBubble = go.AddComponent<NpcSpeechBubble>();
         _speechBubble.Initialize(_headBone, 5000 + _npcId * 4);
+        _speech = new UI.NpcSpeechDirector(this);
     }
+
+    // ---- §67.10 ISpeechStage: the mouth the director drives ----------------
+
+    float UI.ISpeechStage.PlayVoiceLine(string speechId)
+        => PlayVoiceLine(speechId, null, speechId == "hurt_wound" || speechId == "hurt_bitten"
+            ? Audio.FmodSfx.Sfx.HurtF
+            : speechId == "hurt_death" ? Audio.FmodSfx.Sfx.DeathF : null);
+
+    void UI.ISpeechStage.StopVoiceLine() => Audio.FmodSfx.StopLoop(ref _voiceChannel);
+
+    void UI.ISpeechStage.ShowSpeechIcon(string iconKey, float seconds)
+        => _speechBubble?.ShowIcon(iconKey, seconds);
+
+    void UI.ISpeechStage.HideSpeechIcon() => _speechBubble?.HideIcon();
+
+    // The death cry is the one line a corpse is allowed (it IS the death), and
+    // fast-forward stays mute so a 8× catch-up doesn't shout.
+    bool UI.ISpeechStage.CanSpeak(bool alarm)
+        => (alarm || !_dead) && _simSpeed <= 4.01f;
 
     // §armed-stance: while ANY tool/weapon (tool.*) is in the hand, the base Idle
     // and Walk clips are swapped for weapon-ready versions (NpcAnimSet.armedIdle /
@@ -2137,8 +2237,77 @@ public sealed class NpcActorView : MonoBehaviour
             // §50: legless → she talks lying (prone idle), not standing gestures.
             OverrideClip(TalkBaseClip, Standing(_animSet.talk[Random.Range(0, _animSet.talk.Length)]));
         }
+
+        // §67.6/§67.10: моя очередь говорить — реплика ПО ТЕМЕ, которую сим
+        // выбрал для меня (голод/жажда/рана/костёр/шутка…), и в бабле висит её
+        // же картинка. Тема своя у каждой — беседа читается как обмен.
+        if (on && !_talkTurnOn)
+        {
+            _speech?.OnTalkTurn();
+        }
+
         _talkTurnOn = on;
         _animator.SetBool(TalkingParam, on);
+    }
+
+    private string _voiceChar = string.Empty;
+    private Audio.FmodSfx.Loop _voiceChannel;
+    private Audio.NpcVoiceLipSync _voiceLipSync;
+
+    // §67.10: сыграть реплику каталога. Три ступени фолбэка, чтобы каталог
+    // можно было наполнять по одной группе, ничего не ломая:
+    //   1. voice_<char>_<emotion>_<slug> — записанная реплика под этот повод;
+    //   2. voice_<char>_<emotion>        — общий банк эмоции (§67.6);
+    //   3. общий sfx (вскрик боли/смерти) — если голоса нет вовсе.
+    // Возврат: длительность в секундах (0 = ничего не прозвучало). Бабл всё
+    // равно покажет картинку — визуальная половина работает до озвучки.
+    private float PlayVoiceLine(string speechId, Vector3? at = null, string fallbackId = null)
+    {
+        if (_voiceChar.Length == 0)
+        {
+            return 0f;
+        }
+
+        // Одна реплика за раз на персонажа (иначе хор из одного рта).
+        if (Audio.FmodSfx.IsPlaying(ref _voiceChannel))
+        {
+            return 0f;
+        }
+
+        var pos = at ?? (TryGetBodyCenter(out var center) ? center : transform.position);
+        var emotion = UI.SpeechCatalog.EmotionOf(speechId);
+        var id = "voice_" + _voiceChar + "_" + speechId;
+        if (!Audio.FmodSfx.HasSound(id))
+        {
+            id = "voice_" + _voiceChar + "_" + emotion;
+        }
+
+        if (Audio.FmodSfx.HasSound(id))
+        {
+            _voiceChannel = Audio.FmodSfx.PlayTracked(id, pos);
+            // §67.7: рот проговаривает реплику (uLipSync по PCM файла).
+            if (_voiceLipSync != null)
+            {
+                _voiceLipSync.Speak(ref _voiceChannel);
+            }
+
+            var lengthMs = Audio.FmodSfx.GetLengthMs(ref _voiceChannel);
+            // §67.8: лицо держит эмоцию реплики, пока она звучит. Боль
+            // (hurt) не трогаем — гримасу уже ведёт wound-канал SetPain.
+            if (_face != null && emotion != "hurt")
+            {
+                _face.FlashTalkEmotion(emotion, lengthMs > 0 ? lengthMs / 1000f : 2.5f);
+            }
+
+            return lengthMs > 0 ? lengthMs / 1000f : 0f;
+        }
+
+        if (fallbackId != null)
+        {
+            Audio.FmodSfx.Play(fallbackId, pos);
+        }
+
+        return 0f;
     }
 
     // Iter 28: the renderer flags a ledge sit (sim IsLedgeSit) so LateUpdate
@@ -2287,6 +2456,12 @@ public sealed class NpcActorView : MonoBehaviour
                     OverrideClip(AttackBaseClip, clip);
                     _animator.SetTrigger(AttackParam);
                 }
+
+                // §67: вжух в начале замаха; сам удар озвучит DogFight-событие.
+                if (_simSpeed <= 4.01f)
+                {
+                    Audio.FmodSfx.Play(Audio.FmodSfx.Sfx.Swing, transform.position);
+                }
             }
 
             _action = ActionKind.None;
@@ -2301,6 +2476,11 @@ public sealed class NpcActorView : MonoBehaviour
             if (!_wasSwinging)
             {
                 _actionPhase = 0f;
+                // §67: процедурный замах тоже свистит.
+                if (_simSpeed <= 4.01f)
+                {
+                    Audio.FmodSfx.Play(Audio.FmodSfx.Sfx.Swing, transform.position);
+                }
             }
 
             var duration = Mathf.Max(0.25f,
@@ -2801,6 +2981,11 @@ public sealed class NpcActorView : MonoBehaviour
         // scale — the shared spawner scales sizes AND velocities together.
         Rendering.BloodSplashVfx.SpawnHitSplash(
             bone.position, outward, root.lossyScale.y, splashSeed);
+
+        // §67/§67.10: свежая рана — вскрик, личный для персонажа (§67.6), с
+        // общим женским фолбэком, и бабл с раной/кровью над головой. Alarm-ранг
+        // перебивает болтовню; гейт 0.4 s от брызг не даёт хора из одного рта.
+        Say("hurt_wound");
     }
 
     // Spec 40.7: paint the bare skin from tan (0..1) and acute sunburn (0..1).
@@ -3065,6 +3250,97 @@ public sealed class NpcActorView : MonoBehaviour
         _animator.SetFloat(TurnDirectionParam, turn, 0.05f, Time.deltaTime);
     }
 
+    // ------------------------------------------------------------------
+    // Spec §67: per-view continuous sounds — footsteps matched to the walk
+    // cadence and surface, work "thock"s synced to the Chop clip's impact
+    // frame. Everything scales with the animator speed (which already folds
+    // in the fast-forward multiplier) and goes mute above 4× sim speed.
+    // ------------------------------------------------------------------
+    public enum GroundSurface { Grass, Sand, Water }
+
+    private GroundSurface _groundSurface;
+    private float _stepClock;
+    private float _nextStepGap = 0.48f;
+    private float _swimStrokeClock;
+    private string _chopSfxId = string.Empty;
+    private int _lastChopBeat = int.MinValue;
+
+    /// <summary>Renderer per-tick: what the feet land on (wade/sand/grass).</summary>
+    public void SetGroundSurface(GroundSurface surface) => _groundSurface = surface;
+
+    private void PollActionSounds()
+    {
+        if (_animator == null || _dead || _laying || _simSpeed > 4.01f)
+        {
+            _lastChopBeat = int.MinValue;
+            return;
+        }
+
+        // -- шаги / гребки: тикает в темпе анимации, не реального времени --
+        if (_wasWalking && _jumpTimer <= 0f)
+        {
+            if (_swimming)
+            {
+                _swimStrokeClock += Time.deltaTime * Mathf.Max(0.2f, _animator.speed);
+                if (_swimStrokeClock >= 1.15f)
+                {
+                    _swimStrokeClock = 0f;
+                    Audio.FmodSfx.Play(Audio.FmodSfx.Sfx.StepWater, transform.position, 0.7f);
+                }
+            }
+            else
+            {
+                _stepClock += Time.deltaTime * Mathf.Max(0.2f, _animator.speed);
+                if (_stepClock >= _nextStepGap)
+                {
+                    _stepClock = 0f;
+                    _nextStepGap = Random.Range(0.44f, 0.52f);
+                    var stepId = _groundSurface switch
+                    {
+                        GroundSurface.Water => Audio.FmodSfx.Sfx.StepWater,
+                        GroundSurface.Sand => Audio.FmodSfx.Sfx.StepSand,
+                        _ => Audio.FmodSfx.Sfx.StepGrass,
+                    };
+                    Audio.FmodSfx.Play(stepId, transform.position);
+                }
+            }
+        }
+        else
+        {
+            // Стоя — почти взведён: первый шаг звучит сразу, не через полцикла.
+            _stepClock = 0.35f;
+            _swimStrokeClock = 0.7f;
+        }
+
+        // -- удар рубки: "тук" на ударном кадре каждого цикла Chop-клипа --
+        if (_chopSfxId.Length > 0)
+        {
+            var state = _animator.GetCurrentAnimatorStateInfo(0);
+            if (state.IsName("Chop"))
+            {
+                // normalizedTime растёт монотонно по циклам — целая часть
+                // (со сдвигом на ударную фазу) меняется ровно раз за взмах.
+                const float impactPhase = 0.45f;
+                var beat = Mathf.FloorToInt(state.normalizedTime - impactPhase);
+                if (_lastChopBeat != int.MinValue && beat > _lastChopBeat)
+                {
+                    Audio.FmodSfx.Play(_chopSfxId,
+                        transform.position + transform.forward * 0.3f);
+                }
+
+                _lastChopBeat = beat;
+            }
+            else
+            {
+                _lastChopBeat = int.MinValue;
+            }
+        }
+        else
+        {
+            _lastChopBeat = int.MinValue;
+        }
+    }
+
     // Gaze: talkers look at each other, walkers glance down the path.
     public void LookAt(Transform target)
     {
@@ -3292,7 +3568,11 @@ public sealed class NpcActorView : MonoBehaviour
     private void LateUpdate()
     {
         SampleMotion();
+        PollActionSounds();
         UpdateTalkTurns();
+        // §67.10: hands the bubble back to a running conversation once a line
+        // fades, and paces the ambient self-talk layer.
+        _speech?.Tick();
 
         // Belt and braces for the single movement flow: whatever animation
         // or IK nudged, the body sits exactly on its root (scale is the

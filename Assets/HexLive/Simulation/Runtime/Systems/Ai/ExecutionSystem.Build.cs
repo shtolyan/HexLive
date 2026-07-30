@@ -95,10 +95,11 @@ public sealed partial class ExecutionSystem
             }
         }
 
-        // Spec §54: a campfire is piled from stones, and the leaf mat and the
-        // drying rack (§35.5B) are hand-lashed. Rigid furniture still needs
-        // the builder's hammer.
-        var needsHammer = site.BuildProduct is not ("campfire.spot" or "bed.leaf" or "station.drying_rack");
+        // Spec §54: a campfire is piled from stones, and the leaf mat, the
+        // drying rack (§35.5B) and the water collector (§54.15) are
+        // hand-lashed. Rigid furniture still needs the builder's hammer.
+        var needsHammer = site.BuildProduct is not ("campfire.spot" or "bed.leaf"
+            or "station.drying_rack" or "station.water_collector");
         if (BuildSiteMath.IsStocked(site) &&
             (!needsHammer ||
              Content.GearCatalog.HasCapability(npc.Inventory.Items, Content.GearCapability.Hammer) ||

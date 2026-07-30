@@ -6,19 +6,27 @@ namespace HexLive.UnityPresentation.Environment
     /// <summary>
     /// §54.14 (r2): meat hanging on the campfire's roasting spit. The sim keeps
     /// the hanging chunks in the fire's Contents (raw roasting → cooked waiting
-    /// to be taken); this view strings the low-poly meat pieces under the
-    /// crossbar of the campfire_final prefab. Rebuilt only when the raw/cooked
-    /// mix changes, so it's cheap to poke every frame.
+    /// to be taken); this view threads the meat pieces onto the crossbar of the
+    /// campfire_final prefab — one per fixed skewer slot, chunk centred ON the
+    /// bar like a skewered kebab. Rebuilt only when the raw/cooked mix changes,
+    /// so it's cheap to poke every frame.
     /// </summary>
     public sealed class CampfireSpitMeat : MonoBehaviour
     {
-        // campfire_final: stick_bar sits at local (0, 0.67, 0) spanning ±0.62 in X.
-        private const float BarY = 0.67f;
-        private const float BarHalfSpan = 0.38f;
-        // Every hanging chunk is normalized to this authored (campfire-local) max
-        // dimension, so a crude procedural chunk and a modelled prefab chunk hang
-        // at the same size on the crossbar.
-        private const float MeatSpitSize = 0.46f;
+        // campfire_final crossbar (stick_bar): centre (0, 0.67, 0), 1.5 long in
+        // X, ~0.05 thick; the forked posts flank it at |x| ≥ 0.485 and the rope
+        // lashings sit further out. All in campfire-local units — the prefab is
+        // authored 1:1, so these are world sizes too.
+        // Where a skewered chunk's CENTRE sits: threaded on the bar, riding a
+        // hair high so the rod reads as passing through the lower half
+        // (hand-tuned in the editor — the hanging-below variant read as
+        // floating under the spit).
+        private const float SkewerY = 0.673f;
+        // §54.14 (r4): SIX fixed skewer slots on the clear span between the
+        // forks (outermost meat edge stays inside |x| 0.485). Chunks fill from
+        // the CENTRE outward so a lone piece roasts over the flame, not at a post.
+        private static readonly float[] SlotX = { -0.40f, -0.24f, -0.08f, 0.08f, 0.24f, 0.40f };
+        private static readonly int[] FillOrder = { 2, 3, 1, 4, 0, 5 };
 
         private int _signature = -1;
         private Transform? _meatRoot;
@@ -57,16 +65,28 @@ namespace HexLive.UnityPresentation.Environment
                 }
 
                 piece.name = "Spit " + id;
-                // Normalize the chunk to a consistent hanging size (prefab meat is
-                // authored larger than the old procedural cube).
-                var scale = NormalizeScale(piece, MeatSpitSize);
+                // Same physical size as the chunk on the ground / in the hand
+                // (the shared ObjectFit table; the campfire renders 1:1).
+                piece.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+                piece.transform.localScale *= ObjectFit.FitScaleFactor(piece, id);
+
+                // Fixed slot, centre-out; a chunk beyond the slots (capacity
+                // tuned past 6) doubles up a hair behind the bar. Lying flat,
+                // each slot at its own yaw so the bones fan out along the row.
+                var slot = FillOrder[i % SlotX.Length];
+                var overflow = i >= SlotX.Length ? 0.06f : 0f;
+                var pose = Quaternion.Euler(0f, 90f + slot * 25f, 0f);
+                piece.transform.rotation = pose;
+                // The prefab pivot is off-centre (shifted toward the bone), so
+                // centre the MESH on the skewer point: measure the rotated
+                // bounds at the origin and cancel the pivot offset.
+                var pivotShift = ObjectFit.WorldBounds(piece, out var b)
+                    ? b.center : Vector3.zero;
+
                 piece.transform.SetParent(_meatRoot, false);
-                // Even spread along the crossbar, hanging just beneath it.
-                var t = total == 1 ? 0.5f : i / (float)(total - 1);
-                piece.transform.localScale = Vector3.one * scale;
-                piece.transform.localPosition = new Vector3(
-                    Mathf.Lerp(-BarHalfSpan, BarHalfSpan, t), BarY - 0.22f, 0f);
-                piece.transform.localRotation = Quaternion.Euler(0f, 90f + i * 25f, 0f);
+                piece.transform.localRotation = pose;
+                piece.transform.localPosition =
+                    new Vector3(SlotX[slot], SkewerY, overflow) - pivotShift;
             }
         }
 
@@ -82,27 +102,6 @@ namespace HexLive.UnityPresentation.Environment
             }
 
             return LowPolyToolFactory.Build(id);
-        }
-
-        // Uniform scale so the piece's authored max dimension equals target.
-        // Measured before parenting (piece at world origin, unit scale), so the
-        // renderer bounds read as the authored local size.
-        private static float NormalizeScale(GameObject piece, float target)
-        {
-            var rs = piece.GetComponentsInChildren<Renderer>();
-            if (rs.Length == 0)
-            {
-                return 1f;
-            }
-
-            var b = rs[0].bounds;
-            for (var i = 1; i < rs.Length; i++)
-            {
-                b.Encapsulate(rs[i].bounds);
-            }
-
-            var maxDim = Mathf.Max(b.size.x, Mathf.Max(b.size.y, b.size.z));
-            return maxDim > 0.0001f ? target / maxDim : 1f;
         }
     }
 }

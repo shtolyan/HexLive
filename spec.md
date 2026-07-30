@@ -3010,6 +3010,44 @@ Some conditions are checked before execution starts. Others must remain valid du
 
 - Preconditions are not only a planning-time concern. They may fail at runtime as the world changes.
 
+### 26.6A Interaction reach policy (r3) — one table, one detector
+
+The recurring "acts from a whole hex away" bug family (builds hammered from
+across the camp, coconuts pierced over a cliff, a helper kneeling and feeding a
+housemate from the next hex) always traced back to one of the interaction
+paths rolling its **own** distance tolerance. r3 centralizes the policy:
+
+- **`InteractionReach` (Runtime/Helpers) is the single source of truth.**
+  - `ForObject(obstacleRadius)` = `BesideReach` = footprint + one sub-grid
+    step (0.80 wu) — every world-object interaction (harvest, craft, build,
+    pick-up, sit, sleep, fuel…).
+  - `Aid` = 1.3 × HexRadius (1.95 wu) — feed/hydrate/treat/medicate/console.
+    The plan walks to arm's length (0.9 × R); 1.3 × R is snap slack only.
+  - `Talk` = 2 × HexRadius (3.0 wu) — drift slack over the same arm's-length
+    approach (was 4 × R and read as chatting across the camp).
+  - Intentionally ranged acts (bow shots ≤ 3 tiles, help-cry broadcast
+    ≤ 6 tiles) are NOT interactions and stay outside this table.
+- **Every start gate calls `InteractionReach.CheckStart`**, which measures the
+  live distance and, on violation, emits the standardized
+  **`InteractionTooFar`** trace before the caller aborts (shun/cool-down/claim
+  release stay per-kind). A soak run counts `InteractionTooFar` events instead
+  of waiting for a screenshot — this is the regression detector for the whole
+  family.
+- **The object gate cannot be skipped.** If the target object has no linked
+  junction, the reach anchor falls back to its tile centre with one hex of
+  slack — previously `Junctions.Count == 0` bypassed the check entirely.
+- **Talk and aid gained the literal-arrival gate** (stand ON the reserved
+  approach junction, mirroring objects) and their shared planner helper
+  `TryReserveArmsLengthApproach` caps the nearest-junction snap at
+  `InteractionReach.Aid`: an uncapped snap around a blocked/claimed grid (a
+  sufferer lying on a bed footprint, a shore, a cliff) used to hand back a
+  junction a whole hex out and the helper faithfully knelt there. Too far →
+  fall back to the partner junction's own passable neighbours → else the plan
+  fails fast (no doomed walks).
+- **Aid re-checks reach at completion**: if the patient got up and fled
+  mid-care, the relief is NOT applied from across the clearing — the aid
+  aborts (`AidComplete` variant of `InteractionTooFar`).
+
 ### 26.7 Tick-Based Action Progress
 
 Long-running actions should progress through ticks.
@@ -4944,6 +4982,44 @@ exempt — they can only crawl, never stand. This closes the endless-maul loop
 where a girl fled a dog she could not shake, never struck back, and was
 amputated where she stood (seed 351193917).
 
+**Standoff-release valve (amendment, Jul 2026):** the square-up stance (a girl
+within 1 tile of a charging mob latches `IsFighting` so a run-down can't stroll
+her to death) has a pathological twin: a mob that is tile-adjacent but can
+never reach **junction** adjacency — melee — because the last junction is
+blocked, claimed or otherwise impassable. The hurt-girl flee assessment (Fix B)
+frees the wounded; a HEALTHY girl still latched forever: badge «дерётся», no
+bite, no strike, no auction (the IsFighting gate), frozen until the player
+intervened (seed 521091321, day 30 — Марта/Молли against a wolf that never
+attacked). Now the stance keeps a sliding window (`SquareUpSinceTick` /
+`SquareUpLastTick`): after `StandoffReleaseTicks` (40, ~10 s) of CONTINUOUS
+blow-less square-up the latch is dropped for `StandoffReleaseGraceTicks` (240)
+— she walks, drinks, re-plans, with the mob's tile filed in danger memory. Real
+melee contact resets both fields instantly (the fight branch owns a real
+exchange), so a genuine run-down — where the dog DOES reach melee between her
+steps — can never trip the valve. All fields transient, not serialized. Knobs
+in `ThreatBalance.asset` («Тупиковая стойка»).
+
+**Mob-side mirror (chase-path fix + stuck-chase give-up, Jul 2026):** the wolf
+half of the same scene — a dog frozen mid-camp, chasing forever, never
+attacking (seed 521091321 day 43, dog 13). Two causes, two fixes:
+
+- *Chase pathfinding planned routes the dog may not walk.* `FindPath` returned
+  the girls' shortest path THROUGH the hut; `ChaseStep` refused the first
+  indoor step (sanctuary) and the dog stood still every pass while the path
+  never changed. Now `FindPath` takes a `hardAvoid` set — the cached
+  mob-forbidden junctions (indoor/door/all-water,
+  `RuntimeCaches.MobForbiddenJunctions`, rebuilt on `TopologyVersion`) — so a
+  chase plans around the hut, or comes back empty when no legal route exists.
+  Unlike `avoid` (standing actors, a courtesy), `hardAvoid` survives the
+  enclosed-fallback retry: a dog may push past housemates, never through a
+  wall.
+- *A hopeless chase now ends.* If the chase fails to move the dog for
+  `DogChaseStallGiveUpTicks` (200) continuous ticks, it drops the target
+  (`DogGaveUp`), takes `DogHuntCooldownTicks` (600) of prey-blindness so it
+  actually wanders off, and roams. Any successful step or melee contact
+  resets the stall clock. Both `MobState` fields transient. Knobs in
+  `WorldBalance.asset` (§46 dog section).
+
 **Danger memory (27 integration):** every aggro/first bite records
 `{tile, tick}` in `MemoryState.Dangers` (deduped by tile, TTL 2400 ticks =
 1 day, cap 8). Effects:
@@ -4989,6 +5065,30 @@ is the trigger. Skipped only if the helper is dead, prone, already
 fighting, already defending, fleeing, or is the attacker. Trace:
 `FriendGuard` (also in the game history log); the helper stamps the same
 help-answer social cues as a cry response. Knobs live in `Spec57`.
+
+**On-station hold + assist expiry (amendment, Jul 2026).** Two churn/freeze
+holes in the Defend machinery, both observed on seed 521091321 day 30:
+
+- *Hold:* a defender already standing at (or beside) the aggressor got a
+  1-step `MoveToJunction` plan **to her own junction**, which completed
+  instantly and re-planned every pass — `HelpCryAssistStarted` →
+  `HelpCryAssistArrived` 17 times in 68 ticks while the unreachable wolf
+  stood a tile away. The strikes never came from that plan
+  (`RunDogDefenders`/PredationSystem read only the goal + adjacency), so the
+  right plan on station is NO plan: `BuildDefendPlan` now detects
+  `onStation` (at the aggressor's junction or a neighbour of it), quietly
+  completes with a one-time `HelpCryAssistHolding` trace
+  (`AssistHoldSinceTick`), and lets her stand guard.
+- *Expiry:* NOTHING ended an assist while the mob lived — `ClearAssist` only
+  fired on its death, and DecisionSystem skips the auction entirely while
+  `CombatAssist*` is set (needs never broke in either), so a defender parked
+  against a standoff wolf — or trailing a roaming one across the island —
+  stayed in `Defend` forever. The `GoalLock` stamped when the assist was
+  taken (cry: `HelpCryCooldownTicks` 240; §62 first strike:
+  `AttackLockTicks` 240) is now the whole assist budget: once it expires and
+  no LIVE exchange is running (mob `Fighting` with her on station), she
+  stands down — `HelpCryAssistExpired`, assist cleared, `Defend` put on the
+  failure cooldown so the auction doesn't immediately re-enter.
 
 ### 29C.5 Explore Goal (23.2 addition)
 
@@ -7924,9 +8024,14 @@ the current spatial system, not bolted on.
   both read **max(BodyWetness, wettest worn item)** — closing the old gap
   where a survivor lying in the rain in only underwear showed no wet effect
   and took no wet penalty. Warmth/movement penalties still key off *worn*
-  items only (a bare body has no insulation to lose), and the presentation
-  wet-skin sheen is unchanged (`rainWet` = raining && not indoor, body-level
-  since iteration 21).
+  items only (a bare body has no insulation to lose). The presentation
+  wet-skin sheen mirrors the sim: `rainWet` (raining && not indoor) soaks
+  the visual wetness pool over ~4 s, and `waterWet` (standing on any Water
+  tile — swim or wade, same `TileFlags.Water` the sim reads) **snaps the
+  pool to 1** exactly like `BodyWetness` — so a swimmer climbs out of the
+  sea glistening and dries gradually (~45 s real time). Water also snaps
+  the quick cloth sheen, bridging the seconds until the Slow-tick sim
+  wetness reaches the garment materials.
 - **Natural wear rate ×2 (0.02/game-day) + early fraying**: holes start
   below durability **0.85** (was 0.6), so clothes visibly age within a week
   of wear — not only after combat damage; rags still fall apart at 0
@@ -7979,11 +8084,13 @@ the current spatial system, not bolted on.
 ### 35.6 Iteration 22 — Durability & Bow (implemented)
 
 - **Passive wear** (MoistureSystem — the per-item condition pass): every
-  *worn* garment loses `0.01 / 150` durability per slow tick (= 0.01 per
-  worn game-day; ~100 quiet days per garment). Carried, hung, and ground
-  items do not wear; tools do not wear in v1.
+  *worn* garment loses `ClothingPassiveWearPerDay / 150` durability per
+  slow tick (= 0.005 per worn game-day; ~200 quiet days per garment —
+  slowed 5× on 2026-07-30, was 0.025). Carried, hung, and ground items
+  do not wear; tools do not wear in v1.
 - **Damage wear**: every dog bite costs each garment covering the bitten
-  part **0.05** durability — armor absorbs health damage but the cloth
+  part **ClothingBiteDurabilityWear = 0.013** durability (slowed 5× on
+  2026-07-30, was 0.065) — armor absorbs health damage but the cloth
   gets chewed either way. Dog fights, not time, are what actually kill
   clothes on the soak horizon.
 - **Destruction**: at durability <= 0 the worn item is removed outright —
@@ -8892,7 +8999,15 @@ pass — order chosen to add robustness before difficulty.
   land and it's worth revisiting.
 
 ### 40.14 Tent (sun shelter) & tiered beds
-- **Tent**: a min-1-hex **angled canopy** that shades one person from the
+- **Tent — RETIRED (Jul 2026, §66).** The v1 lean-to canopy (`shelter.tent`,
+  woven at the fire from 4 leaves + cloth) read as legacy junk in the tidied
+  §66 camp — the user cut it. `CraftTent` is disabled in `DecisionSystem`
+  (same pattern as the retired `CraftBed`: goal never scores available, the
+  Craft dispatch plumbing stays), and `BedSiteSystem`'s orphan sweep despawns
+  any `shelter.tent` already standing in a loaded world. If a sun shelter
+  returns it must be a REAL §66 build (hex-centred staged build-site with a
+  proper model), not the crafted prop:
+  a min-1-hex **angled canopy** that shades one person from the
   sun — one (or two) hex edges become an impassable roof. A **bed can go
   under it**. Needs a nice model (leaves + sticks).
 - **Tiered beds**: the current bedroll becomes **tier 2** (high comfort,
@@ -8904,10 +9019,15 @@ pass — order chosen to add robustness before difficulty.
   `SimBalance.RaftEnabled` is `false`, so NPCs form **no** raft motivation at
   all: `BuildRaft` never scores, the `raftWoodDemand` wood stock-up is off, and
   whole logs are hoarded only for real furniture build-sites — never the raft.
-  Nothing was removed (world-gen still places the `vessel.raft` object;
-  execution, serialization and the presentation/history hooks are intact);
-  flipping the flag back to `true` restores everything below verbatim. Verified
-  headless: 3 seeds × 20 k ticks → BuildRaft scored 0, RaftProgress 0/10.
+  Nothing was removed from the code (execution, serialization and the
+  presentation/history hooks are intact); flipping the flag back to `true`
+  restores everything below verbatim. Verified headless: 3 seeds × 20 k ticks
+  → BuildRaft scored 0, RaftProgress 0/10. **r2 (Jul 2026):** world-gen no
+  longer seeds the coastal `vessel.raft` object either — the goal gates were
+  off but the log-raft prop still spawned on the shore of every new world
+  (user: "я просил убрать, а плот всё ещё спавнится"). The placement block in
+  `PrototypeWorldDefinitionFactory` is behind the same `RaftEnabled` flag now;
+  verified headless (new world: 0 rafts).
 - Beyond "survive": **leave the island.** Build a **raft (with a motor)**
   and sail away, hopping between **multiple islands** (resources run out;
   move on). Swimming risks a **shark** mob (attacks/kills mid-swim); a raft
@@ -9197,7 +9317,19 @@ writes every piece of state the sim can mutate — tick, environment/weather,
 build project, runtime tile flags (HasFloor/Indoor) and junction
 Blocked/Door sets, all world objects, all NPCs (needs, mind, plan,
 execution, movement, perception, memory, social, inventory, worn items,
-body/wounds), wildlife (dogs/rabbits/sharks), reservations, occupancy and
+body/wounds — incl. the §50 `Severed` set, §44 bandage/gauze zones, body
+wetness and the §53 compassion trait, blob v14; before v14 those five were
+dropped on load, so a reloaded amputee regrew the limb and stood back up.
+Blob v15 closes the rest of that class: the §49 sickness window +
+damage budget (`SickUntilTick`/`SicknessDamageRemaining` — a reload used to
+cure the 🤢), the §53 `Compassion` need, the §35.4 overheat latch +
+cool-off re-arm counter, and the §40.6 redress list (which exact shore
+garments to put back on and where — a mid-bathe save no longer strands
+her naked). Still transient BY DESIGN: combat pacing timestamps
+(strike/flee/standoff windows) restart on load, and
+`DreamQueue`/`ActiveDream`/`CurrentDream` are derived — `DreamSystem`
+recomputes them from the saved `CampfireDreamDone` latch + bed ownership),
+wildlife (dogs/rabbits/sharks), reservations, occupancy and
 the runtime caches (verbatim, list order preserved — systems iterate
 them), plus the wildlife respawn timers (moved into `WorldState` from
 system-local fields, which silently reset on load). Static topology —
@@ -9960,6 +10092,10 @@ All knobs live in `Spec50` (mirrored in `HexTuningConfig`, §50 header): `Enable
 death channel on top of the
 knife-edge dog balance (§46) — soak baseline vs branch and retune before shipping.
 Harness must whitelist the `LimbSevered` trace event.
+Persistence: `Body.Severed` is written to the save blob (v14, §41.2). It is a
+SET apart from part HP — a 0-HP mauled zone heals back, a severed one never
+does — so omitting it (pre-v14) meant a reload turned every amputee back into
+a "mauled" body that regenerated and stood up.
 
 ### §50.7 No jumping without legs — terrain goes off-limits
 A survivor missing a leg (`BodyState.CanJump` false) can't hop an elevation step
@@ -10108,6 +10244,8 @@ a **build-site** — an intent point every NPC knows from the start:
 - Build work is **peacetime** (like the hut/raft): it pauses under hunger/thirst
   ≥ 0.55 or fresh danger. Building is a slow surplus activity — the bed, like the
   hut, completes only when the colony has spare hands and stone, by design.
+- **§66 placement discipline.** Every staked build lands at the CENTRE of a hex
+  it owns alone and carries a yaw (`WorldObjectState.RotationDegrees`) — see §66.
 - Scope note: **bed + hut + drying-rack (§35.5B)** run the build-site model;
   the tent keeps its campfire craft for now (identical machinery — one table
   row to migrate). The old `CraftBed` and `CraftRack` paths are retired.
@@ -10504,10 +10642,13 @@ hand-lashed into a usable bed.
     walks every junction within the footprint radius of a candidate anchor
     (anchor tile + neighbours) and rejects the spot if any is blocked
     (boulders, palms, the hearth's ember ring, other beds/sites) or water.
-    `FindFiresideSpot` scans hearth ring 1 then ring 2 (fallback when the
-    fireside is cluttered) and takes the closest valid junction to the flames;
     `FindSpacedFurnitureSpot` (crafted rack/tent path) runs the same check in
     its first two passes (pass 3 stays a heap-beats-nowhere fallback).
+    **Superseded for staked builds by §66:** the fireside search is now
+    `FindFiresideHex` — it picks a whole HEX (ring 1, then ring 2) and anchors
+    the piece at its CENTRE, testing the hex interior instead of the product's
+    full disc, so a neighbour's footprint on the shared rim no longer vetoes an
+    otherwise good hex.
   - *Interactions still work* — the planner's beside-arrival
     (`CollectStandableAround`) already handles blocked anchors, so hauls
     deposit and the raise fires from the standable rim (probe-verified:
@@ -10737,7 +10878,22 @@ scarcity and wolf pressure — the residual slow seeds trace to thirst spending
 half the day above even the 0.65 gate (the §55 water economy), not to the build
 chain. Knobs: `BuildNeedGate`, `BuildDangerFreshTicks` (SimBalance).
 
-### §54.14 Staged, upgradeable campfire (stick pile → stone ring → roasting spit)
+**r2 — target only a site you can advance (empty-trip churn fix).** Decision
+scores `BuildFurniture` against the colony's ORDERED queue (`FindBuildSite`:
+bare hearth → campfire upgrade → furniture), but the planner's generic
+targeting accepted ANY `FurnitureSite` in view and picked the NEAREST. With
+stones for the fire's ring in hand a girl walked to the closer rack site
+(which wants sticks), deposited nothing, completed the 36-tick Build and
+looped — an empty ping-pong every ~40 ticks that starved every site for whole
+10-day soaks (rack 0/4 sticks, seeds 12345/424242; the `SiteDelivered` trace
+fires even on a zero deposit, which is how it showed). Fix:
+`IsValidTargetFor(BuildFurniture)` now requires a site the NPC can ADVANCE —
+`CarriesSiteMaterial` (stage-aware) or `IsStocked` (raise trip) — so she
+walks her cargo to the site that accepts it, and with no such site in view
+the plan fails into the ordinary goal cooldown instead of looping. After:
+ring stones/sticks actually accrue (5-6/18, 9/12 by day 3, seed 12345), rack
+2/4 by day 10 on 424242. Residual slowness is the material economy + the §63
+r2 queue ordering (hearth upgrades before furniture), not empty trips.
 
 The campfire is no longer a monolithic prop: it is a **staged build like the
 beds** (§54.12), rendered by the assembled `campfire_final` prefab (authored 1:1
@@ -10829,9 +10985,14 @@ Mechanics:
 1. **Hang.** A girl with `food.meat_raw` and a lit, spit-complete fire in view
    hangs the chunk on the crossbar (`CookMeat` → Craft at the fire; the raw
    chunk moves from her pack into the fire's `Contents`). The crossbar holds
-   `SimBalance.CampfireSpitCapacity` (3) chunks — raw and cooked together; a
+   `SimBalance.CampfireSpitCapacity` (6) chunks — raw and cooked together; a
    full bar (or a missing spit) makes `CookMeat` unavailable and no other lit
-   fire will do (`TargetMatchesGoal`).
+   fire will do (`TargetMatchesGoal`). The view (`CampfireSpitMeat`) threads
+   each chunk onto one of SIX fixed skewer slots along the crossbar — chunk
+   centred ON the bar like a skewered kebab (height hand-tuned), filled
+   centre-out so a lone chunk roasts over the flame — at the same physical
+   size the chunk has on the ground / in the hand (shared `ObjectFit` table —
+   meat renders 1.5× the standard food size).
 2. **Roast.** While the fire is LIT, `FireSystem` advances each hanging raw
    chunk's progress (rides on the `ItemInstance.ResourceAmount`, in ticks); at
    `SimBalance.MeatRoastDurationTicks` (200 = 2 game hours) the chunk becomes
@@ -10850,6 +11011,76 @@ The spit is thus a communal larder: one hunter hangs, anyone hungry takes.
   (was 4) — ~4 boulders ring one fire. `resource.stone`/`rock.boulder` ground
   visuals are the new Blender prefabs (`resource.stone.prefab`,
   `rock.boulder.prefab`; old fbx backed up as `*__handmade_backup.fbx`).
+
+### §54.15 Water collector (staged build + the rain-water loop)
+
+A rain catcher: a square stick frame with a **leaf funnel** that sheds rain
+inward-down to a drip point, and a **stone stand** under it where a container
+is left to fill. `station.water_collector`, tagged `Station` + `Obstacle` —
+it owns its hex like every §66 build.
+
+- **Staged build-site**, same machinery as §54.12 — `water_collector_final`
+  prefab groups `"1".."5"`, revealed piece by piece as material is hauled:
+  1. 4 planted uprights (sticks) → 2. the 5-stone stand → 3. 4 top-rim sticks
+  → 4. 8 corner lashings (rope) → 5. the 11-leaf funnel. The funnel is what
+  actually catches rain, so it finishes the piece. Hand-lashed — **no hammer**
+  (like the leaf mat and the rack).
+- **Bill = prefab piece counts = stage sums** (the §54.12 invariant):
+  **8 sticks / 5 stones / 8 rope / 11 leaves**
+  (`SimBalance.WaterCollector*`, mirrored in `ResourceLoopConfig`;
+  `BuildSiteMath.WaterCollectorStages`).
+- **Staking** (`BedSiteSystem`): ONE communal collector per colony, staked by
+  the hearth via `FindFiresideHex` (§66: hex centre, one build per hex) as
+  soon as the drying rack is staked or standing — the rack is cheaper and
+  goes first, but the collector must not wait for its completion (water is
+  survival: coconut spawns are HALVED with this feature, 600t/cap 1 per palm
+  — was 300t/cap 2). The haul/raise chain is the ordinary
+  `DeliverToSite`/`BuildFurniture` machinery.
+
+**The vessel loop.** The parked bottle is an ordinary `tool.bottle` world
+object on the collector's junction (the rack-Hang idiom): `Owner` = who
+parked it, `ResourceAmount` = fill 0..1. No new persisted state.
+
+1. **StowBottle** (chore, TendFire band + rain/thirst nudges): a girl with an
+   EMPTY bottle parks it in a free collector slot — `vessel.place`
+   (`PlaceVessel`, 8t). A parked bottle is furniture, not litter:
+   `GatherTools` explicitly ignores it (`WaterCollectorMath.IsParked`) —
+   without that gate she re-scooped her own bottle in an endless park/pick
+   loop (probe: 11 parks, fill forever 0).
+2. **Rain fills it** (`WaterCollectorSystem`, slow layer): while
+   `IsRaining`, fill grows to full over `WaterCollectorFillTicks = 600` (a
+   quarter day) of rain; dry spells pause, never spill. Full → `VesselFull`.
+3. **GetWater draws from it** — the planner prefers a collector holding ≥1
+   gulp over coconut foraging (`vessel.take`/`TakeVessel`, 8t), and the goal
+   may now fire even bladeless/coconut-less on a stocked collector. A
+   thirsty girl does NOT wait for full — 1 gulp is worth the trip. Taker
+   rules (`WaterCollectorMath.CanTake`): the bottleless placer (or anyone
+   once the owner is dead) walks off with the bottle; a housemate with her
+   OWN empty bottle pours the water over — the parked bottle stays and keeps
+   collecting.
+4. **Rain water is CLEAN** (`WaterKind.Rain`, appended enum — saves safe):
+   boiled-grade thirst relief (0.85/bottle), NO sickness roll; the
+   warm-drink comfort bonus stays boiled-only.
+
+**Presentation.** Authored 1:1 and rendered through `BedAssembly`, so it is
+**NOT** sized by `ObjectFit` (that branch returns before `FitObjectPrefab`) —
+same rule as `station.drying_rack` (§35.5B). The build-site view needed no new
+code (`BuildSitePile` routes any `IsAssembled` product). A parked bottle
+renders upright on the stone stand (`WC_point` height, no ground scatter) via
+the `_collectorJunctions` branch in `HexWorldRenderer`.
+
+**§66 contract for future stations** (probe-verified for the collector): a
+staked site lands on the hex-centre junction, `TileHoldsStructure` claims the
+hex for both the site and the finished piece, and one hex holds one build.
+The claim derives from the DEFINITION: any object with no `PickUp`
+interaction is non-portable and holds its hex — so a new station keeps the
+rule automatically as long as its definition has no PickUp verb (the parked
+bottle HAS one, so it never falsely claims the collector's hex).
+
+**Probe** (headless, `/private/tmp/wcprobe`): park→fill→take→drink(Rain, no
+sickness) loop; staking with the 8/5/8/11 bill; §66 centre/one-per-hex
+asserts — all green. 10-day default-world smoke: sites stake by ~t600;
+deliveries share the pre-existing early-economy scarcity with the bed chain.
 
 ## §55 Rivers retired, drink from the coconut (iteration 55)
 
@@ -11589,7 +11820,8 @@ int). На `WorldState`: `DreamQueue` (сеется лениво из `SpecDream
 собирает `ownedIds` из готовых кроватей и строящихся сайтов; (в) «переиспользуй
 до постройки» — бесхозную готовую кровать (реклейм/бесплатная кровать хижины)
 отдаёт первой безкроватной; (г) целится в конкретную безкроватную живую NPC,
-штампует `site.Owner`; leaf-first, затем премиум `bed.basic` тем же правилом.
+штампует `site.Owner`; leaf-first (кроме премиум-мечтательниц — §64.8), затем
+премиум `bed.basic` тем же правилом.
 Владелец переезжает с сайта на поднятую кровать в `ApplyFurnitureSite`. Выбор
 места сна — МЯГКИЙ (`SpecDream.BedExclusive=false`): в `PlanningSystem` ветка
 `preferOwnBed` предпочитает СВОЮ кровать, но любая свободная остаётся
@@ -11628,11 +11860,26 @@ int). На `WorldState`: `DreamQueue` (сеется лениво из `SpecDream
 проба: продукт/bill/доставленное переживают save→load 1:1.
 
 **64.7 Баланс.** Все ручки в `SpecDream` (`Enabled`, `DefaultQueue`, `BuildPull`,
-`BedExclusive`, `CampfireRequiresLit`). Проба (headless): логика `DreamSystem`
+`BedExclusive`, `CampfireRequiresLit`, `PremiumBedChance`). Проба (headless):
+логика `DreamSystem`
 8/8 (защёлка/адванс/пер-NPC дисплей/реклейм), A/B `Enabled=false` vs `true` —
 паритет выживания (16/16 за 12 дней). Достройка кровати в headless-прототипе не
 наблюдается — но она не строится и в чистом HEAD-базлайне (это свойство мелкого
 прототип-мира, не мечты); проверка владения при подъёме — в реальной сцене.
+
+**64.8 Премиум-мечта.** Когда до девочки доходит мечта о кровати, она не всегда
+хочет простой лиственный мат: с шансом `SpecDream.PremiumBedChance` (0.33) она
+мечтает СРАЗУ о премиум-лежаке (`bed.basic`). Желание — стабильная черта
+«девочка×мир»: детерминированный ролл `MathUtil.Hash01(seed, id, …)`
+(`BedSiteSystem.WantsPremiumBed`), одинаковый между тиками и перезагрузками —
+формат сейва не меняется. Следствия в `BedSiteSystem`: (а) её персональный сайт
+первого яруса стейкается как `bed.basic` (полный билл §54.12: брёвна + палки +
+верёвка + листья, подъём молотком) — лиственный ярус она пропускает и во втором
+ярусе уже удовлетворена (`ownedBasicBed`); (б) «переиспользуй до постройки» —
+бесхозный лиственный мат она НЕ клеймит (мечта закрылась бы не той кроватью),
+свободный `bed.basic` берёт любая. Гейт `SimBalance.BedBasicEnabled=false`
+откатывает желание к мату. Очередь мечт/`DreamType` не меняются — это по-прежнему
+`OwnBed`, меняется только продукт застолблённого сайта.
 
 ## §65 Смертельно устал → спать у костра, а не падать на месте (iteration 65)
 
@@ -11692,3 +11939,319 @@ Headless-соак замерил, ПОЧЕМУ падают. Коллапсов 
 seed 1104049673), но их ЧИСЛО не растёт — ожидаемо для knife-edge, откатывается
 тумблером. Рычаг 65.4 из соака: 900т→0 смертей, 1100т→5, легаси→3 (немонотонно) —
 поэтому OFF. Визуальная проверка в Unity — pending.
+
+## §66 Один гекс — одна постройка: центр, поворот, кровати боком к костру (iteration 66)
+
+Просьба: причесать строительство. Правило одно и жёсткое — **один гексагон = один
+предмет строительства, и стоит он ВСЕГДА в центре гекса**, но может быть **повёрнут
+под любым углом**. Кровати вокруг костра ставятся так, чтобы спящая грелась **боком**:
+ни головой, ни ногами к огню. Правило действует **для новых миров**; старые сохранения
+трогать не нужно — они грузятся и рисуются ровно как раньше.
+
+**66.1 Якорь — центр гекса.** До §66 сайт ставился на ЛЮБОЙ свободный джанкшен
+подходящего тайла (`FindFiresideSpot`), поэтому очаг и кровати сидели вкось, свисали в
+соседний гекс и читались как свалка. Теперь `StructurePlacement.CenterJunction` берёт
+джанкшен, ближайший к `HexSpatialMath.TileToWorld(tile)` — на суб-сетке `HexPointLayout`
+это ровно точка (0,0) в середине гекса. Кандидатом становится **целый тайл**, а не
+джанкшен на нём (`BedSiteSystem.FindFiresideHex`), а `WorldStateFactory.CreateCampfireSite`
+ставит стартовый очаг тем же способом — костёр в центре своего гекса, кровати кольцом
+вокруг.
+
+**66.2 Хекс занят целиком.** `StructurePlacement.HexFreeForBuild` пускает постройку на
+тайл, если он сухой и проходимый, на нём **нет другой структуры** (`TileHoldsStructure`
+— всё непереносимое: мебель, сайт, могила) и **вся внутренняя область гекса** свободна
+от заблокированных точек и воды. Внутренняя область = `HexClaimRadius = 0.8R` (1.2 wu):
+внутренние точки суб-сетки не выходят за 0.75R, а общий с соседями ободок начинается с
+апофемы 0.866R. Ободок НАМЕРЕННО не проверяется — иначе кровать, чей физический след
+(1.39 wu, §54.9A) чуть залезает на общий ободок, вето́вала бы соседний гекс, и в кольце
+у костра поместилась бы лишь каждая вторая кровать.
+
+**66.3 Поворот.** У объекта появился `WorldObjectState.RotationDegrees` — сим-угол
+(градусы CCW от +X, та же конвенция, что у `NPCState.RotationDegrees`); вид переводит
+его через `SimulationUnityMapper.ToUnityYawDegrees`. Угол ставится при разметке сайта и
+**переезжает на поднятый предмет** (`ApplyFurnitureSite`, оба пути — и ранний подъём
+костра на стадии 1, и обычный подъём). **Ровно 0 = «поворот не назначен»**
+(`StructurePlacement` нормализует настоящий угол в (0, 360], никогда в 0): вид такие
+объекты не крутит вовсе — поэтому старые миры, россыпь предметов и природные пропы
+выглядят как прежде. Сохранение — blob v13 (до v13 читается как 0).
+
+**66.4 Кровать — боком к огню.** `SideOnYaw` = угол на костёр + 90°: длинная ось
+кровати (локальный +Z префаба `bed_leaf_final`/`bed_basic_final` — рама 1.47×2.36 wu
+идёт вдоль Z) ложится **перпендикулярно** лучу «кровать → костёр». Спящая при этом
+греет бок. Сушилка (§35.5B) поворотом не критична — она просто **смотрит на пламя**
+(`FacingYaw`), чтобы бельё висело лицом к теплу; повешенная вещь наследует угол сушилки
+(иначе висела бы рядом с рейками, а не на них).
+
+**66.5 Спящая поворачивается вместе с кроватью.** Тело во сне пинится к маркеру `point`
+внутри префаба кровати и берёт **его** мировой поворот (`NpcActorView.SetLaying` →
+`_bodyRoot.rotation = _layingAttach.rotation`), поэтому поворот корня кровати
+автоматически разворачивает и спящую — отдельной логики не нужно. Кровати теперь в
+центрах гексов, значит спящая стоит на СОСЕДНЕМ тайле и «в тайле от неё» может оказаться
+сразу две кровати: `FindBedAttachPoint` сначала берёт кровать из плана сима
+(`TargetObjectId`), и только потом — ближайшую по РЕАЛЬНОМУ расстоянию, а не по кольцу
+гексов.
+
+**66.6 Что НЕ изменилось (осознанно).** Радиусы блокировки (`ObstacleRadius`) остались
+прежними: костёр 0.55R (ночной щит от собак, измеренная лестница §54.14), кровать 1.39.
+§66 меняет только МЕСТО и УГОЛ, а не физику препятствий и не дистанции работы — так
+хрупкий баланс «колония vs собаки» не пересорчивается сверх неизбежного. Сайт по-прежнему
+не блокирует ничего, пока строится (§54.9A r2), поэтому подходы к нему не запечатываются.
+
+**66.7 Проверка (headless).** Проба на прототип-острове (§59.3, полный набор систем):
+стартовый очаг, сайт сушилки и сайт кровати встают с `offCentre = 0.000`, сушилка —
+0.0° к огню, кровать — 90.0° к огню. Отдельная проба «подъёма» (счёт сайта
+принудительно закрывается, дальше строит сама колония): поднятая `bed.leaf` сохраняет
+и центр (`offCentre = 0.000`), и угол (90.0° к линии на костёр), и владельца (§64) —
+цепочка сайт → предмет не теряет ничего.
+
+**66.8 A/B-соак (6 сидов × 10 дней, тот же тюненный баланс, базлайн = HEAD без §66).**
+Выжившие — **4/4 во всех 12 прогонах** (паритет, регрессии выживания нет). Постройки:
+§66 — 1 кровать + 1 сушилка, базлайн — 0 кроватей + 2 сушилки (числа малы, разница в
+пределах шума; кровати в прототип-мире почти не достраиваются и в базлайне — известный
+предел headless-прогонов, §64). Главная метрика — `maxOffCentre`: **0.000 у §66 против
+1.125–1.352 у базлайна**, то есть до §66 постройки уезжали от центра дальше апофемы
+гекса (1.299) — ровно та «свалка», которую просили причесать. Замечание по
+производительности: на некоторых сидах Dijkstra молотит вхолостую (безногая по §50 NPC
+раз за разом ищет путь к недостижимой цели — полный обход графа каждый тик). Это
+ПРЕДСУЩЕСТВУЮЩАЯ патология (видна и в базлайне, seed 337279758: 141 с в
+`PathfindingSystem`), к §66 отношения не имеет; §66 лишь пересорчивает, на каких сидах
+она вылезает.
+
+**66.9 Визуальная проверка в Unity — pending:** поворот моделей на сцене и поза спящей
+на повёрнутой кровати (голова/ноги вдоль кровати, бок к огню).
+
+## 67. Звук: FMOD + два канала событий (базовая версия)
+
+**67.0 Зачем.** Остров был немым. Базовая озвучка: работа (топор/кирка/нож),
+бой (замах/удар/укус), шаги по поверхностям, урон и смерть, падение тела,
+стройка, костёр — плюс эмбиент острова (§67.3). Всё позиционное — 3D через
+FMOD, слушатель = основная камера.
+
+**67.1 Движок.** FMOD for Unity **2.02.29** (`Assets/Plugins/FMOD`, перенесён из
+проекта w-empire; мобильные платформы — только C#-исходники, нативные библиотеки
+mac/win/linux). **Studio-проект ЕСТЬ** — `FMODStudio/HexLive/HexLive.fspro`
+(Studio 2.03.14): 24 события 1:1 по ид-ам `FmodSfx.Sfx.*` (варианты =
+MultiSound-плейлисты, 3D = SpatialiserEffect + min/max дистанции из каталога,
+лупы = looping-инструменты), всё в Master-банке; `Build/Desktop/Master.bank`
+проверен — все 62 сэмпла внутри. Проект создан headless-скриптами
+(`FMODStudio/Scripts/populate_events.js`, fmodstudiocl) из очищенного
+Examples-шаблона. **Раннтайм на банки пока НЕ переведён**: интеграция 2.02.29
+не читает банки 2.03 — сначала апгрейд «FMOD for Unity» до 2.03.x (качается
+с fmod.com под логином), и только потом линковка проекта в Unity-настройках.
+Пока звук идёт через **FMOD Core API**: `FmodSfx` (UnityPresentation/Audio)
+грузит сэмплы из
+`Assets/StreamingAssets/HexLive/Sfx/<id>_<n>.(ogg|wav)` на прогреве Bootstrap
+(§41.4: ленивый лоад в бою = фриз) и играет 3D one-shot'ы/лупы
+(`MODE._3D_LINEARSQUAREROLLOFF`, min/max дистанции на звук, случайный вариант +
+питч-джиттер). `FMODStudioSettings`: `BankLoadType=None`, `AutomaticEventLoading=false`.
+Когда появится FMOD Studio: заводим проект, события 1:1 по ид-ам `FmodSfx.Sfx.*`,
+и `FmodSfx` меняет реализацию, НЕ трогая места вызова.
+**АПГРЕЙД СДЕЛАН (§67.12): интеграция теперь 2.03.14, банки грузятся,
+раннтайм играет события Studio.** Абзац выше — история того, как было.
+
+**67.2 Два канала событий.**
+- **Дискретные моменты сима** — `SimulationRunnerBehaviour.FlushEventsToConsole`
+  → `SoundManager.OnSimEvent`: TreeChopped (скрип+треск ствола), CrownChopped/
+  LogSplit, BoulderBroken, CoconutProcessed, DogAggro (рык), DogFight («bit:» =
+  укус волка / «struck» = удар оружия), DogKilled (падение), SharkBite,
+  LimbSevered, NpcDied/Murdered/BledOut/StarvedToDeath (вскрик смерти),
+  Fainted/Collapsed, HelpCry, Butchered, FurnitureBuilt/HutCompleted. Позиция —
+  вью NPC (`TryGetNpcViewPosition`) или моба (`TryGetMobViewPosition`, id
+  парсится из «Dog={id}»); нет позиции — тишина, а не 2D-звук в лицо.
+  Гварды: реплей сейва (`LoadingScreen.IsReplaying`), протухшие тики (>12),
+  скорость сима >4× (одиночные звуки молчат, эмбиент живёт), пер-ид rate-limit.
+- **Непрерывные звуки вью** — `NpcActorView.PollActionSounds` (LateUpdate):
+  шаги в темпе анимации (поверхность от рендера: вода-брод/песок/трава — песок =
+  прибрежные тайлы §31C.4), гребки вплавь, «тук» рубки на ударной фазе (0.45)
+  каждого цикла Chop-клипа (инструмент выбирает сэмпл: кирка→камень, нож→кокос,
+  топор→ствол), вжух на старте замаха (`SetCombat`), вскрик на свежую рану (гейт
+  0.4 s от брызг `SyncWoundSplashVfx`), всплеск на посадочной доле нырка.
+  Костёр: 3D-луп треска в `CampfireEffect.SetLit` (окно «есть топливо»).
+
+**67.3 Эмбиент острова** (`SoundManager.UpdateAmbience`): **прибой** — один
+виртуальный 3D-эмиттер на ближайшей к камере точке кромки (список песчаных
+тайлов собирается при постройке тайлов; ближе камера к воде — громче);
+**день/ночь** по `Environment.TimeOfDayNormalized` (0=06:00): днём джунгли-птицы,
+ночью сверчки (кроссфейд ~час на смене); **дождь** — 2D-луп по
+`Environment.IsRaining` (level-triggered — реплеебезопасно), в дождь птицы
+глохнут; ночью редкие **гекконы** (3D из случайного направления, 20–70 с) и
+далёкий **волчий вой** (2–6 мин).
+
+**67.4 Ассеты.** 62 файла в `StreamingAssets/HexLive/Sfx`: удары/шаги — Kenney
+«Impact Sounds» + «RPG Audio» (CC0); рык/укус/вой волка, женские стоны боли и
+вскрик смерти, всплески, гекконы и все лупы (прибой, джунгли, сверчки, костёр,
+дождь) — генерация CassetteAI (fal.ai), моно-даунмикс, нормализация, лупы
+сшиты кроссфейдом 1 с. Громкости/дистанции — таблица `Defs` в `FmodSfx`.
+
+**67.6 Голоса персонажей.** У каждой колонистки — личный банк реплик
+(симлиш, авторские записи юзера): `StreamingAssets/HexLive/Sfx/`
+`voice_<char>_<emotion>_<n>.wav`, где `<char>` = lower-case `ActorMesh`
+(molly/jana/marta/jolly), `<emotion>` ∈ angry/cry/happy/hurt/sad/sleepy.
+`FmodSfx.Prewarm` регистрирует голосовые группы АВТОМАТИЧЕСКИ по скану файлов
+(общий VoiceDef: 0.75, 1.2–22 wu) — новый персонаж = просто папка файлов, без
+кода. Хуки (`NpcActorView`): **очередь реплики в разговоре** (§28.15E
+turn-taking, фронт `_talkTurnOn`) — случайная лёгкая эмоция (happy×3 : sad×2 :
+sleepy×1); **исход беседы** (`PopRelationship`, 60% случаев) — минус →
+angry/cry (70/30), плюс → happy; **свежая рана** — личный hurt (фолбэк —
+общий `hurt_f`). Одна реплика за раз на персонажа (tracked-канал,
+`IsPlaying`-гейт), моно 44.1k, тишина обрезана, кап 4.2 с. В Studio-проекте —
+папка Voices, 24 события `voice_*` генерятся populate-скриптом по факту
+наличия групп.
+
+**67.7 Липсинк (uLipSync поверх FMOD).** Пакет **uLipSync** (MFCC → фонема)
+встроен embedded-копией в `Packages/com.hecomi.ulipsync` (перенесён из
+molly_copy, демо-ассеты вырезаны) с одним патчем: `overrideSampleRate` вместо
+`AudioSettings.outputSampleRate` — Unity-аудио в проекте ВЫКЛЮЧЕНО (FMOD), и
+системный rate равен 0, что ломало окно анализа. Стандартный путь звука
+(OnAudioFilterRead) заменён фидером `NpcVoiceLipSync`
+(UnityPresentation/Audio): он держит PCM-кэш реплик (наши WAV — PCM16 mono
+44.1k, парсер ищет data-чанк), часами служит позиция FMOD-канала
+(`channel.getPosition`), и каждый кадр скармливает анализатору ровно то окно,
+которое канал только что проиграл (`OnDataReceived`, кап 200 мс после
+фризов). Дальше сток: `uLipSyncBlendShape` → Daz-виземы
+`…eCTRLv{AA,IY,UW,EE,OW,M,F,S,SH,T,ER,L,K,TH}` (профиль MFCC —
+`Resources/HexLive/Audio/VoiceLipSyncProfile`, калибровка из molly_copy;
+маппинг ищет блендшейпы ПО СУФФИКСУ, чтобы новое Daz-поколение с другим
+префиксом тоже цеплялось). Вешается в `NpcActorView.Construct` на первый SMR
+с >50 блендшейпов; примитивные капсулы живут без рта.
+
+**67.8 Эмоции лица при репликах.** Эмоция реплики уже известна из имени
+файла (§67.6) — `NpcFaceAnimator.FlashTalkEmotion(emotion, сек)` держит её на
+лице ровно на длительность звучания (`FmodSfx.GetLengthMs`): happy — улыбка
+всем лицом + щёки; sad — хмурый рот + лёгкий прищур; sleepy — полуприкрытые
+глаза; angry — eCTRLAngry + сведённые брови + сморщенный нос; cry — сильный
+фраун + брови домиком + зажмуривание. Оверлей живёт ПОВЕРХ фонового
+настроения (§48.6-совместимо: настроение возвращается само, спад 0.5 с в
+конце реплики), а болевой канал (`SetPain`, FACS-гримаса) всегда сильнее —
+раненая не улыбается. «hurt»-реплики лицо не трогают — гримасу уже ведёт
+wound-канал.
+
+**67.5 Не сделано (осознанно).** Банки/снапшоты/шины FMOD Studio (нет
+приложения); звуки UI и крафта-разложения (§61); гул дверей/укрытий; погодный
+ветер; отдельная озвучка краба/акулы (событие есть, спец-сэмплов нет);
+Android/iOS путь StreamingAssets (десктоп-first).
+
+**67.9 Язык колонисток — хекскуфа.** Реплики (§67.6) звучат не на «случайном
+симлише», а на выдуманном языке **хекскуфа**: фонетика, грамматика (8 правил),
+словарь (~140 корней) и КАТАЛОГ РЕПЛИК под каждый повод — в отдельном файле
+**`HEXKUFA_LANGUAGE.md`** (репозиторий, корень). Он источник истины: новое
+слово или реплика заводится ТАМ, а не по месту.
+Каталог — 63 группы (состояния тела, работа, бой/смерть, 13 тем `TalkTopic`,
+забота §53 / мечты §64 / подарки §63), приоритеты P1/P2/P3, по 3 варианта.
+Конвенция id расширяет §67.6 без ломки старого:
+`voice_<char>_<emotion>[_<slug>]_<n>.wav` — эмоция лица читается ИЗ id
+(отдельной таблицы «реплика→лицо» не будет), группа без `<slug>` остаётся
+фолбэком-болтовнёй. Файлы обязаны быть WAV PCM16 mono 44.1k (§67.7 липсинк
+парсит PCM), ≤4.2 с. Каталог машинно извлекается
+(`_ArtSource/Voice/extract_lines.py` → `hexkufa_lines.json`) и синтезируется
+`generate_voices.py` (ElevenLabs `eleven_v3`, теги настроения из каталога;
+`mp3_44100_128` + ffmpeg → WAV, т.к. `pcm_44100` требует тарифа Pro).
+Наборы id в документе и в `SpeechCatalog` обязаны совпадать (проверка — §10.6
+документа).
+
+**67.10 Речь = голос + бабл + лицо (единый акт).** Инвариант: **любая** реплика
+сопровождается баблом с картинкой по смыслу, и наоборот — бабл не появляется
+без реплики. Обеспечено структурно: обе половины делает ОДИН вызов
+`NpcSpeechDirector.Say(id)`; играть голос в обход директора запрещено.
+- **`SpeechCatalog`** — единственная таблица: id группы (`<emotion>_<slug>`,
+  те же слаги, что в `HEXKUFA_LANGUAGE.md` §7) → иконка
+  `Resources/HexLive/UI/Emoji/<Icon>.png` + ранг + пауза до повтора; плюс
+  переходники «сим-сигнал → id» (тема разговора, social-cue, текущий глагол,
+  состояние тела). Неизвестный id всё равно рисует бабл (fallback-иконка +
+  предупреждение в редакторе) — «немой» реплики быть не может.
+- **Четыре ранга:** `Alarm` (рана/зверь/зов/смерть — режет всё) >
+  `Action` (глагол и исход) > `Talk` (ход в беседе) > `Ambient` (своё тело).
+  Равный ранг не перебивает. Один рот — одна реплика: глобальная пауза 6 с,
+  своя пауза у группы, `Ambient` ≤1/25 с. `Alarm` забирает бабл и ВОЗВРАЩАЕТ
+  его теме беседы, так что прерванный разговор визуально продолжается.
+- **Разговор — те же реплики.** Сим по-прежнему катит общую тему пары
+  (`PickTalkTopic`), но каждая участница получает СВОЮ (`PickSpeakerTopic`):
+  голодная/раненая/замёрзшая говорит об ЭТОМ. Пять личных тем дописаны в конец
+  `TalkTopic` (`Hunger/Thirst/Pain/Tired/Cold`) и переиспользуют реплики
+  самобормотания — отдельной озвучки не требуют. Тема освежается каждые
+  `TalkTopicRefreshTicks`=30 (беседа 90 тиков — не одна фраза). В беседе слой
+  `Ambient` молчит: нужда уже звучит как её тема. Детерминизм сохранён
+  (хеш от tick-бакета и пары), сохранения тему не пишут — старые сейвы целы.
+- **Голос ищется тремя ступенями:** `voice_<char>_<emotion>_<slug>` →
+  `voice_<char>_<emotion>` → общий sfx; бабл рисуется в любом случае, поэтому
+  визуал работает до записи. Реплики лежат по папкам
+  `StreamingAssets/HexLive/Sfx/Voices/<char>/`, скан `FmodSfx.Prewarm`
+  рекурсивный, подбор файлов группы — ТОЧНЫЙ (`ExactGroupFiles`: иначе маска
+  `voice_molly_sad_*` затянула бы `..._sad_thirst_0` в общий банк эмоции).
+- **Лицо:** `FlashTalkEmotion` берёт эмоцию до первого `_`; добавлены каналы
+  `fear` (глаза распахнуты, рот приоткрыт), `work` (натуга), `call` (зовёт).
+- **Иконки:** 52 PNG в `Resources/HexLive/UI/Emoji` (13 старых тем + 35 новых
+  поводов + `±`-попы), все растеризованы из Apple Color Emoji по рецепту
+  §28.15E — стиль един.
+- **Длина реплики связана с ходом беседы.** Ходы считаются по ОБЩИМ часам без
+  обмена сигналами (`TalkTurnSeconds`), поэтому период хода обязан покрывать
+  самую длинную реплику: кап 4.2 с → период **4.6 с** (было 2.2 с — при
+  средней реплике 3.0 с собеседницы говорили бы друг поверх друга).
+- **Банк озвучен:** 756 файлов (4 персонажа × 63 группы × 3 варианта), все
+  `eleven_v3`, PCM16/44100/моно, среднее 3.0 с, 192 МБ. Реплика ровно на капе
+  обрезана посередине фразы — режим `--fix-capped` перегенерирует такие
+  ускоренной подачей (`...`→запятая, короче растяжки, одиночный тег, новый
+  seed), НЕ меняя текст каталога: 122 → 17 (2.2%) осталось.
+  Параллельность ≤3 (тариф starter, иначе HTTP 429 и падение в фолбэк-модель).
+- **Studio-проект синхронизирован** (`FMODStudio/Scripts/sync_voices.js`):
+  старые 24 события «6 эмоций» и их 40 ассетов СНЕСЕНЫ, заведены 252 события
+  `voice_<char>_<группа>` с плейлистами по 3 варианта, 3D 0.75/1.2/22 как в
+  `FmodSfx.VoiceDef`; банк пересобран с нуля (2.9 → 21.5 МБ, 0 ошибок).
+  ВАЖНО: FMOD Studio КОПИРУЕТ импортируемое аудио к себе
+  (`FMODStudio/HexLive/Assets`, +205 МБ), поэтому удаление файла из
+  StreamingAssets НЕ удаляет его из проекта и из банка — чистить надо оба
+  места (правило вынесено в `CLAUDE.md`). `fmodstudiocl` работает только под
+  псевдотерминалом (`script -q /dev/null …`).
+- **Не подключено:** костёр зажёгся/потух, находка еды, победа над зверем,
+  подарок прибоя — у этих событий нет per-NPC сигнала в снапшоте.
+  Аудио (`StreamingAssets/HexLive/Sfx`, 205 МБ) в git НЕ лежит — как и прежние
+  62 сэмпла, файлы теперь под LFS
+  (`.gitattributes`), вместе с копиями и банками Studio-проекта.
+
+**67.11 Живой микшер — УДАЛЁН.** Была временная панель-микшер в игре
+(множители громкости в `FmodSfx` + ползунки в Play mode) на период, пока
+раннтайм не читал банки. Юзер отверг обходной путь: сводить надо в FMOD, а не
+в самодельной панели. Панель и множители вырезаны; см. §67.12.
+
+**67.12 Апгрейд до 2.03 и переход на события Studio.** Пакет «FMOD for Unity»
+**2.03.14** (Unity Verified) поставлен вместо 2.02.29 — это ОТДЕЛЬНЫЙ от
+приложения Studio компонент, и старым был именно он. Версия читается как
+`FMOD.VERSION.number`, где hex-цифры = десятичные: `0x00020229` = 2.02.29,
+`0x00020314` = 2.03.14. Несовместимость подтверждена эмпирически: формат
+нашего банка **146**, рантайм 2.02 понимает **142**.
+Сделано: старая интеграция сохранена в бэкап и заменена целиком (наш
+`FMODStudioSettings.asset` сохранён и перенастроен); `sourceProjectPath` →
+`FMODStudio/HexLive/HexLive.fspro`, `BankLoadType: 0` (грузить всё),
+`AutomaticEventLoading: 1`, **Live Update включён** (PlayInEditor + Mac);
+банки скопированы в `Assets/StreamingAssets/FMODBanks`.
+`FmodSfx` играет через **события Studio** (`event:/SFX|Ambience|Voices/<id>`):
+one-shot — `CreateInstance`+`start`+`release`, луп — инстанс события в
+`Loop.Event`, кроссфейд эмбиента — `setVolume`, а базовая громкость, эффекты
+и дистанции ЖИВУТ В STUDIO. Если события нет (банк не пересобран, ид новый) —
+автоматический откат на старый путь из StreamingAssets: рассинхрон проекта и
+кода даёт не тишину, а прежний звук.
+**Голоса намеренно остались на Core API**: липсинку (§67.7) нужен конкретный
+файл реплики и позиция воспроизведения, а событие прячет и то и другое.
+Их громкость по-прежнему в `VoiceDef`.
+**Проверено в play-режиме:** банки грузятся (`HaveAllBanksLoaded`, 276 событий),
+слушатель на камере, наш `FmodSfx.Play` даёт живые инстансы `PLAYING` с
+реальными каналами. `AllowUnsafeBlocks` Unity выставляет сам из asmdef
+(`allowUnsafeCode: true`); в старом сгенерённом csproj он был False.
+
+**Ловушки, стоившие часа диагностики:**
+1. **«Звучат только голоса» = в Game view включена кнопка Mute Audio.** Она
+   глушит мастер-ШИНУ Studio, то есть ВСЕ события, но не сырые каналы Core API,
+   которыми играют голоса (§67.6). Проверять `EditorUtility.audioMasterMute`
+   ПЕРВЫМ делом — симптом выглядит как баг кода, а это кнопка в редакторе.
+2. После подмены интеграции Unity надо ПОЛНОСТЬЮ закрыть: нативные плагины не
+   выгружаются, старая либа остаётся в процессе (`ERR_HEADER_MISMATCH`).
+3. Трогать `RuntimeManager` из edit mode нельзя (в том числе пробой через MCP):
+   в лог падает «RuntimeManager accessed outside of runtime», остаётся
+   объект-зомби, чей `Update` в следующей play-сессии не вызывается — события
+   стартуют и умирают на `timeline=0` БЕЗ единой ошибки, что выглядит как
+   сломанный банк. Проверять только в СВЕЖЕЙ play-сессии либо автономной пробой
+   (`/private/tmp/fmodbankprobe`: грузит `Master.bank` тем же нативным .bundle
+   и играет событие — именно она доказала, что банк исправен).
+4. `Prewarm` кормил FMOD файлами `*.meta` (их 826 рядом с 821 звуком) — FMOD
+   перебирал на каждом все кодеки и сыпал ошибками; фильтр по `.wav/.ogg`
+   в `IsAudioFile`.

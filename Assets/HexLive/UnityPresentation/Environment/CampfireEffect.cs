@@ -44,6 +44,25 @@ namespace HexLive.UnityPresentation.Environment
 
             ToggleParticles(_flame, lit);
             ToggleParticles(_embers, lit);
+
+            // Spec §67: горящий очаг потрескивает — 3D-луп ровно на окне
+            // "есть топливо" (та же снапшот-логика, что и пламя).
+            if (lit && !_crackle.IsValid)
+            {
+                _crackle = Audio.FmodSfx.StartLoop(
+                    Audio.FmodSfx.Sfx.LoopFire, transform.position);
+            }
+            else if (!lit && _crackle.IsValid)
+            {
+                Audio.FmodSfx.StopLoop(ref _crackle);
+            }
+        }
+
+        private Audio.FmodSfx.Loop _crackle;
+
+        private void OnDestroy()
+        {
+            Audio.FmodSfx.StopLoop(ref _crackle);
         }
 
         private static void ToggleParticles(ParticleSystem? ps, bool play)

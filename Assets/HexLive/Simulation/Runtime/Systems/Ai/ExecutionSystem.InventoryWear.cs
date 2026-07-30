@@ -693,8 +693,12 @@ public sealed partial class ExecutionSystem
         // A bottleful is a real drink: relief raw 0.7 / boiled 0.85 (so the
         // two-step chain matches the old single drink, 29H). Spec 29C.9: the
         // thirst drops gulp by gulp across the duration, not in one jump.
+        // §54.15: RAIN water (the collector's leaf funnel, no ground contact)
+        // is clean — boiled-grade thirst relief and NO sickness roll; only
+        // the warm-drink comfort bonus stays boiled-only.
+        var raw = npc.BottleWater == WaterKind.Raw;
         var boiled = npc.BottleWater == WaterKind.Boiled;
-        var thirstTotal = boiled ? SimBalance.DrinkThirstBoiled : SimBalance.DrinkThirstRaw;
+        var thirstTotal = raw ? SimBalance.DrinkThirstRaw : SimBalance.DrinkThirstBoiled;
         var comfortTotal = boiled ? SimBalance.DrinkComfortBoiled : 0f;
         var share = 1f / DrinkBottleDurationTicks;
         npc.Needs.Thirst = MathUtil.Clamp01(npc.Needs.Thirst - thirstTotal * share);
@@ -714,7 +718,8 @@ public sealed partial class ExecutionSystem
         // sickness". The gamble stays (chronic cough), but expected damage
         // (~0.012/drink) now sits within fed-regen's budget instead of
         // being a guaranteed death sentence for a fireless colony.
-        if (!boiled)
+        // §54.15: only RAW water gambles — rain (like boiled) is safe.
+        if (raw)
         {
             var sickRoll = MathUtil.Hash01(world.Seed, world.Tick, npc.Id.Value, 833);
             if (sickRoll < SimBalance.RawWaterSickChance && !Spec49.SickDoT)

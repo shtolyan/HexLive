@@ -215,22 +215,32 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 // is walled/cliffed off and was being reached ACROSS the gap, so
                 // fail + retarget instead of interacting from afar. Belt-and-braces
                 // over the planner cap: covers remembered targets and every kind.
+                // The reach anchor must NEVER be unavailable — an object with no
+                // linked junction (edge case) falls back to its tile centre with
+                // a hex of slack (the item may sit anywhere in the tile), so no
+                // interaction kind can slip past the gate entirely.
+                Float2 reachAnchor;
+                var startReach = InteractionReach.ForObject(definition.ObstacleRadius);
                 if (worldObject.Junctions.Count > 0 &&
                     world.Junctions.Items.TryGetValue(worldObject.Junctions[0], out var anchorJct))
                 {
-                    var reach = SpatialQueries.BesideReach(definition.ObstacleRadius);
-                    if (HexSpatialMath.Distance(npc.Position, anchorJct.WorldPosition) > reach)
-                    {
-                        Trace.Emit(world, npc.Id, "InteractionTooFar",
-                            $"{worldObject.DefinitionId} at " +
-                            $"{HexSpatialMath.Distance(npc.Position, anchorJct.WorldPosition):F2}wu > reach {reach:F2}wu");
-                        npc.Memory.Shun(worldObject.Id, world.Tick + 600);
-                        PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
-                        PlanInterruption.Abort(world, npc,
-                            $"Target {worldObject.DefinitionId} not adjacently reachable (too far to interact)");
-                        npc.Mind.CurrentGoal = GoalType.None;
-                        continue;
-                    }
+                    reachAnchor = anchorJct.WorldPosition;
+                }
+                else
+                {
+                    reachAnchor = HexSpatialMath.TileToWorld(worldObject.Tile);
+                    startReach += HexSpatialMath.HexRadius;
+                }
+
+                if (!InteractionReach.CheckStart(world, npc, reachAnchor, startReach,
+                        worldObject.DefinitionId))
+                {
+                    npc.Memory.Shun(worldObject.Id, world.Tick + 600);
+                    PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
+                    PlanInterruption.Abort(world, npc,
+                        $"Target {worldObject.DefinitionId} not adjacently reachable (too far to interact)");
+                    npc.Mind.CurrentGoal = GoalType.None;
+                    continue;
                 }
 
                 // Memory promised a free object; reality may disagree
@@ -622,6 +632,71 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     npc.BottleCharges = SimBalance.BottleCapacity;
                     Trace.Emit(world, npc.Id, "BottleFilled",
                         $"{npc.BottleWater} x{npc.BottleCharges} from {worldObject.DefinitionId}");
+                }
+
+                // §54.15: park the carried empty bottle in the collector's
+                // vessel slot — it becomes a world object on the collector's
+                // junction (the drying-rack Hang idiom) and fills while it
+                // rains (WaterCollectorSystem).
+                if (completedInteraction.Type == InteractionType.PlaceVessel)
+                {
+                    var bottleItem = npc.Inventory.Items.Find(
+                        i => i.DefinitionId == WaterCollectorMath.VesselId);
+                    if (bottleItem is null || npc.BottleWater != WaterKind.None ||
+                        worldObject.Junctions.Count == 0 ||
+                        WaterCollectorMath.FindVessel(world, worldObject) is not null)
+                    {
+                        npc.Plan.Status = PlanStatus.Failed;
+                        PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
+                        Trace.Emit(world, npc.Id, "ExecFailed",
+                            "PlaceVessel: no empty bottle to park, or the slot is taken");
+                        continue;
+                    }
+
+                    npc.Inventory.Items.Remove(bottleItem);
+                    var vessel = WorldObjectMutations.SpawnObject(
+                        world, WaterCollectorMath.VesselId, npc.Fragment,
+                        worldObject.Tile, worldObject.Junctions[0]);
+                    vessel.Owner = npc.Id; // remembers whose bottle waits here
+                    vessel.ResourceAmount = 0f;
+                    Trace.Emit(world, npc.Id, "VesselPlaced",
+                        $"tool.bottle parked in collector {worldObject.Id.Value}");
+                }
+
+                // §54.15: draw the collected rain. The bottleless placer (or
+                // anyone, once the owner is dead) walks off with the bottle;
+                // a housemate with her OWN empty bottle pours the water over
+                // instead — the parked bottle stays and keeps collecting.
+                if (completedInteraction.Type == InteractionType.TakeVessel)
+                {
+                    var vessel = WaterCollectorMath.FindVessel(world, worldObject);
+                    if (vessel is null || !WaterCollectorMath.CanTake(world, npc, vessel))
+                    {
+                        npc.Plan.Status = PlanStatus.Failed;
+                        PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
+                        Trace.Emit(world, npc.Id, "ExecFailed",
+                            "TakeVessel: nothing collected yet, or the bottle is spoken for");
+                        continue;
+                    }
+
+                    var charges = WaterCollectorMath.ChargesIn(vessel);
+                    var pouredOver = npc.Inventory.Items.Exists(
+                        i => i.DefinitionId == WaterCollectorMath.VesselId);
+                    if (pouredOver)
+                    {
+                        vessel.ResourceAmount = 0f; // stays parked, keeps collecting
+                    }
+                    else
+                    {
+                        WorldObjectMutations.DespawnObject(world, vessel.Id);
+                        npc.Inventory.Items.Add(new ItemInstance(WaterCollectorMath.VesselId));
+                    }
+
+                    npc.BottleWater = WaterKind.Rain;
+                    npc.BottleCharges = charges;
+                    Trace.Emit(world, npc.Id, "VesselTaken",
+                        $"Rain x{charges} from collector {worldObject.Id.Value}" +
+                        (pouredOver ? " (poured over)" : " (bottle reclaimed)"));
                 }
 
                 var needsAfter = Trace.FormatNeeds(npc.Needs);

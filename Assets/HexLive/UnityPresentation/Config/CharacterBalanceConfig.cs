@@ -290,8 +290,8 @@ namespace HexLive.UnityPresentation.Config
 
         [Header("Состояние одежды")]
         [Tooltip("Износ каждой закрывающей вещи за один укус собаки (прочность = HP-полоска в инвентаре).")]
-        [Range(0f, 0.3f)] public float clothingBiteDurabilityWear = 0.065f;
+        [Range(0f, 0.3f)] public float clothingBiteDurabilityWear = 0.013f;
         [Tooltip("Естественный износ надетой вещи за игровой день.")]
-        [Range(0f, 0.2f)] public float clothingPassiveWearPerDay = 0.025f;
+        [Range(0f, 0.2f)] public float clothingPassiveWearPerDay = 0.005f;
     }
 }

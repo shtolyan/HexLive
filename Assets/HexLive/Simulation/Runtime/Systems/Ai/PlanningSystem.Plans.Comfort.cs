@@ -552,7 +552,10 @@ public sealed partial class PlanningSystem
                 }
             }
 
-            if (centerJunction is { } cj && SpatialQueries.IsJunctionFree(world, cj) &&
+            if (centerJunction is { } cj &&
+                world.Junctions.Items.TryGetValue(cj, out var sleepJunction) &&
+                SpatialQueries.IsJunctionFree(world, cj) &&
+                SpatialQueries.LyingBodyClear(world, sleepJunction) &&
                 npc.CurrentJunction is { } from2 && Connectivity.Reachable(world, from2, cj))
             {
                 bestDist = d;

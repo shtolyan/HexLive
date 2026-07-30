@@ -142,36 +142,8 @@ public sealed partial class PlanningSystem
         // Spec 28.8: talk at arm's length — a free junction ~0.9 hex radius
         // from the partner, on the initiator's side, not the adjacent
         // sub-grid point (that reads as standing inside each other).
-        JunctionId? approach = null;
-        if (world.Entities.Npcs.TryGetValue(target.Id, out var partnerState))
-        {
-            var toMe = HexSpatialMath.Normalize(new Float2(
-                npc.Position.X - partnerState.Position.X,
-                npc.Position.Y - partnerState.Position.Y));
-            var spot = new Float2(
-                partnerState.Position.X + toMe.X * HexSpatialMath.HexRadius * 0.9f,
-                partnerState.Position.Y + toMe.Y * HexSpatialMath.HexRadius * 0.9f);
-            if (SpatialQueries.FindNearestJunction(world, spot) is { } armsLength &&
-                !armsLength.Equals(targetJunction) &&
-                SpatialQueries.IsJunctionFree(world, armsLength) &&
-                SpatialMutations.TryReserveJunction(world, armsLength, npc.Id, world.Tick, 48))
-            {
-                approach = armsLength;
-            }
-        }
-
-        if (approach is null)
-        {
-            foreach (var neighbor in SpatialQueries.GetPassableNeighbors(world, targetJunction))
-            {
-                if (SpatialQueries.IsJunctionFree(world, neighbor) &&
-                    SpatialMutations.TryReserveJunction(world, neighbor, npc.Id, world.Tick, 48))
-                {
-                    approach = neighbor;
-                    break;
-                }
-            }
-        }
+        world.Entities.Npcs.TryGetValue(target.Id, out var partnerState);
+        var approach = TryReserveArmsLengthApproach(world, npc, partnerState, targetJunction);
 
         if (approach is not { } approachJunction)
         {
@@ -215,6 +187,60 @@ public sealed partial class PlanningSystem
     }
 
     // Spec §53: which aid interaction serves this kind of suffering.
+    // Spec 28.8 / §53: reserve a free junction at arm's length (~0.9*R) from
+    // the partner, on the initiator's side. The nearest-junction snap is
+    // capped at InteractionReach.Aid — uncapped, a blocked/claimed grid around
+    // the partner (a sufferer lying on a bed footprint, crowded camp) hands
+    // back a junction a whole hex out and the talk/aid visibly runs at range.
+    // Falls back to the partner junction's own passable neighbours (one
+    // sub-grid step); null when nothing close is free.
+    private static JunctionId? TryReserveArmsLengthApproach(
+        WorldState world, NPCState npc, NPCState partner, JunctionId partnerJunction)
+    {
+        if (partner is not null)
+        {
+            var toMe = HexSpatialMath.Normalize(new Float2(
+                npc.Position.X - partner.Position.X,
+                npc.Position.Y - partner.Position.Y));
+            var spot = new Float2(
+                partner.Position.X + toMe.X * HexSpatialMath.HexRadius * 0.9f,
+                partner.Position.Y + toMe.Y * HexSpatialMath.HexRadius * 0.9f);
+            if (SpatialQueries.FindNearestJunction(world, spot) is { } armsLength &&
+                !armsLength.Equals(partnerJunction) &&
+                world.Junctions.Items.TryGetValue(armsLength, out var armsJct) &&
+                HexSpatialMath.Distance(armsJct.WorldPosition, partner.Position) <=
+                    InteractionReach.Aid &&
+                SpatialQueries.IsJunctionFree(world, armsLength) &&
+                SpatialMutations.TryReserveJunction(world, armsLength, npc.Id, world.Tick, 48))
+            {
+                return armsLength;
+            }
+        }
+
+        foreach (var neighbor in SpatialQueries.GetPassableNeighbors(world, partnerJunction))
+        {
+            // The partner's own resolved junction can itself sit far from her
+            // body (she may lie inside a blocked footprint cluster), so its
+            // neighbours must pass the same reach cap or the walk is doomed —
+            // the execution gate would abort it on arrival anyway.
+            if (partner is not null &&
+                (!world.Junctions.Items.TryGetValue(neighbor, out var nJct) ||
+                 HexSpatialMath.Distance(nJct.WorldPosition, partner.Position) >
+                     InteractionReach.Aid))
+            {
+                continue;
+            }
+
+            if (SpatialQueries.IsJunctionFree(world, neighbor) &&
+                SpatialMutations.TryReserveJunction(world, neighbor, npc.Id, world.Tick, 48))
+            {
+                return neighbor;
+            }
+        }
+
+        return null;
+    }
+
     private static InteractionType AidInteraction(AidKind kind) => kind switch
     {
         AidKind.Feed => InteractionType.FeedOther,
@@ -274,36 +300,8 @@ public sealed partial class PlanningSystem
 
         // Help at arm's length — a free junction ~0.9 hex radius from her, on
         // our side (same geometry as a talk approach).
-        JunctionId? approach = null;
-        if (world.Entities.Npcs.TryGetValue(target.Id, out var partnerState))
-        {
-            var toMe = HexSpatialMath.Normalize(new Float2(
-                npc.Position.X - partnerState.Position.X,
-                npc.Position.Y - partnerState.Position.Y));
-            var spot = new Float2(
-                partnerState.Position.X + toMe.X * HexSpatialMath.HexRadius * 0.9f,
-                partnerState.Position.Y + toMe.Y * HexSpatialMath.HexRadius * 0.9f);
-            if (SpatialQueries.FindNearestJunction(world, spot) is { } armsLength &&
-                !armsLength.Equals(targetJunction) &&
-                SpatialQueries.IsJunctionFree(world, armsLength) &&
-                SpatialMutations.TryReserveJunction(world, armsLength, npc.Id, world.Tick, 48))
-            {
-                approach = armsLength;
-            }
-        }
-
-        if (approach is null)
-        {
-            foreach (var neighbor in SpatialQueries.GetPassableNeighbors(world, targetJunction))
-            {
-                if (SpatialQueries.IsJunctionFree(world, neighbor) &&
-                    SpatialMutations.TryReserveJunction(world, neighbor, npc.Id, world.Tick, 48))
-                {
-                    approach = neighbor;
-                    break;
-                }
-            }
-        }
+        world.Entities.Npcs.TryGetValue(target.Id, out var partnerState);
+        var approach = TryReserveArmsLengthApproach(world, npc, partnerState, targetJunction);
 
         if (approach is not { } approachJunction)
         {
@@ -353,6 +351,7 @@ public sealed partial class PlanningSystem
         JunctionId? attackerJunction = null;
         TileCoord attackerTile = npc.Tile;
         var label = string.Empty;
+        var dogEngaged = false;
 
         if (npc.Mind.CombatAssistDogId is { } dogId)
         {
@@ -363,6 +362,7 @@ public sealed partial class PlanningSystem
                     attackerJunction = dog.Junction;
                     attackerTile = dog.Tile;
                     label = $"Dog={dog.Id}";
+                    dogEngaged = dog.Status == Wildlife.MobStatus.Fighting;
                     break;
                 }
             }
@@ -382,28 +382,71 @@ public sealed partial class PlanningSystem
             npc.Mind.CurrentGoal = GoalType.None;
             npc.Mind.CombatAssistDogId = null;
             npc.Mind.CombatAssistAttackerNpcId = null;
+            npc.Mind.AssistHoldSinceTick = 0;
             Trace.Emit(world, npc.Id, "HelpCryAssistLost", "Attacker vanished before defender arrived");
             return;
         }
 
-        JunctionId? approach = null;
-        if (npc.CurrentJunction is { } current &&
+        // §29C.4B: is she already at the attacker's junction or a neighbour of
+        // it — i.e. close enough that RunDogDefenders / PredationSystem would
+        // land her strikes the moment an exchange actually runs?
+        var onStation = npc.CurrentJunction is { } current &&
             (current.Equals(target) ||
              (world.Junctions.Items.TryGetValue(target, out var targetJ) &&
-              targetJ.Neighbors.Contains(current))))
+              targetJ.Neighbors.Contains(current)));
+
+        // §29C.4B assist give-up: the GoalLock stamped when the assist was
+        // taken (help cry / friend guard / §62 first strike) is the whole
+        // budget. Before, NOTHING ended an assist while the mob lived — a
+        // defender parked beside an unreachable standoff wolf, or trailing a
+        // roaming one, stayed locked in Defend forever (DecisionSystem skips
+        // the auction while CombatAssist* is set, so needs never broke in
+        // either). A LIVE exchange (mob actually Fighting with her on
+        // station) extends past the lock; the moment it isn't, she stands
+        // down and Defend goes on cooldown so the auction doesn't re-enter.
+        var lockExpired = npc.Mind.GoalLock is not { } assistLock ||
+            assistLock.Goal != GoalType.Defend ||
+            world.Tick >= assistLock.EndTick;
+        var engaged = onStation &&
+            (npc.Mind.CombatAssistDogId is null || dogEngaged);
+        if (lockExpired && !engaged)
         {
-            approach = current;
+            PlanningSystem.SetGoalCooldown(world, npc, GoalType.Defend);
+            CombatHelpSystem.ClearAssist(npc);
+            npc.Plan.Status = PlanStatus.Failed;
+            Trace.Emit(world, npc.Id, "HelpCryAssistExpired",
+                $"{label} unresolved after the assist window — standing down");
+            return;
         }
-        else
+
+        // §29C.4B on-station hold: she is where the fight needs her; the old
+        // code still built a 1-step move plan TO HER OWN JUNCTION, which
+        // completed instantly and re-planned every pass (Started→Arrived 17
+        // times in 68 ticks, seed 521091321 day 30). Strikes never came from
+        // the plan — RunDogDefenders/PredationSystem read only the goal and
+        // adjacency — so the right plan here is NO plan: stand and wait.
+        if (onStation)
         {
-            foreach (var neighbor in SpatialQueries.GetPassableNeighbors(world, target))
+            npc.Plan.Status = PlanStatus.Completed;
+            if (npc.Mind.AssistHoldSinceTick == 0)
             {
-                if (SpatialQueries.IsJunctionFree(world, neighbor) &&
-                    SpatialMutations.TryReserveJunction(world, neighbor, npc.Id, world.Tick, 48))
-                {
-                    approach = neighbor;
-                    break;
-                }
+                npc.Mind.AssistHoldSinceTick = world.Tick;
+                Trace.Emit(world, npc.Id, "HelpCryAssistHolding",
+                    $"{label} on station — waiting for the exchange");
+            }
+            return;
+        }
+
+        npc.Mind.AssistHoldSinceTick = 0;
+
+        JunctionId? approach = null;
+        foreach (var neighbor in SpatialQueries.GetPassableNeighbors(world, target))
+        {
+            if (SpatialQueries.IsJunctionFree(world, neighbor) &&
+                SpatialMutations.TryReserveJunction(world, neighbor, npc.Id, world.Tick, 48))
+            {
+                approach = neighbor;
+                break;
             }
         }
 

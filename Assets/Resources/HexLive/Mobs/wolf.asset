@@ -23,8 +23,8 @@ MonoBehaviour:
   bloodSplash: 1
   woundStamps: 1
   maxWoundStamps: 8
-  maxHealth: 1.53
-  attackDamage: 0.067
+  maxHealth: 1.71
+  attackDamage: 0.085
   attackWindupSeconds: 0.5
   attackCooldownSeconds: 0.8
   aggroRadiusTiles: 2

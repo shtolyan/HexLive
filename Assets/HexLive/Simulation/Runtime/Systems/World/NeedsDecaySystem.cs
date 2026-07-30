@@ -150,6 +150,23 @@ public sealed class NeedsDecaySystem : ISimulationSystem
         npc.Mind.CurrentGoal = GoalType.None;
         npc.IsFighting = false; // a body that just switched off holds no stance
 
+        if (cause == ComaCause.Exhaustion &&
+            TryFindSafeExhaustionSleepAnchor(world, npc, out var safeTile, out var safeJunction))
+        {
+            if (npc.CurrentJunction is { } oldJunction && !oldJunction.Equals(safeJunction))
+            {
+                SpatialMutations.FreeJunction(world, oldJunction, npc.Id);
+            }
+
+            if (!safeTile.Equals(npc.Tile))
+            {
+                SpatialMutations.MoveEntityToTile(world, npc.Id, npc.Tile, safeTile);
+                npc.Tile = safeTile;
+            }
+
+            npc.CurrentJunction = safeJunction;
+        }
+
         // §60: lie down like a ground sleeper — always at the EXACT centre of
         // her own hex, never across a tile rim (a collapse mid-stride used to
         // lie down wherever the free-junction scan landed, and that scan
@@ -201,6 +218,67 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             cause == ComaCause.Exhaustion ? "FellAsleepExhausted" : "FaintedBloodLoss",
             $"Cause={cause} Energy={npc.Needs.Energy:F2} Blood={npc.Needs.Blood:F2} " +
             $"Health={npc.Health:F2}");
+    }
+
+    private static bool TryFindSafeExhaustionSleepAnchor(
+        WorldState world, NPCState npc, out TileCoord tile, out JunctionId junction)
+    {
+        tile = npc.Tile;
+        junction = default;
+
+        var best = float.MaxValue;
+        foreach (var tileState in world.Tiles.Items.Values)
+        {
+            if (!tileState.Flags.HasFlag(TileFlags.Walkable) ||
+                tileState.Flags.HasFlag(TileFlags.Water) ||
+                tileState.Junctions.Count == 0 ||
+                HexSpatialMath.HexDistance(tileState.Coord, npc.Tile) > 2)
+            {
+                continue;
+            }
+
+            if (world.Caches.ObjectsByTile.TryGetValue(tileState.Coord, out var objects) && objects.Count > 0)
+            {
+                continue;
+            }
+
+            var center = HexSpatialMath.TileToWorld(tileState.Coord);
+            JunctionId? centerJunction = null;
+            var centerDist = float.MaxValue;
+            foreach (var junctionId in tileState.Junctions)
+            {
+                if (!world.Junctions.Items.TryGetValue(junctionId, out var candidate) ||
+                    candidate.Blocked ||
+                    (!SpatialQueries.IsJunctionFree(world, junctionId) &&
+                        !junctionId.Equals(npc.CurrentJunction)) ||
+                    !SpatialQueries.LyingBodyClear(world, candidate))
+                {
+                    continue;
+                }
+
+                var d = HexSpatialMath.Distance(candidate.WorldPosition, center);
+                if (d < centerDist)
+                {
+                    centerDist = d;
+                    centerJunction = junctionId;
+                }
+            }
+
+            if (centerJunction is not { } candidateJunction)
+            {
+                continue;
+            }
+
+            var distance = HexSpatialMath.Distance(center, npc.Position);
+            if (distance < best)
+            {
+                best = distance;
+                tile = tileState.Coord;
+                junction = candidateJunction;
+            }
+        }
+
+        return best < float.MaxValue;
     }
 
     // Spec §60: the coma ends the moment the stat that felled the body climbs

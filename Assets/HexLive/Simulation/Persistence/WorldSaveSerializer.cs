@@ -29,7 +29,7 @@ namespace HexLive.Simulation.Persistence
 //   on load, rebuilt on first pathfind).
 public static class WorldSaveSerializer
 {
-    public const int BlobVersion = 13; // v13: §66 per-object build yaw (RotationDegrees)
+    public const int BlobVersion = 15; // v15: §49 sickness window/damage budget (a reload no longer cures the 🤢)
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -588,6 +588,8 @@ public static class WorldSaveSerializer
         w.Write(npc.SunExposure);
         w.Write(npc.NextWoundId);
         w.Write((int)npc.BottleWater);
+        w.Write(npc.BodyWetness);
+        w.Write(npc.CompassionTrait);
 
         WriteItemList(w, npc.WornItems);
         WriteJunctionList(w, npc.ClaimedJunctions);
@@ -597,6 +599,15 @@ public static class WorldSaveSerializer
         {
             w.Write((int)pair.Key);
             w.Write(pair.Value);
+        }
+
+        // §50: severed is a SET apart from part HP — a 0-HP mauled zone heals
+        // back, a severed one is gone for good. Before v14 this set was not
+        // saved, so a reloaded amputee regrew the limb and stood back up.
+        w.Write(npc.Body.Severed.Count);
+        foreach (var part in npc.Body.Severed)
+        {
+            w.Write((int)part);
         }
 
         w.Write(npc.Wounds.Count);
@@ -609,12 +620,26 @@ public static class WorldSaveSerializer
             w.Write(wound.Seed);
         }
 
+        // §44: which zones wear a herbal leaf wrap vs a medkit gauze wrap.
+        w.Write(npc.BandagedZones.Count);
+        foreach (var zone in npc.BandagedZones)
+        {
+            w.Write((int)zone);
+        }
+
+        w.Write(npc.GauzeZones.Count);
+        foreach (var zone in npc.GauzeZones)
+        {
+            w.Write((int)zone);
+        }
+
         var needs = npc.Needs;
         w.Write(needs.Hunger);
         w.Write(needs.Thirst);
         w.Write(needs.Energy);
         w.Write(needs.Comfort);
         w.Write(needs.Social);
+        w.Write(needs.Compassion); // v15, spec §53
         w.Write(needs.ThermalDiscomfort);
         w.Write(needs.ThermalComfort);
         w.Write(needs.Stamina);
@@ -634,6 +659,10 @@ public static class WorldSaveSerializer
         w.Write(mind.GrievingUntilTick);
         w.Write(mind.FaintedUntilTick);
         w.Write((int)mind.ComaCause); // v6, spec §60
+        // §49 water sickness v2: the open 🤢 window and the torso's unpaid
+        // damage budget. Unsaved (pre-v15), a reload cured the sickness.
+        w.Write(mind.SickUntilTick);
+        w.Write(mind.SicknessDamageRemaining);
         w.Write(mind.WakeGraceUntilTick);
         w.Write(mind.AdrenalineUntilTick);
         w.Write(mind.PendingTalkSinceTick);
@@ -658,6 +687,19 @@ public static class WorldSaveSerializer
             w.Write((int)SaveGoal(cooldown.Goal));
             w.Write(cooldown.EndTick);
         }
+
+        // v15: more mutable mind state that silently reset on load — the §35.4
+        // overheat latch + its dwell re-arm counter, and the §40.6 mid-bathe
+        // redress list (which EXACT shore garments to put back on, and where).
+        w.Write(mind.IsOverheated);
+        w.Write(mind.CoolRearmCount);
+        w.Write(mind.RedressGarments.Count);
+        foreach (var id in mind.RedressGarments)
+        {
+            w.Write(id.Value);
+        }
+
+        WriteNullableJunction(w, mind.RedressShore);
 
         var plan = npc.Plan;
         w.Write((int)SaveGoal(plan.Goal));
@@ -833,6 +875,12 @@ public static class WorldSaveSerializer
             BottleWater = (WaterKind)r.ReadInt32()
         };
 
+        if (version >= 14)
+        {
+            npc.BodyWetness = r.ReadSingle();
+            npc.CompassionTrait = r.ReadSingle();
+        }
+
         ReadItemList(r, npc.WornItems, version);
         ReadJunctionList(r, npc.ClaimedJunctions);
 
@@ -841,6 +889,17 @@ public static class WorldSaveSerializer
         {
             var part = (BodyPart)r.ReadInt32();
             npc.Body.Parts[part] = r.ReadSingle();
+        }
+
+        if (version >= 14)
+        {
+            var severedCount = r.ReadInt32();
+            for (var i = 0; i < severedCount; i++)
+            {
+                // Sever() re-pins the part at 0 HP — idempotent with the
+                // Parts values read just above.
+                npc.Body.Sever((BodyPart)r.ReadInt32());
+            }
         }
 
         var woundCount = r.ReadInt32();
@@ -856,12 +915,32 @@ public static class WorldSaveSerializer
             });
         }
 
+        if (version >= 14)
+        {
+            var bandagedCount = r.ReadInt32();
+            for (var i = 0; i < bandagedCount; i++)
+            {
+                npc.BandagedZones.Add((BodyPart)r.ReadInt32());
+            }
+
+            var gauzeCount = r.ReadInt32();
+            for (var i = 0; i < gauzeCount; i++)
+            {
+                npc.GauzeZones.Add((BodyPart)r.ReadInt32());
+            }
+        }
+
         var needs = npc.Needs;
         needs.Hunger = r.ReadSingle();
         needs.Thirst = r.ReadSingle();
         needs.Energy = r.ReadSingle();
         needs.Comfort = r.ReadSingle();
         needs.Social = r.ReadSingle();
+        if (version >= 15)
+        {
+            needs.Compassion = r.ReadSingle();
+        }
+
         needs.ThermalDiscomfort = r.ReadSingle();
         needs.ThermalComfort = r.ReadSingle();
         needs.Stamina = r.ReadSingle();
@@ -881,6 +960,12 @@ public static class WorldSaveSerializer
         mind.GrievingUntilTick = r.ReadInt32();
         mind.FaintedUntilTick = r.ReadInt32();
         mind.ComaCause = version >= 6 ? (ComaCause)r.ReadInt32() : ComaCause.None; // spec §60
+        if (version >= 15)
+        {
+            mind.SickUntilTick = r.ReadInt32();
+            mind.SicknessDamageRemaining = r.ReadSingle();
+        }
+
         mind.WakeGraceUntilTick = r.ReadInt32();
         mind.AdrenalineUntilTick = version >= 9 ? r.ReadInt32() : 0;
         mind.PendingTalkSinceTick = r.ReadInt32();
@@ -909,6 +994,19 @@ public static class WorldSaveSerializer
                 Goal = (GoalType)r.ReadInt32(),
                 EndTick = r.ReadInt32()
             });
+        }
+
+        if (version >= 15)
+        {
+            mind.IsOverheated = r.ReadBoolean();
+            mind.CoolRearmCount = r.ReadInt32();
+            var redressCount = r.ReadInt32();
+            for (var i = 0; i < redressCount; i++)
+            {
+                mind.RedressGarments.Add(new ObjectId(r.ReadInt32()));
+            }
+
+            mind.RedressShore = ReadNullableJunction(r);
         }
 
         var plan = npc.Plan;

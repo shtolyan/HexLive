@@ -618,7 +618,7 @@ SkinnedMeshRenderer:
   m_RayTraceProcedural: 0
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
-  m_SmallMeshCulling: 1
+  m_SmallMeshCulling: 0
   m_RenderingLayerMask: 257
   m_RendererPriority: 0
   m_Materials:
@@ -653,7 +653,7 @@ SkinnedMeshRenderer:
   m_SortingOrder: 0
   serializedVersion: 2
   m_Quality: 0
-  m_UpdateWhenOffscreen: 0
+  m_UpdateWhenOffscreen: 1
   m_SkinnedMotionVectors: 1
   m_Mesh: {fileID: 3515076068882729432, guid: 63d528e0a0dfd494f829cbdd2067e865, type: 3}
   m_Bones:
@@ -681,8 +681,8 @@ SkinnedMeshRenderer:
   m_BlendShapeWeights: []
   m_RootBone: {fileID: 5047195241967592273}
   m_AABB:
-    m_Center: {x: 0.0002837479, y: 0.3453833, z: -0.12270311}
-    m_Extent: {x: 0.10574355, y: 0.46473467, z: 0.21689203}
+    m_Center: {x: 0, y: 0.3, z: -0.18}
+    m_Extent: {x: 0.28, y: 0.72, z: 0.48}
   m_DirtyAABB: 0
 --- !u!1 &5769295826039263798
 GameObject:

@@ -104,10 +104,15 @@ public static class HexPathfinder
     // Spec §62: `danger` junctions (the ring around a live mob) add
     // `dangerCost` per step — a soft weight, not a wall, so an unfit girl
     // detours around the wolf yet can still cross if the map leaves no choice.
+    // Spec 29C.3: `hardAvoid` is TERRAIN the walker may never step on (a
+    // mob's indoor/door/water ban) — unlike `avoid` (standing actors, a
+    // courtesy), it survives the enclosed-fallback retry below: a dog boxed
+    // out by housemates may push through THEM, never through the hut wall.
     public static List<JunctionId> FindPath(
         WorldState world, JunctionId start, JunctionId goal,
         HashSet<JunctionId> avoid, bool weightClimb = true, bool canJump = true,
-        HashSet<JunctionId> danger = null, long dangerCost = 0L)
+        HashSet<JunctionId> danger = null, long dangerCost = 0L,
+        HashSet<JunctionId> hardAvoid = null)
     {
         if (start.Equals(goal))
         {
@@ -177,6 +182,12 @@ public static class HexPathfinder
                     continue;
                 }
 
+                if (hardAvoid is not null && hardAvoid.Contains(neighborId) &&
+                    !neighborId.Equals(goal))
+                {
+                    continue;
+                }
+
                 // Spec §50: a survivor who can't jump can't take an elevation
                 // step (or dive water) — skip the edge entirely, even to the
                 // goal (that spot is genuinely unreachable to her, not a detour).
@@ -200,8 +211,9 @@ public static class HexPathfinder
         if (!cameFrom.ContainsKey(goal))
         {
             // Fully enclosed by standing housemates: take the direct path.
+            // hardAvoid stays — terrain bans are walls, not courtesies.
             return avoid is not null
-                ? FindPath(world, start, goal, null, weightClimb, canJump, danger, dangerCost)
+                ? FindPath(world, start, goal, null, weightClimb, canJump, danger, dangerCost, hardAvoid)
                 : new List<JunctionId>();
         }
 

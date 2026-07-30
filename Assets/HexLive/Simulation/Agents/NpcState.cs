@@ -295,7 +295,8 @@ public enum WaterKind
 {
     None,
     Raw,    // filled at a pond/river bank — 30 % sickness on drink
-    Boiled  // filled at a lit campfire with a pot — safe, quenches more
+    Boiled, // filled at a lit campfire with a pot — safe, quenches more
+    Rain    // §54.15: collected by the water collector's leaf funnel — clean, no sickness roll
 }
 
 }

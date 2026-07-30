@@ -188,6 +188,7 @@ internal static class CombatHelpSystem
     {
         npc.Mind.CombatAssistDogId = null;
         npc.Mind.CombatAssistAttackerNpcId = null;
+        npc.Mind.AssistHoldSinceTick = 0;
         if (npc.Mind.CurrentGoal == GoalType.Defend)
         {
             npc.Mind.CurrentGoal = GoalType.None;

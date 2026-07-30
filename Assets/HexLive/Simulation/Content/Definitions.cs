@@ -185,7 +185,15 @@ public enum InteractionType
     ConsoleOther,  // spec 53: sit with a grieving / stressed housemate
     CoolOff,       // spec 35.4: dwell in shade/water to shed heat
     HydrateOther,  // spec 53: bring water to a parched housemate
-    WashClothes    // gathering loop with a garment held at the shoreline
+    WashClothes,   // gathering loop with a garment held at the shoreline
+    // §54.15: the water collector's vessel slot (the WC_point marker on the
+    // stone stand). PlaceVessel sets an empty container down under the leaf
+    // funnel; TakeVessel lifts it back off. Declared here so the station's
+    // content definition can name the two verbs; the decision/execution
+    // wiring (who carries a bottle there, and rain filling it over time)
+    // is the next step and does not read these yet.
+    PlaceVessel,
+    TakeVessel
 }
 
 }

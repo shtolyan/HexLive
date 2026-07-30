@@ -71,14 +71,23 @@ public sealed partial class ExecutionSystem
             return;
         }
 
+        // Spec 26.3 r2: arrival is literal — standing ON the reserved approach
+        // junction. PathfindingSystem re-routes next tick (or goes Blocked and
+        // the gate above aborts).
+        if (npc.Execution.Status == ExecutionStatus.None &&
+            npc.Plan.TargetJunctionId is { } wantJunction &&
+            (npc.CurrentJunction is not { } atJunction || !atJunction.Equals(wantJunction)))
+        {
+            return;
+        }
+
         if (npc.Execution.Status == ExecutionStatus.None)
         {
-            var talkRange = HexSpatialMath.HexRadius * 4f;
             var distance = HexSpatialMath.Distance(npc.Position, target.Position);
-            if (distance > talkRange)
+            if (!InteractionReach.CheckStart(world, npc, target.Position,
+                    InteractionReach.Talk, $"Talk NPC{targetId.Value}"))
             {
-                AbortTalk(world, npc,
-                    $"Target NPC{targetId.Value} out of range (Dist={distance:F2} > {talkRange:F2})");
+                AbortTalk(world, npc, $"Target NPC{targetId.Value} out of talk range");
                 return;
             }
 
@@ -143,18 +152,24 @@ public sealed partial class ExecutionSystem
             npc.Execution.StartTick = world.Tick;
             npc.Execution.EndTick = world.Tick + TalkDurationTicks;
             // Spec 28.15E: pick the conversation subject (context-biased,
-            // deterministic) and carry it on the initiator — the presentation
-            // shows the matching emoji over the speaker's head for the talk.
+            // deterministic) — the presentation shows the matching emoji over
+            // the speaker's head for the talk.
+            // §67.10: the SHARED subject is only a default. Each participant
+            // then gets HER OWN topic: a colonist who is starving/parched/hurt
+            // tells her housemate about it instead of chatting coconuts, so the
+            // two bubbles differ and read as a real exchange.
             var topic = PickTalkTopic(world, npc, target);
-            npc.Execution.CurrentTalkTopic = topic;
-            target.Execution.CurrentTalkTopic = topic;
+            npc.Execution.CurrentTalkTopic = PickSpeakerTopic(world, npc, target, topic);
+            target.Execution.CurrentTalkTopic = PickSpeakerTopic(world, target, npc, topic);
             if (npc.Plan.TargetJunctionId is { } jId)
             {
                 SpatialMutations.OccupyJunction(world, jId, npc.Id);
             }
 
             Trace.Emit(world, npc.Id, "TalkStarted",
-                $"With NPC{targetId.Value} Topic={topic} Duration={TalkDurationTicks}ticks " +
+                $"With NPC{targetId.Value} Topic={topic} " +
+                $"Mine={npc.Execution.CurrentTalkTopic} Hers={target.Execution.CurrentTalkTopic} " +
+                $"Duration={TalkDurationTicks}ticks " +
                 $"({TalkDurationTicks * world.TickDeltaTime:F1}s) Dist={distance:F2}");
             return;
         }
@@ -164,6 +179,10 @@ public sealed partial class ExecutionSystem
             var remaining = npc.Execution.EndTick - world.Tick;
             if (remaining > 0)
             {
+                // §67.10: a 90-tick chat is not one sentence — the subject moves
+                // on every TalkTopicRefreshTicks (and follows whatever each of
+                // them is suffering right now), so the bubbles change mid-talk.
+                RefreshTalkTopics(world, npc, target);
                 return;
             }
 
@@ -411,16 +430,26 @@ public sealed partial class ExecutionSystem
             return;
         }
 
+        // Spec 26.3 r2: arrival is literal — standing ON the reserved approach
+        // junction. PathfindingSystem re-routes next tick (or goes Blocked and
+        // the gate above aborts).
+        if (npc.Execution.Status == ExecutionStatus.None &&
+            npc.Plan.TargetJunctionId is { } wantJunction &&
+            (npc.CurrentJunction is not { } atJunction || !atJunction.Equals(wantJunction)))
+        {
+            return;
+        }
+
         if (npc.Execution.Status == ExecutionStatus.None)
         {
-            // Arm's length: the plan walks to a spot 0.9*R beside her; 2*R is
-            // just the wander tolerance (was 4*R — visibly feeding from afar).
-            var aidRange = HexSpatialMath.HexRadius * 2f;
-            var distance = HexSpatialMath.Distance(npc.Position, target.Position);
-            if (distance > aidRange)
+            // Arm's length: the plan walks to a spot 0.9*R beside her and the
+            // planner caps the reserved junction at the same reach — this is
+            // the belt-and-braces re-check at start (was 2*R, a full hex:
+            // visibly kneeling and feeding from across the clearing).
+            if (!InteractionReach.CheckStart(world, npc, target.Position,
+                    InteractionReach.Aid, $"Aid NPC{targetId.Value}"))
             {
-                AbortAid(world, npc,
-                    $"Target NPC{targetId.Value} out of aid range (Dist={distance:F2} > {aidRange:F2})");
+                AbortAid(world, npc, $"Target NPC{targetId.Value} out of aid range");
                 return;
             }
 
@@ -467,7 +496,8 @@ public sealed partial class ExecutionSystem
             SocialCueSignals.Stamp(world, target, "AidStarted", npc.Id);
             Trace.Emit(world, npc.Id, "AidStarted",
                 $"Kind={kindNow} With NPC{targetId.Value} Severity={severity:F2} " +
-                $"Duration={Spec53.AidDuration}ticks");
+                $"Duration={Spec53.AidDuration}ticks " +
+                $"Dist={HexSpatialMath.Distance(npc.Position, target.Position):F2}");
             if (kindNow == AidKind.Treat)
             {
                 StabilizeBleedingOnAidStart(world, npc, target);
@@ -480,6 +510,15 @@ public sealed partial class ExecutionSystem
             var remaining = npc.Execution.EndTick - world.Tick;
             if (remaining > 0)
             {
+                return;
+            }
+
+            // The patient may have got up and fled mid-care (a dog scare, a
+            // fight): relief landing across the clearing reads as telekinesis.
+            if (!InteractionReach.CheckStart(world, npc, target.Position,
+                    InteractionReach.Aid, $"AidComplete NPC{targetId.Value}"))
+            {
+                AbortAid(world, npc, $"Target NPC{targetId.Value} moved away mid-aid");
                 return;
             }
 
@@ -662,6 +701,86 @@ public sealed partial class ExecutionSystem
         }
 
         return TalkTopic.SmallTalk;
+    }
+
+    // §67.10: how often each speaker's subject is re-drawn inside one talk.
+    // 30 ticks ≈ 3 s at the default tick rate — about one turn of the view-side
+    // turn-taking, so a bubble change lands between utterances, not mid-word.
+    private const int TalkTopicRefreshTicks = 30;
+
+    // §67.10: what THIS speaker is on about, as opposed to the pair's shared
+    // subject. A pressing personal state (starving, parched, wounded, dead
+    // tired, freezing) wins over small talk about coconuts — that is how "she
+    // tells her housemate she's hungry" happens with no extra sim machinery:
+    // presentation reads the same CurrentTalkTopic field it always did.
+    //
+    // Deterministic: the only randomness is a stateless hash of (tick-bucket,
+    // speaker), so a resume/replay picks the same subject.
+    private static TalkTopic PickSpeakerTopic(
+        WorldState world, NPCState speaker, NPCState listener, TalkTopic shared)
+    {
+        // Strongest complaint first — one clear voice per turn, not a mixture.
+        // Thresholds are deliberately high: chatter stays about the island and
+        // each other until something really is wrong.
+        var complaint = (TalkTopic?)null;
+        var severity = 0f;
+
+        void Consider(TalkTopic topic, float value, float threshold)
+        {
+            if (value <= threshold)
+            {
+                return;
+            }
+
+            // Normalise "how far past the threshold" so different needs compare.
+            var s = (value - threshold) / System.Math.Max(0.001f, 1f - threshold);
+            if (s > severity)
+            {
+                severity = s;
+                complaint = topic;
+            }
+        }
+
+        Consider(TalkTopic.Hunger, speaker.Needs.Hunger, 0.55f);
+        Consider(TalkTopic.Thirst, speaker.Needs.Thirst, 0.55f);
+        // Energy sits low for long stretches of a working day, so this bar is
+        // the highest of the five: at 0.70 "I'm tired" drowned out every other
+        // complaint in the probe (388 of 478 talk-ticks).
+        Consider(TalkTopic.Tired, 1f - speaker.Needs.Energy, 0.82f);
+        Consider(TalkTopic.Cold, -speaker.Needs.ThermalComfort, 0.35f);
+        // An open wound speaks for itself — count it as a hard complaint.
+        Consider(TalkTopic.Pain, speaker.Wounds.Count > 0 ? 1f : 0f, 0.5f);
+
+        if (complaint is not { } personal)
+        {
+            return shared;
+        }
+
+        // Even a real complaint doesn't monopolise every turn: the worse it is,
+        // the likelier she brings it up (0.45 at the threshold → 0.95 at the
+        // extreme). Otherwise she keeps to the shared subject.
+        var chance = 0.45f + 0.50f * MathUtil.Clamp01(severity);
+        var bucket = world.Tick / TalkTopicRefreshTicks;
+        // Salt 5507: independent of the shared-subject and quarrel rolls.
+        var roll = MathUtil.Hash01(world.Seed, bucket,
+            speaker.Id.Value * 131 + listener.Id.Value, 5507);
+        return roll < chance ? personal : shared;
+    }
+
+    // §67.10: re-draw both participants' subjects at the refresh cadence while
+    // a talk is running. Only touches the two topic fields — no needs, no
+    // relationships, no plan state — so it cannot alter simulation outcomes.
+    private static void RefreshTalkTopics(WorldState world, NPCState npc, NPCState target)
+    {
+        var elapsed = world.Tick - npc.Execution.StartTick;
+        if (elapsed <= 0 || elapsed % TalkTopicRefreshTicks != 0)
+        {
+            return;
+        }
+
+        var shared = PickTalkTopic(world, npc, target);
+        npc.Execution.CurrentTalkTopic = PickSpeakerTopic(world, npc, target, shared);
+        target.Execution.CurrentTalkTopic = PickSpeakerTopic(world, target, npc, shared);
     }
 }
 

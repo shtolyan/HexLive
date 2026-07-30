@@ -19,7 +19,7 @@ MonoBehaviour:
   campfireBillRope: 2
   campfireRingBurnMultiplier: 0.5
   meatRoastDurationTicks: 200
-  campfireSpitCapacity: 3
+  campfireSpitCapacity: 6
   campfireStarterSticks: 14
   frictionLightGraceTicks: 400
   bedLeafBillLeaves: 46

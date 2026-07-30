@@ -485,6 +485,14 @@ public sealed partial class DecisionSystem
                 continue;
             }
 
+            // §54.15: a bottle parked in the collector's slot is not "a
+            // missing tool lying around" — GatherTools must ignore it.
+            if (world.Entities.Objects.TryGetValue(obj.Id, out var maybeParked) &&
+                WaterCollectorMath.IsParked(world, maybeParked))
+            {
+                continue;
+            }
+
             if (!npc.Inventory.Items.Contains(obj.DefinitionId) &&
                 InventoryMath.CanMakeRoomFor(world, npc, obj.DefinitionId) &&
                 world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
@@ -757,6 +765,74 @@ public sealed partial class DecisionSystem
         }
 
         return false;
+    }
+
+    // §54.15: the nearest finished collector whose parked bottle this NPC may
+    // draw from RIGHT NOW (≥1 gulp collected, her own bottle empty). Feeds
+    // both GetWater availability and the planner's collector-draw branch.
+    internal static PerceivedObject? FindDrawableCollector(NPCState npc, WorldState world)
+    {
+        PerceivedObject? best = null;
+        foreach (var seen in npc.Perception.Objects)
+        {
+            if (seen.DefinitionId != WaterCollectorMath.CollectorId ||
+                !seen.IsReachable || !ObjectUsableBy(seen, npc.Id))
+            {
+                continue;
+            }
+
+            if (!world.Entities.Objects.TryGetValue(seen.Id, out var collector))
+            {
+                continue;
+            }
+
+            var vessel = WaterCollectorMath.FindVessel(world, collector);
+            if (vessel is null || !WaterCollectorMath.CanTake(world, npc, vessel))
+            {
+                continue;
+            }
+
+            if (best is null || seen.Distance < best.Distance)
+            {
+                best = seen;
+            }
+        }
+
+        return best;
+    }
+
+    // §54.15: the nearest finished collector with an EMPTY vessel slot — the
+    // StowBottle chore's target (park the bottle, let the rain do the rest).
+    internal static PerceivedObject? FindStowableCollector(NPCState npc, WorldState world)
+    {
+        if (npc.BottleWater != WaterKind.None ||
+            CountInventory(npc, WaterCollectorMath.VesselId) == 0)
+        {
+            return null;
+        }
+
+        PerceivedObject? best = null;
+        foreach (var seen in npc.Perception.Objects)
+        {
+            if (seen.DefinitionId != WaterCollectorMath.CollectorId ||
+                !seen.IsReachable || !ObjectUsableBy(seen, npc.Id))
+            {
+                continue;
+            }
+
+            if (!world.Entities.Objects.TryGetValue(seen.Id, out var collector) ||
+                WaterCollectorMath.FindVessel(world, collector) is not null)
+            {
+                continue;
+            }
+
+            if (best is null || seen.Distance < best.Distance)
+            {
+                best = seen;
+            }
+        }
+
+        return best;
     }
 }
 

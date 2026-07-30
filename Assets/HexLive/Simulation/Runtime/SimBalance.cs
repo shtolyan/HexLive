@@ -268,8 +268,8 @@ namespace HexLive.Simulation.Runtime
 
         // Clothing condition. Durability is also the inventory HP bar, so
         // combat wear should stay close to what the player sees.
-        public static float ClothingBiteDurabilityWear = 0.065f; // per covering garment on a dog bite
-        public static float ClothingPassiveWearPerDay = 0.025f;  // natural worn-cloth wear per game day
+        public static float ClothingBiteDurabilityWear = 0.013f; // per covering garment on a dog bite
+        public static float ClothingPassiveWearPerDay = 0.005f;  // natural worn-cloth wear per game day
 
         // Melee weapon numbers (damage, замах/hit-delay, animation length,
         // cooldown, cadence) moved OUT of here into Content.GearCatalog —
@@ -365,8 +365,9 @@ namespace HexLive.Simulation.Runtime
         // spit and roasts over a lit fire for this long (100 ticks = 1 game
         // hour), then turns into cooked meat that stays hanging until taken.
         public static int MeatRoastDurationTicks = 200;
-        // How many chunks hang on the crossbar at once.
-        public static int CampfireSpitCapacity = 3;
+        // How many chunks hang on the crossbar at once (= the 6 fixed skewer
+        // slots the CampfireSpitMeat view lays out along the bar).
+        public static int CampfireSpitCapacity = 6;
 
         // §54.14 (r2): loose sticks scattered around the marked hearth spot at
         // world start. The site itself is EMPTY (the colony piles the fire with
@@ -422,6 +423,22 @@ namespace HexLive.Simulation.Runtime
         // §35.5B: how many garments hang on the rack at once (one per hanger
         // slot on the assembled prefab's rails).
         public static int RackCapacity = 8;
+
+        // §54.15: the water collector is a staged build-site like the rack —
+        // 4 planted uprights → the stone stand → the top rim → the corner
+        // lashings → the leaf funnel. MUST equal the per-material sums of
+        // BuildSiteMath.WaterCollectorStages (which mirror the
+        // water_collector_final prefab's staged piece groups "1".."5").
+        public static int WaterCollectorBillSticks = 8;  // 4 uprights + 4 rim
+        public static int WaterCollectorBillStones = 5;  // the vessel stand
+        public static int WaterCollectorBillRope = 8;    // two lashings per corner
+        public static int WaterCollectorBillLeaves = 11; // the funnel
+
+        // §54.15: how long steady rain takes to fill the parked bottle to the
+        // brim (a quarter of a game day; DayLengthTicks = 2400). The vessel's
+        // ResourceAmount holds fill progress 0..1; a full bottle converts to
+        // BottleCapacity gulps of clean rain water on TakeVessel.
+        public static int WaterCollectorFillTicks = 600;
 
         // §54.2: how many fronds each palm's crown is built from AND how many
         // loose leaves drop when that crown is chopped — the SAME number per size
@@ -521,5 +538,20 @@ namespace HexLive.Simulation.Runtime
         // is dead or has broken contact — then normal life (incl. a fresh flee)
         // resumes.
         public static int FightCommitGraceTicks = 40;
+
+        // Spec 29C.4A standoff-release valve. A HEALTHY girl squared up against
+        // a tile-adjacent mob that has failed to reach melee for this many
+        // CONTINUOUS ticks (no bite, no strike, ~10 s at 1x) stops honouring
+        // the stance latch — the mob demonstrably cannot close the junction
+        // gap, so freezing her "fighting" only starves the player of an NPC
+        // (seed 521091321 day 30: Марта/Молли stood "дерётся" against a wolf
+        // that never attacked). Real melee contact resets the window, so a
+        // genuine run-down (dog biting between cooldowns) never trips it.
+        public static int StandoffReleaseTicks = 40;
+
+        // How long a released girl ignores the square-up latch — enough to
+        // walk away, drink, re-plan. If the mob still hangs around unreached
+        // after the grace, the stance re-arms and the valve re-judges.
+        public static int StandoffReleaseGraceTicks = 240;
     }
 }

@@ -144,6 +144,15 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 continue;
             }
 
+            // §54.15: rain water waiting in a collector beats foraging for a
+            // coconut — draw from it first. Falls through to the coconut walk
+            // when no collector holds a drinkable bottle.
+            if (npc.Mind.CurrentGoal == GoalType.GetWater &&
+                TryBuildCollectorDrawPlan(world, npc))
+            {
+                continue;
+            }
+
             if (npc.Mind.CurrentGoal == GoalType.Socialize)
             {
                 BuildTalkPlan(world, npc);
@@ -786,6 +795,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
             GoalType.GatherWood => InteractionType.PickUp,
             GoalType.GatherTools => InteractionType.PickUp,
             GoalType.GetWater => InteractionType.PickUp, // §55: fetch a coconut to crack open
+            GoalType.StowBottle => InteractionType.PlaceVessel, // §54.15: park the bottle in the collector
             GoalType.TendFire => InteractionType.Fuel,
             GoalType.CraftSpear => InteractionType.Craft,
             GoalType.CookMeat => InteractionType.Craft,
@@ -875,6 +885,15 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // Spec §54.2: pick a scattered palm leaf off the ground.
                 return definition.Tags.Contains("PalmLeaf");
             case GoalType.GatherTools:
+                // §54.15: a bottle parked in the collector's vessel slot is
+                // working furniture, not a dropped tool — retrieval is the
+                // TakeVessel verb, never a PickUp scoop.
+                if (world.Entities.Objects.TryGetValue(perceived.Id, out var maybeParked) &&
+                    WaterCollectorMath.IsParked(world, maybeParked))
+                {
+                    return false;
+                }
+
                 // Only a tool that ADDS something: a verb the pack can't do
                 // yet or a better weapon — no hoarding capability-duplicates.
                 if (definition.Tags.Contains("Tool") &&
@@ -947,7 +966,21 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 return definition.Tags.Contains("BuildSite") &&
                     !definition.Tags.Contains("FurnitureSite");
             case GoalType.BuildFurniture:
-                return definition.Tags.Contains("FurnitureSite");
+                // §54.13 r2: only a site this NPC can ADVANCE right now — she
+                // carries a material its CURRENT stage accepts, or it is fully
+                // stocked and ready to raise. Decision scores the goal against
+                // the colony's ORDERED queue (FindBuildSite), but targeting
+                // used to accept ANY FurnitureSite in view: with stones for
+                // the fire's ring in hand she walked to the NEARER rack site
+                // (which wants sticks), deposited nothing, completed the
+                // 36-tick Build and looped — an empty ping-pong that starved
+                // every site for whole 10-day soaks (rack 0/4 sticks, seeds
+                // 12345/424242; FOCUS trace t5160-5237).
+                return definition.Tags.Contains("FurnitureSite") &&
+                    world.Entities.Objects.TryGetValue(perceived.Id, out var fsite) &&
+                    BuildSiteMath.IsSite(fsite) &&
+                    (DecisionSystem.CarriesSiteMaterial(npc, fsite) ||
+                     BuildSiteMath.IsStocked(fsite));
             case GoalType.BuildRaft:
                 return definition.Tags.Contains("Raft");
             case GoalType.Mourn:
@@ -964,11 +997,65 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 return definition.Tags.Contains("Corpse");
             case GoalType.GetWater:
                 // Fetch a whole coconut; Drink will put it on the ground and
-                // open it with a blade before sipping.
+                // open it with a blade before sipping. (The collector draw is
+                // a custom plan branch, not this generic path.)
                 return HasCoconutBlade(npc) && perceived.DefinitionId == "food.coconut";
+            case GoalType.StowBottle:
+                // §54.15: a finished collector whose vessel slot is empty.
+                return perceived.DefinitionId == WaterCollectorMath.CollectorId &&
+                    world.Entities.Objects.TryGetValue(perceived.Id, out var collector) &&
+                    WaterCollectorMath.FindVessel(world, collector) is null;
             default:
                 return true;
         }
+    }
+
+    // §54.15: MoveTo + Interact(TakeVessel) at the nearest collector holding a
+    // bottle this NPC may draw from. Mirrors the generic obstacle-target path:
+    // the collector anchor is blocked, so she stands on the reserved rim cell.
+    private static bool TryBuildCollectorDrawPlan(WorldState world, NPCState npc)
+    {
+        var target = DecisionSystem.FindDrawableCollector(npc, world);
+        if (target is null ||
+            !world.Entities.Objects.TryGetValue(target.Id, out var collector) ||
+            collector.Junctions.Count == 0)
+        {
+            return false;
+        }
+
+        var besideReach = SpatialQueries.BesideReach(
+            world.Content.ObjectDefinitions.TryGetValue(collector.DefinitionId, out var def)
+                ? def.ObstacleRadius : 0f);
+        if (!TryReserveBesideJunction(world, npc, collector.Junctions[0], 48,
+                out var beside, besideReach))
+        {
+            Trace.Emit(world, npc.Id, "PlanFailed",
+                $"Goal=GetWater collector {collector.Id.Value}: no free junction beside it");
+            return false;
+        }
+
+        npc.Plan.TargetObjectId = target.Id;
+        npc.Plan.TargetTile = target.Tile;
+        npc.Plan.TargetJunctionId = beside;
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.MoveToJunction,
+            TargetJunction = beside,
+            TargetObject = target.Id
+        });
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.Interact,
+            TargetObject = target.Id,
+            TargetJunction = beside,
+            Interaction = InteractionType.TakeVessel
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        Trace.Emit(world, npc.Id, "PlanBuilt",
+            $"Goal=GetWater Target={collector.DefinitionId} Collector={collector.Id.Value} " +
+            "Steps=[MoveToJunction,Interact(TakeVessel)]");
+        return true;
     }
 }
 

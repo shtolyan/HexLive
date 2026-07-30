@@ -55,6 +55,10 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 2400)] public int raidDuskOffsetTicks = 1800;
         [Tooltip("Минимальная дистанция спауна собаки от NPC, тайлы.")]
         [Range(1, 15)] public int dogSpawnMinDistanceFromNpc = 5;
+        [Tooltip("Сколько тиков ПОДРЯД погоня не сдвигает собаку (нет проходимого пути к жертве), прежде чем она бросает цель и уходит бродить. Мелек сбрасывает счётчик.")]
+        [Range(40, 1200)] public int dogChaseStallGiveUpTicks = 200;
+        [Tooltip("Сколько тиков после брошенной безнадёжной погони собака игнорирует добычу (успевает реально уйти от лагеря).")]
+        [Range(0, 4800)] public int dogHuntCooldownTicks = 600;
 
         [Header("Крабы/кролики (31C)")]
         [Tooltip("Максимум крабов одновременно.")]

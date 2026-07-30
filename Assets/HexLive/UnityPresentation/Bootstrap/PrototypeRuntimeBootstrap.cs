@@ -95,6 +95,10 @@ public static class PrototypeRuntimeBootstrap
         var sky = root.AddComponent<HexLive.UnityPresentation.Environment.SkyDayNightController>();
         sky.SetRunner(runner);
 
+        // Spec §67: FMOD-backed sound — sim-event one-shots + island ambience.
+        var sound = root.AddComponent<Audio.SoundManager>();
+        sound.Construct(runner, renderer);
+
         InstallCamera(runner);
         InstallCharacterUi(runner);
 

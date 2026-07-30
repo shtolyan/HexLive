@@ -393,6 +393,15 @@ namespace HexLive.Simulation.Bootstrap
 
             // Spec 40.15: the escape raft on the coast — a walkable, non-water
             // tile beside the sea, nearest to home (the way off the island).
+            // §40.15 r2: the raft is DISABLED pending its redesign
+            // (SimBalance.RaftEnabled). The goal gates were already off, but the
+            // coastal vessel.raft OBJECT was still seeded — so every new world
+            // spawned a log-raft prop nobody could use. Skip the whole block.
+            if (!HexLive.Simulation.Runtime.SimBalance.RaftEnabled)
+            {
+                return;
+            }
+
             var raftCoords = new Dictionary<(int q, int r), TileBootstrap>();
             foreach (var tile in fragment.Tiles)
             {

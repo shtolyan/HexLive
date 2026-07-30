@@ -374,6 +374,12 @@ namespace HexLive.UnityPresentation.History
             "Flirt" => T("flirting", "флирт"),
             "Joke" => T("jokes", "шутки"),
             "Grumble" => T("complaints", "ворчание"),
+            // §67.10: личные жалобы — «рассказала подруге, что голодна».
+            "Hunger" => T("her hunger", "свой голод"),
+            "Thirst" => T("her thirst", "свою жажду"),
+            "Pain" => T("her wound", "свою рану"),
+            "Tired" => T("her exhaustion", "свою усталость"),
+            "Cold" => T("the chill in her bones", "свой холод"),
             _ => topic
         };
 

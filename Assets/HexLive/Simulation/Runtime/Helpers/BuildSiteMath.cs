@@ -93,12 +93,26 @@ internal static class BuildSiteMath
         (MaterialRope, 2)     // stage 5: the lashings
     };
 
+    // §54.15: water_collector_final prefab groups "1".."5" — the frame is
+    // planted first, the stand goes in under it, then the rim closes the
+    // frame, the corners are lashed, and the leaf funnel is laid in last
+    // (the funnel is what actually catches rain, so it finishes the piece).
+    private static readonly (string Material, int Count)[] WaterCollectorStages =
+    {
+        (MaterialSticks, 4),  // stage 1: the four planted uprights
+        (MaterialStones, 5),  // stage 2: the stone stand for the vessel
+        (MaterialSticks, 4),  // stage 3: the top rim
+        (MaterialRope, 8),    // stage 4: the corner lashings
+        (MaterialLeaves, 11)  // stage 5: the funnel
+    };
+
     private static (string Material, int Count)[] StagesFor(WorldObjectState site) => site.BuildProduct switch
     {
         "bed.leaf" => BedLeafStages,
         "bed.basic" => BedBasicStages,
         "station.drying_rack" => DryingRackStages,
         "campfire.spot" => CampfireStages,
+        "station.water_collector" => WaterCollectorStages,
         _ => null
     };
 

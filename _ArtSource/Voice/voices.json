@@ -1,0 +1,39 @@
+{
+  "_comment": "§67.10: ElevenLabs voice ids per colonist. The API KEY is NOT here — it lives in ELEVENLABS_API_KEY (.claude/settings.local.json env, gitignored). Manner follows HEXKUFA_LANGUAGE.md §5. Molly's stretch was 1.5 — it pushed 71 of her takes into the 4.2 s cap (cut mid-word); 1.15 still reads as drawn-out.",
+  "model": "eleven_v3",
+  "model_fallback": "eleven_multilingual_v2",
+  "characters": {
+    "jana": {
+      "voice_id": "EST9Ui6982FZPSi7gCHi",
+      "manner": "sings, adds refrains",
+      "seed": 71001,
+      "stability": 0.45,
+      "similarity_boost": 0.8,
+      "vowel_stretch": 1.0
+    },
+    "jolly": {
+      "voice_id": "dfeOmy6Uay63tNhyO99j",
+      "manner": "fast patter, repeats words",
+      "seed": 71002,
+      "stability": 0.35,
+      "similarity_boost": 0.75,
+      "vowel_stretch": 0.9
+    },
+    "marta": {
+      "voice_id": "dVTC43Yewy5fAIcmsISI",
+      "manner": "low, clipped, swallows endings",
+      "seed": 71003,
+      "stability": 0.6,
+      "similarity_boost": 0.8,
+      "vowel_stretch": 0.6
+    },
+    "molly": {
+      "voice_id": "TC0Zp7WVFzhA8zpTlRqV",
+      "manner": "soft, childlike, draws everything out",
+      "seed": 71004,
+      "stability": 0.4,
+      "similarity_boost": 0.75,
+      "vowel_stretch": 1.15
+    }
+  }
+}

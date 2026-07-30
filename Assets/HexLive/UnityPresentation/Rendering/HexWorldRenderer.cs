@@ -123,6 +123,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // §35.5B: drying-rack hanging — the junctions occupied by racks this
     // snapshot, and each hung garment's hanger rank (object id → slot index).
     private readonly HashSet<JunctionId> _rackJunctions = new();
+    // §54.15: junctions occupied by water collectors — a tool.bottle sharing
+    // one is PARKED in the vessel slot (drawn on the stone stand, not scattered).
+    private readonly HashSet<JunctionId> _collectorJunctions = new();
     private readonly Dictionary<int, int> _rackHangRank = new();
     private readonly List<ObjectSnapshot> _rackHangScratch = new();
     private readonly Dictionary<JunctionId, int> _rackRankScratch = new();
@@ -151,6 +154,20 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return false;
     }
 
+    // §67.10: the actor itself, so a sim event (death cry, "it's built!") can
+    // be spoken by the right mouth instead of a disembodied sfx.
+    public bool TryGetActorView(int npcId, out NpcActorView view)
+    {
+        if (_actorViews.TryGetValue(npcId, out var found) && found != null)
+        {
+            view = found;
+            return true;
+        }
+
+        view = null;
+        return false;
+    }
+
     // Orbit pivot: the pose-aware visual center of the NPC's body (chest when
     // standing, following the body down when sitting/lying).
     public bool TryGetNpcBodyCenter(int npcId, out Vector3 center)
@@ -169,6 +186,45 @@ public sealed class HexWorldRenderer : MonoBehaviour
         center = Vector3.zero;
         return false;
     }
+
+    // Spec §67: mob position for wolf growl/bite/death sounds — the system
+    // wolf events carry only the mob id.
+    public bool TryGetMobViewPosition(int mobId, out Vector3 position)
+    {
+        if (_mobViews.TryGetValue(mobId, out var view) && view != null)
+        {
+            position = view.transform.position;
+            return true;
+        }
+
+        position = Vector3.zero;
+        return false;
+    }
+
+    // Spec §67.3: the surf emitter slides along the waterline — nearest sand
+    // tile to the camera. Sand IS the shore by construction (spec 31C.4: land
+    // within one hex of water), so the tile-build loop collects the points.
+    public bool TryGetNearestShorePoint(Vector3 near, out Vector3 point)
+    {
+        point = Vector3.zero;
+        var bestSq = float.MaxValue;
+        foreach (var shore in _shorePoints)
+        {
+            var dx = shore.x - near.x;
+            var dz = shore.z - near.z;
+            var sq = dx * dx + dz * dz;
+            if (sq < bestSq)
+            {
+                bestSq = sq;
+                point = shore;
+            }
+        }
+
+        return bestSq < float.MaxValue;
+    }
+
+    private readonly List<Vector3> _shorePoints = new();
+    private readonly HashSet<TileCoord> _sandCoords = new();
 
     // Face anchor of the LIVE in-world character (real dirt/tan/clothes) for
     // the portrait camera. Falls back to the primitive view's head sphere.
@@ -591,7 +647,16 @@ public sealed class HexWorldRenderer : MonoBehaviour
         {
             if (!_tileViews.ContainsKey(tile.Coord))
             {
-                _tileViews[tile.Coord] = CreateTileView(tile, IsSandTile(tile));
+                var sand = IsSandTile(tile);
+                _tileViews[tile.Coord] = CreateTileView(tile, sand);
+                if (sand)
+                {
+                    // §67.3: собранная при постройке тайлов кромка — опорные
+                    // точки для 3D-эмиттера прибоя.
+                    _shorePoints.Add(SimulationUnityMapper.ToUnityTilePosition(
+                        tile.Coord, GroundY(tile.Coord)));
+                    _sandCoords.Add(tile.Coord);
+                }
             }
         }
 
@@ -703,11 +768,17 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // (sorted by object id) so every hung garment gets a stable hanger slot.
         _rackJunctions.Clear();
         _rackHangRank.Clear();
+        _collectorJunctions.Clear();
         foreach (var worldObject in snapshot.Objects)
         {
             if (worldObject.DefinitionId == "station.drying_rack" && worldObject.Junctions.Count > 0)
             {
                 _rackJunctions.Add(worldObject.Junctions[0]);
+            }
+
+            if (worldObject.DefinitionId == "station.water_collector" && worldObject.Junctions.Count > 0)
+            {
+                _collectorJunctions.Add(worldObject.Junctions[0]);
             }
         }
 
@@ -1013,6 +1084,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
         actorView.SetSimSpeed(_runner != null && !_runner.IsPaused ? _runner.SpeedMultiplier : 1f);
         // §40.18-B: in deep water the animator swims (tread idle / strokes).
         actorView.SetSwimming(_swimCoords.Contains(npc.Tile));
+        // Spec §67: what the feet land on — wading water beats sand beats
+        // grass — so the view picks the right footstep sample.
+        actorView.SetGroundSurface(
+            _waterCoords.Contains(npc.Tile) ? NpcActorView.GroundSurface.Water
+            : _sandCoords.Contains(npc.Tile) ? NpcActorView.GroundSurface.Sand
+            : NpcActorView.GroundSurface.Grass);
         // §21.21B: sim-driven hex-step jump — the view flies its ballistic
         // arc (and compresses the jump clip) over the sim's hop window. The
         // height delta is the EXACT root-level difference, so a dive into
@@ -1030,8 +1107,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var earlyThermalForSweat = UI.DebugControlsPanel.SweatOverride ?? npc.ThermalComfort;
         var earlyUncoveredForDecals = UI.DebugControlsPanel.HideClothing ? AllBodyZones : npc.UncoveredParts;
         var earlyRainWet = snapshot.IsRaining && !_indoorCoords.Contains(npc.Tile) ? 1f : 0f;
+        var earlyWaterWet = _waterCoords.Contains(npc.Tile) ? 1f : 0f;
         actorView.SetBodyCondition(npc.BodyParts, earlyUncoveredForDecals, npc.Hygiene, earlyThermalForSweat,
-            earlyRainWet, npc.WornWetness, npc.WornDirtiness, npc.WornBloodiness,
+            earlyRainWet, earlyWaterWet, npc.WornWetness, npc.WornDirtiness, npc.WornBloodiness,
             npc.Wounds, npc.BandagedZones, npc.SeveredParts);
         var heldItemId = IsProne(npc) && IsToolOrWeapon(npc.HeldItemId) ? string.Empty : npc.HeldItemId;
         actorView.SetInteraction(npc.CurrentInteraction, heldItemId, npc.AidTargetLyingDown);
@@ -1041,7 +1119,25 @@ public sealed class HexWorldRenderer : MonoBehaviour
             npc.HeldGarmentDurability, npc.HeldGarmentDirt, npc.HeldGarmentBlood, npc.HeldGarmentWet);
         // Spec 28.15E: overhead chat bubble — show the talk's emoji, and pop a
         // "+/-" once when a talk outcome resolves (new TalkResultTick).
+        // §67.10: the same bubble is now the mouth of every utterance — the
+        // director also needs her body (for self-talk) and her current verb
+        // (for work beats). Presentation-only: nothing here feeds the sim.
         actorView.SetTalkTopic(npc.TalkTopic);
+        actorView.SetSpeechState(new UI.SpeechCatalog.BodyState
+        {
+            Hunger = npc.Hunger,
+            Thirst = npc.Thirst,
+            Energy = npc.Energy,
+            ThermalComfort = npc.ThermalComfort,
+            Hygiene = npc.Hygiene,
+            Social = npc.Social,
+            Wetness = Mathf.Max(earlyRainWet, earlyWaterWet),
+            Wounded = npc.Wounds.Count > 0,
+            Sick = HasEffect(npc, "Sick"),
+            Asleep = npc.CurrentInteraction == "Sleep",
+            Fainted = npc.IsFainted || npc.IsUnconscious
+        });
+        actorView.SetSpeechInteraction(npc.CurrentInteraction);
         if (npc.SocialCueTick > 0 && !string.IsNullOrEmpty(npc.SocialCueKind))
         {
             var cueKey = $"{npc.SocialCueTick}:{npc.SocialCueKind}:{npc.SocialCuePeerId ?? -1}";
@@ -1115,9 +1211,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // Spec 35.5: rain reuses the sweat tech — an NPC standing outdoors in
         // the rain glistens and beads exactly like sweating; garments carry
         // their own sim wetness (soaked cloth shines/darkens, dries back).
+        // Water tiles (swim AND wade — the sim's TileFlags.Water) dunk the
+        // skin outright, so she climbs out of the sea wet and dries slowly.
         var rainWet = snapshot.IsRaining && !_indoorCoords.Contains(npc.Tile) ? 1f : 0f;
+        var waterWet = _waterCoords.Contains(npc.Tile) ? 1f : 0f;
         actorView.SetBodyCondition(npc.BodyParts, uncoveredForDecals, npc.Hygiene, thermalForSweat,
-            rainWet, npc.WornWetness, npc.WornDirtiness, npc.WornBloodiness,
+            rainWet, waterWet, npc.WornWetness, npc.WornDirtiness, npc.WornBloodiness,
             npc.Wounds, npc.BandagedZones, npc.SeveredParts);
         actorView.SetClothingHidden(UI.DebugControlsPanel.HideClothing);
         // Portrait isolation: keep the whole actor hierarchy (incl. garments,
@@ -1408,6 +1507,20 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private static bool IsToolOrWeapon(string itemId) =>
         !string.IsNullOrEmpty(itemId) &&
         itemId.StartsWith("tool.", System.StringComparison.Ordinal);
+
+    // §67.10: the snapshot ships effects as "<Kind>\t<intensity>" rows.
+    private static bool HasEffect(NpcSnapshot npc, string kind)
+    {
+        for (var i = 0; i < npc.Effects.Count; i++)
+        {
+            if (npc.Effects[i].StartsWith(kind, System.StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     // The bed she is sleeping on: nearest bed object view within ~a tile.
     private Transform? FindBedAttachPoint(WorldSnapshot snapshot, NpcSnapshot npc, out float surfaceY)
@@ -2074,11 +2187,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
         }
 
-        // Spec §54.2/§35.5B: the beds and the drying rack are the assembled
-        // prefab with every piece toggled on — the same prefab a build-site
-        // grows piece by piece, so finished and in-progress match.
+        // Spec §54.2/§35.5B/§54.15: the beds, the drying rack and the water
+        // collector are the assembled prefab with every piece toggled on —
+        // the same prefab a build-site grows piece by piece, so finished and
+        // in-progress match. All are authored 1:1, so NO ObjectFit sizing.
         if (HexLive.UnityPresentation.Environment.BedFactory.IsBed(worldObject.DefinitionId) ||
-            worldObject.DefinitionId == "station.drying_rack")
+            worldObject.DefinitionId == "station.drying_rack" ||
+            worldObject.DefinitionId == "station.water_collector")
         {
             var bed = HexLive.UnityPresentation.Environment.BedAssembly.BuildFinished(worldObject.DefinitionId);
             if (bed != null)
@@ -2146,12 +2261,38 @@ public sealed class HexWorldRenderer : MonoBehaviour
             var prefabRoot = new GameObject($"Object {worldObject.DefinitionId}");
             prefabRoot.transform.SetParent(_objectsRoot, false);
             var instance = Instantiate(objectPrefab, prefabRoot.transform);
-            FitObjectPrefab(instance, worldObject.DefinitionId, worldObject.Id.Value);
+            FitObjectPrefab(instance, worldObject.DefinitionId, worldObject.Id.Value,
+                scatter: worldObject.RotationDegrees == 0f);
             var anchorPos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
             prefabRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
                 anchorPos, GroundY(worldObject.Tile));
             MaybeAttachCampfire(prefabRoot, worldObject.DefinitionId);
             return prefabRoot;
+        }
+
+        // §54.15: a tool.bottle sharing a collector's junction is PARKED in the
+        // vessel slot — it stands upright on the stone stand under the funnel
+        // (the WC_point marker sits 0.12 above ground) instead of scattering
+        // in the grass like a dropped tool.
+        if (worldObject.DefinitionId == "tool.bottle" && worldObject.Junctions.Count > 0 &&
+            _collectorJunctions.Contains(worldObject.Junctions[0]))
+        {
+            var parked = HexLive.UnityPresentation.Environment.LowPolyToolFactory.Build(
+                worldObject.DefinitionId);
+            if (parked != null)
+            {
+                var parkedRoot = new GameObject($"Object {worldObject.DefinitionId} (parked)");
+                parkedRoot.transform.SetParent(_objectsRoot, false);
+                parked.transform.SetParent(parkedRoot.transform, false);
+                FitObjectPrefab(parked, worldObject.DefinitionId, worldObject.Id.Value,
+                    scatter: false);
+                parked.transform.localPosition += Vector3.up * 0.12f; // the stand's top
+                parked.transform.localRotation = Quaternion.identity; // upright, dead centre
+                var parkedPos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
+                parkedRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
+                    parkedPos, GroundY(worldObject.Tile));
+                return parkedRoot;
+            }
         }
 
         // §35.5B: a garment at a drying-rack junction HANGS on the rack instead
@@ -3050,15 +3191,26 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     // Spec 31C.3: normalize any downloaded/transferred model to the hex
     // metric by its rendered bounds — no per-asset scale guessing.
-    private void FitObjectPrefab(GameObject instance, string definitionId, int idValue)
+    private void FitObjectPrefab(GameObject instance, string definitionId, int idValue, bool scatter = true)
     {
         // Size comes from the shared ObjectFit table (same one the in-hand prop
         // uses in NpcActorView.SetHandProp) so a tool/coconut is the same physical
         // size on the ground and in the hand.
         instance.transform.localScale *= ObjectFit.FitScaleFactor(instance, definitionId);
+        // A prefab root authored with a stray offset (meat was lifted 0.3 — it
+        // hovered over the grass) must not survive into the drop pose: the fit
+        // owns the pose completely, so start from a clean origin. GroundVisual
+        // seats the bounds bottom AT the pivot height, so a lifted pivot floats.
+        instance.transform.localPosition = Vector3.zero;
         // Scattered ground pose BEFORE grounding so the drop rests on its rotated
         // bounds (a lain-flat tool sits on its side, not floating at its old height).
-        instance.transform.localRotation = GroundScatterRotation(definitionId, idValue);
+        // §66: a BUILT piece is placed, not dropped — its yaw is the sim's, so the
+        // scatter must not fight it (the root already carries the staked rotation).
+        if (scatter)
+        {
+            instance.transform.localRotation = GroundScatterRotation(definitionId, idValue);
+        }
+
         GroundVisual(instance);
     }
 

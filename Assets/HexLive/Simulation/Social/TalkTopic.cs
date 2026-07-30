@@ -27,7 +27,19 @@ public enum TalkTopic
     Gossip,   // chatter about a third housemate
     Flirt,    // warmth, closeness, a spark
     Joke,     // teasing, laughter
-    Grumble   // a complaint, friction, an argument brewing
+    Grumble,  // a complaint, friction, an argument brewing
+
+    // §67.10 personal complaints — NOT a shared subject but what THIS speaker
+    // is going through: she tells her housemate she's starving / parched / hurt.
+    // Picked per participant (each has her own CurrentTalkTopic), so a
+    // conversation can be "I'm hungry" answered by "the fire's dying". Kept
+    // last in the enum: values are ints in traces/snapshots and appending is
+    // the only safe extension.
+    Hunger,   // "I'm starving" — her own empty belly
+    Thirst,   // "I'm parched"
+    Pain,     // "I'm hurt" — an open wound
+    Tired,    // "I'm dead on my feet"
+    Cold      // "I'm freezing" — her own body, not the weather in general
 }
 
 }

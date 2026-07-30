@@ -35,6 +35,63 @@ animation. Tune the in-hand pose in the `AxeChopTest` scene (`toolId` field → 
   editor is unfocused — re-pin the instance and retry. Guard mutations with
   `if (Application.productName != "HexLive") return;` (a second project may share the bridge).
 
+## ⭐ ALL SOUND GOES THROUGH FMOD — and through BOTH of its halves
+
+**Never** add `AudioSource` / `AudioClip` / `PlayOneShot` — Unity audio is
+disabled in this project (that is also why uLipSync needed the
+`overrideSampleRate` patch, spec §67.7). Every sound plays through FMOD.
+
+FMOD lives here in **two halves, and they must be kept in sync by hand**:
+
+| | Runtime (what the game actually plays) | FMOD Studio project |
+|---|---|---|
+| Where | `Assets/StreamingAssets/HexLive/Sfx/**` | `FMODStudio/HexLive/` (+ built `Build/Desktop/Master.bank`) |
+| How | `FmodSfx` → **Studio events** (`CreateInstance`/`start`); Core API from files is the fallback, and the only path for voices | events 1:1 by `FmodSfx.Sfx.*` id, MultiSound playlists, spatialiser |
+| Banks | **LOADED** — integration upgraded to **2.03.14**, `BankLoadType: All`, banks staged in `Assets/StreamingAssets/FMODBanks` | source of truth for volume/effects/distances |
+
+**Mix and tune in FMOD Studio, not in code** (§67.12). Playback goes through
+Studio events (`event:/SFX|Ambience|Voices/<id>`), so a fader you move in
+Studio is what the game plays — and Live Update is on, so you can attach to a
+running game and tune live. `FmodSfx.Defs` volumes are now only the FALLBACK
+path used when an event is missing (unbuilt bank / brand-new id). Voices stay
+on the Core API on purpose: the §67.7 lipsync needs the concrete file and
+playback position, which an event hides.
+
+Version numbers read as decimal-in-hex: `FMOD.VERSION.number` `0x00020314` =
+2.03.14. FMOD Studio (the app) and FMOD for Unity (the package in
+`Assets/Plugins/FMOD`) are **separate downloads** — check the package, not the
+app, before blaming a version mismatch.
+
+**«Only the voices are audible» = the Game view «Mute Audio» button is ON.**
+It mutes the FMOD Studio master BUS, so every *event* goes silent, while raw
+Core-API channels (the §67.6 voice lines) keep playing — an exact split that
+looks like a code bug and is not one. Check `EditorUtility.audioMasterMute`
+first. Two more traps found the hard way while chasing it:
+- After swapping the integration you MUST fully quit Unity — native plugins are
+  never unloaded, so the old library stays resident (`ERR_HEADER_MISMATCH`).
+- Do NOT touch `RuntimeManager` from edit mode (an MCP probe counts): it logs
+  «RuntimeManager accessed outside of runtime» and leaves a zombie manager whose
+  `Update` never runs in the following play session — events then start and die
+  at timeline 0 with no errors, which looks exactly like a broken bank. Verify
+  suspicions in a FRESH play session, or against the standalone bank probe.
+
+Scripts (`FMODStudio/Scripts/`): `populate_events.js` rebuilds the sfx/ambience
+events (scans `Sfx` **flat**), `sync_voices.js` rebuilds the voice events (scans
+`Sfx/Voices/<char>/` **recursively**, purges stale `voice_*` events + assets
+first). Run them headless — and note the gotcha:
+
+```bash
+script -q /dev/null "/Applications/FMOD Studio.app/Contents/MacOS/fmodstudiocl" \
+  -script "$PWD/FMODStudio/Scripts/sync_voices.js" "$PWD/FMODStudio/HexLive/HexLive.fspro"
+script -q /dev/null "/Applications/FMOD Studio.app/Contents/MacOS/fmodstudiocl" \
+  -build "$PWD/FMODStudio/HexLive/HexLive.fspro"
+```
+
+`fmodstudiocl` **must** run under a pseudo-tty (`script -q /dev/null …`) —
+without one it dies with the cryptic «The files a, tty do not exist».
+A first build may print transient `FSBank error (7)` lines: delete
+`Build/Desktop/*.bank` and rebuild — a clean build must end with 0 errors.
+
 ## Headless simulation probes (no Unity)
 
 For AI/GOAP/simulation checks, do not start Unity just to run ticks. Build the

@@ -160,6 +160,29 @@ public sealed class NpcFaceAnimator : MonoBehaviour
         _sleeping = sleeping;
     }
 
+    // §67.8: короткая эмоция на время голосовой реплики — оверлей поверх
+    // фонового настроения (говорит радостно/грустно/зло, потом лицо само
+    // возвращается к настроению). Боль (SetPain) всё равно сильнее.
+    private string _talkEmotion;
+    private float _talkEmotionUntil;
+
+    public void FlashTalkEmotion(string emotion, float seconds)
+    {
+        // §67.10: реплики каталога приходят как "<эмоция>_<повод>"
+        // ("sad_thirst") — лицу нужна только эмоция, повод рисует бабл.
+        if (!string.IsNullOrEmpty(emotion))
+        {
+            var cut = emotion.IndexOf('_');
+            if (cut > 0)
+            {
+                emotion = emotion[..cut];
+            }
+        }
+
+        _talkEmotion = emotion;
+        _talkEmotionUntil = Time.time + Mathf.Clamp(seconds, 0.5f, 6f);
+    }
+
     // Pain/wince level from fresh bleeding wounds (0 none .. 1 writhing). There
     // is no single Genesis3 "pain" morph — LateUpdate composites the grimace
     // from FACS units and gives it a slow throb so it reads as waves of pain.
@@ -233,6 +256,77 @@ public sealed class NpcFaceAnimator : MonoBehaviour
             }
         }
 
+        // --- §67.8: talk-emotion overlay — реплика окрашивает лицо целиком.
+        float overlayBrow = 0f, overlaySquint = 0f, overlayNose = 0f, overlayCheek = 0f;
+        // §67.10: каналы для fear/work/call (испуг, натуга, оклик).
+        float overlaySurprise = 0f, overlayLipsPart = 0f, overlayGrimace = 0f;
+        if (_talkEmotion != null && Time.time >= _talkEmotionUntil)
+        {
+            _talkEmotion = null;
+        }
+
+        if (_talkEmotion != null)
+        {
+            // Последние полсекунды реплики эмоция плавно отпускает лицо.
+            var k = Mathf.Clamp01((_talkEmotionUntil - Time.time) / 0.5f);
+            switch (_talkEmotion)
+            {
+                case "happy": // улыбка/смех: всё лицо, щёки вверх
+                    smile = Mathf.Max(smile, 55f * k);
+                    smileFull = Mathf.Max(smileFull, 80f * k);
+                    overlayCheek = 45f * k;
+                    frown = 0f;
+                    break;
+                case "sad":
+                    frown = Mathf.Max(frown, 65f * k);
+                    overlaySquint = 15f * k;
+                    smile = Mathf.Min(smile, 8f);
+                    smileFull = 0f;
+                    break;
+                case "sleepy": // полуприкрытые глаза, вялый рот
+                    frown = Mathf.Max(frown, 25f * k);
+                    overlaySquint = 45f * k;
+                    smile = Mathf.Min(smile, 8f);
+                    smileFull = 0f;
+                    break;
+                case "angry":
+                    angry = Mathf.Max(angry, 85f * k);
+                    overlayBrow = 70f * k;
+                    overlayNose = 45f * k;
+                    frown = Mathf.Max(frown, 45f * k);
+                    smile = 0f;
+                    smileFull = 0f;
+                    break;
+                case "cry":
+                    frown = Mathf.Max(frown, 80f * k);
+                    overlayBrow = 65f * k;
+                    overlaySquint = 55f * k;
+                    smile = 0f;
+                    smileFull = 0f;
+                    break;
+                // §67.10: три новых канала — испуг, усилие и оклик вдаль.
+                case "fear": // распахнутые глаза, приоткрытый рот, брови вверх
+                    overlaySurprise = 85f * k;
+                    overlayLipsPart = 55f * k;
+                    frown = Mathf.Max(frown, 30f * k);
+                    smile = 0f;
+                    smileFull = 0f;
+                    break;
+                case "work": // натуга: сведённые брови, сжатый рот
+                    overlayBrow = 55f * k;
+                    overlayGrimace = 45f * k;
+                    overlayNose = 25f * k;
+                    smile = Mathf.Min(smile, 10f);
+                    smileFull = 0f;
+                    break;
+                case "call": // зовёт: рот широко, брови вверх
+                    overlayLipsPart = 80f * k;
+                    overlaySurprise = 45f * k;
+                    smileFull = 0f;
+                    break;
+            }
+        }
+
         // --- Pain (fresh bleeding wounds): a wince composited from FACS morphs,
         // with a slow throb so it reads as writhing. It overrides the resting
         // smile — you don't smile while in pain — and reinforces the frown.
@@ -249,14 +343,14 @@ public sealed class NpcFaceAnimator : MonoBehaviour
         _smileFull.Apply(smileFull, EmotionSpeed, dt);
         _frown.Apply(frown, EmotionSpeed, dt);
         _angry.Apply(angry, EmotionSpeed, dt);
-        _surprised.Apply(_surprisePulse * 80f, 400f, dt);
+        _surprised.Apply(Mathf.Max(_surprisePulse * 80f, overlaySurprise), 400f, dt);
 
-        _browSqueeze.Apply(painThrob * 80f, EmotionSpeed, dt);
-        _eyesSquint.Apply(painThrob * 75f, EmotionSpeed, dt);
-        _noseScrunch.Apply(painThrob * 55f, EmotionSpeed, dt);
-        _cheekFlex.Apply(painThrob * 45f, EmotionSpeed, dt);
-        _mouthGrimace.Apply(painThrob * 55f, EmotionSpeed, dt);
-        _lipsPart.Apply(painThrob * 30f, EmotionSpeed, dt);
+        _browSqueeze.Apply(Mathf.Max(painThrob * 80f, overlayBrow), EmotionSpeed, dt);
+        _eyesSquint.Apply(Mathf.Max(painThrob * 75f, overlaySquint), EmotionSpeed, dt);
+        _noseScrunch.Apply(Mathf.Max(painThrob * 55f, overlayNose), EmotionSpeed, dt);
+        _cheekFlex.Apply(Mathf.Max(painThrob * 45f, overlayCheek), EmotionSpeed, dt);
+        _mouthGrimace.Apply(Mathf.Max(painThrob * 55f, overlayGrimace), EmotionSpeed, dt);
+        _lipsPart.Apply(Mathf.Max(painThrob * 30f, overlayLipsPart), EmotionSpeed, dt);
     }
 }
 

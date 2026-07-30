@@ -173,6 +173,12 @@ public static class SpatialQueries
         return true;
     }
 
+    // Ground sleep is rendered by a long lying animation, not by a point-sized
+    // pawn. Keep the whole body envelope clear of blocked junctions so a
+    // fireside nap cannot visually land inside the campfire ember ring.
+    public static bool LyingBodyClear(WorldState world, Junction anchor) =>
+        FootprintClear(world, anchor, HexSpatialMath.HexRadius);
+
     public static bool IsJunctionPassable(WorldState world, JunctionId junctionId)
     {
         if (!world.Junctions.Items.TryGetValue(junctionId, out var junction))

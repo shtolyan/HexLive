@@ -325,6 +325,10 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
                 RecordGameHistoryEvent(e);
             }
 
+            // Spec §67: the sound layer voices discrete world moments (a felled
+            // tree, a landed bite) straight off the trace stream.
+            Audio.SoundManager.Instance?.OnSimEvent(e);
+
             if (!logAllTrace && !(logImportant && isGameHistoryEvent))
             {
                 continue;
@@ -446,6 +450,9 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
         Wearing.GarmentWearPainter.Prewarm();
         Rendering.MobWoundPainter.Prewarm();
         _ = Rendering.BloodSplashVfx.Prefabs;
+        // Spec §67: every SFX sample loads NOW for the same reason — the FMOD
+        // createSound file reads must not land on the first mid-game chop.
+        Audio.FmodSfx.Prewarm();
         // Mob prefabs too (wolf FBX + pelt textures): the view spawns the
         // moment the sim spawns the mob — mid-game, typically right before
         // the first fight — and the lazy Resources.Load there was the
@@ -487,6 +494,7 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
         engine.Register(new MeatSpoilageSystem()); // §54: ground meat rots
         engine.Register(new DreamSystem()); // §64: advances the colony dream queue (campfire → own bed); before BedSiteSystem
         engine.Register(new BedSiteSystem()); // §54.2: stakes progressive bed build-sites
+        engine.Register(new WaterCollectorSystem()); // §54.15: rain fills the parked bottle
         engine.Register(new HazardSystem()); // §50: prepared amputation hazards
     }
 }

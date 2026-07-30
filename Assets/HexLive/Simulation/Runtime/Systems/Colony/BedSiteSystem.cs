@@ -43,6 +43,14 @@ public sealed class BedSiteSystem : ISimulationSystem
             {
                 (orphanSites ??= new System.Collections.Generic.List<ObjectId>()).Add(obj.Id);
             }
+
+            // §66: the tent is retired (CraftTent is disabled in DecisionSystem)
+            // — sweep any lean-to already standing in a loaded world so the camp
+            // is rid of it, not just spared new ones.
+            if (obj.DefinitionId == "shelter.tent")
+            {
+                (orphanSites ??= new System.Collections.Generic.List<ObjectId>()).Add(obj.Id);
+            }
         }
 
         if (orphanSites != null)
@@ -53,7 +61,7 @@ public sealed class BedSiteSystem : ISimulationSystem
             }
 
             Trace.EmitSystem(world, "OrphanSitesCleared",
-                $"removed {orphanSites.Count} product-less build.site(s) squatting the fireside ring");
+                $"removed {orphanSites.Count} orphaned object(s) (product-less build.site / retired shelter.tent)");
         }
 
         var livingGirls = 0;
@@ -76,6 +84,8 @@ public sealed class BedSiteSystem : ISimulationSystem
         var bedSitesInProgress = 0;
         var racks = 0;
         var rackSitesInProgress = 0;
+        var collectors = 0; // §54.15: communal water collector
+        var collectorSitesInProgress = 0;
         WorldObjectState hearth = null;
         // §64: per-colonist bed ownership (personal beds). Who already owns a bed
         // (any / a premium one), who has one under construction, and any finished
@@ -112,6 +122,10 @@ public sealed class BedSiteSystem : ISimulationSystem
                 {
                     rackSitesInProgress++;
                 }
+                else if (obj.BuildProduct == "station.water_collector")
+                {
+                    collectorSitesInProgress++;
+                }
 
                 continue;
             }
@@ -119,6 +133,11 @@ public sealed class BedSiteSystem : ISimulationSystem
             if (obj.DefinitionId == "station.drying_rack")
             {
                 racks++;
+            }
+
+            if (obj.DefinitionId == "station.water_collector")
+            {
+                collectors++;
             }
 
             if (!world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def))
@@ -177,6 +196,36 @@ public sealed class BedSiteSystem : ISimulationSystem
             }
         }
 
+        // §54.15: one communal water collector follows the rack — the same
+        // staged fireside build (no hammer). The rack is STAKED first (it's
+        // cheaper), but the collector doesn't wait for it to finish: water is
+        // survival (coconut spawns are halved with it), so both sites stand
+        // open and the haul chain feeds whichever material is at hand. 5-day
+        // smoke with a finished-rack gate: the rack never completed, so the
+        // collector never even staked.
+        if (hearth is not null && (racks > 0 || rackSitesInProgress > 0) &&
+            collectors == 0 && collectorSitesInProgress == 0)
+        {
+            var collectorSpot = FindFiresideHex(world, hearth);
+            if (collectorSpot is { } collectorPlacement)
+            {
+                var collectorSite = WorldObjectMutations.SpawnObject(
+                    world, "build.site", new FragmentId(1),
+                    collectorPlacement.Tile, collectorPlacement.Junction);
+                collectorSite.BuildProduct = "station.water_collector";
+                collectorSite.RotationDegrees = collectorPlacement.FacingYaw;
+                WorldObjectMutations.SetObstacleBlocking(world, collectorSite, blocked: true);
+                collectorSite.BillSticks = SimBalance.WaterCollectorBillSticks;
+                collectorSite.BillStones = SimBalance.WaterCollectorBillStones;
+                collectorSite.BillRope = SimBalance.WaterCollectorBillRope;
+                collectorSite.BillLeaves = SimBalance.WaterCollectorBillLeaves;
+                RememberSiteForColony(world, collectorSite);
+                Trace.EmitSystem(world, "CollectorSitePlaced",
+                    "station.water_collector site staked by the hearth");
+                return;
+            }
+        }
+
         // §64: beds are PERSONAL. Each colonist wants her own; the dream drives
         // the staking, one bed at a time, until every living colonist owns one.
         if (SpecDream.Enabled)
@@ -191,10 +240,14 @@ public sealed class BedSiteSystem : ISimulationSystem
 
             // Reuse before rebuild: hand any ownerless finished bed (a reclaimed
             // one, or the hut's free bed.basic) to a colonist who has none.
+            // §64.8: a girl whose dream is the premium bedroll passes on a free
+            // leaf mat — claiming it would close her bed dream with the wrong
+            // bed. A free bed.basic suits everyone.
             if (ownerlessBed is not null)
             {
                 var claimant = FirstLiving(world,
-                    id => !ownedAnyBed.Contains(id) && !siteOwners.Contains(id));
+                    id => !ownedAnyBed.Contains(id) && !siteOwners.Contains(id) &&
+                        (ownerlessBed.DefinitionId == "bed.basic" || !WantsPremiumBed(world, id)));
                 if (claimant is not null)
                 {
                     ownerlessBed.Owner = claimant.Id;
@@ -209,13 +262,20 @@ public sealed class BedSiteSystem : ISimulationSystem
                 return;
             }
 
-            // First tier: a leaf mat for anyone with no bed at all. Second tier
-            // (§54.12): once everyone owns a bed, premium bedrolls (bed.basic) for
-            // those without one — same owner-per-colonist rule.
+            // First tier: a leaf mat for anyone with no bed at all — unless her
+            // dream is the premium bedroll (§64.8, PremiumBedChance): then her
+            // first and only bed is staked as bed.basic and the leaf tier is
+            // skipped. Second tier (§54.12): once everyone owns a bed, premium
+            // bedrolls (bed.basic) for those without one — same
+            // owner-per-colonist rule (a premium dreamer already owns hers).
             var owner = FirstLiving(world,
                 id => !ownedAnyBed.Contains(id) && !siteOwners.Contains(id));
             var dreamProduct = "bed.leaf";
-            if (owner is null && SimBalance.BedBasicEnabled)
+            if (owner is not null && WantsPremiumBed(world, owner.Id))
+            {
+                dreamProduct = "bed.basic";
+            }
+            else if (owner is null && SimBalance.BedBasicEnabled)
             {
                 owner = FirstLiving(world,
                     id => !ownedBasicBed.Contains(id) && !siteBasicOwners.Contains(id));
@@ -292,6 +352,14 @@ public sealed class BedSiteSystem : ISimulationSystem
             $"{product} site staked by the hearth" +
             (owner is { } o ? $" for colonist {o.Value}" : string.Empty));
     }
+
+    // §64.8: does this girl dream of the PREMIUM bedroll instead of the plain
+    // leaf mat? A stable per-girl-per-world trait: Hash01 over (seed, id) makes
+    // the wish deterministic across ticks and reloads without touching saves.
+    // Gated on BedBasicEnabled so disabling the premium tier falls back to leaf.
+    private static bool WantsPremiumBed(WorldState world, EntityId id) =>
+        SimBalance.BedBasicEnabled &&
+        MathUtil.Hash01(world.Seed, id.Value, 64, 6408) < SpecDream.PremiumBedChance;
 
     // First living colonist matching a predicate on her id (bed-target picking).
     private static NPCState FirstLiving(WorldState world, System.Func<EntityId, bool> predicate)

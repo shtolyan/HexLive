@@ -311,8 +311,13 @@ public static class PrototypeContentCatalog
                     // (4 -> 2) so the ground pile is smaller at start, and the
                     // drop interval tripled (100 -> 300) so new coconuts fall
                     // far less often — pushing hunger into the hunt window.
-                    IntervalTicks = 300,
-                    MaxConcurrent = 2,
+                    // §54.15: halved AGAIN (300 -> 600, cap 2 -> 1) now that the
+                    // water collector covers thirst — coconuts stop being the
+                    // island's bottomless canteen. NOTE: tree.palm is overridden
+                    // by Resources/HexLive/WorldObjects/palm.asset — keep the
+                    // asset's producer values in sync with these.
+                    IntervalTicks = 600,
+                    MaxConcurrent = 1,
                     MaxDistanceTiles = 1
                 }
             },
@@ -343,8 +348,9 @@ public static class PrototypeContentCatalog
                 Produce = new ProduceDefinition
                 {
                     ProducedDefinitionId = "food.coconut",
-                    IntervalTicks = 300,
-                    MaxConcurrent = 2,
+                    // §54.15: halved with the big palm (see its comment).
+                    IntervalTicks = 600,
+                    MaxConcurrent = 1,
                     MaxDistanceTiles = 1
                 }
             },
@@ -621,6 +627,32 @@ public static class PrototypeContentCatalog
                         Id = "hang.rack",
                         Type = InteractionType.Hang,
 
+                        DurationTicks = 8
+                    }
+                }
+            },
+            // §54.15: the water collector — a staged fireside build-site like
+            // the rack (4 planted uprights → a stone stand → the top rim →
+            // rope lashings → the leaf funnel). The funnel sheds rain inward
+            // to a drip point over the stand, where a container left in the
+            // WC_point slot catches it. Obstacle: it occupies its junction.
+            ["station.water_collector"] = new ObjectDefinition
+            {
+                Id = "station.water_collector",
+                DisplayName = "Water collector",
+                Tags = { "Station", "Obstacle" },
+                Interactions =
+                {
+                    new InteractionDefinition
+                    {
+                        Id = "vessel.place",
+                        Type = InteractionType.PlaceVessel,
+                        DurationTicks = 8
+                    },
+                    new InteractionDefinition
+                    {
+                        Id = "vessel.take",
+                        Type = InteractionType.TakeVessel,
                         DurationTicks = 8
                     }
                 }

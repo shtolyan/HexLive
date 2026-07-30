@@ -51,6 +51,16 @@ public sealed class MobState
 
     // Next tick a new attack may start winding up (cooldown gate).
     public int AttackReadyAtTick { get; set; }
+
+    // Spec 29C.3 (stuck-chase give-up): first tick this chase failed to move
+    // the mob (no walkable route to the quarry). 0 = not stalled. Transient —
+    // not persisted; a loaded save simply re-judges the chase fresh.
+    public int ChaseStallSinceTick { get; set; }
+
+    // After abandoning a hopeless chase the mob ignores prey until this tick,
+    // so it actually wanders off instead of re-acquiring the same unreachable
+    // girl on the very next pass. Transient — not persisted.
+    public int NextHuntAllowedTick { get; set; }
 }
 
 public enum MobStatus

@@ -31,8 +31,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0.1f, 1f)] public float campfireRingBurnMultiplier = 0.5f;
         [Tooltip("Стадия 3 (вертел): сколько тиков жарится кусок мяса.")]
         [Range(50, 800)] public int meatRoastDurationTicks = 200;
-        [Tooltip("Сколько кусков висит на перекладине одновременно.")]
-        [Range(1, 8)] public int campfireSpitCapacity = 3;
+        [Tooltip("Сколько кусков висит на перекладине одновременно (= 6 слотам вида CampfireSpitMeat).")]
+        [Range(1, 8)] public int campfireSpitCapacity = 6;
         [Tooltip("Сколько палок рассыпано у метки очага на старте мира (иначе холодный старт дедлочится).")]
         [Range(0, 30)] public int campfireStarterSticks = 14;
         [Tooltip("Сколько тиков после последнего замерзания доступно трение-разжигание (ручное сверло).")]
@@ -63,6 +63,18 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 20)] public int rackBillRope = 4;
         [Tooltip("Сколько вещей сохнет на сушилке одновременно (по числу вешалок префаба).")]
         [Range(1, 16)] public int rackCapacity = 8;
+
+        [Header("Сборщик воды (§54.15; = суммам BuildSiteMath.WaterCollectorStages)")]
+        [Tooltip("Палки: 4 стойки + 4 верхние обвязки.")]
+        [Range(1, 20)] public int waterCollectorBillSticks = 8;
+        [Tooltip("Камни подставки под ёмкость.")]
+        [Range(0, 20)] public int waterCollectorBillStones = 5;
+        [Tooltip("Верёвки: по две на угол рамы.")]
+        [Range(0, 20)] public int waterCollectorBillRope = 8;
+        [Tooltip("Листья воронки.")]
+        [Range(1, 40)] public int waterCollectorBillLeaves = 11;
+        [Tooltip("За сколько тиков НЕПРЕРЫВНОГО дождя бутылка в сборщике наполняется доверху (600 = четверть игрового дня).")]
+        [Range(60, 4800)] public int waterCollectorFillTicks = 600;
 
         [Header("Пальмы (§54.2: вид кроны = дроп листьев)")]
         [Tooltip("Листьев в кроне/дропе большой пальмы (~хватает на кровать с одной пальмы).")]

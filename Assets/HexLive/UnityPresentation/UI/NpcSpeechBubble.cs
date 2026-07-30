@@ -20,11 +20,15 @@ public sealed class NpcSpeechBubble : MonoBehaviour
 {
     private const float HeightOffset = 0.34f;    // world units above the head bone
     private const float BubbleUnitsTall = 0.70f; // on-screen bubble height (bigger white bg)
-    private const float EmojiUnitsTall = 0.26f;  // emoji height inside the body (smaller, well inside)
+    private const float IconBoxUnitsWide = 0.32f;
+    private const float IconBoxUnitsTall = 0.22f;
     // Centre of the white oval body in speech_bubble.png, measured in sprite
     // texture space from the bottom-left. The tail/outline make the full image's
     // geometric centre wrong for the emoji.
-    private static readonly Vector2 BubbleBodyCenterFrac = new(0.5205f, 0.5918f);
+    private static readonly Vector2 BubbleBodyCenterFrac = new(0.515f, 0.580f);
+    private const float CueBoxUnitsWide = 0.30f;
+    private const float CueBoxUnitsTall = 0.25f;
+    private const float PopUnitsWide = 0.28f;
     private const float PopUnitsTall = 0.19f;    // "+/-" height (≈half the old size)
     private const float PopRiseSpeed = 0.42f;    // units/sec the "+/-" floats up
     private const float PopLifetime = 1.25f;
@@ -95,25 +99,42 @@ public sealed class NpcSpeechBubble : MonoBehaviour
         SetVisible(false);
     }
 
-    // Show the bubble with this topic's emoji, or hide it when the sim reports
-    // no active talk topic.
-    public void SetTopic(string topicName)
+    // §67.10: the bubble no longer knows about talk topics — it shows whatever
+    // icon the speech director hands it, for as long as it is told to. Every
+    // utterance goes through here (that is the "no voice without a picture"
+    // invariant), so a conversation topic and a scream at a wolf are the same
+    // mechanism with a different hold time.
+    //
+    // seconds <= 0 = hold until told otherwise (a running conversation).
+    public void ShowIcon(string iconKey, float seconds)
     {
-        if (!TalkTopicVisuals.IsKnown(topicName))
+        if (string.IsNullOrEmpty(iconKey))
         {
-            SetVisible(false);
+            HideIcon();
             return;
         }
 
-        var sprite = ResolveEmoji(topicName);
         if (_emoji != null)
         {
-            _emoji.sprite = sprite;
-            FitSpriteHeight(_emoji, EmojiUnitsTall);
+            _emoji.sprite = ResolveEmoji(iconKey);
+            FitSpriteInside(_emoji, IconBoxUnitsWide, IconBoxUnitsTall);
         }
 
+        _holdUntil = seconds > 0f ? Time.time + seconds : -1f;
         SetVisible(true);
     }
+
+    public void HideIcon()
+    {
+        _holdUntil = -1f;
+        SetVisible(false);
+    }
+
+    // What is on screen right now — the director restores the conversation icon
+    // after an interrupting alarm line has faded.
+    public bool IsShowing => _shown;
+
+    private float _holdUntil = -1f;
 
     // Fire the Sims-style relationship change. delta > 0 = warmed (+/++ green),
     // delta < 0 = soured (-/-- red). No-op for a negligible change.
@@ -136,7 +157,7 @@ public sealed class NpcSpeechBubble : MonoBehaviour
 
         _popRenderer.sprite = ResolveEmoji(key);
         _popRenderer.color = positive ? PosColor : NegColor;
-        FitSpriteHeight(_popRenderer, PopUnitsTall);
+        FitSpriteInside(_popRenderer, PopUnitsWide, PopUnitsTall);
         _pop.gameObject.SetActive(true);
         _popTimer = 0f;
     }
@@ -151,7 +172,7 @@ public sealed class NpcSpeechBubble : MonoBehaviour
         _cueRenderer.sprite = ResolveEmoji(SocialCueSprite(cueKind));
         _cueColor = SocialCueColor(cueKind);
         _cueRenderer.color = _cueColor;
-        FitSpriteHeight(_cueRenderer, EmojiUnitsTall * 0.92f);
+        FitSpriteInside(_cueRenderer, CueBoxUnitsWide, CueBoxUnitsTall);
         _cue.gameObject.SetActive(true);
         _cueTimer = 0f;
     }
@@ -198,6 +219,14 @@ public sealed class NpcSpeechBubble : MonoBehaviour
                 Mathf.Approximately(ls.x, 0f) ? 1f : 1f / ls.x,
                 Mathf.Approximately(ls.y, 0f) ? 1f : 1f / ls.y,
                 Mathf.Approximately(ls.z, 0f) ? 1f : 1f / ls.z);
+        }
+
+        // §67.10: a timed line retires itself — the director is free to leave
+        // the bubble alone once it has handed one over.
+        if (_holdUntil > 0f && Time.time >= _holdUntil)
+        {
+            _holdUntil = -1f;
+            SetVisible(false);
         }
 
         // Ease the bubble in (pop) and out.
@@ -302,12 +331,16 @@ public sealed class NpcSpeechBubble : MonoBehaviour
         return new Vector3(local.x, local.y, -0.01f);
     }
 
-    private void FitSpriteHeight(SpriteRenderer sr, float targetTall)
+    private void FitSpriteInside(SpriteRenderer sr, float targetWide, float targetTall)
     {
         var k = 1f;
-        if (sr.sprite != null && sr.sprite.bounds.size.y > 0.0001f)
+        if (sr.sprite != null)
         {
-            k = targetTall / sr.sprite.bounds.size.y;
+            var size = sr.sprite.bounds.size;
+            if (size.x > 0.0001f && size.y > 0.0001f)
+            {
+                k = Mathf.Min(targetWide / size.x, targetTall / size.y);
+            }
         }
 
         if (sr == _emoji)
@@ -359,7 +392,7 @@ public sealed class NpcSpeechBubble : MonoBehaviour
     private Sprite ResolveBubble()
     {
         var s = ResolveSprite("speech_bubble", "HexLive/UI/speech_bubble",
-            new Vector2(0.5f, 0.16f), 820f);
+            new Vector2(0.5f, 0.16f), 820f, false);
         // Scale the (variable-size) bubble to a fixed on-screen height.
         _bubbleBaseScale = s != null && s.bounds.size.y > 0.0001f
             ? BubbleUnitsTall / s.bounds.size.y
@@ -368,12 +401,26 @@ public sealed class NpcSpeechBubble : MonoBehaviour
     }
 
     private static Sprite ResolveEmoji(string name)
-        => ResolveSprite("emoji:" + name, EmojiDir + name, new Vector2(0.5f, 0.5f), 100f);
+    {
+        var sprite = ResolveSprite("emoji:" + name, EmojiDir + name, new Vector2(0.5f, 0.5f), 100f, true);
+        if (sprite == null && name != SpeechCatalog.FallbackIcon)
+        {
+            sprite = ResolveSprite("emoji:" + SpeechCatalog.FallbackIcon,
+                EmojiDir + SpeechCatalog.FallbackIcon, new Vector2(0.5f, 0.5f), 100f, true);
+        }
+
+        return sprite;
+    }
 
     // Load a texture from Resources and wrap it in a runtime Sprite (cached).
     // We build the sprite from the Texture2D rather than Resources.Load<Sprite>
     // so the PNG needs no Sprite importer settings.
-    private static Sprite ResolveSprite(string cacheKey, string resourcePath, Vector2 pivot, float ppu)
+    private static Sprite ResolveSprite(
+        string cacheKey,
+        string resourcePath,
+        Vector2 pivot,
+        float ppu,
+        bool trimTransparent)
     {
         if (_spriteCache.TryGetValue(cacheKey, out var cached))
         {
@@ -384,7 +431,14 @@ public sealed class NpcSpeechBubble : MonoBehaviour
         Sprite sprite = null;
         if (tex != null)
         {
-            sprite = Sprite.Create(tex, new Rect(0f, 0f, tex.width, tex.height), pivot, ppu);
+            var rect = new Rect(0f, 0f, tex.width, tex.height);
+            if (trimTransparent && TryVisiblePixelRect(tex, out var visible))
+            {
+                rect = visible;
+                pivot = new Vector2(0.5f, 0.5f);
+            }
+
+            sprite = Sprite.Create(tex, rect, pivot, ppu);
         }
         else
         {
@@ -393,6 +447,54 @@ public sealed class NpcSpeechBubble : MonoBehaviour
 
         _spriteCache[cacheKey] = sprite;
         return sprite;
+    }
+
+    private static bool TryVisiblePixelRect(Texture2D tex, out Rect rect)
+    {
+        rect = default;
+        Color32[] pixels;
+        try
+        {
+            pixels = tex.GetPixels32();
+        }
+        catch (UnityException)
+        {
+            return false;
+        }
+
+        var minX = tex.width;
+        var minY = tex.height;
+        var maxX = -1;
+        var maxY = -1;
+        for (var y = 0; y < tex.height; y++)
+        {
+            var row = y * tex.width;
+            for (var x = 0; x < tex.width; x++)
+            {
+                if (pixels[row + x].a <= 3)
+                {
+                    continue;
+                }
+
+                minX = Mathf.Min(minX, x);
+                minY = Mathf.Min(minY, y);
+                maxX = Mathf.Max(maxX, x);
+                maxY = Mathf.Max(maxY, y);
+            }
+        }
+
+        if (maxX < minX || maxY < minY)
+        {
+            return false;
+        }
+
+        const int pad = 2;
+        minX = Mathf.Max(0, minX - pad);
+        minY = Mathf.Max(0, minY - pad);
+        maxX = Mathf.Min(tex.width - 1, maxX + pad);
+        maxY = Mathf.Min(tex.height - 1, maxY + pad);
+        rect = new Rect(minX, minY, maxX - minX + 1, maxY - minY + 1);
+        return rect.width > 0f && rect.height > 0f;
     }
 }
 

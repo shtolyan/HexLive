@@ -590,10 +590,15 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // the camp's ground coconuts were eaten the colony sat at Thirst
             // 1.0 with groves rotting 6 tiles away (whole-colony thirst wipes,
             // seeds 42/999/2024).
-            var getWaterAvail = hasCoconutBlade && npc.Needs.Thirst >= 0.35f && !hasCoconutWater &&
-                !hasBottleWater &&
-                (HasReachableDefinitionWorthCarrying(npc, world, "food.coconut") ||
-                 KnowsReachableProducer(npc, world));
+            // §54.15: rain water waiting in a collector is a first-class thirst
+            // answer — GetWater may fire on it even bladeless and coconut-less
+            // (the planner prefers the collector draw over foraging).
+            var collectorDrawSeen = FindDrawableCollector(npc, world) is not null;
+            var getWaterAvail = npc.Needs.Thirst >= 0.35f && !hasCoconutWater && !hasBottleWater &&
+                (collectorDrawSeen ||
+                 (hasCoconutBlade &&
+                  (HasReachableDefinitionWorthCarrying(npc, world, "food.coconut") ||
+                   KnowsReachableProducer(npc, world))));
             // Costs come from the RECIPES (asset-overridable), not constants —
             // an asset that reprices a tool re-prices its gathering too.
             var axeStoneCost = Content.RecipeCatalog.InputCount(GoalType.CraftAxe, "resource.stone");
@@ -729,6 +734,15 @@ public sealed partial class DecisionSystem : ISimulationSystem
             AddGoalScore(npc, world.Tick, GoalType.TendFire,
                 0.25f + 0.3f * npc.Needs.Thirst + boilChain +
                 (freezing ? 0.9f * npc.Needs.ThermalDiscomfort : 0f), tendFireAvail);
+
+            // §54.15: park the empty bottle under the collector's funnel so any
+            // rain — now or tonight — turns into clean drinking water. A quiet
+            // chore in the TendFire band; nudged while it actually rains, and
+            // by thirst (an empty bottle at 0.5 thirst is a plan, not clutter).
+            var stowAvail = FindStowableCollector(npc, world) is not null;
+            AddGoalScore(npc, world.Tick, GoalType.StowBottle,
+                0.22f + 0.2f * npc.Needs.Thirst +
+                (world.Environment.IsRaining ? 0.15f : 0f), stowAvail);
 
             // Spec 42: WarmUp — go stand by the burning fire until the chill
             // lifts. Available while genuinely cold and a lit fire is known;
@@ -1280,13 +1294,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
             var craftBedAvail = false;
             AddGoalScore(npc, world.Tick, GoalType.CraftBed, 0.6f, craftBedAvail);
 
-            // Spec 40.14: a sun shelter — woven from 4 spare palm leaves at the
-            // fire when the sun bites and there's no shade near home yet. Score
-            // scales with the current UV so it's a fair-weather project, not a
-            // constant pull (keeps the fragile colony from reshuffling).
-            var craftTentAvail = canUseToolsOrWeapons && world.Environment.UvIndex > 0.4f &&
-                carriedLeaves >= 4 && carriedCloth >= 1 && campfireSeen &&
-                !HasReachableWithTag(npc, world, "Shelter");
+            // Spec 40.14 / §66: the tent is RETIRED (user: the lean-to canopy is
+            // legacy junk — such builds must not exist). Like CraftBed above, the
+            // goal is left disabled rather than churning the Craft dispatch it
+            // still nominally routes through; BedSiteSystem also sweeps any
+            // already-built shelter.tent out of loaded worlds.
+            var craftTentAvail = false;
             AddGoalScore(npc, world.Tick, GoalType.CraftTent,
                 0.25f + 0.3f * world.Environment.UvIndex, craftTentAvail);
 

@@ -49,6 +49,14 @@ public static class SpecDream
     // by the raise→first-light gap). Flip to false if the lit gate regresses
     // comfort in a re-soak.
     public static bool CampfireRequiresLit = true;
+
+    // §64.8: when the bed dream reaches a girl, she doesn't always want the
+    // plain leaf mat — with this chance she dreams STRAIGHT of the premium
+    // bedroll (bed.basic): her personal site is staked as one and she skips the
+    // leaf tier entirely. The wish is a stable per-girl-per-world trait
+    // (Hash01 over seed+id — deterministic across ticks and reloads, no save
+    // change); gated on SimBalance.BedBasicEnabled in BedSiteSystem.
+    public static float PremiumBedChance = 0.33f;
 }
 
 }

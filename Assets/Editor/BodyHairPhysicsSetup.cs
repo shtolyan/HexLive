@@ -63,9 +63,10 @@ public static class BodyHairPhysicsSetup
     [MenuItem("HexLive/Physics/Setup Hair Spring (OnyxHair)")]
     static void SetupOnyxHair()
     {
-        Setup("Assets/ImportedActors/Wear/OnyxHair/OnyxHair.prefab",
-              new[] { "Tail1" }, breast: false,
+        const string path = "Assets/ImportedActors/Wear/OnyxHair/OnyxHair.prefab";
+        Setup(path, new[] { "Tail1" }, breast: false,
               limitAngle: 14f, restoreStiffness: 0.30f, worldInertia: 0.80f);
+        ConfigureOnyxHairRenderer(path);
         AssetDatabase.SaveAssets();
     }
 
@@ -125,6 +126,33 @@ public static class BodyHairPhysicsSetup
         sd.inertiaConstraint.worldInertia = worldInertia ?? (breast ? 0.5f : 1.0f);
         sd.cullingSettings.cameraCullingMode     = CullingSettings.CameraCullingMode.AnimatorLinkage;
         sd.cullingSettings.distanceCullingLength = new CheckSliderSerializeData(true, 25f);
+    }
+
+    static void ConfigureOnyxHairRenderer(string path)
+    {
+        var root = PrefabUtility.LoadPrefabContents(path);
+        try
+        {
+            foreach (var smr in root.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                smr.updateWhenOffscreen = true;
+                smr.localBounds = new Bounds(new Vector3(0f, 0.3f, -0.18f), new Vector3(0.56f, 1.44f, 0.96f));
+
+                var serializedRenderer = new SerializedObject(smr);
+                var smallMeshCulling = serializedRenderer.FindProperty("m_SmallMeshCulling");
+                if (smallMeshCulling != null)
+                {
+                    smallMeshCulling.boolValue = false;
+                    serializedRenderer.ApplyModifiedPropertiesWithoutUndo();
+                }
+            }
+
+            PrefabUtility.SaveAsPrefabAsset(root, path);
+        }
+        finally
+        {
+            PrefabUtility.UnloadPrefabContents(root);
+        }
     }
 
     static Transform FindDeep(Transform root, string name)

@@ -127,5 +127,5 @@ MonoBehaviour:
   adrenalineTicks: 80
   adrenalineEnergyFloor: 0.05
   adrenalineMoveSpeedFactor: 1.5
-  clothingBiteDurabilityWear: 0.065
-  clothingPassiveWearPerDay: 0.025
+  clothingBiteDurabilityWear: 0.013
+  clothingPassiveWearPerDay: 0.005

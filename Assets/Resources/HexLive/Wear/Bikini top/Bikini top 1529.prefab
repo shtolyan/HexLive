@@ -181,7 +181,7 @@ MonoBehaviour:
     scale: 1.03
     mesh: {fileID: 4300000, guid: facbb35a149597a4db9de46a6f41ef80, type: 2}
   - actorName: 1
-    scale: 1
+    scale: 1.03
     mesh: {fileID: 4300000, guid: 786aa1a278a5fe742b7063f1ec7f5804, type: 2}
   - actorName: 2
     scale: 1.03

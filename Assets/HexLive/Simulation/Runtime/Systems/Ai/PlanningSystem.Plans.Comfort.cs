@@ -229,8 +229,10 @@ public sealed partial class PlanningSystem
                     continue;
                 }
 
-                var distance = HexSpatialMath.Distance(npc.Position, junction.WorldPosition) +
-                               garmentDistance * 0.5f;
+                // §40.6 r4: the true walk — to the pile first, then carrying
+                // it to the edge.
+                var distance = HexSpatialMath.Distance(npc.Position, objectPosition) +
+                               garmentDistance;
                 if (distance < bestDistance)
                 {
                     bestDistance = distance;
@@ -294,19 +296,60 @@ public sealed partial class PlanningSystem
             return;
         }
 
-        if (best is null ||
-            !SpatialMutations.TryReserveJunction(world, bestTarget, npc.Id, world.Tick,
-                SimBalance.WashClothesDurationTicks + 96))
+        if (best is null)
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, GoalType.WashClothes);
             return;
         }
 
+        // §40.6 r4: the pile is fetched for REAL — leg 1 stands beside the
+        // garment like any ground pick-up (gather-beside rim, one sub-grid
+        // step), leg 2 carries it to the reserved edge. Without the leg the
+        // wash beat teleported the pile into the hand from up to 2.2R away
+        // (the "acts a hex away" family, spec §26.6A).
+        JunctionId? beside = null;
+        var besideReach = SpatialQueries.BesideReach(
+            world.Content.ObjectDefinitions.TryGetValue(best.DefinitionId, out var besideDef)
+                ? besideDef.ObstacleRadius : 0f);
+        SpatialQueries.CollectStandableAround(world, best.Junctions[0], _rimScratch, 96, besideReach);
+        _rimScratch.Sort((a, b) =>
+        {
+            var da = world.Junctions.Items.TryGetValue(a, out var ja)
+                ? HexSpatialMath.Distance(ja.WorldPosition, npc.Position) : float.MaxValue;
+            var db = world.Junctions.Items.TryGetValue(b, out var jb)
+                ? HexSpatialMath.Distance(jb.WorldPosition, npc.Position) : float.MaxValue;
+            return da.CompareTo(db);
+        });
+        foreach (var rim in _rimScratch)
+        {
+            if (Connectivity.Reachable(world, from, rim) &&
+                SpatialQueries.IsJunctionFree(world, rim) &&
+                SpatialMutations.TryReserveJunction(world, rim, npc.Id, world.Tick, 48))
+            {
+                beside = rim;
+                break;
+            }
+        }
+
+        if (beside is not { } fetchStand ||
+            !SpatialMutations.TryReserveJunction(world, bestTarget, npc.Id, world.Tick,
+                SimBalance.WashClothesDurationTicks + 96))
+        {
+            if (beside is { } reserved)
+            {
+                SpatialMutations.ReleaseJunctionReservation(world, reserved, npc.Id);
+            }
+
+            npc.Plan.Status = PlanStatus.Failed;
+            SetGoalCooldown(world, npc, GoalType.WashClothes);
+            return;
+        }
+
         npc.Plan.TargetObjectId = best.Id;
-        npc.Plan.TargetJunctionId = bestTarget;
+        npc.Plan.TargetJunctionId = fetchStand; // leg 1: to the pile first
         npc.Plan.TargetTile = bestStandTile;
-        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.MoveToJunction, TargetJunction = bestTarget });
+        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.MoveToJunction, TargetJunction = fetchStand });
         npc.Plan.Steps.Add(new PlanStep
         {
             Type = PlanStepType.WashClothes,
@@ -318,7 +361,8 @@ public sealed partial class PlanningSystem
         npc.Plan.Status = PlanStatus.Active;
         Trace.Emit(world, npc.Id, "WashClothesPlanned",
             $"Object={best.Id.Value} Def={best.DefinitionId} Dirt={best.Dirtiness:F2} " +
-            $"Edge={bestTarget.Value} StandTile={bestStandTile.Q},{bestStandTile.R}");
+            $"FetchVia={fetchStand.Value} Edge={bestTarget.Value} " +
+            $"StandTile={bestStandTile.Q},{bestStandTile.R}");
     }
 
     // Spec 29G: does perception offer real furniture for this interaction?

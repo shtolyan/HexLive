@@ -42,6 +42,17 @@ public static class PlanInterruption
             SpatialMutations.ReleaseJunctionReservation(world, jId, npc.Id);
         }
 
+        // §40.6 r4: multi-leg plans hold reservations beyond the current walk
+        // target (the wash edge stays reserved while she fetches the pile) —
+        // release everything the remaining steps point at, owner-guarded.
+        foreach (var planStep in npc.Plan.Steps)
+        {
+            if (planStep.TargetJunction is { } stepJunction)
+            {
+                SpatialMutations.ReleaseJunctionReservation(world, stepJunction, npc.Id);
+            }
+        }
+
         // A garment mid-carry (doffed for an undress, or picked up for a wash)
         // must not vanish with the plan — lay it at her feet, pockets intact.
         if (npc.Execution.HeldGarment is { } held)

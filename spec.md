@@ -8234,7 +8234,8 @@ pass — order chosen to add robustness before difficulty.
     Undress doff (warmth/armor drop at the handoff) and keeps the piece in
     hand. A ground winner (the beached pile on a bathing tile, as before):
     the world object **despawns into her hand** (`GarmentInHand` trace),
-    pocket contents ride along in `Execution.HeldGarmentContents`.
+    pocket contents ride along in `Execution.HeldGarmentContents` — since r4
+    the pick-up happens standing BESIDE the pile, never from the edge.
   - *Wash beat:* dirt AND blood drain from the held instance across
     `SimBalance.WashClothesDurationTicks` (**80**, doubled from 40; knob in
     `CharacterBalanceConfig.washClothesDurationTicks`); wetness pins at 1.
@@ -8272,6 +8273,40 @@ pass — order chosen to add robustness before difficulty.
     back + dress) instead of starting a fresh bathe whenever a pile is owed,
     so she always ends up in her own clothes. Verified headless: fully
     undressed to bathe → re-dressed the same 2 garments.
+- **§40.6 r4 — the pile is fetched, not teleported (Jul 2026).** The
+  ground-source wash grabbed the beached pile into her hand FROM THE EDGE:
+  planning paired the water-edge seat with any dirty pile within 2.2R
+  (3.3 wu) and the wash beat despawned it with no distance check to the
+  garment — the "acts a whole hex away" family (§26.6A / 26.6). Now the plan
+  is a real two-leg fetch:
+  - *Planning:* `BuildWashClothesPlan` still pairs pile×edge (≤2.2R apart;
+    cost is now the true walk — to the pile, then carrying to the edge) and
+    ALSO reserves a stand BESIDE the pile (the generic gather-beside rim:
+    `SpatialQueries.BesideReach` = footprint + one sub-grid step). Plan =
+    `[MoveToJunction(fetchStand), WashClothes(edge, TargetObject)]` with
+    `TargetJunctionId` initially pointing at the fetch stand.
+  - *Execution leg 1:* `RunWashClothes` waits for literal arrival at the
+    fetch stand, re-checks the pile is at arm's reach (the same
+    belt-and-braces `BesideReach` guarantee as the generic exec gate —
+    violation emits `InteractionTooFar` + shun + cooldown + abort), and only
+    then despawns it into her hand. It then re-points `TargetJunctionId` at
+    the edge; the pathfinder routes leg 2 and she CARRIES the piece to the
+    water. Arriving with the piece already in hand skips straight to the
+    wash beat.
+  - *Blocked routes* on either leg wait SILENTLY (the pathfinder retries
+    every tick; actor jams clear as people move, and a genuine dead-end is
+    bounded by need preemption + the edge reservation expiring). An
+    abort-on-Blocked variant was tried and rejected: water edges routinely
+    pass planner `Connectivity.Reachable` yet block at the tick level (other
+    actors on the approach), so aborting produced a replan loop — 466 futile
+    wash aborts / 3× `WashClothesPlanned` churn on a 40k soak of seed 12345,
+    with no throughput gain. An interrupt mid-carry lays the held piece at
+    her feet, so nothing is lost. Worn-source washes are unchanged — the
+    piece rides to the edge on her body.
+  - `PlanInterruption.Abort` now releases the reservations that the plan's
+    REMAINING steps point at (owner-guarded), not just the current walk
+    target — without this an interrupt during leg 1 leaked the pre-reserved
+    wash edge for the full wash window.
 
 ### 40.7 Sunburn → tan (skin system)
 - Skin **reddens where clothing doesn't cover**, sharply along garment

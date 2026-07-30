@@ -695,15 +695,92 @@ public sealed partial class ExecutionSystem
 
     // §40.6 r2 (laundry-in-hand): the piece is washed IN THE HAND, never in
     // place. A worn source plays the doff beat first (off the body into the
-    // hand, warmth drops); a ground source is picked up off the shore (the
-    // world object despawns into the hand, pockets carried through). The held
+    // hand, warmth drops); a ground source is FETCHED (r4): leg 1 walks to a
+    // stand beside the pile, the pick-up happens at arm's reach, and leg 2
+    // carries it to the water edge — the old flow teleported the pile into
+    // the hand from the edge, up to 2.2R away (spec §26.6A family). The held
     // instance loses dirt/blood over the wash window and is laid back down at
     // the edge fully clean and soaked.
     private static void RunWashClothes(WorldState world, NPCState npc, PlanStep step)
     {
         if (npc.Movement.IsMoving || npc.CurrentJunction is not { } current ||
-            step.TargetJunction is not { } target || !current.Equals(target))
+            step.TargetJunction is not { } target)
         {
+            return;
+        }
+
+        // §40.6 r4 leg 1: a ground source not yet in hand — she is walking to
+        // (or standing at) the fetch spot, Plan.TargetJunctionId. Pick up at
+        // reach, then re-point the plan at the edge for leg 2.
+        if (step.TargetObject is { } fetchId && npc.Execution.HeldGarment is null &&
+            npc.Execution.Status == ExecutionStatus.None)
+        {
+            if (npc.Plan.TargetJunctionId is not { } fetchLeg)
+            {
+                return;
+            }
+
+            if (!current.Equals(fetchLeg))
+            {
+                // Not there yet: PathfindingSystem routes leg 1. A Blocked
+                // route waits SILENTLY (retried every tick; actor jams clear
+                // as people move, and a real dead-end is bounded by need
+                // preemption + the edge reservation expiring) — aborting here
+                // turns transient blocks into a replan loop: soak seed 12345
+                // showed 466 futile wash aborts per 40k ticks.
+                return;
+            }
+
+            if (!world.Entities.Objects.TryGetValue(fetchId, out var pile))
+            {
+                PlanInterruption.Abort(world, npc, "WashClothes garment disappeared");
+                npc.Mind.CurrentGoal = GoalType.None;
+                return;
+            }
+
+            // Same belt-and-braces distance guarantee as the generic exec
+            // gate: standing on the reserved fetch spot must actually put the
+            // pile at arm's reach, never across a wall/water gap.
+            var anchor = pile.Junctions.Count > 0 &&
+                world.Junctions.Items.TryGetValue(pile.Junctions[0], out var anchorJct)
+                ? anchorJct.WorldPosition
+                : HexSpatialMath.TileToWorld(pile.Tile);
+            var reach = SpatialQueries.BesideReach(
+                world.Content.ObjectDefinitions.TryGetValue(pile.DefinitionId, out var pileDef)
+                    ? pileDef.ObstacleRadius : 0f);
+            if (HexSpatialMath.Distance(npc.Position, anchor) > reach)
+            {
+                Trace.Emit(world, npc.Id, "InteractionTooFar",
+                    $"{pile.DefinitionId} at " +
+                    $"{HexSpatialMath.Distance(npc.Position, anchor):F2}wu > reach {reach:F2}wu (wash fetch)");
+                npc.Memory.Shun(pile.Id, world.Tick + 600);
+                PlanningSystem.SetGoalCooldown(world, npc, GoalType.WashClothes);
+                PlanInterruption.Abort(world, npc, "WashClothes garment not adjacently reachable");
+                npc.Mind.CurrentGoal = GoalType.None;
+                return;
+            }
+
+            if (!TryPickGarmentIntoHand(world, npc, fetchId))
+            {
+                PlanInterruption.Abort(world, npc, "WashClothes garment disappeared");
+                npc.Mind.CurrentGoal = GoalType.None;
+                return;
+            }
+
+            if (!fetchLeg.Equals(target))
+            {
+                SpatialMutations.ReleaseJunctionReservation(world, fetchLeg, npc.Id);
+            }
+
+            npc.Plan.TargetJunctionId = target; // leg 2: carry to the edge
+            return;
+        }
+
+        if (!current.Equals(target))
+        {
+            // Walking to the edge (worn source, or leg 2 with the pile in
+            // hand). A Blocked route waits silently — see the leg-1 note; an
+            // interrupt lays a held garment at her feet, so nothing is lost.
             return;
         }
 
@@ -734,17 +811,9 @@ public sealed partial class ExecutionSystem
 
             SpatialMutations.OccupyJunction(world, target, npc.Id);
 
-            if (step.TargetObject is { } objectId)
+            if (npc.Execution.HeldGarment is not null)
             {
-                // Ground source: up off the shore and into the hand.
-                if (!TryPickGarmentIntoHand(world, npc, objectId))
-                {
-                    SpatialMutations.FreeJunction(world, target, npc.Id);
-                    PlanInterruption.Abort(world, npc, "WashClothes garment disappeared");
-                    npc.Mind.CurrentGoal = GoalType.None;
-                    return;
-                }
-
+                // §40.6 r4: the fetched pile already rides in the hand — scrub.
                 StartWashBeat(world, npc);
                 return;
             }

@@ -52,17 +52,23 @@ public sealed class NPCNeeds
     public float Blood { get; set; } = 1f;
 
     // Spec 40.3: first-aid stock, held apart from the general inventory (a
-    // med pouch — it must not crowd food/materials out of the pack). Two to
-    // start; auto-spent to dress a serious wound.
-    public int Bandages { get; set; } = 2;
+    // med pouch — it must not crowd food/materials out of the pack).
+    // Auto-spent to dress a serious wound.
+    // Spec 44 r2: the pouch is DOUBLED — 4 dressings (2 medkit + the 2 herbal
+    // below) instead of 2, so a mauling survivor gets four saves and the
+    // medkit-first order still leaves the leaf wrap reachable in one life.
+    public int Bandages { get; set; } = 4;
 
     // Spec 44: of the bandages in the pouch, how many are HERBAL — crafted from
-    // 2 gathered plantain leaves at the fire — as opposed to the two pre-made
+    // 2 gathered plantain leaves at the fire — as opposed to the pre-made
     // medkit bandages every girl starts with (spec 40.3). Only a herbal dressing
     // shows the leaf-wrap decal; medkit bandages patch the wound with no leaf
     // visual (you never gathered them). Medkit bandages are spent first, so the
-    // plantain wrap appears only once she has actually gone out and gathered.
-    public int HerbalBandages { get; set; } = 0;
+    // plantain wrap appears only once the gauze is gone.
+    // Spec 44 r2: 2 of the 4 starting dressings are herbal (leaves she brought
+    // with her) — with the old 0 the wrap needed three maulings AND a
+    // gather-and-craft run in between, and was never seen in play.
+    public int HerbalBandages { get; set; } = 2;
 
     // Spec 40.3: pills — the last-resort backup to the bandage. When a wound
     // is open yet no bandage has fired and HP has fallen near death, a pill is

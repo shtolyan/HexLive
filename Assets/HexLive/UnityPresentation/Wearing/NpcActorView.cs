@@ -24,6 +24,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private readonly Dictionary<string, int> _equippedSimItems = new();
     private readonly List<string> _removeScratch = new();
 
+    // Spec §52.8: leg-slung tool props parked in the worn holster's tool.*
+    // anchors (tool id → the instantiated model). Filled by SyncHolster.
+    private readonly Dictionary<string, GameObject> _holsterProps = new();
+    private readonly HashSet<string> _holsterWantScratch = new();
+    private readonly List<string> _holsterRemoveScratch = new();
+    private readonly HashSet<string> _slotClashWarned = new();
+
     public ActorName ActorMesh => _actorMesh;
 
     private Transform _gazeTarget;
@@ -1565,7 +1572,150 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             }
 
             _equippedSimItems[simId] = prefabs.Count;
+
+            // Spec 40.10-D guard: the repair above re-equips whatever the body is
+            // missing. If the piece is STILL missing, another garment claims the
+            // same visual (layer, slot) while the sim considers the two
+            // compatible — they then evict each other every tick, and the wear
+            // painter re-rolls its stains on each fresh instance, which reads as
+            // the cloth's dirt flickering.
+            // §52.9 — the fix direction was written BACKWARDS here and cost real
+            // data (a shirt lost its wrist slots to match a coarse `Covers`).
+            // The PREFAB is the authority on where a garment sits; the sim now
+            // mirrors it in `WearSlotCatalog`. So the repair is: bring the SIM
+            // table (and, if the layer itself is wrong, the garment's sim
+            // WearLayer) into line with the prefab — never coarsen the prefab.
+            if (prefabs.Count > 0 && !_bodyBones.IsEquipped($"{simId}#0") &&
+                _slotClashWarned.Add(simId))
+            {
+                Debug.LogWarning(
+                    $"[Wear] '{simId}' was evicted the instant it was equipped, by " +
+                    $"{_bodyBones.DescribeSlotOwners(prefabs[0])} — their visual " +
+                    "(layer, slot) collide while the sim allows both to be worn. " +
+                    "Sync WearSlotCatalog (and the sim WearLayer) TO this prefab — " +
+                    "do not coarsen the prefab's slots to match Covers.",
+                    this);
+            }
         }
+    }
+
+    // Spec §52.8: pin holstered tools to the leg. The worn holster prefab
+    // carries empty child anchors named exactly by tool id (tool.axe_stone /
+    // tool.knife / tool.hammer) under its thigh bones; every tool the sim parked
+    // in a typed slot (holsteredIds) is shown snapped into its anchor at local
+    // zero. The tool currently drawn in the acting hand (heldItemId) is skipped
+    // so it never doubles — it shows on the thigh only when NOT in use. Props
+    // are cached, so the anchor search runs on change, not every frame.
+    public void SyncHolster(IReadOnlyList<string> holsteredIds, string heldItemId)
+    {
+        if (_bodyBones == null)
+        {
+            return;
+        }
+
+        _holsterWantScratch.Clear();
+        if (holsteredIds != null)
+        {
+            for (var i = 0; i < holsteredIds.Count; i++)
+            {
+                var id = holsteredIds[i];
+                if (!string.IsNullOrEmpty(id) && id != heldItemId)
+                {
+                    _holsterWantScratch.Add(id);
+                }
+            }
+        }
+
+        // Drop props that are no longer wanted: the tool moved to her hand, left
+        // the pack, or the holster came off (its anchors died with it).
+        _holsterRemoveScratch.Clear();
+        foreach (var kv in _holsterProps)
+        {
+            if (!_holsterWantScratch.Contains(kv.Key))
+            {
+                _holsterRemoveScratch.Add(kv.Key);
+            }
+        }
+
+        for (var i = 0; i < _holsterRemoveScratch.Count; i++)
+        {
+            var id = _holsterRemoveScratch[i];
+            if (_holsterProps[id] != null)
+            {
+                Destroy(_holsterProps[id]);
+            }
+
+            _holsterProps.Remove(id);
+        }
+
+        if (_holsterWantScratch.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var id in _holsterWantScratch)
+        {
+            if (_holsterProps.TryGetValue(id, out var existing) && existing != null)
+            {
+                continue; // already parked and alive
+            }
+
+            // The holster's leg bones are stitched onto the body skeleton, so its
+            // tool.* anchors hang under SkeletonRoot; the wear container is a
+            // fallback in case a build leaves them unstitched.
+            var anchor = FindDescendantNamed(_bodyBones.SkeletonRoot, id)
+                ?? FindDescendantNamed(_bodyBones.WearTransform, id);
+            if (anchor == null)
+            {
+                continue; // holster not on the body (yet) — retry next frame
+            }
+
+            var model = Config.GearLibrary.LoadPrefab(id);
+            GameObject prop;
+            if (model != null)
+            {
+                prop = Instantiate(model, anchor);
+            }
+            else
+            {
+                prop = HexLive.UnityPresentation.Environment.LowPolyToolFactory.Build(id);
+                if (prop == null)
+                {
+                    continue;
+                }
+
+                prop.transform.SetParent(anchor, false);
+            }
+
+            prop.name = $"HolsterProp {id}";
+            // Size: the SAME world size the hand and the ground use (ObjectFit),
+            // so a tool reads identical holstered, held and dropped. Position and
+            // orientation are the authored anchor's — the tool sits at local 0.
+            var fit = ObjectFit.FitScaleFactor(prop, id);
+            prop.transform.localPosition = Vector3.zero;
+            prop.transform.localRotation = Quaternion.identity;
+            prop.transform.localScale = Vector3.one * fit;
+            _holsterProps[id] = prop;
+        }
+    }
+
+    private static Transform FindDescendantNamed(Transform root, string name)
+    {
+        if (root == null)
+        {
+            return null;
+        }
+
+        var all = root.GetComponentsInChildren<Transform>(true);
+        for (var i = 0; i < all.Length; i++)
+        {
+            if (all[i].name == name)
+            {
+                return all[i];
+            }
+        }
+
+        return null;
     }
 
     // Spec 31C.2: sleeping snaps the view to the bed's attach point and

@@ -116,6 +116,15 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     continue;
                 }
 
+                // §54.15 r2: nothing drinkable in hand — the rain already
+                // collected under the funnel is the nearest water there is, so
+                // it beats walking to a coconut (and a full bottle that nobody
+                // ever drew from was the whole station going to waste).
+                if (TryBuildCollectorDrawPlan(world, npc))
+                {
+                    continue;
+                }
+
                 if (BuildCoconutDrinkPlan(world, npc))
                 {
                     continue;
@@ -276,6 +285,32 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 continue;
             }
 
+            // §68: first aid on yourself is in-place work — no walk, no target
+            // object, no station. She stops where she stands and winds the
+            // dressing (the bandage is already in her pack; the fetch/craft of
+            // one is the separate GatherHerb→CraftBandage chain).
+            if (npc.Mind.CurrentGoal == GoalType.TreatWounds)
+            {
+                if (npc.Needs.Bandages <= 0)
+                {
+                    npc.Plan.Status = PlanStatus.Failed;
+                    SetGoalCooldown(world, npc, GoalType.TreatWounds);
+                    Trace.Emit(world, npc.Id, "PlanFailed", "Goal=TreatWounds NoBandage");
+                    continue;
+                }
+
+                npc.Plan.Steps.Add(new PlanStep
+                {
+                    Type = PlanStepType.TreatSelf,
+                    Interaction = InteractionType.TreatSelf
+                });
+                npc.Plan.CurrentStepIndex = 0;
+                npc.Plan.Status = PlanStatus.Active;
+                Trace.Emit(world, npc.Id, "PlanBuilt",
+                    $"Goal=TreatWounds Bandages={npc.Needs.Bandages} Steps=[TreatSelf]");
+                continue;
+            }
+
             // Spec 29G: no chair/bed among candidates -> rest on the land.
             if (npc.Mind.CurrentGoal == GoalType.Sit && !HasFurnitureCandidate(world, npc, InteractionType.Sit))
             {
@@ -349,8 +384,17 @@ public sealed partial class PlanningSystem : ISimulationSystem
 
                 // Spec 29C.4A food avoidance: don't shop for food where the
                 // dogs are — unless starving (desperation overrides caution).
+                // §54.16: butchered meat is EXEMPT while no beast is actually
+                // there. The kill site is stamped dangerous for 2400 ticks and
+                // the meat rots in 1800 — the ban outlived the meal, so every
+                // wolf the colony killed rotted where it fell (14 kills / 13
+                // butcherings / 0 chunks cooked in the day-34 save). A stale
+                // mark must not fence off the catch they just fought for; a
+                // LIVE mob on the spot still does.
                 if (interactionType == InteractionType.PickUp && !npc.Mind.IsStarving &&
-                    IsNearDanger(npc, perceived.Tile, 2))
+                    IsNearDanger(npc, perceived.Tile, 2) &&
+                    !(IsMeatSource(world, perceived) &&
+                      !MobSystem.MobNear(world, perceived.Tile, 2)))
                 {
                     continue;
                 }
@@ -758,6 +802,25 @@ public sealed partial class PlanningSystem : ISimulationSystem
         return false;
     }
 
+    // §54.16: the spoils of a fight — the only food that lands ON a danger
+    // mark by construction. The chunk drops where the beast died; the SPIT
+    // then holds the roast, and a wolf killed near the hearth (the common
+    // case — they come for the colony) puts the fire itself inside the ring,
+    // so the take-from-spit half needs the same exemption or the meat roasts
+    // and hangs there untouched.
+    private static bool IsMeatSource(WorldState world, PerceivedObject perceived)
+    {
+        if (perceived.DefinitionId is "food.meat_raw" or "food.meat_cooked")
+        {
+            return true;
+        }
+
+        return world.Content.ObjectDefinitions.TryGetValue(perceived.DefinitionId, out var definition) &&
+            definition.Tags.Contains("Campfire") &&
+            world.Entities.Objects.TryGetValue(perceived.Id, out var fire) &&
+            BuildSiteMath.HangingMeat(fire, "food.meat_cooked") > 0;
+    }
+
     // Spec 23.10: a failed plan puts its goal on cooldown so the NPC does
     // something else instead of hammering the same target.
     private const int FailureCooldownTicks = 40;
@@ -1030,7 +1093,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 out var beside, besideReach))
         {
             Trace.Emit(world, npc.Id, "PlanFailed",
-                $"Goal=GetWater collector {collector.Id.Value}: no free junction beside it");
+                $"Goal={npc.Mind.CurrentGoal} collector {collector.Id.Value}: no free junction beside it");
             return false;
         }
 
@@ -1053,7 +1116,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
         Trace.Emit(world, npc.Id, "PlanBuilt",
-            $"Goal=GetWater Target={collector.DefinitionId} Collector={collector.Id.Value} " +
+            $"Goal={npc.Mind.CurrentGoal} Target={collector.DefinitionId} Collector={collector.Id.Value} " +
             "Steps=[MoveToJunction,Interact(TakeVessel)]");
         return true;
     }

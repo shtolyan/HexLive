@@ -8920,8 +8920,8 @@ pass — order chosen to add robustness before difficulty.
   to full-strength relief the moment damage swapped the shader, "нормали
   летают") and samples `_MetallicGlossMap` (metallic R × `_Metallic`,
   smoothness A × `_Smoothness`, white default = old constants — losing
-  the gloss map flattened worn leather/satin to uniform plastic). Known limit: natural-hole
-  seeds use instance ids, so their spots reshuffle across a save reload.
+  the gloss map flattened worn leather/satin to uniform plastic). (Stain and
+  hole seeds used instance ids until §40.10-F made them identity-based.)
   **Update (2026-07):** dirt and blood are independent stain layers with
   their own remembered UV spots — the old `dust = dirt − blood` input
   suppression (blood eating the grime) is retired; a bloodied garment
@@ -8941,6 +8941,37 @@ pass — order chosen to add robustness before difficulty.
   localize the 40.8-C **blood soak** over fresh wounds (blood on cloth is
   the wound's only garment feedback), and `NpcActorView` keeps rebuilding
   them per sync for that.
+- **FIXED — §40.10-F: cloth stopped re-rolling its dirt every tick.** The
+  dirt on a t-shirt visibly redrew itself each tick and froze on pause.
+  Cause was a **data** rift amplified by a repair: the visual wardrobe keys
+  conflicts on **(visual layer, `VisualWearSlot`)** while the sim keys them
+  on **(`WearLayer`, `Covers` body parts)**. When a prefab's layer/slots
+  disagree with its garment's sim entry, the two systems disagree about
+  whether a pair may be worn together — the sim keeps both in `WornItems`,
+  `BodyBones.Equip` evicts one, and the §"надето, а тело голое" repair in
+  `SyncWorn` re-equips it, evicting the rival right back. Both `Wear`
+  objects were **destroyed and re-instantiated every sim tick**, and since
+  `GarmentWearPainter` seeded stain UVs from `GetInstanceID()`, every fresh
+  instance drew a **completely new dirt pattern**. Pause froze it because
+  `HexWorldRenderer` only syncs on a new `snapshot.Tick`. Two rifts existed:
+  `armor.heavy` (sim Outerwear, prefab Wear) collided with **every** top,
+  and `Shirt G3F_31977` claimed `WristL/R` that the sim never gives it,
+  colliding with gloves/sleeves. Fixes: prefab layer/slots corrected;
+  **placement is now seeded from the garment's IDENTITY** (its equip key on
+  that body — `GarmentWearPainter.StableSeed`), so a re-equip repaints the
+  SAME spots and the pattern also survives a reload; and `SyncWorn` logs a
+  one-shot warning naming both culprits when a re-equipped piece is evicted
+  instantly. **Invariant:** the sim and the prefab must agree on where a
+  garment sits — a visual clash the sim permits is an every-tick equip loop,
+  not a cosmetic mismatch.
+  **Correction (§52.9): this invariant was originally written with the arrow
+  backwards** ("prefab `layer`/`slots` must mirror sim `WearLayer`/`Covers`"),
+  and it cost real data — `Shirt G3F_31977` lost its wrist slots to satisfy a
+  `Covers` list that only ever said `Torso`. The PREFAB is the authority on
+  *where a garment sits*; `Covers` is protection zones and is far too coarse
+  to say it. The sim now mirrors the prefab in `WearSlotCatalog`, so the
+  repair for a clash is: sync the sim table (and, if wrong, the garment's sim
+  `WearLayer`) **to the prefab** — never coarsen the prefab's slots.
 
 ### 40.11 Character UI panel
 - Select an NPC → a **button** opens a panel showing: **equipment slots**
@@ -9360,6 +9391,14 @@ RESTORED state (v2: load first, then simulate the absence) and finishes
 BEFORE any view spawns — the player returns to "time really passed":
 resources regrown, needs drifted, maybe someone got bitten.
 
+"Before any view spawns" is enforced by `LoadingScreen.IsReplaying`, and
+that curtain goes up **before `Configure()`**, not when the wind loop
+starts: the runner reports `IsReady` the instant `Configure` returns, so a
+curtain raised any later leaks one or two frames in which the renderer
+builds the ENTIRE scene (terrain, actresses, props) on the pre-wind state —
+which the wind then invalidates. Order is: curtain → create world → restore
+blob → wind → curtain down → views build once (phase 3).
+
 While winding, the screen shows a big **«День N · ЧЧ:ММ»** readout using the
 sim's own clock formatter. The displayed day is the **calendar day**
 (`EnvironmentSystem.CalendarDay`): the tick-day starts at 06:00 (tick 0 =
@@ -9484,7 +9523,7 @@ align the rendered light to the same path (visual shadows == sim shade).
   snapshot exports them — presentation spawns a leaf-wrap decal on the
   bandaged spot.
   - **Medkit vs herbal (the leaf wrap only means gathered plantain):** the
-    two starting bandages (spec 40.3) are a pre-made medkit, NOT gathered
+    starting bandages (spec 40.3) are a pre-made medkit, NOT gathered
     leaves. `NPCNeeds.HerbalBandages` tracks how many of the pouch's bandages
     were crafted from gathered plantain; `CraftBandage` bumps it. On a
     dressing the MEDKIT bandages are spent first and leave NO leaf-wrap decal
@@ -9493,6 +9532,16 @@ align the rendered light to the same path (visual shadows == sim shade).
     herbal bandage is the one consumed — so the plantain wrap on screen always
     corresponds to leaves she actually went out and picked. Persisted in the
     save blob (BlobVersion 2).
+  - **Starting pouch (§44 r2, doubled):** `Bandages = 4` of which
+    `HerbalBandages = 2` — the med pouch holds twice the first aid it used to
+    (2 medkit + 2 herbal she brought with her), so a mauling survivor gets
+    four dressings instead of two. The medkit-first order is unchanged, so
+    the first two dressings are gauze and the THIRD is the leaf wrap: the
+    plantain visual now actually reaches the screen inside one life instead
+    of needing three maulings plus a gather-and-craft run in between (the
+    old 2/0 pouch is why the leaf wrap was never seen in play). The
+    `Bandages < 2` gate on `GatherHerb`/`CraftBandage` is unchanged — the
+    re-stock cap stays at 2, the pouch just starts above it.
 - **Presentation (shipped)**: `herb.bush` renders as a procedural low-poly
   medicinal shrub (`LowPolyToolFactory` — splayed stems, leaf blades, pale
   bloom tips so it reads special among the greenery); `resource.herb_leaf`
@@ -10288,6 +10337,7 @@ The pack/build layer adds work, so the old food/cold panic is softened
 |---|---|---|---|
 | `HungerRate` | 0.011 | **0.0055** | eat ~half as often |
 | `ThirstRate` | 0.013 | **0.010** | gentler thirst |
+| ↑ both halved again in **§53.7** (see below) | | | |
 | `ColdPressureSlope` | 0.03 | **0.02** | less cold-anxious |
 | `DressThermalThreshold` | 0.35 | **0.45** | fewer fussy wardrobe stops |
 | `BottleCapacity` | 1 (implicit) | **3** | one fill = several gulps |
@@ -10363,10 +10413,43 @@ nothing lost.
 
 ### §52.8 The tool holster — dedicated, typed weapon slots
 
-The leg holster (`legHolster_2204`, "Kabura na nogu") is a special garment: it
-adds **no warmth, no armor, no thermal** — its whole job is extra, *typed*
-storage for the working tools. It is the "dedicated weapon slot" §52.5 deferred
-and the retired `IsPersonalEffect` seam foreshadowed.
+The leg holster (`legHolster_2204`, "Kabura na nogu") is worn **GEAR, not
+clothing**: no warmth, no thermal pull, 0 pockets, and a token 0.05 leg armor
+(the buckled strap itself, and a reason to want it on). Its whole job is extra,
+*typed* storage for the working tools. It is the "dedicated weapon slot" §52.5
+deferred and the retired `IsPersonalEffect` seam foreshadowed.
+
+**Gear is not cloth — the rules that keep it ON.** A zero-warmth accessory kept
+losing to the wardrobe machinery, so three rules (all keyed off
+`HolsterCatalog.IsHolster`) make gear behave like gear:
+
+- **It never wins or loses a layer conflict.** The holster is Outerwear on
+  LegL/LegR — *exactly* the boots' footprint — so donning boots used to knock it
+  off (and vice versa). `ResolveWearConflicts` and its non-destructive twin
+  `HasWearConflict` now skip holsters in both directions: a strap rides over or
+  under whatever she wears.
+- **Heat never strips it.** `FindRemovableItem` picked the *warmest* garment, but
+  seeded at `-1` it happily chose a warmth-0 piece once nothing warmer was left.
+  A heat-undress now skips any garment with `warmth <= 0` — shedding it cools you
+  by **nothing**. (Mirrors §52.7 "dressing must pay off", on the way out; it also
+  stops the girls taking off jewelry to cool down.)
+- **It barely wears out.** `HolsterCatalog.WearMultiplier` scales both durability
+  sinks — the passive per-day wear (`MoistureSystem`) and bite damage on a
+  covered leg (`WearCoveringItems`). At 0.02 the strap outlives cloth ~50× (≈200
+  days → ≈10 000): a keeper, not a consumable.
+
+**It is never left lying on the sand.** The holster is too useful to abandon, so
+both undress mechanics — which stay exactly as they are for real clothes — are
+closed against it:
+
+- **Bathing** strips clothes one by one and re-dons them from `RedressGarments`
+  after the swim, but an interrupted bathe leaves the pile behind. Gear simply
+  **never comes off for a swim**: the strip loop skips holsters and she wades in
+  wearing it.
+- **Laundry** (§40.6) washes a piece in hand and re-dresses it, *unless*
+  `HasWearConflict` says the slot is taken — with boots on, that used to lay the
+  clean holster on the ground. Since gear no longer conflicts, a washed holster
+  **always** goes back on.
 
 - **Typed slots, not pockets.** A holster carries a fixed list of tool ids —
   one slot each (`HolsterCatalog`: leg holster = `tool.axe_stone`, `tool.knife`,
@@ -10378,20 +10461,23 @@ and the retired `IsPersonalEffect` seam foreshadowed.
   same "bound to the body" treatment the bottle once had. Wearing the holster
   therefore *creates* up to three extra tool-carry slots without touching the
   hand/pocket count. The tool still lives in the single authoritative inventory
-  list (no second store); it is merely marked in
-  `InventoryState.HolsteredDefinitionIds`, recomputed by
-  `EquipmentMath.RecalculateHolster` on every worn/inventory change: for each
-  worn holster, each listed id, the first matching carried item is holstered.
+  list — **no second item store to desync**. What is cached is only
+  `InventoryState.HolsterSlotIds`, the *slots* her worn holsters grant; that
+  depends solely on `WornItems`, so `EquipmentMath.RecalculateCapacity` rewrites
+  it on every worn change and it can never go stale. Which tool actually sits in
+  a slot is derived live off the pack (`IsHolstered` = the first carried item of
+  a slotted id), so a knife picked up a moment ago is holstered **instantly**,
+  with no tick of lag.
 - **"Always stores the weapon" is automatic.** There is no transfer action — if
   she wears the holster and carries the axe, the axe is holstered (free +
   shown). One slot per type: a second identical tool counts normally; an
   unlisted tool (a pickaxe) is never holstered and takes a real pocket.
 - **Never shed for room.** A holstered tool is skipped by
   `InventoryMath.LowestImportanceDroppable` (dropping it frees no pocket). It
-  leaves the pack only when the **holster comes off**: `RecalculateHolster`
-  clears the marks first, so the now-counted tools spill into the removed
-  holster's `Contents` by the normal undress path (§52.2) — the tools ride down
-  with the holster and can be rifled back out (`RecoverStashedTools`).
+  leaves the pack only when the **holster comes off**: the slots vanish first, so
+  the now-counted tools spill into the removed holster's `Contents` by the normal
+  undress path (§52.2) — they ride down with it and can be rifled back out
+  (`RecoverStashedTools`).
 - **The leg-slung look.** The holster prefab carries empty child anchors named
   exactly by tool id (`tool.axe_stone` / `tool.knife` / `tool.hammer`) under the
   thigh bones; each holstered tool is the same list the sim exposes on the
@@ -10401,11 +10487,84 @@ and the retired `IsPersonalEffect` seam foreshadowed.
   drawn in the acting hand is skipped, so it shows *in the holster only when not
   in use* — take it out to work, and it returns to the thigh when done.
 
-**Verify** (headless, tuned catalog, ALL PASS): holster worn adds 0 capacity;
-axe+knife+hammer holstered ⇒ only the two non-tool items count; a second knife
-counts (one slot per type); a pickaxe is not holstered and takes a pocket;
-dropping the axe empties just its slot; taking the holster off clears all marks
-and every tool counts again. Visual verify (Unity, play-mode) pending.
+**Acquisition.** No special spawn: the §63 surf gift picks a random garment from
+`GarmentLibrary.Active`, which includes the holster, and the girls Dress into it
+like anything else washed ashore.
+
+**Verify** (headless, tuned catalog, 17/17 ALL PASS): holster adds 0 capacity;
+axe+knife+hammer ride free ⇒ only the 2 non-tool items count; a tool picked up
+*after* dressing is holstered with no Recalculate in between; a second knife
+takes a real pocket; donning boots keeps the holster on **and** donning the
+holster keeps her boots on, while ordinary boots-over-boots still displace
+(regression guard); heat-undress returns null with only the holster worn and
+picks the coat when there is one; a washed holster re-dons even while booted,
+while cloth is still blocked from stacking; wear multiplier 0.02 (≈200 → ≈10 000
+days); armor 0.05, warmth 0. Probe: `/private/tmp/holsterprobe`. Visual verify
+(Unity, play-mode) pending.
+
+### §52.9 Occupancy is a SLOT, not a protection zone
+
+Chasing "why do they keep taking the holster off" turned up a load-bearing
+conflation, and the holster was only its most visible victim.
+
+**The two models.** The prefab's `Wear.slots` is a **fine** list of 21 body
+spots (`Neck, Chest, ShoulderR/L, ForearmR/L, WristR/L, HandR/L, Pelvis,
+ThighR/L, ShinR/L, FootR/L`, …) and is what the presentation actually uses to
+decide what displaces what (`BodyBones.Equip`: one garment per (layer, slot)).
+The sim's `Covers` is a **coarse** list of 7 `BodyPart` zones and means *what
+this garment protects* — armor absorption, warmth, sun, wound stains.
+
+**The bug.** Garment displacement was computed in the sim from `Layer + Covers`
+overlap. A thigh holster, stockings and boots all report `LegL+LegR`, so the sim
+could not tell them apart. A sweep of the whole wardrobe found **61 pairs the
+sim stripped for no reason**:
+
+| Pair class | What the player saw |
+|---|---|
+| tights/stockings ⟷ **any** panties (20 pairs) | put on panties, the tights vanish (`ShinL/R` vs `Pelvis`) |
+| necklace/scarf ⟷ **any** bra or top (14) | put on a bra, the necklace vanishes (`Neck` vs `Chest`) |
+| gloves/sleeves ⟷ coat/sweater (10) | put on a coat, the gloves vanish (`HandL/R` vs `Chest/Forearm`) |
+| boots ⟷ tool holster (2) | §52.8 — the case that exposed all of this |
+
+It also silently **abandoned laundry**: `HasWearConflict` gates whether a washed
+piece goes back on, so a false conflict laid clean clothes on the sand — a
+mechanical cause of "вещи лежат брошенными".
+
+**The fix.** `WearSlotCatalog` (engine-free, mirrors each prefab's slots by id)
+exposes ONE occupancy predicate, `SameSpot(a, b)`, used by all three
+displacement sites — `ResolveWearConflicts` (removes the loser),
+`HasWearConflict` (gates re-dressing after a wash) and
+`WarmthGainFromWearing` (§52.7, prices the piece that *would* come off; it had
+drifted out of sync with the other two). `Covers` keeps every one of its
+legitimate jobs (armor per bitten part, uncovered-skin/UV, bite damage to
+garments, wound staining) and no longer decides occupancy. A garment with no
+authored slots falls back to the old `Covers` test, so unauthored art keeps its
+previous behaviour instead of stacking freely. `WearSlotCatalog.Enabled = false`
+reverts everything to the coarse rule in one flip.
+
+This also **retires the §52.8 holster special case**: with slots, `ThighR` and
+`FootR/L` simply do not collide, so the holster needs no exemption from either
+conflict site. (Its *other* gear rules — heat never strips a warmth-0 piece, the
+0.02 wear multiplier, and "gear never comes off for a swim" — are unrelated to
+occupancy and stay.)
+
+**Known data gap.** `Top_11927` authors `Neck + ShoulderL` but **no `Chest`**,
+so under the slot rule it no longer displaces bras/tops and two tops can be worn
+at once (visual clipping). `Boots 20496` authors no slots at all and rides the
+`Covers` fallback. Both are prefab-side fixes; update the catalog row after
+editing a prefab.
+
+**Verify.** Full-wardrobe sweep: 762 same-layer pairs, `SameSpot` == slot
+overlap on every pair with authored data, 0 discrepancies. Targeted: boots
+⟷ holster, tights ⟷ panties, necklace ⟷ bra, gloves ⟷ coat now coexist,
+while boots ⟷ boots, panties ⟷ panties, coat ⟷ sweater and pants ⟷ pants
+still displace. A/B soak (6 seeds × 10 game days, the ONLY difference being
+`WearSlotCatalog.Enabled`): **24/24 alive both ways**, mean worn warmth equal or
+higher on every seed, and clothing stays on — worn pieces 3 → 7 (seed 42) and
+6 → 8 (seed 777). Note total strip events went 32 → 35, *up* not down: with the
+false conflicts gone the girls dress far more successfully, so there is simply
+more wardrobe activity to replace later. The false strips themselves are gone by
+construction (the sweep above).
 
 ## §53 Compassion & mutual aid (iteration 49)
 
@@ -10455,8 +10614,9 @@ arm's-length approach junction, claim her with `PendingAidFrom` (she holds still
 until arrival, timeout, or danger — hunger does **not** break her wait, she needs
 the help), then `MoveToJunction` + an aid interaction (`FeedOther` /
 `HydrateOther` / `TreatOther` / `MedicateOther` / `ConsoleOther`). On completion
-the **relief is applied straight to the target** — no food or bandage is spent,
-so aid can never bankrupt the knife-edge colony: Feed drops her Hunger, Hydrate
+the **relief is applied to the target** — and, since **§53.7**, the matching
+supply leaves the HELPER's pack (that paragraph supersedes the original "no food
+or bandage is spent" rule): Feed drops her Hunger, Hydrate
 drops her Thirst (`Spec53.HydrateRelief`), Treat lifts wounded parts + stops
 the bleed + drops a gauze wrap, Medicate lifts Health and clears the sickness
 window, Console eases Stress and shortens mourning. The aid itself only starts
@@ -10483,9 +10643,9 @@ traces and reuses the existing relationship-pop over both heads.
 
 **The tending pose (r2).** The helper always shows a **mediator prop** in hand:
 **Feed → `food.coconut`**, **Hydrate → the pierced `food.coconut_pierced`** (the
-water vessel); Treat/Medicate/Console tend bare-handed. The prop is cosmetic —
-aid still spends no inventory item (§53.4), so the coconut simply appears for the
-animation and clears when the interaction ends. **Only when the ward is lying
+water vessel); Treat/Medicate/Console tend bare-handed. The prop used to be
+purely cosmetic; since **§53.7** the item it stands for is really spent, so what
+she holds is what she gives away. **Only when the ward is lying
 down** (coma/faint/asleep/prone) does the helper kneel into the planting-style
 **CraftWork** clip (`CraftingParam`) beside her — the "tending" motion. Over a
 **standing** ward she just stands and holds the item, as before. The ward's
@@ -10499,6 +10659,105 @@ sim-side from `target.IsLyingDown(tick)` (the view has no cross-NPC access).
 `target.IsLyingDown(tick)`. Re-pointing a flat body at whoever walks up spun it about
 its vertical axis to "face" them (the creepy head-turn-while-lying); only an
 upright ward turns to face back.
+
+### §53.7 Help costs supplies — and the aid errand
+
+Aid used to be **free**: the relief was applied straight to the ward and nothing
+left the helper's pack, so caring for the colony was pure upside and the only
+question was who bid highest. Now **every kind of help but words is paid for out
+of the HELPER's own stores**, and a girl who means to help but has nothing to
+give **goes and fetches it**. Both halves are governed by `AidSupply` and the
+`Spec53.AidCostsSupplies` switch (off = the pre-§53.7 behaviour byte-for-byte,
+and no errands at all).
+
+**The price list** (`AidSupply.Has` / `TrySpend`, mirrored in both directions so
+the bid, the plan and the interaction can never disagree):
+
+| Kind | What is spent | Where it comes from |
+|---|---|---|
+| **Feed** | one ready meal, else an open/pierced/whole coconut from the pack (whole needs her blade) | `Inventory` |
+| **Hydrate** | one water charge: a bottle gulp, a pierced coconut's water, else a whole nut she pierces | `BottleCharges` / `ItemInstance.ResourceAmount` |
+| **Treat** | one bandage, medkit before herbal (spec 44 order) | `Needs.Bandages` |
+| **Medicate** | one pill, else a **herbal** dressing (a medkit gauze is not medicine) | `Needs.Pills` / `HerbalBandages` |
+| **Console** | nothing — words are free | — |
+
+A fed meal now heals by **its own nutrition** (the food definition's `Eat`
+`HungerDelta`), so sharing meat is worth more than sharing a husk;
+`Spec53.FeedRelief` is the fallback for items that declare none. A `Treat`
+leaves the decal of the dressing actually spent — plantain leaf-wrap for herbal,
+plain gauze for medkit — exactly as self first-aid does. The `Aided` trace
+carries `Spent=<item>`.
+
+**Three gates, one answer.** The supply is checked when the Aid goal is *scored*
+(a ward she cannot pay for never makes `aidAvail`), when the plan *picks* a ward
+(`BuildAidPlan` skips her), and again when the interaction *starts* — and the
+spend itself happens at **completion**, so an aborted trip refunds by
+construction. If the supply vanishes between the start gate and completion, the
+aid aborts with no relief: help may never appear out of nothing.
+
+**The aid errand.** The compassion pull does not evaporate when her hands are
+empty — it **spills into the chore that fetches the missing supply**:
+
+| Missing | Errand goal |
+|---|---|
+| Food | `GetFood` (needs a free pocket) |
+| Water | `GetWater` (bottle, collector or coconut) |
+| Bandage / medicine | `CraftBandage` if she already carries 2 leaves, else `GatherHerb` |
+
+The spill is **scored, not forced**: it enters the ordinary auction at
+`AidErrandBidShare` (0.9) of the FULL aid bid — same `suffering × trait ×
+AidWeight`, same compassion pressure, same bleed-out emergency — so "no other
+important business" stays a real gate while a dying housemate still outranks
+log-hauling. The share is deliberately close to 1: shade it lower and the errand
+loses to the very chores the aid used to outbid, which reads as *"she saw you
+dying and went back to hauling logs"* — the exact regression the first tuning
+produced. A chore that cannot actually run right now (nothing to gather, no free
+hand, goal on cooldown) is never raised — reviving an impossible goal is the
+classic `PlanFailed` churn loop.
+
+Two gates on the fetching goals had to be split for this, because both mixed
+"is this possible" with "do *I* need it": `getFoodAvail` (her own hunger
+threshold) and `getWaterAvail`/`gatherHerbAvail` (her own thirst / her own med
+pouch). The errand uses the possibility half only — and asks what is **in her
+pack**, not what lies on the ground, since only the pack can be handed over.
+
+`NPCMind.AidErrandKind/For/Bid/UntilTick` keeps the errand alive for
+`AidErrandTicks` (1200) while the ward is out of sight behind her; it clears the
+moment the **supply is in hand**, or the ward dies/recovers, or her own body
+drops into the red, or the window expires (`AidErrandStarted` /
+`AidErrandCleared` traces). Transient state — deliberately not serialized, a
+load simply re-decides.
+
+**Verify** (headless probes, tuned catalog): a knocked-out starving ward beside
+an empty-handed helper → `AidErrandStarted Kind=Feed Goal=GetFood` at t0 →
+coconut picked up → errand cleared "supply in hand" → `Aided Kind=Feed
+Spent=food.coconut_open`, ward Hunger 0.95 → 0.27 (the nut's own nutrition), the
+helper's pack back to just the bottle, one fewer coconut on the island. Treat
+with a stocked pouch spends `bandage.medkit` (2 → 1); Hydrate spends one bottle
+gulp (3 → 2); Treat with an EMPTY pouch runs the whole chain —
+`AidErrandStarted Kind=Treat Goal=GatherHerb` → gather → craft → `Aided
+Spent=bandage.herbal` — and never conjures a dressing. With no herbs reachable
+the errand simply does not start (no churn).
+
+**Presentation.** The mediator prop in the helper's hand (§53.6 r2) is no longer
+a lie: the coconut she holds while feeding is a coconut she really gives away.
+
+**The metabolic clock is halved to pay for it.** Aid that costs supplies takes
+food and water OUT of the colony's circulation — every fed housemate is a meal
+somebody else foraged — and the fetching trips are real walking time. So the two
+needs that drive that economy are slowed to **half** their tuned values:
+
+| Knob | Was (tuned) | Now | Fills in |
+|---|---|---|---|
+| `HungerRate` | 0.0037 / slow tick | **0.00185** | ~1.8 → ~3.6 days |
+| `ThirstRate` | 0.008 / slow tick | **0.004** | ~0.8 → ~1.7 days |
+
+The number lives in **four** places that must never disagree — the tuned asset
+`Resources/HexLive/Balance/CharacterBalance.asset` (what the game actually
+runs), `SimData/simdata.json` (what headless probes run), the
+`CharacterBalanceConfig` field default and the `SimBalance` static fallback.
+The asset had drifted below the code defaults (0.0037 vs 0.0055) from an
+in-editor capture; all four are now aligned on the same halved numbers.
 
 ## §54 Stranded-Deep resource, processing & butchering loop (iteration 54)
 
@@ -11050,14 +11309,29 @@ parked it, `ResourceAmount` = fill 0..1. No new persisted state.
 2. **Rain fills it** (`WaterCollectorSystem`, slow layer): while
    `IsRaining`, fill grows to full over `WaterCollectorFillTicks = 600` (a
    quarter day) of rain; dry spells pause, never spill. Full → `VesselFull`.
-3. **GetWater draws from it** — the planner prefers a collector holding ≥1
-   gulp over coconut foraging (`vessel.take`/`TakeVessel`, 8t), and the goal
-   may now fire even bladeless/coconut-less on a stocked collector. A
-   thirsty girl does NOT wait for full — 1 gulp is worth the trip. Taker
+3. **Drink and GetWater draw from it** — the planner prefers a collector
+   holding ≥1 gulp over coconut foraging (`vessel.take`/`TakeVessel`, 8t),
+   and the goal may fire even bladeless/coconut-less on a stocked collector.
+   A thirsty girl does NOT wait for full — 1 gulp is worth the trip. Taker
    rules (`WaterCollectorMath.CanTake`): the bottleless placer (or anyone
    once the owner is dead) walks off with the bottle; a housemate with her
    OWN empty bottle pours the water over — the parked bottle stays and keeps
    collecting.
+
+   **r2 (the station nobody used).** The draw lived in the GetWater lane
+   ALONE, and `getWaterAvail` is gated on `!hasCoconutWater` — which counts
+   any reachable coconut, not just one in hand. On a coconut island that gate
+   is essentially always shut, so the branch was dead code: in save 574386721
+   a bottle sat FULL under the funnel for the whole 6 000-tick probe window
+   with zero `VesselTaken`, while four girls circled at thirst ~0.5 drinking
+   husks. The collector is a walk-to-and-drink source (Drink's lane), not a
+   forage-far-away one (GetWater's): `drinkAvail` now also fires on a
+   drawable collector, and the Drink planner tries `TryBuildCollectorDrawPlan`
+   after the inventory options and BEFORE the coconut chain — water already
+   in hand still wins, a coconut on the ground no longer does. Re-probed on
+   the same save: take → park → refill → pour-over cycles, 5 draws / 2 parks
+   / 2 refills in 8 days, no ExecFailed, no deaths. Worlds without a built
+   collector are bit-identical (the finder returns null).
 4. **Rain water is CLEAN** (`WaterKind.Rain`, appended enum — saves safe):
    boiled-grade thirst relief (0.85/bottle), NO sickness roll; the
    warm-drink comfort bonus stays boiled-only.
@@ -11081,6 +11355,55 @@ bottle HAS one, so it never falsely claims the collector's hex).
 sickness) loop; staking with the 8/5/8/11 bill; §66 centre/one-per-hex
 asserts — all green. 10-day default-world smoke: sites stake by ~t600;
 deliveries share the pre-existing early-economy scarcity with the bed chain.
+
+### §54.16 The kill must feed the colony (stale fear vs the meat)
+
+A wolf killed by the fire fed no one: across a 34-day save (seed 604905660)
+the colony logged **14 kills, 13 butcherings and 0 chunks cooked** — the spit
+stood finished (12 sticks / 18 stones / 2 rope delivered) and empty, 16 hides
+piled up on the ground, and no meat existed anywhere in the world.
+
+The cause was an arithmetic collision between three existing clocks, not a
+broken cooking chain (the chain itself — carcass → `Butcher` → chunk →
+`GetFood` → `CookMeat` hang → `FireSystem` roast → take & eat — works):
+
+- a fight stamps a **danger memory** at the beast's tile (§62 far-spotting)
+  and at the girl's own feet (29C.4A), refreshed every tick of the fight;
+- the mark lives **2400 ticks** and `GetFood` refuses any food within **2
+  hexes** of one unless `IsStarving` (hunger ≥ 0.85);
+- raw meat on the ground rotted in **1800 ticks**.
+
+The ban therefore outlived the meal by design: meat dropped by a slain beast
+was fenced off for longer than it existed. `Butcher` has no danger filter, so
+the colony reliably dressed the carcass and then watched the chunks rot in
+place. Where the wolf died near the hearth (the common case — they come for
+the colony) the fire itself fell inside the ring, so even meat that DID reach
+the spit could not be taken off it.
+
+Three fixes, all needed:
+
+1. **Meat is exempt from stale fear.** `GetFood` skips the danger filter for
+   `food.meat_raw`/`food.meat_cooked` — and for a campfire whose spit holds
+   cooked meat — as long as no LIVE mob stands within 2 hexes
+   (`MobSystem.MobNear`). A remembered wolf no longer fences off the catch
+   they just fought for; a present one still does.
+2. **The fear dies with the beast.** A mob death clears every colonist's
+   danger memories within 1 hex of the kill tile (`ForgetDangerAround`, wired
+   into both death sweeps: `MobSystem` and `AnimalCombatSystem`). This also
+   relieves the §65 trap where a dead wolf's mark forbade sleep for a day.
+3. **`MeatRawSpoilTicks` 1800 → 2600**, so a chunk outlives a 2400-tick mark
+   even when the fear is never cleared. Tuned in `ResourceLoopBalance.asset`
+   (mirrored to `SimBalance` + `SimData/simdata.json`).
+
+**Probe** (`/private/tmp/cookprobe`, A/B on one scene — lit fire with a
+finished spit, wolf carcass in the next hex, two girls with knives, hunger
+0.55; the only variable is a danger mark on the kill tile):
+
+| | before | after |
+|---|---|---|
+| no mark | butcher t234 → hang → roast → eat, hunger → 0.01 | unchanged |
+| **mark** | butchered t65, **both chunks rot t1872**, hunger 0.55 → 0.78 | butcher t65 → hang t133 → roast t336 → eaten t435, hunger → 0.19 |
+| live wolf on the spot | meat not taken | meat not taken (guard holds) |
 
 ## §55 Rivers retired, drink from the coconut (iteration 55)
 
@@ -12255,3 +12578,69 @@ one-shot — `CreateInstance`+`start`+`release`, луп — инстанс со�
 4. `Prewarm` кормил FMOD файлами `*.meta` (их 826 рядом с 821 звуком) — FMOD
    перебирал на каждом все кодеки и сыпал ошибками; фильтр по `.wav/.ogg`
    в `IsAudioFile`.
+
+## §68 Сама себя перевязывает — цель «лечение» в аукционе (iteration 68)
+
+**Проблема (сейв 604905660, Марта).** Изранена (HP 61 %, кровь 48 %, три
+десятка неглубоких укусов), в рюкзаке ДВА бинта — и в 22:00 идёт **стирать
+одежду**. Разбор потиковой трассой показал: она не «выбрала стирку вместо
+лечения» — **лечения не было среди вариантов вообще**.
+
+До §68 активная помощь ране существовала ровно одна — чужая: `GoalType.Aid`
+c `AidKind.Treat`, когда ПОДРУГА подходит и бинтует (§53). Своя перевязка была
+только пассивной, в `NeedsDecaySystem`, за тройным гейтом:
+
+```
+worstPart < 0.4  И  свежая рана  И  Blood < BandageBloodThreshold (0.35)
+```
+
+Типичная маулка собаками даёт много мелких ран: среднее HP падает (0.61), а
+**ни одна зона не проваливается ниже 0.4** (у Марты худшая 0.55). Гейт не
+открывается никогда — бинты лежат мёртвым грузом, а вечер уходит на стирку,
+которую, по иронии, породила её же кровь на одежде (`WoundMath` пачкает
+надетое, `DirtyGarmentWashNeed` это читает).
+
+**Решение — настоящая цель `GoalType.TreatWounds`.**
+
+*Тяжесть ран* читается по ВСЕМУ телу, а не по одной зоне:
+
+```
+burden = max(1 − Health, 1 − худшая целая зона, 1 − Blood)
+```
+
+Ампутированные зоны пропускаются (§50: культю не перевязать).
+
+*Доступность*: есть бинт, `burden ≥ SelfTreatBurdenThreshold` (0.25; с
+ПОСЛЕДНИМ бинтом порог выше — `SelfTreatLastBandageBurden` 0.45, НЗ на
+кровотечение), руки целы, не в бою. Намеренно **НЕ** гейтится на памяти об
+опасности — это та самая ловушка §65, из-за которой протухшая метка волка
+сутки запрещает сон; повязка нужна как раз ПОСЛЕ драки.
+
+*Заявка*: `SelfTreatBase + burden × SelfTreatWeight`, плюс аварийная прибавка
+`SelfTreatBleedEmergency` при `Blood < SelfTreatBleedBlood` — истекающая кровью
+перевязывается раньше любых дел.
+
+*План и исполнение*: действие НА МЕСТЕ, без похода и без станка —
+`PlanStepType.TreatSelf` / `InteractionType.TreatSelf`, `SelfTreatDuration`
+тиков. По завершении тратится один бинт (сначала аптечный, потом травяной —
+травяной оставляет подорожниковый декаль, аптечный марлевый), все целые
+раненые зоны поднимаются на `SelfTreatHeal`, раны продвигаются по `Heal01`
+(это и останавливает кровотечение — кровит только `Heal01 < 0.3`), кровь
+прибавляется на `SelfTreatBlood`. Добыча бинтов осталась прежней цепочкой
+`GatherHerb → CraftBandage`, но её срочность теперь кормится той же `burden`.
+
+Все ручки — в `Spec53` (там же живёт лечение через помощь), зеркало в
+`SocialBalance.asset`; тумблер `SelfTreatEnabled`.
+
+**Проверено пробой на живом сейве** (`WorldSaveSerializer` + те же системы,
+без Unity):
+- обычная маулка: t4233 выбирает TreatWounds → за 60 тиков HP 0.74 → 0.83,
+  худшая зона 0.53 → 0.65, свежая рана закрылась, бинтов 2 → 1;
+- кровотечение (кровь 0.48): заявка **1.54** против Dress 0.96 и стирки 0.62 —
+  перевязывается немедленно, кровь 0.48 → 0.71.
+
+**Осталось (не входит в §68):** сон по-прежнему запрещён любой меткой
+опасности (`Spec49.SleepDangerRecencyTicks = 0`, память живёт 2400 тиков) — та
+же Марта продолжает работать до энергии 0.00. И гейт «не стирать, истекая
+кровью» (§63) по-прежнему обходится защёлкой активного плана
+(`if (washActive) washAvail = true`).

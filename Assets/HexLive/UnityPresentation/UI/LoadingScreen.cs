@@ -20,11 +20,14 @@ namespace HexLive.UnityPresentation.UI
         /// the in-game Escape menu must never open over it.</summary>
         public static bool IsActive { get; private set; }
 
-        /// <summary>True only while offline ticks are being wound forward.
-        /// The renderer skips its whole Update in this window: winding is pure
-        /// headless simulation, and painting the intermediate world every frame
-        /// (skin decals, actor sync) behind the curtain just starves the tick
-        /// budget and slows the bar. Views build afterward, in loading phase 3.</summary>
+        /// <summary>True from the moment the world is created until it stands
+        /// at its FINAL tick — i.e. it covers the restore and the offline wind,
+        /// not just the wind loop. The renderer skips its whole Update in this
+        /// window: the runner reports IsReady the instant Configure returns, so
+        /// without this the very next frame builds the entire scene (terrain,
+        /// actresses, props) on the pre-wind state, only for the wind to make it
+        /// stale. Winding is pure headless simulation; views build ONCE
+        /// afterward, in loading phase 3.</summary>
         public static bool IsReplaying { get; private set; }
 
         private const float ReplayBudgetMsPerFrame = 10f;
@@ -549,6 +552,12 @@ namespace HexLive.UnityPresentation.UI
             SetProgress(0.02f, Loc.Get("loading.world"));
             yield return null;
 
+            // Spec 41.3: curtain the views BEFORE the world exists. Configure()
+            // makes the runner IsReady synchronously, so every frame from here
+            // to the end of the wind would otherwise let the renderer build the
+            // whole scene on a state that the wind is about to invalidate.
+            IsReplaying = true;
+
             // Spec 41.1: bootstrap PAUSED; the loader unpauses after the fade.
             var speed = _continueChosen && _save is { speed: > 0f } ? _save.speed : 1f;
             _runner.Configure(
@@ -588,7 +597,6 @@ namespace HexLive.UnityPresentation.UI
             // ~10 ms of stepping per frame so the bar visibly moves.
             if (hasReplay && _runner.Engine is { } engine)
             {
-                IsReplaying = true;
                 _timeReadout.style.display = DisplayStyle.Flex;
                 var clock = System.Diagnostics.Stopwatch.StartNew();
                 var start = engine.World.Tick;
@@ -610,10 +618,13 @@ namespace HexLive.UnityPresentation.UI
                 }
 
                 _timeReadout.style.display = DisplayStyle.None;
-                IsReplaying = false;
                 UnityEngine.Debug.Log(
                     $"[HexLive] Replayed to tick {engine.World.Tick} in {clock.ElapsedMilliseconds} ms");
             }
+
+            // The world now stands at its final tick — drop the curtain so the
+            // scene is built exactly once, on the state the player will see.
+            IsReplaying = false;
 
             // Spec 41.1 phase 3: the renderer builds terrain/actors/wardrobe
             // from the (paused) snapshot over the next frames.

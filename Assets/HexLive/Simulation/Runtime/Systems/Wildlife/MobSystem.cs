@@ -112,6 +112,7 @@ public sealed class MobSystem : ISimulationSystem
             // Spec §54: the fallen mob leaves a butcherable carcass; the
             // variant carries its mob id so the view shows the right body.
             ExecutionSystem.SpawnCarcass(world, dead.Tile, dead.Junction, dead.MobId);
+            ForgetDangerAround(world, dead.Tile, 1); // §54.16: the fear dies with the beast
         }
 
         foreach (var npc in world.Entities.Npcs.Values)
@@ -636,6 +637,37 @@ public sealed class MobSystem : ISimulationSystem
         {
             Trace.Emit(world, npc.Id, "SpearReadied",
                 $"Dropped {dropped} to grab the spear");
+        }
+    }
+
+    // §54.16: is a LIVE beast standing within `radius` of this tile? The
+    // danger MEMORY outlives the beast by up to a day; this is the present
+    // tense of it, so a plan can tell "a wolf is there" from "a wolf was
+    // there yesterday".
+    internal static bool MobNear(WorldState world, TileCoord tile, int radius)
+    {
+        foreach (var mob in world.Mobs)
+        {
+            if (HexSpatialMath.HexDistance(tile, mob.Tile) <= radius)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // §54.16: the beast is dead — clear the fear it stamped around this spot
+    // for every colonist, so the kill site stops being a no-go zone (the meat
+    // and hide lying there are the whole point of the fight). Radius 1 covers
+    // both stamps a fight leaves: the mob's tile (§62 far-spotting) and the
+    // girl's own feet (29C.4A).
+    internal static void ForgetDangerAround(WorldState world, TileCoord tile, int radius)
+    {
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            npc.Memory.Dangers.RemoveAll(
+                d => HexSpatialMath.HexDistance(d.Tile, tile) <= radius);
         }
     }
 

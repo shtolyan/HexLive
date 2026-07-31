@@ -1113,6 +1113,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
             npc.Wounds, npc.BandagedZones, npc.SeveredParts);
         var heldItemId = IsProne(npc) && IsToolOrWeapon(npc.HeldItemId) ? string.Empty : npc.HeldItemId;
         actorView.SetInteraction(npc.CurrentInteraction, heldItemId, npc.AidTargetLyingDown);
+        // Spec §52.8: leg-slung tools — the holster shows a carried axe/knife/
+        // hammer on the thigh whenever that tool is not the one in her hand.
+        actorView.SyncHolster(npc.HolsteredItems, heldItemId);
         // §Wardrobe-anim: the two-beat dress/undress sequence (gather + garment
         // in hand). Runs after SetInteraction, which it overrides for these verbs.
         actorView.SetWardrobeAction(npc.CurrentInteraction, npc.InteractionProgress, npc.HeldGarmentId,

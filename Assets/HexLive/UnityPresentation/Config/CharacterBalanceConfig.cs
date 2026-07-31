@@ -31,10 +31,10 @@ namespace HexLive.UnityPresentation.Config
         [Range(20, 600)] public int talkWaitTimeoutTicks = 120;
 
         [Header("Нужды — скорость (за медленный тик, ~150/день)")]
-        [Tooltip("Сколько ГОЛОДА набегает за медленный тик. Больше = быстрее хочет есть.")]
-        [Range(0f, 0.05f)] public float hungerRate = 0.0055f;
-        [Tooltip("Сколько ЖАЖДЫ набегает за тик. Больше = быстрее хочет пить.")]
-        [Range(0f, 0.05f)] public float thirstRate = 0.010f;
+        [Tooltip("Сколько ГОЛОДА набегает за медленный тик. Больше = быстрее хочет есть. §53.7: вдвое медленнее (было 0.0037).")]
+        [Range(0f, 0.05f)] public float hungerRate = 0.00185f;
+        [Tooltip("Сколько ЖАЖДЫ набегает за тик. Больше = быстрее хочет пить. §53.7: вдвое медленнее (было 0.008).")]
+        [Range(0f, 0.05f)] public float thirstRate = 0.004f;
         [Tooltip("Сколько ЭНЕРГИИ тратится за тик бодрствования (~1 полоска/день).")]
         [Range(0f, 0.03f)] public float energyRate = 0.007f;
         [Tooltip("Сколько КОМФОРТА теряется за тик бодрствования (у костра — наоборот растёт).")]

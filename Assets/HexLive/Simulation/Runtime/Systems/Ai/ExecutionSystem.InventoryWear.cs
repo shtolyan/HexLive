@@ -41,13 +41,13 @@ public sealed partial class ExecutionSystem
                 continue;
             }
 
-            foreach (var part in newDefinition.Covers)
+            // §52.9: occupancy is a SLOT question, not a protection-zone one.
+            // Covers is far too coarse to displace by (thigh holster, stockings
+            // and boots all read "LegL+LegR"); WearSlotCatalog mirrors the
+            // prefab's fine slots and falls back to Covers for unauthored art.
+            if (WearSlotCatalog.SameSpot(newDefinition, wornDefinition))
             {
-                if (wornDefinition.Covers.Contains(part))
-                {
-                    _conflictScratch.Add(wornId);
-                    break;
-                }
+                _conflictScratch.Add(wornId);
             }
         }
 
@@ -765,7 +765,7 @@ public sealed partial class ExecutionSystem
         npc.BottleCharges--;
         var driedOut = npc.BottleCharges <= 0;
         Trace.Emit(world, npc.Id, "DrankBottle",
-            $"{(boiled ? "Boiled" : "Raw")} water Thirst={npc.Needs.Thirst:F2} Left={System.Math.Max(0, npc.BottleCharges)}");
+            $"{npc.BottleWater} water Thirst={npc.Needs.Thirst:F2} Left={System.Math.Max(0, npc.BottleCharges)}");
         if (driedOut)
         {
             npc.BottleWater = WaterKind.None;

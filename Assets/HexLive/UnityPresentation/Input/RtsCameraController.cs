@@ -1,18 +1,23 @@
+using System.Collections.Generic;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Rendering;
 using HexLive.UnityPresentation.Spatial;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Spatial;
 
 namespace HexLive.UnityPresentation.Input
 {
     /// <summary>
-    /// RTS-style camera with two modes:
-    ///   • Free: fixed top-down angle, WASD/arrows to pan, scroll to zoom.
-    ///   • Orbit: click an NPC to lock the camera in an orbit behind them;
-    ///     right-drag to rotate, scroll to zoom in/out, Escape to return.
+    /// RTS-style camera built as a single orbit rig around a pivot. Only what
+    /// the pivot is attached to changes:
+    ///   • Free: the pivot is a loose point magnetised to the hex ground;
+    ///     WASD/arrows slide it, right-drag rotates, scroll zooms.
+    ///   • Orbit: click an NPC and the pivot rides their body; Escape releases
+    ///     it where they stood — the angle, distance and framing stay put
+    ///     instead of snapping back to a top-down view.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class RtsCameraController : MonoBehaviour
@@ -32,6 +37,9 @@ namespace HexLive.UnityPresentation.Input
         [SerializeField] private float _minHeight = 3f;
         [SerializeField] private float _maxHeight = 20f;
         [SerializeField] private float _zoomSpeed = 1.5f;
+
+        [Tooltip("Free-mode pitch ceiling. 90 = straight down (the classic RTS top view).")]
+        [SerializeField] private float _freeMaxPitch = 90f;
 
         [Header("Orbit")]
         [SerializeField] private float _orbitDistance = 9f;
@@ -64,24 +72,33 @@ namespace HexLive.UnityPresentation.Input
 
         private Mode _mode = Mode.Free;
 
-        // Free-mode state.
-        private Vector3 _targetPosition;
-        private float _targetHeight;
+        // Free-mode state: a loose pivot glued to the hex ground.
+        private Vector3 _freePivot;
         private Vector3 _velocity;
+
+        // Shared rig state (both modes drive the same yaw/pitch/distance).
+        private float _currentYaw;
+        private float _currentPitch;
+        private float _currentDistance;
+        private float _smoothedYaw;
+        private float _smoothedPitch;
+        private float _yawVelocity;
+        private float _pitchVelocity;
 
         // Orbit-mode state.
         private int _orbitTargetId;
-        private float _currentYaw;
-        private float _currentPitch;
-        private float _yawVelocity;
-        private float _pitchVelocity;
-        private Vector3 _orbitVelocity;
         private Vector3 _smoothedTarget;
         private Vector3 _targetVelocity;
         private bool _hasSmoothedTarget;
 
         private Camera _camera;
         private HexWorldRenderer _worldRenderer;
+
+        // Ground magnet: tile top heights, refreshed periodically so the free
+        // pivot can hug elevation without rebuilding a snapshot every frame.
+        private readonly Dictionary<TileCoord, float> _tileTops = new();
+        private float _tileTopsStamp = float.NegativeInfinity;
+        private const float TileTopsRefreshSeconds = 0.5f;
 
         private const float ElevationStep = 0.55f;
 
@@ -95,8 +112,16 @@ namespace HexLive.UnityPresentation.Input
             _camera = GetComponent<Camera>();
             transform.position = _startPosition;
             transform.rotation = Quaternion.Euler(_startRotation);
-            _targetPosition = _startPosition;
-            _targetHeight = _startPosition.y;
+
+            _currentYaw = _startRotation.y;
+            _currentPitch = Mathf.Clamp(_startRotation.x, _orbitMinPitch, _freeMaxPitch);
+            _smoothedYaw = _currentYaw;
+            _smoothedPitch = _currentPitch;
+            _currentDistance = Mathf.Clamp(_startPosition.y, _orbitMinDistance, _orbitMaxDistance);
+
+            // The start pose looks straight down, so the pivot is simply the
+            // ground under the camera.
+            _freePivot = SnapToGround(new Vector3(_startPosition.x, 0f, _startPosition.z));
         }
 
         private void OnEnable()
@@ -148,10 +173,13 @@ namespace HexLive.UnityPresentation.Input
             {
                 HandlePan();
                 HandleZoom();
+                HandleFreeRotation();
                 TryHandleLeftClick();
             }
 
-            ApplyFreeMovement();
+            _freePivot = SnapToGround(_freePivot);
+
+            ApplyRig(_freePivot, _panSmooth);
         }
 
         private void HandlePan()
@@ -170,23 +198,19 @@ namespace HexLive.UnityPresentation.Input
 
             input = Vector2.ClampMagnitude(input, 1f);
 
-            var heightFactor = Mathf.Lerp(0.5f, 1.5f, Mathf.InverseLerp(_minHeight, _maxHeight, _targetHeight));
+            var heightFactor = Mathf.Lerp(0.5f, 1.5f, Mathf.InverseLerp(_minHeight, _maxHeight, _currentDistance));
             var speed = _panSpeed * heightFactor * Time.unscaledDeltaTime;
 
-            // Pan along the camera's own axes projected onto the ground so
-            // screen-right/up match the arrow pressed. The camera looks
-            // straight down with a 180° yaw, so raw world X/Z would invert.
-            var rotation = Quaternion.Euler(_startRotation);
-            var right = rotation * Vector3.right;
-            var up = rotation * Vector3.up; // screen-up on the ground for a top-down cam
-            right.y = 0f;
-            up.y = 0f;
-            right.Normalize();
-            up.Normalize();
+            // Slide the pivot along the camera's own ground axes so screen
+            // right/up match the arrow pressed at any yaw (raw world X/Z would
+            // invert as soon as the camera is turned around).
+            var flat = Quaternion.Euler(0f, _smoothedYaw, 0f);
+            var right = flat * Vector3.right;
+            var up = flat * Vector3.forward; // screen-up projected on the ground
 
             var move = (right * input.x + up * input.y) * speed;
-            _targetPosition.x += move.x;
-            _targetPosition.z += move.z;
+            _freePivot.x += move.x;
+            _freePivot.z += move.z;
         }
 
         private void HandleZoom()
@@ -197,15 +221,119 @@ namespace HexLive.UnityPresentation.Input
             var scroll = mouse.scroll.ReadValue().y;
             if (Mathf.Abs(scroll) < 0.01f) return;
 
-            _targetHeight -= scroll * _zoomSpeed * 0.01f;
-            _targetHeight = Mathf.Clamp(_targetHeight, _minHeight, _maxHeight);
+            _currentDistance = Mathf.Clamp(
+                _currentDistance - scroll * _zoomSpeed * 0.01f,
+                _orbitMinDistance, _orbitMaxDistance);
         }
 
-        private void ApplyFreeMovement()
+        private void HandleFreeRotation()
         {
-            var desired = new Vector3(_targetPosition.x, _targetHeight, _targetPosition.z);
-            transform.position = Vector3.SmoothDamp(transform.position, desired, ref _velocity, _panSmooth);
-            transform.rotation = Quaternion.Euler(_startRotation);
+            var mouse = Mouse.current;
+            if (mouse == null || !mouse.rightButton.isPressed) return;
+
+            var delta = mouse.delta.ReadValue();
+            _currentYaw += delta.x * _orbitRotationSpeed;
+            _currentPitch -= delta.y * _orbitRotationSpeed;
+            _currentPitch = Mathf.Clamp(_currentPitch, _orbitMinPitch, _freeMaxPitch);
+        }
+
+        // ---- Shared rig ------------------------------------------------------
+
+        // Places the camera on its orbit around <paramref name="pivot"/>.
+        private void ApplyRig(Vector3 pivot, float positionSmooth)
+        {
+            _smoothedYaw = Mathf.SmoothDampAngle(
+                _smoothedYaw, _currentYaw, ref _yawVelocity, _orbitRotationSmooth);
+            _smoothedPitch = Mathf.SmoothDampAngle(
+                _smoothedPitch, _currentPitch, ref _pitchVelocity, _orbitRotationSmooth);
+
+            var rotation = Quaternion.Euler(_smoothedPitch, _smoothedYaw, 0f);
+
+            // The character bar covers the bottom of the screen, so aiming the
+            // pivot at the screen center hides the NPC's legs behind the UI.
+            // Slide the frame down by half the bar's coverage: the pivot then
+            // lands in the middle of the strip that stays visible above the bar.
+            // With nothing selected the bar is hidden and the lift is zero.
+            var uiLift = 0f;
+            var coverage = NpcSelection.BottomUiCoverage;
+            if (_camera != null && coverage > 0.001f)
+            {
+                var frustumHeight = 2f * _currentDistance *
+                    Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+                uiLift = frustumHeight * coverage * 0.5f;
+            }
+
+            var desiredPosition = pivot
+                - rotation * Vector3.forward * _currentDistance
+                - rotation * Vector3.up * uiLift;
+
+            transform.position = Vector3.SmoothDamp(
+                transform.position, desiredPosition, ref _velocity, positionSmooth);
+            transform.rotation = rotation;
+        }
+
+        // ---- Ground magnet ---------------------------------------------------
+
+        // Drops a pivot onto the top of the hex it stands over. Water tiles
+        // magnetise to their surface, so the pivot never sinks under the sea.
+        private Vector3 SnapToGround(Vector3 pivot)
+        {
+            RefreshTileTops();
+            if (_tileTops.TryGetValue(WorldToTile(pivot.x, pivot.z), out var top))
+            {
+                pivot.y = top;
+            }
+
+            return pivot;
+        }
+
+        private void RefreshTileTops()
+        {
+            if (Time.unscaledTime - _tileTopsStamp < TileTopsRefreshSeconds)
+            {
+                return;
+            }
+
+            var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
+            if (snapshot == null || snapshot.Tiles.Count == 0)
+            {
+                return;
+            }
+
+            _tileTopsStamp = Time.unscaledTime;
+            _tileTops.Clear();
+            for (var i = 0; i < snapshot.Tiles.Count; i++)
+            {
+                var tile = snapshot.Tiles[i];
+                _tileTops[tile.Coord] = TileTopY(tile);
+            }
+        }
+
+        // Inverse of HexSpatialMath.TileToWorld plus cube rounding.
+        private static TileCoord WorldToTile(float x, float z)
+        {
+            var r = z / (HexSpatialMath.HexRadius * HexSpatialMath.HexRowStepFactor);
+            var q = x / (HexSpatialMath.HexRadius * HexSpatialMath.HexWidthFactor) - r * 0.5f;
+            var s = -q - r;
+
+            var rq = Mathf.RoundToInt(q);
+            var rr = Mathf.RoundToInt(r);
+            var rs = Mathf.RoundToInt(s);
+
+            var dq = Mathf.Abs(rq - q);
+            var dr = Mathf.Abs(rr - r);
+            var ds = Mathf.Abs(rs - s);
+
+            if (dq > dr && dq > ds)
+            {
+                rq = -rr - rs;
+            }
+            else if (dr > ds)
+            {
+                rr = -rq - rs;
+            }
+
+            return new TileCoord(rq, rr);
         }
 
         // Left-click first tries an NPC, then falls back to the map hex under
@@ -353,21 +481,22 @@ namespace HexLive.UnityPresentation.Input
         {
             _mode = Mode.Orbit;
             _orbitTargetId = npcId;
-            _orbitDistance = Mathf.Clamp(_orbitDistance, _orbitMinDistance, _orbitMaxDistance);
+            _currentDistance = Mathf.Clamp(_orbitDistance, _orbitMinDistance, _orbitMaxDistance);
             _currentYaw = _orbitYaw;
             _currentPitch = _orbitPitch;
-            _orbitVelocity = Vector3.zero;
             _hasSmoothedTarget = false; // snap the pivot to the new NPC on entry
         }
 
         private void ExitOrbit()
         {
             _mode = Mode.Free;
-            // Return to a top-down view centered on the character we were
-            // watching, so Escape leaves them in frame instead of snapping to
-            // a random spot.
+            // Deselecting only unhooks the pivot from the character: it stays
+            // exactly where they stood (magnetised to that hex's ground) and
+            // the angle, distance and framing are left untouched, so the view
+            // does not fly back up to a top-down shot.
+            _orbitDistance = _currentDistance;
             var pivot = _hasSmoothedTarget ? _smoothedTarget : transform.position;
-            _targetPosition = new Vector3(pivot.x, _targetHeight, pivot.z);
+            _freePivot = SnapToGround(new Vector3(pivot.x, pivot.y, pivot.z));
             _velocity = Vector3.zero;
         }
 
@@ -415,38 +544,10 @@ namespace HexLive.UnityPresentation.Input
                     _smoothedTarget, rawTarget, ref _targetVelocity, _orbitTargetSmooth);
             }
 
-            var target = _smoothedTarget;
-
             HandleOrbitInput();
 
             _currentPitch = Mathf.Clamp(_currentPitch, _orbitMinPitch, _orbitMaxPitch);
-            var smoothedYaw = Mathf.SmoothDampAngle(
-                NormalizeAngle(transform.eulerAngles.y), _currentYaw, ref _yawVelocity, _orbitRotationSmooth);
-            var smoothedPitch = Mathf.SmoothDampAngle(
-                transform.eulerAngles.x, _currentPitch, ref _pitchVelocity, _orbitRotationSmooth);
-
-            var rotation = Quaternion.Euler(smoothedPitch, smoothedYaw, 0f);
-
-            // The character bar covers the bottom of the screen, so aiming the
-            // pivot at the screen center hides the NPC's legs behind the UI.
-            // Slide the frame down by half the bar's coverage: the pivot then
-            // lands in the middle of the strip that stays visible above the bar.
-            var uiLift = 0f;
-            var coverage = NpcSelection.BottomUiCoverage;
-            if (_camera != null && coverage > 0.001f)
-            {
-                var frustumHeight = 2f * _orbitDistance *
-                    Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
-                uiLift = frustumHeight * coverage * 0.5f;
-            }
-
-            var desiredPosition = target
-                - rotation * Vector3.forward * _orbitDistance
-                - rotation * Vector3.up * uiLift;
-
-            transform.position = Vector3.SmoothDamp(
-                transform.position, desiredPosition, ref _orbitVelocity, _orbitPositionSmooth);
-            transform.rotation = rotation;
+            ApplyRig(_smoothedTarget, _orbitPositionSmooth);
         }
 
         // Cycle the followed character with the left/right arrow keys.
@@ -500,9 +601,9 @@ namespace HexLive.UnityPresentation.Input
             if (Mathf.Abs(scroll) > 0.001f)
             {
                 // Proportional zoom: fine steps up close, big sweeps far out.
-                var step = _orbitZoomSpeed * 0.01f * Mathf.Max(0.15f, _orbitDistance / 9f);
-                _orbitDistance = Mathf.Clamp(
-                    _orbitDistance - scroll * step,
+                var step = _orbitZoomSpeed * 0.01f * Mathf.Max(0.15f, _currentDistance / 9f);
+                _currentDistance = Mathf.Clamp(
+                    _currentDistance - scroll * step,
                     _orbitMinDistance, _orbitMaxDistance);
             }
 
@@ -557,11 +658,5 @@ namespace HexLive.UnityPresentation.Input
             return false;
         }
 
-        private static float NormalizeAngle(float degrees)
-        {
-            degrees %= 360f;
-            if (degrees > 180f) degrees -= 360f;
-            return degrees;
-        }
     }
 }

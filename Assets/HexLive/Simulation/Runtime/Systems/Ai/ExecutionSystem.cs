@@ -71,6 +71,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
+            if (npc.Plan.Steps.Count > 0 && npc.Plan.Steps[0].Type == PlanStepType.TreatSelf)
+            {
+                RunTreatSelf(world, npc);
+                continue;
+            }
+
             if (npc.Plan.Steps.Count > 0 && npc.Plan.Steps[0].Type == PlanStepType.CraftInPlace)
             {
                 RunCraftInPlace(world, npc);

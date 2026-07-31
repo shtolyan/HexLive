@@ -17,9 +17,11 @@ namespace HexLive.Simulation.Runtime
 // relationships. The pull scales with the sufferer's plight and with this
 // girl's personality CompassionTrait, but is gated hard behind her own
 // survival: if SHE is starving or bleeding she looks after herself first.
-// Helping costs no items (the relief is applied straight to the target) so it
-// can never bankrupt the knife-edge colony. All balance lives here so the
-// headless harness can bisect and the HexTuningConfig sliders can drive it.
+// §53.7: helping now COSTS SUPPLIES — a meal, a gulp of water, a bandage, a
+// pill leave the helper's own pack — and a girl who means to help but has
+// nothing to give first goes and fetches it (the aid errand).
+// All balance lives here so the headless harness can bisect and the
+// HexTuningConfig sliders can drive it.
 public static class Spec53
 {
     public static bool Enabled = true;
@@ -48,7 +50,27 @@ public static class Spec53
     // A neighbour must be suffering at least this much (0..1) to be worth a trip.
     public static float SufferingThreshold = 0.3f;
 
-    // Relief applied to the TARGET on a completed aid (no item is spent):
+    // §53.7: aid SPENDS the helper's own supplies — a meal / a water charge /
+    // a bandage / a pill. Off = the pre-§53.7 free relief, byte-for-byte (and
+    // no aid errands: nobody ever fetches on someone else's behalf).
+    public static bool AidCostsSupplies = true;
+
+    // §53.7: how long an aid errand (fetching the missing food/water/herb for
+    // a housemate) keeps pulling once started, even if the sufferer drops out
+    // of sight while she walks. Expiry just lets the auction re-decide.
+    public static int AidErrandTicks = 1200;
+
+    // §53.7: the share of the FULL aid bid (suffering × trait × AidWeight +
+    // compassion pressure + bleed-out emergency) that flows into the supply
+    // chore. Just under 1: fetching is a notch less urgent than the helping
+    // itself, but it must stay in the same weight class — shade it much lower
+    // and the errand loses to the very chores the aid used to outbid, which
+    // reads as "she saw you dying and went back to hauling logs".
+    public static float AidErrandBidShare = 0.9f;
+
+    // Relief applied to the TARGET on a completed aid (§53.7: the matching
+    // supply is spent from the helper; a fed meal's own nutrition wins over
+    // FeedRelief when the item defines one):
     public static float FeedRelief = 0.5f;          // target Hunger down
     public static float HydrateRelief = 0.5f;       // target Thirst down
     public static float TreatHeal = 0.15f;          // wounded body parts up
@@ -69,6 +91,46 @@ public static class Spec53
     // Personality spread: CompassionTrait is seeded in [TraitMin, TraitMax].
     public static float TraitMin = 0.35f;
     public static float TraitMax = 1.0f;
+
+    // ---- §68: self first-aid -------------------------------------------------
+    // Aid(Treat) let a HOUSEMATE dress your wounds; the wounded girl herself had
+    // no goal for it. Her own first aid was a passive last resort in
+    // NeedsDecaySystem, gated on blood < BandageBloodThreshold AND a single part
+    // below 0.4 — so a mauling of many shallow bites (save 604905660: Marta at
+    // HP 0.61, worst zone 0.55, blood 0.48, TWO bandages in the pack) never
+    // opened it, and the auction handed her evening to laundry. This is the
+    // conscious goal: burden crosses the line → she stops and patches herself up.
+    public static bool SelfTreatEnabled = true;
+
+    // Burden = max(1 − Health, 1 − worst intact zone, 1 − Blood). Reading the
+    // WHOLE body (not just the worst zone) is the point: many shallow wounds
+    // are what the old gate was blind to.
+    public static float SelfTreatBurdenThreshold = 0.25f;
+
+    // The LAST dressing is emergency stock: spending it on a moderate mauling
+    // leaves nothing for the bleed-out that follows the next dog. With one
+    // bandage left she waits for this (higher) burden.
+    public static float SelfTreatLastBandageBurden = 0.45f;
+
+    // Bid = SelfTreatBase + burden × SelfTreatWeight (+ the bleed emergency).
+    // At burden 0.5 that is ≈0.95 — over laundry/leisure, under a real
+    // hunger/thirst emergency, which is the intended pecking order.
+    public static float SelfTreatBase = 0.35f;
+    public static float SelfTreatWeight = 1.0f;
+
+    // Losing blood is the emergency band: below SelfTreatBleedBlood the bid
+    // takes SelfTreatBleedEmergency on top, so patching up outranks every chore
+    // (the §63 "no spa while bleeding out" intent, but with somewhere to go).
+    public static float SelfTreatBleedBlood = 0.6f;
+    public static float SelfTreatBleedEmergency = 0.6f;
+
+    // Winding a dressing takes about as long as tending someone else.
+    public static int SelfTreatDuration = 60;
+
+    // Relief from one self-applied dressing. Deliberately a notch under the
+    // TreatHeal a housemate delivers — another pair of hands does it better.
+    public static float SelfTreatHeal = 0.12f;
+    public static float SelfTreatBlood = 0.18f;
 }
 
 }

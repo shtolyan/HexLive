@@ -18,11 +18,11 @@ MonoBehaviour:
   lockOverrideDelta: 0.5
   switchDelta: 0.15
   talkWaitTimeoutTicks: 120
-  hungerRate: 0.0037
-  thirstRate: 0.008
-  energyRate: 0.0053
+  hungerRate: 0.0025
+  thirstRate: 0.006
+  energyRate: 0.0045
   comfortRate: 0.01
-  socialRate: 0.008
+  socialRate: 0.006
   sweatThirstFactor: 0.182
   getFoodHungerThreshold: 0.35
   sleepEnergyThreshold: 0.203

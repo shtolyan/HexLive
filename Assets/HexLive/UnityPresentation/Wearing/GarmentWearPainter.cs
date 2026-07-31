@@ -65,6 +65,8 @@ namespace HexLive.UnityPresentation.Wearing
         // clipped by the tear mask (the opaque tear shader made them black).
         private bool[] _transparentSlot = System.Array.Empty<bool>();
         private float _lastTear;
+        // Placement seed: the garment's IDENTITY, never GetInstanceID().
+        private int _seed = 1;
 
         private readonly List<Hole> _holes = new();
         // These belong to the garment, not to the current wound/hygiene
@@ -105,10 +107,11 @@ namespace HexLive.UnityPresentation.Wearing
         private int[] _triangleSlot = System.Array.Empty<int>();
         private Vector2[] _uvs = System.Array.Empty<Vector2>();
 
-        public void Construct(SkinnedMeshRenderer renderer)
+        public void Construct(SkinnedMeshRenderer renderer, int stableSeed = 0)
         {
             _renderer = renderer;
             _skinnedRenderer = renderer;
+            _seed = stableSeed != 0 ? stableSeed : SeedFromMesh(renderer.sharedMesh);
             ConstructRenderer(renderer);
             // Spec 40.8-G: baked anchor points, keyed by the (possibly
             // per-actor-swapped) mesh. The key carries the vertex count too:
@@ -124,11 +127,38 @@ namespace HexLive.UnityPresentation.Wearing
             }
         }
 
-        public void Construct(MeshRenderer renderer, Mesh mesh)
+        public void Construct(MeshRenderer renderer, Mesh mesh, int stableSeed = 0)
         {
             _renderer = renderer;
             _staticMesh = mesh;
+            _seed = stableSeed != 0 ? stableSeed : SeedFromMesh(mesh);
             ConstructRenderer(renderer);
+        }
+
+        /// <summary>A stain's spot must survive the garment being re-instantiated:
+        /// seed placement from the piece's IDENTITY (its slot on this body, or its
+        /// mesh). GetInstanceID() re-rolled the whole pattern on every re-equip,
+        /// which read as the cloth's dirt flickering every tick.</summary>
+        public static int StableSeed(string? key, int owner)
+        {
+            unchecked
+            {
+                var hash = 2166136261u ^ (uint)owner;
+                if (key != null)
+                {
+                    foreach (var c in key)
+                    {
+                        hash = (hash ^ c) * 16777619u;
+                    }
+                }
+
+                return (int)(hash | 1u);
+            }
+        }
+
+        private static int SeedFromMesh(Mesh? mesh)
+        {
+            return mesh == null ? 1 : StableSeed(mesh.name, mesh.vertexCount);
         }
 
         private void ConstructRenderer(Renderer renderer)
@@ -338,7 +368,7 @@ namespace HexLive.UnityPresentation.Wearing
             while (_bloodStains.Count < target)
             {
                 var index = _bloodStains.Count;
-                var state = (uint)(GetInstanceID() * 2246822519u) ^ (uint)(index * 3266489917u + 17u);
+                var state = (uint)(_seed * 2246822519u) ^ (uint)(index * 3266489917u + 17u);
                 state = state * 1664525u + 1013904223u;
                 var triangle = (int)(state % (uint)(_triangles.Length / 3));
                 var i0 = _triangles[triangle * 3];
@@ -427,7 +457,7 @@ namespace HexLive.UnityPresentation.Wearing
             for (var i = 0; i < addCount && _dirtStains.Count < MaxStoredDirtStains; i++)
             {
                 var index = _dirtStains.Count;
-                var state = (uint)(GetInstanceID() * 40503u) ^ (uint)(index * 104729 + 5);
+                var state = (uint)(_seed * 40503u) ^ (uint)(index * 104729 + 5);
                 state = state * 1664525u + 1013904223u;
                 var triangle = (int)(state % (uint)(_triangles.Length / 3));
                 var i0 = _triangles[triangle * 3];
@@ -648,7 +678,7 @@ namespace HexLive.UnityPresentation.Wearing
 
             // Seeded triangle pick: always ON the garment (random UVs could
             // land between islands), deterministic per garment + index.
-            var state = (uint)(GetInstanceID() * 2654435761u) ^ (uint)(index * 9176u + 1);
+            var state = (uint)(_seed * 2654435761u) ^ (uint)(index * 9176u + 1);
             state = state * 1664525u + 1013904223u;
             var triangle = (int)(state % (uint)(_triangles.Length / 3));
             AddHoleAt(triangle,

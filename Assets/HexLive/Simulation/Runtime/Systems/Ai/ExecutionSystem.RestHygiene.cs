@@ -481,9 +481,22 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        if (npc.WornItems.Count > 0)
+        // §52.8: strip CLOTHES for the swim, never gear. A leg holster of tools
+        // is not laundry — it stays strapped on, so it can never be the piece
+        // left abandoned on the sand when a bathe is cut short.
+        var stripIndex = -1;
+        for (var i = npc.WornItems.Count - 1; i >= 0; i--)
         {
-            var garment = npc.WornItems[npc.WornItems.Count - 1];
+            if (!HolsterCatalog.IsHolster(npc.WornItems[i].DefinitionId))
+            {
+                stripIndex = i;
+                break;
+            }
+        }
+
+        if (stripIndex >= 0)
+        {
+            var garment = npc.WornItems[stripIndex];
             npc.Plan.TargetItemDefinitionId = garment.DefinitionId;
             npc.Execution.Status = ExecutionStatus.InProgress;
             npc.Execution.CurrentInteraction = InteractionType.Undress;
@@ -979,12 +992,12 @@ public sealed partial class ExecutionSystem
                 continue;
             }
 
-            foreach (var part in newDef.Covers)
+            // §52.9: same slot-based occupancy as ResolveWearConflicts. This is
+            // what decides whether a freshly-washed piece goes back ON — a false
+            // conflict here silently leaves clean laundry on the sand.
+            if (WearSlotCatalog.SameSpot(newDef, wornDef))
             {
-                if (wornDef.Covers.Contains(part))
-                {
-                    return true;
-                }
+                return true;
             }
         }
 

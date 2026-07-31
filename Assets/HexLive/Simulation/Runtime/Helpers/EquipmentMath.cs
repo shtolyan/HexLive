@@ -90,6 +90,19 @@ internal static class EquipmentMath
         }
 
         npc.Inventory.Capacity = slots;
+
+        // Spec §52.8: the TYPED weapon slots her worn holsters grant. Depends
+        // only on what she wears, so recomputing it here (every worn change) is
+        // enough — which tool sits in a slot is read live off the pack.
+        var holsterSlots = npc.Inventory.HolsterSlotIds;
+        holsterSlots.Clear();
+        foreach (var item in npc.WornItems)
+        {
+            foreach (var toolId in HolsterCatalog.SlotsFor(item.DefinitionId))
+            {
+                holsterSlots.Add(toolId);
+            }
+        }
     }
 
     // Spec 31A.5B: protection has anatomy — only garments covering the
@@ -139,7 +152,8 @@ internal static class EquipmentMath
             if (world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var definition) &&
                 definition.Covers.Contains(part))
             {
-                item.Durability -= wear;
+                // §52.8: a bite on the leg barely marks the gear strap.
+                item.Durability -= wear * HolsterCatalog.WearMultiplier(item.DefinitionId);
                 if (item.Durability <= 0f)
                 {
                     _destroyedScratch.Add(item);
@@ -252,17 +266,13 @@ internal static class EquipmentMath
             var effective = wornWarmth * (1f - 0.9f * MathUtil.Clamp01(item.Wetness));
             currentRaw += effective;
 
-            // Same layer + an overlapping covered part ⇒ this worn piece comes off.
-            if (wornDef.Layer == candidateLayer)
+            // §52.9: same layer + an overlapping SLOT ⇒ this worn piece comes
+            // off. Must use the exact predicate ResolveWearConflicts uses, or
+            // the projected warmth prices a displacement that never happens.
+            if (wornDef.Layer == candidateLayer &&
+                WearSlotCatalog.SameSpot(candidateDef, wornDef))
             {
-                foreach (var part in candidateDef.Covers)
-                {
-                    if (wornDef.Covers.Contains(part))
-                    {
-                        displacedRaw += effective;
-                        break;
-                    }
-                }
+                displacedRaw += effective;
             }
         }
 

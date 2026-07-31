@@ -274,6 +274,15 @@ public sealed partial class PlanningSystem
                 continue;
             }
 
+            // §53.7: help costs supplies — never set out to a ward whose need
+            // we cannot pay for. The decision layer turns that case into a
+            // fetch errand instead; walking over empty-handed would only abort
+            // on arrival and freeze her in the wait.
+            if (!AidSupply.Has(world, npc, agent.AidKind))
+            {
+                continue;
+            }
+
             // Skip a sufferer another helper is already on the way to.
             if (world.Entities.Npcs.TryGetValue(agent.Id, out var agentState) &&
                 agentState.Mind.PendingAidFrom is { } claimedBy &&

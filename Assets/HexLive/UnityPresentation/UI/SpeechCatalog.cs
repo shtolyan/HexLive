@@ -233,6 +233,8 @@ public static class SpeechCatalog
             "Bury" => "cry_bury",
             "FeedOther" or "TreatOther" or "MedicateOther" or "ConsoleOther" or "HydrateOther"
                 => "happy_aid_give",
+            // §68: winding a dressing round her own wound — it hurts going on.
+            "TreatSelf" => "hurt_wound",
             _ => null
         };
     }

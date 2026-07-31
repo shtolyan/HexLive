@@ -705,6 +705,16 @@ public static class WorldSnapshotExporter
             npcSnapshot.WornItems.Add(item);
         }
 
+        // Spec §52.8: which typed holster slots are actually filled right now —
+        // the presentation pins each tool to its leg anchor.
+        foreach (var slotId in npc.Inventory.HolsterSlotIds)
+        {
+            if (npc.Inventory.IsSlotFilled(slotId))
+            {
+                npcSnapshot.HolsteredItems.Add(slotId);
+            }
+        }
+
         // Spec 40.8B: open wounds — one decal each, spot/look from seed,
         // alpha fading with heal. Their unhealed damage sums into the red
         // "won't regen" segment of the HP bar (Health is the mean of parts,

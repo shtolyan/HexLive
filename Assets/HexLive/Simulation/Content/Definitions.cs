@@ -193,7 +193,12 @@ public enum InteractionType
     // wiring (who carries a bottle there, and rain filling it over time)
     // is the next step and does not read these yet.
     PlaceVessel,
-    TakeVessel
+    TakeVessel,
+    // §68: self first-aid — the wounded girl dresses her OWN wounds with a
+    // bandage from her pack (the mirror of TreatOther, which only ever let a
+    // HOUSEMATE do it). Appended at the end: saves store interactions by
+    // ordinal.
+    TreatSelf
 }
 
 }

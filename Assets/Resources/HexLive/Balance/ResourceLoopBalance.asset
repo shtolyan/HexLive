@@ -45,5 +45,5 @@ MonoBehaviour:
   carcassDecayTicks: 2400
   butcherDurationTicks: 30
   carcassMeatYield: 2
-  meatRawSpoilTicks: 1800
+  meatRawSpoilTicks: 2600
   meatCookedSpoilTicks: 4800

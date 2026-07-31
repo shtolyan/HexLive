@@ -638,6 +638,25 @@ public sealed partial class DecisionSystem
         return need;
     }
 
+    // §68: how badly she needs a dressing, 0..1. Three readings, worst wins:
+    // mean health (many shallow bites — the case the old passive gate missed),
+    // the worst intact zone (one deep wound), and blood lost (bleeding out).
+    // Severed zones are skipped: a stump cannot be bandaged (§50).
+    internal static float SelfTreatBurden(NPCState npc)
+    {
+        var worstPart = 1f;
+        foreach (var pair in npc.Body.Parts)
+        {
+            if (!npc.Body.IsSevered(pair.Key) && pair.Value < worstPart)
+            {
+                worstPart = pair.Value;
+            }
+        }
+
+        var burden = System.MathF.Max(1f - npc.Health, 1f - worstPart);
+        return MathUtil.Clamp01(System.MathF.Max(burden, 1f - npc.Needs.Blood));
+    }
+
     private static bool HasInteraction(NPCState npc, InteractionType interactionType)
     {
         foreach (var obj in npc.Perception.Objects)
@@ -679,6 +698,15 @@ public sealed partial class DecisionSystem
             // (it barely warms anyway), only real layers come off.
             if (world.Content.ObjectDefinitions.TryGetValue(itemId, out var def) &&
                 def.Layer == WearLayer.Underwear)
+            {
+                continue;
+            }
+
+            // §52.8: shedding something that does not warm you cools you by
+            // NOTHING — a heat-undress must never pick gear or jewelry (the tool
+            // holster, a necklace). Mirrors the §52.7 "dressing must pay off"
+            // rule on the way out.
+            if (warmth <= 0f)
             {
                 continue;
             }

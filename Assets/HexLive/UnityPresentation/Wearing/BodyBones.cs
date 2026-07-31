@@ -25,6 +25,12 @@ public sealed class BodyBones : MonoBehaviour
 
     public Transform WearTransform => wearTransform;
 
+    // Spec §52.8: the skeleton root. Wear.Construct stitches a garment's bones
+    // ONTO these body bones (ParentConnection re-parents them out of
+    // wearTransform), so a holster's tool.* anchors — children of its leg bones
+    // — end up under here, not under wearTransform. SyncHolster searches this.
+    public Transform SkeletonRoot => hip;
+
     public void Construct(ActorName actorMesh)
     {
         _actorMesh = actorMesh;
@@ -51,7 +57,7 @@ public sealed class BodyBones : MonoBehaviour
         if (hair != null)
         {
             var spawned = Instantiate(hair, wearTransform);
-            spawned.Construct(_actorMesh, this);
+            spawned.Construct(_actorMesh, this, "hair");
             // Hair must never catch SKIN-layer decals (dirt/sweat grain in the
             // strands): imported prefabs ship odd rendering-layer masks (257),
             // so pin every hair renderer to the cloth bit explicitly.
@@ -70,6 +76,28 @@ public sealed class BodyBones : MonoBehaviour
     public bool IsEquipped(string key)
     {
         return _wears.ContainsKey(key);
+    }
+
+    // Spec 40.10-D guard: which garments currently own this prefab's (layer, slot)
+    // claims — i.e. whoever would evict it on Equip. Empty when its slots are free.
+    public string DescribeSlotOwners(Wear wearPrefab)
+    {
+        if (wearPrefab == null || !_byLayer.TryGetValue(wearPrefab.Layer, out var layerDict))
+        {
+            return string.Empty;
+        }
+
+        string owners = null;
+        foreach (var slot in wearPrefab.Slots)
+        {
+            if (layerDict.TryGetValue(slot, out var occupant) && occupant != null &&
+                _wearKeys.TryGetValue(occupant, out var key))
+            {
+                owners = owners == null ? $"{key}@{slot}" : $"{owners}, {key}@{slot}";
+            }
+        }
+
+        return owners ?? string.Empty;
     }
 
     // Spec 40.10: erode every visual garment mapped from a sim item (a sim item
@@ -147,7 +175,7 @@ public sealed class BodyBones : MonoBehaviour
         var layerDict = _byLayer[wearPrefab.Layer];
         var underwear = _byLayer[VisualWearLayer.Underwear];
         var newWear = Instantiate(wearPrefab, wearTransform);
-        newWear.Construct(_actorMesh, this);
+        newWear.Construct(_actorMesh, this, key);
 
         foreach (var slot in newWear.Slots)
         {

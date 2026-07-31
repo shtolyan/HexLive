@@ -683,6 +683,15 @@ public sealed partial class DecisionSystem
                 continue;
             }
 
+            // §52.8: shedding something that does not warm you cools you by
+            // NOTHING — a heat-undress must never pick gear or jewelry (the tool
+            // holster, a necklace). Mirrors the §52.7 "dressing must pay off"
+            // rule on the way out.
+            if (warmth <= 0f)
+            {
+                continue;
+            }
+
             if (warmth > bestWarmth)
             {
                 best = itemId;

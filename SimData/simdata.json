@@ -363,7 +363,7 @@
     {"id": "clothing.sweater_flair", "displayName": "Flair Sweater", "layer": "Wear", "warmth": 0.3, "armor": 0, "thermalDelta": -0.15, "dressDurationTicks": 8, "capacity": 4, "covers": ["Torso", "ArmL", "ArmR"]},
     {"id": "clothing.top_tiedye", "displayName": "Tie-Dye Top", "layer": "Wear", "warmth": 0.12, "armor": 0, "thermalDelta": 0, "dressDurationTicks": 8, "capacity": 2, "covers": ["Torso"]},
     {"id": "clothing.top_tropic", "displayName": "Tropic Top", "layer": "Wear", "warmth": 0.12, "armor": 0, "thermalDelta": 0, "dressDurationTicks": 8, "capacity": 2, "covers": ["Torso"]},
-    {"id": "legHolster_2204", "displayName": "Kabura na nogu", "layer": "Outerwear", "warmth": 0, "armor": 0, "thermalDelta": 0, "dressDurationTicks": 8, "capacity": 0, "covers": ["LegL", "LegR"]},
+    {"id": "legHolster_2204", "displayName": "Kabura na nogu", "layer": "Outerwear", "warmth": 0, "armor": 0.05, "thermalDelta": 0, "dressDurationTicks": 8, "capacity": 0, "covers": ["LegL", "LegR"]},
     {"id": "pants_21038", "displayName": "Shtany", "layer": "Wear", "warmth": 0.25, "armor": 0.05, "thermalDelta": -0.1, "dressDurationTicks": 8, "capacity": 4, "covers": ["Pelvis", "LegL", "LegR"]},
     {"id": "underwear.bra_basic", "displayName": "Cotton Bra", "layer": "Underwear", "warmth": 0.01, "armor": 0, "thermalDelta": 0, "dressDurationTicks": 8, "capacity": 1, "covers": ["Torso"]},
     {"id": "underwear.bra_cherry", "displayName": "Cherry Bra", "layer": "Underwear", "warmth": 0.01, "armor": 0, "thermalDelta": 0, "dressDurationTicks": 8, "capacity": 1, "covers": ["Torso"]},

@@ -443,6 +443,11 @@ public sealed class NpcSnapshot
 
     public List<string> WornItems { get; } = new();
 
+    // Spec §52.8: tool ids currently parked in a worn holster's typed weapon
+    // slots. Presentation pins each to the matching tool.* anchor of the worn
+    // holster prefab — the leg-slung look — skipping any id shown in the hand.
+    public List<string> HolsteredItems { get; } = new();
+
     // Spec 40.11: "definitionId\tdurability" per worn garment — for the
     // character panel's wear progress bars.
     public List<string> WornDurability { get; } = new();

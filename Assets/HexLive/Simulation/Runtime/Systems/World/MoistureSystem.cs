@@ -54,7 +54,10 @@ public sealed class MoistureSystem : ISimulationSystem
             _wornOutScratch.Clear();
             foreach (var item in npc.WornItems)
             {
-                item.Durability -= SimBalance.ClothingPassiveWearPerDay / 150f;
+                // §52.8: gear (the tool holster) is leather and buckles — it
+                // ages ~50x slower than cloth and is meant to be a keeper.
+                item.Durability -= SimBalance.ClothingPassiveWearPerDay / 150f *
+                    HolsterCatalog.WearMultiplier(item.DefinitionId);
                 if (item.Durability <= 0f)
                 {
                     _wornOutScratch.Add(item);

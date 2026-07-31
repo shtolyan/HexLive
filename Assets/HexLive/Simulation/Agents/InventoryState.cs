@@ -66,6 +66,57 @@ public sealed class InventoryState
     // Kept as a seam in case a future design reintroduces a bound slot.
     public static bool IsPersonalEffect(string definitionId) => false;
 
+    // Spec §52.8: the TYPED weapon slots granted by worn holsters — a tool id
+    // per slot (HolsterCatalog). Depends only on WornItems, so it is rewritten
+    // by EquipmentMath.RecalculateCapacity on every worn change and never goes
+    // stale as items come and go. Which tool actually sits in a slot is derived
+    // live from Items (IsHolstered) — no second item store, no bookkeeping to
+    // desync. Each slot frees ONE matching carried tool from the pocket budget.
+    public readonly HashSet<string> HolsterSlotIds = new();
+
+    /// <summary>
+    /// Is this exact carried instance the one parked in a holster slot? True for
+    /// the FIRST carried item of a slotted id — a second identical tool has no
+    /// slot left and rides in a normal pocket.
+    /// </summary>
+    public bool IsHolstered(ItemInstance item)
+    {
+        if (item is null || HolsterSlotIds.Count == 0 ||
+            !HolsterSlotIds.Contains(item.DefinitionId))
+        {
+            return false;
+        }
+
+        foreach (var candidate in Items)
+        {
+            if (candidate.DefinitionId == item.DefinitionId)
+            {
+                return ReferenceEquals(candidate, item);
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Is a tool for this slot id currently carried (slot filled)?</summary>
+    public bool IsSlotFilled(string definitionId)
+    {
+        if (!HolsterSlotIds.Contains(definitionId))
+        {
+            return false;
+        }
+
+        foreach (var candidate in Items)
+        {
+            if (candidate.DefinitionId == definitionId)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     // §54.10: bulk resources STACK — a bundle of identical leaves/sticks/logs/etc.
     // rides in ONE pocket slot (up to the stack size). Items stays a flat list of
     // instances so recipes, weapon checks and per-item removals keep working; slot
@@ -92,10 +143,20 @@ public sealed class InventoryState
         {
             var loose = 0;
             Dictionary<string, int>? stacks = null;
+            HashSet<string>? slotTaken = null;
             foreach (var item in Items)
             {
                 if (IsPersonalEffect(item.DefinitionId))
                 {
+                    continue;
+                }
+
+                // Spec §52.8: a tool riding in a worn holster's typed slot costs
+                // no pocket. One per slot — a second identical tool still counts.
+                if (HolsterSlotIds.Count > 0 && HolsterSlotIds.Contains(item.DefinitionId) &&
+                    (slotTaken == null || !slotTaken.Contains(item.DefinitionId)))
+                {
+                    (slotTaken ??= new HashSet<string>()).Add(item.DefinitionId);
                     continue;
                 }
 

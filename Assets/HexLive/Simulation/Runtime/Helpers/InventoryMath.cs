@@ -135,6 +135,15 @@ internal static class InventoryMath
                 continue;
             }
 
+            // Spec §52.8: a holstered tool is strapped to the leg and costs no
+            // pocket — shedding it frees nothing, so it is never the victim. It
+            // leaves the pack only when the holster itself comes off (the slots
+            // vanish first, then it spills by the normal rules).
+            if (npc.Inventory.IsHolstered(item))
+            {
+                continue;
+            }
+
             var imp = Importance(world, item);
             if (imp < worstImp)
             {

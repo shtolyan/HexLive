@@ -41,13 +41,13 @@ public sealed partial class ExecutionSystem
                 continue;
             }
 
-            foreach (var part in newDefinition.Covers)
+            // §52.9: occupancy is a SLOT question, not a protection-zone one.
+            // Covers is far too coarse to displace by (thigh holster, stockings
+            // and boots all read "LegL+LegR"); WearSlotCatalog mirrors the
+            // prefab's fine slots and falls back to Covers for unauthored art.
+            if (WearSlotCatalog.SameSpot(newDefinition, wornDefinition))
             {
-                if (wornDefinition.Covers.Contains(part))
-                {
-                    _conflictScratch.Add(wornId);
-                    break;
-                }
+                _conflictScratch.Add(wornId);
             }
         }
 

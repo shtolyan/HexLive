@@ -26,8 +26,14 @@ public sealed class Wear : MonoBehaviour
 
     private SkinnedMeshRenderer _meshRenderer;
 
-    public void Construct(ActorName actorMesh, BodyBones bodyBones)
+    public void Construct(ActorName actorMesh, BodyBones bodyBones, string equipKey = null)
     {
+        // Spec 40.10-D: the wear painter seeds its stains from this — the piece's
+        // slot on THIS body, which survives the garment being taken off and put
+        // back on. Seeding from the fresh instance re-rolled the whole dirt
+        // pattern on every re-equip, which read as the cloth flickering.
+        _paintSeed = GarmentWearPainter.StableSeed(
+            equipKey ?? name, bodyBones != null ? bodyBones.GetInstanceID() : 0);
         _meshRenderer = GetComponentInChildren<SkinnedMeshRenderer>();
         var hip = FindHip();
         if (hip == null || _meshRenderer == null)
@@ -140,6 +146,7 @@ public sealed class Wear : MonoBehaviour
     // Flip off to fall back to the fully procedural shader path.
     private const bool PaintWearIntoTexture = true;
     private GarmentWearPainter _wearPainter;
+    private int _paintSeed;
     private static readonly int TearAmountId = Shader.PropertyToID("_TearAmount");
     private static readonly int TearMaskTexId = Shader.PropertyToID("_TearMaskTex");
     private static readonly int TearTexOnId = Shader.PropertyToID("_TearTexOn");
@@ -297,7 +304,7 @@ public sealed class Wear : MonoBehaviour
             if (_wearPainter == null)
             {
                 _wearPainter = gameObject.AddComponent<GarmentWearPainter>();
-                _wearPainter.Construct(_meshRenderer);
+                _wearPainter.Construct(_meshRenderer, _paintSeed);
             }
 
             // Dirt and blood are SEPARATE stain layers with their own UV

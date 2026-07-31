@@ -8920,8 +8920,8 @@ pass — order chosen to add robustness before difficulty.
   to full-strength relief the moment damage swapped the shader, "нормали
   летают") and samples `_MetallicGlossMap` (metallic R × `_Metallic`,
   smoothness A × `_Smoothness`, white default = old constants — losing
-  the gloss map flattened worn leather/satin to uniform plastic). Known limit: natural-hole
-  seeds use instance ids, so their spots reshuffle across a save reload.
+  the gloss map flattened worn leather/satin to uniform plastic). (Stain and
+  hole seeds used instance ids until §40.10-F made them identity-based.)
   **Update (2026-07):** dirt and blood are independent stain layers with
   their own remembered UV spots — the old `dust = dirt − blood` input
   suppression (blood eating the grime) is retired; a bloodied garment
@@ -8941,6 +8941,37 @@ pass — order chosen to add robustness before difficulty.
   localize the 40.8-C **blood soak** over fresh wounds (blood on cloth is
   the wound's only garment feedback), and `NpcActorView` keeps rebuilding
   them per sync for that.
+- **FIXED — §40.10-F: cloth stopped re-rolling its dirt every tick.** The
+  dirt on a t-shirt visibly redrew itself each tick and froze on pause.
+  Cause was a **data** rift amplified by a repair: the visual wardrobe keys
+  conflicts on **(visual layer, `VisualWearSlot`)** while the sim keys them
+  on **(`WearLayer`, `Covers` body parts)**. When a prefab's layer/slots
+  disagree with its garment's sim entry, the two systems disagree about
+  whether a pair may be worn together — the sim keeps both in `WornItems`,
+  `BodyBones.Equip` evicts one, and the §"надето, а тело голое" repair in
+  `SyncWorn` re-equips it, evicting the rival right back. Both `Wear`
+  objects were **destroyed and re-instantiated every sim tick**, and since
+  `GarmentWearPainter` seeded stain UVs from `GetInstanceID()`, every fresh
+  instance drew a **completely new dirt pattern**. Pause froze it because
+  `HexWorldRenderer` only syncs on a new `snapshot.Tick`. Two rifts existed:
+  `armor.heavy` (sim Outerwear, prefab Wear) collided with **every** top,
+  and `Shirt G3F_31977` claimed `WristL/R` that the sim never gives it,
+  colliding with gloves/sleeves. Fixes: prefab layer/slots corrected;
+  **placement is now seeded from the garment's IDENTITY** (its equip key on
+  that body — `GarmentWearPainter.StableSeed`), so a re-equip repaints the
+  SAME spots and the pattern also survives a reload; and `SyncWorn` logs a
+  one-shot warning naming both culprits when a re-equipped piece is evicted
+  instantly. **Invariant:** the sim and the prefab must agree on where a
+  garment sits — a visual clash the sim permits is an every-tick equip loop,
+  not a cosmetic mismatch.
+  **Correction (§52.9): this invariant was originally written with the arrow
+  backwards** ("prefab `layer`/`slots` must mirror sim `WearLayer`/`Covers`"),
+  and it cost real data — `Shirt G3F_31977` lost its wrist slots to satisfy a
+  `Covers` list that only ever said `Torso`. The PREFAB is the authority on
+  *where a garment sits*; `Covers` is protection zones and is far too coarse
+  to say it. The sim now mirrors the prefab in `WearSlotCatalog`, so the
+  repair for a clash is: sync the sim table (and, if wrong, the garment's sim
+  `WearLayer`) **to the prefab** — never coarsen the prefab's slots.
 
 ### 40.11 Character UI panel
 - Select an NPC → a **button** opens a panel showing: **equipment slots**
@@ -10363,10 +10394,43 @@ nothing lost.
 
 ### §52.8 The tool holster — dedicated, typed weapon slots
 
-The leg holster (`legHolster_2204`, "Kabura na nogu") is a special garment: it
-adds **no warmth, no armor, no thermal** — its whole job is extra, *typed*
-storage for the working tools. It is the "dedicated weapon slot" §52.5 deferred
-and the retired `IsPersonalEffect` seam foreshadowed.
+The leg holster (`legHolster_2204`, "Kabura na nogu") is worn **GEAR, not
+clothing**: no warmth, no thermal pull, 0 pockets, and a token 0.05 leg armor
+(the buckled strap itself, and a reason to want it on). Its whole job is extra,
+*typed* storage for the working tools. It is the "dedicated weapon slot" §52.5
+deferred and the retired `IsPersonalEffect` seam foreshadowed.
+
+**Gear is not cloth — the rules that keep it ON.** A zero-warmth accessory kept
+losing to the wardrobe machinery, so three rules (all keyed off
+`HolsterCatalog.IsHolster`) make gear behave like gear:
+
+- **It never wins or loses a layer conflict.** The holster is Outerwear on
+  LegL/LegR — *exactly* the boots' footprint — so donning boots used to knock it
+  off (and vice versa). `ResolveWearConflicts` and its non-destructive twin
+  `HasWearConflict` now skip holsters in both directions: a strap rides over or
+  under whatever she wears.
+- **Heat never strips it.** `FindRemovableItem` picked the *warmest* garment, but
+  seeded at `-1` it happily chose a warmth-0 piece once nothing warmer was left.
+  A heat-undress now skips any garment with `warmth <= 0` — shedding it cools you
+  by **nothing**. (Mirrors §52.7 "dressing must pay off", on the way out; it also
+  stops the girls taking off jewelry to cool down.)
+- **It barely wears out.** `HolsterCatalog.WearMultiplier` scales both durability
+  sinks — the passive per-day wear (`MoistureSystem`) and bite damage on a
+  covered leg (`WearCoveringItems`). At 0.02 the strap outlives cloth ~50× (≈200
+  days → ≈10 000): a keeper, not a consumable.
+
+**It is never left lying on the sand.** The holster is too useful to abandon, so
+both undress mechanics — which stay exactly as they are for real clothes — are
+closed against it:
+
+- **Bathing** strips clothes one by one and re-dons them from `RedressGarments`
+  after the swim, but an interrupted bathe leaves the pile behind. Gear simply
+  **never comes off for a swim**: the strip loop skips holsters and she wades in
+  wearing it.
+- **Laundry** (§40.6) washes a piece in hand and re-dresses it, *unless*
+  `HasWearConflict` says the slot is taken — with boots on, that used to lay the
+  clean holster on the ground. Since gear no longer conflicts, a washed holster
+  **always** goes back on.
 
 - **Typed slots, not pockets.** A holster carries a fixed list of tool ids —
   one slot each (`HolsterCatalog`: leg holster = `tool.axe_stone`, `tool.knife`,
@@ -10378,20 +10442,23 @@ and the retired `IsPersonalEffect` seam foreshadowed.
   same "bound to the body" treatment the bottle once had. Wearing the holster
   therefore *creates* up to three extra tool-carry slots without touching the
   hand/pocket count. The tool still lives in the single authoritative inventory
-  list (no second store); it is merely marked in
-  `InventoryState.HolsteredDefinitionIds`, recomputed by
-  `EquipmentMath.RecalculateHolster` on every worn/inventory change: for each
-  worn holster, each listed id, the first matching carried item is holstered.
+  list — **no second item store to desync**. What is cached is only
+  `InventoryState.HolsterSlotIds`, the *slots* her worn holsters grant; that
+  depends solely on `WornItems`, so `EquipmentMath.RecalculateCapacity` rewrites
+  it on every worn change and it can never go stale. Which tool actually sits in
+  a slot is derived live off the pack (`IsHolstered` = the first carried item of
+  a slotted id), so a knife picked up a moment ago is holstered **instantly**,
+  with no tick of lag.
 - **"Always stores the weapon" is automatic.** There is no transfer action — if
   she wears the holster and carries the axe, the axe is holstered (free +
   shown). One slot per type: a second identical tool counts normally; an
   unlisted tool (a pickaxe) is never holstered and takes a real pocket.
 - **Never shed for room.** A holstered tool is skipped by
   `InventoryMath.LowestImportanceDroppable` (dropping it frees no pocket). It
-  leaves the pack only when the **holster comes off**: `RecalculateHolster`
-  clears the marks first, so the now-counted tools spill into the removed
-  holster's `Contents` by the normal undress path (§52.2) — the tools ride down
-  with the holster and can be rifled back out (`RecoverStashedTools`).
+  leaves the pack only when the **holster comes off**: the slots vanish first, so
+  the now-counted tools spill into the removed holster's `Contents` by the normal
+  undress path (§52.2) — they ride down with it and can be rifled back out
+  (`RecoverStashedTools`).
 - **The leg-slung look.** The holster prefab carries empty child anchors named
   exactly by tool id (`tool.axe_stone` / `tool.knife` / `tool.hammer`) under the
   thigh bones; each holstered tool is the same list the sim exposes on the
@@ -10401,11 +10468,84 @@ and the retired `IsPersonalEffect` seam foreshadowed.
   drawn in the acting hand is skipped, so it shows *in the holster only when not
   in use* — take it out to work, and it returns to the thigh when done.
 
-**Verify** (headless, tuned catalog, ALL PASS): holster worn adds 0 capacity;
-axe+knife+hammer holstered ⇒ only the two non-tool items count; a second knife
-counts (one slot per type); a pickaxe is not holstered and takes a pocket;
-dropping the axe empties just its slot; taking the holster off clears all marks
-and every tool counts again. Visual verify (Unity, play-mode) pending.
+**Acquisition.** No special spawn: the §63 surf gift picks a random garment from
+`GarmentLibrary.Active`, which includes the holster, and the girls Dress into it
+like anything else washed ashore.
+
+**Verify** (headless, tuned catalog, 17/17 ALL PASS): holster adds 0 capacity;
+axe+knife+hammer ride free ⇒ only the 2 non-tool items count; a tool picked up
+*after* dressing is holstered with no Recalculate in between; a second knife
+takes a real pocket; donning boots keeps the holster on **and** donning the
+holster keeps her boots on, while ordinary boots-over-boots still displace
+(regression guard); heat-undress returns null with only the holster worn and
+picks the coat when there is one; a washed holster re-dons even while booted,
+while cloth is still blocked from stacking; wear multiplier 0.02 (≈200 → ≈10 000
+days); armor 0.05, warmth 0. Probe: `/private/tmp/holsterprobe`. Visual verify
+(Unity, play-mode) pending.
+
+### §52.9 Occupancy is a SLOT, not a protection zone
+
+Chasing "why do they keep taking the holster off" turned up a load-bearing
+conflation, and the holster was only its most visible victim.
+
+**The two models.** The prefab's `Wear.slots` is a **fine** list of 21 body
+spots (`Neck, Chest, ShoulderR/L, ForearmR/L, WristR/L, HandR/L, Pelvis,
+ThighR/L, ShinR/L, FootR/L`, …) and is what the presentation actually uses to
+decide what displaces what (`BodyBones.Equip`: one garment per (layer, slot)).
+The sim's `Covers` is a **coarse** list of 7 `BodyPart` zones and means *what
+this garment protects* — armor absorption, warmth, sun, wound stains.
+
+**The bug.** Garment displacement was computed in the sim from `Layer + Covers`
+overlap. A thigh holster, stockings and boots all report `LegL+LegR`, so the sim
+could not tell them apart. A sweep of the whole wardrobe found **61 pairs the
+sim stripped for no reason**:
+
+| Pair class | What the player saw |
+|---|---|
+| tights/stockings ⟷ **any** panties (20 pairs) | put on panties, the tights vanish (`ShinL/R` vs `Pelvis`) |
+| necklace/scarf ⟷ **any** bra or top (14) | put on a bra, the necklace vanishes (`Neck` vs `Chest`) |
+| gloves/sleeves ⟷ coat/sweater (10) | put on a coat, the gloves vanish (`HandL/R` vs `Chest/Forearm`) |
+| boots ⟷ tool holster (2) | §52.8 — the case that exposed all of this |
+
+It also silently **abandoned laundry**: `HasWearConflict` gates whether a washed
+piece goes back on, so a false conflict laid clean clothes on the sand — a
+mechanical cause of "вещи лежат брошенными".
+
+**The fix.** `WearSlotCatalog` (engine-free, mirrors each prefab's slots by id)
+exposes ONE occupancy predicate, `SameSpot(a, b)`, used by all three
+displacement sites — `ResolveWearConflicts` (removes the loser),
+`HasWearConflict` (gates re-dressing after a wash) and
+`WarmthGainFromWearing` (§52.7, prices the piece that *would* come off; it had
+drifted out of sync with the other two). `Covers` keeps every one of its
+legitimate jobs (armor per bitten part, uncovered-skin/UV, bite damage to
+garments, wound staining) and no longer decides occupancy. A garment with no
+authored slots falls back to the old `Covers` test, so unauthored art keeps its
+previous behaviour instead of stacking freely. `WearSlotCatalog.Enabled = false`
+reverts everything to the coarse rule in one flip.
+
+This also **retires the §52.8 holster special case**: with slots, `ThighR` and
+`FootR/L` simply do not collide, so the holster needs no exemption from either
+conflict site. (Its *other* gear rules — heat never strips a warmth-0 piece, the
+0.02 wear multiplier, and "gear never comes off for a swim" — are unrelated to
+occupancy and stay.)
+
+**Known data gap.** `Top_11927` authors `Neck + ShoulderL` but **no `Chest`**,
+so under the slot rule it no longer displaces bras/tops and two tops can be worn
+at once (visual clipping). `Boots 20496` authors no slots at all and rides the
+`Covers` fallback. Both are prefab-side fixes; update the catalog row after
+editing a prefab.
+
+**Verify.** Full-wardrobe sweep: 762 same-layer pairs, `SameSpot` == slot
+overlap on every pair with authored data, 0 discrepancies. Targeted: boots
+⟷ holster, tights ⟷ panties, necklace ⟷ bra, gloves ⟷ coat now coexist,
+while boots ⟷ boots, panties ⟷ panties, coat ⟷ sweater and pants ⟷ pants
+still displace. A/B soak (6 seeds × 10 game days, the ONLY difference being
+`WearSlotCatalog.Enabled`): **24/24 alive both ways**, mean worn warmth equal or
+higher on every seed, and clothing stays on — worn pieces 3 → 7 (seed 42) and
+6 → 8 (seed 777). Note total strip events went 32 → 35, *up* not down: with the
+false conflicts gone the girls dress far more successfully, so there is simply
+more wardrobe activity to replace later. The false strips themselves are gone by
+construction (the sweep above).
 
 ## §53 Compassion & mutual aid (iteration 49)
 

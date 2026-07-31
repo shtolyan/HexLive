@@ -195,7 +195,11 @@ namespace HexLive.Simulation.Content
                 new("armor.heavy",           "Heavy Armor",      WearLayer.Outerwear, 0.25f, 0.50f, -0.10f, dress, 6, BodyPart.Torso, BodyPart.Pelvis),
                 new("Boots",                 "Sapogi",           WearLayer.Outerwear, 0.15f, 0.10f,  0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR),
                 new("Boots_155064",          "Botinki",          WearLayer.Outerwear, 0.14f, 0.10f,  0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR),
-                new("legHolster_2204",       "Kabura na nogu",   WearLayer.Outerwear, 0.00f, 0.00f,  0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR),
+                // §52.8 tool holster: GEAR, not clothing — no warmth, no thermal
+                // pull, 0 pockets. Its 3 TYPED weapon slots (HolsterCatalog) are
+                // the whole point; the token 0.05 armor is the buckled leather
+                // strap itself, and gives her a reason to want it on.
+                new("legHolster_2204",       "Kabura na nogu",   WearLayer.Outerwear, 0.00f, 0.05f,  0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR),
             };
         }
     }

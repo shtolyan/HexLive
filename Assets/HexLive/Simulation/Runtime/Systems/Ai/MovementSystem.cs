@@ -430,13 +430,31 @@ public sealed class MovementSystem : ISimulationSystem
 
             var alignmentFactor = 1f - (facingError / alignmentThreshold) * 0.5f;
             // Spec 19.3C: mauled legs mean hobbling.
-            var movementPerTick = npc.MoveSpeed * npc.Body.MobilityFactor() *
+            // §71: BaseMoveSpeedFactor is the global walking-pace knob — the
+            // per-NPC npc.MoveSpeed has always been a hardcoded 1 that nothing
+            // ever assigns, so this is the one place the colony's pace is set.
+            var movementPerTick = npc.MoveSpeed * SimBalance.BaseMoveSpeedFactor *
+                npc.Body.MobilityFactor() *
                 EquipmentMath.WetMovementFactor(world, npc) *
                 alignmentFactor * world.TickDeltaTime;
+
+            // §71: the two "she is in a hurry" boosts take the LARGER, they do
+            // not compound — a defender who was also just bitten would otherwise
+            // hit 2.25 x 2.5 and teleport across the camp.
+            var urgency = 1f;
             if (DamageReactionSystemHelpers.IsAdrenalineActive(world, npc))
             {
-                movementPerTick *= SimBalance.AdrenalineMoveSpeedFactor;
+                urgency = SimBalance.AdrenalineMoveSpeedFactor;
             }
+
+            // §71 (§57 help cry / 29C.4B friend guard / §62 first strike): she
+            // is running to put herself between a housemate and the animal.
+            if (npc.Mind.CurrentGoal == GoalType.Defend)
+            {
+                urgency = System.MathF.Max(urgency, Spec57.DefendMoveSpeedFactor);
+            }
+
+            movementPerTick *= urgency;
 
             // §40.18-B: deep-water strokes are slower than a walk on land.
             // Keyed off the SWIMMER's tile, so the slowdown starts once she is

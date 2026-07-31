@@ -567,7 +567,7 @@ public sealed partial class ExecutionSystem
             npc.Execution.StartTick = world.Tick;
             npc.Execution.EndTick = world.Tick + SimBalance.BatheDurationTicks;
             Trace.Emit(world, npc.Id, "BatheStarted",
-                $"Duration={SimBalance.BatheDurationTicks} ticks (one game hour)");
+                $"Duration={SimBalance.BatheDurationTicks} ticks (25 real seconds)");
             return;
         }
 

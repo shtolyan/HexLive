@@ -56,7 +56,7 @@ public static class Spec50
     public static float CrawlSpeedFactor = 1f / 3f;
 
     // How long a severed limb lies in the world before it decays away (slow
-    // ticks × 16/tick, mirroring corpse decay — 4800 ≈ 2 in-game days).
+    // ticks × 16/tick, mirroring corpse decay — 4800 ticks = 20 real min).
     public static float SeveredLimbDecayTicks = 4800f;
 
     // Prepared-hazard chance to take a leg per slow tick while standing on a

@@ -6,7 +6,7 @@ public sealed class EnvironmentState
 
     public int GlobalCrowdLevel { get; set; }
 
-    // Spec 19.7A: tick-derived clock. 0 = 06:00, wraps every game day.
+    // Spec 19.7A: tick-derived clock. 0 = 06:00, wraps every DayLengthTicks.
     public float TimeOfDayNormalized { get; set; }
 
     public DayPhase Phase { get; set; } = DayPhase.Morning;

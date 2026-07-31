@@ -18,8 +18,8 @@ namespace HexLive.Simulation.Runtime
 // drain HP without ever creating a wound (no phantom decals while starving).
 internal static class WoundMath
 {
-    // Full close in ~2 game days (2 x 150 slow ticks) at neutral pace;
-    // sleeping doubles it, marching halves it.
+    // Full close in 300 slow ticks (= 4800 ticks = 20 real minutes) at
+    // neutral pace; sleeping doubles it, marching halves it.
     public static float HealPerSlowTick => SimBalance.HealPerSlowTick;
 
     // Raised 12 → 36 alongside multi-gash hits (one bite files three

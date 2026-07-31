@@ -450,7 +450,7 @@ the day rhythm.
 
 | Parameter | Value |
 |---|---|
-| Day length | 2400 ticks (10 min real time at 0.25 s/tick) |
+| Day length | 24000 ticks (100 min real time at 0.25 s/tick) — see 19.7B |
 | Phases (quarters) | Morning 06–12, Day 12–18, Evening 18–24, Night 00–06 |
 | Simulation start (tick 0) | 06:00, Morning |
 | Temperature | 12 ± 6 °C sinusoid; warmest 15:00 (18°), coldest 03:00 (6°) |
@@ -471,6 +471,63 @@ An `EnvironmentSystem` (Slow layer, ordered before needs/temperature) derives
 the clock from the tick and updates `GlobalTemperature`; a `PhaseChanged`
 trace marks transitions. Expected emergent rhythm: gather food and socialize
 in daylight, dress for the cold evening, sleep through the night.
+
+### 19.7B The clock is NOT the gameplay cadence
+
+The day started at 2400 ticks, which made the calendar race: the colony
+finished every bed on "day 30" — five real hours. The clock was stretched 10x
+(`WorldBalance.DayLengthTicks = 24000`) so an hour reads like an hour and that
+same run now reads as day 3. **Only the clock was stretched.** Nothing about
+how long anything takes in real time changed.
+
+That works because almost the whole simulation counts in plain ticks or in
+"per slow tick" rates, so its real-time pace is fixed no matter how long a day
+is called. Two things did NOT survive the stretch on their own, and they are
+split out:
+
+| Constant | Value | Drives |
+|---|---|---|
+| `WorldBalance.DayLengthTicks` | 24000 | THE VISUAL CLOCK — sun and shadows, sky, the four phases, the temperature sinusoid, UV, `FormatClock`, `CalendarDay` ("Day N"). Nothing else. |
+| `WorldBalance.EventCycleTicks` | 2400 | THE GAMEPLAY CADENCE — the seeded "once per day" rolls: rain (`WeatherSystem`), the storm surge, the §63 surf gift, the §46 dog raid (`MobSystem`); and the daylight gate on fruit production (`FruitProductionSystem`). |
+
+The per-cycle rolls index off `EventCycleTicks`, not the day: keying them to
+the stretched clock would have made rain, raids and beached clothing 10x rarer
+in REAL time, which is exactly what this change was not supposed to do. Their
+within-cycle offsets (`StormSurgeOffsetTicks` 1600, `SurfGiftOffsetTicks` 800,
+`RaidDuskOffsetTicks` 1800, the rain start jitter 2100 and duration 300–900)
+are positions inside the 2400-tick cycle and are unchanged. The accepted cost:
+a raid lands at the dusk of its *cycle*, so raids arrive at ten evenly spaced
+moments across the long day instead of at the visual dusk.
+
+Two divisors look like day lengths and deliberately are not — both are
+per-slow-tick rates whose counterparts are also per slow tick, so the ratio
+(and the real-time pace) holds either way. Do not "fix" them to follow the
+clock: `MoistureSystem`'s `ClothingPassiveWearPerDay / 150f` and
+`SocialBalance.SleepComfortNightSlowTicks = 75f`.
+
+**Fruit production is on the cycle too, and this one is load-bearing.**
+`FruitProductionSystem` only produces in the first half of the cycle ("morning
+apples"); measured on the visual day instead, the dead window grows from 1200
+to 12000 ticks. Coconuts are the island's ONLY water source, so the grove
+could not replenish for 50 real minutes while the colony kept drinking: a
+72000-tick soak on seed 12345 went from 4 survivors / 4 beds / 0 deaths to
+1 survivor / 1 bed / 3 deaths, every death `StarvedToDeath: thirst reached the
+death threshold`, with thirst pinned at 1.00 through each long night. Moving
+the gate to the cycle restored the run to exactly the HEAD numbers. Any future
+gameplay gate keyed on `DayPhase` deserves the same scrutiny.
+
+**What the player actually feels differently.** Night is now an unbroken ~25
+real minutes of darkness (evening+night ≈ 50 min of the 100-minute day). The
+*proportion* of time asleep is unchanged, but one sleep is 10x longer, so
+thirst drains roughly three full bars across a single night and a colonist
+must wake mid-night to drink — `HasSleepInterrupt` already raises the wake
+ceiling to the starving/dehydrated line for a dead-tired body, which is the
+path that carries this. Cold likewise becomes one long exposure instead of a
+short snap: the damage per real hour is the same, but a cold night can no
+longer be waited out. Old saves need no migration, but are re-labelled — a
+save at tick 72000 read "Day 31" before and reads "Day 4" now, and the history
+log restamps past events the same way, because both derive the day from the
+stored tick.
 
 **This allows the simulation to support:**
 
@@ -3671,7 +3728,7 @@ the float strength model are deferred; v1 uses a TTL instead.
 | Perception radius (objects) | hex distance <= 2 tiles |
 | Memory record | per-object: definition id, tile, junction, LastSeenTick, IsPermanent |
 | Storage | dictionary keyed by ObjectId (O(1) upsert on every sighting) |
-| TTL for discovered (runtime) objects | 2400 ticks (10 min) since last seen |
+| TTL for discovered (runtime) objects | 2400 ticks (10 real min) since last seen |
 | Seeded home knowledge | all bootstrap objects, `IsPermanent`, never expires |
 
 **Rules:**
@@ -4056,7 +4113,7 @@ is unused on corpses otherwise). The body decays away after **4800 ticks**
 |---|---|
 | Social need | -max(0.15, 0.3 + 0.3 × affinity toward the deceased) — friends hurt hard, even enemies' deaths disturb |
 | Comfort | -0.2 |
-| Mourning period | 2400 ticks (1 day): Socialize score takes -0.2 (withdrawal) |
+| Mourning period | 2400 ticks (10 real min): Socialize score takes -0.2 (withdrawal) |
 | Fear | the death site enters danger memory (29C.4A) — explore/food avoid it |
 
 **Mourning (closure):** while grieving, the `Mourn` goal (score 0.7 —
@@ -5021,8 +5078,8 @@ attacking (seed 521091321 day 43, dog 13). Two causes, two fixes:
   `WorldBalance.asset` (§46 dog section).
 
 **Danger memory (27 integration):** every aggro/first bite records
-`{tile, tick}` in `MemoryState.Dangers` (deduped by tile, TTL 2400 ticks =
-1 day, cap 8). Effects:
+`{tile, tick}` in `MemoryState.Dangers` (deduped by tile, TTL
+`AiBalance.MemoryTtlTicks` = 2400 ticks = 10 real min, cap 8). Effects:
 
 - **Explore avoidance:** wander destinations within 3 tiles of a fresh
   danger are filtered out — "меня там покусали, обойду".
@@ -5170,7 +5227,7 @@ Prey wildlife (`RabbitState`, mirrors 29C.3 dogs but flees):
 
 | Parameter | Value |
 |---|---|
-| Population | max 4; respawn check every 2400 ticks (rabbits breed fast — retuned from 3/3600 after a 1-kill-per-10-days first soak); spawn >= 3 tiles from NPCs, never indoors |
+| Population | max 4; respawn check every 2400 ticks / 10 real min (rabbits breed fast — retuned from 3/3600 after a 1-kill-per-10-cycles first soak); spawn >= 3 tiles from NPCs, never indoors |
 | Idle | grazes; 30 % chance per medium tick of a random hop |
 | Flight | NPC within 2 tiles → hops to the neighbor junction farthest from the nearest NPC |
 | Spooked | after a missed kill attempt: immune + panicked for 150 ticks |
@@ -7995,10 +8052,11 @@ the current spatial system, not bolted on.
 - **Weather system** (WeatherSystem, slow layer): seeded rain fronts,
   scheduled **per day** — a per-slow-tick Bernoulli roll turned out badly
   mixed on the 16-tick stride (seed 777 rolled zero fronts in ten days).
-  For day `d = tick / 2400`: it is a rain day iff
-  `Hash01(seed, d, 17, 3301) < 0.45`; the front starts at
-  `d×2400 + Hash01(seed, d, 18, 3301) × 2100` and lasts
-  `300 + 600 × Hash01(seed, d, 19, 3302)` ticks. The whole schedule is a
+  For event cycle `c = tick / EventCycleTicks` (2400 — NOT the visual day, see
+  19.7B): it is a rain cycle iff
+  `Hash01(seed, c, 17, 3301) < 0.45`; the front starts at
+  `c×2400 + Hash01(seed, c, 18, 3301) × 2100` and lasts
+  `300 + 600 × Hash01(seed, c, 19, 3302)` ticks. The whole schedule is a
   pure function of (seed, tick) — no weather state machine; the system
   just derives `IsRaining` each slow tick and traces the
   `RainStarted`/`RainStopped` transitions.
@@ -8085,14 +8143,17 @@ the current spatial system, not bolted on.
 
 - **Passive wear** (MoistureSystem — the per-item condition pass): every
   *worn* garment loses `ClothingPassiveWearPerDay / 150` durability per
-  slow tick (= 0.005 per worn game-day; ~200 quiet days per garment —
-  slowed 5× on 2026-07-30, was 0.025). Carried, hung, and ground items
-  do not wear; tools do not wear in v1.
+  slow tick (= 0.001 per 150 slow ticks = per 10 real minutes; ~1000 quiet
+  cycles per garment — slowed 5× on 2026-07-30 from 0.025 to 0.005, and 5×
+  again on 2026-08-01 to 0.001). The `/ 150` is a per-slow-tick divisor, NOT
+  the day length — it does not follow the stretched clock (19.7B). Carried,
+  hung, and ground items do not wear; tools do not wear in v1.
 - **Damage wear**: every dog bite costs each garment covering the bitten
-  part **ClothingBiteDurabilityWear = 0.013** durability (slowed 5× on
-  2026-07-30, was 0.065) — armor absorbs health damage but the cloth
-  gets chewed either way. Dog fights, not time, are what actually kill
-  clothes on the soak horizon.
+  part **ClothingBiteDurabilityWear = 0.0026** durability (slowed 5× on
+  2026-07-30 from 0.065 to 0.013, and 5× again on 2026-08-01 to 0.0026) —
+  armor absorbs health damage but the cloth gets chewed either way. Dog
+  fights, not time, are what actually kill clothes on the soak horizon,
+  which is why this knob moves in lockstep with the passive one.
 - **Destruction**: at durability <= 0 the worn item is removed outright —
   `ItemDestroyed` trace, Comfort -0.1, equipment recalculated. Nothing
   drops: it is rags. Crafting keeps the colony clothed — the economy loops.
@@ -8167,8 +8228,8 @@ pass — order chosen to add robustness before difficulty.
   pool under her, not a stack of identical droplets.
   Each stain lands drip-small (0.09 m), spreads ease-out to a 0.26–0.46 m
   puddle over ~120 ticks, then dries: linear alpha fade to zero across
-  **~3 game days (7200 ticks; `DayLengthTicks` = 2400)** — blood you walk
-  past is still there tomorrow — driven by sim tick (pause/speed safe), then
+  **7200 ticks (30 real minutes)** — blood you walk
+  past is still there much later — driven by sim tick (pause/speed safe), then
   the quad is destroyed. As it dries it ALSO darkens: `_BaseColor` steps
   toward deep dried bordo over `AgeBuckets` (6) shared darker material copies
   per variant, swapped by age — a fading semi-transparent RED film over
@@ -8233,7 +8294,7 @@ pass — order chosen to add robustness before difficulty.
   = more transparent), hitting alpha 0 exactly at full spread — then the quad
   is destroyed (no separate spread/fade phases). Hue washes scarlet → pale
   pink as it dilutes (it dilutes, it does not dry to bordo). Lifetime
-  `LifetimeTicks` = **1200 (half a game day; `DayLengthTicks` = 2400) — ~4×
+  `LifetimeTicks` = **1200 (5 real minutes) — ~6×
   faster than a land stain**. Tick-driven (pause/speed safe), cosmetic only,
   never persisted (presentation-only, like the ground stains — sim doesn't
   know about it). Disc texture + transparent URP/Unlit material are
@@ -9385,7 +9446,7 @@ anyway.
 ### 41.3 Offline progression
 On load, elapsed real time becomes game time: `offlineTicks =
 (now − save.unixSeconds) × 4` (1 tick = 0.25 s at 1×), capped at
-**3 game days** (7200 ticks, `DayLengthTicks = 2400`) so a week away
+**7200 ticks** (30 real minutes of catch-up, = 3 event cycles) so a week away
 doesn't starve the colony or stall the load. The wind starts from the
 RESTORED state (v2: load first, then simulate the absence) and finishes
 BEFORE any view spawns — the player returns to "time really passed":
@@ -9433,8 +9494,10 @@ GetUp clip has room to play without foot-sliding (exported as
 
 ## §42 Survival Realism Rebalance (iteration 38)
 The colony's numbers dated from the subsistence-race era; with the player
-watching one girl closely they read arcade-fast. New targets (day = 2400
-ticks = 24 game hours, 100 ticks = 1 game hour):
+watching one girl closely they read arcade-fast. New targets, tuned when a day
+was 2400 ticks (100 ticks = 1 game hour then). The tick numbers below are the
+real spec; the clock has since been stretched 10x (19.7B) so the same ticks now
+span a tenth of a visual day at exactly the same real-time pace:
 - **Sleep**: a full recharge is a real night — bed 0.18 / leaf mat 0.15 /
   bare ground 0.12 energy per 100-tick sleep block (was 0.5/0.45/0.5), so
   0→1 takes ~6 game hours on a bed. Energy drain slowed to match a
@@ -11102,7 +11165,7 @@ delivery timelines exposed four independent leaks; all four are fixed:
 - **The peacetime window barely opened.** `buildPeacetime` demanded
   hunger/thirst < 0.55 and ZERO danger memories. But the girls *equilibrate*
   around 0.5–0.6 thirst (drinking only unlocks at 0.35 and must win the
-  auction), and one wolf sighting is remembered a full day (2400 ticks) —
+  auction), and one wolf sighting is remembered 2400 ticks / 10 real min —
   together the window held only ~1–36% of npc-ticks. Build work now pauses at
   `SimBalance.BuildNeedGate` (0.65 — the same bar `lifeThreatened` uses) and
   only for FRESH danger, seen within `SimBalance.BuildDangerFreshTicks` (600):
@@ -12278,7 +12341,8 @@ Headless-соак замерил, ПОЧЕМУ падают. Коллапсов 
 коллапсов — это тело, которому сон ЗАПРЕЩЁН**, и запрещён не голодом (0 голодных
 коллапсов), а **памятью об опасности**: одно появление волка блокирует сон на ЦЕЛЫЕ
 СУТКИ (прун памяти = 2400т), даже когда волк давно ушёл (средняя «мёртвая» метка на
-момент коллапса — 875т, живого волка в радиусе 6 тайлов нет). Колония не тупит — она
+момент коллапса — 875т, живого волка в радиусе 6 тайлов нет). (Тогда 2400т были
+ровно сутками; после растяжения часов 19.7B это те же 10 реальных минут.) Колония не тупит — она
 держит вахту в собачьем краю и догорает до обморока, потому что лечь «нельзя».
 
 **65.4 Почему это НЕ чинится снятием блока (важный отрицательный результат).**
@@ -12768,3 +12832,142 @@ MagicaCloth строит упрощённый proxy-меш, склеивая в�
 что и в игре, так что достаточно надеть её на любую девушку и посмотреть цикл
 сесть → спать → встать. Признак, что ткань живёт: пояс остаётся гладким и
 жёстким, подол ходит складками и запаздывает за телом.
+
+## §70 Музыка — редкий гость, приходящий из тишины (iteration 70)
+
+**Цель.** Не саундтрек, который играет всегда, а музыка **по-майнкрафтовски**:
+долгая тишина → трек тихо всплывает фейдом → играет целиком → уходит обратно в
+тишину → снова долгая пауза. Остров при этом звучит сам (прибой, птицы,
+сверчки, дождь — §67.3); музыка ложится ПОВЕРХ эмбиента и намеренно тише его.
+В главном меню правило другое: там экран статичный, и тишина читается как
+«звук сломался», поэтому трек стартует почти сразу и паузы короткие.
+
+### §70.1 Кто это делает
+
+`MusicDirector` (`UnityPresentation/Audio/MusicDirector.cs`) — компонент на том
+же корне «HexLive Prototype», что и `SoundManager`; вешается в
+`PrototypeRuntimeBootstrap.Boot`. Проводов у него нет: режим он читает у
+загрузочной шторки — `LoadingScreen.IsActive` истинно, пока экран владеет
+кадром (меню + загрузка), и гаснет, когда шторка уничтожает себя, открыв мир.
+Переход «меню → игра» уводит текущий трек фейдом и начинает игровой отсчёт с
+чистой тишины.
+
+Часы у директора **несмасштабированные** (`Time.unscaledTime`): меню Escape
+ставит `Time.timeScale = 0`, а музыка обязана продолжать жить.
+
+Режим определяется в ПЕРВОМ `Update`, а не в `Awake`: шторку создаёт тот же
+`Boot()`, и на момент нашего `Awake` её `IsActive` может ещё не подняться —
+музыка стартовала бы в игровом режиме (первый трек через полторы минуты вместо
+«сразу»).
+
+### §70.2 Треки — это файлы, а не код
+
+`Assets/StreamingAssets/HexLive/Music/<id>.(ogg|mp3|wav)`. Новый трек = новый
+файл, кода трогать не надо. Ид — имя файла без расширения.
+
+Плейлисты по имени: файлы `menu_*` — плейлист **меню**, все остальные —
+**игровой**. Пустой плейлист падает на общий список, поэтому сейчас оба режима
+обслуживает один общий набор: `hex_music` (5:35), `hex_music2` (3:34),
+`hex_music3` (4:04). Треки **чередуются** — следующий выбирается случайно из
+плейлиста МИНУС предыдущий, так что один и тот же трек подряд не звучит
+(при единственном треке повтор неизбежен и это нормально).
+
+### §70.3 Ручки (единственное место)
+
+Константы в начале `MusicDirector`:
+
+| | меню | игра |
+|---|---|---|
+| громкость | 0.55 | 0.40 (под музыкой живой эмбиент) |
+| первая пауза | 0.6 с | 75–160 с |
+| пауза между треками | 6–12 с | **300–660 с** (5–11 мин) |
+| фейд-ин | 3.5 с | 8 с («всплывает из тишины») |
+
+Хвост гасится всегда (`TailFade` 3.5 с, ноль приходится ровно на конец файла):
+если трек и сам затухает — фейд не слышен, а если обрывается резко, он спасает
+окончание. Обрыв не по своей воле (меню → мир) — `InterruptFade` 4.5 с, и
+дальше идёт ОБЫЧНАЯ игровая пауза (5–11 мин), а не «первая»: игрок только что
+дослушал музыку меню. «Первая пауза» 75–160 с — это случай, когда в меню
+музыки не было вовсе.
+
+### §70.4 Почему Core API стримом, а не событие Studio
+
+Музыка идёт через FMOD (иначе нельзя, §67), но **мимо событий Studio** — как и
+голоса (§67.6), только по другой причине:
+
+- трек длинный (5+ минут): его нельзя грузить сэмплом, только `createStream`,
+  а как событие он ещё и уехал бы в `Master.bank` восемью мегабайтами;
+- музыка нужна **в главном меню**, то есть ДО того, как появится мир, а вместе
+  с ним `FmodSfx.Prewarm` — поэтому у музыкальной ветки свой ленивый init;
+- «новый трек = новый файл» ломается, если каждый трек требует пересборки
+  Studio-проекта и банка.
+
+Чтобы музыка при этом всё же слушалась микшера Studio, канал играет не в
+мастер-группу Core, а в **свою группу `HexLiveMusic`, подвешенную под
+мастер-ШИНУ Studio** (`bus:/` → `lockChannelGroup` → `flushCommands` →
+`getChannelGroup` → `addGroup`). Иначе она вела бы себя как голоса: кнопка
+Mute Audio в Game view глушит мастер-шину, и «музыка играет при выключенном
+звуке» выглядела бы как баг (§67.12, ловушка 1). Если шина недоступна (банк не
+загружен), группа остаётся под мастером Core — звук есть, просто мимо шины.
+
+API в `FmodSfx`: `MusicTracks`, `PlayMusic(id, volume)`, `SetMusicVolume`,
+`IsMusicPlaying`, `MusicPositionMs`, `MusicLengthMs`, `StopMusic`. Стрим держит
+открытый файл — `StopMusic` обязателен и после того, как трек доиграл сам.
+
+### §70.5 Как проверить
+
+Play-режим на `Main`: в консоли `[Music] 3 track(s): hex_music, hex_music2,
+hex_music3`, через ~4 с музыка на полной громкости меню. Проверено пробой в
+двух play-сессиях: `playing=True`, `pos` растёт, `len` совпадает с длиной
+выбранного файла (335520 / 244056 мс), в разных сессиях играют РАЗНЫЕ треки,
+группа `HexLiveMusic` висит под `bus:/` одним каналом, `channelVolume=0.550` —
+фейд доехал ровно до громкости меню.
+
+## §71 Темп — колония наконец ходит быстро (iteration 71)
+
+Девушки ползали. Три ручки скорости, все в одном месте — `MovementSystem`
+(строка ~433, единственная точка, где считается расстояние за тик):
+
+| Ручка | Значение | Что делает |
+|---|---|---|
+| `SimBalance.BaseMoveSpeedFactor` | **1.5** | общий темп ходьбы всей колонии |
+| `SimBalance.AdrenalineMoveSpeedFactor` | 1.5 → **2.25** | рывок под адреналином (усилен в 1.5 раза) |
+| `Spec57.DefendMoveSpeedFactor` | **2.5** | СПРИНТ НА ПОМОЩЬ, пока цель `Defend` |
+
+`Defend` — это все три входа в «бежать защищать»: крик о помощи §57
+(`CombatHelpSystem`), охрана друга 29C.4B и первый удар §62
+(`ThreatAlertSystem`). Заголовок §57 всегда обещал, что отвечающие «бегут на
+атакующего», — до этой итерации ничего в коде их не ускоряло.
+
+**Адреналин и спринт защиты НЕ перемножаются** — берётся БОЛЬШИЙ из двух
+(`MathF.Max`). Защитница, которую только что укусили, иначе получила бы
+2.25 × 2.5 = 3.75 и пересекала бы лагерь за пару тиков.
+
+Почему ручка глобальная, а не `npc.MoveSpeed`: поле `NpcState.MoveSpeed`
+всегда было захардкоженной единицей, которую никто никогда не присваивает
+(только сериализация), так что настоящей ручки темпа в проекте не
+существовало. Оговорка: прыжок через уступ (`HexHopTuning.HopSeconds`) идёт по
+реальным секундам и НЕ ускоряется — переходы через ступени сохраняют длительность.
+
+**Анимация — Blend Tree по три слота.** Состояние `Walk` больше не один клип,
+а 1D blend tree `GaitBlend` по НОВОМУ параметру `Gait`: 0 — шаг, 0.5 — трусца
+(`X Bot@Slow Run`), 1 — бег (`X Bot@Running`). Параметр `Speed` не тронут и
+по-прежнему решает только Idle↔Walk: **Speed решает ДВИЖЕТСЯ ли она, Gait —
+КАК**. Собирается из `BuildNpcActionStates.BuildGaitBlend`, меню
+**HexLive ▸ Build NPC Action States** (идемпотентно).
+
+⭐ **Три слота — это механизм, а не украшение.** `AnimatorOverrideController`
+подменяет КЛИПЫ, а не состояния, поэтому особая локомоция (ползание §50)
+подменяет **все три слота одним и тем же клипом**: какой бы `Gait` ни посчитал
+вид, безногая продолжает ползти и физически не может перетечь в бег. Одна
+скорость, ничего не протекает. Ключи подмены — имена клипов, они лежат в
+`NpcActorView.GaitClipKeys` (`Walk`, `X Bot@Slow Run`, `X Bot@Running`).
+Вооружённая ходьба по-прежнему подменяет только слот 0, поэтому с инструментом
+в руке она бежит обычным беговым клипом.
+
+Темп проигрывания считается ОТ ВЫБРАННОЙ походки: вид меряет реальную скорость
+тела в единицах шагового клипа (`simCadence`), выбирает по ней `Gait`, а потом
+делит на то, сколько земли покрывает сама эта походка (`SlowRunCadence = 2.0`,
+`RunCadence = 3.4` — доли от шага). В итоге каждый клип играет примерно на
+своей авторской скорости, а ноги совпадают с землёй на любой скорости. Если на
+спринте поедут ступни — крутить надо именно эти два числа.

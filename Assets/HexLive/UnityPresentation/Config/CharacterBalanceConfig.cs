@@ -285,13 +285,15 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 300)] public int adrenalineTicks = 80;
         [Tooltip("Минимальная энергия при активном адреналине (0.05 = 5%).")]
         [Range(0f, 0.25f)] public float adrenalineEnergyFloor = 0.05f;
-        [Tooltip("Множитель скорости движения при активном адреналине.")]
-        [Range(1f, 3f)] public float adrenalineMoveSpeedFactor = 1.5f;
+        [Tooltip("Множитель скорости движения при активном адреналине. §71: усилен в 1.5 раза (было 1.5). НЕ складывается со спринтом защиты — MovementSystem берёт БОЛЬШИЙ из двух.")]
+        [Range(1f, 4f)] public float adrenalineMoveSpeedFactor = 2.25f;
+        [Tooltip("§71: ОБЩАЯ скорость ходьбы колонии. Умножается в MovementSystem — это единственная ручка темпа (поле npc.MoveSpeed всегда 1 и никем не задаётся). Прыжок через уступ идёт по реальным секундам и НЕ ускоряется.")]
+        [Range(0.25f, 4f)] public float baseMoveSpeedFactor = 1.5f;
 
         [Header("Состояние одежды")]
-        [Tooltip("Износ каждой закрывающей вещи за один укус собаки (прочность = HP-полоска в инвентаре).")]
-        [Range(0f, 0.3f)] public float clothingBiteDurabilityWear = 0.013f;
-        [Tooltip("Естественный износ надетой вещи за игровой день.")]
-        [Range(0f, 0.2f)] public float clothingPassiveWearPerDay = 0.005f;
+        [Tooltip("Износ каждой закрывающей вещи за один укус собаки (прочность = HP-полоска в инвентаре). Снижен в 5 раз (было 0.013) — одежда рвалась слишком быстро.")]
+        [Range(0f, 0.3f)] public float clothingBiteDurabilityWear = 0.0026f;
+        [Tooltip("Естественный износ надетой вещи за 150 медленных тиков (10 реальных минут). Снижен в 5 раз (было 0.005).")]
+        [Range(0f, 0.2f)] public float clothingPassiveWearPerDay = 0.001f;
     }
 }

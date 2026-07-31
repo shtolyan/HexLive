@@ -28,8 +28,11 @@ public static class SocialBalance
     // this cap — a real conversation is needed to go higher.
     public static float AmbientSocialCap = 0.6f;
 
-    // §49 sleep comfort: Evening+Night ≈ this many slow ticks; the per-night
-    // comfort targets are dripped at target/this per sleeping slow tick.
+    // §49 sleep comfort: the per-"night" comfort targets are dripped at
+    // target/this per sleeping slow tick. 75 is a PER-SLOW-TICK divisor, not a
+    // night length — it deliberately does not follow the (10x stretched)
+    // visual clock. The drain it balances against (ComfortRate) is also per
+    // slow tick, so the ratio — and the real-time pace — holds either way.
     public static float SleepComfortNightSlowTicks = 75f;
 }
 

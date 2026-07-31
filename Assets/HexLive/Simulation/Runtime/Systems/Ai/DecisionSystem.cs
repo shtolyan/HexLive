@@ -123,7 +123,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
             var previousGoal = npc.Mind.CurrentGoal;
             npc.Mind.LastScores.Clear();
             npc.Mind.Cooldowns.RemoveAll(c => c.EndTick <= world.Tick);
-            npc.Memory.Dangers.RemoveAll(d => world.Tick - d.Tick > 2400);
+            // The danger mark ages out on the same TTL as the rest of the
+            // memory (was a bare 2400 literal that silently duplicated it —
+            // and that MeatRawSpoilTicks is tuned to outlive, see SimBalance).
+            npc.Memory.Dangers.RemoveAll(d => world.Tick - d.Tick > AiBalance.MemoryTtlTicks);
 
             // (UpdateStarvingStatus/UpdateDehydratedStatus now run at the top of
             // the loop — see the besieged-starve fix — so the IsFighting escape

@@ -19,7 +19,10 @@ namespace HexLive.Simulation.Runtime
     public static class SimBalance
     {
         // ─────────────────────────────────────────────────────────────
-        // Need drift — gained/drained per SLOW tick (~150 slow ticks/day).
+        // Need drift — gained/drained per SLOW tick (16 ticks = 4 real seconds).
+        // Tuned in units of 150 slow ticks = 2400 ticks = 10 REAL minutes. That
+        // used to be one game day; the clock is now stretched 10x, so a visual
+        // day holds ten of these — the real-time pace is unchanged.
         // Hunger/Thirst also scale by metabolism; Thirst by the sweat factor.
         // ─────────────────────────────────────────────────────────────
         // Spec §52: the inventory/build overhaul makes life busier, so survival
@@ -31,7 +34,7 @@ namespace HexLive.Simulation.Runtime
         // and fallback all agree.
         public static float HungerRate = 0.00185f;      // hunger gained per slow tick (§53.7: was 0.0037 tuned / 0.0055 default)
         public static float ThirstRate = 0.004f;        // thirst gained per slow tick (§53.7: was 0.008 tuned / 0.010 default)
-        public static float EnergyRate = 0.005f;        // energy drained per slow tick awake (~1 bar/1.4 days; was 0.007 — softened to cut exhaustion comas)
+        public static float EnergyRate = 0.005f;        // energy drained per slow tick awake (~1 bar per 200 slow ticks / 13 real min; was 0.007 — softened to cut exhaustion comas)
         public static float ComfortRate = 0.01f;        // comfort drained per slow tick awake
         public static float SocialRate = 0.008f;        // social drained per slow tick
         public static float SweatThirstFactor = 0.25f;  // extra thirst per unit of overheating
@@ -65,7 +68,7 @@ namespace HexLive.Simulation.Runtime
         // Natural healing / regen.
         // ─────────────────────────────────────────────────────────────
         public static float HealHungerGate = 0.6f;      // fed-heal (and blood refill) only while hunger below this
-        public static float HealthRegenPerTick = 0.0030f; // HP regained per part per slow tick (~0.45/day)
+        public static float HealthRegenPerTick = 0.0030f; // HP regained per part per slow tick (~0.45 per 150 slow ticks / 10 real min)
 
         // ─────────────────────────────────────────────────────────────
         // Blood / first aid.
@@ -78,7 +81,7 @@ namespace HexLive.Simulation.Runtime
         // Sickness (raw water). A bout pays into a bounded torso-damage budget.
         // ─────────────────────────────────────────────────────────────
         public static float RawWaterSickChance = 0.15f;     // chance a raw-water drink makes you sick
-        public static int SicknessDurationTicks = 600;      // 🤢 icon / malaise window (~6 game hours)
+        public static int SicknessDurationTicks = 600;      // 🤢 icon / malaise window (600 ticks / 2.5 real min)
         public static float SicknessDamagePerBout = 0.08f;  // torso damage added to the budget per bout
         public static float SicknessDamageBudgetCap = 0.16f; // budget can't exceed this (no ground-into-dust)
         public static float SickTorsoPerSlowTick = 0.002f;  // pace the budget pay-down
@@ -206,11 +209,11 @@ namespace HexLive.Simulation.Runtime
         // Hygiene (soft, UI-tracked).
         // ─────────────────────────────────────────────────────────────
         public static float HygieneWashGain = 0.05f;   // hygiene regained per tick at the waterside
-        public static float HygieneDriftLoss = 0.0004f; // hygiene lost per tick living (~10 days clean→filthy)
+        public static float HygieneDriftLoss = 0.0004f; // hygiene lost per slow tick living (~2500 slow ticks / 2.8 real hours clean→filthy)
         public static float ClothingDirtGain = 0.00035f;
         public static float DirtyClothingComfortLoss = 0.002f;
         public static float BatheNeedThreshold = 0.4f;
-        public static int BatheDurationTicks = 100; // one in-game hour
+        public static int BatheDurationTicks = 100; // 100 ticks / 25 real seconds
         // §40.6 r2 (laundry-in-hand): 80 ticks — the piece is doffed off the
         // body / picked up off the shore into the hand and scrubbed there.
         public static int WashClothesDurationTicks = 80;
@@ -252,7 +255,7 @@ namespace HexLive.Simulation.Runtime
         // ─────────────────────────────────────────────────────────────
         // Wounds.
         // ─────────────────────────────────────────────────────────────
-        public static float HealPerSlowTick = 1f / 300f; // wound-close rate (~2 game days, ×2 asleep, ×0.5 moving)
+        public static float HealPerSlowTick = 1f / 300f; // wound-close rate (300 slow ticks / 20 real min, ×2 asleep, ×0.5 moving)
         public static int MaxWounds = 36;                // painted-wound record cap
         public static int GashesPerHit = 3;              // a landed bite files this many gash records
         public static float MinSplittableDamage = 0.09f; // hits below this don't split into gashes
@@ -261,9 +264,19 @@ namespace HexLive.Simulation.Runtime
         // Combat — dogs & sharks.
         // ─────────────────────────────────────────────────────────────
         public static float NpcStrikePerPass = 0.15f;   // an NPC's bare strike-back baseline per landed hit
+
+        // §71: the colony's global walking pace, multiplied into the one place
+        // distance-per-tick is computed (MovementSystem). The per-NPC
+        // npc.MoveSpeed field has always been a hardcoded 1 that nothing ever
+        // assigns, so this knob — not that field — is how the pace is tuned.
+        // NOTE: the hex hop (HexHopTuning.HopSeconds) is on a wall clock and
+        // does NOT scale with this, so ledge crossings keep their duration.
+        public static float BaseMoveSpeedFactor = 1.5f;
+
         public static int AdrenalineTicks = 80;         // fresh damage keeps her too alert to sleep
         public static float AdrenalineEnergyFloor = 0.05f;
-        public static float AdrenalineMoveSpeedFactor = 1.5f;
+        // §71: the adrenaline sprint, raised 1.5x (was 1.5, so 2.25).
+        public static float AdrenalineMoveSpeedFactor = 2.25f;
         // Per-mob combat/behaviour (bite damage, HP, windup/cooldown, aggro,
         // roam, chase, glide, pack-raid) moved OUT of here into MobCatalog —
         // one config per mob type, tuned by its own MobConfig ScriptableObject.
@@ -272,8 +285,14 @@ namespace HexLive.Simulation.Runtime
 
         // Clothing condition. Durability is also the inventory HP bar, so
         // combat wear should stay close to what the player sees.
-        public static float ClothingBiteDurabilityWear = 0.013f; // per covering garment on a dog bite
-        public static float ClothingPassiveWearPerDay = 0.005f;  // natural worn-cloth wear per game day
+        // Per covering garment on a dog bite. Cut 5x (was 0.013) — clothes
+        // were shredding faster than the surf could replace them.
+        public static float ClothingBiteDurabilityWear = 0.0026f;
+        // Natural worn-cloth wear per 150 slow ticks (10 real minutes). The
+        // name says "day" because that used to be a day; MoistureSystem still
+        // divides by 150, which is what keeps the real-time wear rate fixed.
+        // Cut 5x (was 0.005) alongside the bite wear.
+        public static float ClothingPassiveWearPerDay = 0.001f;
 
         // Melee weapon numbers (damage, замах/hit-delay, animation length,
         // cooldown, cadence) moved OUT of here into Content.GearCatalog —
@@ -385,7 +404,7 @@ namespace HexLive.Simulation.Runtime
         // §54.14 (r2)/§45 r5: friction-lighting stays available this long
         // after the girl was last below the freezing threshold (-0.35 TC) —
         // the walk from wherever the cold caught her to the pit must not
-        // revoke the hand-drill (4 game hours; nights are long, dawns slow).
+        // revoke the hand-drill (400 ticks / 100 real seconds).
         public static int FrictionLightGraceTicks = 400;
 
         // §54.2: beds are raised at a progressive build-site (haul each piece, it
@@ -439,7 +458,7 @@ namespace HexLive.Simulation.Runtime
         public static int WaterCollectorBillLeaves = 11; // the funnel
 
         // §54.15: how long steady rain takes to fill the parked bottle to the
-        // brim (a quarter of a game day; DayLengthTicks = 2400). The vessel's
+        // brim (600 ticks / 2.5 real minutes). The vessel's
         // ResourceAmount holds fill progress 0..1; a full bottle converts to
         // BottleCapacity gulps of clean rain water on TakeVessel.
         public static int WaterCollectorFillTicks = 600;

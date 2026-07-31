@@ -46,9 +46,15 @@ namespace HexLive.UnityDebug.Editor
             // §gear-craft v2: the staged in-place craft — kneeling over the
             // laid-out ingredients, working the ground (planting-style clip).
             AddParam(ac, "Crafting", AnimatorControllerParameterType.Bool);
+            // §71: gait blend — 0 walk, 0.5 slow run, 1 run. Separate from
+            // "Speed" (which stays the Idle<->Walk switch) so the two never
+            // fight: Speed decides WHETHER she moves, Gait decides HOW.
+            AddParam(ac, "Gait", AnimatorControllerParameterType.Float);
 
             var sm = ac.layers[0].stateMachine;
             var idle = Find(sm, "Idle");
+            // §71: the Walk state becomes a 3-way gait blend (walk/slow run/run).
+            BuildGaitBlend(ac, sm);
 
             var talk = AddState(sm, "Talk", Clip("X Bot@Talking"));
             var gather = AddState(sm, "Gather", Clip("X Bot@Gathering Objects"));
@@ -224,6 +230,63 @@ namespace HexLive.UnityDebug.Editor
             if (prone != null) tree.AddChild(prone, 0f);
             if (moving != null) tree.AddChild(moving, 1f);
             return crawl;
+        }
+
+        // §71: the Walk state as a 1D blend on "Gait" — walk at 0, slow run at
+        // 0.5, full run at 1. The colony now moves at 1.5x, and a Defend sprint
+        // reaches 3.75x, which the walk cycle alone could only express by
+        // playing absurdly fast.
+        //
+        // THREE children even though only one gait may ever be used: the slots
+        // ARE the mechanism. An AnimatorOverrideController swaps clips, not
+        // states, so a special locomotion (the §50 crawl) overrides all three
+        // slots with the SAME clip — then whatever Gait happens to be, she
+        // keeps crawling and can never blend into a run. One speed, no leak.
+        // NpcActorView.GaitClipKeys holds the three override keys.
+        //
+        // Idempotent: reuses the existing state/tree and rebuilds its children.
+        // The Idle<->Walk transitions (on "Speed") are left untouched.
+        static void BuildGaitBlend(AnimatorController ac, AnimatorStateMachine sm)
+        {
+            var walk = Find(sm, "Walk");
+            if (walk == null)
+            {
+                Debug.LogWarning("[NpcActionStates] No 'Walk' state — gait blend skipped.");
+                return;
+            }
+
+            // The existing motion is the plain walk clip; keep it as child 0 so
+            // the armed-walk override (which keys off that clip's name) survives.
+            var walkClip = walk.motion as AnimationClip;
+            if (walk.motion is BlendTree existing && existing.children.Length > 0)
+            {
+                walkClip = existing.children[0].motion as AnimationClip;
+            }
+
+            if (walk.motion is not BlendTree tree)
+            {
+                tree = new BlendTree
+                {
+                    name = "GaitBlend",
+                    blendType = BlendTreeType.Simple1D,
+                    blendParameter = "Gait",
+                    useAutomaticThresholds = false
+                };
+                AssetDatabase.AddObjectToAsset(tree, ac);
+                walk.motion = tree;
+            }
+
+            tree.blendParameter = "Gait";
+            tree.useAutomaticThresholds = false;
+            tree.children = new ChildMotion[0]; // reset, then re-add cleanly
+
+            var slowRun = Clip("X Bot@Slow Run");
+            var run = Clip("X Bot@Running");
+            if (walkClip != null) tree.AddChild(walkClip, 0f);
+            if (slowRun != null) tree.AddChild(slowRun, 0.5f);
+            if (run != null) tree.AddChild(run, 1f);
+            Debug.Log($"[NpcActionStates] GaitBlend: walk={walkClip?.name} " +
+                $"slowRun={slowRun?.name} run={run?.name}");
         }
 
         static void Loopy(AnimatorStateMachine sm, AnimatorState s, AnimatorState idle, string boolParam)

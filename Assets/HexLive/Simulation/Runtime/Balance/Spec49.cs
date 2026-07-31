@@ -42,7 +42,9 @@ public static class Spec49
 
     // Tier A: unified sleep-comfort formula — comfort gained over a full night
     // of sleep by surface, plus a fireside bonus, minus sun/rain penalties.
-    // A night's sleep must clearly OUT-pace the ~0.75/day waking comfort drain,
+    // "Night" here is the 75-slow-tick drip window of SleepComfortNightSlowTicks
+    // (a per-slow-tick divisor, NOT the stretched visual night). A night's sleep
+    // must clearly OUT-pace the ~0.75-per-150-slow-tick waking comfort drain,
     // or a bed feels pointless and comfort stays pinned at 0 (the coma spiral).
     // So a proper bed is a BIG comfort source: the leaf mat nearly fills the bar
     // in a night (net-positive even off the fire), the premium bedroll fills it

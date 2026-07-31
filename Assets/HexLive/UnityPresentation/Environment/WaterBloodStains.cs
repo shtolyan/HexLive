@@ -22,13 +22,13 @@ namespace HexLive.UnityPresentation.Environment
 // Behaviour: a drop grows from nothing to ~3x a land puddle's width while its
 // alpha fades in lock-step (wider = more transparent), reaching alpha 0 exactly
 // as it hits full spread — then it's removed. The whole billow-and-vanish takes
-// half a game day (~4x faster than land blood, which lingers for days).
+// 1200 ticks / 5 real minutes (~6x faster than land blood).
 public sealed class WaterBloodStains : MonoBehaviour
 {
     private const int MaxStains = 60;           // oldest recycled beyond this
-    // Half a game day (DayLengthTicks = 2400): the drop grows AND fades over
-    // this whole span — radius 0 -> max while alpha max -> 0, then it's gone
-    // from view. ~4x faster than a land stain, which lingers for days.
+    // 1200 ticks = 5 real minutes: the drop grows AND fades over this whole
+    // span — radius 0 -> max while alpha max -> 0, then it's gone from view.
+    // ~6x faster than a land stain, which lingers much longer.
     private const float LifetimeTicks = 1200f;
     private const float DripScale = 0f;         // starts from nothing, grows out
     // ~3x the earlier spread — blood billows wide as it disperses in water.

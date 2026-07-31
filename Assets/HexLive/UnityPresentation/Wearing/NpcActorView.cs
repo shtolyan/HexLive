@@ -401,8 +401,28 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // Feet match the ground: the walk cycle plays at the body's ACTUAL pace,
     // so a hobbling (mauled legs), soaked, or turning character takes slow
     // weighty steps instead of pattering in place at full cadence.
-    // Healthy full speed is 1.0 world units/s ≈ 0.76 body heights/s.
+    // Healthy full speed is 1.0 world units/s ≈ 0.76 body heights/s. This is a
+    // property of the CLIP (how much ground one cycle covers at rate 1.0), so
+    // it must NOT be retuned when the sim's pace changes — the cadence is what
+    // moves.
     private const float FullWalkBodyHeightsPerSec = 0.76f;
+    // §71: how much ground each GAIT covers, as a multiple of the walk clip's
+    // pace. The girl blends walk -> slow run -> run as she speeds up, and each
+    // clip then plays at ~1x its authored rate instead of a walk cycle
+    // spinning absurdly fast. Mixamo's takes run roughly walk 1 : jog 2 : run
+    // 3.4 — if the feet slide at a sprint, these are the two numbers to tune.
+    private const float SlowRunCadence = 2.0f;
+    private const float RunCadence = 3.4f;
+    // Playback still trims a little around the blended gait (a hobbling or
+    // soaked girl takes slower steps), but never far from the authored rate.
+    private const float MinGaitCadence = 0.35f;
+    private const float MaxGaitCadence = 1.25f;
+    // §71: the three GaitBlend slots, keyed by CLIP name — these are the
+    // AnimatorOverrideController keys. Overriding all three with one clip (the
+    // §50 crawl) pins her to a single gait that can never blend into a run.
+    private static readonly string[] GaitClipKeys = { "Walk", "X Bot@Slow Run", "X Bot@Running" };
+    private static readonly int GaitParam = Animator.StringToHash("Gait");
+    private float _gait;
     private bool _wasWalking;
     private float _animSpeed = 1f;
     // Fast-forward: the sim's speed multiplier scales every clip's playback
@@ -1340,7 +1360,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // call sites; Sit/Sleep/LieDown keep their own clips.
     private void ApplyLeglessClipOverrides()
     {
-        OverrideClip("Walk", CrawlClip);                     // walk → crawl
+        // §71: ALL THREE gait slots become the crawl — a legless girl has one
+        // speed, and filling every slot means whatever Gait the view computes
+        // she keeps crawling and can never blend into a run.
+        foreach (var gaitKey in GaitClipKeys)
+        {
+            OverrideClip(gaitKey, CrawlClip);
+        }
         // Everything else standing → the prone idle. (The game leaves these base
         // clips in place — no NpcAnimSet action variants — so overriding the base
         // clip name here is what actually swaps them.)
@@ -3364,17 +3390,46 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // overclocks — then the multiplier scales the playback back up, so a
         // 4× world steps exactly 4× faster instead of gliding.
         var targetAnimSpeed = 1f;
+        var targetGait = 0f;
         // §40.18-B: swim clips play at their authored pace — the walk-cadence
         // ground-matching would crawl the strokes (deep water is slow by sim).
         if (walking && !_swimming && _bodyRoot != null && _jumpTimer <= 0f)
         {
             var fullSpeed = 1.7f * _bodyRoot.lossyScale.y * FullWalkBodyHeightsPerSec;
             var simCadence = linearSpeed / Mathf.Max(0.0001f, fullSpeed * _simSpeed);
-            targetAnimSpeed = Mathf.Clamp(simCadence, 0.35f, 1.15f);
+
+            // §71: pick the GAIT from how much ground she is actually covering,
+            // then play that gait at ~1x. Below a walk she just takes slower
+            // steps (gait stays 0); above it she blends into the runs, and the
+            // playback rate divides out the blended gait's own ground pace, so
+            // the feet keep matching the ground at every speed.
+            float gaitGround;
+            if (simCadence <= 1f)
+            {
+                targetGait = 0f;
+                gaitGround = 1f;
+            }
+            else if (simCadence <= SlowRunCadence)
+            {
+                targetGait = Mathf.InverseLerp(1f, SlowRunCadence, simCadence) * 0.5f;
+                gaitGround = Mathf.Lerp(1f, SlowRunCadence, targetGait * 2f);
+            }
+            else
+            {
+                targetGait = 0.5f + Mathf.InverseLerp(SlowRunCadence, RunCadence, simCadence) * 0.5f;
+                gaitGround = Mathf.Lerp(SlowRunCadence, RunCadence, (targetGait - 0.5f) * 2f);
+            }
+
+            targetAnimSpeed = Mathf.Clamp(simCadence / gaitGround, MinGaitCadence, MaxGaitCadence);
         }
 
         _animSpeed = Mathf.MoveTowards(_animSpeed, targetAnimSpeed, Time.deltaTime * 3f * _simSpeed);
         _animator.speed = _animSpeed * _simSpeed;
+
+        // §71: ease into the gait so a sprint starting mid-stride ramps rather
+        // than snapping from walk to run on one frame.
+        _gait = Mathf.MoveTowards(_gait, targetGait, Time.deltaTime * 2.5f * _simSpeed);
+        _animator.SetFloat(GaitParam, _gait);
 
         // §21.21B: while a hex-step jump is flying, compress the jump clip so
         // its authored length fits the arc window exactly — the same

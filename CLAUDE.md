@@ -57,6 +57,16 @@ path used when an event is missing (unbuilt bank / brand-new id). Voices stay
 on the Core API on purpose: the §67.7 lipsync needs the concrete file and
 playback position, which an event hides.
 
+**Music is the third branch (spec §70).** `MusicDirector` + the music section of
+`FmodSfx`: files in `Assets/StreamingAssets/HexLive/Music/<id>.(ogg|mp3|wav)`,
+played as a Core-API **stream** — a 5-minute track can't be a sample, and it has
+to sound in the MAIN MENU, i.e. before the world (and `Prewarm`) exists. **New
+track = new file, no code and no Studio rebuild** (`menu_*` = menu playlist,
+everything else = in-game). It is still mixed by Studio: the channel plays into
+a `HexLiveMusic` group parented to the Studio master bus, so the master fader
+and the Game-view Mute button apply. Volumes/gaps/fades are the constants at the
+top of `MusicDirector` — the one place music is tuned.
+
 Version numbers read as decimal-in-hex: `FMOD.VERSION.number` `0x00020314` =
 2.03.14. FMOD Studio (the app) and FMOD for Unity (the package in
 `Assets/Plugins/FMOD`) are **separate downloads** — check the package, not the

@@ -34,7 +34,7 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 0.5f)] public float severedLimbMobilityMult = 0.15f;
         [Tooltip("Доля скорости ходьбы при ползании (потеряна одна/обе ноги).")]
         [Range(0.1f, 1f)] public float crawlSpeedFactor = 0.3333f;
-        [Tooltip("Сколько тиков отрубленная конечность лежит в мире до разложения (4800 ≈ 2 игровых дня).")]
+        [Tooltip("Сколько тиков отрубленная конечность лежит в мире до разложения (4800 тиков = 20 реальных минут).")]
         [Range(600f, 9600f)] public float severedLimbDecayTicks = 4800f;
         [Tooltip("Шанс (0..1) за медленный тик потерять ногу на тайле-хазарде (риф/капкан).")]
         [Range(0f, 1f)] public float hazardSeverChance = 1f;
@@ -58,6 +58,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(1, 20)] public int friendGuardRadiusTiles = 6;
         [Tooltip("Минимальная симпатия, чтобы считаться другом для защиты.")]
         [Range(-1f, 1f)] public float friendGuardAffinity = 0.25f;
+        [Tooltip("§71: СПРИНТ НА ПОМОЩЬ — во сколько раз быстрее она бежит, пока цель Defend (крик о помощи, охрана друга, первый удар §62). НЕ складывается с адреналином: берётся БОЛЬШИЙ множитель.")]
+        [Range(1f, 5f)] public float defendMoveSpeedFactor = 2.5f;
 
         [Header("Дальнее обнаружение врага (§62)")]
         [Tooltip("Включить раннее обнаружение (⚠️, атака первой или обход).")]

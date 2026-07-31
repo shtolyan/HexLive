@@ -15,8 +15,10 @@ namespace HexLive.UnityPresentation.Config
     public sealed class WorldBalanceConfig : ScriptableObject
     {
         [Header("Суточный цикл и тени")]
-        [Tooltip("Полный цикл день-ночь в тиках. ЕДИНИЦА мирового времени — от неё считаются рейды, штормы, история.")]
-        [Range(600, 9600)] public int dayLengthTicks = 2400;
+        [Tooltip("Полный цикл день-ночь в тиках — ВИЗУАЛЬНЫЕ ЧАСЫ: солнце, тени, небо, фазы суток, температура, UV, счётчик «День N». 24000 = 100 реальных минут при 0.25 с/тик.")]
+        [Range(600, 48000)] public int dayLengthTicks = 24000;
+        [Tooltip("ИГРОВОЙ ПЕРИОД сеяных бросков «раз в день» (дождь, шторм, подарок прибоя, рейд стаи). Раньше совпадал с сутками; часы растянули, а частота этих событий по реальному времени должна остаться прежней — поэтому они считаются от него, а не от суток.")]
+        [Range(600, 9600)] public int eventCycleTicks = 2400;
         [Tooltip("Сколько тайлов марширует теневой луч (§33).")]
         [Range(1, 20)] public int shadowRaySteps = 7;
         [Tooltip("Высота ступени рельефа в мировых единицах (как у рендера).")]
@@ -25,11 +27,11 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 6f)] public float canopyVirtualSteps = 2f;
 
         [Header("Штормы (§40)")]
-        [Tooltip("Шанс шторма в день.")]
+        [Tooltip("Шанс шторма за один игровой период (eventCycleTicks).")]
         [Range(0f, 1f)] public float stormChancePerDay = 0.08f;
         [Tooltip("Сколько брёвен плота смывает один шторм.")]
         [Range(0, 10)] public int stormRaftLogLoss = 2;
-        [Tooltip("За сколько тиков до сумерек приходит штормовая волна.")]
+        [Tooltip("В какой момент игрового периода приходит штормовая волна (тики от начала периода).")]
         [Range(0, 2400)] public int stormSurgeOffsetTicks = 1600;
 
         [Header("Влажность / костёр / фрукты")]
@@ -41,17 +43,17 @@ namespace HexLive.UnityPresentation.Config
         [Range(300, 9600)] public int fruitRotTicks = 2400;
 
         [Header("Прибой приносит одежду (§63)")]
-        [Tooltip("Шанс в день, что прибой вынесет случайную вещь на берег (0.35 ≈ 2-3 вещи за 7 дней).")]
+        [Tooltip("Шанс за один игровой период (eventCycleTicks), что прибой вынесет случайную вещь на берег (0.35 ≈ 2-3 вещи за 7 периодов).")]
         [Range(0f, 1f)] public float surfGiftChancePerDay = 0.35f;
-        [Tooltip("В какой момент дня прилив оставляет вещь (тики от начала суток, кратно 16).")]
+        [Tooltip("В какой момент игрового периода прилив оставляет вещь (тики от начала периода, кратно 16).")]
         [Range(0, 2400)] public int surfGiftOffsetTicks = 800;
 
         [Header("Собаки — директор стаи (§46)")]
         [Tooltip("Максимум собак на острове одновременно.")]
         [Range(0, 10)] public int maxDogs = 3;
-        [Tooltip("Как часто проверяется респаун стаи (3600 = каждые 1.5 игровых дня).")]
+        [Tooltip("Как часто проверяется респаун стаи, в тиках (2400 тиков = 10 реальных минут). ВНИМАНИЕ: этот дефолт (3600) расходится с WildlifeBalance/ассетом (7200) — предсуществующий дрейф, правится отдельно.")]
         [Range(600, 9600)] public int dogRespawnCheckTicks = 3600;
-        [Tooltip("За сколько тиков до сумерек стартует рейд стаи.")]
+        [Tooltip("В какой момент игрового периода стартует рейд стаи (тики от начала периода; 1800 из 2400 = «на закате» периода).")]
         [Range(0, 2400)] public int raidDuskOffsetTicks = 1800;
         [Tooltip("Минимальная дистанция спауна собаки от NPC, тайлы.")]
         [Range(1, 15)] public int dogSpawnMinDistanceFromNpc = 5;

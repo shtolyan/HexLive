@@ -46,9 +46,18 @@ public sealed class FruitProductionSystem : ISimulationSystem
             Trace.EmitSystem(world, "ProduceRotted", $"Obj={rottedId.Value}");
         }
 
-        // Spec 29A.2/19.7A: production only in daylight. Timers are left
-        // untouched overnight, so overdue producers fire at dawn.
-        if (world.Environment.Phase is DayPhase.Evening or DayPhase.Night)
+        // Spec 29A.2/19.7A: production only in the "daylight" half. Timers are
+        // left untouched overnight, so overdue producers fire at dawn.
+        // §19.7B: the half is measured on the EVENT CYCLE, not the stretched
+        // visual day. Coconuts are the island's only water, and on the visual
+        // clock the dead window grew 1200 -> 12000 ticks: the grove could not
+        // replenish for 50 real minutes while the colony kept drinking, and a
+        // 72000-tick soak went from 0 deaths to 3, every one of them
+        // "thirst reached the death threshold". Keeping the gate on the cycle
+        // preserves both the real-time yield AND the dawn-burst rhythm.
+        var cyclePhase = (world.Tick % EnvironmentSystem.EventCycleTicks) /
+            (float)EnvironmentSystem.EventCycleTicks;
+        if (cyclePhase >= 0.5f)
         {
             return;
         }

@@ -99,6 +99,10 @@ public static class PrototypeRuntimeBootstrap
         var sound = root.AddComponent<Audio.SoundManager>();
         sound.Construct(runner, renderer);
 
+        // Spec §70: музыка. Сама решает, что играть и когда молчать; режим
+        // (меню / игра) читает у загрузочной шторки, поэтому проводов нет.
+        root.AddComponent<Audio.MusicDirector>();
+
         InstallCamera(runner);
         InstallCharacterUi(runner);
 

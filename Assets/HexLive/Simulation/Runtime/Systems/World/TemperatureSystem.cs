@@ -176,7 +176,8 @@ public sealed class TemperatureSystem : ISimulationSystem
                 // Spec 40.7: bare skin under the sun slowly tans (weathered
                 // survivor). effectiveUv already carries the shade penalty
                 // (isShaded -> x0.2), so you tan LESS in shade. Rate tuned for
-                // ~10 game days to full tan at open-sun exposure.
+                // ~100 real minutes of open-sun exposure to a full tan (that
+                // was "10 game days" back when a day was 2400 ticks).
                 npc.Needs.TanLevel = MathUtil.Clamp01(
                     npc.Needs.TanLevel + (effectiveUv - 0.5f) * SimBalance.TanRate * uncovered.Count);
                 // Spec 40.7: acute redness rises faster than the tan settles —

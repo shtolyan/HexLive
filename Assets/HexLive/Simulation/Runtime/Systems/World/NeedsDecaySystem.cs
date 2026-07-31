@@ -20,7 +20,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
     // Balance knobs (SimBalance / HexTuningConfig). The old const names are
     // kept as live shims so every call site below is untouched.
     private static float HungerRate => SimBalance.HungerRate; // pond removal + hex-hop ceremony rebalance: water/food trips got longer
-    private static float EnergyRate => SimBalance.EnergyRate; // spec 42: ~1 bar/day
+    private static float EnergyRate => SimBalance.EnergyRate; // spec 42: ~1 bar per 200 slow ticks (13 real min)
     private static float ComfortRate => SimBalance.ComfortRate;
     private static float SocialRate => SimBalance.SocialRate; // spec 28.15A
     // Spec 42.A: base eased 0.020 -> 0.018 as the compensating loosening for
@@ -556,9 +556,9 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // Spec 40.6: hygiene drifts down with living, up at the waterside
             // (washing while drinking/filling). Soft v1 — tracked for the UI,
             // no dedicated Bathe goal yet (that reshuffles the fragile colony).
-            // Grubbying takes ~10 game days from clean to filthy (0.0004/slow
-            // tick; was 0.004 — a single day, way too fast once dirt got real
-            // smudge decals).
+            // Grubbying takes ~2500 slow ticks (2.8 real hours) from clean to
+            // filthy (0.0004/slow tick; was 0.004 — 10x too fast once dirt got
+            // real smudge decals).
             npc.Needs.Hygiene = MathUtil.Clamp01(npc.Needs.Hygiene - SimBalance.HygieneDriftLoss);
             foreach (var worn in npc.WornItems)
             {
@@ -861,7 +861,8 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 // §45 r5: attrition eased 0.03/0.05 -> 0.02/0.035. The 25-day
                 // baseline showed every colony losing 1-2 girls to ACUTE
                 // starvation episodes (a pinned need grinds a full body in
-                // ~2.2 game hours — faster than the recovery loop can respond).
+                // ~220 ticks / 55 real seconds — faster than the recovery loop
+                // can respond).
                 // Death stays certain for a truly stuck agent; a girl who
                 // reaches food/water mid-episode now lives to eat it.
                 var damage = starved && parched ? SimBalance.StarveDamageBoth : SimBalance.StarveDamageOne; // §46 difficulty: restored to pre-r5 — safe now that sickness/fire/cold are fixed; at 0.025/0.045 the colony still won 10/12
@@ -888,7 +889,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // so a couple of coconuts never insta-heals a mauling.
             else if (npc.Health < 1f && npc.Needs.Hunger < SimBalance.HealHungerGate)
             {
-                // §45 r5: regen 0.0018 -> 0.0030 (~0.45/day) and the gate
+                // §45 r5: regen 0.0018 -> 0.0030 (~0.45 per 150 slow ticks) and the gate
                 // eased 0.5 -> 0.6 — the long-run colony hovers at hunger
                 // ~0.5-0.6, so the old gate barely ever opened and bodies
                 // never recovered between sickness/cold/hunger episodes;

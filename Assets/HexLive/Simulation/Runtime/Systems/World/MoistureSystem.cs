@@ -48,9 +48,12 @@ public sealed class MoistureSystem : ISimulationSystem
             UpdateItems(world, npc, npc.WornItems, touchesWater, dryRate, worn: true);
             UpdateItems(world, npc, npc.Inventory.Items, touchesWater, dryRate, worn: false);
 
-            // Spec 35.6: worn cloth loses durability every game-day (150 slow
-            // ticks). Visual tearing now starts later, so the HP bar and cloth
-            // condition read closer together.
+            // Spec 35.6: worn cloth loses ClothingPassiveWearPerDay every 150
+            // slow ticks (= 2400 ticks = 10 real minutes). The 150 is a
+            // per-slow-tick divisor, NOT the day length — it deliberately does
+            // not follow the (10x stretched) visual clock, so the real-time
+            // wear rate is unchanged. Visual tearing now starts later, so the
+            // HP bar and cloth condition read closer together.
             _wornOutScratch.Clear();
             foreach (var item in npc.WornItems)
             {

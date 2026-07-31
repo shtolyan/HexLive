@@ -171,6 +171,16 @@ namespace HexLive.UnityPresentation.Audio
             _ready = false;
             _failed = false;
             _rng = new System.Random(9257);
+
+            // §70: музыкальный стрим и его группа умирают вместе с системой FMOD.
+            MusicPaths.Clear();
+            _musicIds = System.Array.Empty<string>();
+            _musicScanned = false;
+            _musicOpen = false;
+            _musicGroupReady = false;
+            _musicChannel = default;
+            _musicSound = default;
+            _musicGroup = default;
         }
 
         /// <summary>Load every catalog sound up front (spec §41.4 warm-up rule:
@@ -538,6 +548,194 @@ namespace HexLive.UnityPresentation.Audio
 
             loop.Channel.stop();
             loop = default;
+        }
+
+        // ==== §70: музыка ==================================================
+        // Отдельная ветка от SFX по трём причинам:
+        //  1) трек длинный (5+ минут) — только СТРИМ, сэмплом он развернулся бы
+        //     в десятки мегабайт PCM;
+        //  2) он нужен уже в ГЛАВНОМ МЕНЮ, то есть до того, как появится мир,
+        //     а вместе с ним и Prewarm — поэтому у музыки свой ленивый init;
+        //  3) одновременно звучит ровно один трек, так что и хэндл один.
+        // Файлы: StreamingAssets/HexLive/Music/<id>.(ogg|mp3|wav) — новый трек
+        // добавляется файлом, код трогать не нужно (§70.2).
+        private static readonly Dictionary<string, string> MusicPaths = new();
+        private static string[] _musicIds = System.Array.Empty<string>();
+        private static bool _musicScanned;
+        private static FMOD.Sound _musicSound;
+        private static FMOD.Channel _musicChannel;
+        private static bool _musicOpen;
+        private static FMOD.ChannelGroup _musicGroup;
+        private static bool _musicGroupReady;
+
+        /// <summary>Ид-ы найденных треков (имя файла без расширения), по алфавиту.</summary>
+        public static string[] MusicTracks
+        {
+            get
+            {
+                ScanMusic();
+                return _musicIds;
+            }
+        }
+
+        private static void ScanMusic()
+        {
+            if (_musicScanned)
+            {
+                return;
+            }
+
+            _musicScanned = true;
+            var dir = Path.Combine(Application.streamingAssetsPath, "HexLive/Music");
+            if (!Directory.Exists(dir))
+            {
+                return;
+            }
+
+            var found = new List<string>();
+            foreach (var file in Directory.GetFiles(dir))
+            {
+                var ext = Path.GetExtension(file);
+                var ok = ext.Equals(".ogg", System.StringComparison.OrdinalIgnoreCase) ||
+                         ext.Equals(".mp3", System.StringComparison.OrdinalIgnoreCase) ||
+                         ext.Equals(".wav", System.StringComparison.OrdinalIgnoreCase);
+                if (!ok)
+                {
+                    continue;
+                }
+
+                var id = Path.GetFileNameWithoutExtension(file);
+                if (MusicPaths.TryAdd(id, file))
+                {
+                    found.Add(id);
+                }
+            }
+
+            found.Sort(System.StringComparer.Ordinal);
+            _musicIds = found.ToArray();
+        }
+
+        // Своя core-группа, подвешенная под мастер-ШИНУ Studio (а не под
+        // мастер-группу Core): тогда музыка слушается фейдера Studio и кнопки
+        // Mute Audio в Game view — иначе она вела бы себя как голоса (§67.6),
+        // которые при «мьюте» продолжают играть и выглядят как баг.
+        private static bool EnsureMusicGroup(FMOD.System core)
+        {
+            if (_musicGroupReady)
+            {
+                return true;
+            }
+
+            if (core.createChannelGroup("HexLiveMusic", out _musicGroup) != FMOD.RESULT.OK)
+            {
+                return false;
+            }
+
+            var studio = FMODUnity.RuntimeManager.StudioSystem;
+            if (studio.getBus("bus:/", out var bus) == FMOD.RESULT.OK &&
+                bus.lockChannelGroup() == FMOD.RESULT.OK)
+            {
+                studio.flushCommands(); // группа шины создаётся не сразу
+                if (bus.getChannelGroup(out var busGroup) == FMOD.RESULT.OK)
+                {
+                    busGroup.addGroup(_musicGroup);
+                }
+            }
+
+            _musicGroupReady = true;
+            return true;
+        }
+
+        /// <summary>Запустить трек с нуля (предыдущий глушится). volume 0 —
+        /// нормально: директор музыки въезжает фейдом с тишины.</summary>
+        public static bool PlayMusic(string id, float volume)
+        {
+            ScanMusic();
+            StopMusic();
+            if (!MusicPaths.TryGetValue(id, out var path))
+            {
+                return false;
+            }
+
+            try
+            {
+                var core = FMODUnity.RuntimeManager.CoreSystem;
+                if (!EnsureMusicGroup(core))
+                {
+                    return false;
+                }
+
+                var mode = FMOD.MODE.CREATESTREAM | FMOD.MODE.LOOP_OFF | FMOD.MODE._2D;
+                if (core.createStream(path, mode, out var sound) != FMOD.RESULT.OK)
+                {
+                    Debug.LogWarning($"[FmodSfx] music '{id}' failed to open: {path}");
+                    return false;
+                }
+
+                if (core.playSound(sound, _musicGroup, true, out var channel) != FMOD.RESULT.OK)
+                {
+                    sound.release();
+                    return false;
+                }
+
+                channel.setVolume(Mathf.Clamp01(volume));
+                channel.setPaused(false);
+                _musicSound = sound;
+                _musicChannel = channel;
+                _musicOpen = true;
+                return true;
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[FmodSfx] music init failed: {e.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>Играет ли что-то сейчас (доигравший трек — уже нет).</summary>
+        public static bool IsMusicPlaying =>
+            _musicOpen &&
+            _musicChannel.isPlaying(out var playing) == FMOD.RESULT.OK &&
+            playing;
+
+        public static void SetMusicVolume(float volume)
+        {
+            if (_musicOpen)
+            {
+                _musicChannel.setVolume(Mathf.Clamp01(volume));
+            }
+        }
+
+        /// <summary>Позиция и длина текущего трека в мс (-1 = нет трека) —
+        /// по ним директор гасит хвост, если трек обрывается не сам.</summary>
+        public static int MusicPositionMs =>
+            _musicOpen && _musicChannel.getPosition(out var ms, FMOD.TIMEUNIT.MS) == FMOD.RESULT.OK
+                ? (int)ms
+                : -1;
+
+        public static int MusicLengthMs =>
+            _musicOpen && _musicSound.getLength(out var ms, FMOD.TIMEUNIT.MS) == FMOD.RESULT.OK
+                ? (int)ms
+                : -1;
+
+        /// <summary>Стоп + освобождение стрима. Безопасно звать когда угодно,
+        /// в том числе после того, как трек доиграл сам.</summary>
+        public static void StopMusic()
+        {
+            if (!_musicOpen)
+            {
+                return;
+            }
+
+            _musicOpen = false;
+            if (_musicChannel.isPlaying(out var playing) == FMOD.RESULT.OK && playing)
+            {
+                _musicChannel.stop();
+            }
+
+            _musicSound.release(); // стрим держит открытый файл — отпускаем
+            _musicChannel = default;
+            _musicSound = default;
         }
 
         private static FMOD.VECTOR ToFmod(Vector3 v) =>

@@ -20,6 +20,9 @@ public sealed class EnvironmentSystem : ISimulationSystem
     public TickLayer Layer => TickLayer.Slow;
 
     public static int DayLengthTicks => WorldBalance.DayLengthTicks;
+    // The gameplay cadence for the seeded per-cycle rolls (rain, storms, surf
+    // gifts, raids) — deliberately NOT the visual day, see WorldBalance.
+    public static int EventCycleTicks => WorldBalance.EventCycleTicks;
     // Spec 42: a real tropical swing — 25° at the 15:00 peak (dressed girls
     // cross the >24 undress gate and strip for the day), 6° at 03:00 (layers
     // and the campfire earn their keep at night).

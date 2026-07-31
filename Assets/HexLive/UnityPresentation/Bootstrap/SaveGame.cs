@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Persistence;
+using HexLive.Simulation.Runtime;
 using UnityEngine;
 
 namespace HexLive.UnityPresentation.Bootstrap
@@ -28,9 +29,11 @@ namespace HexLive.UnityPresentation.Bootstrap
         // Spec 41.3: real seconds -> game ticks at 1x (tick = 0.25 s).
         public const float TicksPerRealSecond = 4f;
 
-        // Spec 41.3: offline progression cap — 3 game days (day = 2400 ticks),
-        // so a week away neither starves the colony nor stalls the load.
-        public const int OfflineTicksCap = 3 * 2400;
+        // Spec 41.3: offline progression cap — 7200 ticks = 30 real minutes of
+        // catch-up, so a week away neither starves the colony nor stalls the
+        // load. This is a REAL-TIME compute budget, so it counts in event
+        // cycles, not in the (10x stretched) visual day.
+        public static int OfflineTicksCap => 3 * WorldBalance.EventCycleTicks;
 
         private const int Magic = 0x48584C56; // "HXLV"
         private const int Version = 2;

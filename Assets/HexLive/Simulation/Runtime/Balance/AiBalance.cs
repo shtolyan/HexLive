@@ -9,6 +9,9 @@ namespace HexLive.Simulation.Runtime
 public static class AiBalance
 {
     public static int PerceptionRadiusTiles = 2;
+    // How long a seen object / danger mark lingers in memory. 2400 ticks =
+    // 10 real minutes; MeatRawSpoilTicks (2600) is deliberately tuned to
+    // outlive it. Plain ticks, so it does NOT follow the visual clock.
     public static int MemoryTtlTicks = 2400;
 
     // Spec 23.16/35.4: a freshly won goal is locked this long; only a

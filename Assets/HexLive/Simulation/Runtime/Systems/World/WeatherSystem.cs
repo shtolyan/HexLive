@@ -22,16 +22,19 @@ public sealed class WeatherSystem : ISimulationSystem
 
     public void Run(WorldState world)
     {
-        // The schedule is a pure function of (seed, day) — a per-tick
+        // The schedule is a pure function of (seed, cycle) — a per-tick
         // Bernoulli roll mixed badly on the 16-tick stride (spec 35.5).
+        // NOTE: the index is the EVENT CYCLE (2400 ticks), not the visual day
+        // (24000). The clock was stretched 10x for the calendar's sake; keying
+        // the weather off it would have made rain 10x rarer in REAL time.
         var env = world.Environment;
-        var day = world.Tick / EnvironmentSystem.DayLengthTicks;
+        var cycle = world.Tick / EnvironmentSystem.EventCycleTicks;
         var raining = false;
-        if (MathUtil.Hash01(world.Seed, day, 17, 3301) < 0.45f)
+        if (MathUtil.Hash01(world.Seed, cycle, 17, 3301) < 0.45f)
         {
-            var start = day * EnvironmentSystem.DayLengthTicks +
-                (int)(MathUtil.Hash01(world.Seed, day, 18, 3301) * 2100f);
-            var duration = 300 + (int)(600f * MathUtil.Hash01(world.Seed, day, 19, 3302));
+            var start = cycle * EnvironmentSystem.EventCycleTicks +
+                (int)(MathUtil.Hash01(world.Seed, cycle, 18, 3301) * 2100f);
+            var duration = 300 + (int)(600f * MathUtil.Hash01(world.Seed, cycle, 19, 3302));
             raining = world.Tick >= start && world.Tick < start + duration;
             env.RainUntilTick = start + duration;
         }
@@ -44,36 +47,36 @@ public sealed class WeatherSystem : ISimulationSystem
         }
 
         // §46 v2: the STORM SURGE — the sea claws logs back off the raft.
-        // A seeded swing catastrophe (pure function of seed+day, like rain):
+        // A seeded swing catastrophe (pure function of seed+cycle, like rain):
         // losing progress stretches the run, and a longer run means more
         // night-raid rolls — the two catastrophes compound into real 50/50
         // tension without making daily survival harsher.
         if (world.RaftProgress > 0 &&
-            world.Tick == day * EnvironmentSystem.DayLengthTicks + StormSurgeOffsetTicks &&
-            MathUtil.Hash01(world.Seed, day, 5151) < StormChancePerDay)
+            world.Tick == cycle * EnvironmentSystem.EventCycleTicks + StormSurgeOffsetTicks &&
+            MathUtil.Hash01(world.Seed, cycle, 5151) < StormChancePerDay)
         {
             var washed = System.Math.Min(world.RaftProgress, StormRaftLogLoss);
             world.RaftProgress -= washed;
             Trace.EmitSystem(world, "StormSurge",
-                $"-{washed} raft logs -> {world.RaftProgress}/{WorldState.RaftTarget} (day {day})");
+                $"-{washed} raft logs -> {world.RaftProgress}/{WorldState.RaftTarget} (cycle {cycle})");
         }
 
         // §63: the SURF GIFT — the tide beaches a random piece of clothing on
-        // the shoreline every few days (~2-3 per week). Worn-out garments are
+        // the shoreline every few cycles (~2-3 per 7 cycles). Worn-out garments are
         // destroyed by wear, and every lost garment is lost pocket capacity —
         // the sea keeps the island's wardrobe from bottoming out. Seeded
-        // schedule like rain/storms: a pure function of (seed, day).
-        if (world.Tick == day * EnvironmentSystem.DayLengthTicks + SurfGiftOffsetTicks &&
-            MathUtil.Hash01(world.Seed, day, 6363) < SurfGiftChancePerDay)
+        // schedule like rain/storms: a pure function of (seed, cycle).
+        if (world.Tick == cycle * EnvironmentSystem.EventCycleTicks + SurfGiftOffsetTicks &&
+            MathUtil.Hash01(world.Seed, cycle, 6363) < SurfGiftChancePerDay)
         {
-            TrySpawnSurfGarment(world, day);
+            TrySpawnSurfGarment(world, cycle);
         }
     }
 
     // §63: pick a random garment from the wardrobe table and beach it on a
     // free land junction that touches the water. Arrives soaked and worn-in
     // (durability 0.55-0.95) — driftwood clothing, not a shop delivery.
-    private static void TrySpawnSurfGarment(WorldState world, int day)
+    private static void TrySpawnSurfGarment(WorldState world, int cycle)
     {
         var wardrobe = GarmentLibrary.Active;
         if (wardrobe.Count == 0)
@@ -108,8 +111,8 @@ public sealed class WeatherSystem : ISimulationSystem
             }
 
             // Seeded shuffle: the highest per-junction hash wins — stable for
-            // (seed, day), different spot every gift.
-            var roll = MathUtil.Hash01(world.Seed, day, junction.Id.Value, 6364);
+            // (seed, cycle), different spot every gift.
+            var roll = MathUtil.Hash01(world.Seed, cycle, junction.Id.Value, 6364);
             if (roll > bestRoll)
             {
                 bestRoll = roll;
@@ -122,18 +125,18 @@ public sealed class WeatherSystem : ISimulationSystem
             return;
         }
 
-        var pick = (int)(MathUtil.Hash01(world.Seed, day, 6365) * wardrobe.Count);
+        var pick = (int)(MathUtil.Hash01(world.Seed, cycle, 6365) * wardrobe.Count);
         pick = System.Math.Min(pick, wardrobe.Count - 1);
         var garment = wardrobe[pick];
 
         var spawned = WorldObjectMutations.SpawnObject(
             world, garment.Id, shore.Fragment, shore.Tiles[0], shore.Id);
         spawned.Wetness = 1f;
-        spawned.Durability = 0.55f + 0.4f * MathUtil.Hash01(world.Seed, day, 6366);
-        spawned.Dirtiness = 0.1f + 0.2f * MathUtil.Hash01(world.Seed, day, 6367);
+        spawned.Durability = 0.55f + 0.4f * MathUtil.Hash01(world.Seed, cycle, 6366);
+        spawned.Dirtiness = 0.1f + 0.2f * MathUtil.Hash01(world.Seed, cycle, 6367);
         Trace.EmitSystem(world, "SurfGift",
             $"{garment.Id} washed ashore at Tile={shore.Tiles[0].Q},{shore.Tiles[0].R} " +
-            $"(dur={spawned.Durability:F2} day {day})");
+            $"(dur={spawned.Durability:F2} cycle {cycle})");
     }
 
     // §46 v2: storm-surge catastrophe knobs. Offset 1600 keeps the tick on
@@ -142,7 +145,7 @@ public sealed class WeatherSystem : ISimulationSystem
     private static int StormRaftLogLoss => WorldBalance.StormRaftLogLoss;
     private static int StormSurgeOffsetTicks => WorldBalance.StormSurgeOffsetTicks;
 
-    // §63 surf gift knobs (0.35/day ≈ 2-3 garments per 7 days).
+    // §63 surf gift knobs (0.35 per event cycle ≈ 2-3 garments per 7 cycles).
     private static float SurfGiftChancePerDay => WorldBalance.SurfGiftChancePerDay;
     private static int SurfGiftOffsetTicks => WorldBalance.SurfGiftOffsetTicks;
 }

@@ -35,6 +35,7 @@ MonoBehaviour:
   rackCapacity: 8
   bigPalmCrownLeaves: 42
   smallPalmCrownLeaves: 8
+  palmGroveReserve: 4
   buildNeedGate: 0.65
   buildDangerFreshTicks: 600
   fiberPerPlant: 4

@@ -23,7 +23,7 @@ public sealed class MobSystem : ISimulationSystem
     public TickLayer Layer => TickLayer.Medium;
 
     private static int MaxDogs => WildlifeBalance.MaxDogs; // §46 difficulty pass: 2 -> 3 (12/12 wins at 2 — armed girls out-fought the pair)
-    private static int RespawnCheckTicks => WildlifeBalance.DogRespawnCheckTicks; // §46: every 1.5 game days (was 3) — sustained pack pressure, not one skirmish per arc
+    private static int RespawnCheckTicks => WildlifeBalance.DogRespawnCheckTicks; // §46: every 7200 ticks / 30 real minutes — sustained pack pressure, not one skirmish per arc
 
     // Per-mob combat/behaviour lives in MobCatalog — one config per mob type,
     // tuned by its own ScriptableObject. The ambient spawner/raid is keyed to
@@ -59,15 +59,19 @@ public sealed class MobSystem : ISimulationSystem
         // §46 v2: the NIGHT RAID — a seeded swing catastrophe. Constant
         // damage knobs saturated at ~10-15% colony losses (the homeostat
         // absorbs steady pressure); real 50/50 tension needs rare spikes.
-        // Roll is a pure function of (seed, day); dusk hits the colony
-        // when the girls are cold, tired and scattered. Days 0-1 are a
+        // Roll is a pure function of (seed, cycle). Cycles 0-1 are a
         // grace period — a raid on an unestablished camp is a coin-flip
         // wipe with no story. Raid dogs are ordinary dogs: they can be
         // fought, fled, and they linger until killed.
-        var raidDay = world.Tick / EnvironmentSystem.DayLengthTicks;
-        var raidDusk = raidDay * EnvironmentSystem.DayLengthTicks + RaidDuskOffsetTicks;
-        if (raidDay >= 2 && world.Tick >= raidDusk && world.Tick < raidDusk + 4 &&
-            MathUtil.Hash01(world.Seed, raidDay, 4646) < RaidChancePerDay)
+        // NOTE: the index is the EVENT CYCLE (2400 ticks), not the visual day
+        // (24000) — keying it off the stretched clock would have made raids
+        // 10x rarer in REAL time. The cost is that a raid no longer lands at
+        // the visual dusk: RaidDuskOffsetTicks is now "late in the cycle", so
+        // raids arrive at 10 evenly spaced moments across the long day.
+        var raidCycle = world.Tick / EnvironmentSystem.EventCycleTicks;
+        var raidDusk = raidCycle * EnvironmentSystem.EventCycleTicks + RaidDuskOffsetTicks;
+        if (raidCycle >= 2 && world.Tick >= raidDusk && world.Tick < raidDusk + 4 &&
+            MathUtil.Hash01(world.Seed, raidCycle, 4646) < RaidChancePerDay)
         {
             var spawned = 0;
             for (var i = 0; i < RaidPackSize; i++)
@@ -81,7 +85,7 @@ public sealed class MobSystem : ISimulationSystem
             if (spawned > 0)
             {
                 Trace.EmitSystem(world, "NightRaid",
-                    $"{spawned} dogs at dusk of day {raidDay}");
+                    $"{spawned} dogs at dusk of cycle {raidCycle}");
             }
         }
 

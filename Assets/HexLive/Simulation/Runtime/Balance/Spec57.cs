@@ -29,6 +29,14 @@ public static class Spec57
     public static bool FriendGuardEnabled = true;
     public static int FriendGuardRadiusTiles = 6;
     public static float FriendGuardAffinity = 0.25f;
+
+    // §71: SPRINT TO THE RESCUE. While the goal is Defend — a help cry, the
+    // friend guard, or the §62 first strike — she moves at this multiple of
+    // her normal pace, so "run at the attacker" finally means running. It does
+    // NOT compound with the adrenaline sprint: MovementSystem takes the larger
+    // of the two, or a defender who had just been bitten would cover the camp
+    // in a couple of ticks.
+    public static float DefendMoveSpeedFactor = 2.5f;
 }
 
 }

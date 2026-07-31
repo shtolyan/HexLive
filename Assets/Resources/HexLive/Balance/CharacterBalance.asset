@@ -126,6 +126,7 @@ MonoBehaviour:
   npcStrikePerPass: 0.15
   adrenalineTicks: 80
   adrenalineEnergyFloor: 0.05
-  adrenalineMoveSpeedFactor: 1.5
-  clothingBiteDurabilityWear: 0.013
-  clothingPassiveWearPerDay: 0.005
+  adrenalineMoveSpeedFactor: 2.25
+  baseMoveSpeedFactor: 1.5
+  clothingBiteDurabilityWear: 0.0026
+  clothingPassiveWearPerDay: 0.001

@@ -7,9 +7,19 @@ namespace HexLive.Simulation.Runtime
 // systems read them through shims at the old const names.
 public static class WorldBalance
 {
-    // The full day-night cycle in ticks. THE world clock unit — raid dusk
-    // offsets, storm surges and the history formatter all count in it.
-    public static int DayLengthTicks = 2400;
+    // The full day-night cycle in ticks — THE VISUAL CLOCK. Sun and shadows,
+    // the sky, the four day phases, the temperature sinusoid, UV, FormatClock
+    // and the "Day N" counter all derive from it, and nothing else does.
+    // 24000 ticks = 100 real minutes at 0.25 s/tick.
+    public static int DayLengthTicks = 24000;
+
+    // The GAMEPLAY CADENCE — how often the seeded "once per day" rolls happen
+    // (rain, storm surge, surf gift, the dog raid). It used to BE the day: the
+    // clock was stretched 10x so the calendar stops racing, but those rolls
+    // must keep their real-time frequency, so they index off this instead.
+    // The within-cycle offsets (StormSurgeOffsetTicks, SurfGiftOffsetTicks,
+    // RaidDuskOffsetTicks, the rain jitter) are positions inside THIS period.
+    public static int EventCycleTicks = 2400;
 
     // §33 shadow model: how many tiles a shadow ray marches, the renderer's
     // step height in world units, and how many virtual steps indoor walls add.

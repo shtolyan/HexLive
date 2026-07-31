@@ -9,7 +9,7 @@ namespace HexLive.UnityPresentation.Environment
 // blood (her sim Blood ticked DOWN — bandages/pills only raise it, so a
 // drop is an unambiguous bleeding signal) she leaves droplets at her feet:
 // each starts as a small drip, spreads out over ~half a sim minute, and
-// then fades away over ONE game day (2400 ticks). Purely cosmetic and
+// then fades away over 7200 ticks (30 real minutes). Purely cosmetic and
 // presentation-side: driven by snapshot ticks (respects pause/speed), not
 // persisted in saves.
 // Visuals are the RVFX Blood Effects Pack splatters rendered the way the
@@ -30,10 +30,10 @@ public sealed class GroundBloodStains : MonoBehaviour
     // 160 big projectors was real overdraw. 110 bounds it (oldest recycled)
     // while the drip trail still reads.
     private const int MaxStains = 130;          // oldest recycled beyond this
-    // Blood lingers for DAYS, not one (EnvironmentSystem.DayLengthTicks =
-    // 2400/day): a spilled pool you walk past should still be there tomorrow,
-    // slowly drying. 3 game days.
-    private const float LifetimeTicks = 7200f;  // ~3 game days to vanish
+    // Blood lingers a LONG time: a spilled pool you walk past should still be
+    // there much later, slowly drying. Plain ticks — it does not follow the
+    // visual clock, so the real-time lifetime is fixed.
+    private const float LifetimeTicks = 7200f;  // 7200 ticks = 30 real minutes
     // As a stain dries its alpha fades — but a semi-transparent RED film over
     // yellow sand reads as bright "ketchup". So we also darken _BaseColor with
     // age toward deep dried bordo: old + faint = a dark stain, not orange.

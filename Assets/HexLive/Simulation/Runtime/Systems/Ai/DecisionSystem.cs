@@ -167,7 +167,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // the initiator arrives. Emergencies and timeouts break the wait.
             if (npc.Mind.PendingTalkFrom is { } waitingFor)
             {
-                if (npc.Mind.IsStarving)
+                // §64.9: thirst kills faster than hunger on this island, and the
+                // wait only ever broke on IsStarving — a girl at Thirst 1.00
+                // stood still for the invite. Both life bands break it now.
+                if (npc.Mind.IsStarving || npc.Mind.IsDehydrated)
                 {
                     npc.Mind.PendingTalkFrom = null;
                 }
@@ -208,7 +211,14 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // Unlike a talk invite, hunger does NOT break it: she needs the help.
             if (npc.Mind.PendingAidFrom is { } aidWaitingFor)
             {
-                if (npc.IsFighting || npc.Mind.CurrentGoal == GoalType.Flee)
+                // §64.9: ordinary hunger still does NOT break the aid wait (she
+                // needs the help more than the meal — §53's original intent), but
+                // the LIFE bands do. Idle probe: waiting-for-helper was 8 220
+                // npc-ticks in 10 days on seed 31337 — 35% of all "standing
+                // around doing nothing" — and the 30-day soak killed girls at
+                // Thirst 1.00 who had no goal at all while they waited.
+                if (npc.IsFighting || npc.Mind.CurrentGoal == GoalType.Flee ||
+                    npc.Mind.IsStarving || npc.Mind.IsDehydrated)
                 {
                     npc.Mind.PendingAidFrom = null;
                 }
@@ -614,8 +624,14 @@ public sealed partial class DecisionSystem : ISimulationSystem
             var hearthUrgent = siteIsHearth && noCampfireYet &&
                 npc.Needs.Hunger < 0.8f && npc.Needs.Thirst < 0.8f;
             var buildWindow = buildPeacetime || hearthUrgent;
-            var siteNeedsLogs = buildSite != null && buildWindow &&
-                BuildSiteMath.Needs(buildSite, BuildSiteMath.MaterialLogs) && carriedLogs < 1;
+            // §64.9: two readings of the same bill. siteWantsLogs = "the site's
+            // current stage is short of logs" (drives the pulls and the
+            // don't-split reservation, and must NOT lapse the moment she picks
+            // one up); siteNeedsLogs adds "…and my hands are empty of them",
+            // which is the gather-availability half it always was.
+            var siteWantsLogs = buildSite != null && buildWindow &&
+                BuildSiteMath.Needs(buildSite, BuildSiteMath.MaterialLogs);
+            var siteNeedsLogs = siteWantsLogs && carriedLogs < 1;
             var siteNeedsStones = buildSite != null && buildWindow &&
                 BuildSiteMath.Needs(buildSite, BuildSiteMath.MaterialStones);
             // Spec §54.2: a bed build-site also pulls leaves + sticks — the gather
@@ -633,6 +649,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // always preempt it (survival is never traded for a bed).
             var bedLeafPull = siteNeedsLeaves ? 0.35f : 0f;
             var bedStickPull = siteNeedsSticks ? 0.35f : 0f;
+            // §64.9: LOGS were the one bill material with no pull anywhere —
+            // bed.basic's stage 1 is four side rails, and §64.8's PremiumBedChance
+            // stakes a bed.basic as some girls' FIRST bed. Soak (6 seeds x 10
+            // days): four seeds staked a bed.basic and every one of them sat at
+            // log 0/4 for ~22 000 ticks. GatherWood carried siteNeedsLogs in its
+            // availability but nothing in its score, so it lost every auction.
+            var bedLogPull = siteWantsLogs ? 0.35f : 0f;
             var bedRopePull = siteNeedsRope ? 0.35f : 0f;
             // BuildFurniture fires when I can advance the site: bring a material
             // it still needs, or raise it once stocked — with a hammer, except a
@@ -817,7 +840,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // won 8-10 times in 15 days while the raft starved).
             AddGoalScore(npc, world.Tick, GoalType.GatherWood,
                 0.2f + 0.3f * npc.Needs.Thirst + coldChain + boilChain +
-                (raftWoodDemand ? 0.3f : 0f) + coconutToolBoost + bedStickPull,
+                (raftWoodDemand ? 0.3f : 0f) + coconutToolBoost + bedStickPull +
+                bedLogPull,
                 gatherWoodAvail, coconutEmergencyBoost);
             // Spec 42: cold is the second reason to light the fire — a
             // freezing girl with wood and a lighter prioritizes the flame
@@ -1020,10 +1044,25 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // is already blocked by a reachable "Wood" (logs carry that tag).
             var pendingLeafSource = HasReachableWithTag(npc, world, "PalmCrown") ||
                 HasReachableWithTag(npc, world, "PalmLeaf");
+            // §64.9: a palm is the colony's WATER (coconuts), and felling is
+            // permanent — building takes the grove's surplus, never its seed
+            // stock. See SimBalance.PalmGroveReserve for the soak that killed a
+            // colony by chopping the last seven palms for bed rails.
+            var groveHasSurplus =
+                CountReachableWithTag(npc, world, "Palm") > SimBalance.PalmGroveReserve;
             var harvestTreeAvail = canChop && npc.Inventory.HasSpace &&
                 ((fuelLow && !HasReachableWithTag(npc, world, "Wood") &&
                   HasReachableWithTag(npc, world, "Palm")) ||
-                 (!pendingLeafSource &&
+                 // §64.9: a build's LOG bill deliberately does NOT fell a palm.
+                 // It was tried (bed.basic's four side rails were otherwise
+                 // unobtainable once the camp's loose logs ran out) and it cost
+                 // the colony its water: the 30-day soak went from a grove that
+                 // sat steady at 7 palms for a fortnight to 0 palms on day 18,
+                 // 0 coconuts on day 20 and four thirst deaths on day 21. Site
+                 // logs come off the ground (GatherWood + bedLogPull) only; the
+                 // log stage itself is now avoided for FIRST beds — see
+                 // SpecDream.PremiumBedChance.
+                 (!pendingLeafSource && groveHasSurplus &&
                   (CountInventory(npc, "resource.palm_leaf") == 0 ||
                    (piece is { } pLeaf && carriedLeaves < pLeaf.Leaves) ||
                    (bedDeficit && carriedLeaves < 3)) &&
@@ -1109,7 +1148,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // actually short (deficit + no leaves in hand).
             var bedChainPull = bedDeficit && carriedLeaves < 3 && canChop ? 0.25f : 0f;
             AddGoalScore(npc, world.Tick, GoalType.HarvestTree,
-                0.3f + freeHands + bedChainPull, harvestTreeAvail);
+                0.3f + freeHands + bedChainPull + bedLogPull + dreamPull, harvestTreeAvail);
             AddGoalScore(npc, world.Tick, GoalType.MineBoulder,
                 0.25f + freeHands + siteStonePull, mineBoulderAvail);
 
@@ -1317,7 +1356,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
             }
 
             var buildFurnitureAvail = buildFurnitureRaise || deliverWorthwhile;
-            var buildFurniturePull = (siteNeedsLeaves || siteNeedsSticks || siteNeedsRope) ? 0.2f : 0f;
+            // §64.9: logs join the delivery pull — the raise half was the only
+            // way a log stage could ever be advanced, and it was unweighted.
+            var buildFurniturePull =
+                (siteNeedsLeaves || siteNeedsSticks || siteNeedsRope || siteWantsLogs) ? 0.2f : 0f;
             // §54.14 (r2): the hearth is built FOR warmth/comfort — a cold girl
             // pushes the stick-pile delivery with the same cold weight that
             // drives the rest of the fire chain (there is no fire to tend yet).

@@ -468,6 +468,20 @@ namespace HexLive.Simulation.Runtime
         public static float BuildNeedGate = 0.65f;
         public static int BuildDangerFreshTicks = 600;
 
+        // §64.9 — DON'T FELL THE LAST PALM. A palm is not lumber, it is the
+        // colony's WATER: coconuts are the island's drinking supply and a felled
+        // palm never regrows. Building may take the surplus of the grove, never
+        // its seed stock. Measured (30-day soak, seed 12345, before this gate):
+        // the grove sat steady at 7 palms / 7 coconuts for a fortnight, then the
+        // bed's log stage took all seven between day 16 and 18 — coconuts hit 0
+        // on day 20 and the whole colony died of thirst on day 21, at Thermal
+        // ±0.0 with GetWater burning 7.9% of every waking tick.
+        // Counted over what she can actually see, like every other build gate.
+        // The genuine no-wood-at-all fire emergency is exempt (freezing kills
+        // sooner than thirst, and that branch already demands a dead fire AND no
+        // reachable wood of any kind).
+        public static int PalmGroveReserve = 4;
+
         // Fiber → rope / cloth (crafted at the fire); knife = sticks + stone.
         // Enough cordage that a couple of cut yucca can supply the first bed's
         // lashings without exhausting the island's entire rope economy.

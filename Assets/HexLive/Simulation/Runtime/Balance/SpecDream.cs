@@ -56,7 +56,25 @@ public static class SpecDream
     // leaf tier entirely. The wish is a stable per-girl-per-world trait
     // (Hash01 over seed+id — deterministic across ticks and reloads, no save
     // change); gated on SimBalance.BedBasicEnabled in BedSiteSystem.
-    public static float PremiumBedChance = 0.33f;
+    // §64.9: 0.33 → 0. A bed.basic's first stage is FOUR LOGS, and logs only come
+    // off the ground or out of a felled palm — so a girl whose first bed was
+    // staked premium sat at log 0/4 for the whole run (four of six soak seeds,
+    // ~22 000 ticks each, not one log delivered), and teaching the colony to fell
+    // palms for those rails drank the island dry (see SimBalance.PalmGroveReserve).
+    // Everyone's FIRST bed is now the leaf mat, whose bill is sticks + rope +
+    // leaves — all renewable. Premium bedrolls remain the SECOND tier in
+    // BedSiteSystem, built once every girl already sleeps on something, when the
+    // colony can afford the lumber. Raise this again only with a green soak.
+    public static float PremiumBedChance = 0f;
+
+    // §64.9: the share of the colony (beyond a site's own owner) that treats the
+    // staked bed as THE build project, taking it ahead of the hearth's upgrades
+    // and the stations. The rest keep the §63 r2 build queue untouched, so the
+    // stone ring and the water collector still get built while the beds go up.
+    // 0 ⇒ only the owner works her own bed; 1 ⇒ the whole colony drops
+    // everything for it (measured: that wipes colonies — thirst + cold — because
+    // the ring and the collector then never finish).
+    public static float DreamBuilderShare = 0.5f;
 }
 
 }

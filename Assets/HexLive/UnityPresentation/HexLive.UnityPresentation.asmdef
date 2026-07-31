@@ -8,6 +8,7 @@
     "I2.Loc",
     "Unity.InputSystem",
     "RootMotion",
+    "MagicaClothV2",
     "Unity.RenderPipelines.Universal.Runtime",
     "Unity.RenderPipelines.Core.Runtime"
   ],

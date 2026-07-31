@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4855706908241813351}
   - component: {fileID: 7579992270147106847}
+  - component: {fileID: 3641907285512760194}
   m_Layer: 0
   m_Name: NHS Skirt G3F_27980
   m_TagString: Untagged
@@ -48,21 +49,44 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   configs:
   - actorName: 0
-    scale: 1.19
+    scale: 1.1
     mesh: {fileID: 4300000, guid: d7515889dc767af439ea0206835a08b3, type: 2}
   - actorName: 1
-    scale: 1.19
+    scale: 1.1
     mesh: {fileID: 4300000, guid: d6d6de6d066e97f4daf040ebd5d2389b, type: 2}
   - actorName: 2
-    scale: 1.19
+    scale: 1.1
     mesh: {fileID: 4300000, guid: e388be6a659d2c5418bdc0737af506ad, type: 2}
   - actorName: 5
-    scale: 1.19
+    scale: 1.1
     mesh: {fileID: 4300000, guid: 1f6b671cfc3694fdca39c2275f61f6b1, type: 2}
   slots: 0c000000
   noHideUnderwearSlots: 0c000000
   layer: 1
   gender: 1
+--- !u!114 &3641907285512760194
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 213209247868960742}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79d1522287c440cb8f1219b351a0328a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  paintMap: {fileID: 2800000, guid: bddcb8e62d614eb188f119f9005685af, type: 3}
+  gravity: 3
+  damping: 0.05
+  restoreStiffness: 0.05
+  limitAngle: 45
+  distanceStiffness: 0.5
+  depthInertia: 0.7
+  particleRadius: 0.005
+  reductionSimpleDistance: 0.012
+  reductionShapeDistance: 0.014
+  distanceCullingLength: 25
 --- !u!1 &1606676343811776938
 GameObject:
   m_ObjectHideFlags: 0

@@ -73,6 +73,14 @@ public sealed class Wear : MonoBehaviour
             var connection = bone.gameObject.AddComponent<ParentConnection>();
             connection.ConnectTo(bodyBone);
         }
+
+        // A garment that swings (skirts) builds its cloth LAST: the per-actor
+        // mesh is in place by now and the bones already ride the body, which is
+        // the state MagicaCloth samples when it builds its proxy.
+        if (TryGetComponent<GarmentCloth>(out var cloth))
+        {
+            cloth.Build(bodyBones, _meshRenderer);
+        }
     }
 
     // --- Wardrobe test-scene support: per-actor fit-scale tuning ---

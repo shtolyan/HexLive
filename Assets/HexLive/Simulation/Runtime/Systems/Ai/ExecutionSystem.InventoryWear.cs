@@ -765,7 +765,7 @@ public sealed partial class ExecutionSystem
         npc.BottleCharges--;
         var driedOut = npc.BottleCharges <= 0;
         Trace.Emit(world, npc.Id, "DrankBottle",
-            $"{(boiled ? "Boiled" : "Raw")} water Thirst={npc.Needs.Thirst:F2} Left={System.Math.Max(0, npc.BottleCharges)}");
+            $"{npc.BottleWater} water Thirst={npc.Needs.Thirst:F2} Left={System.Math.Max(0, npc.BottleCharges)}");
         if (driedOut)
         {
             npc.BottleWater = WaterKind.None;

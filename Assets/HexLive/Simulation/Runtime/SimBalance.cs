@@ -25,8 +25,12 @@ namespace HexLive.Simulation.Runtime
         // Spec §52: the inventory/build overhaul makes life busier, so survival
         // pressure eases — halved hunger (eat ~half as often) and gentler thirst
         // so NPCs stop obsessing over food/water and get on with building.
-        public static float HungerRate = 0.0055f;       // hunger gained per slow tick (§52: was 0.011)
-        public static float ThirstRate = 0.010f;        // thirst gained per slow tick (§52: was 0.013)
+        // §53.7 easing: aid now spends real supplies, so the metabolic clock is
+        // halved again — the tuned rates (0.0037 / 0.008) go to HALF, and the
+        // code defaults are aligned onto the same numbers so asset, SimData, SO
+        // and fallback all agree.
+        public static float HungerRate = 0.00185f;      // hunger gained per slow tick (§53.7: was 0.0037 tuned / 0.0055 default)
+        public static float ThirstRate = 0.004f;        // thirst gained per slow tick (§53.7: was 0.008 tuned / 0.010 default)
         public static float EnergyRate = 0.005f;        // energy drained per slow tick awake (~1 bar/1.4 days; was 0.007 — softened to cut exhaustion comas)
         public static float ComfortRate = 0.01f;        // comfort drained per slow tick awake
         public static float SocialRate = 0.008f;        // social drained per slow tick
@@ -482,7 +486,11 @@ namespace HexLive.Simulation.Runtime
 
         // Meat spoilage (ground items): raw rots fast, cooked lasts; cooking is
         // effectively preservation. Ticks from when the item lands on the ground.
-        public static int MeatRawSpoilTicks = 1800;
+        // §54.16: raw was 1800 — SHORTER than the 2400-tick danger memory that
+        // every kill site carries, so meat dropped by a slain beast was
+        // guaranteed to rot before anyone was allowed to shop there. 2600 keeps
+        // the chunk alive past the mark even when the fear isn't cleared.
+        public static int MeatRawSpoilTicks = 2600;
         public static int MeatCookedSpoilTicks = 4800;
 
         // Cannibalism: butchering a housemate's corpse is allowed but costs

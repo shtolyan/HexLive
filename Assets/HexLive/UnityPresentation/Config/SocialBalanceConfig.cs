@@ -139,9 +139,15 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 1f)] public float selfHealthGate = 0.5f;
         [Tooltip("Порог страдания соседа (0..1), ниже которого не стоит идти помогать.")]
         [Range(0f, 1f)] public float sufferingThreshold = 0.3f;
-        [Tooltip("На сколько падает ГОЛОД накормленного (помощь без затрат — предмет не тратится).")]
+        [Tooltip("§53.7: помощь ТРАТИТ припасы помогающей (еда/вода/бинт/таблетка). Выкл — старая «бесплатная» помощь и никаких походов за припасом.")]
+        public bool aidCostsSupplies = true;
+        [Tooltip("§53.7: сколько тиков поход за припасом ради подруги держится, даже если страдающая ушла из виду.")]
+        [Range(120, 4800)] public int aidErrandTicks = 1200;
+        [Tooltip("§53.7: какая доля заявки «помочь» перетекает в добывающее дело. <1 — сходить за припасом чуть менее срочно, чем сама помощь.")]
+        [Range(0f, 1.5f)] public float aidErrandBidShare = 0.85f;
+        [Tooltip("На сколько падает ГОЛОД накормленного (если у еды своя питательность — берётся она).")]
         [Range(0f, 1f)] public float feedRelief = 0.5f;
-        [Tooltip("На сколько падает ЖАЖДА напоенного (вода не тратится).")]
+        [Tooltip("На сколько падает ЖАЖДА напоенного (тратится глоток из фляги/кокоса).")]
         [Range(0f, 1f)] public float hydrateRelief = 0.5f;
         [Tooltip("На сколько заживают раненые части при перевязке соседа.")]
         [Range(0f, 0.5f)] public float treatHeal = 0.15f;
@@ -161,5 +167,27 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 1f)] public float traitMin = 0.35f;
         [Tooltip("Максимум личной черты сострадания при рождении.")]
         [Range(0f, 1f)] public float traitMax = 1.0f;
+
+        [Header("§68 — сама себя перевязывает")]
+        [Tooltip("Включить самолечение. Выкл — как раньше: раны латает только подруга через «помощь», а свои бинты уходят лишь в пассивном последнем шансе.")]
+        public bool selfTreatEnabled = true;
+        [Tooltip("Тяжесть ран (макс из: 1−HP, 1−худшая зона, 1−кровь), с которой она бросает дела и перевязывается.")]
+        [Range(0f, 1f)] public float selfTreatBurdenThreshold = 0.25f;
+        [Tooltip("ПОСЛЕДНИЙ бинт — неприкосновенный запас: с одним бинтом нужна вот такая тяжесть ран.")]
+        [Range(0f, 1f)] public float selfTreatLastBandageBurden = 0.45f;
+        [Tooltip("База заявки «перевязаться».")]
+        [Range(0f, 1f)] public float selfTreatBase = 0.35f;
+        [Tooltip("Множитель тяжести ран в заявке.")]
+        [Range(0f, 2f)] public float selfTreatWeight = 1.0f;
+        [Tooltip("Ниже этой крови перевязка получает аварийную прибавку и обходит все дела.")]
+        [Range(0f, 1f)] public float selfTreatBleedBlood = 0.6f;
+        [Tooltip("Размер аварийной прибавки при кровопотере.")]
+        [Range(0f, 2f)] public float selfTreatBleedEmergency = 0.6f;
+        [Tooltip("Сколько тиков она наматывает повязку.")]
+        [Range(10, 200)] public int selfTreatDuration = 60;
+        [Tooltip("На сколько поднимаются раненые зоны от СВОЕЙ повязки (чуть меньше, чем от чужих рук).")]
+        [Range(0f, 0.5f)] public float selfTreatHeal = 0.12f;
+        [Tooltip("На сколько прибавляется своя КРОВЬ после перевязки.")]
+        [Range(0f, 0.5f)] public float selfTreatBlood = 0.18f;
     }
 }

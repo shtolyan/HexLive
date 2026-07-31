@@ -243,9 +243,17 @@ public sealed partial class DecisionSystem : ISimulationSystem
             var getFoodHungerThreshold = SimBalance.GetFoodHungerThreshold;
 
             var eatAvail = hasFoodInInventory || hasCoconutMeal;
+            // §53.7: split the "is there food to fetch at all" half out of the
+            // gate — an aid errand fetches food for a STARVING HOUSEMATE, so
+            // neither the helper's own (satisfied) hunger nor a coconut lying
+            // on the ground beside her may veto it. What matters for an errand
+            // is what she can HAND OVER, i.e. what is in the pack.
+            var foodSourceReachable =
+                HasReachableFoodForCurrentTools(npc, world) || KnowsReachableProducer(npc, world);
             var getFoodAvail = !hasFoodInInventory && !hasCoconutMeal &&
-                npc.Needs.Hunger >= getFoodHungerThreshold &&
-                (HasReachableFoodForCurrentTools(npc, world) || KnowsReachableProducer(npc, world));
+                npc.Needs.Hunger >= getFoodHungerThreshold && foodSourceReachable;
+            var foodFetchPossible = !hasFoodInInventory &&
+                !HasInventoryCoconutMeal(npc) && foodSourceReachable;
             // Spec 29G: the land itself is furniture — a bed is better, but
             // sleep never blocks on owning one. Still, nobody naps at noon
             // out of boredom: sleep is for the tired or for the dark hours
@@ -409,10 +417,18 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // CompassionTrait, plus the accumulated pressure of a spent
             // Compassion need — so a caring girl (high trait) will outbid a bed
             // build for a dying housemate, a reserved one only helps when idle.
+            // §53.7: help is PAID FOR out of the helper's own pack, so the
+            // scan splits in two — the worst-off housemate she can help RIGHT
+            // NOW (bids Aid), and the worst-off one she'd have to fetch a
+            // supply for first (bids the fetching chore, below).
             var aidAvail = false;
             var bestSuffering = 0f;
             var bestSuffererAffinity = 0f;
             var bestAidKind = AidKind.None;
+            var errandSuffering = 0f;
+            var errandKind = AidKind.None;
+            EntityId? errandTarget = null;
+            var aidSelfOk = false;
             if (Spec53.Enabled)
             {
                 var selfOk = !npc.Mind.IsStarving && !npc.Mind.IsDehydrated &&
@@ -420,6 +436,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
                     npc.Needs.Hunger < Spec53.SelfHungerGate &&
                     npc.Health >= Spec53.SelfHealthGate &&
                     npc.Needs.Blood >= Spec53.SelfHealthGate;
+                aidSelfOk = selfOk;
                 if (selfOk)
                 {
                     foreach (var agent in npc.Perception.Agents)
@@ -430,6 +447,21 @@ public sealed partial class DecisionSystem : ISimulationSystem
                         {
                             continue;
                         }
+
+                        // Nothing to give? She still WANTS to help — remember
+                        // her as the errand and go and get it (§53.7).
+                        if (!AidSupply.Has(world, npc, agent.AidKind))
+                        {
+                            if (agent.Suffering > errandSuffering)
+                            {
+                                errandSuffering = agent.Suffering;
+                                errandKind = agent.AidKind;
+                                errandTarget = agent.Id;
+                            }
+
+                            continue;
+                        }
+
                         if (agent.Suffering > bestSuffering)
                         {
                             bestSuffering = agent.Suffering;
@@ -461,6 +493,62 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 bestSuffering * npc.CompassionTrait * Spec53.AidWeight +
                     (1f - npc.Needs.Compassion) * Spec53.PressureWeight,
                 aidAvail, aidEmergency, social: System.Math.Max(0f, bestSuffererAffinity) * 0.05f);
+
+            // §53.7: the errand bid MIRRORS the aid bid — same suffering ×
+            // trait × weight, same compassion pressure, same bleed-out
+            // emergency — and is only then shaded by AidErrandBidShare. It has
+            // to: a girl who WOULD have walked over and helped must not simply
+            // shrug because her hands are empty. An errand worth strictly less
+            // than the aid it serves would lose to the very chores the aid used
+            // to outbid, and the ward would starve beside a willing helper.
+            var errandNeed = errandSuffering * npc.CompassionTrait * Spec53.AidWeight +
+                (1f - npc.Needs.Compassion) * Spec53.PressureWeight;
+            var errandEmergency = errandKind == AidKind.Treat && errandSuffering >= 0.65f
+                ? StarvingBoost * 0.75f
+                : 0f;
+            var errandFullBid = (0.1f + errandNeed + errandEmergency) * Spec53.AidErrandBidShare;
+
+            // §53.7: an errand already under way keeps pulling even when the
+            // sufferer is out of sight behind her — but it ends the moment the
+            // supply is in hand (that is the whole point), when the ward is
+            // beyond help or gone, when her own body drops into the red, or
+            // when the window runs out.
+            if (npc.Mind.AidErrandKind != AidKind.None)
+            {
+                string? errandDone = null;
+                if (!Spec53.Enabled || !Spec53.AidCostsSupplies)
+                {
+                    errandDone = "disabled";
+                }
+                else if (!aidSelfOk)
+                {
+                    errandDone = "helper in her own crisis";
+                }
+                else if (world.Tick >= npc.Mind.AidErrandUntilTick)
+                {
+                    errandDone = "timed out";
+                }
+                else if (AidSupply.Has(world, npc, npc.Mind.AidErrandKind))
+                {
+                    errandDone = "supply in hand";
+                }
+                else if (npc.Mind.AidErrandFor is not { } wardId ||
+                         !world.Entities.Npcs.TryGetValue(wardId, out var ward) ||
+                         ward.Health <= 0f)
+                {
+                    errandDone = "ward gone";
+                }
+
+                if (errandDone is not null)
+                {
+                    Trace.Emit(world, npc.Id, "AidErrandCleared",
+                        $"Kind={npc.Mind.AidErrandKind} Reason={errandDone}");
+                    npc.Mind.AidErrandKind = AidKind.None;
+                    npc.Mind.AidErrandFor = null;
+                    npc.Mind.AidErrandUntilTick = 0;
+                    npc.Mind.AidErrandBid = 0f;
+                }
+            }
 
             // Spec 35.3: what the communal hut needs next (null = done/absent).
             // Construction is peacetime work: material hauling pauses while
@@ -584,7 +672,6 @@ public sealed partial class DecisionSystem : ISimulationSystem
                     : HasReachableWithTag(npc, world, station);
             }
             var hasBottleWater = HasBottleWater(npc);
-            var drinkAvail = npc.Needs.Thirst >= 0.35f && (hasBottleWater || hasCoconutWater);
             // Jul 2026: water forages like food — GetFood always had the
             // "walk to a remembered palm" fallback, GetWater didn't, so once
             // the camp's ground coconuts were eaten the colony sat at Thirst
@@ -594,11 +681,26 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // answer — GetWater may fire on it even bladeless and coconut-less
             // (the planner prefers the collector draw over foraging).
             var collectorDrawSeen = FindDrawableCollector(npc, world) is not null;
+            // §54.15 r2: the collector belongs to the DRINK lane, not just the
+            // forage lane. GetWater is gated on !hasCoconutWater, and on this
+            // island a drinkable coconut is nearly always in view — so the full
+            // bottle standing under the funnel was unreachable by any goal and
+            // simply never used (save 574386721: vessel at 1.00 for 6 000 ticks,
+            // zero VesselTaken, four girls circling at thirst ~0.5). Drink now
+            // sees it too; the planner draws from it once nothing drinkable is
+            // in hand, before walking to a coconut.
+            var drinkAvail = npc.Needs.Thirst >= 0.35f &&
+                (hasBottleWater || hasCoconutWater || collectorDrawSeen);
+            var waterSourceReachable = collectorDrawSeen ||
+                (hasCoconutBlade &&
+                 (HasReachableDefinitionWorthCarrying(npc, world, "food.coconut") ||
+                  KnowsReachableProducer(npc, world)));
             var getWaterAvail = npc.Needs.Thirst >= 0.35f && !hasCoconutWater && !hasBottleWater &&
-                (collectorDrawSeen ||
-                 (hasCoconutBlade &&
-                  (HasReachableDefinitionWorthCarrying(npc, world, "food.coconut") ||
-                   KnowsReachableProducer(npc, world))));
+                waterSourceReachable;
+            // §53.7: the errand half — fetching water to CARRY to a parched
+            // housemate cares only about what is in hand (bottle / pierced
+            // coconut), never about her own thirst or a nut on the ground.
+            var waterFetchPossible = !HasInventoryCoconutWater(npc) && waterSourceReachable;
             // Costs come from the RECIPES (asset-overridable), not constants —
             // an asset that reprices a tool re-prices its gathering too.
             var axeStoneCost = Content.RecipeCatalog.InputCount(GoalType.CraftAxe, "resource.stone");
@@ -755,14 +857,53 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // Spec 44: the herbal first-aid chain — gather leaves, craft a
             // bandage at the fire. Urgency scales with how hurt anyone is.
             var herbLeaves = CountInventory(npc, "resource.herb_leaf");
-            var hurtUrgency = npc.Health < 0.7f ? 0.3f : 0f;
-            var gatherHerbAvail = herbLeaves < 2 && npc.Needs.Bandages < 2 &&
+            // §68: the resupply half of self first-aid. A flat 0.3 step at
+            // Health < 0.7 barely moved the herb run, and now that she SPENDS
+            // her own dressings the pouch has to be refilled — so how badly she
+            // is hurt (the same whole-body burden the treat goal reads) feeds
+            // the fetch/craft urgency directly.
+            var woundBurden = SelfTreatBurden(npc);
+            var hurtUrgency = System.MathF.Max(
+                npc.Health < 0.7f ? 0.3f : 0f,
+                woundBurden * 0.6f);
+            // §53.7: the "can this chain run at all" halves, free of her OWN
+            // stock gate — an aid errand brews a dressing for someone else's
+            // wound, so a full med pouch of her own must not veto it.
+            var herbFetchPossible = herbLeaves < 2 &&
                 npc.Inventory.HasSpace && HasReachableWithTag(npc, world, "Herb");
+            var bandageCraftPossible = herbLeaves >= 2 && CraftPlaceOk(GoalType.CraftBandage);
+            var gatherHerbAvail = herbFetchPossible && npc.Needs.Bandages < 2;
             AddGoalScore(npc, world.Tick, GoalType.GatherHerb,
                 0.22f + hurtUrgency, gatherHerbAvail);
-            var craftBandageAvail = herbLeaves >= 2 && npc.Needs.Bandages < 2 && CraftPlaceOk(GoalType.CraftBandage);
+            var craftBandageAvail = bandageCraftPossible && npc.Needs.Bandages < 2;
             AddGoalScore(npc, world.Tick, GoalType.CraftBandage,
                 0.3f + hurtUrgency, craftBandageAvail);
+
+            // §68: patch YOURSELF up. Until now the only active wound care was
+            // Aid(Treat) — someone ELSE walking over — while the hurt girl's own
+            // first aid was the passive last resort in NeedsDecaySystem (worst
+            // zone < 0.4 AND blood < 0.35). A mauling of many shallow bites never
+            // trips that gate: save 604905660 had Marta at HP 0.61 / worst zone
+            // 0.55 / blood 0.48 carrying TWO unusable bandages, and the auction
+            // gave the evening to laundry. Now the burden reads the WHOLE body,
+            // and a bleeding girl treats before she does chores.
+            var treatBurdenGate = npc.Needs.Bandages > 1
+                ? Spec53.SelfTreatBurdenThreshold
+                : Spec53.SelfTreatLastBandageBurden;
+            var treatWoundsAvail = Spec53.SelfTreatEnabled &&
+                npc.Needs.Bandages > 0 &&
+                woundBurden >= treatBurdenGate &&
+                npc.Body.CanUseToolsOrWeapons && // a hand is needed to wind it
+                !npc.IsFighting;                 // not mid-bite: fight or flee first
+            // Deliberately NOT gated on remembered danger: that is the §65 trap
+            // that already forbids sleep for a day after a wolf walks past, and a
+            // dressing is exactly what she needs AFTER the fight.
+            AddGoalScore(npc, world.Tick, GoalType.TreatWounds,
+                Spec53.SelfTreatBase + woundBurden * Spec53.SelfTreatWeight,
+                treatWoundsAvail,
+                emergency: npc.Needs.Blood < Spec53.SelfTreatBleedBlood
+                    ? Spec53.SelfTreatBleedEmergency
+                    : 0f);
 
             // Spec 29F: hunting & crafting.
             var hasSpear = npc.Inventory.Items.Contains("tool.spear");
@@ -1367,6 +1508,74 @@ public sealed partial class DecisionSystem : ISimulationSystem
 
             AddGoalScore(npc, world.Tick, GoalType.Idle, 0.05f, true);
 
+            // §53.7 — THE AID ERRAND. She means to help, and has nothing to
+            // give: the compassion pull spills into the chore that FETCHES the
+            // missing supply, so a hungry friend sends her foraging, a parched
+            // one sends her to the water, and an untended wound sends her out
+            // for plantain and back to the fire to bind a dressing.
+            //
+            // The spill is scored, not forced: it rides in as an ordinary bid
+            // at AidErrandBidShare of the aid pull, so her own emergencies still
+            // outrank it and "no other important business" stays a real gate.
+            // Only ever raised for a chore that can actually run right now
+            // (something to gather, a hand free, no cooldown) — resurrecting an
+            // impossible goal is the classic PlanFailed churn loop.
+            GoalType? aidErrandGoal = null;
+            var aidErrandBid = 0f;
+            var aidErrandKindNow = errandKind;
+            var aidErrandTargetNow = errandTarget;
+            if (Spec53.Enabled && Spec53.AidCostsSupplies && aidSelfOk)
+            {
+                if (aidErrandKindNow == AidKind.None && npc.Mind.AidErrandKind != AidKind.None)
+                {
+                    // Out of sight behind her — keep the errand she started.
+                    aidErrandKindNow = npc.Mind.AidErrandKind;
+                    aidErrandTargetNow = npc.Mind.AidErrandFor;
+                    aidErrandBid = npc.Mind.AidErrandBid;
+                }
+                else if (aidErrandKindNow != AidKind.None)
+                {
+                    aidErrandBid = errandFullBid;
+                }
+
+                aidErrandGoal = aidErrandKindNow switch
+                {
+                    AidKind.Feed => foodFetchPossible && npc.Inventory.HasSpace
+                        ? GoalType.GetFood
+                        : (GoalType?)null,
+                    AidKind.Hydrate => waterFetchPossible ? GoalType.GetWater : (GoalType?)null,
+                    // Treat/Medicate share the herb chain: leaves first, then
+                    // the dressing is bound at the fire.
+                    AidKind.Treat or AidKind.Medicate => bandageCraftPossible
+                        ? GoalType.CraftBandage
+                        : (herbFetchPossible ? GoalType.GatherHerb : (GoalType?)null),
+                    _ => null
+                };
+
+                if (aidErrandGoal is { } errandGoal && aidErrandBid > 0f &&
+                    !IsOnCooldown(npc, errandGoal, world.Tick))
+                {
+                    RaiseGoalScore(npc, errandGoal, aidErrandBid);
+                }
+                else
+                {
+                    // "She just stood there while her friend starved" is the
+                    // question this answers: there was a ward she wanted to
+                    // help and no way to go and get what it takes. Sampled
+                    // (every 64 ticks) so a long dry spell can't flood the log.
+                    if (aidErrandKindNow != AidKind.None && world.Tick % 64 == 0)
+                    {
+                        Trace.Emit(world, npc.Id, "AidErrandBlocked",
+                            $"Kind={aidErrandKindNow} Bid={aidErrandBid:F2} " +
+                            $"NoChore=[food={foodFetchPossible} space={npc.Inventory.HasSpace} " +
+                            $"water={waterFetchPossible} herb={herbFetchPossible} " +
+                            $"craft={bandageCraftPossible}]");
+                    }
+
+                    aidErrandGoal = null;
+                }
+            }
+
             if (bleedingCrisis)
             {
                 SuppressPeacetimeDuringBleeding(npc);
@@ -1477,6 +1686,27 @@ public sealed partial class DecisionSystem : ISimulationSystem
             Trace.Emit(world, npc.Id, "GoalSelected",
                 $"{best.Goal} (Score={best.FinalScore:F3}) " +
                 $"{(changed ? $"CHANGED from {previousGoal}" : "UNCHANGED")}");
+
+            // §53.7: the chore she just picked IS the errand — stamp it so it
+            // keeps its aid weight while she walks out of the sufferer's sight,
+            // and so the trace says WHY a well-fed girl went foraging.
+            if (aidErrandGoal is { } stampedErrand && best.Goal == stampedErrand &&
+                aidErrandKindNow != AidKind.None)
+            {
+                var fresh = npc.Mind.AidErrandKind != aidErrandKindNow ||
+                    npc.Mind.AidErrandFor?.Value != aidErrandTargetNow?.Value;
+                npc.Mind.AidErrandKind = aidErrandKindNow;
+                npc.Mind.AidErrandFor = aidErrandTargetNow;
+                npc.Mind.AidErrandBid = aidErrandBid;
+                npc.Mind.AidErrandUntilTick = world.Tick + Spec53.AidErrandTicks;
+                if (fresh)
+                {
+                    Trace.Emit(world, npc.Id, "AidErrandStarted",
+                        $"Kind={aidErrandKindNow} " +
+                        $"For={(aidErrandTargetNow is { } ward ? $"NPC{ward.Value}" : "unknown")} " +
+                        $"Goal={stampedErrand} Bid={aidErrandBid:F2}");
+                }
+            }
 
             // Spec 23.17: a goal change over an active plan must abort cleanly,
             // releasing object occupancy and junction reservation before replanning.
@@ -1609,6 +1839,44 @@ public sealed partial class DecisionSystem : ISimulationSystem
             npc.Mind.IsOverheated = false;
             Trace.Emit(world, npc.Id, "StatusOverheated",
                 $"Cleared (Thermal={npc.Needs.ThermalDiscomfort:F2} < {SimBalance.CoolOffClearThreshold})");
+        }
+    }
+
+    // Spec 23.10 gate, reused by the §53.7 errand spill: a goal on cooldown
+    // must never be revived by an outside pull, or the abort that set the
+    // cooldown just replays every tick (PlanFailed churn).
+    private static bool IsOnCooldown(NPCState npc, GoalType goal, int currentTick)
+    {
+        foreach (var cooldown in npc.Mind.Cooldowns)
+        {
+            if (cooldown.Goal == goal && cooldown.EndTick > currentTick)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // §53.7: lift an already-scored goal to at least `value` — the compassion
+    // pull spilling into the chore that fetches the missing supply. Never
+    // lowers a goal that already wants it more on its own account.
+    private static void RaiseGoalScore(NPCState npc, GoalType goal, float value)
+    {
+        foreach (var score in npc.Mind.LastScores)
+        {
+            if (score.Goal != goal)
+            {
+                continue;
+            }
+
+            if (score.FinalScore < value)
+            {
+                score.SocialModifier += value - score.FinalScore;
+                score.FinalScore = value;
+            }
+
+            return;
         }
     }
 

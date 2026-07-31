@@ -116,7 +116,7 @@ namespace HexLive.UnityPresentation.Config
 
         [Header("Порча мяса (наземные предметы)")]
         [Tooltip("Сырое мясо гниёт через столько тиков на земле.")]
-        [Range(300, 9600)] public int meatRawSpoilTicks = 1800;
+        [Range(300, 9600)] public int meatRawSpoilTicks = 2600;
         [Tooltip("Жареное мясо держится дольше (жарка = консервация).")]
         [Range(300, 19200)] public int meatCookedSpoilTicks = 4800;
     }

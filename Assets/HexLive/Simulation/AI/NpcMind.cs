@@ -112,6 +112,23 @@ public sealed class NPCMind
 
     public int PendingAidSinceTick { get; set; }
 
+    // Spec §53.7: the AID ERRAND. She agreed to help a housemate but had
+    // nothing to give, so she is off fetching the missing supply — food for a
+    // starving friend, water for a parched one, plantain for a bandage. The
+    // marker keeps the fetch chore winning the auction for AidErrandTicks even
+    // while the sufferer is out of sight behind her, and clears the moment the
+    // supply is in hand (or the ward no longer needs it). AidErrandBid carries
+    // the aid pull that spawned it so the chore keeps that weight.
+    // Transient bookkeeping — deliberately NOT serialized: a load simply
+    // re-decides from a full perception pass.
+    public AidKind AidErrandKind { get; set; } = AidKind.None;
+
+    public HexLive.Simulation.Common.EntityId? AidErrandFor { get; set; }
+
+    public int AidErrandUntilTick { get; set; }
+
+    public float AidErrandBid { get; set; }
+
     // Reactive combat aid: when a fleeing victim calls for help, responders
     // get a short-lived Defend goal pointed at the attacker.
     public int LastHelpCryTick { get; set; } = -999999;
@@ -224,7 +241,11 @@ public enum GoalType
     Defend,      // answer a combat help cry and attack the aggressor
     Bathe,       // undress at shore, then swim long enough to wash the body
     WashClothes, // wash one dirty ground garment at the shore
-    StowBottle   // §54.15: park the empty bottle under the water collector's funnel
+    StowBottle,  // §54.15: park the empty bottle under the water collector's funnel
+    // §68: dress your OWN wounds with a carried bandage. Appended at the END —
+    // the save blob stores goals by ordinal, so inserting mid-enum would
+    // re-label every goal in every existing save.
+    TreatWounds
 }
 
 public sealed class GoalScore

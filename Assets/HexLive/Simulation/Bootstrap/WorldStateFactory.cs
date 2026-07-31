@@ -737,8 +737,8 @@ public sealed class WorldStateFactory
         // only starting kit. §54 cold start: the spear is no longer handed out,
         // it must be crafted (1 stick at the fire), like every other tool.
         npc.Inventory.Items.Add(new Agents.ItemInstance("tool.bottle"));
-        // Spec 40.3: two bandages start in the med pouch (Needs.Bandages),
-        // not the general pack.
+        // Spec 40.3 / §44 r2: four bandages start in the med pouch
+        // (Needs.Bandages — 2 medkit + 2 herbal), not the general pack.
 
         world.Entities.Npcs[npc.Id] = npc;
         world.Occupancy.EntitiesInTile[coord].Add(npc.Id);

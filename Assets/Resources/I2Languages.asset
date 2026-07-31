@@ -1577,6 +1577,14 @@ MonoBehaviour:
       - 'Стирает одежду'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'goal.TreatWounds'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Dressing her wounds'
+      - 'Перевязывает раны'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'loading.world'
       TermType: 0
       Description: 

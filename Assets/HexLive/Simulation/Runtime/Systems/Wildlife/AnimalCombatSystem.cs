@@ -75,6 +75,7 @@ public sealed class AnimalCombatSystem : ISimulationSystem
             // Spec §54: the fallen mob leaves a butcherable carcass; the
             // variant carries its mob id so the view shows the right body.
             ExecutionSystem.SpawnCarcass(world, dead.Tile, dead.Junction, dead.MobId);
+            MobSystem.ForgetDangerAround(world, dead.Tile, 1); // §54.16: the fear dies with the beast
         }
 
         // Only bite victims are swept here; every other death cause keeps its

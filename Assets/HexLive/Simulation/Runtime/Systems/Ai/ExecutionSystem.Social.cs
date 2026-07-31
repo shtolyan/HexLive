@@ -336,19 +336,24 @@ public sealed partial class ExecutionSystem
         return severity <= 0f ? AidKind.None : kind;
     }
 
-    // Spec §53: apply the help to the TARGET (no item is spent — the relief is
-    // applied directly, so aid can never bankrupt the colony). Both sides' bond
-    // is credited by the caller.
-    private static void ApplyAidRelief(WorldState world, NPCState helper, NPCState target, AidKind kind)
+    // Spec §53: apply the help to the TARGET. §53.7: the matching supply has
+    // just left the HELPER's own stores (AidSupply.TrySpend), and `spend` says
+    // what it was — a meal's own nutrition feeds better than a scrap, a herbal
+    // dressing leaves the plantain wrap where a medkit one leaves gauze. Both
+    // sides' bond is credited by the caller.
+    private static void ApplyAidRelief(
+        WorldState world, NPCState helper, NPCState target, AidKind kind, in AidSupply.Spend spend)
     {
         switch (kind)
         {
             case AidKind.Feed:
-                target.Needs.Hunger = MathUtil.Clamp01(target.Needs.Hunger - Spec53.FeedRelief);
+                target.Needs.Hunger = MathUtil.Clamp01(
+                    target.Needs.Hunger - System.MathF.Max(spend.Amount, 0.05f));
                 break;
 
             case AidKind.Hydrate:
-                target.Needs.Thirst = MathUtil.Clamp01(target.Needs.Thirst - Spec53.HydrateRelief);
+                target.Needs.Thirst = MathUtil.Clamp01(
+                    target.Needs.Thirst - System.MathF.Max(spend.Amount, 0.05f));
                 break;
 
             case AidKind.Treat:
@@ -365,7 +370,19 @@ public sealed partial class ExecutionSystem
                     if (target.Body.Parts[part] < 1f)
                     {
                         target.Body.Parts[part] = MathUtil.Clamp01(target.Body.Parts[part] + Spec53.TreatHeal);
-                        target.GauzeZones.Add(part);
+                        // Spec 44 / §53.7: the dressing that was actually spent
+                        // decides the decal — a gathered plantain wrap or plain
+                        // medkit gauze, one or the other, never both.
+                        if (spend.Herbal)
+                        {
+                            target.BandagedZones.Add(part);
+                            target.GauzeZones.Remove(part);
+                        }
+                        else
+                        {
+                            target.GauzeZones.Add(part);
+                            target.BandagedZones.Remove(part);
+                        }
                     }
                 }
                 foreach (var wound in target.Wounds)
@@ -461,6 +478,16 @@ public sealed partial class ExecutionSystem
                 return;
             }
 
+            // §53.7: what she needs NOW may not be what was planned for — a
+            // bleeding girl who has since gone thirsty needs water, and empty
+            // hands cannot give it. Drop back to the decision layer, which
+            // turns the unpayable need into a fetch errand.
+            if (!AidSupply.Has(world, npc, kindNow))
+            {
+                AbortAid(world, npc, $"Nothing to give NPC{targetId.Value} (needs {kindNow})");
+                return;
+            }
+
             // Turn to face her — a caring stance. The HELPER kneels toward the
             // patient; the patient, if she's lying (coma/asleep/prone), keeps
             // her authored pose and is NOT rotated to face back (§60: a flat
@@ -531,7 +558,17 @@ public sealed partial class ExecutionSystem
                 _ => AidKind.Console
             };
 
-            ApplyAidRelief(world, npc, target, kind);
+            // §53.7: pay for it. The supply leaves HER pack now — if it is gone
+            // (dropped, eaten, spent on herself between the start gate and
+            // here) the help simply does not happen: relief may never appear
+            // out of nothing.
+            if (!AidSupply.TrySpend(world, npc, kind, out var spend))
+            {
+                AbortAid(world, npc, $"Supply for {kind} gone before it reached NPC{targetId.Value}");
+                return;
+            }
+
+            ApplyAidRelief(world, npc, target, kind, spend);
 
             // Both relationships rise — kindness under hardship bonds hard.
             var helperRel = npc.Social.GetOrCreate(target.Id);
@@ -566,7 +603,9 @@ public sealed partial class ExecutionSystem
             }
 
             Trace.Emit(world, npc.Id, "Aided",
-                $"Kind={kind} NPC{npc.Id.Value}->NPC{target.Id.Value} " +
+                $"Kind={kind} " +
+                $"Spent={(string.IsNullOrEmpty(spend.Item) ? "nothing" : spend.Item)} " +
+                $"NPC{npc.Id.Value}->NPC{target.Id.Value} " +
                 $"Trust={helperRel.Trust:F2} (+{gain:F2}) Fam={helperRel.Familiarity:F2} (+{gain:F2}) " +
                 $"Aff={helperRel.Affinity:F2} (+{gain:F2}) MyCompassion={npc.Needs.Compassion:F2}");
             Trace.Emit(world, target.Id, "RelationshipChanged",

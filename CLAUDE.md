@@ -49,6 +49,16 @@ whole garment set came from there.**
 - Unity work goes through the UnityMCP bridge; it drops on domain reload / when the
   editor is unfocused — re-pin the instance and retry. Guard mutations with
   `if (Application.productName != "HexLive") return;` (a second project may share the bridge).
+- **Never `EditorUtility.DisplayDialog` for a result — log it.** A modal box owns
+  Unity's main thread, and the bridge runs on that thread, so an "OK" nobody is
+  there to click freezes every command until a human comes back. Menu items on the
+  automated path (SimData export, tuning validation) log instead. The exception is a
+  genuine confirmation before something destructive (`Reset Values From Defaults`),
+  which must stay modal and must stay off the automated path.
+- The bridge caps a command at **30 s**. Anything longer — a compile, the wear
+  extraction, a paint-map rebake — reports "Command processing timed out" and
+  *finishes anyway*. Never treat that message as failure: poll for the artefact the
+  command was supposed to produce.
 
 ## ⭐ ALL SOUND GOES THROUGH FMOD — and through BOTH of its halves
 

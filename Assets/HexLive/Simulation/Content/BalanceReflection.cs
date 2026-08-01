@@ -30,6 +30,7 @@ public static class BalanceReflection
         typeof(Spec53),
         typeof(Spec57),
         typeof(Spec62),
+        typeof(Spec70),
         typeof(AiBalance),
         typeof(SocialBalance),
         typeof(WorldBalance),

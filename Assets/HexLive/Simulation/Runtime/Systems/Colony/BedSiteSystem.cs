@@ -64,10 +64,45 @@ public sealed class BedSiteSystem : ISimulationSystem
                 $"removed {orphanSites.Count} orphaned object(s) (product-less build.site / retired shelter.tent)");
         }
 
+        // §70: every camp stakes its own furniture. The outsider gets a hearth
+        // and a bed by the SAME rules, in his own yard — no separate building
+        // code, just the same system run once per camp. With one camp authored
+        // (or none, as in the test bootstraps) this is one pass over exactly
+        // the pre-§70 set.
+        if (world.FactionHomes.Count == 0)
+        {
+            RunForCamp(world, Faction.Colony);
+            return;
+        }
+
+        foreach (var faction in _campScratch(world))
+        {
+            RunForCamp(world, faction);
+        }
+    }
+
+    // Stable iteration order (enum ordinal), so two camps can never race for
+    // the same tile depending on dictionary layout.
+    private static readonly System.Collections.Generic.List<Faction> _campOrder = new();
+
+    private static System.Collections.Generic.List<Faction> _campScratch(WorldState world)
+    {
+        _campOrder.Clear();
+        foreach (var faction in world.FactionHomes.Keys)
+        {
+            _campOrder.Add(faction);
+        }
+
+        _campOrder.Sort((a, b) => ((int)a).CompareTo((int)b));
+        return _campOrder;
+    }
+
+    private static void RunForCamp(WorldState world, Faction faction)
+    {
         var livingGirls = 0;
         foreach (var npc in world.Entities.Npcs.Values)
         {
-            if (npc.Health > 0f)
+            if (npc.Health > 0f && npc.Faction == faction)
             {
                 livingGirls++;
             }
@@ -98,6 +133,13 @@ public sealed class BedSiteSystem : ISimulationSystem
         WorldObjectState ownerlessBed = null;
         foreach (var obj in world.Entities.Objects.Values)
         {
+            // §70: only this camp's yard. Otherwise the girls' four beds would
+            // read as "the outsider already has one" and vice versa.
+            if (!ColonyQueries.InCamp(world, obj.Tile, faction))
+            {
+                continue;
+            }
+
             // §54.14: an in-place upgrading piece (the stage-1+ campfire) keeps
             // an open bill, so IsSite() is true for it — but it is a REAL
             // hearth, not a pending site. Only literal build.site objects count
@@ -189,7 +231,7 @@ public sealed class BedSiteSystem : ISimulationSystem
                 WorldObjectMutations.SetObstacleBlocking(world, rackSite, blocked: true);
                 rackSite.BillSticks = SimBalance.RackBillSticks;
                 rackSite.BillRope = SimBalance.RackBillRope;
-                RememberSiteForColony(world, rackSite);
+                RememberSiteForColony(world, faction, rackSite);
                 Trace.EmitSystem(world, "RackSitePlaced",
                     "station.drying_rack site staked by the hearth");
                 return;
@@ -219,7 +261,7 @@ public sealed class BedSiteSystem : ISimulationSystem
                 collectorSite.BillStones = SimBalance.WaterCollectorBillStones;
                 collectorSite.BillRope = SimBalance.WaterCollectorBillRope;
                 collectorSite.BillLeaves = SimBalance.WaterCollectorBillLeaves;
-                RememberSiteForColony(world, collectorSite);
+                RememberSiteForColony(world, faction, collectorSite);
                 Trace.EmitSystem(world, "CollectorSitePlaced",
                     "station.water_collector site staked by the hearth");
                 return;
@@ -245,7 +287,7 @@ public sealed class BedSiteSystem : ISimulationSystem
             // bed. A free bed.basic suits everyone.
             if (ownerlessBed is not null)
             {
-                var claimant = FirstLiving(world,
+                var claimant = FirstLiving(world, faction,
                     id => !ownedAnyBed.Contains(id) && !siteOwners.Contains(id) &&
                         (ownerlessBed.DefinitionId == "bed.basic" || !WantsPremiumBed(world, id)));
                 if (claimant is not null)
@@ -268,7 +310,7 @@ public sealed class BedSiteSystem : ISimulationSystem
             // skipped. Second tier (§54.12): once everyone owns a bed, premium
             // bedrolls (bed.basic) for those without one — same
             // owner-per-colonist rule (a premium dreamer already owns hers).
-            var owner = FirstLiving(world,
+            var owner = FirstLiving(world, faction,
                 id => !ownedAnyBed.Contains(id) && !siteOwners.Contains(id));
             var dreamProduct = "bed.leaf";
             if (owner is not null && WantsPremiumBed(world, owner.Id))
@@ -277,7 +319,7 @@ public sealed class BedSiteSystem : ISimulationSystem
             }
             else if (owner is null && SimBalance.BedBasicEnabled)
             {
-                owner = FirstLiving(world,
+                owner = FirstLiving(world, faction,
                     id => !ownedBasicBed.Contains(id) && !siteBasicOwners.Contains(id));
                 dreamProduct = "bed.basic";
             }
@@ -287,7 +329,7 @@ public sealed class BedSiteSystem : ISimulationSystem
                 return; // everyone has their own bed — the dream is fulfilled
             }
 
-            StakeBed(world, hearth, dreamProduct, owner.Id);
+            StakeBed(world, faction, hearth, dreamProduct, owner.Id);
             return;
         }
 
@@ -308,13 +350,14 @@ public sealed class BedSiteSystem : ISimulationSystem
             return;
         }
 
-        StakeBed(world, hearth, product, null);
+        StakeBed(world, faction, hearth, product, null);
     }
 
     // §54.9A / §64: stake ONE bed build-site by the hearth, optionally stamped
     // with the colonist it belongs to (null = shared). Owner rides onto the
     // finished bed when it is raised (ExecutionSystem.ApplyFurnitureSite).
-    private static void StakeBed(WorldState world, WorldObjectState hearth, string product, EntityId? owner)
+    private static void StakeBed(
+        WorldState world, Faction faction, WorldObjectState hearth, string product, EntityId? owner)
     {
         var spot = FindFiresideHex(world, hearth);
         if (spot is not { } placement)
@@ -347,7 +390,7 @@ public sealed class BedSiteSystem : ISimulationSystem
             site.BillLeaves = SimBalance.BedBasicBillLeaves;
         }
 
-        RememberSiteForColony(world, site);
+        RememberSiteForColony(world, faction, site);
         Trace.EmitSystem(world, "BedSitePlaced",
             $"{product} site staked by the hearth" +
             (owner is { } o ? $" for colonist {o.Value}" : string.Empty));
@@ -362,11 +405,12 @@ public sealed class BedSiteSystem : ISimulationSystem
         MathUtil.Hash01(world.Seed, id.Value, 64, 6408) < SpecDream.PremiumBedChance;
 
     // First living colonist matching a predicate on her id (bed-target picking).
-    private static NPCState FirstLiving(WorldState world, System.Func<EntityId, bool> predicate)
+    private static NPCState FirstLiving(
+        WorldState world, Faction faction, System.Func<EntityId, bool> predicate)
     {
         foreach (var npc in world.Entities.Npcs.Values)
         {
-            if (npc.Health > 0f && predicate(npc.Id))
+            if (npc.Health > 0f && npc.Faction == faction && predicate(npc.Id))
             {
                 return npc;
             }
@@ -375,11 +419,19 @@ public sealed class BedSiteSystem : ISimulationSystem
         return null;
     }
 
-    private static void RememberSiteForColony(WorldState world, WorldObjectState site)
+    // §70: only OUR camp learns where we staked it. Without the faction gate
+    // the outsider gets a free permanent map of the girls' beds, rack and
+    // collector the instant they mark them out.
+    private static void RememberSiteForColony(WorldState world, Faction faction, WorldObjectState site)
     {
         var junction = site.Junctions.Count > 0 ? site.Junctions[0] : (JunctionId?)null;
         foreach (var npc in world.Entities.Npcs.Values)
         {
+            if (npc.Faction != faction)
+            {
+                continue;
+            }
+
             npc.Memory.KnownObjects[site.Id] = new ObjectMemory
             {
                 Id = site.Id,

@@ -144,6 +144,32 @@ public sealed class NPCMind
 
     public HexLive.Simulation.Common.EntityId? CombatAssistAttackerNpcId { get; set; }
 
+    // §70 raid state. All TRANSIENT (not serialized) — same call as the §29C
+    // combat fields above: a reload starts him out of the hunt, which is
+    // harmless, and the save format stays put.
+
+    // Who he is stalking. Committed for the whole hunt: re-picking the weakest
+    // target every rebuild (what §56 Prey does) turns a stalk into dithering.
+    public HexLive.Simulation.Common.EntityId? RaidTargetNpcId { get; set; }
+
+    // When this hunt began — feeds the hard pursuit ceiling.
+    public int RaidStartedTick { get; set; }
+
+    // Where he stood at the last plan rebuild, and since when. Two rebuilds
+    // without moving = the chase is stuck, give it up (the mob chase valve).
+    public HexLive.Simulation.Common.JunctionId? RaidLastJunction { get; set; }
+
+    public int RaidStallSinceTick { get; set; }
+
+    // No new hunt before this tick — the breather that stops him hammering the
+    // colony raid after raid.
+    public int RaidCooldownUntilTick { get; set; }
+
+    // Set on BOTH sides while a human fight is live. An NPC has a single swing
+    // slot, so this is also how the human exchange claims it from the animal
+    // one (AnimalCombatSystem bails while it is set).
+    public HexLive.Simulation.Common.EntityId? CombatOpponentNpcId { get; set; }
+
     // Spec §49 (water sickness v2): raw water no longer bites in one lump.
     // A positive roll opens a visible window (SickUntilTick, drives the 🤢 icon
     // + comfort malaise) and adds to a bounded damage budget
@@ -245,7 +271,10 @@ public enum GoalType
     // §68: dress your OWN wounds with a carried bandage. Appended at the END —
     // the save blob stores goals by ordinal, so inserting mid-enum would
     // re-label every goal in every existing save.
-    TreatWounds
+    TreatWounds,
+    // §70: hunt a member of a HOSTILE faction. Opportunist — it only outbids
+    // his chores when the odds are his. Appended at the END, same reason.
+    Raid
 }
 
 public sealed class GoalScore

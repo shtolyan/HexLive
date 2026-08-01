@@ -85,6 +85,9 @@ public static class WorldBootstrapJsonParser
             result.Add(new NpcBootstrap
             {
                 Id = npc.id,
+                // §70: absent in every existing JSON, which parses to 0 =
+                // Colony — exactly the pre-§70 meaning.
+                Faction = (HexLive.Simulation.Agents.Faction)npc.faction,
                 FragmentId = npc.fragmentId,
                 TileQ = npc.tileQ,
                 TileR = npc.tileR,
@@ -155,6 +158,7 @@ public static class WorldBootstrapJsonParser
     private sealed class NpcDto
     {
         public int id;
+        public int faction;
         public int fragmentId;
         public int tileQ;
         public int tileR;

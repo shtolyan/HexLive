@@ -50,6 +50,12 @@ internal static class CombatHelpSystem
         {
             if (helper.Id == victim.Id ||
                 helper.Health <= 0f ||
+                // §70: only her own side answers. Without this the outsider who
+                // just cut her hears the cry, rolls compassion, takes the Defend
+                // goal against HIMSELF and stands frozen for the goal-lock —
+                // which reads as a pathing bug, not a faction bug.
+                !FactionRelations.AreAllies(helper, victim) ||
+                (attackerId is { } attackerEntity && helper.Id.Equals(attackerEntity)) ||
                 // §60: asleep or out cold — the cry does not register at all:
                 // no waking into Defend, no "ignored" cue, not even an emoji.
                 helper.IsUnconscious(world.Tick) ||
@@ -145,14 +151,25 @@ internal static class CombatHelpSystem
                 helper.IsFighting ||
                 helper.Mind.CurrentGoal == GoalType.Defend ||
                 helper.Mind.CurrentGoal == GoalType.Flee ||
+                !FactionRelations.AreAllies(helper, victim) || // §70: her side only
                 (attackerId is { } aId && helper.Id.Equals(aId)) ||
                 HexSpatialMath.HexDistance(helper.Tile, victim.Tile) > Spec57.FriendGuardRadiusTiles)
             {
                 continue;
             }
 
+            // §70: an OUTSIDER attacking one of ours rallies the whole camp, with
+            // no affinity gate. The 0.25 friendship threshold is right for a
+            // domestic scrap, but the girls have not built that affinity up in
+            // the opening days — and "they fight back as one" has to be true
+            // exactly then, when a lone stranger is picking them off one by one.
+            var attackerIsOutsider = attackerId is { } outsiderId &&
+                world.Entities.Npcs.TryGetValue(outsiderId, out var attackerNpc) &&
+                FactionRelations.AreHostile(attackerNpc, victim);
+            var skipAffinityGate = attackerIsOutsider && Spec70.RallyIgnoresAffinityVsOutsider;
+
             var relationship = helper.Social.GetOrCreate(victim.Id);
-            if (relationship.Affinity < Spec57.FriendGuardAffinity)
+            if (!skipAffinityGate && relationship.Affinity < Spec57.FriendGuardAffinity)
             {
                 continue;
             }

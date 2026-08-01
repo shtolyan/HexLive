@@ -29,7 +29,7 @@ namespace HexLive.Simulation.Persistence
 //   on load, rebuilt on first pathfind).
 public static class WorldSaveSerializer
 {
-    public const int BlobVersion = 15; // v15: §49 sickness window/damage budget (a reload no longer cures the 🤢)
+    public const int BlobVersion = 16; // v16: §70 faction — which side a survivor is on
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -47,6 +47,15 @@ public static class WorldSaveSerializer
         foreach (var death in world.DeathRecords)
         {
             WriteDeathRecord(w, death);
+        }
+
+        // §70: the per-faction camp anchors. Authored at bootstrap, never
+        // derived, so they must survive a reload.
+        w.Write(world.FactionHomes.Count);
+        foreach (var pair in world.FactionHomes)
+        {
+            w.Write((int)pair.Key);
+            WriteTile(w, pair.Value);
         }
 
         w.Write(world.ColonyInDireStraits);
@@ -232,6 +241,20 @@ public static class WorldSaveSerializer
             for (var i = 0; i < deathCount; i++)
             {
                 world.DeathRecords.Add(ReadDeathRecord(r));
+            }
+        }
+
+        // §70: camp anchors. A pre-v16 save has none — WorldStateFactory has
+        // already seeded them from the same bootstrap definition, so leaving
+        // the factory's values in place is exactly right.
+        if (version >= 16)
+        {
+            world.FactionHomes.Clear();
+            var homeCount = r.ReadInt32();
+            for (var i = 0; i < homeCount; i++)
+            {
+                var faction = (Faction)r.ReadInt32();
+                world.FactionHomes[faction] = ReadTile(r);
             }
         }
 
@@ -590,6 +613,7 @@ public static class WorldSaveSerializer
         w.Write((int)npc.BottleWater);
         w.Write(npc.BodyWetness);
         w.Write(npc.CompassionTrait);
+        w.Write((int)npc.Faction); // §70: ordinal — the enum is APPEND-ONLY
 
         WriteItemList(w, npc.WornItems);
         WriteJunctionList(w, npc.ClaimedJunctions);
@@ -879,6 +903,13 @@ public static class WorldSaveSerializer
         {
             npc.BodyWetness = r.ReadSingle();
             npc.CompassionTrait = r.ReadSingle();
+        }
+
+        // §70: absent before v16 — an old save is a single-faction world, which
+        // is exactly what it was, so the field default (Colony) is the answer.
+        if (version >= 16)
+        {
+            npc.Faction = (Faction)r.ReadInt32();
         }
 
         ReadItemList(r, npc.WornItems, version);

@@ -60,7 +60,26 @@ public sealed class WorldStateFactory
         // only reward was a bed.basic that the progressive bed build-site now
         // supplies. No world.Project ⇒ NextBuildPiece stays null ⇒ GoalType.Build
         // never fires. (CreateBuildProject is left defined but unused.)
-        CreateCampfireSite(world); // §54 cold start: the hearth is built, not given
+        // §70: camp anchors first — the hearth site, the private camp memory and
+        // a beaten raider's retreat target all key off them.
+        SeedFactionHomes(world, bootstrap);
+
+        // §54 cold start: the hearth is built, not given. One per camp: the
+        // outsider raises and lights his through the very same chain.
+        if (bootstrap.FactionHomes.Count == 0)
+        {
+            CreateCampfireSite(world, new TileCoord(0, 4));
+        }
+        else
+        {
+            foreach (var home in bootstrap.FactionHomes)
+            {
+                if (home.StakeCampfireSite)
+                {
+                    CreateCampfireSite(world, new TileCoord(home.TileQ, home.TileR));
+                }
+            }
+        }
         // §54.2: beds are woven at the campfire (CraftBed tiers) — the §52 bed
         // build-site is retired, so it's no longer seeded here.
         SeedHomeKnowledge(world);
@@ -202,9 +221,8 @@ public sealed class WorldStateFactory
     // colony piles the stage-1 sticks itself, the site raises into a cold
     // campfire, and TendFire lights it (lighter or friction). Nothing is
     // pre-built or handed out; the generator-chosen good location is kept.
-    private static void CreateCampfireSite(WorldState world)
+    private static void CreateCampfireSite(WorldState world, TileCoord hearth)
     {
-        var hearth = new TileCoord(0, 4);
         if (!world.Tiles.Items.TryGetValue(hearth, out var tile))
         {
             return;
@@ -381,12 +399,46 @@ public sealed class WorldStateFactory
 
     // Spec 27.18A: NPCs know their home layout at start — every bootstrap
     // object becomes a permanent memory record for every NPC.
+    // §70: which camp, if any, this tile belongs to. A tile inside somebody's
+    // camp is that camp's business; open wilderness belongs to nobody.
+    private static Faction? CampOwnerOf(WorldState world, TileCoord tile)
+    {
+        foreach (var pair in world.FactionHomes)
+        {
+            if (HexSpatialMath.HexDistance(tile, pair.Value) <=
+                HexLive.Simulation.Runtime.Spec70.CampKnowledgeRadiusTiles)
+            {
+                return pair.Key;
+            }
+        }
+
+        return null;
+    }
+
+    private static void SeedFactionHomes(WorldState world, WorldBootstrapDefinition bootstrap)
+    {
+        world.FactionHomes.Clear();
+        foreach (var home in bootstrap.FactionHomes)
+        {
+            world.FactionHomes[home.Faction] = new TileCoord(home.TileQ, home.TileR);
+        }
+    }
+
+    // Everyone starts knowing the island's wilderness — the palms, the boulders,
+    // the deadfall. §70: what they do NOT start knowing is the inside of someone
+    // else's camp. Without that gate the outsider walks off the boat with a
+    // permanent map of the girls' hearth, beds and stores.
     private static void SeedHomeKnowledge(WorldState world)
     {
         foreach (var npc in world.Entities.Npcs.Values)
         {
             foreach (var obj in world.Entities.Objects.Values)
             {
+                if (CampOwnerOf(world, obj.Tile) is { } campOwner && campOwner != npc.Faction)
+                {
+                    continue;
+                }
+
                 npc.Memory.KnownObjects[obj.Id] = new Memory.ObjectMemory
                 {
                     Id = obj.Id,
@@ -713,6 +765,7 @@ public sealed class WorldStateFactory
             Id = new EntityId(bootstrap.Id),
             DisplayName = bootstrap.DisplayName,
             ActorMesh = bootstrap.ActorMesh,
+            Faction = bootstrap.Faction,
             Fragment = new FragmentId(bootstrap.FragmentId),
             Tile = coord,
             Position = HexSpatialMath.TileToWorld(coord)
@@ -729,14 +782,32 @@ public sealed class WorldStateFactory
         // Spreads the colony from reserved (helps only when idle) to deeply
         // caring (breaks off her own chores to tend the hurt). Deterministic on
         // the world seed + npc id so a replay is identical.
-        npc.CompassionTrait = HexLive.Simulation.Runtime.Spec53.TraitMin +
-            MathUtil.Hash01(world.Seed, bootstrap.Id, 53, 5301) *
-            (HexLive.Simulation.Runtime.Spec53.TraitMax - HexLive.Simulation.Runtime.Spec53.TraitMin);
+        //
+        // §70: an outsider draws from a colder band of his own — a compassionate
+        // raider would never raid, and the §53 colony band starts at 0.35.
+        var traitMin = HexLive.Simulation.Runtime.Spec53.TraitMin;
+        var traitMax = HexLive.Simulation.Runtime.Spec53.TraitMax;
+        if (bootstrap.Faction != Faction.Colony)
+        {
+            traitMin = HexLive.Simulation.Runtime.Spec70.OutsiderCompassionMin;
+            traitMax = HexLive.Simulation.Runtime.Spec70.OutsiderCompassionMax;
+        }
+
+        npc.CompassionTrait = traitMin +
+            MathUtil.Hash01(world.Seed, bootstrap.Id, 53, 5301) * (traitMax - traitMin);
 
         // Spec 29H: everyone carries a personal water bottle (starts empty) — the
         // only starting kit. §54 cold start: the spear is no longer handed out,
         // it must be crafted (1 stick at the fire), like every other tool.
         npc.Inventory.Items.Add(new Agents.ItemInstance("tool.bottle"));
+
+        // §70: the outsider carries his own knife ashore. He has no colony to
+        // split the work with, and the hunt is gated on holding a real weapon.
+        if (bootstrap.Faction != Faction.Colony &&
+            HexLive.Simulation.Runtime.Spec70.OutsiderStartsArmed)
+        {
+            npc.Inventory.Items.Add(new Agents.ItemInstance("tool.knife"));
+        }
         // Spec 40.3 / §44 r2: four bandages start in the med pouch
         // (Needs.Bandages — 2 medkit + 2 herbal), not the general pack.
 

@@ -326,6 +326,9 @@ public sealed partial class DecisionSystem
         foreach (var other in world.Entities.Npcs.Values)
         {
             if (other.Id == npc.Id || other.Health <= 0f ||
+                // §70: §56 predation stays inside the family — the other
+                // faction is the Raid goal's business, not the butcher's.
+                !FactionRelations.AreAllies(npc, other) ||
                 other.CurrentJunction is not { } otherJunction)
             {
                 continue;

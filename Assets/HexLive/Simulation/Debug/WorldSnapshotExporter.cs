@@ -572,6 +572,8 @@ public static class WorldSnapshotExporter
             Id = npc.Id,
             DisplayName = npc.DisplayName,
             ActorMesh = npc.ActorMesh,
+            Faction = npc.Faction,
+            IsHostileToColony = Runtime.FactionRelations.AreHostile(npc.Faction, Faction.Colony),
             Tile = npc.Tile,
             Position = npc.Position,
             RotationDegrees = npc.RotationDegrees,

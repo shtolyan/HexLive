@@ -168,7 +168,95 @@ namespace HexLive.Simulation.Bootstrap
             AddIslandElevation(definition.Fragments[0], seed);
             AddSeaChannel(definition.Fragments[0], seed);
             AddNaturalFeatures(definition, seed);
+            AddOutsiderCamp(definition);
             return definition;
+        }
+
+        // §70: the hostile survivor and his camp on the far side of the island.
+        //
+        // The camp tile is COMPUTED, never hard-coded: the island's shape is
+        // seeded noise (AddIslandElevation), so any fixed coordinate is open sea
+        // on some fraction of seeds. We take the farthest walkable lowland tile
+        // from the colony hearth — "the other end of the island" on every seed,
+        // deterministically.
+        private static void AddOutsiderCamp(WorldBootstrapDefinition definition)
+        {
+            var colonyHome = new TileCoord(0, 4);
+            var fragment = definition.Fragments[0];
+
+            TileBootstrap best = null;
+            var bestDistance = -1;
+            foreach (var tile in fragment.Tiles)
+            {
+                // Lowland only: elevation 1-2 is the walkable band the colony
+                // itself is clamped to, so his camp is neither cliff nor surf.
+                if (!tile.Walkable || tile.Water || tile.Blocked ||
+                    tile.Elevation < 1 || tile.Elevation > 2)
+                {
+                    continue;
+                }
+
+                var distance = HexSpatialMath.HexDistance(
+                    new TileCoord(tile.Q, tile.R), colonyHome);
+                if (distance > bestDistance)
+                {
+                    bestDistance = distance;
+                    best = tile;
+                }
+            }
+
+            if (best is null || bestDistance < HexLive.Simulation.Runtime.Spec70.OutsiderCampMinDistanceTiles)
+            {
+                return; // pathological seed — leave the world single-camp
+            }
+
+            var camp = new TileCoord(best.Q, best.R);
+
+            if (HexLive.Simulation.Runtime.Spec70.Enabled)
+            {
+                definition.FactionHomes.Add(new FactionHomeBootstrap
+                {
+                    Faction = Agents.Faction.Colony,
+                    TileQ = colonyHome.Q,
+                    TileR = colonyHome.R
+                });
+                definition.FactionHomes.Add(new FactionHomeBootstrap
+                {
+                    Faction = Agents.Faction.Outsiders,
+                    TileQ = camp.Q,
+                    TileR = camp.R
+                });
+            }
+
+            if (!HexLive.Simulation.Runtime.Spec70.SpawnOutsider)
+            {
+                return;
+            }
+
+            // Id 5 — AFTER the four girls, so the colony's dictionary insertion
+            // order (and every hash-seeded tie-break that rides on it) is bit
+            // identical to the pre-§70 world.
+            definition.Npcs.Add(new NpcBootstrap
+            {
+                Id = 5,
+                DisplayName = "Kshishtof",
+                // Stage 1 placeholder body — the male actor lands in stage 2.
+                // ActorMesh must parse to the ActorName enum or the view
+                // silently falls back to Marta.
+                ActorMesh = "Marta",
+                Faction = Agents.Faction.Outsiders,
+                FragmentId = 1,
+                TileQ = camp.Q,
+                TileR = camp.R,
+                // He washed ashore like everyone else: rested, hungry, thirsty.
+                // Nothing is handed to him — he crafts his knife at his own fire.
+                Hunger = 0.5f,
+                Thirst = 0.45f,
+                Energy = 0.7f,
+                Comfort = 0.4f,
+                Social = 0.3f,
+                ThermalDiscomfort = 0.5f
+            });
         }
 
         // Spec 20.16: the world is an island — seeded value noise times a

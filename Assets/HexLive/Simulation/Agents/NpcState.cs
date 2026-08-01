@@ -154,6 +154,12 @@ public sealed class NPCState
 
     public string ActorMesh { get; set; } = string.Empty;
 
+    // §70: which side this body is on. The ONE thing the simulation DOES branch
+    // on above — everything else (needs, GOAP, crafting, wardrobe) is identical
+    // for a colonist and an outsider. Defaults to Colony so every pre-§70 path
+    // and every old save behaves exactly as before.
+    public Faction Faction { get; set; } = Faction.Colony;
+
     public FragmentId Fragment { get; set; }
 
     public TileCoord Tile { get; set; } = TileCoord.Zero;

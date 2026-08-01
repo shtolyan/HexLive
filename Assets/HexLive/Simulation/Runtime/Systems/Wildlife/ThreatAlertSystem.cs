@@ -35,6 +35,11 @@ public sealed class ThreatAlertSystem : ISimulationSystem
     // re-pops one ⚠️ per pair.
     private readonly System.Collections.Generic.Dictionary<long, int> _lastCueTick = new();
 
+    // §70: a SECOND cache for hostile people. The mob key packs the mob id into
+    // the low word, so dog 3 and NPC 3 would collide and one sighting would
+    // silently suppress the other's warning.
+    private readonly System.Collections.Generic.Dictionary<long, int> _lastHostileCueTick = new();
+
     public void Run(WorldState world)
     {
         if (!Spec62.ThreatAlertEnabled)
@@ -42,7 +47,10 @@ public sealed class ThreatAlertSystem : ISimulationSystem
             return;
         }
 
-        if (world.Mobs.Count == 0)
+        // §70: hostile PEOPLE are spotted by the same layer, so an empty island
+        // of dogs is no longer a reason to skip the pass.
+        var watchesHostiles = Spec70.Enabled;
+        if (world.Mobs.Count == 0 && !watchesHostiles)
         {
             if (_lastCueTick.Count > 0)
             {
@@ -88,6 +96,32 @@ public sealed class ThreatAlertSystem : ISimulationSystem
                 {
                     bestDistance = distance;
                     threat = mob;
+                }
+            }
+
+            // §70: the same look-out sees an approaching STRANGER. Deliberately
+            // resolved after the mob scan and handled separately: a wolf can be
+            // charged first (§62), a person never is.
+            if (watchesHostiles && ScanForHostile(world, npc) is { } hostile)
+            {
+                var hostileKey = ((long)npc.Id.Value << 32) | (uint)hostile.Id.Value;
+                if (!_lastHostileCueTick.TryGetValue(hostileKey, out var hostileSeenTick) ||
+                    world.Tick - hostileSeenTick >= Spec70.StrangerCueCooldownTicks)
+                {
+                    _lastHostileCueTick[hostileKey] = world.Tick;
+                    SocialCueSignals.Stamp(world, npc, "DangerSpotted", npc.Id);
+                    Trace.Emit(world, npc.Id, "HostileSpotted",
+                        $"Npc={hostile.Id.Value} " +
+                        $"Dist={HexSpatialMath.HexDistance(npc.Tile, hostile.Tile)} " +
+                        $"Fit={IsFitToFight(npc)} FirstStrike=suppressed");
+
+                    // NEVER StartFirstStrike. The girls do not open hostilities:
+                    // partly because the rally scene only lands if he is
+                    // unambiguously the aggressor, and partly because the whole
+                    // §57 assist machinery keys on "who is the attacker" — if she
+                    // swings first, SHE is, and once the outsiders are more than
+                    // one THEIR rally would fire against her.
+                    AvoidHostile(world, npc, hostile);
                 }
             }
 
@@ -203,6 +237,54 @@ public sealed class ThreatAlertSystem : ISimulationSystem
                 $"Mob={threat.Id} Tile={threat.Tile.Q},{threat.Tile.R} rerouting");
             PlanInterruption.Abort(world, npc,
                 $"Route passes spotted dog {threat.Id} — rerouting");
+            return;
+        }
+    }
+
+    // The nearest live hostile within sight. Sanctuary is not consulted: seeing
+    // him from indoors is exactly when you most want the warning.
+    private static NPCState ScanForHostile(WorldState world, NPCState npc)
+    {
+        NPCState nearest = null;
+        var bestDistance = int.MaxValue;
+        foreach (var other in world.Entities.Npcs.Values)
+        {
+            if (other.Health <= 0f || !FactionRelations.AreHostile(npc, other))
+            {
+                continue;
+            }
+
+            var distance = HexSpatialMath.HexDistance(npc.Tile, other.Tile);
+            if (distance <= Spec70.SpotStrangerRadiusTiles && distance < bestDistance)
+            {
+                bestDistance = distance;
+                nearest = other;
+            }
+        }
+
+        return nearest;
+    }
+
+    private static void AvoidHostile(WorldState world, NPCState npc, NPCState hostile)
+    {
+        MobSystem.RememberDangerAt(world, npc, hostile.Tile);
+        if (npc.Plan.Status != PlanStatus.Active)
+        {
+            return;
+        }
+
+        var ring = PathfindingSystem.HostileRing(world, npc.Faction);
+        for (var i = npc.Movement.PathIndex; i < npc.Movement.JunctionPath.Count; i++)
+        {
+            if (!ring.Contains(npc.Movement.JunctionPath[i]))
+            {
+                continue;
+            }
+
+            Trace.Emit(world, npc.Id, "HostileAvoid",
+                $"Npc={hostile.Id.Value} Tile={hostile.Tile.Q},{hostile.Tile.R} rerouting");
+            PlanInterruption.Abort(world, npc,
+                $"Route passes the outsider NPC{hostile.Id.Value} — rerouting");
             return;
         }
     }

@@ -39,7 +39,11 @@ namespace HexLive.UnityPresentation.AbuseTest
             var cam = camGo.AddComponent<Camera>();
             cam.fieldOfView = 42f;
             cam.nearClipPlane = 0.05f;
-            camGo.AddComponent<AmputationTest.AmputationTestOrbitCamera>();
+            // §92: та же камера, что на боевой карте, а не тестовая орбита.
+            // Она сама следит за выделенным, отпускает по Escape и умеет
+            // перебирать персонажей — переизобретать это в каждой сцене значит
+            // получать в каждой сцене свой набор мелких отличий.
+            // Ставится ПОСЛЕ создания runner'а (ему нужен SetRunner) — см. ниже.
 
             var root = new GameObject("HexLive AbuseTest Sim");
             _runner = root.AddComponent<SimulationRunnerBehaviour>();
@@ -63,6 +67,9 @@ namespace HexLive.UnityPresentation.AbuseTest
                 world.Tick = Simulation.Runtime.Spec81.AbuseGraceDays *
                     Simulation.Runtime.EnvironmentSystem.DayLengthTicks + 900;
             }
+
+            var rts = camGo.AddComponent<Input.RtsCameraController>();
+            rts.SetRunner(_runner);
 
             EquipBoth();
             InstallCharacterPanel();
@@ -150,38 +157,11 @@ namespace HexLive.UnityPresentation.AbuseTest
             {
                 _runner.TogglePause();
             }
-            else if (keyboard.leftArrowKey.wasPressedThisFrame)
-            {
-                CycleSelection(-1);
-            }
-            else if (keyboard.rightArrowKey.wasPressedThisFrame)
-            {
-                CycleSelection(1);
-            }
             else if (keyboard.rKey.wasPressedThisFrame)
             {
                 UnityEngine.SceneManagement.SceneManager.LoadScene(
                     UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
             }
-        }
-
-        // §91: стрелками — по всем, кто есть. Смотреть надо не только на него:
-        // половина вопросов («а что у НЕЁ со статами, почему она не убегает»)
-        // без этого просто не задаётся.
-        private static readonly int[] Everyone =
-        {
-            AbuseTestWorld.OutsiderId,
-            AbuseTestWorld.GirlId,
-            AbuseTestWorld.GirlId + 1,
-            AbuseTestWorld.GirlId + 2,
-        };
-
-        private int _selected;
-
-        private void CycleSelection(int step)
-        {
-            _selected = (_selected + step + Everyone.Length) % Everyone.Length;
-            Input.NpcSelection.Select(Everyone[_selected]);
         }
 
         private void InstallCharacterPanel()

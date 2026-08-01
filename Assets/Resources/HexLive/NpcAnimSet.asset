@@ -31,11 +31,11 @@ MonoBehaviour:
   armedIdle: {fileID: -203655887218126122, guid: 4b1c7d0af5eb04d6e9a1658453475d94, type: 3}
   armedWalk: {fileID: -203655887218126122, guid: 9e708ac3817d44062afa1909114df08c, type: 3}
   male:
-    idle: {fileID: 0}
-    walk: {fileID: 0}
-    slowRun: {fileID: 0}
-    run: {fileID: 0}
-    sit: {fileID: 0}
+    idle: {fileID: -203655887218126122, guid: 1ca163212da6e4d9199d522095fdfa09, type: 3}
+    walk: {fileID: -203655887218126122, guid: 79ce4ec43a17a4909aa50900f005c2b8, type: 3}
+    slowRun: {fileID: -203655887218126122, guid: 3d9b6641c0c85409bbad3b6ba806b9d5, type: 3}
+    run: {fileID: -203655887218126122, guid: 83e1a6a61910c4ab4ad9dc3265780b2c, type: 3}
+    sit: {fileID: -203655887218126122, guid: cf429408c49cc420596a8df523468276, type: 3}
   weapons:
   - weaponId: tool.spear
     idle: {fileID: 0}

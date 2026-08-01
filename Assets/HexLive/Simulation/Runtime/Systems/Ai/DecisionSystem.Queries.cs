@@ -691,8 +691,22 @@ public sealed partial class DecisionSystem
     private static float DirtyGarmentWashNeed(WorldState world, NPCState npc)
     {
         var need = 0f;
-        foreach (var obj in world.Entities.Objects.Values)
+
+        // §88: лежащие на берегу вещи считаются ТОЛЬКО те, что она видит.
+        // Раньше перебирался весь мир: любая грязная тряпка на другом конце
+        // острова поднимала кому угодно нужду стирать, и человек шёл через всю
+        // карту к вещи, о существовании которой знать не мог. Чужак при этом
+        // стирал ещё и одежду девушек. Восприятие — та же мера, что у соседних
+        // гейтов (см. KnowsReachableWarmthUpgrade).
+        foreach (var perceived in npc.Perception.Objects)
         {
+            if (!perceived.IsReachable ||
+                !ObjectUsableBy(perceived, npc.Id) ||
+                !world.Entities.Objects.TryGetValue(perceived.Id, out var obj))
+            {
+                continue;
+            }
+
             var contamination = MathUtil.Clamp01(obj.Dirtiness + obj.Bloodiness);
             if (contamination <= need ||
                 !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||

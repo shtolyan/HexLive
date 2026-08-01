@@ -226,7 +226,11 @@ namespace HexLive.Simulation.Runtime
         // §40.6 r2 (laundry-in-hand): 80 ticks — the piece is doffed off the
         // body / picked up off the shore into the hand and scrubbed there.
         public static int WashClothesDurationTicks = 80;
-        public static float WashClothesNeedThreshold = 0.2f;
+        // §88: 0.2 — это ПОЧТИ ЧИСТАЯ вещь. Порог был настолько низким, что
+        // одежда переползала его за считанные часы носки, и человек регулярно
+        // бросал дела и шёл через полкарты стирать то, на чём глазу не видно
+        // грязи. Пятно должно быть заметным, чтобы за ним идти.
+        public static float WashClothesNeedThreshold = 0.45f;
 
         // Laundry audit (Jul 2026): worn dirt never reached the wash chain —
         // DirtyGarmentWashNeed only scans garments ALREADY lying on a bathing

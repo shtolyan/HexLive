@@ -19,6 +19,7 @@ extra to install.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import uuid
 from collections.abc import Callable, Iterator
@@ -76,12 +77,22 @@ _BRIEF = """\
 
 
 def cli_path() -> Path | None:
-    """The bundled Claude Code binary, or None when it cannot be found."""
+    """The bundled Claude Code binary, or None when it cannot be found.
+
+    The pinned version goes stale on every desktop-app update, so the newest
+    sibling directory wins when it is gone. Both the physical package path and
+    the virtualised `%APPDATA%` view are searched — which of the two resolves
+    depends on whether this process was spawned by the app or from a plain
+    terminal, and only one of them exists in each case.
+    """
     if config.CLAUDE_CLI.exists():
         return config.CLAUDE_CLI
-    root = Path(config.CLAUDE_CLI).parent.parent
-    if root.is_dir():
-        # Version lives in the path; pick the newest one present.
+
+    roots = [config.CLAUDE_PACKAGE, Path(config.CLAUDE_CLI).parent.parent,
+             Path(os.environ.get("APPDATA", "")) / "Claude" / "claude-code"]
+    for root in roots:
+        if not root.is_dir():
+            continue
         found = sorted(root.glob("*/claude.exe")) + sorted(root.glob("*/claude"))
         if found:
             return found[-1]

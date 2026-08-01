@@ -42,12 +42,17 @@ BLENDER = _path(
 # The Claude Code CLI the desktop app ships — the same binary an interactive
 # session runs on, so a supervised job needs nothing extra installed. Its auth
 # is separate from the desktop app's, though: run it once and do /login.
-# The version sits in the path; supervisor.cli_path() falls back to the newest
-# sibling directory when this exact one is gone after an update.
-CLAUDE_CLI = _path(
-    "CLAUDE_CLI",
-    str(Path(os.environ.get("APPDATA", "")) / "Claude" / "claude-code"
-        / "2.1.219" / "claude.exe"))
+#
+# ⚠ Use the PHYSICAL path, not `%APPDATA%\Claude\...`. The desktop app is a
+# Store package, so its `%APPDATA%` is virtualised: processes the app itself
+# spawned see `Roaming\Claude\claude-code`, and a plain terminal opened by the
+# user does not — same file, two views. Everything under `LocalCache\Roaming`
+# is the real thing and resolves from any shell.
+CLAUDE_PACKAGE = _path(
+    "CLAUDE_PACKAGE",
+    str(Path(os.environ.get("LOCALAPPDATA", "")) / "Packages"
+        / "Claude_pzs8sxrjxfjjc" / "LocalCache" / "Roaming" / "Claude" / "claude-code"))
+CLAUDE_CLI = _path("CLAUDE_CLI", str(CLAUDE_PACKAGE / "2.1.219" / "claude.exe"))
 
 # The interpreter the pipeline stages run under (the package's own venv).
 WARDROBE_PYTHON = os.environ.get(

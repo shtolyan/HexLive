@@ -48,13 +48,17 @@ python -m wardrobe show  --drop sweetjane
 `supervisor.DEFAULT_ALLOWED_TOOLS`.
 
 Разовая настройка: CLI хранит свою авторизацию отдельно от десктопного
-приложения, поэтому один раз надо войти вручную.
+приложения, поэтому один раз надо войти вручную. В PowerShell:
 
 ```bash
-"%APPDATA%\Claude\claude-code\2.1.219\claude.exe"
+& "$env:LOCALAPPDATA\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\claude-code\2.1.219\claude.exe"
 ```
 
 и внутри `/login`. Ключ API не нужен — прогоны идут по подписке.
+
+Путь именно такой, длинный, **не** `%APPDATA%\Claude\...`: см. про виртуализацию
+ниже — короткий вариант работает только у процессов, порождённых самим
+приложением, и молча не находится из обычного терминала.
 
 ## Грабли, за которые заплачено
 
@@ -70,12 +74,17 @@ python -m wardrobe show  --drop sweetjane
   облаку вершин.
 - Плагин DAZ подхватывается только при СТАРТЕ студии, и сервер надо включить
   руками: Window → Panes → Daz Script Server → Start Server.
-- **Венв нельзя строить на Python из Microsoft Store.** Store-приложения видят
-  виртуализованный `%APPDATA%`: `os.listdir` по `Roaming\Claude` возвращал один
-  файл там, где PowerShell показывает два десятка папок, а `Path.exists()` на
-  `claude.exe` молча отвечал False — он глотает отказ в доступе и выдаёт его за
-  «файла нет». Окружение строится на управляемом CPython от uv
-  (`uv python install 3.12` → `uv venv --python 3.12`).
+- **`%APPDATA%` у Store-приложений виртуализован, и это бьёт в обе стороны.**
+  Десктопный Claude — Store-пакет, поэтому `Roaming\Claude\claude-code`
+  существует **только** для процессов, которые он сам породил. Обычный
+  PowerShell пользователя того же пути не видит («is not recognized»), а
+  Store-Python видел в `Roaming\Claude` один файл там, где PowerShell
+  показывает два десятка папок — причём `Path.exists()` молча отвечал False,
+  выдавая отказ в доступе за «файла нет». Лечится двумя вещами: венв на
+  управляемом CPython от uv (`uv python install 3.12` → `uv venv --python 3.12`)
+  и обращение к CLI по физическому пути
+  `%LOCALAPPDATA%\Packages\Claude_*\LocalCache\Roaming\Claude\claude-code\`,
+  который резолвится откуда угодно.
 - **У DAZ два способа носить вещь.** Одежда конформится (DzFigure со
   следованием), аксессуар парентится к кости. Считать только первое — значит
   объявить надетый убор ненадетым.

@@ -1,9 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
-using RootMotion.FinalIK;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.AI;
 
 namespace HexLive.UnityDebug.Editor
 {
@@ -25,6 +23,10 @@ namespace HexLive.UnityDebug.Editor
     /// Animator (общий контроллер, root motion off), один SkinnedMeshRenderer
     /// с 17 слотами кожи, BodyBones, LookAtIK, FullBodyBipedIK.
     /// MagicaCloth сознательно НЕ вешаем: у Jolly это подпрыгивание груди.
+    ///
+    /// Компоненты опознаются по ПОЛНОМУ ИМЕНИ ТИПА, а не через using: иначе
+    /// сборке UnityDebug пришлось бы ссылаться на FinalIK ради одной строчки
+    /// отчёта, а это лишнее ребро в графе компиляции всего проекта.
     /// </summary>
     public static class BuildKshishtofActor
     {
@@ -34,6 +36,14 @@ namespace HexLive.UnityDebug.Editor
 
         // Тело. Всё остальное на префабе — одежда исходного проекта.
         private const string BodyRenderer = "Genesis3Male.Shape";
+
+        // Что переживает срез (кроме Transform/Animator/SkinnedMeshRenderer).
+        private static readonly string[] KeepTypes =
+        {
+            "HexLive.UnityPresentation.Wearing.BodyBones",
+            "RootMotion.FinalIK.LookAtIK",
+            "RootMotion.FinalIK.FullBodyBipedIK",
+        };
 
         [MenuItem("HexLive/Actors/Build Kshishtof")]
         public static void Build()
@@ -67,10 +77,9 @@ namespace HexLive.UnityDebug.Editor
                 var report = new List<string>();
                 StripWornMeshes(root, report);
                 StripForeignComponents(root, report);
-                var body = EnsureBody(root, report);
+                ReportBody(root, report);
                 EnsureAnimator(root, report);
-                EnsureBodyBones(root, body, report);
-                EnsureIk(root, body, report);
+                ReportKeptRig(root, report);
 
                 System.IO.Directory.CreateDirectory(
                     System.IO.Path.GetDirectoryName(TargetPrefab) ?? string.Empty);
@@ -92,7 +101,7 @@ namespace HexLive.UnityDebug.Editor
         {
             foreach (var renderer in root.GetComponentsInChildren<SkinnedMeshRenderer>(true).ToArray())
             {
-                if (renderer.gameObject.name == BodyRenderer)
+                if (renderer == null || renderer.gameObject.name == BodyRenderer)
                 {
                     continue;
                 }
@@ -103,28 +112,30 @@ namespace HexLive.UnityDebug.Editor
         }
 
         /// <summary>
-        /// Оснастка чужого проекта. Бьём по ТИПУ, а не по имени: скрипты
-        /// molly_copy в этом проекте не существуют вовсе, поэтому приходят как
-        /// «missing script» — их ловим отдельным проходом.
+        /// Оснастка чужого проекта. Удаляются только КОМПОНЕНТЫ, не объекты:
+        /// пустой GameObject здесь — это, как правило, кость скелета, и снос
+        /// «пустышек» разобрал бы актёра.
+        ///
+        /// Скрипты molly_copy в этом проекте не существуют вовсе, поэтому
+        /// приходят как «missing script» и ловятся отдельным проходом.
         /// </summary>
         private static void StripForeignComponents(GameObject root, List<string> report)
         {
             var doomed = new List<Component>();
             foreach (var component in root.GetComponentsInChildren<Component>(true))
             {
-                switch (component)
+                if (component == null) // missing script — снимаем ниже
                 {
-                    case null: // missing script — снимаем ниже
-                        continue;
-                    case Transform:
-                    case Animator:
-                    case SkinnedMeshRenderer:
-                    case LookAtIK:
-                    case FullBodyBipedIK:
-                        continue;
+                    continue;
                 }
 
-                if (component.GetType().FullName == "HexLive.UnityPresentation.Wearing.BodyBones")
+                if (component is Transform || component is Animator || component is SkinnedMeshRenderer)
+                {
+                    continue;
+                }
+
+                var fullName = component.GetType().FullName ?? string.Empty;
+                if (KeepTypes.Contains(fullName))
                 {
                     continue;
                 }
@@ -144,36 +155,30 @@ namespace HexLive.UnityDebug.Editor
             }
 
             var missing = 0;
-            foreach (var go in root.GetComponentsInChildren<Transform>(true).Select(t => t.gameObject))
+            foreach (var transform in root.GetComponentsInChildren<Transform>(true))
             {
-                missing += GameObjectUtility.RemoveMonoBehavioursWithMissingScript(go);
+                missing += GameObjectUtility.RemoveMonoBehavioursWithMissingScript(transform.gameObject);
             }
 
             if (missing > 0)
             {
                 report.Add($"  снято битых скриптов (molly_copy): {missing}");
             }
-
-            foreach (var agent in root.GetComponentsInChildren<NavMeshAgent>(true).ToArray())
-            {
-                Object.DestroyImmediate(agent);
-            }
         }
 
-        private static SkinnedMeshRenderer EnsureBody(GameObject root, List<string> report)
+        private static void ReportBody(GameObject root, List<string> report)
         {
             var body = root.GetComponentsInChildren<SkinnedMeshRenderer>(true)
-                .FirstOrDefault(r => r.gameObject.name == BodyRenderer);
+                .FirstOrDefault(r => r != null && r.gameObject.name == BodyRenderer);
             if (body == null)
             {
                 Debug.LogError($"[Kshishtof] Нет рендерера тела '{BodyRenderer}'.");
-                return null;
+                return;
             }
 
             // Пейнтер кожи (§40.8-G) кормит только слоты ПЕРВОГО кожаного
             // рендерера, поэтому все 17 обязаны сидеть на этом одном.
             report.Add($"  тело: {body.sharedMaterials.Length} слотов материалов на одном рендерере");
-            return body;
         }
 
         private static void EnsureAnimator(GameObject root, List<string> report)
@@ -198,22 +203,14 @@ namespace HexLive.UnityDebug.Editor
             }
         }
 
-        private static void EnsureBodyBones(GameObject root, SkinnedMeshRenderer body, List<string> report)
+        private static void ReportKeptRig(GameObject root, List<string> report)
         {
-            var bones = root.GetComponentsInChildren<Component>(true)
-                .FirstOrDefault(c => c != null &&
-                    c.GetType().FullName == "HexLive.UnityPresentation.Wearing.BodyBones");
-            report.Add(bones == null
-                ? "  ВНИМАНИЕ: BodyBones не найден — одежду вешать некуда"
-                : "  BodyBones: перенесён из molly_copy (hip/wearTransform/genitals заполнены, hair пустой — он рантайм)");
-        }
-
-        private static void EnsureIk(GameObject root, SkinnedMeshRenderer body, List<string> report)
-        {
-            var look = root.GetComponentInChildren<LookAtIK>(true);
-            var fbbik = root.GetComponentInChildren<FullBodyBipedIK>(true);
-            report.Add($"  FinalIK: LookAtIK={(look != null ? "есть" : "НЕТ")} " +
-                       $"FullBodyBipedIK={(fbbik != null ? "есть" : "НЕТ")}");
+            foreach (var kept in KeepTypes)
+            {
+                var found = root.GetComponentsInChildren<Component>(true)
+                    .Any(c => c != null && (c.GetType().FullName ?? string.Empty) == kept);
+                report.Add($"  {kept.Split('.').Last()}: {(found ? "есть" : "НЕТ")}");
+            }
         }
     }
 }

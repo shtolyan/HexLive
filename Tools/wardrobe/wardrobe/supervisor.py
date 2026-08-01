@@ -18,6 +18,7 @@ extra to install.
 """
 from __future__ import annotations
 
+import html
 import json
 import os
 import re
@@ -139,18 +140,29 @@ def cancel() -> bool:
         return True
 
 
+# Every line that reaches Telegram is HTML: dynamic text is escaped here, and
+# the only tags are the ones this module puts in deliberately.
 _STAGE_WORDS = {
-    "check": "проверяю окружение",
-    "fetch": "качаю архивы",
-    "install": "распаковываю в библиотеку DAZ",
-    "dress": "одеваю девушек",
-    "build": "переношу текстуры и собираю манифест",
-    "show": "смотрю манифест",
-    "register": "прописываю вещи в симуляцию",
-    "unity": "собираю префабы в Unity",
-    "preview": "рендерю превью",
+    "check": ("🔎", "Проверяю окружение"),
+    "fetch": ("⬇️", "Качаю архивы"),
+    "install": ("📦", "Распаковываю в библиотеку DAZ"),
+    "dress": ("👗", "Одеваю девушек"),
+    "build": ("🎨", "Переношу текстуры и собираю манифест"),
+    "show": ("📋", "Смотрю манифест"),
+    "register": ("📝", "Прописываю вещи в симуляцию"),
+    "unity": ("🧩", "Собираю префабы в Unity"),
+    "preview": ("🖼", "Рендерю превью"),
 }
 _STAGE_RE = re.compile(r"-m\s+wardrobe\s+([a-z]+)")
+_BOLD_RE = re.compile(r"\*\*(.+?)\*\*", re.S)
+_CODE_RE = re.compile(r"`([^`]+)`")
+
+
+def _to_html(text: str) -> str:
+    """Escape agent prose, then honour the little markdown it tends to use."""
+    safe = html.escape(text)
+    safe = _BOLD_RE.sub(r"<b>\1</b>", safe)
+    return _CODE_RE.sub(r"<code>\1</code>", safe)
 
 
 def _humanise_tool(name: str, params: dict) -> str:
@@ -160,31 +172,34 @@ def _humanise_tool(name: str, params: dict) -> str:
     the interesting part is which STAGE is running, not how it was spelled.
     """
     def leaf(value: object) -> str:
-        return Path(str(value)).name or str(value)
+        return html.escape(Path(str(value)).name or str(value))
 
     if name == "Bash":
         command = str(params.get("command", ""))
         stage = _STAGE_RE.search(command)
         if stage:
-            return "▸ " + _STAGE_WORDS.get(stage.group(1), f"стадия {stage.group(1)}")
+            icon, words = _STAGE_WORDS.get(stage.group(1), ("⚙️", f"Стадия {stage.group(1)}"))
+            return f"{icon} <b>{words}</b>"
         if "git " in command:
-            return "▸ смотрю историю правок"
+            return "🕓 <i>смотрю историю правок</i>"
         # Strip absolute paths, keep the shape of the command.
         short = re.sub(r"[A-Za-z]:[\\/][^\s\"']+[\\/]", "", command).strip()
-        return "▸ " + (short[:100] + "…" if len(short) > 100 else short)
+        short = short[:90] + "…" if len(short) > 90 else short
+        return f"⚙️ <code>{html.escape(short)}</code>"
 
     if name in ("Read", "Edit", "Write", "NotebookEdit"):
-        verb = {"Read": "читаю", "Edit": "правлю", "Write": "пишу"}.get(name, name.lower())
+        icon, verb = {"Read": ("📄", "читаю"), "Edit": ("✏️", "правлю"),
+                      "Write": ("💾", "пишу")}.get(name, ("⚙️", name.lower()))
         target = params.get("file_path") or params.get("path")
-        return f"▸ {verb} {leaf(target)}" if target else f"▸ {verb}"
+        return f"{icon} <i>{verb}</i> <code>{leaf(target)}</code>" if target else f"{icon} <i>{verb}</i>"
 
     if name in ("Grep", "Glob"):
-        return f"▸ ищу {params.get('pattern', '')}".strip()
+        return f"🔍 <i>ищу</i> <code>{html.escape(str(params.get('pattern', '')))}</code>"
 
     if name == "TodoWrite":
         return ""  # bookkeeping, not progress
 
-    return f"▸ {name}"
+    return f"⚙️ <i>{html.escape(name)}</i>"
 
 
 def _render(event: dict) -> Iterator[str]:

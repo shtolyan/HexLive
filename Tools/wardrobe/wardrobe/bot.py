@@ -116,10 +116,16 @@ def _relay(context: ContextTypes.DEFAULT_TYPE, chat: int):
 
     async def send(text: str) -> None:
         for i in range(0, len(text), _MAX_MESSAGE):
+            chunk = text[i:i + _MAX_MESSAGE]
             try:
-                await context.bot.send_message(chat, text[i:i + _MAX_MESSAGE])
+                await context.bot.send_message(chat, chunk, parse_mode=ParseMode.HTML)
             except Exception:  # noqa: BLE001 — a lost line must not kill the job
-                log.exception("не отправилась строка прогресса")
+                # Malformed markup must not cost the line itself; a split
+                # mid-tag is enough to make Telegram reject the whole message.
+                try:
+                    await context.bot.send_message(chat, chunk)
+                except Exception:
+                    log.exception("не отправилась строка прогресса")
 
     async def pump() -> None:
         buffer: list[str] = []
@@ -143,7 +149,12 @@ def _relay(context: ContextTypes.DEFAULT_TYPE, chat: int):
 
 
 async def links(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Hand the job to a supervised Claude Code session."""
+    """Run the pipeline and relay it; call the agent in only when it breaks.
+
+    The agent is expensive and its narration is second-hand. On the happy path
+    the script already says what it is doing, so it speaks for itself and no
+    session is started at all — the agent is an escalation, not a narrator.
+    """
     if not _allowed(update):
         return
     urls = _URL.findall(update.message.text or "")
@@ -155,35 +166,63 @@ async def links(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
 
     chat = update.effective_chat.id
-    task = (
-        "Провести новую поставку одежды по ссылкам:\n"
-        + "\n".join(f"  {u}" for u in urls)
-        + "\n\nПорядок: fetch → install → dress → build. Девушки — Genesis 3 "
-          "Female, поэтому из каждого продукта нужны версии под G3F; если их "
-          "нет, скажи об этом и не пытайся натянуть чужое поколение. "
-          "Остановись на черновике манифеста — названия и слоты придумывает "
-          "человек."
-    )
 
     async with _lock:
-        await update.message.reply_text(
-            f"Принял {len(urls)} ссылк(и). Поднимаю сессию-надзиратель.")
+        await context.bot.send_message(
+            chat, f"🌙 <b>Новая поставка</b>\nСсылок: {len(urls)}",
+            parse_mode=ParseMode.HTML)
         progress, queue, pump = _relay(context, chat)
         pumping = asyncio.create_task(pump())
+
+        def plain(line: str) -> None:
+            progress(html.escape(line))
+
         try:
-            report = await asyncio.to_thread(supervisor.run, task, progress)
+            report = await asyncio.to_thread(pipeline.intake, urls, plain)
+        except Exception as e:  # noqa: BLE001
+            log.exception("поставка упала")
+            report = {"ok": False, "errors": [f"неожиданная ошибка: {e}"]}
+
+        if report.get("ok"):
+            await queue.put(None)
+            await pumping
+            summary = pipeline.summarise(report.get("garments") or [])
+            await context.bot.send_message(
+                chat,
+                f"✅ <b>Поставка {html.escape(report.get('drop', ''))} собрана</b>\n\n"
+                f"<pre>{html.escape(summary)}</pre>\n\n"
+                "Дальше нужны названия, описания и параметры — это решение человека.",
+                parse_mode=ParseMode.HTML)
+            return
+
+        # Something broke. Now the agent earns its keep.
+        problems = "\n".join(f"• {e}" for e in (report.get("errors") or ["без подробностей"]))
+        progress("⚠️ <b>Что-то пошло не так</b>\n" + html.escape(problems)
+                 + "\n\n🤖 <i>Зову агента разбираться…</i>")
+
+        task = (
+            "Прогон конвейера сорвался. Вот что сообщила упавшая стадия:\n\n"
+            + problems
+            + "\n\nСсылки поставки:\n" + "\n".join(f"  {u}" for u in urls)
+            + "\n\nРазберись, почему так вышло, и почини. Стадии, которые уже "
+              "отработали, повторять не нужно — скачанное и распакованное на "
+              "месте. Девушки — Genesis 3 Female."
+        )
+        try:
+            fixed = await asyncio.to_thread(supervisor.run, task, progress)
         except Exception as e:  # noqa: BLE001
             log.exception("надзиратель упал")
-            report = {"ok": False, "errors": [f"неожиданная ошибка: {e}"]}
+            fixed = {"ok": False, "errors": [f"неожиданная ошибка: {e}"]}
         finally:
             await queue.put(None)
             await pumping
 
-    if report.get("ok"):
-        await context.bot.send_message(chat, "✅ Поставка завершена.")
+    if fixed.get("ok"):
+        await context.bot.send_message(
+            chat, "🤖 Агент закончил разбор. Проверьте вывод выше и запустите поставку снова.")
     else:
-        problems = "\n".join(f"• {e}" for e in (report.get("errors") or ["без подробностей"]))
-        await context.bot.send_message(chat, f"❌ Не доехали:\n{problems}")
+        trouble = "\n".join(f"• {e}" for e in (fixed.get("errors") or ["без подробностей"]))
+        await context.bot.send_message(chat, f"❌ Не выправилось:\n{trouble}")
 
 
 async def raw(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

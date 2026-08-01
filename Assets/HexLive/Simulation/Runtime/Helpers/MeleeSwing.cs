@@ -50,9 +50,18 @@ internal static class MeleeSwing
             actor.StrikeLandsAtTick = 0;
             StrikeTimings(gear, actor.SwingStrikeIndex,
                 out var hitDelay, out var duration, out var cooldown);
-            actor.StrikeReadyAtTick = world.Tick + SecondsToTicks(duration - hitDelay + cooldown);
+            // §76: Agility shortens the recovery between swings — the same
+            // weapon, swung back into position sooner. The windup (hitDelay)
+            // and the animation length are left alone: those are the CLIP, and
+            // speeding them up would desync the view's attack window.
+            actor.StrikeReadyAtTick = world.Tick + SecondsToTicks(
+                (duration - hitDelay + cooldown) * AttributeMath.AttackCooldownMult(actor));
             // Spec 19.3C: hurt arms strike weaker; the weapon owns its damage.
-            damage = GearCatalog.Damage(weaponId) * actor.Body.StrikeFactor();
+            // §76: StrikeFactor() now also carries her Strength and her Combat.
+            damage = GearCatalog.Damage(weaponId) * actor.StrikeFactor();
+            // §76: a landed blow is the only way Combat is practised. Awarded on
+            // the HIT, not on the swing — swinging at air teaches nothing.
+            SkillTrace.AwardHit(world, actor);
             return true;
         }
 
@@ -110,8 +119,8 @@ internal static class MeleeSwing
     {
         var part = AmputateSystemHelpers.RedirectFromStump(
             target, PickHumanPart(world, attacker.Id.Value));
-        var partArmor = EquipmentMath.ArmorForPart(world, target, part);
-        var landed = System.Math.Max(0f, damage * (1f - partArmor));
+        var partArmor = EquipmentMath.ArmorForPart(world, target, part); // trace only
+        var landed = EquipmentMath.Mitigate(world, target, part, damage);
 
         target.Body.Parts[part] = System.Math.Max(0f, target.Body.Parts[part] - landed);
         target.Health = target.Body.Mean();

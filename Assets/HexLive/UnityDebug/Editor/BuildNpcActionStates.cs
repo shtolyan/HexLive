@@ -50,6 +50,11 @@ namespace HexLive.UnityDebug.Editor
             // "Speed" (which stays the Idle<->Walk switch) so the two never
             // fight: Speed decides WHETHER she moves, Gait decides HOW.
             AddParam(ac, "Gait", AnimatorControllerParameterType.Float);
+            // §77.5: playback speed of the one-gesture work states, so ONE
+            // interaction is ONE playthrough of its clip however long the sim
+            // made the window. Same idiom as JumpSpeed (§HexHop). Default 1 =
+            // authored pace, so a controller built before this reads identical.
+            AddParam(ac, "ActionSpeed", AnimatorControllerParameterType.Float, 1f);
 
             var sm = ac.layers[0].stateMachine;
             var idle = Find(sm, "Idle");
@@ -90,6 +95,11 @@ namespace HexLive.UnityDebug.Editor
             // loop the swing, return to Idle when it clears.
             Loopy(sm, chop, idle, "Chopping");
             Loopy(sm, craft, idle, "Crafting");
+
+            // §77.5: the two one-gesture work states play their clip exactly
+            // once per interaction (see FitClipToWindow).
+            FitClipToWindow(gather);
+            FitClipToWindow(craft);
 
             // Attack: fired by a trigger, plays once, exits by time.
             ClearAny(sm, attack);
@@ -148,13 +158,42 @@ namespace HexLive.UnityDebug.Editor
                 $"attack={attack.motion != null} death={death.motion != null}");
         }
 
-        static void AddParam(AnimatorController ac, string n, AnimatorControllerParameterType t)
+        static void AddParam(AnimatorController ac, string n, AnimatorControllerParameterType t,
+            float defaultFloat = 0f)
         {
+            var exists = false;
             foreach (var p in ac.parameters)
             {
-                if (p.name == n) return;
+                if (p.name == n) exists = true;
             }
-            ac.AddParameter(n, t);
+            if (!exists) ac.AddParameter(n, t);
+            if (defaultFloat == 0f)
+            {
+                return;
+            }
+            // AddParameter has no default-value overload, so a float that must
+            // NOT start at 0 is patched after the fact — and re-asserted on a
+            // re-run, because a SPEED left at 0 freezes the state dead and that
+            // must not be one careless controller edit away.
+            var all = ac.parameters;
+            foreach (var p in all)
+            {
+                if (p.name == n) p.defaultFloat = defaultFloat;
+            }
+            ac.parameters = all;
+        }
+
+        // §77.5: one interaction = one playthrough. The state plays its clip at
+        // ActionSpeed instead of the authored 1, and the view sets that float to
+        // clipLength / interactionSeconds — long job, slow motion; short job,
+        // brisk. Only states where ONE interaction IS ONE gesture get this:
+        // Chop is a REPEATED swing at a tree and must keep looping, and the
+        // wardrobe/talk beats have their own timing.
+        static void FitClipToWindow(AnimatorState s)
+        {
+            if (s == null) return;
+            s.speedParameterActive = true;
+            s.speedParameter = "ActionSpeed";
         }
 
         static AnimatorState Find(AnimatorStateMachine sm, string n)

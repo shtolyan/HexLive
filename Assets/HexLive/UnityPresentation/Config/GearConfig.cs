@@ -66,8 +66,8 @@ namespace HexLive.UnityPresentation.Config
         public bool twoHanded;
         [Tooltip("Легаси-темп для medium-путей (защитники/предация): 1 = каждый проход.")]
         [Range(0.1f, 1f)] public float attackSpeed = 1f;
-        [Tooltip("Ускорение добычи: длительность валки делится на лучший множитель среди снаряжения (пила 2 = вдвое быстрее).")]
-        [Range(1f, 4f)] public float harvestSpeedMult = 1f;
+        [Tooltip("§79 ТЕМП РАБОТЫ этим инструментом: длительность работы делится на него. Считается только у того предмета, который УМЕЕТ эту работу (по способностям ниже): мачете 2 = вдвое быстрее топора, топор 1 = эталон, нож 0.75 = им рубить долго. Меньше 1 = медленнее.")]
+        [Range(0.25f, 4f)] public float harvestSpeedMult = 1f;
 
         [Header("Инструмент — способности (enum; сим гейтится на них, не на id)")]
         [Tooltip("Что умеет предмет: Cut, Butcher, ChopWood, Mine, Hammer, Ignite, Boil, Saw, Sew, CarryWater, Dressing…")]

@@ -68,6 +68,21 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // §Wardrobe-anim: must match ExecutionSystem.WardrobeHandoffFraction — the
     // beat split where the garment changes hands (gather<->don, doff<->gather).
     private const float WardrobeHandoffFraction = 0.5f;
+    // §77.5: playback speed of the one-gesture work states (Gather, CraftWork),
+    // so ONE interaction is ONE playthrough of the clip whatever window the sim
+    // hands us. Same idiom as JumpSpeed. Both states read this float; every
+    // other state keeps its authored pace.
+    private static readonly int ActionSpeedParam = Animator.StringToHash("ActionSpeed");
+    // Base-clip KEYS of the two fitted states, for looking up their live length
+    // (the override controller may have swapped in a different take).
+    private const string GatherBaseClip = "X Bot@Gathering Objects";
+    private const string CraftBaseClip = "X Bot@Plant A Plant";
+    // The fit is CLAMPED, and the band is the whole design decision. Below it a
+    // long job would crawl in visible slow motion; above it a 1-second pickup
+    // would fire the whole 6-second stoop as a twitch. Outside the band we let
+    // the clip loop / get cut as before — the fit is a polish, not a contract.
+    private const float ActionSpeedMin = 0.6f;
+    private const float ActionSpeedMax = 1.6f;
     // Spec 40.x: runtime handedness — drives Humanoid mirror on the one-handed
     // clip states (Drink/Gather/Talk/Attack) so a lefty/lost-right-hand NPC
     // acts with the other hand without any clip rebake.
@@ -425,6 +440,22 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // AnimatorOverrideController keys. Overriding all three with one clip (the
     // §50 crawl) pins her to a single gait that can never blend into a run.
     private static readonly string[] GaitClipKeys = { "Walk", "X Bot@Slow Run", "X Bot@Running" };
+    // §78: the Idle and Sit states' clip keys. Sit's take lives in
+    // Locomotion/Animations, OUTSIDE the AnimLibrary folder whose import
+    // postprocessor renames clips after the file — so it kept Mixamo's own
+    // export name, and that string IS the override key. Ugly, but honest:
+    // renaming the clip now would repoint the controller's Sit state at
+    // nothing.
+    private const string IdleClipKey = "Idle";
+    private const string SitClipKey = "mixamo.com";
+    // §78: the locomotion clips THIS actor plays, keyed by the base-clip name
+    // they replace. A male body walking the colonists' authored takes reads as
+    // somebody else's gait, so the men get their own set (NpcAnimSet.male).
+    // The map doubles as the "restore to base" source: the armed stance hands
+    // Idle/Walk back when a tool leaves the hand, and it must hand back HIS
+    // clip, not the controller's — otherwise picking up an axe permanently
+    // turned him back into a girl.
+    private readonly Dictionary<string, AnimationClip> _actorLocomotion = new();
     private static readonly int GaitParam = Animator.StringToHash("Gait");
     private float _gait;
     // §71: the sim's gait decision (SetRunning). NOT re-derived from speed.
@@ -811,7 +842,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // clip whose name contains "Jump".
         if (_animator != null && _animator.runtimeAnimatorController != null)
         {
-            foreach (var clip in _animator.runtimeAnimatorController.animationClips)
+            // §78: always index and wrap the AUTHORED controller. A second
+            // Construct on the same instance (the test scenes swap the actor in
+            // place) would otherwise wrap the previous override, and the clips
+            // it had already swapped in would become the new base KEYS — after
+            // which nothing could ever hand the original takes back.
+            var authored = _animator.runtimeAnimatorController;
+            if (authored is AnimatorOverrideController wrapped &&
+                wrapped.runtimeAnimatorController != null)
+            {
+                authored = wrapped.runtimeAnimatorController;
+            }
+
+            foreach (var clip in authored.animationClips)
             {
                 if (clip == null)
                 {
@@ -830,7 +873,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             }
 
             // Wrap the controller so action-state clips can be swapped live.
-            _animOverride = new AnimatorOverrideController(_animator.runtimeAnimatorController);
+            _animOverride = new AnimatorOverrideController(authored);
             _animator.runtimeAnimatorController = _animOverride;
 
             // Sync the runtime mirror params to the current handedness so a
@@ -858,6 +901,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         _actorMesh = parsed;
+        // §78: his own walk/idle/sit, now that we know whose body this is.
+        ApplyActorLocomotion();
         if (_bodyBones != null)
         {
             _bodyBones.Construct(_actorMesh);
@@ -1419,7 +1464,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // Everything else standing → the prone idle. (The game leaves these base
         // clips in place — no NpcAnimSet action variants — so overriding the base
         // clip name here is what actually swaps them.)
-        OverrideClip("Idle", ProneClip);
+        OverrideClip(IdleClipKey, ProneClip);
         OverrideClip("crouch", ProneClip);
         OverrideClip("TurnOnSpotRightB", ProneClip);
         OverrideClip("TurnOnSpotLeftA", ProneClip);
@@ -2071,7 +2116,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     // Spec 31C.6: interaction poses — crouch while gathering/working, sit
     // on Sit, and hold the relevant item in the right hand.
-    public void SetInteraction(string interaction, string heldItemId, bool aidTargetLying = false)
+    public void SetInteraction(string interaction, string heldItemId, bool aidTargetLying = false,
+        float interactionSeconds = 0f)
     {
         if (_legless && IsToolOrWeapon(heldItemId))
         {
@@ -2133,6 +2179,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // Clip source: config override if present, else the state's base clip.
             if (gathering && _animSet != null) OverrideClip("X Bot@Gathering Objects", Standing(_animSet.gather));
             if (drinking && _animSet != null) OverrideClip("X Bot@Drinking", Standing(_animSet.drink)); // legless drinks prone
+            // §77.5: fit the work clip to the sim's window — one interaction,
+            // one playthrough. Set AFTER the clip swap above, because the length
+            // we divide by is the length of whatever take is actually bound.
+            _animator.SetFloat(ActionSpeedParam, gathering
+                ? FitClipSpeed(GatherBaseClip, interactionSeconds)
+                : kneelingCraft
+                    ? FitClipSpeed(CraftBaseClip, interactionSeconds)
+                    : 1f);
         }
 
         // A full-body clip now covers these (incl. the axe swing and the craft
@@ -2395,15 +2449,23 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         var idleClip = gearIdle != null ? gearIdle : _animSet.armedIdle;
         var walkClip = gearWalk != null ? gearWalk : _animSet.armedWalk;
 
+        // §78: the restore goes through BaseLocomotionClip, not the controller's
+        // clip table — for a male actor "his" idle/walk IS the base, and handing
+        // back the authored take would undo his gait the moment a tool left his
+        // hand.
         if (idleClip != null)
         {
             if (armed)
             {
-                OverrideClip("Idle", Standing(idleClip));
+                OverrideClip(IdleClipKey, Standing(idleClip));
             }
-            else if (_clipsByName.TryGetValue("Idle", out var baseIdle))
+            else
             {
-                OverrideClip("Idle", Standing(baseIdle)); // legless stays prone
+                var baseIdle = BaseLocomotionClip(IdleClipKey);
+                if (baseIdle != null)
+                {
+                    OverrideClip(IdleClipKey, Standing(baseIdle)); // legless stays prone
+                }
             }
         }
 
@@ -2412,11 +2474,15 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             if (armed)
             {
-                OverrideClip("Walk", walkClip);
+                OverrideClip(GaitClipKeys[0], walkClip);
             }
-            else if (_clipsByName.TryGetValue("Walk", out var baseWalk))
+            else
             {
-                OverrideClip("Walk", baseWalk);
+                var baseWalk = BaseLocomotionClip(GaitClipKeys[0]);
+                if (baseWalk != null)
+                {
+                    OverrideClip(GaitClipKeys[0], baseWalk);
+                }
             }
         }
 
@@ -2431,6 +2497,94 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             OverrideClip(ChopBaseClip, baseChop);
         }
+    }
+
+    // §78: give the actor the locomotion authored for HIS body. The animator is
+    // one controller for everyone and its takes are the colonists' — a man
+    // walking them reads instantly as a woman's gait — so the male set from
+    // NpcAnimSet swaps the five locomotion slots: the idle, the three §71
+    // GaitBlend slots, and the sit (one clip for both seats, a stump and the
+    // hex rim are the same pose).
+    //
+    // Called ONCE from Construct, after the override controller exists and the
+    // mesh is known. Slots the set leaves empty keep the controller's take, and
+    // a female actor clears the map back to it — a re-Construct that swaps the
+    // sex on one instance must not leave his walk on her body. The §50 legless
+    // overrides run later and win: a man who lost a leg crawls like anyone.
+    private void ApplyActorLocomotion()
+    {
+        _actorLocomotion.Clear();
+        var set = _animSet != null && ActorSex.Of(_actorMesh) == VisualGender.Male
+            ? _animSet.male
+            : null;
+
+        SetLocomotionClip(IdleClipKey, set?.idle);
+        SetLocomotionClip(GaitClipKeys[0], set?.walk);
+        SetLocomotionClip(GaitClipKeys[1], set?.slowRun);
+        SetLocomotionClip(GaitClipKeys[2], set?.run);
+        SetLocomotionClip(SitClipKey, set?.sit);
+    }
+
+    // One locomotion slot: remember the actor's clip and play it, or hand the
+    // slot back to the controller's authored take when he has none.
+    private void SetLocomotionClip(string baseName, AnimationClip clip)
+    {
+        if (clip != null)
+        {
+            _actorLocomotion[baseName] = clip;
+            OverrideClip(baseName, clip);
+        }
+        else if (_clipsByName.TryGetValue(baseName, out var authored))
+        {
+            OverrideClip(baseName, authored);
+        }
+    }
+
+    // What a locomotion slot falls back to for THIS actor: his own take when he
+    // has one, the controller's otherwise.
+    private AnimationClip BaseLocomotionClip(string baseName)
+    {
+        if (_actorLocomotion.TryGetValue(baseName, out var mine))
+        {
+            return mine;
+        }
+
+        return _clipsByName.TryGetValue(baseName, out var authored) ? authored : null;
+    }
+
+    // §77.5: how fast a one-gesture work state must run so its clip plays
+    // EXACTLY ONCE across the sim's interaction window. Long job → slow motion,
+    // short job → brisk, and the §76/§78 multipliers that stretch a job no
+    // longer show up as a clip restarting and being cut off mid-stoop.
+    //
+    // Length comes from the LIVE clip (the override controller may have swapped
+    // the authored take for an NpcAnimSet one, or the §50 prone clip), so the
+    // fit follows whatever is actually playing. Unknown length or no window →
+    // 1 = authored pace, i.e. exactly the pre-§77.5 behaviour.
+    private float FitClipSpeed(string baseName, float windowSeconds)
+    {
+        if (windowSeconds <= 0.01f)
+        {
+            return 1f;
+        }
+
+        var length = EffectiveClipLength(baseName);
+        return length <= 0.01f
+            ? 1f
+            : Mathf.Clamp(length / windowSeconds, ActionSpeedMin, ActionSpeedMax);
+    }
+
+    // The clip a base-clip KEY currently plays: the override if one was set,
+    // else the authored take. Mirrors how OverrideClip writes the same slot.
+    private float EffectiveClipLength(string baseName)
+    {
+        if (!_clipsByName.TryGetValue(baseName, out var baseClip) || baseClip == null)
+        {
+            return 0f;
+        }
+
+        var live = _animOverride != null ? _animOverride[baseClip] : null;
+        return live != null ? live.length : baseClip.length;
     }
 
     // §NPC-anim: swap the clip a base-clip key plays, via the override controller.
@@ -2642,7 +2796,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             var stance = Config.GearLibrary.ArmedIdleFor(string.Empty);
             if (stance != null)
             {
-                OverrideClip("Idle", Standing(stance));
+                OverrideClip(IdleClipKey, Standing(stance));
                 _bareStance = true;
             }
         }
@@ -2906,11 +3060,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     {
         switch (itemId)
         {
-            case "tool.bottle":
-                localPosition = new Vector3(0.0543f, -0.0236f, -0.051f);
-                localRotation = Quaternion.Euler(91.974f, 0.001007f, -6.520996f);
-                localScale = new Vector3(0.349494f, 0.349494f, 0.349494f);
-                break;
+            // tool.bottle used to bake an ABSOLUTE scale here, tuned against the
+            // old procedural bottle mesh; the AI plastic bottle is 2.3x taller,
+            // so that number was a lie. Its pose now lives in the gear asset
+            // (bottle.asset, «Хват в руке»), where the scale is a MULTIPLIER
+            // over ObjectFit and the model can change size freely.
             case "food.coconut":
                 localPosition = new Vector3(0.061f, -0.142f, 0.001f);
                 localRotation = Quaternion.Euler(0.808f, 0f, 0f);

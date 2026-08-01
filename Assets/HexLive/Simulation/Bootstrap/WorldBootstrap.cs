@@ -131,6 +131,16 @@ public sealed class NpcBootstrap
     public float Social { get; set; }
 
     public float ThermalDiscomfort { get; set; }
+
+    // §76: authored characteristics, same blank-means-roll rule as §74's
+    // appearance. Empty = the world rolls all six from the seed; an entry here
+    // pins that one attribute and leaves the rest rolled, which is how a
+    // headless probe pits a deliberately strong girl against a deliberately
+    // frail one without hunting for a seed that happens to produce them.
+    //
+    // NOTE a pinned value breaks the point-buy budget on purpose — it is
+    // authorial intent, not a roll.
+    public Dictionary<Agents.AttributeKind, float> Attributes { get; } = new();
 }
 
 }

@@ -95,6 +95,15 @@ public sealed class TemperatureSystem : ISimulationSystem
                 pressure *= Spec49.ThermalSleepFactor;
             }
 
+            // §76: Hardiness — heat and cold press on her less. Only the RISING
+            // side is scaled, exactly like the sleep factor above: the attribute
+            // is a tolerance for the weather, not a faster thaw at the fire
+            // (that is what the fire is for).
+            if (pressure > 0f)
+            {
+                pressure *= AttributeMath.ThermalPressureMult(npc);
+            }
+
             npc.Needs.ThermalDiscomfort = MathUtil.Clamp01(npc.Needs.ThermalDiscomfort + pressure);
 
             // Signed comfort for the UI — fire already folded into baseTemp.

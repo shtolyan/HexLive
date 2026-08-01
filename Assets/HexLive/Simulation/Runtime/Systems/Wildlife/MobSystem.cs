@@ -588,7 +588,7 @@ public sealed class MobSystem : ISimulationSystem
             var attackSpeed = SimBalance.MeleeAttackSpeed(weaponId);
             var strikeReady = SimBalance.MeleeStrikeReady(world.Tick, defender.Id.Value, weaponId);
             var strike = strikeReady
-                ? NpcStrikePerPass * defender.Body.StrikeFactor() * weaponMult
+                ? NpcStrikePerPass * defender.StrikeFactor() * weaponMult
                 : 0f;
             if (strike > 0f)
             {

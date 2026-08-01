@@ -102,6 +102,7 @@ namespace HexLive.Simulation.Content
             ["tool.pot"] = "🍲",
             ["tool.lighter"] = "🔥",
             ["tool.axe_stone"] = "🪓",
+            ["tool.machete"] = "🗡️",
             ["tool.pickaxe_stone"] = "⛏️",
             ["tool.saw"] = "🪚",
             ["tool.bow"] = "🏹",
@@ -219,7 +220,8 @@ namespace HexLive.Simulation.Content
             // Weapons rank near food in importance so a survivor never drops her
             // means of fighting off a dog.
             if (tags.Contains("Weapon") || tags.Contains("Axe") ||
-                tags.Contains("Pickaxe") || tags.Contains("Knife"))
+                tags.Contains("Pickaxe") || tags.Contains("Knife") ||
+                tags.Contains("Machete"))
             {
                 return ItemCategory.Weapon;
             }
@@ -323,6 +325,7 @@ namespace HexLive.Simulation.Content
         public const string Fist = "";                  // bare hands (empty id)
         public const string Knife = "tool.knife";
         public const string Axe = "tool.axe_stone";
+        public const string Machete = "tool.machete";
         public const string Spear = "tool.spear";
         public const string Pickaxe = "tool.pickaxe_stone";
         public const string Hammer = "tool.hammer";
@@ -378,22 +381,108 @@ namespace HexLive.Simulation.Content
         public static float CooldownSeconds(string gearId) => For(gearId).CooldownSeconds;
         public static float AttackSpeed(string gearId) => For(gearId).AttackSpeed;
 
-        /// <summary>The best harvest-speed multiplier among carried gear
-        /// (spec 35.2: saw = 2). Data-driven — no id checks at the call site.</summary>
-        public static float BestHarvestSpeedMult(
-            System.Collections.Generic.IEnumerable<Agents.ItemInstance> items)
+        /// <summary>Spec §79 — HOW FAST this job goes: the pace is set by the
+        /// piece of gear that actually DOES it, i.e. the best HarvestSpeedMult
+        /// among the carried items that carry one of the capabilities the work
+        /// is gated on (machete 2 → half the time, stone axe 1 → the authored
+        /// time, knife 0.75 → longer).
+        ///
+        /// Matching on the capability is the whole point: before §79 the best
+        /// multiplier in the WHOLE pack won, so a saw in the backpack would
+        /// have sped up mining a boulder it cannot even touch — the call site
+        /// papered over that with an `if (!isBoulder)`. Gear that cannot do the
+        /// job now simply never enters the max.</summary>
+        public static float BestSpeedMultFor(
+            System.Collections.Generic.IEnumerable<Agents.ItemInstance> items,
+            GearCapability anyOf)
         {
-            var best = 1f;
+            if (anyOf == GearCapability.None)
+            {
+                return 1f;
+            }
+
+            var best = 0f;
             foreach (var item in items)
             {
                 var stats = For(item.DefinitionId);
-                if (stats.Id == item.DefinitionId && stats.HarvestSpeedMult > best)
+                if (stats.Id != item.DefinitionId ||   // fist-fallback cache ≠ real gear
+                    (stats.Capabilities & anyOf) == 0)
+                {
+                    continue;
+                }
+
+                if (stats.HarvestSpeedMult > best)
                 {
                     best = stats.HarvestSpeedMult;
                 }
             }
 
-            return best;
+            // Nothing in the pack does this job (bare-handed work, or a gate
+            // that let her through some other way) — authored pace.
+            return best > 0f ? best : 1f;
+        }
+
+        /// <summary>The capabilities a job accepts: the content's declared
+        /// any-of set when it has one, else the legacy per-type inference that
+        /// mirrors the gates in ExecutionSystem. ONE place decides "which tool
+        /// does this work", so the gate and the speed can never disagree.</summary>
+        public static GearCapability RequiredCapabilities(
+            InteractionDefinition interaction, ObjectDefinition definition)
+        {
+            if (interaction == null)
+            {
+                return GearCapability.None;
+            }
+
+            if (interaction.RequiredCapabilities.Count > 0)
+            {
+                var declared = GearCapability.None;
+                foreach (var capability in interaction.RequiredCapabilities)
+                {
+                    declared |= capability;
+                }
+
+                return declared;
+            }
+
+            var tags = definition?.Tags;
+            switch (interaction.Type)
+            {
+                case InteractionType.Harvest:
+                    if (tags != null && tags.Contains("Boulder"))
+                    {
+                        return GearCapability.Mine;
+                    }
+
+                    // Spec §54: yucca is cut with a blade, trees are felled.
+                    return tags != null && tags.Contains("Yucca")
+                        ? GearCapability.Cut
+                        : GearCapability.ChopWood;
+                case InteractionType.Process:
+                    return tags != null && tags.Contains("Coconut")
+                        ? GearCapability.Cut
+                        : GearCapability.ChopWood;
+                case InteractionType.Butcher:
+                    return GearCapability.Butcher;
+                default:
+                    return GearCapability.None;
+            }
+        }
+
+        /// <summary>Authored ticks re-paced by the tool. Rounds instead of
+        /// truncating: the pre-§79 call site divided by an INT, so anything
+        /// between 1 and 2 (a slow knife, a 1.5 power tool) silently collapsed
+        /// back to "no bonus at all" and only whole multipliers ever did
+        /// anything. Never returns 0 — a zero-tick job finishes on the tick it
+        /// starts and skips its own animation.</summary>
+        public static int ScaleTicks(int ticks, float speedMult)
+        {
+            if (speedMult <= 0f || System.MathF.Abs(speedMult - 1f) < 0.0001f)
+            {
+                return ticks;
+            }
+
+            return System.Math.Max(1, (int)System.MathF.Round(ticks / speedMult));
         }
 
         /// <summary>Does the inventory hold any gear with this capability?</summary>
@@ -551,6 +640,10 @@ namespace HexLive.Simulation.Content
                     AttackSpeed = 1f,
                     MeleePriority = 10,
                     Capabilities = GearCapability.Cut | GearCapability.Butcher,
+                    // §79: a knife is the WORST thing to chop with. It was tied
+                    // with the axe at 1.0 before, which read as a bug — the same
+                    // log split in the same time whichever blade she carried.
+                    HarvestSpeedMult = 0.75f,
                 },
                 [Axe] = new GearStats
                 {
@@ -562,6 +655,30 @@ namespace HexLive.Simulation.Content
                     AttackSpeed = 0.8f,
                     MeleePriority = 20,
                     Capabilities = GearCapability.Cut | GearCapability.ChopWood,
+                    HarvestSpeedMult = 1f,        // §79: the reference pace
+                },
+                // §79: железное мачете — не каменный век, а трофей. Ни скрафтить,
+                // ни найти: его приносит на остров чужак (§72), и в колонию оно
+                // попадает единственным способом — с его тела.
+                [Machete] = new GearStats
+                {
+                    Id = Machete,
+                    // Ровно вдвое сильнее топора при ЕГО ЖЕ таймингах: тот же
+                    // замах, та же длина взмаха, та же перезарядка — разница
+                    // целиком в железе, а не в темпе.
+                    Damage = 0.5625f,             // 2 × axe
+                    HitDelaySeconds = 1.65f,
+                    AttackDurationSeconds = 2.2f,
+                    CooldownSeconds = 0.8f,
+                    AttackSpeed = 0.8f,
+                    // Выше копья (30) — лучшее оружие на острове, и одноручное,
+                    // так что BestMeleeWeapon берёт его даже с одной рукой.
+                    MeleePriority = 35,
+                    // Мачете делает всё, что делают нож и топор: режет, свежует,
+                    // рубит дерево.
+                    Capabilities = GearCapability.Cut | GearCapability.Butcher |
+                                   GearCapability.ChopWood,
+                    HarvestSpeedMult = 2f,        // §79: вдвое быстрее топора
                 },
                 [Spear] = new GearStats
                 {

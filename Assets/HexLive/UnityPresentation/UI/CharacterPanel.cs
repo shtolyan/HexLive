@@ -117,6 +117,17 @@ namespace HexLive.UnityPresentation.UI
 
         // Static (re-labeled on language change)
         private Label _needsTitle;
+
+        // §76: the character-sheet pages sharing the middle column with needs.
+        private Label _natureTitle;
+        private Label _skillsTitle;
+        private VisualElement _natureContainer;
+        private VisualElement _skillsContainer;
+        private VisualElement _perkRow;
+        private SheetTab _sheetTab = SheetTab.Needs;
+        private readonly List<SheetBinding> _attrBindings = new();
+        private readonly List<SheetBinding> _skillBindings = new();
+        private string _perkSig;
         private Label _relationsTitle;
         private Button _langButton;
 
@@ -212,6 +223,56 @@ namespace HexLive.UnityPresentation.UI
             public Label Pct;
             public VisualElement Fill;
         }
+
+        // §76: one row of the character sheet — an innate attribute or a
+        // learned trade. Deliberately thinner than NeedConfig: a sheet row has
+        // no pressure/direct polarity (more is always better) and no icon (the
+        // 16 VectorIcon glyphs are all need-semantic — a droplet for Wits would
+        // read worse than no glyph at all; dedicated icons are a polish pass).
+        private struct SheetConfig
+        {
+            public string Id;    // matches AttributeKind / SkillKind
+            public string Key;   // I2 term
+            public Color Color;
+        }
+
+        private struct SheetBinding
+        {
+            public SheetConfig Config;
+            public Label Label;
+            public Label Value;
+            public VisualElement Fill;
+        }
+
+        // §76.1 — the six innate characteristics. Order matches AttributeSet.All
+        // so the sheet reads the same way the simulation does.
+        private static readonly SheetConfig[] AttributeRows =
+        {
+            new() { Id = "Strength", Key = "attr.strength", Color = Health },
+            new() { Id = "Agility", Key = "attr.agility", Color = Thirst },
+            new() { Id = "Endurance", Key = "attr.endurance", Color = Energy },
+            new() { Id = "Toughness", Key = "attr.toughness", Color = Gold },
+            new() { Id = "Hardiness", Key = "attr.hardiness", Color = Hunger },
+            new() { Id = "Wits", Key = "attr.wits", Color = Social },
+        };
+
+        // §76.5 — the eight learned trades, in SkillSet.All order.
+        private static readonly SheetConfig[] SkillRows =
+        {
+            new() { Id = "Combat", Key = "skill.combat", Color = Health },
+            new() { Id = "Harvesting", Key = "skill.harvesting", Color = Energy },
+            new() { Id = "Crafting", Key = "skill.crafting", Color = Gold },
+            new() { Id = "Building", Key = "skill.building", Color = Hunger },
+            new() { Id = "Cooking", Key = "skill.cooking", Color = Thermal },
+            new() { Id = "Medicine", Key = "skill.medicine", Color = Good },
+            new() { Id = "Survival", Key = "skill.survival", Color = Comfort },
+            new() { Id = "Social", Key = "skill.social", Color = Social },
+        };
+
+        // §76: which page of the middle column is showing. Needs is the default
+        // because it is what the player checks every few seconds; the sheet is
+        // reference material she consults once per colonist.
+        private enum SheetTab { Needs, Nature, Skills }
 
         private static readonly NeedConfig[] Needs =
         {
@@ -532,6 +593,7 @@ namespace HexLive.UnityPresentation.UI
             _starvingBadge.text = npc.IsFighting ? Loc.Get("badge.fighting") : Loc.Get("badge.starving");
 
             UpdateNeeds(npc);
+            UpdateSheet(npc);
             UpdateEffects(npc);
             UpdateRelations(npc);
             RefreshInventory(npc);
@@ -645,6 +707,86 @@ namespace HexLive.UnityPresentation.UI
             }
 
             UpdateThermal(npc.ThermalComfort);
+        }
+
+        // §76: the character sheet. Both pages are refreshed whichever tab is
+        // showing — they are 14 label writes on an already-parsed snapshot, and
+        // keeping them in sync means switching tabs is instant instead of
+        // showing a stale frame.
+        private void UpdateSheet(NpcSnapshot npc)
+        {
+            ApplySheet(_attrBindings, npc.Attributes);
+            ApplySheet(_skillBindings, npc.Skills);
+            UpdatePerks(npc);
+        }
+
+        // The snapshot carries "Strength\t0.62" rows (the §48 Effects idiom).
+        // Matched by id rather than by index so reordering either enum — or
+        // appending a seventh attribute — cannot silently shift every bar by one.
+        private static void ApplySheet(List<SheetBinding> bindings, List<string> rows)
+        {
+            for (var i = 0; i < bindings.Count; i++)
+            {
+                var b = bindings[i];
+                var value = 0f;
+                for (var r = 0; r < rows.Count; r++)
+                {
+                    var tab = rows[r].IndexOf('\t');
+                    if (tab <= 0 ||
+                        string.CompareOrdinal(rows[r], 0, b.Config.Id, 0, tab) != 0 ||
+                        tab != b.Config.Id.Length)
+                    {
+                        continue;
+                    }
+
+                    float.TryParse(rows[r].Substring(tab + 1),
+                        System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture, out value);
+                    break;
+                }
+
+                value = Mathf.Clamp01(value);
+                b.Fill.style.width = Length.Percent(value * 100f);
+                // Levels out of ten, not percent: the sheet is an RPG reading
+                // ("she is a 7 at crafting"), the needs grid is a gauge.
+                b.Value.text = $"{Mathf.RoundToInt(value * 10f)}/10";
+                b.Value.style.color = value >= 0.7f ? Gold : TextDim;
+            }
+        }
+
+        // §76.6: the badges an extreme attribute earns. The sim hands over
+        // finished term keys — the bands are its knobs, not the view's — so
+        // this only localizes and lays out. Rebuilt only when the SET changes,
+        // like the effect chips: perks are permanent, and re-creating twelve
+        // elements every tick would be pure churn.
+        private void UpdatePerks(NpcSnapshot npc)
+        {
+            var signature = string.Join("|", npc.Perks);
+            if (signature == _perkSig)
+            {
+                return;
+            }
+
+            _perkSig = signature;
+            _perkRow.Clear();
+            foreach (var key in npc.Perks)
+            {
+                var badge = new Label(Loc.Get(key));
+                badge.style.fontSize = 10;
+                // A gift reads gold, a flaw reads muted — the key's own suffix
+                // is the only thing that distinguishes them.
+                badge.style.color = key.EndsWith(".high") ? Gold : TextMute;
+                badge.style.backgroundColor = Raised;
+                badge.style.paddingLeft = 8f;
+                badge.style.paddingRight = 8f;
+                badge.style.paddingTop = 3f;
+                badge.style.paddingBottom = 3f;
+                badge.style.marginRight = 6f;
+                badge.style.marginTop = 3f;
+                SetRadius(badge, 8f);
+                SetBorder(badge, key.EndsWith(".high") ? GoldDim : Stroke, 1f);
+                _perkRow.Add(badge);
+            }
         }
 
         // signed: 0 = comfy, +1 = boiling (red, grows right), −1 = freezing
@@ -3136,8 +3278,16 @@ namespace HexLive.UnityPresentation.UI
             col.style.marginRight = 2f;
             col.style.justifyContent = Justify.Center;
 
-            _needsTitle = MakeSectionTitle("");
-            col.Add(_needsTitle);
+            // §76: the section title becomes a three-page tab strip. Text-only
+            // and ~24px tall — the relation tabs' 48px avatar strip is the
+            // visual model, but it will not fit a 286px card twice over.
+            var tabs = new VisualElement();
+            tabs.style.flexDirection = FlexDirection.Row;
+            tabs.style.marginBottom = 10f;
+            _needsTitle = BuildSheetTab(tabs, SheetTab.Needs);
+            _natureTitle = BuildSheetTab(tabs, SheetTab.Nature);
+            _skillsTitle = BuildSheetTab(tabs, SheetTab.Skills);
+            col.Add(tabs);
 
             _needsContainer = new VisualElement();
             _needsContainer.style.flexDirection = FlexDirection.Row;
@@ -3155,7 +3305,133 @@ namespace HexLive.UnityPresentation.UI
                 }
             }
 
+            // §76: «Природа» — six innate characteristics, three across, plus
+            // the perk badges the extremes earn.
+            _natureContainer = new VisualElement();
+            var attrGrid = new VisualElement();
+            attrGrid.style.flexDirection = FlexDirection.Row;
+            attrGrid.style.flexWrap = Wrap.Wrap;
+            _attrBindings.Clear();
+            foreach (var row in AttributeRows)
+            {
+                attrGrid.Add(BuildSheetCell(row, 33f, _attrBindings));
+            }
+
+            _natureContainer.Add(attrGrid);
+
+            _perkRow = new VisualElement();
+            _perkRow.style.flexDirection = FlexDirection.Row;
+            _perkRow.style.flexWrap = Wrap.Wrap;
+            _perkRow.style.marginTop = 6f;
+            _natureContainer.Add(_perkRow);
+            col.Add(_natureContainer);
+
+            // §76: «Умения» — eight learned trades, four across.
+            _skillsContainer = new VisualElement();
+            _skillsContainer.style.flexDirection = FlexDirection.Row;
+            _skillsContainer.style.flexWrap = Wrap.Wrap;
+            _skillBindings.Clear();
+            foreach (var row in SkillRows)
+            {
+                _skillsContainer.Add(BuildSheetCell(row, 25f, _skillBindings));
+            }
+
+            col.Add(_skillsContainer);
+
+            SelectSheetTab(SheetTab.Needs);
             return col;
+        }
+
+        // One tab of the §76 strip. Selection is a plain field and the strip is
+        // restyled wholesale on click — the same shape as the relation tabs,
+        // minus their avatars.
+        private Label BuildSheetTab(VisualElement strip, SheetTab tab)
+        {
+            var label = MakeSectionTitle("");
+            label.style.marginBottom = 0f;
+            label.style.marginRight = 16f;
+            label.RegisterCallback<MouseEnterEvent>(_ =>
+            {
+                if (_sheetTab != tab) label.style.color = TextDim;
+            });
+            label.RegisterCallback<MouseLeaveEvent>(_ =>
+            {
+                if (_sheetTab != tab) label.style.color = TextMute;
+            });
+            label.RegisterCallback<MouseDownEvent>(evt =>
+            {
+                SelectSheetTab(tab);
+                evt.StopPropagation();
+            });
+            strip.Add(label);
+            return label;
+        }
+
+        private void SelectSheetTab(SheetTab tab)
+        {
+            _sheetTab = tab;
+            _needsContainer.style.display = tab == SheetTab.Needs ? DisplayStyle.Flex : DisplayStyle.None;
+            _natureContainer.style.display = tab == SheetTab.Nature ? DisplayStyle.Flex : DisplayStyle.None;
+            _skillsContainer.style.display = tab == SheetTab.Skills ? DisplayStyle.Flex : DisplayStyle.None;
+
+            _needsTitle.style.color = tab == SheetTab.Needs ? Gold : TextMute;
+            _natureTitle.style.color = tab == SheetTab.Nature ? Gold : TextMute;
+            _skillsTitle.style.color = tab == SheetTab.Skills ? Gold : TextMute;
+
+            // Refresh() early-returns while the snapshot tick is unchanged, so
+            // without this the new page stays blank until the sim ticks over.
+            _refreshedTick = -1;
+        }
+
+        // §76: a sheet row — name, level out of ten, and a bar. Same anatomy as
+        // a need cell minus the icon, so the two pages sit at the same rhythm.
+        private VisualElement BuildSheetCell(SheetConfig config, float widthPercent,
+            List<SheetBinding> bindings)
+        {
+            var cell = new VisualElement();
+            cell.style.width = Length.Percent(widthPercent);
+            cell.style.paddingRight = 16f;
+            cell.style.marginTop = 9f;
+            cell.style.marginBottom = 9f;
+
+            var top = new VisualElement();
+            top.style.flexDirection = FlexDirection.Row;
+            top.style.alignItems = Align.Center;
+            top.style.marginBottom = 6f;
+
+            var label = new Label();
+            label.style.color = Text;
+            label.style.fontSize = 12;
+            label.style.flexGrow = 1f;
+            label.style.overflow = Overflow.Hidden;
+            label.style.textOverflow = TextOverflow.Ellipsis;
+            label.style.whiteSpace = WhiteSpace.NoWrap;
+
+            var value = new Label("—");
+            value.style.color = TextDim;
+            value.style.fontSize = 11;
+            value.style.unityFontStyleAndWeight = FontStyle.Bold;
+            value.style.flexShrink = 0f;
+            value.style.marginLeft = 6f;
+
+            top.Add(label);
+            top.Add(value);
+            cell.Add(top);
+
+            var track = MakeTrack(9f);
+            var fill = MakeFill(config.Color);
+            track.Add(fill);
+            cell.Add(track);
+
+            bindings.Add(new SheetBinding
+            {
+                Config = config,
+                Label = label,
+                Value = value,
+                Fill = fill
+            });
+
+            return cell;
         }
 
         // Bipolar bar: the fill grows from the CENTER — right and red when
@@ -3331,7 +3607,24 @@ namespace HexLive.UnityPresentation.UI
             _refreshedTick = -1; // texts set in Refresh() need re-localizing
 
             _needsTitle.text = Loc.Get("panel.needs");
+            _natureTitle.text = Loc.Get("panel.nature");
+            _skillsTitle.text = Loc.Get("panel.skills");
             _relationsTitle.text = Loc.Get("panel.relations");
+
+            // §76: row names, and force the perk badges to re-localize (they
+            // are rebuilt only when the perk SET changes, which a language
+            // switch does not).
+            for (var i = 0; i < _attrBindings.Count; i++)
+            {
+                _attrBindings[i].Label.text = Loc.Get(_attrBindings[i].Config.Key);
+            }
+
+            for (var i = 0; i < _skillBindings.Count; i++)
+            {
+                _skillBindings[i].Label.text = Loc.Get(_skillBindings[i].Config.Key);
+            }
+
+            _perkSig = null;
             if (_langButton != null)
             {
                 _langButton.text = Loc.Code;

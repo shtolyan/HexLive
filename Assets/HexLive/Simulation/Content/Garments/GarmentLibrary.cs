@@ -184,6 +184,11 @@ namespace HexLive.Simulation.Content
                 new("clothing.shorts_red",   "Red Shorts",       WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
                 new("clothing.shorts_olive", "Olive Shorts",     WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
                 new("clothing.shorts_cherry","Cherry Shorts",    WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
+                // Pattern retextures of the Bottom_1389 shorts (2026-08, PIL —
+                // original fold shading kept, fabric re-dyed in UV space).
+                new("clothing.shorts_white", "White Shorts",     WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
+                new("clothing.shorts_hearts","Heart Shorts",     WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
+                new("clothing.shorts_critters","Critter Shorts", WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
                 new("Shorts short",          "Mini-shorty",      WearLayer.Wear, 0.06f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
                 new("Glove_2245",            "Perchatki",        WearLayer.Wear, 0.04f, 0.00f,  0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR),
                 new("Gloves_17510",          "Perchatki",        WearLayer.Wear, 0.04f, 0.00f,  0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR),

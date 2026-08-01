@@ -120,7 +120,7 @@ public sealed class WorldStateFactory
         // scene).
         string[] startBottoms = { "Panty_11571", "Bikini Bottom", "underwear.panty_leo", "underwear.panty_stars", "underwear.panty_flair", "underwear.panty_basic", "underwear.swim_bottom", "underwear.panty_dots", "underwear.panty_stripe", "underwear.panty_cherry" };
         string[] startTops = { "Bikini top", "Top_11927", "CowTop", "clothing.top_tiedye", "clothing.top_tropic", "underwear.bra_basic", "underwear.swim_top", "underwear.bra_dots", "underwear.bra_stripe", "underwear.bra_cherry" };
-        string[] startShorts = { "Shorts Green", "Shorts short", "Shorts 1389", "clothing.shorts_red", "clothing.shorts_olive", "clothing.shorts_cherry" };
+        string[] startShorts = { "Shorts Green", "Shorts short", "Shorts 1389", "clothing.shorts_red", "clothing.shorts_olive", "clothing.shorts_cherry", "clothing.shorts_white", "clothing.shorts_hearts", "clothing.shorts_critters" };
         // §72: чужак сходит на берег не потерпевшим, а бойцом — в своём
         // тактическом комплекте. Раздавать ему женское пляжное бельё было бы
         // не только нелепо на вид: без брони он гиб на всех сидах, дважды даже
@@ -901,21 +901,36 @@ public sealed class WorldStateFactory
         npc.CompassionTrait = traitMin +
             MathUtil.Hash01(world.Seed, bootstrap.Id, 53, 5301) * (traitMax - traitMin);
 
+        // Spec §76: the six innate characteristics, same deal — deterministic on
+        // seed + id, fixed for life. Rolled HERE and not in the §74 appearance
+        // pass, because that pass is Colony-only and the outsider must have a
+        // body too. Point-buy: the deviations sum to zero, so every survivor
+        // carries the same budget in a different shape.
+        //
+        // An authored bootstrap value wins (blank-means-roll, the §74 rule): a
+        // test scene that pins a girl's Strength keeps it.
+        AttributeMath.Roll(npc, world.Seed, bootstrap.Id);
+        ApplyAttributeOverrides(npc, bootstrap);
+
         // Spec 29H: everyone carries a personal water bottle (starts empty) — the
         // only starting kit. §54 cold start: the spear is no longer handed out,
         // it must be crafted (1 stick at the fire), like every other tool.
         npc.Inventory.Items.Add(new Agents.ItemInstance("tool.bottle"));
 
-        // §72: the outsider carries his own knife ashore. He has no colony to
+        // §72: the outsider carries his own blade ashore. He has no colony to
         // split the work with, and the hunt is gated on holding a real weapon.
         if (bootstrap.Faction != Faction.Colony &&
             HexLive.Simulation.Runtime.Spec72.OutsiderStartsArmed)
         {
-            // Копьё, а не нож: 0.375 урона против 0.221 и высший приоритет в
-            // BestMeleeWeapon. С ножом он выходил на четверых, которые сбегаются
-            // все разом, и стабильно проигрывал размен — 20 его ударов против
-            // 30 ответных. Нож остаётся: им он свежует и мастерит.
-            npc.Inventory.Items.Add(new Agents.ItemInstance("tool.spear"));
+            // §79: МАЧЕТЕ вместо копья. Копьё стояло здесь потому, что нож был
+            // слишком слаб (0.375 против 0.221 — с ножом он выходил на четверых,
+            // которые сбегаются все разом, и стабильно проигрывал размен:
+            // 20 его ударов против 30 ответных). Мачете бьёт ещё вдвое сильнее
+            // топора (0.5625), при этом ОДНОручное и рубит дрова — то есть
+            // закрывает и бой, и хозяйство одним предметом, а копьё в его
+            // маленьком рюкзаке было бы мёртвым весом. Нож остаётся: он
+            // достаётся колонии с его тела вторым трофеем.
+            npc.Inventory.Items.Add(new Agents.ItemInstance("tool.machete"));
             npc.Inventory.Items.Add(new Agents.ItemInstance("tool.knife"));
         }
         // Spec 40.3 / §44 r2: four bandages start in the med pouch
@@ -939,6 +954,23 @@ public sealed class WorldStateFactory
         }
 
         fragmentEntities.Add(npc.Id);
+    }
+
+    // §76: an authored characteristic wins over the roll — the §74 rule that a
+    // filled field is authorial intent and is never overwritten. Applied AFTER
+    // the roll so a bootstrap can pin one attribute and leave the other five
+    // to the seed.
+    private static void ApplyAttributeOverrides(NPCState npc, NpcBootstrap bootstrap)
+    {
+        if (bootstrap.Attributes.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var pair in bootstrap.Attributes)
+        {
+            npc.Attributes.Set(pair.Key, MathUtil.Clamp01(pair.Value));
+        }
     }
 
     private static TileFlags GetTileFlags(TileBootstrap bootstrap)

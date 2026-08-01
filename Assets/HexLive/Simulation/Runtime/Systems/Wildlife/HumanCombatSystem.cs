@@ -98,7 +98,7 @@ public sealed class HumanCombatSystem : ISimulationSystem
         actor.RotationDegrees = MathUtil.RotateTowards(
             actor.RotationDegrees,
             HexSpatialMath.AngleDegrees(direction),
-            actor.TurnSpeed * 4f * world.TickDeltaTime);
+            actor.TurnSpeed * 4f * AttributeMath.TurnSpeedMult(actor) * world.TickDeltaTime);
     }
 }
 

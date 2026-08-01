@@ -1112,7 +1112,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
             earlyRainWet, earlyWaterWet, npc.WornWetness, npc.WornDirtiness, npc.WornBloodiness,
             npc.Wounds, npc.BandagedZones, npc.SeveredParts);
         var heldItemId = IsProne(npc) && IsToolOrWeapon(npc.HeldItemId) ? string.Empty : npc.HeldItemId;
-        actorView.SetInteraction(npc.CurrentInteraction, heldItemId, npc.AidTargetLyingDown);
+        // §77.5: the interaction window goes with the verb — the view fits one
+        // playthrough of the work clip into it.
+        actorView.SetInteraction(npc.CurrentInteraction, heldItemId, npc.AidTargetLyingDown,
+            npc.InteractionSeconds);
         // Spec §52.8: leg-slung tools — the holster shows a carried axe/knife/
         // hammer on the thigh whenever that tool is not the one in her hand.
         actorView.SyncHolster(npc.HolsteredItems, heldItemId);

@@ -217,29 +217,15 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 // the smallest hop, never a whole hex out). The literal gate above
                 // proves she stands ON the reserved junction; this proves that
                 // junction actually hugs the object — within its footprint plus one
-                // sub-grid step. A reserved spot farther than that means the object
-                // is walled/cliffed off and was being reached ACROSS the gap, so
-                // fail + retarget instead of interacting from afar. Belt-and-braces
-                // over the planner cap: covers remembered targets and every kind.
-                // The reach anchor must NEVER be unavailable — an object with no
-                // linked junction (edge case) falls back to its tile centre with
-                // a hex of slack (the item may sit anywhere in the tile), so no
-                // interaction kind can slip past the gate entirely.
-                Float2 reachAnchor;
-                var startReach = InteractionReach.ForObject(definition.ObstacleRadius);
-                if (worldObject.Junctions.Count > 0 &&
-                    world.Junctions.Items.TryGetValue(worldObject.Junctions[0], out var anchorJct))
-                {
-                    reachAnchor = anchorJct.WorldPosition;
-                }
-                else
-                {
-                    reachAnchor = HexSpatialMath.TileToWorld(worldObject.Tile);
-                    startReach += HexSpatialMath.HexRadius;
-                }
-
-                if (!InteractionReach.CheckStart(world, npc, reachAnchor, startReach,
-                        worldObject.DefinitionId))
+                // sub-grid step, AND on the same side of every impassable border
+                // (§26.6A r4: a cliff face or hut wall is only ~0.75 wu thick, so
+                // straight-line distance alone let her work through it). A spot
+                // that fails either test means the object is walled/cliffed off and
+                // was being reached ACROSS the gap, so fail + retarget instead of
+                // interacting from afar. Belt-and-braces over the planner cap:
+                // covers remembered targets and every interaction kind.
+                if (!InteractionReach.CheckObjectStart(world, npc, worldObject,
+                        definition.ObstacleRadius))
                 {
                     npc.Memory.Shun(worldObject.Id, world.Tick + 600);
                     PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
@@ -372,7 +358,6 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 }
 
                 // Spec 35.2: trees need an axe or saw; boulders need the pickaxe.
-                var harvestDurationDivisor = 1;
                 if (interaction.Type == InteractionType.Harvest)
                 {
                     if (!npc.Body.CanUseToolsOrWeapons)
@@ -406,18 +391,6 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                             $"Cannot harvest {worldObject.DefinitionId} (missing tool)");
                         npc.Mind.CurrentGoal = GoalType.None;
                         continue;
-                    }
-
-                    // Spec 35.2: faster felling comes from the gear sheet
-                    // (saw = 2), not from an id check — any future power tool
-                    // declares its own multiplier.
-                    if (!isBoulder)
-                    {
-                        var speedMult = Content.GearCatalog.BestHarvestSpeedMult(npc.Inventory.Items);
-                        if (speedMult > 1f)
-                        {
-                            harvestDurationDivisor = (int)speedMult;
-                        }
                     }
                 }
 
@@ -547,7 +520,20 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 npc.Execution.CurrentInteraction = interaction.Type;
                 npc.Execution.TargetObject = worldObject.Id;
                 npc.Execution.StartTick = world.Tick;
-                npc.Execution.EndTick = world.Tick + interaction.DurationTicks / harvestDurationDivisor;
+                npc.Execution.BuildDeposited = false; // §77: this visit still owes its load
+                // §76 + §79: how long the job takes — first the TOOL doing it
+                // (§79: the gear that carries the required capability sets the
+                // pace: machete 2 → half, stone axe 1 → authored, knife 0.75 →
+                // longer), then her own hands (Strength/Wits + the learned
+                // trade). Both stages round instead of truncating, and at
+                // multiplier 1f both are exactly the authored number.
+                var toolSpeedMult = Content.GearCatalog.BestSpeedMultFor(
+                    npc.Inventory.Items,
+                    Content.GearCatalog.RequiredCapabilities(interaction, definition));
+                var workTicks = AttributeMath.WorkTicks(
+                    npc, Content.GearCatalog.ScaleTicks(interaction.DurationTicks, toolSpeedMult),
+                    interaction.Type, npc.Plan.Goal);
+                npc.Execution.EndTick = world.Tick + workTicks;
                 worldObject.IsOccupied = true;
                 // Spec 28.15C: a corpse's CurrentUser records whose body it
                 // is — mourning must not overwrite it.
@@ -562,7 +548,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
                 Trace.Emit(world, npc.Id, "InteractionStarted",
                     $"{interaction.Type} -> {worldObject.DefinitionId} " +
-                    $"Duration={interaction.DurationTicks}ticks ({interaction.DurationTicks * world.TickDeltaTime:F1}s) " +
+                    // §79: the AUTHORED duration and what the tool in her hands
+                    // actually made of it — a soak must be able to see that the
+                    // machete really did halve the job.
+                    $"Duration={workTicks}ticks ({workTicks * world.TickDeltaTime:F1}s) " +
+                    $"Authored={interaction.DurationTicks} Tool=x{toolSpeedMult:0.##} " +
                     $"EndTick={npc.Execution.EndTick} " +
                     $"Effects=[H={interaction.Effects.HungerDelta:+0.00;-0.00} " +
                     $"E={interaction.Effects.EnergyDelta:+0.00;-0.00} " +
@@ -600,6 +590,17 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     if (inProgressInteraction is not null && total > 0)
                     {
                         ApplyEffectsScaled(npc, inProgressInteraction.Effects, 1f / total);
+                    }
+
+                    // §77: halfway through the deposit clip the carried
+                    // materials go into the build-site's pile — her hand empties
+                    // and the pile grows on the beat the animation stoops down,
+                    // instead of both snapping at the very end of the visit.
+                    if (npc.Execution.CurrentInteraction == InteractionType.Build &&
+                        progress >= BuildHandoffFraction &&
+                        BuildSiteMath.IsSite(worldObject))
+                    {
+                        RunFurnitureSiteHandoff(world, npc, worldObject);
                     }
 
                     if (SimTrace.Verbose)
@@ -1142,6 +1143,14 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     $"Duration={npc.Execution.EndTick - npc.Execution.StartTick}ticks " +
                     $"NeedsBefore=[{needsBefore}] NeedsAfter=[{needsAfter}]");
 
+                // §76: the ONE hook covering the whole world-object path —
+                // harvesting, building, cooking at the fire, butchering, fire
+                // tending, bottle filling. Paid on the ticks she ACTUALLY spent,
+                // so getting faster at a trade also slows how fast she keeps
+                // improving at it.
+                SkillTrace.Award(world, npc, completedInteraction.Type,
+                    npc.Execution.EndTick - npc.Execution.StartTick);
+
                 // Spec 41.5: waking from a bed = stand and come to your
                 // senses for a beat before the next errand.
                 if (completedInteraction.Type == InteractionType.Sleep)
@@ -1558,8 +1567,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
     // Spec §60/§29G/§40.13 — THE single place that decides where a body on the
     // ground comes to rest. Every collapse / faint / ground-sleep path calls
     // this, so the invariant holds everywhere at once: a lying body ALWAYS lies
-    // at its tile's exact geometric centre (identical to the centre junction,
-    // sub-axial (0,0)), never a rim junction and never the raw mid-stride spot
+    // on its own tile's centre ROW (r3 — the exact geometric centre when the hex
+    // is hers alone), never a rim junction and never the raw mid-stride spot
     // it dropped on. The position is pinned unconditionally and DECOUPLED from
     // junction occupancy on purpose: the per-site "nearest FREE junction" scans
     // that used to place the body EXCLUDED the very junction it stood on
@@ -1567,10 +1576,124 @@ public sealed partial class ExecutionSystem : ISimulationSystem
     // claimed — as taken), so they could never return the centre and always
     // drifted the body sideways / off the tile edge. Footprint and occupancy
     // bookkeeping stay the caller's job; this owns only the resting position.
-    internal static void LieDownCentered(NPCState npc)
+    //
+    // §29G r3 «спальные места»: the centre is a ROW of berths, not a point.
+    // Two bodies that end up on the same hex used to land on the exact same
+    // spot at whatever yaw the walk left them with — one girl inside another,
+    // both askew. Now the tile holds a small rank of parallel berths: the
+    // first sleeper sets the heading (her own facing, snapped to a hex axis so
+    // she lies straight along the hex, never across a corner) and takes the
+    // middle; every later body copies that heading EXACTLY and takes the next
+    // free berth beside her — right, then left. Three girls read as three
+    // housemates bedded down side by side instead of one blurred pile.
+    internal static void LieDownCentered(WorldState world, NPCState npc)
     {
-        npc.Position = HexSpatialMath.TileToWorld(npc.Tile);
+        var center = HexSpatialMath.TileToWorld(npc.Tile);
+        if (!Spec49.SleepBerths)
+        {
+            npc.Position = center;
+            return;
+        }
+
+        var heading = ResolveBerthHeading(world, npc);
+        var radians = heading * (System.MathF.PI / 180f);
+        var forward = new Float2(System.MathF.Cos(radians), System.MathF.Sin(radians));
+        var lateral = new Float2(-forward.Y, forward.X); // heading + 90°
+        var slot = PickBerthSlot(world, npc, center, lateral);
+
+        npc.Position = center + lateral * (slot * BerthSpacing);
+        npc.RotationDegrees = heading;
+        npc.Movement.DesiredRotationDegrees = heading;
+        npc.Movement.DesiredDirection = forward;
+
+        Trace.Emit(world, npc.Id, "LieDownBerth",
+            $"Tile={npc.Tile.Q},{npc.Tile.R} Slot={slot} Heading={heading:F0}");
     }
+
+    private static float BerthSpacing => HexSpatialMath.HexRadius * Spec49.SleepBerthSpacingFactor;
+
+    // The heading the whole rank shares. Someone already down on this hex owns
+    // it (lowest EntityId wins, so the answer never depends on iteration order
+    // and a save-replay reproduces the same rank); an empty hex takes the
+    // newcomer's own facing snapped to the nearest hex axis — a body lying
+    // along a flat-to-flat axis fits the hex, a body across a corner does not.
+    private static float ResolveBerthHeading(WorldState world, NPCState npc)
+    {
+        NPCState lead = null;
+        foreach (var other in world.Entities.Npcs.Values)
+        {
+            if (!IsBerthNeighbour(world, npc, other))
+            {
+                continue;
+            }
+
+            if (lead is null || other.Id.Value < lead.Id.Value)
+            {
+                lead = other;
+            }
+        }
+
+        return lead is not null ? lead.RotationDegrees : SnapToHexAxis(npc.RotationDegrees);
+    }
+
+    // Nearest multiple of 60° — the six neighbour directions of a hex.
+    private static float SnapToHexAxis(float degrees)
+    {
+        var wrapped = degrees % 360f;
+        if (wrapped < 0f)
+        {
+            wrapped += 360f;
+        }
+
+        return System.MathF.Round(wrapped / 60f) % 6f * 60f;
+    }
+
+    // First free berth in the order centre, +1, -1 (… ±HalfSpan). Occupied berths are
+    // READ BACK from where the neighbours actually lie (project their offset onto
+    // the shared lateral axis), so no slot index has to be stored or serialized.
+    private static int PickBerthSlot(WorldState world, NPCState npc, Float2 center, Float2 lateral)
+    {
+        var half = Spec49.SleepBerthHalfSpan;
+        var taken = 0;
+        foreach (var other in world.Entities.Npcs.Values)
+        {
+            if (!IsBerthNeighbour(world, npc, other))
+            {
+                continue;
+            }
+
+            var offset = other.Position - center;
+            var slot = (int)System.MathF.Round(
+                (offset.X * lateral.X + offset.Y * lateral.Y) / BerthSpacing);
+            if (slot >= -half && slot <= half)
+            {
+                taken |= 1 << (slot + half);
+            }
+        }
+
+        for (var step = 0; step <= half; step++)
+        {
+            if ((taken & (1 << (step + half))) == 0)
+            {
+                return step;
+            }
+
+            if (step > 0 && (taken & (1 << (half - step))) == 0)
+            {
+                return -step;
+            }
+        }
+
+        return 0; // full rank — stack rather than wander off the hex
+    }
+
+    // A body already lying on the same hex: ground sleeper, exhausted sleeper,
+    // fainted, comatose or prone. The dead are gone (corpses are objects).
+    private static bool IsBerthNeighbour(WorldState world, NPCState npc, NPCState other) =>
+        !other.Id.Equals(npc.Id) &&
+        other.Health > 0f &&
+        other.Tile.Equals(npc.Tile) &&
+        other.IsLyingDown(world.Tick);
 
     // Spec 29G: the lying body covers junctions within half a hex radius.
     internal static void ClaimLyingFootprint(WorldState world, NPCState npc, JunctionId center)

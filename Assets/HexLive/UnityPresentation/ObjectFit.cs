@@ -51,6 +51,10 @@ namespace HexLive.UnityPresentation
             // Tools & resources: 0.216 = the standard hand/ground tool size
             // (was 0.18; +20% after in-hand testing, applied to BOTH paths).
             if (definitionId.StartsWith("tool.") || definitionId.StartsWith("resource.")) return r * 0.216f;
+            // Small carried items (item.bandage…) are pocket-sized, like food.
+            // Without this they fell to the 0.6 default and a bandage roll
+            // rendered campfire-big on the ground and in hand.
+            if (definitionId.StartsWith("item.")) return r * 0.12f;
             if (definitionId == "campfire.spot") return r * 0.55f;
             if (definitionId == "grave.npc") return r * 0.35f;
             if (definitionId == "rock.boulder") return r * 0.45f;

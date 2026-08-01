@@ -1,5 +1,6 @@
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Common;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Spatial;
 using HexLive.Simulation.Agents;
 
@@ -44,6 +45,52 @@ internal static class InteractionReach
 
         Trace.Emit(world, npc.Id, "InteractionTooFar",
             $"{what} at {distance:F2}wu > reach {reach:F2}wu");
+        return false;
+    }
+
+    // Spec §26.6A r4: the whole gate for WORLD-OBJECT work (harvest, chop,
+    // craft, build, pick-up, sit, sleep, fuel, draw...). Distance alone was
+    // never enough: a hex border that stops the feet — a cliff face, a hut
+    // wall — sits well inside BesideReach, so an NPC one sub-grid step BELOW a
+    // ledge could pierce the coconut / fell the palm / sit on the stump THROUGH
+    // it. Reach is therefore measured twice: straight-line, and along the
+    // ground (CanTouchAcross). Both failures emit the same InteractionTooFar
+    // trace, so the §26.6A soak counter covers this family too.
+    public static bool CheckObjectStart(
+        WorldState world, NPCState npc, WorldObjectState worldObject, float obstacleRadius)
+    {
+        var what = worldObject.DefinitionId;
+        var reach = ForObject(obstacleRadius);
+
+        // The anchor must NEVER be unavailable — an object with no linked
+        // junction (edge case) falls back to its tile centre with a hex of
+        // slack, so no interaction kind can slip past the gate entirely. That
+        // fallback has no junction to walk from, so it stays distance-only.
+        if (worldObject.Junctions.Count == 0 ||
+            !world.Junctions.Items.TryGetValue(worldObject.Junctions[0], out var anchorJunction))
+        {
+            return CheckStart(world, npc, HexSpatialMath.TileToWorld(worldObject.Tile),
+                reach + HexSpatialMath.HexRadius, what);
+        }
+
+        if (!CheckStart(world, npc, anchorJunction.WorldPosition, reach, what))
+        {
+            return false;
+        }
+
+        if (npc.CurrentJunction is not { } standJunction)
+        {
+            return true; // off-grid (mid-hop): distance is all we can honestly measure
+        }
+
+        if (SpatialQueries.CanTouchAcross(world, standJunction, anchorJunction.Id, reach))
+        {
+            return true;
+        }
+
+        Trace.Emit(world, npc.Id, "InteractionTooFar",
+            $"{what} at {HexSpatialMath.Distance(npc.Position, anchorJunction.WorldPosition):F2}wu " +
+            $"is across an impassable border (cliff/wall) from j{standJunction.Value}");
         return false;
     }
 }

@@ -39,6 +39,15 @@ public sealed class NPCNeeds
     // stamina pulls the NPC toward sitting/lying down. Starts full.
     public float Stamina { get; set; } = 1f;
 
+    // §71: BREATH (0..1) — the sprint reserve, and ONLY that. Spent while
+    // running, refilled while walking (faster still while standing). At zero
+    // she is forced back to a walk until it re-arms.
+    // DELIBERATELY separate from Stamina: Stamina feeds the Sit bid, so hanging
+    // the sprint cost on it would send a girl who just ran to help a housemate
+    // straight to sitting down. NOTHING in the decision layer may read Breath —
+    // it governs gait, never goals. Starts full.
+    public float Breath { get; set; } = 1f;
+
     // Spec 40.6: hygiene (1 = clean, 0 = filthy). Decays slowly with living;
     // rises while at the water's edge (bathing/washing). A visible survivor
     // param — grubbier the longer since a wash. Starts clean.

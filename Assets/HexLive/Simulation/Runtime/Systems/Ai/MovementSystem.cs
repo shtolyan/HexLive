@@ -51,8 +51,20 @@ public sealed class MovementSystem : ISimulationSystem
     {
         foreach (var npc in world.Entities.Npcs.Values)
         {
+            // §71: a girl who is not walking anywhere is, by definition, not
+            // running — clear the gait flag before any of the early-outs below,
+            // or a stale "running" would keep the run clip playing while she
+            // stands still. Standing is also when breath comes back fastest.
             if (!npc.Movement.IsMoving || npc.Movement.JunctionPath.Count == 0)
             {
+                npc.Mind.IsRunning = false;
+                npc.Needs.Breath = MathUtil.Clamp01(
+                    npc.Needs.Breath + SimBalance.BreathIdleRecoverPerTick);
+                if (npc.Needs.Breath >= SimBalance.BreathReArm)
+                {
+                    npc.Mind.BreathSpent = false;
+                }
+
                 continue;
             }
 
@@ -241,15 +253,22 @@ public sealed class MovementSystem : ISimulationSystem
 
             var delta = new Float2(target.X - npc.Position.X, target.Y - npc.Position.Y);
             var direction = HexSpatialMath.Normalize(delta);
-            var turnPerTick = npc.TurnSpeed * world.TickDeltaTime;
+            var turnPerTick = npc.TurnSpeed * SimBalance.BaseTurnSpeedFactor * world.TickDeltaTime;
 
             // §21.21B v6: while the hop window runs, the HOP owns rotation
             // and pacing — the walk aiming below would re-target the path
             // junction every tick (mid-air spin to -150° and back, measured
             // in the t=46..62 probe trace) and its facing-error gate would
             // freeze flight ticks while the view clock kept running.
+            // §71: a turn is a CURVE, not a stop. The old gate froze her the
+            // moment the residual error passed 30°, and because the hex lattice
+            // cannot bend by less than 60° while the trip point sat at 52.5°,
+            // every single corner cost a 3-tick dead stop — the constant
+            // stuttering. Now only a near-reversal plants her; anything gentler
+            // she takes at speed, with a penalty that fades out below the
+            // deadzone (see ambientAlignment below).
             var facingError = 0f;
-            const float alignmentThreshold = 30f;
+            var alignmentThreshold = SimBalance.TurnFreezeAngle;
             if (npc.Movement.HopTimer <= 0f)
             {
                 npc.Movement.DesiredDirection = direction;
@@ -266,7 +285,7 @@ public sealed class MovementSystem : ISimulationSystem
                 if (facingError > alignmentThreshold)
                 {
                     npc.Movement.Status = MovementStatus.Rotating;
-                    npc.Movement.PostTurnTimer = npc.PostTurnPause;
+                    npc.Movement.PostTurnTimer = SimBalance.PostTurnPauseSeconds;
                     if (SimTrace.Verbose)
                     {
                         Trace.Emit(world, npc.Id, "MovementRotating",
@@ -428,7 +447,17 @@ public sealed class MovementSystem : ISimulationSystem
             }
 
 
-            var alignmentFactor = 1f - (facingError / alignmentThreshold) * 0.5f;
+            // §71: a gentle bend costs nothing; the penalty only ramps in past
+            // the deadzone and bottoms out at TurnMinSpeedFactor. Beyond
+            // TurnFreezeAngle she never gets here — she planted and pivoted.
+            var alignmentFactor = 1f;
+            if (facingError > SimBalance.TurnFreeAngle)
+            {
+                var over = (facingError - SimBalance.TurnFreeAngle) /
+                    System.MathF.Max(1f, SimBalance.TurnFreezeAngle - SimBalance.TurnFreeAngle);
+                alignmentFactor = 1f - MathUtil.Clamp01(over) * (1f - SimBalance.TurnMinSpeedFactor);
+            }
+
             // Spec 19.3C: mauled legs mean hobbling.
             // §71: BaseMoveSpeedFactor is the global walking-pace knob — the
             // per-NPC npc.MoveSpeed has always been a hardcoded 1 that nothing
@@ -438,21 +467,64 @@ public sealed class MovementSystem : ISimulationSystem
                 EquipmentMath.WetMovementFactor(world, npc) *
                 alignmentFactor * world.TickDeltaTime;
 
-            // §71: the two "she is in a hurry" boosts take the LARGER, they do
-            // not compound — a defender who was also just bitten would otherwise
-            // hit 2.25 x 2.5 and teleport across the camp.
+            // §71: GAIT IS A DECISION. She walks unless there is a reason to
+            // run, so a running figure always means something happened — the
+            // old "faster than a walk therefore jogging" rule had the whole
+            // colony permanently at a trot. The reasons do NOT compound: the
+            // largest wins, or a defender who had also just been bitten would
+            // hit 2.25 x 2.5 and cross the camp in a couple of ticks.
             var urgency = 1f;
             if (DamageReactionSystemHelpers.IsAdrenalineActive(world, npc))
             {
                 urgency = SimBalance.AdrenalineMoveSpeedFactor;
             }
 
-            // §71 (§57 help cry / 29C.4B friend guard / §62 first strike): she
-            // is running to put herself between a housemate and the animal.
+            // (§57 help cry / 29C.4B friend guard / §62 first strike): she is
+            // running to put herself between a housemate and the animal.
             if (npc.Mind.CurrentGoal == GoalType.Defend)
             {
                 urgency = System.MathF.Max(urgency, Spec57.DefendMoveSpeedFactor);
             }
+
+            if (npc.Mind.CurrentGoal == GoalType.Flee)
+            {
+                urgency = System.MathF.Max(urgency, SimBalance.FleeRunSpeedFactor);
+            }
+
+            // A body in real trouble hurries to the food or the water — the
+            // only peacetime reason to run, so the run clip is seen without
+            // every stroll becoming a jog.
+            if ((npc.Mind.IsStarving || npc.Mind.IsDehydrated) &&
+                npc.Mind.CurrentGoal is GoalType.GetFood or GoalType.GetWater)
+            {
+                urgency = System.MathF.Max(urgency, SimBalance.NeedRunSpeedFactor);
+            }
+
+            // §71 BREATH: running is rationed. Spent while she runs, refilled
+            // while she walks (faster standing). Once it bottoms out she is
+            // forced back to a walk until it climbs to the re-arm line, so she
+            // recovers ON THE MOVE and never bids for a rest goal — nothing in
+            // the decision layer reads Breath.
+            var wantsRun = urgency > 1.001f;
+            if (wantsRun && npc.Needs.Breath <= 0f)
+            {
+                npc.Mind.BreathSpent = true;
+            }
+            else if (npc.Needs.Breath >= SimBalance.BreathReArm)
+            {
+                npc.Mind.BreathSpent = false;
+            }
+
+            var running = wantsRun && !npc.Mind.BreathSpent;
+            if (!running)
+            {
+                urgency = 1f;
+            }
+
+            npc.Mind.IsRunning = running;
+            npc.Needs.Breath = MathUtil.Clamp01(npc.Needs.Breath + (running
+                ? -SimBalance.BreathDrainPerTick
+                : SimBalance.BreathWalkRecoverPerTick));
 
             movementPerTick *= urgency;
 

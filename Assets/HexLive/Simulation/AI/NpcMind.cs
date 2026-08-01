@@ -25,6 +25,17 @@ public sealed class NPCMind
     // around the entry edge and re-win at zero margin every tick.
     public bool IsOverheated { get; set; }
 
+    // §71: is she RUNNING this tick? Set by MovementSystem from the urgency
+    // reasons (Defend / Flee / adrenaline / desperate for food or water) and
+    // read by the view to pick the gait clip. Derived every tick, so it is not
+    // serialized.
+    public bool IsRunning { get; set; }
+
+    // §71: the breath latch. Set when a run empties NPCNeeds.Breath, cleared
+    // once it recovers to BreathReArm — the hysteresis that stops her
+    // flickering between walk and run at the threshold. Derived, not serialized.
+    public bool BreathSpent { get; set; }
+
     // Spec 35.4: how many times the in-place cool-off dwell has re-armed without
     // the goal actually clearing (safety cap against an infinite dwell on a
     // fallback tile that never cools). Reset when CoolOff is (re)selected.

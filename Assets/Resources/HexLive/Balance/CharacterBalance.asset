@@ -128,5 +128,16 @@ MonoBehaviour:
   adrenalineEnergyFloor: 0.05
   adrenalineMoveSpeedFactor: 2.25
   baseMoveSpeedFactor: 1.5
+  baseTurnSpeedFactor: 2.4
+  turnFreezeAngle: 100
+  turnFreeAngle: 40
+  turnMinSpeedFactor: 0.6
+  postTurnPauseSeconds: 0.15
+  fleeRunSpeedFactor: 2.25
+  needRunSpeedFactor: 1.6
+  breathDrainPerTick: 0.0045
+  breathWalkRecoverPerTick: 0.0022
+  breathIdleRecoverPerTick: 0.006
+  breathReArm: 0.35
   clothingBiteDurabilityWear: 0.0026
   clothingPassiveWearPerDay: 0.001

@@ -1201,6 +1201,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // Spec 40.9 / 40.1: injury posture (limp/crawl/arm-hang/head-clutch)
         // and the winded panting, both derived sim-side and exported.
         actorView.SetPosture(npc.PostureHint, npc.Winded);
+        // §71: the gait comes from the SIM, not from measured speed — she walks
+        // unless the sim gave her a reason to run.
+        actorView.SetRunning(npc.IsRunning);
         // Spec 40.7/40.8: weather the bare skin — tan browns it, sunburn
         // reddens it. (The old low-HP bruised-red whole-body flush was
         // retired: the painted wound marks carry the injury look on their

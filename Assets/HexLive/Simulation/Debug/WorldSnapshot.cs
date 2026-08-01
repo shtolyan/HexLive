@@ -314,6 +314,14 @@ public sealed class NpcSnapshot
     // pose/breath in presentation. Derived (Stamina < 0.15), export-only.
     public bool Winded { get; set; }
 
+    // §71: is she RUNNING? The sim decides the gait from the urgency reasons;
+    // the view must NOT re-derive it from measured speed (that is what had the
+    // whole colony permanently at a trot). Drives the GaitBlend tree.
+    public bool IsRunning { get; set; }
+
+    // §71: the sprint reserve (0..1), spent running and refilled walking.
+    public float Breath { get; set; }
+
     // §21.21B hex-step hop: "Up"/"Down" while the sim walks the jump path
     // (Movement.HopTimer > 0), else "". The view starts the jump clip and its
     // vertical arc on the rising edge of this signal.

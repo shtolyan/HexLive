@@ -29,7 +29,7 @@ namespace HexLive.Simulation.Persistence
 //   on load, rebuilt on first pathfind).
 public static class WorldSaveSerializer
 {
-    public const int BlobVersion = 15; // v15: §49 sickness window/damage budget (a reload no longer cures the 🤢)
+    public const int BlobVersion = 16; // v16: §71 Breath (the sprint reserve)
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -643,6 +643,7 @@ public static class WorldSaveSerializer
         w.Write(needs.ThermalDiscomfort);
         w.Write(needs.ThermalComfort);
         w.Write(needs.Stamina);
+        w.Write(needs.Breath); // v16, §71
         w.Write(needs.Hygiene);
         w.Write(needs.Blood);
         w.Write(needs.Bandages);
@@ -944,6 +945,7 @@ public static class WorldSaveSerializer
         needs.ThermalDiscomfort = r.ReadSingle();
         needs.ThermalComfort = r.ReadSingle();
         needs.Stamina = r.ReadSingle();
+        needs.Breath = version >= 16 ? r.ReadSingle() : 1f; // §71: older saves start rested
         needs.Hygiene = r.ReadSingle();
         needs.Blood = r.ReadSingle();
         needs.Bandages = r.ReadInt32();

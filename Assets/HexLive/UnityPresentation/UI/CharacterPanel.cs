@@ -232,6 +232,10 @@ namespace HexLive.UnityPresentation.UI
             // Spec §53: compassion (high = at peace). Appended last so it doesn't
             // shift the i==4 thermal special-case cell in the row-wrap layout.
             new() { Key = "need.compassion", Icon = VectorIcon.Kind.HeartFill, Color = Compassion, Pressure = false },
+            // §71: breath — the sprint reserve, spent running and refilled at a
+            // walk. Distinct from Stamina on purpose (that one feeds the Sit
+            // bid; this one only governs gait). High = good, like stamina.
+            new() { Key = "need.breath", Icon = VectorIcon.Kind.Energy, Color = Thirst, Pressure = false },
         };
 
         public void SetRunner(SimulationRunnerBehaviour runner) => _runner = runner;
@@ -2142,6 +2146,7 @@ namespace HexLive.UnityPresentation.UI
                 "need.hygiene" => npc.Hygiene,
                 "need.stress" => npc.Stress,
                 "need.compassion" => npc.Compassion,
+                "need.breath" => npc.Breath, // §71
                 _ => 0f
             };
         }

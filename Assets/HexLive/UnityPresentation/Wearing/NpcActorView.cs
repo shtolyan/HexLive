@@ -423,6 +423,16 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private static readonly string[] GaitClipKeys = { "Walk", "X Bot@Slow Run", "X Bot@Running" };
     private static readonly int GaitParam = Animator.StringToHash("Gait");
     private float _gait;
+    // §71: the sim's gait decision (SetRunning). NOT re-derived from speed.
+    private bool _running;
+    // A brisk walk is allowed to outrun the walk clip a little; a run clip
+    // played much above its authored rate just looks frantic.
+    private const float MaxWalkCadence = 1.6f;
+
+    /// <summary>§71: the sim says whether she is running — walk is the default,
+    /// and running always means a reason (defend, flee, adrenaline, or a body
+    /// desperate for food or water).</summary>
+    public void SetRunning(bool running) => _running = running;
     private bool _wasWalking;
     private float _animSpeed = 1f;
     // Fast-forward: the sim's speed multiplier scales every clip's playback
@@ -3398,21 +3408,23 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             var fullSpeed = 1.7f * _bodyRoot.lossyScale.y * FullWalkBodyHeightsPerSec;
             var simCadence = linearSpeed / Mathf.Max(0.0001f, fullSpeed * _simSpeed);
 
-            // §71: pick the GAIT from how much ground she is actually covering,
-            // then play that gait at ~1x. Below a walk she just takes slower
-            // steps (gait stays 0); above it she blends into the runs, and the
-            // playback rate divides out the blended gait's own ground pace, so
-            // the feet keep matching the ground at every speed.
+            // §71: the SIM owns the gait. Deriving it from measured speed (the
+            // first cut) meant any pace above a walk read as a jog, so a colony
+            // walking at BaseMoveSpeedFactor 1.5 was permanently trotting. Now
+            // _running is the sim's decision and speed only picks HOW HARD she
+            // runs, plus the playback rate that keeps the feet on the ground.
             float gaitGround;
-            if (simCadence <= 1f)
+            if (!_running)
             {
+                // Walking: stay on the walk clip however brisk the pace, and
+                // let the cadence carry the speed.
                 targetGait = 0f;
                 gaitGround = 1f;
             }
             else if (simCadence <= SlowRunCadence)
             {
-                targetGait = Mathf.InverseLerp(1f, SlowRunCadence, simCadence) * 0.5f;
-                gaitGround = Mathf.Lerp(1f, SlowRunCadence, targetGait * 2f);
+                targetGait = 0.5f;
+                gaitGround = SlowRunCadence;
             }
             else
             {
@@ -3420,7 +3432,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 gaitGround = Mathf.Lerp(SlowRunCadence, RunCadence, (targetGait - 0.5f) * 2f);
             }
 
-            targetAnimSpeed = Mathf.Clamp(simCadence / gaitGround, MinGaitCadence, MaxGaitCadence);
+            // A brisk walk may legitimately outrun the clip's authored pace, so
+            // the walk ceiling is looser than the run's (a run clip playing 25%
+            // fast already looks frantic).
+            var maxCadence = _running ? MaxGaitCadence : MaxWalkCadence;
+            targetAnimSpeed = Mathf.Clamp(simCadence / gaitGround, MinGaitCadence, maxCadence);
         }
 
         _animSpeed = Mathf.MoveTowards(_animSpeed, targetAnimSpeed, Time.deltaTime * 3f * _simSpeed);

@@ -290,6 +290,32 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("§71: ОБЩАЯ скорость ходьбы колонии. Умножается в MovementSystem — это единственная ручка темпа (поле npc.MoveSpeed всегда 1 и никем не задаётся). Прыжок через уступ идёт по реальным секундам и НЕ ускоряется.")]
         [Range(0.25f, 4f)] public float baseMoveSpeedFactor = 1.5f;
 
+        [Header("§71 Повороты")]
+        [Tooltip("Множитель скорости поворота (к npc.TurnSpeed = 90°/с). 2.4 = 216°/с = 54° за тик, то есть минимальный изгиб решётки в 60° проходится за ОДИН тик.")]
+        [Range(0.5f, 6f)] public float baseTurnSpeedFactor = 2.4f;
+        [Tooltip("Выше этого угла она встаёт и разворачивается на месте. Раньше порог был 30°, а минимальный поворот решётки — 60°, поэтому КАЖДЫЙ угол стоил полной остановки на 3 тика.")]
+        [Range(45f, 180f)] public float turnFreezeAngle = 100f;
+        [Tooltip("Ниже этого угла поворот вообще ничего не стоит — она просто заворачивает на ходу.")]
+        [Range(0f, 90f)] public float turnFreeAngle = 40f;
+        [Tooltip("Самое сильное замедление на плавном повороте (доля от обычной скорости).")]
+        [Range(0.2f, 1f)] public float turnMinSpeedFactor = 0.6f;
+        [Tooltip("Пауза после разворота на месте, секунды. Применяется ТОЛЬКО после настоящего разворота.")]
+        [Range(0f, 1f)] public float postTurnPauseSeconds = 0.15f;
+
+        [Header("§71 Бег и дыхание")]
+        [Tooltip("Скорость бега при побеге (Flee).")]
+        [Range(1f, 4f)] public float fleeRunSpeedFactor = 2.25f;
+        [Tooltip("Скорость бега, когда она умирает с голоду/жажды и спешит к еде или воде. ЕДИНСТВЕННАЯ мирная причина бежать — поэтому бег видно, но каждая прогулка не превращается в трусцу.")]
+        [Range(1f, 3f)] public float needRunSpeedFactor = 1.6f;
+        [Tooltip("Расход дыхания за тик бега (0.0045 ≈ 55 секунд бега с полного).")]
+        [Range(0f, 0.05f)] public float breathDrainPerTick = 0.0045f;
+        [Tooltip("Восстановление дыхания за тик ШАГА — она отдыхает на ходу, а не идёт садиться.")]
+        [Range(0f, 0.02f)] public float breathWalkRecoverPerTick = 0.0022f;
+        [Tooltip("Восстановление дыхания за тик СТОЯ.")]
+        [Range(0f, 0.05f)] public float breathIdleRecoverPerTick = 0.006f;
+        [Tooltip("До какого уровня надо отдышаться, чтобы снова разрешили бежать (гистерезис — иначе мигает шаг/бег на пороге).")]
+        [Range(0f, 1f)] public float breathReArm = 0.35f;
+
         [Header("Состояние одежды")]
         [Tooltip("Износ каждой закрывающей вещи за один укус собаки (прочность = HP-полоска в инвентаре). Снижен в 5 раз (было 0.013) — одежда рвалась слишком быстро.")]
         [Range(0f, 0.3f)] public float clothingBiteDurabilityWear = 0.0026f;

@@ -589,6 +589,8 @@ public static class WorldSnapshotExporter
             ThermalComfort = npc.Needs.ThermalComfort,
             Stamina = npc.Needs.Stamina,
             Winded = npc.Needs.Stamina < 0.15f,
+            IsRunning = npc.Mind.IsRunning,       // §71
+            Breath = npc.Needs.Breath,            // §71
             Hygiene = npc.Needs.Hygiene,
             Blood = npc.Needs.Blood,
             TanLevel = npc.Needs.TanLevel,

@@ -129,6 +129,14 @@ MonoBehaviour:
       - 'Выносливость'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'need.breath'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Breath'
+      - 'Дыхание'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'need.blood'
       TermType: 0
       Description: 

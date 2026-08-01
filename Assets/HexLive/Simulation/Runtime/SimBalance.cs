@@ -273,6 +273,38 @@ namespace HexLive.Simulation.Runtime
         // does NOT scale with this, so ledge crossings keep their duration.
         public static float BaseMoveSpeedFactor = 1.5f;
 
+        // §71: how fast she TURNS, as a multiple of npc.TurnSpeed (90°/s, a
+        // field nothing ever assigns). At 2.4 that is 216°/s = 54° per tick,
+        // so the 60° minimum bend of the hex lattice resolves in ONE tick.
+        public static float BaseTurnSpeedFactor = 2.4f;
+
+        // §71 turning: a turn used to be a hard STOP — any residual facing
+        // error over 30° skipped translation entirely, and since the lattice's
+        // smallest possible bend is 60° while the trip point sat at 52.5°,
+        // EVERY corner cost a 3-tick dead stop. Now only a near-reversal stops
+        // her; everything gentler is taken as a curve, with a speed penalty
+        // that fades to nothing below the deadzone.
+        public static float TurnFreezeAngle = 100f;   // above this she plants and pivots
+        public static float TurnFreeAngle = 40f;      // below this, no penalty at all
+        public static float TurnMinSpeedFactor = 0.6f; // slowest a graded turn gets
+        public static float PostTurnPauseSeconds = 0.15f; // only after a planted pivot
+
+        // §71 RUNNING. Gait is a decision, not a side effect of speed: she
+        // walks by default and runs only for a REASON, so a running figure
+        // always means something happened. Each reason carries its own pace;
+        // they do not compound (MovementSystem takes the largest).
+        public static float FleeRunSpeedFactor = 2.25f;  // running for her life
+        public static float NeedRunSpeedFactor = 1.6f;   // hurrying to food/water when desperate
+
+        // §71 BREATH — the sprint reserve (NPCNeeds.Breath). Drained per tick
+        // while running, refilled while walking, faster while standing still.
+        // Hysteresis on purpose: once spent she must recover to the re-arm line
+        // before she may run again, so she cannot flicker between gaits.
+        public static float BreathDrainPerTick = 0.0045f;   // ~55 s of running from full
+        public static float BreathWalkRecoverPerTick = 0.0022f; // ~110 s walking it back
+        public static float BreathIdleRecoverPerTick = 0.006f;  // standing catches it fast
+        public static float BreathReArm = 0.35f;            // must climb back to this to run again
+
         public static int AdrenalineTicks = 80;         // fresh damage keeps her too alert to sleep
         public static float AdrenalineEnergyFloor = 0.05f;
         // §71: the adrenaline sprint, raised 1.5x (was 1.5, so 2.25).

@@ -55,6 +55,8 @@ MonoBehaviour:
   raidFleeHealth: 0.55
   raidVictimFleeHealth: 0.6
   raidBreakOffDefenders: 3
+  meleeHoldDistance: 0.9
+  meleeHoldGlideSpeed: 0.8
   rallyIgnoresAffinityVsOutsider: 1
   spotStrangerRadiusTiles: 6
   strangerCueCooldownTicks: 300

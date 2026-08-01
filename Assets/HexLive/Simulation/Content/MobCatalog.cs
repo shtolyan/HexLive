@@ -76,6 +76,7 @@ namespace HexLive.Simulation.Content
                     ChaseStepsPerTick = 3,        // junctions per medium tick while chasing (roam=1)
                     GlideSegmentSeconds = 1.0f,   // rendered-move ease over ~one medium period
                     GlideSnapDistance = 6.0f,     // teleport past this (spawn/save-load)
+                    MeleeHoldDistance = 0.9f,     // rendered stand-off from the engaged quarry (wu)
                     RaidChancePerDay = 0.08f,     // night pack-raid probability per day
                     RaidPackSize = 3,             // dogs per night raid
                 },
@@ -93,6 +94,9 @@ namespace HexLive.Simulation.Content
                     ChaseStepsPerTick = 1,
                     GlideSegmentSeconds = 1.0f,
                     GlideSnapDistance = 6.0f,
+                    // A shark strikes from below the swimmer — no visible
+                    // side-by-side stand-off to keep, so no clamp.
+                    MeleeHoldDistance = 0f,
                     RaidChancePerDay = 0f,
                     RaidPackSize = 0,
                 },
@@ -129,6 +133,13 @@ namespace HexLive.Simulation.Content
         public int ChaseStepsPerTick = 1;
         public float GlideSegmentSeconds = 1.0f;
         public float GlideSnapDistance = 6.0f;
+
+        // Combat spacing (§29C.3): the RENDERED glide never carries the mob
+        // closer to its engaged quarry than this, so the pair squares up
+        // face-to-face instead of standing inside each other. Melee reach is
+        // junction-based and unaffected — junction spacing (~0.37 wu) is far
+        // tighter than any model, which is exactly why this exists. 0 = off.
+        public float MeleeHoldDistance = 0.9f;
 
         // Pack raid (a dog-pack director knob; 0 for lone creatures).
         public float RaidChancePerDay = 0f;

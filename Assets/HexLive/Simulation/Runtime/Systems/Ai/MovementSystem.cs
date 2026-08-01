@@ -499,6 +499,19 @@ public sealed class MovementSystem : ISimulationSystem
                 urgency = System.MathF.Max(urgency, SimBalance.FleeRunSpeedFactor);
             }
 
+            // §89: он ДОГОНЯЕТ. Она отошла на шаг — он рвётся следом, а не
+            // плетётся: пока он шёл прогулочным шагом, она успевала отойти
+            // снова, и сцена не начиналась никогда. Гопник не провожает жертву
+            // взглядом.
+            //
+            // Та же скорость, что у бегущей на подмогу (§57): это единственное
+            // мирное время, когда бежать осмысленно.
+            if (npc.Mind.CurrentGoal == GoalType.Abuse ||
+                npc.Mind.CurrentGoal == GoalType.Raid)
+            {
+                urgency = System.MathF.Max(urgency, Spec57.DefendMoveSpeedFactor);
+            }
+
             // A body in real trouble hurries to the food or the water — the
             // only peacetime reason to run, so the run clip is seen without
             // every stroll becoming a jog.

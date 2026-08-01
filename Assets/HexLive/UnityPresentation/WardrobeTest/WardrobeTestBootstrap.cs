@@ -12,9 +12,10 @@ namespace HexLive.UnityPresentation.WardrobeTest
 {
 
 // Wardrobe test scene (dev tool): pick one of the actors, try any wear
-// prefab the game ships (Resources/HexLive/Wear/**), watch her run the
-// sit -> sleep -> get-up loop, and tune each garment's per-actor fit scale
-// (WearConfig.scale) live with the arrow keys. "Save" persists the tuned
+// prefab the game ships (Resources/HexLive/Wear/**) from an icon grid with
+// underwear/wear/outerwear tabs, optionally run the sit -> sleep -> get-up
+// loop (off by default — she stands in idle), and tune each garment's
+// per-actor fit scale (WearConfig.scale) live with the arrow keys. "Save" persists the tuned
 // scales back into the wear prefab assets (editor only).
 [RequireComponent(typeof(UIDocument))]
 public sealed class WardrobeTestBootstrap : MonoBehaviour
@@ -49,9 +50,10 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         public VisualElement Row;
     }
 
-    // §72: заголовок группы прячется вместе со всеми её строками, иначе после
-    // гендерного фильтра остаются висеть подписи без содержимого.
-    private readonly Dictionary<string, VisualElement> _groupHeaders = new();
+    // Вкладки по слою одежды (VisualWearLayer): бельё → одежда → верхняя,
+    // в порядке одевания. Активная вкладка — второй фильтр рядом с гендерным.
+    private VisualWearLayer _wearTab = VisualWearLayer.Underwear;
+    private readonly Dictionary<VisualWearLayer, VisualElement> _tabButtons = new();
 
     private readonly List<WearEntry> _entries = new();
     private readonly Dictionary<string, WearEntry> _byKey = new();
@@ -89,9 +91,10 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
     private Label _saveLabel;
     private VisualElement _scaleBox;
 
-    // Sit -> sleep(5 s) -> get up loop.
+    // Sit -> sleep(5 s) -> get up loop. Off by default — the actor just stands
+    // in idle until the cycle button turns the loop on.
     private enum CyclePhase { Idle, Sit, Lie, GetUp }
-    private bool _cycleOn = true;
+    private bool _cycleOn;
     private CyclePhase _phase = CyclePhase.Idle;
     private float _phaseTime;
     private const float IdleSeconds = 2f;
@@ -828,11 +831,11 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         BuildScalePanel(root);
     }
 
-    // Sits just left of the clothes panel (which is 260 wide at right:14).
+    // Sits just left of the clothes panel (which is 344 wide at right:14).
     private void BuildHairPanel(VisualElement root)
     {
         var box = MakePanel();
-        box.style.right = 288f;
+        box.style.right = 372f;
         box.style.top = 14f;
         box.style.bottom = 14f;
         box.style.width = 200f;
@@ -1094,7 +1097,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         box.style.right = 14f;
         box.style.top = 14f;
         box.style.bottom = 14f;
-        box.style.width = 260f;
+        box.style.width = 344f;
         root.Add(box);
 
         box.Add(MakeTitle(Loc.Get("wardrobe.clothes")));
@@ -1105,63 +1108,148 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         hint.style.marginBottom = 6f;
         box.Add(hint);
 
-        var scroll = new ScrollView(ScrollViewMode.Vertical);
-        scroll.style.flexGrow = 1f;
-        box.Add(scroll);
+        _tabButtons.Clear();
+        var tabs = new VisualElement();
+        tabs.style.flexDirection = FlexDirection.Row;
+        tabs.style.marginBottom = 6f;
+        box.Add(tabs);
 
-        string group = null;
-        foreach (var entry in _entries)
+        foreach (var (layer, term) in new[]
+                 {
+                     (VisualWearLayer.Underwear, "wardrobe.tab_underwear"),
+                     (VisualWearLayer.Wear, "wardrobe.tab_wear"),
+                     (VisualWearLayer.Outerwear, "wardrobe.tab_outerwear"),
+                 })
         {
-            if (entry.Group != group)
-            {
-                group = entry.Group;
-                var header = new Label(group);
-                header.style.color = Muted;
-                header.style.fontSize = 10;
-                header.style.unityFontStyleAndWeight = FontStyle.Bold;
-                header.style.marginTop = 6f;
-                header.style.marginBottom = 2f;
-                scroll.Add(header);
-                _groupHeaders[group] = header;
-            }
-
-            var captured = entry;
-            var row = MakeButton(entry.DisplayName, Raised, () => OnRowClicked(captured));
-            row.style.height = 24f;
-            row.style.marginBottom = 3f;
-            ((Label)row[0]).style.fontSize = 11;
-            entry.Row = row;
-            scroll.Add(row);
+            var captured = layer;
+            var tab = MakeButton(Loc.Get(term), Raised, () => OnTabClicked(captured));
+            tab.style.flexGrow = 1f;
+            tab.style.flexBasis = 0f;
+            tab.style.height = 26f;
+            tab.style.marginBottom = 0f;
+            tab.style.marginRight = layer == VisualWearLayer.Outerwear ? 0f : 4f;
+            tab.style.paddingLeft = 0f;
+            tab.style.paddingRight = 0f;
+            var label = (Label)tab[0];
+            label.style.fontSize = 11;
+            label.style.flexGrow = 1f;
+            label.style.unityTextAlign = TextAnchor.MiddleCenter;
+            _tabButtons[layer] = tab;
+            tabs.Add(tab);
         }
 
+        var scroll = new ScrollView(ScrollViewMode.Vertical);
+        scroll.style.flexGrow = 1f;
+        // Сетка: тайлы текут слева направо и заворачиваются на новую строку.
+        scroll.contentContainer.style.flexDirection = FlexDirection.Row;
+        scroll.contentContainer.style.flexWrap = Wrap.Wrap;
+        box.Add(scroll);
+
+        foreach (var entry in _entries)
+        {
+            var captured = entry;
+            entry.Row = MakeWearTile(entry, () => OnRowClicked(captured));
+            scroll.Add(entry.Row);
+        }
+
+        RefreshTabs();
         ApplyActorFilter();
+    }
+
+    // Квадратный тайл: превью вещи (те же инвентарные иконки
+    // Resources/HexLive/UI/Items/<id>, id = папка = definition id) и имя
+    // префаба под ним. Без иконки — первая буква имени как заглушка.
+    private VisualElement MakeWearTile(WearEntry entry, Action onClick)
+    {
+        var tile = new VisualElement();
+        tile.style.width = 72f;
+        tile.style.height = 98f;
+        tile.style.marginRight = 4f;
+        tile.style.marginBottom = 4f;
+        tile.style.paddingTop = 4f;
+        tile.style.paddingLeft = 3f;
+        tile.style.paddingRight = 3f;
+        tile.style.alignItems = Align.Center;
+        tile.style.backgroundColor = Raised;
+        SetRadius(tile, 8f);
+        tile.RegisterCallback<MouseDownEvent>(_ => onClick());
+
+        var iconBox = new VisualElement();
+        iconBox.style.width = 58f;
+        iconBox.style.height = 58f;
+        iconBox.style.flexShrink = 0f;
+        iconBox.style.alignItems = Align.Center;
+        iconBox.style.justifyContent = Justify.Center;
+        iconBox.pickingMode = PickingMode.Ignore;
+        tile.Add(iconBox);
+
+        var sprite = string.IsNullOrEmpty(entry.Group)
+            ? null
+            : Resources.Load<Sprite>($"HexLive/UI/Items/{entry.Group}");
+        if (sprite != null)
+        {
+            var image = new Image();
+            image.sprite = sprite;
+            image.scaleMode = ScaleMode.ScaleToFit;
+            image.style.width = 56f;
+            image.style.height = 56f;
+            image.pickingMode = PickingMode.Ignore;
+            iconBox.Add(image);
+        }
+        else
+        {
+            var placeholder = new Label(entry.DisplayName.Substring(0, 1));
+            placeholder.style.color = Muted;
+            placeholder.style.fontSize = 24;
+            placeholder.style.unityFontStyleAndWeight = FontStyle.Bold;
+            placeholder.pickingMode = PickingMode.Ignore;
+            iconBox.Add(placeholder);
+        }
+
+        var name = new Label(entry.DisplayName);
+        name.style.color = Text;
+        name.style.fontSize = 9;
+        name.style.unityTextAlign = TextAnchor.UpperCenter;
+        name.style.whiteSpace = WhiteSpace.Normal;
+        name.style.overflow = Overflow.Hidden;
+        name.style.flexGrow = 1f;
+        name.style.width = 66f;
+        name.pickingMode = PickingMode.Ignore;
+        tile.Add(name);
+
+        return tile;
+    }
+
+    private void OnTabClicked(VisualWearLayer layer)
+    {
+        _wearTab = layer;
+        RefreshTabs();
+        ApplyActorFilter();
+    }
+
+    private void RefreshTabs()
+    {
+        foreach (var pair in _tabButtons)
+        {
+            pair.Value.style.backgroundColor = pair.Key == _wearTab ? Accent : Raised;
+        }
     }
 
     // §72: показываем только ту одежду, что скроена под ТЕЛО выбранного актёра.
     // Женская вещь на мужском теле рисуется искорёженным мешем (фит всегда
     // пофигурный), так что это не косметика списка, а защита от заведомо
-    // неверного показа.
+    // неверного показа. Второе условие — слой активной вкладки.
     private void ApplyActorFilter()
     {
         var sex = ActorSex.Of(_girl);
-        var groupHasVisible = new Dictionary<string, bool>();
-
         foreach (var entry in _entries)
         {
-            var fits = entry.Asset != null && entry.Asset.Gender == sex;
+            var fits = entry.Asset != null && entry.Asset.Gender == sex &&
+                entry.Asset.Layer == _wearTab;
             if (entry.Row != null)
             {
                 entry.Row.style.display = fits ? DisplayStyle.Flex : DisplayStyle.None;
             }
-
-            groupHasVisible.TryGetValue(entry.Group, out var any);
-            groupHasVisible[entry.Group] = any || fits;
-        }
-
-        foreach (var pair in _groupHeaders)
-        {
-            groupHasVisible.TryGetValue(pair.Key, out var any);
-            pair.Value.style.display = any ? DisplayStyle.Flex : DisplayStyle.None;
         }
     }
 

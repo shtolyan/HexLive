@@ -148,6 +148,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 4800)] public int abuseCooldownTicks = 900;
         [Tooltip("§87: на сколько цель абьюза запирается от аукциона после прерывания. Без замка ближайший пересчёт вернул бы его к «посидеть».")]
         [Range(0, 4800)] public int abuseLockTicks = 240;
+        [Tooltip("§89: передышка после СОРВАВШЕЙСЯ попытки. Полный кулдаун за срыв выключал его почти всё время.")]
+        [Range(0, 1200)] public int abuseRetryTicks = 40;
         [Tooltip("На сколько сцена отталкивает налёт: ограбил — сегодня не убивает.")]
         [Range(0, 4800)] public int abuseRaidLockoutTicks = 600;
         [Tooltip("Радиус поиска жертвы, тайлы.")]
@@ -209,7 +211,7 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Ставка выгона. Очень высокая намеренно: это реакция на вторжение, а не дело между делами.")]
         [Range(0f, 4f)] public float territoryScore = 2.5f;
         [Tooltip("Насколько сильнее давит нулевое общение. Ниже ~1.5 он тонет среди бытовых дел и никого не трогает.")]
-        [Range(0f, 4f)] public float lonelinessDriveMult = 1.8f;
+        [Range(0f, 4f)] public float lonelinessDriveMult = 3f;
 
         [Header("§86 Бой не до смерти, если нет ненависти")]
         [Tooltip("Включить пощаду. Выключено — люди снова добивают друг друга как звери.")]

@@ -328,10 +328,22 @@ public sealed partial class DecisionSystem : ISimulationSystem
             {
                 foreach (var other in world.Entities.Npcs.Values)
                 {
-                    if (other.Health > 0f &&
-                        other.Mind.RaidTargetNpcId is { } raidTarget &&
-                        raidTarget.Equals(npc.Id) &&
-                        HexSpatialMath.HexDistance(other.Tile, npc.Tile) <= 3)
+                    if (other.Health <= 0f)
+                    {
+                        continue;
+                    }
+
+                    // §89: трясут — это то же самое, что охотятся. Без этой
+                    // половины сцена НЕ ДОИГРЫВАЛА ни разу: он подходил, она
+                    // спокойно выбирала «пойду постираю» и уходила, он догонял
+                    // и начинал заново — и так по кругу. Стоять и слушать её
+                    // никто не заставляет: она вольна испугаться и убежать,
+                    // но не уйти по делам, будто ничего не происходит.
+                    var stalked =
+                        (other.Mind.RaidTargetNpcId is { } raidTarget && raidTarget.Equals(npc.Id)) ||
+                        (other.Mind.AbuseTargetNpcId is { } abuseTarget && abuseTarget.Equals(npc.Id));
+
+                    if (stalked && HexSpatialMath.HexDistance(other.Tile, npc.Tile) <= 3)
                     {
                         activelyHunted = true;
                         break;
@@ -1559,10 +1571,15 @@ public sealed partial class DecisionSystem : ISimulationSystem
                     EquipmentMath.WorstDirtiness(npc) * SimBalance.BatheWornDirtWeight);
             // §63: no spa while bleeding out — a mauled girl (blood < 0.6)
             // planned an 80-tick wash at the far shore between bleed ticks.
-            var batheAvail = pendingRedress ||
-                (batheNeed >= SimBalance.BatheNeedThreshold &&
-                 npc.Needs.Blood >= 0.6f &&
-                 HasReachableBathTile(world, npc) && npc.Body.CanUseToolsOrWeapons);
+            // §89: чужаку на быт ПЛЕВАТЬ (см. подробный комментарий у стирки
+            // ниже). Купание — из той же корзины: это занятие человека, у
+            // которого всё хорошо.
+            var caresAboutGrooming = npc.Faction == Faction.Colony;
+            var batheAvail = caresAboutGrooming &&
+                (pendingRedress ||
+                 (batheNeed >= SimBalance.BatheNeedThreshold &&
+                  npc.Needs.Blood >= 0.6f &&
+                  HasReachableBathTile(world, npc) && npc.Body.CanUseToolsOrWeapons));
             if (npc.Mind.CurrentGoal == GoalType.Bathe && npc.Plan.Status == PlanStatus.Active)
             {
                 batheAvail = true;
@@ -1589,7 +1606,17 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 batheAvail);
 
             var washNeed = DirtyGarmentWashNeed(world, npc);
-            var washAvail = washNeed >= SimBalance.WashClothesNeedThreshold &&
+            // §89: чужаку на быт ПЛЕВАТЬ. Он не колонист: ему не нужна чистая
+            // рубаха, ему нужно, чтобы его боялись. Стирка, купание и прочий
+            // уход за собой — это то, чем занимаются люди, у которых всё
+            // хорошо, а у него нужда в общении в нуле и закрыть её можно
+            // только силой.
+            //
+            // Гейт по фракции, а не по ставке: понижать вес бесполезно, он
+            // всё равно всплывёт, когда остальные дела кончатся, и человек
+            // опять пойдёт полоскать чистую рубаху вместо дела.
+            var washAvail = caresAboutGrooming &&
+                washNeed >= SimBalance.WashClothesNeedThreshold &&
                 npc.Needs.Blood >= 0.6f;
             var washActive = npc.Mind.CurrentGoal == GoalType.WashClothes &&
                 npc.Plan.Status == PlanStatus.Active;

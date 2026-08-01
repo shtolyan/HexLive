@@ -223,6 +223,9 @@ namespace HexLive.Simulation.Content
                         ChaseStepsPerTick = I(m, "chaseStepsPerTick", 1),
                         GlideSegmentSeconds = F(m, "glideSegmentSeconds", 1f),
                         GlideSnapDistance = F(m, "glideSnapDistance", 6f),
+                        // Pre-hold-distance exports carry no key; 0.9 matches
+                        // the MobStats field default, not the shark's 0.
+                        MeleeHoldDistance = F(m, "meleeHoldDistance", 0.9f),
                         RaidChancePerDay = F(m, "raidChancePerDay", 0f),
                         RaidPackSize = I(m, "raidPackSize", 0),
                     });
@@ -484,8 +487,8 @@ namespace HexLive.Simulation.Content
                   .Append($"\"attackWindupSeconds\": {N(m.AttackWindupSeconds)}, \"attackCooldownSeconds\": {N(m.AttackCooldownSeconds)}, ")
                   .Append($"\"aggroRadiusTiles\": {m.AggroRadiusTiles}, \"roamChance\": {N(m.RoamChance)}, ")
                   .Append($"\"chaseStepsPerTick\": {m.ChaseStepsPerTick}, \"glideSegmentSeconds\": {N(m.GlideSegmentSeconds)}, ")
-                  .Append($"\"glideSnapDistance\": {N(m.GlideSnapDistance)}, \"raidChancePerDay\": {N(m.RaidChancePerDay)}, ")
-                  .Append($"\"raidPackSize\": {m.RaidPackSize}}}");
+                  .Append($"\"glideSnapDistance\": {N(m.GlideSnapDistance)}, \"meleeHoldDistance\": {N(m.MeleeHoldDistance)}, ")
+                  .Append($"\"raidChancePerDay\": {N(m.RaidChancePerDay)}, \"raidPackSize\": {m.RaidPackSize}}}");
             }
 
             sb.Append("\n  ],\n  \"gear\": [\n");

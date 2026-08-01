@@ -71,12 +71,44 @@ public sealed partial class ExecutionSystem
         // «слишком далеко, чтобы ударить». Разговор начинается на дистанции
         // разговора; бить он потом будет с этой же точки — ApplyHumanBlow
         // собственной проверки дальности не делает.
-        if (mark.Health <= 0f ||
-            mark.IsUnconscious(world.Tick) ||
-            !InteractionReach.CheckStart(world, npc, mark.Position,
-                InteractionReach.Talk, $"Abuse NPC{markId.Value}"))
+        // Жертва по-настоящему пропала: умерла или отключилась. Тут сцене конец.
+        if (mark.Health <= 0f || mark.IsUnconscious(world.Tick))
         {
             AbortAbuse(world, npc, "MarkGone");
+            return;
+        }
+
+        // §89: ⭐ ОНА ПРОСТО ОТОШЛА — он идёт следом, а не бросает затею.
+        //
+        // Раньше любой её шаг убивал сцену целиком: обрыв «MarkGone» случался
+        // десятками за прогон, и со стороны это выглядело как «подошёл и ушёл».
+        // Между тем уйти от него — самое естественное, что она может сделать.
+        //
+        // Поэтому сбрасывается только ВЫПОЛНЕНИЕ: цель и жертва остаются, замок
+        // цели держит его на ней, и планировщик на следующем тике строит новый
+        // подход. Он преследует, пока не истечёт замок.
+        if (!InteractionReach.CheckStart(world, npc, mark.Position,
+                InteractionReach.Talk, $"Abuse NPC{markId.Value}"))
+        {
+            if (npc.Plan.TargetJunctionId is { } heldJunction)
+            {
+                SpatialMutations.FreeJunction(world, heldJunction, npc.Id);
+                SpatialMutations.ReleaseJunctionReservation(world, heldJunction, npc.Id);
+            }
+
+            npc.Execution.Status = ExecutionStatus.None;
+            npc.Execution.CurrentInteraction = null;
+            npc.Execution.StartTick = 0;
+            npc.Execution.EndTick = 0;
+            npc.Mind.AbuseBeat = 0;
+            npc.Plan.Status = PlanStatus.Completed;
+            npc.Plan.Steps.Clear();
+            npc.Plan.TargetJunctionId = null;
+            npc.Plan.TargetAgentId = null;
+            npc.Movement.JunctionPath.Clear();
+            npc.Movement.PathIndex = 0;
+            Trace.Emit(world, npc.Id, "AbusePursues",
+                $"Mark=NPC{markId.Value} Dist={HexSpatialMath.HexDistance(npc.Tile, mark.Tile)}");
             return;
         }
 

@@ -3969,6 +3969,46 @@ MonoBehaviour:
       - "Одежда"
       Flags: 0000
       Languages_Touch: []
+    - Term: "wardrobe.cycle_off"
+      TermType: 0
+      Description:
+      Languages:
+      - "Cycle: off"
+      - "Цикл: выкл"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.cycle_on"
+      TermType: 0
+      Description:
+      Languages:
+      - "Cycle: on"
+      - "Цикл: вкл"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.tab_outerwear"
+      TermType: 0
+      Description:
+      Languages:
+      - "Outerwear"
+      - "Верхняя"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.tab_underwear"
+      TermType: 0
+      Description:
+      Languages:
+      - "Underwear"
+      - "Бельё"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.tab_wear"
+      TermType: 0
+      Description:
+      Languages:
+      - "Clothes"
+      - "Одежда"
+      Flags: 0000
+      Languages_Touch: []
     - Term: "wardrobe.girl"
       TermType: 0
       Description:

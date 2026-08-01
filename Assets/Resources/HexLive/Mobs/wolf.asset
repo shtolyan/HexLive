@@ -32,5 +32,6 @@ MonoBehaviour:
   chaseStepsPerTick: 3
   glideSegmentSeconds: 1
   glideSnapDistance: 6
+  meleeHoldDistance: 0.9
   raidChancePerDay: 0.08
   raidPackSize: 3

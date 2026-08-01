@@ -41,6 +41,8 @@ namespace HexLive.UnityPresentation.Config
             NpcActorView.SwimBodyLift = c.swimBodyLift;
             NpcActorView.LedgeSeatLift = c.ledgeSeatLift;
             NpcActorView.LedgeSeatBack = c.ledgeSeatBack;
+            NpcActorView.MaleSeatForward = c.maleSeatForward;
+            NpcActorView.MaleSeatDown = c.maleSeatDown;
 
             WaterWave.Amplitude = c.waveAmplitude;
             WaterWave.Frequency = c.waveFrequency;
@@ -65,6 +67,8 @@ namespace HexLive.UnityPresentation.Config
             c.swimBodyLift = NpcActorView.SwimBodyLift;
             c.ledgeSeatLift = NpcActorView.LedgeSeatLift;
             c.ledgeSeatBack = NpcActorView.LedgeSeatBack;
+            c.maleSeatForward = NpcActorView.MaleSeatForward;
+            c.maleSeatDown = NpcActorView.MaleSeatDown;
 
             c.waveAmplitude = WaterWave.Amplitude;
             c.waveFrequency = WaterWave.Frequency;

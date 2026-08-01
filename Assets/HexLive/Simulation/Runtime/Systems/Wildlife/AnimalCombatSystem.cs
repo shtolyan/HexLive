@@ -109,7 +109,7 @@ public sealed class AnimalCombatSystem : ISimulationSystem
             return;
         }
 
-        var target = dog.TargetPosition;
+        var target = ClampToHoldDistance(world, dog, dog.TargetPosition);
         var remaining = HexSpatialMath.Distance(dog.Position, target);
         if (remaining <= 0.0001f)
         {
@@ -142,6 +142,49 @@ public sealed class AnimalCombatSystem : ISimulationSystem
 
         var dir = HexSpatialMath.Normalize(target - dog.Position);
         dog.Position = dog.Position + dir * step;
+    }
+
+    // Combat spacing (§29C.3): an engaged mob's RENDERED glide stops at arm's
+    // length from its quarry instead of riding onto her point. Melee is
+    // junction-based and junction spacing (~0.37 wu) is far tighter than the
+    // models, so without this the pair literally stands inside each other.
+    // Only the glide target is bent — Junction/Tile (aggro, pathing, reach)
+    // and the persisted TargetPosition stay untouched. Recomputed every fast
+    // tick, so a stepping/turning girl smoothly pushes the wolf back and the
+    // pair keeps facing off at a constant gap.
+    private static Float2 ClampToHoldDistance(
+        WorldState world, Wildlife.MobState dog, Float2 target)
+    {
+        if (dog.Status == Wildlife.MobStatus.Roaming || dog.TargetNpc is not { } quarryId ||
+            !world.Entities.Npcs.TryGetValue(quarryId, out var quarry) ||
+            quarry.Health <= 0f)
+        {
+            return target;
+        }
+
+        var hold = Stats(dog).MeleeHoldDistance;
+        if (hold <= 0.001f)
+        {
+            return target;
+        }
+
+        var fromQuarry = target - quarry.Position;
+        var distance = HexSpatialMath.Distance(quarry.Position, target);
+        if (distance >= hold)
+        {
+            return target;
+        }
+
+        // Glide target inside the hold ring — project it back out. When the
+        // target sits exactly ON the girl (same junction) the push direction
+        // comes from where the dog actually is, so it backs out the way it
+        // came instead of snapping to an arbitrary side.
+        var dir = distance > 0.0001f
+            ? fromQuarry * (1f / distance)
+            : HexSpatialMath.Distance(quarry.Position, dog.Position) > 0.0001f
+                ? HexSpatialMath.Normalize(dog.Position - quarry.Position)
+                : new Float2(1f, 0f);
+        return quarry.Position + dir * hold;
     }
 
     private void RunExchange(WorldState world, Wildlife.MobState dog)

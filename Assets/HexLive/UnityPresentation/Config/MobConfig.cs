@@ -89,6 +89,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0.25f, 3f)] public float glideSegmentSeconds = 1.0f;
         [Tooltip("Дальше этой дистанции — телепорт (спавн/загрузка), не езда.")]
         [Range(1f, 20f)] public float glideSnapDistance = 6.0f;
+        [Tooltip("Боевая стойка: рендер-глайд не подвозит моба к цели ближе этой дистанции (wu) — пара стоит друг напротив друга, а не друг в друге. 0 = выкл (акула).")]
+        [Range(0f, 3f)] public float meleeHoldDistance = 0.9f;
 
         [Header("Стайный налёт (0 = одиночка)")]
         [Tooltip("Вероятность ночного налёта стаи в день.")]
@@ -108,6 +110,7 @@ namespace HexLive.UnityPresentation.Config
             ChaseStepsPerTick = chaseStepsPerTick,
             GlideSegmentSeconds = glideSegmentSeconds,
             GlideSnapDistance = glideSnapDistance,
+            MeleeHoldDistance = meleeHoldDistance,
             RaidChancePerDay = raidChancePerDay,
             RaidPackSize = raidPackSize,
         };
@@ -130,6 +133,7 @@ namespace HexLive.UnityPresentation.Config
             chaseStepsPerTick = s.ChaseStepsPerTick;
             glideSegmentSeconds = s.GlideSegmentSeconds;
             glideSnapDistance = s.GlideSnapDistance;
+            meleeHoldDistance = s.MeleeHoldDistance;
             raidChancePerDay = s.RaidChancePerDay;
             raidPackSize = s.RaidPackSize;
         }

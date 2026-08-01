@@ -150,6 +150,20 @@ public static class Spec72
     // успев ничего сделать. Трое — уже настоящая толпа.
     public static int RaidBreakOffDefenders = 3;
 
+    // --- Combat spacing (§72.5, the human mirror of §29C.3's stand-off) -----
+
+    // Melee reach is junction-based and junction spacing (~0.37 wu) is far
+    // tighter than two human models, so paired fighters used to stand inside
+    // each other. While a fighter carries a live CombatOpponentNpcId and is
+    // STANDING, HumanCombatSystem backs her rendered Position off until the
+    // pair is this far apart (wu). Junction/Tile, reach and the blows are
+    // untouched — spacing, not range. 0 = off.
+    public static float MeleeHoldDistance = 0.9f;
+
+    // How fast a fighter backs into the stand-off ring, wu/s — a deliberate
+    // step back (walking pace is ~1.2 wu/s), not a teleport.
+    public static float MeleeHoldGlideSpeed = 0.8f;
+
     // Множитель ТОЛЬКО его ударов — им и утяжеляют, и смягчают чужака, не
     // трогая оружейные листы, которыми машут и девушки. 1.35: с ровно единицей
     // он не убил никого за 7 дней на трёх сидах, размениваясь 20 ударами против

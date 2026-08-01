@@ -414,10 +414,18 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     //   LedgeSeatBack — slide back onto the rim (toward the high tile).
     public static float LedgeSeatLift = 0.40f;
     public static float LedgeSeatBack = 0.45f;
+    // §78.5: the seat coordinates above (and the stump's bare anchor) are
+    // tuned on the girls' bodies. The male skeleton on the same Sit clip
+    // rests his butt a touch too high and too far back, so a MALE actor
+    // gets this extra nudge — forward (+Z, the way he faces) and down —
+    // on EVERY seat, stump and hex rim alike. Zero for the girls.
+    public static float MaleSeatForward = 0.08f;
+    public static float MaleSeatDown = 0.06f;
     // Extra lift per elevation step she perches UP from a lower tile (≈ one
     // step high). 0 when she already sits on the higher tile's rim.
     private const float LedgeSeatPerStep = 0.55f;
     private bool _ledgeSit;
+    private bool _sitting;
 
     // Face life (blink + mood expression) on the body blend shapes.
     private NpcFaceAnimator _face;
@@ -2189,6 +2197,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // The solo craft always kneels; an aid kneels only over a lying ward.
         var kneelingCraft = crafting || (aidingOther && aidTargetLying);
         _wantsTalk = interaction == "Talk"; // the Talk bool is driven by turn-taking
+        _sitting = interaction == "Sit";   // §78.5: LateUpdate nudges a male seat
 
         // Which procedural/clip action this verb wants (before touching the
         // animator, so the axe-chop clip-state can pre-empt the crouch Working pose).
@@ -4519,6 +4528,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                             LedgeSeatLift + LedgeSeatPerStep * _ledgeSeatStepsUp,
                             -LedgeSeatBack)
                     : Vector3.zero;
+                // §78.5: seat coordinates are per-sex. The values above are
+                // the girls'; a man on the same clip needs his butt a touch
+                // forward and down — on the stump (rest is zero there) and
+                // on the rim alike. Wash (§40.6) is not a Sit and stays put.
+                if (_sitting && ActorSex.Of(_actorMesh) == VisualGender.Male)
+                {
+                    rest += new Vector3(0f, -MaleSeatDown, MaleSeatForward);
+                }
                 // §21.21B hex-step jump: the ballistic trajectory rides this
                 // local offset (world delta -> local handles root rotation
                 // and scale in one go).

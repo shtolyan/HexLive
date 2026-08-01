@@ -46,6 +46,10 @@ public sealed class HumanCombatSystem : ISimulationSystem
             // Turn to face — the same courtesy the dog fight pays.
             FaceOpponent(world, actor, opponent);
 
+            // And square up at arm's length — the same spacing the dog fight
+            // keeps (AnimalCombatSystem.ClampToHoldDistance).
+            HoldStandOff(world, actor, opponent);
+
             var inReach = MeleeSwing.InReach(world, actor, opponent);
             if (!MeleeSwing.TryAdvanceSwing(world, actor, inReach, out var damage, out var weaponId))
             {
@@ -83,6 +87,53 @@ public sealed class HumanCombatSystem : ISimulationSystem
                 actor.Mind.CombatOpponentNpcId = null;
             }
         }
+    }
+
+    // §72.5 combat stand-off — the human mirror of the mob fight's
+    // ClampToHoldDistance. A paired STANDING fighter backs her rendered
+    // Position off until the pair is MeleeHoldDistance apart; each side runs
+    // this for itself, so a mutual pairing splits the gap symmetrically and a
+    // one-sided one (a defender on the raider) converges alone. A MOVING
+    // fighter is owned by MovementSystem and left alone — a chase can always
+    // close, and there is no tug-of-war over Position. Junction/Tile (reach,
+    // pathing, occupancy) are untouched, and movement self-heals: the next
+    // walk simply starts from the shifted spot.
+    private static void HoldStandOff(WorldState world, NPCState actor, NPCState opponent)
+    {
+        var hold = Spec72.MeleeHoldDistance;
+        if (hold <= 0.001f || actor.Movement.IsMoving)
+        {
+            return;
+        }
+
+        var distance = HexSpatialMath.Distance(actor.Position, opponent.Position);
+        if (distance >= hold)
+        {
+            return;
+        }
+
+        // Straight away from the opponent. Two coincident bodies (the
+        // same-junction corner case) split along a stable per-pair axis —
+        // hashed from the ids only, never the tick, so it cannot jitter.
+        Float2 dir;
+        if (distance > 0.0001f)
+        {
+            dir = HexSpatialMath.Normalize(actor.Position - opponent.Position);
+        }
+        else
+        {
+            var angle = MathUtil.Hash01(world.Seed, actor.Id.Value, opponent.Id.Value, 811) *
+                2f * System.MathF.PI;
+            dir = new Float2(System.MathF.Cos(angle), System.MathF.Sin(angle));
+        }
+
+        // Each tick closes at most half the remaining gap: two standing
+        // fighters meet the ring exactly instead of overshooting past it, and
+        // a lone adjuster still converges geometrically within a second.
+        var step = System.MathF.Min(
+            Spec72.MeleeHoldGlideSpeed * world.TickDeltaTime,
+            (hold - distance) * 0.5f);
+        actor.Position += dir * step;
     }
 
     private static void FaceOpponent(WorldState world, NPCState actor, NPCState opponent)

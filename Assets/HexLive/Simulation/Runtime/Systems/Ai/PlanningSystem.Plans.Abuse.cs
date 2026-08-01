@@ -137,7 +137,15 @@ public sealed partial class PlanningSystem
         npc.Mind.AbuseBeat = 0;
         npc.Mind.AbuseBlows = 0;
         npc.Mind.AbuseHasLoot = false;
-        npc.Mind.AbuseCooldownUntilTick = world.Tick + Spec81.AbuseCooldownTicks;
+        // §89: кулдаун НЕ вешается за срыв. Раньше любая неудача — она отошла,
+        // не нашлось подхода — выключала его на 900 тиков, а срывов десятки за
+        // прогон: он был выключен почти всё время. Это то же правило, что уже
+        // записано для налёта («кулдаун только на настоящую попытку»), просто
+        // сюда его не перенесли.
+        //
+        // Короткая передышка всё же нужна, иначе он будет молотить планами
+        // каждый тик по недостижимой цели.
+        npc.Mind.AbuseCooldownUntilTick = world.Tick + Spec81.AbuseRetryTicks;
         if (npc.Mind.CurrentGoal == GoalType.Abuse)
         {
             npc.Mind.CurrentGoal = GoalType.None;

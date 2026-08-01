@@ -2927,6 +2927,45 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // swingStartTick: the tick the sim opened THIS swing's window (0 = never
     // swung). The clip fires on a stamp we have not played yet — see
     // _lastSwingStartTick for why the old boolean edge was not enough.
+    // §96: одиночный замах вне боя — сцена абьюза бьёт, не заводя боевой пары.
+    // Клип выбирается тем же способом, что и в бою (оружие + вариант удара),
+    // поэтому со стороны удар неотличим от настоящего: тот же размах, та же
+    // кровь на попадании.
+    private void PlayLooseSwing(string weaponId, int strikeIndex)
+    {
+        // Клип выбирается ТЕМ ЖЕ способом, что и в бою: сначала лист снаряжения
+        // (данные), потом набор анимаций как запасной вариант. Кулаки — это
+        // пустой id (fists.asset), поэтому у безоружного удара клипы тоже есть.
+        var attackClips = Config.GearLibrary.AttackClipsFor(weaponId ?? string.Empty);
+        if (attackClips == null)
+        {
+            var wa = _animSet != null ? _animSet.WeaponFor(weaponId) : null;
+            attackClips = wa != null && wa.attacks != null && wa.attacks.Length > 0
+                ? wa.attacks
+                : null;
+        }
+
+        if (attackClips != null && attackClips.Length > 0)
+        {
+            var clip = strikeIndex >= 0 && strikeIndex < attackClips.Length
+                ? attackClips[strikeIndex]
+                : null;
+            clip ??= attackClips[Random.Range(0, attackClips.Length)];
+            if (clip != null)
+            {
+                OverrideClip(AttackBaseClip, Standing(clip));
+            }
+        }
+
+        // Триггер ставится в любом случае: без клипа отыграет базовый замах —
+        // всё лучше, чем неподвижная фигура при летящем уроне.
+        _animator.SetTrigger(AttackParam);
+        if (_simSpeed <= 4.01f)
+        {
+            Audio.FmodSfx.Play(Audio.FmodSfx.Sfx.Swing, transform.position);
+        }
+    }
+
     public void SetCombat(bool fighting, string weaponId, bool swinging, int strikeIndex = -1,
         int swingStartTick = 0)
     {
@@ -2942,11 +2981,30 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         if (!fighting)
         {
-            // ADOPT the stamp rather than clearing it. The sim does not reset
-            // SwingStartTick when a fight ends, so clearing here would make the
-            // stale stamp look new at the START of the next fight and fire a
-            // phantom swing before she has thrown one.
-            _lastSwingStartTick = swingStartTick;
+            // §96: ⭐ ЗАМАХ БЕЗ БОЯ. Раньше здесь стоял безусловный выход, и
+            // весь путь анимации удара висел за боевым флагом. Сцена абьюза
+            // (§81) намеренно НЕ выставляет IsFighting — иначе рвётся вся
+            // машинерия подмоги, — и потому её удары ландили невидимо: урон
+            // есть, рана есть, кровь есть, а замаха нет ни у него, ни у неё.
+            //
+            // Окно замаха самодостаточно: сим уже сказал «сейчас бьют», и
+            // рисовать это не требует боевой пары. Поэтому одиночный удар
+            // проигрывается ДО выхода, а всё остальное (стойка, скорость,
+            // прицел) по-прежнему только для настоящего боя.
+            if (swinging && swingStartTick != _lastSwingStartTick && _animator != null)
+            {
+                _lastSwingStartTick = swingStartTick;
+                PlayLooseSwing(weaponId, strikeIndex);
+            }
+            else
+            {
+                // ADOPT the stamp rather than clearing it. The sim does not
+                // reset SwingStartTick when a fight ends, so clearing here would
+                // make the stale stamp look new at the START of the next fight
+                // and fire a phantom swing before she has thrown one.
+                _lastSwingStartTick = swingStartTick;
+            }
+
             _wasFighting = false;
             _attackSpeed = 1f;
             _combatWeaponId = null;

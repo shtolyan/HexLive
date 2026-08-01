@@ -210,6 +210,10 @@ internal static class MeleeSwing
             : -1;
         StrikeTimings(gear, actor.SwingStrikeIndex, out _, out var duration, out _);
         actor.AttackAnimUntilTick = world.Tick + SecondsToTicks(duration);
+        // ⭐ Метка НАЧАЛА замаха обязательна: вид ловит удар по её СМЕНЕ, а не
+        // по флагу «сейчас машет». Окно живёт 1-2 тика, и кадр легко проскочит
+        // его целиком — без метки удар снова окажется невидимым.
+        actor.SwingStartTick = world.Tick;
     }
 
     internal static bool InReach(WorldState world, NPCState a, NPCState b)

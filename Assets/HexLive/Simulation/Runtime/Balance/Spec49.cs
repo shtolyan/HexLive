@@ -73,6 +73,28 @@ public static class Spec49
     public static float SleepSpotFireWeight = 1.5f;
     public static float SleepSpotShadeWeight = 1.5f;
 
+    // §29G r3 «спальные места» — a hex sleeps a RANK, not a single body. Two
+    // girls that ended up on one hex (a collapse, a faint, a re-planned spot
+    // after a reservation lapsed) used to lie in exactly the same place at two
+    // random yaws — one inside the other. With berths on, the first body sets
+    // the rank's heading and lies in the middle, the next lies beside her at
+    // the same angle, the third on her other side.
+    public static bool SleepBerths = true;
+
+    // Gap between neighbouring berths, as a fraction of HexRadius. 0.5 = 0.75
+    // world units = two sub-grid steps: bodies (~0.35 wu across the shoulders,
+    // 1.32 long) clearly apart but plainly together — ~1 m for a real body.
+    public static float SleepBerthSpacingFactor = 0.5f;
+
+    // Berths each side of the middle one: 1 → a rank of three, which is both
+    // the colony's size and what the hex actually holds. The rank spreads along
+    // the CORNER axis, and the hex tapers to a point there: at 0.75 out the
+    // chord is still the full 2.598 wu (a 1.32-long body fits easily), at 1.5
+    // out it is the vertex itself. A fourth body therefore takes the middle
+    // berth again (stacked, as before §29G r3) rather than a spot half over the
+    // rim — possibly over water or a cliff.
+    public static int SleepBerthHalfSpan = 1;
+
     // §65: dead-tired → seek a proper fireside sleep BEFORE the body collapses.
     // A body running on empty used to grind on until Energy hit zero and it
     // simply switched off (§60 dead-tired coma) wherever it stood — often at

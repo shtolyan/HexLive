@@ -109,6 +109,16 @@ public sealed class WorldState
 
     public System.Collections.Generic.Dictionary<JunctionId, int> JunctionComponentsFlat { get; } = new();
 
+    // Spec §26.6A r4: the junctions closed by an OBJECT FOOTPRINT (a palm trunk,
+    // the fire's ember ring, a bed) — as opposed to TERRAIN (a cliff face, a hut
+    // wall, the open sea). Both read `Junction.Blocked`, but only the first kind
+    // may be reached ACROSS: you work around a trunk, never through a cliff.
+    // DERIVED from every object's BlockedJunctions — rebuilt whenever
+    // TopologyVersion moves, exactly like the component caches above.
+    public int ObjectBlockBuiltVersion { get; set; }
+
+    public System.Collections.Generic.HashSet<JunctionId> ObjectBlockedJunctions { get; } = new();
+
     // Spec 35.3: the communal hut project (null once cleanup removes it).
     public BuildProject? Project { get; set; }
 

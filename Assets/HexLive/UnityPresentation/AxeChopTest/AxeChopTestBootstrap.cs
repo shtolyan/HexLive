@@ -401,7 +401,8 @@ namespace HexLive.UnityPresentation.AxeChopTest
         private void DriveActionAnim()
         {
             if (_animator == null) return;
-            var chopTool = toolId == "tool.axe_stone" || toolId == "tool.pickaxe_stone";
+            var chopTool = toolId == "tool.axe_stone" || toolId == "tool.pickaxe_stone" ||
+                           toolId == "tool.machete";   // §79
             var spear = toolId.Contains("spear");
             _animator.SetBool(ChoppingParam, chopping && chopTool);
             if (chopping && spear)

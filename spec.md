@@ -976,14 +976,24 @@ hills, and mountains — some climbable by natural ramps, some sheer.
   cubes / a pyramid / a small prism, flat-shaded. Used both on the ground
   (`CreateObjectView`, before the generic primitive) and in an NPC's hand
   (`NpcActorView.SetHandProp`). No external assets, no prefab wiring.
-- **AI-generated tool models** (axe/knife/pickaxe shipped) OVERRIDE the
-  procedural ones: a prefab at `Resources/HexLive/Objects/<id>.prefab` is
-  loaded first by both the hand and ground paths. Generate them by the FIXED
-  pipeline in **`TOOL_GENERATION_SPEC.md`** (repo root) — the KEY RULE is
-  *generate a HIGH-poly textured mesh (trellis-2 image-to-3D), THEN decimate
-  it*; do NOT try to make an AI produce low-poly directly. That doc has the
-  prompt, model, webp fix, pivot/orientation/scale conventions and wiring.
-  Every agent/chat adding a tool MUST follow it so tools stay consistent.
+- **AI-generated tool models** (axe/knife/pickaxe/lighter/hammer/machete +
+  §29H bottle, saw and bandage) OVERRIDE the procedural ones: a model at
+  `Resources/HexLive/Objects/<id>` — a `.prefab`, or a decimated **`.glb`**
+  dropped in as-is (glTFast imports it, `Resources.Load<GameObject>` finds
+  it, no prefab step) — is loaded first by both the hand and ground paths.
+  Generate them by the FIXED pipeline in **`TOOL_GENERATION_SPEC.md`** (repo
+  root) — the KEY RULE is *generate a HIGH-poly textured mesh (trellis-2
+  image-to-3D), THEN decimate it*; do NOT try to make an AI produce low-poly
+  directly. That doc has the prompt, model, webp fix, pivot/orientation/scale
+  conventions and wiring. Every agent/chat adding a tool MUST follow it so
+  tools stay consistent. Two rules learned on the bottle/saw/bandage batch:
+  ship the mesh **flat-shaded** (split verts — the faceting IS the style),
+  and put the in-hand pose in the item's **gear asset**, never as a baked
+  absolute `localScale` in `TryGetHandPropTransform` — the asset's scale is
+  a multiplier over `ObjectFit`, so swapping the model can't break the size.
+  `tool.bottle` is a plastic water bottle and is deliberately **slightly
+  see-through**: `alphaMode: BLEND` with base-colour alpha 0.82 baked into
+  the glTF material.
 - **Action animations** are procedural (`NpcActorView.ApplyActionPose`):
   the Animator only has locomotion + a generic crouch/sit/lay, so chopping,
   spear thrust, bow draw, eat/drink and combat swings are layered on in
@@ -3067,7 +3077,7 @@ Some conditions are checked before execution starts. Others must remain valid du
 
 - Preconditions are not only a planning-time concern. They may fail at runtime as the world changes.
 
-### 26.6A Interaction reach policy (r3) — one table, one detector
+### 26.6A Interaction reach policy (r4) — one table, one detector
 
 The recurring "acts from a whole hex away" bug family (builds hammered from
 across the camp, coconuts pierced over a cliff, a helper kneeling and feeding a
@@ -3104,6 +3114,49 @@ paths rolling its **own** distance tolerance. r3 centralizes the policy:
 - **Aid re-checks reach at completion**: if the patient got up and fled
   mid-care, the relief is NOT applied from across the clearing — the aid
   aborts (`AidComplete` variant of `InteractionTooFar`).
+
+#### 26.6A r4 — an impassable border blocks the hands too
+
+r3 measured reach as a straight line, and a hex border is thinner than the
+reach: a cliff seam is ~0.75 wu across, `BesideReach` is 0.80 wu. So an NPC
+standing one sub-grid step BELOW a ledge was "adjacent" to everything on top of
+it and worked straight through the rock — piercing a coconut, felling a palm,
+sitting on a stump, hauling from a build-site one shelf up (and the mirror case,
+reaching down from above). The feet obeyed the cliff; the hands did not.
+
+r4 states the invariant: **a border that stops the walk stops the interaction.**
+Reach is measured twice — straight-line, and along the ground.
+
+- **Terrain vs footprint.** Both read `Junction.Blocked`, and only now are they
+  told apart (`SpatialQueries.IsTerrainBlocked`, cached off `TopologyVersion`
+  from every object's `BlockedJunctions`):
+  - *object footprint* — a palm trunk, the fire's ember ring, a bed: you work
+    around it from its rim, so the beside-search still walks THROUGH it (that
+    is what makes fireside work and furniture interactions possible at all);
+  - *terrain* — a cliff face (§20.16: owning tiles more than one level apart),
+    a hut wall, an authored block, the open sea: a wall, never crossed.
+  - Water is deliberately NOT terrain: leaning over the bank to drink or to
+    take flotsam has always been legitimate and stays so.
+- **`CollectStandableAround` ends a branch at terrain.** The rim BFS used to
+  treat every blocked junction as "inside the cluster" and walk on — which is
+  precisely how it handed back a stand on the far side of a cliff, 0.75 wu from
+  the item. Now the object's approach spots can only appear on its own side of
+  the border, so the planner sends her the long way round (or fails and
+  retargets when there is no way round). One fix covers every caller: generic
+  object plans, the coconut plan, the collector, the wash pile, furniture
+  placement and `Connectivity.ReachableBeside`.
+- **`InteractionReach.CheckObjectStart` is the whole object gate** (distance +
+  `SpatialQueries.CanTouchAcross`, which re-walks that same restricted BFS from
+  the object to where she actually stands). Belt-and-braces over the planner,
+  covering remembered targets and hand-rolled sites; the wash fetch, which
+  carried its own copy of the distance check, now calls it too.
+- A barrier violation emits the same **`InteractionTooFar`** trace (message
+  "…is across an impassable border…"), so the §26.6A soak counter is the
+  regression detector for this variant as well. MEASURED (6 seeds × 3 days):
+  colony survival and interaction throughput unchanged (24/24 alive,
+  1154→1166 interactions completed, 14 fires lit both ways), `InteractionTooFar`
+  35→23, and the plan-level cost is `NoSuitableObject` on Gather goals — items
+  stranded on a ledge are correctly no longer harvestable through the rock.
 
 ### 26.7 Tick-Based Action Progress
 
@@ -6283,16 +6336,24 @@ the simulation never branches on.
 
 ### 31B.1 Identity
 
-| NPC | DisplayName | ActorMesh (visual body) | Hair (auto-spawned) |
-|---|---|---|---|
-| 1 | Marta | Marta (`Daz3D/Martanaked`) | LowPonytail |
-| 2 | Molly | Molly (`MollyMesh.mesh`, 385 MB standalone) | ShilohHair |
-| 3 | Jana | Jana (`Daz3D/Jana`) | JelikaHair_32434 |
-| 4 | Jolly | Jolly (`Actors/Jolly/Jolly.mesh` + `Jolly.asset` avatar) | OnyxHair (red) |
+**Superseded by §74 — this table now describes the ART DONORS, not the cast.**
+The four imports below are what shipped, each a whole girl: body, materials,
+hairstyle and (later) voice bank all named after her. §74 broke that bundle
+apart, so a colonist is now a composition rolled from the world seed and the
+rows here are the pools it draws from.
 
-`DisplayName` must parse to an `ActorName` (31B.3) — `NpcActorView.Construct`
-falls back to Marta's body otherwise — so the colony names and the actor set
-stay in lockstep.
+| Donor | Body mesh | Materials | Hair as authored | Voice bank |
+|---|---|---|---|---|
+| Marta | `Daz3D/Martanaked` | `Daz3D/Martanaked/Genesis3Female/` | LowPonytail | `marta` |
+| Molly | `MollyMesh.mesh` (385 MB standalone) | `Actors/Molly/Materials/` | ShilohHair | `molly` |
+| Jana | `Daz3D/Jana` | `Daz3D/Jana/Genesis3Female/` | JelikaHair_32434 | `jana` |
+| Jolly | `Actors/Jolly/Jolly.mesh` + `Jolly.asset` avatar | `Actors/Jolly/Materials/` | OnyxHair (red) | `jolly` |
+
+`ActorMesh` — **not `DisplayName`** — must parse to an `ActorName` (31B.3);
+`NpcActorView.Construct` falls back to Marta's body otherwise. The two used to
+be the same string on every NPC, which is why this line read the other way
+round for four iterations. Since §74 they are different things entirely:
+`ActorMesh` is the body, `DisplayName` is a name id.
 
 **31B.1a Jolly (fourth colonist).** Imported from molly_copy the same way as
 the first three, with three deltas worth recording:
@@ -6871,6 +6932,38 @@ SLEEP below is unchanged)*
   duration — housemates path around a sleeper (the same avoidance that
   respects standing NPCs). Claims release on completion, interruption, or
   death.
+- **29G r3 — a hex sleeps a RANK, not one body («спальные места»).** The
+  centre is a row of BERTHS. Bodies still reach one hex together (a faint,
+  a dead-tired collapse, a re-planned spot after a junction reservation
+  lapsed, an outsider bedding down among the girls) and used to land on the
+  exact same point at two unrelated yaws — one girl inside another, both
+  askew. Now `LieDownCentered` lays her out as a rank:
+  - **One heading for the whole hex.** The first body down owns it (lowest
+    EntityId, so a save-replay rebuilds the identical rank); every later
+    body copies it EXACTLY, so the sleepers are parallel and point the same
+    way. An empty hex takes the newcomer's own facing **snapped to the
+    nearest hex axis** (a multiple of 60°) — a body lying along a
+    flat-to-flat axis fits the hex; one lying across a corner does not.
+  - **Berths fill centre-out**: 0, +1, -1 — the second sleeper lies beside
+    the first, the third on her other side. Spacing is
+    `Spec49.SleepBerthSpacingFactor` x hex radius (0.5 → 0.75 wu, two
+    sub-grid steps) along the axis PERPENDICULAR to the heading, i.e. the
+    hex's corner-to-corner axis. Three is the whole rank on purpose: the
+    hex tapers to a point along that axis, so at 0.75 out the chord is
+    still the full 2.598 wu (a 1.32-long body fits easily) but at 1.5 out
+    it is the vertex. A FOURTH body takes the middle berth again (stacked,
+    the pre-r3 behaviour) rather than a berth half over the rim — possibly
+    over water or off a cliff.
+  - **No slot is stored.** Occupied berths are read back from where the
+    neighbours actually lie (their offset projected onto the shared lateral
+    axis), so nothing new is serialized and a body that wakes and leaves
+    frees its berth by walking away.
+  - A "neighbour" is any body lying on the same hex — ground sleeper,
+    dead-tired sleeper, fainted, comatose or prone (`IsLyingDown`). Corpses
+    are objects, not NPCs, and keep the §60.2a central-junction anchor.
+  - Knobs: `Spec49.SleepBerths` (kill switch — off restores the pre-r3
+    "everyone on the exact centre"), `SleepBerthSpacingFactor`,
+    `SleepBerthHalfSpan` (1 → a rank of three).
 
 **The bed must be earned**
 
@@ -9528,7 +9621,12 @@ recomputes them from the saved `CampfireDreamDone` latch + bed ownership),
 wildlife (dogs/rabbits/sharks), reservations, occupancy and
 the runtime caches (verbatim, list order preserved — systems iterate
 them), plus the wildlife respawn timers (moved into `WorldState` from
-system-local fields, which silently reset on load). Static topology —
+system-local fields, which silently reset on load).
+Blob v16 added the §71 `Breath`; v17 the §72 `Faction`; **v18 the §74
+appearance** — `SkinSet` / `Hairstyle` / `VoiceBank` per NPC, alongside the
+`DisplayName`/`ActorMesh` that have been written since v3. All three are
+empty in a pre-v18 save, and empty means "the mesh's own", so an old colony
+loads back as the four shipped girls, unchanged. Static topology —
 tiles, junction ids, adjacency, content catalog — is REBUILT from the seed
 by `WorldStateFactory`, never stored; the blob is tens of KB.
 File: `Application.persistentDataPath/hexlive_save.dat` — a small header
@@ -11763,6 +11861,14 @@ from the main camera), parked far below the map.
   the same segments `SkinTexturePainter` targets. Non-skin submeshes
   (eyes/lashes/mouth/nails, the `NpcActorView` hint list) are dropped; other
   renderers (hair) disabled.
+- **A new actor's body mesh MUST be Read/Write enabled.** Cloning, submesh
+  filtering and the per-vertex zone classification all read the mesh on the
+  CPU, so a non-readable body makes the build bail with a console warning and
+  the window shows an empty backdrop. A DAZ FBX always imports with
+  `isReadable: 0` (§31B.4B hits the same trap), which is exactly why the §72
+  outsider Kshishtof had no doll while the girls did — his `Kshishtof.fbx`
+  came in non-readable, Marta's and Jana's did not. Flip the importer flag
+  when adding an actor, not the code.
 - **Colour** is per-vertex `Color32` shaded by `UI/HealthDoll.shader` (fixed
   studio light + rim, no scene lighting): HP 1→0 ramps green→yellow→red
   (panel palette), a **bandaged** zone lightens 30 % toward white, a **severed**
@@ -11799,14 +11905,14 @@ player-facing string.
   All ~312 terms of the legacy table were migrated 1:1.
 - Key convention (unchanged): dotted lowercase `area.key` — `panel.*`,
   `need.*`, `menu.*`, `inv.*`, `zone.*`, `health.*`, `goal.<GoalEnum>`,
-  effect keys, etc.
+  `npc.<name id>.name` (§74 colonist names), effect keys, etc.
 
 ### §58.2 The `Loc` facade
 
 `UnityPresentation/Localization/Loc.cs` remains ONLY as a thin adapter over
 `I2.Loc.LocalizationManager` so the UI keeps its tiny API: `Get`, `Has`,
-`Goal`, `Toggle`, `Code`, `Current`, `LanguageChanged` (forwarded from I2's
-`OnLocalizeEvent`). Behaviour contracts preserved:
+`Goal`, `Dream`, `NpcName`, `Toggle`, `Code`, `Current`, `LanguageChanged`
+(forwarded from I2's `OnLocalizeEvent`). Behaviour contracts preserved:
 
 - a **missing key renders as the raw key** in the UI (untranslated text must
   be visible, never silently blank);
@@ -12000,6 +12106,18 @@ footprint (§29G, чтобы соседи обходили тело), но не 
 Правило: у ЛЮБОГО нового пути «тело падает на землю» — звать `LieDownCentered`
 (живое) или якорить на центральный джанкшн (труп), а НЕ выводить позицию из
 `IsJunctionFree`/`CurrentJunction`.
+
+**60.2a r2 (§29G r3, «спальные места»): центр — это РЯД, а не точка.** Инвариант
+выше остаётся в силе для ОДИНОКОГО тела: одна лежащая на гексе = ровно
+геометрический центр. Но два тела на одном гексе (обморок рядом со спящей,
+сорвавшаяся резервация джанкшна, чужак §72) ложились в одну и ту же точку под
+двумя разными углами — одна В другой, обе криво. Теперь `LieDownCentered(world,
+npc)` кладёт тело в свободное КОЙКО-МЕСТО этого гекса: общий на весь гекс угол
+(задаёт первая легшая, у пустого гекса — её собственный курс, приснапленный к оси
+гекса, кратной 60°) и место 0 / +1 / −1 в поперечнике с шагом
+`Spec49.SleepBerthSpacingFactor × HexRadius` (0.75 wu). Соседки лежат
+ПАРАЛЛЕЛЬНО и головами в одну сторону; занятые места читаются из фактических
+позиций лежащих (ничего не сериализуется). Подробности и ручки — §29G r3.
 
 **60.3 Выход.** Кома кончается, когда СВАЛИВШИЙ показатель поднялся до
 `ComaWakeThreshold` (0.15): Exhaustion — Energy ≥ 0.15, BloodLoss — Blood ≥
@@ -13293,5 +13411,793 @@ friend-guard, 179 защит по кличу) и перебивает его 30 
 выставлены, но соаком НЕ проверены. Структурный ответ — второй чужак, а не
 дальнейшее усиление одиночки.
 
-**Отгружено ВЫКЛЮЧЕННЫМ** (`Spec72.Enabled` и `SpawnOutsider` = `false`) до
-следующего круга балансировки.
+**72.11 Он смертен, и это решение, а не недоделка.** Замер (3 сида × 3 дня,
+включённая фича, расширенный остров): колония 11/12, от чужака смертей НОЛЬ, а
+сам он гибнет на всех трёх сидах — и всегда одинаково, `VitalPartDestroyed:
+Head`, дважды уже на 0.3-й день, задолго до всякой охоты. То есть его убивают
+волки, а не девушки.
+
+Причина шире, чем его комплект: **в игре нет НИ ОДНОЙ вещи, закрывающей голову**
+— ни у него, ни у колонии. `ArmorForPart(Head)` у всех ноль, а голова вместе с
+торсом — витальная зона, обнуление которой убивает мгновенно. У него это стало
+решающим ровно потому, что остальное тело забронировано (торс 0.40, таз и ноги
+0.30, руки 0.20) и он единственный, кто лезет в драки по своей воле.
+
+Решено оставить как есть: незащищённая голова — правило мира, а не баг, и
+налётчик, погибающий от волков, — нормальная история. Отсюда его роль: **помеха
+и угроза одиночкам, а не гроза колонии**. Маска `Mask_7986` в исходнике есть
+(её меш внутри FBX на 570 МБ) — если понадобится сделать его по-настоящему
+страшным, начинать надо с неё, а не с ручек урона.
+
+**72.12 Логово: у него не было того, что у колонии есть с самого начала.**
+Санктуарий в этом мире — буквально `indoor`-тайл (`MobSystem.IsNpcInSanctuary`),
+и собаки бросают погоню у двери (§29C.4A). У колонии он есть, потому что её дом
+размечен вручную `indoor: true`. Стоянка чужака вычисляется в дикой земле, где
+indoor-тайлов нет вовсе — то есть девушкам всегда есть куда нырнуть, а ему
+некуда НИКОГДА. Отсюда и смерти от волков на 0.3-й день, задолго до охоты.
+
+Дано не особое правило, а тот же механизм: якорь стоянки и кольцо вокруг него
+помечаются `Indoor` (вода и скалы пропускаются — логово обязано быть проходимой
+сушей). Выходит 4-7 тайлов, свой «дом» на общих основаниях.
+
+Второе, тише: обычный спавн собак держит `DogSpawnMinDistanceFromNpc` = 5 гексов
+от каждого NPC, но считает от того места, где тот стоит СЕЙЧАС. Стае ничего не
+мешало заводиться прямо у очага, пока хозяин отошёл за дровами, — а он
+возвращался в неё. У колонии это скрадывалось тем, что четверо постоянно топчутся
+дома и закрывают округу собой; одиночке закрывать некому. Добавлен
+`Spec72.DogSpawnMinDistanceFromCamp` = 9 — отступ от ЛЮБОЙ стоянки, не от тела.
+
+## §73 Остров стал больше — границы карты в одном месте (iteration 73)
+
+**Цель.** Остров читался тесным: 285 тайлов, из них суша едва половина, и вся
+жизнь колонии умещалась в несколько минут ходьбы. Карта раздвинута примерно
+вдвое по площади — 667 тайлов, суша ~440.
+
+**73.1 Почему это была не однострочная правка.** Границы `q ∈ [-8,10]`,
+`r ∈ [-6,8]` были зашиты ЧИСЛАМИ в четырёх местах: радиальный спад высот
+(`AddIslandElevation` нормируется на дальний тайл), проверка внешнего кольца
+моря, заполнение дикой земли (`AddWilderness`) и морской залив
+(`AddSeaChannel`). Плюс к старому восточному краю привязаны две вещи §40.18 —
+второй островок и пролив к нему (`OpenStraitCorridor`, координаты 7..10 / 2..6).
+
+Раздвинуть границы, не тронув остальное, значило бы: новые тайлы окажутся за
+пределами спада и утонут все разом, а островок с проливом останутся посреди
+суши — доплывать станет некуда и незачем.
+
+Поэтому границы вынесены в `PrototypeWorldDefinitionFactory.MinQ/MaxQ/MinR/MaxR`,
+спад нормируется на `MaxQ`, а всё, что должно жить НА КРАЮ, считается от края:
+островок на `MaxQ - 1`, пролив в полосе `MaxQ-3..MaxQ`. Менять размер острова
+теперь — это четыре числа в одном месте.
+
+**73.2 Стоянка чужака — и почему «самый дальний тайл» оказался ловушкой.**
+Раньше бралась как самый дальний проходимый низинный тайл. На маленькой карте
+это работало, на расширенной сломалось дважды.
+
+Во-первых, самые дальние проходимые тайлы — это КРОШЕЧНЫЕ ОСТРОВКИ у края:
+шум высот сеет их щедро, а «дальше» они всегда. Чужак спавнился запертым на
+двух гексах посреди моря — ни дойти до колонии, ни выжить. Теперь стоянка
+обязана лежать на ТОМ ЖЕ связном куске суши, что и дом колонии: заливкой по
+тайловой сетке от `(0,4)` считается материк, и кандидаты берутся только из него.
+
+Во-вторых, выбор был детерминированным и упирался в один и тот же угол карты
+каждую игру. Теперь берётся дальняя треть подходящих тайлов, выбор — по СИДУ,
+а список предварительно сортируется по координате: полагаться на порядок тайлов
+нельзя, мир обязан быть воспроизводимым.
+
+Проверено: на сидах 12345/777/999/31337 стоянка всегда на материке колонии
+(433-445 тайлов), 13 гексов от очага, координаты разные.
+
+**73.3 Чего это стоит.** Больше суши — длиннее маршруты до воды, еды и дров, а
+эта колония к длине маршрутов чувствительна (см. §40.17). Расширение сделано ПО
+ПРОСЬБЕ и проверено только короткой пробой на отсутствие мгновенного развала;
+полноценного соака на выживаемость до/после НЕ проводилось.
+
+## §74 Девушка — набор, а не персонаж: меш, кожа, причёска, голос, имя (iteration 74)
+
+**Цель.** До сих пор колонистка была ОДНИМ импортом: строка `ActorMesh`
+(«Marta») тянула за собой всё сразу — тело, набор материалов, причёску с поля
+`hair` на префабе, голосовой банк `Sfx/Voices/marta/`, посадку одежды через
+`ActorName`. Четыре девушки были прошиты литералами в
+`PrototypeWorldDefinitionFactory`, и каждая новая игра давала ту же четвёрку.
+
+Теперь девушка — **композиция четырёх независимых признаков плюс имя**, и всё
+пять катится от сида мира. Новый остров — новые женщины.
+
+**74.1 Пять признаков.**
+
+| Признак | Поле `NPCState` | Пул | Что решает |
+|---|---|---|---|
+| Тело | `ActorMesh` | 4 префаба `Resources/HexLive/Actors/` | геометрию, **фит одежды**, **карты покраски** |
+| Кожа/глаза | `SkinSet` | те же 4 актрисы (донор материалов) | лицо, тон кожи, цвет глаз и ресниц |
+| Причёска | `Hairstyle` | 16 префабов `ImportedActors/Wear/` | волосы (`"none"` = лысая) |
+| Голос | `VoiceBank` | 4 женских банка по 189 реплик | как она звучит и что шевелит губами |
+| Имя | `DisplayName` | 28 латинских **id** | подпись в UI через `npc.<id>.name` |
+
+Все четыре новых поля **пустые по умолчанию, и пустое значит «как было»**: свои
+материалы, причёска с префаба, банк по имени меша. Именно поэтому пре-§74 сейв,
+семь тестовых сцен и чужак §72 работают нетронутыми.
+
+**74.2 Правило, которое нельзя нарушать: фит идёт от МЕША.** Соблазн отдать
+`ActorName` набору материалов существует, потому что «это же и есть её лицо».
+Нельзя: `WearConfig` хранит ПО МЕШУ подогнанный `mesh` каждого предмета одежды
+(§31B.4A: фиты — не морфы, у них разное число вершин), `PaintPointMap` грузится
+как `skin_<Actor>` под конкретную топологию, а `Wear.ApplyHairFit` отвечает на
+вопрос «как эта причёска сидит на ЭТОЙ голове». Всё это — свойства геометрии.
+`NpcActorView` поэтому и дальше передаёт им `_actorMesh`, а `SkinSet` не видит
+никто, кроме подмены материалов.
+
+Подмена работает потому, что у всех четырёх тел **одинаковые 17 имён слотов**
+(`Torso/Face/Arms/Legs/Cornea/Sclera/Irises/Pupils/Eyelashes/…`) — §31B.1a
+пересобирал материалы Джолли из молливских ровно затем, чтобы наборы остались
+параллельными. Значит перенос — это поиск **по имени**, независимый от порядка
+сабмешей.
+
+**74.3 Порядок в `Construct` — не стилистика.** `ApplySkinSet` обязан отработать
+между `_bodySkins = …` и `BuildSkinTintTargets()`: фильтр слотов кожи (§40.8-G)
+классифицирует по ИМЕНИ материала, а `SkinTexturePainter.Construct` ниже
+однократно снимает `body.materials` и кэширует их альбедо/нормали и больше
+никогда туда не смотрит. Подмена после любого из них — это донорская кожа с
+чужими целями покраски, и выглядит это как баг шейдера, а не как баг порядка.
+Меняются `sharedMaterials`: пейнтер инстанцирует свои копии сам, а загар на
+непокрашенных слотах едет на `MaterialPropertyBlock`, поэтому раны одной девушки
+физически не могут попасть на общий ассет другой.
+
+`ApplyHairstyle` идёт сразу после `BodyBones.Construct` — тот только что создал
+причёску с префаба, и `SetHair` сносит её ПРАВИЛЬНО (уничтожает разбросанные по
+телу кости, а не только корень: `ParentConnection` уносит их из-под своего hip,
+и снос одного корня оставил бы мёртвый скелет на каждой смене).
+
+**74.4 Причёски пришлось внести в каталог.** Шестнадцать причёсок лежат в
+`Assets/ImportedActors/Wear/<Name>/` и **вне `Resources/`** — до §74 в игру
+попадали ровно четыре, те, на которые ссылались префабы актрис, а `WardrobeTest`
+перечислял остальные через `AssetDatabase` под `#if UNITY_EDITOR`. Для
+случайной причёски этого мало вдвойне: `Resources.Load` их не видит, а билд
+выбрасывает всё, на что нет ссылки. Появился
+`Resources/HexLive/ActorAppearanceCatalog.asset` (`List<Wear> hairstyles`) —
+он же ссылка, удерживающая префабы в билде. Пересобирается меню
+**HexLive ▸ Actors ▸ Rebuild Appearance Catalog**; дискриминатор тот же, что у
+`WardrobeTest`: `Wear` с ПУСТЫМИ `slots` (у одежды слоты всегда есть).
+Id причёски = имя префаба, и список должен совпадать с
+`ColonistAppearance.Hairstyles` на стороне симуляции.
+
+**74.5 Бросок.** `WorldStateFactory.AssignAppearance` — после того, как весь
+ростер построен, потому что уникальность имени есть свойство ГРУППЫ. Соли
+`(74, 7401…7405)` на оси id NPC, `MathUtil.Hash01` как везде (§29C.1) — своего
+RNG в симуляции нет вообще. Три правила:
+
+- **заполненное поле не трогается** — это авторская воля (тестовые сцены, чужак);
+- **катится только `Faction.Colony`** — пулы женские, мужское тело чужака не
+  должно получить ни их кожу, ни их голос;
+- **id обходятся по ВОЗРАСТАНИЮ**, а не в порядке словаря, иначе разрешение
+  коллизий зависело бы от внутренностей `Dictionary`.
+
+Отдельные признаки повторяются свободно — две девушки с одним телом и разными
+лицами это и есть замысел. Уникальны ровно две вещи: **имя** (одинаковые имена
+нечитаемы в UI) и **видимый облик** `LookKey = меш+кожа+причёска` (двух женщин,
+которых глаз не различает, игрок засчитает за баг). Голос в ключ облика НЕ
+входит намеренно: общий голос слышен по одной реплике и читается как семейное
+сходство, а общий силуэт стоит на экране постоянно. Коллизия облика разрешается
+шагом по причёскам — это самый широкий пул (16), так что спор решается сменой
+волос, а не тела.
+
+**74.6 Имя стало ID.** `DisplayName` больше не подпись, а латинский
+идентификатор: он едет в трейсы, сейв и имя GameObject, а игрок читает термин
+`npc.<id>.name` (EN + RU) через новый фасад `Loc.NpcName` (§58 — таблиц в C# как
+не было, так и нет). Пул из 28 имён включает канонические Marta/Molly/Jana/Jolly
+— «Марта» теперь просто имя и спокойно достаётся телу Яны. `Tonny/Masha/Rita` в
+пул НЕ входят: они члены `ActorName`, и имя, которое парсится в актёра, — ровно
+та путаница, которую §74 убирает.
+
+Побочно чинится ловушка: вступительная камера искала колонистку **по имени**
+(`LoadingScreen.JanaName = "Jana"`) и без Яны свалилась бы на запасной ветке.
+Теперь берётся первая по ростеру (список уже отфильтрован от чужака, §72).
+
+**74.7 Сейв.** Блоб 17 → 18: три строки в конец скалярной череды `WriteNpc`,
+чтение под `version >= 18`. Пустые поля в старом сейве = сегодняшний вид, так
+что пре-§74 колония грузится теми же четырьмя девушками.
+
+**74.8 Что проверено и что нет.** Headless-пробой: один сид дважды даёт
+побайтово ту же четвёрку; пять сидов дают пять разных составов; имена внутри
+мира уникальны; видимый облик уникален на 15 сидах; каждый выпавший id
+разрешается в реальный ассет на диске; чужак не тронут; круг сейва v18 сохраняет
+композицию. **НЕ проверено в игре:**
+совпадение UV между донорскими наборами материалов на кастомных экспортах
+(`MollyMesh.mesh`, `Jolly.mesh` — все четыре Genesis3Female, но это допущение, а
+не измерение), и посадка причёсок: `WearConfig` протюнен только у `AdellHair` и
+`Bob3Hair`, остальные 14 идут на дефолтах (scale 1, offset 0) и часть комбинаций
+сядет криво. Тюнится живьём в `WardrobeTest` (§31B.4B-fit) — это доводка, не баг.
+
+## §75 Состав — две ручки, а не два списка (iteration 75)
+
+**Цель.** Сколько девушек и сколько чужаков должно быть настройкой, а не длиной
+списка в коде. Умолчания: **три** колонистки и **один** чужак.
+
+**75.1 Почему это была не правка одной цифры.** Состав колонии задавался
+ЧЕТЫРЬМЯ литеральными строками `NpcBootstrap` в
+`PrototypeWorldDefinitionFactory`: у каждой свои координаты и свой профиль
+стартовых нужд. §74 забрал у них имя и облик (катятся от сида), но количество
+осталось прошитым: «убавить одну» значило удалить блок кода.
+
+Теперь строки генерируются от `WorldBalance.ColonistCount`. Позиции берутся из
+списка мест в авторском доме — он конечный, поэтому значение обрезается по нему:
+посадить больше народу физически некуда. Профили нужд разводятся по индексу
+СПЕЦИАЛЬНО: если все стартуют одинаковыми, они синхронно захотят пить, синхронно
+пойдут к воде и синхронно встанут в очередь за одной кружкой (spec 33.4).
+
+**75.2 Чужаки: одна ручка вместо двух.** `Spec72.SpawnOutsider` (флаг) заменён на
+`Spec72.OutsiderCount` (число), где `0` — прежнее «не селить». Две ручки на один
+и тот же вопрос — «есть ли враги» и «сколько врагов» — неминуемо разошлись бы.
+
+Все чужаки одной фракции, то есть союзники друг другу, и живут ОДНИМ лагерем:
+садятся на якорь стоянки и кольцо вокруг него. Проверено: `2+3` даёт две
+девушки и трёх чужаков на трёх соседних тайлах.
+
+**75.3 Нумерация.** Идентификаторы чужаков начинаются со `101`, а не продолжают
+ряд колонии: состав теперь переменной длины, и «следующий свободный номер»
+разъезжался бы при каждой смене `ColonistCount`. Дырка в нумерации ничему не
+мешает — id идёт в хеши числом, а не индексом, — зато чужаки всегда вставляются
+ПОСЛЕ колонии, и порядок обхода словаря у неё остаётся прежним.
+
+**75.4 Имена и тела чужаков.** Имя и внешность есть пока только у первого: §74
+раскатывает облик от сида, но мужского набора признаков ещё нет, поэтому все
+чужаки получают тело Кшиштофа. Для второго и далее это временно.
+
+## §76 Характеристики и навыки — кто она и что умеет (iteration 76)
+
+**Цель.** §74 дал колонисткам разные тела, лица, причёски и голоса, §75 —
+переменный состав. Но ЧИСЛА у всех оставались одни и те же: один и тот же урон,
+одна и та же скорость шага, одни и те же ставки голода. Единственным личным
+скаляром во всей симуляции был `CompassionTrait` (§53). Три девушки были тремя
+одинаковыми юнитами в разной одежде.
+
+Теперь у каждой два слоя личности поверх нужд:
+
+- **Характеристики** — 6 врождённых чисел, катятся от сида при рождении и
+  фиксированы на всю жизнь. **Кто она есть.**
+- **Навыки** — 8 чисел, растут от практики, без деградации. **Что она умеет.**
+
+**76.1 Шесть характеристик.** Каждая — `float` 0..1 со средним `AttributeMean`
+(0.5). Всякий множитель имеет вид `1 + (attr − Mean) × Gain`, поэтому тело ровно
+на среднем даёт множитель ровно `1.0f`.
+
+| Характеристика | Что решает | Где читается |
+|---|---|---|
+| **Сила** | урон в ближнем бою; +1 слот переноски выше порога; скорость тяжёлых работ (рубка, дробление, стройка, разделка) | `NPCState.StrikeFactor`, `EquipmentMath.RecalculateCapacity`, `ExecutionSystem` |
+| **Ловкость** | скорость хода и поворота; темп размаха (кулдаун удара §29C.3) | `MovementSystem`, `MeleeSwing` |
+| **Выносливость** | потолок стамины, расход стамины на работе, дыхание §71, ставка сна | `NeedsDecaySystem`, `MovementSystem` |
+| **Стойкость** | входящий урон ↓, кровопотеря ↓, заживление ↑ | `EquipmentMath.Mitigate`, `NeedsDecaySystem` |
+| **Неприхотливость** | ставки голода и жажды, давление жары и холода | `NeedsDecaySystem` (`metabolism`) |
+| **Смекалка** | скорость обучения навыкам, скорость крафта | `SkillMath`, `AttributeMath.WorkDurationMult` |
+
+**Смекалке НЕ отдан радиус обзора §62, и это решение, а не недоделка.**
+`AiBalance.PerceptionRadiusTiles` — целые тайлы: 2 против 3 это +125% площади,
+что переписало бы `Memory.KnownObjects`, цели планов и все маршруты разом.
+Маршрутизация — самая непрощающая ось этого сима (см. историю балансных правок),
+и характеристика не должна её трогать.
+
+**76.2 Ролл — БЮДЖЕТ, а не лотерея.** Шесть сырых хешей превращаются в шесть
+отклонений от их собственного среднего, поэтому **в сумме они дают ноль по
+построению**: Σ характеристик = 6 × Mean у любого тела при любом разбросе.
+
+Почему не свободный ролл: колония из трёх человек (§75), и одна невезучая
+девочка — это треть рабочей силы. Свободный ролл делает долю побед функцией
+сида, а не дизайна. Бюджет делает **специалисток вместо удачниц и неудачниц** и
+снимает суммарную дееспособность колонии с сида полностью.
+
+Отклонения нормируются на наибольшее по модулю, поэтому полоса получается
+**ровно** `[Mean − Spread, Mean + Spread]`: `Clamp01` не срабатывает никогда,
+бюджет точен, а не «точен, пока кто-нибудь не выкатит 0.99». Побочно у каждой
+девушки ровно одна выдающаяся характеристика — именно это делает её читаемой на
+листе персонажа.
+
+Соль хешей — блок `(76, 7601..7606)`. Ролл живёт в `WorldStateFactory.AddNpc`,
+рядом с `CompassionTrait`, а **не** в проходе внешности §74: тот обходит только
+`Faction.Colony`, а тело нужно и чужаку. Чужак §72 роллится тем же бюджетом —
+у него уже есть своя ручка страшности (`Spec72.RaidStrikeDamageMult`), и
+удваивать её значило бы сделать его нетюнибельным.
+
+Авторская запись в `NpcBootstrap.Attributes` перебивает ролл (правило §74
+«заполненное — намерение автора»); она осознанно ломает бюджет, потому что это
+намерение, а не бросок.
+
+**76.3 Стойкость — это НЕ больше HP.** Максимального здоровья в игре нет вообще:
+`Body.Parts[*]` жёстко 1.0 и зажат `Clamp01` в десятке мест, а `Health` — среднее
+по частям. Поэтому «больше живучести» смоделировано там, где математически то же
+самое, а структурно дёшево: **меньше урона доходит**. Попытка ввести потолок
+задела бы `VitalDestroyed`, `WoundMath.OpenWoundDamage`, позу, куклу тела §57 и
+все пороги `Spec53`/`Spec72` — это не рефакторинг, это другая игра.
+
+**76.4 Две воронки.** Урон считается в шести местах и приходит в шести. Размазать
+множители по двенадцати строкам — гарантированный будущий рассинхрон, поэтому:
+
+- **Исходящий.** `BodyState.StrikeFactor` переименован в `LimbStrikeFactor`, а на
+  `NPCState` появился `StrikeFactor()` = состояние конечностей × Сила × Бой.
+  Переименование намеренное: компилятор сам ломает все шесть точек урона, забыть
+  одну нельзя.
+- **Входящий.** `EquipmentMath.Mitigate(world, target, part, raw)` — единственное
+  место смягчения: броня на задетой части, затем Стойкость. Пять из шести точек
+  писали до этого одну и ту же пару строк.
+
+`SharkSystem` брони не применял никогда и в §76 намеренно не тронут: это
+отдельная правка баланса, ей не место в фичевом коммите.
+
+**76.5 Восемь навыков.** Бой · Добыча · Ремесло · Строительство · Готовка ·
+Врачевание · Выживание · Общение. Растут на завершении работы, пропорционально
+фактически потраченным тикам; Бой — на попадании.
+
+Глагол разбирается **сначала по `InteractionType`, потом по `GoalType`**: готовка
+и ремесло обе `InteractionType.Craft` и различаются только целью, которая их
+запланировала. Карта живёт одним `switch` в `SkillMath.For` — разбросанные по
+системам «если цель CraftAxe, то +ремесло» это как раз тот способ, которым два
+глагола начинают кормить два разных навыка без причины, которую потом никто не
+восстановит.
+
+Кривая: `gain = XpPerWorkTick × ticks × witsMult × (1 − skill)^2`. Затухание
+означает, что последняя четверть навыка стоит примерно как первые три, поэтому
+колония приходит к ОДНОЙ мастерице, а не к трём девушкам на максимуме всего.
+Деградации нет: ремесло, однажды выученное, не забывается — только отстаёт.
+
+**76.6 Перки — значки, а не эффекты.** Характеристика в верхней полосе (≥ 0.70)
+даёт именной значок, в нижней (≤ 0.30) — изъян.
+
+Их сознательно **не** сделали `EffectKind`. Все существующие эффекты —
+*временны́е* классификации, и панель рисует по чипу на каждый; двенадцать вечных
+чипов на каждой девушке затопили бы ряд и сломали смысл системы. Это уточнение к
+§48.6: правило «нет невидимых влияний» требует, чтобы всякий модификатор был
+назван, локализован и виден, — и **вкладка §76 и есть поверхность видимости**.
+Лист персонажа отвечает на вопрос «что на неё действует» полнее, чем ряд чипов,
+именно потому, что характеристики постоянны, а чипы говорят о происходящем сейчас.
+
+Полосы — знание симуляции, поэтому ключи перков резолвятся на стороне сима и
+кладутся в снапшот готовыми; вид только локализует.
+
+**76.7 Ручка и лестница. `AttributeSpread` по умолчанию 0 — и это не робость.**
+При разбросе 0 каждая девушка ровно на среднем, каждый множитель ровно `1.0f`, и
+каждое умножение ТОЧНОЕ. Это строго сильнее булева выключателя: новый код
+остаётся на горячем пути, поэтому соак при разбросе 0 проверяет проводку, а не
+обходит её, и любое расхождение с чистым HEAD — баг, а не правка баланса.
+
+Лестница: A (0.0, без навыков) и B (0.0, с навыками) обязаны быть **потиково
+тождественны** HEAD; дальше C 0.15 → D 0.30 → E 0.30+навыки → F 0.50 (целевое
+ощущение ±15%). Горизонт соака — не меньше 240 000 тиков: грация рейда чужака
+считается от `RaidGraceDays × DayLengthTicks` = 120 000, и всё, что короче, §72
+вообще не трогает.
+
+**76.8 Сейв.** Блоб 18 → 19: шесть характеристик и восемь навыков в конец
+скалярной череды `WriteNpc`, чтение под `version >= 19`. Дефолты полей (0.5 и 0)
+означают «как было до §76», поэтому пре-§76 сейв грузится ровно той игрой,
+которая его записала.
+
+**76.9 Вкладка — лист персонажа.** Средняя колонка `CharacterPanel` (та, где
+голод и жажда) получила полоску из трёх страниц: **Нужды** · **Природа** ·
+**Умения**. Заголовок секции стал полоской вкладок — текстовой, ~24px: визуальная
+идиома взята у вкладок отношений, но их 48-пиксельная лента с аватарками не
+влезает в карточку 286px дважды.
+
+Строка листа — имя, уровень из десяти и полоска. **Без иконки**: все 16 глифов
+`VectorIcon` семантически «нуждовые», и капля рядом со Смекалкой читалась бы
+хуже, чем ничего. Уровень из десяти, а не проценты: лист — это RPG-чтение («она
+семёрка в ремесле»), сетка нужд — прибор. Свои иконки — отдельный проход.
+
+Обе страницы обновляются независимо от того, какая открыта: это 14 записей в
+подписи по уже разобранному снапшоту, зато переключение вкладки мгновенно, а не
+через кадр устаревших цифр. Клик по вкладке ОБЯЗАН сбрасывать `_refreshedTick`:
+`Refresh` выходит рано, пока тик снапшота не изменился, и без сброса новая
+страница осталась бы пустой до следующего тика симуляции.
+
+Термины: `attr.*`, `skill.*`, `perk.*`, `panel.nature`, `panel.skills` — 28 штук,
+EN+RU, в `I2Languages.asset` (§58: в C# строк нет).
+
+**76.10 Что проверено и что нет.**
+
+Проверено headless:
+- при `AttributeSpread = 0` каждая характеристика **побитово** равна среднему;
+- **нейтральность**: 240 000 тиков на шести сидах, `Enabled = false` против
+  `AttributeSpread = 0` на ОДНОЙ сборке — потоки событий тождественны тик в тик,
+  то есть весь новый код на горячем пути ничего не сдвигает;
+- бюджет точен: Σ характеристик = 6 × среднего у каждой колонистки на восьми
+  сидах, полоса ровно `[среднее − разброс, среднее + разброс]`, `Clamp01` не
+  срабатывает ни разу;
+- ролл детерминирован (один сид дважды даёт побайтово ту же тройку) и различает
+  сиды; чужак §72 роллится тем же бюджетом;
+- навыки реально растут: 20 000 тиков при разбросе 0.5 дают 18 событий
+  `SkillUp`, у каждой девушки свой профиль ремёсел;
+- круг сейва v19 сохраняет все 14 чисел; пре-§76 сейв читается как «средняя
+  колония без ремесла».
+
+**Гейт «потиково тождественно чистому HEAD» (§76.7, ступень A) НЕ пройден — он
+не был запущен.** В рабочем дереве параллельно шла ЧУЖАЯ фича (`tool.machete` и
+её обвязка в `ItemCatalog`/`SpatialQueries`/`InteractionReach`/`Spec49`), поэтому
+разница с HEAD принадлежала бы ей, а не §76. Гейт нейтральности выше — законная
+замена внутри такого дерева, но не отменяет ступень A: её надо прогнать на ветке,
+где §76 единственное изменение.
+
+⚠️ Ловушка харнесса, стоившая одного ложного «PASSED»: если собирать обе
+вариации одним `dotnet build -o <dir>` из ОДНОЙ папки проекта, общий `obj/`
+запоминает первую разрешённую ссылку и подсовывает её всем последующим сборкам —
+обе «стороны» бегут на одной и той же DLL и, разумеется, совпадают. Каждой
+вариации нужна своя папка проекта; после сборки — проверять, что DLL разные
+(`strings … | grep AttributeSet`).
+
+**НЕ проверено:** вкладка в живой игре (сборка проходит, глазами не смотрели);
+как выглядят шесть строк и значки перков при длинных русских названиях; и —
+главное — **баланс при ненулевом разбросе**: лестница C→F не пройдена, поэтому
+шипится ноль. Целевые 0.5 разброса и ±15% — это НАМЕРЕНИЕ, а не измерение.
+
+**76.11 Чего §76 намеренно не делает.**
+- **Не вводит потолок HP** (см. 76.3).
+- **Не трогает радиус обзора §62** — целые тайлы, это переписало бы маршруты.
+- **Не даёт брони `SharkSystem`.** Он её не применял никогда; Стойкость там
+  теперь работает, броня — нет. Включить её значило бы протащить правку баланса
+  в фичевый коммит.
+- **Не переводит деление длительностей во float.** `DurationTicks / divisor`
+  осталось целочисленным, множитель применяется к РЕЗУЛЬТАТУ: иначе каждая
+  нечётная длительность сдвинулась бы на тик (35/2 = 17 сегодня, 18 после) —
+  тихая правка баланса, которую нельзя выключить.
+- **Не ускоряет замах и длину боевого клипа** — только паузу между ударами:
+  замах это анимация, и её сокращение рассинхронизировало бы вид.
+- **Не трогает отдых, гигиену и переодевание.** Купание и стирка идут по своему
+  времени: это не работа, которой можно стать лучше.
+
+## §77 Выкладка материала — предмет уходит из руки в середине анимации (iteration 77)
+
+**Проблема.** Доставка материала на стройплощадку выглядела сломанной с двух
+сторон сразу. Во-первых, окно доставки было 36 тиков = 9.0 с, а клип выкладки
+(`X Bot@Gathering Objects`, 179 кадров при 30 fps = **5.97 с**) — зациклен: он
+успевал перезапуститься и оборваться на середине второго прохода. Во-вторых,
+бревно оставалось приклеенным к руке всю сцену, а куча на площадке появлялась
+рывком в самый последний тик: она наклонялась к земле с грузом в руках, вставала
+с ним же, и только потом груз телепортировался в кучу.
+
+**77.1 Длительность = ровно один цикл клипа.** 0.25 с/тик → **24 тика = 6.00 с**
+против 5.97 с клипа. `build.site/build.furniture` и `campfire.spot/build.upgrade`:
+36 → 24. (Второй `build.furniture` у костра остаётся мёртвым: `ResolveInteraction`
+ищет по ТИПУ и всегда находит `build.upgrade` первым.)
+
+Правка сделана со стороны сима, а не вида, потому что скорость стейта `Gather`
+захардкожена в контроллере (`m_Speed: 1`) — подгонять клип под окно значило бы
+заводить speed-параметр на стейте, пересобирать `HexNpcLocomotion.controller` и
+гнать длительность взаимодействия в снапшот. Одно число в каталоге делает то же
+самое и читается там, где живёт.
+
+**Оговорка про §76.** `AttributeMath.WorkTicks` умножает авторские тики на Силу и
+навык Строительства, поэтому «ровно один цикл» точен при `AttributeSpread = 0`
+(текущий дефолт). На разбросе окно гуляет, и клип пройдёт 0.8–1.3 раза — это
+цена того, что характеристики вообще влияют на скорость работ.
+
+**77.2 Передача груза — на середине, а не в конце.** `BuildHandoffFraction = 0.5`,
+идиома `WardrobeHandoffFraction` (§Wardrobe-anim): на половине окна материал
+уходит из инвентаря в `site.Contents`.
+
+Ключевое: **в презентации не тронуто ничего**, потому что рука и куча — это
+следствия ОДНОГО факта. `ResolveHeldItem` показывает материал, только пока он
+одновременно нужен площадке и лежит в рюкзаке; вид площадки собирает кучу из
+`DeliveredLogs/Sticks/Rope/Leaves/Stones`. Перенос предмета в `Contents` в
+середине окна опустошает руку и наращивает кучу одним и тем же тиком —
+следующий снапшот несёт уже оба факта.
+
+Побочно получилась приятная вещь: если выгрузка укомплектовала площадку и в
+рюкзаке лежит молоток, вторую половину клипа она доигрывает **с молотком в
+руке** — тем же `ResolveHeldItem`, без единой строки про «достать инструмент».
+
+**77.3 Подъём остаётся на конце — это не забывчивость.** И подъём постройки, и
+рождение костра стадии 1 (§54.14) делают `DespawnObject` тому самому объекту, у
+которого она стоит и который держит `IsOccupied`/`CurrentUser`. Вырвать цель
+из-под работающего на середине взаимодействия — гарантированный `ExecFailed` и
+брошенный план. Поэтому середина окна отдана ТОЛЬКО выгрузке, а всё, что меняет
+состав мира, ждёт последнего тика.
+
+**77.4 Один `SiteDelivered` на визит.** `Execution.BuildDeposited` — флаг «этот
+визит свой груз уже отдал», сбрасывается на старте взаимодействия.
+`DepositAtFurnitureSite` возвращает счётчик перенесённого, трейс вынесен
+отдельной функцией, поэтому холостой второй проход молчит. Завершение выкладывает
+само, только если до середины дело не дошло (совсем короткое окно) или сейв был
+перезагружен посреди выкладки — флаг намеренно не сериализуется: он стоит
+ровно одно лишнее строчное событие в редком случае и ноль изменений в мире.
+Событий в трейсе на визит по-прежнему ровно одно, поэтому метрики соаков
+сравнимы с до-§77.
+
+## §78 Мужская походка — актёру своя локомоция (iteration 78)
+
+**Проблема.** §72 вывел на остров мужчину, но ходит он до сих пор женскими
+клипами. Аниматор в проекте ОДИН на всех (`HexNpcLocomotion.controller`), а его
+локомоция авторски женская: idle `DefaultAvatar@Idle_Neutral`, шаг
+`DefaultAvatar@WalkForward_NtrlFaceFwd`, сидение `Locomotion/Animations/Sitting`.
+На мужском теле это читается мгновенно — и не как «слабая анимация», а как
+«это переодетая девушка».
+
+**Решение — слоты, а не второй аниматор.** Никакого мужского контроллера, ветки
+в состояниях и второго префаба: `NpcActorView` уже оборачивает контроллер в
+`AnimatorOverrideController` на каждого актёра, и §71 уже доказал, что подмена
+КЛИПОВ в существующих слотах — рабочая механика (ползание безногой занимает все
+три слота походки одним клипом). Мужчина — тот же приём, только пять слотов и
+навсегда:
+
+| Слот (ключ подмены) | Состояние аниматора | Мужской клип |
+|---|---|---|
+| `Idle` | Idle | `Male@Idle` (Mixamo Breathing Idle) |
+| `Walk` | GaitBlend 0 — шаг | `Male@Walk` (Walking) |
+| `X Bot@Slow Run` | GaitBlend 0.5 — трусца | `Male@SlowRun` (Running slow) |
+| `X Bot@Running` | GaitBlend 1 — бег | `Male@Run` (Running) |
+| `mixamo.com` | Sit | `Male@Sit` (Sitting) |
+
+⭐ **Ключ подмены — это ИМЯ базового клипа, а не имя состояния.** Отсюда две
+странности в таблице, обе намеренные. Слоты трусцы и бега зовутся
+`X Bot@Slow Run` / `X Bot@Running` — это женские слоты, названные по клипам,
+которые в них лежали (`NpcActorView.GaitClipKeys`, §71). А ключ сидения —
+буквально `mixamo.com`: `Sitting.fbx` лежит в `Locomotion/Animations`, ВНЕ
+`AnimLibrary`, за которой следит постпроцессор импорта, переименовывающий клип
+по имени файла, — и такой клип сохранил миксамовское экспортное имя.
+Переименовать его сейчас нельзя: состояние `Sit` ссылается на клип по
+`internalID`, и правка имени указала бы его в пустоту.
+
+**78.1 Комплект — данные, а не код.** `NpcAnimSet.male` (`LocomotionSet`: idle,
+walk, slowRun, run, sit). Пустой слот проваливается в клип контроллера, поэтому
+наполовину заполненный комплект — валидное состояние, а не поломка. Клипы —
+миксамовские тейки на риге X Bot, лежат в `AnimLibrary` под именами `Male@*`
+(файл = имя клипа = ключ; постпроцессор делает их Humanoid и in-place сам).
+Проводка одним меню — **HexLive ▸ Actors ▸ Build Male Locomotion**
+(`BuildMaleLocomotion`, идемпотентно).
+
+Отдельный файл `Male@Run.fbx` вместо переиспользования `X Bot@Running` — не
+дублирование: тейки разные, «мужской бег» выбирался глазами на Mixamo. Имена
+`Male@*`, а не миксамовские, потому что `X Bot@Running` и `X Bot@Running2`,
+стоящие рядом в одной папке, — это ошибка, которую кто-нибудь обязательно
+совершит.
+
+**78.2 Гейт — пол, а не имя.** `ActorSex.Of(_actorMesh) == VisualGender.Male`
+(§72). Никаких `if (actor == Kshishtof)`: второй мужчина (`Tonny` уже в enum'е)
+получает походку фактом своего пола, без правки вида. Подмена — один раз в
+`Construct`, сразу после разбора меша.
+
+⭐ **Ловушка, которую это чинит по дороге.** `UpdateArmedStance` возвращала
+`Idle`/`Walk` в «базу» из `_clipsByName` — то есть в клип КОНТРОЛЛЕРА. Для
+мужчины база — его собственный клип, и без правки первый же взятый в руку топор
+навсегда возвращал ему женскую походку. Восстановление теперь идёт через
+`BaseLocomotionClip`: сначала клип актёра, контроллер — только если своего нет.
+Тем же местом накрыта кулачная стойка (она выходит из стойки через тот же
+вызов).
+
+Порядок наложения не изменился: §50 (потеря ноги) накладывается ПОЗЖЕ и
+выигрывает — мужчина без ноги ползёт, как все.
+
+**78.3 Повторный `Construct`.** Тестовые сцены пересобирают актёра на одном
+инстансе, а `Construct` оборачивал `runtimeAnimatorController` как есть — то
+есть на втором заходе оборачивал ПРЕДЫДУЩИЙ override, и уже подменённые клипы
+становились новыми базовыми КЛЮЧАМИ: вернуть авторские тейки после этого нельзя
+было ничем. Теперь и индекс `_clipsByName`, и обёртка строятся от авторского
+контроллера (`AnimatorOverrideController.runtimeAnimatorController`), а женский
+актёр при пересборке ЯВНО возвращает свои пять слотов — иначе его походка
+осталась бы на её теле.
+
+**78.4 Что НЕ вошло.** Вооружённые idle/ходьба (`armedIdle`/`armedWalk`,
+`Standing Idle` / `Standing Walk Forward`) — уже тейки X Bot и на мужчине
+смотрятся, поэтому не тронуты. Темп проигрывания тоже не тронут: `SlowRunCadence`
+(2.0) и `RunCadence` (3.4) — это доли шага, и если на мужских клипах поедут
+ступни, крутить надо ровно их (§71).
+
+**НЕ проверено:** глазами в игре. Сборка обеих сборок чистая, но высота посадки
+мужского `Male@Sit` относительно пенька и края гекса, а также совпадение ног с
+землёй на его беге — вопросы, на которые отвечает только Play.
+
+## §79 Мачете — железный трофей и скорость рубки от инструмента (iteration 79)
+
+**Что было не так.** «Скорость рубки» в игре была одной ручкой на весь рюкзак и
+целым числом: `BestHarvestSpeedMult` брал ЛУЧШИЙ множитель среди ВСЕХ носимых
+предметов, а место вызова делило длительность **целочисленно** и только для
+`Harvest` (и только если это не валун — иначе пила в рюкзаке ускоряла бы добычу
+камня, которую она не умеет). Отсюда два следствия, которые читались как баг:
+
+- **нож и каменный топор кололи бревно за одно и то же время** — у обоих
+  множитель 1, и никакая правка ассета этого не меняла: 1.5 при `(int)` схлопывалось
+  обратно в 1, а «медленнее эталона» (< 1) не выражалось вовсе;
+- ускорение доставалось от предмета, который эту работу вообще не делает.
+
+**79.1 Темп задаёт ТОТ инструмент, который делает работу.** Одно правило вместо
+частных случаев (`GearCatalog`):
+
+- `RequiredCapabilities(interaction, definition)` — единственное место, где
+  решается, каким СКИЛЛОМ делается работа: объявленный контентом any-of набор,
+  а если контент молчит — прежний вывод по типу (валун → `Mine`, юкка → `Cut`,
+  дерево → `ChopWood`, кокос → `Cut`, разделка → `Butcher`). Гейт «пустят ли
+  тебя» и «с какой скоростью» теперь физически не могут разойтись.
+- `BestSpeedMultFor(items, caps)` — максимум `HarvestSpeedMult` среди тех
+  предметов, у которых ЕСТЬ нужная способность. Пила больше не ускоряет добычу
+  камня структурно, а не благодаря `if (!isBoulder)`.
+- `ScaleTicks(ticks, mult)` — округление вместо усечения, минимум 1 тик. Именно
+  это открывает дробные множители в обе стороны.
+- Применяется ко ВСЕМ гейтящимся работам (`Harvest`, `Process`, `Butcher`), а не
+  к одной валке. Стадии остаются раздельными: сперва инструмент (§79), потом руки
+  (§76 `AttributeMath.WorkTicks`) — свернуть их в одно деление нельзя, иначе они
+  начнут обмениваться округлением и ни одну не получится бисектить.
+
+Трасса `InteractionStarted` печатает и авторскую длительность, и `Tool=xN` — соак
+видит, что мачете действительно вдвое сократил работу.
+
+**79.2 Лестница инструментов.** Эталон — каменный топор (1.0).
+
+| предмет | множитель | валка пальмы (60) | колка бревна (120) | кокос (40) | разделка (30) |
+|---|---|---|---|---|---|
+| нож | **0.75** | не умеет | 160 | 53 | 40 |
+| каменный топор | 1.0 | 60 | 120 | 40 | не умеет |
+| пила | 2.0 | 30 | 60 | не умеет | не умеет |
+| **мачете** | **2.0** | **30** | **60** | **20** | **15** |
+
+Нож 0.75 — единственная ручка, которая трогает СТАРЫЙ баланс: кокос 10 → 13.3 с,
+разделка 7.5 → 10 с. Это сознательно (нож обязан быть худшим рубящим предметом),
+но если соак покажет жажду — откат ровно один: `harvestSpeedMult` в
+`Resources/HexLive/Gear/knife.asset` обратно в 1. Пила равна мачете на дереве и
+только на нём; мачете быстрее «в целом», потому что делает ещё три работы.
+
+**79.3 Мачете.** `tool.machete` — первое железо на острове. Бой: **ровно вдвое
+сильнее топора при его же таймингах** (урон 0.5625 против 0.28125; замах 1.65,
+взмах 2.2, перезарядка 0.8 — одинаковые), одноручное, `MeleePriority` 35 — выше
+копья (30), то есть лучшее оружие в игре. Инструмент: `Cut | Butcher | ChopWood`
+— умеет всё, что нож и топор вместе.
+
+**Не крафтится.** Железа на острове нет: мачете приносит с собой чужак (§72), и
+в колонию оно попадает единственным способом — с его тела. Поэтому в стартовом
+наборе чужака оно ЗАМЕНИЛО копьё: копьё стояло там как затычка, когда ножа не
+хватало на размен с четырьмя, а мачете сильнее копья, одноручное и вдобавок
+рубит дрова — двуручная палка в его маленьком рюкзаке была бы мёртвым весом.
+Нож у него остаётся вторым трофеем.
+
+**79.4 Модель и иконка.** Сделаны по `TOOL_GENERATION_SPEC.md`: fal.ai flux
+(фасеточная картинка) → Artificial Studio `trellis-2` (481 K тр.) → починка
+WebP-текстур → децимация до 20 K и ориентация. Новое против прежних инструментов:
+децимация/ориентация сделаны в **headless Blender**, а не в Unity — Unity в этой
+сессии не был запущен. PCA по всем вершинам (у клинка, в отличие от топора, нет
+головы, которая перекашивает главную ось) → длинная ось в Unity +Y, основание
+рукояти в y = 0; тонкая внутриплоскостная ось → нормаль клинка в X; заточенная
+сторона (та, что тоньше по средней толщине) → в +Z. Металлик/шероховатость
+выброшены, альбедо ужато до 1024 — 3 МБ вместо 8.
+
+**Кадр СВЕРЕН с отгруженными инструментами, а не «на глаз»** — хват в
+`GearConfig` задан конвенцией (у ножа и топора он побайтово один и тот же набор
+чисел), поэтому меш в правильном кадре обязан сесть в руку БЕЗ подгонки. Разобрал
+YAML-меши `_AiGen/*_oriented.asset` и сравнил с экспортом мачете в Unity-осях:
+
+| меш | длина | нормаль пластины | рабочая сторона |
+|---|---|---|---|
+| кирка (эталон однозначный — шип) | +Y, база 0 | X | **+Z** |
+| топор | +Y, база 0 | X | Z (голова: z-размах 0.155 > x 0.124) |
+| **мачете** | +Y, база 0 | **X** | **+Z** (толщина фланга 0.0108 против 0.0128) |
+| нож | +Y, база 0 | **Z** | X |
+
+Мачете лежит ровно как топор и кирка — то есть как написано в спеке. Пивот на оси
+рукояти точно: центр хвата x = +0.00006, z = +0.00003. **Нож — выкатившийся из
+конвенции: его пластина повёрнута на 90° вокруг длины** (клинок плашмя к ±Z, а не
+кромкой в +Z). Хват тюнили на топоре в `AxeChopTest`, а ножу те же числа просто
+скопировали — то есть в руке на 90° развёрнут НОЖ, и чинить, если что, надо его,
+а не мачете. Единственная неточность мачете: основание не в нуле, а в 0.0011 от
+длины 1.0 (экспортёр glTF роняет самый нижний вырожденный треугольник) — после
+`ObjectFit` это 0.4 мм.
+
+Модель лежит как `Resources/HexLive/Objects/tool.machete.glb`: и рука
+(`NpcActorView.SetHandProp`), и земля (`HexWorldRenderer.CreateObjectView`) грузят
+`HexLive/Objects/<id>` без расширения, так что GLB подхватывается так же, как
+подхватывался бы `.prefab` (прецедент — `tool.pot.fbx`). Иконка —
+`Resources/HexLive/UI/Items/tool.machete.png` (Blender Cycles, ¾, прозрачный фон).
+
+**79.5 Что «просто заработало».** Рубящий клип (`ActionFromInteraction` гейтится
+на `ChopWood`), вооружённые idle/ходьба (любой `tool.*`), выбор оружия в драке
+(`BestMeleeWeapon` по приоритету), подбор с земли (`AddsValueOver` видит новые
+способности). Руками пришлось дописать только `ResolveHeldItem`: там ЖЁСТКИЙ
+список id, и без правки мачете не появлялся бы в руке (та же ловушка, что уже
+ловила нож на колке бревна) — теперь он первый во всех четырёх списках, чтобы
+рука показывала ровно тот инструмент, который задал темп.
+
+**Проверено headless** (`SimDataFile.Require` + `ExecutionSystem`): таблица выше
+воспроизводится тик-в-тик; живая валка пальмы через `ExecutionSystem` — топор 60,
+мачете 30, пила 30, нож и голые руки не допускаются вовсе; соак всего острова
+(seed 4242, 12 000 тиков, полный набор систем) проходит без падений, в трассе
+есть и `Harvest x2`, и `Process x2`, и `Process x0,75`, чужак носит мачете и
+достаёт в драке именно его.
+
+**НЕ проверено:** глазами в Unity — GLB ещё ни разу не импортировался. Хват
+подгонять не требуется (кадр сверен выше), но если в игре мачете всё же смотрит
+не туда — смотреть надо на строку «нож» в таблице кадров, а не крутить позу
+мачете. Косметика на потом: довести GLB до общего вида (меш `.asset` + плоский
+URP/Lit + настоящий `.prefab`).
+
+**77.5 Скорость клипа подгоняется под окно — одно взаимодействие, один прогон.**
+77.1 подобрал длительность под клип, но это верно ровно до первого множителя:
+§76 растягивает работу по Силе и навыку, §78 сжимает её по инструменту, и любая
+будущая ручка сдвинет окно снова. Поэтому подгонка перевёрнута и отдана виду:
+**клип играется со скоростью `длина клипа / длительность взаимодействия`** —
+долгая работа идёт медленнее, короткая быстрее, но и та и другая укладывается
+ровно в один прогон.
+
+Идиома не новая: так же сжимается прыжок (`JumpSpeed`, §HexHop). Механика —
+float-параметр `ActionSpeed` на аниматоре, включённый как `SpeedParameter` у
+состояний `Gather` и `CraftWork`; в снапшот добавлено `InteractionSeconds`
+(`EndTick − StartTick` в секундах сима), чтобы виду не пришлось знать про тики.
+Дефолт параметра **1**, поэтому контроллер без правки играет ровно как до §77.5;
+скорость 0 заморозила бы состояние насмерть, и построитель
+(`HexLive ▸ Build NPC Action States`) переутверждает дефолт при каждом прогоне.
+
+**Подгонка зажата в `[0.6, 1.6]`, и полоса — это и есть решение.** Ниже неё
+длинная работа поехала бы видимым слоу-мо, выше — секундный подбор предмета
+выстрелил бы шестисекундным наклоном как судорога. За полосой всё остаётся как
+было (клип зациклится или обрежется): подгонка — полировка, а не контракт.
+
+Подогнаны ДВА состояния, и остальные не подогнаны намеренно. `Gather` и
+`CraftWork` — это «одно взаимодействие = один жест». `Chop` — **повторяющийся**
+замах по стволу, ему цикл и нужен; такты гардероба (§Wardrobe-anim) и разговор
+живут по своему таймингу. Длина берётся у ЖИВОГО клипа (после подмены из
+`NpcAnimSet` или прон-клипа §50), поэтому подгонка следует за тем, что реально
+играет, а неизвестная длина или нулевое окно дают 1 — то есть авторский темп.
+## §80 Три поломки, которые видно глазами (iteration 80)
+
+Три находки одной игровой сессии. Общее у них — все три ЗАМЕТНЫ игроку и ни
+одна не падает: мир продолжает работать, просто ведёт себя не так, как обещает.
+
+**77.1 Цель, которая кормит сама себя: бесконечное разбивание валунов.**
+Чужак с киркой обошёл остров и выбил все 19 валунов, рассыпав 95 камней и не
+донеся до стройки НИ ОДНОГО. Остановился он не потому, что закончил, а потому,
+что валуны кончились.
+
+Причина арифметическая. Валун рассыпает добычу на ЗЕМЛЮ (`Scatter = true`), рюкзак
+при этом не трогается, а условие доступности цели смотрит только в рюкзак:
+`stoneCount < max(2, siteStoneWant)`. Значит после разбивания предикат остаётся
+ровно таким же истинным, каким был до него, — неподвижная точка, из которой
+выводит только подбор. У травы и дерева эта дыра закрыта ещё в §54.13
+(«сначала подбери с земли, потом руби следующее»), у камня забыли.
+
+Второй замок держал первый: `GatherStone` и `MineBoulder` после того, как очаг
+поднят, набирали **побитово одинаковые** очки, а правило удержания цели требует
+перевеса СТРОГО больше порога. Перевес 0.0 не смещает действующую цель никогда,
+поэтому копающий оставался копающим, даже когда подбор формально «лучше».
+
+Правка: `SimBalance.PickUpFirstRadiusTiles` (4) и запрет копать, пока лежачий
+камень есть рядом с самим NPC ИЛИ рядом с его стройкой; база подбора 0.25 → 0.28.
+
+**⭐ Мера обязана быть ЛОКАЛЬНОЙ.** `HasReachableWithTag` не фильтрует по
+расстоянию: восприятие подмешивает в список всё, что NPC когда-либо видел, и
+`IsReachable` считается по связности, а не по близости. Общеостровной запрет
+заморозил бы кирку навсегда из-за камня, замеченного неделю назад. Поэтому
+рядом появился `HasNearbyWithTag(…, origin, radius)` — «есть ли под рукой».
+
+**77.2 Налётчик беседовал со своей жертвой.** `ExecutionSystem` выбирал
+обработчик по вопросу «есть ли у плана агент-цель?», а не по цели NPC: развилка
+читалась «Aid — значит помощь, всё остальное — разговор». План налёта (§72) тоже
+носит `TargetAgentId`, поэтому чужак доходил до жертвы и запускал против неё
+`InteractionType.Talk` — с обменом репликами и **ростом симпатии**, — пока
+`RaidSystem` этажом ниже вёл с ней бой.
+
+У налёта взаимодействия нет вовсе: план — это дорога, а удары выдаёт
+`RaidSystem`. Правка — гейт по цели, после которого налёт проваливается в
+`RunMoveOnly`. Урок: маршрутизация по НАЛИЧИЮ ПОЛЯ, а не по смыслу, ломается на
+второй же цели, которая это поле заполнит; это уже второй такой случай (первым
+был §53 Aid, залатанный тем же `if`).
+
+**77.3 Лицо того, кого боятся.** Над испуганной всплывало ⚠️, и по нему нельзя
+было понять, КОГО она увидела. Теперь всплывает лицо.
+
+Канал «о ком кьюшка» был построен целиком — `SocialCueSignals.Stamp(…, peerId)`
+→ `LastSocialCuePeerId` → снапшот → рендерер, — но **ровно на страхе он был
+пуст**: оба места передавали `npc.Id`, то есть id самой кричащей, хотя нужный
+объект лежал в соседней переменной. А рендерер peer и вовсе выбрасывал.
+
+- человек → свой вид кьюшки `DangerStranger` с `hostile.Id`;
+- зверь → прежний `DangerSpotted`, но peer стал `null`. Это не мелочь: id зверя
+  живёт в ДРУГОМ пространстве, где 3 значит волка, а не Марту, и протащить его
+  как есть означало бы нарисовать над испуганной чужое лицо. `null` — честное
+  «человека тут нет», и вид падает на прежнюю иконку.
+
+`NpcPortraitCache` фотографирует по одному лицу раз в игровой час в `Texture2D`.
+Снимок, а не живой рендер, по трём независимым причинам: лиц нужно много сразу
+(во вкладке отношений их столько, сколько знакомых); снимок переживает смерть —
+тело убрано, а лицо в списке отношений должно остаться; и `Sprite.Create` не
+принимает `RenderTexture`, а пузырь рисует спрайтом.
+
+Кадрирование взято у `PortraitStage` дословно: камера висит перед лицом по
+СОБСТВЕННЫМ осям лицевого рига, поэтому голова вертится (`LookAtIK` её и вертит),
+а лицо в кадре стоит ровно. Съёмка занимает два кадра — навести и включить, затем
+прочитать; `camera.Render()` в обход порядка URP не вызывается.
+
+Цветной кружок с буквой остаётся фолбэком навсегда, а не на время: снимок
+появляется только через игровой час после первой встречи.
+
+Морды зверей остаются иконкой — `MobView` не имеет ни головной кости, ни
+лицевого якоря и живёт на слое `Default`, куда портретная камера не смотрит.

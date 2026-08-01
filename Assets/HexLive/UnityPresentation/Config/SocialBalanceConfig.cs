@@ -54,6 +54,12 @@ namespace HexLive.UnityPresentation.Config
         public bool proactiveBoil = true;
         [Tooltip("Выбирать место сна умно (костёр в холод / тень в жару).")]
         public bool smartSleepSpot = true;
+        [Tooltip("§29G r3 спальные места: на одном гексе спят РЯДОМ (шеренга с общим углом), а не одна в другой.")]
+        public bool sleepBerths = true;
+        [Tooltip("Зазор между соседними местами шеренги, доля HexRadius (0.5 = 0.75 wu).")]
+        [Range(0.2f, 1f)] public float sleepBerthSpacingFactor = 0.5f;
+        [Tooltip("Мест по каждую сторону от центрального (1 = шеренга из трёх); дальше — снова центр, чтобы не свесить тело за кромку гекса.")]
+        [Range(0, 2)] public int sleepBerthHalfSpan = 1;
 
         [Header("§49 — cool-off dwell")]
         [Tooltip("Сколько тиков стоит остывать на охлаждающем тайле за один заход.")]

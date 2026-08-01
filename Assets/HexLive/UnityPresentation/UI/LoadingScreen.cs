@@ -32,7 +32,6 @@ namespace HexLive.UnityPresentation.UI
 
         private const float ReplayBudgetMsPerFrame = 10f;
         private const float FadeSeconds = 0.7f;
-        private const string JanaName = "Jana";
 
         private SimulationRunnerBehaviour _runner;
         private int _targetTick;
@@ -668,7 +667,7 @@ namespace HexLive.UnityPresentation.UI
             // steal the selection after this; Clear first so SelectionChanged
             // re-fires even if the warm-up pass left her selected.
             NpcSelection.Clear();
-            NpcSelection.Select(FindJana(npcs));
+            NpcSelection.Select(FindOpeningTarget(npcs));
 
             if (!_runner.IsCompleted)
             {
@@ -690,10 +689,9 @@ namespace HexLive.UnityPresentation.UI
 
             foreach (var npc in snapshot.Npcs)
             {
-                // §72: the opening camera frames one of OURS. FindJana below
-                // falls back to the highest id when Jana is dead, and the
-                // outsider is the highest id — so an ungated roster would open
-                // the run orbiting the man hunting them.
+                // §72: the opening camera frames one of OURS. The outsider is
+                // the highest id, so an ungated roster could open the run
+                // orbiting the man hunting them.
                 if (npc.IsHostileToColony)
                 {
                     continue;
@@ -705,18 +703,15 @@ namespace HexLive.UnityPresentation.UI
             return result;
         }
 
-        private static int FindJana(
+        // §74: the opening shot used to hunt for "Jana" by name. There is no
+        // Jana any more — names are rolled per seed — so it frames the FIRST
+        // colonist on the roster instead. The list is already gated to our own
+        // faction (§72) and comes in snapshot order, i.e. ascending id, so this
+        // is the girl the world was built around on every seed.
+        private static int FindOpeningTarget(
             System.Collections.Generic.List<(int id, string name)> npcs)
         {
-            foreach (var (id, name) in npcs)
-            {
-                if (name == JanaName)
-                {
-                    return id;
-                }
-            }
-
-            return npcs.Count > 0 ? npcs[npcs.Count - 1].id : -1;
+            return npcs.Count > 0 ? npcs[0].id : -1;
         }
     }
 }

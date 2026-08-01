@@ -246,6 +246,10 @@ public sealed partial class ExecutionSystem
             target.Execution.LastTalkResultTick = world.Tick;
             target.Execution.LastTalkAffinityDelta = affinityDelta;
 
+            // §76: both sides practised the conversation, so both learn from it.
+            SkillTrace.Award(world, npc, InteractionType.Talk, Spec49.TalkDuration);
+            SkillTrace.Award(world, target, InteractionType.Talk, Spec49.TalkDuration);
+
             npc.Execution.Status = ExecutionStatus.Completed;
             npc.Execution.LastCompletedTick = world.Tick;
             // Spec 31C.8: the snapshot must not report a finished interaction —
@@ -358,6 +362,11 @@ public sealed partial class ExecutionSystem
 
             case AidKind.Treat:
             {
+                // §76: the HELPER's Medicine decides how much the dressing is
+                // worth — the patient's own Toughness is a separate axis and
+                // shows up in her healing rate, not in someone else's hands.
+                var treatHeal = Spec53.TreatHeal * AttributeMath.TreatPowerMult(helper);
+
                 // Lift every intact wounded part and stop the bleed, and drop a
                 // gauze wrap decal on the treated zones (mirrors self first-aid).
                 var parts = new System.Collections.Generic.List<BodyPart>(target.Body.Parts.Keys);
@@ -369,7 +378,7 @@ public sealed partial class ExecutionSystem
                     }
                     if (target.Body.Parts[part] < 1f)
                     {
-                        target.Body.Parts[part] = MathUtil.Clamp01(target.Body.Parts[part] + Spec53.TreatHeal);
+                        target.Body.Parts[part] = MathUtil.Clamp01(target.Body.Parts[part] + treatHeal);
                         // Spec 44 / §53.7: the dressing that was actually spent
                         // decides the decal — a gathered plantain wrap or plain
                         // medkit gauze, one or the other, never both.
@@ -387,14 +396,16 @@ public sealed partial class ExecutionSystem
                 }
                 foreach (var wound in target.Wounds)
                 {
-                    wound.Heal01 = MathUtil.Clamp01(wound.Heal01 + Spec53.TreatHeal);
+                    wound.Heal01 = MathUtil.Clamp01(wound.Heal01 + treatHeal);
                 }
-                target.Needs.Blood = MathUtil.Clamp01(target.Needs.Blood + Spec53.TreatBlood);
+                target.Needs.Blood = MathUtil.Clamp01(target.Needs.Blood +
+                    Spec53.TreatBlood * AttributeMath.TreatPowerMult(helper));
                 break;
             }
 
             case AidKind.Medicate:
-                target.Health = MathUtil.Clamp01(target.Health + Spec53.MedicateHeal);
+                target.Health = MathUtil.Clamp01(target.Health +
+                    Spec53.MedicateHeal * AttributeMath.TreatPowerMult(helper));
                 target.Needs.Blood = MathUtil.Clamp01(target.Needs.Blood + Spec53.TreatBlood * 0.5f);
                 // A dose settles the sickness window and its remaining damage.
                 target.Mind.SickUntilTick = 0;
@@ -402,7 +413,9 @@ public sealed partial class ExecutionSystem
                 break;
 
             case AidKind.Console:
-                target.Needs.Stress = MathUtil.Clamp01(target.Needs.Stress - Spec53.ConsoleStressRelief);
+                // §76: a good listener talks someone down further.
+                target.Needs.Stress = MathUtil.Clamp01(target.Needs.Stress -
+                    Spec53.ConsoleStressRelief * AttributeMath.SocialGainMult(helper));
                 // Sitting with her shortens the mourning a little.
                 if (world.Tick < target.Mind.GrievingUntilTick)
                 {
@@ -549,7 +562,10 @@ public sealed partial class ExecutionSystem
                 return;
             }
 
-            var kind = npc.Execution.CurrentInteraction switch
+            // §76: captured before the completion clears CurrentInteraction —
+            // the skill award below still needs to know which verb this was.
+            var aidInteraction = npc.Execution.CurrentInteraction ?? InteractionType.ConsoleOther;
+            var kind = aidInteraction switch
             {
                 InteractionType.FeedOther => AidKind.Feed,
                 InteractionType.HydrateOther => AidKind.Hydrate,
@@ -591,6 +607,14 @@ public sealed partial class ExecutionSystem
 
             // Helping settles the helper's own compassion.
             npc.Needs.Compassion = MathUtil.Clamp01(npc.Needs.Compassion + Spec53.AidSelfRestore);
+
+            // §76: tending a housemate is how Medicine and Social are learned
+            // on someone other than yourself. The INTERACTION decides which
+            // (SkillMath.For): dressing a wound teaches medicine, sitting with
+            // the grieving teaches company, handing over food teaches neither.
+            // Read the interaction, not the AidKind — the skill map is keyed on
+            // verbs and must stay keyed on verbs.
+            SkillTrace.Award(world, npc, aidInteraction, Spec53.AidDuration);
 
             npc.Execution.Status = ExecutionStatus.Completed;
             npc.Execution.LastCompletedTick = world.Tick;

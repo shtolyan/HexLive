@@ -253,7 +253,10 @@ public sealed class MovementSystem : ISimulationSystem
 
             var delta = new Float2(target.X - npc.Position.X, target.Y - npc.Position.Y);
             var direction = HexSpatialMath.Normalize(delta);
-            var turnPerTick = npc.TurnSpeed * SimBalance.BaseTurnSpeedFactor * world.TickDeltaTime;
+            // §76: a nimble girl also pivots faster (same reasoning as the pace
+            // above — multiplied in, never stored on npc.TurnSpeed).
+            var turnPerTick = npc.TurnSpeed * SimBalance.BaseTurnSpeedFactor *
+                AttributeMath.TurnSpeedMult(npc) * world.TickDeltaTime;
 
             // §21.21B v6: while the hop window runs, the HOP owns rotation
             // and pacing — the walk aiming below would re-target the path
@@ -462,7 +465,12 @@ public sealed class MovementSystem : ISimulationSystem
             // §71: BaseMoveSpeedFactor is the global walking-pace knob — the
             // per-NPC npc.MoveSpeed has always been a hardcoded 1 that nothing
             // ever assigns, so this is the one place the colony's pace is set.
+            // §76: Agility is her personal share of that pace. It is applied
+            // HERE and deliberately NOT written into npc.MoveSpeed: that field
+            // is persisted, so parking the attribute in it would store the same
+            // number twice and desync every pre-§76 save.
             var movementPerTick = npc.MoveSpeed * SimBalance.BaseMoveSpeedFactor *
+                AttributeMath.MoveSpeedMult(npc) *
                 npc.Body.MobilityFactor() *
                 EquipmentMath.WetMovementFactor(world, npc) *
                 alignmentFactor * world.TickDeltaTime;
@@ -522,8 +530,11 @@ public sealed class MovementSystem : ISimulationSystem
             }
 
             npc.Mind.IsRunning = running;
+            // §76: Endurance is the sprint reserve — she spends breath slower,
+            // so she can hold a run further. Recovery is left alone on purpose:
+            // the attribute buys stamina in the chase, not a shorter breather.
             npc.Needs.Breath = MathUtil.Clamp01(npc.Needs.Breath + (running
-                ? -SimBalance.BreathDrainPerTick
+                ? -SimBalance.BreathDrainPerTick * AttributeMath.BreathDrainMult(npc)
                 : SimBalance.BreathWalkRecoverPerTick));
 
             movementPerTick *= urgency;

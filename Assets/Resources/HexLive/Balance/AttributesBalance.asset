@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1898beab60e74ff8abe754445f311153, type: 3}
+  m_Name: AttributesBalance
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Config.AttributesBalanceConfig
+  enabled: 1
+  skillsEnabled: 1
+  attributeMean: 0.5
+  attributeSpread: 0
+  meleeDamageGain: 0.3
+  incomingDamageGain: 0.3
+  moveSpeedGain: 0.3
+  turnSpeedGain: 0.3
+  attackCooldownGain: 0.3
+  staminaCeilingGain: 0.3
+  staminaDrainGain: 0.3
+  breathGain: 0.3
+  metabolismGain: 0.3
+  thermalToleranceGain: 0.3
+  healRateGain: 0.3
+  bleedGain: 0.3
+  workSpeedGain: 0.3
+  carrySlotThreshold: 0.85
+  skillXpPerWorkTick: 0.0004
+  skillXpPerHit: 0.004
+  skillLearnWitsGain: 0.8
+  skillDiminishExp: 2
+  skillWorkSpeedGain: 0.35
+  skillDamageGain: 0.4
+  skillHealGain: 0.5
+  skillSocialGain: 0.4
+  skillTraceBand: 0.1
+  perkHighBand: 0.7
+  perkLowBand: 0.3

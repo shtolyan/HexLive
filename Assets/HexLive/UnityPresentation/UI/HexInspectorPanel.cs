@@ -470,7 +470,10 @@ namespace HexLive.UnityPresentation.UI
         {
             return MakeStatRow(
                 "Character",
-                string.IsNullOrEmpty(npc.DisplayName) ? $"NPC #{npc.Id.Value}" : $"{npc.DisplayName} / #{npc.Id.Value}",
+                // §74: DisplayName is a name ID; the player sees the localized term.
+                string.IsNullOrEmpty(npc.DisplayName)
+                    ? $"NPC #{npc.Id.Value}"
+                    : $"{Loc.NpcName(npc.DisplayName)} / #{npc.Id.Value}",
                 Good);
         }
 

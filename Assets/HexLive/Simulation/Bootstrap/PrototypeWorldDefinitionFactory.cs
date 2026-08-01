@@ -6,6 +6,19 @@ namespace HexLive.Simulation.Bootstrap
 {
     public static class PrototypeWorldDefinitionFactory
     {
+        // §73: границы карты. Были зашиты числами в четырёх местах, из-за чего
+        // «расширить остров» означало найти и согласовать их все, включая те,
+        // что задают пролив и второй островок у восточного края. Теперь край
+        // один, и всё, что должно жить НА краю, считается от него.
+        //
+        // Радиальный спад в AddIslandElevation нормируется на MaxQ, поэтому
+        // раздвигание границ растит сушу наружу, а не топит её: дом колонии
+        // остаётся там же, вокруг него просто становится больше острова.
+        public const int MinQ = -13;
+        public const int MaxQ = 15;
+        public const int MinR = -10;
+        public const int MaxR = 12;
+
         public static WorldBootstrapDefinition Create(int seed = 12345)
         {
             var definition = new WorldBootstrapDefinition
@@ -90,86 +103,60 @@ namespace HexLive.Simulation.Bootstrap
                     Object(122, "forest.deadfall", 1, 6, 3, 2),
                     Object(123, "forest.deadfall", 1, -4, 4, 2)
                 },
-                Npcs =
-                {
-                    new NpcBootstrap
-                    {
-                        Id = 1,
-                        DisplayName = "Marta",
-                        ActorMesh = "Marta",
-                        FragmentId = 1,
-                        TileQ = 0,
-                        TileR = 0,
-                        Hunger = 0.7f,
-                        Thirst = 0.5f,
-                        Energy = 0.45f,
-                        Comfort = 0.35f,
-                        Social = 0.5f,
-                        ThermalDiscomfort = 0.6f
-                    },
-                    // Second inhabitant (iteration 3): different need profile,
-                    // contends for the single bed/chair/coat and the apples.
-                    new NpcBootstrap
-                    {
-                        Id = 2,
-                        DisplayName = "Molly",
-                        ActorMesh = "Molly",
-                        FragmentId = 1,
-                        TileQ = 2,
-                        TileR = 0,
-                        Hunger = 0.55f,
-                        Thirst = 0.4f,
-                        Energy = 0.5f,
-                        Comfort = 0.4f,
-                        Social = 0.6f,
-                        ThermalDiscomfort = 0.5f
-                    },
-                    // Third inhabitant (iteration 8): well-rested and sociable,
-                    // desynchronized from the others. Beds stay at two — the
-                    // scarcity is deliberate (spec 33.4 iteration-8 note).
-                    new NpcBootstrap
-                    {
-                        Id = 3,
-                        DisplayName = "Jana",
-                        ActorMesh = "Jana",
-                        FragmentId = 1,
-                        TileQ = 0,
-                        TileR = 3,
-                        Hunger = 0.4f,
-                        Thirst = 0.6f,
-                        Energy = 0.75f,
-                        Comfort = 0.55f,
-                        Social = 0.45f,
-                        ThermalDiscomfort = 0.35f
-                    },
-                    // Fourth inhabitant (Jolly, imported from molly_copy): the
-                    // redhead. Starts hungry and cold but rested — another
-                    // desynchronized profile, so the four never queue for the
-                    // same need at once. Beds still stay scarce (spec 33.4).
-                    new NpcBootstrap
-                    {
-                        Id = 4,
-                        DisplayName = "Jolly",
-                        ActorMesh = "Jolly",
-                        FragmentId = 1,
-                        TileQ = 2,
-                        TileR = 3,
-                        Hunger = 0.65f,
-                        Thirst = 0.45f,
-                        Energy = 0.6f,
-                        Comfort = 0.45f,
-                        Social = 0.7f,
-                        ThermalDiscomfort = 0.55f
-                    }
-                }
+                // §74: the four are no longer a fixed cast. Name, body mesh,
+                // material set, hairstyle and voice are left BLANK on purpose —
+                // WorldStateFactory.AssignAppearance rolls each one from the
+                // world seed, so a new island brings new women. What stays
+                // authored is what the simulation actually reads: the tiles
+                // they wash ashore on and the desynchronized need profiles
+                // below, so the four never queue for the same need at once.
+                Npcs = { }
             };
 
+            AddColonists(definition);
             AddWilderness(definition.Fragments[0]);
             AddIslandElevation(definition.Fragments[0], seed);
             AddSeaChannel(definition.Fragments[0], seed);
             AddNaturalFeatures(definition, seed);
-            AddOutsiderCamp(definition);
+            AddOutsiderCamp(definition, seed);
             return definition;
+        }
+
+        // §75: состав колонии генерируется от WorldBalance.ColonistCount, а не
+        // задан списком строк. Дом авторский и конечный, поэтому мест ровно
+        // столько, сколько размечено — больше народу просто некуда посадить.
+        //
+        // Профили нужд разведены по индексу СПЕЦИАЛЬНО: если все стартуют
+        // одинаковыми, они синхронно захотят пить, синхронно пойдут к воде и
+        // синхронно встанут в очередь за одной кружкой (spec 33.4).
+        private static void AddColonists(WorldBootstrapDefinition definition)
+        {
+            var spots = new[]
+            {
+                (0, 0), (2, 0), (0, 3), (2, 3), (2, 1), (-1, 3), (0, 2), (3, 1),
+            };
+
+            var count = System.Math.Max(0,
+                System.Math.Min(HexLive.Simulation.Runtime.WorldBalance.ColonistCount, spots.Length));
+            for (var i = 0; i < count; i++)
+            {
+                var (q, r) = spots[i];
+                // Смещения подобраны так, чтобы соседние по индексу профили не
+                // совпадали ни по одной нужде.
+                definition.Npcs.Add(new NpcBootstrap
+                {
+                    Id = i + 1,
+                    FragmentId = 1,
+                    TileQ = q,
+                    TileR = r,
+                    Hunger = 0.70f - 0.10f * (i % 4),
+                    Thirst = 0.40f + 0.07f * (i % 3),
+                    Energy = 0.45f + 0.10f * (i % 4),
+                    Comfort = 0.35f + 0.07f * (i % 3),
+                    Social = 0.45f + 0.09f * (i % 3),
+                    ThermalDiscomfort = 0.60f - 0.09f * (i % 3),
+                });
+            }
         }
 
         // §72: the hostile survivor and his camp on the far side of the island.
@@ -179,38 +166,122 @@ namespace HexLive.Simulation.Bootstrap
         // on some fraction of seeds. We take the farthest walkable lowland tile
         // from the colony hearth — "the other end of the island" on every seed,
         // deterministically.
-        private static void AddOutsiderCamp(WorldBootstrapDefinition definition)
+        private static void AddOutsiderCamp(WorldBootstrapDefinition definition, int seed)
         {
             var colonyHome = new TileCoord(0, 4);
             var fragment = definition.Fragments[0];
 
-            TileBootstrap best = null;
-            var bestDistance = -1;
+            // Стоянка обязана быть на ТОЙ ЖЕ СУШЕ, что и колония. Без этого
+            // «самый дальний проходимый тайл» — это крошечный островок у края
+            // карты (шум высот их щедро сеет), и чужак оказывался заперт на двух
+            // гексах посреди моря: ни дойти до девушек, ни выжить.
+            var mainland = new HashSet<(int, int)>();
+            var byCoord = new Dictionary<(int, int), TileBootstrap>();
             foreach (var tile in fragment.Tiles)
             {
-                // Lowland only: elevation 1-2 is the walkable band the colony
-                // itself is clamped to, so his camp is neither cliff nor surf.
-                if (!tile.Walkable || tile.Water || tile.Blocked ||
-                    tile.Elevation < 1 || tile.Elevation > 2)
+                byCoord[(tile.Q, tile.R)] = tile;
+            }
+
+            static bool IsLand(TileBootstrap t) =>
+                t.Walkable && !t.Water && !t.Blocked && t.Elevation >= 1;
+
+            if (byCoord.TryGetValue((colonyHome.Q, colonyHome.R), out var start) && IsLand(start))
+            {
+                var queue = new Queue<(int, int)>();
+                queue.Enqueue((colonyHome.Q, colonyHome.R));
+                mainland.Add((colonyHome.Q, colonyHome.R));
+                while (queue.Count > 0)
+                {
+                    var (cq, cr) = queue.Dequeue();
+                    foreach (var dir in HexDirection.All)
+                    {
+                        var next = (cq + dir.DQ, cr + dir.DR);
+                        if (mainland.Contains(next) ||
+                            !byCoord.TryGetValue(next, out var neighbor) ||
+                            !IsLand(neighbor))
+                        {
+                            continue;
+                        }
+
+                        mainland.Add(next);
+                        queue.Enqueue(next);
+                    }
+                }
+            }
+
+            // Дальше — как раньше: дальняя треть, выбор по сиду. «Самый дальний»
+            // детерминирован и на любом сиде упирался бы в один угол карты.
+            var candidates = new List<TileBootstrap>();
+            var farthest = 0;
+            foreach (var tile in fragment.Tiles)
+            {
+                // Низина 1-2 — та же полоса, к которой прижат дом колонии, так
+                // что его стоянка не окажется ни на скале, ни в прибое.
+                if (!IsLand(tile) || tile.Elevation > 2 ||
+                    !mainland.Contains((tile.Q, tile.R)))
                 {
                     continue;
                 }
 
                 var distance = HexSpatialMath.HexDistance(
                     new TileCoord(tile.Q, tile.R), colonyHome);
-                if (distance > bestDistance)
+                if (distance >= HexLive.Simulation.Runtime.Spec72.OutsiderCampMinDistanceTiles)
                 {
-                    bestDistance = distance;
-                    best = tile;
+                    candidates.Add(tile);
+                    farthest = System.Math.Max(farthest, distance);
                 }
             }
 
-            if (best is null || bestDistance < HexLive.Simulation.Runtime.Spec72.OutsiderCampMinDistanceTiles)
+            if (candidates.Count == 0)
             {
-                return; // pathological seed — leave the world single-camp
+                return; // патологический сид — оставляем мир одностановищным
             }
 
+            // Дальняя треть диапазона: заведомо «другой конец острова», но с
+            // выбором, а не в одну точку.
+            var floor = HexLive.Simulation.Runtime.Spec72.OutsiderCampMinDistanceTiles +
+                (farthest - HexLive.Simulation.Runtime.Spec72.OutsiderCampMinDistanceTiles) * 2 / 3;
+            var far = new List<TileBootstrap>();
+            foreach (var tile in candidates)
+            {
+                if (HexSpatialMath.HexDistance(new TileCoord(tile.Q, tile.R), colonyHome) >= floor)
+                {
+                    far.Add(tile);
+                }
+            }
+
+            if (far.Count == 0)
+            {
+                far = candidates;
+            }
+
+            // Сортируем по координате, а не полагаемся на порядок списка тайлов:
+            // выбор обязан зависеть только от сида, иначе мир перестанет быть
+            // воспроизводимым.
+            far.Sort((a, b) => a.Q != b.Q ? a.Q.CompareTo(b.Q) : a.R.CompareTo(b.R));
+            var best = far[(int)(MathUtil.Hash01(seed, far.Count, 72, 7201) * far.Count) % far.Count];
+
             var camp = new TileCoord(best.Q, best.R);
+
+            // §72.12: ЛОГОВО. Санктуарий в этом мире — это буквально indoor-тайл
+            // (MobSystem.IsNpcInSanctuary), и у колонии он есть, потому что её
+            // дом размечен вручную: собаки бросают погоню у двери (§29C.4A).
+            // Стоянка чужака вычисляется в дикой земле, indoor-тайлов там нет —
+            // то есть девушкам всегда есть куда нырнуть, а ему некуда НИКОГДА.
+            // Отсюда и его смерти от волков на 0.3-й день.
+            //
+            // Даём ему тот же механизм, а не особое правило: якорь и кольцо
+            // вокруг него становятся indoor. Вода и скалы пропускаются — логово
+            // должно быть проходимой сушей.
+            best.Indoor = true;
+            foreach (var dir in HexDirection.All)
+            {
+                if (byCoord.TryGetValue((camp.Q + dir.DQ, camp.R + dir.DR), out var around) &&
+                    IsLand(around))
+                {
+                    around.Indoor = true;
+                }
+            }
 
             if (HexLive.Simulation.Runtime.Spec72.Enabled)
             {
@@ -228,35 +299,55 @@ namespace HexLive.Simulation.Bootstrap
                 });
             }
 
-            if (!HexLive.Simulation.Runtime.Spec72.SpawnOutsider)
+            var outsiders = System.Math.Max(0, HexLive.Simulation.Runtime.Spec72.OutsiderCount);
+            if (outsiders == 0)
             {
                 return;
             }
 
-            // Id 5 — AFTER the four girls, so the colony's dictionary insertion
-            // order (and every hash-seeded tie-break that rides on it) is bit
-            // identical to the pre-§72 world.
-            definition.Npcs.Add(new NpcBootstrap
+            // Идентификаторы чужаков начинаются с 101, а не продолжают ряд
+            // девушек: состав колонии теперь переменной длины, и «следующий
+            // свободный номер» разъезжался бы при каждой смене ColonistCount.
+            // Дырка в нумерации ничему не мешает — id идёт в хеши числом, а не
+            // индексом, — зато чужаки всегда вставляются ПОСЛЕ колонии, и
+            // порядок обхода словаря у неё остаётся прежним.
+            var seats = new List<TileCoord> { camp };
+            foreach (var dir in HexDirection.All)
             {
-                Id = 5,
-                DisplayName = "Kshishtof",
-                // Must parse to the ActorName enum, or the view silently falls
-                // back to MARTA's body — the failure reads as a broken import
-                // rather than a typo, so it is worth naming here.
-                ActorMesh = "Kshishtof",
-                Faction = Agents.Faction.Outsiders,
-                FragmentId = 1,
-                TileQ = camp.Q,
-                TileR = camp.R,
-                // He washed ashore like everyone else: rested, hungry, thirsty.
-                // Nothing is handed to him — he crafts his knife at his own fire.
-                Hunger = 0.5f,
-                Thirst = 0.45f,
-                Energy = 0.7f,
-                Comfort = 0.4f,
-                Social = 0.3f,
-                ThermalDiscomfort = 0.5f
-            });
+                var around = new TileCoord(camp.Q + dir.DQ, camp.R + dir.DR);
+                if (byCoord.TryGetValue((around.Q, around.R), out var seat) && IsLand(seat))
+                {
+                    seats.Add(around);
+                }
+            }
+
+            for (var i = 0; i < outsiders && i < seats.Count; i++)
+            {
+                definition.Npcs.Add(new NpcBootstrap
+                {
+                    Id = 101 + i,
+                    // Имя и тело только у первого — остальные пока безымянные:
+                    // §74 раскатывает облик от сида, а мужской набор внешностей
+                    // ещё не заведён, так что все они получат тело Кшиштофа.
+                    DisplayName = i == 0 ? "Kshishtof" : string.Empty,
+                    // Должно разбираться в ActorName, иначе вид молча подставит
+                    // тело МАРТЫ — а это читается как сломанный импорт, не как
+                    // опечатка.
+                    ActorMesh = "Kshishtof",
+                    Faction = Agents.Faction.Outsiders,
+                    FragmentId = 1,
+                    TileQ = seats[i].Q,
+                    TileR = seats[i].R,
+                    // Сошёл на берег как все: выспавшийся, голодный, жаждущий.
+                    // Ничего ему не дарят — нож и копьё он приносит с собой.
+                    Hunger = 0.50f - 0.06f * (i % 3),
+                    Thirst = 0.45f + 0.06f * (i % 3),
+                    Energy = 0.70f - 0.08f * (i % 3),
+                    Comfort = 0.40f,
+                    Social = 0.30f,
+                    ThermalDiscomfort = 0.50f,
+                });
+            }
         }
 
         // Spec 20.16: the world is an island — seeded value noise times a
@@ -264,9 +355,10 @@ namespace HexLive.Simulation.Bootstrap
         // plateau is clamped so the colony never spawns on a cliff.
         private static void AddIslandElevation(FragmentBootstrap fragment, int seed)
         {
-            // Map bounds q in [-8,10], r in [-6,8] -> world-space center.
+            // Центр спада — дом; край берётся из границ карты, иначе новые
+            // тайлы окажутся за пределами спада и утонут все разом.
             var center = HexSpatialMath.TileToWorld(new TileCoord(1, 1));
-            var edge = HexSpatialMath.TileToWorld(new TileCoord(10, 1));
+            var edge = HexSpatialMath.TileToWorld(new TileCoord(MaxQ, 1));
             var maxDist = System.Math.Abs(edge.X - center.X);
 
             var home = new TileCoord(0, 2);
@@ -294,7 +386,7 @@ namespace HexLive.Simulation.Bootstrap
 
                 // The map's outer ring is always open sea — no straight-cut
                 // coastline at the world bounds.
-                if (tile.Q <= -8 || tile.Q >= 10 || tile.R <= -6 || tile.R >= 8)
+                if (tile.Q <= MinQ || tile.Q >= MaxQ || tile.R <= MinR || tile.R >= MaxR)
                 {
                     elevation = 0;
                 }
@@ -309,7 +401,7 @@ namespace HexLive.Simulation.Bootstrap
 
                 // Spec 40.18: a small second island in the SE sea, reachable via
                 // the swim strait opened in OpenStraitCorridor.
-                if (coord.Q == 9 && (coord.R == 4 || coord.R == 5))
+                if (coord.Q == MaxQ - 1 && (coord.R == MaxR - 4 || coord.R == MaxR - 3))
                 {
                     elevation = System.Math.Max(elevation, 1);
                 }
@@ -359,9 +451,9 @@ namespace HexLive.Simulation.Bootstrap
                 existing.Add((tile.Q, tile.R));
             }
 
-            for (var q = -8; q <= 10; q++)
+            for (var q = MinQ; q <= MaxQ; q++)
             {
-                for (var r = -6; r <= 8; r++)
+                for (var r = MinR; r <= MaxR; r++)
                 {
                     if (existing.Contains((q, r)))
                     {
@@ -387,14 +479,14 @@ namespace HexLive.Simulation.Bootstrap
             }
 
             var wander = 0;
-            for (var r = -6; r <= 8; r++)
+            for (var r = MinR; r <= MaxR; r++)
             {
                 var roll = MathUtil.Hash01(seed, r, 0, 1201);
                 wander += roll < 0.33f ? -1 : roll > 0.66f ? 1 : 0;
                 wander = System.Math.Max(-2, System.Math.Min(2, wander));
 
                 // Keep world-x roughly constant: q + r/2 ~ 8 + wander.
-                var q = 8 + wander - (r + 600) / 2 + 300;
+                var q = (MaxQ - 2) + wander - (r + 600) / 2 + 300;
                 foreach (var dq in MathUtil.Hash01(seed, r, 1, 1201) < 0.4f ? new[] { 0, 1 } : new[] { 0 })
                 {
                     if (byCoord.TryGetValue((q + dq, r), out var tile) &&

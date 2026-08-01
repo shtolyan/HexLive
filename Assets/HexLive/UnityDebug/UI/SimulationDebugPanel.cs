@@ -339,9 +339,10 @@ namespace HexLive.UnityDebug.UI
             }
 
             var npc = snapshot.Npcs[0];
+            // §74: DisplayName is a name ID; the player sees the localized term.
             _hudNpcName.text = string.IsNullOrEmpty(npc.DisplayName)
                 ? string.Format("NPC #{0}", npc.Id.Value)
-                : string.Format("{0} (#{1})", npc.DisplayName, npc.Id.Value);
+                : string.Format("{0} (#{1})", Loc.NpcName(npc.DisplayName), npc.Id.Value);
             _hudTileValue.text = string.Format("({0}, {1})", npc.Tile.Q, npc.Tile.R);
             _hudGoalValue.text = npc.CurrentGoal;
             _hudGoalValue.style.color = GetGoalColor(npc.CurrentGoal);

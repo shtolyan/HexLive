@@ -96,9 +96,20 @@ public sealed class NpcBootstrap
 {
     public int Id { get; set; }
 
+    // §74: leave DisplayName/ActorMesh EMPTY to have the world roll them from
+    // the seed (ColonistAppearance). A filled value is authorial intent and is
+    // never overwritten — which is how the outsider and every test scene keep
+    // their fixed cast.
     public string DisplayName { get; set; } = string.Empty;
 
     public string ActorMesh { get; set; } = string.Empty;
+
+    // §74: material donor / hair prefab / voice folder. Empty = rolled too.
+    public string SkinSet { get; set; } = string.Empty;
+
+    public string Hairstyle { get; set; } = string.Empty;
+
+    public string VoiceBank { get; set; } = string.Empty;
 
     // §72: Colony (the girls) unless the world explicitly seeds an outsider.
     public Agents.Faction Faction { get; set; } = Agents.Faction.Colony;
@@ -120,6 +131,16 @@ public sealed class NpcBootstrap
     public float Social { get; set; }
 
     public float ThermalDiscomfort { get; set; }
+
+    // §76: authored characteristics, same blank-means-roll rule as §74's
+    // appearance. Empty = the world rolls all six from the seed; an entry here
+    // pins that one attribute and leaves the rest rolled, which is how a
+    // headless probe pits a deliberately strong girl against a deliberately
+    // frail one without hunting for a seed that happens to produce them.
+    //
+    // NOTE a pinned value breaks the point-buy budget on purpose — it is
+    // authorial intent, not a roll.
+    public Dictionary<Agents.AttributeKind, float> Attributes { get; } = new();
 }
 
 }

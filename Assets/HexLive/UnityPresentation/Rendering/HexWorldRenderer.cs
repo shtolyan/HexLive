@@ -83,6 +83,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private readonly Dictionary<int, int> _lastTalkResultTick = new();
     private readonly Dictionary<int, string> _lastSocialCueKey = new();
 
+    // §80: снимки лиц. Ставится бутстрапом; без него всё работает по-старому,
+    // на эмодзи, — поэтому все обращения через ?. и без проверок у вызывающих.
+    private HexLive.UnityPresentation.UI.NpcPortraitCache? _portraitCache;
+    private readonly List<int> _portraitIds = new();
+
     // Spec 31C: the fauna is finally visible.
     private readonly Dictionary<int, GameObject> _mobViews = new();
     private readonly Dictionary<int, GameObject> _crabViews = new();
@@ -228,6 +233,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     // Face anchor of the LIVE in-world character (real dirt/tan/clothes) for
     // the portrait camera. Falls back to the primitive view's head sphere.
+    // §80: кэш лиц. Необязателен — без него пузыри рисуют прежние эмодзи.
+    public void SetPortraitCache(HexLive.UnityPresentation.UI.NpcPortraitCache cache)
+    {
+        _portraitCache = cache;
+    }
+
     public bool TryGetNpcFace(
         int npcId, out Vector3 faceCenter, out Vector3 faceForward, out Vector3 faceUp, out float scale)
     {
@@ -991,6 +1002,22 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         UpdateGrassFlattening(snapshot);
 
+        // §80: раз в игровой час снять одно самое несвежее лицо. В снапшоте
+        // лежат только живые (мёртвых убирает MobSystem.RemoveDeadNpc), а их
+        // снимки остаются в кэше — лицо погибшей во вкладке отношений должно
+        // жить дальше, тела-то уже нет.
+        if (_portraitCache != null)
+        {
+            _portraitIds.Clear();
+            foreach (var npc in snapshot.Npcs)
+            {
+                _portraitIds.Add(npc.Id.Value);
+            }
+
+            _portraitCache.Sweep(
+                snapshot.Tick, HexLive.Simulation.Runtime.WorldBalance.DayLengthTicks, _portraitIds);
+        }
+
         SyncAnimalViews(snapshot);
 
         // A dead housemate leaves a corpse object - her walking view goes.
@@ -1112,7 +1139,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
             earlyRainWet, earlyWaterWet, npc.WornWetness, npc.WornDirtiness, npc.WornBloodiness,
             npc.Wounds, npc.BandagedZones, npc.SeveredParts);
         var heldItemId = IsProne(npc) && IsToolOrWeapon(npc.HeldItemId) ? string.Empty : npc.HeldItemId;
-        actorView.SetInteraction(npc.CurrentInteraction, heldItemId, npc.AidTargetLyingDown);
+        // §77.5: the interaction window goes with the verb — the view fits one
+        // playthrough of the work clip into it.
+        actorView.SetInteraction(npc.CurrentInteraction, heldItemId, npc.AidTargetLyingDown,
+            npc.InteractionSeconds);
         // Spec §52.8: leg-slung tools — the holster shows a carried axe/knife/
         // hammer on the thigh whenever that tool is not the one in her hand.
         actorView.SyncHolster(npc.HolsteredItems, heldItemId);
@@ -1147,7 +1177,23 @@ public sealed class HexWorldRenderer : MonoBehaviour
             if (!_lastSocialCueKey.TryGetValue(npc.Id.Value, out var seenCue) || seenCue != cueKey)
             {
                 _lastSocialCueKey[npc.Id.Value] = cueKey;
-                actorView.PopSocialCue(npc.SocialCueKind);
+                // §80: peer — тот, О КОМ кьюшка, и его лицо едет в пузырь.
+                // Раньше id молча выбрасывался, и все кьюшки выглядели
+                // одинаково: ⚠️ есть, а кого испугалась — непонятно.
+                Sprite peerFace = null;
+                if (npc.SocialCuePeerId is { } peerId && _portraitCache != null)
+                {
+                    peerFace = _portraitCache.SpriteFor(peerId);
+                    if (peerFace == null)
+                    {
+                        // Первый игровой час: снимка ещё нет. Показываем эмодзи,
+                        // а лицо просим снять вне очереди — ко второму испугу
+                        // оно будет.
+                        _portraitCache.RequestNow(peerId);
+                    }
+                }
+
+                actorView.PopSocialCue(npc.SocialCueKind, peerFace);
             }
         }
 
@@ -2657,7 +2703,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 actorBody.transform.localPosition = Vector3.zero;
 
                 var view = actorRoot.AddComponent<NpcActorView>();
-                view.Construct(npc.ActorMesh, npc.Id.Value);
+                // §74: the body is the mesh, but the face, the hair and the
+                // voice are hers alone — the simulation rolled them from the
+                // seed and saved them, so a reload rebuilds the same woman.
+                view.Construct(npc.ActorMesh, npc.Id.Value,
+                    npc.SkinSet, npc.Hairstyle, npc.VoiceBank);
                 _actorViews[npc.Id.Value] = view;
                 _lastTalkResultTick[npc.Id.Value] = npc.TalkResultTick;
                 _lastSocialCueKey[npc.Id.Value] =

@@ -21,23 +21,25 @@ namespace HexLive.Simulation.Runtime
 //
 // Enabled = false collapses FactionRelations to "everyone is an ally", so every
 // gate in the sim answers exactly as it did pre-§72. Together with
-// SpawnOutsider = false the world is the pre-§72 world byte for byte — the two
+// OutsiderCount = 0 the world is the pre-§72 world byte for byte — the two
 // flags are separate so a soak can bisect "the faction plumbing" and "the extra
 // body" independently (the extra body alone perturbs dog spawn placement).
 public static class Spec72
 {
-    // SHIPPED DARK. The faction layer, the camp, the defence layer and the
-    // human-vs-human combat resolver are all in and verified; what is NOT yet
-    // dialled in is the hunt actually winning the goal auction under these
-    // gates. With it on and the hunt still silent the colony loses survivors
-    // (3/12 vs the 5/12 baseline on seeds 12345/777/999) for no gameplay in
-    // return, so master stays byte-identical until the auction weight is
-    // tuned — the same "measured dormant" landing §40.17 used.
-    public static bool Enabled = false;
+    // ВКЛЮЧЕНО. Охота запускается (старт — прерывание, не ставка в аукционе),
+    // снаряжение с бронёй зарегистрировано, отпор колонии работает. Баланс ещё
+    // не доведён: в последнем замере чужак не убил никого и гибнет сам, так что
+    // это скорее «он есть и мешает жить», чем «он страшен».
+    public static bool Enabled = true;
 
-    // Does the prototype world stake the outsider at all? Separate flag so a
-    // soak can bisect "the faction rules" and "the extra body" independently.
-    public static bool SpawnOutsider = false;
+    // Сколько чужаков селить. 0 — ни одного: это и есть прежний флаг «не
+    // селить», только без второй ручки рядом, которая неминуемо разошлась бы с
+    // первой. Отдельно от Enabled, чтобы соак мог развести влияние ПРАВИЛ и
+    // влияние лишних тел (они сами по себе двигают спавн собак и маршруты).
+    //
+    // Все чужаки — одна фракция, то есть союзники друг другу, и живут одним
+    // лагерем: садятся на якорь стоянки и кольцо вокруг него.
+    public static int OutsiderCount = 1;
 
     // --- His camp -----------------------------------------------------------
 
@@ -49,6 +51,14 @@ public static class Spec72
     // home knowledge at bootstrap. Without this the outsider starts out knowing
     // the girls' entire camp layout (and they know his).
     public static int CampKnowledgeRadiusTiles = 4;
+
+    // Насколько далеко от ЛЮБОЙ стоянки заводятся собаки. Обычное правило
+    // спавна держит 5 гексов от каждого NPC, но это от того места, где он
+    // стоит СЕЙЧАС: стоит ему отойти за дровами, и стая заводится прямо у его
+    // очага, а вернувшись он входит в неё. У колонии это скрадывалось тем, что
+    // четверо девушек постоянно топчутся дома и закрывают собой округу; у
+    // одиночки скрадывать некому.
+    public static int DogSpawnMinDistanceFromCamp = 9;
 
     // The widest a camp may be — the anchor-scoped hearth search radius, so a
     // faction's "our fire" is its own and not whichever campfire hashes first.

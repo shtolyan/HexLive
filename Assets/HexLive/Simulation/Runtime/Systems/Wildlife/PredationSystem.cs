@@ -97,9 +97,9 @@ public sealed class PredationSystem : ISimulationSystem
             // damage flow so the kill is detectable in the same tick.
             var part = AmputateSystemHelpers.RedirectFromStump(victim,
                 PickKillPart(world, predator.Id.Value));
-            var partArmor = EquipmentMath.ArmorForPart(world, victim, part);
-            var damage = SimBalance.PredationStrikePerPass *
-                predator.Body.StrikeFactor() * weaponMult * (1f - partArmor);
+            var partArmor = EquipmentMath.ArmorForPart(world, victim, part); // trace only
+            var damage = EquipmentMath.Mitigate(world, victim, part,
+                SimBalance.PredationStrikePerPass * predator.StrikeFactor() * weaponMult);
             victim.Body.Parts[part] = System.Math.Max(0f, victim.Body.Parts[part] - damage);
             victim.Health = victim.Body.Mean();
             DamageReactionSystemHelpers.GrantAdrenaline(world, victim, damage, "PredationStrike");
@@ -184,9 +184,10 @@ public sealed class PredationSystem : ISimulationSystem
             // dogs, scaled by the defender's own StrikeFactor()/weapon and the
             // attacker's armor.
             var defPart = PickKillPart(world, victim.Id.Value + 7919);
-            var defArmor = EquipmentMath.ArmorForPart(world, predator, defPart);
+            var defArmor = EquipmentMath.ArmorForPart(world, predator, defPart); // trace only
             var defDamage = defStrikeReady
-                ? SimBalance.NpcStrikePerPass * victim.Body.StrikeFactor() * defWeapon * (1f - defArmor)
+                ? EquipmentMath.Mitigate(world, predator, defPart,
+                    SimBalance.NpcStrikePerPass * victim.StrikeFactor() * defWeapon)
                 : 0f;
             if (defDamage > 0f)
             {
@@ -281,9 +282,10 @@ public sealed class PredationSystem : ISimulationSystem
             var attackSpeed = SimBalance.MeleeAttackSpeed(weaponId);
             var strikeReady = SimBalance.MeleeStrikeReady(world.Tick, defender.Id.Value, weaponId);
             var part = PickKillPart(world, defender.Id.Value + 271);
-            var armor = EquipmentMath.ArmorForPart(world, attacker, part);
+            var armor = EquipmentMath.ArmorForPart(world, attacker, part); // trace only
             var damage = strikeReady
-                ? SimBalance.NpcStrikePerPass * defender.Body.StrikeFactor() * weaponMult * (1f - armor)
+                ? EquipmentMath.Mitigate(world, attacker, part,
+                    SimBalance.NpcStrikePerPass * defender.StrikeFactor() * weaponMult)
                 : 0f;
             if (damage > 0f)
             {

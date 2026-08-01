@@ -127,7 +127,7 @@ MonoBehaviour:
   adrenalineTicks: 80
   adrenalineEnergyFloor: 0.05
   adrenalineMoveSpeedFactor: 2.25
-  baseMoveSpeedFactor: 1.5
+  baseMoveSpeedFactor: 1.2
   baseTurnSpeedFactor: 2.4
   turnFreezeAngle: 100
   turnFreeAngle: 40

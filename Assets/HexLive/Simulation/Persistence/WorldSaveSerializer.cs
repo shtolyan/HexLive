@@ -33,7 +33,9 @@ public static class WorldSaveSerializer
     // SEPARATE version — two features that each bumped to 16 on their own
     // branch describe two different formats, and a reader must be able to tell
     // "has breath" from "has breath AND factions".
-    public const int BlobVersion = 17; // v17: §72 faction — which side a survivor is on
+    // v19 (§76) follows the same discipline: appended after the v18 strings,
+    // never inserted mid-record, and read behind its own gate.
+    public const int BlobVersion = 19; // v19: §76 attributes & skills — 6 + 8 floats per NPC
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -618,6 +620,32 @@ public static class WorldSaveSerializer
         w.Write(npc.BodyWetness);
         w.Write(npc.CompassionTrait);
         w.Write((int)npc.Faction); // §72: ordinal — the enum is APPEND-ONLY
+        // §74: the rest of the composition. DisplayName/ActorMesh above have
+        // been written since v3; these three join them so a girl keeps her
+        // face, hair and voice across a reload even if the pools change later.
+        w.Write(npc.SkinSet);
+        w.Write(npc.Hairstyle);
+        w.Write(npc.VoiceBank);
+
+        // §76: who she is and what she has learned. Written by NAME, not as a
+        // count-prefixed (kind, value) loop like Body.Parts — BodyPart predates
+        // the save and is shared with content, whereas AttributeKind/SkillKind
+        // are §76-private and fixed. A loop would buy forward-compat we don't
+        // need at the price of a silent mis-read if either enum is reordered.
+        w.Write(npc.Attributes.Strength);
+        w.Write(npc.Attributes.Agility);
+        w.Write(npc.Attributes.Endurance);
+        w.Write(npc.Attributes.Toughness);
+        w.Write(npc.Attributes.Hardiness);
+        w.Write(npc.Attributes.Wits);
+        w.Write(npc.Skills.Combat);
+        w.Write(npc.Skills.Harvesting);
+        w.Write(npc.Skills.Crafting);
+        w.Write(npc.Skills.Building);
+        w.Write(npc.Skills.Cooking);
+        w.Write(npc.Skills.Medicine);
+        w.Write(npc.Skills.Survival);
+        w.Write(npc.Skills.Social);
 
         WriteItemList(w, npc.WornItems);
         WriteJunctionList(w, npc.ClaimedJunctions);
@@ -915,6 +943,39 @@ public static class WorldSaveSerializer
         if (version >= 17)
         {
             npc.Faction = (Faction)r.ReadInt32();
+        }
+
+        // §74: absent before v18 — a pre-§74 save is a world where the body's
+        // own materials, its prefab hairstyle and its mesh-named voice bank
+        // WERE the look, and empty means exactly that. So an old colony still
+        // loads as Marta/Molly/Jana/Jolly, unchanged.
+        if (version >= 18)
+        {
+            npc.SkinSet = r.ReadString();
+            npc.Hairstyle = r.ReadString();
+            npc.VoiceBank = r.ReadString();
+        }
+
+        // §76: absent before v19 — a pre-§76 save is a colony of average bodies
+        // with no trade learned, and the field defaults (0.5 attributes, 0
+        // skills) say exactly that: every multiplier at 1.0, i.e. the game the
+        // save was written by.
+        if (version >= 19)
+        {
+            npc.Attributes.Strength = r.ReadSingle();
+            npc.Attributes.Agility = r.ReadSingle();
+            npc.Attributes.Endurance = r.ReadSingle();
+            npc.Attributes.Toughness = r.ReadSingle();
+            npc.Attributes.Hardiness = r.ReadSingle();
+            npc.Attributes.Wits = r.ReadSingle();
+            npc.Skills.Combat = r.ReadSingle();
+            npc.Skills.Harvesting = r.ReadSingle();
+            npc.Skills.Crafting = r.ReadSingle();
+            npc.Skills.Building = r.ReadSingle();
+            npc.Skills.Cooking = r.ReadSingle();
+            npc.Skills.Medicine = r.ReadSingle();
+            npc.Skills.Survival = r.ReadSingle();
+            npc.Skills.Social = r.ReadSingle();
         }
 
         ReadItemList(r, npc.WornItems, version);

@@ -83,6 +83,46 @@ into core `texture.source` and delete the ext; strip `EXT_texture_webp` from
 aligned chunks (JSON space-padded, BIN zero-padded). (Working script lived in the
 session scratchpad — reuse it.)
 
+## 3b. Headless variant — steps 4-8 without the Unity Editor (bottle / saw / bandage)
+
+When Unity is not running (or you don't want to drive it), do the decimate +
+orient + material work in **headless Blender 3.2.2** and ship the result as a
+plain `.glb` dropped straight into `Assets/Resources/HexLive/Objects/<id>.glb`
+(+ a `.meta` cloned from `tool.machete.glb.meta` with a fresh `guid`). glTFast
+imports it on the next editor launch and `Resources.Load<GameObject>` resolves
+it exactly like a `.prefab` — no prefab step, no Unity scripting, no MCP.
+`tool.machete`, `tool.bottle`, `tool.saw` and `item.bandage` ship this way.
+
+```bash
+Blender -b -P decimate_glb.py -- fixed.glb dec.glb 20000     # Decimate/COLLAPSE
+Blender -b -P orient_glb.py   -- dec.glb  out.glb <rx ry rz> preview.png [alpha]
+```
+
+- **Decimate**: a `DECIMATE`/`COLLAPSE` modifier at `20000/tris` reaches a clean
+  20 K (Blender handles the triangle soup better than UnityMeshSimplifier).
+- **Shade FLAT before export** (`shade_flat`, `use_auto_smooth = False`): the
+  shipped `tool.machete` has 3 verts per tri and the faceting IS the art style.
+  A smooth-shaded AI mesh reads as plasticine.
+- **Rotation**: Blender is Z-up and the exporter (`export_yup=True`) maps
+  Blender **+Z → Unity +Y** and Blender **−Y → Unity +Z**. So "grip along +Y,
+  working edge +Z" = stand the long axis along Blender +Z with the teeth/blade
+  pointing at Blender −Y. Recenter x/y on the object, `min z → 0`.
+  ⚠️ The glTF importer leaves objects in **QUATERNION** rotation mode — assigning
+  `rotation_euler` is silently ignored and the mesh exports unrotated. Set
+  `rotation_mode = 'XYZ'` first, and check the printed bbox actually changed.
+- **Strip the metallicRoughness map** and scale the albedo to 1 K: trellis-2
+  bakes a metallic map that renders the saw blade near-black in URP, and 2×2048
+  textures make a 7 MB GLB. Albedo only ⇒ ~3 MB and the right colours.
+- **Transparency** (the plastic bottle): `blend_method = 'BLEND'` + Principled
+  `Alpha` — exports as `alphaMode: BLEND` with a base-colour alpha (0.82), which
+  glTFast turns into a transparent URP material. No Unity-side material edit.
+- **The in-hand pose goes in the gear asset** (`Resources/HexLive/Gear/<x>.asset`:
+  `handPoseAuthored: 1` + `handLocal*`), NOT in `NpcActorView.TryGetHandPropTransform`.
+  That baked table sets an ABSOLUTE `localScale`, so it silently breaks the
+  moment the model's dimensions change; the asset's scale is a multiplier over
+  `ObjectFit`. (`tool.bottle` was exactly this trap — its baked 0.349 was tuned
+  for a 0.43-tall procedural bottle.)
+
 ## 4. Import to Unity
 
 - `import_model_file(source_path=<fixed glb>, name=<StoneX_AI>, output_folder="Assets/_AiGen")`.

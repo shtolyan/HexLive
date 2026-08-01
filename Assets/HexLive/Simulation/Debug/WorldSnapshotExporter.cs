@@ -352,9 +352,19 @@ public static class WorldSnapshotExporter
                     return "tool.pickaxe_stone";
                 }
 
-                return FirstCarried(npc, "tool.axe_stone", "tool.saw", "tool.pickaxe_stone");
+                // §79: the machete leads every blade list — it is the tool that
+                // SETS the pace (BestSpeedMultFor picks it), so it has to be the
+                // one in her hand, or the view shows an axe doing a machete's
+                // 2× work.
+                return FirstCarried(npc, "tool.machete", "tool.axe_stone", "tool.saw", "tool.pickaxe_stone");
 
             case InteractionType.Process:
+                if ((npc.Mind.CurrentGoal == GoalType.Drink || npc.Mind.CurrentGoal == GoalType.Eat) &&
+                    InventoryContains(npc, "tool.machete"))
+                {
+                    return "tool.machete";
+                }
+
                 if ((npc.Mind.CurrentGoal == GoalType.Drink || npc.Mind.CurrentGoal == GoalType.Eat) &&
                     InventoryContains(npc, "tool.knife"))
                 {
@@ -373,10 +383,10 @@ public static class WorldSnapshotExporter
                 // Axe stays preferred (plays the Chop clip); knife is the
                 // fallback. ChopCrown still needs ChopWood, so it always shows
                 // the axe first and never falls through to the knife here.
-                return FirstCarried(npc, "tool.axe_stone", "tool.saw", "tool.knife");
+                return FirstCarried(npc, "tool.machete", "tool.axe_stone", "tool.saw", "tool.knife");
 
             case InteractionType.Butcher:
-                return InventoryContains(npc, "tool.knife") ? "tool.knife" : string.Empty;
+                return FirstCarried(npc, "tool.machete", "tool.knife");
 
             case InteractionType.Fuel:
                 return InventoryContains(npc, "resource.stick") ? "resource.stick" : string.Empty;
@@ -511,25 +521,16 @@ public static class WorldSnapshotExporter
         return false;
     }
 
-    private static string FirstCarried(
-        NPCState npc,
-        string first,
-        string second = "",
-        string third = "")
+    // Preference list, best tool first (§79 added a fourth candidate to two of
+    // the lists, so this takes as many as the caller names).
+    private static string FirstCarried(NPCState npc, params string[] ids)
     {
-        if (InventoryContains(npc, first))
+        foreach (var id in ids)
         {
-            return first;
-        }
-
-        if (second.Length > 0 && InventoryContains(npc, second))
-        {
-            return second;
-        }
-
-        if (third.Length > 0 && InventoryContains(npc, third))
-        {
-            return third;
+            if (id.Length > 0 && InventoryContains(npc, id))
+            {
+                return id;
+            }
         }
 
         return string.Empty;
@@ -560,6 +561,12 @@ public static class WorldSnapshotExporter
         var npcSnapshot = new NpcSnapshot
         {
             InteractionProgress = interactionProgress,
+            // §77.5: the window the view fits one playthrough of the work clip
+            // into. Same guard as the progress above — 0 unless a timed
+            // interaction is actually running.
+            InteractionSeconds = npc.Execution.Status == ExecutionStatus.InProgress && execTotal > 0
+                ? execTotal * world.TickDeltaTime
+                : 0f,
             AidTargetLyingDown = aidTargetLying,
             HeldGarmentId = heldGarmentId,
             // §40.6 r2: live condition of the held piece — the hand prop shows
@@ -572,6 +579,9 @@ public static class WorldSnapshotExporter
             Id = npc.Id,
             DisplayName = npc.DisplayName,
             ActorMesh = npc.ActorMesh,
+            SkinSet = npc.SkinSet,
+            Hairstyle = npc.Hairstyle,
+            VoiceBank = npc.VoiceBank,
             Faction = npc.Faction,
             IsHostileToColony = Runtime.FactionRelations.AreHostile(npc.Faction, Faction.Colony),
             Tile = npc.Tile,
@@ -750,6 +760,20 @@ public static class WorldSnapshotExporter
         {
             npcSnapshot.Effects.Add($"{effect.Kind}\t{effect.Intensity:0.###}");
         }
+
+        // §76: the character sheet. Looped off AttributeSet.All/SkillSet.All so
+        // adding a seventh attribute never means remembering this file.
+        foreach (var kind in Agents.AttributeSet.All)
+        {
+            npcSnapshot.Attributes.Add($"{kind}\t{npc.Attributes.Get(kind):0.###}");
+        }
+
+        foreach (var kind in Agents.SkillSet.All)
+        {
+            npcSnapshot.Skills.Add($"{kind}\t{npc.Skills.Get(kind):0.###}");
+        }
+
+        Runtime.AttributeMath.CollectPerks(npc, npcSnapshot.Perks);
 
         var worstPartValue = 1f;
         var worstPartName = "-";

@@ -588,7 +588,7 @@ public sealed class MobSystem : ISimulationSystem
             var attackSpeed = SimBalance.MeleeAttackSpeed(weaponId);
             var strikeReady = SimBalance.MeleeStrikeReady(world.Tick, defender.Id.Value, weaponId);
             var strike = strikeReady
-                ? NpcStrikePerPass * defender.Body.StrikeFactor() * weaponMult
+                ? NpcStrikePerPass * defender.StrikeFactor() * weaponMult
                 : 0f;
             if (strike > 0f)
             {
@@ -997,6 +997,24 @@ public sealed class MobSystem : ISimulationSystem
                 {
                     farEnough = false;
                     break;
+                }
+            }
+
+            // §72.12: и подальше от СТОЯНОК, а не только от тел. Правило выше
+            // считает от текущего положения NPC, поэтому стая спокойно заводится
+            // у очага, пока хозяин отошёл за дровами, — а он возвращается прямо
+            // в неё. Четверо девушек дома закрывают округу собой, одиночке
+            // закрывать некому.
+            if (farEnough && Spec72.Enabled)
+            {
+                foreach (var home in world.FactionHomes)
+                {
+                    if (HexSpatialMath.HexDistance(tile, home.Value) <
+                        Spec72.DogSpawnMinDistanceFromCamp)
+                    {
+                        farEnough = false;
+                        break;
+                    }
                 }
             }
 

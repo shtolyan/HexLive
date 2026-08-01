@@ -332,10 +332,15 @@ public sealed partial class ExecutionSystem
             npc.Execution.CurrentInteraction = InteractionType.Craft;
             npc.Execution.TargetObject = null;
             npc.Execution.StartTick = world.Tick;
-            npc.Execution.EndTick = world.Tick + CraftInPlaceDurationTicks;
+            // §76: the §61 work beat scales with Wits and the Crafting trade —
+            // the one duration outside the world-object path that a colonist can
+            // actually get better at.
+            var craftTicks = AttributeMath.WorkTicks(
+                npc, CraftInPlaceDurationTicks, InteractionType.Craft, goal);
+            npc.Execution.EndTick = world.Tick + craftTicks;
             FaceCraftLayout(world, npc); // §61: kneel TOWARD the laid-out pieces
             Trace.Emit(world, npc.Id, "InteractionStarted",
-                $"CraftInPlace {goal} Duration={CraftInPlaceDurationTicks}ticks " +
+                $"CraftInPlace {goal} Duration={craftTicks}ticks " +
                 $"LaidOut={npc.Execution.CraftLayout.Count}");
             return;
         }
@@ -412,6 +417,15 @@ public sealed partial class ExecutionSystem
         npc.Execution.CraftLayout.Clear();
         Trace.Emit(world, npc.Id, CraftedTraceName(goal),
             $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
+        // §76: the §61 in-place craft is its own execution path and never
+        // reaches the world-object completion hook, so it pays its own XP.
+        // Credited on the WORK beat's length, not the stoop-and-take beat —
+        // picking the thing up is not what taught her anything — and on the
+        // length she ACTUALLY worked, matching the world-object path: getting
+        // faster at a trade has to slow how fast you keep getting faster, or
+        // the two paths reward practice differently for no reason.
+        SkillTrace.Award(world, npc, InteractionType.Craft,
+            AttributeMath.WorkTicks(npc, CraftInPlaceDurationTicks, InteractionType.Craft, goal));
         FinishCraftInPlace(world, npc, goal);
     }
 

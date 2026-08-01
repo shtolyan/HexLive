@@ -313,7 +313,7 @@ public sealed class AmputationTestBootstrap : MonoBehaviour
 
         GUILayout.Space(6f);
         GUILayout.Label(
-            $"Мобильность {girl.Body.MobilityFactor():0.00}   Удар {girl.Body.StrikeFactor():0.00}");
+            $"Мобильность {girl.Body.MobilityFactor():0.00}   Удар {girl.StrikeFactor():0.00}");
 
         GUILayout.Space(6f);
         GUILayout.Label($"— раны: {girl.Wounds.Count} (заж = заживление 0→1) —");

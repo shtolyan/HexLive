@@ -34,9 +34,12 @@ public sealed partial class ExecutionSystem
             npc.Execution.CurrentInteraction = InteractionType.TreatSelf;
             npc.Execution.TargetObject = null;
             npc.Execution.StartTick = world.Tick;
-            npc.Execution.EndTick = world.Tick + Spec53.SelfTreatDuration;
+            // §76: a practised hand winds a dressing faster (Wits + Medicine).
+            var treatTicks = AttributeMath.WorkTicks(
+                npc, Spec53.SelfTreatDuration, InteractionType.TreatSelf, npc.Plan.Goal);
+            npc.Execution.EndTick = world.Tick + treatTicks;
             Trace.Emit(world, npc.Id, "InteractionStarted",
-                $"TreatSelf Duration={Spec53.SelfTreatDuration}ticks " +
+                $"TreatSelf Duration={treatTicks}ticks " +
                 $"Health={npc.Health:F2} Blood={npc.Needs.Blood:F2} " +
                 $"Bandages={npc.Needs.Bandages}");
             return;
@@ -58,6 +61,10 @@ public sealed partial class ExecutionSystem
             npc.Needs.HerbalBandages--;
         }
 
+        // §76: a practised hand gets more out of the same dressing. Computed
+        // once so the zone HP and the wound clotting below cannot disagree.
+        var selfTreatHeal = Spec53.SelfTreatHeal * AttributeMath.TreatPowerMult(npc);
+
         var parts = new System.Collections.Generic.List<BodyPart>(npc.Body.Parts.Keys);
         var dressed = 0;
         foreach (var part in parts)
@@ -67,7 +74,7 @@ public sealed partial class ExecutionSystem
                 continue; // §50: a stump takes no dressing; a whole zone needs none
             }
 
-            npc.Body.Parts[part] = MathUtil.Clamp01(npc.Body.Parts[part] + Spec53.SelfTreatHeal);
+            npc.Body.Parts[part] = MathUtil.Clamp01(npc.Body.Parts[part] + selfTreatHeal);
             if (herbal)
             {
                 npc.BandagedZones.Add(part);
@@ -86,11 +93,16 @@ public sealed partial class ExecutionSystem
         // stops the bleed (NeedsDecaySystem only bleeds for Heal01 < 0.3).
         foreach (var wound in npc.Wounds)
         {
-            wound.Heal01 = MathUtil.Clamp01(wound.Heal01 + Spec53.SelfTreatHeal);
+            wound.Heal01 = MathUtil.Clamp01(wound.Heal01 + selfTreatHeal);
         }
 
         npc.Health = npc.Body.Mean();
-        npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood + Spec53.SelfTreatBlood);
+        npc.Needs.Blood = MathUtil.Clamp01(
+            npc.Needs.Blood + Spec53.SelfTreatBlood * AttributeMath.TreatPowerMult(npc));
+
+        // §76: dressing your own wounds is how Medicine is learned when there
+        // is nobody else to practise on.
+        SkillTrace.Award(world, npc, InteractionType.TreatSelf, Spec53.SelfTreatDuration);
 
         Trace.Emit(world, npc.Id, "Bandaged",
             $"Dressed her own wounds ({(herbal ? "herbal" : "gauze")}, zones={dressed}) " +

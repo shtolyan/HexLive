@@ -38,6 +38,21 @@ DAZ_TOKEN_FILE = Path(os.path.expanduser("~")) / ".daz3d" / "dazscriptserver_tok
 # --- external tools ---------------------------------------------------------
 BLENDER = _path(
     "BLENDER_EXE", r"C:\Users\shtolyan\AppData\Local\Programs\Blender\blender.exe")
+
+# The Claude Code CLI the desktop app ships — the same binary an interactive
+# session runs on, so a supervised job needs nothing extra installed. Its auth
+# is separate from the desktop app's, though: run it once and do /login.
+# The version sits in the path; supervisor.cli_path() falls back to the newest
+# sibling directory when this exact one is gone after an update.
+CLAUDE_CLI = _path(
+    "CLAUDE_CLI",
+    str(Path(os.environ.get("APPDATA", "")) / "Claude" / "claude-code"
+        / "2.1.219" / "claude.exe"))
+
+# The interpreter the pipeline stages run under (the package's own venv).
+WARDROBE_PYTHON = os.environ.get(
+    "WARDROBE_PYTHON",
+    str(Path(__file__).resolve().parent.parent / ".venv" / "Scripts" / "python.exe"))
 WINRAR = _path("WINRAR_EXE", r"C:\Program Files\WinRAR\WinRAR.exe")
 UNITY = _path(
     "UNITY_EXE", r"C:\Program Files\Unity\Hub\Editor\6000.4.5f1\Editor\Unity.exe")

@@ -1094,8 +1094,27 @@ public sealed partial class DecisionSystem : ISimulationSystem
                   HasReachableWithTag(npc, world, "Palm")));
             // §63 r2: with a stone-hungry site open the miner keeps swinging
             // until she carries a real load (3), not the old 2-stone stop.
+            //
+            // §77: и «сначала подбери с земли» — иначе цель кормит сама себя.
+            // Валун рассыпает камни на ЗЕМЛЮ (Scatter), рюкзак при этом не
+            // трогается, а условие ниже смотрит только в рюкзак: разбил валун →
+            // предикат остался ровно таким же истинным. Неподвижная точка, из
+            // которой выходит только подбор (GatherStone). У травы (:harvestYucca)
+            // и дерева эта дыра закрыта с §54.13, у камня забыли — и чужак с
+            // киркой выбил на сейве все 19 валунов острова, рассыпав 95 камней
+            // и не донеся ни одного.
+            //
+            // Мера — ЛОКАЛЬНАЯ, не общеостровная: восприятие помнит предметы по
+            // всей карте, так что глобальный запрет заморозил бы кирку навсегда
+            // из-за камня, увиденного неделю назад. Спрашиваем «есть ли под
+            // рукой у меня» и «есть ли под рукой у стройки, ради которой копаю».
+            var stonesUnderfoot =
+                HasNearbyWithTag(npc, world, "Stone", npc.Tile, SimBalance.PickUpFirstRadiusTiles) ||
+                (siteNeedsStones && buildSite != null &&
+                 HasNearbyWithTag(npc, world, "Stone", buildSite.Tile, SimBalance.PickUpFirstRadiusTiles));
             var mineBoulderAvail = canUseToolsOrWeapons && hasPickaxe &&
                 stoneCount < System.Math.Max(2, siteStoneWant) && npc.Inventory.HasSpace &&
+                !stonesUnderfoot &&
                 HasReachableWithTag(npc, world, "Boulder");
 
             // Spec 45: FREE HANDS — needs handled, no danger => the surplus
@@ -1148,8 +1167,14 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // MineBoulder fired 0 times in 20 probe-days pickaxe-in-hand.
             var siteStonePull = siteNeedsStones && freeHands > 0f && !fuelLow ? 0.5f : 0f;
             // §54 cold start: fetching stones for the first hearth is urgent too.
+            //
+            // §77: подбор 0.28 против копания 0.25 — ничья была НЕ безобидной.
+            // После того как очаг поднят, hearthUrgent гаснет навсегда, и обе
+            // цели набирали побитово одинаковые очки; а правило удержания цели
+            // требует перевеса СТРОГО больше порога, так что перевес 0.0 не
+            // смещает действующую цель никогда. Копающий оставался копающим.
             AddGoalScore(npc, world.Tick, GoalType.GatherStone,
-                (hearthUrgent ? 0.9f : 0.25f) + freeHands + coconutToolBoost + siteStonePull,
+                (hearthUrgent ? 0.9f : 0.28f) + freeHands + coconutToolBoost + siteStonePull,
                 gatherStoneAvail, coconutEmergencyBoost);
             AddGoalScore(npc, world.Tick, GoalType.CraftAxe, 0.3f + freeHands, craftAxeAvail);
             // §63 r2: a site drowning in stone demand (the 18-stone fire ring)

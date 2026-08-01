@@ -369,6 +369,31 @@ public sealed partial class DecisionSystem
         return false;
     }
 
+    // §77: то же, но в радиусе от точки. HasReachableWithTag НЕ фильтрует по
+    // расстоянию — восприятие подмешивает в список ещё и то, что NPC когда-то
+    // видел (`IsReachable` считается по связности, а не по близости), поэтому
+    // «есть ли такой предмет» истинно для всего острова разом.
+    //
+    // Для гейтов вида «сначала подбери с земли, потом добывай ещё» это ровно
+    // неверная мера: одна забытая палка на другом конце острова запрещала бы
+    // работу навсегда. Здесь спрашивают «есть ли под рукой».
+    internal static bool HasNearbyWithTag(
+        NPCState npc, WorldState world, string tag, TileCoord origin, int radiusTiles)
+    {
+        foreach (var obj in npc.Perception.Objects)
+        {
+            if (obj.IsReachable && ObjectUsableBy(obj, npc.Id) &&
+                HexSpatialMath.HexDistance(obj.Tile, origin) <= radiusTiles &&
+                world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
+                definition.Tags.Contains(tag))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     internal static bool HasReachableDefinition(NPCState npc, WorldState world, string definitionId)
     {
         foreach (var obj in npc.Perception.Objects)

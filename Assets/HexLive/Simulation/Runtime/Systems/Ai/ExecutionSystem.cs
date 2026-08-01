@@ -116,10 +116,18 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
-            if (npc.Plan.TargetAgentId is not null)
+            // §77: маршрутизация по ЦЕЛИ, а не по «раз есть агент — значит
+            // разговор». Прежняя развилка была «Aid или всё остальное = Talk», и
+            // §72 в неё провалился: план налёта тоже носит TargetAgentId, так что
+            // налётчик приходил к своей жертве и запускал против неё
+            // InteractionType.Talk — с обменом репликами и РОСТОМ симпатии,
+            // пока RaidSystem этажом ниже вёл с ней бой.
+            //
+            // У налёта взаимодействия нет вовсе: план — это дорога, а удары
+            // выдаёт RaidSystem. Поэтому он проваливается ниже, в RunMoveOnly.
+            if (npc.Plan.TargetAgentId is not null &&
+                npc.Mind.CurrentGoal != GoalType.Raid)
             {
-                // Spec §53: aid plans also carry a TargetAgentId — route them to
-                // the aid handler; everything else agent-targeted is a talk.
                 if (npc.Mind.CurrentGoal == GoalType.Aid)
                 {
                     RunAid(world, npc);
@@ -936,8 +944,21 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     ApplyHarvestYields(world, npc, worldObject, completedInteraction.Yields);
                     if (definition.Tags.Contains("Boulder"))
                     {
+                        // §77: число берётся из самой добычи. Зашитая «4» врала
+                        // (валун даёт 5) во всех строках трейса, а по этим
+                        // строкам и читают соаки.
+                        var stoneYield = 0;
+                        foreach (var drop in completedInteraction.Yields)
+                        {
+                            if (drop.DefinitionId == "resource.stone")
+                            {
+                                stoneYield += drop.Count;
+                            }
+                        }
+
                         Trace.Emit(world, npc.Id, "BoulderBroken",
-                            $"{worldObject.DefinitionId} at Tile={worldObject.Tile.Q},{worldObject.Tile.R} -> 4 stones");
+                            $"{worldObject.DefinitionId} at Tile={worldObject.Tile.Q},{worldObject.Tile.R} " +
+                            $"-> {stoneYield} stones");
                     }
                     else
                     {

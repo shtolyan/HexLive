@@ -109,7 +109,13 @@ public sealed class ThreatAlertSystem : ISimulationSystem
                     world.Tick - hostileSeenTick >= Spec72.StrangerCueCooldownTicks)
                 {
                     _lastHostileCueTick[hostileKey] = world.Tick;
-                    SocialCueSignals.Stamp(world, npc, "DangerSpotted", npc.Id);
+                    // §77: свой вид кьюшки и id ТОГО, КОГО она увидела. Раньше
+                    // здесь стояло `npc.Id` — её собственный id, — и канал «о ком
+                    // кьюшка» на страхе был пуст, хотя `hostile` лежит рядом.
+                    // Отдельный вид от звериного нужен и виду (над головой
+                    // всплывает лицо чужака, а у зверя иконка), и голосу:
+                    // «человек на горизонте» звучит не так, как «волк».
+                    SocialCueSignals.Stamp(world, npc, "DangerStranger", hostile.Id);
                     Trace.Emit(world, npc.Id, "HostileSpotted",
                         $"Npc={hostile.Id.Value} " +
                         $"Dist={HexSpatialMath.HexDistance(npc.Tile, hostile.Tile)} " +
@@ -140,7 +146,11 @@ public sealed class ThreatAlertSystem : ISimulationSystem
             _lastCueTick[key] = world.Tick;
             PruneStaleCues(world.Tick);
 
-            SocialCueSignals.Stamp(world, npc, "DangerSpotted", npc.Id);
+            // §77: зверь — не человек, лица у него в кэше портретов нет, и его
+            // id живёт в другом пространстве (3 — это волк, а не Марта).
+            // Раньше сюда шёл id самой кричащей, что прочиталось бы как «боится
+            // себя»; null оставляет прежнюю иконку зверя.
+            SocialCueSignals.Stamp(world, npc, "DangerSpotted", null);
             var fit = IsFitToFight(npc) && pack <= Spec62.AttackMaxPack;
             Trace.Emit(world, npc.Id, "ThreatSpotted",
                 $"Mob={threat.Id} Dist={bestDistance} Pack={pack} Fit={fit} " +

@@ -205,6 +205,11 @@ public static class SpeechCatalog
             "HelpCry" => "call_help",
             "HelpCryAssistStarted" or "HelpCryAssistArrived" or "HelpCryDefended" => "angry_defend",
             "DangerSpotted" => "fear_wolf",
+            // §77: чужак-человек. Своей группы реплик пока нет — ставим
+            // «страх зверя»: молчать в момент, когда над головой всплыло его
+            // лицо, было бы хуже, чем сказать не совсем то. Заведём
+            // fear_stranger — заменится одной строкой.
+            "DangerStranger" => "fear_wolf",
             "AidRequest" => "sad_aid_ask",
             "AidIncoming" or "AidStarted" => "happy_aid_give",
             "AidCompleted" => "happy_aid_thanks",

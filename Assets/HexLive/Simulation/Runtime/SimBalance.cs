@@ -533,6 +533,13 @@ namespace HexLive.Simulation.Runtime
         // reachable wood of any kind).
         public static int PalmGroveReserve = 4;
 
+        // §77: радиус правила «сначала подбери с земли, потом добывай ещё».
+        // Меряется и от самого NPC, и от стройки, ради которой он добывает.
+        // Общеостровной меры тут быть не может: восприятие помнит предметы по
+        // всей карте, так что «где-то лежит камень» истинно почти всегда и
+        // заморозило бы добычу навсегда.
+        public static int PickUpFirstRadiusTiles = 4;
+
         // Fiber → rope / cloth (crafted at the fire); knife = sticks + stone.
         // Enough cordage that a couple of cut yucca can supply the first bed's
         // lashings without exhausting the island's entire rope economy.

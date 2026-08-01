@@ -94,6 +94,7 @@ namespace HexLive.UnityPresentation.UI
         // window with the rotating body doll (per-zone green→yellow→red mesh)
         // and a per-limb readout list.
         private HealthDollStage _healthDollStage;
+        private NpcPortraitCache _portraitCache;
         private VisualElement _healthWindow;
         private Label _healthTitle;
         private VisualElement _healthDollImage;
@@ -243,6 +244,10 @@ namespace HexLive.UnityPresentation.UI
         public void SetPortraitStage(PortraitStage stage) => _portraitStage = stage;
 
         public void SetHealthDollStage(HealthDollStage stage) => _healthDollStage = stage;
+
+        // §77: кэш снятых лиц. Необязателен — без него отношения рисуются
+        // прежними цветными кружками с буквой.
+        public void SetPortraitCache(NpcPortraitCache cache) => _portraitCache = cache;
 
         private void Awake()
         {
@@ -2273,6 +2278,7 @@ namespace HexLive.UnityPresentation.UI
             initial.style.fontSize = 13;
             initial.style.unityTextAlign = TextAnchor.MiddleCenter;
             avatar.Add(initial);
+            ApplyRelationFace(avatar, rel.OtherId, initial);
             tab.Add(avatar);
 
             var name = new Label(rel.OtherName);
@@ -2349,6 +2355,7 @@ namespace HexLive.UnityPresentation.UI
             initial.style.fontSize = 30;
             initial.style.unityTextAlign = TextAnchor.MiddleCenter;
             portrait.Add(initial);
+            ApplyRelationFace(portrait, rel.OtherId, initial);
             left.Add(portrait);
 
             var mood = new Label(RelationMoodGlyph(rel.Affinity));
@@ -2590,6 +2597,7 @@ namespace HexLive.UnityPresentation.UI
             initial.style.unityFontStyleAndWeight = FontStyle.Bold;
             initial.style.fontSize = 13;
             av.Add(initial);
+            ApplyRelationFace(av, rel.OtherId, initial);
             head.Add(av);
 
             var mid = new VisualElement();
@@ -3559,6 +3567,24 @@ namespace HexLive.UnityPresentation.UI
         private static string InitialOf(string name)
         {
             return string.IsNullOrEmpty(name) ? "?" : name.Substring(0, 1).ToUpperInvariant();
+        }
+
+        // §77: лицо вместо кружка с буквой. Кружок остаётся фолбэком, и это не
+        // временная мера: снимок появляется только через игровой час после
+        // первой встречи, а до тех пор буква — единственное, что вообще есть.
+        // Мёртвые лица тоже показываются: кэш переживает тело.
+        private void ApplyRelationFace(VisualElement avatar, int otherId, Label initial)
+        {
+            if (_portraitCache == null || !_portraitCache.TryGet(otherId, out var face))
+            {
+                return;
+            }
+
+            avatar.style.backgroundImage = new StyleBackground(face);
+            // Цвет фона под непрозрачным снимком только пробивался бы по краям
+            // скруглённого кружка, а буква поверх лица нечитаема.
+            avatar.style.backgroundColor = Color.clear;
+            initial.style.display = DisplayStyle.None;
         }
 
         private static Color AvatarColor(int id)

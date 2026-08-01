@@ -125,6 +125,18 @@ public static class PrototypeRuntimeBootstrap
         var stageRoot = new GameObject("HexLive Portrait Stage");
         var portraitStage = stageRoot.AddComponent<PortraitStage>();
 
+        // §77: снимки лиц — своя камера, отдельная от живой портретной. Живая
+        // снимает ОДНОГО выбранного каждый кадр для панели; эта раз в игровой
+        // час фотографирует по одному телу в Texture2D, и снимки идут в пузыри
+        // и во вкладку отношений, где лиц нужно много сразу.
+        var portraitCacheRoot = new GameObject("HexLive Portrait Cache");
+        var portraitCache = portraitCacheRoot.AddComponent<NpcPortraitCache>();
+        var worldRenderer = Object.FindAnyObjectByType<Rendering.HexWorldRenderer>();
+        if (worldRenderer != null)
+        {
+            worldRenderer.SetPortraitCache(portraitCache);
+        }
+
         // Spec §57: the limb-health body doll — its own staged clone + camera
         // on the hidden Portrait layer, far outside the world.
         var dollRoot = new GameObject("HexLive Health Doll Stage");
@@ -138,6 +150,7 @@ public static class PrototypeRuntimeBootstrap
         panel.SetRunner(runner);
         panel.SetPortraitStage(portraitStage);
         panel.SetHealthDollStage(healthDollStage);
+        panel.SetPortraitCache(portraitCache);
 
         var hexPanelRoot = new GameObject("HexLive Hex Inspector");
         hexPanelRoot.AddComponent<UIDocument>();

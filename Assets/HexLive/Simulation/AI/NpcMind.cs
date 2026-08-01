@@ -197,6 +197,12 @@ public sealed class NPCMind
 
     public int AbuseBlows { get; set; }
 
+    // §97: каким оружием драться СЕЙЧАС, если не самым лучшим. Пустая строка —
+    // кулаки, null — «как обычно, лучшим». Сцена абьюза ставит это по глубине
+    // неприязни: наезд начинается рукопашкой, а тесак достают, когда уже
+    // ненавидят. В сейв не пишется — сцена не переживает сохранение.
+    public string ForcedMeleeWeaponId { get; set; }
+
     public bool AbuseHasLoot { get; set; }
 
     // Set on BOTH sides while a human fight is live. An NPC has a single swing

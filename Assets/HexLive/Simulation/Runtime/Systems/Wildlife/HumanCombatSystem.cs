@@ -61,13 +61,28 @@ public sealed class HumanCombatSystem : ISimulationSystem
                 continue; // the swing resolved into thin air — she stepped away
             }
 
+            // §97: «нападает» — это и налёт, и сцена абьюза. Без второй половины
+            // ЕГО удары помечались как ответные (RaidFoughtBack), и по логу было
+            // не разобрать, кто кого бьёт.
             var raiding = FactionRelations.AreHostile(actor, opponent) &&
-                actor.Mind.RaidTargetNpcId is { } raidTarget && raidTarget.Equals(opponent.Id);
-            if (raiding)
+                ((actor.Mind.RaidTargetNpcId is { } raidTarget && raidTarget.Equals(opponent.Id)) ||
+                 (actor.Mind.AbuseTargetNpcId is { } abuseTarget && abuseTarget.Equals(opponent.Id)));
+            // Множитель налёта — только настоящему налёту. У сцены абьюза свой
+            // регулятор: чем она бьёт (лестница ненависти) и сколько ударов.
+            if (raiding && actor.Mind.CurrentGoal == GoalType.Raid)
             {
                 // The one dial that softens the raider without touching the gear
                 // sheets the girls swing too.
                 damage *= Spec72.RaidStrikeDamageMult;
+            }
+
+            // §97: удары СЦЕНЫ считаются здесь же — она заканчивается по числу
+            // попаданий, а не по таймеру. «Пара ударов и разошлись» должно
+            // означать ровно пару, сколько бы ни длилось окно.
+            if (actor.Mind.CurrentGoal == GoalType.Abuse &&
+                actor.Mind.AbuseTargetNpcId is { } abused && abused.Equals(opponent.Id))
+            {
+                actor.Mind.AbuseBlows++;
             }
 
             MeleeSwing.ApplyHumanBlow(world, actor, opponent, damage, weaponId,

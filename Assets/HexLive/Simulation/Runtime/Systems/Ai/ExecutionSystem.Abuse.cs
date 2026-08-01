@@ -143,6 +143,28 @@ public sealed partial class ExecutionSystem
                 mark.Mind.CurrentGoal = GoalType.None;
             }
 
+            // §97: ⭐ ВХОД В НАСТОЯЩИЙ БОЙ. Прежде сцена била «сценарно», в
+            // обход боевой пары, — и это было костылём, который тянул за собой
+            // ещё два: невидимый замах и ручное открытие окна анимации.
+            //
+            // Теперь всё как у людей: обе стороны в бою, удары наносит
+            // HumanCombatSystem по своим таймингам, замах рисуется штатно,
+            // кровь и раны идут общим путём. От смерти держит пощада §86, а
+            // РАНО ВЫЙТИ из боя умеет сама сцена — см. LeaveCombat.
+            // §97: чем он будет бить — решает глубина неприязни, а не «что
+            // получше в рюкзаке». Наезд это наезд: кулаки; тесак достают, когда
+            // уже ненавидят.
+            npc.Mind.ForcedMeleeWeaponId = PickAbuseWeapon(npc, mark);
+            npc.Mind.AbuseBlows = 0;
+
+            npc.IsFighting = true;
+            npc.Mind.CombatOpponentNpcId = mark.Id;
+            mark.IsFighting = true;
+            mark.Mind.CombatOpponentNpcId = npc.Id;
+            MobSystem.RememberDanger(world, mark);
+            CombatHelpSystem.RallyFriends(world, mark, null, npc.Id,
+                $"Abuse=NPC{npc.Id.Value}");
+
             SocialCueSignals.Stamp(world, npc, "AbuseDemand", mark.Id);
             SocialCueSignals.Stamp(world, mark, "AbuseThreatened", npc.Id);
             Trace.Emit(world, npc.Id, "AbuseStarted",
@@ -163,25 +185,31 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        // --- Такт 3: пара тычков ---------------------------------------------
-        if (npc.Mind.AbuseBeat < 2 && elapsed >= Spec81.AbuseBeatBlowTicks)
-        {
-            npc.Mind.AbuseBeat = 2;
-            Shove(world, npc, mark);
-            return;
-        }
-
-        if (npc.Mind.AbuseBeat < 3 && elapsed >= Spec81.AbuseBeatBlowSecondTicks)
+        // --- Такт 3: драка. Удары наносит HumanCombatSystem — сцена только
+        // отмечает такт и подаёт кьюшки. ---------------------------------------
+        if (npc.Mind.AbuseBeat < 3 && elapsed >= Spec81.AbuseBeatBlowTicks)
         {
             npc.Mind.AbuseBeat = 3;
-            Shove(world, npc, mark);
+            SocialCueSignals.Stamp(world, npc, "AbuseStruck", mark.Id);
+            SocialCueSignals.Stamp(world, mark, "AbuseHurt", npc.Id);
             return;
         }
 
-        // --- Такт 4: приговор -------------------------------------------------
-        if (npc.Mind.AbuseBeat < 4 && elapsed >= Spec81.AbuseBeatVerdictTicks)
+        // --- Такт 4: приговор. Наступает по ЧИСЛУ УДАРОВ, а не только по
+        // времени: стычка кончается тем, что он своё сказал руками. --------
+        if (npc.Mind.AbuseBeat < 4 &&
+            (npc.Mind.AbuseBlows >= Spec81.AbuseMaxBlows ||
+             elapsed >= Spec81.AbuseBeatVerdictTicks))
         {
             npc.Mind.AbuseBeat = 4;
+
+            // §97: ⭐ ВЫХОД ИЗ БОЯ ИМЕННО ЗДЕСЬ. Приговор — это и есть конец
+            // драки: он своё сказал руками. Дальше идут только последствия
+            // (сдалась/огрызнулась, отдала припас), и махать во время них
+            // некому. Без этого пара оставалась сцепленной до конца окна и
+            // молотила друг друга ещё десяток тиков.
+            LeaveCombat(world, npc, mark);
+
             // Расклад читается ЗАНОВО: за сорок тиков она могла подобрать копьё,
             // а подруга — подойти на шесть гексов.
             if (AbuseMath.Ratio(world, npc, mark) < Spec81.AbuseSubmitRatio)
@@ -242,102 +270,40 @@ public sealed partial class ExecutionSystem
     // Тычок для острастки. Кулаком: ему нужны её припасы и её страх, а не её
     // труп — два удара ножом загнали бы её ниже порога бегства, и сцена свалилась
     // бы в обычный налёт, не дойдя до «она сдалась».
-    private static void Shove(WorldState world, NPCState abuser, NPCState mark)
+    // §97: ⭐ РАННИЙ ВЫХОД ИЗ БОЯ. Ради этого и стоило заходить в него
+    // по-настоящему: вход бесплатный, а выход — это и есть вся механика.
+    //
+    // Сцена не «драка до победы»: он пришёл забрать своё и напугать, а не
+    // убить. Поэтому пара расцепляется по её окончании — по приговору, по
+    // добыче, по подошедшим защитницам или просто по концу окна. Дальше уже
+    // обычный мир: никто ни за кем не гонится, потому что цепочки нет.
+    //
+    // Расцеплять надо ОБЕ стороны и обязательно: HumanCombatSystem работает
+    // ровно по CombatOpponentNpcId, и забытая пара — это вечная драка.
+    // §97: лестница ненависти — теперь она назначает оружие настоящему бою, а
+    // не рисует отдельный «сценарный» удар.
+    private static string PickAbuseWeapon(NPCState abuser, NPCState mark)
     {
-        if (abuser.Mind.AbuseBlows >= Spec81.AbuseMaxBlows)
-        {
-            return;
-        }
-
-        abuser.Mind.AbuseBlows++;
-        SocialCueSignals.Stamp(world, abuser, "AbuseStruck", mark.Id);
-        SocialCueSignals.Stamp(world, mark, "AbuseHurt", abuser.Id);
-
-        // Полуживую не бьют — пугать её незачем, а добить сцена не должна.
-        if (mark.Health <= Spec81.AbuseNoBlowHealthFloor)
-        {
-            Trace.Emit(world, abuser.Id, "AbuseShoveSkipped",
-                $"Mark=NPC{mark.Id.Value} Health={mark.Health:F2}");
-            return;
-        }
-
-        // §91: по умолчанию — РУКОПАШКА. Кулак, локоть, нога: сцена начинается
-        // как наезд, а не как поножовщина, и в подавляющем большинстве случаев
-        // так и заканчивается.
-        //
-        // ⭐ Нож достаётся не по броску кубика, а ПО ОТНОШЕНИЯМ. Пока она для
-        // него просто прохожая, он машет руками; когда он её уже возненавидел —
-        // а симпатия падает с каждой сценой (§81) — в ход идёт то, что в руке.
-        // Это тот же принцип, что и в пощаде §86: жестокость есть следствие
-        // истории отношений, а не отдельная ручка.
-        // §93: чем глубже ненависть, тем ТЯЖЕЛЕЕ железо. Не «кулак или лучшее
-        // оружие», а лестница: пока она для него прохожая — рукопашка; стал
-        // презирать — достал что попроще; возненавидел — берёт самое тяжёлое,
-        // что есть в руках.
-        //
-        // Порог — это порог ПЕРВОЙ ступени; чем ниже симпатия, тем выше по
-        // списку оружия он забирается.
         var affinity = abuser.Social.GetOrCreate(mark.Id).Affinity;
-        var weapon = GearCatalog.Fist;
-        if (abuser.Body.CanUseToolsOrWeapons && affinity <= Spec81.AbuseWeaponAffinity)
+        if (!abuser.Body.CanUseToolsOrWeapons || affinity > Spec81.AbuseWeaponAffinity)
         {
-            var best = SimBalance.BestMeleeWeapon(abuser.Inventory.Items, abuser.Body.IntactHands);
-            if (!string.IsNullOrEmpty(best))
-            {
-                // Насколько глубоко он её ненавидит, от порога до самого дна.
-                var depth = MathUtil.Clamp01(
-                    (Spec81.AbuseWeaponAffinity - affinity) /
-                    System.Math.Max(0.0001f, 1f + Spec81.AbuseWeaponAffinity));
-                weapon = depth >= Spec81.AbuseHeavyWeaponDepth
-                    ? best
-                    : LighterThan(abuser, best);
-            }
+            return GearCatalog.Fist;
         }
 
-        var damage = GearCatalog.Damage(weapon) * abuser.StrikeFactor() *
-            Spec81.AbuseBlowDamageMult;
-        // Показать замах: без этого удар landит невидимо (см. OpenAttackAnimation).
-        MeleeSwing.OpenAttackAnimation(world, abuser, weapon);
-        MeleeSwing.ApplyHumanBlow(world, abuser, mark, damage, weapon, "AbuseStruck");
-
-        // §91: и она может ОГРЫЗНУТЬСЯ. Это не решение «драться» — оно
-        // принимается в приговоре, — а рефлекс: получила и ударила. Без него
-        // сцена читалась как избиение столба, всегда одинаковое.
-        //
-        // Ответ возможен, только если она в состоянии его дать: без сознания и
-        // на земле не отвечают.
-        var canSnap = !mark.IsUnconscious(world.Tick) && !mark.Body.IsProne &&
-            mark.Body.CanUseToolsOrWeapons;
-        if (canSnap &&
-            MathUtil.Hash01(world.Seed, world.Tick, mark.Id.Value, 4471) <
-                Spec81.AbuseFightBackChance)
+        var best = SimBalance.BestMeleeWeapon(abuser.Inventory.Items, abuser.Body.IntactHands);
+        if (string.IsNullOrEmpty(best))
         {
-            var herWeapon = SimBalance.BestMeleeWeapon(mark.Inventory.Items, mark.Body.IntactHands);
-            if (string.IsNullOrEmpty(herWeapon))
-            {
-                herWeapon = GearCatalog.Fist;
-            }
-
-            var herDamage = GearCatalog.Damage(herWeapon) * mark.StrikeFactor() *
-                Spec81.AbuseBlowDamageMult;
-            MeleeSwing.OpenAttackAnimation(world, mark, herWeapon);
-            MeleeSwing.ApplyHumanBlow(world, mark, abuser, herDamage, herWeapon, "AbuseFoughtBack");
-            SocialCueSignals.Stamp(world, mark, "AbuseDefied", abuser.Id);
-            Trace.Emit(world, mark.Id, "AbuseFoughtBack",
-                $"Against=NPC{abuser.Id.Value} Weapon={herWeapon}");
+            return GearCatalog.Fist;
         }
 
-        // Кричать, когда тебя бьют, — правильно, и подруги должны прибежать. Но
-        // зовём ТОЛЬКО дружеское прикрытие, без широкого клича §57: клич поднял
-        // бы всю колонию, а порог отхода в три защитницы увёл бы его со сцены
-        // раньше, чем она успела бы сдаться.
-        MobSystem.RememberDanger(world, mark);
-        CombatHelpSystem.RallyFriends(world, mark, null, abuser.Id,
-            $"Abuse=NPC{abuser.Id.Value}");
+        var depth = MathUtil.Clamp01(
+            (Spec81.AbuseWeaponAffinity - affinity) /
+            System.Math.Max(0.0001f, 1f + Spec81.AbuseWeaponAffinity));
+        return depth >= Spec81.AbuseHeavyWeaponDepth ? best : LighterThan(abuser, best);
     }
 
-    // §93: ступенька ниже самого тяжёлого — нож вместо мачете. Если ничего
-    // легче нет, остаётся кулак: лёгкая злость не берётся за тесак.
+    // Ступенька ниже самого тяжёлого — нож вместо мачете. Если ничего легче
+    // нет, остаются кулаки: лёгкая злость не берётся за тесак.
     private static string LighterThan(NPCState npc, string heaviest)
     {
         string lighter = null;
@@ -364,9 +330,31 @@ public sealed partial class ExecutionSystem
         return lighter ?? GearCatalog.Fist;
     }
 
+    private static void LeaveCombat(WorldState world, NPCState a, NPCState b)
+    {
+        a.Mind.ForcedMeleeWeaponId = null;
+        if (b is not null)
+        {
+            b.Mind.ForcedMeleeWeaponId = null;
+        }
+
+        a.IsFighting = false;
+        a.Mind.CombatOpponentNpcId = null;
+        a.StrikeLandsAtTick = 0;
+
+        if (b is not null && b.Mind.CombatOpponentNpcId is { } held && held.Equals(a.Id))
+        {
+            b.IsFighting = false;
+            b.Mind.CombatOpponentNpcId = null;
+            b.StrikeLandsAtTick = 0;
+        }
+    }
+
     private static void FinishAbuse(
         WorldState world, NPCState npc, NPCState mark, bool submitted, string taken)
     {
+        LeaveCombat(world, npc, mark);
+
         // ⭐ Ради этого всё и затевалось: сцена закрывает ЕГО нужду в общении.
         // Разговор ему недоступен (собеседники только среди своих), амбиентное
         // общение считает соседей по фракции, а фракция у него из одного
@@ -441,6 +429,16 @@ public sealed partial class ExecutionSystem
 
     private static void AbortAbuse(WorldState world, NPCState npc, string reason)
     {
+        if (npc.Mind.AbuseTargetNpcId is { } leavingId &&
+            world.Entities.Npcs.TryGetValue(leavingId, out var leaving))
+        {
+            LeaveCombat(world, npc, leaving);
+        }
+        else
+        {
+            LeaveCombat(world, npc, null);
+        }
+
         if (npc.Plan.TargetJunctionId is { } jId)
         {
             SpatialMutations.FreeJunction(world, jId, npc.Id);

@@ -74,7 +74,14 @@ public sealed partial class PlanningSystem
             return;
         }
 
-        var approach = TryReserveArmsLengthApproach(world, npc, mark, markJunction);
+        // §97: подход БОЕВОЙ, а не разговорный. Прежде бронировался узел «на
+        // расстоянии вытянутой руки» (§28.8) — а он бывает и через узел от неё,
+        // тогда как удар достаёт только до СОСЕДНЕГО: MeleeSwing.InReach меряет
+        // соседство узлов, а не метры. Пара сцеплялась, а удары не проходили —
+        // сцена шла молча, без единого замаха.
+        //
+        // Берём тот же выбор подхода, что у налёта: соседний свободный узел.
+        var approach = PickApproachJunction(world, npc, markJunction);
         if (approach is not { } approachJunction)
         {
             npc.Plan.Status = PlanStatus.Failed;

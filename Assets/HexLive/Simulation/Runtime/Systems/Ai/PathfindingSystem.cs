@@ -126,6 +126,138 @@ public sealed class PathfindingSystem : ISimulationSystem
         return _dangerScratch;
     }
 
+    // §72: the same soft ring, grown around hostile PEOPLE instead of mobs —
+    // and per faction, because the ring is cached per tick and a single shared
+    // set would make the raider detour around himself.
+    private static readonly System.Collections.Generic.Dictionary<Faction,
+        System.Collections.Generic.HashSet<JunctionId>> _hostileRings = new();
+    private static readonly System.Collections.Generic.Dictionary<Faction, int> _hostileRingTick = new();
+    private static readonly System.Collections.Generic.Queue<JunctionId> _hostileQueue = new();
+
+    public static System.Collections.Generic.HashSet<JunctionId> HostileRing(
+        WorldState world, Faction forFaction)
+    {
+        if (!_hostileRings.TryGetValue(forFaction, out var ring))
+        {
+            ring = new System.Collections.Generic.HashSet<JunctionId>();
+            _hostileRings[forFaction] = ring;
+            _hostileRingTick[forFaction] = -1;
+        }
+
+        if (_hostileRingTick[forFaction] == world.Tick)
+        {
+            return ring;
+        }
+
+        _hostileRingTick[forFaction] = world.Tick;
+        ring.Clear();
+        if (!Spec72.Enabled)
+        {
+            return ring;
+        }
+
+        foreach (var hostile in world.Entities.Npcs.Values)
+        {
+            if (hostile.Health <= 0f ||
+                !FactionRelations.AreHostile(hostile.Faction, forFaction) ||
+                hostile.CurrentJunction is not { } hostileJunction)
+            {
+                continue;
+            }
+
+            _hostileQueue.Clear();
+            if (ring.Add(hostileJunction))
+            {
+                _hostileQueue.Enqueue(hostileJunction);
+            }
+
+            while (_hostileQueue.Count > 0)
+            {
+                var currentId = _hostileQueue.Dequeue();
+                if (!world.Junctions.Items.TryGetValue(currentId, out var junction))
+                {
+                    continue;
+                }
+
+                foreach (var neighborId in junction.Neighbors)
+                {
+                    if (ring.Contains(neighborId) ||
+                        !world.Junctions.Items.TryGetValue(neighborId, out var neighbor))
+                    {
+                        continue;
+                    }
+
+                    var within = false;
+                    foreach (var tile in neighbor.Tiles)
+                    {
+                        if (HexSpatialMath.HexDistance(tile, hostile.Tile) <= Spec72.DangerRingTiles)
+                        {
+                            within = true;
+                            break;
+                        }
+                    }
+
+                    if (!within)
+                    {
+                        continue;
+                    }
+
+                    ring.Add(neighborId);
+                    _hostileQueue.Enqueue(neighborId);
+                }
+            }
+        }
+
+        return ring;
+    }
+
+    // §72: the ring an NPC actually routes around — mobs plus hostile people.
+    // Unioned into one set so HexPathfinder keeps its single-set signature.
+    private static readonly System.Collections.Generic.HashSet<JunctionId> _combinedRing = new();
+
+    private static System.Collections.Generic.HashSet<JunctionId> RouteAvoidRing(
+        WorldState world, NPCState npc)
+    {
+        var mobs = AvoidsThreatRings(npc) ? DangerRing(world) : null;
+        var people = AvoidsHostileRings(npc) ? HostileRing(world, npc.Faction) : null;
+
+        if (people is null || people.Count == 0)
+        {
+            return mobs;
+        }
+
+        if (mobs is null || mobs.Count == 0)
+        {
+            return people;
+        }
+
+        _combinedRing.Clear();
+        foreach (var id in mobs)
+        {
+            _combinedRing.Add(id);
+        }
+
+        foreach (var id in people)
+        {
+            _combinedRing.Add(id);
+        }
+
+        return _combinedRing;
+    }
+
+    // §72: who walks around the outsider. Unlike a wolf ring this is NOT gated
+    // on being unfit — the girls give a hostile stranger a wide berth whatever
+    // shape they are in, because they never mean to fight him. A raider mid-hunt
+    // and anyone already fighting or fleeing obviously ignore it.
+    internal static bool AvoidsHostileRings(NPCState npc)
+    {
+        return Spec72.Enabled &&
+            !npc.IsFighting &&
+            npc.Mind.CurrentGoal != GoalType.Flee &&
+            npc.Mind.CurrentGoal != GoalType.Defend &&
+            npc.Mind.CurrentGoal != GoalType.Raid;
+    }
+
     // Spec §62: who pays the danger-ring cost. Fit fighters walk wherever they
     // like (they would attack anyway); a girl already fleeing or defending
     // must not have her escape/approach route bent around the very mob she is
@@ -194,7 +326,8 @@ public sealed class PathfindingSystem : ISimulationSystem
             var preferFlat = ShouldWeightClimbs(npc);
             // Spec §62: wounded/unarmed girls pay a soft cost near live mobs,
             // so their routes bend around a spotted wolf instead of past it.
-            var danger = AvoidsThreatRings(npc) ? DangerRing(world) : null;
+            // §72: …and around a hostile person, on the same soft terms.
+            var danger = RouteAvoidRing(world, npc);
             var path = HexPathfinder.FindPath(world, startJunction.Value, npc.Plan.TargetJunctionId.Value,
                 OtherActorJunctions(world, npc), preferFlat, npc.Body.CanJump,
                 danger, Spec62.DangerStepCost);

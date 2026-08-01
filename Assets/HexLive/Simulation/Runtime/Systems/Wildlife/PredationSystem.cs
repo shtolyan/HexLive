@@ -51,6 +51,11 @@ public sealed class PredationSystem : ISimulationSystem
             foreach (var other in world.Entities.Npcs.Values)
             {
                 if (other.Id == predator.Id || other.Health <= 0f ||
+                    // §72: Prey is the STARVATION cannibalism of §56 — eating
+                    // your own housemate. Hunting the other faction is the Raid
+                    // goal and its own resolver; keep the two from bleeding
+                    // into each other.
+                    !FactionRelations.AreAllies(predator, other) ||
                     other.CurrentJunction is not { } otherJunction)
                 {
                     continue;

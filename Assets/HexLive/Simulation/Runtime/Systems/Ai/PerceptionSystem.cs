@@ -29,6 +29,7 @@ public sealed class PerceptionSystem : ISimulationSystem
         {
             npc.Perception.Objects.Clear();
             npc.Perception.Agents.Clear();
+            npc.Perception.Hostiles.Clear(); // §72
             npc.Perception.Self.Hunger = npc.Needs.Hunger;
             npc.Perception.Self.Energy = npc.Needs.Energy;
             npc.Perception.Self.Comfort = npc.Needs.Comfort;
@@ -37,9 +38,21 @@ public sealed class PerceptionSystem : ISimulationSystem
             npc.Perception.Self.Tile = npc.Tile;
             npc.Perception.Self.Fragment = npc.Fragment;
             npc.Perception.Environment.Temperature = world.Environment.GlobalTemperature;
-            npc.Perception.Environment.NearbyAgentsCount = world.Entities.Npcs.Count - 1;
-            npc.Perception.Environment.IsCrowded = world.Entities.Npcs.Count > 2;
-            npc.Perception.Environment.IsPrivate = world.Entities.Npcs.Count <= 1;
+            // §72: "company" means ALLIES. An outsider lurking on the island is
+            // not someone she is less lonely for — and with the pre-§72 global
+            // count he silently made all four girls feel less alone.
+            var allies = 0;
+            foreach (var other in world.Entities.Npcs.Values)
+            {
+                if (other.Id != npc.Id && FactionRelations.AreAllies(npc, other))
+                {
+                    allies++;
+                }
+            }
+
+            npc.Perception.Environment.NearbyAgentsCount = allies;
+            npc.Perception.Environment.IsCrowded = allies > 1;
+            npc.Perception.Environment.IsPrivate = allies <= 0;
             npc.Perception.LastUpdatedTick = world.Tick;
 
             var npcJunction = ResolveCurrentJunction(world, npc);
@@ -173,10 +186,16 @@ public sealed class PerceptionSystem : ISimulationSystem
                 var agentReachable = npcJunction.HasValue && otherJunction.HasValue &&
                     (npcJunction.Value.Equals(otherJunction.Value) ||
                      Connectivity.Reachable(world, npcJunction.Value, otherJunction.Value, npc.Body.CanJump));
+                // §72: which pile this one goes on. Hostiles skip the whole §53
+                // suffering assessment below — nobody reads another faction's
+                // plight, and it is ~30 lines of arithmetic per pair per tick.
+                var isAlly = FactionRelations.AreAllies(npc, other);
+
                 var relationship = npc.Social.GetOrCreate(other.Id);
 
                 var perceivedAgent = new PerceivedAgent
                 {
+                    Faction = other.Faction,
                     Id = other.Id,
                     Tile = other.Tile,
                     Distance = agentDistance,
@@ -199,7 +218,7 @@ public sealed class PerceptionSystem : ISimulationSystem
                 // Severity is 0..1; a bleed-out clock outranks mere hunger.
                 var aidKind = AidKind.None;
                 var suffering = 0f;
-                if (other.Health > 0f)
+                if (isAlly && other.Health > 0f)
                 {
                     // Treat — open wounds / blood loss (a bleed-out is on a clock).
                     var treatSev = other.Wounds.Count > 0 || other.Needs.Blood < 0.6f
@@ -234,7 +253,14 @@ public sealed class PerceptionSystem : ISimulationSystem
                 perceivedAgent.Suffering = suffering;
                 perceivedAgent.AidKind = aidKind;
 
-                npc.Perception.Agents.Add(perceivedAgent);
+                if (isAlly)
+                {
+                    npc.Perception.Agents.Add(perceivedAgent);
+                }
+                else
+                {
+                    npc.Perception.Hostiles.Add(perceivedAgent);
+                }
             }
 
             var reachableCount = 0;

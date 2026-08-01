@@ -354,14 +354,33 @@ namespace HexLive.UnityPresentation.UI
             return label;
         }
 
+        // §72: the run summary is about the COLONY. The outsider is on the
+        // island, is selectable, and is emphatically not one of the survivors
+        // being counted — listing him would inflate survivorCount/total and
+        // read as "we rescued five".
+        private static List<NpcSnapshot> ColonyOf(WorldSnapshot snapshot)
+        {
+            var colony = new List<NpcSnapshot>();
+            foreach (var npc in snapshot.Npcs)
+            {
+                if (!npc.IsHostileToColony)
+                {
+                    colony.Add(npc);
+                }
+            }
+
+            return colony;
+        }
+
         private void Refresh(WorldSnapshot snapshot)
         {
+            var colony = ColonyOf(snapshot);
             _lastTick = snapshot.Tick;
             _lastSurvivorCount = snapshot.Npcs.Count;
             _lastDeathCount = snapshot.DeathRecords.Count;
             _lastLanguage = Loc.Current;
 
-            var survivorCount = snapshot.Npcs.Count;
+            var survivorCount = colony.Count;
             var deathCount = snapshot.DeathRecords.Count;
             var total = Mathf.Max(survivorCount + deathCount, survivorCount);
             var finalDay = DayNumber(snapshot.Tick);
@@ -374,7 +393,7 @@ namespace HexLive.UnityPresentation.UI
             _timeMetric.text = snapshot.Clock;
             _raftMetric.text = $"{snapshot.RaftProgress}/{snapshot.RaftTarget}";
             _healthMetric.text = survivorCount > 0
-                ? $"{Mathf.RoundToInt(AverageHealth(snapshot.Npcs) * 100f)}%"
+                ? $"{Mathf.RoundToInt(AverageHealth(colony) * 100f)}%"
                 : "0%";
 
             _survivorsHeader.text = Loc.Get("end.survivors_title");
@@ -382,7 +401,7 @@ namespace HexLive.UnityPresentation.UI
             _noFallenLabel.text = Loc.Get("end.no_fallen");
             _noFallenLabel.style.display = deathCount == 0 ? DisplayStyle.Flex : DisplayStyle.None;
 
-            RebuildSurvivors(snapshot.Npcs);
+            RebuildSurvivors(colony);
             RebuildDeaths(snapshot.DeathRecords);
         }
 

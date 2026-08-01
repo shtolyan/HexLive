@@ -265,6 +265,14 @@ public sealed class AnimalCombatSystem : ISimulationSystem
     private static void RunCounterStrike(
         WorldState world, Wildlife.MobState dog, NPCState npc, bool inMelee)
     {
+        // §72: a body has ONE swing slot. While a human fight owns it (the man
+        // is on her, or she is on him) the dog exchange must not also drive it,
+        // or the two would trade the same StrikeLandsAtTick back and forth.
+        if (npc.Mind.CombatOpponentNpcId is not null)
+        {
+            return;
+        }
+
         var weaponId = npc.Body.CanUseToolsOrWeapons
             ? SimBalance.BestMeleeWeapon(npc.Inventory.Items, npc.Body.IntactHands)
             : string.Empty;

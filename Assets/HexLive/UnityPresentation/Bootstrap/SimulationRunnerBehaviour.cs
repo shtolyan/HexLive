@@ -479,6 +479,12 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
         engine.Register(new DecisionSystem());
         engine.Register(new PlanningSystem());
         engine.Register(new MobSystem());
+        // §72: AFTER MobSystem — it clears IsFighting for every NPC each medium
+        // pass, so anything that sets the latch has to run later.
+        engine.Register(new RaidSystem()); // §72: the outsider's hunt and the colony's answer
+        // §72: BEFORE AnimalCombatSystem — a body has one swing slot, and a man
+        // with a knife outranks a dog for that tick of attention.
+        engine.Register(new HumanCombatSystem()); // §72: timed human-vs-human blows
         engine.Register(new AnimalCombatSystem()); // 29C.3 v2: timed windup→hit→cooldown blows
         engine.Register(new PredationSystem()); // §56: kill-a-housemate-to-eat
         engine.Register(new ThreatAlertSystem()); // §62: spot the wolf early — ⚠️ cue, attack-first or detour

@@ -19,7 +19,7 @@ namespace HexLive.UnityPresentation.WardrobeTest
 [RequireComponent(typeof(UIDocument))]
 public sealed class WardrobeTestBootstrap : MonoBehaviour
 {
-    // §70: no longer only girls — Kshishtof is the male outsider. A new actor
+    // §72: no longer only girls — Kshishtof is the male outsider. A new actor
     // has to be added HERE as well as shipped as a prefab, or the scene simply
     // will not offer him and the omission reads as a broken import.
     private static readonly ActorName[] Actors =
@@ -49,7 +49,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         public VisualElement Row;
     }
 
-    // §70: заголовок группы прячется вместе со всеми её строками, иначе после
+    // §72: заголовок группы прячется вместе со всеми её строками, иначе после
     // гендерного фильтра остаются висеть подписи без содержимого.
     private readonly Dictionary<string, VisualElement> _groupHeaders = new();
 
@@ -886,7 +886,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         ApplyActorFilter();
     }
 
-    // §70: показываем только ту одежду, что скроена под ТЕЛО выбранного актёра.
+    // §72: показываем только ту одежду, что скроена под ТЕЛО выбранного актёра.
     // Женская вещь на мужском теле рисуется искорёженным мешем (фит всегда
     // пофигурный), так что это не косметика списка, а защита от заведомо
     // неверного показа.

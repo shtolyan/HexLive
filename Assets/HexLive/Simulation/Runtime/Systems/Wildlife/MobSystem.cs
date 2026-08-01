@@ -879,6 +879,9 @@ public sealed class MobSystem : ISimulationSystem
         foreach (var archer in world.Entities.Npcs.Values)
         {
             if (archer.Id.Value == quarry.Id.Value || archer.IsFighting ||
+                // §72: nobody spends the colony's scarce arrows saving the man
+                // who hunts them from a wolf.
+                !FactionRelations.AreAllies(archer, quarry) ||
                 !archer.Inventory.Items.Contains("tool.bow") ||
                 !archer.Inventory.Items.Contains("resource.arrow") ||
                 HexSpatialMath.HexDistance(archer.Tile, dog.Tile) > 3)
@@ -1154,10 +1157,27 @@ public sealed class MobSystem : ISimulationSystem
 
             foreach (var witness in world.Entities.Npcs.Values)
             {
-                if (HexSpatialMath.HexDistance(witness.Tile, npc.Tile) <= 6)
+                if (HexSpatialMath.HexDistance(witness.Tile, npc.Tile) > 6)
                 {
-                    GriefSystemHelpers.TriggerGrief(world, witness, corpse);
+                    continue;
                 }
+
+                // §72: you do not mourn the stranger who was trying to kill
+                // you. TriggerGrief floors the social loss regardless of
+                // affinity AND marks the spot as a danger memory, so an ungated
+                // sweep leaves the colony depressed and afraid of the ground
+                // they just won on — a silent difficulty multiplier hiding in
+                // the death path. Winning the fight reads as relief instead.
+                if (FactionRelations.AreHostile(witness, npc))
+                {
+                    witness.Needs.Comfort = MathUtil.Clamp(
+                        witness.Needs.Comfort + Spec72.EnemyDeathRelief, 0f, 1f);
+                    Trace.Emit(world, witness.Id, "EnemyDeathRelief",
+                        $"NPC{deadId.Value} ({npc.DisplayName}) is dead");
+                    continue;
+                }
+
+                GriefSystemHelpers.TriggerGrief(world, witness, corpse);
             }
         }
 
@@ -1229,6 +1249,11 @@ public sealed class MobSystem : ISimulationSystem
         "LimbSevered" or
         "PreyFoughtBack" or
         "Preyed" or
+        // §72: without these two every raid death is recorded as inferred
+        // starvation/exposure — and the soak's own accounting then lies about
+        // the very mechanic being tuned.
+        "RaidFoughtBack" or
+        "RaidStruck" or
         "SharkBite" or
         "StarvedToDeath" or
         "Sunburn" or

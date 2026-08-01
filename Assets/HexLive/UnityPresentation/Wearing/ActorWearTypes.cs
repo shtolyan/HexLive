@@ -57,7 +57,7 @@ public enum VisualGender
     Female
 }
 
-// §70: which body an actor has. Every garment carries a VisualGender and every
+// §72: which body an actor has. Every garment carries a VisualGender and every
 // fit mesh is sculpted for one sex, so a female piece on a male body renders as
 // a mangled mesh — the wardrobe has to know who it is dressing.
 //

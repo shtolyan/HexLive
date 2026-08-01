@@ -129,6 +129,17 @@ public sealed class WorldState
     // reads (BedSiteSystem, UI). DERIVED — not serialized; recomputed on load.
     public DreamType ActiveDream { get; set; } = DreamType.Campfire;
 
+    // §72: where each faction's camp is anchored, authored at bootstrap and
+    // serialized. It is the ONE piece of per-faction world state stage 1 needs:
+    // it scopes "our hearth" (otherwise the outsider lighting a fire first would
+    // satisfy the COLONY's §64 campfire dream), it bounds the home knowledge an
+    // NPC is seeded with, and it is where a beaten raider retreats to.
+    //
+    // Everything else that reads as "colony" is already per-camp for free —
+    // objects are perceived within 2 tiles, so the fire she tends and the pile
+    // she hauls to are her own by construction.
+    public System.Collections.Generic.Dictionary<Agents.Faction, Common.TileCoord> FactionHomes { get; } = new();
+
     // Spec 29F.1: prey.
     public System.Collections.Generic.List<Wildlife.RabbitState> Rabbits { get; } = new();
 

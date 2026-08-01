@@ -226,6 +226,13 @@ public sealed class NpcSnapshot
 
     public string ActorMesh { get; set; } = string.Empty;
 
+    // §72: which side this survivor is on, and the one question the UI actually
+    // asks — precomputed sim-side so no view file needs the Runtime namespace.
+    // Defaults keep every un-updated UI path behaving exactly as pre-§72.
+    public Agents.Faction Faction { get; set; } = Agents.Faction.Colony;
+
+    public bool IsHostileToColony { get; set; }
+
     public TileCoord Tile { get; set; } = TileCoord.Zero;
 
     public Float2 Position { get; set; } = Float2.Zero;

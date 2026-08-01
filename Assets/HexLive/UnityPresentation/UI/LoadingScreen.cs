@@ -690,6 +690,15 @@ namespace HexLive.UnityPresentation.UI
 
             foreach (var npc in snapshot.Npcs)
             {
+                // §72: the opening camera frames one of OURS. FindJana below
+                // falls back to the highest id when Jana is dead, and the
+                // outsider is the highest id — so an ungated roster would open
+                // the run orbiting the man hunting them.
+                if (npc.IsHostileToColony)
+                {
+                    continue;
+                }
+
                 result.Add((npc.Id.Value, npc.DisplayName));
             }
 

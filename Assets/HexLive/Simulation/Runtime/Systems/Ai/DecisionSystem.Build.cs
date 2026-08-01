@@ -98,8 +98,13 @@ public sealed partial class DecisionSystem
         // So: dream builders take the bed, the rest keep the §63 r2 order
         // (hearth upgrade > furniture > the rest) untouched. Labour is split, no
         // project is starved, and who builds beds is a stable per-girl trait.
+        // §72: the colony's shared aspiration for a colonist; for a lone
+        // outsider there is no labour to split, so his own dream is the gate.
+        var activeDream = npc.Faction == Faction.Colony
+            ? world.ActiveDream
+            : npc.Mind.CurrentDream;
         var buildsTheDream = SpecDream.Enabled &&
-            world.ActiveDream == DreamType.OwnBed &&
+            activeDream == DreamType.OwnBed &&
             IsDreamBuilder(npc, world);
         WorldObjectState firstSite = null;
         WorldObjectState dreamSite = null;

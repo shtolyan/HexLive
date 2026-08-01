@@ -5,7 +5,7 @@ using UnityEngine;
 namespace HexLive.UnityDebug.Editor
 {
     /// <summary>
-    /// §70 / §31B.1a — довести даз-материалы Kshishtof до рабочего URP-вида:
+    /// §72 / §31B.1a — довести даз-материалы Kshishtof до рабочего URP-вида:
     /// ГЛАЗА и невидимый материал графта гениталий.
     ///
     /// Кожа из molly_copy приехала уже нормальным URP Lit, а глаза — нет: у них

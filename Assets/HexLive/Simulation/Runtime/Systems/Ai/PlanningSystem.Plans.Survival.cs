@@ -228,6 +228,9 @@ public sealed partial class PlanningSystem
         foreach (var other in world.Entities.Npcs.Values)
         {
             if (other.Id.Equals(npc.Id) || other.Health <= 0f ||
+                // §72: you do not stagger across the island to beg water from
+                // the man who is hunting you.
+                !FactionRelations.AreAllies(npc, other) ||
                 other.CurrentJunction is not { } otherJunction ||
                 !Connectivity.Reachable(world, from, otherJunction))
             {

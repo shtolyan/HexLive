@@ -789,6 +789,10 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 foreach (var other in world.Entities.Npcs.Values)
                 {
                     if (other.Id.Equals(npc.Id) || other.Health <= 0f ||
+                        // §72: charity is for your own side. (Theft below is
+                        // deliberately NOT gated — a starving outsider robbing
+                        // the girls is exactly the friction we want.)
+                        !FactionRelations.AreAllies(npc, other) ||
                         other.Needs.Hunger >= 0.4f || other.IsFighting ||
                         other.Mind.CurrentGoal == GoalType.Flee ||
                         other.CurrentJunction is not { } giverJct)

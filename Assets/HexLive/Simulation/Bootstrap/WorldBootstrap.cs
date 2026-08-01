@@ -14,6 +14,23 @@ public sealed class WorldBootstrapDefinition
     public List<ObjectBootstrap> Objects { get; set; } = new();
 
     public List<NpcBootstrap> Npcs { get; set; } = new();
+
+    // §72: where each faction pitches its camp. Empty = a single-camp world,
+    // which is exactly the pre-§72 behaviour (and what the test bootstraps want).
+    public List<FactionHomeBootstrap> FactionHomes { get; set; } = new();
+}
+
+public sealed class FactionHomeBootstrap
+{
+    public Agents.Faction Faction { get; set; } = Agents.Faction.Colony;
+
+    public int TileQ { get; set; }
+
+    public int TileR { get; set; }
+
+    // Stake a campfire build-site at the anchor. The camp then raises and lights
+    // it through the ordinary §54 cold-start chain — no bespoke code.
+    public bool StakeCampfireSite { get; set; } = true;
 }
 
 public sealed class SimulationBootstrapSettings
@@ -82,6 +99,9 @@ public sealed class NpcBootstrap
     public string DisplayName { get; set; } = string.Empty;
 
     public string ActorMesh { get; set; } = string.Empty;
+
+    // §72: Colony (the girls) unless the world explicitly seeds an outsider.
+    public Agents.Faction Faction { get; set; } = Agents.Faction.Colony;
 
     public int FragmentId { get; set; }
 

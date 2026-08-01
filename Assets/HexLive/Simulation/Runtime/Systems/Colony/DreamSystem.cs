@@ -44,9 +44,12 @@ public sealed class DreamSystem : ISimulationSystem
         // a fire burning out later must not re-open the dream.
         if (!world.CampfireDreamDone)
         {
+            // §72: the COLONY's own hearth. Without the faction scope the
+            // outsider lighting his fire first would tick the girls' dream off
+            // as fulfilled while they still sat in the cold.
             var seen = SpecDream.CampfireRequiresLit
-                ? ColonyQueries.LitCampfireExists(world)
-                : ColonyQueries.CampfireObjectExists(world);
+                ? ColonyQueries.LitCampfireExists(world, Faction.Colony)
+                : ColonyQueries.CampfireObjectExists(world, Faction.Colony);
             if (seen)
             {
                 world.CampfireDreamDone = true;
@@ -57,12 +60,23 @@ public sealed class DreamSystem : ISimulationSystem
 
         // One object pass: collect bed owners, and reclaim any bed whose owner
         // has died (back to the shared pool for a bedless survivor to claim).
+        // §72: TWO sets, and the distinction matters. Bed reclaim keys on
+        // "is the owner alive at all" — scoping THAT to the colony would free
+        // the outsider's own bed every slow tick. The colony DREAM keys on "do
+        // all of OURS have one" — counting him there would leave the OwnBed
+        // dream permanently unmet, pinning BuildPull on a project that can
+        // never close.
         var livingIds = new HashSet<EntityId>();
+        var colonyLivingIds = new HashSet<EntityId>();
         foreach (var npc in world.Entities.Npcs.Values)
         {
             if (npc.Health > 0f)
             {
                 livingIds.Add(npc.Id);
+                if (npc.Faction == Faction.Colony)
+                {
+                    colonyLivingIds.Add(npc.Id);
+                }
             }
         }
 
@@ -93,7 +107,7 @@ public sealed class DreamSystem : ISimulationSystem
         world.ActiveDream = DreamType.None;
         foreach (var dream in world.DreamQueue)
         {
-            if (!ColonyDreamMet(world, dream, livingIds, bedOwners))
+            if (!ColonyDreamMet(world, dream, colonyLivingIds, bedOwners))
             {
                 world.ActiveDream = dream;
                 break;
@@ -154,7 +168,12 @@ public sealed class DreamSystem : ISimulationSystem
         switch (dream)
         {
             case DreamType.Campfire:
-                return world.CampfireDreamDone;
+                // §72: the outsider dreams of HIS hearth, not the girls' latch —
+                // otherwise he inherits their progress and never builds a fire
+                // of his own. Same aspiration, his own camp.
+                return npc.Faction == Faction.Colony
+                    ? world.CampfireDreamDone
+                    : ColonyQueries.LitCampfireExists(world, npc.Faction);
             case DreamType.OwnBed:
                 return bedOwners.Contains(npc.Id);
             default:

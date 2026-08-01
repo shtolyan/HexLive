@@ -18,7 +18,7 @@ from urllib.parse import unquote, urlparse
 
 import requests
 
-from . import config
+from . import cache, config
 
 _GDRIVE_ID = [
     re.compile(r"drive\.google\.com/file/d/([A-Za-z0-9_-]{20,})"),
@@ -137,16 +137,30 @@ def fetch_one(url: str, into: Path) -> dict:
     }
 
 
-def fetch(urls: list[str], into: Path | None = None) -> dict:
+def fetch(urls: list[str], into: Path | None = None,
+          progress=lambda _: None, force: bool = False) -> dict:
     into = into or config.DOWNLOADS
     report: dict = {"files": [], "errors": []}
 
     for url in urls:
+        url = url.strip()
+        if not force and (known := cache.downloaded(url)) is not None:
+            size = round(known.stat().st_size / 1024 / 1024, 1)
+            progress(f"   ⏭ {known.name} — уже скачан ({size} МБ), пропускаю")
+            report["files"].append({
+                "url": url, "file": str(known), "name": known.name,
+                "size_mb": size, "seconds": 0.0, "source": "кэш",
+                "archive": known.suffix.lower() in _ARCHIVE_SUFFIXES,
+                "cached": True,
+            })
+            continue
         try:
-            entry = fetch_one(url.strip(), into)
+            entry = fetch_one(url, into)
         except Exception as e:  # noqa: BLE001 — the report is the error channel
             report["errors"].append(f"{url}: {e}")
             continue
+        cache.remember_download(url, Path(entry["file"]))
+        progress(f"   ✔ {entry['name']} — {entry['size_mb']} МБ за {entry['seconds']} с")
         report["files"].append(entry)
         if not entry["archive"]:
             report["errors"].append(

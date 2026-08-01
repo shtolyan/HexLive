@@ -56,17 +56,17 @@ def intake(urls: list[str], progress: Progress = _noop,
                  "включите Window → Panes → Daz Script Server → Start Server.")
 
     progress(f"⬇️ Качаю — ссылок {len(urls)}")
-    fetched = fetch.fetch(urls)
+    fetched = fetch.fetch(urls, progress=progress)
     report["fetch"] = fetched
-    for f in fetched["files"]:
-        progress(f"   ✔ {f['name']} — {f['size_mb']} МБ за {f['seconds']} с")
     if not fetched["archives"]:
         report["errors"] = fetched["errors"] or ["скачивать нечего"]
         return report
-    progress("✅ Всё скачано")
+    reused = sum(1 for f in fetched["files"] if f.get("cached"))
+    progress("✅ Всё на месте" if reused == len(fetched["files"]) else "✅ Всё скачано")
 
     progress("📦 Распаковываю в библиотеку DAZ")
-    installed = install.install([Path(a) for a in fetched["archives"]])
+    installed = install.install([Path(a) for a in fetched["archives"]],
+                                progress=progress)
     report["install"] = installed
     if not installed["wearables"]:
         report["errors"] = installed["errors"]

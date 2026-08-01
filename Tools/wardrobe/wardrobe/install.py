@@ -22,7 +22,7 @@ import zipfile
 from pathlib import Path
 from urllib.parse import unquote
 
-from . import config
+from . import cache, config
 
 # Top-level folders DAZ reads. Finding one means we have found the content root.
 _CONTENT_DIRS = {"people", "runtime", "data", "props", "environments", "animals",
@@ -248,11 +248,21 @@ def _prefer_wearable_presets(found: list[dict]) -> list[dict]:
             if w["type"] == "wearable" or _product_root(w["relative"]) not in has_preset]
 
 
-def install(archives: list[Path]) -> dict:
+def install(archives: list[Path], progress=lambda _: None,
+            force: bool = False) -> dict:
     report = {"archives": [], "installed": 0, "wearables": [], "errors": []}
 
     for archive in archives:
         entry = {"archive": str(archive)}
+
+        if not force and (known := cache.installed(archive)) is not None:
+            progress(f"   ⏭ {archive.name} — уже в библиотеке, пропускаю")
+            entry.update(files=known["files"], cached=True)
+            report["installed"] += known["files"]
+            report["wearables"].extend(known["wearables"])
+            report["archives"].append(entry)
+            continue
+
         try:
             staging = config.UNPACKED / archive.stem
             if staging.exists():
@@ -288,7 +298,11 @@ def install(archives: list[Path]) -> dict:
                 if described and described["wearable"]:
                     described["relative"] = relative
                     found.append(described)
-            report["wearables"].extend(_prefer_wearable_presets(found))
+            chosen = _prefer_wearable_presets(found)
+            report["wearables"].extend(chosen)
+            cache.remember_install(archive, chosen, len(written))
+            progress(f"   ✔ {archive.name} — {len(written)} файлов, "
+                     f"вещей: {len(chosen)}")
         except Exception as e:  # noqa: BLE001 — the report is the error channel
             entry["error"] = str(e)
             report["errors"].append(f"{archive.name}: {e}")

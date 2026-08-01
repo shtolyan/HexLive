@@ -25,7 +25,7 @@ from telegram.constants import ParseMode
 from telegram.ext import (Application, CommandHandler, ContextTypes,
                           MessageHandler, filters)
 
-from . import config, daz, pipeline, supervisor
+from . import cache, config, daz, pipeline, supervisor
 
 log = logging.getLogger("wardrobe.bot")
 
@@ -67,13 +67,15 @@ async def start(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         return
     await update.message.reply_text(
         "Кидай ссылки на архивы с ассетами DAZ — по одной в строке.\n\n"
-        "На каждый прогон я поднимаю отдельную сессию Claude Code. Она "
-        "выполняет стадии и не лезет никуда, пока всё идёт хорошо; если "
-        "что-то падает — разбирается и чинит скрипт сама. Её работу я "
-        "пересылаю сюда по ходу дела.\n\n"
+        "Я гоню конвейер и пересылаю сюда, что он делает. Пока всё идёт "
+        "хорошо, агента не зову — скрипт говорит сам за себя. Сломается — "
+        "подниму сессию Claude Code, и она разберётся и починит.\n\n"
+        "Уже скачанное не качаю заново, уже установленное не распаковываю. "
+        "Если архив на той стороне обновился — /forget.\n\n"
         "Останавливаемся на черновике манифеста: названия вещей и слоты — "
         "решение человека, а не вычисление.\n\n"
         "/stop — прервать прогон прямо сейчас\n"
+        "/forget <имя> — забыть скачанное или установленное, чтобы сделать заново\n"
         "/status — что сейчас происходит\n"
         "/raw <ссылки> — прогнать без надзирателя, голым конвейером")
 
@@ -85,6 +87,24 @@ async def status(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         ("Занят — идёт поставка." if _lock.locked() else "Свободен.")
         + f"\nНадзиратель: {'работает' if supervisor.is_running() else 'не запущен'}"
         + f"\nDAZ Studio: {'на связи' if daz.alive() else 'НЕ отвечает'}")
+
+
+async def forget(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Drop a cached step so the next run redoes it — for a re-uploaded archive."""
+    if not _allowed(update):
+        return
+    what = " ".join(context.args or []).strip()
+    if not what:
+        remembered = cache.load()
+        names = list((remembered.get("installs") or {}).keys())
+        await update.message.reply_text(
+            "Использование: /forget <имя архива или ссылка>\n\n"
+            + ("Помню установленным:\n" + "\n".join(f"• {n}" for n in names[:20])
+               if names else "Пока ничего не помню."))
+        return
+    await update.message.reply_text(
+        "Забыл — в следующий раз сделаю заново." if cache.forget(what)
+        else "Такого в памяти нет. Имя должно совпадать точно.")
 
 
 async def stop(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
@@ -292,6 +312,7 @@ def main() -> None:
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("status", status))
     app.add_handler(CommandHandler("stop", stop))
+    app.add_handler(CommandHandler("forget", forget))
     app.add_handler(CommandHandler("raw", raw))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, links))
     log.info("бот запущен")

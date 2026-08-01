@@ -29,7 +29,8 @@ internal static class MeleeSwing
 {
     private const int TicksPerSecond = 4;
 
-    private static int SecondsToTicks(float seconds) =>
+    // §99: нужен снаружи — сцена абьюза разводит свои удары по длине клипа.
+    internal static int SecondsToTicks(float seconds) =>
         System.Math.Max(1, (int)System.Math.Round(seconds * TicksPerSecond));
 
     // Advance this actor's swing by one FAST tick. Returns true when a blow

@@ -79,10 +79,36 @@ public sealed class HumanCombatSystem : ISimulationSystem
             // §97: удары СЦЕНЫ считаются здесь же — она заканчивается по числу
             // попаданий, а не по таймеру. «Пара ударов и разошлись» должно
             // означать ровно пару, сколько бы ни длилось окно.
-            if (actor.Mind.CurrentGoal == GoalType.Abuse &&
-                actor.Mind.AbuseTargetNpcId is { } abused && abused.Equals(opponent.Id))
+            // Сцена абьюза — это ОБЕ стороны: он трясёт, она отбивается. Темп
+            // разводится обоим, иначе её ответы сливаются в мельницу, которую
+            // так же не видно, как раньше не было видно его ударов.
+            var abuserHere = actor.Mind.CurrentGoal == GoalType.Abuse &&
+                actor.Mind.AbuseTargetNpcId is { } abused && abused.Equals(opponent.Id);
+            var defenderHere = opponent.Mind.CurrentGoal == GoalType.Abuse &&
+                opponent.Mind.AbuseTargetNpcId is { } defended && defended.Equals(actor.Id);
+
+            if (abuserHere || defenderHere)
             {
-                actor.Mind.AbuseBlows++;
+                if (abuserHere)
+                {
+                    actor.Mind.AbuseBlows++;
+                }
+
+                // §99: ⭐ РАЗВЕСТИ УДАРЫ ПО ВРЕМЕНИ КЛИПА. Своя скорость оружия
+                // ставит их слишком часто: кулак машется 1.5 с, а следующий
+                // удар ложился через 0.75 — второй замах перебивал первый на
+                // середине, и со стороны выходило «крови добавилось, а удара не
+                // видел». В обычном бою это теряется среди прочего, а сцена
+                // короткая: в ней каждый удар должен читаться.
+                //
+                // Отодвигаем готовность так, чтобы клип успел доиграть целиком.
+                var clip = GearCatalog.AttackDurationSeconds(weaponId);
+                var floor = world.Tick +
+                    MeleeSwing.SecondsToTicks(clip * Spec81.AbuseBlowSpacing);
+                if (actor.StrikeReadyAtTick < floor)
+                {
+                    actor.StrikeReadyAtTick = floor;
+                }
             }
 
             MeleeSwing.ApplyHumanBlow(world, actor, opponent, damage, weaponId,

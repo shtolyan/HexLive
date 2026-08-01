@@ -180,6 +180,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 4800)] public int abuseBeatTakeTicks = 44;
         [Tooltip("Сколько раз он бьёт для острастки.")]
         [Range(0, 12)] public int abuseMaxBlows = 2;
+        [Tooltip("§99: во сколько ДЛИН КЛИПА разводятся удары сцены. Своя скорость оружия для короткой сцены слишком частая — второй замах перебивал первый, и удара было не видно.")]
+        [Range(0.5f, 4f)] public float abuseBlowSpacing = 1.2f;
         [Tooltip("Сила тычка — кулаком, не оружием: труп ему не нужен.")]
         [Range(0f, 2f)] public float abuseBlowDamageMult = 1f;
         [Tooltip("§91: симпатия, ниже которой он берётся за ОРУЖИЕ. Выше — только рукопашка. Нож достаётся по истории отношений, а не по броску кубика.")]

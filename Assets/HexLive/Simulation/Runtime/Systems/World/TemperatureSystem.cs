@@ -154,7 +154,24 @@ public sealed class TemperatureSystem : ISimulationSystem
                 var thermalHpHit = SimBalance.ThermalHpHit * (sleeping ? Spec49.ThermalSleepFactor : 1f);
                 foreach (var part in AllTemperatureParts)
                 {
-                    npc.Body.Parts[part] = System.Math.Max(0f, npc.Body.Parts[part] - thermalHpHit);
+                    // §82 r2: жара и холод не доламывают ВИТАЛЬНУЮ часть — тот
+                    // же порог, что у солнца, и по той же причине.
+                    //
+                    // Здесь это опаснее, чем в ожоге: ожог бьёт одну случайную
+                    // часть, а перегрев — ВСЕ СЕМЬ каждый медленный тик. Для
+                    // забронированного целиком человека это смертный приговор:
+                    // броня греет, снять он её не хочет, и голова тает вместе с
+                    // остальным. Именно это, а не солнце, убивало чужака —
+                    // девушки полураздеты, сидят в комфортной полосе и не
+                    // получают вообще ничего.
+                    //
+                    // Порог, а не запрет: замёрзнуть до комы по-прежнему можно
+                    // (§60 при здоровье 0.15), конечности по-прежнему до нуля.
+                    var thermalFloor = part is BodyPart.Head or BodyPart.Torso
+                        ? SimBalance.ThermalVitalFloor
+                        : 0f;
+                    npc.Body.Parts[part] = System.Math.Max(
+                        thermalFloor, npc.Body.Parts[part] - thermalHpHit);
                 }
 
                 npc.Health = npc.Body.Mean();

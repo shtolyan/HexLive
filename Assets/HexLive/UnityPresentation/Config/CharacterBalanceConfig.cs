@@ -195,6 +195,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0.5f, 1f)] public float thermalDamageGate = 0.85f;
         [Tooltip("Урон HP на часть за тик при переохлаждении/перегреве.")]
         [Range(0f, 0.05f)] public float thermalHpHit = 0.012f;
+        [Tooltip("§82: ниже этого порога жара и холод не доламывают ВИТАЛЬНУЮ часть. Перегрев бьёт все семь частей каждый медленный тик — для человека в глухой броне без порога это верная смерть.")]
+        [Range(0f, 1f)] public float thermalVitalFloor = 0.35f;
         [Tooltip("Прибавка к эффективной температуре в помещении (°C).")]
         [Range(0f, 12f)] public float indoorWarmthBonus = 4f;
         [Tooltip("Насколько холоднее в воде (°C, вычитается).")]

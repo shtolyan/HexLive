@@ -173,6 +173,10 @@ namespace HexLive.Simulation.Runtime
         public static float FireThawRecovery = 0.25f;   // discomfort SHED/tick when comfy AND fire/indoor is warming
         public static float ThermalDamageGate = 0.85f;  // |signed comfort| above this deals HP
         public static float ThermalHpHit = 0.012f;      // HP/part/tick from hypothermia/heatstroke
+        // §82 r2: ниже этого порога жара и холод ВИТАЛЬНУЮ часть не доламывают.
+        // Перегрев бьёт все семь частей каждый медленный тик, поэтому для
+        // человека в глухой броне без порога это гарантированная смерть.
+        public static float ThermalVitalFloor = 0.35f;
         public static float IndoorWarmthBonus = 4f;     // being indoors adds this to effective temp
         public static float WaterCoolBonus = 3f;        // being in water subtracts this
         // Fire is a STRONG heat source — huddling by it must reach the comfy

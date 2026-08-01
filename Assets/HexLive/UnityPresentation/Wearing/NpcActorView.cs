@@ -3434,8 +3434,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                     Quaternion.AngleAxis(Mathf.Sin(ph + 1.7f) * ShiverTuning.ForearmTremble * intensity, right) * _lForearm.rotation;
             }
         }
-        else if (_thermal > 0.4f && _rShldr != null)
+        else if (_thermal > 0.4f && _rShldr != null && StandingIdle && !HurtReachActive)
         {
+            // §82 r2: обмахивание уступает боли и не запускается на ходу и в
+            // работе. Прежде оно шло всегда — в том числе поверх тянущейся к
+            // голове руки и поверх рабочих клипов.
             var intensity = Mathf.InverseLerp(0.4f, 1f, _thermal);
             var wave = Mathf.Sin(_thermalPhase * 7f) * 20f * intensity;
             var right = _bodyRoot.right;
@@ -4164,10 +4167,22 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // драка, вода, лежание — вес мгновенно в ноль. Так рука не может влезть в
     // клип рубки или в замах: у боевого/рабочего IK и у этого один и тот же
     // solver, и делить его между ними нельзя.
-    private bool HurtReachActive =>
-        _hurtReachBone != null && !_actionTargetActive && !_ragdollActive &&
-        !_laying && !_swimming && !_combatFighting && !_busyInteraction &&
-        !_wasWalking && !_dead && _posture != "Crawl";
+    // §82 r2: ЕДИНЫЙ ПУЛ жестов безделья. Раньше каждый жест решал сам за
+    // себя, и они накладывались: рука одновременно тянулась к больной голове и
+    // махала от жары — со стороны выходило непрерывное сгибание руки в никуда.
+    //
+    // Слот один и он занимается по приоритету:
+    //   1. боль — держится за то, что болит (IK);
+    //   2. жара — обмахивается.
+    // Больно важнее, чем жарко: за разбитую голову хватаются и в пекло.
+    //
+    // И то, и другое — ТОЛЬКО пока человек стоит и не делает ничего вообще.
+    private bool StandingIdle =>
+        !_actionTargetActive && !_ragdollActive && !_laying && !_swimming &&
+        !_combatFighting && !_busyInteraction && !_wasWalking && !_dead &&
+        _posture != "Crawl";
+
+    private bool HurtReachActive => _hurtReachBone != null && StandingIdle;
 
     // Кисть, которая тянется, и кость, к которой тянется. Больную руку держит
     // ДРУГАЯ рука — своей же за неё не схватишься.

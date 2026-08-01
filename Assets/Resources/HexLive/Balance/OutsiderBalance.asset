@@ -19,6 +19,12 @@ MonoBehaviour:
   maxCampRadiusTiles: 6
   outsiderCompassionMin: 0
   outsiderCompassionMax: 0.25
+  outsiderStrength: 0.9
+  outsiderAgility: 0.5
+  outsiderEndurance: 0.8
+  outsiderToughness: 0.8
+  outsiderHardiness: 0.6
+  outsiderWits: 0.4
   outsiderStartsArmed: 1
   raidScanRadiusTiles: 8
   raidMaxVictimAllies: 1

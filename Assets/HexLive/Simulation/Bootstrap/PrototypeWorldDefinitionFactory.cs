@@ -346,6 +346,21 @@ namespace HexLive.Simulation.Bootstrap
                     Comfort = 0.40f,
                     Social = 0.30f,
                     ThermalDiscomfort = 0.50f,
+                    // §76: его тело АВТОРСКОЕ, а не выпавшее. Девушки катятся от
+                    // сида по бюджету §76.2 — у каждого мира свои; он один и тот
+                    // же всегда, потому что противник, который на половине сидов
+                    // выпадает хилым, читается как поломка, а не как разнообразие.
+                    // Идёт обычным путём переопределений (§74: заполненное —
+                    // намерение автора), а не особой веткой внутри ролла.
+                    Attributes =
+                    {
+                        [Agents.AttributeKind.Strength] = HexLive.Simulation.Runtime.Spec72.OutsiderStrength,
+                        [Agents.AttributeKind.Agility] = HexLive.Simulation.Runtime.Spec72.OutsiderAgility,
+                        [Agents.AttributeKind.Endurance] = HexLive.Simulation.Runtime.Spec72.OutsiderEndurance,
+                        [Agents.AttributeKind.Toughness] = HexLive.Simulation.Runtime.Spec72.OutsiderToughness,
+                        [Agents.AttributeKind.Hardiness] = HexLive.Simulation.Runtime.Spec72.OutsiderHardiness,
+                        [Agents.AttributeKind.Wits] = HexLive.Simulation.Runtime.Spec72.OutsiderWits,
+                    },
                 });
             }
         }

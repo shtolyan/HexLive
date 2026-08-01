@@ -69,6 +69,29 @@ public static class Spec72
     public static float OutsiderCompassionMin = 0f;
     public static float OutsiderCompassionMax = 0.25f;
 
+    // §76: HIS BODY IS AUTHORED, NOT ROLLED. The girls draw from the §76.2
+    // point-buy budget — same total, different shape, different every world.
+    // He does not: he is a fixed antagonist, and a raider who might roll frail
+    // is a raider the player meets as a pushover on half the seeds. Authored
+    // through NpcBootstrap.Attributes, so it travels the ordinary
+    // blank-means-roll override path (§74's rule) rather than a special case
+    // inside the roll.
+    //
+    // The profile deliberately BREAKS the colony budget — it sums to 4.0 where
+    // theirs sums to 3.0. That is the point of "not by the same rules": he is a
+    // big man who has been living rough, and the girls beat him with numbers,
+    // tools and a fire, not with better stats.
+    //
+    // ⚠️ This stacks with RaidStrikeDamageMult (1.35) — both make him hit
+    // harder. Move ONE of them at a time when tuning, or a re-soak cannot tell
+    // you which did it.
+    public static float OutsiderStrength = 0.9f;   // 9/10 — он крупный и бьёт тяжело
+    public static float OutsiderEndurance = 0.8f;  // 8/10 — привык идти весь день
+    public static float OutsiderToughness = 0.8f;  // 8/10 — держит удар: он один, спасать некому
+    public static float OutsiderHardiness = 0.6f;  // 6/10 — терпит голод и холод лучше домашних
+    public static float OutsiderAgility = 0.5f;    // 5/10 — тяжёлый, не быстрый
+    public static float OutsiderWits = 0.4f;       // 4/10 — не мастеровой: его сила в руках
+
     // He comes ashore with a knife. Not a handout — a lone man has none of the
     // four-way division of labour the colony has, and the first soak had him
     // dead of thirst before the grace period was even over on half the seeds.

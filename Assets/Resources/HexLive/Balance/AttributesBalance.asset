@@ -15,7 +15,7 @@ MonoBehaviour:
   enabled: 1
   skillsEnabled: 1
   attributeMean: 0.5
-  attributeSpread: 0
+  attributeSpread: 0.5
   meleeDamageGain: 0.3
   incomingDamageGain: 0.3
   moveSpeedGain: 0.3

@@ -288,7 +288,7 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Множитель скорости движения при активном адреналине. §71: усилен в 1.5 раза (было 1.5). НЕ складывается со спринтом защиты — MovementSystem берёт БОЛЬШИЙ из двух.")]
         [Range(1f, 4f)] public float adrenalineMoveSpeedFactor = 2.25f;
         [Tooltip("§71: ОБЩАЯ скорость ходьбы колонии. Умножается в MovementSystem — это единственная ручка темпа (поле npc.MoveSpeed всегда 1 и никем не задаётся). Прыжок через уступ идёт по реальным секундам и НЕ ускоряется.")]
-        [Range(0.25f, 4f)] public float baseMoveSpeedFactor = 1.5f;
+        [Range(0.25f, 4f)] public float baseMoveSpeedFactor = 1.2f;
 
         [Header("§71 Повороты")]
         [Tooltip("Множитель скорости поворота (к npc.TurnSpeed = 90°/с). 2.4 = 216°/с = 54° за тик, то есть минимальный изгиб решётки в 60° проходится за ОДИН тик.")]

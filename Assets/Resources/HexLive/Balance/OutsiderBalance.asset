@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f7edba5200844f49ad6b882f2530976, type: 3}
+  m_Name: OutsiderBalance
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Config.OutsiderBalanceConfig
+  enabled: 0
+  spawnOutsider: 0
+  outsiderCampMinDistanceTiles: 8
+  campKnowledgeRadiusTiles: 4
+  maxCampRadiusTiles: 6
+  outsiderCompassionMin: 0
+  outsiderCompassionMax: 0.25
+  outsiderStartsArmed: 1
+  raidScanRadiusTiles: 8
+  raidMaxVictimAllies: 1
+  raidIsolationRadiusTiles: 3
+  raidCrowdCount: 2
+  raidWeightIsolation: 0.4
+  raidWeightWeakness: 0.3
+  raidWeightHelpless: 0.2
+  raidWeightProximity: 0.1
+  raidOpportunityFloor: 0.45
+  raidAbandonOpportunity: 0.3
+  prowlEnabled: 1
+  prowlArrivedTiles: 5
+  raidVictimHealthCeiling: 0.75
+  raidSelfHealthFloor: 0.7
+  raidSelfWorstPartFloor: 0.7
+  raidSelfNeedCeiling: 0.6
+  raidSelfEnergyFloor: 0.3
+  raidBaseScore: 0.7
+  raidOpportunityGain: 0.5
+  raidStrikeDamageMult: 1.35
+  raidGraceDays: 5
+  raidCooldownTicks: 1200
+  raidPursuitMaxTicks: 600
+  raidStallGiveUpTicks: 60
+  raidLockTicks: 240
+  raidRespectsSanctuary: 1
+  raidFleeHealth: 0.55
+  raidVictimFleeHealth: 0.6
+  raidBreakOffDefenders: 3
+  rallyIgnoresAffinityVsOutsider: 1
+  spotStrangerRadiusTiles: 6
+  strangerCueCooldownTicks: 300
+  dangerRingTiles: 3
+  enemyDeathRelief: 0.15

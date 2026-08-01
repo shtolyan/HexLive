@@ -271,7 +271,7 @@ namespace HexLive.Simulation.Runtime
         // assigns, so this knob — not that field — is how the pace is tuned.
         // NOTE: the hex hop (HexHopTuning.HopSeconds) is on a wall clock and
         // does NOT scale with this, so ledge crossings keep their duration.
-        public static float BaseMoveSpeedFactor = 1.5f;
+        public static float BaseMoveSpeedFactor = 1.2f; // §71: 1.5 was a shade brisk, eased 20%
 
         // §71: how fast she TURNS, as a multiple of npc.TurnSpeed (90°/s, a
         // field nothing ever assigns). At 2.4 that is 216°/s = 54° per tick,

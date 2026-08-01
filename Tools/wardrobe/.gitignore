@@ -1,0 +1,10 @@
+# Секреты: токен Telegram-бота и прочие ключи. Никогда не коммитить.
+.env
+*.token
+
+# Рабочие каталоги конвейера
+downloads/
+unpacked/
+reports/
+__pycache__/
+*.pyc

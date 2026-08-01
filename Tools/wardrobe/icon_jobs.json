@@ -1,12 +1,5 @@
 [
   {
-    "simId": "clothing.jacket_cindy",
-    "fbx": "Assets/Temp/jana cindy.fbx",
-    "mesh": "Jacket_7653",
-    "folder": "CindyJacket",
-    "texture": "Cloth D.png"
-  },
-  {
     "simId": "clothing.shorts_cindy",
     "fbx": "Assets/Temp/jana cindy.fbx",
     "mesh": "bottom daz_5767",
@@ -74,7 +67,7 @@
     "fbx": "Assets/Temp/jana flair.fbx",
     "mesh": "fl-pumps_12068",
     "folder": "PumpsFlair",
-    "texture": null
+    "texture": "flair-shoe.jpg"
   },
   {
     "simId": "clothing.necklace_night",
@@ -89,40 +82,5 @@
     "mesh": "PriDre_plain_fur_collar_20825",
     "folder": "FurCollar",
     "texture": "PrDr_fur.jpg"
-  },
-  {
-    "simId": "clothing.skirt_sweetjane",
-    "fbx": "Assets/Temp/jana sweetjane.fbx",
-    "mesh": "skirt_28126",
-    "folder": "SweetJaneSkirt",
-    "texture": "SJSkirt4.jpg"
-  },
-  {
-    "simId": "clothing.tank_sweetjane",
-    "fbx": "Assets/Temp/jana sweetjane.fbx",
-    "mesh": "tank_4360",
-    "folder": "SweetJaneTank",
-    "texture": "SJTank4.jpg"
-  },
-  {
-    "simId": "clothing.top_fitness",
-    "fbx": "Assets/Temp/jana sweetjane.fbx",
-    "mesh": "FitnessIdol_CroppedTop_G3F",
-    "folder": "FitnessTop",
-    "texture": "FITop_base.png"
-  },
-  {
-    "simId": "clothing.leggings_fitness",
-    "fbx": "Assets/Temp/jana sweetjane.fbx",
-    "mesh": "FitnessIdol_Leggings_G3F",
-    "folder": "FitnessLeggings",
-    "texture": "FILeg_base.png"
-  },
-  {
-    "simId": "clothing.sleeves_fitness",
-    "fbx": "Assets/Temp/jana sweetjane.fbx",
-    "mesh": "Sleeves_G3F",
-    "folder": "FitnessSleeves",
-    "texture": "FITop_base.png"
   }
 ]

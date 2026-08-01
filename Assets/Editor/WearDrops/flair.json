@@ -169,7 +169,7 @@
       "materials": [
         {
           "source": "heeltip",
-          "texture": null,
+          "texture": "flair-shoe.jpg",
           "smoothness": 0.3,
           "metallic": 0.0,
           "doubleSided": true,
@@ -177,7 +177,7 @@
         },
         {
           "source": "heel",
-          "texture": null,
+          "texture": "flair-shoe.jpg",
           "smoothness": 0.3,
           "metallic": 0.0,
           "doubleSided": true,
@@ -185,7 +185,7 @@
         },
         {
           "source": "sole",
-          "texture": null,
+          "texture": "flair-shoe.jpg",
           "smoothness": 0.3,
           "metallic": 0.0,
           "doubleSided": true,
@@ -193,7 +193,7 @@
         },
         {
           "source": "shoe",
-          "texture": null,
+          "texture": "flair-shoe.jpg",
           "smoothness": 0.3,
           "metallic": 0.0,
           "doubleSided": true,
@@ -201,7 +201,7 @@
         },
         {
           "source": "innershoe",
-          "texture": null,
+          "texture": "flair-shoe.jpg",
           "smoothness": 0.3,
           "metallic": 0.0,
           "doubleSided": true,

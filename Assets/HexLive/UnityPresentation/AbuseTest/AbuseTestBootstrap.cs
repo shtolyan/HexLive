@@ -98,12 +98,18 @@ namespace HexLive.UnityPresentation.AbuseTest
                 return;
             }
 
+            // §95: одежду девушкам НЕ трогаем. Раньше здесь стояло принудительное
+            // переодевание в один и тот же комплект — и все трое выходили
+            // одинаковыми, хотя мир раздаёт им разные вещи из общей ротации по
+            // хешу от сида и id. Тест не должен переодевать то, что и так
+            // работает: иначе он проверяет собственную заглушку.
             for (var i = 0; i < 3; i++)
             {
                 if (world.Entities.Npcs.TryGetValue(
                         new EntityId(AbuseTestWorld.GirlId + i), out var girl))
                 {
-                    WardrobeDebugHelpers.Redress(world, girl, "clothing.top_tropic", "Shorts 1389");
+                    // Нож — чтобы у неё был выбор огрызнуться, а не только
+                    // сдаться. Это единственное, что арена добавляет.
                     girl.Inventory.Items.Add("tool.knife");
                 }
             }

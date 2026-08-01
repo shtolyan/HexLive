@@ -33,11 +33,28 @@ _STRIP_AND_FIT = """
   var fig = Scene.findNodeByLabel(args.figure);
   if (!fig) return JSON.stringify({error: "в сцене нет фигуры " + args.figure});
 
+  // DAZ has TWO ways to wear something, and counting only the first reported a
+  // correctly-worn item as missing:
+  //   * conforming clothing is a DzFigure that FOLLOWS the figure;
+  //   * an accessory (headdress, jewellery) is PARENTED to one of its bones.
+  // `worn` is the top level of either — the node whose parent is the figure or
+  // one of its bones. Sub-parts hanging off that node are not counted again.
+  function ownBone(n) {
+    return n && n.inherits("DzBone") && n.getSkeleton && n.getSkeleton() == fig;
+  }
+  function worn(n) {
+    if (n == fig) return false;
+    if (n.inherits("DzFigure") && n.getFollowTarget && n.getFollowTarget()) return true;
+    if (n.inherits("DzBone")) return false;
+    var p = n.getNodeParent ? n.getNodeParent() : null;
+    return !!p && (p == fig || ownBone(p));
+  }
+
   // Collect first, remove after — removing shifts the node indices.
   var drop = [];
   for (var i = 0; i < Scene.getNumNodes(); i++) {
     var n = Scene.getNode(i);
-    if (n != fig && n.inherits("DzFigure") && n.getFollowTarget && n.getFollowTarget()) drop.push(n);
+    if (worn(n)) drop.push(n);
   }
   for (var i = 0; i < drop.length; i++) { out.dropped.push(drop[i].getLabel()); Scene.removeNode(drop[i]); }
 
@@ -52,8 +69,12 @@ _STRIP_AND_FIT = """
 
   for (var i = 0; i < Scene.getNumNodes(); i++) {
     var n = Scene.getNode(i);
-    if (n != fig && n.inherits("DzFigure") && n.getFollowTarget && n.getFollowTarget()) {
-      out.fitted.push({ label: n.getLabel(), name: n.getName() });
+    if (worn(n)) {
+      out.fitted.push({
+        label: n.getLabel(),
+        name: n.getName(),
+        how: (n.getFollowTarget && n.getFollowTarget()) ? "conform" : "parent"
+      });
     }
   }
   return JSON.stringify(out);

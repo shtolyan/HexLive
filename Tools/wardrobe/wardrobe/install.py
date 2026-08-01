@@ -149,12 +149,16 @@ def _match_generation(text: str) -> str | None:
 
 
 def _generation(duf: Path, data: dict, library: Path) -> str | None:
-    """Which figure the item is built for — three sources, best first.
+    """Which figure the item is built for — four sources, best first.
 
     1. The install path. DAZ files most clothing under
        `People/<generation>/Clothing/...` and so does the store.
-    2. The `.duf` contents.
-    3. The geometry `.dsf` the item references. Some vendors (measured on
+    2. The short label as the file's own name. Products that ship one wearable
+       preset per figure name them exactly that — `Wearable Presets/G3F.duf`
+       (measured on "Mesoamerican Jaguar Headdress"). Without this the most
+       explicit statement of compatibility a product can make is missed.
+    3. The `.duf` contents.
+    4. The geometry `.dsf` the item references. Some vendors (measured on
        "dFORCE Stocking & Sock") file everything under `Figures/<vendor>/` and
        never name the figure in the `.duf` at all — the only mention is inside
        the data file, so without this step the generation comes back unknown.
@@ -162,6 +166,11 @@ def _generation(duf: Path, data: dict, library: Path) -> str | None:
     parts = [p.lower() for p in duf.parts]
     for needle, label in _GENERATIONS:
         if needle.lower() in parts:
+            return label
+
+    stem = duf.stem.strip().upper()
+    for _, label in _GENERATIONS:
+        if stem == label.upper():
             return label
 
     blob = json.dumps(data)
@@ -202,6 +211,43 @@ def classify(duf: Path, library: Path | None = None) -> dict | None:
     }
 
 
+# Sub-folders that hold pieces of an item rather than the item: re-skins, and
+# the individual components a "Parts" folder breaks an assembly into.
+_COMPONENT_DIRS = ("/materials", "/iray materials", "/parts/", "/props/parts/")
+
+
+def _product_root(relative: str) -> str:
+    """The folder that owns an item, for grouping its variants together.
+
+    Everything from a `Wearable Presets` / `Parts` / `Materials` sub-folder
+    onwards is stripped, so `Props/Jaguar Headdress/Wearable Presets/G3F.duf`
+    and `Props/Jaguar Headdress/Jaguar Helmet.duf` land in the same group.
+    """
+    parts = relative.split("/")
+    for i, part in enumerate(parts):
+        if part.lower() in ("wearable presets", "parts", "materials", "iray materials"):
+            return "/".join(parts[:i])
+    return "/".join(parts[:-1])
+
+
+def _prefer_wearable_presets(found: list[dict]) -> list[dict]:
+    """Within one product, a `wearable` preset beats a `scene_subset`.
+
+    They mean different things. A `wearable` preset FITS the item to the
+    selected figure; a `scene_subset` just drops the geometry into the scene,
+    unparented. Products that ship both (measured on "Mesoamerican Jaguar
+    Headdress": five `Wearable Presets/G<gen>.duf` beside 30 standalone helmet
+    and feather files) would otherwise be dressed with the standalone ones —
+    which load fine, report success, and attach to nobody.
+
+    Products with no `wearable` preset at all (dFORCE Stocking & Sock) keep
+    their `scene_subset` entries.
+    """
+    has_preset = {_product_root(w["relative"]) for w in found if w["type"] == "wearable"}
+    return [w for w in found
+            if w["type"] == "wearable" or _product_root(w["relative"]) not in has_preset]
+
+
 def install(archives: list[Path]) -> dict:
     report = {"archives": [], "installed": 0, "wearables": [], "errors": []}
 
@@ -231,16 +277,18 @@ def install(archives: list[Path]) -> dict:
             # `Figures/<vendor>/<product>/` — filtering on the path missed the
             # latter entirely (measured on "dFORCE Stocking & Sock": 14 items,
             # none of them under a Clothing folder).
+            found = []
             for relative in written:
-                lowered = relative.lower()
+                lowered = "/" + relative.lower()
                 if not lowered.endswith(".duf"):
                     continue
-                if "/materials" in lowered or "/iray materials" in lowered:
+                if any(marker in lowered for marker in _COMPONENT_DIRS):
                     continue
                 described = classify(config.DAZ_LIBRARY / relative, config.DAZ_LIBRARY)
                 if described and described["wearable"]:
                     described["relative"] = relative
-                    report["wearables"].append(described)
+                    found.append(described)
+            report["wearables"].extend(_prefer_wearable_presets(found))
         except Exception as e:  # noqa: BLE001 — the report is the error channel
             entry["error"] = str(e)
             report["errors"].append(f"{archive.name}: {e}")

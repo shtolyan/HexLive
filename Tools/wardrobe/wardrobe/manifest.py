@@ -164,6 +164,56 @@ def propose(fbx_path: Path, drop: str, texture_report: dict,
     }
 
 
+def merge(existing: dict, draft: dict) -> dict:
+    """Fold a fresh draft into a reviewed manifest without losing decisions.
+
+    Names, ids, layers, slots and material tweaks are human judgement and are
+    kept verbatim. Only `_measured` is refreshed, so re-running the pipeline
+    after a re-export updates the evidence without undoing the review — the
+    first version of this clobbered a hand-written manifest, which is exactly
+    the failure mode worth designing against.
+    """
+    by_key = {g["sourceKey"]: g for g in existing.get("garments", [])}
+    merged = dict(existing)
+    merged["sources"] = draft["sources"]
+
+    # A garment DELIBERATELY dropped from a reviewed manifest must stay dropped.
+    # Without this every `build` re-adds it from the draft under a generated
+    # simId — and since the export contains a garment whether we want it or not,
+    # that silently duplicates pieces the game already ships (measured: the
+    # Cindy bikini and three Deadly Silence pieces came back as
+    # `clothing.bra`, `clothing.dstights`, ...).
+    skipped = set(existing.get("skipped", []))
+
+    garments = []
+    for drafted in draft["garments"]:
+        if drafted["sourceKey"] in skipped:
+            continue
+        prior = by_key.pop(drafted["sourceKey"], None)
+        if prior is None:
+            garments.append(drafted)
+            continue
+        kept = dict(prior)
+        kept["_measured"] = drafted["_measured"]
+        garments.append(kept)
+
+    # Anything the export no longer contains stays, flagged rather than dropped.
+    for orphan in by_key.values():
+        orphan = dict(orphan)
+        orphan["_review"] = "меша нет в текущем экспорте — проверьте, не переименовали ли"
+        garments.append(orphan)
+
+    merged["garments"] = garments
+    return merged
+
+
+def folder_map(drop: str) -> dict[str, str]:
+    """sourceKey -> target folder, as already decided in a saved manifest."""
+    if not path_for(drop).exists():
+        return {}
+    return {g["sourceKey"]: g["folder"] for g in load(drop).get("garments", [])}
+
+
 def path_for(drop: str) -> Path:
     return config.DROP_MANIFESTS / f"{drop}.json"
 

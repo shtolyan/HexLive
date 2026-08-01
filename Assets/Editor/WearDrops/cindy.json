@@ -81,80 +81,6 @@
       }
     },
     {
-      "sourceKey": "Bra_1529",
-      "folder": "Bra",
-      "name": "Bra",
-      "simId": "clothing.bra",
-      "layer": "Wear",
-      "slots": [
-        "Chest"
-      ],
-      "noHide": [],
-      "materials": [
-        {
-          "source": "Bikini Top",
-          "texture": "Bikini tex.jpg",
-          "smoothness": 0.3,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        }
-      ],
-      "_measured": {
-        "verts": 1529,
-        "polys": 1268,
-        "bbox": [
-          -14.0,
-          14.0,
-          124.6,
-          155.1,
-          -8.9,
-          13.2
-        ],
-        "zones": {
-          "Chest": 0.923,
-          "Neck": 0.077
-        }
-      }
-    },
-    {
-      "sourceKey": "Bikini Bottom_699",
-      "folder": "BikiniBottom",
-      "name": "BikiniBottom",
-      "simId": "clothing.bikinibottom",
-      "layer": "Wear",
-      "slots": [
-        "Pelvis"
-      ],
-      "noHide": [],
-      "materials": [
-        {
-          "source": "Bikini Bottom",
-          "texture": "Bikini tex.jpg",
-          "smoothness": 0.3,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        }
-      ],
-      "_measured": {
-        "verts": 699,
-        "polys": 640,
-        "bbox": [
-          -15.9,
-          15.8,
-          87.7,
-          106.2,
-          -10.9,
-          11.6
-        ],
-        "zones": {
-          "Pelvis": 0.645,
-          "Belly": 0.355
-        }
-      }
-    },
-    {
       "sourceKey": "bottom daz_5767",
       "folder": "CindyShorts",
       "name": "CindyShorts",
@@ -347,5 +273,9 @@
         }
       }
     }
+  ],
+  "skipped": [
+    "Bikini Bottom_699",
+    "Bra_1529"
   ]
 }

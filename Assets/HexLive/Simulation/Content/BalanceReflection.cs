@@ -32,6 +32,11 @@ public static class BalanceReflection
         typeof(Spec62),
         typeof(Spec72),
         typeof(Spec76),
+        // §81: без строки ЗДЕСЬ ручки существуют, зеркалятся в ассет и даже
+        // проходят гейт покрытия — но не экспортируются и не применяются:
+        // и экспорт, и SimConfigMirror обходят ИМЕННО этот список. Крутилки в
+        // инспекторе при этом выглядят рабочими и молча ничего не делают.
+        typeof(Spec81),
         typeof(AiBalance),
         typeof(SocialBalance),
         typeof(WorldBalance),

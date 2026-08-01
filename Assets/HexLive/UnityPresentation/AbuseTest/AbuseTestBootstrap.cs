@@ -1,11 +1,13 @@
 using HexLive.Simulation.Agents;
-using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Runtime;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Rendering;
 using UnityEngine;
 using UnityEngine.UIElements;
+// Unity 6 завела СВОЙ UnityEngine.EntityId — имена столкнулись, поэтому
+// псевдоним: он однозначен и читается лучше полного пути в каждом вызове.
+using EntityId = HexLive.Simulation.Common.EntityId;
 
 namespace HexLive.UnityPresentation.AbuseTest
 {

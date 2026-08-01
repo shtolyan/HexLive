@@ -190,6 +190,13 @@ namespace HexLive.Simulation.Content
                 new("Gloves_5480",           "Perchatki korotkie", WearLayer.Wear, 0.03f, 0.00f, 0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR),
                 new("Gloves_8128",           "Perchatki kozhanye", WearLayer.Wear, 0.05f, 0.05f, 0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR),
                 new("Sleeve_19793",          "Narukavniki",      WearLayer.Wear, 0.03f, 0.00f,  0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR),
+                // Sweet Jane + Fitness Idol drop (2026-08, Temp FBX extraction —
+                // spec §31B.4). The first garments fitted to all FOUR girls.
+                new("clothing.skirt_sweetjane",  "Sweet Jane Skirt", WearLayer.Wear, 0.14f, 0.00f, -0.05f, dress, 2, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
+                new("clothing.tank_sweetjane",   "Sweet Jane Tank",  WearLayer.Wear, 0.10f, 0.00f,  0.00f, dress, 2, BodyPart.Torso),
+                new("clothing.top_fitness",      "Fitness Top",      WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, BodyPart.Torso),
+                new("clothing.leggings_fitness", "Fitness Leggings", WearLayer.Wear, 0.20f, 0.00f, -0.08f, dress, 2, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
+                new("clothing.sleeves_fitness",  "Fitness Sleeves",  WearLayer.Wear, 0.03f, 0.00f,  0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR),
 
                 // --- Outerwear: the top layer — jackets, boots, armor. ----------
                 new("armor.heavy",           "Heavy Armor",      WearLayer.Outerwear, 0.25f, 0.50f, -0.10f, dress, 6, BodyPart.Torso, BodyPart.Pelvis),

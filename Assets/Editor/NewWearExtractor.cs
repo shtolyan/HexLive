@@ -7,11 +7,12 @@ using UnityEditor;
 using UnityEngine;
 
 // ---------------------------------------------------------------------------
-//  New-wear extractor (spec §31B.4, "new wear" drop of 2026-07).
+//  New-wear extractor (spec §31B.4, "new wear" drop of 2026-07 and the
+//  Sweet Jane / Fitness Idol drop of 2026-08).
 //
-//  Assets/Temp holds three DAZ FBX exports — jana / marta / molly, each
-//  wearing the SAME nine garments fitted to her body. This tool pulls the
-//  garment meshes out of every FBX and assembles the standard wear assets:
+//  Assets/Temp holds one DAZ FBX export per girl per drop, each wearing the
+//  SAME garments fitted to her body. This tool pulls the garment meshes out of
+//  every FBX and assembles the standard wear assets:
 //
 //    Assets/ImportedActors/Wear/<Folder>/Meshes/<Actor>.mesh   (per girl)
 //    Assets/ImportedActors/Wear/<Folder>/Materials/<mat>.mat   (URP Lit)
@@ -37,13 +38,25 @@ public static class NewWearExtractor
     private const string ImportRoot = "Assets/ImportedActors/Wear";
     private const string WearRoot = "Assets/Resources/HexLive/Wear";
 
-    // FBX file -> which girl the garments are fitted to.
+    // FBX file -> which girl the garments are fitted to. One file per girl per
+    // drop; a girl may appear more than once (different drops carry different
+    // garments), so the renderer index is keyed by (actor, garment), not by file.
     private static readonly (string path, ActorName actor)[] Sources =
     {
+        // 2026-07 drop: panty/skirt/sweater, bra, panties, swimsuit, dresses.
         ("Assets/Temp/molly new.fbx", ActorName.Molly),
         ("Assets/Temp/marta new wear.fbx", ActorName.Marta),
         ("Assets/Temp/jana new wear.fbx", ActorName.Jana),
+
+        // 2026-08 drop: Sweet Jane + Fitness Idol, this time incl. Jolly.
+        ("Assets/Temp/molly sweetjane.fbx", ActorName.Molly),
+        ("Assets/Temp/jolly sweetjane.fbx", ActorName.Jolly),
+        ("Assets/Temp/marta sweetjane.fbx", ActorName.Marta),
+        ("Assets/Temp/jana sweetjane.fbx", ActorName.Jana),
     };
+
+    // Every girl the drops cover, each listed once.
+    private static ActorName[] Actors => Sources.Select(s => s.actor).Distinct().ToArray();
 
     private sealed class MatSpec
     {
@@ -176,6 +189,86 @@ public static class NewWearExtractor
                 new MatSpec { Source = "dress", Texture = "PrDr_fur5.jpg", Smoothness = 0.25f },
             },
         },
+
+        // --- 2026-08 drop: Sweet Jane (Rhiannon) + Fitness Idol (devianttuna13).
+        // Both ship native G3F meshes, so the girls wear them without AutoFit.
+        // The lace hems came out of DAZ as a separate cutout-opacity map and were
+        // composited into the albedo's alpha offline, the way the fur dress is.
+        new()
+        {
+            SourceKey = "skirt_28126", Folder = "SweetJaneSkirt", Name = "SweetJaneSkirt",
+            SimId = "clothing.skirt_sweetjane", Layer = VisualWearLayer.Wear,
+            Slots = new[]
+            {
+                VisualWearSlot.Pelvis, VisualWearSlot.ThighR, VisualWearSlot.ThighL,
+                VisualWearSlot.ShinR, VisualWearSlot.ShinL,
+            },
+            Materials = new[]
+            {
+                new MatSpec { Source = "waistband", Texture = "SJSkirt4.jpg" },
+                // Bottom tier is the see-through lace one.
+                new MatSpec { Source = "Tier 4", Texture = "SJSkirt4_lace.png", AlphaClip = true },
+                new MatSpec { Source = "Tier 3", Texture = "SJSkirt4.jpg" },
+                new MatSpec { Source = "Tier 2", Texture = "SJSkirt4.jpg" },
+                new MatSpec { Source = "Tier 1", Texture = "SJSkirt4.jpg" },
+                new MatSpec { Source = "Seam 3", Texture = "SJSkirt4.jpg" },
+                new MatSpec { Source = "Seam 2", Texture = "SJSkirt4.jpg" },
+                new MatSpec { Source = "Seam 1", Texture = "SJSkirt4.jpg" },
+            },
+        },
+        new()
+        {
+            SourceKey = "tank_4360", Folder = "SweetJaneTank", Name = "SweetJaneTank",
+            SimId = "clothing.tank_sweetjane", Layer = VisualWearLayer.Wear,
+            Slots = new[] { VisualWearSlot.Chest, VisualWearSlot.Belly },
+            Materials = new[]
+            {
+                new MatSpec { Source = "tank", Texture = "SJTank4.jpg" },
+                new MatSpec { Source = "bottom edge", Texture = "SJTank4_lace.png", AlphaClip = true },
+                new MatSpec { Source = "upper trim", Texture = "SJTank4.jpg" },
+            },
+        },
+        new()
+        {
+            SourceKey = "FitnessIdol_CroppedTop_G3F", Folder = "FitnessTop", Name = "FitnessTop",
+            SimId = "clothing.top_fitness", Layer = VisualWearLayer.Wear,
+            Slots = new[] { VisualWearSlot.Chest },
+            Materials = new[]
+            {
+                new MatSpec { Source = "CroppedTop", Texture = "FITop_base.png", Smoothness = 0.45f },
+                new MatSpec { Source = "Boundary", Texture = "FITop_base.png", Smoothness = 0.45f },
+            },
+        },
+        new()
+        {
+            SourceKey = "FitnessIdol_Leggings_G3F", Folder = "FitnessLeggings", Name = "FitnessLeggings",
+            SimId = "clothing.leggings_fitness", Layer = VisualWearLayer.Wear,
+            Slots = new[]
+            {
+                VisualWearSlot.Pelvis, VisualWearSlot.ThighR, VisualWearSlot.ThighL,
+                VisualWearSlot.ShinR, VisualWearSlot.ShinL,
+            },
+            Materials = new[]
+            {
+                new MatSpec { Source = "Leggings", Texture = "FILeg_base.png", Smoothness = 0.45f },
+                new MatSpec { Source = "Hose", Texture = "FILeg_base.png", Smoothness = 0.45f },
+                new MatSpec { Source = "Belt", Texture = "FILeg_base.png", Smoothness = 0.45f },
+            },
+        },
+        new()
+        {
+            SourceKey = "Sleeves_G3F", Folder = "FitnessSleeves", Name = "FitnessSleeves",
+            SimId = "clothing.sleeves_fitness", Layer = VisualWearLayer.Wear,
+            Slots = new[]
+            {
+                VisualWearSlot.ShoulderR, VisualWearSlot.ShoulderL,
+                VisualWearSlot.ForearmR, VisualWearSlot.ForearmL,
+            },
+            Materials = new[]
+            {
+                new MatSpec { Source = "Sleeves", Texture = "FITop_base.png", Smoothness = 0.45f },
+            },
+        },
     };
 
     // One-shot auto-run: fires after every compile, does nothing once all nine
@@ -294,10 +387,12 @@ public static class NewWearExtractor
 
         // --- meshes: one fitted copy per girl --------------------------------
         var meshes = new Dictionary<ActorName, Mesh>();
-        foreach (var (_, actor) in Sources)
+        foreach (var actor in Actors)
         {
             if (!renderers.TryGetValue((actor, g.SourceKey), out var r) || r.sharedMesh == null)
             {
+                // Expected when a girl was not part of this garment's drop —
+                // she simply cannot wear it until someone re-exports her.
                 Debug.LogWarning($"[NewWear] {g.SourceKey}: no mesh for {actor}");
                 continue;
             }

@@ -49,15 +49,10 @@ public static class NewWearExtractor
     private static readonly (string path, ActorName actor)[] BuiltInSources =
     {
         // 2026-07 drop: panty/skirt/sweater, bra, panties, swimsuit, dresses.
+        // Later drops live in Assets/Editor/WearDrops/*.json — see EnsureLoaded.
         ("Assets/Temp/molly new.fbx", ActorName.Molly),
         ("Assets/Temp/marta new wear.fbx", ActorName.Marta),
         ("Assets/Temp/jana new wear.fbx", ActorName.Jana),
-
-        // 2026-08 drop: Sweet Jane + Fitness Idol, this time incl. Jolly.
-        ("Assets/Temp/molly sweetjane.fbx", ActorName.Molly),
-        ("Assets/Temp/jolly sweetjane.fbx", ActorName.Jolly),
-        ("Assets/Temp/marta sweetjane.fbx", ActorName.Marta),
-        ("Assets/Temp/jana sweetjane.fbx", ActorName.Jana),
     };
 
     // Built-ins + every JSON drop, resolved once per domain reload.
@@ -208,87 +203,184 @@ public static class NewWearExtractor
                 new MatSpec { Source = "dress", Texture = "PrDr_fur5.jpg", Smoothness = 0.25f },
             },
         },
-
-        // --- 2026-08 drop: Sweet Jane (Rhiannon) + Fitness Idol (devianttuna13).
-        // Both ship native G3F meshes, so the girls wear them without AutoFit.
-        // The lace hems came out of DAZ as a separate cutout-opacity map and were
-        // composited into the albedo's alpha offline, the way the fur dress is.
-        new()
-        {
-            SourceKey = "skirt_28126", Folder = "SweetJaneSkirt", Name = "SweetJaneSkirt",
-            SimId = "clothing.skirt_sweetjane", Layer = VisualWearLayer.Wear,
-            Slots = new[]
-            {
-                VisualWearSlot.Pelvis, VisualWearSlot.ThighR, VisualWearSlot.ThighL,
-                VisualWearSlot.ShinR, VisualWearSlot.ShinL,
-            },
-            Materials = new[]
-            {
-                new MatSpec { Source = "waistband", Texture = "SJSkirt4.jpg" },
-                // Bottom tier is the see-through lace one.
-                new MatSpec { Source = "Tier 4", Texture = "SJSkirt4_lace.png", AlphaClip = true },
-                new MatSpec { Source = "Tier 3", Texture = "SJSkirt4.jpg" },
-                new MatSpec { Source = "Tier 2", Texture = "SJSkirt4.jpg" },
-                new MatSpec { Source = "Tier 1", Texture = "SJSkirt4.jpg" },
-                new MatSpec { Source = "Seam 3", Texture = "SJSkirt4.jpg" },
-                new MatSpec { Source = "Seam 2", Texture = "SJSkirt4.jpg" },
-                new MatSpec { Source = "Seam 1", Texture = "SJSkirt4.jpg" },
-            },
-        },
-        new()
-        {
-            SourceKey = "tank_4360", Folder = "SweetJaneTank", Name = "SweetJaneTank",
-            SimId = "clothing.tank_sweetjane", Layer = VisualWearLayer.Wear,
-            Slots = new[] { VisualWearSlot.Chest, VisualWearSlot.Belly },
-            Materials = new[]
-            {
-                new MatSpec { Source = "tank", Texture = "SJTank4.jpg" },
-                new MatSpec { Source = "bottom edge", Texture = "SJTank4_lace.png", AlphaClip = true },
-                new MatSpec { Source = "upper trim", Texture = "SJTank4.jpg" },
-            },
-        },
-        new()
-        {
-            SourceKey = "FitnessIdol_CroppedTop_G3F", Folder = "FitnessTop", Name = "FitnessTop",
-            SimId = "clothing.top_fitness", Layer = VisualWearLayer.Wear,
-            Slots = new[] { VisualWearSlot.Chest },
-            Materials = new[]
-            {
-                new MatSpec { Source = "CroppedTop", Texture = "FITop_base.png", Smoothness = 0.45f },
-                new MatSpec { Source = "Boundary", Texture = "FITop_base.png", Smoothness = 0.45f },
-            },
-        },
-        new()
-        {
-            SourceKey = "FitnessIdol_Leggings_G3F", Folder = "FitnessLeggings", Name = "FitnessLeggings",
-            SimId = "clothing.leggings_fitness", Layer = VisualWearLayer.Wear,
-            Slots = new[]
-            {
-                VisualWearSlot.Pelvis, VisualWearSlot.ThighR, VisualWearSlot.ThighL,
-                VisualWearSlot.ShinR, VisualWearSlot.ShinL,
-            },
-            Materials = new[]
-            {
-                new MatSpec { Source = "Leggings", Texture = "FILeg_base.png", Smoothness = 0.45f },
-                new MatSpec { Source = "Hose", Texture = "FILeg_base.png", Smoothness = 0.45f },
-                new MatSpec { Source = "Belt", Texture = "FILeg_base.png", Smoothness = 0.45f },
-            },
-        },
-        new()
-        {
-            SourceKey = "Sleeves_G3F", Folder = "FitnessSleeves", Name = "FitnessSleeves",
-            SimId = "clothing.sleeves_fitness", Layer = VisualWearLayer.Wear,
-            Slots = new[]
-            {
-                VisualWearSlot.ShoulderR, VisualWearSlot.ShoulderL,
-                VisualWearSlot.ForearmR, VisualWearSlot.ForearmL,
-            },
-            Materials = new[]
-            {
-                new MatSpec { Source = "Sleeves", Texture = "FITop_base.png", Smoothness = 0.45f },
-            },
-        },
     };
+
+    // --- JSON drops ---------------------------------------------------------
+    //  `tools/wardrobe` writes one of these per batch of new clothing, so the
+    //  pipeline never has to edit this file. Shape (see wardrobe/manifest.py):
+    //
+    //    { "drop": "sweetjane",
+    //      "sources":  [ { "fbx": "Assets/Temp/jana sweetjane.fbx", "actor": "Jana" } ],
+    //      "garments": [ { "sourceKey": "...", "folder": "...", "name": "...",
+    //                      "simId": "clothing.x", "layer": "Wear",
+    //                      "slots": ["Chest"], "noHide": [],
+    //                      "materials": [ { "source": "tank", "texture": "a.jpg",
+    //                                       "smoothness": 0.3, "alphaClip": false } ] } ] }
+    //
+    //  Unknown enum names and malformed files are reported and skipped rather
+    //  than throwing — one bad drop must not take the whole wardrobe down.
+
+    [System.Serializable] private sealed class DropFile
+    {
+        public string drop;
+        public DropSource[] sources;
+        public DropGarment[] garments;
+    }
+
+    [System.Serializable] private sealed class DropSource
+    {
+        public string fbx;
+        public string actor;
+    }
+
+    [System.Serializable] private sealed class DropGarment
+    {
+        public string sourceKey, folder, name, simId, layer;
+        public string[] slots, noHide;
+        public DropMaterial[] materials;
+    }
+
+    [System.Serializable] private sealed class DropMaterial
+    {
+        public string source, texture, color;
+        public float smoothness = 0.3f, metallic;
+        public bool doubleSided = true, alphaClip;
+    }
+
+    private static void EnsureLoaded()
+    {
+        if (_garments != null)
+        {
+            return;
+        }
+
+        var sources = new List<(string, ActorName)>(BuiltInSources);
+        var garments = new List<GarmentSpec>(BuiltInGarments);
+
+        if (Directory.Exists(DropRoot))
+        {
+            foreach (var file in Directory.GetFiles(DropRoot, "*.json").OrderBy(f => f))
+            {
+                try
+                {
+                    LoadDrop(file, sources, garments);
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"[NewWear] поставка {Path.GetFileName(file)} не прочиталась: {e.Message}");
+                }
+            }
+        }
+
+        _sources = sources.ToArray();
+        _garments = garments.ToArray();
+    }
+
+    private static void LoadDrop(string file, List<(string, ActorName)> sources, List<GarmentSpec> garments)
+    {
+        var parsed = JsonUtility.FromJson<DropFile>(File.ReadAllText(file));
+        if (parsed == null)
+        {
+            throw new IOException("не разобрался JSON");
+        }
+
+        foreach (var s in parsed.sources ?? new DropSource[0])
+        {
+            if (!System.Enum.TryParse<ActorName>(s.actor, out var actor))
+            {
+                Debug.LogError($"[NewWear] {Path.GetFileName(file)}: неизвестная девушка '{s.actor}'");
+                continue;
+            }
+
+            // A re-run of the same drop must not index the same FBX twice.
+            if (!sources.Any(existing => existing.Item1 == s.fbx))
+            {
+                sources.Add((s.fbx, actor));
+            }
+        }
+
+        foreach (var g in parsed.garments ?? new DropGarment[0])
+        {
+            if (garments.Any(existing => existing.SimId == g.simId))
+            {
+                Debug.LogWarning($"[NewWear] {Path.GetFileName(file)}: {g.simId} уже описан — пропущен");
+                continue;
+            }
+
+            garments.Add(new GarmentSpec
+            {
+                SourceKey = g.sourceKey,
+                Folder = g.folder,
+                Name = g.name,
+                SimId = g.simId,
+                Layer = ParseEnum(g.layer, VisualWearLayer.Wear, file),
+                Slots = ParseSlots(g.slots, file),
+                NoHide = ParseSlots(g.noHide, file),
+                Materials = (g.materials ?? new DropMaterial[0]).Select(m => new MatSpec
+                {
+                    Source = m.source,
+                    Texture = string.IsNullOrEmpty(m.texture) ? null : m.texture,
+                    Color = ParseColor(m.color),
+                    Smoothness = m.smoothness,
+                    Metallic = m.metallic,
+                    DoubleSided = m.doubleSided,
+                    AlphaClip = m.alphaClip,
+                }).ToArray(),
+            });
+        }
+    }
+
+    private static T ParseEnum<T>(string value, T fallback, string file) where T : struct
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return fallback;
+        }
+
+        if (System.Enum.TryParse<T>(value, out var parsed))
+        {
+            return parsed;
+        }
+
+        Debug.LogError($"[NewWear] {Path.GetFileName(file)}: не знаю {typeof(T).Name} '{value}', беру {fallback}");
+        return fallback;
+    }
+
+    private static VisualWearSlot[] ParseSlots(string[] names, string file)
+    {
+        if (names == null)
+        {
+            return new VisualWearSlot[0];
+        }
+
+        var slots = new List<VisualWearSlot>();
+        foreach (var name in names)
+        {
+            if (System.Enum.TryParse<VisualWearSlot>(name, out var slot))
+            {
+                slots.Add(slot);
+            }
+            else
+            {
+                Debug.LogError($"[NewWear] {Path.GetFileName(file)}: нет такого слота '{name}'");
+            }
+        }
+
+        return slots.ToArray();
+    }
+
+    // "RRGGBB" / "#RRGGBB"; empty means plain white.
+    private static Color ParseColor(string hex)
+    {
+        if (string.IsNullOrEmpty(hex))
+        {
+            return Color.white;
+        }
+
+        return ColorUtility.TryParseHtmlString(hex.StartsWith("#") ? hex : "#" + hex, out var c)
+            ? c
+            : Color.white;
+    }
 
     // One-shot auto-run: fires after every compile, does nothing once all nine
     // prefabs exist (or when the Temp FBX drop is gone from this machine).
@@ -314,6 +406,11 @@ public static class NewWearExtractor
 
     private static void Run(bool force)
     {
+        // Editing a drop JSON re-imports the asset but does not reload the
+        // domain, so the cached tables would be stale on a manual re-run.
+        _sources = null;
+        _garments = null;
+
         var missingFbx = Sources.Where(s => !File.Exists(s.path)).Select(s => s.path).ToList();
         if (missingFbx.Count > 0)
         {

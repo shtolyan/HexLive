@@ -1,0 +1,85 @@
+{
+  "drop": "sweetjane",
+  "_comment": "Sweet Jane (Rhiannon) + Fitness Idol (devianttuna13), 2026-08. Первая поставка, описанная данными, а не C#. Пишется tools/wardrobe; поля названий, слоёв и слотов проверяет человек.",
+  "sources": [
+    { "fbx": "Assets/Temp/molly sweetjane.fbx", "actor": "Molly" },
+    { "fbx": "Assets/Temp/jolly sweetjane.fbx", "actor": "Jolly" },
+    { "fbx": "Assets/Temp/marta sweetjane.fbx", "actor": "Marta" },
+    { "fbx": "Assets/Temp/jana sweetjane.fbx", "actor": "Jana" }
+  ],
+  "garments": [
+    {
+      "sourceKey": "skirt_28126",
+      "folder": "SweetJaneSkirt",
+      "name": "SweetJaneSkirt",
+      "simId": "clothing.skirt_sweetjane",
+      "layer": "Wear",
+      "slots": ["Pelvis", "ThighR", "ThighL", "ShinR", "ShinL"],
+      "noHide": [],
+      "materials": [
+        { "source": "waistband", "texture": "SJSkirt4.jpg" },
+        { "source": "Tier 4", "texture": "SJSkirt4_lace.png", "alphaClip": true },
+        { "source": "Tier 3", "texture": "SJSkirt4.jpg" },
+        { "source": "Tier 2", "texture": "SJSkirt4.jpg" },
+        { "source": "Tier 1", "texture": "SJSkirt4.jpg" },
+        { "source": "Seam 3", "texture": "SJSkirt4.jpg" },
+        { "source": "Seam 2", "texture": "SJSkirt4.jpg" },
+        { "source": "Seam 1", "texture": "SJSkirt4.jpg" }
+      ]
+    },
+    {
+      "sourceKey": "tank_4360",
+      "folder": "SweetJaneTank",
+      "name": "SweetJaneTank",
+      "simId": "clothing.tank_sweetjane",
+      "layer": "Wear",
+      "slots": ["Chest", "Belly"],
+      "noHide": [],
+      "materials": [
+        { "source": "tank", "texture": "SJTank4.jpg" },
+        { "source": "bottom edge", "texture": "SJTank4_lace.png", "alphaClip": true },
+        { "source": "upper trim", "texture": "SJTank4.jpg" }
+      ]
+    },
+    {
+      "sourceKey": "FitnessIdol_CroppedTop_G3F",
+      "folder": "FitnessTop",
+      "name": "FitnessTop",
+      "simId": "clothing.top_fitness",
+      "layer": "Wear",
+      "slots": ["Chest"],
+      "noHide": [],
+      "materials": [
+        { "source": "CroppedTop", "texture": "FITop_base.png", "smoothness": 0.45 },
+        { "source": "Boundary", "texture": "FITop_base.png", "smoothness": 0.45 }
+      ]
+    },
+    {
+      "sourceKey": "FitnessIdol_Leggings_G3F",
+      "folder": "FitnessLeggings",
+      "name": "FitnessLeggings",
+      "simId": "clothing.leggings_fitness",
+      "layer": "Wear",
+      "slots": ["Pelvis", "ThighR", "ThighL", "ShinR", "ShinL"],
+      "noHide": [],
+      "materials": [
+        { "source": "Leggings", "texture": "FILeg_base.png", "smoothness": 0.45 },
+        { "source": "Hose", "texture": "FILeg_base.png", "smoothness": 0.45 },
+        { "source": "Belt", "texture": "FILeg_base.png", "smoothness": 0.45 }
+      ]
+    },
+    {
+      "sourceKey": "Sleeves_G3F",
+      "folder": "FitnessSleeves",
+      "name": "FitnessSleeves",
+      "simId": "clothing.sleeves_fitness",
+      "layer": "Wear",
+      "_review": "Облако вершин: Shoulder 35%, Chest 28%, Forearm 23%, Wrist 11% — у вещи есть перемычка через грудь, поэтому Chest, возможно, нужно добавить, иначе она не вытесняет топ.",
+      "slots": ["ShoulderR", "ShoulderL", "ForearmR", "ForearmL"],
+      "noHide": [],
+      "materials": [
+        { "source": "Sleeves", "texture": "FITop_base.png", "smoothness": 0.45 }
+      ]
+    }
+  ]
+}

@@ -12,6 +12,7 @@ namespace HexLive.UnityPresentation.Config
     /// </summary>
     [CreateAssetMenu(menuName = "HexLive/Balance/Outsider", fileName = "OutsiderBalance")]
     [MirrorTarget(typeof(Spec72))]
+    [MirrorTarget(typeof(Spec81))]
     public sealed class OutsiderBalanceConfig : ScriptableObject
     {
         [Header("Общее (§72)")]
@@ -107,5 +108,69 @@ namespace HexLive.UnityPresentation.Config
         [Range(1, 6)] public int dangerRingTiles = 3;
         [Tooltip("Прибавка к комфорту свидетелям, когда чужак погиб. Победа должна читаться как победа, а не как траур.")]
         [Range(0f, 1f)] public float enemyDeathRelief = 0.15f;
+
+        [Header("§81 Абьюз — общение силой")]
+        [Tooltip("Включить абьюз. Выключено — мир байт-в-байт прежний.")]
+        public bool abuseEnabled = true;
+        [Tooltip("Сытость общением, ниже которой он идёт искать жертву (1 = наговорился).")]
+        [Range(0f, 2f)] public float abuseSocialFloor = 0.45f;
+        [Tooltip("Голод/жажда, выше которых он готов отжимать припас.")]
+        [Range(0f, 2f)] public float abuseSupplyFloor = 0.55f;
+        [Tooltip("Выше этого он уже умирает — не до переговоров.")]
+        [Range(0f, 2f)] public float abuseNeedCeiling = 0.90f;
+        [Tooltip("База ставки; сверху прибавляется сила нужды.")]
+        [Range(0f, 2f)] public float abuseBaseScore = 0.45f;
+        [Tooltip("Сколько дней он не трогает колонию с начала игры.")]
+        [Range(0, 12)] public int abuseGraceDays = 2;
+        [Tooltip("Пауза после сцены.")]
+        [Range(0, 4800)] public int abuseCooldownTicks = 900;
+        [Tooltip("На сколько сцена отталкивает налёт: ограбил — сегодня не убивает.")]
+        [Range(0, 4800)] public int abuseRaidLockoutTicks = 600;
+        [Tooltip("Радиус поиска жертвы, тайлы.")]
+        [Range(0, 12)] public int abuseScanRadiusTiles = 7;
+        [Tooltip("Сколько подруг рядом с жертвой он ещё терпит.")]
+        [Range(0, 12)] public int abuseMaxMarkAllies = 1;
+        [Tooltip("У порога дома разворачивается, как волк и как налёт.")]
+        public bool abuseRespectsSanctuary = true;
+        [Tooltip("Во сколько раз он должен быть сильнее, чтобы она сдалась.")]
+        [Range(0f, 2f)] public float abuseSubmitRatio = 1.2f;
+        [Tooltip("Вклад оружия и рук в оценку силы.")]
+        [Range(0f, 2f)] public float abuseForceOffenseWeight = 0.6f;
+        [Tooltip("Вклад брони и целости в оценку силы.")]
+        [Range(0f, 2f)] public float abuseForceDefenseWeight = 0.4f;
+        [Tooltip("Сколько силы добавляет ей каждая подруга рядом.")]
+        [Range(0f, 2f)] public float abuseAllyForceShare = 0.6f;
+        [Tooltip("Длина всей сцены, тиков.")]
+        [Range(0, 4800)] public int abuseDurationTicks = 48;
+        [Tooltip("Такт «она плачет», тиков от начала.")]
+        [Range(0, 4800)] public int abuseBeatCryTicks = 12;
+        [Tooltip("Такт первого тычка.")]
+        [Range(0, 4800)] public int abuseBeatBlowTicks = 20;
+        [Tooltip("Такт второго тычка.")]
+        [Range(0, 4800)] public int abuseBeatBlowSecondTicks = 32;
+        [Tooltip("Такт «сдалась или отказала».")]
+        [Range(0, 4800)] public int abuseBeatVerdictTicks = 40;
+        [Tooltip("Такт «забрал добычу».")]
+        [Range(0, 4800)] public int abuseBeatTakeTicks = 44;
+        [Tooltip("Сколько раз он бьёт для острастки.")]
+        [Range(0, 12)] public int abuseMaxBlows = 2;
+        [Tooltip("Сила тычка — кулаком, не оружием: труп ему не нужен.")]
+        [Range(0f, 2f)] public float abuseBlowDamageMult = 0.35f;
+        [Tooltip("Ниже этого здоровья удар не наносится вовсе.")]
+        [Range(0f, 2f)] public float abuseNoBlowHealthFloor = 0.5f;
+        [Tooltip("Сколько защитниц рядом заставляют его бросить сцену.")]
+        [Range(0, 12)] public int abuseBreakOffDefenders = 3;
+        [Tooltip("⭐ Насколько сцена закрывает ЕГО нужду в общении.")]
+        [Range(0f, 2f)] public float abuseSocialGain = 0.35f;
+        [Tooltip("Насколько она закрывает нужду ЖЕРТВЫ (обычно 0 — чужой контакт не в счёт).")]
+        [Range(0f, 2f)] public float abuseMarkSocialGain = 0f;
+        [Tooltip("Сколько стресса это ей стоит.")]
+        [Range(0f, 2f)] public float abuseMarkStressCost = 0.30f;
+        [Tooltip("Насколько падает её симпатия к нему.")]
+        [Range(0f, 2f)] public float abuseAffinityLoss = 0.35f;
+        [Tooltip("Насколько падает её доверие к нему.")]
+        [Range(0f, 2f)] public float abuseTrustLoss = 0.25f;
+        [Tooltip("Закрыть тихую кражу §40.5 до своих — у чужака теперь есть настоящая сцена.")]
+        public bool abuseSupersedesPassiveTheft = true;
     }
 }

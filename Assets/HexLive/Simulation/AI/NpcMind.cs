@@ -176,6 +176,24 @@ public sealed class NPCMind
     // colony raid after raid.
     public int RaidCooldownUntilTick { get; set; }
 
+    // §81: кого он сейчас гнобит и на каком такте сцена.
+    public HexLive.Simulation.Common.EntityId? AbuseTargetNpcId { get; set; }
+
+    // Заявка на жертву — чтобы двое не начали одну сцену. Зеркало
+    // PendingTalkFrom/PendingAidFrom, и, как они, В СЕЙВ НЕ ПИШЕТСЯ: цель Abuse
+    // при сохранении обнуляется, так что недоигранной сцене неоткуда взяться.
+    public HexLive.Simulation.Common.EntityId? PendingAbuseFrom { get; set; }
+
+    public int AbuseCooldownUntilTick { get; set; }
+
+    // Курсор такта хранится ЧИСЛОМ, а не выводится из времени: иначе один
+    // пропущенный тик проглатывал бы удар или проигрывал его дважды.
+    public int AbuseBeat { get; set; }
+
+    public int AbuseBlows { get; set; }
+
+    public bool AbuseHasLoot { get; set; }
+
     // Set on BOTH sides while a human fight is live. An NPC has a single swing
     // slot, so this is also how the human exchange claims it from the animal
     // one (AnimalCombatSystem bails while it is set).
@@ -285,7 +303,11 @@ public enum GoalType
     TreatWounds,
     // §72: hunt a member of a HOSTILE faction. Opportunist — it only outbids
     // his chores when the odds are his. Appended at the END, same reason.
-    Raid
+    Raid,
+    // §81: сцена насилия ради припаса ИЛИ ради самого контакта. Дописана в
+    // КОНЕЦ — сейв хранит цели ординалом, вставка в середину перемаркировала бы
+    // каждую цель в каждом существующем сейве.
+    Abuse
 }
 
 public sealed class GoalScore

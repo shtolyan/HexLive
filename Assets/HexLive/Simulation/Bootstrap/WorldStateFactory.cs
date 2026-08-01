@@ -804,12 +804,20 @@ public sealed class WorldStateFactory
         var ids = new List<int>();
         var takenNames = new HashSet<string>();
         var takenLooks = new HashSet<string>();
+        var takenHairstyles = new HashSet<string>();
         foreach (var npc in world.Entities.Npcs.Values)
         {
             ids.Add(npc.Id.Value);
             if (!string.IsNullOrEmpty(npc.DisplayName))
             {
                 takenNames.Add(npc.DisplayName);
+            }
+
+            // A hand-authored hairstyle is claimed up front so rolled girls
+            // never duplicate it (hair is a unique axis, see Roll).
+            if (!string.IsNullOrEmpty(npc.Hairstyle))
+            {
+                takenHairstyles.Add(npc.Hairstyle);
             }
         }
 
@@ -823,7 +831,7 @@ public sealed class WorldStateFactory
                 continue;
             }
 
-            var look = ColonistAppearance.Roll(world.Seed, id, takenNames, takenLooks);
+            var look = ColonistAppearance.Roll(world.Seed, id, takenNames, takenLooks, takenHairstyles);
 
             if (string.IsNullOrEmpty(npc.ActorMesh))
             {
@@ -856,6 +864,7 @@ public sealed class WorldStateFactory
             // compared against what this one actually looks like.
             takenLooks.Add(ColonistAppearance.LookKey(
                 npc.ActorMesh, npc.SkinSet, npc.Hairstyle));
+            takenHairstyles.Add(npc.Hairstyle);
         }
     }
 

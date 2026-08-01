@@ -1345,6 +1345,44 @@ public sealed partial class DecisionSystem : ISimulationSystem
 
             AddGoalScore(npc, world.Tick, GoalType.Raid,
                 Spec72.RaidBaseScore + Spec72.RaidOpportunityGain * raidOpportunity, raidAvail);
+
+            // §81 Abuse: он идёт гнобить — либо чтобы отжать припас, либо
+            // просто чтобы с кем-то «пообщаться». Вторая причина не метафора:
+            // разговор доступен только между союзниками, амбиентное общение §49
+            // считает соседей по фракции, а фракция у него из одного человека,
+            // так что Social падает в ноль и там остаётся. Абьюз — единственный
+            // способ её закрыть, и потому ставка растёт от ОДИНОЧЕСТВА так же,
+            // как от голода.
+            //
+            // Ставка выше налётной намеренно: нужда должна перебивать
+            // возможность. Он охотится, когда подвернулся случай, но гнобит —
+            // когда ему самому нужно.
+            var abuseDrive = 0f;
+            var abuseAvail = false;
+            if (Spec81.AbuseEnabled &&
+                npc.Faction != Faction.Colony &&
+                world.Tick >= Spec81.AbuseGraceDays * EnvironmentSystem.DayLengthTicks &&
+                world.Tick >= npc.Mind.AbuseCooldownUntilTick &&
+                !npc.IsFighting &&
+                npc.Body.CanUseToolsOrWeapons &&
+                !npc.Body.IsProne &&
+                npc.Mind.CurrentGoal != GoalType.Flee)
+            {
+                abuseDrive = AbuseMath.Drive(npc);
+                abuseAvail = abuseDrive > 0f &&
+                    AbuseMath.BestMark(world, npc, out _) is not null;
+            }
+
+            // Сцена уже идёт — цель обязана остаться доступной, иначе аукцион
+            // выдернет его с середины (та же оговорка, что у §53 Aid).
+            if (npc.Mind.CurrentGoal == GoalType.Abuse &&
+                npc.Execution.CurrentInteraction == InteractionType.Abuse)
+            {
+                abuseAvail = true;
+            }
+
+            AddGoalScore(npc, world.Tick, GoalType.Abuse,
+                Spec81.AbuseBaseScore + abuseDrive, abuseAvail);
             if (raidAvail && world.Tick % 64 == 0)
             {
                 Trace.Emit(world, npc.Id, "RaidScored",

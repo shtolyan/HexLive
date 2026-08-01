@@ -132,6 +132,10 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 {
                     RunAid(world, npc);
                 }
+                else if (npc.Mind.CurrentGoal == GoalType.Abuse)
+                {
+                    RunAbuse(world, npc);
+                }
                 else
                 {
                     RunTalk(world, npc);

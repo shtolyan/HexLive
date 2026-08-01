@@ -198,7 +198,10 @@ public enum InteractionType
     // bandage from her pack (the mirror of TreatOther, which only ever let a
     // HOUSEMATE do it). Appended at the end: saves store interactions by
     // ordinal.
-    TreatSelf
+    TreatSelf,
+    // §81: сцена насилия. Дописано в конец — сейв хранит взаимодействия
+    // ординалом.
+    Abuse
 }
 
 }

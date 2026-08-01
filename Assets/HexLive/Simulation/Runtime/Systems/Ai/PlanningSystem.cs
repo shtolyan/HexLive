@@ -174,6 +174,12 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 continue;
             }
 
+            if (npc.Mind.CurrentGoal == GoalType.Abuse)
+            {
+                BuildAbusePlan(world, npc);
+                continue;
+            }
+
             if (npc.Mind.CurrentGoal == GoalType.Defend)
             {
                 BuildDefendPlan(world, npc);

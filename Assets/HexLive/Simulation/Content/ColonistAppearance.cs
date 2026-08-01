@@ -90,22 +90,27 @@ public static class ColonistAppearance
     // (spec 29C.1). Salt block (74, 74xx) is unused by anything else.
     //
     // Individual traits are FREE to repeat: two girls may share a body, a skin
-    // set, a hairstyle or a voice — that is the point, "maybe two Janas
-    // happen". Exactly two things are de-duplicated:
+    // set or a voice — that is the point, "maybe two Janas happen". Exactly
+    // three things are de-duplicated:
     //
     // - the NAME, because two identical names are unreadable in the UI;
+    // - the HAIRSTYLE, because hair is the loudest silhouette cue and the pool
+    //   (16) comfortably covers the colony — every girl gets her own;
     // - the VISIBLE look (mesh + skin set + hairstyle), because two women the
     //   eye cannot tell apart are not variety, they are a bug report waiting to
-    //   happen. Voice is NOT part of that key on purpose: a shared voice is
-    //   heard one line at a time and reads as a family resemblance, while a
-    //   shared silhouette is on screen permanently.
+    //   happen. With unique hair this key is unique for free; it only earns its
+    //   keep as the FALLBACK when more girls than hairstyles exist. Voice is
+    //   NOT part of that key on purpose: a shared voice is heard one line at a
+    //   time and reads as a family resemblance, while a shared silhouette is on
+    //   screen permanently.
     //
-    // Both resolve by walking FORWARD from the rolled index — deterministic and
-    // order-stable, so the same seed lands on the same colony every time. The
-    // look walks the hairstyle axis: it is the widest pool (16), so a collision
-    // is settled by changing her hair rather than her body.
+    // All resolve by walking FORWARD from the rolled index — deterministic and
+    // order-stable, so the same seed lands on the same colony every time.
+    // Collisions walk the hairstyle axis: it is the widest pool (16), so a
+    // dispute is settled by changing her hair rather than her body.
     public static Look Roll(int seed, int npcId,
-        ICollection<string> takenNames, ICollection<string> takenLooks)
+        ICollection<string> takenNames, ICollection<string> takenLooks,
+        ICollection<string> takenHairstyles)
     {
         var mesh = Meshes[(int)(MathUtil.Hash01(seed, npcId, 74, 7401) * Meshes.Length)];
         var skin = SkinSets[(int)(MathUtil.Hash01(seed, npcId, 74, 7402) * SkinSets.Length)];
@@ -113,7 +118,24 @@ public static class ColonistAppearance
 
         var hairStart = (int)(MathUtil.Hash01(seed, npcId, 74, 7403) * Hairstyles.Length);
         var hair = Hairstyles[hairStart];
-        if (takenLooks != null)
+        var hairFound = false;
+        if (takenHairstyles != null)
+        {
+            for (var step = 0; step < Hairstyles.Length; step++)
+            {
+                var candidate = Hairstyles[(hairStart + step) % Hairstyles.Length];
+                if (!takenHairstyles.Contains(candidate) &&
+                    (takenLooks == null || !takenLooks.Contains(LookKey(mesh, skin, candidate))))
+                {
+                    hair = candidate;
+                    hairFound = true;
+                    break;
+                }
+            }
+        }
+        // Fallback for a colony larger than the hair pool: give up on unique
+        // hair and only keep the full look distinct, as before.
+        if (!hairFound && takenLooks != null)
         {
             for (var step = 0; step < Hairstyles.Length; step++)
             {

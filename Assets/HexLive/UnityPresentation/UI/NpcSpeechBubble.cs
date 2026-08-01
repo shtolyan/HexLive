@@ -382,6 +382,16 @@ public sealed class NpcSpeechBubble : MonoBehaviour
             // запасным вариантом для обоих, пока снимок не сделан.
             "DangerSpotted" or "DangerStranger" => "Warning",
             "TalkSuccess" => "Joke",
+            // §81: сцена абьюза. Новых картинок не понадобилось — Gift и
+            // Grief лежали в папке и не были заняты ни одной кьюшкой, а Gift
+            // на такте «отдаёт под нажимом» читается ровно так, как надо.
+            "AbuseDemand" or "AbuseStruck" => "Attack",
+            "AbuseThreatened" => "Warning",
+            "AbuseCry" => "Grief",
+            "AbuseHurt" => "Blood",
+            "AbuseSubmit" or "AbuseGaveUp" or "AbuseTook" => "Gift",
+            "AbuseDefied" or "AbuseRefused" => "Grumble",
+            "AbuseFled" => "Flee",
             _ => "SmallTalk"
         };
     }
@@ -392,7 +402,10 @@ public sealed class NpcSpeechBubble : MonoBehaviour
         {
             "TalkRejected" or "TalkRefused" or "TalkQuarrel" or "Resentment" or "WitnessedMurder" or
                 "HelpCry" or "HelpCryAssistStarted" or "HelpCryAssistArrived" or "HelpCryDefended" or
-                "HelpCryIgnored" => NegColor,
+                "HelpCryIgnored" or
+                "AbuseDemand" or "AbuseThreatened" or "AbuseCry" or "AbuseStruck" or
+                "AbuseHurt" or "AbuseSubmit" or "AbuseGaveUp" or "AbuseTook" or
+                "AbuseDefied" or "AbuseRefused" or "AbuseFled" => NegColor,
             "AidRequest" or "AidIncoming" or "AidStarted" or "AidCompleted" or "TalkSuccess" or
                 "HelpCryAnswer" or "HelpCryAnswered" => PosColor,
             _ => Color.white

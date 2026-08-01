@@ -855,6 +855,21 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                         continue;
                     }
 
+                    // §81: кража стала ВНУТРИФРАКЦИОННОЙ. Раньше она нарочно
+                    // не гейтилась — «голодный чужак, ворующий у девушек, это
+                    // ровно то трение, которое нам нужно», — но теперь у него
+                    // есть настоящая сцена с требованием, ударами и эмодзи, а
+                    // тихая кража мимо неё только мешает: он молча уносит еду,
+                    // пока идёт эту же еду отжимать, и сцена оказывается ни к
+                    // чему. Осталось то, чем она и должна была быть: отчаявшаяся
+                    // соседка забирает у соседки — зеркало блока раздачи выше,
+                    // тоже гейтованного по своим.
+                    if (Spec81.AbuseSupersedesPassiveTheft &&
+                        !FactionRelations.AreAllies(npc.Faction, victim.Faction))
+                    {
+                        continue;
+                    }
+
                     var adjacent = victimJct.Equals(thiefJct) ||
                         (world.Junctions.Items.TryGetValue(victimJct, out var vj) &&
                          vj.Neighbors.Contains(thiefJct));

@@ -8,7 +8,10 @@ namespace HexLive.Simulation.Runtime
 public static class SocialBalance
 {
     // §28.15C: relationship gain both sides split from a finished talk.
-    public static float TalkRelationshipGain = 0.075f;
+    // §94: 0.075 за разговор — это максимум ЗА ДЕНЬ: болтают они часто, и
+    // симпатия упиралась в потолок к концу первых суток. Дружба должна быть
+    // делом десяти дней, а не одного вечера.
+    public static float TalkRelationshipGain = 0.02f;
 
     // §28.15D: a quarrel still vents social need — but costs affinity and
     // embarrasses the started-it side.

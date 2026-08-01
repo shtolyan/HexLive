@@ -754,7 +754,14 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // would outrun talk gains and cap warmth at ~+0.2).
             foreach (var relationship in npc.Social.Relationships.Values)
             {
-                var driftRate = relationship.Affinity < 0f ? 0.003f : 0.001f;
+                // §94: скорости затухания стали РУЧКАМИ. Зашитые числа делали
+                // отношения слишком быстрыми: дружба доходила до максимума за
+                // день, а обида таяла быстрее, чем копилась, — из-за чего
+                // неприязнь чужака намертво застревала около −0.17 и он
+                // никогда не добирался до порога, за которым берётся за нож.
+                var driftRate = relationship.Affinity < 0f
+                    ? Spec94.GrudgeDriftPerTick
+                    : Spec94.WarmthDriftPerTick;
                 relationship.Affinity = MathUtil.MoveTowards(relationship.Affinity, 0f, driftRate);
             }
 

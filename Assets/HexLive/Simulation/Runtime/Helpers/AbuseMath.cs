@@ -17,6 +17,16 @@ public static class AbuseMath
 {
     // Что ему сейчас нужно от неё. Жажда идёт вперёд голода — она убивает
     // быстрее, тот же порядок держит §53.
+    // Что он у неё возьмёт.
+    //
+    // §93: гопник отбирает НЕ ПОТОМУ ЧТО ГОЛОДЕН, а потому что может. Раньше
+    // порог голода/жажды стоял на входе, и получалось так: гонит его
+    // одиночество, живот при этом сытый — он подходил, тряс и уходил с
+    // пустыми руками. За 132 сцены добыча случилась ДВА раза, и игрок
+    // естественно не видел никакого отжима вовсе.
+    //
+    // Теперь порог решает только ПОРЯДОК: что схватить первым, если есть и
+    // еда, и вода. Своя нужда важнее — но её отсутствие больше не мешает.
     public static AidKind Wants(NPCState npc)
     {
         if (npc.Needs.Thirst >= Spec81.AbuseSupplyFloor &&
@@ -25,7 +35,28 @@ public static class AbuseMath
             return AidKind.Hydrate;
         }
 
-        return npc.Needs.Hunger >= Spec81.AbuseSupplyFloor ? AidKind.Feed : AidKind.None;
+        if (npc.Needs.Hunger >= Spec81.AbuseSupplyFloor)
+        {
+            return AidKind.Feed;
+        }
+
+        // Сыт и напоен — но забрать всё равно надо. Что перевешивает у него
+        // самого, то и берём.
+        return npc.Needs.Thirst >= npc.Needs.Hunger ? AidKind.Hydrate : AidKind.Feed;
+    }
+
+    // §93: а если того, что он хотел, у неё нет — берём то, что есть. Пустые
+    // руки после сцены читаются как «ничего не произошло».
+    public static AidKind WhatToTake(WorldState world, NPCState abuser, NPCState mark)
+    {
+        var first = Wants(abuser);
+        if (AidSupply.Has(world, mark, first))
+        {
+            return first;
+        }
+
+        var other = first == AidKind.Hydrate ? AidKind.Feed : AidKind.Hydrate;
+        return AidSupply.Has(world, mark, other) ? other : AidKind.None;
     }
 
     // Насколько сильно его к этому тянет. Две независимые причины, берётся
@@ -95,7 +126,6 @@ public static class AbuseMath
         hasLoot = false;
         NPCState best = null;
         var bestScore = float.MinValue;
-        var want = Wants(abuser);
 
         foreach (var mark in world.Entities.Npcs.Values)
         {
@@ -148,7 +178,10 @@ public static class AbuseMath
             var ratio = Ratio(world, abuser, mark);
             var allies = RaidMath.AlliesAround(world, mark);
 
-            var loot = want != AidKind.None && AidSupply.Has(world, mark, want);
+            // §93: «есть ли у неё ХОТЬ ЧТО-ТО», а не «есть ли ровно то, чего
+            // ему хочется». Иначе носительница еды не считалась добычей, если
+            // ему в тот момент хотелось пить, — и метка Loot в трейсе врала.
+            var loot = WhatToTake(world, abuser, mark) != AidKind.None;
 
             // Носительница припаса лучше пустой, но пустая — тоже добыча:
             // одиночество закрывается самим фактом сцены.

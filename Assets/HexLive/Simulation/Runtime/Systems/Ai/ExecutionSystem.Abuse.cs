@@ -215,8 +215,9 @@ public sealed partial class ExecutionSystem
         if (npc.Mind.AbuseBeat < 5 && elapsed >= Spec81.AbuseBeatTakeTicks)
         {
             npc.Mind.AbuseBeat = 5;
+            // §93: берём то, что у неё ЕСТЬ, а не только то, чего ему хочется.
             string taken = null;
-            var want = AbuseMath.Wants(npc);
+            var want = AbuseMath.WhatToTake(world, npc, mark);
             if (want != AidKind.None)
             {
                 AbuseMath.TryTake(world, npc, mark, want, out taken);
@@ -269,22 +270,34 @@ public sealed partial class ExecutionSystem
         // а симпатия падает с каждой сценой (§81) — в ход идёт то, что в руке.
         // Это тот же принцип, что и в пощаде §86: жестокость есть следствие
         // истории отношений, а не отдельная ручка.
+        // §93: чем глубже ненависть, тем ТЯЖЕЛЕЕ железо. Не «кулак или лучшее
+        // оружие», а лестница: пока она для него прохожая — рукопашка; стал
+        // презирать — достал что попроще; возненавидел — берёт самое тяжёлое,
+        // что есть в руках.
+        //
+        // Порог — это порог ПЕРВОЙ ступени; чем ниже симпатия, тем выше по
+        // списку оружия он забирается.
         var affinity = abuser.Social.GetOrCreate(mark.Id).Affinity;
-        var armed = abuser.Body.CanUseToolsOrWeapons &&
-            affinity <= Spec81.AbuseWeaponAffinity;
-
         var weapon = GearCatalog.Fist;
-        if (armed)
+        if (abuser.Body.CanUseToolsOrWeapons && affinity <= Spec81.AbuseWeaponAffinity)
         {
             var best = SimBalance.BestMeleeWeapon(abuser.Inventory.Items, abuser.Body.IntactHands);
             if (!string.IsNullOrEmpty(best))
             {
-                weapon = best;
+                // Насколько глубоко он её ненавидит, от порога до самого дна.
+                var depth = MathUtil.Clamp01(
+                    (Spec81.AbuseWeaponAffinity - affinity) /
+                    System.Math.Max(0.0001f, 1f + Spec81.AbuseWeaponAffinity));
+                weapon = depth >= Spec81.AbuseHeavyWeaponDepth
+                    ? best
+                    : LighterThan(abuser, best);
             }
         }
 
         var damage = GearCatalog.Damage(weapon) * abuser.StrikeFactor() *
             Spec81.AbuseBlowDamageMult;
+        // Показать замах: без этого удар landит невидимо (см. OpenAttackAnimation).
+        MeleeSwing.OpenAttackAnimation(world, abuser, weapon);
         MeleeSwing.ApplyHumanBlow(world, abuser, mark, damage, weapon, "AbuseStruck");
 
         // §91: и она может ОГРЫЗНУТЬСЯ. Это не решение «драться» — оно
@@ -307,6 +320,7 @@ public sealed partial class ExecutionSystem
 
             var herDamage = GearCatalog.Damage(herWeapon) * mark.StrikeFactor() *
                 Spec81.AbuseBlowDamageMult;
+            MeleeSwing.OpenAttackAnimation(world, mark, herWeapon);
             MeleeSwing.ApplyHumanBlow(world, mark, abuser, herDamage, herWeapon, "AbuseFoughtBack");
             SocialCueSignals.Stamp(world, mark, "AbuseDefied", abuser.Id);
             Trace.Emit(world, mark.Id, "AbuseFoughtBack",
@@ -320,6 +334,34 @@ public sealed partial class ExecutionSystem
         MobSystem.RememberDanger(world, mark);
         CombatHelpSystem.RallyFriends(world, mark, null, abuser.Id,
             $"Abuse=NPC{abuser.Id.Value}");
+    }
+
+    // §93: ступенька ниже самого тяжёлого — нож вместо мачете. Если ничего
+    // легче нет, остаётся кулак: лёгкая злость не берётся за тесак.
+    private static string LighterThan(NPCState npc, string heaviest)
+    {
+        string lighter = null;
+        foreach (var item in npc.Inventory.Items)
+        {
+            var id = item.DefinitionId;
+            if (id == heaviest)
+            {
+                continue;
+            }
+
+            var gear = GearCatalog.For(id);
+            if (gear.Id != id || gear.MeleePriority <= 0)
+            {
+                continue;
+            }
+
+            if (lighter is null || GearCatalog.Damage(id) > GearCatalog.Damage(lighter))
+            {
+                lighter = id;
+            }
+        }
+
+        return lighter ?? GearCatalog.Fist;
     }
 
     private static void FinishAbuse(

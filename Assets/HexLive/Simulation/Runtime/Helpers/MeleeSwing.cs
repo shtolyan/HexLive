@@ -190,6 +190,28 @@ internal static class MeleeSwing
         return attacker.Social.GetOrCreate(target.Id).Affinity > Spec86.HatredAffinity;
     }
 
+    // §93: ⭐ ОТКРЫТЬ ОКНО АНИМАЦИИ для СЦЕНАРНОГО удара.
+    //
+    // Обычный бой заводит замах в TryAdvanceSwing — там же ставятся
+    // AttackAnimUntilTick и SwingStrikeIndex, по которым вид проигрывает клип.
+    // Сцена абьюза бьёт напрямую (ApplyHumanBlow), в обход этой функции, и
+    // потому удары ЛАНДИЛИ НЕВИДИМО: урон есть, рана есть, а человек стоит
+    // столбом. Со стороны это читается как «он её не бьёт».
+    //
+    // Тут окно открывается руками, тем же способом и на ту же длительность,
+    // что и в настоящем бою.
+    internal static void OpenAttackAnimation(WorldState world, NPCState actor, string weaponId)
+    {
+        var gear = GearCatalog.For(weaponId);
+        actor.SwingStrikeIndex = gear.HasStrikeVariants
+            ? System.Math.Min(gear.StrikeVariants.Length - 1,
+                (int)(MathUtil.Hash01(world.Seed, world.Tick, actor.Id.Value, 991) *
+                    gear.StrikeVariants.Length))
+            : -1;
+        StrikeTimings(gear, actor.SwingStrikeIndex, out _, out var duration, out _);
+        actor.AttackAnimUntilTick = world.Tick + SecondsToTicks(duration);
+    }
+
     internal static bool InReach(WorldState world, NPCState a, NPCState b)
     {
         return a.CurrentJunction is { } aj && b.CurrentJunction is { } bj &&

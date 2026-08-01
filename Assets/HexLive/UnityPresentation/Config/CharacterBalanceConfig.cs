@@ -14,6 +14,7 @@ namespace HexLive.UnityPresentation.Config
     [CreateAssetMenu(menuName = "HexLive/Balance/Character", fileName = "CharacterBalance")]
     [MirrorTarget(typeof(SimBalance))]
     [MirrorTarget(typeof(Spec85))]
+    [MirrorTarget(typeof(Spec94))]
     [MirrorTarget(typeof(AiBalance))]
     public sealed class CharacterBalanceConfig : ScriptableObject
     {
@@ -332,5 +333,11 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 1f)] public float sleepMetabolismFactor = 0.1f;
         [Tooltip("Во сколько раз медленнее уходит нужда в общении во сне. Раньше она текла полностью: ложился общительным, вставал одиноким.")]
         [Range(0f, 1f)] public float sleepSocialFactor = 0.1f;
+
+        [Header("§94 Отношения — дело десяти дней")]
+        [Tooltip("Насколько обида тает к нулю за медленный тик. Быстрее дружбы, но медленнее, чем копится злость от абьюза.")]
+        [Range(0f, 0.01f)] public float grudgeDriftPerTick = 0.0006f;
+        [Tooltip("Насколько остывает симпатия за медленный тик.")]
+        [Range(0f, 0.01f)] public float warmthDriftPerTick = 0.0002f;
     }
 }

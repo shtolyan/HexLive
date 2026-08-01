@@ -123,6 +123,16 @@ public sealed partial class ExecutionSystem
         // --- Начало ----------------------------------------------------------
         if (npc.Execution.Status == ExecutionStatus.None)
         {
+            // §98: начинать сцену можно только с УДАРНОЙ дистанции. Проверка
+            // выше пускает на дистанции РАЗГОВОРА (метрической) — она шире, и
+            // первая сцена стабильно начиналась там, откуда рука не достаёт:
+            // отношения портились, а драки не было ни одной. Не дотянулся —
+            // не беда: код преследования выше подведёт вплотную.
+            if (!MeleeSwing.InReach(world, npc, mark))
+            {
+                return;
+            }
+
             npc.Execution.Status = ExecutionStatus.InProgress;
             npc.Execution.CurrentInteraction = InteractionType.Abuse;
             npc.Execution.TargetObject = null;

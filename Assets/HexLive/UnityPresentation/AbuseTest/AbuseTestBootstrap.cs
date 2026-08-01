@@ -195,6 +195,14 @@ namespace HexLive.UnityPresentation.AbuseTest
             panel.SetHealthDollStage(healthDollStage);
             panel.SetPortraitCache(portraitCache);
 
+            // §98: та же панель времени, что на боевой карте — пауза, play,
+            // скорости. Клавиш 1/2/3/4 мало: кнопок на экране не было, и
+            // «перемотать до следующей драки» приходилось ждать вживую.
+            var speedRoot = new GameObject("HexLive Speed Bar");
+            speedRoot.AddComponent<UIDocument>();
+            var speedBar = speedRoot.AddComponent<UI.SimSpeedBar>();
+            speedBar.SetRunner(_runner);
+
             // Выделен ЧУЖАК: смотреть надо на него — на его нужду в общении и
             // на то, когда он срывается с места.
             Input.NpcSelection.Select(AbuseTestWorld.OutsiderId);

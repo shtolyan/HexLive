@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import threading
 import uuid
@@ -74,6 +75,17 @@ _BRIEF = """\
    называться или в какие слоты попадать; правка выходит за пределы
    `Tools/wardrobe`; ты дважды починил одно и то же место и оно снова упало.
 
+Как писать. Твой текст читает человек с телефона в Telegram, а не разработчик
+в логе. Поэтому:
+
+* пиши ПО-РУССКИ, обычными словами;
+* говори, что происходит и зачем, а не какую команду ты набрал: «скачал
+  головной убор, 91 МБ, распаковываю» вместо «Downloaded ... Now `install`»;
+* короткими репликами по ходу дела — начал стадию, нашёл странность, починил;
+* имена файлов и продуктов оставляй как есть, а длинные пути не приводи —
+  достаточно имени файла;
+* молчи, пока нечего сказать. Каждое сообщение стоит внимания человека.
+
 В конце дай короткий отчёт: что сделано, что сломалось и как починено, что
 осталось на человеке. Без пересказа каждого шага.
 
@@ -127,6 +139,54 @@ def cancel() -> bool:
         return True
 
 
+_STAGE_WORDS = {
+    "check": "проверяю окружение",
+    "fetch": "качаю архивы",
+    "install": "распаковываю в библиотеку DAZ",
+    "dress": "одеваю девушек",
+    "build": "переношу текстуры и собираю манифест",
+    "show": "смотрю манифест",
+    "register": "прописываю вещи в симуляцию",
+    "unity": "собираю префабы в Unity",
+    "preview": "рендерю превью",
+}
+_STAGE_RE = re.compile(r"-m\s+wardrobe\s+([a-z]+)")
+
+
+def _humanise_tool(name: str, params: dict) -> str:
+    """One short Russian line per action, for someone reading on a phone.
+
+    A raw command line is unreadable in a chat — mostly absolute paths — and
+    the interesting part is which STAGE is running, not how it was spelled.
+    """
+    def leaf(value: object) -> str:
+        return Path(str(value)).name or str(value)
+
+    if name == "Bash":
+        command = str(params.get("command", ""))
+        stage = _STAGE_RE.search(command)
+        if stage:
+            return "▸ " + _STAGE_WORDS.get(stage.group(1), f"стадия {stage.group(1)}")
+        if "git " in command:
+            return "▸ смотрю историю правок"
+        # Strip absolute paths, keep the shape of the command.
+        short = re.sub(r"[A-Za-z]:[\\/][^\s\"']+[\\/]", "", command).strip()
+        return "▸ " + (short[:100] + "…" if len(short) > 100 else short)
+
+    if name in ("Read", "Edit", "Write", "NotebookEdit"):
+        verb = {"Read": "читаю", "Edit": "правлю", "Write": "пишу"}.get(name, name.lower())
+        target = params.get("file_path") or params.get("path")
+        return f"▸ {verb} {leaf(target)}" if target else f"▸ {verb}"
+
+    if name in ("Grep", "Glob"):
+        return f"▸ ищу {params.get('pattern', '')}".strip()
+
+    if name == "TodoWrite":
+        return ""  # bookkeeping, not progress
+
+    return f"▸ {name}"
+
+
 def _render(event: dict) -> Iterator[str]:
     """Turn one stream-json event into human-readable progress lines.
 
@@ -153,10 +213,9 @@ def _render(event: dict) -> Iterator[str]:
                 if thought:
                     yield "💭 " + thought
             elif block_type == "tool_use":
-                name = block.get("name", "?")
-                params = block.get("input") or {}
-                detail = params.get("command") or params.get("file_path") or params.get("pattern")
-                yield f"▸ {name}" + (f": {str(detail)[:160]}" if detail else "")
+                line = _humanise_tool(block.get("name", "?"), block.get("input") or {})
+                if line:
+                    yield line
         return
 
     if kind == "result":

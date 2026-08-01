@@ -38,6 +38,8 @@ public static class BalanceReflection
         // инспекторе при этом выглядят рабочими и молча ничего не делают.
         typeof(Spec81),
         typeof(Spec82),
+        typeof(Spec85),
+        typeof(Spec86),
         typeof(AiBalance),
         typeof(SocialBalance),
         typeof(WorldBalance),

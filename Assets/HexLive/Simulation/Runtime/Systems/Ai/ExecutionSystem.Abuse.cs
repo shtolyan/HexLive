@@ -158,10 +158,19 @@ public sealed partial class ExecutionSystem
                 SocialCueSignals.Stamp(world, npc, "AbuseRefused", mark.Id);
                 Trace.Emit(world, npc.Id, "AbuseDefied",
                     $"Mark=NPC{mark.Id.Value} Ratio={AbuseMath.Ratio(world, npc, mark):F2}");
-                // Отпор не переводит сцену в убийство: налёт — отдельный редкий
-                // бросок, и превращать каждый отказ в поножовщину значило бы
-                // вырезать колонию за неделю.
+
+                // §85: ОТКАЗ ПЕРЕВОДИТ СЦЕНУ В БОЙ. Раньше он ворчал и уходил,
+                // и со стороны это читалось как «подошёл, потоптался, ушёл» —
+                // то есть как будто ничего не произошло.
+                //
+                // Теперь так: если его проигнорировали, он не отступает. Она
+                // получила два тычка и не отдала — значит будет драка, и там
+                // она уже сама решает, стоять или бежать (это умеет RaidSystem).
+                //
+                // Убийство отсюда возможно, и это осознанно: цена отказа должна
+                // быть настоящей, иначе отказывать будут всегда.
                 FinishAbuse(world, npc, mark, submitted: false, taken: null);
+                RaidSystem.EscalateToRaid(world, npc, mark, "AbuseDefied");
                 return;
             }
 

@@ -45,6 +45,9 @@ public static class AbuseMath
         // сидел с общением в нуле и спокойно строил лежанку. Множитель
         // поднимает нужду над бытом — человеку, который ни с кем не говорил,
         // не до лежанки.
+        // §85: гнобит, пока общение не наберёт хотя бы половину, — потом идёт
+        // по своим делам. Раньше порог стоял на 0.45 и он останавливался,
+        // толком не начав.
         var social = npc.Needs.Social < Spec81.AbuseSocialFloor
             ? (1f - npc.Needs.Social) * Spec82.LonelinessDriveMult
             : 0f;
@@ -116,10 +119,14 @@ public static class AbuseMath
                 continue;
             }
 
-            if (HexSpatialMath.HexDistance(abuser.Tile, mark.Tile) > Spec81.AbuseScanRadiusTiles)
-            {
-                continue;
-            }
+            // §85 r2: радиуса поиска БОЛЬШЕ НЕТ. Он был последним, что мешало:
+            // жертву он находил лишь в половине замеров, и почти всё
+            // оставшееся — «никого нет в семи гексах». А раз цели нет, цель
+            // абьюза не участвует в аукционе, и он идёт пить воду — ровно то,
+            // что видно в игре.
+            //
+            // Захотел — значит идёт, хоть через весь остров. Близость осталась
+            // ВЕСОМ: ближняя приятнее дальней, но дальняя лучше, чем никакой.
 
             // Уже занята чужим рукопожатием — не влезаем в чужую сцену.
             if (mark.Mind.PendingAbuseFrom is { } claimed && !claimed.Equals(abuser.Id))
@@ -127,18 +134,19 @@ public static class AbuseMath
                 continue;
             }
 
-            if (RaidMath.AlliesAround(world, mark) > Spec81.AbuseMaxMarkAllies)
-            {
-                continue;
-            }
-
+            // §85: ни подруги рядом, ни расклад сил больше НЕ ЗАПРЕЩАЮТ подойти.
+            //
+            // Замер показал, почему его не видно в игре: подойти он хочет 100%
+            // времени, девушка в радиусе 54%, а жертву находил только 30% — два
+            // этих гейта резали остальное. Причём тем сильнее, чем дружнее живёт
+            // колония: девушки постоянно ходят друг к другу, и у каждой почти
+            // всегда есть соседка.
+            //
+            // Не ей решать, можно к ней подходить или нет. Расклад сил остался
+            // ВЕСОМ при выборе, кого предпочесть, и решает исход сцены — сдастся
+            // она или огрызнётся, — но не пускает ли он её вообще.
             var ratio = Ratio(world, abuser, mark);
-            if (ratio < Spec81.AbuseSubmitRatio)
-            {
-                // Кого он не переборет, того и не задирает: получить сдачи не
-                // входит в его планы.
-                continue;
-            }
+            var allies = RaidMath.AlliesAround(world, mark);
 
             var loot = want != AidKind.None && AidSupply.Has(world, mark, want);
 
@@ -147,7 +155,13 @@ public static class AbuseMath
             var distance = HexSpatialMath.HexDistance(abuser.Tile, mark.Tile);
             var score = (loot ? 1f : 0f)
                 + 0.4f * MathUtil.Clamp01(ratio - 1f)
-                + 0.3f * (1f - (float)distance / System.Math.Max(1, Spec81.AbuseScanRadiusTiles));
+                // Близость — вес, а не порог: за дальней он всё равно пойдёт,
+                // просто ближнюю предпочтёт. Шкала по радиусу-подсказке, но
+                // расстояние сверх него уже ничего не отнимает.
+                + 0.3f * MathUtil.Clamp01(
+                    1f - (float)distance / System.Math.Max(1, Spec81.AbuseScanRadiusTiles))
+                // Одиночка приятнее компании, но компания — не запрет.
+                - 0.25f * allies;
 
             if (score > bestScore ||
                 (score == bestScore && best is not null && mark.Id.Value < best.Id.Value))

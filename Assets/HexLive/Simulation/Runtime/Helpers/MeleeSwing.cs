@@ -122,6 +122,30 @@ internal static class MeleeSwing
         var partArmor = EquipmentMath.ArmorForPart(world, target, part); // trace only
         var landed = EquipmentMath.Mitigate(world, target, part, damage);
 
+        // §86: пощада. Человек не добивает того, кого не ненавидит: бьёт, пока
+        // тот не сдался, и уходит. До конца доводят только заработанную
+        // ненависть — симпатия падает с каждой сценой насилия (§81), так что
+        // «добьют или нет» становится следствием ИСТОРИИ отношений, а не
+        // отдельной ручки.
+        //
+        // Порог, а не запрет: удар всё равно наносится, рана пишется, кровь
+        // идёт — просто здоровье не проваливается ниже порога. Проигравший
+        // остаётся лежать битым, а не мёртвым.
+        if (Spec86.MercyEnabled && Merciful(world, attacker, target))
+        {
+            var floorHp = Spec86.MercyHealthFloor;
+            if (target.Health <= floorHp)
+            {
+                landed = 0f;
+            }
+            else
+            {
+                // Не дать этому удару перепрыгнуть порог.
+                var room = (target.Health - floorHp) * target.Body.Parts.Count;
+                landed = System.Math.Min(landed, room);
+            }
+        }
+
         target.Body.Parts[part] = System.Math.Max(0f, target.Body.Parts[part] - landed);
         target.Health = target.Body.Mean();
         DamageReactionSystemHelpers.GrantAdrenaline(world, target, landed, traceName);
@@ -140,6 +164,20 @@ internal static class MeleeSwing
             $"Target=NPC{target.Id.Value} {part} -{landed:F3} (armor={partArmor:F2}) " +
             $"Weapon={(string.IsNullOrEmpty(weaponId) ? "fists" : weaponId)} " +
             $"TargetHealth={target.Health:F2}");
+    }
+
+    // §86: щадит ли этот бьющий эту цель. Ненависть — заработанная: симпатия
+    // ниже HatredAffinity значит несколько сцен насилия за спиной, а не
+    // случайную ссору.
+    private static bool Merciful(WorldState world, NPCState attacker, NPCState target)
+    {
+        if (!Spec86.MercyAppliesToOutsiders &&
+            FactionRelations.AreHostile(attacker.Faction, target.Faction))
+        {
+            return false;
+        }
+
+        return attacker.Social.GetOrCreate(target.Id).Affinity > Spec86.HatredAffinity;
     }
 
     internal static bool InReach(WorldState world, NPCState a, NPCState b)

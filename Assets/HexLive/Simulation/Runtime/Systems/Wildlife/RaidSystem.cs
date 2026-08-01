@@ -317,6 +317,20 @@ public sealed class RaidSystem : ISimulationSystem
             $"Dist={HexSpatialMath.HexDistance(raider.Tile, victim.Tile)}");
     }
 
+    // §85: вход в бой из сцены абьюза — «проигнорировала, значит будет драка».
+    // Публичный, потому что зовут снаружи; кулдаун налёта тут не спрашивается:
+    // это не выбор охотиться, а продолжение уже начатого столкновения.
+    internal static void EscalateToRaid(WorldState world, NPCState raider, NPCState victim, string why)
+    {
+        if (raider.Health <= 0f || victim.Health <= 0f ||
+            raider.IsUnconscious(world.Tick) || raider.Body.IsProne)
+        {
+            return;
+        }
+
+        StartRaidOn(world, raider, victim, why);
+    }
+
     private static string WeaponLabel(NPCState npc)
     {
         var id = npc.Body.CanUseToolsOrWeapons

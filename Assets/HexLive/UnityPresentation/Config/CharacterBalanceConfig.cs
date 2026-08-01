@@ -13,6 +13,7 @@ namespace HexLive.UnityPresentation.Config
     /// </summary>
     [CreateAssetMenu(menuName = "HexLive/Balance/Character", fileName = "CharacterBalance")]
     [MirrorTarget(typeof(SimBalance))]
+    [MirrorTarget(typeof(Spec85))]
     [MirrorTarget(typeof(AiBalance))]
     public sealed class CharacterBalanceConfig : ScriptableObject
     {
@@ -325,5 +326,11 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 0.3f)] public float clothingBiteDurabilityWear = 0.0026f;
         [Tooltip("Естественный износ надетой вещи за 150 медленных тиков (10 реальных минут). Снижен в 5 раз (было 0.005).")]
         [Range(0f, 0.2f)] public float clothingPassiveWearPerDay = 0.001f;
+
+        [Header("§85 Ночь — отдых, а не вторая смена")]
+        [Tooltip("Во сколько раз спящее тело медленнее тратит голод и жажду. Было 0.4 — за ночь съедало заметную долю сытости.")]
+        [Range(0f, 1f)] public float sleepMetabolismFactor = 0.1f;
+        [Tooltip("Во сколько раз медленнее уходит нужда в общении во сне. Раньше она текла полностью: ложился общительным, вставал одиноким.")]
+        [Range(0f, 1f)] public float sleepSocialFactor = 0.1f;
     }
 }

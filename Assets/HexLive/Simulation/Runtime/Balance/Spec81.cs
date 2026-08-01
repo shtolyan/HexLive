@@ -24,7 +24,7 @@ public static class Spec81
 
     // Нужда в общении, ниже которой он идёт искать жертву. Social — это
     // СЫТОСТЬ общением (1 = наговорился), поэтому «низкое» значит одиноко.
-    public static float AbuseSocialFloor = 0.45f;
+    public static float AbuseSocialFloor = 0.55f;
 
     // Голод/жажда, выше которых он готов отжимать припас.
     public static float AbuseSupplyFloor = 0.55f;
@@ -92,7 +92,7 @@ public static class Spec81
     // --- Последствия ---------------------------------------------------------
 
     // ⭐ Ради этого всё и затевалось: сцена НАСЫЩАЕТ его общением.
-    public static float AbuseSocialGain = 0.35f;
+    public static float AbuseSocialGain = 0.55f;
 
     // Ей от этого не легче: чужой контакт общением не считается.
     public static float AbuseMarkSocialGain = 0f;

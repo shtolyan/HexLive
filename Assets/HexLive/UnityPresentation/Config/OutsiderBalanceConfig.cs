@@ -14,6 +14,7 @@ namespace HexLive.UnityPresentation.Config
     [MirrorTarget(typeof(Spec72))]
     [MirrorTarget(typeof(Spec81))]
     [MirrorTarget(typeof(Spec82))]
+    [MirrorTarget(typeof(Spec86))]
     public sealed class OutsiderBalanceConfig : ScriptableObject
     {
         [Header("Общее (§72)")]
@@ -201,5 +202,15 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 4f)] public float territoryScore = 2.5f;
         [Tooltip("Насколько сильнее давит нулевое общение. Ниже ~1.5 он тонет среди бытовых дел и никого не трогает.")]
         [Range(0f, 4f)] public float lonelinessDriveMult = 1.8f;
+
+        [Header("§86 Бой не до смерти, если нет ненависти")]
+        [Tooltip("Включить пощаду. Выключено — люди снова добивают друг друга как звери.")]
+        public bool mercyEnabled = true;
+        [Tooltip("Ниже этой доли здоровья удар человека по человеку не опускает, если бьющий не ненавидит.")]
+        [Range(0f, 1f)] public float mercyHealthFloor = 0.55f;
+        [Tooltip("Симпатия, ниже которой пощады нет. -0.6 — это уже несколько сцен насилия подряд, заработанная ненависть.")]
+        [Range(-1f, 1f)] public float hatredAffinity = -0.6f;
+        [Tooltip("Распространять пощаду и на чужаков. Выключено — соак разведёт смерти от своих и от чужих.")]
+        public bool mercyAppliesToOutsiders = true;
     }
 }

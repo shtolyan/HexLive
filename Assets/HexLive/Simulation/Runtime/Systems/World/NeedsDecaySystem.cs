@@ -348,7 +348,11 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // the metabolism term rather than into HungerRate/ThirstRate so the
             // sleeping discount and the attribute compose the obvious way, and
             // so there is exactly ONE per-agent factor on the food clock.
-            var metabolism = (sleeping ? 0.4f : 1f) * AttributeMath.MetabolismMult(npc);
+            // §85: спящее тело почти ничего не тратит. Было 0.4 — за ночь это
+            // съедало заметную долю сытости, и вставали они уже голодными, то
+            // есть ночь работала против них дважды: и холодом, и желудком.
+            var metabolism =
+                (sleeping ? Spec85.SleepMetabolismFactor : 1f) * AttributeMath.MetabolismMult(npc);
             // Spec 42.A: sweating burns water — overheating scales thirst by
             // up to +25% at heatstroke-level heat (ThermalComfort +1). Reads
             // the previous slow tick's signed comfort; cold side is free (a
@@ -453,7 +457,12 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // tend the fire) eases loneliness a touch, Sims-style. A trickle, not
             // a substitute: it can't lift Social past a modest cap, so a real
             // chat is still wanted to feel truly social.
-            npc.Needs.Social = MathUtil.Clamp01(npc.Needs.Social - SocialRate);
+            // §85: во сне одиночество почти не копится. Раньше оно текло
+            // ПОЛНОСТЬЮ — человек ложился общительным, а вставал одиноким, хотя
+            // во сне не с кем и не поговорить. Для чужака это било вдвойне: его
+            // Social и так не закрывается ничем, кроме насилия.
+            npc.Needs.Social = MathUtil.Clamp01(
+                npc.Needs.Social - SocialRate * (sleeping ? Spec85.SleepSocialFactor : 1f));
             if (Spec49.AmbientSocial && !sleeping && npc.Needs.Social < AmbientSocialCap && HasNearbyCompanion(npc))
             {
                 npc.Needs.Social = System.Math.Min(

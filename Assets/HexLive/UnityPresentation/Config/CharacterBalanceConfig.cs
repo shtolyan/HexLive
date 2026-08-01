@@ -225,6 +225,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 1f)] public float sunExposureRate = 0.3f;
         [Tooltip("Урон части тела при событии солнечного ожога.")]
         [Range(0f, 0.3f)] public float sunburnBurnDamage = 0.08f;
+        [Tooltip("§82: ниже этого порога солнце не доламывает ВИТАЛЬНУЮ часть (голова, торс). Солнечный удар доводит до беспамятства, но не убивает: без порога забронированный целиком человек сгорал за треть дня — у него открыта ровно одна часть, и все удары шли в неё.")]
+        [Range(0f, 1f)] public float sunburnVitalFloor = 0.45f;
 
         [Header("Гигиена")]
         [Tooltip("Прирост гигиены за тик у воды (умывание).")]

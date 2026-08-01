@@ -37,6 +37,7 @@ public static class BalanceReflection
         // и экспорт, и SimConfigMirror обходят ИМЕННО этот список. Крутилки в
         // инспекторе при этом выглядят рабочими и молча ничего не делают.
         typeof(Spec81),
+        typeof(Spec82),
         typeof(AiBalance),
         typeof(SocialBalance),
         typeof(WorldBalance),

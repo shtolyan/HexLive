@@ -3772,12 +3772,21 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                     _rForearm.rotation = Quaternion.AngleAxis(10f, right) * _rForearm.rotation;
                 }
                 break;
-            case "HeadClutch": // hand up to a hurt head
-                _rShldr.rotation = Quaternion.AngleAxis(-95f, right) * _rShldr.rotation;
-                if (_rForearm != null)
-                {
-                    _rForearm.rotation = Quaternion.AngleAxis(-120f, right) * _rForearm.rotation;
-                }
+            // §82: «рука к разбитой голове» ВЫКЛЮЧЕНА по решению пользователя —
+            // реализация плохая. Это поворот плеча на -95° и предплечья на -120°
+            // поверх любого клипа, без учёта того, где рука сейчас находится и
+            // куда смотрит тело: со стороны это читается не как «схватился за
+            // голову», а как непрерывное сгибание руки в пустоту.
+            //
+            // Сигнал симуляции при этом жив и приходит по-прежнему — выключен
+            // только рисунок. Чтобы вернуть, сделать надо иначе: тянуть кисть в
+            // точку у виска через IK (FullBodyBipedIK уже на теле и уже умеет
+            // вести руку в мировую точку — см. DriveActionTargetIK), а не
+            // крутить кости на фиксированный угол.
+            // §82: «держится за то, что болит» переехало на IK
+            // (DriveHurtReachIK). Прежний вариант крутил кости на фиксированный
+            // угол поверх любого клипа и читался как сгибание руки в пустоту.
+            case "HeadClutch":
                 break;
             // Spec §50: "Limp" and "Crawl" are now fully animator-driven (the
             // Limp walk state via LimpingParam; the real Crawl clip via
@@ -4086,8 +4095,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             solver.IKPositionWeight = 0f;
             effector.positionWeight = 0f;
             effector.rotationWeight = 0f;
+            // §82: рабочий IK молчит — можно подержаться за больное место.
+            // Порядок именно такой: solver один на всё тело, и замах всегда
+            // главнее, чем баюканье царапины.
+            DriveHurtReachIK(_fullBodyIK);
             return;
         }
+
+        _hurtReachWeight = 0f;
 
         var contact = ActionPropContactPoint(_actionTargetPoint, hand);
         solver.IKPositionWeight = 1f;
@@ -4096,6 +4111,153 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         effector.position = _actionTargetPoint - (contact - hand.position);
         effector.positionWeight = weight;
         effector.rotationWeight = 0f;
+    }
+
+    // §82: «держится за то, что болит» — через Final IK, а не поворотом костей.
+    //
+    // Прежний вариант доворачивал плечо на −95°, а предплечье на −120° поверх
+    // любого клипа, не зная, где рука сейчас находится: со стороны это читалось
+    // не как «схватился за голову», а как непрерывное сгибание руки в пустоту.
+    // IK ведёт кисть В ТОЧКУ, поэтому рука идёт к больному месту из своего
+    // текущего положения — и по дороге ничего не выворачивает.
+    //
+    // ⭐ Тянется ТОЛЬКО когда человек не занят ничем вообще. Любое дело, шаг,
+    // драка, вода, лежание — вес мгновенно в ноль. Так рука не может влезть в
+    // клип рубки или в замах: у боевого/рабочего IK и у этого один и тот же
+    // solver, и делить его между ними нельзя.
+    private bool HurtReachActive =>
+        _hurtReachBone != null && !_actionTargetActive && !_ragdollActive &&
+        !_laying && !_swimming && !_combatFighting && !_busyInteraction &&
+        !_wasWalking && !_dead && _posture != "Crawl";
+
+    // Кисть, которая тянется, и кость, к которой тянется. Больную руку держит
+    // ДРУГАЯ рука — своей же за неё не схватишься.
+    private Transform _hurtReachBone;
+    private bool _hurtReachUseLeftHand;
+    private float _hurtReachWeight;
+
+    // Зона раны -> кость, за которую хватаются. Имена зон совпадают с частями
+    // тела симуляции (карта покраски кожи собрана по тем же именам).
+    private Transform HurtBoneForZone(string zone, out bool useLeftHand)
+    {
+        useLeftHand = false;
+        if (_bodyBones == null)
+        {
+            return null;
+        }
+
+        switch (zone)
+        {
+            case "Head":
+                return _bodyBones.GetBone("head");
+            case "Torso":
+                return _bodyBones.GetBone("chestUpper");
+            case "Pelvis":
+                return _bodyBones.GetBone("hip") ?? _bodyBones.GetBone("pelvis");
+            case "ArmR":
+                useLeftHand = true;                    // правую держит левая
+                return _bodyBones.GetBone("rForearmBend");
+            case "ArmL":
+                return _bodyBones.GetBone("lForearmBend");
+            case "LegR":
+                return _bodyBones.GetBone("rThighBend");
+            case "LegL":
+                useLeftHand = true;
+                return _bodyBones.GetBone("lThighBend");
+            default:
+                return null;
+        }
+    }
+
+    // Что болит сильнее всего. Берётся самая свежая рана (heal ближе к 0):
+    // затянувшуюся царапину не баюкают.
+    private void RefreshHurtReachTarget()
+    {
+        _hurtReachBone = null;
+        if (_woundScratch.Count == 0)
+        {
+            return;
+        }
+
+        var freshest = 1f;
+        string zone = null;
+        foreach (var (z, _, heal) in _woundScratch)
+        {
+            if (heal < freshest)
+            {
+                freshest = heal;
+                zone = z;
+            }
+        }
+
+        if (zone == null || freshest > HurtReachHealCeiling)
+        {
+            return;
+        }
+
+        _hurtReachBone = HurtBoneForZone(zone, out _hurtReachUseLeftHand);
+    }
+
+    // Свежее этого порога рану ещё баюкают, выше — уже нет.
+    private const float HurtReachHealCeiling = 0.6f;
+    // Насколько кисть не доходит до самой кости — иначе она уезжает ВНУТРЬ тела.
+    private const float HurtReachSurfaceOffset = 0.11f;
+    private const float HurtReachEaseSpeed = 2.5f;
+
+    // §82: решатель по умолчанию СПИТ и просыпается только под удар
+    // (SetActionTargetPoint). Баюканье раны — второй повод его разбудить, иначе
+    // OnPreUpdate просто не вызовется и рука никуда не потянется.
+    //
+    // Выбирает цель тут же: список ран обновляет рендерер, и дёргать его на
+    // каждый кадр солвера незачем.
+    private void UpdateHurtReach()
+    {
+        RefreshHurtReachTarget();
+        if (_fullBodyIK == null)
+        {
+            return;
+        }
+
+        var wants = HurtReachActive || _actionTargetActive;
+        if (_fullBodyIK.enabled != wants)
+        {
+            _fullBodyIK.enabled = wants;
+            if (!wants)
+            {
+                _hurtReachWeight = 0f;
+                ResetActionTargetIKWeights();
+            }
+        }
+    }
+
+    private void DriveHurtReachIK(FullBodyBipedIK ik)
+    {
+        var solver = ik.solver;
+        var want = HurtReachActive ? 1f : 0f;
+        // Вниз — мгновенно: начал что-то делать, рука обязана освободиться в
+        // тот же кадр. Вверх — плавно, иначе рука дёргается к голове рывком.
+        _hurtReachWeight = want <= 0f
+            ? 0f
+            : Mathf.MoveTowards(_hurtReachWeight, 1f, Time.deltaTime * HurtReachEaseSpeed);
+
+        var hand = _hurtReachUseLeftHand ? _lHand : _rHand;
+        var effector = _hurtReachUseLeftHand ? solver.leftHandEffector : solver.rightHandEffector;
+        if (_hurtReachWeight <= 0.001f || hand == null || _hurtReachBone == null)
+        {
+            effector.positionWeight = 0f;
+            effector.rotationWeight = 0f;
+            solver.IKPositionWeight = 0f;
+            return;
+        }
+
+        // Точка чуть ПЕРЕД костью, по взгляду тела: ладонь ложится на больное
+        // место снаружи, а не проваливается в него.
+        var forward = _bodyRoot != null ? _bodyRoot.forward : transform.forward;
+        effector.target = null;
+        effector.position = _hurtReachBone.position + forward * HurtReachSurfaceOffset;
+        effector.positionWeight = _hurtReachWeight;
+        effector.rotationWeight = 0f;
+        solver.IKPositionWeight = 1f;
     }
 
     private float CurrentActionTargetIKWeight()
@@ -4252,6 +4414,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // «стоит на месте» берётся из только что посчитанной скорости.
         UpdateIdleFidget(_busyInteraction || _combatFighting || _wasWalking || _dead || _laying);
         UpdateSadWalk();
+        UpdateHurtReach();
         // §67.10: hands the bubble back to a running conversation once a line
         // fades, and paces the ambient self-talk layer.
         _speech?.Tick();

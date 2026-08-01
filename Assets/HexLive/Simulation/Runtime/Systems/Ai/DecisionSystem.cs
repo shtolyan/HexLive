@@ -359,9 +359,21 @@ public sealed partial class DecisionSystem : ISimulationSystem
                  // upgrade — no trek to an equal/worse shirt (the girl's own
                  // example: a top over an identical top warms her by nothing).
                  KnowsReachableWarmthUpgrade(npc, world)));
-            var dressNeed = wantsArmor
-                ? System.Math.Max(npc.Needs.ThermalDiscomfort, 0.6f)
-                : npc.Needs.ThermalDiscomfort;
+            // §82: обгорела — прикройся. Раньше одеваться заставляла ТОЛЬКО
+            // температура, поэтому в жаркий комфортный полдень девушка ходила
+            // раздетой и горела, не понимая, что с ней происходит: краснота
+            // росла, части тела теряли здоровье, а в аукционе это не значило
+            // ничего. Теперь краснота — такая же причина одеться, как холод.
+            //
+            // Через MAX, а не сложением: холод и солнце требуют одного и того
+            // же действия, и складывать их значило бы гнать одеваться вдвое
+            // сильнее, когда человеку просто очень плохо.
+            var sunPressure = npc.Needs.Sunburn * Spec82.SunburnDressWeight;
+            var dressNeed = System.Math.Max(
+                wantsArmor
+                    ? System.Math.Max(npc.Needs.ThermalDiscomfort, 0.6f)
+                    : npc.Needs.ThermalDiscomfort,
+                sunPressure);
 
             // Spec 28.6 / 28.15A: Socialize needs a reachable non-busy agent;
             // affinity toward the best target feeds the score back positively.

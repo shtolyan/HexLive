@@ -40,8 +40,13 @@ public static class AbuseMath
             supply = need <= Spec81.AbuseNeedCeiling ? need : 0f;
         }
 
+        // §82: одиночество давит СИЛЬНЕЕ голода. Раньше оно давало ровно
+        // 1 - Social, то есть максимум 1.0, и тонуло среди бытовых дел: чужак
+        // сидел с общением в нуле и спокойно строил лежанку. Множитель
+        // поднимает нужду над бытом — человеку, который ни с кем не говорил,
+        // не до лежанки.
         var social = npc.Needs.Social < Spec81.AbuseSocialFloor
-            ? 1f - npc.Needs.Social
+            ? (1f - npc.Needs.Social) * Spec82.LonelinessDriveMult
             : 0f;
 
         return System.Math.Max(supply, social);

@@ -204,6 +204,11 @@ namespace HexLive.Simulation.Runtime
         public static float SunburnRate = 0.004f;     // acute redness gained (faster than tan settles)
         public static float SunExposureRate = 0.3f;   // exposure meter gained (fills toward a burn event)
         public static float SunburnBurnDamage = 0.08f; // HP torn off a part by a burn event
+        // §82: ниже этого порога солнце ВИТАЛЬНУЮ часть не доламывает.
+        // Солнечный удар доводит до беспамятства, но не отрывает голову: без
+        // порога забронированный целиком человек умирает от загара за треть
+        // дня — у него открыта ровно одна часть, и все удары приходят в неё.
+        public static float SunburnVitalFloor = 0.45f;
 
         // ─────────────────────────────────────────────────────────────
         // Hygiene (soft, UI-tracked).

@@ -13,6 +13,7 @@ namespace HexLive.UnityPresentation.Config
     [CreateAssetMenu(menuName = "HexLive/Balance/Outsider", fileName = "OutsiderBalance")]
     [MirrorTarget(typeof(Spec72))]
     [MirrorTarget(typeof(Spec81))]
+    [MirrorTarget(typeof(Spec82))]
     public sealed class OutsiderBalanceConfig : ScriptableObject
     {
         [Header("Общее (§72)")]
@@ -172,5 +173,19 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 2f)] public float abuseTrustLoss = 0.25f;
         [Tooltip("Закрыть тихую кражу §40.5 до своих — у чужака теперь есть настоящая сцена.")]
         public bool abuseSupersedesPassiveTheft = true;
+
+        [Header("§82 Солнце и злость")]
+        [Tooltip("Во что превращается краснота в ставке «одеться». 1.0 = полностью обгоревшая хочет прикрыться так же, как продрогшая.")]
+        [Range(0f, 4f)] public float sunburnDressWeight = 1.0f;
+        [Tooltip("⭐ Подошла к его стоянке — бьёт без разговора. Выключено = прежнее мирное поведение.")]
+        public bool territorialEnabled = true;
+        [Tooltip("Радиус вокруг стоянки, который он считает своим двором.")]
+        [Range(0, 12)] public int territoryRadiusTiles = 5;
+        [Tooltip("Пауза между выгонами, чтобы не молотил одну и ту же без передышки.")]
+        [Range(0, 2400)] public int territoryCooldownTicks = 300;
+        [Tooltip("Ставка выгона. Очень высокая намеренно: это реакция на вторжение, а не дело между делами.")]
+        [Range(0f, 4f)] public float territoryScore = 2.5f;
+        [Tooltip("Насколько сильнее давит нулевое общение. Ниже ~1.5 он тонет среди бытовых дел и никого не трогает.")]
+        [Range(0f, 4f)] public float lonelinessDriveMult = 1.8f;
     }
 }

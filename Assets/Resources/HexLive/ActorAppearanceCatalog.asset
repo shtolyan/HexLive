@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9924710cdfdc04e0fb6f0dcbe5cd877b, type: 3}
+  m_Name: ActorAppearanceCatalog
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.ActorAppearanceCatalog
+  hairstyles:
+  - {fileID: 4237885271606342491, guid: 16c74c662768dc14db310af2058e1d8a, type: 3}
+  - {fileID: 981942730775082348, guid: 6656edd8744ce954bab804d724061114, type: 3}
+  - {fileID: 6719276383305769003, guid: 9edd6b274d35f644d94b89fd0577be62, type: 3}
+  - {fileID: 7838977768484864180, guid: d6bc6c88a1bc6cb48a7b842711d1c255, type: 3}
+  - {fileID: 4586264236356159168, guid: 9e974949cc4c3ec45a146d51136e6121, type: 3}
+  - {fileID: 7247782644059013119, guid: 4d3265d1a4c863940809b1da009c91a8, type: 3}
+  - {fileID: 5305090620873555672, guid: 0e87ed6f3e5083b48a1b5bd9d21abf4a, type: 3}
+  - {fileID: 2686189325586104534, guid: 10f28e9abd8a242969d20919fb0856df, type: 3}
+  - {fileID: 2786174600953756029, guid: 0464cad814111854c84d535d381d7938, type: 3}
+  - {fileID: 8355972699817684869, guid: 8ac65038158a888499b69a71949a76a4, type: 3}
+  - {fileID: 7232675141285592703, guid: 295165e5f9a98c045be32aa86550322f, type: 3}
+  - {fileID: 2078132911978786281, guid: dd71c155f7338314fbd0dc7ac2c10bcd, type: 3}
+  - {fileID: 8681775747410027845, guid: d40b1bceef576ec4f97d5066a95faae2, type: 3}
+  - {fileID: -1246604828743692618, guid: e9add1981b812134fa96dbe11d7aa432, type: 3}
+  - {fileID: -7226743084929782580, guid: fcae97fd035081c41b601ac22c9dadb7, type: 3}
+  - {fileID: 4627830619183999660, guid: b7f811e03a6c13c42882626bc7099a17, type: 3}

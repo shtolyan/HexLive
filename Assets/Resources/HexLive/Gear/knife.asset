@@ -23,7 +23,7 @@ MonoBehaviour:
   meleePriority: 10
   twoHanded: 0
   attackSpeed: 1
-  harvestSpeedMult: 1
+  harvestSpeedMult: 0.75
   capabilities: 0100000002000000
   craftable: 1
   craftStation: 0

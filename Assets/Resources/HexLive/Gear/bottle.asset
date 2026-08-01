@@ -30,6 +30,13 @@ MonoBehaviour:
   craftStation: 0
   craftNeedsLitFire: 0
   craftIngredients: []
+  handPoseAuthored: 1
+  handLocalPosition: {x: 0.0543, y: -0.0236, z: -0.051}
+  handLocalEuler: {x: 91.974, y: 0.001007, z: -6.520996}
+  handLocalScale: {x: 1, y: 1, z: 1}
+  handHasLeftOverride: 0
+  leftHandLocalPosition: {x: 0, y: 0, z: 0}
+  leftHandLocalEuler: {x: 0, y: 0, z: 0}
   attackClips: []
   armedIdle: {fileID: -203655887218126122, guid: 4b1c7d0af5eb04d6e9a1658453475d94, type: 3}
   armedWalk: {fileID: -203655887218126122, guid: 9e708ac3817d44062afa1909114df08c, type: 3}

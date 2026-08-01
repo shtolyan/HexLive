@@ -39,7 +39,9 @@ public static class WorldSnapshotCodec
     /// v2: tiles reduced to a changed-set (the receiver regenerates them from the
     /// seed), optional parts of an object record behind a flags byte, definition
     /// ids interned against the shared content catalog.
-    public const int WireVersion = 2;
+    /// v3: §74 appearance (SkinSet/Hairstyle/VoiceBank), §72 faction pair,
+    /// §77.5 InteractionSeconds, §76 attributes/skills/perks.
+    public const int WireVersion = 3;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -430,6 +432,13 @@ public static class WorldSnapshotCodec
         w.Write(n.Id.Value);
         WireIo.WriteString(w, n.DisplayName);
         WireIo.WriteString(w, n.ActorMesh);
+        // §74 composition + §72 faction. Faction travels as a byte: the enum is
+        // tiny and both ends link the same definition.
+        WireIo.WriteString(w, n.SkinSet);
+        WireIo.WriteString(w, n.Hairstyle);
+        WireIo.WriteString(w, n.VoiceBank);
+        w.Write((byte)n.Faction);
+        w.Write(n.IsHostileToColony);
         WireIo.WriteTile(w, n.Tile);
         WireIo.WriteFloat2(w, n.Position);
         w.Write(n.RotationDegrees);
@@ -504,6 +513,7 @@ public static class WorldSnapshotCodec
         // wardrobe beat
         w.Write(n.ExecutionStartTick);
         w.Write(n.ExecutionEndTick);
+        w.Write(n.InteractionSeconds);
         WireIo.WriteString(w, n.HeldGarmentId);
         w.Write(n.HeldGarmentDirt);
         w.Write(n.HeldGarmentBlood);
@@ -535,6 +545,10 @@ public static class WorldSnapshotCodec
         // wounds + effects
         WireIo.WriteStrings(w, n.Wounds);
         WireIo.WriteStrings(w, n.Effects);
+        // §76: innate attributes, learned skills, perks.
+        WireIo.WriteStrings(w, n.Attributes);
+        WireIo.WriteStrings(w, n.Skills);
+        WireIo.WriteStrings(w, n.Perks);
         w.Write(n.WoundLockedHp);
 
         w.Write(n.KnownObjectCount);
@@ -588,6 +602,11 @@ public static class WorldSnapshotCodec
         n.Id = new EntityId(r.ReadInt32());
         n.DisplayName = r.ReadString();
         n.ActorMesh = r.ReadString();
+        n.SkinSet = r.ReadString();
+        n.Hairstyle = r.ReadString();
+        n.VoiceBank = r.ReadString();
+        n.Faction = (Agents.Faction)r.ReadByte();
+        n.IsHostileToColony = r.ReadBoolean();
         n.Tile = WireIo.ReadTile(r);
         n.Position = WireIo.ReadFloat2(r);
         n.RotationDegrees = r.ReadSingle();
@@ -655,6 +674,7 @@ public static class WorldSnapshotCodec
 
         n.ExecutionStartTick = r.ReadInt32();
         n.ExecutionEndTick = r.ReadInt32();
+        n.InteractionSeconds = r.ReadSingle();
         n.HeldGarmentId = r.ReadString();
         n.HeldGarmentDirt = r.ReadSingle();
         n.HeldGarmentBlood = r.ReadSingle();
@@ -683,6 +703,9 @@ public static class WorldSnapshotCodec
 
         WireIo.ReadStrings(r, n.Wounds);
         WireIo.ReadStrings(r, n.Effects);
+        WireIo.ReadStrings(r, n.Attributes);
+        WireIo.ReadStrings(r, n.Skills);
+        WireIo.ReadStrings(r, n.Perks);
         n.WoundLockedHp = r.ReadSingle();
 
         n.KnownObjectCount = r.ReadInt32();

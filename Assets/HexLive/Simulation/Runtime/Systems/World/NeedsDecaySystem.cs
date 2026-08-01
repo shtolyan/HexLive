@@ -175,7 +175,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
         // The centre is pinned first and unconditionally; the scan below now
         // only picks a free junction to anchor the lying footprint (spec 29G)
         // so housemates path around the body — it no longer decides position.
-        ExecutionSystem.LieDownCentered(npc);
+        ExecutionSystem.LieDownCentered(world, npc);
 
         var center = npc.Position;
         JunctionId? spot = null;
@@ -344,7 +344,11 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // rule — same low metabolism, same energy/comfort restore.
             var sleeping = npc.Execution.CurrentInteraction == InteractionType.Sleep ||
                 npc.Mind.ComaCause != ComaCause.None;
-            var metabolism = sleeping ? 0.4f : 1f;
+            // §76: Hardiness — "она может дольше не есть и не пить". Folded into
+            // the metabolism term rather than into HungerRate/ThirstRate so the
+            // sleeping discount and the attribute compose the obvious way, and
+            // so there is exactly ONE per-agent factor on the food clock.
+            var metabolism = (sleeping ? 0.4f : 1f) * AttributeMath.MetabolismMult(npc);
             // Spec 42.A: sweating burns water — overheating scales thirst by
             // up to +25% at heatstroke-level heat (ThermalComfort +1). Reads
             // the previous slow tick's signed comfort; cold side is free (a
@@ -352,7 +356,10 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             var sweat = 1f + SweatThirstFactor * System.Math.Max(0f, npc.Needs.ThermalComfort);
             npc.Needs.Hunger = MathUtil.Clamp01(npc.Needs.Hunger + HungerRate * metabolism);
             npc.Needs.Thirst = MathUtil.Clamp01(npc.Needs.Thirst + ThirstRate * metabolism * sweat);
-            var energyDrain = npc.IsFighting ? 0f : EnergyRate;
+            // §76: Endurance is the "can stay up" half of the stat — she runs
+            // down toward sleep slower. (Fighting still suspends the drain
+            // entirely, as before.)
+            var energyDrain = npc.IsFighting ? 0f : EnergyRate * AttributeMath.EnergyDrainMult(npc);
             npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy - energyDrain);
 
             // §54.11: faster sleep recovery — a base lift (shorter nights) plus a
@@ -516,15 +523,21 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // idle — and moves toward that ceiling either way. Soft in v1: it
             // does NOT gate actions (that would collapse the economy); it only
             // colours the UI and nudges the rest goals (below).
+            // §76: Endurance raises the roof on that ceiling. The polynomial is
+            // untouched — the attribute scales its result, so the "you can't be
+            // spry starving" shape is preserved and only the height moves.
             var staminaCeiling = MathUtil.Clamp01(
-                0.30f + 0.35f * (1f - npc.Needs.Hunger) + 0.25f * npc.Needs.Energy +
-                0.10f * npc.Needs.Comfort);
+                (0.30f + 0.35f * (1f - npc.Needs.Hunger) + 0.25f * npc.Needs.Energy +
+                 0.10f * npc.Needs.Comfort) * AttributeMath.StaminaCeilingMult(npc));
             var resting = npc.Execution.CurrentInteraction is
                 InteractionType.Sit or InteractionType.Sleep ||
                 npc.Mind.ComaCause != ComaCause.None; // §60: a coma rests the body too
             var working = npc.Execution.Status == ExecutionStatus.InProgress && !resting;
+            // §76: and she spends it slower at the job. Only the WORK drain is
+            // scaled — the rest/idle gains are the body's clock, not hers.
             var staminaDelta = resting ? SimBalance.StaminaRestGain
-                : working ? -SimBalance.StaminaWorkDrain : SimBalance.StaminaIdleGain;
+                : working ? -SimBalance.StaminaWorkDrain * AttributeMath.StaminaDrainMult(npc)
+                : SimBalance.StaminaIdleGain;
             npc.Needs.Stamina = MathUtil.Clamp(
                 npc.Needs.Stamina + staminaDelta, 0f, staminaCeiling);
 
@@ -548,7 +561,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 // Spec 40.13/§60: drop at the tile centre, not wherever the
                 // stride left her — this path never set the lying position
                 // before, so the limp body used to hang off the hex edge.
-                ExecutionSystem.LieDownCentered(npc);
+                ExecutionSystem.LieDownCentered(world, npc);
                 Trace.Emit(world, npc.Id, "Fainted",
                     $"Stamina={npc.Needs.Stamina:F2} Hunger={npc.Needs.Hunger:F2} Blood={npc.Needs.Blood:F2}");
             }
@@ -678,7 +691,12 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     // the coma's deep rest knits some of it back (same fed gate
                     // as spec 44) — a race between the open wound and the
                     // healing sleep. Reaching 0 is still death (spec 40.2).
-                    var bleed = (0.4f - worstPart) * SimBalance.BleedRateFactor;
+                    // §76: Toughness clots faster — she bleeds out slower from
+                    // the same wound. This is half of what "more HP" means in a
+                    // game with no max HP (§76.3); the other half is the damage
+                    // reduction in EquipmentMath.Mitigate.
+                    var bleed = (0.4f - worstPart) * SimBalance.BleedRateFactor *
+                        AttributeMath.BleedMult(npc);
                     if (npc.Mind.ComaCause == ComaCause.BloodLoss &&
                         npc.Needs.Hunger < SimBalance.HealHungerGate)
                     {
@@ -789,6 +807,10 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 foreach (var other in world.Entities.Npcs.Values)
                 {
                     if (other.Id.Equals(npc.Id) || other.Health <= 0f ||
+                        // §72: charity is for your own side. (Theft below is
+                        // deliberately NOT gated — a starving outsider robbing
+                        // the girls is exactly the friction we want.)
+                        !FactionRelations.AreAllies(npc, other) ||
                         other.Needs.Hunger >= 0.4f || other.IsFighting ||
                         other.Mind.CurrentGoal == GoalType.Flee ||
                         other.CurrentJunction is not { } giverJct)
@@ -829,6 +851,21 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 {
                     if (victim.Id.Equals(npc.Id) || victim.Health <= 0f ||
                         victim.CurrentJunction is not { } victimJct)
+                    {
+                        continue;
+                    }
+
+                    // §81: кража стала ВНУТРИФРАКЦИОННОЙ. Раньше она нарочно
+                    // не гейтилась — «голодный чужак, ворующий у девушек, это
+                    // ровно то трение, которое нам нужно», — но теперь у него
+                    // есть настоящая сцена с требованием, ударами и эмодзи, а
+                    // тихая кража мимо неё только мешает: он молча уносит еду,
+                    // пока идёт эту же еду отжимать, и сцена оказывается ни к
+                    // чему. Осталось то, чем она и должна была быть: отчаявшаяся
+                    // соседка забирает у соседки — зеркало блока раздачи выше,
+                    // тоже гейтованного по своим.
+                    if (Spec81.AbuseSupersedesPassiveTheft &&
+                        !FactionRelations.AreAllies(npc.Faction, victim.Faction))
                     {
                         continue;
                     }
@@ -901,7 +938,12 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     var ceiling = MathUtil.Clamp01(1f - WoundMath.OpenWoundDamage(npc, part));
                     if (npc.Body.Parts[part] < ceiling)
                     {
-                        npc.Body.Parts[part] = System.Math.Min(ceiling, npc.Body.Parts[part] + SimBalance.HealthRegenPerTick);
+                        // §76: a tough body knits faster. The CEILING is
+                        // untouched — an open wound still caps what can come
+                        // back, grit only decides how quickly she gets there.
+                        npc.Body.Parts[part] = System.Math.Min(ceiling,
+                            npc.Body.Parts[part] +
+                            SimBalance.HealthRegenPerTick * AttributeMath.HealRateMult(npc));
                     }
 
                     // Spec 44: the dressing (leaf wrap or gauze) comes off once
@@ -923,10 +965,12 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             if (npc.Wounds.Count > 0)
             {
                 // §60: a coma knits flesh at the sleeping pace too.
-                var pace = npc.Execution.CurrentInteraction == InteractionType.Sleep ||
+                // §76: Toughness rides on top of the activity pace — the same
+                // wound closes sooner on a hardy body.
+                var pace = (npc.Execution.CurrentInteraction == InteractionType.Sleep ||
                     npc.Mind.ComaCause != ComaCause.None ? 2f
                     : npc.Movement.Status == MovementStatus.Moving ? 0.5f
-                    : 1f;
+                    : 1f) * AttributeMath.HealRateMult(npc);
 
                 for (var wi = npc.Wounds.Count - 1; wi >= 0; wi--)
                 {

@@ -205,10 +205,24 @@ public static class SpeechCatalog
             "HelpCry" => "call_help",
             "HelpCryAssistStarted" or "HelpCryAssistArrived" or "HelpCryDefended" => "angry_defend",
             "DangerSpotted" => "fear_wolf",
+            // §80: чужак-человек. Своей группы реплик пока нет — ставим
+            // «страх зверя»: молчать в момент, когда над головой всплыло его
+            // лицо, было бы хуже, чем сказать не совсем то. Заведём
+            // fear_stranger — заменится одной строкой.
+            "DangerStranger" => "fear_wolf",
             "AidRequest" => "sad_aid_ask",
             "AidIncoming" or "AidStarted" => "happy_aid_give",
             "AidCompleted" => "happy_aid_thanks",
             "WitnessedMurder" => "cry_corpse",
+            // §81: сцена абьюза. Своих групп на хекскуфе пока нет — берём
+            // ближайшие существующие, чтобы сцена не шла в полной тишине;
+            // заменится на angry_extort_* / cry_extort_* одной строкой.
+            "AbuseDemand" => "angry_attack",
+            "AbuseStruck" => "angry_attack",
+            "AbuseCry" or "AbuseGaveUp" => "cry_corpse",
+            "AbuseDefied" => "angry_defend",
+            "AbuseThreatened" or "AbuseHurt" or "AbuseSubmit" or "AbuseRefused"
+                or "AbuseTook" or "AbuseFled" => null,
             "TalkRejected" or "TalkRefused" or "TalkQuarrel" or "Resentment" => null,
             _ => null
         };

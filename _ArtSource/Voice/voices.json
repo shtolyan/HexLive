@@ -34,6 +34,14 @@
       "stability": 0.4,
       "similarity_boost": 0.75,
       "vowel_stretch": 1.15
+    },
+    "kshishtof": {
+      "voice_id": "cCYjmrGZaI86GUJ7F2Nn",
+      "manner": "hoarse and heavy, speaks through his teeth, bites off endings",
+      "seed": 71005,
+      "stability": 0.65,
+      "similarity_boost": 0.8,
+      "vowel_stretch": 0.5
     }
   }
 }

@@ -98,8 +98,13 @@ public sealed partial class DecisionSystem
         // So: dream builders take the bed, the rest keep the §63 r2 order
         // (hearth upgrade > furniture > the rest) untouched. Labour is split, no
         // project is starved, and who builds beds is a stable per-girl trait.
+        // §72: the colony's shared aspiration for a colonist; for a lone
+        // outsider there is no labour to split, so his own dream is the gate.
+        var activeDream = npc.Faction == Faction.Colony
+            ? world.ActiveDream
+            : npc.Mind.CurrentDream;
         var buildsTheDream = SpecDream.Enabled &&
-            world.ActiveDream == DreamType.OwnBed &&
+            activeDream == DreamType.OwnBed &&
             IsDreamBuilder(npc, world);
         WorldObjectState firstSite = null;
         WorldObjectState dreamSite = null;
@@ -109,7 +114,8 @@ public sealed partial class DecisionSystem
         {
             if (!obj.IsReachable ||
                 !world.Entities.Objects.TryGetValue(obj.Id, out var site) ||
-                !BuildSiteMath.IsSite(site))
+                !BuildSiteMath.IsSite(site) ||
+                !IsOurSite(world, npc, site))
             {
                 continue;
             }
@@ -151,6 +157,41 @@ public sealed partial class DecisionSystem
         // she, once the beds are done) keeps the §63 r2 queue exactly as it was:
         // bare hearth > hearth upgrade > furniture/stations > the rest.
         return dreamSite ?? hearthUpgrade ?? furnitureSite ?? firstSite;
+    }
+
+    // §80: своя ли это стройка. §72 развёл лагеря, но очередь построек — нет:
+    // чужак мог взять в работу очаг колонии, а девушка — его стоянку, и оба
+    // таскали бы материалы врагу. Раньше не стреляло только потому, что своя
+    // стоянка помнится постоянно и почти всегда оказывалась первой.
+    //
+    // Мера — чей лагерь ближе. Владелец (Owner) есть не у всякой стройки:
+    // общий очаг колонии ничей, поэтому по владельцу одному судить нельзя.
+    // Если фракционных домов в мире нет вовсе (старый сейв, тестовый мир) —
+    // ограничение не применяется, поведение остаётся прежним.
+    private static bool IsOurSite(WorldState world, NPCState npc, WorldObjectState site)
+    {
+        if (site.Owner is { } owner)
+        {
+            return world.Entities.Npcs.TryGetValue(owner, out var builder) &&
+                   FactionRelations.AreAllies(npc.Faction, builder.Faction);
+        }
+
+        var ours = int.MaxValue;
+        var theirs = int.MaxValue;
+        foreach (var pair in world.FactionHomes)
+        {
+            var distance = HexSpatialMath.HexDistance(site.Tile, pair.Value);
+            if (FactionRelations.AreAllies(npc.Faction, pair.Key))
+            {
+                ours = System.Math.Min(ours, distance);
+            }
+            else
+            {
+                theirs = System.Math.Min(theirs, distance);
+            }
+        }
+
+        return ours <= theirs;
     }
 
     // §64.9: is this colonist one of the colony's bed builders? Her own staked

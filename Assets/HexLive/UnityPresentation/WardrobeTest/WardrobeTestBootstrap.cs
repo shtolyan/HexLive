@@ -11,7 +11,7 @@ using UnityEngine.UIElements;
 namespace HexLive.UnityPresentation.WardrobeTest
 {
 
-// Wardrobe test scene (dev tool): pick one of the three girls, try any wear
+// Wardrobe test scene (dev tool): pick one of the actors, try any wear
 // prefab the game ships (Resources/HexLive/Wear/**), watch her run the
 // sit -> sleep -> get-up loop, and tune each garment's per-actor fit scale
 // (WearConfig.scale) live with the arrow keys. "Save" persists the tuned
@@ -19,8 +19,14 @@ namespace HexLive.UnityPresentation.WardrobeTest
 [RequireComponent(typeof(UIDocument))]
 public sealed class WardrobeTestBootstrap : MonoBehaviour
 {
-    private static readonly ActorName[] Girls =
-        { ActorName.Molly, ActorName.Marta, ActorName.Jana, ActorName.Jolly };
+    // §72: no longer only girls — Kshishtof is the male outsider. A new actor
+    // has to be added HERE as well as shipped as a prefab, or the scene simply
+    // will not offer him and the omission reads as a broken import.
+    private static readonly ActorName[] Actors =
+    {
+        ActorName.Molly, ActorName.Marta, ActorName.Jana, ActorName.Jolly,
+        ActorName.Kshishtof,
+    };
 
     private static readonly int SittingParam = Animator.StringToHash("Sitting");
     private static readonly int LayingParam = Animator.StringToHash("Laying");
@@ -43,11 +49,32 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         public VisualElement Row;
     }
 
+    // §72: заголовок группы прячется вместе со всеми её строками, иначе после
+    // гендерного фильтра остаются висеть подписи без содержимого.
+    private readonly Dictionary<string, VisualElement> _groupHeaders = new();
+
     private readonly List<WearEntry> _entries = new();
     private readonly Dictionary<string, WearEntry> _byKey = new();
     private readonly HashSet<string> _equipped = new();
     private readonly HashSet<string> _dirty = new();
     private string _selectedKey;
+
+    // Hair is NOT wardrobe (spec §31B.4B): no slot, no layer, never equipped —
+    // one instance swapped through BodyBones.SetHair. It also does not live in
+    // Resources, so it gets its own list instead of riding _entries.
+    private sealed class HairEntry
+    {
+        public string DisplayName;
+        public Wear Asset;          // null = the "bald" row
+        public VisualElement Row;
+    }
+
+    private readonly List<HairEntry> _hair = new();
+    private HairEntry _selectedHair;
+    private Label _hairScaleLabel;
+    private Label _hairHeightLabel;
+    private VisualElement _hairSaveButton;
+    private bool _hairDirty;
 
     private ActorName _girl = ActorName.Marta;
     private GameObject _actorRoot;
@@ -119,6 +146,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
 
         BuildEnvironment();
         CollectWearEntries();
+        CollectHairEntries();
         BuildUi();
         SpawnGirl(_girl);
     }
@@ -216,6 +244,80 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         });
     }
 
+    // Every prefab under ImportedActors/Wear IS a hairstyle — garments live in
+    // Resources/HexLive/Wear instead, so the folder alone is the discriminator
+    // (verified 2026-08: all 17 prefabs there are hair, all with empty slots).
+    // Editor-only: hair is referenced straight off the actor prefabs and is
+    // deliberately NOT in Resources, so there is nothing to enumerate at
+    // runtime. The panel simply stays empty in a build.
+    private void CollectHairEntries()
+    {
+        _hair.Clear();
+        // Asset == null IS the bald row; its label is resolved at build time,
+        // because BuildUi re-runs on language change but this does not.
+        _hair.Add(new HairEntry { DisplayName = null, Asset = null });
+
+#if UNITY_EDITOR
+        foreach (var guid in UnityEditor.AssetDatabase.FindAssets(
+                     "t:Prefab", new[] { "Assets/ImportedActors/Wear" }))
+        {
+            var path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
+            var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            var wear = prefab != null ? prefab.GetComponent<Wear>() : null;
+            if (wear == null)
+            {
+                continue;
+            }
+
+            _hair.Add(new HairEntry { DisplayName = prefab.name, Asset = wear });
+        }
+#endif
+
+        _hair.Sort((a, b) =>
+        {
+            // The bald row stays pinned at the top (and has no DisplayName).
+            if (a.Asset == null)
+            {
+                return b.Asset == null ? 0 : -1;
+            }
+
+            if (b.Asset == null)
+            {
+                return 1;
+            }
+
+            return string.Compare(a.DisplayName, b.DisplayName, StringComparison.OrdinalIgnoreCase);
+        });
+    }
+
+    private void OnHairClicked(HairEntry entry)
+    {
+        if (_bodyBones == null)
+        {
+            return;
+        }
+
+        _selectedHair = entry;
+        _bodyBones.SetHair(entry.Asset);
+
+        // A new hairstyle brings new renderers — they need the same culling
+        // relaxation the body got, or the strands vanish mid-sleep.
+        RelaxSkinCulling();
+        RefreshHairRows();
+        RefreshHairFit();
+    }
+
+    private void RefreshHairRows()
+    {
+        foreach (var entry in _hair)
+        {
+            if (entry.Row != null)
+            {
+                entry.Row.style.backgroundColor = entry == _selectedHair ? Accent : Raised;
+            }
+        }
+    }
+
     // ---- actor ----
 
     private void SpawnGirl(ActorName girl)
@@ -228,6 +330,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         _girl = girl;
         _phase = CyclePhase.Idle;
         _phaseTime = 0f;
+        ApplyActorFilter();
 
         var prefab = Resources.Load<GameObject>($"HexLive/Actors/{girl}");
         if (prefab == null)
@@ -294,6 +397,13 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         RefreshAllRows();
         RefreshGirlButtons();
         RefreshScalePanel();
+
+        // A fresh body wears the hairstyle authored on HER actor prefab, so the
+        // panel follows the girl instead of keeping the previous selection.
+        var authored = _bodyBones != null ? _bodyBones.DefaultHair : null;
+        _selectedHair = _hair.Find(h => h.Asset == authored) ?? _hair.Find(h => h.Asset == null);
+        RefreshHairRows();
+        RefreshHairFit();
     }
 
     // Lying poses stretch outside the authored skin bounds and get
@@ -714,7 +824,159 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
 
         BuildLeftPanel(root);
         BuildWardrobePanel(root);
+        BuildHairPanel(root);
         BuildScalePanel(root);
+    }
+
+    // Sits just left of the clothes panel (which is 260 wide at right:14).
+    private void BuildHairPanel(VisualElement root)
+    {
+        var box = MakePanel();
+        box.style.right = 288f;
+        box.style.top = 14f;
+        box.style.bottom = 14f;
+        box.style.width = 200f;
+        root.Add(box);
+
+        box.Add(MakeTitle(Loc.Get("wardrobe.hair")));
+
+        var hint = new Label(Loc.Get("wardrobe.hair_hint"));
+        hint.style.color = Muted;
+        hint.style.fontSize = 10;
+        hint.style.whiteSpace = WhiteSpace.Normal;
+        hint.style.marginBottom = 6f;
+        box.Add(hint);
+
+        var scroll = new ScrollView(ScrollViewMode.Vertical);
+        scroll.style.flexGrow = 1f;
+        box.Add(scroll);
+
+        foreach (var entry in _hair)
+        {
+            var captured = entry;
+            var label = entry.Asset == null ? Loc.Get("wardrobe.hair_none") : entry.DisplayName;
+            var row = MakeButton(label, Raised, () => OnHairClicked(captured));
+            row.style.height = 24f;
+            row.style.marginBottom = 3f;
+            ((Label)row[0]).style.fontSize = 11;
+            entry.Row = row;
+            scroll.Add(row);
+        }
+
+        // --- fit block: every hairstyle was authored on the generic Genesis3
+        // head, so each girl needs her own nudge. Written into the hair
+        // prefab's WearConfig, per actor, and applied live.
+        var fitTitle = MakeTitle(Loc.Get("wardrobe.hair_fit"));
+        fitTitle.style.marginTop = 8f;
+        box.Add(fitTitle);
+
+        _hairScaleLabel = MakeStepper(box, () => AdjustHairScale(-0.01f), () => AdjustHairScale(0.01f));
+        _hairHeightLabel = MakeStepper(box, () => AdjustHairHeight(-0.005f), () => AdjustHairHeight(0.005f));
+
+        _hairSaveButton = MakeButton(Loc.Get("wardrobe.hair_save"), Accent, SaveHairFit);
+        box.Add(_hairSaveButton);
+
+        RefreshHairRows();
+        RefreshHairFit();
+    }
+
+    // "[-] label [+]" row, returning the middle label so callers can retitle it.
+    private Label MakeStepper(VisualElement parent, Action minus, Action plus)
+    {
+        var row = new VisualElement();
+        row.style.flexDirection = FlexDirection.Row;
+        row.style.alignItems = Align.Center;
+        row.style.marginBottom = 3f;
+
+        var less = MakeButton("-", Raised, minus);
+        less.style.width = 26f;
+        less.style.height = 22f;
+        row.Add(less);
+
+        var value = new Label("-");
+        value.style.flexGrow = 1f;
+        value.style.color = Text;
+        value.style.fontSize = 11;
+        value.style.unityTextAlign = TextAnchor.MiddleCenter;
+        row.Add(value);
+
+        var more = MakeButton("+", Raised, plus);
+        more.style.width = 26f;
+        more.style.height = 22f;
+        row.Add(more);
+
+        parent.Add(row);
+        return value;
+    }
+
+    private void AdjustHairScale(float delta)
+    {
+        if (_selectedHair?.Asset == null)
+        {
+            return;
+        }
+
+        var scale = Mathf.Clamp(_selectedHair.Asset.GetConfigScale(_girl) + delta, 0.5f, 2f);
+        _selectedHair.Asset.SetConfigScale(_girl, scale);
+        MarkHairDirty();
+    }
+
+    private void AdjustHairHeight(float delta)
+    {
+        if (_selectedHair?.Asset == null)
+        {
+            return;
+        }
+
+        var height = Mathf.Clamp(_selectedHair.Asset.GetConfigHeight(_girl) + delta, -0.2f, 0.2f);
+        _selectedHair.Asset.SetConfigHeight(_girl, height);
+        MarkHairDirty();
+    }
+
+    // Re-spawn the hair so Wear.Construct re-applies the fit — it is baked in
+    // at construct time, not driven per frame.
+    private void MarkHairDirty()
+    {
+        _hairDirty = true;
+#if UNITY_EDITOR
+        UnityEditor.EditorUtility.SetDirty(_selectedHair.Asset);
+#endif
+        _bodyBones?.SetHair(_selectedHair.Asset);
+        RelaxSkinCulling();
+        RefreshHairFit();
+    }
+
+    private void SaveHairFit()
+    {
+#if UNITY_EDITOR
+        UnityEditor.AssetDatabase.SaveAssets();
+        _hairDirty = false;
+        RefreshHairFit();
+        Debug.Log("Wardrobe: saved hair fit into the hair prefab(s)");
+#else
+        Debug.LogWarning("Wardrobe: saving prefabs only works in the editor");
+#endif
+    }
+
+    private void RefreshHairFit()
+    {
+        var hair = _selectedHair?.Asset;
+        if (_hairScaleLabel != null)
+        {
+            _hairScaleLabel.text = string.Format(
+                Loc.Get("wardrobe.hair_scale"), hair != null ? hair.GetConfigScale(_girl) : 1f);
+        }
+
+        if (_hairHeightLabel != null)
+        {
+            _hairHeightLabel.text = string.Format(
+                Loc.Get("wardrobe.hair_height"), hair != null ? hair.GetConfigHeight(_girl) : 0f);
+        }
+
+        if (_hairSaveButton != null)
+        {
+            _hairSaveButton.style.backgroundColor = _hairDirty ? AccentSel : Accent;
+        }
     }
 
     private void BuildLeftPanel(VisualElement root)
@@ -733,7 +995,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         girlsTitle.style.marginTop = 6f;
         box.Add(girlsTitle);
 
-        foreach (var girl in Girls)
+        foreach (var girl in Actors)
         {
             var captured = girl;
             var button = MakeButton(girl.ToString(), Raised, () => SpawnGirl(captured));
@@ -860,6 +1122,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
                 header.style.marginTop = 6f;
                 header.style.marginBottom = 2f;
                 scroll.Add(header);
+                _groupHeaders[group] = header;
             }
 
             var captured = entry;
@@ -869,6 +1132,36 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
             ((Label)row[0]).style.fontSize = 11;
             entry.Row = row;
             scroll.Add(row);
+        }
+
+        ApplyActorFilter();
+    }
+
+    // §72: показываем только ту одежду, что скроена под ТЕЛО выбранного актёра.
+    // Женская вещь на мужском теле рисуется искорёженным мешем (фит всегда
+    // пофигурный), так что это не косметика списка, а защита от заведомо
+    // неверного показа.
+    private void ApplyActorFilter()
+    {
+        var sex = ActorSex.Of(_girl);
+        var groupHasVisible = new Dictionary<string, bool>();
+
+        foreach (var entry in _entries)
+        {
+            var fits = entry.Asset != null && entry.Asset.Gender == sex;
+            if (entry.Row != null)
+            {
+                entry.Row.style.display = fits ? DisplayStyle.Flex : DisplayStyle.None;
+            }
+
+            groupHasVisible.TryGetValue(entry.Group, out var any);
+            groupHasVisible[entry.Group] = any || fits;
+        }
+
+        foreach (var pair in _groupHeaders)
+        {
+            groupHasVisible.TryGetValue(pair.Key, out var any);
+            pair.Value.style.display = any ? DisplayStyle.Flex : DisplayStyle.None;
         }
     }
 

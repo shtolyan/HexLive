@@ -13,6 +13,67 @@ namespace HexLive.Simulation.Runtime
 
 public sealed partial class ExecutionSystem
 {
+    // §77: where in the deposit animation the load actually changes hands. The
+    // gather clip (X Bot@Gathering Objects, 5.97 s) stoops down about halfway
+    // through, so that is where the material leaves her hand and appears in the
+    // site's pile — the two halves of one motion, not a pop at the very end.
+    // Must match NpcActorView/HexWorldRenderer's copy of the same fraction if
+    // presentation ever needs to phase on it.
+    internal const float BuildHandoffFraction = 0.5f;
+
+    // Move every material the site still wants out of her hands into its pile.
+    // Returns how many items changed hands, so the caller can stay silent on a
+    // no-op (the completion pass runs after the §77 handoff already delivered).
+    private static int DepositAtFurnitureSite(NPCState npc, WorldObjectState site)
+    {
+        var moved = 0;
+        foreach (var mat in BuildSiteMath.AllMaterials)
+        {
+            while (BuildSiteMath.Needs(site, mat))
+            {
+                var carried = npc.Inventory.Items.Find(i => i.DefinitionId == mat);
+                if (carried is null)
+                {
+                    break;
+                }
+
+                npc.Inventory.Items.Remove(carried);
+                site.Contents.Add(carried);
+                moved++;
+            }
+        }
+
+        return moved;
+    }
+
+    private static void EmitSiteDelivered(WorldState world, NPCState npc, WorldObjectState site)
+    {
+        Trace.Emit(world, npc.Id, "SiteDelivered",
+            $"{site.BuildProduct}: logs {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialLogs)}/{site.BillLogs} " +
+            $"stones {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialStones)}/{site.BillStones} " +
+            $"leaves {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialLeaves)}/{site.BillLeaves} " +
+            $"sticks {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialSticks)}/{site.BillSticks} " +
+            $"rope {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialRope)}/{site.BillRope}");
+    }
+
+    // §77: the mid-animation handoff, called from the in-progress branch. The
+    // load lands in the pile HERE; the raise (and the §54.14 campfire birth)
+    // still waits for the end of the clip, because both despawn the object she
+    // is standing at and must not happen under her hands.
+    private static void RunFurnitureSiteHandoff(WorldState world, NPCState npc, WorldObjectState site)
+    {
+        if (npc.Execution.BuildDeposited || BuildSiteMath.IsStocked(site))
+        {
+            return;
+        }
+
+        if (DepositAtFurnitureSite(npc, site) > 0)
+        {
+            npc.Execution.BuildDeposited = true;
+            EmitSiteDelivered(world, npc, site);
+        }
+    }
+
     // Spec §52: one visit to a furniture build-site. If it still wants
     // materials, deposit whatever needed items are in hand (partial delivery is
     // fine — many NPCs top it up over many trips). Once fully stocked, a builder
@@ -21,30 +82,14 @@ public sealed partial class ExecutionSystem
     private static void ApplyFurnitureSite(WorldState world, NPCState npc, WorldObjectState site)
     {
         var stockedBefore = BuildSiteMath.IsStocked(site);
-        if (!stockedBefore)
+        // §77: normally the load is already in the pile (mid-animation handoff)
+        // and this deposits nothing. It stays here as the fallback for the
+        // interaction too short to reach the handoff, and for a save reloaded
+        // mid-deposit — one SiteDelivered per visit either way.
+        if (!stockedBefore && !npc.Execution.BuildDeposited)
         {
-            // Deposit each material the site still needs, one at a time.
-            foreach (var mat in BuildSiteMath.AllMaterials)
-            {
-                while (BuildSiteMath.Needs(site, mat))
-                {
-                    var carried = npc.Inventory.Items.Find(i => i.DefinitionId == mat);
-                    if (carried is null)
-                    {
-                        break;
-                    }
-
-                    npc.Inventory.Items.Remove(carried);
-                    site.Contents.Add(carried);
-                }
-            }
-
-            Trace.Emit(world, npc.Id, "SiteDelivered",
-                $"{site.BuildProduct}: logs {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialLogs)}/{site.BillLogs} " +
-                $"stones {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialStones)}/{site.BillStones} " +
-                $"leaves {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialLeaves)}/{site.BillLeaves} " +
-                $"sticks {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialSticks)}/{site.BillSticks} " +
-                $"rope {BuildSiteMath.Delivered(site, BuildSiteMath.MaterialRope)}/{site.BillRope}");
+            DepositAtFurnitureSite(npc, site);
+            EmitSiteDelivered(world, npc, site);
         }
 
         // §54.14: a campfire site raises EARLY — the moment the stage-1 stick

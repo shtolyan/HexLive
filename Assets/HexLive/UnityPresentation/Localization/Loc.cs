@@ -88,5 +88,24 @@ namespace HexLive.UnityPresentation.Localization
             var key = "dream." + dreamName;
             return Has(key) ? Get(key) : dreamName;
         }
+
+        /// <summary>
+        /// §74: a colonist's name. <c>NPCState.DisplayName</c> is now an ID out
+        /// of <c>ColonistAppearance.NameIds</c>, not a label — the latin id is
+        /// what travels through traces, saves and GameObject names, while the
+        /// player reads the term <c>npc.&lt;id&gt;.name</c> (EN + RU).
+        /// An unknown id renders as itself, so a name added to the pool without
+        /// its term is visible rather than blank.
+        /// </summary>
+        public static string NpcName(string nameId)
+        {
+            if (string.IsNullOrEmpty(nameId))
+            {
+                return string.Empty;
+            }
+
+            var key = "npc." + nameId.ToLowerInvariant() + ".name";
+            return Has(key) ? Get(key) : nameId;
+        }
     }
 }

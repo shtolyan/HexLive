@@ -321,6 +321,24 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 }
             }
 
+            // §72: a man stalking her counts exactly the same. Without this she
+            // keeps re-picking Dress/GatherWood between his blows — the iter-5
+            // churn the comment above describes, with a knife instead of teeth.
+            if (!activelyHunted && Spec72.Enabled)
+            {
+                foreach (var other in world.Entities.Npcs.Values)
+                {
+                    if (other.Health > 0f &&
+                        other.Mind.RaidTargetNpcId is { } raidTarget &&
+                        raidTarget.Equals(npc.Id) &&
+                        HexSpatialMath.HexDistance(other.Tile, npc.Tile) <= 3)
+                    {
+                        activelyHunted = true;
+                        break;
+                    }
+                }
+            }
+
             var wantsArmor = !activelyHunted &&
                 npc.Memory.Dangers.Count > 0 && npc.EquippedArmor < 0.3f &&
                 KnowsReachableArmor(npc, world);
@@ -341,9 +359,21 @@ public sealed partial class DecisionSystem : ISimulationSystem
                  // upgrade — no trek to an equal/worse shirt (the girl's own
                  // example: a top over an identical top warms her by nothing).
                  KnowsReachableWarmthUpgrade(npc, world)));
-            var dressNeed = wantsArmor
-                ? System.Math.Max(npc.Needs.ThermalDiscomfort, 0.6f)
-                : npc.Needs.ThermalDiscomfort;
+            // §82: обгорела — прикройся. Раньше одеваться заставляла ТОЛЬКО
+            // температура, поэтому в жаркий комфортный полдень девушка ходила
+            // раздетой и горела, не понимая, что с ней происходит: краснота
+            // росла, части тела теряли здоровье, а в аукционе это не значило
+            // ничего. Теперь краснота — такая же причина одеться, как холод.
+            //
+            // Через MAX, а не сложением: холод и солнце требуют одного и того
+            // же действия, и складывать их значило бы гнать одеваться вдвое
+            // сильнее, когда человеку просто очень плохо.
+            var sunPressure = npc.Needs.Sunburn * Spec82.SunburnDressWeight;
+            var dressNeed = System.Math.Max(
+                wantsArmor
+                    ? System.Math.Max(npc.Needs.ThermalDiscomfort, 0.6f)
+                    : npc.Needs.ThermalDiscomfort,
+                sunPressure);
 
             // Spec 28.6 / 28.15A: Socialize needs a reachable non-busy agent;
             // affinity toward the best target feeds the score back positively.
@@ -1034,8 +1064,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
             var canChop = canUseToolsOrWeapons && (hasAxe || hasSaw);
             // §47 comfort: a bed per girl, not per colony. bedDeficit drives
             // both the leaf supply (chop a palm when short) and CraftBed.
+            // §72: a bed per girl of HER OWN camp. Counting the whole island
+            // would demand a bed for the outsider too — which he never owns, so
+            // the §64 OwnBed dream would sit at the head of the queue forever
+            // and hold BuildPull on a project that cannot finish.
             var bedDeficit = CountReachableWithTag(npc, world, "Bed") <
-                world.Entities.Npcs.Count;
+                ColonyQueries.LivingCount(world, npc.Faction);
             // §54.2 fix: don't fell a NEW palm while the LAST one's harvest still
             // lies unprocessed on the ground. A felled palm scatters its CROWN
             // (the leaf source) + logs instead of filling the pack, so the
@@ -1072,8 +1106,27 @@ public sealed partial class DecisionSystem : ISimulationSystem
                   HasReachableWithTag(npc, world, "Palm")));
             // §63 r2: with a stone-hungry site open the miner keeps swinging
             // until she carries a real load (3), not the old 2-stone stop.
+            //
+            // §80: и «сначала подбери с земли» — иначе цель кормит сама себя.
+            // Валун рассыпает камни на ЗЕМЛЮ (Scatter), рюкзак при этом не
+            // трогается, а условие ниже смотрит только в рюкзак: разбил валун →
+            // предикат остался ровно таким же истинным. Неподвижная точка, из
+            // которой выходит только подбор (GatherStone). У травы (:harvestYucca)
+            // и дерева эта дыра закрыта с §54.13, у камня забыли — и чужак с
+            // киркой выбил на сейве все 19 валунов острова, рассыпав 95 камней
+            // и не донеся ни одного.
+            //
+            // Мера — ЛОКАЛЬНАЯ, не общеостровная: восприятие помнит предметы по
+            // всей карте, так что глобальный запрет заморозил бы кирку навсегда
+            // из-за камня, увиденного неделю назад. Спрашиваем «есть ли под
+            // рукой у меня» и «есть ли под рукой у стройки, ради которой копаю».
+            var stonesUnderfoot =
+                HasNearbyWithTag(npc, world, "Stone", npc.Tile, SimBalance.PickUpFirstRadiusTiles) ||
+                (siteNeedsStones && buildSite != null &&
+                 HasNearbyWithTag(npc, world, "Stone", buildSite.Tile, SimBalance.PickUpFirstRadiusTiles));
             var mineBoulderAvail = canUseToolsOrWeapons && hasPickaxe &&
                 stoneCount < System.Math.Max(2, siteStoneWant) && npc.Inventory.HasSpace &&
+                !stonesUnderfoot &&
                 HasReachableWithTag(npc, world, "Boulder");
 
             // Spec 45: FREE HANDS — needs handled, no danger => the surplus
@@ -1126,8 +1179,14 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // MineBoulder fired 0 times in 20 probe-days pickaxe-in-hand.
             var siteStonePull = siteNeedsStones && freeHands > 0f && !fuelLow ? 0.5f : 0f;
             // §54 cold start: fetching stones for the first hearth is urgent too.
+            //
+            // §80: подбор 0.28 против копания 0.25 — ничья была НЕ безобидной.
+            // После того как очаг поднят, hearthUrgent гаснет навсегда, и обе
+            // цели набирали побитово одинаковые очки; а правило удержания цели
+            // требует перевеса СТРОГО больше порога, так что перевес 0.0 не
+            // смещает действующую цель никогда. Копающий оставался копающим.
             AddGoalScore(npc, world.Tick, GoalType.GatherStone,
-                (hearthUrgent ? 0.9f : 0.25f) + freeHands + coconutToolBoost + siteStonePull,
+                (hearthUrgent ? 0.9f : 0.28f) + freeHands + coconutToolBoost + siteStonePull,
                 gatherStoneAvail, coconutEmergencyBoost);
             AddGoalScore(npc, world.Tick, GoalType.CraftAxe, 0.3f + freeHands, craftAxeAvail);
             // §63 r2: a site drowning in stone demand (the 18-stone fire ring)
@@ -1269,6 +1328,82 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 NearestPreyVictim(npc, world) is not null;
             AddGoalScore(npc, world.Tick, GoalType.Prey,
                 SimBalance.PredationBaseScore + npc.Needs.Hunger, preyAvail);
+
+            // §72 Raid: the outsider hunts the girls. He is an opportunist, so
+            // this is a BID, not a compulsion — the score rides on how good the
+            // target is (alone / hurt / asleep / close), and every self-gate
+            // below keeps his own survival ranked above it. With Hunger and
+            // Thirst capped at RaidSelfNeedCeiling before he may even bid, a
+            // real need always outbids the hunt.
+            NPCState raidVictim = null;
+            var raidOpportunity = 0f;
+            var raidAvail = false;
+            if (Spec72.Enabled &&
+                npc.Faction != Faction.Colony &&
+                world.Tick >= Spec72.RaidGraceDays * EnvironmentSystem.DayLengthTicks &&
+                world.Tick >= npc.Mind.RaidCooldownUntilTick &&
+                npc.Needs.Hunger <= Spec72.RaidSelfNeedCeiling &&
+                npc.Needs.Thirst <= Spec72.RaidSelfNeedCeiling &&
+                npc.Needs.Energy >= Spec72.RaidSelfEnergyFloor &&
+                RaidMath.IsFitToRaid(npc, world))
+            {
+                raidVictim = RaidMath.BestVictim(world, npc, out raidOpportunity);
+                // Nobody in range — then go LOOKING. The prowl bids at the bare
+                // base score, so it only ever wins when he has nothing pressing
+                // of his own to do.
+                raidAvail = raidVictim is not null ||
+                    RaidMath.ProwlTarget(world, npc) is not null;
+            }
+
+            AddGoalScore(npc, world.Tick, GoalType.Raid,
+                Spec72.RaidBaseScore + Spec72.RaidOpportunityGain * raidOpportunity, raidAvail);
+
+            // §81 Abuse: он идёт гнобить — либо чтобы отжать припас, либо
+            // просто чтобы с кем-то «пообщаться». Вторая причина не метафора:
+            // разговор доступен только между союзниками, амбиентное общение §49
+            // считает соседей по фракции, а фракция у него из одного человека,
+            // так что Social падает в ноль и там остаётся. Абьюз — единственный
+            // способ её закрыть, и потому ставка растёт от ОДИНОЧЕСТВА так же,
+            // как от голода.
+            //
+            // Ставка выше налётной намеренно: нужда должна перебивать
+            // возможность. Он охотится, когда подвернулся случай, но гнобит —
+            // когда ему самому нужно.
+            var abuseDrive = 0f;
+            var abuseAvail = false;
+            if (Spec81.AbuseEnabled &&
+                npc.Faction != Faction.Colony &&
+                world.Tick >= Spec81.AbuseGraceDays * EnvironmentSystem.DayLengthTicks &&
+                world.Tick >= npc.Mind.AbuseCooldownUntilTick &&
+                !npc.IsFighting &&
+                npc.Body.CanUseToolsOrWeapons &&
+                !npc.Body.IsProne &&
+                npc.Mind.CurrentGoal != GoalType.Flee)
+            {
+                abuseDrive = AbuseMath.Drive(npc);
+                abuseAvail = abuseDrive > 0f &&
+                    AbuseMath.BestMark(world, npc, out _) is not null;
+            }
+
+            // Сцена уже идёт — цель обязана остаться доступной, иначе аукцион
+            // выдернет его с середины (та же оговорка, что у §53 Aid).
+            if (npc.Mind.CurrentGoal == GoalType.Abuse &&
+                npc.Execution.CurrentInteraction == InteractionType.Abuse)
+            {
+                abuseAvail = true;
+            }
+
+            AddGoalScore(npc, world.Tick, GoalType.Abuse,
+                Spec81.AbuseBaseScore + abuseDrive, abuseAvail);
+            if (raidAvail && world.Tick % 64 == 0)
+            {
+                Trace.Emit(world, npc.Id, "RaidScored",
+                    raidVictim is null
+                        ? "Victim=none (prowling)"
+                        : $"Victim=NPC{raidVictim.Id.Value} Opp={raidOpportunity:F2} " +
+                          $"Allies={RaidMath.AlliesAround(world, raidVictim)} " +
+                          $"VictimHealth={raidVictim.Health:F2}");
+            }
 
             // Spec 35.3 + §52: build a hut piece when the full bill is carried
             // AND a hammer is in hand — raising a wall now needs the tool.

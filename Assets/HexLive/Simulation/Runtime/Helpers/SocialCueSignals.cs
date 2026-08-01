@@ -13,7 +13,12 @@ namespace HexLive.Simulation.Runtime
 
 internal static class SocialCueSignals
 {
-    public static void Stamp(WorldState world, NPCState npc, string kind, EntityId peerId)
+    // §80: peerId стал НУЛЕВЫМ. Вид рисует по нему лицо того, о ком кьюшка, а
+    // «о ком» есть не всегда: зверь — не NPC, и его id живёт в другом
+    // пространстве, где 3 значит волка, а не Марту. Раньше такие места
+    // подставляли id самого кричащего, и это читалось бы как «боится себя».
+    // null — честное «человека тут нет», и вид падает на прежнюю иконку.
+    public static void Stamp(WorldState world, NPCState npc, string kind, EntityId? peerId)
     {
         // §60: no cue bubbles over a body that cannot react — a sleeping,
         // fainted or comatose girl shows no emoji at all (she ignores every

@@ -23,6 +23,21 @@ Shipped tools: `tool.axe_stone`, `tool.knife`, `tool.pickaxe_stone`. Any `tool.*
 in hand auto-gets the armed idle/walk clips; axe/pickaxe also get the Chop
 animation. Tune the in-hand pose in the `AxeChopTest` scene (`toolId` field → Play → Save).
 
+When Unity is NOT running, steps 4-8 collapse into headless Blender and the
+model ships as a plain `.glb` in `Resources/HexLive/Objects/<id>.glb` — see
+**`TOOL_GENERATION_SPEC.md` §3b** (`tool.machete`, `tool.bottle`, `tool.saw`,
+`item.bandage` went that way).
+
+## Generating inventory ICONS (the pictures in the item list)
+
+**Follow `ICON_GENERATION_SPEC.md`** — a different pipeline from the models
+above: no AI at all, just a fixed ¾ Cycles camera over the real game mesh, so
+every icon in the list matches. `Tools/unity_mesh_to_obj.py` (garment `.mesh` →
+OBJ) + `Tools/render_item_icon.py` (OBJ **or** GLB → 512×512 sprite, and
+`--install <itemId>` writes the `.meta` too). **First check whether a finished
+icon already exists in `/Volumes/ORICO/molly_copy/Assets/Wear/<item>/` — the
+whole garment set came from there.**
+
 ## Conventions
 
 - Art style is **flat low-poly / faceted / cartoon** — no noise/procedural textures.

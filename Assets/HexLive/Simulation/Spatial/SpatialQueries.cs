@@ -39,6 +39,64 @@ public static class SpatialQueries
     public static float BesideReach(float obstacleRadius) =>
         System.Math.Max(0f, obstacleRadius) + StandStepAllowance;
 
+    // Spec §26.6A r4: a junction closed by TERRAIN — a cliff face (owning tiles
+    // more than one level apart), the open sea, a hut wall, an authored block.
+    // The distinction matters because BOTH kinds of barrier read `Blocked`, yet
+    // they behave differently for the hands: an object footprint (palm trunk,
+    // ember ring, bed) is worked around from its rim, while terrain is a wall —
+    // nothing on the far side may be picked up, chopped, sat on or built.
+    // Water is deliberately NOT terrain: leaning over the bank to drink or to
+    // grab flotsam is legitimate, and shore work has always been allowed.
+    public static bool IsTerrainBlocked(WorldState world, JunctionId junctionId)
+    {
+        if (!world.Junctions.Items.TryGetValue(junctionId, out var junction) || !junction.Blocked)
+        {
+            return false;
+        }
+
+        if (world.ObjectBlockBuiltVersion != world.TopologyVersion)
+        {
+            RebuildObjectBlocked(world);
+        }
+
+        return !world.ObjectBlockedJunctions.Contains(junctionId) &&
+               !IsAllWaterJunction(world, junctionId);
+    }
+
+    private static void RebuildObjectBlocked(WorldState world)
+    {
+        world.ObjectBlockedJunctions.Clear();
+        foreach (var worldObject in world.Entities.Objects.Values)
+        {
+            foreach (var junctionId in worldObject.BlockedJunctions)
+            {
+                world.ObjectBlockedJunctions.Add(junctionId);
+            }
+        }
+
+        world.ObjectBlockBuiltVersion = world.TopologyVersion;
+    }
+
+    // Spec §26.6A r4: may the object anchored at `anchor` be TOUCHED from
+    // `stand`? The gap between them may cross the object's own footprint and
+    // water, never terrain — the same borders that stop the pathfinder stop the
+    // hands. Without this an NPC standing one sub-grid step BELOW a ledge
+    // pierced a coconut, felled a palm or sat on a stump straight through the
+    // cliff face, because 0.75 wu of straight-line distance said "adjacent".
+    public static bool CanTouchAcross(
+        WorldState world, JunctionId stand, JunctionId anchor, float maxDist)
+    {
+        if (stand.Equals(anchor))
+        {
+            return true;
+        }
+
+        CollectStandableAround(world, anchor, _touchScratch, 96, maxDist);
+        return _touchScratch.Contains(stand);
+    }
+
+    private static readonly List<JunctionId> _touchScratch = new();
+
     // Spec 31C.7: walk the blocked/wet cluster outward from an anchor and
     // collect the passable dry junctions on its rim — "stand at the edge
     // of the furniture / on the river bank". BFS bounded by maxVisited.
@@ -46,6 +104,9 @@ public static class SpatialQueries
     // rim junctions past it are dropped and the BFS never walks beyond it, so a
     // boxed-in object yields an EMPTY result (unreachable) instead of a spot a
     // whole hex away.
+    // §26.6A r4: the walk crosses object footprints and water only — a
+    // terrain-blocked junction (cliff face, hut wall, open sea) ends that branch,
+    // so the rim never appears on the far side of a border nobody can walk over.
     public static void CollectStandableAround(
         WorldState world, HexLive.Simulation.Common.JunctionId anchor,
         System.Collections.Generic.List<HexLive.Simulation.Common.JunctionId> results,
@@ -89,6 +150,10 @@ public static class SpatialQueries
                 if (!neighbor.Blocked && !wet)
                 {
                     results.Add(neighborId); // rim found; do not expand past it
+                }
+                else if (IsTerrainBlocked(world, neighborId))
+                {
+                    continue; // a cliff / wall / open sea — the border ends here
                 }
                 else
                 {

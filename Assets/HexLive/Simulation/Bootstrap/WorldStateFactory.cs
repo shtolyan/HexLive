@@ -55,12 +55,35 @@ public sealed class WorldStateFactory
             AddNpc(world, npcBootstrap);
         }
 
+        // §74: the colony is cast here, not authored. Runs after the whole
+        // roster exists because name uniqueness is a property of the group.
+        AssignAppearance(world);
+
         // §54.10: the communal hut (spec 35.3) is retired — it was never seen in
         // play, pulled logs/stones/time away from the things that matter, and its
         // only reward was a bed.basic that the progressive bed build-site now
         // supplies. No world.Project ⇒ NextBuildPiece stays null ⇒ GoalType.Build
         // never fires. (CreateBuildProject is left defined but unused.)
-        CreateCampfireSite(world); // §54 cold start: the hearth is built, not given
+        // §72: camp anchors first — the hearth site, the private camp memory and
+        // a beaten raider's retreat target all key off them.
+        SeedFactionHomes(world, bootstrap);
+
+        // §54 cold start: the hearth is built, not given. One per camp: the
+        // outsider raises and lights his through the very same chain.
+        if (bootstrap.FactionHomes.Count == 0)
+        {
+            CreateCampfireSite(world, new TileCoord(0, 4));
+        }
+        else
+        {
+            foreach (var home in bootstrap.FactionHomes)
+            {
+                if (home.StakeCampfireSite)
+                {
+                    CreateCampfireSite(world, new TileCoord(home.TileQ, home.TileR));
+                }
+            }
+        }
         // §54.2: beds are woven at the campfire (CraftBed tiers) — the §52 bed
         // build-site is retired, so it's no longer seeded here.
         SeedHomeKnowledge(world);
@@ -97,10 +120,32 @@ public sealed class WorldStateFactory
         // scene).
         string[] startBottoms = { "Panty_11571", "Bikini Bottom", "underwear.panty_leo", "underwear.panty_stars", "underwear.panty_flair", "underwear.panty_basic", "underwear.swim_bottom", "underwear.panty_dots", "underwear.panty_stripe", "underwear.panty_cherry" };
         string[] startTops = { "Bikini top", "Top_11927", "CowTop", "clothing.top_tiedye", "clothing.top_tropic", "underwear.bra_basic", "underwear.swim_top", "underwear.bra_dots", "underwear.bra_stripe", "underwear.bra_cherry" };
-        string[] startShorts = { "Shorts Green", "Shorts short", "Shorts 1389", "clothing.shorts_red", "clothing.shorts_olive", "clothing.shorts_cherry" };
+        string[] startShorts = { "Shorts Green", "Shorts short", "Shorts 1389", "clothing.shorts_red", "clothing.shorts_olive", "clothing.shorts_cherry", "clothing.shorts_white", "clothing.shorts_hearts", "clothing.shorts_critters" };
+        // §72: чужак сходит на берег не потерпевшим, а бойцом — в своём
+        // тактическом комплекте. Раздавать ему женское пляжное бельё было бы
+        // не только нелепо на вид: без брони он гиб на всех сидах, дважды даже
+        // не успев напасть (истёк кровью; загрызла собака на 1.6-й день).
+        string[] outsiderKit =
+        {
+            "TonnyFlash", "FCO Pants Male", "FCO Belt Male", "FCO Gloves Male",
+            "FAO Harness Male", "FCO Boots Male", "FCO Legs Straps Male",
+            "FCO Knee Straps Male", "FCO Waist Strappy Male",
+        };
+
         foreach (var npc in world.Entities.Npcs.Values)
         {
             var id = npc.Id.Value;
+            if (npc.Faction != Faction.Colony)
+            {
+                foreach (var piece in outsiderKit)
+                {
+                    npc.WornItems.Add(piece);
+                }
+
+                Runtime.EquipmentMath.Recalculate(world, npc);
+                continue;
+            }
+
             npc.WornItems.Add(startBottoms[(int)(MathUtil.Hash01(world.Seed, id, 11, 4201) * startBottoms.Length)]);
             if (MathUtil.Hash01(world.Seed, id, 12, 4202) < 0.8f)
             {
@@ -202,9 +247,8 @@ public sealed class WorldStateFactory
     // colony piles the stage-1 sticks itself, the site raises into a cold
     // campfire, and TendFire lights it (lighter or friction). Nothing is
     // pre-built or handed out; the generator-chosen good location is kept.
-    private static void CreateCampfireSite(WorldState world)
+    private static void CreateCampfireSite(WorldState world, TileCoord hearth)
     {
-        var hearth = new TileCoord(0, 4);
         if (!world.Tiles.Items.TryGetValue(hearth, out var tile))
         {
             return;
@@ -381,12 +425,46 @@ public sealed class WorldStateFactory
 
     // Spec 27.18A: NPCs know their home layout at start — every bootstrap
     // object becomes a permanent memory record for every NPC.
+    // §72: which camp, if any, this tile belongs to. A tile inside somebody's
+    // camp is that camp's business; open wilderness belongs to nobody.
+    private static Faction? CampOwnerOf(WorldState world, TileCoord tile)
+    {
+        foreach (var pair in world.FactionHomes)
+        {
+            if (HexSpatialMath.HexDistance(tile, pair.Value) <=
+                HexLive.Simulation.Runtime.Spec72.CampKnowledgeRadiusTiles)
+            {
+                return pair.Key;
+            }
+        }
+
+        return null;
+    }
+
+    private static void SeedFactionHomes(WorldState world, WorldBootstrapDefinition bootstrap)
+    {
+        world.FactionHomes.Clear();
+        foreach (var home in bootstrap.FactionHomes)
+        {
+            world.FactionHomes[home.Faction] = new TileCoord(home.TileQ, home.TileR);
+        }
+    }
+
+    // Everyone starts knowing the island's wilderness — the palms, the boulders,
+    // the deadfall. §72: what they do NOT start knowing is the inside of someone
+    // else's camp. Without that gate the outsider walks off the boat with a
+    // permanent map of the girls' hearth, beds and stores.
     private static void SeedHomeKnowledge(WorldState world)
     {
         foreach (var npc in world.Entities.Npcs.Values)
         {
             foreach (var obj in world.Entities.Objects.Values)
             {
+                if (CampOwnerOf(world, obj.Tile) is { } campOwner && campOwner != npc.Faction)
+                {
+                    continue;
+                }
+
                 npc.Memory.KnownObjects[obj.Id] = new Memory.ObjectMemory
                 {
                     Id = obj.Id,
@@ -626,7 +704,13 @@ public sealed class WorldStateFactory
             var inStrait = junction.Tiles.Count > 0;
             foreach (var coord in junction.Tiles)
             {
-                if (coord.Q < 7 || coord.Q > 10 || coord.R < 2 || coord.R > 6)
+                // §74: пролив живёт у ВОСТОЧНОГО КРАЯ, поэтому считается от
+                // границ карты. С зашитыми 7..10 расширение острова оставило бы
+                // его посреди суши, и второй островок стало бы не доплыть.
+                if (coord.Q < PrototypeWorldDefinitionFactory.MaxQ - 3 ||
+                    coord.Q > PrototypeWorldDefinitionFactory.MaxQ ||
+                    coord.R < PrototypeWorldDefinitionFactory.MaxR - 6 ||
+                    coord.R > PrototypeWorldDefinitionFactory.MaxR - 2)
                 {
                     inStrait = false;
                     break;
@@ -705,6 +789,85 @@ public sealed class WorldStateFactory
         }
     }
 
+    // §74: fill in whatever the bootstrap left blank — body mesh, material
+    // donor, hairstyle, voice bank and name — from the world seed.
+    //
+    // Three rules keep this from surprising anyone:
+    // - a FILLED field is authorial intent and is never touched, which is why
+    //   the seven test-scene bootstraps and the §72 outsider are unaffected;
+    // - only Colony rolls, because the pools are the four female actresses and
+    //   the outsider's male body must not receive their skins or voices;
+    // - ids are walked in ASCENDING ORDER, not dictionary order, so the name
+    //   and look de-duplication resolve identically on every run and platform.
+    private static void AssignAppearance(WorldState world)
+    {
+        var ids = new List<int>();
+        var takenNames = new HashSet<string>();
+        var takenLooks = new HashSet<string>();
+        var takenHairstyles = new HashSet<string>();
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            ids.Add(npc.Id.Value);
+            if (!string.IsNullOrEmpty(npc.DisplayName))
+            {
+                takenNames.Add(npc.DisplayName);
+            }
+
+            // A hand-authored hairstyle is claimed up front so rolled girls
+            // never duplicate it (hair is a unique axis, see Roll).
+            if (!string.IsNullOrEmpty(npc.Hairstyle))
+            {
+                takenHairstyles.Add(npc.Hairstyle);
+            }
+        }
+
+        ids.Sort();
+
+        foreach (var id in ids)
+        {
+            if (!world.Entities.Npcs.TryGetValue(new EntityId(id), out var npc) ||
+                npc.Faction != Faction.Colony)
+            {
+                continue;
+            }
+
+            var look = ColonistAppearance.Roll(world.Seed, id, takenNames, takenLooks, takenHairstyles);
+
+            if (string.IsNullOrEmpty(npc.ActorMesh))
+            {
+                npc.ActorMesh = look.Mesh;
+            }
+
+            if (string.IsNullOrEmpty(npc.SkinSet))
+            {
+                npc.SkinSet = look.SkinSet;
+            }
+
+            if (string.IsNullOrEmpty(npc.Hairstyle))
+            {
+                npc.Hairstyle = look.Hairstyle;
+            }
+
+            if (string.IsNullOrEmpty(npc.VoiceBank))
+            {
+                npc.VoiceBank = look.VoiceBank;
+            }
+
+            if (string.IsNullOrEmpty(npc.DisplayName))
+            {
+                npc.DisplayName = look.NameId;
+                takenNames.Add(npc.DisplayName);
+            }
+
+            // Claim the look as ASSEMBLED, not as rolled: a hand-authored field
+            // above may have overridden part of it, and the next girl must be
+            // compared against what this one actually looks like.
+            takenLooks.Add(ColonistAppearance.LookKey(
+                npc.ActorMesh, npc.SkinSet, npc.Hairstyle));
+            takenHairstyles.Add(npc.Hairstyle);
+        }
+    }
+
     private void AddNpc(WorldState world, NpcBootstrap bootstrap)
     {
         var coord = new TileCoord(bootstrap.TileQ, bootstrap.TileR);
@@ -713,6 +876,10 @@ public sealed class WorldStateFactory
             Id = new EntityId(bootstrap.Id),
             DisplayName = bootstrap.DisplayName,
             ActorMesh = bootstrap.ActorMesh,
+            SkinSet = bootstrap.SkinSet,
+            Hairstyle = bootstrap.Hairstyle,
+            VoiceBank = bootstrap.VoiceBank,
+            Faction = bootstrap.Faction,
             Fragment = new FragmentId(bootstrap.FragmentId),
             Tile = coord,
             Position = HexSpatialMath.TileToWorld(coord)
@@ -729,14 +896,52 @@ public sealed class WorldStateFactory
         // Spreads the colony from reserved (helps only when idle) to deeply
         // caring (breaks off her own chores to tend the hurt). Deterministic on
         // the world seed + npc id so a replay is identical.
-        npc.CompassionTrait = HexLive.Simulation.Runtime.Spec53.TraitMin +
-            MathUtil.Hash01(world.Seed, bootstrap.Id, 53, 5301) *
-            (HexLive.Simulation.Runtime.Spec53.TraitMax - HexLive.Simulation.Runtime.Spec53.TraitMin);
+        //
+        // §72: an outsider draws from a colder band of his own — a compassionate
+        // raider would never raid, and the §53 colony band starts at 0.35.
+        var traitMin = HexLive.Simulation.Runtime.Spec53.TraitMin;
+        var traitMax = HexLive.Simulation.Runtime.Spec53.TraitMax;
+        if (bootstrap.Faction != Faction.Colony)
+        {
+            traitMin = HexLive.Simulation.Runtime.Spec72.OutsiderCompassionMin;
+            traitMax = HexLive.Simulation.Runtime.Spec72.OutsiderCompassionMax;
+        }
+
+        npc.CompassionTrait = traitMin +
+            MathUtil.Hash01(world.Seed, bootstrap.Id, 53, 5301) * (traitMax - traitMin);
+
+        // Spec §76: the six innate characteristics, same deal — deterministic on
+        // seed + id, fixed for life. Rolled HERE and not in the §74 appearance
+        // pass, because that pass is Colony-only and the outsider must have a
+        // body too. Point-buy: the deviations sum to zero, so every survivor
+        // carries the same budget in a different shape.
+        //
+        // An authored bootstrap value wins (blank-means-roll, the §74 rule): a
+        // test scene that pins a girl's Strength keeps it.
+        AttributeMath.Roll(npc, world.Seed, bootstrap.Id);
+        ApplyAttributeOverrides(npc, bootstrap);
 
         // Spec 29H: everyone carries a personal water bottle (starts empty) — the
         // only starting kit. §54 cold start: the spear is no longer handed out,
         // it must be crafted (1 stick at the fire), like every other tool.
         npc.Inventory.Items.Add(new Agents.ItemInstance("tool.bottle"));
+
+        // §72: the outsider carries his own blade ashore. He has no colony to
+        // split the work with, and the hunt is gated on holding a real weapon.
+        if (bootstrap.Faction != Faction.Colony &&
+            HexLive.Simulation.Runtime.Spec72.OutsiderStartsArmed)
+        {
+            // §79: МАЧЕТЕ вместо копья. Копьё стояло здесь потому, что нож был
+            // слишком слаб (0.375 против 0.221 — с ножом он выходил на четверых,
+            // которые сбегаются все разом, и стабильно проигрывал размен:
+            // 20 его ударов против 30 ответных). Мачете бьёт ещё вдвое сильнее
+            // топора (0.5625), при этом ОДНОручное и рубит дрова — то есть
+            // закрывает и бой, и хозяйство одним предметом, а копьё в его
+            // маленьком рюкзаке было бы мёртвым весом. Нож остаётся: он
+            // достаётся колонии с его тела вторым трофеем.
+            npc.Inventory.Items.Add(new Agents.ItemInstance("tool.machete"));
+            npc.Inventory.Items.Add(new Agents.ItemInstance("tool.knife"));
+        }
         // Spec 40.3 / §44 r2: four bandages start in the med pouch
         // (Needs.Bandages — 2 medkit + 2 herbal), not the general pack.
 
@@ -758,6 +963,23 @@ public sealed class WorldStateFactory
         }
 
         fragmentEntities.Add(npc.Id);
+    }
+
+    // §76: an authored characteristic wins over the roll — the §74 rule that a
+    // filled field is authorial intent and is never overwritten. Applied AFTER
+    // the roll so a bootstrap can pin one attribute and leave the other five
+    // to the seed.
+    private static void ApplyAttributeOverrides(NPCState npc, NpcBootstrap bootstrap)
+    {
+        if (bootstrap.Attributes.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var pair in bootstrap.Attributes)
+        {
+            npc.Attributes.Set(pair.Key, MathUtil.Clamp01(pair.Value));
+        }
     }
 
     private static TileFlags GetTileFlags(TileBootstrap bootstrap)

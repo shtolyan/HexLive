@@ -225,6 +225,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 1f)] public float sunExposureRate = 0.3f;
         [Tooltip("Урон части тела при событии солнечного ожога.")]
         [Range(0f, 0.3f)] public float sunburnBurnDamage = 0.08f;
+        [Tooltip("§82: ниже этого порога солнце не доламывает ВИТАЛЬНУЮ часть (голова, торс). Солнечный удар доводит до беспамятства, но не убивает: без порога забронированный целиком человек сгорал за треть дня — у него открыта ровно одна часть, и все удары шли в неё.")]
+        [Range(0f, 1f)] public float sunburnVitalFloor = 0.45f;
 
         [Header("Гигиена")]
         [Tooltip("Прирост гигиены за тик у воды (умывание).")]
@@ -288,7 +290,7 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Множитель скорости движения при активном адреналине. §71: усилен в 1.5 раза (было 1.5). НЕ складывается со спринтом защиты — MovementSystem берёт БОЛЬШИЙ из двух.")]
         [Range(1f, 4f)] public float adrenalineMoveSpeedFactor = 2.25f;
         [Tooltip("§71: ОБЩАЯ скорость ходьбы колонии. Умножается в MovementSystem — это единственная ручка темпа (поле npc.MoveSpeed всегда 1 и никем не задаётся). Прыжок через уступ идёт по реальным секундам и НЕ ускоряется.")]
-        [Range(0.25f, 4f)] public float baseMoveSpeedFactor = 1.5f;
+        [Range(0.25f, 4f)] public float baseMoveSpeedFactor = 1.2f;
 
         [Header("§71 Повороты")]
         [Tooltip("Множитель скорости поворота (к npc.TurnSpeed = 90°/с). 2.4 = 216°/с = 54° за тик, то есть минимальный изгиб решётки в 60° проходится за ОДИН тик.")]

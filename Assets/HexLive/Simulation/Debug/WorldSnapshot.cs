@@ -242,9 +242,25 @@ public sealed class NpcSnapshot
 {
     public EntityId Id { get; set; }
 
+    // §74: a name ID (resolved through I2 as `npc.<id>.name`), not a label.
     public string DisplayName { get; set; } = string.Empty;
 
     public string ActorMesh { get; set; } = string.Empty;
+
+    // §74: the composition the view assembles the body from — material donor,
+    // hair prefab, voice folder. Empty = the mesh's own, i.e. pre-§74 look.
+    public string SkinSet { get; set; } = string.Empty;
+
+    public string Hairstyle { get; set; } = string.Empty;
+
+    public string VoiceBank { get; set; } = string.Empty;
+
+    // §72: which side this survivor is on, and the one question the UI actually
+    // asks — precomputed sim-side so no view file needs the Runtime namespace.
+    // Defaults keep every un-updated UI path behaving exactly as pre-§72.
+    public Agents.Faction Faction { get; set; } = Agents.Faction.Colony;
+
+    public bool IsHostileToColony { get; set; }
 
     public TileCoord Tile { get; set; } = TileCoord.Zero;
 
@@ -462,6 +478,13 @@ public sealed class NpcSnapshot
         return elapsed < 0f ? 0f : elapsed > 1f ? 1f : elapsed;
     }
 
+    // §77.5: how long the WHOLE current interaction lasts, in sim seconds
+    // (ticks × TickDeltaTime). The view divides the clip length by this to play
+    // the work animation exactly once per interaction, so a job stretched by
+    // the §76 attributes or shortened by a §78 tool still reads as one gesture.
+    // 0 when no timed interaction is running.
+    public float InteractionSeconds { get; set; }
+
     // §Wardrobe-anim: the garment the NPC is holding in hand mid dress/undress
     // (spawned as a hand prop by the view), or empty. During the "don" beat of
     // a dress it's the target garment; during the "gather" beat of an undress
@@ -535,6 +558,17 @@ public sealed class NpcSnapshot
     // derived read-only from this NPC's state by EffectEvaluator. The character
     // panel renders one circular chip per entry with a hover tooltip.
     public List<string> Effects { get; } = new();
+
+    // Spec §76: the character sheet. "Strength\t0.62" per innate attribute,
+    // "Combat\t0.31" per learned trade — same tab-separated idiom as Effects.
+    public List<string> Attributes { get; } = new();
+
+    public List<string> Skills { get; } = new();
+
+    // Spec §76.6: finished localization keys ("perk.strength.high"), resolved
+    // SIM-side. The band thresholds are Spec76 knobs, so a view that re-derived
+    // them would disagree with the simulation the moment either was tuned.
+    public List<string> Perks { get; } = new();
 
     // Spec 40.8B: HP fraction held hostage by open wounds (Fallout-style red
     // bar segment — regen can't cross it; it shrinks as wounds close).

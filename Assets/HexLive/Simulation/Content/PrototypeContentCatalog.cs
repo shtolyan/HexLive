@@ -154,7 +154,8 @@ public static class PrototypeContentCatalog
                     {
                         Id = "build.upgrade",
                         Type = InteractionType.Build,
-                        DurationTicks = 36
+                        // §77: ONE gather cycle (see build.site below).
+                        DurationTicks = 24
                     },
                     // Spec 29H: fill the bottle with boiled (safe) water; the
                     // thirst/comfort payoff lands when she drinks it later.
@@ -426,7 +427,13 @@ public static class PrototypeContentCatalog
                     {
                         Id = "build.furniture",
                         Type = InteractionType.Build,
-                        DurationTicks = 36 // ×3 slower (longer hammer strikes)
+                        // §77: ONE cycle of the deposit animation and no more.
+                        // The view plays X Bot@Gathering Objects (179 frames @
+                        // 30 fps = 5.97 s) on a loop for the whole interaction;
+                        // at 0.25 s/tick, 24 ticks = 6.0 s covers it exactly.
+                        // The old 36 (9 s) restarted the clip and cut it off
+                        // halfway — a visible hitch, every delivery.
+                        DurationTicks = 24
                     }
                 }
             },
@@ -1102,6 +1109,19 @@ public static class PrototypeContentCatalog
             Interactions =
             {
                 new InteractionDefinition { Id = "pickup.knife", Type = InteractionType.PickUp, DurationTicks = 4 }
+            }
+        };
+        // Spec §79: the iron machete — the only non-stone-age blade on the
+        // island. Nobody crafts it (there is no iron here): the outsider brings
+        // it ashore, and the colony can only take it off his body.
+        defs["tool.machete"] = new ObjectDefinition
+        {
+            Id = "tool.machete",
+            DisplayName = "Machete",
+            Tags = { "Tool", "Machete", "Weapon" },
+            Interactions =
+            {
+                new InteractionDefinition { Id = "pickup.machete", Type = InteractionType.PickUp, DurationTicks = 4 }
             }
         };
 

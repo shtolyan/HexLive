@@ -96,6 +96,9 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Опасность в памяти отменяет рейс к плоту только в этом радиусе от девушки, тайлы (далёкий волк не отменяет берег).")]
         [Range(0, 12)] public int raftDangerRadiusTiles = 4;
 
+        [Tooltip("Радиус правила «сначала подбери с земли, потом добывай ещё», тайлы. Меряется и от NPC, и от его стройки; общеостровной меры быть не может — восприятие помнит предметы по всей карте.")]
+        [Range(1, 12)] public int pickUpFirstRadiusTiles = 4;
+
         [Header("Файбер / крафт-цены")]
         [Tooltip("Волокна с одного волокнистого растения (юкка).")]
         [Range(1, 12)] public int fiberPerPlant = 4;

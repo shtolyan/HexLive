@@ -104,8 +104,10 @@ public sealed partial class ExecutionSystem
                     // reserved rim junction the planner picked — "nearest FREE
                     // junction to centre" sits well off-centre once a footprint
                     // covers the middle, so the sleeper used to hang over the
-                    // tile edge. One invariant, shared with the collapse paths.
-                    LieDownCentered(npc);
+                    // tile edge. One invariant, shared with the collapse paths —
+                    // and since §29G r3 it also lays her in a free BERTH beside
+                    // whoever is already sleeping on this hex, at the same angle.
+                    LieDownCentered(world, npc);
                 }
             }
 
@@ -751,21 +753,14 @@ public sealed partial class ExecutionSystem
                 return;
             }
 
-            // Same belt-and-braces distance guarantee as the generic exec
-            // gate: standing on the reserved fetch spot must actually put the
-            // pile at arm's reach, never across a wall/water gap.
-            var anchor = pile.Junctions.Count > 0 &&
-                world.Junctions.Items.TryGetValue(pile.Junctions[0], out var anchorJct)
-                ? anchorJct.WorldPosition
-                : HexSpatialMath.TileToWorld(pile.Tile);
-            var reach = SpatialQueries.BesideReach(
-                world.Content.ObjectDefinitions.TryGetValue(pile.DefinitionId, out var pileDef)
-                    ? pileDef.ObstacleRadius : 0f);
-            if (HexSpatialMath.Distance(npc.Position, anchor) > reach)
+            // Same belt-and-braces guarantee as the generic exec gate (§26.6A
+            // r4): standing on the reserved fetch spot must actually put the
+            // pile at arm's reach — close enough AND on this side of every
+            // cliff face / hut wall, never snatched across one.
+            if (!InteractionReach.CheckObjectStart(world, npc, pile,
+                    world.Content.ObjectDefinitions.TryGetValue(pile.DefinitionId, out var pileDef)
+                        ? pileDef.ObstacleRadius : 0f))
             {
-                Trace.Emit(world, npc.Id, "InteractionTooFar",
-                    $"{pile.DefinitionId} at " +
-                    $"{HexSpatialMath.Distance(npc.Position, anchor):F2}wu > reach {reach:F2}wu (wash fetch)");
                 npc.Memory.Shun(pile.Id, world.Tick + 600);
                 PlanningSystem.SetGoalCooldown(world, npc, GoalType.WashClothes);
                 PlanInterruption.Abort(world, npc, "WashClothes garment not adjacently reachable");

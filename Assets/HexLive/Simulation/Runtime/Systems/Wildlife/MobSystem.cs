@@ -588,7 +588,7 @@ public sealed class MobSystem : ISimulationSystem
             var attackSpeed = SimBalance.MeleeAttackSpeed(weaponId);
             var strikeReady = SimBalance.MeleeStrikeReady(world.Tick, defender.Id.Value, weaponId);
             var strike = strikeReady
-                ? NpcStrikePerPass * defender.Body.StrikeFactor() * weaponMult
+                ? NpcStrikePerPass * defender.StrikeFactor() * weaponMult
                 : 0f;
             if (strike > 0f)
             {
@@ -879,6 +879,9 @@ public sealed class MobSystem : ISimulationSystem
         foreach (var archer in world.Entities.Npcs.Values)
         {
             if (archer.Id.Value == quarry.Id.Value || archer.IsFighting ||
+                // §72: nobody spends the colony's scarce arrows saving the man
+                // who hunts them from a wolf.
+                !FactionRelations.AreAllies(archer, quarry) ||
                 !archer.Inventory.Items.Contains("tool.bow") ||
                 !archer.Inventory.Items.Contains("resource.arrow") ||
                 HexSpatialMath.HexDistance(archer.Tile, dog.Tile) > 3)
@@ -994,6 +997,24 @@ public sealed class MobSystem : ISimulationSystem
                 {
                     farEnough = false;
                     break;
+                }
+            }
+
+            // §72.12: и подальше от СТОЯНОК, а не только от тел. Правило выше
+            // считает от текущего положения NPC, поэтому стая спокойно заводится
+            // у очага, пока хозяин отошёл за дровами, — а он возвращается прямо
+            // в неё. Четверо девушек дома закрывают округу собой, одиночке
+            // закрывать некому.
+            if (farEnough && Spec72.Enabled)
+            {
+                foreach (var home in world.FactionHomes)
+                {
+                    if (HexSpatialMath.HexDistance(tile, home.Value) <
+                        Spec72.DogSpawnMinDistanceFromCamp)
+                    {
+                        farEnough = false;
+                        break;
+                    }
                 }
             }
 
@@ -1154,10 +1175,27 @@ public sealed class MobSystem : ISimulationSystem
 
             foreach (var witness in world.Entities.Npcs.Values)
             {
-                if (HexSpatialMath.HexDistance(witness.Tile, npc.Tile) <= 6)
+                if (HexSpatialMath.HexDistance(witness.Tile, npc.Tile) > 6)
                 {
-                    GriefSystemHelpers.TriggerGrief(world, witness, corpse);
+                    continue;
                 }
+
+                // §72: you do not mourn the stranger who was trying to kill
+                // you. TriggerGrief floors the social loss regardless of
+                // affinity AND marks the spot as a danger memory, so an ungated
+                // sweep leaves the colony depressed and afraid of the ground
+                // they just won on — a silent difficulty multiplier hiding in
+                // the death path. Winning the fight reads as relief instead.
+                if (FactionRelations.AreHostile(witness, npc))
+                {
+                    witness.Needs.Comfort = MathUtil.Clamp(
+                        witness.Needs.Comfort + Spec72.EnemyDeathRelief, 0f, 1f);
+                    Trace.Emit(world, witness.Id, "EnemyDeathRelief",
+                        $"NPC{deadId.Value} ({npc.DisplayName}) is dead");
+                    continue;
+                }
+
+                GriefSystemHelpers.TriggerGrief(world, witness, corpse);
             }
         }
 
@@ -1229,6 +1267,11 @@ public sealed class MobSystem : ISimulationSystem
         "LimbSevered" or
         "PreyFoughtBack" or
         "Preyed" or
+        // §72: without these two every raid death is recorded as inferred
+        // starvation/exposure — and the soak's own accounting then lies about
+        // the very mechanic being tuned.
+        "RaidFoughtBack" or
+        "RaidStruck" or
         "SharkBite" or
         "StarvedToDeath" or
         "Sunburn" or

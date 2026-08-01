@@ -12,7 +12,17 @@ public sealed class PerceptionSnapshot
 
     public List<PerceivedObject> Objects { get; } = new();
 
+    // §72: ALLIES ONLY. Every pre-§72 consumer (Socialize, §53 Aid, the ambient
+    // companion trickle, the talk/aid target picks) keeps reading this list
+    // unchanged — which is the point: a cooperation path physically cannot
+    // reach an enemy, instead of having to remember a gate. Note there is no
+    // distance filter here and never was: this is the whole roster, so an
+    // ungated enemy would be a chat and aid target island-wide from tick 1.
     public List<PerceivedAgent> Agents { get; } = new();
+
+    // §72: agents we are at war with. Read only by the threat layer (the ⚠️
+    // sighting, the detour ring) and by the raider's own target assessment.
+    public List<PerceivedAgent> Hostiles { get; } = new();
 
     public PerceivedEnvironment Environment { get; } = new();
 
@@ -93,6 +103,10 @@ public sealed class PerceivedAgent
     public float Suffering { get; set; }
 
     public AidKind AidKind { get; set; } = AidKind.None;
+
+    // §72: kept on the entry even though the lists are already split — a trace
+    // or a future consumer that concatenates must still be able to tell.
+    public Agents.Faction Faction { get; set; } = Agents.Faction.Colony;
 
     public RelationshipSummary Relationship { get; } = new();
 }

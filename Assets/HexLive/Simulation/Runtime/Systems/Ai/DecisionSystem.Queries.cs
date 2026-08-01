@@ -326,6 +326,9 @@ public sealed partial class DecisionSystem
         foreach (var other in world.Entities.Npcs.Values)
         {
             if (other.Id == npc.Id || other.Health <= 0f ||
+                // §72: §56 predation stays inside the family — the other
+                // faction is the Raid goal's business, not the butcher's.
+                !FactionRelations.AreAllies(npc, other) ||
                 other.CurrentJunction is not { } otherJunction)
             {
                 continue;
@@ -356,6 +359,31 @@ public sealed partial class DecisionSystem
         foreach (var obj in npc.Perception.Objects)
         {
             if (obj.IsReachable && ObjectUsableBy(obj, npc.Id) &&
+                world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
+                definition.Tags.Contains(tag))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // §80: то же, но в радиусе от точки. HasReachableWithTag НЕ фильтрует по
+    // расстоянию — восприятие подмешивает в список ещё и то, что NPC когда-то
+    // видел (`IsReachable` считается по связности, а не по близости), поэтому
+    // «есть ли такой предмет» истинно для всего острова разом.
+    //
+    // Для гейтов вида «сначала подбери с земли, потом добывай ещё» это ровно
+    // неверная мера: одна забытая палка на другом конце острова запрещала бы
+    // работу навсегда. Здесь спрашивают «есть ли под рукой».
+    internal static bool HasNearbyWithTag(
+        NPCState npc, WorldState world, string tag, TileCoord origin, int radiusTiles)
+    {
+        foreach (var obj in npc.Perception.Objects)
+        {
+            if (obj.IsReachable && ObjectUsableBy(obj, npc.Id) &&
+                HexSpatialMath.HexDistance(obj.Tile, origin) <= radiusTiles &&
                 world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
                 definition.Tags.Contains(tag))
             {

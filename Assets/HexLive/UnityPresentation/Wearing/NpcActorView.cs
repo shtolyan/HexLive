@@ -68,6 +68,21 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // §Wardrobe-anim: must match ExecutionSystem.WardrobeHandoffFraction — the
     // beat split where the garment changes hands (gather<->don, doff<->gather).
     private const float WardrobeHandoffFraction = 0.5f;
+    // §77.5: playback speed of the one-gesture work states (Gather, CraftWork),
+    // so ONE interaction is ONE playthrough of the clip whatever window the sim
+    // hands us. Same idiom as JumpSpeed. Both states read this float; every
+    // other state keeps its authored pace.
+    private static readonly int ActionSpeedParam = Animator.StringToHash("ActionSpeed");
+    // Base-clip KEYS of the two fitted states, for looking up their live length
+    // (the override controller may have swapped in a different take).
+    private const string GatherBaseClip = "X Bot@Gathering Objects";
+    private const string CraftBaseClip = "X Bot@Plant A Plant";
+    // The fit is CLAMPED, and the band is the whole design decision. Below it a
+    // long job would crawl in visible slow motion; above it a 1-second pickup
+    // would fire the whole 6-second stoop as a twitch. Outside the band we let
+    // the clip loop / get cut as before — the fit is a polish, not a contract.
+    private const float ActionSpeedMin = 0.6f;
+    private const float ActionSpeedMax = 1.6f;
     // Spec 40.x: runtime handedness — drives Humanoid mirror on the one-handed
     // clip states (Drink/Gather/Talk/Attack) so a lefty/lost-right-hand NPC
     // acts with the other hand without any clip rebake.
@@ -87,6 +102,26 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private const float AttackSwingCycles = 2.6f;
     private const string ChopBaseClip = "Standing Melee Attack Horizontal";
     private const string DeathBaseClip = "X Bot@Death From Back Headshot";
+    // §81: ключ ОДНОРАЗОВОЙ сценки. Само по себе то, что тут сальса, значения
+    // не имеет — это только адрес слота, в который вид заряжает нужный клип
+    // перед срабатыванием триггера.
+    private const string EmoteBaseClip = "X Bot@Salsa Dancing";
+
+    // Безделье: сколько молча простоять, прежде чем начать чудить; какой шанс
+    // в секунду; и сколько держать паузу между сценками.
+    private const float FidgetIdleWarmup = 6f;
+    private const float FidgetChancePerSecond = 0.03f;
+    private const float FidgetMinGap = 25f;
+    // Сколько держится грустная походка после сцены абьюза.
+    private const float SadWalkSeconds = 90f;
+
+    private float _idleSince;
+    private float _lastEmoteTime = -999f;
+    private float _lastFidgetRoll;
+    private float _sadWalkUntil;
+    private bool _sadWalkApplied;
+    private bool _busyInteraction;
+    private bool _combatFighting;
     private static readonly int LimpingParam = Animator.StringToHash("Limping");
     private static readonly int CrawlingParam = Animator.StringToHash("Crawling"); // §50
     private static readonly int JumpUpParam = Animator.StringToHash("JumpUp");
@@ -184,6 +219,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // (renderer, materialIndex) pairs that are skin; everything eye/hair/mouth
     // related is excluded.
     private readonly List<(SkinnedMeshRenderer renderer, int index)> _skinTintTargets = new();
+
+    // §74: donor actor → its body materials by slot name. Static: the actor
+    // prefabs are shared assets, so four maps serve the whole colony.
+    private static readonly Dictionary<string, Dictionary<string, Material>> _skinSets = new();
 
     /// <summary>Spec §50: the owner's current skin tone (tan/sunburn/grime,
     /// no pain flush) — a severed-limb drop bakes it into its material so the
@@ -427,6 +466,22 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // AnimatorOverrideController keys. Overriding all three with one clip (the
     // §50 crawl) pins her to a single gait that can never blend into a run.
     private static readonly string[] GaitClipKeys = { "Walk", "X Bot@Slow Run", "X Bot@Running" };
+    // §78: the Idle and Sit states' clip keys. Sit's take lives in
+    // Locomotion/Animations, OUTSIDE the AnimLibrary folder whose import
+    // postprocessor renames clips after the file — so it kept Mixamo's own
+    // export name, and that string IS the override key. Ugly, but honest:
+    // renaming the clip now would repoint the controller's Sit state at
+    // nothing.
+    private const string IdleClipKey = "Idle";
+    private const string SitClipKey = "mixamo.com";
+    // §78: the locomotion clips THIS actor plays, keyed by the base-clip name
+    // they replace. A male body walking the colonists' authored takes reads as
+    // somebody else's gait, so the men get their own set (NpcAnimSet.male).
+    // The map doubles as the "restore to base" source: the armed stance hands
+    // Idle/Walk back when a tool leaves the hand, and it must hand back HIS
+    // clip, not the controller's — otherwise picking up an axe permanently
+    // turned him back into a girl.
+    private readonly Dictionary<string, AnimationClip> _actorLocomotion = new();
     private static readonly int GaitParam = Animator.StringToHash("Gait");
     private float _gait;
     // §71: the sim's gait decision (SetRunning). NOT re-derived from speed.
@@ -779,12 +834,31 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _faceCalibrated = true;
     }
 
+    // Pre-§74 signature: body, materials, hair and voice all implied by the one
+    // mesh name. Kept for the seven test-scene bootstraps and the health doll,
+    // which cast a fixed girl on purpose.
     public void Construct(string actorMeshName, int npcId = 0)
+    {
+        Construct(actorMeshName, npcId, null, null, null);
+    }
+
+    // §74: a girl is a COMPOSITION. The mesh still decides the body — and with
+    // it the garment fits (WearConfig) and the skin paint-point map, both
+    // properties of the geometry — but the material set, the hairstyle and the
+    // voice bank now come in separately and may belong to someone else.
+    //
+    // Every one of the three is optional: null/empty means "the mesh's own",
+    // i.e. exactly the pre-§74 body, which is what a test scene and a pre-§74
+    // save both get.
+    public void Construct(string actorMeshName, int npcId,
+        string skinSet, string hairstyle, string voiceBank)
     {
         _npcId = npcId;
         // §67.6: голосовой банк персонажа = его меш-имя (Molly/Jana/…) —
         // файлы voice_<char>_<emotion>_<n> подхватываются по факту наличия.
-        _voiceChar = (actorMeshName ?? string.Empty).Trim().ToLowerInvariant();
+        // §74: …если сим не выдал ей ЧУЖОЙ банк — тогда играет он.
+        var voice = string.IsNullOrEmpty(voiceBank) ? actorMeshName : voiceBank;
+        _voiceChar = (voice ?? string.Empty).Trim().ToLowerInvariant();
         // §67.7: липсинк на реплики — анализатору нужна голова с виземами
         // (у примитивных фолбэк-капсул её нет, там и рта-то нет).
         foreach (var smr in GetComponentsInChildren<SkinnedMeshRenderer>(true))
@@ -806,7 +880,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // clip whose name contains "Jump".
         if (_animator != null && _animator.runtimeAnimatorController != null)
         {
-            foreach (var clip in _animator.runtimeAnimatorController.animationClips)
+            // §78: always index and wrap the AUTHORED controller. A second
+            // Construct on the same instance (the test scenes swap the actor in
+            // place) would otherwise wrap the previous override, and the clips
+            // it had already swapped in would become the new base KEYS — after
+            // which nothing could ever hand the original takes back.
+            var authored = _animator.runtimeAnimatorController;
+            if (authored is AnimatorOverrideController wrapped &&
+                wrapped.runtimeAnimatorController != null)
+            {
+                authored = wrapped.runtimeAnimatorController;
+            }
+
+            foreach (var clip in authored.animationClips)
             {
                 if (clip == null)
                 {
@@ -825,7 +911,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             }
 
             // Wrap the controller so action-state clips can be swapped live.
-            _animOverride = new AnimatorOverrideController(_animator.runtimeAnimatorController);
+            _animOverride = new AnimatorOverrideController(authored);
             _animator.runtimeAnimatorController = _animOverride;
 
             // Sync the runtime mirror params to the current handedness so a
@@ -853,6 +939,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         _actorMesh = parsed;
+        // §78: his own walk/idle/sit, now that we know whose body this is.
+        ApplyActorLocomotion();
         if (_bodyBones != null)
         {
             _bodyBones.Construct(_actorMesh);
@@ -876,6 +964,15 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _thermalChest = _bodyBones.GetBone("chestUpper");
             _thermalHead = _bodyBones.GetBone("head");
 
+            // §74: her own hairstyle, not the one authored on the prefab.
+            // AFTER BodyBones.Construct, which has just spawned the authored
+            // one — SetHair tears that down properly (it destroys the stitched
+            // bones, not just the root, or each swap strands a dead skeleton).
+            // The FIT still keys off _actorMesh: heightOffset/scale answer the
+            // question "how does this hair sit on THIS head", and the head is
+            // the mesh's, whoever's skin is painted on it.
+            ApplyHairstyle(hairstyle);
+
             // Spec 40.8/40.6: bone-riding skin decals (wounds/dirt/sweat).
             _skinDecals = gameObject.AddComponent<SkinDecals>();
         }
@@ -895,6 +992,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _moveEpsilon = 1.7f * _bodyRoot.lossyScale.y * 0.1f;
             // Underside reference for sleep-planting (worn garments hug the body).
             _bodySkins = _bodyRoot.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            // §74: her face BEFORE anything reads the materials. Order is not
+            // stylistic — BuildSkinTintTargets classifies slots by material
+            // NAME, and SkinTexturePainter below snapshots `body.materials`
+            // plus their albedo/normal maps once and never looks again. Swap
+            // after either of them and the girl wears her donor's skin with the
+            // previous body's paint targets, which reads as a shader bug.
+            ApplySkinSet(skinSet);
             BuildSkinTintTargets();
             // NOTE: an experiment swapping the SKIN to the GarmentTear paint
             // shader was reverted — Cull Off + the AlphaTest queue flickered on
@@ -1398,7 +1502,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // Everything else standing → the prone idle. (The game leaves these base
         // clips in place — no NpcAnimSet action variants — so overriding the base
         // clip name here is what actually swaps them.)
-        OverrideClip("Idle", ProneClip);
+        OverrideClip(IdleClipKey, ProneClip);
         OverrideClip("crouch", ProneClip);
         OverrideClip("TurnOnSpotRightB", ProneClip);
         OverrideClip("TurnOnSpotLeftA", ProneClip);
@@ -2050,7 +2154,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     // Spec 31C.6: interaction poses — crouch while gathering/working, sit
     // on Sit, and hold the relevant item in the right hand.
-    public void SetInteraction(string interaction, string heldItemId, bool aidTargetLying = false)
+    public void SetInteraction(string interaction, string heldItemId, bool aidTargetLying = false,
+        float interactionSeconds = 0f)
     {
         if (_legless && IsToolOrWeapon(heldItemId))
         {
@@ -2112,6 +2217,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // Clip source: config override if present, else the state's base clip.
             if (gathering && _animSet != null) OverrideClip("X Bot@Gathering Objects", Standing(_animSet.gather));
             if (drinking && _animSet != null) OverrideClip("X Bot@Drinking", Standing(_animSet.drink)); // legless drinks prone
+            // §77.5: fit the work clip to the sim's window — one interaction,
+            // one playthrough. Set AFTER the clip swap above, because the length
+            // we divide by is the length of whatever take is actually bound.
+            _animator.SetFloat(ActionSpeedParam, gathering
+                ? FitClipSpeed(GatherBaseClip, interactionSeconds)
+                : kneelingCraft
+                    ? FitClipSpeed(CraftBaseClip, interactionSeconds)
+                    : 1f);
         }
 
         // A full-body clip now covers these (incl. the axe swing and the craft
@@ -2286,6 +2399,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     public void SetSpeechInteraction(string interaction)
     {
         EnsureSpeechBubble();
+        // §81: «занята» для безделья — это ЛЮБОЕ взаимодействие. Пустая строка
+        // = сим не дал ей дела, и вот тогда она и может поплясать.
+        _busyInteraction = !string.IsNullOrEmpty(interaction);
         _speech?.OnInteraction(interaction);
     }
 
@@ -2310,11 +2426,34 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
     }
 
-    public void PopSocialCue(string cueKind)
+    // §80: portrait — лицо того, о ком кьюшка (страх перед конкретным
+    // человеком). Голос от него не зависит: реплика привязана к ВИДУ кьюшки.
+    public void PopSocialCue(string cueKind, Sprite portrait = null)
     {
         EnsureSpeechBubble();
-        _speechBubble?.PopSocialCue(cueKind);
+        _speechBubble?.PopSocialCue(cueKind, portrait);
         _speech?.OnCue(cueKind);
+
+        // §81: такты сцены абьюза играются телом, а не только эмодзи. Кьюшка
+        // уже приходит ровно в нужный момент и ровно тому, кого касается, —
+        // отдельного сигнала для анимации заводить незачем.
+        if (_animSet == null)
+        {
+            return;
+        }
+
+        switch (cueKind)
+        {
+            case "AbuseThreatened":
+                PlayEmote(_animSet.rejected);
+                break;
+            case "AbuseCry":
+            case "AbuseGaveUp":
+                PlayEmote(_animSet.crying);
+                // Дальше она какое-то время ходит понуро.
+                _sadWalkUntil = Time.time + SadWalkSeconds;
+                break;
+        }
     }
 
     private void EnsureSpeechBubble()
@@ -2358,6 +2497,98 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // a legless NPC on the prone idle; Walk is left to the crawl override for the
     // legless (it re-applies "Walk"->CrawlClip every frame and wins). Applied on
     // prop change (SetHandProp early-returns when the id is unchanged).
+    // §81: сыграть одноразовую сценку. Клип заряжается в общий слот и тут же
+    // запускается триггером — так же, как выбирается случайная смерть или
+    // случайная реплика разговора.
+    private void PlayEmote(AnimationClip clip)
+    {
+        if (_animator == null || clip == null)
+        {
+            return;
+        }
+
+        OverrideClip(EmoteBaseClip, Standing(clip));
+        _animator.SetTrigger("Emote");
+        _lastEmoteTime = Time.time;
+    }
+
+    // §81: «просто существует». Когда делать нечего, изредка — сплясать,
+    // присесть, пошарить по карманам.
+    //
+    // Решает ВИД, а не симуляция, и намеренно: у безделья нет последствий —
+    // ни расхода сил, ни изменения нужд, ни следа в сейве, — а всё, что сим
+    // решает, он обязан решать детерминированно и хранить. Платить полем в
+    // снапшоте за то, что ничего не меняет, незачем.
+    private void UpdateIdleFidget(bool busy)
+    {
+        if (_animSet == null || _animSet.idleFidgets == null || _animSet.idleFidgets.Length == 0 ||
+            _animator == null || _legless || busy)
+        {
+            _idleSince = 0f;
+            return;
+        }
+
+        if (_idleSince <= 0f)
+        {
+            _idleSince = Time.time;
+            return;
+        }
+
+        // Постоять молча хотя бы FidgetIdleWarmup, и не чаще FidgetMinGap —
+        // иначе это не «иногда», а тик.
+        if (Time.time - _idleSince < FidgetIdleWarmup ||
+            Time.time - _lastEmoteTime < FidgetMinGap)
+        {
+            return;
+        }
+
+        // Бросок раз в секунду, а не каждый кадр: иначе частота зависела бы от
+        // FPS, и на быстрой машине она плясала бы вдвое чаще.
+        if (Time.time - _lastFidgetRoll < 1f)
+        {
+            return;
+        }
+
+        _lastFidgetRoll = Time.time;
+        if (Random.value > FidgetChancePerSecond)
+        {
+            return;
+        }
+
+        PlayEmote(_animSet.idleFidgets[Random.Range(0, _animSet.idleFidgets.Length)]);
+        _idleSince = 0f;
+    }
+
+    // §81: грустная походка. Держится минуты после сцены — это не состояние
+    // симуляции, а след в теле, и живёт он там же, где остальная мимика.
+    private void UpdateSadWalk()
+    {
+        if (_animSet == null || _animSet.sadWalk == null || _legless)
+        {
+            return;
+        }
+
+        var sad = Time.time < _sadWalkUntil;
+        if (sad == _sadWalkApplied)
+        {
+            return;
+        }
+
+        _sadWalkApplied = sad;
+        if (sad)
+        {
+            OverrideClip(GaitClipKeys[0], _animSet.sadWalk);
+        }
+        else
+        {
+            var baseWalk = BaseLocomotionClip(GaitClipKeys[0]);
+            if (baseWalk != null)
+            {
+                OverrideClip(GaitClipKeys[0], baseWalk);
+            }
+        }
+    }
+
     private void UpdateArmedStance(string itemId)
     {
         if (_animSet == null)
@@ -2374,15 +2605,23 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         var idleClip = gearIdle != null ? gearIdle : _animSet.armedIdle;
         var walkClip = gearWalk != null ? gearWalk : _animSet.armedWalk;
 
+        // §78: the restore goes through BaseLocomotionClip, not the controller's
+        // clip table — for a male actor "his" idle/walk IS the base, and handing
+        // back the authored take would undo his gait the moment a tool left his
+        // hand.
         if (idleClip != null)
         {
             if (armed)
             {
-                OverrideClip("Idle", Standing(idleClip));
+                OverrideClip(IdleClipKey, Standing(idleClip));
             }
-            else if (_clipsByName.TryGetValue("Idle", out var baseIdle))
+            else
             {
-                OverrideClip("Idle", Standing(baseIdle)); // legless stays prone
+                var baseIdle = BaseLocomotionClip(IdleClipKey);
+                if (baseIdle != null)
+                {
+                    OverrideClip(IdleClipKey, Standing(baseIdle)); // legless stays prone
+                }
             }
         }
 
@@ -2391,11 +2630,15 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             if (armed)
             {
-                OverrideClip("Walk", walkClip);
+                OverrideClip(GaitClipKeys[0], walkClip);
             }
-            else if (_clipsByName.TryGetValue("Walk", out var baseWalk))
+            else
             {
-                OverrideClip("Walk", baseWalk);
+                var baseWalk = BaseLocomotionClip(GaitClipKeys[0]);
+                if (baseWalk != null)
+                {
+                    OverrideClip(GaitClipKeys[0], baseWalk);
+                }
             }
         }
 
@@ -2410,6 +2653,94 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             OverrideClip(ChopBaseClip, baseChop);
         }
+    }
+
+    // §78: give the actor the locomotion authored for HIS body. The animator is
+    // one controller for everyone and its takes are the colonists' — a man
+    // walking them reads instantly as a woman's gait — so the male set from
+    // NpcAnimSet swaps the five locomotion slots: the idle, the three §71
+    // GaitBlend slots, and the sit (one clip for both seats, a stump and the
+    // hex rim are the same pose).
+    //
+    // Called ONCE from Construct, after the override controller exists and the
+    // mesh is known. Slots the set leaves empty keep the controller's take, and
+    // a female actor clears the map back to it — a re-Construct that swaps the
+    // sex on one instance must not leave his walk on her body. The §50 legless
+    // overrides run later and win: a man who lost a leg crawls like anyone.
+    private void ApplyActorLocomotion()
+    {
+        _actorLocomotion.Clear();
+        var set = _animSet != null && ActorSex.Of(_actorMesh) == VisualGender.Male
+            ? _animSet.male
+            : null;
+
+        SetLocomotionClip(IdleClipKey, set?.idle);
+        SetLocomotionClip(GaitClipKeys[0], set?.walk);
+        SetLocomotionClip(GaitClipKeys[1], set?.slowRun);
+        SetLocomotionClip(GaitClipKeys[2], set?.run);
+        SetLocomotionClip(SitClipKey, set?.sit);
+    }
+
+    // One locomotion slot: remember the actor's clip and play it, or hand the
+    // slot back to the controller's authored take when he has none.
+    private void SetLocomotionClip(string baseName, AnimationClip clip)
+    {
+        if (clip != null)
+        {
+            _actorLocomotion[baseName] = clip;
+            OverrideClip(baseName, clip);
+        }
+        else if (_clipsByName.TryGetValue(baseName, out var authored))
+        {
+            OverrideClip(baseName, authored);
+        }
+    }
+
+    // What a locomotion slot falls back to for THIS actor: his own take when he
+    // has one, the controller's otherwise.
+    private AnimationClip BaseLocomotionClip(string baseName)
+    {
+        if (_actorLocomotion.TryGetValue(baseName, out var mine))
+        {
+            return mine;
+        }
+
+        return _clipsByName.TryGetValue(baseName, out var authored) ? authored : null;
+    }
+
+    // §77.5: how fast a one-gesture work state must run so its clip plays
+    // EXACTLY ONCE across the sim's interaction window. Long job → slow motion,
+    // short job → brisk, and the §76/§78 multipliers that stretch a job no
+    // longer show up as a clip restarting and being cut off mid-stoop.
+    //
+    // Length comes from the LIVE clip (the override controller may have swapped
+    // the authored take for an NpcAnimSet one, or the §50 prone clip), so the
+    // fit follows whatever is actually playing. Unknown length or no window →
+    // 1 = authored pace, i.e. exactly the pre-§77.5 behaviour.
+    private float FitClipSpeed(string baseName, float windowSeconds)
+    {
+        if (windowSeconds <= 0.01f)
+        {
+            return 1f;
+        }
+
+        var length = EffectiveClipLength(baseName);
+        return length <= 0.01f
+            ? 1f
+            : Mathf.Clamp(length / windowSeconds, ActionSpeedMin, ActionSpeedMax);
+    }
+
+    // The clip a base-clip KEY currently plays: the override if one was set,
+    // else the authored take. Mirrors how OverrideClip writes the same slot.
+    private float EffectiveClipLength(string baseName)
+    {
+        if (!_clipsByName.TryGetValue(baseName, out var baseClip) || baseClip == null)
+        {
+            return 0f;
+        }
+
+        var live = _animOverride != null ? _animOverride[baseClip] : null;
+        return live != null ? live.length : baseClip.length;
     }
 
     // §NPC-anim: swap the clip a base-clip key plays, via the override controller.
@@ -2585,9 +2916,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     public void SetCombat(bool fighting, string weaponId, bool swinging, int strikeIndex = -1,
         int swingStartTick = 0)
     {
+        // §81: дерущаяся не пляшет.
+        _combatFighting = fighting;
         if (_legless)  // §50-prone: lying — no weapons, no fight pose
         {
             fighting = false;
+            _combatFighting = false;
             weaponId = null;
             SetHandProp(null);
         }
@@ -2635,7 +2969,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             var stance = Config.GearLibrary.ArmedIdleFor(string.Empty);
             if (stance != null)
             {
-                OverrideClip("Idle", Standing(stance));
+                OverrideClip(IdleClipKey, Standing(stance));
                 _bareStance = true;
             }
         }
@@ -2901,11 +3235,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     {
         switch (itemId)
         {
-            case "tool.bottle":
-                localPosition = new Vector3(0.0543f, -0.0236f, -0.051f);
-                localRotation = Quaternion.Euler(91.974f, 0.001007f, -6.520996f);
-                localScale = new Vector3(0.349494f, 0.349494f, 0.349494f);
-                break;
+            // tool.bottle used to bake an ABSOLUTE scale here, tuned against the
+            // old procedural bottle mesh; the AI plastic bottle is 2.3x taller,
+            // so that number was a lie. Its pose now lives in the gear asset
+            // (bottle.asset, «Хват в руке»), where the scale is a MULTIPLIER
+            // over ObjectFit and the model can change size freely.
             case "food.coconut":
                 localPosition = new Vector3(0.061f, -0.142f, 0.001f);
                 localRotation = Quaternion.Euler(0.808f, 0f, 0f);
@@ -3286,6 +3620,129 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     }
 
     // Classify each body-renderer material slot as skin (tintable) or not.
+    // §74: swap the hairstyle to the one the simulation rolled for her.
+    // ColonistAppearance.NoHair ("none") is the explicit bald case; an id the
+    // catalog doesn't know is a content bug, so it warns and keeps the prefab
+    // hair rather than silently shaving her.
+    private void ApplyHairstyle(string hairstyle)
+    {
+        if (_bodyBones == null || string.IsNullOrEmpty(hairstyle))
+        {
+            return;
+        }
+
+        if (string.Equals(hairstyle, Simulation.Content.ColonistAppearance.NoHair,
+                System.StringComparison.OrdinalIgnoreCase))
+        {
+            _bodyBones.SetHair(null);
+            return;
+        }
+
+        var catalog = ActorAppearanceCatalog.Instance;
+        var prefab = catalog != null ? catalog.Find(hairstyle) : null;
+        if (prefab == null)
+        {
+            Debug.LogWarning(
+                $"[§74] hairstyle '{hairstyle}' is not in the appearance catalog — " +
+                "run HexLive ▸ Actors ▸ Rebuild Appearance Catalog. Keeping the prefab hair.", this);
+            return;
+        }
+
+        _bodyBones.SetHair(prefab);
+    }
+
+    // §74: wear another actress's face. All four girls are Genesis3Female with
+    // the SAME 17 material slot names (Torso/Face/Arms/Legs/Cornea/… — §31B.1a
+    // regenerated Jolly's from Molly's precisely so the sets stay parallel), so
+    // the swap is a lookup BY NAME and never depends on submesh order.
+    //
+    // sharedMaterials is the right handle: SkinTexturePainter instantiates its
+    // own copies from whatever it finds (`body.materials`), and the tan on
+    // un-painted slots rides a MaterialPropertyBlock — so nothing here leaks
+    // one girl's wounds onto another's shared asset.
+    private void ApplySkinSet(string skinSet)
+    {
+        if (string.IsNullOrEmpty(skinSet) || _bodySkins == null ||
+            string.Equals(skinSet, _actorMesh.ToString(), System.StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var donor = LoadSkinSet(skinSet);
+        if (donor == null || donor.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var skin in _bodySkins)
+        {
+            // Hair and garments carry their own materials and their own donor
+            // logic — the skin set is the BODY only.
+            if (skin == null || skin.GetComponentInParent<Wear>() != null)
+            {
+                continue;
+            }
+
+            var mats = skin.sharedMaterials;
+            var changed = false;
+            for (var i = 0; i < mats.Length; i++)
+            {
+                if (mats[i] == null || !donor.TryGetValue(mats[i].name, out var replacement) ||
+                    replacement == null || ReferenceEquals(replacement, mats[i]))
+                {
+                    continue;
+                }
+
+                mats[i] = replacement;
+                changed = true;
+            }
+
+            if (changed)
+            {
+                skin.sharedMaterials = mats;
+            }
+        }
+    }
+
+    // Donor actor prefab → its body materials by name. Loading a prefab is not
+    // instantiating it, and the map is built once per donor for the whole run.
+    private static Dictionary<string, Material> LoadSkinSet(string actor)
+    {
+        if (_skinSets.TryGetValue(actor, out var cached))
+        {
+            return cached;
+        }
+
+        var map = new Dictionary<string, Material>(System.StringComparer.OrdinalIgnoreCase);
+        var prefab = Resources.Load<GameObject>($"HexLive/Actors/{actor}");
+        if (prefab == null)
+        {
+            Debug.LogWarning($"[§74] skin set '{actor}' has no actor prefab at " +
+                $"Resources/HexLive/Actors/{actor} — the body keeps its own materials.");
+        }
+        else
+        {
+            foreach (var skin in prefab.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if (skin == null || skin.GetComponentInParent<Wear>() != null)
+                {
+                    continue;
+                }
+
+                foreach (var mat in skin.sharedMaterials)
+                {
+                    if (mat != null)
+                    {
+                        map[mat.name] = mat;
+                    }
+                }
+            }
+        }
+
+        _skinSets[actor] = map;
+        return map;
+    }
+
     private void BuildSkinTintTargets()
     {
         _skinTintTargets.Clear();
@@ -3349,12 +3806,21 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                     _rForearm.rotation = Quaternion.AngleAxis(10f, right) * _rForearm.rotation;
                 }
                 break;
-            case "HeadClutch": // hand up to a hurt head
-                _rShldr.rotation = Quaternion.AngleAxis(-95f, right) * _rShldr.rotation;
-                if (_rForearm != null)
-                {
-                    _rForearm.rotation = Quaternion.AngleAxis(-120f, right) * _rForearm.rotation;
-                }
+            // §82: «рука к разбитой голове» ВЫКЛЮЧЕНА по решению пользователя —
+            // реализация плохая. Это поворот плеча на -95° и предплечья на -120°
+            // поверх любого клипа, без учёта того, где рука сейчас находится и
+            // куда смотрит тело: со стороны это читается не как «схватился за
+            // голову», а как непрерывное сгибание руки в пустоту.
+            //
+            // Сигнал симуляции при этом жив и приходит по-прежнему — выключен
+            // только рисунок. Чтобы вернуть, сделать надо иначе: тянуть кисть в
+            // точку у виска через IK (FullBodyBipedIK уже на теле и уже умеет
+            // вести руку в мировую точку — см. DriveActionTargetIK), а не
+            // крутить кости на фиксированный угол.
+            // §82: «держится за то, что болит» переехало на IK
+            // (DriveHurtReachIK). Прежний вариант крутил кости на фиксированный
+            // угол поверх любого клипа и читался как сгибание руки в пустоту.
+            case "HeadClutch":
                 break;
             // Spec §50: "Limp" and "Crawl" are now fully animator-driven (the
             // Limp walk state via LimpingParam; the real Crawl clip via
@@ -3663,8 +4129,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             solver.IKPositionWeight = 0f;
             effector.positionWeight = 0f;
             effector.rotationWeight = 0f;
+            // §82: рабочий IK молчит — можно подержаться за больное место.
+            // Порядок именно такой: solver один на всё тело, и замах всегда
+            // главнее, чем баюканье царапины.
+            DriveHurtReachIK(_fullBodyIK);
             return;
         }
+
+        _hurtReachWeight = 0f;
 
         var contact = ActionPropContactPoint(_actionTargetPoint, hand);
         solver.IKPositionWeight = 1f;
@@ -3673,6 +4145,153 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         effector.position = _actionTargetPoint - (contact - hand.position);
         effector.positionWeight = weight;
         effector.rotationWeight = 0f;
+    }
+
+    // §82: «держится за то, что болит» — через Final IK, а не поворотом костей.
+    //
+    // Прежний вариант доворачивал плечо на −95°, а предплечье на −120° поверх
+    // любого клипа, не зная, где рука сейчас находится: со стороны это читалось
+    // не как «схватился за голову», а как непрерывное сгибание руки в пустоту.
+    // IK ведёт кисть В ТОЧКУ, поэтому рука идёт к больному месту из своего
+    // текущего положения — и по дороге ничего не выворачивает.
+    //
+    // ⭐ Тянется ТОЛЬКО когда человек не занят ничем вообще. Любое дело, шаг,
+    // драка, вода, лежание — вес мгновенно в ноль. Так рука не может влезть в
+    // клип рубки или в замах: у боевого/рабочего IK и у этого один и тот же
+    // solver, и делить его между ними нельзя.
+    private bool HurtReachActive =>
+        _hurtReachBone != null && !_actionTargetActive && !_ragdollActive &&
+        !_laying && !_swimming && !_combatFighting && !_busyInteraction &&
+        !_wasWalking && !_dead && _posture != "Crawl";
+
+    // Кисть, которая тянется, и кость, к которой тянется. Больную руку держит
+    // ДРУГАЯ рука — своей же за неё не схватишься.
+    private Transform _hurtReachBone;
+    private bool _hurtReachUseLeftHand;
+    private float _hurtReachWeight;
+
+    // Зона раны -> кость, за которую хватаются. Имена зон совпадают с частями
+    // тела симуляции (карта покраски кожи собрана по тем же именам).
+    private Transform HurtBoneForZone(string zone, out bool useLeftHand)
+    {
+        useLeftHand = false;
+        if (_bodyBones == null)
+        {
+            return null;
+        }
+
+        switch (zone)
+        {
+            case "Head":
+                return _bodyBones.GetBone("head");
+            case "Torso":
+                return _bodyBones.GetBone("chestUpper");
+            case "Pelvis":
+                return _bodyBones.GetBone("hip") ?? _bodyBones.GetBone("pelvis");
+            case "ArmR":
+                useLeftHand = true;                    // правую держит левая
+                return _bodyBones.GetBone("rForearmBend");
+            case "ArmL":
+                return _bodyBones.GetBone("lForearmBend");
+            case "LegR":
+                return _bodyBones.GetBone("rThighBend");
+            case "LegL":
+                useLeftHand = true;
+                return _bodyBones.GetBone("lThighBend");
+            default:
+                return null;
+        }
+    }
+
+    // Что болит сильнее всего. Берётся самая свежая рана (heal ближе к 0):
+    // затянувшуюся царапину не баюкают.
+    private void RefreshHurtReachTarget()
+    {
+        _hurtReachBone = null;
+        if (_woundScratch.Count == 0)
+        {
+            return;
+        }
+
+        var freshest = 1f;
+        string zone = null;
+        foreach (var (z, _, heal) in _woundScratch)
+        {
+            if (heal < freshest)
+            {
+                freshest = heal;
+                zone = z;
+            }
+        }
+
+        if (zone == null || freshest > HurtReachHealCeiling)
+        {
+            return;
+        }
+
+        _hurtReachBone = HurtBoneForZone(zone, out _hurtReachUseLeftHand);
+    }
+
+    // Свежее этого порога рану ещё баюкают, выше — уже нет.
+    private const float HurtReachHealCeiling = 0.6f;
+    // Насколько кисть не доходит до самой кости — иначе она уезжает ВНУТРЬ тела.
+    private const float HurtReachSurfaceOffset = 0.11f;
+    private const float HurtReachEaseSpeed = 2.5f;
+
+    // §82: решатель по умолчанию СПИТ и просыпается только под удар
+    // (SetActionTargetPoint). Баюканье раны — второй повод его разбудить, иначе
+    // OnPreUpdate просто не вызовется и рука никуда не потянется.
+    //
+    // Выбирает цель тут же: список ран обновляет рендерер, и дёргать его на
+    // каждый кадр солвера незачем.
+    private void UpdateHurtReach()
+    {
+        RefreshHurtReachTarget();
+        if (_fullBodyIK == null)
+        {
+            return;
+        }
+
+        var wants = HurtReachActive || _actionTargetActive;
+        if (_fullBodyIK.enabled != wants)
+        {
+            _fullBodyIK.enabled = wants;
+            if (!wants)
+            {
+                _hurtReachWeight = 0f;
+                ResetActionTargetIKWeights();
+            }
+        }
+    }
+
+    private void DriveHurtReachIK(FullBodyBipedIK ik)
+    {
+        var solver = ik.solver;
+        var want = HurtReachActive ? 1f : 0f;
+        // Вниз — мгновенно: начал что-то делать, рука обязана освободиться в
+        // тот же кадр. Вверх — плавно, иначе рука дёргается к голове рывком.
+        _hurtReachWeight = want <= 0f
+            ? 0f
+            : Mathf.MoveTowards(_hurtReachWeight, 1f, Time.deltaTime * HurtReachEaseSpeed);
+
+        var hand = _hurtReachUseLeftHand ? _lHand : _rHand;
+        var effector = _hurtReachUseLeftHand ? solver.leftHandEffector : solver.rightHandEffector;
+        if (_hurtReachWeight <= 0.001f || hand == null || _hurtReachBone == null)
+        {
+            effector.positionWeight = 0f;
+            effector.rotationWeight = 0f;
+            solver.IKPositionWeight = 0f;
+            return;
+        }
+
+        // Точка чуть ПЕРЕД костью, по взгляду тела: ладонь ложится на больное
+        // место снаружи, а не проваливается в него.
+        var forward = _bodyRoot != null ? _bodyRoot.forward : transform.forward;
+        effector.target = null;
+        effector.position = _hurtReachBone.position + forward * HurtReachSurfaceOffset;
+        effector.positionWeight = _hurtReachWeight;
+        effector.rotationWeight = 0f;
+        solver.IKPositionWeight = 1f;
     }
 
     private float CurrentActionTargetIKWeight()
@@ -3825,6 +4444,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         SampleMotion();
         PollActionSounds();
         UpdateTalkTurns();
+        // §81: безделье и грустная походка. Идут ПОСЛЕ SampleMotion, потому что
+        // «стоит на месте» берётся из только что посчитанной скорости.
+        UpdateIdleFidget(_busyInteraction || _combatFighting || _wasWalking || _dead || _laying);
+        UpdateSadWalk();
+        UpdateHurtReach();
         // §67.10: hands the bubble back to a running conversation once a line
         // fades, and paces the ambient self-talk layer.
         _speech?.Tick();

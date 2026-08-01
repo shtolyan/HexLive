@@ -184,6 +184,11 @@ namespace HexLive.Simulation.Content
                 new("clothing.shorts_red",   "Red Shorts",       WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
                 new("clothing.shorts_olive", "Olive Shorts",     WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
                 new("clothing.shorts_cherry","Cherry Shorts",    WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
+                // Pattern retextures of the Bottom_1389 shorts (2026-08, PIL —
+                // original fold shading kept, fabric re-dyed in UV space).
+                new("clothing.shorts_white", "White Shorts",     WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
+                new("clothing.shorts_hearts","Heart Shorts",     WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
+                new("clothing.shorts_critters","Critter Shorts", WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
                 new("Shorts short",          "Mini-shorty",      WearLayer.Wear, 0.06f, 0.00f,  0.00f, dress, 2, BodyPart.Pelvis),
                 new("Glove_2245",            "Perchatki",        WearLayer.Wear, 0.04f, 0.00f,  0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR),
                 new("Gloves_17510",          "Perchatki",        WearLayer.Wear, 0.04f, 0.00f,  0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR),
@@ -200,6 +205,25 @@ namespace HexLive.Simulation.Content
                 // the whole point; the token 0.05 armor is the buckled leather
                 // strap itself, and gives her a reason to want it on.
                 new("legHolster_2204",       "Kabura na nogu",   WearLayer.Outerwear, 0.00f, 0.05f,  0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR),
+
+                // --- §72: снаряжение чужака ------------------------------------
+                // Он не выживальщик в трусах, а боец: тактический комплект с
+                // настоящей защитой. Ids равны именам папок в
+                // Resources/HexLive/Wear — арт грузится по id.
+                //
+                // Броня берётся МАКСИМУМОМ по части тела (EquipmentMath), а не
+                // суммой, поэтому важна лучшая вещь на каждую зону, а не число
+                // слоёв. Итог по нему: торс 0.40, таз 0.30, ноги 0.30, руки 0.20,
+                // голова 0 — шлема нет, и это его слабое место.
+                new("TonnyFlash",            "Poddospeshnik",    WearLayer.Underwear, 0.12f, 0.10f, -0.02f, dress, 0, BodyPart.Torso),
+                new("FCO Pants Male",        "Shtany boitsa",    WearLayer.Wear,      0.20f, 0.25f, -0.04f, dress, 2, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
+                new("FCO Belt Male",         "Poyas boitsa",     WearLayer.Wear,      0.04f, 0.15f,  0.00f, dress, 2, BodyPart.Torso),
+                new("FCO Gloves Male",       "Perchatki",        WearLayer.Wear,      0.06f, 0.20f,  0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR),
+                new("FAO Harness Male",      "Portupeya",        WearLayer.Outerwear, 0.10f, 0.40f, -0.06f, dress, 3, BodyPart.Torso),
+                new("FCO Boots Male",        "Sapogi boitsa",    WearLayer.Outerwear, 0.16f, 0.20f,  0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR),
+                new("FCO Legs Straps Male",  "Nabedrenniki",     WearLayer.Outerwear, 0.05f, 0.30f, -0.02f, dress, 1, BodyPart.LegL, BodyPart.LegR),
+                new("FCO Knee Straps Male",  "Nakolenniki",      WearLayer.Outerwear, 0.04f, 0.30f, -0.02f, dress, 0, BodyPart.LegL, BodyPart.LegR),
+                new("FCO Waist Strappy Male","Nabedrennyy remen",WearLayer.Outerwear, 0.04f, 0.30f, -0.02f, dress, 1, BodyPart.Pelvis),
             };
         }
     }

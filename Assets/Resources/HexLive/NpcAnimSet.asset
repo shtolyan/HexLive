@@ -20,8 +20,22 @@ MonoBehaviour:
   crawl: {fileID: -203655887218126122, guid: a41ca94b2e1c14830af8da86e3454130, type: 3}
   dress: {fileID: 0}
   undress: {fileID: 0}
+  idleFidgets:
+  - {fileID: -203655887218126122, guid: 954ee2a83653240f3846ff7b4c7b1d34, type: 3}
+  - {fileID: -203655887218126122, guid: 5d645d0ca3c1e4b6db32d95c839cd203, type: 3}
+  - {fileID: -203655887218126122, guid: e5445c26bd692407ab935f72b81116e3, type: 3}
+  - {fileID: -203655887218126122, guid: b3c9381dbaf8740ccb5e57a0bba2ba99, type: 3}
+  rejected: {fileID: -203655887218126122, guid: 7f94efd9fe3eb4eb3bbb32f910002f6f, type: 3}
+  crying: {fileID: -203655887218126122, guid: e736a0814cee84370b5ecdc3bc2bffb6, type: 3}
+  sadWalk: {fileID: -203655887218126122, guid: e1e06578d9378412ca0ff2cc1240ac4b, type: 3}
   armedIdle: {fileID: -203655887218126122, guid: 4b1c7d0af5eb04d6e9a1658453475d94, type: 3}
   armedWalk: {fileID: -203655887218126122, guid: 9e708ac3817d44062afa1909114df08c, type: 3}
+  male:
+    idle: {fileID: 0}
+    walk: {fileID: 0}
+    slowRun: {fileID: 0}
+    run: {fileID: 0}
+    sit: {fileID: 0}
   weapons:
   - weaponId: tool.spear
     idle: {fileID: 0}

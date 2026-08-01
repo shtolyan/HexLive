@@ -41,11 +41,52 @@ namespace HexLive.UnityPresentation.Wearing
         [Tooltip("§Wardrobe: снятие одежды — первый такт (перед газерингом, одежда ещё на теле). Пусто = базовый клип состояния Undress.")]
         public AnimationClip undress;
 
+        [Header("§81 Безделье — случайная сценка, когда делать нечего")]
+        [Tooltip("Клипы «просто существует»: сальса, приседания, джампинг-джеки, шарит по карманам. " +
+                 "Выбирается случайный и играется РЕДКО — это приправа, а не занятие.")]
+        public AnimationClip[] idleFidgets;
+
+        [Header("§81 Такты сцены абьюза")]
+        [Tooltip("Отшатнулась, когда на неё наехали (X Bot@Rejected).")]
+        public AnimationClip rejected;
+        [Tooltip("Плачет (X Bot@Crying) — такт «она плачет» и такт «сдалась».")]
+        public AnimationClip crying;
+        [Tooltip("Грустная походка (X Bot@Sad Walk). Подменяет обычный шаг на несколько минут после сцены.")]
+        public AnimationClip sadWalk;
+
         [Header("Вооружённый idle/ходьба — если в руке инструмент/оружие (tool.*)")]
         [Tooltip("Стойка с предметом в руке (Standing Idle). Подменяет базовый Idle, пока в руке любой tool.* (топор/нож/молоток/копьё…). Пусто = обычный idle.")]
         public AnimationClip armedIdle;
         [Tooltip("Ходьба с предметом в руке (Standing Walk Forward). Подменяет базовый Walk, пока в руке любой tool.*. Пусто = обычная ходьба.")]
         public AnimationClip armedWalk;
+
+        [Header("§78 Мужская локомоция — своя походка мужскому телу")]
+        [Tooltip("Комплект локомоции для мужчин (Kshishtof/Tonny): стойка, шаг, трусца, бег, сидение. " +
+                 "Подменяет базовые клипы контроллера, авторски женские. Пусто = мужчина ходит как девушки. " +
+                 "Заполняется меню HexLive ▸ Actors ▸ Build Male Locomotion.")]
+        public LocomotionSet male;
+
+        /// <summary>
+        /// One body's locomotion takes. The four moving slots mirror the
+        /// animator's own structure — Idle plus the three §71 GaitBlend slots
+        /// (walk / slow run / run) — and sit is the Sit state's clip. Anything
+        /// left empty falls through to the controller's authored take, so a
+        /// half-filled set is a valid state, not a broken one.
+        /// </summary>
+        [System.Serializable]
+        public sealed class LocomotionSet
+        {
+            [Tooltip("Стойка на месте (Mixamo Breathing Idle).")]
+            public AnimationClip idle;
+            [Tooltip("Шаг — слот 0 блендера походки (Mixamo Walking).")]
+            public AnimationClip walk;
+            [Tooltip("Трусца — слот 0.5 блендера походки (Mixamo Running slow).")]
+            public AnimationClip slowRun;
+            [Tooltip("Бег — слот 1 блендера походки (Mixamo Running).")]
+            public AnimationClip run;
+            [Tooltip("Сидение — на пеньке и на краю гекса это один и тот же клип (Mixamo Sitting).")]
+            public AnimationClip sit;
+        }
 
         [Header("Оружие — idle + атака подменяются под оружие (архитектура)")]
         [Tooltip("По строке на оружие: id (tool.spear, tool.knife…), armed-idle, и один-или-несколько ударов. Копьё → Bayonet Stab сейчас; остальное добавляется строкой.")]

@@ -50,6 +50,19 @@ namespace HexLive.UnityDebug.Editor
             // "Speed" (which stays the Idle<->Walk switch) so the two never
             // fight: Speed decides WHETHER she moves, Gait decides HOW.
             AddParam(ac, "Gait", AnimatorControllerParameterType.Float);
+            // §81: одна ОДНОРАЗОВАЯ сценка на все случаи — безделье и такты
+            // сцены абьюза. Состояние одно, а клип в него вид заряжает перед
+            // самым срабатыванием через AnimatorOverrideController: плясать,
+            // приседать, шарить по карманам, отшатнуться, плакать — это всё
+            // одна и та же машина «сыграй раз и вернись в Idle», и разводить её
+            // на пять состояний значило бы пять раз написать одни и те же
+            // переходы.
+            AddParam(ac, "Emote", AnimatorControllerParameterType.Trigger);
+            // §77.5: playback speed of the one-gesture work states, so ONE
+            // interaction is ONE playthrough of its clip however long the sim
+            // made the window. Same idiom as JumpSpeed (§HexHop). Default 1 =
+            // authored pace, so a controller built before this reads identical.
+            AddParam(ac, "ActionSpeed", AnimatorControllerParameterType.Float, 1f);
 
             var sm = ac.layers[0].stateMachine;
             var idle = Find(sm, "Idle");
@@ -79,6 +92,9 @@ namespace HexLive.UnityDebug.Editor
             // a prone idle, moving she crawls (Zombie Crawl). Replaces the whole
             // stand/walk locomotion while Crawling; sim crawls her at 1/3 speed.
             var crawl = BuildCrawlBlend(ac, sm);
+            // Базовый клип — просто КЛЮЧ для подмены; какой именно, роли не
+            // играет, лишь бы он существовал.
+            var emote = AddState(sm, "Emote", Clip("X Bot@Salsa Dancing"));
 
             // Loopy activities: enter while the bool is set, return to Idle when cleared.
             Loopy(sm, talk, idle, "Talking");
@@ -90,6 +106,11 @@ namespace HexLive.UnityDebug.Editor
             // loop the swing, return to Idle when it clears.
             Loopy(sm, chop, idle, "Chopping");
             Loopy(sm, craft, idle, "Crafting");
+
+            // §77.5: the two one-gesture work states play their clip exactly
+            // once per interaction (see FitClipToWindow).
+            FitClipToWindow(gather);
+            FitClipToWindow(craft);
 
             // Attack: fired by a trigger, plays once, exits by time.
             ClearAny(sm, attack);
@@ -120,6 +141,25 @@ namespace HexLive.UnityDebug.Editor
             var ho = hitReact.AddTransition(idle);
             ho.hasExitTime = true; ho.exitTime = 0.5f; ho.duration = 0.1f;
 
+            // §81: сценка — как Attack: триггер, один проход, выход по времени.
+            // canTransitionToSelf=false, иначе повторный триггер посреди клипа
+            // рвал бы его с начала. Мертвецы не пляшут.
+            ClearAny(sm, emote);
+            ClearOut(emote);
+            var ei = sm.AddAnyStateTransition(emote);
+            ei.AddCondition(AnimatorConditionMode.If, 0, "Emote");
+            ei.AddCondition(AnimatorConditionMode.IfNot, 0, "Dead");
+            ei.hasExitTime = false; ei.duration = 0.2f; ei.canTransitionToSelf = false;
+            // Из сценки выбивает любое настоящее дело: удар, урон, ходьба.
+            var ea = emote.AddTransition(attack);
+            ea.AddCondition(AnimatorConditionMode.If, 0, "Attack");
+            ea.hasExitTime = false; ea.duration = 0.05f;
+            var ew = emote.AddTransition(idle);
+            ew.AddCondition(AnimatorConditionMode.Greater, 0.1f, "Speed");
+            ew.hasExitTime = false; ew.duration = 0.15f;
+            var eo = emote.AddTransition(idle);
+            eo.hasExitTime = true; eo.exitTime = 0.95f; eo.duration = 0.25f;
+
             // Death: enter on the Dead bool and HOLD (no exit) — the clip should
             // be Loop Time OFF so it freezes on the last frame.
             ClearAny(sm, death);
@@ -148,13 +188,42 @@ namespace HexLive.UnityDebug.Editor
                 $"attack={attack.motion != null} death={death.motion != null}");
         }
 
-        static void AddParam(AnimatorController ac, string n, AnimatorControllerParameterType t)
+        static void AddParam(AnimatorController ac, string n, AnimatorControllerParameterType t,
+            float defaultFloat = 0f)
         {
+            var exists = false;
             foreach (var p in ac.parameters)
             {
-                if (p.name == n) return;
+                if (p.name == n) exists = true;
             }
-            ac.AddParameter(n, t);
+            if (!exists) ac.AddParameter(n, t);
+            if (defaultFloat == 0f)
+            {
+                return;
+            }
+            // AddParameter has no default-value overload, so a float that must
+            // NOT start at 0 is patched after the fact — and re-asserted on a
+            // re-run, because a SPEED left at 0 freezes the state dead and that
+            // must not be one careless controller edit away.
+            var all = ac.parameters;
+            foreach (var p in all)
+            {
+                if (p.name == n) p.defaultFloat = defaultFloat;
+            }
+            ac.parameters = all;
+        }
+
+        // §77.5: one interaction = one playthrough. The state plays its clip at
+        // ActionSpeed instead of the authored 1, and the view sets that float to
+        // clipLength / interactionSeconds — long job, slow motion; short job,
+        // brisk. Only states where ONE interaction IS ONE gesture get this:
+        // Chop is a REPEATED swing at a tree and must keep looping, and the
+        // wardrobe/talk beats have their own timing.
+        static void FitClipToWindow(AnimatorState s)
+        {
+            if (s == null) return;
+            s.speedParameterActive = true;
+            s.speedParameter = "ActionSpeed";
         }
 
         static AnimatorState Find(AnimatorStateMachine sm, string n)

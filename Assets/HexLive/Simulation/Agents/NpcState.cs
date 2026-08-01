@@ -102,7 +102,15 @@ public sealed class BodyState
         return 0.4f + 0.6f * (Parts[BodyPart.LegL] + Parts[BodyPart.LegR]) * 0.5f;
     }
 
-    public float StrikeFactor()
+    // §76: renamed from StrikeFactor(). This is ONLY the limb half of the melee
+    // factor — how much of a blow her arms can still put behind it. The blow
+    // itself is NPCState.StrikeFactor(), which multiplies this by her innate
+    // Strength and her learned Combat. Damage sites must call THAT.
+    //
+    // The rename is deliberate: it broke every call site at compile time so
+    // none could be left reading the un-attributed number, and it keeps them
+    // broken for anyone who reaches past NPCState in future.
+    public float LimbStrikeFactor()
     {
         var baseFactor = 0.4f + 0.6f * (Parts[BodyPart.ArmL] + Parts[BodyPart.ArmR]) * 0.5f;
         return baseFactor * SeveredArmMult();
@@ -150,9 +158,28 @@ public sealed class NPCState
 
     // Spec 19.3 / iteration 23: presentation identity — the girls have
     // names and bodies; the simulation itself never branches on them.
+    // §74: DisplayName is now a NAME ID from ColonistAppearance.NameIds — the
+    // player-facing text comes from the I2 term `npc.<lowercase id>.name`.
     public string DisplayName { get; set; } = string.Empty;
 
     public string ActorMesh { get; set; } = string.Empty;
+
+    // §74: the three traits that used to be implied by ActorMesh and are now
+    // rolled independently. EMPTY MEANS "as before": the body's own materials,
+    // the hairstyle authored on the actor prefab, and the voice folder named
+    // after the mesh. That default is what lets a pre-§74 save, a test-scene
+    // bootstrap and the outsider all keep working untouched.
+    public string SkinSet { get; set; } = string.Empty;
+
+    public string Hairstyle { get; set; } = string.Empty;
+
+    public string VoiceBank { get; set; } = string.Empty;
+
+    // §72: which side this body is on. The ONE thing the simulation DOES branch
+    // on above — everything else (needs, GOAP, crafting, wardrobe) is identical
+    // for a colonist and an outsider. Defaults to Colony so every pre-§72 path
+    // and every old save behaves exactly as before.
+    public Faction Faction { get; set; } = Faction.Colony;
 
     public FragmentId Fragment { get; set; }
 
@@ -255,6 +282,23 @@ public sealed class NPCState
     // one helps only when she has nothing else to do. Default is a middling
     // value; WorldStateFactory spreads it per-NPC.
     public float CompassionTrait { get; set; } = 0.6f;
+
+    // Spec §76: WHO she is — six innate characteristics rolled once from the
+    // world seed and fixed for life (AttributeMath.Roll). Defaults are the
+    // human average, so an un-rolled body is the pre-§76 game exactly.
+    public AttributeSet Attributes { get; } = new();
+
+    // Spec §76: WHAT she has learned — eight trades that grow with practice
+    // (SkillMath.Award). Everyone starts at zero.
+    public SkillSet Skills { get; } = new();
+
+    // Spec §76: THE melee output factor — limb condition (§19.3C/§50) × innate
+    // Strength × learned Combat. Every damage site in every combat system must
+    // read this and never Body.LimbStrikeFactor() directly, or the next system
+    // written will quietly fight without characteristics.
+    public float StrikeFactor() =>
+        Body.LimbStrikeFactor() *
+        HexLive.Simulation.Runtime.AttributeMath.MeleeDamageMult(this);
 
     public NPCNeeds Needs { get; } = new();
 

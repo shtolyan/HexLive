@@ -204,6 +204,11 @@ namespace HexLive.Simulation.Runtime
         public static float SunburnRate = 0.004f;     // acute redness gained (faster than tan settles)
         public static float SunExposureRate = 0.3f;   // exposure meter gained (fills toward a burn event)
         public static float SunburnBurnDamage = 0.08f; // HP torn off a part by a burn event
+        // §82: ниже этого порога солнце ВИТАЛЬНУЮ часть не доламывает.
+        // Солнечный удар доводит до беспамятства, но не отрывает голову: без
+        // порога забронированный целиком человек умирает от загара за треть
+        // дня — у него открыта ровно одна часть, и все удары приходят в неё.
+        public static float SunburnVitalFloor = 0.45f;
 
         // ─────────────────────────────────────────────────────────────
         // Hygiene (soft, UI-tracked).
@@ -271,7 +276,7 @@ namespace HexLive.Simulation.Runtime
         // assigns, so this knob — not that field — is how the pace is tuned.
         // NOTE: the hex hop (HexHopTuning.HopSeconds) is on a wall clock and
         // does NOT scale with this, so ledge crossings keep their duration.
-        public static float BaseMoveSpeedFactor = 1.5f;
+        public static float BaseMoveSpeedFactor = 1.2f; // §71: 1.5 was a shade brisk, eased 20%
 
         // §71: how fast she TURNS, as a multiple of npc.TurnSpeed (90°/s, a
         // field nothing ever assigns). At 2.4 that is 216°/s = 54° per tick,
@@ -532,6 +537,13 @@ namespace HexLive.Simulation.Runtime
         // sooner than thirst, and that branch already demands a dead fire AND no
         // reachable wood of any kind).
         public static int PalmGroveReserve = 4;
+
+        // §80: радиус правила «сначала подбери с земли, потом добывай ещё».
+        // Меряется и от самого NPC, и от стройки, ради которой он добывает.
+        // Общеостровной меры тут быть не может: восприятие помнит предметы по
+        // всей карте, так что «где-то лежит камень» истинно почти всегда и
+        // заморозило бы добычу навсегда.
+        public static int PickUpFirstRadiusTiles = 4;
 
         // Fiber → rope / cloth (crafted at the fire); knife = sticks + stone.
         // Enough cordage that a couple of cut yucca can supply the first bed's

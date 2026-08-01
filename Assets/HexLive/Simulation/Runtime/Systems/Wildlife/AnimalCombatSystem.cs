@@ -260,12 +260,20 @@ public sealed class AnimalCombatSystem : ISimulationSystem
         npc.RotationDegrees = MathUtil.RotateTowards(
             npc.RotationDegrees,
             HexSpatialMath.AngleDegrees(direction),
-            npc.TurnSpeed * 4f * world.TickDeltaTime);
+            npc.TurnSpeed * 4f * AttributeMath.TurnSpeedMult(npc) * world.TickDeltaTime);
     }
 
     private static void RunCounterStrike(
         WorldState world, Wildlife.MobState dog, NPCState npc, bool inMelee)
     {
+        // §72: a body has ONE swing slot. While a human fight owns it (the man
+        // is on her, or she is on him) the dog exchange must not also drive it,
+        // or the two would trade the same StrikeLandsAtTick back and forth.
+        if (npc.Mind.CombatOpponentNpcId is not null)
+        {
+            return;
+        }
+
         var weaponId = npc.Body.CanUseToolsOrWeapons
             ? SimBalance.BestMeleeWeapon(npc.Inventory.Items, npc.Body.IntactHands)
             : string.Empty;
@@ -281,11 +289,21 @@ public sealed class AnimalCombatSystem : ISimulationSystem
             npc.StrikeLandsAtTick = 0;
             StrikeTimings(Content.GearCatalog.For(weaponId), npc.SwingStrikeIndex,
                 out var hitDelay, out var duration, out var cooldown);
+            // §76: same Agility recovery cut as the human swing (MeleeSwing) —
+            // the two timing sheets are duplicated on purpose (§72 explains
+            // why), so the attribute has to be applied in both or a nimble girl
+            // would be quick against people and average against dogs.
             npc.StrikeReadyAtTick = world.Tick +
-                SecondsToTicks(duration - hitDelay + cooldown);
+                SecondsToTicks((duration - hitDelay + cooldown) *
+                    AttributeMath.AttackCooldownMult(npc));
             // Spec 19.3C: hurt arms strike weaker; the weapon owns its damage.
-            var strike = Content.GearCatalog.Damage(weaponId) * npc.Body.StrikeFactor();
+            var strike = Content.GearCatalog.Damage(weaponId) * npc.StrikeFactor();
             dog.Health -= strike;
+            // §76: fighting a dog trains Combat too. This path is NOT reachable
+            // from MeleeSwing — RunCounterStrike bails early whenever a human
+            // fight owns the swing slot — so the award has to live here as well
+            // or a girl who only ever fought wolves would stay a novice.
+            SkillTrace.AwardHit(world, npc);
             Trace.Emit(world, npc.Id, "DogFight",
                 $"Dog={dog.Id} struck -{strike:F3}" +
                 $"{(string.IsNullOrEmpty(weaponId) ? " (fists)" : " " + weaponId)} " +
@@ -340,8 +358,8 @@ public sealed class AnimalCombatSystem : ISimulationSystem
         // covering that part absorb it. §50: never a severed limb.
         var bitPart = AmputateSystemHelpers.RedirectFromStump(target,
             MobSystem.PickAttackPart(world, dog.Id));
-        var partArmor = EquipmentMath.ArmorForPart(world, target, bitPart);
-        var damage = Stats(dog).AttackDamage * (1f - partArmor);
+        var partArmor = EquipmentMath.ArmorForPart(world, target, bitPart); // trace only
+        var damage = EquipmentMath.Mitigate(world, target, bitPart, Stats(dog).AttackDamage);
         target.Body.Parts[bitPart] = System.Math.Max(0f, target.Body.Parts[bitPart] - damage);
         target.Health = target.Body.Mean();
         DamageReactionSystemHelpers.GrantAdrenaline(world, target, damage, "DogBite");

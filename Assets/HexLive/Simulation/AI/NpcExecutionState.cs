@@ -53,6 +53,12 @@ public sealed class NPCExecutionState
     // knife survives the wash.
     public System.Collections.Generic.List<ItemInstance> HeldGarmentContents { get; } = new();
 
+    // §77: the carried materials have already gone into the build-site's pile
+    // this interaction — set at the mid-animation handoff, so the completion
+    // pass neither deposits twice nor emits a second SiteDelivered. Reset when
+    // an interaction starts; false simply means "the deposit still owes".
+    public bool BuildDeposited { get; set; }
+
     // §gear-craft v2: ids of the ground objects the staged in-place craft is
     // working over — the laid-out ingredients during the Craft beat, then the
     // finished output item(s) during the take (PickUp) beat. Whatever is still

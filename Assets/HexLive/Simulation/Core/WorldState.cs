@@ -109,6 +109,16 @@ public sealed class WorldState
 
     public System.Collections.Generic.Dictionary<JunctionId, int> JunctionComponentsFlat { get; } = new();
 
+    // Spec §26.6A r4: the junctions closed by an OBJECT FOOTPRINT (a palm trunk,
+    // the fire's ember ring, a bed) — as opposed to TERRAIN (a cliff face, a hut
+    // wall, the open sea). Both read `Junction.Blocked`, but only the first kind
+    // may be reached ACROSS: you work around a trunk, never through a cliff.
+    // DERIVED from every object's BlockedJunctions — rebuilt whenever
+    // TopologyVersion moves, exactly like the component caches above.
+    public int ObjectBlockBuiltVersion { get; set; }
+
+    public System.Collections.Generic.HashSet<JunctionId> ObjectBlockedJunctions { get; } = new();
+
     // Spec 35.3: the communal hut project (null once cleanup removes it).
     public BuildProject? Project { get; set; }
 
@@ -128,6 +138,17 @@ public sealed class WorldState
     // recomputed each Slow tick by DreamSystem. A plain field for cheap gate
     // reads (BedSiteSystem, UI). DERIVED — not serialized; recomputed on load.
     public DreamType ActiveDream { get; set; } = DreamType.Campfire;
+
+    // §72: where each faction's camp is anchored, authored at bootstrap and
+    // serialized. It is the ONE piece of per-faction world state stage 1 needs:
+    // it scopes "our hearth" (otherwise the outsider lighting a fire first would
+    // satisfy the COLONY's §64 campfire dream), it bounds the home knowledge an
+    // NPC is seeded with, and it is where a beaten raider retreats to.
+    //
+    // Everything else that reads as "colony" is already per-camp for free —
+    // objects are perceived within 2 tiles, so the fire she tends and the pile
+    // she hauls to are her own by construction.
+    public System.Collections.Generic.Dictionary<Agents.Faction, Common.TileCoord> FactionHomes { get; } = new();
 
     // Spec 29F.1: prey.
     public System.Collections.Generic.List<Wildlife.RabbitState> Rabbits { get; } = new();

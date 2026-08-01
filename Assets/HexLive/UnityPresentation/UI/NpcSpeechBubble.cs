@@ -162,15 +162,22 @@ public sealed class NpcSpeechBubble : MonoBehaviour
         _popTimer = 0f;
     }
 
-    public void PopSocialCue(string cueKind)
+    // §80: portrait — лицо ТОГО, о ком кьюшка. ⚠️ над головой говорит, что ей
+    // страшно, но не говорит, кого она увидела; лицо говорит. Когда снимка ещё
+    // нет (первый игровой час) или кьюшка не про человека — падаем на прежнюю
+    // эмодзи, поэтому вызывающему не нужно ничего проверять.
+    public void PopSocialCue(string cueKind, Sprite portrait = null)
     {
         if (_cueRenderer == null || string.IsNullOrEmpty(cueKind))
         {
             return;
         }
 
-        _cueRenderer.sprite = ResolveEmoji(SocialCueSprite(cueKind));
-        _cueColor = SocialCueColor(cueKind);
+        _cueRenderer.sprite = portrait != null ? portrait : ResolveEmoji(SocialCueSprite(cueKind));
+        // Портрет красят только белым: эмодзи — силуэт, который тонируют по
+        // смыслу, а лицо уже несёт свой цвет, и тонировка сделала бы из него
+        // цветное пятно.
+        _cueColor = portrait != null ? Color.white : SocialCueColor(cueKind);
         _cueRenderer.color = _cueColor;
         FitSpriteInside(_cueRenderer, CueBoxUnitsWide, CueBoxUnitsTall);
         _cue.gameObject.SetActive(true);
@@ -370,8 +377,21 @@ public sealed class NpcSpeechBubble : MonoBehaviour
             "AidRequest" or "AidIncoming" or "AidStarted" or "AidCompleted" => "Food",
             "WitnessedMurder" => "Sharks",
             // §62: spotted a predator from afar — the yellow warning triangle.
-            "DangerSpotted" => "Warning",
+            // §80: чужак-человек получил свой вид кьюшки, потому что над ним
+            // всплывает ЛИЦО, а у зверя лица в кэше нет. Треугольник остаётся
+            // запасным вариантом для обоих, пока снимок не сделан.
+            "DangerSpotted" or "DangerStranger" => "Warning",
             "TalkSuccess" => "Joke",
+            // §81: сцена абьюза. Новых картинок не понадобилось — Gift и
+            // Grief лежали в папке и не были заняты ни одной кьюшкой, а Gift
+            // на такте «отдаёт под нажимом» читается ровно так, как надо.
+            "AbuseDemand" or "AbuseStruck" => "Attack",
+            "AbuseThreatened" => "Warning",
+            "AbuseCry" => "Grief",
+            "AbuseHurt" => "Blood",
+            "AbuseSubmit" or "AbuseGaveUp" or "AbuseTook" => "Gift",
+            "AbuseDefied" or "AbuseRefused" => "Grumble",
+            "AbuseFled" => "Flee",
             _ => "SmallTalk"
         };
     }
@@ -382,7 +402,10 @@ public sealed class NpcSpeechBubble : MonoBehaviour
         {
             "TalkRejected" or "TalkRefused" or "TalkQuarrel" or "Resentment" or "WitnessedMurder" or
                 "HelpCry" or "HelpCryAssistStarted" or "HelpCryAssistArrived" or "HelpCryDefended" or
-                "HelpCryIgnored" => NegColor,
+                "HelpCryIgnored" or
+                "AbuseDemand" or "AbuseThreatened" or "AbuseCry" or "AbuseStruck" or
+                "AbuseHurt" or "AbuseSubmit" or "AbuseGaveUp" or "AbuseTook" or
+                "AbuseDefied" or "AbuseRefused" or "AbuseFled" => NegColor,
             "AidRequest" or "AidIncoming" or "AidStarted" or "AidCompleted" or "TalkSuccess" or
                 "HelpCryAnswer" or "HelpCryAnswered" => PosColor,
             _ => Color.white

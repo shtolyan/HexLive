@@ -80,6 +80,10 @@ internal static class EquipmentMath
         if (npc.Body.IntactHands > 0)
         {
             slots += SimBalance.BaseCarrySlots;
+            // §76: a strong girl gets one more pocket's worth of load. Gated on
+            // having a hand for the same reason the base load is — a §50
+            // armless body carries nothing however strong she was.
+            slots += AttributeMath.CarrySlotBonus(npc);
         }
         foreach (var item in npc.WornItems)
         {
@@ -123,6 +127,20 @@ internal static class EquipmentMath
         }
 
         return best;
+    }
+
+    // §76: a raw blow → what actually reaches the flesh. Worn armor on the
+    // struck part first, then the body's own innate Toughness.
+    //
+    // THE one place incoming melee damage is mitigated. Before §76 five combat
+    // systems each wrote their own `damage * (1f - ArmorForPart(...))`, which
+    // is exactly how SharkSystem ended up applying no armor at all. Callers
+    // that still need the armor figure for a trace should keep their own local
+    // — the number, not the arithmetic.
+    public static float Mitigate(WorldState world, NPCState target, BodyPart part, float raw)
+    {
+        var afterArmor = raw * (1f - ArmorForPart(world, target, part));
+        return System.Math.Max(0f, afterArmor * AttributeMath.IncomingDamageMult(target));
     }
 
     // Spec 35.4: is this body part covered by any worn garment?

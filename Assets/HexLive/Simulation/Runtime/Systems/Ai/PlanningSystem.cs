@@ -174,6 +174,12 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 continue;
             }
 
+            if (npc.Mind.CurrentGoal == GoalType.Abuse)
+            {
+                BuildAbusePlan(world, npc);
+                continue;
+            }
+
             if (npc.Mind.CurrentGoal == GoalType.Defend)
             {
                 BuildDefendPlan(world, npc);
@@ -258,6 +264,68 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 npc.Plan.Status = PlanStatus.Active;
                 Trace.Emit(world, npc.Id, "PreyPlanned",
                     $"Victim={victim.Id.Value} Tile={victim.Tile.Q},{victim.Tile.R}");
+                continue;
+            }
+
+            if (npc.Mind.CurrentGoal == GoalType.Raid)
+            {
+                // §72: a move-only stalk, like §56 Prey — RaidSystem resolves
+                // the fight once he is adjacent, and the completion→rebuild
+                // cycle IS the pursuit when she runs.
+                //
+                // Two deliberate differences from Prey. First he COMMITS to one
+                // victim (Mind.RaidTargetNpcId): re-picking the weakest target
+                // on every rebuild turns a stalk into dithering. Second he walks
+                // to a junction BESIDE her, not onto hers — the §29C.4B Defend
+                // plan learned that the hard way (Started→Arrived 17 times in
+                // 68 ticks fighting the occupancy system for her own square).
+                var raidVictim = ResolveRaidVictim(world, npc);
+                if (raidVictim?.CurrentJunction is not { } raidVictimJunction)
+                {
+                    // Nobody worth taking in range — walk toward their camp and
+                    // look again from there. This is what makes him a hunter
+                    // rather than a hermit with a grudge.
+                    if (TryBuildProwlPlan(world, npc))
+                    {
+                        continue;
+                    }
+
+                    npc.Plan.Status = PlanStatus.Failed;
+                    AbandonRaid(world, npc, "NoVictim");
+                    Trace.Emit(world, npc.Id, "PlanFailed", "Goal=Raid NoReachableVictim");
+                    continue;
+                }
+
+                // Already beside her — the fight is on, no plan to build.
+                if (npc.CurrentJunction is { } raiderJunction &&
+                    IsAdjacentJunction(world, raiderJunction, raidVictimJunction))
+                {
+                    npc.Plan.Status = PlanStatus.Completed;
+                    continue;
+                }
+
+                var approach = PickApproachJunction(world, npc, raidVictimJunction);
+                if (approach is not { } raidApproach)
+                {
+                    npc.Plan.Status = PlanStatus.Failed;
+                    AbandonRaid(world, npc, "NoApproach");
+                    Trace.Emit(world, npc.Id, "PlanFailed", "Goal=Raid NoApproach");
+                    continue;
+                }
+
+                npc.Plan.TargetJunctionId = raidApproach;
+                npc.Plan.TargetTile = raidVictim.Tile;
+                npc.Plan.TargetAgentId = raidVictim.Id;
+                npc.Plan.Steps.Add(new PlanStep
+                {
+                    Type = PlanStepType.MoveToJunction,
+                    TargetJunction = raidApproach
+                });
+                npc.Plan.CurrentStepIndex = 0;
+                npc.Plan.Status = PlanStatus.Active;
+                Trace.Emit(world, npc.Id, "RaidPlanned",
+                    $"Victim=NPC{raidVictim.Id.Value} Tile={raidVictim.Tile.Q},{raidVictim.Tile.R} " +
+                    $"Opp={RaidMath.Opportunity(world, npc, raidVictim):F2}");
                 continue;
             }
 

@@ -190,8 +190,10 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 1f)] public float abuseHeavyWeaponDepth = 0.5f;
         [Tooltip("§91: какая доля потери симпатии достаётся ЕМУ. Без неё его собственная неприязнь не растёт, а от неё зависит, возьмётся ли он за нож и добьёт ли.")]
         [Range(0f, 1f)] public float abuserOwnAffinityShare = 1f;
-        [Tooltip("§91: вероятность, что она ОГРЫЗНЁТСЯ на тычок. Не решение драться (оно в приговоре), а рефлекс.")]
-        [Range(0f, 1f)] public float abuseFightBackChance = 0.55f;
+        [Tooltip("§101: база шанса ответить. Умножается на её ШАНСЫ (1/расклад): голая против мужика с мачете почти никогда не лезет.")]
+        [Range(0f, 2f)] public float abuseFightBackBase = 0.9f;
+        [Tooltip("§101: сколько храбрости добавляет ЗЛОСТЬ. Та, кого тиранят неделю, огрызается и заведомо проигрывая.")]
+        [Range(0f, 2f)] public float abuseFightBackHatred = 0.5f;
         [Tooltip("Ниже этого здоровья удар не наносится вовсе.")]
         [Range(0f, 2f)] public float abuseNoBlowHealthFloor = 0.5f;
         [Tooltip("Сколько защитниц рядом заставляют его бросить сцену.")]

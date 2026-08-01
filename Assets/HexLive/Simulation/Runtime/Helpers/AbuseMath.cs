@@ -117,6 +117,34 @@ public static class AbuseMath
         return Force(world, abuser) / System.Math.Max(markSide, 0.0001f);
     }
 
+    // §101: ответит ли она на наезд. Не бросок монетки и не «храбрая по
+    // характеру», а трезвая оценка своих шансов плюс злость.
+    //
+    //   ШАНСЫ. edge = 1/ratio: единица — они на равных, 0.2 — он впятеро
+    //   сильнее. Голая девушка против мужика с мачете видит это и не лезет.
+    //
+    //   ЗЛОСТЬ. Ненависть добавляет храбрости поверх расчёта: та, кого он
+    //   тиранит неделю, огрызается и заведомо проигрывая. Это и делает
+    //   картину живой — иначе слабая молчала бы ВСЕГДА, а сильная отвечала
+    //   всегда, и никакой истории между ними не возникало бы.
+    //
+    // Бросок детерминированный (сид + тик + её id), поэтому реплей точен.
+    public static bool AnswersBack(WorldState world, NPCState abuser, NPCState mark)
+    {
+        if (!mark.Body.CanUseToolsOrWeapons || mark.Body.IsProne ||
+            mark.IsUnconscious(world.Tick))
+        {
+            return false;
+        }
+
+        var edge = MathUtil.Clamp01(1f / System.Math.Max(0.0001f, Ratio(world, abuser, mark)));
+        var hatred = MathUtil.Clamp01(-mark.Social.GetOrCreate(abuser.Id).Affinity);
+        var chance = MathUtil.Clamp01(
+            Spec81.AbuseFightBackBase * edge + Spec81.AbuseFightBackHatred * hatred);
+
+        return MathUtil.Hash01(world.Seed, world.Tick, mark.Id.Value, 5501) < chance;
+    }
+
     // Кого выбрать. Перебор идёт по РОСТЕРУ, а не по Perception.Agents: §72
     // развёл списки, и у чужака девушки лежат в Hostiles, а PerceivedAgent и
     // вовсе не носит содержимого рюкзака. Ничью разрывает меньший id — иначе

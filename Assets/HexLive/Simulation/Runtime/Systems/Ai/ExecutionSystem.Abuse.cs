@@ -172,8 +172,7 @@ public sealed partial class ExecutionSystem
             // §100: она отвечает НЕ ВСЕГДА. Испугалась — стоит и терпит, и он
             // просто пару раз бьёт. Бросок детерминированный, поэтому реплей
             // повторяется в точности.
-            var answers = MathUtil.Hash01(world.Seed, world.Tick, mark.Id.Value, 5501) <
-                Spec81.AbuseFightBackChance;
+            var answers = AbuseMath.AnswersBack(world, npc, mark);
             if (answers)
             {
                 mark.IsFighting = true;

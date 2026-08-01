@@ -396,6 +396,15 @@ public static class WorldSnapshotExporter
                     return "tool.pickaxe_stone";
                 }
 
+                // §84: the yucca is BLADE work (Cut, §79) — the hand shows the
+                // blade that sets her pace (machete 2.0 → axe 1.0 → knife
+                // 0.75). Without this arm a knife-only girl hacked the stalk
+                // EMPTY-HANDED: the generic list below only knows choppers.
+                if (npc.Mind.CurrentGoal == GoalType.HarvestYucca)
+                {
+                    return FirstCarried(npc, "tool.machete", "tool.axe_stone", "tool.knife");
+                }
+
                 // §79: the machete leads every blade list — it is the tool that
                 // SETS the pace (BestSpeedMultFor picks it), so it has to be the
                 // one in her hand, or the view shows an axe doing a machete's

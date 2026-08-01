@@ -43,8 +43,11 @@ public static class TopologyChecksum
         {
             var junction = pair.Value;
             h = Mix(h, (uint)junction.Id.Value);
-            h = Mix(h, BitConverter.SingleToUInt32Bits(junction.WorldPosition.X));
-            h = Mix(h, BitConverter.SingleToUInt32Bits(junction.WorldPosition.Y));
+            // SingleToInt32Bits + cast, NOT SingleToUInt32Bits: bit-identical,
+            // but available in the Unity assembly's target framework too (the
+            // unsigned variant is .NET 5+ only and broke the headless build).
+            h = Mix(h, unchecked((uint)BitConverter.SingleToInt32Bits(junction.WorldPosition.X)));
+            h = Mix(h, unchecked((uint)BitConverter.SingleToInt32Bits(junction.WorldPosition.Y)));
         }
 
         return h;

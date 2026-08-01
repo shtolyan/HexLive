@@ -2871,9 +2871,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             case "Harvest":
                 var gear = HexLive.Simulation.Content.GearCatalog.For(heldItemId);
+                // §84: the yucca cut is blade work — a knife hacking the stalk
+                // swings the same Chop loop as tree felling (Cut joins
+                // ChopWood/Mine; the crouched "Working" pose read as if she
+                // weren't cutting anything at all).
                 var chopping = gear.Id == heldItemId &&
                     (gear.Has(HexLive.Simulation.Content.GearCapability.ChopWood) ||
-                     gear.Has(HexLive.Simulation.Content.GearCapability.Mine));
+                     gear.Has(HexLive.Simulation.Content.GearCapability.Mine) ||
+                     gear.Has(HexLive.Simulation.Content.GearCapability.Cut));
                 return chopping ? ActionKind.Chop : ActionKind.Work;
             case "Process": // spec §54: splitting a log — an axe chop motion
                 return ActionKind.Chop;

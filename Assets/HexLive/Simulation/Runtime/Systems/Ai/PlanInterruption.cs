@@ -28,6 +28,19 @@ public static class PlanInterruption
             worldObject.CurrentUser = null;
         }
 
+        // §84: the craft layout claims its pieces (ground-claimed fiber and
+        // pack-laid inputs alike are marked occupied against mid-work theft) —
+        // an aborted craft leaves them LYING, takeable by anyone again.
+        foreach (var laidId in npc.Execution.CraftLayout)
+        {
+            if (world.Entities.Objects.TryGetValue(laidId, out var laidPiece) &&
+                laidPiece.CurrentUser == npc.Id)
+            {
+                laidPiece.IsOccupied = false;
+                laidPiece.CurrentUser = null;
+            }
+        }
+
         // Release a talk invitation this plan placed on its target (spec 28.8).
         if (npc.Plan.TargetAgentId is { } invitedId &&
             world.Entities.Npcs.TryGetValue(invitedId, out var invited) &&

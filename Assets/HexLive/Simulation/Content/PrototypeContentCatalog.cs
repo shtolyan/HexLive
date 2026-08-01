@@ -1065,7 +1065,11 @@ public static class PrototypeContentCatalog
                 {
                     Id = "cut.yucca",
                     Type = InteractionType.Harvest,
-                    DurationTicks = 16,
+                    // §84: the yucca falls like a tree, only ~6× quicker — the
+                    // big palm is 60 authored ticks, so the stalk is 10 (§79
+                    // then re-paces by the blade: knife 0.75 → 13, axe 10,
+                    // machete 5).
+                    DurationTicks = 10,
                     Yields = { new HarvestDrop { DefinitionId = "resource.fiber", Count = SimBalance.FiberPerPlant, Scatter = true } }
                 }
             }

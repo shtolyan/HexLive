@@ -1294,8 +1294,25 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 HasReachableWithTag(npc, world, "Yucca");
             var gatherFiberAvail = carriedFiber < fiberNeed && npc.Inventory.HasSpace &&
                 HasReachableWithTag(npc, world, "Fiber");
-            var craftRopeAvail = canUseToolsOrWeapons && wantRope && carriedFiber >= SimBalance.RopeFiberCost && CraftPlaceOk(GoalType.CraftRope);
-            var craftClothAvail = canUseToolsOrWeapons && wantCloth && carriedFiber >= SimBalance.ClothFiberCost && CraftPlaceOk(GoalType.CraftCloth);
+            // §84: fibers already lying by the stump ARE the recipe — the craft
+            // fires on carried + ground pile and happens AT the pile (planning
+            // walks her there; the craft-start beat takes the pieces off the
+            // ground). CraftRope/Cloth (0.28) outbid GatherFiber (0.24), so
+            // while a big-enough pile lies in one place nobody pockets it just
+            // to lay it back out; gathering remains the fallback for fiber
+            // scattered too thin to cover one craft's bill in a single spot.
+            var ropeGroundPileOk = carriedFiber < SimBalance.RopeFiberCost &&
+                FindGroundInputPile(npc, world, "resource.fiber",
+                    SimBalance.RopeFiberCost - carriedFiber) is not null;
+            var clothGroundPileOk = carriedFiber < SimBalance.ClothFiberCost &&
+                FindGroundInputPile(npc, world, "resource.fiber",
+                    SimBalance.ClothFiberCost - carriedFiber) is not null;
+            var craftRopeAvail = canUseToolsOrWeapons && wantRope &&
+                (carriedFiber >= SimBalance.RopeFiberCost || ropeGroundPileOk) &&
+                CraftPlaceOk(GoalType.CraftRope);
+            var craftClothAvail = canUseToolsOrWeapons && wantCloth &&
+                (carriedFiber >= SimBalance.ClothFiberCost || clothGroundPileOk) &&
+                CraftPlaceOk(GoalType.CraftCloth);
             var craftKnifeAvail = canUseToolsOrWeapons && !(hasKnife && hasButcherTool) &&
                 carriedSticks >= knifeStickCost &&
                 stoneCount >= knifeStoneCost && CraftPlaceOk(GoalType.CraftKnife);

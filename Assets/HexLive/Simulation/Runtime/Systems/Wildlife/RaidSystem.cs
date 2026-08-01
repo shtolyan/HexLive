@@ -189,6 +189,37 @@ public sealed class RaidSystem : ISimulationSystem
 
         foreach (var raider in world.Entities.Npcs.Values)
         {
+            // §82: ВТОРЖЕНИЕ. Подошла к его стоянке — он бьёт, и точка.
+            //
+            // Это не налёт и не шантаж: там он оппортунист и считает выгоду,
+            // из-за чего выходил неприлично мирным — девушки ходили мимо его
+            // очага, а он взвешивал расклад и не находил повода. Хозяин двора
+            // повода не ищет. Поэтому проверка стоит ПЕРЕД всеми гейтами
+            // охоты: ни льготные дни, ни кулдаун, ни «достаточно ли она
+            // одинока», ни его собственный голод тут не спрашиваются.
+            //
+            // Дальше всё как в обычном налёте — сцепка, удары на быстром слое,
+            // её выбор «драться или бежать», клич и отход. Отдельную сцену
+            // заводить незачем: она бы делала ровно это же.
+            if (Spec82.TerritorialEnabled &&
+                raider.Faction != Faction.Colony &&
+                raider.Health > 0f &&
+                !raider.IsFighting &&
+                !raider.IsUnconscious(world.Tick) &&
+                !raider.Body.IsProne &&
+                raider.Mind.CurrentGoal != GoalType.Flee &&
+                world.Tick >= raider.Mind.TerritoryCooldownUntilTick &&
+                world.FactionHomes.TryGetValue(raider.Faction, out var camp))
+            {
+                var intruder = NearestIntruder(world, raider, camp);
+                if (intruder is not null)
+                {
+                    StartRaidOn(world, raider, intruder, "Trespass");
+                    raider.Mind.TerritoryCooldownUntilTick =
+                        world.Tick + Spec82.TerritoryCooldownTicks;
+                    continue;
+                }
+            }
 
             if (raider.Faction == Faction.Colony ||
                 raider.Health <= 0f ||
@@ -211,29 +242,79 @@ public sealed class RaidSystem : ISimulationSystem
                 continue;
             }
 
-            if (raider.Plan.Status == PlanStatus.Active ||
-                raider.Execution.Status == ExecutionStatus.InProgress)
+            StartRaidOn(world, raider, victim, $"Opportunity Opp={opportunity:F2}");
+        }
+    }
+
+    // §82: кто залез на его двор. Ближайший — а не «самый слабый»: он не
+    // выбирает жертву, он гонит того, кто пришёл.
+    private static NPCState NearestIntruder(WorldState world, NPCState owner, TileCoord camp)
+    {
+        NPCState nearest = null;
+        var best = int.MaxValue;
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            if (npc.Id.Equals(owner.Id) ||
+                npc.Health <= 0f ||
+                !FactionRelations.AreHostile(owner.Faction, npc.Faction))
             {
-                PlanInterruption.Abort(world, raider, $"Hunting NPC{victim.Id.Value}");
+                continue;
             }
 
-            raider.Mind.CurrentGoal = GoalType.Raid;
-            raider.Mind.RaidTargetNpcId = victim.Id;
-            raider.Mind.RaidStartedTick = world.Tick;
-            raider.Mind.RaidLastJunction = raider.CurrentJunction;
-            raider.Mind.RaidStallSinceTick = 0;
-            raider.Mind.GoalLock = new GoalLock
+            var toCamp = HexSpatialMath.HexDistance(npc.Tile, camp);
+            if (toCamp > Spec82.TerritoryRadiusTiles)
             {
-                Goal = GoalType.Raid,
-                StartTick = world.Tick,
-                EndTick = world.Tick + Spec72.RaidLockTicks
-            };
+                continue;
+            }
 
-            Trace.Emit(world, raider.Id, "RaidStarted",
-                $"Victim=NPC{victim.Id.Value} Opp={opportunity:F2} " +
-                $"Allies={RaidMath.AlliesAround(world, victim)} " +
-                $"Dist={HexSpatialMath.HexDistance(raider.Tile, victim.Tile)}");
+            // До неё ещё надо дойти: девушка на другом берегу залива формально
+            // «в радиусе», а фактически недосягаема.
+            if (owner.CurrentJunction is not { } from ||
+                npc.CurrentJunction is not { } to ||
+                !Connectivity.Reachable(world, from, to, owner.Body.CanJump))
+            {
+                continue;
+            }
+
+            // Ничью разрывает меньший id — порядок обхода словаря не должен
+            // протекать в реплей.
+            if (toCamp < best || (toCamp == best && nearest is not null &&
+                                  npc.Id.Value < nearest.Id.Value))
+            {
+                best = toCamp;
+                nearest = npc;
+            }
         }
+
+        return nearest;
+    }
+
+    // §82: общий вход в налёт — им пользуются и аукционная охота, и выгон со
+    // двора, чтобы «как начинается драка» было описано ровно в одном месте.
+    private static void StartRaidOn(WorldState world, NPCState raider, NPCState victim, string why)
+    {
+        if (raider.Plan.Status == PlanStatus.Active ||
+            raider.Execution.Status == ExecutionStatus.InProgress)
+        {
+            PlanInterruption.Abort(world, raider, $"Hunting NPC{victim.Id.Value}");
+        }
+
+        raider.Mind.CurrentGoal = GoalType.Raid;
+        raider.Mind.RaidTargetNpcId = victim.Id;
+        raider.Mind.RaidStartedTick = world.Tick;
+        raider.Mind.RaidLastJunction = raider.CurrentJunction;
+        raider.Mind.RaidStallSinceTick = 0;
+        raider.Mind.GoalLock = new GoalLock
+        {
+            Goal = GoalType.Raid,
+            StartTick = world.Tick,
+            EndTick = world.Tick + Spec72.RaidLockTicks
+        };
+
+        Trace.Emit(world, raider.Id, "RaidStarted",
+            $"Victim=NPC{victim.Id.Value} Why={why} " +
+            $"Allies={RaidMath.AlliesAround(world, victim)} " +
+            $"Dist={HexSpatialMath.HexDistance(raider.Tile, victim.Tile)}");
     }
 
     private static string WeaponLabel(NPCState npc)

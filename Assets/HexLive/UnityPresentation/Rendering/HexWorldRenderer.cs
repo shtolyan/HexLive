@@ -115,6 +115,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
     }
 
+    // Ticks of gap beyond which two snapshots are treated as unrelated rather
+    // than as consecutive states to interpolate between. A few ticks is ordinary
+    // fast-forward; a dozen means the world moved on without us.
+    private const int PoseSnapTicks = 12;
+
     private readonly Dictionary<int, Pose> _prevNpcPoses = new();
     private readonly Dictionary<int, Pose> _currNpcPoses = new();
 
@@ -291,6 +296,23 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         if (snapshot.Tick != _lastRenderedTick)
         {
+            // A jump this big is not one tick of movement — it is a reconnect, a
+            // save restored, or a fast-forward. Interpolating across it would lerp
+            // every colonist in a straight line over the island. Drop the previous
+            // poses so this frame SNAPS instead.
+            if (_lastRenderedTick >= 0 &&
+                (snapshot.Tick < _lastRenderedTick || snapshot.Tick - _lastRenderedTick > PoseSnapTicks))
+            {
+                _prevNpcPoses.Clear();
+                _currNpcPoses.Clear();
+                _prevObjectPositions.Clear();
+                _currObjectPositions.Clear();
+                // Animals too — a wolf lerping across the island after a restore
+                // is the same wrongness as a colonist doing it.
+                _prevAnimalPoses.Clear();
+                _currAnimalPoses.Clear();
+            }
+
             RenderSnapshot(snapshot);
             _lastRenderedTick = snapshot.Tick;
             _lastSnapshot = snapshot;
@@ -758,7 +780,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         foreach (var n in snapshot.Npcs)
         {
             if (n.CurrentInteraction == "Dress" &&
-                n.InteractionProgress >= WardrobeHandoffFraction &&
+                n.ProgressAt(snapshot.Tick) >= WardrobeHandoffFraction &&
                 n.TargetObjectId is { } hiddenId)
             {
                 _wardrobeHiddenObjects.Add(hiddenId);
@@ -1129,7 +1151,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
             npc.HopKind.Length > 0
                 ? ActorGroundY(npc.HopTargetTile) - ActorGroundY(npc.Tile)
                 : 0f,
-            npc.HopKind.Length > 0 && _swimCoords.Contains(npc.HopTargetTile));
+            npc.HopKind.Length > 0 && _swimCoords.Contains(npc.HopTargetTile),
+            npc.HopStartTick,
+            // How much of the hop already happened before this frame saw it —
+            // fast-forward can step past several ticks between renders.
+            Mathf.Max(0f, (snapshot.Tick - npc.HopStartTick) * snapshot.TickDeltaTime));
         actorView.SyncWorn(npc.WornItems);
         var earlyThermalForSweat = UI.DebugControlsPanel.SweatOverride ?? npc.ThermalComfort;
         var earlyUncoveredForDecals = UI.DebugControlsPanel.HideClothing ? AllBodyZones : npc.UncoveredParts;
@@ -1148,7 +1174,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         actorView.SyncHolster(npc.HolsteredItems, heldItemId);
         // §Wardrobe-anim: the two-beat dress/undress sequence (gather + garment
         // in hand). Runs after SetInteraction, which it overrides for these verbs.
-        actorView.SetWardrobeAction(npc.CurrentInteraction, npc.InteractionProgress, npc.HeldGarmentId,
+        actorView.SetWardrobeAction(npc.CurrentInteraction, npc.ProgressAt(snapshot.Tick), npc.HeldGarmentId,
             npc.HeldGarmentDurability, npc.HeldGarmentDirt, npc.HeldGarmentBlood, npc.HeldGarmentWet);
         // Spec 28.15E: overhead chat bubble — show the talk's emoji, and pop a
         // "+/-" once when a talk outcome resolves (new TalkResultTick).
@@ -1210,7 +1236,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             npc.LedgeSeatStepsUp, npc.CurrentInteraction == "WashClothes");
         // Spec 20.16: hunting/combat shows the weapon and drives a draw/thrust.
         // Timed melee: IsSwinging spans the sim's attack-animation window.
-        actorView.SetCombat(npc.IsFighting, WeaponFor(npc), npc.IsSwinging, npc.StrikeIndex);
+        actorView.SetCombat(npc.IsFighting, WeaponFor(npc), npc.IsSwinging, npc.StrikeIndex,
+            npc.SwingStartTick);
         // §29C.3-hit: a health drop staggers her — only while standing still.
         actorView.SignalHealth(npc.Health);
         // Spec 33.1: a carried weapon rides slung on the back when it isn't in
@@ -2494,7 +2521,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 wolfView.SetStatus(dog.Status);
                 // Timed melee: pulse the bite snap exactly while the sim
                 // winds up; between bites the wolf stands recovering.
-                wolfView.SetAttacking(dog.IsAttacking);
+                wolfView.SetAttacking(dog.IsAttacking, dog.AttackStartTick);
                 // §29C.3-hit: a health drop = the quarry's strike landed —
                 // the view fires the short flinch.
                 wolfView.SignalHealth(dog.Health);

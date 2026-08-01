@@ -77,11 +77,42 @@ public sealed partial class PlanningSystem : ISimulationSystem
             if (Content.RecipeCatalog.IsItemOutputGoal(npc.Mind.CurrentGoal) &&
                 string.IsNullOrEmpty(Content.RecipeCatalog.StationOf(npc.Mind.CurrentGoal)))
             {
+                // §84: a pack SHORT of the bill may still be covered by pieces
+                // already lying nearby (the just-cut yucca's fibers) — walk to
+                // the pile and craft THERE; the craft-start beat takes the
+                // pieces straight off the ground. Only the first short input
+                // picks the walk (fiber recipes have a single input anyway).
+                if (Content.RecipeCatalog.ByGoal.TryGetValue(npc.Mind.CurrentGoal, out var inPlaceRecipe))
+                {
+                    foreach (var ing in inPlaceRecipe.Inputs)
+                    {
+                        var missing = ing.Count - DecisionSystem.CountInventory(npc, ing.Id);
+                        if (missing <= 0)
+                        {
+                            continue;
+                        }
+
+                        var pile = DecisionSystem.FindGroundInputPile(npc, world, ing.Id, missing);
+                        if (pile is not null &&
+                            world.Entities.Objects.TryGetValue(pile.Id, out var pileObject) &&
+                            pileObject.Junctions.Count > 0)
+                        {
+                            npc.Plan.TargetTile = pileObject.Tile;
+                            npc.Plan.TargetJunctionId = pileObject.Junctions[0];
+                        }
+
+                        break;
+                    }
+                }
+
                 npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.CraftInPlace });
                 npc.Plan.CurrentStepIndex = 0;
                 npc.Plan.Status = PlanStatus.Active;
                 Trace.Emit(world, npc.Id, "PlanBuilt",
-                    $"Goal={npc.Mind.CurrentGoal} Steps=[CraftInPlace] (no station)");
+                    $"Goal={npc.Mind.CurrentGoal} Steps=[CraftInPlace]" +
+                    (npc.Plan.TargetJunctionId is { } pileJ
+                        ? $" (walk to ground pile Junction={pileJ.Value})"
+                        : " (no station)"));
                 continue;
             }
 

@@ -1,4 +1,5 @@
 #nullable enable
+using HexLive.Simulation.Debug;
 using HexLive.UnityPresentation.Bootstrap;
 using UnityEngine;
 
@@ -45,15 +46,24 @@ namespace HexLive.UnityPresentation.Environment
         private void Update()
         {
             _runner ??= FindAnyObjectByType<SimulationRunnerBehaviour>();
-            if (_runner?.Engine is null || _sunLight == null)
+            if (_runner == null || _sunLight == null)
             {
                 return;
             }
 
-            Apply(_runner.Engine.World.Environment.TimeOfDayNormalized);
+            // Everything the sky needs now comes off the snapshot: the raw time
+            // of day and the sim's sun vector. It used to read WorldState
+            // directly, which only works while the world is in this process.
+            var snapshot = _runner.CreateSnapshot();
+            if (snapshot == null)
+            {
+                return;
+            }
+
+            Apply(snapshot, snapshot.TimeOfDayNormalized);
         }
 
-        private void Apply(float progress)
+        private void Apply(WorldSnapshot snapshot, float progress)
         {
             // progress: 0 = 06:00 sunrise, 0.25 = noon, 0.5 = 18:00 sunset,
             // 0.75 = midnight. Rotating the light about X by progress*360 puts
@@ -73,13 +83,12 @@ namespace HexLive.UnityPresentation.Environment
                 // Spec 43: aim the light along the SIM's sun vector (snapshot
                 // SunDirection/SunElevationDegrees) so the rendered terrain
                 // shadows land exactly where the sim says a tile is shaded.
-                var world = _runner?.Engine?.World;
-                if (world != null && world.SunElevationDegrees > 0f)
+                if (snapshot.SunElevationDegrees > 0f)
                 {
-                    var toSun = new Vector3(world.SunDirection.X, 0f, world.SunDirection.Y);
+                    var toSun = new Vector3(snapshot.SunDirection.X, 0f, snapshot.SunDirection.Y);
                     if (toSun.sqrMagnitude > 0.001f)
                     {
-                        var elev = world.SunElevationDegrees * Mathf.Deg2Rad;
+                        var elev = snapshot.SunElevationDegrees * Mathf.Deg2Rad;
                         var dir = (-toSun.normalized * Mathf.Cos(elev) +
                                    Vector3.down * Mathf.Sin(elev)).normalized;
                         sunRot = Quaternion.LookRotation(dir);

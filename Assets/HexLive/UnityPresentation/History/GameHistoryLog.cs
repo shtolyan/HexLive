@@ -92,101 +92,6 @@ namespace HexLive.UnityPresentation.History
         private const float FlushEverySeconds = 3f;
         private const int InitialTailBytes = 16 * 1024;
 
-        private static readonly HashSet<string> HistoryEventTypes = new()
-        {
-            "Aided",
-            "AidStarted",
-            "AidRequested",
-            "AidWaitTimeout",
-            "Bandaged",
-            "BandageCrafted",
-            "BedCrafted",
-            "BledOut",
-            "BottleFilled",
-            "BoulderBroken",
-            "BuildProgress",
-            "Buried",
-            "Butchered",
-            "CoconutDrank",
-            "CoconutEaten",
-            "CoconutProcessed",
-            "CraftedArrows",
-            "CraftedAxe",
-            "CraftedBow",
-            "CraftedCloth",
-            "CraftedKnife",
-            "CraftedLeather",
-            "CraftedPickaxe",
-            "CraftedRope",
-            "CraftedSpear",
-            "CrownChopped",
-            "DireStraits",
-            "DogAggro",
-            "DogGaveUp",
-            "DogFight",
-            "DogKilled",
-            "DogShot",
-            "Collapsed",
-            "DrankBottle",
-            "EmergencyUnload",
-            "Fainted",
-            "FireFueled",
-            "FireLit",
-            "FireOut",
-            "FoodShared",
-            "FoodStolen",
-            "FriendGuard",
-            "FurnitureBuilt",
-            "Grieving",
-            "HelpCry",
-            "HelpCryAnswered",
-            "HelpCryAssistArrived",
-            "HelpCryAssistExpired",
-            "HelpCryAssistHolding",
-            "HelpCryAssistLost",
-            "HelpCryAssistStarted",
-            "HelpCryDefended",
-            "HelpCryIgnored",
-            "HutCompleted",
-            "InteractionBlocked",
-            "InteractionRejected",
-            "LimbSevered",
-            "LogSplit",
-            "MeatCooked",
-            "Medicated",
-            "Mourned",
-            "Murdered",
-            "NightRaid",
-            "NpcDied",
-            "PredatorKilled",
-            "PreyFled",
-            "PreyFoughtBack",
-            "Preyed",
-            "RackCrafted",
-            "RaftLaunched",
-            "RaftProgress",
-            "RainStarted",
-            "RainStopped",
-            "RelationshipChanged",
-            "SharkBite",
-            "StandoffReleased",
-            "StatusDehydrated",
-            "StatusOverheated",
-            "StatusStarving",
-            "StarvedToDeath",
-            "StormSurge",
-            "Sunburn",
-            "TalkCompleted",
-            "TalkQuarreled",
-            "TalkRequested",
-            "TalkStarted",
-            "TalkWaitTimeout",
-            "TentCrafted",
-            "TreeChopped",
-            "VisitedGrave",
-            "VitalPartDestroyed",
-            "WokeUp"
-        };
 
         private StreamWriter? _writer;
         private string _path = string.Empty;
@@ -195,9 +100,12 @@ namespace HexLive.UnityPresentation.History
 
         public string CurrentPath => _path;
 
+        // §Server: the list itself moved into the simulation assembly
+        // (GameEventTypes) so the game, the server and headless probes cannot
+        // disagree about which events a player is meant to see — the server
+        // filters the network stream by exactly this predicate.
         public static bool IsGameHistoryEvent(SimulationEvent simulationEvent) =>
-            HistoryEventTypes.Contains(simulationEvent.Type) ||
-            simulationEvent.Type.StartsWith("Crafted", StringComparison.Ordinal);
+            GameEventTypes.IsPlayerVisible(simulationEvent);
 
         public static string PathForSeed(int seed) =>
             Path.Combine(Application.persistentDataPath,

@@ -149,7 +149,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private bool _talkTurnOn;         // this NPC's turn to speak right now
     private bool _wasFighting;        // rising-edge detect for the attack trigger
     private bool _bareStance;         // fists fight: Idle swapped for the boxing stance
-    private bool _wasSwinging;        // rising edge of the sim's swing window
+    // The sim swing-start tick we have already played. Replaces the old
+    // "rising edge of IsSwinging" detect: that window is 1-2 ticks wide and a
+    // frame renders only the LAST tick it stepped, so at fast-forward (and over
+    // any network that drops a tick) most swings opened and closed unseen and
+    // the blow landed on a motionless body. A stamp we have not played yet
+    // survives the skip. -1 = nothing seen yet.
+    private int _lastSwingStartTick = -1;
     private float _attackSpeed = 1f;
     private string _combatWeaponId;
     // §67.10: длиннее реплики (кап 4.2 с) — иначе следующий ход начинается,
@@ -517,7 +523,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // The up-arc apex rises this fraction ABOVE the target ledge before the
     // body drops onto it (0.3 => ~0.17 wu over a 0.55 step).
     private const float JumpUpOvershoot = 1.3f;
-    private string _hopKind = string.Empty;
+    // The sim hop-start tick we have already armed an arc for. Replaces the old
+    // "HopKind changed" edge — see SetHopSignal. 0 = nothing seen yet.
+    private int _lastHopStartTick;
     // §21.21B v7: the VIEW is vertical-only. The sim already moves the root's
     // XZ perfectly (gather → straight takeoff→landing), so the body follows
     // the root's XZ exactly and adds ONLY a Y arc that smooths the ground-
@@ -563,19 +571,25 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     }
 
     // §21.21B: sim hop signal ("Up"/"Down"/""), fed every sync. Starts the
-    // ballistic arc on the rising edge. heightDeltaWorld is the EXACT signed
-    // root-level difference (renderer-computed; water dives include the swim
-    // sink depth).
-    public void SetHopSignal(string hopKind, float heightDeltaWorld, bool intoWater = false)
+    // ballistic arc on a hop the sim began and we have not played yet.
+    // heightDeltaWorld is the EXACT signed root-level difference
+    // (renderer-computed; water dives include the swim sink depth).
+    //
+    // hopStartTick / ageSeconds: the tick the sim opened the hop, and how long
+    // ago that was in world time. Keying on the stamp rather than on HopKind's
+    // rising edge matters because a frame renders only the last tick it stepped:
+    // fast-forward (and any dropped network tick) can swallow the whole "Up",
+    // after which she just glides up the ledge with no jump at all. ageSeconds
+    // then shortens the arc to what is LEFT of the window — replaying a
+    // full-length arc for a hop already half over overshoots the landing.
+    public void SetHopSignal(string hopKind, float heightDeltaWorld, bool intoWater = false,
+        int hopStartTick = 0, float ageSeconds = 0f)
     {
         hopKind ??= string.Empty;
-        if (hopKind == _hopKind)
-        {
-            return;
-        }
 
-        _hopKind = hopKind;
-        if (hopKind.Length == 0)
+        var started = hopKind.Length > 0 && hopStartTick > 0 && hopStartTick != _lastHopStartTick;
+        _lastHopStartTick = hopStartTick;
+        if (!started)
         {
             return;
         }
@@ -590,7 +604,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // FRACTIONS stay tied to HopSeconds (same shape), only the total window
         // changes, so the sim window, the arc and the clip scale together.
         var hop = HexLive.Simulation.Navigation.HexHopTuning.HopSeconds;
-        var window = HexLive.Simulation.Navigation.HexHopTuning.WindowSeconds(up);
+        var fullWindow = HexLive.Simulation.Navigation.HexHopTuning.WindowSeconds(up);
+        // Observed late (fast-forward / a dropped tick): fly only what is left,
+        // so the arc still lands where the sim already put her. A floor keeps a
+        // very late sighting from degenerating into an instant snap.
+        var window = Mathf.Max(fullWindow * 0.25f, fullWindow - Mathf.Max(0f, ageSeconds));
         // Same jump for everything — water or land (no special water handling);
         // only up vs down differs, via the window.
         StartJumpArc(
@@ -2853,9 +2871,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             case "Harvest":
                 var gear = HexLive.Simulation.Content.GearCatalog.For(heldItemId);
+                // §84: the yucca cut is blade work — a knife hacking the stalk
+                // swings the same Chop loop as tree felling (Cut joins
+                // ChopWood/Mine; the crouched "Working" pose read as if she
+                // weren't cutting anything at all).
                 var chopping = gear.Id == heldItemId &&
                     (gear.Has(HexLive.Simulation.Content.GearCapability.ChopWood) ||
-                     gear.Has(HexLive.Simulation.Content.GearCapability.Mine));
+                     gear.Has(HexLive.Simulation.Content.GearCapability.Mine) ||
+                     gear.Has(HexLive.Simulation.Content.GearCapability.Cut));
                 return chopping ? ActionKind.Chop : ActionKind.Work;
             case "Process": // spec §54: splitting a log — an axe chop motion
                 return ActionKind.Chop;
@@ -2892,7 +2915,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // strikeIndex: the sim's picked strike variant for THIS swing (fists:
     // punches/kicks — GearConfig.strikes order); -1 = single-timing gear,
     // the view rolls a random clip like before.
-    public void SetCombat(bool fighting, string weaponId, bool swinging, int strikeIndex = -1)
+    // swingStartTick: the tick the sim opened THIS swing's window (0 = never
+    // swung). The clip fires on a stamp we have not played yet — see
+    // _lastSwingStartTick for why the old boolean edge was not enough.
+    public void SetCombat(bool fighting, string weaponId, bool swinging, int strikeIndex = -1,
+        int swingStartTick = 0)
     {
         // §81: дерущаяся не пляшет.
         _combatFighting = fighting;
@@ -2906,8 +2933,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         if (!fighting)
         {
+            // ADOPT the stamp rather than clearing it. The sim does not reset
+            // SwingStartTick when a fight ends, so clearing here would make the
+            // stale stamp look new at the START of the next fight and fire a
+            // phantom swing before she has thrown one.
+            _lastSwingStartTick = swingStartTick;
             _wasFighting = false;
-            _wasSwinging = false;
             _attackSpeed = 1f;
             _combatWeaponId = null;
             _action = ActionKind.None;
@@ -2920,6 +2951,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
             return;
         }
+
+        // A swing the sim started that we have not played. In the ordinary
+        // frame-per-tick case this is exactly the old rising edge of `swinging`;
+        // it additionally survives a frame that skipped the whole window.
+        var swingStarted = swingStartTick > 0 && swingStartTick != _lastSwingStartTick;
+        _lastSwingStartTick = swingStartTick;
 
         var weaponChanged = _combatWeaponId != weaponId;
         if (!_wasFighting || weaponChanged)
@@ -2965,7 +3002,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // Clip-based attack: fire the one-shot at the sim's swing start.
             // The sim's strike pick (fists: which punch/kick) wins; -1 or a
             // stale index = the old random roll.
-            if (swinging && !_wasSwinging)
+            // Deliberately NOT gated on `swinging`: when the frame skipped the
+            // whole 1-2 tick window the flag is already false, and the clip must
+            // still play — a landed blow with no swing is the bug this fixes.
+            if (swingStarted)
             {
                 var clip = strikeIndex >= 0 && strikeIndex < attackClips.Length
                     ? attackClips[strikeIndex]
@@ -2993,7 +3033,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _action = weaponId == "tool.bow" ? ActionKind.BowDraw
                 : weaponId == "tool.spear" ? ActionKind.SpearThrust
                 : ActionKind.Attack;
-            if (!_wasSwinging)
+            if (swingStarted)
             {
                 _actionPhase = 0f;
                 // §67: процедурный замах тоже свистит.
@@ -3013,7 +3053,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _action = ActionKind.None;
         }
 
-        _wasSwinging = swinging;
         _wasFighting = true;
         if (!string.IsNullOrEmpty(weaponId))
         {
@@ -3772,12 +3811,21 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                     _rForearm.rotation = Quaternion.AngleAxis(10f, right) * _rForearm.rotation;
                 }
                 break;
-            case "HeadClutch": // hand up to a hurt head
-                _rShldr.rotation = Quaternion.AngleAxis(-95f, right) * _rShldr.rotation;
-                if (_rForearm != null)
-                {
-                    _rForearm.rotation = Quaternion.AngleAxis(-120f, right) * _rForearm.rotation;
-                }
+            // §82: «рука к разбитой голове» ВЫКЛЮЧЕНА по решению пользователя —
+            // реализация плохая. Это поворот плеча на -95° и предплечья на -120°
+            // поверх любого клипа, без учёта того, где рука сейчас находится и
+            // куда смотрит тело: со стороны это читается не как «схватился за
+            // голову», а как непрерывное сгибание руки в пустоту.
+            //
+            // Сигнал симуляции при этом жив и приходит по-прежнему — выключен
+            // только рисунок. Чтобы вернуть, сделать надо иначе: тянуть кисть в
+            // точку у виска через IK (FullBodyBipedIK уже на теле и уже умеет
+            // вести руку в мировую точку — см. DriveActionTargetIK), а не
+            // крутить кости на фиксированный угол.
+            // §82: «держится за то, что болит» переехало на IK
+            // (DriveHurtReachIK). Прежний вариант крутил кости на фиксированный
+            // угол поверх любого клипа и читался как сгибание руки в пустоту.
+            case "HeadClutch":
                 break;
             // Spec §50: "Limp" and "Crawl" are now fully animator-driven (the
             // Limp walk state via LimpingParam; the real Crawl clip via
@@ -4086,8 +4134,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             solver.IKPositionWeight = 0f;
             effector.positionWeight = 0f;
             effector.rotationWeight = 0f;
+            // §82: рабочий IK молчит — можно подержаться за больное место.
+            // Порядок именно такой: solver один на всё тело, и замах всегда
+            // главнее, чем баюканье царапины.
+            DriveHurtReachIK(_fullBodyIK);
             return;
         }
+
+        _hurtReachWeight = 0f;
 
         var contact = ActionPropContactPoint(_actionTargetPoint, hand);
         solver.IKPositionWeight = 1f;
@@ -4096,6 +4150,153 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         effector.position = _actionTargetPoint - (contact - hand.position);
         effector.positionWeight = weight;
         effector.rotationWeight = 0f;
+    }
+
+    // §82: «держится за то, что болит» — через Final IK, а не поворотом костей.
+    //
+    // Прежний вариант доворачивал плечо на −95°, а предплечье на −120° поверх
+    // любого клипа, не зная, где рука сейчас находится: со стороны это читалось
+    // не как «схватился за голову», а как непрерывное сгибание руки в пустоту.
+    // IK ведёт кисть В ТОЧКУ, поэтому рука идёт к больному месту из своего
+    // текущего положения — и по дороге ничего не выворачивает.
+    //
+    // ⭐ Тянется ТОЛЬКО когда человек не занят ничем вообще. Любое дело, шаг,
+    // драка, вода, лежание — вес мгновенно в ноль. Так рука не может влезть в
+    // клип рубки или в замах: у боевого/рабочего IK и у этого один и тот же
+    // solver, и делить его между ними нельзя.
+    private bool HurtReachActive =>
+        _hurtReachBone != null && !_actionTargetActive && !_ragdollActive &&
+        !_laying && !_swimming && !_combatFighting && !_busyInteraction &&
+        !_wasWalking && !_dead && _posture != "Crawl";
+
+    // Кисть, которая тянется, и кость, к которой тянется. Больную руку держит
+    // ДРУГАЯ рука — своей же за неё не схватишься.
+    private Transform _hurtReachBone;
+    private bool _hurtReachUseLeftHand;
+    private float _hurtReachWeight;
+
+    // Зона раны -> кость, за которую хватаются. Имена зон совпадают с частями
+    // тела симуляции (карта покраски кожи собрана по тем же именам).
+    private Transform HurtBoneForZone(string zone, out bool useLeftHand)
+    {
+        useLeftHand = false;
+        if (_bodyBones == null)
+        {
+            return null;
+        }
+
+        switch (zone)
+        {
+            case "Head":
+                return _bodyBones.GetBone("head");
+            case "Torso":
+                return _bodyBones.GetBone("chestUpper");
+            case "Pelvis":
+                return _bodyBones.GetBone("hip") ?? _bodyBones.GetBone("pelvis");
+            case "ArmR":
+                useLeftHand = true;                    // правую держит левая
+                return _bodyBones.GetBone("rForearmBend");
+            case "ArmL":
+                return _bodyBones.GetBone("lForearmBend");
+            case "LegR":
+                return _bodyBones.GetBone("rThighBend");
+            case "LegL":
+                useLeftHand = true;
+                return _bodyBones.GetBone("lThighBend");
+            default:
+                return null;
+        }
+    }
+
+    // Что болит сильнее всего. Берётся самая свежая рана (heal ближе к 0):
+    // затянувшуюся царапину не баюкают.
+    private void RefreshHurtReachTarget()
+    {
+        _hurtReachBone = null;
+        if (_woundScratch.Count == 0)
+        {
+            return;
+        }
+
+        var freshest = 1f;
+        string zone = null;
+        foreach (var (z, _, heal) in _woundScratch)
+        {
+            if (heal < freshest)
+            {
+                freshest = heal;
+                zone = z;
+            }
+        }
+
+        if (zone == null || freshest > HurtReachHealCeiling)
+        {
+            return;
+        }
+
+        _hurtReachBone = HurtBoneForZone(zone, out _hurtReachUseLeftHand);
+    }
+
+    // Свежее этого порога рану ещё баюкают, выше — уже нет.
+    private const float HurtReachHealCeiling = 0.6f;
+    // Насколько кисть не доходит до самой кости — иначе она уезжает ВНУТРЬ тела.
+    private const float HurtReachSurfaceOffset = 0.11f;
+    private const float HurtReachEaseSpeed = 2.5f;
+
+    // §82: решатель по умолчанию СПИТ и просыпается только под удар
+    // (SetActionTargetPoint). Баюканье раны — второй повод его разбудить, иначе
+    // OnPreUpdate просто не вызовется и рука никуда не потянется.
+    //
+    // Выбирает цель тут же: список ран обновляет рендерер, и дёргать его на
+    // каждый кадр солвера незачем.
+    private void UpdateHurtReach()
+    {
+        RefreshHurtReachTarget();
+        if (_fullBodyIK == null)
+        {
+            return;
+        }
+
+        var wants = HurtReachActive || _actionTargetActive;
+        if (_fullBodyIK.enabled != wants)
+        {
+            _fullBodyIK.enabled = wants;
+            if (!wants)
+            {
+                _hurtReachWeight = 0f;
+                ResetActionTargetIKWeights();
+            }
+        }
+    }
+
+    private void DriveHurtReachIK(FullBodyBipedIK ik)
+    {
+        var solver = ik.solver;
+        var want = HurtReachActive ? 1f : 0f;
+        // Вниз — мгновенно: начал что-то делать, рука обязана освободиться в
+        // тот же кадр. Вверх — плавно, иначе рука дёргается к голове рывком.
+        _hurtReachWeight = want <= 0f
+            ? 0f
+            : Mathf.MoveTowards(_hurtReachWeight, 1f, Time.deltaTime * HurtReachEaseSpeed);
+
+        var hand = _hurtReachUseLeftHand ? _lHand : _rHand;
+        var effector = _hurtReachUseLeftHand ? solver.leftHandEffector : solver.rightHandEffector;
+        if (_hurtReachWeight <= 0.001f || hand == null || _hurtReachBone == null)
+        {
+            effector.positionWeight = 0f;
+            effector.rotationWeight = 0f;
+            solver.IKPositionWeight = 0f;
+            return;
+        }
+
+        // Точка чуть ПЕРЕД костью, по взгляду тела: ладонь ложится на больное
+        // место снаружи, а не проваливается в него.
+        var forward = _bodyRoot != null ? _bodyRoot.forward : transform.forward;
+        effector.target = null;
+        effector.position = _hurtReachBone.position + forward * HurtReachSurfaceOffset;
+        effector.positionWeight = _hurtReachWeight;
+        effector.rotationWeight = 0f;
+        solver.IKPositionWeight = 1f;
     }
 
     private float CurrentActionTargetIKWeight()
@@ -4252,6 +4453,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // «стоит на месте» берётся из только что посчитанной скорости.
         UpdateIdleFidget(_busyInteraction || _combatFighting || _wasWalking || _dead || _laying);
         UpdateSadWalk();
+        UpdateHurtReach();
         // §67.10: hands the bubble back to a running conversation once a line
         // fades, and paces the ambient self-talk layer.
         _speech?.Tick();

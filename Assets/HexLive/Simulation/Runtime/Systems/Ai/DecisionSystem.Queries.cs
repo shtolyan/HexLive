@@ -394,6 +394,56 @@ public sealed partial class DecisionSystem
         return false;
     }
 
+    // §84: the nearest lying INPUT PILE for an in-place craft — a perceived
+    // ground piece of the given definition whose cluster (its tile + ring-1,
+    // the yucca scatter radius) holds at least `need` free pieces. The craft
+    // then happens AT the pile: planning walks her to the returned piece and
+    // the craft-start beat claims the cluster straight off the ground — no
+    // pocket round-trip (pick up → lay back out) through the inventory.
+    internal static PerceivedObject? FindGroundInputPile(
+        NPCState npc, WorldState world, string definitionId, int need)
+    {
+        if (need <= 0)
+        {
+            return null; // the pack already covers the bill — no pile wanted
+        }
+
+        PerceivedObject? best = null;
+        foreach (var obj in npc.Perception.Objects)
+        {
+            if (obj.DefinitionId != definitionId || !obj.IsReachable ||
+                !ObjectUsableBy(obj, npc.Id) ||
+                npc.Memory.IsShunned(obj.Id, world.Tick))
+            {
+                continue;
+            }
+
+            if (best is not null && obj.Distance >= best.Distance)
+            {
+                continue;
+            }
+
+            var cluster = 0;
+            foreach (var other in npc.Perception.Objects)
+            {
+                if (other.DefinitionId == definitionId && other.IsReachable &&
+                    ObjectUsableBy(other, npc.Id) &&
+                    !npc.Memory.IsShunned(other.Id, world.Tick) &&
+                    HexSpatialMath.HexDistance(other.Tile, obj.Tile) <= 1)
+                {
+                    cluster++;
+                }
+            }
+
+            if (cluster >= need)
+            {
+                best = obj;
+            }
+        }
+
+        return best;
+    }
+
     internal static bool HasReachableDefinition(NPCState npc, WorldState world, string definitionId)
     {
         foreach (var obj in npc.Perception.Objects)

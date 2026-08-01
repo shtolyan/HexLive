@@ -261,7 +261,8 @@ namespace HexLive.UnityPresentation.UI
             if (runner != null)
             {
                 // Explicit user save — write unconditionally, independent of the
-                // autosave gates.
+                // autosave gates. A no-op when the world is not ours to persist
+                // (WriteSaveNow checks SupportsClientSave).
                 runner.WriteSaveNow();
             }
 

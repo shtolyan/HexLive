@@ -12,13 +12,16 @@ namespace HexLive.Simulation.Runtime
 // All balance lives here so the headless harness can bisect it and the
 // AttributesBalance config asset can drive it (§59).
 //
-// ⭐ THE SHIPPING DEFAULT IS AttributeSpread = 0. That is not timidity, it is
-// the kill switch: at spread 0 every girl is exactly AttributeMean, every
-// multiplier in AttributeMath is exactly 1.0f, and every float multiply is
-// EXACT. This is strictly stronger than a bool flag, because the new code
-// stays on the hot path — a soak at spread 0 proves the plumbing rather than
-// bypassing it, and any divergence from clean HEAD is a bug, not a balance
-// change. Widen only behind the §76.7 A/B ladder.
+// ⭐ AttributeSpread = 0 IS THE KILL SWITCH, and it is stronger than a bool:
+// at spread 0 every girl is exactly AttributeMean, every multiplier in
+// AttributeMath is exactly 1.0f, and every float multiply is EXACT — so the
+// new code stays on the hot path and a soak proves the plumbing rather than
+// bypassing it. Verified: 240k ticks × 6 seeds, Enabled=false vs Spread=0,
+// tick-identical. Drop it back to 0 to bisect anything §76 is suspected of.
+//
+// It now SHIPS at 0.5 (the full 0..10 display range) because identical
+// colonists were the thing §76 exists to fix. The §76.7 balance ladder has
+// still not been run — the numbers are an intention, not a measurement.
 public static class Spec76
 {
     // Master switch: the roll, the XP accrual and the UI tab. Coarse — prefer
@@ -37,9 +40,14 @@ public static class Spec76
 
     // Half-width of the band. Attributes land in [Mean − Spread, Mean + Spread]
     // EXACTLY (AttributeMath.Roll normalises, so Clamp01 never bites and the
-    // budget is exact rather than approximate). Target after the ladder: 0.5.
+    // budget is exact rather than approximate).
     // Must stay ≤ min(Mean, 1 − Mean) or the band would clip.
-    public static float AttributeSpread = 0f;
+    //
+    // 0.5 = the full 0..10 display range: every colonist reads as a distinct
+    // person at a glance. Note the numbers look more dramatic than they play —
+    // a "0/10" is a 15% penalty, not a broken limb (see the *Gain knobs).
+    // Set to 0 for the provable no-op described above.
+    public static float AttributeSpread = 0.5f;
 
     // ---- Per-effect gains ---------------------------------------------------
     // Every multiplier reads `1 + (attr − Mean) × Gain`, so at Spread 0.5 a

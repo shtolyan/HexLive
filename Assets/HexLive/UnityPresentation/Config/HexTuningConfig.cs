@@ -1,4 +1,5 @@
 using HexLive.Simulation.Navigation;
+using HexLive.Simulation.Runtime;
 using UnityEngine;
 
 namespace HexLive.UnityPresentation.Config
@@ -8,10 +9,11 @@ namespace HexLive.UnityPresentation.Config
     /// плавание и волны. Игровой БАЛАНС здесь больше не живёт — он разъехался
     /// по тематическим конфигам в Resources/HexLive/Balance (Character /
     /// ResourceLoop / Social / Threat, см. BalanceTuning). Прыжковые поля
-    /// зеркалятся в HexHopTuning через SimConfigMirror; поля плавания/волн
-    /// помечены [MirrorIgnore] — их толкает в презентационные статики
-    /// рукописная часть HexTuning.Apply. SwimTest-сцена сохраняет сюда же
-    /// кнопкой «Сохранить настройки».
+    /// зеркалятся в HexHopTuning, две симуляционные ручки плавания — в
+    /// MovementSystem (через [MirrorField]); ЧИСТО презентационные поля
+    /// (глубина погружения, волны, посадка на кромку) помечены [MirrorIgnore] —
+    /// их толкает рукописная часть HexTuning.Apply. SwimTest-сцена сохраняет
+    /// сюда же кнопкой «Сохранить настройки».
     /// </summary>
     [CreateAssetMenu(menuName = "HexLive/Tuning Config", fileName = "HexTuningConfig")]
     [MirrorTarget(typeof(HexHopTuning))]
@@ -42,12 +44,18 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("НЫРОК: на сколько уходит ПОД уровень плавания в нижней точке плюха, потом выныривает.")]
         [Range(0f, 1.5f)] public float divePlungeDepth = 0.35f;
 
+        // Эти два — НАСТОЯЩИЕ симуляционные ручки (SwimSpeedFactor меняет тайминг
+        // пути), а не презентационные, как утверждал старый комментарий. Они жили
+        // под [MirrorIgnore] и применялись руками, из-за чего не попадали ни в
+        // BalanceReflection, ни в SimData/simdata.json — headless-прогон и сервер
+        // молча брали дефолты кода вместо настроенных значений (§59.3).
+        // Теперь мапятся штатно; MovementSystem внесён в BalanceReflection.BalanceClasses.
         [Header("Вода — симуляция")]
         [Tooltip("Пауза после прыжка в воду: сколько секунд барахтается на месте (tread), прежде чем поплыть.")]
-        [MirrorIgnore]
+        [MirrorField(typeof(MovementSystem), "SwimEntryPauseSeconds")]
         [Range(0f, 15f)] public float swimEntryPauseSeconds = 0.75f;
         [Tooltip("Множитель скорости движения в глубокой воде (1 — как пешком).")]
-        [MirrorIgnore]
+        [MirrorField(typeof(MovementSystem), "SwimSpeedFactor")]
         [Range(0.1f, 1.5f)] public float swimSpeedFactor = 0.6f;
 
         [Header("Сидение на краю (ledge)")]

@@ -191,9 +191,11 @@ public sealed partial class ExecutionSystem
     }
 
     // §gear-craft v2: the in-place craft is a STAGED ritual, not a bare timer.
-    //   1. Layout — the recipe inputs leave the pack and are laid out on the
-    //      ground at her feet as ordinary world items (everyone sees the work
-    //      spread out).
+    //   1. Layout — the recipe inputs become ordinary world items on the
+    //      ground at her feet (everyone sees the work spread out). §84: pieces
+    //      ALREADY lying within the craft ring are claimed as-is — only the
+    //      shortfall leaves the pack, so a fiber cut off a yucca is never
+    //      pocketed just to be laid back out.
     //   2. Work — the Craft beat, twice the old workbench window (12 -> 24
     //      ticks = 6 s); the view kneels her into the craft-work clip.
     //   3. Take — the ingredients are used up, the finished item appears ON
@@ -201,7 +203,8 @@ public sealed partial class ExecutionSystem
     //      into hand/pack.
     // An interrupted craft leaves the laid-out pieces lying — they are normal
     // world objects, recoverable by the usual gather logic (no dupes: the
-    // inputs left the inventory at layout time).
+    // inputs left the inventory at layout time; §84 marks the layout occupied
+    // while the work runs and PlanInterruption releases it on abort).
     private const int CraftInPlaceDurationTicks = 24;
 
     private const int CraftTakeDurationTicks = 6;
@@ -275,6 +278,39 @@ public sealed partial class ExecutionSystem
         npc.RotationDegrees = npc.Movement.DesiredRotationDegrees;
     }
 
+    // §84: loose pieces of this definition lying within the craft ring — her
+    // hex + ring-1, the yucca scatter radius — free to take: not in use by
+    // anyone, not a build-site, no pocket contents riding inside. Sorted
+    // nearest-first (id-tiebroken, deterministic) so the claim empties the
+    // spots at her feet before the ring.
+    private static System.Collections.Generic.List<WorldObjectState> GroundInputsNearby(
+        WorldState world, NPCState npc, string definitionId)
+    {
+        var found = new System.Collections.Generic.List<WorldObjectState>();
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (obj.DefinitionId != definitionId ||
+                !obj.Fragment.Equals(npc.Fragment) ||
+                obj.IsOccupied ||
+                obj.Contents.Count > 0 ||
+                !string.IsNullOrEmpty(obj.BuildProduct) ||
+                HexSpatialMath.HexDistance(obj.Tile, npc.Tile) > 1)
+            {
+                continue;
+            }
+
+            found.Add(obj);
+        }
+
+        found.Sort((a, b) =>
+        {
+            var byDistance = HexSpatialMath.HexDistance(a.Tile, npc.Tile)
+                .CompareTo(HexSpatialMath.HexDistance(b.Tile, npc.Tile));
+            return byDistance != 0 ? byDistance : a.Id.Value.CompareTo(b.Id.Value);
+        });
+        return found;
+    }
+
     private static void RunCraftInPlace(WorldState world, NPCState npc)
     {
         var goal = npc.Plan.Goal != GoalType.None ? npc.Plan.Goal : npc.Mind.CurrentGoal;
@@ -285,12 +321,48 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        // Beat 1 — layout: the inputs leave the pack and land on the ground.
+        // §84: the plan may carry a walk — the craft happens AT the fiber
+        // pile, not wherever the goal fired. Mirrors the RunGroundRestPlan
+        // gate: wait out the walk, fail on Blocked, start only once she stands
+        // on the plan's junction.
+        if (npc.Execution.Status == ExecutionStatus.None &&
+            npc.Plan.TargetJunctionId is { } walkTarget)
+        {
+            if (npc.Movement.IsMoving)
+            {
+                return;
+            }
+
+            if (npc.Movement.Status == MovementStatus.Blocked)
+            {
+                PlanningSystem.SetGoalCooldown(world, npc, goal);
+                PlanInterruption.Abort(world, npc,
+                    $"CraftInPlace {goal}: ground pile unreachable (path blocked)");
+                npc.Mind.CurrentGoal = GoalType.None;
+                return;
+            }
+
+            if (npc.CurrentJunction is not { } atJunction || !atJunction.Equals(walkTarget))
+            {
+                return; // PathfindingSystem routes her next tick
+            }
+        }
+
+        // Beat 1 — layout: pieces already lying within the craft ring are
+        // claimed on the ground as-is (§84); only the shortfall leaves the
+        // pack and lands at her feet.
         if (npc.Execution.Status == ExecutionStatus.None)
         {
-            foreach (var ing in recipe.Inputs)
+            // Validate the WHOLE bill first — nothing is claimed or paid until
+            // every ingredient is covered by ground + pack together.
+            var groundByIngredient =
+                new System.Collections.Generic.List<System.Collections.Generic.List<WorldObjectState>>();
+            for (var ingIndex = 0; ingIndex < recipe.Inputs.Count; ingIndex++)
             {
-                if (DecisionSystem.CountInventory(npc, ing.Id) < ing.Count)
+                var ing = recipe.Inputs[ingIndex];
+                var ground = GroundInputsNearby(world, npc, ing.Id);
+                groundByIngredient.Add(ground);
+                if (ground.Count + DecisionSystem.CountInventory(npc, ing.Id) < ing.Count)
                 {
                     // Cooldown the goal — without it a decision layer that
                     // still believes the craft is possible re-selects it every
@@ -305,9 +377,26 @@ public sealed partial class ExecutionSystem
             }
 
             npc.Execution.CraftLayout.Clear();
-            foreach (var ing in recipe.Inputs)
+            var fromGround = 0;
+            for (var ingIndex = 0; ingIndex < recipe.Inputs.Count; ingIndex++)
             {
-                for (var i = 0; i < ing.Count; i++)
+                var ing = recipe.Inputs[ingIndex];
+                var ground = groundByIngredient[ingIndex];
+                var claimed = 0;
+                for (; claimed < ing.Count && claimed < ground.Count; claimed++)
+                {
+                    // §84: the lying piece IS the layout — claim it in place.
+                    // Occupied marks it as HER work in progress so housemates
+                    // neither gather it nor fold it into their own craft
+                    // (double-claiming the same fiber duped a rope).
+                    var piece = ground[claimed];
+                    piece.IsOccupied = true;
+                    piece.CurrentUser = npc.Id;
+                    npc.Execution.CraftLayout.Add(piece.Id);
+                }
+
+                fromGround += claimed;
+                for (var i = claimed; i < ing.Count; i++)
                 {
                     var index = npc.Inventory.Items.IndexOf(ing.Id);
                     if (index < 0)
@@ -321,6 +410,10 @@ public sealed partial class ExecutionSystem
                     if (laid != null)
                     {
                         // Tracked: despawned (used up) when the work beat ends.
+                        // §84: occupied for the same anti-steal reason as the
+                        // ground-claimed pieces above.
+                        laid.IsOccupied = true;
+                        laid.CurrentUser = npc.Id;
                         npc.Execution.CraftLayout.Add(laid.Id);
                     }
                     // No free spot: the piece stays in her lap — already paid,
@@ -341,7 +434,7 @@ public sealed partial class ExecutionSystem
             FaceCraftLayout(world, npc); // §61: kneel TOWARD the laid-out pieces
             Trace.Emit(world, npc.Id, "InteractionStarted",
                 $"CraftInPlace {goal} Duration={craftTicks}ticks " +
-                $"LaidOut={npc.Execution.CraftLayout.Count}");
+                $"LaidOut={npc.Execution.CraftLayout.Count} FromGround={fromGround}");
             return;
         }
 

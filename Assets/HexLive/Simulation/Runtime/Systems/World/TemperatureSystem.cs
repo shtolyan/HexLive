@@ -193,7 +193,19 @@ public sealed class TemperatureSystem : ISimulationSystem
                 // bare skin goes red first, then browns as it heals below.
                 npc.Needs.Sunburn = MathUtil.Clamp01(
                     npc.Needs.Sunburn + (effectiveUv - 0.5f) * SimBalance.SunburnRate * uncovered.Count);
-                npc.SunExposure += (effectiveUv - 0.5f) * SimBalance.SunExposureRate;
+                // §82: счётчик ожогов тоже зависит от того, СКОЛЬКО кожи
+                // открыто. Загар и краснота двумя строками выше умножаются на
+                // число открытых частей, а он — не умножался, и это была не
+                // мелочь: человек в полной броне набирал ожоги ровно с той же
+                // скоростью, что голый, только все они летели в единственную
+                // открытую часть. У чужака выходил 31 ожог головы за день
+                // против 4-6 у полураздетых девушек.
+                //
+                // Доля, а не количество: голый (все части открыты) даёт
+                // множитель 1.0 и ведёт себя ровно как раньше, а закрытый —
+                // пропорционально меньше.
+                npc.SunExposure += (effectiveUv - 0.5f) * SimBalance.SunExposureRate *
+                    ((float)uncovered.Count / npc.Body.Parts.Count);
                 if (npc.SunExposure > 0.5f)
                 {
                     npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort - 0.02f);
@@ -204,7 +216,27 @@ public sealed class TemperatureSystem : ISimulationSystem
                     var pick = (int)(MathUtil.Hash01(world.Seed, world.Tick, npc.Id.Value, 2203) * uncovered.Count);
                     pick = System.Math.Min(pick, uncovered.Count - 1);
                     var burntPart = uncovered[pick];
-                    npc.Body.Parts[burntPart] = System.Math.Max(0f, npc.Body.Parts[burntPart] - SimBalance.SunburnBurnDamage);
+                    // §82: солнце не убивает. Раньше ожог грыз часть до нуля, и
+                    // для ВИТАЛЬНОЙ это была смерть — причём смерть без раны,
+                    // которую нечем лечить и не на что посмотреть.
+                    //
+                    // Наружу это вылезло на чужаке: его забронировали целиком, у
+                    // него осталась открытой ровно ОДНА часть — голова, которую
+                    // в игре не закрывает ни одна вещь, — и все удары солнца
+                    // пришли в неё. 29 ожогов головы за день против 4-6 у
+                    // полураздетых девушек, смерть на 0.3-й день. Броня его и
+                    // убивала.
+                    //
+                    // Порог, а не запрет: солнечный удар обязан быть страшным —
+                    // он доводит до беспамятства (§60 кома при здоровье 0.15) и
+                    // калечит конечности до нуля по-прежнему. Он просто не
+                    // отрывает голову.
+                    var burnFloor = burntPart is BodyPart.Head or BodyPart.Torso
+                        ? SimBalance.SunburnVitalFloor
+                        : 0f;
+                    npc.Body.Parts[burntPart] = System.Math.Max(
+                        burnFloor,
+                        npc.Body.Parts[burntPart] - SimBalance.SunburnBurnDamage);
                     npc.Health = npc.Body.Mean();
                     npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort - 0.15f);
                     npc.SunExposure = 0.5f;

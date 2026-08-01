@@ -32,11 +32,24 @@ public static class BalanceReflection
         typeof(Spec62),
         typeof(Spec72),
         typeof(Spec76),
+        // §81: без строки ЗДЕСЬ ручки существуют, зеркалятся в ассет и даже
+        // проходят гейт покрытия — но не экспортируются и не применяются:
+        // и экспорт, и SimConfigMirror обходят ИМЕННО этот список. Крутилки в
+        // инспекторе при этом выглядят рабочими и молча ничего не делают.
+        typeof(Spec81),
+        typeof(Spec82),
         typeof(AiBalance),
         typeof(SocialBalance),
         typeof(WorldBalance),
         typeof(WildlifeBalance),
         typeof(HexHopTuning),
+        // MovementSystem carries exactly two tunables — the swim entry pause and
+        // the deep-water speed factor. They are simulation knobs (the speed
+        // factor changes how long a crossing takes, i.e. pathing timing), but
+        // they lived outside this list and outside simdata.json, so a headless
+        // run or a server silently used the code defaults instead of the tuned
+        // asset. Spec §59.3 exists to prevent exactly that.
+        typeof(MovementSystem),
     };
 
     public static bool IsTunable(FieldInfo field)

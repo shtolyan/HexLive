@@ -19,6 +19,10 @@
 *.csproj
 *.unityproj
 *.sln
+# ...кроме рукописных: Unity-генерируемые csproj одноразовые и не в git, а эти —
+# исходники headless-сборки (спек §59.3, CLAUDE.md «Headless simulation probes»).
+!HexLive.Simulation.Standalone.csproj
+!/Server/**/*.csproj
 *.suo
 *.tmp
 *.user

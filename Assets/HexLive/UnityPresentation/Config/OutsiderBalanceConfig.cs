@@ -13,6 +13,7 @@ namespace HexLive.UnityPresentation.Config
     [CreateAssetMenu(menuName = "HexLive/Balance/Outsider", fileName = "OutsiderBalance")]
     [MirrorTarget(typeof(Spec72))]
     [MirrorTarget(typeof(Spec81))]
+    [MirrorTarget(typeof(Spec82))]
     public sealed class OutsiderBalanceConfig : ScriptableObject
     {
         [Header("Общее (§72)")]
@@ -34,6 +35,20 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 1f)] public float outsiderCompassionMin = 0f;
         [Tooltip("Верхняя граница черты сострадания чужака. Сострадательный налётчик не налетал бы.")]
         [Range(0f, 1f)] public float outsiderCompassionMax = 0.25f;
+
+        [Header("Его тело (§76) — авторское, не выпавшее")]
+        [Tooltip("Характеристики чужака заданы РУКАМИ и одинаковы в каждом мире: девушки катятся от сида по бюджету §76.2, а противник, который на половине сидов выпадает хилым, читается как поломка. Сумма НАРОЧНО больше колонийной (4.0 против 3.0) — «не по тем же правилам». ⚠️ Складывается с «Множитель урона рейда»: крутить по одной ручке за раз, иначе соак не скажет, что подействовало.")]
+        [Range(0f, 1f)] public float outsiderStrength = 0.9f;
+        [Tooltip("Ловкость чужака (0..1 → 0..10 на листе). Тяжёлый, не быстрый.")]
+        [Range(0f, 1f)] public float outsiderAgility = 0.5f;
+        [Tooltip("Выносливость чужака. Привык идти весь день.")]
+        [Range(0f, 1f)] public float outsiderEndurance = 0.8f;
+        [Tooltip("Стойкость чужака: входящий урон, кровопотеря, заживление. Он один, лечить его некому.")]
+        [Range(0f, 1f)] public float outsiderToughness = 0.8f;
+        [Tooltip("Неприхотливость чужака: голод, жажда, жара и холод. Живёт в дикой земле без очага под боком.")]
+        [Range(0f, 1f)] public float outsiderHardiness = 0.6f;
+        [Tooltip("Смекалка чужака: скорость обучения навыкам и крафта. Не мастеровой — его сила в руках.")]
+        [Range(0f, 1f)] public float outsiderWits = 0.4f;
         [Tooltip("Он сходит на берег с ножом. У одиночки нет разделения труда колонии, а охота вообще гейтится на настоящем оружии.")]
         public bool outsiderStartsArmed = true;
 
@@ -172,5 +187,19 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 2f)] public float abuseTrustLoss = 0.25f;
         [Tooltip("Закрыть тихую кражу §40.5 до своих — у чужака теперь есть настоящая сцена.")]
         public bool abuseSupersedesPassiveTheft = true;
+
+        [Header("§82 Солнце и злость")]
+        [Tooltip("Во что превращается краснота в ставке «одеться». 1.0 = полностью обгоревшая хочет прикрыться так же, как продрогшая.")]
+        [Range(0f, 4f)] public float sunburnDressWeight = 1.0f;
+        [Tooltip("⭐ Подошла к его стоянке — бьёт без разговора. Выключено = прежнее мирное поведение.")]
+        public bool territorialEnabled = true;
+        [Tooltip("Радиус вокруг стоянки, который он считает своим двором.")]
+        [Range(0, 12)] public int territoryRadiusTiles = 5;
+        [Tooltip("Пауза между выгонами, чтобы не молотил одну и ту же без передышки.")]
+        [Range(0, 2400)] public int territoryCooldownTicks = 300;
+        [Tooltip("Ставка выгона. Очень высокая намеренно: это реакция на вторжение, а не дело между делами.")]
+        [Range(0f, 4f)] public float territoryScore = 2.5f;
+        [Tooltip("Насколько сильнее давит нулевое общение. Ниже ~1.5 он тонет среди бытовых дел и никого не трогает.")]
+        [Range(0f, 4f)] public float lonelinessDriveMult = 1.8f;
     }
 }

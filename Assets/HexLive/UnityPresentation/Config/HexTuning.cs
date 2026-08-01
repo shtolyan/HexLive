@@ -27,10 +27,12 @@ namespace HexLive.UnityPresentation.Config
                 return;
             }
 
-            SimConfigMirror.Apply(c); // the hop block → HexHopTuning
-
-            MovementSystem.SwimEntryPauseSeconds = c.swimEntryPauseSeconds;
-            MovementSystem.SwimSpeedFactor = c.swimSpeedFactor;
+            // The hop block → HexHopTuning, and the two swim SIM knobs →
+            // MovementSystem. Those two used to be applied by hand right here,
+            // which kept them out of BalanceReflection and out of simdata.json —
+            // so headless runs used code defaults. They are ordinary mapped
+            // fields now; do not re-add a hand-written assignment.
+            SimConfigMirror.Apply(c);
 
             SwimVisuals.SinkDepth = c.sinkDepth;
             SwimVisuals.WadeDepth = c.wadeDepth;
@@ -54,10 +56,7 @@ namespace HexLive.UnityPresentation.Config
                 return;
             }
 
-            SimConfigMirror.Capture(c); // HexHopTuning → the hop block
-
-            c.swimEntryPauseSeconds = MovementSystem.SwimEntryPauseSeconds;
-            c.swimSpeedFactor = MovementSystem.SwimSpeedFactor;
+            SimConfigMirror.Capture(c); // HexHopTuning + the MovementSystem swim knobs
 
             c.sinkDepth = SwimVisuals.SinkDepth;
             c.wadeDepth = SwimVisuals.WadeDepth;

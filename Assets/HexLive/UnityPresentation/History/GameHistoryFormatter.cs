@@ -103,8 +103,18 @@ namespace HexLive.UnityPresentation.History
                 "SharkBite" => T($"{actor} was bitten by a shark.", $"{actor} укусила акула."),
                 "LimbSevered" => T($"{actor} lost a limb.", $"{actor} потеряла конечность."),
                 "Fainted" => T($"{actor} fainted.", $"{actor} потеряла сознание."),
-                "Collapsed" => T($"{actor} collapsed into a coma.", $"{actor} впала в кому."),
+                // The coma path emits these two — the old "Collapsed" title waited
+                // for a type nothing has ever sent, so comas were invisible here.
+                "FellAsleepExhausted" => T($"{actor} collapsed from exhaustion.",
+                    $"{actor} свалилась без сил."),
+                "FaintedBloodLoss" => T($"{actor} passed out from blood loss.",
+                    $"{actor} отключилась от потери крови."),
                 "WokeUp" => T($"{actor} came to.", $"{actor} пришла в себя."),
+                "WoundInflicted" => T($"{actor} was wounded.", $"{actor} получила рану."),
+                "GotSick" => T($"{actor} got sick from raw water.",
+                    $"{actor} заболела от сырой воды."),
+                "ThreatSpotted" => T($"{actor} spotted a predator.",
+                    $"{actor} заметила хищника."),
                 "Bandaged" => T($"{actor} dressed the wounds.", $"{actor} перевязала раны."),
                 "Medicated" => T($"{actor} used medicine.", $"{actor} приняла лекарство."),
                 "StatusStarving" => T($"{actor} is starving.", $"{actor} голодает."),
@@ -126,6 +136,13 @@ namespace HexLive.UnityPresentation.History
                 "FireLit" => T($"{actor} lit the fire.", $"{actor} разожгла костер."),
                 "FireFueled" => T($"{actor} fed the fire.", $"{actor} подбросила топлива в костер."),
                 "FireOut" => T("The fire went out.", "Костер погас."),
+                // The fire emits MeatRoasted — the old "MeatCooked" title waited
+                // for a type nothing has ever sent, so cooking was invisible here.
+                "MeatRoasted" => T("Meat finished roasting on the spit.",
+                    "Мясо на вертеле дожарилось."),
+                "MeatHungOnSpit" => T($"{actor} hung meat over the fire.",
+                    $"{actor} повесила мясо над костром."),
+                "MeatSpoiled" => T("Meat went bad.", "Мясо испортилось."),
                 "RaftProgress" => T($"{actor} worked on the raft.", $"{actor} строит плот."),
                 "RaftLaunched" => T("The raft is finished.", "Плот готов."),
                 "BuildProgress" => T($"{actor} built part of the shelter.", $"{actor} построила часть укрытия."),
@@ -273,7 +290,9 @@ namespace HexLive.UnityPresentation.History
 
             if (type is "AidWaitTimeout" or "TalkQuarreled" or "TalkWaitTimeout" or "InteractionBlocked" or
                 "InteractionRejected" or "FoodStolen" or "Grieving" or "StatusStarving" or "StatusDehydrated" or
-                "StatusOverheated" or "Sunburn" or "Fainted" or "Collapsed" or
+                "StatusOverheated" or "Sunburn" or "Fainted" or
+                "FellAsleepExhausted" or "FaintedBloodLoss" or
+                "WoundInflicted" or "GotSick" or "MeatSpoiled" or "ThreatSpotted" or
                 "HelpCryIgnored" or "HelpCryAssistLost")
             {
                 return GameHistoryTone.Bad;

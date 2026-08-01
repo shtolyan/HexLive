@@ -144,6 +144,16 @@ internal static class MeleeSwing
                 var room = (target.Health - floorHp) * target.Body.Parts.Count;
                 landed = System.Math.Min(landed, room);
             }
+
+            // Пощада работает и ПО ЧАСТЯМ, не только по среднему. room выше
+            // конвертирует запас СРЕДНЕГО в урон одной части — это до ×7 её
+            // максимума, поэтому серия ударов в одну голову уничтожала Head
+            // (VitalDestroyed → мгновенная смерть) задолго до порога пощады.
+            // Часть под ударом не опускается ниже MercyPartFloor — ни
+            // мгновенная смерть, ни отрыв конечности (TrySeverOnBite требует
+            // ровно 0) при пощаде невозможны.
+            landed = System.Math.Min(landed,
+                System.Math.Max(0f, target.Body.Parts[part] - Spec86.MercyPartFloor));
         }
 
         target.Body.Parts[part] = System.Math.Max(0f, target.Body.Parts[part] - landed);

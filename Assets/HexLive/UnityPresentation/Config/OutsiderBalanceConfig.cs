@@ -113,6 +113,12 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Столько защитниц вокруг — и он отступает.")]
         [Range(1, 5)] public int raidBreakOffDefenders = 3;
 
+        [Header("Бой — стойка (§72.5)")]
+        [Tooltip("Боевая стойка: стоящий боец пятится рендер-позицией, пока пара не разойдётся на эту дистанцию (wu) — дерутся друг напротив друга, а не друг в друге. Джанкшены и дальность ударов не трогаются. 0 = выкл.")]
+        [Range(0f, 3f)] public float meleeHoldDistance = 0.9f;
+        [Tooltip("Скорость отступания в стойку, wu/сек (шаг ходьбы ~1.2 — это осознанный шаг назад, не телепорт).")]
+        [Range(0.1f, 4f)] public float meleeHoldGlideSpeed = 0.8f;
+
         [Header("Оборона колонии")]
         [Tooltip("Против ЧУЖАКА поднимать всю фракцию в радиусе без порога симпатии — в первые дни её ещё нет, а «дать отпор сплочённо» нужно именно тогда.")]
         public bool rallyIgnoresAffinityVsOutsider = true;
@@ -140,6 +146,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 12)] public int abuseGraceDays = 2;
         [Tooltip("Пауза после сцены.")]
         [Range(0, 4800)] public int abuseCooldownTicks = 900;
+        [Tooltip("§87: на сколько цель абьюза запирается от аукциона после прерывания. Без замка ближайший пересчёт вернул бы его к «посидеть».")]
+        [Range(0, 4800)] public int abuseLockTicks = 240;
         [Tooltip("На сколько сцена отталкивает налёт: ограбил — сегодня не убивает.")]
         [Range(0, 4800)] public int abuseRaidLockoutTicks = 600;
         [Tooltip("Радиус поиска жертвы, тайлы.")]
@@ -208,6 +216,8 @@ namespace HexLive.UnityPresentation.Config
         public bool mercyEnabled = true;
         [Tooltip("Ниже этой доли здоровья удар человека по человеку не опускает, если бьющий не ненавидит.")]
         [Range(0f, 1f)] public float mercyHealthFloor = 0.55f;
+        [Tooltip("Пощадный удар не опускает ЧАСТЬ под ударом ниже этого: голова/торс не уничтожаются (мгновенная смерть), конечность не отрывается. Средний порог выше сам по себе этого не гарантирует — урон копится в одной части.")]
+        [Range(0f, 0.5f)] public float mercyPartFloor = 0.05f;
         [Tooltip("Симпатия, ниже которой пощады нет. -0.6 — это уже несколько сцен насилия подряд, заработанная ненависть.")]
         [Range(-1f, 1f)] public float hatredAffinity = -0.6f;
         [Tooltip("Распространять пощаду и на чужаков. Выключено — соак разведёт смерти от своих и от чужих.")]

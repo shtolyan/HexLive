@@ -40,6 +40,11 @@ public static class Spec81
     public static int AbuseGraceDays = 2;
     public static int AbuseCooldownTicks = 900;
 
+    // §87: на сколько цель абьюза запирается от аукциона после прерывания.
+    // Без замка ближайший же пересчёт вернул бы его к «посидеть»: у одинокого
+    // человека досуг стоит дорого, и дорога до жертвы длиннее одного тика.
+    public static int AbuseLockTicks = 240;
+
     // Сцена отталкивает налёт: ограбил — значит сегодня не убивает.
     public static int AbuseRaidLockoutTicks = 600;
 

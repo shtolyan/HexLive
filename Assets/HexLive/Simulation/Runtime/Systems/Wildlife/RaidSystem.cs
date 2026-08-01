@@ -36,6 +36,7 @@ public sealed class RaidSystem : ISimulationSystem
         }
 
         _dead.Clear();
+        TryStartAbuse(world);
         TryStartHunts(world);
 
         // Safety net. A human fight resolves on the FAST layer, so it can kill
@@ -243,6 +244,82 @@ public sealed class RaidSystem : ISimulationSystem
             }
 
             StartRaidOn(world, raider, victim, $"Opportunity Opp={opportunity:F2}");
+        }
+    }
+
+    // §87: ⭐ АБЬЮЗ НАЧИНАЕТСЯ ПРЕРЫВАНИЕМ, а не победой в аукционе.
+    //
+    // Это ровно та же ошибка, на которой §72 потерял два круга и которая
+    // записана в спеке чёрным по белому: DecisionSystem переигрывает аукцион
+    // ТОЛЬКО между взаимодействиями. Пока чужак сидит на пеньке у костра —
+    // а «посидеть» это длинное взаимодействие, и у одинокого человека оно
+    // выигрывает постоянно, — выбора просто НЕ ПРОИСХОДИТ. Сколько ставку ни
+    // повышай, она никогда не будет посчитана.
+    //
+    // Налёт из-за этого сделали прерыванием ещё в §72.9, а абьюз остался
+    // чистой ставкой — и потому не срабатывал ни разу за четыре игровых дня,
+    // при том что все замеры показывали «жертва есть в 95% времени». Замеры
+    // мерили наличие жертвы, а не то, что его вообще спрашивают.
+    //
+    // Форма та же, что у клича §57 и первого удара §62: срочная возможность
+    // рвёт текущий план и берёт цель напрямую.
+    private static void TryStartAbuse(WorldState world)
+    {
+        if (!Spec81.AbuseEnabled)
+        {
+            return;
+        }
+
+        if (world.Tick < Spec81.AbuseGraceDays * EnvironmentSystem.DayLengthTicks)
+        {
+            return;
+        }
+
+        foreach (var abuser in world.Entities.Npcs.Values)
+        {
+            if (abuser.Faction == Faction.Colony ||
+                abuser.Health <= 0f ||
+                abuser.IsFighting ||
+                abuser.IsUnconscious(world.Tick) ||
+                abuser.Body.IsProne ||
+                !abuser.Body.CanUseToolsOrWeapons ||
+                abuser.Mind.CurrentGoal == GoalType.Abuse ||
+                abuser.Mind.CurrentGoal == GoalType.Raid ||
+                abuser.Mind.CurrentGoal == GoalType.Flee ||
+                world.Tick < abuser.Mind.AbuseCooldownUntilTick ||
+                AbuseMath.Drive(abuser) <= 0f)
+            {
+                continue;
+            }
+
+            var mark = AbuseMath.BestMark(world, abuser, out var hasLoot);
+            if (mark is null)
+            {
+                continue;
+            }
+
+            if (abuser.Plan.Status == PlanStatus.Active ||
+                abuser.Execution.Status == ExecutionStatus.InProgress)
+            {
+                PlanInterruption.Abort(world, abuser, $"Abusing NPC{mark.Id.Value}");
+            }
+
+            abuser.Mind.CurrentGoal = GoalType.Abuse;
+            abuser.Mind.AbuseTargetNpcId = mark.Id;
+            abuser.Mind.AbuseHasLoot = hasLoot;
+            abuser.Mind.AbuseBeat = 0;
+            abuser.Mind.AbuseBlows = 0;
+            abuser.Mind.GoalLock = new GoalLock
+            {
+                Goal = GoalType.Abuse,
+                StartTick = world.Tick,
+                EndTick = world.Tick + Spec81.AbuseLockTicks
+            };
+
+            Trace.Emit(world, abuser.Id, "AbuseTriggered",
+                $"Mark=NPC{mark.Id.Value} Social={abuser.Needs.Social:F2} " +
+                $"Drive={AbuseMath.Drive(abuser):F2} Loot={hasLoot} " +
+                $"Dist={HexSpatialMath.HexDistance(abuser.Tile, mark.Tile)}");
         }
     }
 

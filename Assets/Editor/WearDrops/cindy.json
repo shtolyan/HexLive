@@ -20,67 +20,6 @@
   ],
   "garments": [
     {
-      "sourceKey": "Jacket_7653",
-      "folder": "CindyJacket",
-      "name": "CindyJacket",
-      "simId": "clothing.jacket_cindy",
-      "layer": "Wear",
-      "slots": [
-        "Chest",
-        "ShoulderR",
-        "ShoulderL",
-        "ForearmR",
-        "ForearmL"
-      ],
-      "noHide": [],
-      "materials": [
-        {
-          "source": "Top Leather",
-          "texture": "Cloth D.png",
-          "smoothness": 0.3,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        },
-        {
-          "source": "Basic Metal",
-          "texture": "Accesories.png",
-          "smoothness": 0.3,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        },
-        {
-          "source": "Basic Leather",
-          "texture": "Accesories.png",
-          "smoothness": 0.3,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        }
-      ],
-      "_measured": {
-        "verts": 7653,
-        "polys": 8182,
-        "bbox": [
-          -67.7,
-          67.5,
-          119.3,
-          158.9,
-          -12.7,
-          14.8
-        ],
-        "zones": {
-          "Chest": 0.72,
-          "Shoulder": 0.154,
-          "Forearm": 0.065,
-          "Neck": 0.046,
-          "Wrist": 0.008,
-          "Head": 0.007
-        }
-      }
-    },
-    {
       "sourceKey": "bottom daz_5767",
       "folder": "CindyShorts",
       "name": "CindyShorts",
@@ -276,6 +215,7 @@
   ],
   "skipped": [
     "Bikini Bottom_699",
-    "Bra_1529"
+    "Bra_1529",
+    "Jacket_7653"
   ]
 }

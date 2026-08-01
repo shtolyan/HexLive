@@ -112,20 +112,29 @@ MonoBehaviour:
   configs:
   - actorName: 0
     scale: 1.02
+    heightOffset: 0
     mesh: {fileID: 4300000, guid: bbe83ae65290bf7408f571bac2477cd0, type: 2}
+  - actorName: 1
+    scale: 1
+    heightOffset: 0
+    mesh: {fileID: 4300000, guid: 54b87fa518b211947a2427320d4c956f, type: 2}
   - actorName: 2
     scale: 1.02
+    heightOffset: 0
     mesh: {fileID: 4300000, guid: a61958aacd76858449f7e118b38f44b6, type: 2}
   - actorName: 5
     scale: 1
+    heightOffset: 0
     mesh: {fileID: 4300000, guid: 11eb2ccb9fab13c44b41c85e017d103a, type: 2}
-  - actorName: 1
-    scale: 1
-    mesh: {fileID: 4300000, guid: 54b87fa518b211947a2427320d4c956f, type: 2}
   slots: 04000000
   noHideUnderwearSlots: 
   layer: 0
   gender: 1
+  heel:
+    footDegrees: 0
+    toeDegrees: 0
+    lift: 0
+    axis: {x: 0, y: 0, z: 0}
 --- !u!1 &4525492664441813062
 GameObject:
   m_ObjectHideFlags: 0
@@ -452,6 +461,6 @@ SkinnedMeshRenderer:
   m_BlendShapeWeights: []
   m_RootBone: {fileID: 8001943775309024699}
   m_AABB:
-    m_Center: {x: -0.0005418435, y: 0.28061485, z: -0.00088054314}
-    m_Extent: {x: 0.14064193, y: 0.06308138, z: 0.105515465}
+    m_Center: {x: -0.0003426522, y: 0.28069025, z: -0.000501737}
+    m_Extent: {x: 0.14123048, y: 0.06314975, z: 0.10599738}
   m_DirtyAABB: 0

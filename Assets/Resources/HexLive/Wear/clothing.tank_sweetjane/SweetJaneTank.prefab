@@ -202,8 +202,8 @@ SkinnedMeshRenderer:
   m_BlendShapeWeights: []
   m_RootBone: {fileID: 2788996740700400653}
   m_AABB:
-    m_Center: {x: 0.00012942404, y: 0.2862718, z: -0.011764873}
-    m_Extent: {x: 0.14454794, y: 0.21328437, z: 0.12533294}
+    m_Center: {x: 0.00013379008, y: 0.2861644, z: -0.012270529}
+    m_Extent: {x: 0.1447528, y: 0.21341074, z: 0.12496431}
   m_DirtyAABB: 0
 --- !u!1 &2246910548503176337
 GameObject:
@@ -358,7 +358,7 @@ Transform:
   m_GameObject: {fileID: 5278249340051737053}
   serializedVersion: 2
   m_LocalRotation: {x: -1.0842022e-19, y: 1.7347235e-18, z: 8.199279e-19, w: 1}
-  m_LocalPosition: {x: -0.12612712, y: -0.007512512, z: 0.0020923852}
+  m_LocalPosition: {x: -0.12612714, y: -0.007512512, z: 0.0020923852}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -506,7 +506,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Wear
   configs:
   - actorName: 0
-    scale: 1
+    scale: 1.01
     heightOffset: 0
     mesh: {fileID: 4300000, guid: b8d1aaadd67cff941b015ce76037e950, type: 2}
   - actorName: 1
@@ -514,17 +514,22 @@ MonoBehaviour:
     heightOffset: 0
     mesh: {fileID: 4300000, guid: 87aaeafd000de60499adcb63dd2655bf, type: 2}
   - actorName: 2
-    scale: 1
+    scale: 1.01
     heightOffset: 0
     mesh: {fileID: 4300000, guid: 43aea8859d135124fa46cae00b98c6df, type: 2}
   - actorName: 5
-    scale: 1
+    scale: 1.01
     heightOffset: 0
     mesh: {fileID: 4300000, guid: e3b690a41821f574a8346b9c9981eda5, type: 2}
   slots: 0400000009000000
   noHideUnderwearSlots: 
   layer: 1
   gender: 1
+  heel:
+    footDegrees: 0
+    toeDegrees: 0
+    lift: 0
+    axis: {x: 0, y: 0, z: 0}
 --- !u!1 &8033984530299154036
 GameObject:
   m_ObjectHideFlags: 0

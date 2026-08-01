@@ -24,7 +24,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 321752575303086614}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 2.7755576e-17, z: -0, w: 1}
+  m_LocalRotation: {x: -1.3877788e-17, y: -2.7755576e-17, z: -3.85186e-34, w: 1}
   m_LocalPosition: {x: -0.029984513, y: 0.09124664, z: -0.08070247}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -153,12 +153,43 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1405589511427844370}
   serializedVersion: 2
-  m_LocalRotation: {x: 1.3877788e-17, y: 2.7755576e-17, z: -3.85186e-34, w: 1}
+  m_LocalRotation: {x: 1.3877788e-17, y: 4.814825e-35, z: 3.469447e-18, w: 1}
   m_LocalPosition: {x: 0.030032987, y: 0.09122055, z: -0.08068201}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 6168280239812207693}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2121311900161852300
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6590240237613020042}
+  m_Layer: 0
+  m_Name: rThighBend
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6590240237613020042
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2121311900161852300}
+  serializedVersion: 2
+  m_LocalRotation: {x: -8.6736174e-19, y: -5.642373e-37, z: 6.505213e-19, w: 1}
+  m_LocalPosition: {x: 0.0791802, y: -0.10767707, z: -0.01709313}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6881648632449777165}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2798399507726914461
 GameObject:
@@ -240,20 +271,60 @@ MonoBehaviour:
   configs:
   - actorName: 0
     scale: 1.01
+    heightOffset: 0
     mesh: {fileID: 4300000, guid: 0e2584649686e4f4b9a5e193d3b06d7a, type: 2}
+  - actorName: 1
+    scale: 1
+    heightOffset: 0
+    mesh: {fileID: 4300000, guid: 0d426fa75b63c6b41a1ca5e2f0b73cfb, type: 2}
   - actorName: 2
-    scale: 1.01
+    scale: 1.02
+    heightOffset: 0
     mesh: {fileID: 4300000, guid: ca90864d21816ae4a884edb054bddb2e, type: 2}
   - actorName: 5
     scale: 1.03
+    heightOffset: 0
     mesh: {fileID: 4300000, guid: 24d4c1ce4d201b04e9e434f2df114abd, type: 2}
-  - actorName: 1
-    scale: 1
-    mesh: {fileID: 4300000, guid: 0d426fa75b63c6b41a1ca5e2f0b73cfb, type: 2}
   slots: 04000000090000000c000000
   noHideUnderwearSlots: 04000000
   layer: 1
   gender: 1
+  heel:
+    footDegrees: 0
+    toeDegrees: 0
+    lift: 0
+    axis: {x: 0, y: 0, z: 0}
+--- !u!1 &2995485242330972791
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8802123818330259769}
+  m_Layer: 0
+  m_Name: lThighBend
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8802123818330259769
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2995485242330972791}
+  serializedVersion: 2
+  m_LocalRotation: {x: 1.1284746e-35, y: 6.938894e-18, z: -1.6263033e-18, w: 1}
+  m_LocalPosition: {x: -0.079184204, y: -0.10800583, z: -0.017109692}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6881648632449777165}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4003795434955179236
 GameObject:
   m_ObjectHideFlags: 0
@@ -350,8 +421,8 @@ SkinnedMeshRenderer:
   - {fileID: 8789666834946721940}
   - {fileID: 624635952639820351}
   - {fileID: 6168280239812207693}
-  - {fileID: 4231345651920348518}
-  - {fileID: 4231345651920348518}
+  - {fileID: 8802123818330259769}
+  - {fileID: 6590240237613020042}
   - {fileID: 853811265380467639}
   - {fileID: 6881648632449777165}
   - {fileID: 3861567606210603142}
@@ -551,6 +622,8 @@ Transform:
   m_LocalPosition: {x: 0.0000114631, y: 0.019375456, z: 0.001220448}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 8802123818330259769}
+  - {fileID: 6590240237613020042}
   m_Father: {fileID: 4231345651920348518}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

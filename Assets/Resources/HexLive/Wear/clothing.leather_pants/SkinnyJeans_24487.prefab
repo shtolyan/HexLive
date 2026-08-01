@@ -636,20 +636,29 @@ MonoBehaviour:
   configs:
   - actorName: 0
     scale: 1
+    heightOffset: 0
     mesh: {fileID: 4300000, guid: 64cbf7b4ac2b0dc4caf0a091bc9189f0, type: 2}
   - actorName: 1
     scale: 1
+    heightOffset: 0
     mesh: {fileID: 4300000, guid: e6bb8fbf15b868947b46938e2b7c5b54, type: 2}
   - actorName: 2
     scale: 1.01
+    heightOffset: 0
     mesh: {fileID: 4300000, guid: c6fe7ffcab2e941fdafbc38fbe24edd4, type: 2}
   - actorName: 5
-    scale: 1.13
+    scale: 1.12
+    heightOffset: 0
     mesh: {fileID: 4300000, guid: 64cbf7b4ac2b0dc4caf0a091bc9189f0, type: 2}
   slots: 0c0000000f000000110000001000000012000000
   noHideUnderwearSlots: 
   layer: 1
   gender: 1
+  heel:
+    footDegrees: 0
+    toeDegrees: 0
+    lift: 0
+    axis: {x: 0, y: 0, z: 0}
 --- !u!1 &8562733797983228910
 GameObject:
   m_ObjectHideFlags: 0

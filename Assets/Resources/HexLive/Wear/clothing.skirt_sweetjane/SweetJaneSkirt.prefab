@@ -25,7 +25,7 @@ Transform:
   m_GameObject: {fileID: 2344119705612379983}
   serializedVersion: 2
   m_LocalRotation: {x: -8.6736174e-19, y: -5.642373e-37, z: 6.505213e-19, w: 1}
-  m_LocalPosition: {x: 0.0791802, y: -0.10767707, z: -0.01709313}
+  m_LocalPosition: {x: 0.07909208, y: -0.10626678, z: -0.014821031}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -56,7 +56,7 @@ Transform:
   m_GameObject: {fileID: 3852119665630192767}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.0001258695, y: 1.0331722, z: 0.016532063}
+  m_LocalPosition: {x: -0, y: 1.0517809, z: 0.01824816}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -124,7 +124,7 @@ MonoBehaviour:
     heightOffset: 0
     mesh: {fileID: 4300000, guid: 8c56d70d1bb59ff4186757c18f8872e1, type: 2}
   - actorName: 5
-    scale: 1
+    scale: 1.06
     heightOffset: 0
     mesh: {fileID: 4300000, guid: f29ff39eb29066744b51629f8769e047, type: 2}
   slots: 0c0000000f000000100000001100000012000000
@@ -161,7 +161,7 @@ Transform:
   m_GameObject: {fileID: 5079583621467930700}
   serializedVersion: 2
   m_LocalRotation: {x: 1.1284746e-35, y: 6.938894e-18, z: -1.6263033e-18, w: 1}
-  m_LocalPosition: {x: -0.079184204, y: -0.10800583, z: -0.017109692}
+  m_LocalPosition: {x: -0.07909208, y: -0.10626678, z: -0.014821031}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -192,7 +192,7 @@ Transform:
   m_GameObject: {fileID: 6318426382442710279}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.000033445536, y: 0.018979568, z: -0.012724555}
+  m_LocalPosition: {x: -0, y: 0.017665023, z: -0.014824948}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -223,7 +223,7 @@ Transform:
   m_GameObject: {fileID: 7819203416424302846}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.0000114631, y: 0.019375456, z: 0.001220448}
+  m_LocalPosition: {x: -0, y: 0.018641967, z: 0.0004866898}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -332,6 +332,6 @@ SkinnedMeshRenderer:
   m_BlendShapeWeights: []
   m_RootBone: {fileID: 488132562801598988}
   m_AABB:
-    m_Center: {x: -0.0020986646, y: -0.4887127, z: -0.043703496}
-    m_Extent: {x: 0.3816775, y: 0.4762968, z: 0.3073303}
+    m_Center: {x: -0.0024993718, y: -0.49960625, z: -0.043506324}
+    m_Extent: {x: 0.38159254, y: 0.48374832, z: 0.30728593}
   m_DirtyAABB: 0

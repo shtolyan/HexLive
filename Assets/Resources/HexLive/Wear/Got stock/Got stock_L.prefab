@@ -836,17 +836,26 @@ MonoBehaviour:
   configs:
   - actorName: 0
     scale: 1
+    heightOffset: 0
     mesh: {fileID: 4300000, guid: 2910fb9d3cf729544b908cabca510420, type: 2}
   - actorName: 1
     scale: 1
+    heightOffset: 0
     mesh: {fileID: 4300000, guid: 5e9d252da3c6c24439273d4905d0ad09, type: 2}
   - actorName: 2
     scale: 1
+    heightOffset: 0
     mesh: {fileID: 4300000, guid: dcae56be65bd14842a219cc837d9f13d, type: 2}
   - actorName: 5
-    scale: 1.14
+    scale: 1.11
+    heightOffset: 0
     mesh: {fileID: 4300000, guid: 2910fb9d3cf729544b908cabca510420, type: 2}
   slots: 100000001400000012000000
   noHideUnderwearSlots: 
   layer: 0
   gender: 1
+  heel:
+    footDegrees: 0
+    toeDegrees: 0
+    lift: 0
+    axis: {x: 0, y: 0, z: 0}

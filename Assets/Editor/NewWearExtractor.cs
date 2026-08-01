@@ -38,22 +38,21 @@ public static class NewWearExtractor
     private const string ImportRoot = "Assets/ImportedActors/Wear";
     private const string WearRoot = "Assets/Resources/HexLive/Wear";
 
-    // Where the automated pipeline drops its manifests. Anything in here is
-    // merged with the hand-written tables below, so a NEW drop needs no C# at
-    // all — tools/wardrobe writes the JSON and the extractor picks it up.
+    // Where the automated pipeline drops its manifests — now the ONLY source of
+    // garments. tools/wardrobe writes the JSON and the extractor picks it up, so
+    // new clothing needs no C# at all.
     private const string DropRoot = "Assets/Editor/WearDrops";
 
     // FBX file -> which girl the garments are fitted to. One file per girl per
     // drop; a girl may appear more than once (different drops carry different
     // garments), so the renderer index is keyed by (actor, garment), not by file.
-    private static readonly (string path, ActorName actor)[] BuiltInSources =
-    {
-        // 2026-07 drop: panty/skirt/sweater, bra, panties, swimsuit, dresses.
-        // Later drops live in Assets/Editor/WearDrops/*.json — see EnsureLoaded.
-        ("Assets/Temp/molly new.fbx", ActorName.Molly),
-        ("Assets/Temp/marta new wear.fbx", ActorName.Marta),
-        ("Assets/Temp/jana new wear.fbx", ActorName.Jana),
-    };
+    // Empty on purpose. Every drop — including the 2026-07 one that used to be
+    // hardcoded here — now lives in Assets/Editor/WearDrops/*.json. Keeping a
+    // copy in C# was actively harmful: LoadDrop skips a garment whose simId is
+    // already described, and the built-ins were seeded FIRST, so the JSON entry
+    // lost. Those eight pieces kept being built from the old `* new wear.fbx`
+    // exports, which is how Jana's re-fit silently missed them.
+    private static readonly (string path, ActorName actor)[] BuiltInSources = { };
 
     // Built-ins + every JSON drop, resolved once per domain reload.
     private static (string path, ActorName actor)[] _sources;
@@ -96,115 +95,10 @@ public static class NewWearExtractor
         public HeelPose Heel;       // default = flat, which is almost everything
     }
 
-    // Slot / layer choices mirror the closest shipped garment (skirt =
-    // Skirt G3F, sweater = Jacket_7653, dresses = CityDress_1).
-    private static readonly GarmentSpec[] BuiltInGarments =
-    {
-        new()
-        {
-            SourceKey = "fl-panty_1661", Folder = "PantyFlair", Name = "PantyFlair",
-            SimId = "underwear.panty_flair", Layer = VisualWearLayer.Underwear,
-            Slots = new[] { VisualWearSlot.Pelvis },
-            Materials = new[]
-            {
-                new MatSpec { Source = "panty", Texture = "flair-panty-01.jpg" },
-            },
-        },
-        new()
-        {
-            SourceKey = "Panties G3F_2867", Folder = "PantyBasic", Name = "PantyBasic",
-            SimId = "underwear.panty_basic", Layer = VisualWearLayer.Underwear,
-            Slots = new[] { VisualWearSlot.Pelvis },
-            Materials = new[]
-            {
-                new MatSpec { Source = "Mat1", Smoothness = 0.5f },
-                new MatSpec { Source = "Mat2", Smoothness = 0.5f },
-            },
-        },
-        new()
-        {
-            SourceKey = "Bra G3F_3690", Folder = "BraBasic", Name = "BraBasic",
-            SimId = "underwear.bra_basic", Layer = VisualWearLayer.Underwear,
-            Slots = new[] { VisualWearSlot.Chest },
-            Materials = new[]
-            {
-                new MatSpec { Source = "Mat1", Smoothness = 0.5f },
-                new MatSpec { Source = "Mat2", Smoothness = 0.5f },
-            },
-        },
-        new()
-        {
-            SourceKey = "Swimsuit Top G3F_3209", Folder = "SwimTop", Name = "SwimTop",
-            SimId = "underwear.swim_top", Layer = VisualWearLayer.Underwear,
-            Slots = new[] { VisualWearSlot.Chest },
-            Materials = new[]
-            {
-                new MatSpec { Source = "Mat1", Smoothness = 0.5f },
-                new MatSpec { Source = "Stripe1", Smoothness = 0.5f },
-                new MatSpec { Source = "Stripe2", Smoothness = 0.5f },
-                new MatSpec { Source = "Stripe3", Smoothness = 0.5f },
-                new MatSpec { Source = "Stripe4", Smoothness = 0.5f },
-            },
-        },
-        new()
-        {
-            SourceKey = "Swimsuit Bottom G3F_4769", Folder = "SwimBottom", Name = "SwimBottom",
-            SimId = "underwear.swim_bottom", Layer = VisualWearLayer.Underwear,
-            Slots = new[] { VisualWearSlot.Pelvis },
-            Materials = new[]
-            {
-                new MatSpec { Source = "Mat1", Smoothness = 0.5f },
-                new MatSpec { Source = "Stripe1", Smoothness = 0.5f },
-                new MatSpec { Source = "Stripe2", Smoothness = 0.5f },
-                new MatSpec { Source = "Stripe3", Smoothness = 0.5f },
-                new MatSpec { Source = "Stripe4", Smoothness = 0.5f },
-            },
-        },
-        new()
-        {
-            SourceKey = "fl-sweater_8621", Folder = "SweaterFlair", Name = "SweaterFlair",
-            SimId = "clothing.sweater_flair", Layer = VisualWearLayer.Wear,
-            Slots = new[]
-            {
-                VisualWearSlot.Chest, VisualWearSlot.ShoulderR, VisualWearSlot.ShoulderL,
-                VisualWearSlot.ForearmR, VisualWearSlot.ForearmL,
-            },
-            Materials = new[]
-            {
-                new MatSpec { Source = "sweater", Texture = "flair-sweat-01.jpg" },
-                new MatSpec { Source = "Sleeves", Texture = "flair-sweat-01.jpg" },
-            },
-        },
-        new()
-        {
-            SourceKey = "ndrss_dress_27797", Folder = "NightDress", Name = "NightDress",
-            SimId = "clothing.dress_night", Layer = VisualWearLayer.Wear,
-            Slots = new[] { VisualWearSlot.Chest, VisualWearSlot.Belly, VisualWearSlot.Pelvis },
-            NoHide = new[] { VisualWearSlot.Chest },
-            Materials = new[]
-            {
-                new MatSpec { Source = "Base", Texture = "mytilus_ndrss_dressW_tex.jpg", Smoothness = 0.35f },
-                new MatSpec
-                {
-                    Source = "Clasp", Color = new Color(1f, 0.8118f, 0.5137f),
-                    Metallic = 0.8f, Smoothness = 0.65f, DoubleSided = false,
-                },
-                new MatSpec { Source = "SkirtLace", Smoothness = 0.3f },
-            },
-        },
-        new()
-        {
-            SourceKey = "PriDre_plain_fur_dress_116570", Folder = "FurDress", Name = "FurDress",
-            SimId = "clothing.dress_fur", Layer = VisualWearLayer.Wear,
-            Slots = new[] { VisualWearSlot.Chest, VisualWearSlot.Belly, VisualWearSlot.Pelvis },
-            NoHide = new[] { VisualWearSlot.Chest },
-            Materials = new[]
-            {
-                new MatSpec { Source = "fur_plain", Texture = "PrDr_fur5_alpha.png", Smoothness = 0.2f, AlphaClip = true },
-                new MatSpec { Source = "dress", Texture = "PrDr_fur5.jpg", Smoothness = 0.25f },
-            },
-        },
-    };
+    // Empty for the same reason as BuiltInSources: every garment is described in
+    // a drop manifest. Kept as a seam rather than deleted so EnsureLoaded still
+    // reads as "built-ins plus drops" if something ever has to be hardcoded again.
+    private static readonly GarmentSpec[] BuiltInGarments = { };
 
     // --- JSON drops ---------------------------------------------------------
     //  `tools/wardrobe` writes one of these per batch of new clothing, so the

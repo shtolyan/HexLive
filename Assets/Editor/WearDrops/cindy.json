@@ -20,51 +20,6 @@
   ],
   "garments": [
     {
-      "sourceKey": "bottom daz_5767",
-      "folder": "CindyShorts",
-      "name": "CindyShorts",
-      "simId": "clothing.shorts_cindy",
-      "layer": "Wear",
-      "slots": [
-        "Pelvis"
-      ],
-      "noHide": [],
-      "materials": [
-        {
-          "source": "Short Pants",
-          "texture": "Cloth D.png",
-          "smoothness": 0.3,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        },
-        {
-          "source": "Button",
-          "texture": "Accesories.png",
-          "smoothness": 0.3,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        }
-      ],
-      "_measured": {
-        "verts": 5767,
-        "polys": 5665,
-        "bbox": [
-          -18.1,
-          18.1,
-          86.5,
-          104.2,
-          -13.1,
-          12.6
-        ],
-        "zones": {
-          "Pelvis": 0.984,
-          "Belly": 0.016
-        }
-      }
-    },
-    {
       "sourceKey": "belt daz_7248",
       "folder": "CindyBelt",
       "name": "CindyBelt",
@@ -216,6 +171,7 @@
   "skipped": [
     "Bikini Bottom_699",
     "Bra_1529",
-    "Jacket_7653"
+    "Jacket_7653",
+    "bottom daz_5767"
   ]
 }

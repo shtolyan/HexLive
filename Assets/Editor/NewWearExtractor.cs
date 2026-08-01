@@ -52,24 +52,44 @@ public static class NewWearExtractor
     // already described, and the built-ins were seeded FIRST, so the JSON entry
     // lost. Those eight pieces kept being built from the old `* new wear.fbx`
     // exports, which is how Jana's re-fit silently missed them.
-    private static readonly (string path, ActorName actor)[] BuiltInSources = { };
+    private static readonly (string path, ActorName actor, string drop)[] BuiltInSources = { };
+
+    // A DROP IS THE UNIT OF WORK. `tools/wardrobe` writes this file with the
+    // name of the drop it just built, and everything below is then scoped to it:
+    // that drop's FBX files are the only ones instantiated and its garments the
+    // only ones (re)built. Without it every run touched the whole wardrobe —
+    // one new pair of knickers re-stamped all 23 garments, re-imported every
+    // girl's export, and rewrote materials other people had tuned by hand.
+    //
+    // Absent = no scope, i.e. everything. That is the deliberate manual case,
+    // and it says so in the log rather than happening quietly.
+    private const string ActiveDropFile = DropRoot + "/_active.txt";
 
     // Built-ins + every JSON drop, resolved once per domain reload.
-    private static (string path, ActorName actor)[] _sources;
+    private static (string path, ActorName actor, string drop)[] _sources;
     private static GarmentSpec[] _garments;
 
-    private static (string path, ActorName actor)[] Sources
+    private static (string path, ActorName actor, string drop)[] Sources
     {
         get { EnsureLoaded(); return _sources; }
+    }
+
+    /// <summary>Name of the drop this run is limited to, or null for all.</summary>
+    private static string ActiveDrop()
+    {
+        if (!File.Exists(ActiveDropFile))
+        {
+            return null;
+        }
+
+        var name = File.ReadAllText(ActiveDropFile).Trim();
+        return string.IsNullOrEmpty(name) ? null : name;
     }
 
     private static GarmentSpec[] Garments
     {
         get { EnsureLoaded(); return _garments; }
     }
-
-    // Every girl the drops cover, each listed once.
-    private static ActorName[] Actors => Sources.Select(s => s.actor).Distinct().ToArray();
 
     private static readonly int BumpMap = Shader.PropertyToID("_BumpMap");
 
@@ -91,6 +111,7 @@ public static class NewWearExtractor
 
     private sealed class GarmentSpec
     {
+        public string Drop;         // which manifest described it
         public string SourceKey;    // mesh name inside the FBX
         // Set when the garment arrives as an ASSEMBLY of meshes rather than
         // one: every renderer whose name starts with one of these is welded
@@ -175,7 +196,7 @@ public static class NewWearExtractor
             return;
         }
 
-        var sources = new List<(string, ActorName)>(BuiltInSources);
+        var sources = new List<(string, ActorName, string)>(BuiltInSources);
         var garments = new List<GarmentSpec>(BuiltInGarments);
 
         if (Directory.Exists(DropRoot))
@@ -197,13 +218,17 @@ public static class NewWearExtractor
         _garments = garments.ToArray();
     }
 
-    private static void LoadDrop(string file, List<(string, ActorName)> sources, List<GarmentSpec> garments)
+    private static void LoadDrop(string file, List<(string, ActorName, string)> sources, List<GarmentSpec> garments)
     {
         var parsed = JsonUtility.FromJson<DropFile>(File.ReadAllText(file));
         if (parsed == null)
         {
             throw new IOException("не разобрался JSON");
         }
+
+        var drop = !string.IsNullOrEmpty(parsed.drop)
+            ? parsed.drop
+            : Path.GetFileNameWithoutExtension(file);
 
         foreach (var s in parsed.sources ?? new DropSource[0])
         {
@@ -216,7 +241,7 @@ public static class NewWearExtractor
             // A re-run of the same drop must not index the same FBX twice.
             if (!sources.Any(existing => existing.Item1 == s.fbx))
             {
-                sources.Add((s.fbx, actor));
+                sources.Add((s.fbx, actor, drop));
             }
         }
 
@@ -230,6 +255,7 @@ public static class NewWearExtractor
 
             garments.Add(new GarmentSpec
             {
+                Drop = drop,
                 SourceKey = g.sourceKey,
                 SourceKeys = g.sourceKeys != null && g.sourceKeys.Length > 0 ? g.sourceKeys : null,
                 Folder = g.folder,
@@ -324,16 +350,25 @@ public static class NewWearExtractor
             : Color.white;
     }
 
-    // One-shot auto-run: fires after every compile, does nothing once all nine
-    // prefabs exist (or when the Temp FBX drop is gone from this machine).
+    // One-shot auto-run: fires after every compile, and does nothing unless
+    // some drop has an export sitting there with a garment still to build.
+    // Scoped like everything else — a finished drop whose exports have been
+    // cleaned up must not stop a new one from being noticed.
     [InitializeOnLoadMethod]
     private static void AutoRun()
     {
         EditorApplication.delayCall += () =>
         {
             if (Application.productName != "HexLive") return;
-            if (Sources.Any(s => !File.Exists(s.path))) return;
-            if (Garments.All(g => File.Exists(PrefabPath(g)))) return;
+            var only = ActiveDrop();
+            var pending = Garments.Where(g => (only == null || g.Drop == only) &&
+                                              !File.Exists(PrefabPath(g)))
+                .Select(g => g.Drop)
+                .ToHashSet();
+            if (pending.Count == 0) return;
+            // Only worth starting if the exports those garments come from are
+            // actually here.
+            if (!Sources.Any(s => pending.Contains(s.drop) && File.Exists(s.path))) return;
             Run(force: false);
         };
     }
@@ -344,6 +379,65 @@ public static class NewWearExtractor
     [MenuItem("HexLive/Wear/Extract New Wear (Force Re-Extract)")]
     private static void RunForceMenu() => Run(force: true);
 
+    /// <summary>
+    /// Throw away the exports of every drop that is already built.
+    /// </summary>
+    /// <remarks>
+    /// A one-off broom for what accumulated before a drop became the unit of
+    /// work: measured, `Assets/Temp` held 38 FBX exports, and every extraction
+    /// instantiated all of them — eight-plus full Genesis rigs at once, which
+    /// is enough to take the editor down. Manual on purpose: deleting that many
+    /// files is a decision, and anything not described by a manifest is left
+    /// alone and merely listed.
+    /// </remarks>
+    [MenuItem("HexLive/Wear/Discard Finished Drop Exports")]
+    private static void DiscardFinishedMenu()
+    {
+        _sources = null;
+        _garments = null;
+
+        var removed = new List<string>();
+        var kept = new List<string>();
+        foreach (var drop in Sources.Select(s => s.drop).Distinct())
+        {
+            var theirs = Garments.Where(g => g.Drop == drop).ToArray();
+            var unfinished = theirs.Count(g => !File.Exists(PrefabPath(g)));
+            if (theirs.Length == 0 || unfinished > 0)
+            {
+                kept.Add($"{drop} (не собрано {unfinished} из {theirs.Length})");
+                continue;
+            }
+
+            foreach (var (path, _, _) in Sources.Where(s => s.drop == drop))
+            {
+                if (File.Exists(path) && AssetDatabase.DeleteAsset(path))
+                {
+                    removed.Add(Path.GetFileName(path));
+                }
+            }
+        }
+
+        // Exports no manifest mentions — the pre-manifest era. Not ours to
+        // delete, but the operator should know they are sitting there.
+        var described = new HashSet<string>(Sources.Select(s => s.path.Replace('\\', '/')));
+        var strays = Directory.Exists("Assets/Temp")
+            ? Directory.GetFiles("Assets/Temp", "*.fbx")
+                .Select(p => p.Replace('\\', '/'))
+                .Where(p => !described.Contains(p))
+                .Select(Path.GetFileName)
+                .ToArray()
+            : new string[0];
+
+        AssetDatabase.Refresh();
+        Debug.Log($"[NewWear] убрано экспортов: {removed.Count}" +
+                  (removed.Count > 0 ? "\n  " + string.Join(", ", removed) : "") +
+                  (kept.Count > 0 ? "\n  оставлены незаконченные: " + string.Join("; ", kept) : "") +
+                  (strays.Length > 0
+                      ? $"\n  ничьих (ни в одном манифесте), решайте сами — {strays.Length}: " +
+                        string.Join(", ", strays)
+                      : ""));
+    }
+
     private static string PrefabPath(GarmentSpec g) => $"{WearRoot}/{g.SimId}/{g.Name}.prefab";
 
     private static void Run(bool force)
@@ -353,14 +447,47 @@ public static class NewWearExtractor
         _sources = null;
         _garments = null;
 
-        var missingFbx = Sources.Where(s => !File.Exists(s.path)).Select(s => s.path).ToList();
-        if (missingFbx.Count > 0)
+        var only = ActiveDrop();
+        var sources = Sources.Where(s => only == null || s.drop == only).ToArray();
+        var garments = Garments.Where(g => only == null || g.Drop == only).ToArray();
+        if (only != null)
         {
-            Debug.LogError("[NewWear] FBX not found: " + string.Join(", ", missingFbx));
-            return;
+            if (garments.Length == 0)
+            {
+                Debug.LogError($"[NewWear] поставка '{only}' не найдена среди манифестов в {DropRoot}");
+                return;
+            }
+
+            Debug.Log($"[NewWear] работаю только с поставкой '{only}': " +
+                      $"{garments.Length} вещ(и), {sources.Length} экспорт(ов)");
+        }
+        else
+        {
+            Debug.LogWarning("[NewWear] поставка не указана — беру ВСЕ манифесты. " +
+                             $"Обычно это не то, что нужно: одна новая вещь пересоберёт все " +
+                             $"{Garments.Length}. Запись имени в {ActiveDropFile} ограничивает прогон.");
         }
 
-        // Instantiate the three FBX rigs once; index every garment renderer.
+        // A drop whose exports have been cleaned up is DONE, not broken — the
+        // FBX is a temporary, and its meshes already live in the project. It is
+        // only an error when that drop is the one we were asked to build.
+        var missingFbx = sources.Where(s => !File.Exists(s.path)).Select(s => s.path).ToList();
+        if (missingFbx.Count > 0)
+        {
+            if (only != null)
+            {
+                Debug.LogError("[NewWear] нет экспортов поставки: " + string.Join(", ", missingFbx));
+                return;
+            }
+
+            Debug.Log($"[NewWear] пропускаю {missingFbx.Count} убранных экспорт(ов) — " +
+                      "их вещи уже собраны");
+            var gone = new HashSet<string>(sources.Where(s => !File.Exists(s.path)).Select(s => s.drop));
+            sources = sources.Where(s => File.Exists(s.path)).ToArray();
+            garments = garments.Where(g => !gone.Contains(g.Drop)).ToArray();
+        }
+
+        // Instantiate the FBX rigs once; index every garment renderer.
         var instances = new List<GameObject>();
         // One girl now has several rigs — one FBX per drop — so this is a list.
         // Keyed by girl alone, the second drop simply overwrote the first and a
@@ -369,7 +496,7 @@ public static class NewWearExtractor
         var renderers = new Dictionary<(ActorName actor, string key), SkinnedMeshRenderer>();
         try
         {
-            foreach (var (path, actor) in Sources)
+            foreach (var (path, actor, _) in sources)
             {
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
                 if (prefab == null)
@@ -389,7 +516,7 @@ public static class NewWearExtractor
                 forActor.Add(instance);
                 foreach (var r in instance.GetComponentsInChildren<SkinnedMeshRenderer>(true))
                 {
-                    var key = Garments.FirstOrDefault(g =>
+                    var key = garments.FirstOrDefault(g =>
                         r.sharedMesh != null && r.sharedMesh.name.StartsWith(g.SourceKey) ||
                         r.name.StartsWith(g.SourceKey))?.SourceKey;
                     if (key != null)
@@ -402,7 +529,7 @@ public static class NewWearExtractor
             var done = 0;
             var skipped = 0;
             var log = new System.Text.StringBuilder();
-            foreach (var g in Garments)
+            foreach (var g in garments)
             {
                 if (!force && File.Exists(PrefabPath(g)))
                 {
@@ -433,6 +560,11 @@ public static class NewWearExtractor
                 EditorApplication.ExecuteMenuItem("HexLive/Garments/Rebuild Catalog From Defaults");
                 EditorApplication.ExecuteMenuItem("HexLive/Export Sim Data (JSON)");
             }
+
+            if (only != null)
+            {
+                DiscardExports(only, sources, garments, instances);
+            }
         }
         finally
         {
@@ -440,6 +572,64 @@ public static class NewWearExtractor
             {
                 Object.DestroyImmediate(instance);
             }
+        }
+    }
+
+    /// <summary>
+    /// Throw away a finished drop's FBX exports.
+    /// </summary>
+    /// <remarks>
+    /// The FBX is an INTERMEDIATE, not an asset: what ships is the mesh cut out
+    /// of it, which is now a `.mesh` of its own. Left behind, the exports are
+    /// megabytes Unity re-imports on every launch, they show up in the project
+    /// as a full outfit on a rig nobody wears, and — worst — the next run
+    /// instantiates them all over again, so one new pair of knickers drags the
+    /// entire wardrobe through the extractor.
+    ///
+    /// Only when the drop actually finished: every one of its garments has a
+    /// prefab. A half-built drop keeps its exports so the run can be repeated.
+    /// </remarks>
+    private static void DiscardExports(
+        string drop,
+        (string path, ActorName actor, string drop)[] sources,
+        GarmentSpec[] garments,
+        List<GameObject> instances)
+    {
+        var unfinished = garments.Where(g => !File.Exists(PrefabPath(g))).Select(g => g.Name).ToArray();
+        if (unfinished.Length > 0)
+        {
+            Debug.LogWarning($"[NewWear] экспорты поставки '{drop}' оставлены: " +
+                             $"не собрано {unfinished.Length} вещ(и) — {string.Join(", ", unfinished)}");
+            return;
+        }
+
+        // The rigs are still instantiated from these very assets; drop them
+        // first or Unity deletes the file out from under a live object.
+        foreach (var instance in instances)
+        {
+            Object.DestroyImmediate(instance);
+        }
+
+        instances.Clear();
+
+        var removed = new List<string>();
+        foreach (var (path, _, _) in sources)
+        {
+            if (AssetDatabase.DeleteAsset(path))
+            {
+                removed.Add(Path.GetFileName(path));
+            }
+            else if (File.Exists(path))
+            {
+                Debug.LogWarning($"[NewWear] не удалось убрать {path}");
+            }
+        }
+
+        if (removed.Count > 0)
+        {
+            AssetDatabase.Refresh();
+            Debug.Log($"[NewWear] поставка '{drop}' собрана — убрал промежуточные экспорты: " +
+                      string.Join(", ", removed));
         }
     }
 
@@ -492,8 +682,10 @@ public static class NewWearExtractor
         }
 
         // --- meshes: one fitted copy per girl --------------------------------
+        // The girls of THIS run, not every girl any drop ever covered: with the
+        // run scoped to one drop, the others are simply not in the room.
         var meshes = new Dictionary<ActorName, Mesh>();
-        foreach (var actor in Actors)
+        foreach (var actor in rigs.Keys.OrderBy(a => (int)a))
         {
             if (!renderers.TryGetValue((actor, g.SourceKey), out var r) || r.sharedMesh == null)
             {

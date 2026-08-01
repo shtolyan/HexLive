@@ -23,6 +23,8 @@ import socket
 import struct
 import time
 
+from . import config
+
 HOST = "127.0.0.1"
 PORT = 6400
 _HANDSHAKE_PREFIX = b"WELCOME UNITY-MCP"
@@ -170,14 +172,40 @@ def console(count: int = 60, errors_only: bool = False) -> list[str]:
             for entry in data]
 
 
-def build_wear(force: bool = False) -> dict:
-    """Compile, extract prefabs from the drops, refresh catalog + SimData.
+# The extractor reads this to learn which drop a run is about. One line, one
+# name. See NewWearExtractor.ActiveDropFile.
+ACTIVE_DROP = config.DROP_MANIFESTS / "_active.txt"
+
+
+def set_active_drop(drop: str | None) -> None:
+    """Scope the next extraction to one drop — or to everything, with `None`.
+
+    Without this the extractor takes every manifest it can find: one new pair of
+    knickers re-stamps all 23 garments, re-imports every girl's export and
+    rewrites materials someone tuned by hand. A drop is the unit of work, so the
+    pipeline names it.
+    """
+    ACTIVE_DROP.parent.mkdir(parents=True, exist_ok=True)
+    if drop is None:
+        ACTIVE_DROP.unlink(missing_ok=True)
+    else:
+        ACTIVE_DROP.write_text(drop.strip(), encoding="utf-8")
+
+
+def build_wear(force: bool = False, drop: str | None = None) -> dict:
+    """Compile, extract prefabs from ONE drop, refresh catalog + SimData.
 
     Each step's console output is captured, because Unity reports failure by
     logging rather than by returning it — the SimData export in particular
     writes nothing and logs `[ExportSimData] FAILED` when the tuning-coverage
     gate rejects the run.
+
+    `drop` scopes the extraction. Pass it: a run that rebuilds the whole
+    wardrobe is how hand-tuned materials get reverted and how the FBX of every
+    past drop stays alive in the project.
     """
+    set_active_drop(drop)
+
     steps = [
         ("компиляция", MENU_COMPILE),
         ("извлечение префабов", MENU_EXTRACT_FORCE if force else MENU_EXTRACT),

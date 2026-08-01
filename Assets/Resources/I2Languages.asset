@@ -3545,6 +3545,38 @@ MonoBehaviour:
       - "Клик — сменить причёску"
       Flags: 0000
       Languages_Touch: []
+    - Term: "wardrobe.hair_fit"
+      TermType: 0
+      Description:
+      Languages:
+      - "Fit on this girl"
+      - "Посадка на этой девушке"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.hair_scale"
+      TermType: 0
+      Description:
+      Languages:
+      - "Scale {0:0.000}"
+      - "Масштаб {0:0.000}"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.hair_height"
+      TermType: 0
+      Description:
+      Languages:
+      - "Height {0:0.000} m"
+      - "Высота {0:0.000} м"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.hair_save"
+      TermType: 0
+      Description:
+      Languages:
+      - "Save hair fit"
+      - "Сохранить посадку"
+      Flags: 0000
+      Languages_Touch: []
     - Term: "wardrobe.dirt_btn"
       TermType: 0
       Description:

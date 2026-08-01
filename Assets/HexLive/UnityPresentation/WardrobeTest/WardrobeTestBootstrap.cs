@@ -71,6 +71,10 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
 
     private readonly List<HairEntry> _hair = new();
     private HairEntry _selectedHair;
+    private Label _hairScaleLabel;
+    private Label _hairHeightLabel;
+    private VisualElement _hairSaveButton;
+    private bool _hairDirty;
 
     private ActorName _girl = ActorName.Marta;
     private GameObject _actorRoot;
@@ -300,6 +304,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         // relaxation the body got, or the strands vanish mid-sleep.
         RelaxSkinCulling();
         RefreshHairRows();
+        RefreshHairFit();
     }
 
     private void RefreshHairRows()
@@ -398,6 +403,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         var authored = _bodyBones != null ? _bodyBones.DefaultHair : null;
         _selectedHair = _hair.Find(h => h.Asset == authored) ?? _hair.Find(h => h.Asset == null);
         RefreshHairRows();
+        RefreshHairFit();
     }
 
     // Lying poses stretch outside the authored skin bounds and get
@@ -857,7 +863,120 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
             scroll.Add(row);
         }
 
+        // --- fit block: every hairstyle was authored on the generic Genesis3
+        // head, so each girl needs her own nudge. Written into the hair
+        // prefab's WearConfig, per actor, and applied live.
+        var fitTitle = MakeTitle(Loc.Get("wardrobe.hair_fit"));
+        fitTitle.style.marginTop = 8f;
+        box.Add(fitTitle);
+
+        _hairScaleLabel = MakeStepper(box, () => AdjustHairScale(-0.01f), () => AdjustHairScale(0.01f));
+        _hairHeightLabel = MakeStepper(box, () => AdjustHairHeight(-0.005f), () => AdjustHairHeight(0.005f));
+
+        _hairSaveButton = MakeButton(Loc.Get("wardrobe.hair_save"), Accent, SaveHairFit);
+        box.Add(_hairSaveButton);
+
         RefreshHairRows();
+        RefreshHairFit();
+    }
+
+    // "[-] label [+]" row, returning the middle label so callers can retitle it.
+    private Label MakeStepper(VisualElement parent, Action minus, Action plus)
+    {
+        var row = new VisualElement();
+        row.style.flexDirection = FlexDirection.Row;
+        row.style.alignItems = Align.Center;
+        row.style.marginBottom = 3f;
+
+        var less = MakeButton("-", Raised, minus);
+        less.style.width = 26f;
+        less.style.height = 22f;
+        row.Add(less);
+
+        var value = new Label("-");
+        value.style.flexGrow = 1f;
+        value.style.color = Text;
+        value.style.fontSize = 11;
+        value.style.unityTextAlign = TextAnchor.MiddleCenter;
+        row.Add(value);
+
+        var more = MakeButton("+", Raised, plus);
+        more.style.width = 26f;
+        more.style.height = 22f;
+        row.Add(more);
+
+        parent.Add(row);
+        return value;
+    }
+
+    private void AdjustHairScale(float delta)
+    {
+        if (_selectedHair?.Asset == null)
+        {
+            return;
+        }
+
+        var scale = Mathf.Clamp(_selectedHair.Asset.GetConfigScale(_girl) + delta, 0.5f, 2f);
+        _selectedHair.Asset.SetConfigScale(_girl, scale);
+        MarkHairDirty();
+    }
+
+    private void AdjustHairHeight(float delta)
+    {
+        if (_selectedHair?.Asset == null)
+        {
+            return;
+        }
+
+        var height = Mathf.Clamp(_selectedHair.Asset.GetConfigHeight(_girl) + delta, -0.2f, 0.2f);
+        _selectedHair.Asset.SetConfigHeight(_girl, height);
+        MarkHairDirty();
+    }
+
+    // Re-spawn the hair so Wear.Construct re-applies the fit — it is baked in
+    // at construct time, not driven per frame.
+    private void MarkHairDirty()
+    {
+        _hairDirty = true;
+#if UNITY_EDITOR
+        UnityEditor.EditorUtility.SetDirty(_selectedHair.Asset);
+#endif
+        _bodyBones?.SetHair(_selectedHair.Asset);
+        RelaxSkinCulling();
+        RefreshHairFit();
+    }
+
+    private void SaveHairFit()
+    {
+#if UNITY_EDITOR
+        UnityEditor.AssetDatabase.SaveAssets();
+        _hairDirty = false;
+        RefreshHairFit();
+        Debug.Log("Wardrobe: saved hair fit into the hair prefab(s)");
+#else
+        Debug.LogWarning("Wardrobe: saving prefabs only works in the editor");
+#endif
+    }
+
+    private void RefreshHairFit()
+    {
+        var hair = _selectedHair?.Asset;
+        if (_hairScaleLabel != null)
+        {
+            _hairScaleLabel.text = string.Format(
+                Loc.Get("wardrobe.hair_scale"), hair != null ? hair.GetConfigScale(_girl) : 1f);
+        }
+
+        if (_hairHeightLabel != null)
+        {
+            _hairHeightLabel.text = string.Format(
+                Loc.Get("wardrobe.hair_height"), hair != null ? hair.GetConfigHeight(_girl) : 0f);
+        }
+
+        if (_hairSaveButton != null)
+        {
+            _hairSaveButton.style.backgroundColor = _hairDirty ? AccentSel : Accent;
+        }
     }
 
     private void BuildLeftPanel(VisualElement root)

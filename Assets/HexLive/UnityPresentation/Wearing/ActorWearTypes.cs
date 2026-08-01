@@ -87,6 +87,12 @@ public class WearConfig
 
     public float scale = 1f;
 
+    // Spec §31B.4B: hair fit. Every hairstyle in the 2026-08 drop was authored
+    // on the generic Genesis3 head, so on a girl with her own head morph it can
+    // sit low over the eyes or ride high. Metres along the head bone's local Y.
+    // Garments leave this at 0 — they are refitted per actor as real meshes.
+    public float heightOffset;
+
     public Mesh mesh;
 }
 

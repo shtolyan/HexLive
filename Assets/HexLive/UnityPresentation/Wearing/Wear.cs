@@ -46,7 +46,13 @@ public sealed class Wear : MonoBehaviour
         {
             if (config.actorName == actorMesh)
             {
-                hip.localScale = new Vector3(config.scale, config.scale, config.scale);
+                // Hair is fitted at the head bone instead (ApplyHairFit);
+                // scaling its hip too would compound the two.
+                if (slots.Count > 0)
+                {
+                    hip.localScale = new Vector3(config.scale, config.scale, config.scale);
+                }
+
                 if (config.mesh != null)
                 {
                     _meshRenderer.sharedMesh = config.mesh;
@@ -74,12 +80,56 @@ public sealed class Wear : MonoBehaviour
             connection.ConnectTo(bodyBone);
         }
 
+        ApplyHairFit(actorMesh, garmentBones);
+
         // A garment that swings (skirts) builds its cloth LAST: the per-actor
         // mesh is in place by now and the bones already ride the body, which is
         // the state MagicaCloth samples when it builds its proxy.
         if (TryGetComponent<GarmentCloth>(out var cloth))
         {
             cloth.Build(bodyBones, _meshRenderer);
+        }
+    }
+
+    // Spec §31B.4B: seat a hairstyle on THIS girl's head.
+    //
+    // Hair only (slots empty) — a garment is refitted by swapping in a per-actor
+    // mesh, hair is not. It has to run AFTER the stitching loop: ParentConnection
+    // zeroes every matched bone's localPosition, so an offset written earlier is
+    // wiped. The anchor is the hair's own `head` bone, now a zero-offset child of
+    // the body's head — moving/scaling it carries the whole skull cap and every
+    // hair-specific bone hanging off it. Strands weighted to neck/chest bones are
+    // stitched elsewhere and stay put, which is why these are fit nudges
+    // (a few cm, a few percent) and not a general transform.
+    //
+    // Takes the bone array captured BEFORE stitching: by now the hair's `head`
+    // has been re-parented out from under the hair's own hip, so it can no
+    // longer be found by walking down from there.
+    private void ApplyHairFit(ActorName actorMesh, Transform[] hairBones)
+    {
+        if (slots.Count > 0)
+        {
+            return;
+        }
+
+        foreach (var config in configs)
+        {
+            if (config.actorName != actorMesh)
+            {
+                continue;
+            }
+
+            foreach (var bone in hairBones)
+            {
+                if (bone != null && bone.name == "head")
+                {
+                    bone.localScale = new Vector3(config.scale, config.scale, config.scale);
+                    bone.localPosition = new Vector3(0f, config.heightOffset, 0f);
+                    return;
+                }
+            }
+
+            return;
         }
     }
 
@@ -114,6 +164,36 @@ public sealed class Wear : MonoBehaviour
         }
 
         configs.Add(new WearConfig { actorName = actor, scale = scale, mesh = null });
+    }
+
+    // Hair height offset for one actor, in metres along the head bone's local Y
+    // (0 when no config exists). Same PREFAB-ASSET editing contract as the
+    // scale pair above — see ApplyHairFit for what it moves.
+    public float GetConfigHeight(ActorName actor)
+    {
+        foreach (var config in configs)
+        {
+            if (config.actorName == actor)
+            {
+                return config.heightOffset;
+            }
+        }
+
+        return 0f;
+    }
+
+    public void SetConfigHeight(ActorName actor, float heightOffset)
+    {
+        foreach (var config in configs)
+        {
+            if (config.actorName == actor)
+            {
+                config.heightOffset = heightOffset;
+                return;
+            }
+        }
+
+        configs.Add(new WearConfig { actorName = actor, heightOffset = heightOffset, mesh = null });
     }
 
     public bool HeedHideUnderwearSlot(VisualWearSlot slot)

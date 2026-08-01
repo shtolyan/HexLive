@@ -6598,12 +6598,30 @@ Three things are NOT obvious and cost a re-run each if forgotten:
   as a permanent outlier. Its `HairSpec` is commented out in `HairExtractor`;
   re-add it only if it gets decimated properly out-of-engine (Blender).
 
-Materials follow the LowPonytail/OnyxHair recipe (URP Lit, Opaque +
-AlphaClip, cutoff **0.42**, queue 2450, double-sided, smoothness 0). The
-matching import settings are part of the recipe: `alphaIsTransparency` (or
-black bleeds into the transparent gaps and every strand gets a dark fringe)
-and `mipMapsPreserveCoverage` at the SAME 0.42 (or the alpha averages below
-the cutoff in low mips and the hair thins out, then vanishes, with distance).
+**Materials are FULLY OPAQUE — no alpha cut-out, no sheen — and the extractor
+never restamps them.** This is art direction, not an oversight (it cost two
+wrong "fixes" to learn): any cutout variant chews the strand edges and shimmers
+in motion, a specular highlight on hair reads unnatural in dark scenes, and the
+low-poly hex world suits solid geometric strands. The reference is Jana's tuned
+JelikaHair — URP Lit, `_AlphaClip 0`, RenderType Opaque, queue 2000,
+double-sided, **smoothness 0** (the zero is what actually kills the sheen). The
+composited alpha stays in the PNGs, simply unread. `HairExtractor` regenerates
+meshes and the prefab but REUSES an existing `.mat` untouched and never touches
+texture import settings, so a Force Re-Extract is safe to run over hand-tuned
+materials; delete a `.mat` to have it re-authored.
+
+**Fit (§31B.4B-fit).** Every hairstyle was authored on the generic Genesis3
+head, so on a girl with her own head morph it sits low over the eyes or rides
+high. `WearConfig` therefore carries `heightOffset` alongside `scale`, and
+`Wear.ApplyHairFit` applies both to the hair's **head** bone — hair only
+(`slots` empty), and only AFTER the stitching loop, because `ParentConnection`
+zeroes every matched bone's `localPosition` and would wipe an offset written
+earlier. It also takes the bone array captured BEFORE stitching: by then the
+hair's `head` has been re-parented out from under the hair's own hip and can no
+longer be found by walking down from it. Tuned live per girl in the
+**WardrobeTest** hair panel (scale ±0.01, height ±0.005 m) and saved into the
+hair prefab. Strands weighted to neck/chest bones are stitched elsewhere and
+stay put, so these are fit nudges, not a general transform.
 
 ### 31B.5 Renderer bridge
 

@@ -2657,7 +2657,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 actorBody.transform.localPosition = Vector3.zero;
 
                 var view = actorRoot.AddComponent<NpcActorView>();
-                view.Construct(npc.ActorMesh, npc.Id.Value);
+                // §74: the body is the mesh, but the face, the hair and the
+                // voice are hers alone — the simulation rolled them from the
+                // seed and saved them, so a reload rebuilds the same woman.
+                view.Construct(npc.ActorMesh, npc.Id.Value,
+                    npc.SkinSet, npc.Hairstyle, npc.VoiceBank);
                 _actorViews[npc.Id.Value] = view;
                 _lastTalkResultTick[npc.Id.Value] = npc.TalkResultTick;
                 _lastSocialCueKey[npc.Id.Value] =

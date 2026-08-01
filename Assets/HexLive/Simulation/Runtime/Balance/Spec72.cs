@@ -26,18 +26,16 @@ namespace HexLive.Simulation.Runtime
 // body" independently (the extra body alone perturbs dog spawn placement).
 public static class Spec72
 {
-    // SHIPPED DARK. The faction layer, the camp, the defence layer and the
-    // human-vs-human combat resolver are all in and verified; what is NOT yet
-    // dialled in is the hunt actually winning the goal auction under these
-    // gates. With it on and the hunt still silent the colony loses survivors
-    // (3/12 vs the 5/12 baseline on seeds 12345/777/999) for no gameplay in
-    // return, so master stays byte-identical until the auction weight is
-    // tuned — the same "measured dormant" landing §40.17 used.
-    public static bool Enabled = false;
+    // ВКЛЮЧЕНО. Охота запускается (старт — прерывание, не ставка в аукционе),
+    // снаряжение с бронёй зарегистрировано, отпор колонии работает. Баланс ещё
+    // не доведён: в последнем замере чужак не убил никого и гибнет сам, так что
+    // это скорее «он есть и мешает жить», чем «он страшен».
+    public static bool Enabled = true;
 
-    // Does the prototype world stake the outsider at all? Separate flag so a
-    // soak can bisect "the faction rules" and "the extra body" independently.
-    public static bool SpawnOutsider = false;
+    // Селить ли его в мире вообще. Отдельный флаг от Enabled, чтобы соак мог
+    // развести влияние ПРАВИЛ и влияние лишнего тела (оно само по себе двигает
+    // спавн собак и маршруты).
+    public static bool SpawnOutsider = true;
 
     // --- His camp -----------------------------------------------------------
 

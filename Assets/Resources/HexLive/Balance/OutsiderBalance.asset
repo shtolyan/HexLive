@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7f7edba5200844f49ad6b882f2530976, type: 3}
   m_Name: OutsiderBalance
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Config.OutsiderBalanceConfig
-  enabled: 0
-  spawnOutsider: 0
+  enabled: 1
+  spawnOutsider: 1
   outsiderCampMinDistanceTiles: 8
   campKnowledgeRadiusTiles: 4
   maxCampRadiusTiles: 6

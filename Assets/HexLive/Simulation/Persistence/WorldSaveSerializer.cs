@@ -33,7 +33,7 @@ public static class WorldSaveSerializer
     // SEPARATE version — two features that each bumped to 16 on their own
     // branch describe two different formats, and a reader must be able to tell
     // "has breath" from "has breath AND factions".
-    public const int BlobVersion = 17; // v17: §72 faction — which side a survivor is on
+    public const int BlobVersion = 18; // v18: §74 appearance — skin set, hairstyle, voice bank
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -618,6 +618,12 @@ public static class WorldSaveSerializer
         w.Write(npc.BodyWetness);
         w.Write(npc.CompassionTrait);
         w.Write((int)npc.Faction); // §72: ordinal — the enum is APPEND-ONLY
+        // §74: the rest of the composition. DisplayName/ActorMesh above have
+        // been written since v3; these three join them so a girl keeps her
+        // face, hair and voice across a reload even if the pools change later.
+        w.Write(npc.SkinSet);
+        w.Write(npc.Hairstyle);
+        w.Write(npc.VoiceBank);
 
         WriteItemList(w, npc.WornItems);
         WriteJunctionList(w, npc.ClaimedJunctions);
@@ -915,6 +921,17 @@ public static class WorldSaveSerializer
         if (version >= 17)
         {
             npc.Faction = (Faction)r.ReadInt32();
+        }
+
+        // §74: absent before v18 — a pre-§74 save is a world where the body's
+        // own materials, its prefab hairstyle and its mesh-named voice bank
+        // WERE the look, and empty means exactly that. So an old colony still
+        // loads as Marta/Molly/Jana/Jolly, unchanged.
+        if (version >= 18)
+        {
+            npc.SkinSet = r.ReadString();
+            npc.Hairstyle = r.ReadString();
+            npc.VoiceBank = r.ReadString();
         }
 
         ReadItemList(r, npc.WornItems, version);

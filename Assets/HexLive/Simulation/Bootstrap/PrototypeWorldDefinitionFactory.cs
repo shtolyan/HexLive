@@ -6,6 +6,19 @@ namespace HexLive.Simulation.Bootstrap
 {
     public static class PrototypeWorldDefinitionFactory
     {
+        // §73: границы карты. Были зашиты числами в четырёх местах, из-за чего
+        // «расширить остров» означало найти и согласовать их все, включая те,
+        // что задают пролив и второй островок у восточного края. Теперь край
+        // один, и всё, что должно жить НА краю, считается от него.
+        //
+        // Радиальный спад в AddIslandElevation нормируется на MaxQ, поэтому
+        // раздвигание границ растит сушу наружу, а не топит её: дом колонии
+        // остаётся там же, вокруг него просто становится больше острова.
+        public const int MinQ = -13;
+        public const int MaxQ = 15;
+        public const int MinR = -10;
+        public const int MaxR = 12;
+
         public static WorldBootstrapDefinition Create(int seed = 12345)
         {
             var definition = new WorldBootstrapDefinition
@@ -90,13 +103,18 @@ namespace HexLive.Simulation.Bootstrap
                     Object(122, "forest.deadfall", 1, 6, 3, 2),
                     Object(123, "forest.deadfall", 1, -4, 4, 2)
                 },
+                // §74: the four are no longer a fixed cast. Name, body mesh,
+                // material set, hairstyle and voice are left BLANK on purpose —
+                // WorldStateFactory.AssignAppearance rolls each one from the
+                // world seed, so a new island brings new women. What stays
+                // authored is what the simulation actually reads: the tiles
+                // they wash ashore on and the desynchronized need profiles
+                // below, so the four never queue for the same need at once.
                 Npcs =
                 {
                     new NpcBootstrap
                     {
                         Id = 1,
-                        DisplayName = "Marta",
-                        ActorMesh = "Marta",
                         FragmentId = 1,
                         TileQ = 0,
                         TileR = 0,
@@ -112,8 +130,6 @@ namespace HexLive.Simulation.Bootstrap
                     new NpcBootstrap
                     {
                         Id = 2,
-                        DisplayName = "Molly",
-                        ActorMesh = "Molly",
                         FragmentId = 1,
                         TileQ = 2,
                         TileR = 0,
@@ -130,8 +146,6 @@ namespace HexLive.Simulation.Bootstrap
                     new NpcBootstrap
                     {
                         Id = 3,
-                        DisplayName = "Jana",
-                        ActorMesh = "Jana",
                         FragmentId = 1,
                         TileQ = 0,
                         TileR = 3,
@@ -142,15 +156,13 @@ namespace HexLive.Simulation.Bootstrap
                         Social = 0.45f,
                         ThermalDiscomfort = 0.35f
                     },
-                    // Fourth inhabitant (Jolly, imported from molly_copy): the
-                    // redhead. Starts hungry and cold but rested — another
-                    // desynchronized profile, so the four never queue for the
-                    // same need at once. Beds still stay scarce (spec 33.4).
+                    // Fourth inhabitant: starts hungry and cold but rested —
+                    // another desynchronized profile, so the four never queue
+                    // for the same need at once. Beds still stay scarce
+                    // (spec 33.4).
                     new NpcBootstrap
                     {
                         Id = 4,
-                        DisplayName = "Jolly",
-                        ActorMesh = "Jolly",
                         FragmentId = 1,
                         TileQ = 2,
                         TileR = 3,
@@ -168,7 +180,7 @@ namespace HexLive.Simulation.Bootstrap
             AddIslandElevation(definition.Fragments[0], seed);
             AddSeaChannel(definition.Fragments[0], seed);
             AddNaturalFeatures(definition, seed);
-            AddOutsiderCamp(definition);
+            AddOutsiderCamp(definition, seed);
             return definition;
         }
 
@@ -179,36 +191,100 @@ namespace HexLive.Simulation.Bootstrap
         // on some fraction of seeds. We take the farthest walkable lowland tile
         // from the colony hearth — "the other end of the island" on every seed,
         // deterministically.
-        private static void AddOutsiderCamp(WorldBootstrapDefinition definition)
+        private static void AddOutsiderCamp(WorldBootstrapDefinition definition, int seed)
         {
             var colonyHome = new TileCoord(0, 4);
             var fragment = definition.Fragments[0];
 
-            TileBootstrap best = null;
-            var bestDistance = -1;
+            // Стоянка обязана быть на ТОЙ ЖЕ СУШЕ, что и колония. Без этого
+            // «самый дальний проходимый тайл» — это крошечный островок у края
+            // карты (шум высот их щедро сеет), и чужак оказывался заперт на двух
+            // гексах посреди моря: ни дойти до девушек, ни выжить.
+            var mainland = new HashSet<(int, int)>();
+            var byCoord = new Dictionary<(int, int), TileBootstrap>();
             foreach (var tile in fragment.Tiles)
             {
-                // Lowland only: elevation 1-2 is the walkable band the colony
-                // itself is clamped to, so his camp is neither cliff nor surf.
-                if (!tile.Walkable || tile.Water || tile.Blocked ||
-                    tile.Elevation < 1 || tile.Elevation > 2)
+                byCoord[(tile.Q, tile.R)] = tile;
+            }
+
+            static bool IsLand(TileBootstrap t) =>
+                t.Walkable && !t.Water && !t.Blocked && t.Elevation >= 1;
+
+            if (byCoord.TryGetValue((colonyHome.Q, colonyHome.R), out var start) && IsLand(start))
+            {
+                var queue = new Queue<(int, int)>();
+                queue.Enqueue((colonyHome.Q, colonyHome.R));
+                mainland.Add((colonyHome.Q, colonyHome.R));
+                while (queue.Count > 0)
+                {
+                    var (cq, cr) = queue.Dequeue();
+                    foreach (var dir in HexDirection.All)
+                    {
+                        var next = (cq + dir.DQ, cr + dir.DR);
+                        if (mainland.Contains(next) ||
+                            !byCoord.TryGetValue(next, out var neighbor) ||
+                            !IsLand(neighbor))
+                        {
+                            continue;
+                        }
+
+                        mainland.Add(next);
+                        queue.Enqueue(next);
+                    }
+                }
+            }
+
+            // Дальше — как раньше: дальняя треть, выбор по сиду. «Самый дальний»
+            // детерминирован и на любом сиде упирался бы в один угол карты.
+            var candidates = new List<TileBootstrap>();
+            var farthest = 0;
+            foreach (var tile in fragment.Tiles)
+            {
+                // Низина 1-2 — та же полоса, к которой прижат дом колонии, так
+                // что его стоянка не окажется ни на скале, ни в прибое.
+                if (!IsLand(tile) || tile.Elevation > 2 ||
+                    !mainland.Contains((tile.Q, tile.R)))
                 {
                     continue;
                 }
 
                 var distance = HexSpatialMath.HexDistance(
                     new TileCoord(tile.Q, tile.R), colonyHome);
-                if (distance > bestDistance)
+                if (distance >= HexLive.Simulation.Runtime.Spec72.OutsiderCampMinDistanceTiles)
                 {
-                    bestDistance = distance;
-                    best = tile;
+                    candidates.Add(tile);
+                    farthest = System.Math.Max(farthest, distance);
                 }
             }
 
-            if (best is null || bestDistance < HexLive.Simulation.Runtime.Spec72.OutsiderCampMinDistanceTiles)
+            if (candidates.Count == 0)
             {
-                return; // pathological seed — leave the world single-camp
+                return; // патологический сид — оставляем мир одностановищным
             }
+
+            // Дальняя треть диапазона: заведомо «другой конец острова», но с
+            // выбором, а не в одну точку.
+            var floor = HexLive.Simulation.Runtime.Spec72.OutsiderCampMinDistanceTiles +
+                (farthest - HexLive.Simulation.Runtime.Spec72.OutsiderCampMinDistanceTiles) * 2 / 3;
+            var far = new List<TileBootstrap>();
+            foreach (var tile in candidates)
+            {
+                if (HexSpatialMath.HexDistance(new TileCoord(tile.Q, tile.R), colonyHome) >= floor)
+                {
+                    far.Add(tile);
+                }
+            }
+
+            if (far.Count == 0)
+            {
+                far = candidates;
+            }
+
+            // Сортируем по координате, а не полагаемся на порядок списка тайлов:
+            // выбор обязан зависеть только от сида, иначе мир перестанет быть
+            // воспроизводимым.
+            far.Sort((a, b) => a.Q != b.Q ? a.Q.CompareTo(b.Q) : a.R.CompareTo(b.R));
+            var best = far[(int)(MathUtil.Hash01(seed, far.Count, 72, 7201) * far.Count) % far.Count];
 
             var camp = new TileCoord(best.Q, best.R);
 
@@ -264,9 +340,10 @@ namespace HexLive.Simulation.Bootstrap
         // plateau is clamped so the colony never spawns on a cliff.
         private static void AddIslandElevation(FragmentBootstrap fragment, int seed)
         {
-            // Map bounds q in [-8,10], r in [-6,8] -> world-space center.
+            // Центр спада — дом; край берётся из границ карты, иначе новые
+            // тайлы окажутся за пределами спада и утонут все разом.
             var center = HexSpatialMath.TileToWorld(new TileCoord(1, 1));
-            var edge = HexSpatialMath.TileToWorld(new TileCoord(10, 1));
+            var edge = HexSpatialMath.TileToWorld(new TileCoord(MaxQ, 1));
             var maxDist = System.Math.Abs(edge.X - center.X);
 
             var home = new TileCoord(0, 2);
@@ -294,7 +371,7 @@ namespace HexLive.Simulation.Bootstrap
 
                 // The map's outer ring is always open sea — no straight-cut
                 // coastline at the world bounds.
-                if (tile.Q <= -8 || tile.Q >= 10 || tile.R <= -6 || tile.R >= 8)
+                if (tile.Q <= MinQ || tile.Q >= MaxQ || tile.R <= MinR || tile.R >= MaxR)
                 {
                     elevation = 0;
                 }
@@ -309,7 +386,7 @@ namespace HexLive.Simulation.Bootstrap
 
                 // Spec 40.18: a small second island in the SE sea, reachable via
                 // the swim strait opened in OpenStraitCorridor.
-                if (coord.Q == 9 && (coord.R == 4 || coord.R == 5))
+                if (coord.Q == MaxQ - 1 && (coord.R == MaxR - 4 || coord.R == MaxR - 3))
                 {
                     elevation = System.Math.Max(elevation, 1);
                 }
@@ -359,9 +436,9 @@ namespace HexLive.Simulation.Bootstrap
                 existing.Add((tile.Q, tile.R));
             }
 
-            for (var q = -8; q <= 10; q++)
+            for (var q = MinQ; q <= MaxQ; q++)
             {
-                for (var r = -6; r <= 8; r++)
+                for (var r = MinR; r <= MaxR; r++)
                 {
                     if (existing.Contains((q, r)))
                     {
@@ -387,14 +464,14 @@ namespace HexLive.Simulation.Bootstrap
             }
 
             var wander = 0;
-            for (var r = -6; r <= 8; r++)
+            for (var r = MinR; r <= MaxR; r++)
             {
                 var roll = MathUtil.Hash01(seed, r, 0, 1201);
                 wander += roll < 0.33f ? -1 : roll > 0.66f ? 1 : 0;
                 wander = System.Math.Max(-2, System.Math.Min(2, wander));
 
                 // Keep world-x roughly constant: q + r/2 ~ 8 + wander.
-                var q = 8 + wander - (r + 600) / 2 + 300;
+                var q = (MaxQ - 2) + wander - (r + 600) / 2 + 300;
                 foreach (var dq in MathUtil.Hash01(seed, r, 1, 1201) < 0.4f ? new[] { 0, 1 } : new[] { 0 })
                 {
                     if (byCoord.TryGetValue((q + dq, r), out var tile) &&

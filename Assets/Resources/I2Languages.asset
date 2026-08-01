@@ -3689,6 +3689,238 @@ MonoBehaviour:
       - "Снять всё"
       Flags: 0000
       Languages_Touch: []
+    - Term: "npc.marta.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Marta"
+      - "Марта"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.molly.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Molly"
+      - "Молли"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.jana.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Jana"
+      - "Яна"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.jolly.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Jolly"
+      - "Джолли"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.nadia.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Nadia"
+      - "Надя"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.vera.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Vera"
+      - "Вера"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.mira.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Mira"
+      - "Мира"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.iris.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Iris"
+      - "Ирис"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.lena.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Lena"
+      - "Лена"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.nika.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Nika"
+      - "Ника"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.sonya.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Sonya"
+      - "Соня"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.dasha.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Dasha"
+      - "Даша"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.kira.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Kira"
+      - "Кира"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.yuna.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Yuna"
+      - "Юна"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.alma.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Alma"
+      - "Альма"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.elsa.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Elsa"
+      - "Эльза"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.ines.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Ines"
+      - "Инес"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.runa.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Runa"
+      - "Руна"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.tessa.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Tessa"
+      - "Тесса"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.noor.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Noor"
+      - "Нур"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.lila.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Lila"
+      - "Лила"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.sana.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Sana"
+      - "Сана"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.emi.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Emi"
+      - "Эми"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.zoya.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Zoya"
+      - "Зоя"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.maya.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Maya"
+      - "Майя"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.freya.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Freya"
+      - "Фрея"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.wren.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Wren"
+      - "Рен"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.talia.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Talia"
+      - "Талия"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "npc.kshishtof.name"
+      TermType: 0
+      Description:
+      Languages:
+      - "Kshishtof"
+      - "Кшиштоф"
+      Flags: 0000
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

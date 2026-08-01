@@ -222,9 +222,18 @@ public sealed class NpcSnapshot
 {
     public EntityId Id { get; set; }
 
+    // §74: a name ID (resolved through I2 as `npc.<id>.name`), not a label.
     public string DisplayName { get; set; } = string.Empty;
 
     public string ActorMesh { get; set; } = string.Empty;
+
+    // §74: the composition the view assembles the body from — material donor,
+    // hair prefab, voice folder. Empty = the mesh's own, i.e. pre-§74 look.
+    public string SkinSet { get; set; } = string.Empty;
+
+    public string Hairstyle { get; set; } = string.Empty;
+
+    public string VoiceBank { get; set; } = string.Empty;
 
     // §72: which side this survivor is on, and the one question the UI actually
     // asks — precomputed sim-side so no view file needs the Runtime namespace.

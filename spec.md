@@ -6283,16 +6283,24 @@ the simulation never branches on.
 
 ### 31B.1 Identity
 
-| NPC | DisplayName | ActorMesh (visual body) | Hair (auto-spawned) |
-|---|---|---|---|
-| 1 | Marta | Marta (`Daz3D/Martanaked`) | LowPonytail |
-| 2 | Molly | Molly (`MollyMesh.mesh`, 385 MB standalone) | ShilohHair |
-| 3 | Jana | Jana (`Daz3D/Jana`) | JelikaHair_32434 |
-| 4 | Jolly | Jolly (`Actors/Jolly/Jolly.mesh` + `Jolly.asset` avatar) | OnyxHair (red) |
+**Superseded by §74 — this table now describes the ART DONORS, not the cast.**
+The four imports below are what shipped, each a whole girl: body, materials,
+hairstyle and (later) voice bank all named after her. §74 broke that bundle
+apart, so a colonist is now a composition rolled from the world seed and the
+rows here are the pools it draws from.
 
-`DisplayName` must parse to an `ActorName` (31B.3) — `NpcActorView.Construct`
-falls back to Marta's body otherwise — so the colony names and the actor set
-stay in lockstep.
+| Donor | Body mesh | Materials | Hair as authored | Voice bank |
+|---|---|---|---|---|
+| Marta | `Daz3D/Martanaked` | `Daz3D/Martanaked/Genesis3Female/` | LowPonytail | `marta` |
+| Molly | `MollyMesh.mesh` (385 MB standalone) | `Actors/Molly/Materials/` | ShilohHair | `molly` |
+| Jana | `Daz3D/Jana` | `Daz3D/Jana/Genesis3Female/` | JelikaHair_32434 | `jana` |
+| Jolly | `Actors/Jolly/Jolly.mesh` + `Jolly.asset` avatar | `Actors/Jolly/Materials/` | OnyxHair (red) | `jolly` |
+
+`ActorMesh` — **not `DisplayName`** — must parse to an `ActorName` (31B.3);
+`NpcActorView.Construct` falls back to Marta's body otherwise. The two used to
+be the same string on every NPC, which is why this line read the other way
+round for four iterations. Since §74 they are different things entirely:
+`ActorMesh` is the body, `DisplayName` is a name id.
 
 **31B.1a Jolly (fourth colonist).** Imported from molly_copy the same way as
 the first three, with three deltas worth recording:
@@ -9528,7 +9536,12 @@ recomputes them from the saved `CampfireDreamDone` latch + bed ownership),
 wildlife (dogs/rabbits/sharks), reservations, occupancy and
 the runtime caches (verbatim, list order preserved — systems iterate
 them), plus the wildlife respawn timers (moved into `WorldState` from
-system-local fields, which silently reset on load). Static topology —
+system-local fields, which silently reset on load).
+Blob v16 added the §71 `Breath`; v17 the §72 `Faction`; **v18 the §74
+appearance** — `SkinSet` / `Hairstyle` / `VoiceBank` per NPC, alongside the
+`DisplayName`/`ActorMesh` that have been written since v3. All three are
+empty in a pre-v18 save, and empty means "the mesh's own", so an old colony
+loads back as the four shipped girls, unchanged. Static topology —
 tiles, junction ids, adjacency, content catalog — is REBUILT from the seed
 by `WorldStateFactory`, never stored; the blob is tens of KB.
 File: `Application.persistentDataPath/hexlive_save.dat` — a small header
@@ -11799,14 +11812,14 @@ player-facing string.
   All ~312 terms of the legacy table were migrated 1:1.
 - Key convention (unchanged): dotted lowercase `area.key` — `panel.*`,
   `need.*`, `menu.*`, `inv.*`, `zone.*`, `health.*`, `goal.<GoalEnum>`,
-  effect keys, etc.
+  `npc.<name id>.name` (§74 colonist names), effect keys, etc.
 
 ### §58.2 The `Loc` facade
 
 `UnityPresentation/Localization/Loc.cs` remains ONLY as a thin adapter over
 `I2.Loc.LocalizationManager` so the UI keeps its tiny API: `Get`, `Has`,
-`Goal`, `Toggle`, `Code`, `Current`, `LanguageChanged` (forwarded from I2's
-`OnLocalizeEvent`). Behaviour contracts preserved:
+`Goal`, `Dream`, `NpcName`, `Toggle`, `Code`, `Current`, `LanguageChanged`
+(forwarded from I2's `OnLocalizeEvent`). Behaviour contracts preserved:
 
 - a **missing key renders as the raw key** in the UI (untranslated text must
   be visible, never silently blank);
@@ -13295,3 +13308,47 @@ friend-guard, 179 защит по кличу) и перебивает его 30 
 
 **Отгружено ВЫКЛЮЧЕННЫМ** (`Spec72.Enabled` и `SpawnOutsider` = `false`) до
 следующего круга балансировки.
+## §73 Остров стал больше — границы карты в одном месте (iteration 73)
+
+**Цель.** Остров читался тесным: 285 тайлов, из них суша едва половина, и вся
+жизнь колонии умещалась в несколько минут ходьбы. Карта раздвинута примерно
+вдвое по площади — 667 тайлов, суша ~440.
+
+**73.1 Почему это была не однострочная правка.** Границы `q ∈ [-8,10]`,
+`r ∈ [-6,8]` были зашиты ЧИСЛАМИ в четырёх местах: радиальный спад высот
+(`AddIslandElevation` нормируется на дальний тайл), проверка внешнего кольца
+моря, заполнение дикой земли (`AddWilderness`) и морской залив
+(`AddSeaChannel`). Плюс к старому восточному краю привязаны две вещи §40.18 —
+второй островок и пролив к нему (`OpenStraitCorridor`, координаты 7..10 / 2..6).
+
+Раздвинуть границы, не тронув остальное, значило бы: новые тайлы окажутся за
+пределами спада и утонут все разом, а островок с проливом останутся посреди
+суши — доплывать станет некуда и незачем.
+
+Поэтому границы вынесены в `PrototypeWorldDefinitionFactory.MinQ/MaxQ/MinR/MaxR`,
+спад нормируется на `MaxQ`, а всё, что должно жить НА КРАЮ, считается от края:
+островок на `MaxQ - 1`, пролив в полосе `MaxQ-3..MaxQ`. Менять размер острова
+теперь — это четыре числа в одном месте.
+
+**73.2 Стоянка чужака — и почему «самый дальний тайл» оказался ловушкой.**
+Раньше бралась как самый дальний проходимый низинный тайл. На маленькой карте
+это работало, на расширенной сломалось дважды.
+
+Во-первых, самые дальние проходимые тайлы — это КРОШЕЧНЫЕ ОСТРОВКИ у края:
+шум высот сеет их щедро, а «дальше» они всегда. Чужак спавнился запертым на
+двух гексах посреди моря — ни дойти до колонии, ни выжить. Теперь стоянка
+обязана лежать на ТОМ ЖЕ связном куске суши, что и дом колонии: заливкой по
+тайловой сетке от `(0,4)` считается материк, и кандидаты берутся только из него.
+
+Во-вторых, выбор был детерминированным и упирался в один и тот же угол карты
+каждую игру. Теперь берётся дальняя треть подходящих тайлов, выбор — по СИДУ,
+а список предварительно сортируется по координате: полагаться на порядок тайлов
+нельзя, мир обязан быть воспроизводимым.
+
+Проверено: на сидах 12345/777/999/31337 стоянка всегда на материке колонии
+(433-445 тайлов), 13 гексов от очага, координаты разные.
+
+**73.3 Чего это стоит.** Больше суши — длиннее маршруты до воды, еды и дров, а
+эта колония к длине маршрутов чувствительна (см. §40.17). Расширение сделано ПО
+ПРОСЬБЕ и проверено только короткой пробой на отсутствие мгновенного развала;
+полноценного соака на выживаемость до/после НЕ проводилось.

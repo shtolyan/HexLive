@@ -493,7 +493,10 @@ namespace HexLive.UnityPresentation.UI
             _refreshedTick = snapshot.Tick;
             _refreshedActorId = npc.Id.Value;
 
-            _nameLabel.text = string.IsNullOrEmpty(npc.DisplayName) ? $"NPC #{npc.Id.Value}" : npc.DisplayName;
+            // §74: DisplayName is a name ID; the player sees the localized term.
+            _nameLabel.text = string.IsNullOrEmpty(npc.DisplayName)
+                ? $"NPC #{npc.Id.Value}"
+                : Loc.NpcName(npc.DisplayName);
             _roleLabel.text = $"{Loc.Get("panel.role")} · #{npc.Id.Value}";
             _thoughtValue.text = Loc.Goal(npc.CurrentGoal);
 

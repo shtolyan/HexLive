@@ -179,6 +179,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // related is excluded.
     private readonly List<(SkinnedMeshRenderer renderer, int index)> _skinTintTargets = new();
 
+    // §74: donor actor → its body materials by slot name. Static: the actor
+    // prefabs are shared assets, so four maps serve the whole colony.
+    private static readonly Dictionary<string, Dictionary<string, Material>> _skinSets = new();
+
     /// <summary>Spec §50: the owner's current skin tone (tan/sunburn/grime,
     /// no pain flush) — a severed-limb drop bakes it into its material so the
     /// limb matches the body it came off.</summary>
@@ -761,12 +765,31 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _faceCalibrated = true;
     }
 
+    // Pre-§74 signature: body, materials, hair and voice all implied by the one
+    // mesh name. Kept for the seven test-scene bootstraps and the health doll,
+    // which cast a fixed girl on purpose.
     public void Construct(string actorMeshName, int npcId = 0)
+    {
+        Construct(actorMeshName, npcId, null, null, null);
+    }
+
+    // §74: a girl is a COMPOSITION. The mesh still decides the body — and with
+    // it the garment fits (WearConfig) and the skin paint-point map, both
+    // properties of the geometry — but the material set, the hairstyle and the
+    // voice bank now come in separately and may belong to someone else.
+    //
+    // Every one of the three is optional: null/empty means "the mesh's own",
+    // i.e. exactly the pre-§74 body, which is what a test scene and a pre-§74
+    // save both get.
+    public void Construct(string actorMeshName, int npcId,
+        string skinSet, string hairstyle, string voiceBank)
     {
         _npcId = npcId;
         // §67.6: голосовой банк персонажа = его меш-имя (Molly/Jana/…) —
         // файлы voice_<char>_<emotion>_<n> подхватываются по факту наличия.
-        _voiceChar = (actorMeshName ?? string.Empty).Trim().ToLowerInvariant();
+        // §74: …если сим не выдал ей ЧУЖОЙ банк — тогда играет он.
+        var voice = string.IsNullOrEmpty(voiceBank) ? actorMeshName : voiceBank;
+        _voiceChar = (voice ?? string.Empty).Trim().ToLowerInvariant();
         // §67.7: липсинк на реплики — анализатору нужна голова с виземами
         // (у примитивных фолбэк-капсул её нет, там и рта-то нет).
         foreach (var smr in GetComponentsInChildren<SkinnedMeshRenderer>(true))
@@ -858,6 +881,15 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _thermalChest = _bodyBones.GetBone("chestUpper");
             _thermalHead = _bodyBones.GetBone("head");
 
+            // §74: her own hairstyle, not the one authored on the prefab.
+            // AFTER BodyBones.Construct, which has just spawned the authored
+            // one — SetHair tears that down properly (it destroys the stitched
+            // bones, not just the root, or each swap strands a dead skeleton).
+            // The FIT still keys off _actorMesh: heightOffset/scale answer the
+            // question "how does this hair sit on THIS head", and the head is
+            // the mesh's, whoever's skin is painted on it.
+            ApplyHairstyle(hairstyle);
+
             // Spec 40.8/40.6: bone-riding skin decals (wounds/dirt/sweat).
             _skinDecals = gameObject.AddComponent<SkinDecals>();
         }
@@ -877,6 +909,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _moveEpsilon = 1.7f * _bodyRoot.lossyScale.y * 0.1f;
             // Underside reference for sleep-planting (worn garments hug the body).
             _bodySkins = _bodyRoot.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            // §74: her face BEFORE anything reads the materials. Order is not
+            // stylistic — BuildSkinTintTargets classifies slots by material
+            // NAME, and SkinTexturePainter below snapshots `body.materials`
+            // plus their albedo/normal maps once and never looks again. Swap
+            // after either of them and the girl wears her donor's skin with the
+            // previous body's paint targets, which reads as a shader bug.
+            ApplySkinSet(skinSet);
             BuildSkinTintTargets();
             // NOTE: an experiment swapping the SKIN to the GarmentTear paint
             // shader was reverted — Cull Off + the AlphaTest queue flickered on
@@ -3252,6 +3291,129 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     }
 
     // Classify each body-renderer material slot as skin (tintable) or not.
+    // §74: swap the hairstyle to the one the simulation rolled for her.
+    // ColonistAppearance.NoHair ("none") is the explicit bald case; an id the
+    // catalog doesn't know is a content bug, so it warns and keeps the prefab
+    // hair rather than silently shaving her.
+    private void ApplyHairstyle(string hairstyle)
+    {
+        if (_bodyBones == null || string.IsNullOrEmpty(hairstyle))
+        {
+            return;
+        }
+
+        if (string.Equals(hairstyle, Simulation.Content.ColonistAppearance.NoHair,
+                System.StringComparison.OrdinalIgnoreCase))
+        {
+            _bodyBones.SetHair(null);
+            return;
+        }
+
+        var catalog = ActorAppearanceCatalog.Instance;
+        var prefab = catalog != null ? catalog.Find(hairstyle) : null;
+        if (prefab == null)
+        {
+            Debug.LogWarning(
+                $"[§74] hairstyle '{hairstyle}' is not in the appearance catalog — " +
+                "run HexLive ▸ Actors ▸ Rebuild Appearance Catalog. Keeping the prefab hair.", this);
+            return;
+        }
+
+        _bodyBones.SetHair(prefab);
+    }
+
+    // §74: wear another actress's face. All four girls are Genesis3Female with
+    // the SAME 17 material slot names (Torso/Face/Arms/Legs/Cornea/… — §31B.1a
+    // regenerated Jolly's from Molly's precisely so the sets stay parallel), so
+    // the swap is a lookup BY NAME and never depends on submesh order.
+    //
+    // sharedMaterials is the right handle: SkinTexturePainter instantiates its
+    // own copies from whatever it finds (`body.materials`), and the tan on
+    // un-painted slots rides a MaterialPropertyBlock — so nothing here leaks
+    // one girl's wounds onto another's shared asset.
+    private void ApplySkinSet(string skinSet)
+    {
+        if (string.IsNullOrEmpty(skinSet) || _bodySkins == null ||
+            string.Equals(skinSet, _actorMesh.ToString(), System.StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var donor = LoadSkinSet(skinSet);
+        if (donor == null || donor.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var skin in _bodySkins)
+        {
+            // Hair and garments carry their own materials and their own donor
+            // logic — the skin set is the BODY only.
+            if (skin == null || skin.GetComponentInParent<Wear>() != null)
+            {
+                continue;
+            }
+
+            var mats = skin.sharedMaterials;
+            var changed = false;
+            for (var i = 0; i < mats.Length; i++)
+            {
+                if (mats[i] == null || !donor.TryGetValue(mats[i].name, out var replacement) ||
+                    replacement == null || ReferenceEquals(replacement, mats[i]))
+                {
+                    continue;
+                }
+
+                mats[i] = replacement;
+                changed = true;
+            }
+
+            if (changed)
+            {
+                skin.sharedMaterials = mats;
+            }
+        }
+    }
+
+    // Donor actor prefab → its body materials by name. Loading a prefab is not
+    // instantiating it, and the map is built once per donor for the whole run.
+    private static Dictionary<string, Material> LoadSkinSet(string actor)
+    {
+        if (_skinSets.TryGetValue(actor, out var cached))
+        {
+            return cached;
+        }
+
+        var map = new Dictionary<string, Material>(System.StringComparer.OrdinalIgnoreCase);
+        var prefab = Resources.Load<GameObject>($"HexLive/Actors/{actor}");
+        if (prefab == null)
+        {
+            Debug.LogWarning($"[§74] skin set '{actor}' has no actor prefab at " +
+                $"Resources/HexLive/Actors/{actor} — the body keeps its own materials.");
+        }
+        else
+        {
+            foreach (var skin in prefab.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if (skin == null || skin.GetComponentInParent<Wear>() != null)
+                {
+                    continue;
+                }
+
+                foreach (var mat in skin.sharedMaterials)
+                {
+                    if (mat != null)
+                    {
+                        map[mat.name] = mat;
+                    }
+                }
+            }
+        }
+
+        _skinSets[actor] = map;
+        return map;
+    }
+
     private void BuildSkinTintTargets()
     {
         _skinTintTargets.Clear();

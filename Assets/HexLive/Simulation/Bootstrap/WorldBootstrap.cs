@@ -96,9 +96,20 @@ public sealed class NpcBootstrap
 {
     public int Id { get; set; }
 
+    // §74: leave DisplayName/ActorMesh EMPTY to have the world roll them from
+    // the seed (ColonistAppearance). A filled value is authorial intent and is
+    // never overwritten — which is how the outsider and every test scene keep
+    // their fixed cast.
     public string DisplayName { get; set; } = string.Empty;
 
     public string ActorMesh { get; set; } = string.Empty;
+
+    // §74: material donor / hair prefab / voice folder. Empty = rolled too.
+    public string SkinSet { get; set; } = string.Empty;
+
+    public string Hairstyle { get; set; } = string.Empty;
+
+    public string VoiceBank { get; set; } = string.Empty;
 
     // §72: Colony (the girls) unless the world explicitly seeds an outsider.
     public Agents.Faction Faction { get; set; } = Agents.Faction.Colony;

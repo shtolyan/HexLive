@@ -55,6 +55,10 @@ public sealed class WorldStateFactory
             AddNpc(world, npcBootstrap);
         }
 
+        // §74: the colony is cast here, not authored. Runs after the whole
+        // roster exists because name uniqueness is a property of the group.
+        AssignAppearance(world);
+
         // §54.10: the communal hut (spec 35.3) is retired — it was never seen in
         // play, pulled logs/stones/time away from the things that matter, and its
         // only reward was a bed.basic that the progressive bed build-site now
@@ -700,7 +704,13 @@ public sealed class WorldStateFactory
             var inStrait = junction.Tiles.Count > 0;
             foreach (var coord in junction.Tiles)
             {
-                if (coord.Q < 7 || coord.Q > 10 || coord.R < 2 || coord.R > 6)
+                // §74: пролив живёт у ВОСТОЧНОГО КРАЯ, поэтому считается от
+                // границ карты. С зашитыми 7..10 расширение острова оставило бы
+                // его посреди суши, и второй островок стало бы не доплыть.
+                if (coord.Q < PrototypeWorldDefinitionFactory.MaxQ - 3 ||
+                    coord.Q > PrototypeWorldDefinitionFactory.MaxQ ||
+                    coord.R < PrototypeWorldDefinitionFactory.MaxR - 6 ||
+                    coord.R > PrototypeWorldDefinitionFactory.MaxR - 2)
                 {
                     inStrait = false;
                     break;
@@ -779,6 +789,69 @@ public sealed class WorldStateFactory
         }
     }
 
+    // §74: fill in whatever the bootstrap left blank — body mesh, material
+    // donor, hairstyle, voice bank and name — from the world seed.
+    //
+    // Three rules keep this from surprising anyone:
+    // - a FILLED field is authorial intent and is never touched, which is why
+    //   the seven test-scene bootstraps and the §72 outsider are unaffected;
+    // - only Colony rolls, because the pools are the four female actresses and
+    //   the outsider's male body must not receive their skins or voices;
+    // - ids are walked in ASCENDING ORDER, not dictionary order, so the name
+    //   de-duplication resolves identically on every run and platform.
+    private static void AssignAppearance(WorldState world)
+    {
+        var ids = new List<int>();
+        var taken = new HashSet<string>();
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            ids.Add(npc.Id.Value);
+            if (!string.IsNullOrEmpty(npc.DisplayName))
+            {
+                taken.Add(npc.DisplayName);
+            }
+        }
+
+        ids.Sort();
+
+        foreach (var id in ids)
+        {
+            if (!world.Entities.Npcs.TryGetValue(new EntityId(id), out var npc) ||
+                npc.Faction != Faction.Colony)
+            {
+                continue;
+            }
+
+            var look = ColonistAppearance.Roll(world.Seed, id, taken);
+
+            if (string.IsNullOrEmpty(npc.ActorMesh))
+            {
+                npc.ActorMesh = look.Mesh;
+            }
+
+            if (string.IsNullOrEmpty(npc.SkinSet))
+            {
+                npc.SkinSet = look.SkinSet;
+            }
+
+            if (string.IsNullOrEmpty(npc.Hairstyle))
+            {
+                npc.Hairstyle = look.Hairstyle;
+            }
+
+            if (string.IsNullOrEmpty(npc.VoiceBank))
+            {
+                npc.VoiceBank = look.VoiceBank;
+            }
+
+            if (string.IsNullOrEmpty(npc.DisplayName))
+            {
+                npc.DisplayName = look.NameId;
+                taken.Add(npc.DisplayName);
+            }
+        }
+    }
+
     private void AddNpc(WorldState world, NpcBootstrap bootstrap)
     {
         var coord = new TileCoord(bootstrap.TileQ, bootstrap.TileR);
@@ -787,6 +860,9 @@ public sealed class WorldStateFactory
             Id = new EntityId(bootstrap.Id),
             DisplayName = bootstrap.DisplayName,
             ActorMesh = bootstrap.ActorMesh,
+            SkinSet = bootstrap.SkinSet,
+            Hairstyle = bootstrap.Hairstyle,
+            VoiceBank = bootstrap.VoiceBank,
             Faction = bootstrap.Faction,
             Fragment = new FragmentId(bootstrap.FragmentId),
             Tile = coord,

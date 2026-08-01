@@ -416,7 +416,8 @@ namespace HexLive.UnityPresentation.UI
                     $"{Loc.Get("end.blood")} {Percent(npc.Blood)} · " +
                     $"{Loc.Get("end.stamina")} {Percent(npc.Stamina)} · " +
                     $"{Loc.Get("end.wounds")} {wounds}";
-                _survivorList.Add(MakeCharacterRow(npc.DisplayName, detail, Green));
+                // §74: DisplayName is a name ID; the player sees the localized term.
+                _survivorList.Add(MakeCharacterRow(Loc.NpcName(npc.DisplayName), detail, Green));
             }
         }
 
@@ -427,7 +428,7 @@ namespace HexLive.UnityPresentation.UI
             {
                 var name = string.IsNullOrWhiteSpace(death.DisplayName)
                     ? $"NPC #{death.EntityId}"
-                    : death.DisplayName;
+                    : Loc.NpcName(death.DisplayName);
                 var detail =
                     $"{Loc.Get("end.on_day")} {DayNumber(death.Tick)} · " +
                     $"{Loc.Get("end.tile")} {death.Tile.Q},{death.Tile.R} · " +

@@ -150,9 +150,22 @@ public sealed class NPCState
 
     // Spec 19.3 / iteration 23: presentation identity — the girls have
     // names and bodies; the simulation itself never branches on them.
+    // §74: DisplayName is now a NAME ID from ColonistAppearance.NameIds — the
+    // player-facing text comes from the I2 term `npc.<lowercase id>.name`.
     public string DisplayName { get; set; } = string.Empty;
 
     public string ActorMesh { get; set; } = string.Empty;
+
+    // §74: the three traits that used to be implied by ActorMesh and are now
+    // rolled independently. EMPTY MEANS "as before": the body's own materials,
+    // the hairstyle authored on the actor prefab, and the voice folder named
+    // after the mesh. That default is what lets a pre-§74 save, a test-scene
+    // bootstrap and the outsider all keep working untouched.
+    public string SkinSet { get; set; } = string.Empty;
+
+    public string Hairstyle { get; set; } = string.Empty;
+
+    public string VoiceBank { get; set; } = string.Empty;
 
     // §72: which side this body is on. The ONE thing the simulation DOES branch
     // on above — everything else (needs, GOAP, crafting, wardrobe) is identical

@@ -3521,6 +3521,30 @@ MonoBehaviour:
       - "Девушка"
       Flags: 0000
       Languages_Touch: []
+    - Term: "wardrobe.hair"
+      TermType: 0
+      Description:
+      Languages:
+      - "Hair"
+      - "Причёска"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.hair_none"
+      TermType: 0
+      Description:
+      Languages:
+      - "— bald —"
+      - "— без волос —"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.hair_hint"
+      TermType: 0
+      Description:
+      Languages:
+      - "Click to swap the hairstyle"
+      - "Клик — сменить причёску"
+      Flags: 0000
+      Languages_Touch: []
     - Term: "wardrobe.dirt_btn"
       TermType: 0
       Description:

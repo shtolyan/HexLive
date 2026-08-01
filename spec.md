@@ -6519,6 +6519,92 @@ garment, cold sim item, or blood that never soaks the cloth).
    on the new cloth; console must stay free of `[PaintPointMap]` /
    `[GarmentWear]` warnings.
 
+### 31B.4B Hairstyle library (13-hair drop, 2026-08)
+
+Hair is **an ordinary `Wear` prefab with no wardrobe role**: empty `configs`,
+empty `slots`, no layer semantics. It is never equipped through
+`BodyBones.Equip` — `BodyBones.Construct` instantiates the prefab in the
+`hair` field directly, and `Wear.Construct` stitches its `hip` subtree onto
+the body by bone name. Because all Genesis3 hair skins to the shared
+head/neck/face bones, **any hair prefab fits any actress** — swapping a
+girl's hairstyle is just repointing that one field on her actor prefab
+(`Resources/HexLive/Actors/<Girl>.prefab`).
+
+`Assets/Temp/hair.fbx` is one DAZ export of Genesis3Female wearing THIRTEEN
+hairstyles at once. `Assets/Editor/HairExtractor.cs` (menu **HexLive → Hair →
+Extract Hair**, auto-runs once after compile while prefabs are missing) pulls
+each one into the shipped hair layout. It lives under `HexLive/Hair/`, NOT
+`HexLive/Wear/`, on purpose: next to `NewWearExtractor`'s near-identical
+"Extract New Wear (Force Re-Extract)" the wrong item got clicked and silently
+re-stamped all 8 garments instead. Layout:
+
+```
+Assets/ImportedActors/Wear/<Name>/{Meshes,Materials,Textures}/  +  <Name>.prefab
+```
+
+Names (12 shipped): AdellHair, AsukaHair, BendineHair, Bob3Hair, ChunkyHair,
+EilisHair, Hair07, JenniferHair, LeonyPonytail, LoonaHair, Neu09Hair,
+TootsieRollHair. The FBX holds a thirteenth, **Mai Hair — dropped 2026-08-01**:
+see the decimation floor below.
+
+Three things are NOT obvious and cost a re-run each if forgotten:
+
+- **Textures are composited OFFLINE, not by the extractor.** DAZ ships colour
+  and opacity as two separate images and DAZ FBX embeds neither (it points at
+  `…/DAZ 3D/Studio/My Library/Runtime/Textures/…`). The pair is merged into
+  one RGBA PNG per material — the same trick §31B.1a describes for OnyxHair —
+  capped at **1024** and never upscaled. Full resolution would be ~800 MB and
+  even 2048 costs 216 MB; 1024 lands at 59 MB for all 39 composites, and hair
+  never reads sharper than that outside an extreme close-up.
+- **The FBX must be Read/Write enabled.** It imports with `isReadable: 0`.
+  `Object.Instantiate` still clones such a mesh, but `MeshSimplifier` reads
+  `mesh.vertices` and silently gets nothing — every decimated hair would come
+  out EMPTY with no error. The extractor flips the importer itself.
+- **Decimation threshold is 150 K verts, and the shipped hair is the yardstick
+  — not JelikaHair.** Measured: JelikaHair 33 K, ShilohHair 79 K, LowPonytail
+  129 K, **OnyxHair 270 K** (in game on Jolly). So the drop (42 K–918 K) is
+  mostly already in range; 150 K leaves 8 of 13 untouched and exists chiefly
+  to cut Mai Hair (918 K in the file, **1.13 M once imported** — Unity splits
+  verts at UV/normal seams, so `vertexCount` always reads above the FBX count)
+  down ~6×. Bone weights and bindposes survive `Initialize` → `ToMesh`.
+- **Simplification must ESCALATE its preservation flags, and this is the trap.**
+  The obvious "safe" setting — `PreserveBorderEdges` + `PreserveUVSeamEdges`
+  both ON — is a NO-OP on hair. A DAZ hair card is a flat subdivided strip, so
+  nearly every edge is a border edge and every card is its own UV island: with
+  both pinned there is almost nothing left to collapse and `SimplifyMesh`
+  quietly returns the mesh at ~100% (measured 2026-08: Bendine 99%, Chunky 97%,
+  Mai 100%, Bob3 80%). It reports no error — a decimation pass that did nothing
+  logs exactly like one that worked. `HairExtractor` therefore tries the passes
+  gentlest-first (borders+seams pinned → borders free → both free), stops at the
+  first that reaches the target, prints the achieved **percentage** and which
+  pass won, and warns when a mesh is still over budget. Freeing the border is
+  what actually removes the subdivision (it collapses ALONG the strip); freeing
+  UV seams is last-resort and can smear a card's UVs.
+- **150 K is a target, not a guarantee — the simplifier FLOORS on hair.** A
+  hairstyle is thousands of DISCONNECTED card islands, each with its own
+  boundary and its own UV island, so there is a hard limit no quality setting
+  gets past (same failure the tool pipeline records in
+  `TOOL_GENERATION_SPEC.md` §5 for AI triangle-soup). Measured 2026-08 after
+  escalation: Bendine 328 K→197 K (−40%), Bob3 219 K→158 K (−28%), Mai
+  1.36 M→1.03 M (−25%), Chunky 206 K→167 K (−19%); three of them stop short of
+  150 K and say so in the log. That is FINE — all twelve shipped hairstyles sit
+  at or under the shipped OnyxHair (270 K), so none is heavier than what the
+  game already runs on Jolly.
+- **Mai Hair was DROPPED for exactly this reason (2026-08-01).** It imported at
+  1.36 M verts and floored at 1.03 M / 180 MB even with borders AND UV seams
+  freed — 3.8× OnyxHair. The only lever left was `VertexLinkDistance` (default
+  `double.Epsilon` = no cross-island welding), and raising it on hair risks
+  fusing neighbouring strands into webbing, so it was cut rather than shipped
+  as a permanent outlier. Its `HairSpec` is commented out in `HairExtractor`;
+  re-add it only if it gets decimated properly out-of-engine (Blender).
+
+Materials follow the LowPonytail/OnyxHair recipe (URP Lit, Opaque +
+AlphaClip, cutoff **0.42**, queue 2450, double-sided, smoothness 0). The
+matching import settings are part of the recipe: `alphaIsTransparency` (or
+black bleeds into the transparent gaps and every strand gets a dark fringe)
+and `mipMapsPreserveCoverage` at the SAME 0.42 (or the alpha averages below
+the cutoff in low mips and the hair thins out, then vanishes, with distance).
+
 ### 31B.5 Renderer bridge
 
 `HexWorldRenderer.CreateNpcView` instantiates

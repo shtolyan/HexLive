@@ -76,6 +76,7 @@ namespace HexLive.UnityPresentation.UI
 
             Refresh();
             RefreshWeather();
+            RefreshLink();
         }
 
         private void Build()
@@ -208,6 +209,70 @@ namespace HexLive.UnityPresentation.UI
             _clockLabel.style.color = new Color(0.604f, 0.651f, 0.678f);
             _clockLabel.style.fontSize = 13;
             box.Add(_clockLabel);
+
+            // §Server: link status. Hidden entirely in a local game — a player
+            // who never touches a server should never see networking chrome.
+            _linkLabel = new Label(string.Empty);
+            _linkLabel.style.fontSize = 13;
+            _linkLabel.style.marginLeft = 10f;
+            _linkLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            _linkLabel.style.display = DisplayStyle.None;
+            box.Add(_linkLabel);
+        }
+
+        private Label _linkLabel;
+
+        /// <summary>
+        /// Shows what the connection is doing. The important case is the quiet
+        /// one: a stalled or reconnecting link looks EXACTLY like a paused world
+        /// from the player's side, so without this the honest answer to "why did
+        /// everyone stop moving" would be unavailable.
+        /// </summary>
+        private void RefreshLink()
+        {
+            if (_linkLabel == null || _runner == null)
+            {
+                return;
+            }
+
+            var link = _runner.Link;
+            if (!link.IsRemote)
+            {
+                _linkLabel.style.display = DisplayStyle.None;
+                return;
+            }
+
+            _linkLabel.style.display = DisplayStyle.Flex;
+
+            switch (link.State)
+            {
+                case LinkState.Live:
+                    _linkLabel.style.color = new Color(0.45f, 0.78f, 0.52f);
+                    _linkLabel.text = link.PingMilliseconds >= 0
+                        ? $"{Loc.Get("link.live")} {link.PingMilliseconds} ms"
+                        : Loc.Get("link.live");
+                    break;
+
+                case LinkState.Stalled:
+                    _linkLabel.style.color = Gold;
+                    _linkLabel.text = Loc.Get("link.stalled");
+                    break;
+
+                case LinkState.Reconnecting:
+                    _linkLabel.style.color = Gold;
+                    _linkLabel.text = Loc.Get("link.reconnecting");
+                    break;
+
+                case LinkState.Failed:
+                    _linkLabel.style.color = new Color(0.85f, 0.35f, 0.32f);
+                    _linkLabel.text = Loc.Get("link.failed");
+                    break;
+
+                default:
+                    _linkLabel.style.color = Text;
+                    _linkLabel.text = Loc.Get("link.connecting");
+                    break;
+            }
         }
 
         private void RefreshWeather()
@@ -255,6 +320,16 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
+            // §Server: fast-forward is a SINGLE-PLAYER affordance. On a server
+            // the world is shared and persistent: winding it forward would run
+            // the colony fast for every other viewer, burn through days nobody
+            // asked for, and flood the stream (50x = 200 ticks a second, of
+            // 34 KB frames). A hosted world runs at its own pace, full stop.
+            if (_runner.Link.IsRemote && speed > 1f)
+            {
+                return;
+            }
+
             _runner.SetSpeed(speed);
             if (_runner.IsPaused)
             {
@@ -274,10 +349,22 @@ namespace HexLive.UnityPresentation.UI
             _playIcon.style.display = paused ? DisplayStyle.Flex : DisplayStyle.None;
             _pauseButton.style.backgroundColor = paused ? Gold : Raised;
 
+            // On a hosted world the >1x buttons are shown greyed rather than
+            // hidden, so the control keeps its shape and the reason is obvious:
+            // the speed is not yours to change.
+            var remote = _runner != null && _runner.Link.IsRemote;
+
             var speed = _runner != null ? _runner.SpeedMultiplier : 1f;
             for (var i = 0; i < _speedButtons.Count; i++)
             {
-                var active = !paused && (float.IsInfinity(Speeds[i])
+                var locked = remote && Speeds[i] > 1f;
+                _speedButtons[i].SetEnabled(!locked);
+                if (_speedButtons[i].userData is Label speedLabel)
+                {
+                    speedLabel.style.color = locked ? new Color(0.45f, 0.49f, 0.52f) : Text;
+                }
+
+                var active = !locked && !paused && (float.IsInfinity(Speeds[i])
                     ? float.IsInfinity(speed)
                     : Mathf.Approximately(speed, Speeds[i]));
                 _speedButtons[i].style.backgroundColor = active ? Gold : Raised;

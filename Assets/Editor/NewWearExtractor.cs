@@ -38,10 +38,15 @@ public static class NewWearExtractor
     private const string ImportRoot = "Assets/ImportedActors/Wear";
     private const string WearRoot = "Assets/Resources/HexLive/Wear";
 
+    // Where the automated pipeline drops its manifests. Anything in here is
+    // merged with the hand-written tables below, so a NEW drop needs no C# at
+    // all — tools/wardrobe writes the JSON and the extractor picks it up.
+    private const string DropRoot = "Assets/Editor/WearDrops";
+
     // FBX file -> which girl the garments are fitted to. One file per girl per
     // drop; a girl may appear more than once (different drops carry different
     // garments), so the renderer index is keyed by (actor, garment), not by file.
-    private static readonly (string path, ActorName actor)[] Sources =
+    private static readonly (string path, ActorName actor)[] BuiltInSources =
     {
         // 2026-07 drop: panty/skirt/sweater, bra, panties, swimsuit, dresses.
         ("Assets/Temp/molly new.fbx", ActorName.Molly),
@@ -54,6 +59,20 @@ public static class NewWearExtractor
         ("Assets/Temp/marta sweetjane.fbx", ActorName.Marta),
         ("Assets/Temp/jana sweetjane.fbx", ActorName.Jana),
     };
+
+    // Built-ins + every JSON drop, resolved once per domain reload.
+    private static (string path, ActorName actor)[] _sources;
+    private static GarmentSpec[] _garments;
+
+    private static (string path, ActorName actor)[] Sources
+    {
+        get { EnsureLoaded(); return _sources; }
+    }
+
+    private static GarmentSpec[] Garments
+    {
+        get { EnsureLoaded(); return _garments; }
+    }
 
     // Every girl the drops cover, each listed once.
     private static ActorName[] Actors => Sources.Select(s => s.actor).Distinct().ToArray();
@@ -83,7 +102,7 @@ public static class NewWearExtractor
 
     // Slot / layer choices mirror the closest shipped garment (skirt =
     // Skirt G3F, sweater = Jacket_7653, dresses = CityDress_1).
-    private static readonly GarmentSpec[] Garments =
+    private static readonly GarmentSpec[] BuiltInGarments =
     {
         new()
         {
@@ -497,9 +516,7 @@ public static class NewWearExtractor
         GarmentSpec g, SkinnedMeshRenderer reference, Mesh defaultMesh,
         Dictionary<string, Material> mats, GameObject root)
     {
-        var srcHip = FindByName(reference.rootBone != null
-            ? reference.rootBone.root
-            : reference.transform.root, "hip");
+        var srcHip = FindGarmentHip(reference);
         if (srcHip == null)
         {
             throw new IOException($"{g.SourceKey}: no 'hip' bone in the source FBX");
@@ -536,9 +553,23 @@ public static class NewWearExtractor
         meshGo.transform.SetParent(root.transform, false);
         var smr = meshGo.AddComponent<SkinnedMeshRenderer>();
         smr.sharedMesh = defaultMesh;
-        smr.bones = reference.bones
-            .Select(b => b != null && clones.TryGetValue(b.name, out var c) ? c : hipClone)
+        // Quietly collapsing an unresolved bone onto the root is how the Sweet
+        // Jane skirt shipped welded to the hip: its two thigh bones were absent
+        // from the cloned skeleton, so the hem never followed the legs and it
+        // read as a fitting problem rather than a broken bind.
+        var missing = reference.bones
+            .Where(b => b == null || !clones.ContainsKey(b.name))
+            .Select(b => b != null ? b.name : "<null>")
+            .Distinct()
             .ToArray();
+        if (missing.Length > 0)
+        {
+            throw new IOException(
+                $"{g.SourceKey}: {missing.Length} bone(s) missing from the cloned " +
+                $"skeleton under '{srcHip.name}': {string.Join(", ", missing)}");
+        }
+
+        smr.bones = reference.bones.Select(b => clones[b.name]).ToArray();
         smr.rootBone = reference.rootBone != null &&
             clones.TryGetValue(reference.rootBone.name, out var rb)
             ? rb
@@ -595,6 +626,11 @@ public static class NewWearExtractor
     private static void FillWearComponent(
         GarmentSpec g, Dictionary<ActorName, Mesh> meshes, GameObject root)
     {
+        // Fit scales are tuned by hand in WardrobeTest and are NOT authored here
+        // (every garment lands at 1.0). Carry the tuned values over, or a force
+        // re-extract quietly throws away the fitting pass on every older piece.
+        var tuned = ReadTunedFit(g);
+
         var wear = root.AddComponent<Wear>();
         var so = new SerializedObject(wear);
 
@@ -604,8 +640,10 @@ public static class NewWearExtractor
         foreach (var pair in meshes.OrderBy(p => (int)p.Key))
         {
             var e = configs.GetArrayElementAtIndex(i++);
+            var fit = tuned.TryGetValue(pair.Key, out var f) ? f : (scale: 1f, heightOffset: 0f);
             e.FindPropertyRelative("actorName").enumValueIndex = (int)pair.Key;
-            e.FindPropertyRelative("scale").floatValue = 1f;
+            e.FindPropertyRelative("scale").floatValue = fit.scale;
+            e.FindPropertyRelative("heightOffset").floatValue = fit.heightOffset;
             e.FindPropertyRelative("mesh").objectReferenceValue = pair.Value;
         }
 
@@ -614,6 +652,30 @@ public static class NewWearExtractor
         so.FindProperty("layer").enumValueIndex = (int)g.Layer;
         so.FindProperty("gender").enumValueIndex = (int)VisualGender.Female;
         so.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    // Read the fit tuned into the prefab we are about to overwrite. Empty on a
+    // first extract, and for any girl who was not part of the earlier drop.
+    private static Dictionary<ActorName, (float scale, float heightOffset)> ReadTunedFit(
+        GarmentSpec g)
+    {
+        var tuned = new Dictionary<ActorName, (float scale, float heightOffset)>();
+        var existing = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath(g));
+        if (existing == null || !existing.TryGetComponent<Wear>(out var wear))
+        {
+            return tuned;
+        }
+
+        var configs = new SerializedObject(wear).FindProperty("configs");
+        for (var i = 0; i < configs.arraySize; i++)
+        {
+            var e = configs.GetArrayElementAtIndex(i);
+            tuned[(ActorName)e.FindPropertyRelative("actorName").enumValueIndex] = (
+                e.FindPropertyRelative("scale").floatValue,
+                e.FindPropertyRelative("heightOffset").floatValue);
+        }
+
+        return tuned;
     }
 
     private static void WriteSlotList(SerializedProperty list, VisualWearSlot[] slots)
@@ -625,10 +687,28 @@ public static class NewWearExtractor
         }
     }
 
-    private static Transform FindByName(Transform root, string name)
+    // A DAZ FBX of a dressed figure carries ONE skeleton copy PER FITTED GARMENT
+    // on top of the figure's own, each rooted at its own node called "hip" and
+    // pruned by DAZ to just the bones that garment is weighted to. Searching the
+    // whole file for "hip" lands on whichever copy comes first — a foreign one,
+    // whose pruning has nothing to do with this garment: the Sweet Jane FBX has
+    // six of them, and the tank's copy (torso only) has no thigh bones at all.
+    // Walk up from this garment's own bones instead; copies are siblings, never
+    // nested, so the nearest "hip" ancestor is always the right one.
+    private static Transform FindGarmentHip(SkinnedMeshRenderer reference)
     {
-        return root.GetComponentsInChildren<Transform>(true)
-            .FirstOrDefault(t => t.name == name);
+        foreach (var bone in reference.bones)
+        {
+            for (var t = bone; t != null; t = t.parent)
+            {
+                if (t.name == "hip")
+                {
+                    return t;
+                }
+            }
+        }
+
+        return null;
     }
 
     private static string Sanitize(string name)

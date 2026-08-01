@@ -1,0 +1,195 @@
+"""Binary-FBX reader — just enough to inspect a DAZ export without Unity.
+
+Two questions this answers, both of which the pipeline needs before Unity has
+ever seen the file:
+
+  * `geometries()` — which garment meshes are in there, how heavy they are, and
+    what volume they occupy. The bounding box is how we infer wear slots: a
+    mesh spanning y 9..115 cm is leggings, y 123..154 is a cropped top.
+  * `material_textures()` — which image each surface actually wants. DAZ never
+    embeds textures (the FBX points back into My Library), so this mapping is
+    the only reliable source for "material X uses SJSkirt4.jpg, and its cutout
+    opacity comes from SJSkirt_T1.jpg".
+
+Format notes: arrays may be deflate-compressed; a negative polygon index marks
+the last vertex of a polygon; object names are stored as "name\\x00\\x01Class".
+"""
+from __future__ import annotations
+
+import collections
+import struct
+import zlib
+from dataclasses import dataclass, field
+from pathlib import Path
+
+_SCALARS = {"Y": ("h", 2), "C": ("B", 1), "I": ("i", 4),
+            "F": ("f", 4), "D": ("d", 8), "L": ("q", 8)}
+_ARRAYS = {"f": "f", "d": "d", "l": "q", "i": "i", "b": "b", "c": "B"}
+
+
+@dataclass
+class Geometry:
+    name: str
+    verts: int = 0
+    polys: int = 0
+    bbox: tuple[float, ...] | None = None  # (minx, maxx, miny, maxy, minz, maxz)
+    # A sample of the actual vertex positions as (x, y, z) triples. The bounding
+    # box alone is a poor description of a garment — a flared skirt's box reaches
+    # out to the shoulders, and a PAIR of sleeves has a box spanning the empty
+    # chest between them — so slot inference works off the point cloud instead.
+    points: list[tuple[float, float, float]] = field(default_factory=list)
+
+    @property
+    def tris(self) -> int:
+        """Quads dominate DAZ meshes, so this is an estimate, not a promise."""
+        return self.polys * 2
+
+    @property
+    def height(self) -> float:
+        return (self.bbox[3] - self.bbox[2]) if self.bbox else 0.0
+
+
+@dataclass
+class _Node:
+    name: str
+    props: list = field(default_factory=list)
+
+
+def _read_props(buf: bytes, pos: int, count: int):
+    props = []
+    for _ in range(count):
+        code = chr(buf[pos]); pos += 1
+        if code in _SCALARS:
+            fmt, size = _SCALARS[code]
+            props.append(struct.unpack_from("<" + fmt, buf, pos)[0]); pos += size
+        elif code in "SR":
+            n = struct.unpack_from("<I", buf, pos)[0]; pos += 4
+            props.append(buf[pos:pos + n]); pos += n
+        elif code in _ARRAYS:
+            n, encoding, length = struct.unpack_from("<III", buf, pos); pos += 12
+            raw = buf[pos:pos + length]; pos += length
+            if encoding == 1:
+                raw = zlib.decompress(raw)
+            props.append(("ARR", _ARRAYS[code], n, raw))
+        else:
+            raise ValueError(f"неизвестный тип свойства {code!r} на позиции {pos}")
+    return props, pos
+
+
+def _parse(buf: bytes, pos: int, end: int, version: int, out: list) -> int:
+    while pos < end:
+        if version >= 7500:
+            end_offset, nprops, _ = struct.unpack_from("<QQQ", buf, pos); pos += 24
+        else:
+            end_offset, nprops, _ = struct.unpack_from("<III", buf, pos); pos += 12
+        name_len = buf[pos]; pos += 1
+        if end_offset == 0:
+            return pos
+        name = buf[pos:pos + name_len].decode("utf8", "replace"); pos += name_len
+        props, pos = _read_props(buf, pos, nprops)
+        out.append(_Node(name, props))
+        if pos < end_offset:
+            pos = _parse(buf, pos, end_offset, version, out)
+        pos = end_offset
+    return pos
+
+
+def _unpack(prop):
+    if isinstance(prop, tuple) and prop and prop[0] == "ARR":
+        _, fmt, count, raw = prop
+        size = struct.calcsize(fmt)
+        return struct.unpack(f"<{count}{fmt}", raw[:count * size])
+    return None
+
+
+def _text(prop) -> str:
+    return prop.decode("utf8", "replace").split("\x00")[0] if isinstance(prop, bytes) else str(prop)
+
+
+def _nodes(path: Path) -> tuple[list[_Node], int]:
+    buf = Path(path).read_bytes()
+    version = struct.unpack_from("<I", buf, 23)[0]
+    out: list[_Node] = []
+    _parse(buf, 27, len(buf), version, out)
+    return out, version
+
+
+def geometries(path: Path, sample: int = 20000) -> dict[str, Geometry]:
+    """Every mesh in the file, keyed by its DAZ node name.
+
+    `sample` caps how many vertex positions are kept per mesh — enough for the
+    shape statistics slot inference needs, without holding a 50 K-vertex pair
+    of leggings in memory for every garment in the drop.
+    """
+    result: dict[str, Geometry] = {}
+    current: Geometry | None = None
+    for node in _nodes(path)[0]:
+        if node.name == "Geometry" and len(node.props) > 1:
+            current = Geometry(_text(node.props[1]))
+            result[current.name] = current
+        elif node.name == "Model":
+            current = None
+        elif current is None:
+            continue
+        elif node.name == "Vertices":
+            values = _unpack(node.props[0])
+            if values:
+                current.verts = len(values) // 3
+                xs, ys, zs = values[0::3], values[1::3], values[2::3]
+                current.bbox = (min(xs), max(xs), min(ys), max(ys), min(zs), max(zs))
+                step = max(1, current.verts // sample) if sample else 1
+                current.points = list(zip(xs[::step], ys[::step], zs[::step]))
+        elif node.name == "PolygonVertexIndex":
+            values = _unpack(node.props[0])
+            if values:
+                current.polys = sum(1 for i in values if i < 0)
+    return result
+
+
+def material_textures(path: Path) -> dict[str, dict[str, dict[str, str]]]:
+    """{model: {material: {channel: absolute texture path}}}.
+
+    Channels seen from DAZ: `DiffuseColor` (albedo) and `TransparentColor`
+    (cutout opacity, shipped as a SEPARATE greyscale image that has to be
+    composited into the albedo's alpha before Unity can alpha-clip it).
+    """
+    nodes = _nodes(path)[0]
+    names: dict[int, tuple[str, str]] = {}
+    files: dict[int, str] = {}
+    current_texture: int | None = None
+
+    for node in nodes:
+        if node.name in ("Geometry", "Model", "Material", "Texture", "Video") and len(node.props) >= 3:
+            uid = node.props[0]
+            names[uid] = (node.name, _text(node.props[1]))
+            current_texture = uid if node.name in ("Texture", "Video") else None
+        elif node.name in ("RelativeFilename", "FileName") and current_texture is not None:
+            files.setdefault(current_texture, _text(node.props[0]))
+
+    connections = [(c.props[1], c.props[2], _text(c.props[3]) if len(c.props) > 3 else "")
+                   for c in nodes if c.name == "C" and len(c.props) >= 3]
+    children = collections.defaultdict(list)
+    for src, dst, _ in connections:
+        children[dst].append(src)
+
+    def kind(uid) -> str:
+        return names.get(uid, ("", ""))[0]
+
+    per_material: dict[int, dict[str, str]] = collections.defaultdict(dict)
+    for src, dst, channel in connections:
+        if kind(src) == "Texture" and kind(dst) == "Material":
+            image = files.get(src)
+            if image is None:  # the path may hang off a child Video node
+                image = next((files[c] for c in children[src] if c in files), None)
+            if image:
+                per_material[dst][channel] = image
+
+    result: dict[str, dict[str, dict[str, str]]] = {}
+    for src, dst, _ in connections:
+        if kind(src) == "Material" and kind(dst) == "Model":
+            model = names[dst][1]
+            # DAZ exports the mesh node as "<garment>.Shape"; the garment name
+            # is what every other stage keys on.
+            model = model[:-6] if model.endswith(".Shape") else model
+            result.setdefault(model, {})[names[src][1]] = dict(per_material.get(src, {}))
+    return result

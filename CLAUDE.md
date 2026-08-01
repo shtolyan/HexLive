@@ -102,6 +102,50 @@ without one it dies with the cryptic «The files a, tty do not exist».
 A first build may print transient `FSBank error (7)` lines: delete
 `Build/Desktop/*.bank` and rebuild — a clean build must end with 0 errors.
 
+## Blender through MCP — it must be RUNNING, with a GUI
+
+The `blender` MCP server ([ahujasid/blender-mcp](https://github.com/ahujasid/blender-mcp))
+is only a pipe: it talks to an **add-on living inside a running Blender** over TCP
+`localhost:9876`. No Blender on that port = every tool fails. Starting Blender is the
+agent's job, not the user's.
+
+**⭐ KEY RULE: `blender --background` (`-b`) does NOT work — ever.** The add-on
+dispatches commands onto the main thread via `bpy.app.timers`, which never tick without
+an event loop, so it refuses outright:
+
+```
+BlenderMCP: cannot start server in background mode (blender -b) - commands would never execute
+```
+
+There is no headless path on Windows (`xvfb-run` is Linux-only). A real window must open.
+
+Launch it and wait for the port — Windows box, Blender 5.2.0 LTS is portable at
+`%LOCALAPPDATA%\Programs\Blender` (NOT Program Files — it is a no-admin portable install):
+
+```powershell
+$root = "$env:LOCALAPPDATA\Programs\Blender"
+Start-Process "$root\blender.exe" -ArgumentList "--python","`"$root\start_mcp_server.py`""
+# then poll until New-Object Net.Sockets.TcpClient can Connect("localhost",9876) — ~3 s
+```
+
+`start_mcp_server.py` sits next to `blender.exe` and just runs
+`bpy.ops.blendermcp.start_server()` off a 2-second timer (the operator needs a ready
+context). Launching plain `blender.exe` starts NO server — then it is
+`View3D → N panel → BlenderMCP → Connect to MCP server` by hand.
+
+Two things that save a wasted restart:
+
+- **Order does not matter.** The MCP server retries per call, so starting Blender
+  *after* the Claude session is fine — no session restart needed. The startup log line
+  «Could not connect to Blender on startup» is expected noise, not a fault.
+- The failure is this exact string, and it means only «Blender is not up»:
+  `Error getting scene info: Could not connect to Blender. Make sure the Blender addon is running.`
+
+Telemetry is deliberately off (`BLENDER_MCP_DISABLE_TELEMETRY=true` in the server's
+`env`) — otherwise the add-on uploads prompts and scene data to a third-party Supabase.
+The `user_prompt` argument every tool asks for feeds that; it is inert while the flag is
+set, so pass anything short.
+
 ## Headless simulation probes (no Unity)
 
 For AI/GOAP/simulation checks, do not start Unity just to run ticks. Build the

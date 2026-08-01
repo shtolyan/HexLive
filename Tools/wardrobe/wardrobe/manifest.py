@@ -1,0 +1,180 @@
+"""The drop manifest — the single description of a batch of new clothing.
+
+One JSON file per drop lands in `Assets/Editor/WearDrops/`, and the Unity-side
+extractor builds prefabs straight from it. That is what lets a new garment be
+added without touching C#.
+
+`propose()` drafts a manifest from the FBX plus the staged textures. It is a
+DRAFT on purpose: the slot guess is geometry-based and the names are
+placeholders. Everything a human (or the supervising agent) is expected to
+review carries its evidence alongside — the measured bounding box — so the
+guess can be checked instead of trusted.
+"""
+from __future__ import annotations
+
+import json
+import re
+from pathlib import Path
+
+from . import config, fbx
+
+# Anatomical zones on the Genesis 3 Female base figure all four girls share:
+# ~180 cm tall, hip joint at ~105 cm, fingertips at x ±84. Every vertex lands in
+# exactly ONE zone — overlapping regions double-counted a sleeve as chest.
+def _zone(x: float, y: float) -> str:
+    ax = abs(x)
+    if ax > 78:
+        return "Hand"
+    if ax > 66:
+        return "Wrist"
+    if ax > 44:
+        return "Forearm"
+    if ax > 19 and y > 120:  # outside the ribcage and high up = upper arm
+        return "Shoulder"
+    if y >= 158:
+        return "Head"
+    if y >= 152 and ax <= 10:  # the neck column proper, not a shoulder strap
+        return "Neck"
+    if y >= 118:
+        return "Chest"
+    if y >= 104:
+        return "Belly"
+    if y >= 84:
+        return "Pelvis"
+    if y >= 48:
+        return "Thigh"
+    if y >= 10:
+        return "Shin"
+    return "Foot"
+
+
+# Left/right are always claimed as a pair. Asymmetric garments exist (the
+# shipped "Got stock" and one glove) but they are rare, and guessing the wrong
+# side silently is worse than over-claiming — the reviewer sees the zone table.
+_ZONE_SLOTS = {
+    "Head": ["Head"], "Neck": ["Neck"], "Chest": ["Chest"], "Belly": ["Belly"],
+    "Pelvis": ["Pelvis"],
+    "Thigh": ["ThighR", "ThighL"], "Shin": ["ShinR", "ShinL"],
+    "Foot": ["FootR", "FootL"],
+    "Shoulder": ["ShoulderR", "ShoulderL"], "Forearm": ["ForearmR", "ForearmL"],
+    "Wrist": ["WristR", "WristL"], "Hand": ["HandR", "HandL"],
+}
+_SLOT_ORDER = [s for slots in _ZONE_SLOTS.values() for s in slots]
+
+# A zone counts as covered once this share of the garment's vertices sit in it.
+_MIN_SHARE = 0.10
+# Anything whose mass sits below the hip is a "bottom". High-waisted leggings
+# genuinely reach the navel, but the wardrobe's convention is that trousers do
+# not displace a tucked-in top, so bottoms never claim torso slots.
+_TORSO_ZONES = ("Head", "Neck", "Chest", "Belly")
+_BOTTOM_CENTRE = 100.0
+
+
+def zone_shares(geometry: fbx.Geometry) -> dict[str, float]:
+    """Share of the mesh's vertices sitting in each anatomical zone."""
+    if not geometry.points:
+        return {}
+    counts: dict[str, int] = {}
+    for x, y, _ in geometry.points:
+        zone = _zone(x, y)
+        counts[zone] = counts.get(zone, 0) + 1
+    total = len(geometry.points)
+    return {z: round(c / total, 3) for z, c in sorted(counts.items(), key=lambda kv: -kv[1])}
+
+
+def infer_slots(geometry: fbx.Geometry) -> list[str]:
+    """Proposed wear slots. A PROPOSAL — review it against `zone_shares`."""
+    shares = zone_shares(geometry)
+    if not shares:
+        return []
+
+    centre = sum(y for _, y, _ in geometry.points) / len(geometry.points)
+    slots: list[str] = []
+    for zone, share in shares.items():
+        if share < _MIN_SHARE:
+            continue
+        if centre < _BOTTOM_CENTRE and zone in _TORSO_ZONES:
+            continue
+        slots.extend(_ZONE_SLOTS[zone])
+    return sorted(set(slots), key=_SLOT_ORDER.index)
+
+
+def _pretty(mesh_key: str) -> str:
+    """`skirt_28126` -> `Skirt`; `FitnessIdol_CroppedTop_G3F` -> `FitnessIdolCroppedTop`.
+
+    DAZ suffixes a garment node with its vertex count, and G3F content often
+    carries a generation suffix — neither belongs in an asset name.
+    """
+    name = re.sub(r"_\d+$", "", mesh_key)
+    name = re.sub(r"_(G3F|G8F|G9)$", "", name, flags=re.IGNORECASE)
+    parts = [p for p in re.split(r"[^A-Za-z0-9]+", name) if p]
+    return "".join(p[:1].upper() + p[1:] for p in parts) or "Garment"
+
+
+def propose(fbx_path: Path, drop: str, texture_report: dict,
+            girls: list[str] | None = None) -> dict:
+    """Draft a manifest for every garment mesh found in the export."""
+    girls = girls or config.girl_names()
+    meshes = fbx.geometries(Path(fbx_path))
+    staged = texture_report.get("garments", {})
+
+    garments = []
+    for key, geometry in meshes.items():
+        if key not in staged:  # the body itself, and anything unstaged
+            continue
+        name = _pretty(key)
+        materials = [
+            {
+                "source": material,
+                "texture": spec["texture"],
+                "smoothness": 0.3,
+                "metallic": 0.0,
+                "doubleSided": True,
+                "alphaClip": spec["alphaClip"],
+            }
+            for material, spec in staged[key].items()
+        ]
+        garments.append({
+            "sourceKey": key,
+            "folder": name,
+            "name": name,
+            # REVIEW: the agent replaces this with a real id + display names.
+            "simId": f"clothing.{name.lower()}",
+            "layer": "Wear",
+            "slots": infer_slots(geometry),
+            "noHide": [],
+            "materials": materials,
+            # Evidence for the reviewer: the slot list above is inferred from
+            # `zones`, so a wrong guess is visible rather than buried.
+            "_measured": {
+                "verts": geometry.verts,
+                "polys": geometry.polys,
+                "bbox": [round(v, 1) for v in geometry.bbox] if geometry.bbox else None,
+                "zones": zone_shares(geometry),
+            },
+        })
+
+    return {
+        "drop": drop,
+        "sources": [
+            {"fbx": f"Assets/Temp/{girl.lower()} {drop}.fbx", "actor": girl}
+            for girl in girls
+        ],
+        "garments": garments,
+    }
+
+
+def path_for(drop: str) -> Path:
+    return config.DROP_MANIFESTS / f"{drop}.json"
+
+
+def save(data: dict, drop: str | None = None) -> Path:
+    target = path_for(drop or data["drop"])
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n",
+                      encoding="utf-8")
+    return target
+
+
+def load(drop: str) -> dict:
+    return json.loads(path_for(drop).read_text(encoding="utf-8"))

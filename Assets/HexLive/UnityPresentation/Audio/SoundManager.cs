@@ -8,9 +8,9 @@ namespace HexLive.UnityPresentation.Audio
     /// <summary>
     /// Spec §67: the colony's ears. Two feeds drive all audio:
     ///   1) discrete sim trace events (tree felled, bite landed, death…) —
-    ///      pushed here from SimulationRunnerBehaviour.FlushEventsToConsole;
+    ///      pushed here from SimulationRunnerBehaviour.FlushEvents;
     ///   2) the island ambience state machine (shore waves, day birds, night
-    ///      crickets, geckos, rain) — polled per frame from the world state.
+    ///      crickets, geckos, rain) — polled per frame from the snapshot.
     /// Continuous per-view sounds (footsteps, chop swings, whooshes) live in
     /// the views themselves (NpcActorView) and call FmodSfx directly.
     /// Everything is 3D-positioned via the renderer's view dictionaries; an
@@ -70,23 +70,36 @@ namespace HexLive.UnityPresentation.Audio
             _renderer = renderer;
         }
 
+        // This component is wired ONLY by Construct — there was no fallback, so
+        // any change to bootstrap ordering killed every sim-driven sound with no
+        // error at all. Fall back to the ambient source rather than going quiet.
+        // The `_runner != null` test is deliberately on the CONCRETE type so
+        // Unity's destroyed-object equality applies; an interface-typed null
+        // check would call a destroyed runner alive.
+        private Bootstrap.ISimulationSource? Source =>
+            _runner != null ? (Bootstrap.ISimulationSource)_runner : Bootstrap.SimulationSource.Current;
+
         // ------------------------------------------------------------------
         // Discrete sim events → positioned one-shots.
         // ------------------------------------------------------------------
         public void OnSimEvent(SimulationEvent e)
         {
-            if (_runner?.Engine is not { } engine || UI.LoadingScreen.IsReplaying)
+            var source = Source;
+            if (source == null || !source.IsReady || UI.LoadingScreen.IsReplaying)
             {
                 return;
             }
 
             // Save-replay / catch-up floods arrive as a burst of old ticks.
-            if (engine.World.Tick - e.Tick > StaleEventTicks)
+            // Measured against the source's current tick, which is the last tick
+            // presentation considers real — not a raw WorldState.Tick that could
+            // be ahead of what the player is actually being shown.
+            if (source.CurrentTick - e.Tick > StaleEventTicks)
             {
                 return;
             }
 
-            if (_runner.SpeedMultiplier > MaxAudibleSimSpeed)
+            if (source.SpeedMultiplier > MaxAudibleSimSpeed)
             {
                 return;
             }
@@ -296,8 +309,13 @@ namespace HexLive.UnityPresentation.Audio
         // howls far away once in a while.
         private void UpdateAmbience(Camera? cam)
         {
-            if (_runner?.Engine is not { } engine || _renderer == null ||
-                UI.LoadingScreen.IsReplaying || cam == null)
+            if (_renderer == null || UI.LoadingScreen.IsReplaying || cam == null)
+            {
+                return;
+            }
+
+            var snapshot = Source?.CreateSnapshot();
+            if (snapshot == null)
             {
                 return;
             }
@@ -318,14 +336,14 @@ namespace HexLive.UnityPresentation.Audio
             }
 
             // -- день/ночь: птицы ↔ сверчки (плавный час на смену) --
-            var t = engine.World.Environment.TimeOfDayNormalized; // 0 = 06:00
+            var t = snapshot.TimeOfDayNormalized; // 0 = 06:00
             var day = t is < 0f or > 0.5f
                 ? 0f
                 : Mathf.Min(
                     Mathf.Clamp01(t / 0.04f),
                     Mathf.Clamp01((0.5f - t) / 0.04f));
 
-            var raining = engine.World.Environment.IsRaining;
+            var raining = snapshot.IsRaining;
             var jungleTarget = day * (raining ? 0.25f : 1f);
             var cricketsTarget = (1f - day) * (raining ? 0.4f : 1f);
             var rainTarget = raining ? 1f : 0f;

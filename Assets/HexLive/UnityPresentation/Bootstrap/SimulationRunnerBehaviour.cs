@@ -1,5 +1,7 @@
 #nullable enable
+using System.Collections.Generic;
 using HexLive.Simulation.Bootstrap;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
 using HexLive.UnityPresentation.History;
@@ -8,7 +10,25 @@ using UnityEngine;
 namespace HexLive.UnityPresentation.Bootstrap
 {
 
-public sealed class SimulationRunnerBehaviour : MonoBehaviour
+/// <summary>
+/// The scene's single handle on the simulation, and the only MonoBehaviour that
+/// knows one exists.
+/// <para>
+/// It owns no world of its own: it holds an <see cref="ISimulationBackend"/> and
+/// forwards to it. Today that is always <see cref="LocalEngineBackend"/> — the
+/// world runs in this process exactly as it always has. A networked backend
+/// slots in at the same place without touching the sixteen components that fetch
+/// this behaviour with <c>FindAnyObjectByType</c> (which cannot be given an
+/// interface — Unity requires a UnityEngine.Object).
+/// </para>
+/// <para>
+/// What stays HERE rather than in the backend is everything that is presentation
+/// even in single-player: the colony history log, fanning events out to sound and
+/// the console, autosave cadence, and the two watchdogs that catch a loading
+/// screen dying mid-curtain.
+/// </para>
+/// </summary>
+public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
 {
     [SerializeField] private WorldBootstrapAsset? _bootstrapAsset;
     [SerializeField] private bool _startPaused = true;
@@ -23,68 +43,70 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
     [SerializeField] private bool _logImportantEventsToConsole = true;
     [SerializeField] private bool _logTraceEventsToConsole;
 
-    private float _accumulator;
-    private SimulationEngine? _engine;
-    private SimulationClock? _clock;
-    private SimulationSettings? _settings;
-    private SimulationEvent? _lastLoggedEvent;
+    private ISimulationBackend? _backend;
+    private long _lastLoggedSeq;
+    private readonly List<SimulationEvent> _drainedEvents = new();
     private readonly GameHistoryLog _gameHistory = new();
 
-    public SimulationEngine? Engine => _engine;
+    /// <summary>
+    /// The live engine — LOCAL MODE ONLY, null otherwise.
+    /// <para>
+    /// This is the dev/test-scene escape hatch: AmputationTest, BedBuildTest,
+    /// SwimTest and WolfFightTest build throwaway worlds and mutate them
+    /// directly, which no interface should make comfortable. Shipped
+    /// presentation must read <see cref="ISimulationSource"/> instead — a new
+    /// <c>Engine.World</c> reference in a UI or rendering file is a bug that
+    /// only shows up the day the world stops being local.
+    /// </para>
+    /// </summary>
+    public SimulationEngine? Engine => (_backend as LocalEngineBackend)?.Engine;
 
     public GameHistoryLog GameHistory => _gameHistory;
 
-    public bool IsReady => _engine is not null;
+    public bool IsReady => _backend?.IsReady ?? false;
 
-    public bool IsCompleted => _engine?.World.Completed ?? false;
+    public SimulationLink Link => _backend?.Link ?? SimulationLink.Local;
 
-    public int CurrentTick => _engine?.World.Tick ?? 0;
+    public bool IsCompleted => _backend?.IsCompleted ?? false;
 
-    public bool IsPaused => _clock?.IsPaused ?? true;
+    public int Seed => _backend?.Seed ?? 0;
 
-    public float SpeedMultiplier => _clock?.SpeedMultiplier ?? 1f;
+    public int CurrentTick => _backend?.CurrentTick ?? 0;
+
+    public bool IsPaused => _backend?.IsPaused ?? true;
+
+    public float SpeedMultiplier => _backend?.SpeedMultiplier ?? 1f;
 
     /// <summary>
     /// Fraction [0..1) of progress toward the next simulation tick.
     /// Used by renderers to interpolate between discrete tick states.
     /// </summary>
-    public float TickAlpha =>
-        _settings is not null && _settings.TickDeltaTime > 0f
-            ? Mathf.Clamp01(_accumulator / _settings.TickDeltaTime)
-            : 0f;
+    public float TickAlpha => _backend?.TickAlpha ?? 0f;
 
-    private WorldSnapshot? _cachedSnapshot;
-    private int _cachedSnapshotTick = -1;
-    private bool _cachedSnapshotDetailed;
+    public bool SupportsDirectWorldMutation => _backend?.SupportsDirectWorldMutation ?? false;
 
-    // Spec 31.17: consumers poll every frame; the world serializes once
-    // per simulation tick. The cached snapshot is handed back to the
-    // exporter for in-place reuse, so consumers must not hold it across
-    // ticks (they all re-poll every frame).
-    public WorldSnapshot? CreateSnapshot()
+    public bool SupportsClientSave => _backend?.SupportsClientSave ?? false;
+
+    public WorldSnapshot? CreateSnapshot() => _backend?.CreateSnapshot();
+
+    public bool TryGetObjectDefinition(string id, out ObjectDefinition? definition)
     {
-        if (_engine is null)
+        if (_backend is not null)
         {
-            return null;
+            return _backend.TryGetObjectDefinition(id, out definition);
         }
 
-        var detailed = WorldSnapshotExporter.IncludeDebugDetails;
-        if (_cachedSnapshot is not null &&
-            _engine.World.Tick == _cachedSnapshotTick &&
-            _cachedSnapshotDetailed == detailed)
-        {
-            return _cachedSnapshot;
-        }
-
-        _cachedSnapshot = WorldSnapshotExporter.Export(_engine.World, _cachedSnapshot);
-        _cachedSnapshotTick = _engine.World.Tick;
-        _cachedSnapshotDetailed = detailed;
-        return _cachedSnapshot;
+        definition = null;
+        return false;
     }
+
+    public long DrainEvents(long sinceSeq, List<SimulationEvent> into) =>
+        _backend?.DrainEvents(sinceSeq, into) ?? sinceSeq;
 
     private void Awake()
     {
-        if (_engine is null)
+        SimulationSource.Current = this;
+        if (_backend is null)
         {
             Bootstrap();
         }
@@ -101,7 +123,7 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
 
     private void Update()
     {
-        if (_engine is null)
+        if (_backend is null)
         {
             _unconfiguredTimer += Time.unscaledDeltaTime;
             if (!_unconfiguredReported &&
@@ -114,77 +136,27 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
                     $"{UnconfiguredErrorAfterSeconds:0}s: no world JSON asset, nobody called Configure, " +
                     "and no LoadingScreen exists to do it — the world will never be created.", this);
             }
+
+            return;
         }
 
-        if (_engine is null || _clock is null || _settings is null || _clock.IsPaused)
+        _backend.Tick(Time.unscaledDeltaTime);
+
+        // Not while paused — matching the old loop, which early-returned before
+        // either of these. It matters most during Continue's offline wind: the
+        // loading screen steps the engine with the clock PAUSED, and flushing
+        // there would pour the entire multi-day chronicle into the console and
+        // the history file mid-load (the old behavior delivered only the ring's
+        // last 2048 after unpause). It also kept autosave from rewriting an
+        // identical world every minute while the game sits on pause.
+        // StepSingleTick flushes explicitly, so debug stepping still logs.
+        if (_backend.IsPaused)
         {
             return;
         }
 
-        if (_engine.World.Completed)
-        {
-            _clock.Pause();
-            _accumulator = 0f;
-            return;
-        }
-
-        // MAX speed: step the sim at CPU speed, bypassing the fixed-timestep
-        // accumulator entirely. A wall-clock budget still caps how long one
-        // frame may spend ticking so the render thread gets a turn and the UI
-        // (including this speed bar) stays responsive.
-        if (float.IsPositiveInfinity(_clock.SpeedMultiplier))
-        {
-            _accumulator = 0f;
-            RunUncappedTicks();
-            FlushEventsToConsole();
-            AutosaveTick();
-            return;
-        }
-
-        _accumulator += Time.unscaledDeltaTime * _clock.SpeedMultiplier;
-
-        // Spec 41.1: a frame hitch (spawning, GC, shader compile) must never
-        // turn into a catch-up burst of ticks. ~3 game-seconds of backlog max;
-        // at 50x the per-frame budget (~0.8 s) stays far below the clamp.
-        _accumulator = Mathf.Min(_accumulator, _settings.TickDeltaTime * 12f);
-
-        var maxTicks = Mathf.Max(1, _settings.MaxTicksPerFrame);
-
-        for (var i = 0; i < maxTicks && _accumulator >= _settings.TickDeltaTime; i++)
-        {
-            _accumulator -= _settings.TickDeltaTime;
-            _engine.Step();
-            if (_engine.World.Completed)
-            {
-                _clock.Pause();
-                _accumulator = 0f;
-                break;
-            }
-        }
-
-        FlushEventsToConsole();
+        FlushEvents();
         AutosaveTick();
-    }
-
-    // MAX-speed wall-clock budget: at MAX the sim steps as fast as the CPU
-    // allows, but no single frame may spend more than this ticking, so the
-    // frame still renders and the UI stays live. One tick always runs.
-    private const double MaxSpeedFrameBudgetMs = 25.0;
-    private static readonly System.Diagnostics.Stopwatch _maxSpeedWatch = new();
-
-    private void RunUncappedTicks()
-    {
-        _maxSpeedWatch.Restart();
-        do
-        {
-            _engine!.Step();
-            if (_engine.World.Completed)
-            {
-                _clock!.Pause();
-                break;
-            }
-        }
-        while (_maxSpeedWatch.Elapsed.TotalMilliseconds < MaxSpeedFrameBudgetMs);
     }
 
     // Spec 41.2 v2: autosave — every 60 real seconds while enabled (the
@@ -210,7 +182,7 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (_clock is null || !_clock.IsPaused || AutosaveEnabled)
+        if (_backend is null || !_backend.IsPaused || AutosaveEnabled)
         {
             return;
         }
@@ -225,14 +197,14 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
         if (FindAnyObjectByType<UI.LoadingScreen>() == null)
         {
             Debug.LogWarning("[HexLive] Loading screen died without finishing — resuming.");
-            _clock.Resume();
+            _backend.Resume();
             AutosaveEnabled = !AutosaveSuppressed;
         }
     }
 
     private void AutosaveTick()
     {
-        if (!AutosaveEnabled || AutosaveSuppressed)
+        if (!AutosaveEnabled || AutosaveSuppressed || _backend is not { SupportsClientSave: true })
         {
             return;
         }
@@ -249,12 +221,11 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
 
     public void WriteSaveNow()
     {
-        if (_engine is null)
+        // Nothing to save when someone else owns the world.
+        if (_backend is { SupportsClientSave: true })
         {
-            return;
+            _backend.WriteSaveNow();
         }
-
-        SaveGame.Write(_engine.World, SpeedMultiplier);
     }
 
     private void OnApplicationQuit()
@@ -275,58 +246,42 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
             WriteSaveNow();
         }
 
+        _backend?.Shutdown();
+        if (ReferenceEquals(SimulationSource.Current, this))
+        {
+            SimulationSource.Current = null;
+        }
+
         _gameHistory.Dispose();
     }
 
-    private void FlushEventsToConsole()
+    /// <summary>
+    /// Pulls new events off the backend and fans them out to the three sinks
+    /// that consume them: the colony history file, the sound layer (§67 voices
+    /// discrete world moments straight off the trace stream) and the console.
+    /// </summary>
+    private void FlushEvents()
     {
-        if (_engine is null)
+        if (_backend is null)
         {
             return;
         }
 
-        var events = _engine.World.Events.Items;
-        if (events.Count == 0)
-        {
-            _gameHistory.Tick();
-            return;
-        }
+        _drainedEvents.Clear();
+        _lastLoggedSeq = _backend.DrainEvents(_lastLoggedSeq, _drainedEvents);
 
         var logAllTrace = _logTraceEventsToConsole;
         var logImportant = _logImportantEventsToConsole;
 
-        var startIndex = 0;
-        if (_lastLoggedEvent is not null)
+        for (var i = 0; i < _drainedEvents.Count; i++)
         {
-            startIndex = -1;
-            for (var i = events.Count - 1; i >= 0; i--)
-            {
-                if (!ReferenceEquals(events[i], _lastLoggedEvent))
-                {
-                    continue;
-                }
-
-                startIndex = i + 1;
-                break;
-            }
-
-            if (startIndex < 0)
-            {
-                startIndex = 0;
-            }
-        }
-
-        for (var i = startIndex; i < events.Count; i++)
-        {
-            var e = events[i];
+            var e = _drainedEvents[i];
             var isGameHistoryEvent = GameHistoryLog.IsGameHistoryEvent(e);
             if (isGameHistoryEvent)
             {
-                RecordGameHistoryEvent(e);
+                _gameHistory.Record(e);
             }
 
-            // Spec §67: the sound layer voices discrete world moments (a felled
-            // tree, a landed bite) straight off the trace stream.
             Audio.SoundManager.Instance?.OnSimEvent(e);
 
             if (!logAllTrace && !(logImportant && isGameHistoryEvent))
@@ -338,45 +293,22 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
             Debug.Log($"[HexLive T{e.Tick}] [{entityTag}] {e.Type}: {e.Message}");
         }
 
-        _lastLoggedEvent = events[events.Count - 1];
         _gameHistory.Tick();
     }
 
-    private void RecordGameHistoryEvent(SimulationEvent simulationEvent) =>
-        _gameHistory.Record(simulationEvent);
+    public void Pause() => _backend?.Pause();
 
-    public void Pause() => _clock?.Pause();
+    public void Resume() => _backend?.Resume();
 
-    public void Resume() => _clock?.Resume();
+    public void TogglePause() => _backend?.TogglePause();
 
-    public void TogglePause()
-    {
-        if (_clock is null)
-        {
-            return;
-        }
-
-        if (_clock.IsPaused)
-        {
-            _clock.Resume();
-            return;
-        }
-
-        _clock.Pause();
-    }
+    public void SetSpeed(float speedMultiplier) => _backend?.SetSpeed(speedMultiplier);
 
     public void StepSingleTick()
     {
-        if (_engine is null || _engine.World.Completed)
-        {
-            return;
-        }
-
-        _engine.Step();
-        FlushEventsToConsole();
+        _backend?.StepSingleTick();
+        FlushEvents();
     }
-
-    public void SetSpeed(float speedMultiplier) => _clock?.SetSpeed(speedMultiplier);
 
     public void Configure(TextAsset worldJson, bool startPaused = true, float initialSpeed = 1f)
     {
@@ -417,7 +349,7 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
         var saveHeader = SaveGame.TryReadHeader();
         _gameHistory.OpenForWorld(world.Seed, saveHeader != null && saveHeader.seed == world.Seed);
 
-        _settings = new SimulationSettings
+        var settings = new SimulationSettings
         {
             TickDeltaTime = definition.Simulation.TickDeltaTime,
             MediumInterval = definition.Simulation.MediumTickInterval,
@@ -425,15 +357,15 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
             MaxTicksPerFrame = 64
         };
 
-        _clock = new SimulationClock();
-        _clock.SetSpeed(_initialSpeed);
+        var clock = new SimulationClock();
+        clock.SetSpeed(_initialSpeed);
         if (_startPaused)
         {
-            _clock.Pause();
+            clock.Pause();
         }
         else
         {
-            _clock.Resume();
+            clock.Resume();
         }
 
         // Player builds drop the per-tick trace chatter (TickStart/Movement*/
@@ -462,40 +394,49 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour
             Config.MobLibrary.LoadPrefab(mobId);
         }
 
-        _engine = new SimulationEngine(world, _settings, _clock);
-        RegisterDefaultSystems(_engine);
-        _accumulator = 0f;
-        _lastLoggedEvent = null;
-        _cachedSnapshot = null;
-        _cachedSnapshotTick = -1;
+        // Loopback runs the local world through the wire codec, which interns
+        // definition ids — build the table here so that path works too.
+        HexLive.Simulation.Wire.DefinitionIdTable.Build(world.Content);
+
+        var engine = new SimulationEngine(world, settings, clock);
+        // The list itself lives in the simulation assembly so the game, the server
+        // and headless probes cannot drift apart — see SimulationSystemRegistry.
+        SimulationSystemRegistry.RegisterDefaults(engine);
+
+        _backend?.Shutdown();
+        _backend = CreateBackend(new LocalEngineBackend(engine, clock, settings));
+        SimulationSource.Current = this;
+        _lastLoggedSeq = 0;
     }
 
-    private static void RegisterDefaultSystems(SimulationEngine engine)
+    /// <summary>
+    /// Picks the backend for this session. The local engine is built either way —
+    /// it costs one worldgen and it means a failed connection can still fall back
+    /// to a playable game instead of a black screen.
+    /// </summary>
+    private static ISimulationBackend CreateBackend(LocalEngineBackend local)
     {
-        engine.Register(new PathfindingSystem());
-        engine.Register(new MovementSystem());
-        engine.Register(new ExecutionSystem());
-        engine.Register(new PerceptionSystem());
-        engine.Register(new DecisionSystem());
-        engine.Register(new PlanningSystem());
-        engine.Register(new MobSystem());
-        engine.Register(new AnimalCombatSystem()); // 29C.3 v2: timed windup→hit→cooldown blows
-        engine.Register(new PredationSystem()); // §56: kill-a-housemate-to-eat
-        engine.Register(new ThreatAlertSystem()); // §62: spot the wolf early — ⚠️ cue, attack-first or detour
-        engine.Register(new RabbitSystem());
-        engine.Register(new WeatherSystem());
-        engine.Register(new EnvironmentSystem());
-        engine.Register(new NeedsDecaySystem());
-        engine.Register(new TemperatureSystem());
-        engine.Register(new MoistureSystem());
-        engine.Register(new FruitProductionSystem());
-        engine.Register(new FireSystem());
-        engine.Register(new CorpseSystem());
-        engine.Register(new MeatSpoilageSystem()); // §54: ground meat rots
-        engine.Register(new DreamSystem()); // §64: advances the colony dream queue (campfire → own bed); before BedSiteSystem
-        engine.Register(new BedSiteSystem()); // §54.2: stakes progressive bed build-sites
-        engine.Register(new WaterCollectorSystem()); // §54.15: rain fills the parked bottle
-        engine.Register(new HazardSystem()); // §50: prepared amputation hazards
+        switch (SessionConfig.Mode)
+        {
+            case SimulationMode.Loopback:
+                return new LoopbackBackend(local);
+
+            case SimulationMode.Remote:
+                var url = SessionConfig.ServerUrl;
+                if (string.IsNullOrWhiteSpace(url))
+                {
+                    Debug.LogError("[HexLive] Remote session requested with no server URL — staying local.");
+                    return local;
+                }
+
+                local.Shutdown();
+                var remote = new Remote.RemoteSocketBackend(url);
+                remote.Connect();
+                return remote;
+
+            default:
+                return local;
+        }
     }
 }
 

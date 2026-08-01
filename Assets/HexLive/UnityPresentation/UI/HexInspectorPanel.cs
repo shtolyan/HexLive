@@ -414,10 +414,8 @@ namespace HexLive.UnityPresentation.UI
 
         private ObjectDefinition? ResolveDef(string id)
         {
-            var world = _runner != null ? _runner.Engine?.World : null;
-            return world != null && world.Content.ObjectDefinitions.TryGetValue(id, out var def)
-                ? def
-                : null;
+            // Static content — see CharacterPanel.ResolveDef.
+            return _runner != null && _runner.TryGetObjectDefinition(id, out var def) ? def : null;
         }
 
         private static TileSnapshot? FindTile(WorldSnapshot snapshot, TileCoord coord)

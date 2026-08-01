@@ -49,6 +49,11 @@ public sealed class MobState
     // away). Not persisted; a loaded save simply restarts the windup.
     public int AttackLandsAtTick { get; set; }
 
+    // The tick that windup STARTED — presentation pulses the bite on a start
+    // it has not played yet. The windup is ~2 ticks, so an unrendered tick
+    // otherwise swallows the whole lunge; see NPCState.SwingStartTick.
+    public int AttackStartTick { get; set; }
+
     // Next tick a new attack may start winding up (cooldown gate).
     public int AttackReadyAtTick { get; set; }
 

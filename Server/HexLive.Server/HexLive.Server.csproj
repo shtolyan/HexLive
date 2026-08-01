@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    Headless HexLive: the colony keeps living with no Unity anywhere.
+
+    Deliberately ZERO NuGet packages. WebSockets come from the ASP.NET Core
+    shared framework (already on any machine with the .NET runtime), and the
+    simulation comes from the same 130 source files Unity compiles. Keeping the
+    dependency list empty is what makes "the server and the game run identical
+    code" a fact rather than a hope.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>HexLive.Server</RootNamespace>
+    <AssemblyName>HexLive.Server</AssemblyName>
+    <BaseOutputPath>../../Build/dotnet/bin/HexLive.Server/</BaseOutputPath>
+    <!-- No launchSettings/appsettings scaffolding: this is a console daemon. -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../HexLive.Simulation.Standalone.csproj" />
+  </ItemGroup>
+
+</Project>

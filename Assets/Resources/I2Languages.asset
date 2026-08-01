@@ -881,6 +881,94 @@ MonoBehaviour:
       - 'Продолжить'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'menu.connect'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Connect to a server'
+      - 'Подключиться к серверу'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.connect.go'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Connect'
+      - 'Подключиться'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'loading.connecting'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Connecting…'
+      - 'Подключение…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'loading.reconnecting'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Reconnecting…'
+      - 'Переподключение…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'loading.syncing'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Syncing the world…'
+      - 'Синхронизация мира…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'loading.connect.failed'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Could not connect'
+      - 'Не удалось подключиться'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'link.live'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'online'
+      - 'на связи'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'link.connecting'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'connecting'
+      - 'подключение'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'link.stalled'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'no signal'
+      - 'нет сигнала'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'link.reconnecting'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'reconnecting'
+      - 'переподключение'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'link.failed'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'disconnected'
+      - 'связь потеряна'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'menu.quit'
       TermType: 0
       Description:

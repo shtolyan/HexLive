@@ -2085,13 +2085,10 @@ namespace HexLive.UnityPresentation.UI
 
         private ObjectDefinition ResolveDef(string id)
         {
-            var world = _runner != null ? _runner.Engine?.World : null;
-            if (world != null && world.Content.ObjectDefinitions.TryGetValue(id, out var def))
-            {
-                return def;
-            }
-
-            return null;
+            // Object definitions are static content, identical whoever owns the
+            // world — ask the source rather than reaching into WorldState, which
+            // a client that only receives snapshots does not have.
+            return _runner != null && _runner.TryGetObjectDefinition(id, out var def) ? def : null;
         }
 
         private static string ItemName(ObjectDefinition def, ItemInfo info)

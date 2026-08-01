@@ -40,6 +40,13 @@ namespace HexLive.UnityPresentation.UI
         private bool _continueChosen;
         private bool _restartChosen;
 
+        // §Server: chosen "watch a server" instead of building a world here.
+        // The addresses themselves live in ServerBook, which also remembers
+        // which kind of session was last played so Continue can follow it.
+        private bool _connectChosen;
+        private VisualElement _connectBox;
+        private TextField _serverField;
+
         private VisualElement _root;
         private VisualElement _menuBox;
         private VisualElement _progressFill;
@@ -160,11 +167,26 @@ namespace HexLive.UnityPresentation.UI
                 }
             };
 
-            // Continue is always present; without a save it sits disabled
-            // (greyed out, not clickable) so the menu shape never changes.
-            card.Add(MakeMenuRow("play", Loc.Get("menu.continue"),
-                primary: true, enabled: _save != null, () =>
+            // Continue means "put me back where I was", and where you were may
+            // have been someone else's world. So it follows the LAST session:
+            // a server if that is what you were watching, the local save
+            // otherwise. The two paths differ completely further down — a local
+            // resume winds the offline days forward, a server resume winds
+            // nothing, because the colony never stopped.
+            var resumeServer = ServerBook.LastSessionWasRemote ? ServerBook.LastUrl : null;
+            var continueLabel = resumeServer != null
+                ? Loc.Get("menu.continue") + "  ·  " + ServerBook.ShortLabel(resumeServer)
+                : Loc.Get("menu.continue");
+
+            card.Add(MakeMenuRow("play", continueLabel,
+                primary: true, enabled: resumeServer != null || _save != null, () =>
             {
+                if (resumeServer != null)
+                {
+                    BeginConnect(resumeServer);
+                    return;
+                }
+
                 _continueChosen = true;
                 _menuChosen = true;
             }));
@@ -185,6 +207,15 @@ namespace HexLive.UnityPresentation.UI
                 _continueChosen = false;
                 _menuChosen = true;
             }));
+
+            // Watch a world running on a server instead of building one here.
+            // The row expands into an address field rather than opening another
+            // screen — one field is not worth a screen, and it keeps the whole
+            // choice visible at once.
+            card.Add(MakeMenuRow("play", Loc.Get("menu.connect"),
+                primary: false, enabled: true, () => ToggleConnectRow(card)));
+            _connectBox = BuildConnectRow();
+            card.Add(_connectBox);
 
             // Placeholders for now — visible but not wired up yet.
             card.Add(MakeMenuRow("gear", Loc.Get("menu.settings"),
@@ -316,6 +347,103 @@ namespace HexLive.UnityPresentation.UI
         // Menu rows in the reference style: icon + label on a transparent
         // row, gold for the primary action, subtle light wash on hover.
         // Disabled rows stay visible but dimmed and unclickable.
+        // §Server: the address book, folded away until "Connect" is clicked.
+        // Servers you have watched before are one click; a new one is one field.
+        private VisualElement BuildConnectRow()
+        {
+            var box = new VisualElement
+            {
+                style =
+                {
+                    display = DisplayStyle.None,
+                    paddingLeft = 12, paddingRight = 12,
+                    paddingBottom = 8
+                }
+            };
+
+            foreach (var url in ServerBook.Recent())
+            {
+                var remembered = url;
+                var row = new VisualElement
+                {
+                    style = { flexDirection = FlexDirection.Row, alignItems = Align.Center }
+                };
+
+                var connect = MakeMenuRow("play", ServerBook.ShortLabel(remembered),
+                    primary: false, enabled: true, () => BeginConnect(remembered));
+                connect.style.flexGrow = 1;
+                connect.style.height = 36;
+                row.Add(connect);
+
+                // A dead address you keep having to scroll past is worse than no
+                // history at all, so every entry can be dropped.
+                var forget = MakeMenuRow("exit", string.Empty, primary: false, enabled: true, () =>
+                {
+                    ServerBook.Forget(remembered);
+                    row.RemoveFromHierarchy();
+                });
+                forget.style.height = 36;
+                forget.style.paddingLeft = 6;
+                forget.style.paddingRight = 6;
+                row.Add(forget);
+
+                box.Add(row);
+            }
+
+            _serverField = new TextField
+            {
+                // Falls back to a local server — what anyone trying this first will want.
+                value = ServerBook.LastUrl ?? ServerBook.DefaultUrl,
+                style =
+                {
+                    marginLeft = 0, marginRight = 0, marginTop = 6, marginBottom = 8,
+                    fontSize = 13
+                }
+            };
+            box.Add(_serverField);
+
+            box.Add(MakeMenuRow("play", Loc.Get("menu.connect.go"), primary: true, enabled: true,
+                () => BeginConnect(_serverField.value)));
+
+            return box;
+        }
+
+        /// <summary>
+        /// Accepts whatever was typed or clicked and leaves the menu. The URL is
+        /// only REMEMBERED here, not yet proven — a bad address is remembered
+        /// too, so the player can edit it instead of retyping from scratch.
+        /// </summary>
+        private void BeginConnect(string rawUrl)
+        {
+            var url = ServerBook.Normalize(rawUrl);
+            if (url.Length == 0)
+            {
+                return;
+            }
+
+            ServerBook.Remember(url);
+            SessionConfig.UseServer(url);
+
+            _connectChosen = true;
+            _continueChosen = false;
+            _menuChosen = true;
+        }
+
+        private void ToggleConnectRow(VisualElement card)
+        {
+            if (_connectBox == null)
+            {
+                return;
+            }
+
+            var opening = _connectBox.style.display == DisplayStyle.None;
+            _connectBox.style.display = opening ? DisplayStyle.Flex : DisplayStyle.None;
+            if (opening)
+            {
+                _serverField?.Focus();
+            }
+        }
+
         private static Button MakeMenuRow(
             string icon, string text, bool primary, bool enabled, System.Action onClick)
         {
@@ -517,6 +645,15 @@ namespace HexLive.UnityPresentation.UI
             _menuBox.style.display = DisplayStyle.None;
             _progressStrip.style.display = DisplayStyle.Flex;
 
+            // §Server: watching someone else's world skips this whole block —
+            // there is no seed to pick, no save to restore and no offline time
+            // to wind, because the world never stopped running.
+            if (_connectChosen)
+            {
+                yield return ConnectToServer();
+                yield break;
+            }
+
             int seed;
             if (_continueChosen && _save != null)
             {
@@ -547,6 +684,10 @@ namespace HexLive.UnityPresentation.UI
                     ? $"[HexLive] Restart same island: seed {seed}"
                     : $"[HexLive] New game: seed {seed}");
             }
+
+            // This session is local — so Continue offers the local save next
+            // time, not the server we happened to watch before it.
+            ServerBook.RememberLocalSession();
 
             SetProgress(0.02f, Loc.Get("loading.world"));
             yield return null;
@@ -676,6 +817,125 @@ namespace HexLive.UnityPresentation.UI
 
             _runner.AutosaveEnabled = true;
             Destroy(gameObject);
+        }
+
+        /// <summary>
+        /// Connect, wait for the world, then hand over to the same presentation
+        /// warm-up the local path uses.
+        /// <para>
+        /// Two things this must NOT do, both of which the local path does: wind
+        /// offline time (the server never stopped, so there is nothing to catch
+        /// up) and unpause at the end (the clock is not ours). It also has to
+        /// stay honest while waiting — a connect that is failing should say so,
+        /// not sit on a progress bar forever.
+        /// </para>
+        /// </summary>
+        private IEnumerator ConnectToServer()
+        {
+            IsReplaying = true;
+            SetProgress(0.05f, Loc.Get("loading.connecting"));
+
+            // Build the runner in remote mode. Configure() is what picks the
+            // backend, reading SessionConfig, which the menu just set.
+            _runner.Configure(
+                HexLive.Simulation.Bootstrap.PrototypeWorldDefinitionFactory.Create(0),
+                startPaused: true, initialSpeed: 1f);
+
+            var waited = 0f;
+            while (!_runner.IsReady)
+            {
+                var link = _runner.Link;
+                if (link.State == LinkState.Failed)
+                {
+                    // Unrecoverable — a different build, or an address that will
+                    // never resolve. Say why and go back to the menu rather than
+                    // spinning on a bar that will never fill.
+                    ShowConnectFailure(link.Message);
+                    yield break;
+                }
+
+                waited += Time.unscaledDeltaTime;
+                SetProgress(Mathf.Min(0.35f, 0.05f + waited * 0.05f),
+                    link.State == LinkState.Reconnecting
+                        ? Loc.Get("loading.reconnecting")
+                        : Loc.Get("loading.connecting"));
+                yield return null;
+            }
+
+            // The clock needs a couple of frames buffered before it will present
+            // anything; showing the island mid-fill would stutter on entry.
+            SetProgress(0.45f, Loc.Get("loading.syncing"));
+            var settle = 0f;
+            while (settle < 1.0f && _runner.CurrentTick <= 0)
+            {
+                settle += Time.unscaledDeltaTime;
+                yield return null;
+            }
+
+            IsReplaying = false;
+
+            SetProgress(0.6f, Loc.Get("loading.island"));
+            for (var i = 0; i < 6; i++)
+            {
+                yield return null;
+            }
+
+            var npcs = ListNpcIds();
+            for (var i = 0; i < npcs.Count; i++)
+            {
+                SetProgress(Mathf.Lerp(0.75f, 0.95f, (i + 1) / (float)npcs.Count),
+                    Loc.Get("loading.warmup"));
+                NpcSelection.Select(npcs[i].id);
+                yield return null;
+                yield return null;
+            }
+
+            SetProgress(1f, Loc.Get("loading.done"));
+            yield return null;
+
+            var t = 0f;
+            while (t < FadeSeconds)
+            {
+                t += Time.unscaledDeltaTime;
+                if (_root != null)
+                {
+                    _root.style.opacity = 1f - Mathf.Clamp01(t / FadeSeconds);
+                }
+
+                yield return null;
+            }
+
+            NpcSelection.Clear();
+            NpcSelection.Select(FindJana(npcs));
+
+            // No Resume(), no autosave: the server owns both.
+            Destroy(gameObject);
+        }
+
+        private void ShowConnectFailure(string message)
+        {
+            IsReplaying = false;
+            SetProgress(0f, string.IsNullOrEmpty(message)
+                ? Loc.Get("loading.connect.failed")
+                : Loc.Get("loading.connect.failed") + "\n" + message);
+
+            // Back to the menu: the player can fix the address and try again, or
+            // just play locally.
+            //
+            // The address stays in the book (it is probably a typo away from
+            // right), but this session no longer counts as remote — otherwise
+            // Continue would keep marching back into a server that is gone and
+            // there would be no way out but the connect list.
+            _menuChosen = false;
+            _connectChosen = false;
+            ServerBook.RememberLocalSession();
+            SessionConfig.UseServer(null);
+            if (_menuBox != null)
+            {
+                _menuBox.style.display = DisplayStyle.Flex;
+            }
+
+            StartCoroutine(Run());
         }
 
         private System.Collections.Generic.List<(int id, string name)> ListNpcIds()

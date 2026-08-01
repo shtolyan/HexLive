@@ -560,6 +560,7 @@ public sealed class MovementSystem : ISimulationSystem
                 npc.Movement.HopPathIndex = npc.Movement.PathIndex;
                 npc.Movement.HopCrossed = false;
                 npc.Movement.HopTimer = HexHopTuning.WindowSeconds(npc.Movement.HopUp);
+                npc.Movement.HopStartTick = world.Tick;
                 npc.Movement.DesiredRotationDegrees = HexSpatialMath.AngleDegrees(
                     HexSpatialMath.Normalize(npc.Movement.HopTo - npc.Movement.HopFrom));
                 npc.Movement.Status = MovementStatus.Waiting;

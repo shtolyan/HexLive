@@ -244,7 +244,12 @@ namespace HexLive.UnityPresentation.UI
 
         private void ForEachTarget(Action<NPCState> action)
         {
-            if (_runner?.Engine == null)
+            // These buttons edit NPC bodies in place (wounds, hygiene, tan, torn
+            // clothes). That is only meaningful while the world lives in this
+            // process; when it does not, Engine is null and the panel simply
+            // does nothing rather than throwing. Turning these into commands the
+            // world's owner executes is a separate job.
+            if (_runner == null || !_runner.SupportsDirectWorldMutation || _runner.Engine == null)
             {
                 return;
             }

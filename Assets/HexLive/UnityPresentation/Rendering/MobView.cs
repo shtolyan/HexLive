@@ -31,6 +31,15 @@ public sealed class MobView : MonoBehaviour
     // strikes land back-to-back (the controller also blocks Hit→Hit).
     private const float HitRetriggerSeconds = 0.35f;
 
+    // How long the Attack bool is held up for a windup we observed after its
+    // sim window had already closed (see SetAttacking). Long enough for the
+    // animator to take the transition, short enough not to stretch the bite.
+    private const float AttackHoldSeconds = 0.2f;
+
+    private int _lastAttackStartTick;
+    private float _attackHoldRemaining;
+    private bool _lastBiting;
+
     // Ground speed each clip's cadence represents, in body lengths per second
     // (scale-independent: an upsized mob expects a proportionally faster
     // gait). Defaults = the wolf's numbers; Configure() overrides them from
@@ -110,14 +119,29 @@ public sealed class MobView : MonoBehaviour
     // lands at the end of the pulse — the Attack bool tracks exactly that
     // window, so the snap plays when the bite actually happens and the mob
     // stands recovering between bites (the cooldown).
-    public void SetAttacking(bool biting)
+    //
+    // attackStartTick is the tick the sim opened the windup. The window is only
+    // ~2 ticks wide, and a frame renders one snapshot however many ticks it
+    // stepped, so fast-forward (and any dropped network tick) can step straight
+    // over it: `biting` never reads true and the wolf bites with no lunge. A
+    // start we have not played yet therefore HOLDS the bool up for a beat of its
+    // own, long enough for the controller to enter the Attack state.
+    public void SetAttacking(bool biting, int attackStartTick = 0)
     {
+        if (attackStartTick > 0 && attackStartTick != _lastAttackStartTick)
+        {
+            _attackHoldRemaining = AttackHoldSeconds;
+        }
+
+        _lastAttackStartTick = attackStartTick;
+        _lastBiting = biting;
+
         if (_animator == null)
         {
             return;
         }
 
-        _animator.SetBool(AttackParam, biting);
+        _animator.SetBool(AttackParam, biting || _attackHoldRemaining > 0f);
     }
 
     // 29C.3 v2: while fighting, the pair squares up — the renderer hands us the
@@ -192,6 +216,26 @@ public sealed class MobView : MonoBehaviour
         if (_animator == null || Time.deltaTime <= 0f)
         {
             return;
+        }
+
+        // Let a held-up bite (see SetAttacking) expire on its own clock. The
+        // renderer re-feeds the real flag every snapshot, so this only matters
+        // for the beat between a late-observed windup and the next sync.
+        // Only DROP the bool if the real flag was down: in ordinary play the
+        // hold (0.2 s) expires while the true windup (0.5 s) is still on, and
+        // clearing unconditionally here de-asserted Attack for part of a frame
+        // mid-bite — enough for the animator to bail out of the lunge.
+        if (_attackHoldRemaining > 0f)
+        {
+            _attackHoldRemaining -= Time.deltaTime;
+            if (_attackHoldRemaining <= 0f)
+            {
+                _attackHoldRemaining = 0f;
+                if (!_lastBiting)
+                {
+                    _animator.SetBool(AttackParam, false);
+                }
+            }
         }
 
         var delta = transform.position - _lastPosition;

@@ -24,12 +24,51 @@ public static class WorldSnapshotExporter
     // junction lists in place instead of reallocating them every tick. The
     // caller must be the sole owner of that snapshot (consumers may not hold
     // it across ticks — HexWorldRenderer & co. re-poll every frame).
+    // Ascending-id comparers, cached so sorting does not allocate a delegate per
+    // tick. See SortById for why the order matters at all.
+    private static readonly Comparison<ObjectSnapshot> ByObjectId =
+        (a, b) => a.Id.Value.CompareTo(b.Id.Value);
+
+    private static readonly Comparison<NpcSnapshot> ByNpcId =
+        (a, b) => a.Id.Value.CompareTo(b.Id.Value);
+
+    private static readonly Comparison<MobSnapshot> ByMobId = (a, b) => a.Id.CompareTo(b.Id);
+
+    private static readonly Comparison<CrabSnapshot> ByCrabId = (a, b) => a.Id.CompareTo(b.Id);
+
+    private static readonly Comparison<SharkSnapshot> BySharkId = (a, b) => a.Id.CompareTo(b.Id);
+
+    /// <summary>
+    /// Puts every entity list in ascending-id order.
+    /// <para>
+    /// The lists are built by walking <c>Dictionary&lt;ObjectId, …&gt;</c>, whose
+    /// enumeration order shifts after any removal — so index <i>i</i> is NOT
+    /// reliably the same entity from one tick to the next, and objects despawn
+    /// constantly (picked up, eaten, rotted). Today that is invisible because
+    /// every slot is overwritten every tick. It stops being invisible the moment
+    /// anything compares this tick to the last one: a delta encoder would resend
+    /// the world on a reshuffle, and a checksum would disagree between two ends
+    /// holding identical state — an alarm that cries wolf is worse than none.
+    /// </para>
+    /// </summary>
+    private static void SortById(WorldSnapshot snapshot)
+    {
+        snapshot.Objects.Sort(ByObjectId);
+        snapshot.Npcs.Sort(ByNpcId);
+        snapshot.Mobs.Sort(ByMobId);
+        snapshot.Crabs.Sort(ByCrabId);
+        snapshot.Sharks.Sort(BySharkId);
+    }
+
     public static WorldSnapshot Export(WorldState world, WorldSnapshot reuse)
     {
         var snapshot = reuse ?? new WorldSnapshot();
         snapshot.Tick = world.Tick;
+        snapshot.Seed = world.Seed;
+        snapshot.TickDeltaTime = world.TickDeltaTime;
         snapshot.Temperature = world.Environment.GlobalTemperature;
         snapshot.Clock = Runtime.EnvironmentSystem.FormatClock(world.Environment.TimeOfDayNormalized);
+        snapshot.TimeOfDayNormalized = world.Environment.TimeOfDayNormalized;
         snapshot.DayPhase = world.Environment.Phase.ToString();
         snapshot.UvIndex = world.Environment.UvIndex;
         snapshot.IsRaining = world.Environment.IsRaining;
@@ -41,6 +80,8 @@ public static class WorldSnapshotExporter
 
         ExportTiles(world, snapshot);
         ExportJunctions(world, snapshot);
+
+        // Entity lists come out in ASCENDING ID order, always — see SortById.
 
         snapshot.Objects.Clear();
         foreach (var pair in world.Entities.Objects)
@@ -147,7 +188,8 @@ public static class WorldSnapshotExporter
                 Health = dog.Health,
                 Status = dog.Status.ToString(),
                 TargetNpcId = dog.TargetNpc?.Value ?? -1,
-                IsAttacking = dog.AttackLandsAtTick > 0
+                IsAttacking = dog.AttackLandsAtTick > 0,
+                AttackStartTick = dog.AttackStartTick
             });
         }
 
@@ -158,6 +200,7 @@ public static class WorldSnapshotExporter
             {
                 snapshot.TraceEvents.Add(new TraceEventSnapshot
                 {
+                    Seq = trace.Seq,
                     Tick = trace.Tick,
                     EntityId = trace.EntityId,
                     Type = trace.Type,
@@ -166,6 +209,7 @@ public static class WorldSnapshotExporter
             }
         }
 
+        SortById(snapshot);
         return snapshot;
     }
 
@@ -541,7 +585,8 @@ public static class WorldSnapshotExporter
         // §Wardrobe-anim: progress + the garment in hand + the target object,
         // so the view can phase dress/undress and hide the picked-up ground copy.
         var execTotal = npc.Execution.EndTick - npc.Execution.StartTick;
-        var interactionProgress = npc.Execution.Status == ExecutionStatus.InProgress && execTotal > 0
+        var hasTimedInteraction = npc.Execution.Status == ExecutionStatus.InProgress && execTotal > 0;
+        var interactionProgress = hasTimedInteraction
             ? Math.Clamp((float)(world.Tick - npc.Execution.StartTick) / execTotal, 0f, 1f)
             : 0f;
         var heldGarmentId = ResolveHeldGarment(world, npc, interactionProgress);
@@ -560,13 +605,20 @@ public static class WorldSnapshotExporter
 
         var npcSnapshot = new NpcSnapshot
         {
-            InteractionProgress = interactionProgress,
+            // Zeroed unless a timed interaction is REALLY running. Note this asks
+            // npc.Execution.Status, not the exported ExecutionStatus below, which
+            // is overridden to InProgress for an exhaustion coma (§60 r2) — the
+            // client derives progress from these two ints, so they must answer
+            // the same question the server does or the two ends disagree by a
+            // hair forever. (The old per-tick InteractionProgress float is gone:
+            // it changed every tick and would have marked an otherwise-motionless
+            // crafter dirty on every delta frame; ProgressAt(tick) derives it.)
+            ExecutionStartTick = hasTimedInteraction ? npc.Execution.StartTick : 0,
+            ExecutionEndTick = hasTimedInteraction ? npc.Execution.EndTick : 0,
             // §77.5: the window the view fits one playthrough of the work clip
-            // into. Same guard as the progress above — 0 unless a timed
-            // interaction is actually running.
-            InteractionSeconds = npc.Execution.Status == ExecutionStatus.InProgress && execTotal > 0
-                ? execTotal * world.TickDeltaTime
-                : 0f,
+            // into. Constant for the interaction's whole life (delta-friendly),
+            // same zero-guard as the ticks above.
+            InteractionSeconds = hasTimedInteraction ? execTotal * world.TickDeltaTime : 0f,
             AidTargetLyingDown = aidTargetLying,
             HeldGarmentId = heldGarmentId,
             // §40.6 r2: live condition of the held piece — the hand prop shows
@@ -590,6 +642,7 @@ public static class WorldSnapshotExporter
             Health = npc.Health,
             IsFighting = npc.IsFighting,
             IsSwinging = world.Tick < npc.AttackAnimUntilTick,
+            SwingStartTick = npc.SwingStartTick,
             StrikeIndex = npc.SwingStrikeIndex,
             Hunger = npc.Needs.Hunger,
             Thirst = npc.Needs.Thirst,
@@ -839,6 +892,7 @@ public static class WorldSnapshotExporter
         npcSnapshot.HopKind = npc.Movement.HopTimer > 0f
             ? (npc.Movement.HopUp ? "Up" : "Down")
             : string.Empty;
+        npcSnapshot.HopStartTick = npc.Movement.HopStartTick;
         npcSnapshot.HopTargetTile = npc.Movement.HopTargetTile;
 
         // Iter 28: sitting at a junction whose tiles step exactly one

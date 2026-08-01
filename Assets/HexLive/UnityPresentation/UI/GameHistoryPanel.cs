@@ -237,13 +237,15 @@ namespace HexLive.UnityPresentation.UI
 
         private void Refresh(bool force)
         {
-            if (_runner?.Engine == null || _entries == null || _emptyLabel == null)
+            if (_runner == null || !_runner.IsReady || _entries == null || _emptyLabel == null)
             {
                 return;
             }
 
             _runner.GameHistory.Flush();
-            var seed = _runner.Engine.World.Seed;
+            // The history file is keyed by seed; a client learns it from the
+            // handshake, so read it off the source, not off WorldState.
+            var seed = _runner.Seed;
             if (seed != _lastSeed)
             {
                 _lastSeed = seed;

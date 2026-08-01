@@ -46,6 +46,12 @@ public sealed class MovementState
     // HopPathIndex remembers which path step already hopped so a resumed walk
     // doesn't re-hop. Transient — not persisted in saves.
     public float HopTimer { get; set; }
+    // The tick the hop STARTED. Presentation starts the arc on a hop-start it
+    // has not played yet instead of on the rising edge of HopKind — a skipped
+    // tick otherwise loses the jump entirely and she glides up the ledge. It
+    // also lets a late-observed hop start a SHORTENED arc from what is left of
+    // the window rather than a full one that overshoots the landing.
+    public int HopStartTick { get; set; }
     // §21.21B v6 lattice-point jump: a straight flight from where she stood
     // when the edge junction became her target to the lattice point AFTER it
     // (the edge junction itself is excluded from walking); LandingIndex is

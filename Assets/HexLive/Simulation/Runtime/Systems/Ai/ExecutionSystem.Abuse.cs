@@ -169,8 +169,16 @@ public sealed partial class ExecutionSystem
 
             npc.IsFighting = true;
             npc.Mind.CombatOpponentNpcId = mark.Id;
-            mark.IsFighting = true;
-            mark.Mind.CombatOpponentNpcId = npc.Id;
+            // §100: она отвечает НЕ ВСЕГДА. Испугалась — стоит и терпит, и он
+            // просто пару раз бьёт. Бросок детерминированный, поэтому реплей
+            // повторяется в точности.
+            var answers = MathUtil.Hash01(world.Seed, world.Tick, mark.Id.Value, 5501) <
+                Spec81.AbuseFightBackChance;
+            if (answers)
+            {
+                mark.IsFighting = true;
+                mark.Mind.CombatOpponentNpcId = npc.Id;
+            }
             MobSystem.RememberDanger(world, mark);
             CombatHelpSystem.RallyFriends(world, mark, null, npc.Id,
                 $"Abuse=NPC{npc.Id.Value}");
@@ -207,9 +215,11 @@ public sealed partial class ExecutionSystem
 
         // --- Такт 4: приговор. Наступает по ЧИСЛУ УДАРОВ, а не только по
         // времени: стычка кончается тем, что он своё сказал руками. --------
-        if (npc.Mind.AbuseBeat < 4 &&
-            (npc.Mind.AbuseBlows >= Spec81.AbuseMaxBlows ||
-             elapsed >= Spec81.AbuseBeatVerdictTicks))
+        // §100: приговор строго ПО ВРЕМЕНИ. Раньше он наступал ещё и по числу
+        // ударов, и сцена схлопывалась за пару секунд, не успев прочитаться.
+        // Сколько ударов лечь успеет — столько и ляжет, но пять секунд драки
+        // будут.
+        if (npc.Mind.AbuseBeat < 4 && elapsed >= Spec81.AbuseBeatVerdictTicks)
         {
             npc.Mind.AbuseBeat = 4;
 

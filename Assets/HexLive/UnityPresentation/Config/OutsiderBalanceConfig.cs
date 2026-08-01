@@ -167,17 +167,17 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Сколько силы добавляет ей каждая подруга рядом.")]
         [Range(0f, 2f)] public float abuseAllyForceShare = 0.6f;
         [Tooltip("Длина всей сцены, тиков.")]
-        [Range(0, 4800)] public int abuseDurationTicks = 48;
+        [Range(0, 4800)] public int abuseDurationTicks = 28;
         [Tooltip("Такт «она плачет», тиков от начала.")]
-        [Range(0, 4800)] public int abuseBeatCryTicks = 12;
+        [Range(0, 4800)] public int abuseBeatCryTicks = 6;
         [Tooltip("Такт первого тычка.")]
-        [Range(0, 4800)] public int abuseBeatBlowTicks = 20;
+        [Range(0, 4800)] public int abuseBeatBlowTicks = 4;
         [Tooltip("Такт второго тычка.")]
-        [Range(0, 4800)] public int abuseBeatBlowSecondTicks = 32;
+        [Range(0, 4800)] public int abuseBeatBlowSecondTicks = 12;
         [Tooltip("Такт «сдалась или отказала».")]
-        [Range(0, 4800)] public int abuseBeatVerdictTicks = 40;
+        [Range(0, 4800)] public int abuseBeatVerdictTicks = 20;
         [Tooltip("Такт «забрал добычу».")]
-        [Range(0, 4800)] public int abuseBeatTakeTicks = 44;
+        [Range(0, 4800)] public int abuseBeatTakeTicks = 24;
         [Tooltip("Сколько раз он бьёт для острастки.")]
         [Range(0, 12)] public int abuseMaxBlows = 2;
         [Tooltip("§99: во сколько ДЛИН КЛИПА разводятся удары сцены. Своя скорость оружия для короткой сцены слишком частая — второй замах перебивал первый, и удара было не видно.")]
@@ -191,7 +191,7 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("§91: какая доля потери симпатии достаётся ЕМУ. Без неё его собственная неприязнь не растёт, а от неё зависит, возьмётся ли он за нож и добьёт ли.")]
         [Range(0f, 1f)] public float abuserOwnAffinityShare = 1f;
         [Tooltip("§91: вероятность, что она ОГРЫЗНЁТСЯ на тычок. Не решение драться (оно в приговоре), а рефлекс.")]
-        [Range(0f, 1f)] public float abuseFightBackChance = 0.4f;
+        [Range(0f, 1f)] public float abuseFightBackChance = 0.55f;
         [Tooltip("Ниже этого здоровья удар не наносится вовсе.")]
         [Range(0f, 2f)] public float abuseNoBlowHealthFloor = 0.5f;
         [Tooltip("Сколько защитниц рядом заставляют его бросить сцену.")]

@@ -78,12 +78,16 @@ public static class Spec81
 
     // --- Сцена ---------------------------------------------------------------
 
-    public static int AbuseDurationTicks = 48;
-    public static int AbuseBeatCryTicks = 12;
-    public static int AbuseBeatBlowTicks = 20;
-    public static int AbuseBeatBlowSecondTicks = 32;
-    public static int AbuseBeatVerdictTicks = 40;
-    public static int AbuseBeatTakeTicks = 44;
+    // §100: сцена перекроена под ПЯТЬ СЕКУНД драки (4 тика в секунду).
+    // Прежние такты кончали её за пару обменов и пару секунд — не успевало
+    // прочитаться ни одного замаха.
+    public static int AbuseDurationTicks = 28;
+    public static int AbuseBeatCryTicks = 6;
+    public static int AbuseBeatBlowTicks = 4;
+    public static int AbuseBeatBlowSecondTicks = 12;
+    // Пять секунд драки: столько она и длится, сколько бы ударов ни легло.
+    public static int AbuseBeatVerdictTicks = 20;
+    public static int AbuseBeatTakeTicks = 24;
 
     // «Может пару раз ударить». Кулаками, НЕ оружием: ему нужны её припасы и её
     // страх, а не её труп; два удара ножом загнали бы её в порог бегства, и
@@ -117,7 +121,10 @@ public static class Spec81
     // §91: с этой вероятностью она ОГРЫЗАЕТСЯ на тычок — бьёт в ответ. Не
     // выбор «драться или нет» (он решается в приговоре), а рефлекс: получила —
     // ударила. Именно это делает сцену перепалкой, а не избиением столба.
-    public static float AbuseFightBackChance = 0.4f;
+    // §100: с какой вероятностью она ВООБЩЕ отвечает. Не ответила — стоит и
+    // терпит: испугалась. Так сцена перестаёт быть одинаковой, и «он просто
+    // пару раз ударил» тоже становится возможным исходом.
+    public static float AbuseFightBackChance = 0.55f;
 
     // Ниже этого здоровья удар просто не наносится: пугать умирающую незачем,
     // а добить её сцена не должна.

@@ -103,8 +103,13 @@ public sealed class HumanCombatSystem : ISimulationSystem
                 //
                 // Отодвигаем готовность так, чтобы клип успел доиграть целиком.
                 var clip = GearCatalog.AttackDurationSeconds(weaponId);
-                var floor = world.Tick +
-                    MeleeSwing.SecondsToTicks(clip * Spec81.AbuseBlowSpacing);
+                // §100: своё он уже сказал — дальше стоит и смотрит, а сцена
+                // доигрывает до приговора. Столько ударов, сколько назначено,
+                // и ни одним больше, даже если время ещё есть.
+                var spacing = abuserHere && actor.Mind.AbuseBlows >= Spec81.AbuseMaxBlows
+                    ? Spec81.AbuseDurationTicks
+                    : MeleeSwing.SecondsToTicks(clip * Spec81.AbuseBlowSpacing);
+                var floor = world.Tick + spacing;
                 if (actor.StrikeReadyAtTick < floor)
                 {
                     actor.StrikeReadyAtTick = floor;

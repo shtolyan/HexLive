@@ -56,17 +56,30 @@ public sealed partial class PlanningSystem
             return;
         }
 
-        // Уже стоим вплотную — сцена начинается прямо здесь, идти незачем.
-        if (npc.CurrentJunction is { } here && here.Equals(markJunction))
+        // ⭐ §102 r2: УЖЕ ВПЛОТНУЮ — сцена начинается прямо здесь.
+        //
+        // Раньше это проверялось только для ОДНОГО И ТОГО ЖЕ узла, а стоящий на
+        // СОСЕДНЕМ шёл искать подход — которого не существует: подход ищется
+        // среди СВОБОДНЫХ соседей её узла, а тот единственный, что рядом, занят
+        // им же самим. План проваливался, цель бралась заново, и так вечно.
+        //
+        // Наружу это и было тем «зависанием»: стоит вплотную к жертве, цель
+        // «хочу докопаться», тяга 3.00, здоровье 1.00 — и полчаса ничего.
+        // Мерка та же, что у боя: сцена всё равно требует ударной дистанции.
+        if (MeleeSwing.InReach(world, npc, mark))
         {
+            // Взаимодействие происходит там, где он СТОИТ: гнать его на её
+            // узел незачем, а «прибытие буквальное» в исполнении сверяется
+            // именно с этим узлом.
+            var here = npc.CurrentJunction ?? markJunction;
             npc.Plan.TargetAgentId = mark.Id;
-            npc.Plan.TargetJunctionId = markJunction;
+            npc.Plan.TargetJunctionId = here;
             npc.Plan.TargetTile = mark.Tile;
             ClaimMark(world, npc, mark);
             npc.Plan.Steps.Add(new PlanStep
             {
                 Type = PlanStepType.Interact,
-                TargetJunction = markJunction,
+                TargetJunction = here,
                 Interaction = InteractionType.Abuse
             });
             npc.Plan.CurrentStepIndex = 0;

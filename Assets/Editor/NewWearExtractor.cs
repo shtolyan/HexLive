@@ -74,6 +74,11 @@ public static class NewWearExtractor
     private sealed class MatSpec
     {
         public string Source;       // material name inside the FBX
+        // Other FBX material names that should land on this same material. A
+        // DAZ prop splits one texture atlas across dozens of named surfaces —
+        // the headdress has eighteen for the helmet alone — and shipping a
+        // submesh per surface would be eighteen draw calls for one hat.
+        public string[] Aliases = { };
         public string Texture;      // file under <Folder>/Textures (null = plain color)
         public Color Color = Color.white;
         public float Smoothness = 0.3f;
@@ -85,6 +90,10 @@ public static class NewWearExtractor
     private sealed class GarmentSpec
     {
         public string SourceKey;    // mesh name inside the FBX
+        // Set when the garment arrives as an ASSEMBLY of meshes rather than
+        // one: every renderer whose name starts with one of these is welded
+        // into a single skinned mesh under SourceKey. See MergeParts.
+        public string[] SourceKeys;
         public string Folder;       // ImportedActors/Wear/<Folder>
         public string Name;         // prefab + root GameObject name
         public string SimId;        // Resources/HexLive/Wear/<SimId>/
@@ -131,6 +140,11 @@ public static class NewWearExtractor
     [System.Serializable] private sealed class DropGarment
     {
         public string sourceKey, folder, name, simId, layer;
+        // An accessory can arrive as an ASSEMBLY rather than one mesh: the
+        // Jaguar Headdress exports as 29 (a rigid helmet plus 28 feathers and
+        // cords). Listing them here merges them into the one skinned mesh the
+        // wardrobe contract allows — see MergeParts.
+        public string[] sourceKeys;
         public string[] slots, noHide;
         public DropMaterial[] materials;
         public DropHeel heelPose;   // spec §31B.4C — heeled shoes only
@@ -147,6 +161,7 @@ public static class NewWearExtractor
     [System.Serializable] private sealed class DropMaterial
     {
         public string source, texture, color;
+        public string[] alsoSources;    // more FBX surfaces sharing this material
         public float smoothness = 0.3f, metallic;
         public bool doubleSided = true, alphaClip;
     }
@@ -214,6 +229,7 @@ public static class NewWearExtractor
             garments.Add(new GarmentSpec
             {
                 SourceKey = g.sourceKey,
+                SourceKeys = g.sourceKeys != null && g.sourceKeys.Length > 0 ? g.sourceKeys : null,
                 Folder = g.folder,
                 Name = g.name,
                 SimId = g.simId,
@@ -223,6 +239,7 @@ public static class NewWearExtractor
                 Materials = (g.materials ?? new DropMaterial[0]).Select(m => new MatSpec
                 {
                     Source = m.source,
+                    Aliases = m.alsoSources ?? new string[0],
                     Texture = string.IsNullOrEmpty(m.texture) ? null : m.texture,
                     Color = ParseColor(m.color),
                     Smoothness = m.smoothness,
@@ -343,6 +360,10 @@ public static class NewWearExtractor
 
         // Instantiate the three FBX rigs once; index every garment renderer.
         var instances = new List<GameObject>();
+        // One girl now has several rigs — one FBX per drop — so this is a list.
+        // Keyed by girl alone, the second drop simply overwrote the first and a
+        // welded garment went looking for its helmet in the Sweet Jane export.
+        var rigs = new Dictionary<ActorName, List<GameObject>>();
         var renderers = new Dictionary<(ActorName actor, string key), SkinnedMeshRenderer>();
         try
         {
@@ -358,6 +379,12 @@ public static class NewWearExtractor
                 var instance = Object.Instantiate(prefab);
                 instance.hideFlags = HideFlags.HideAndDontSave;
                 instances.Add(instance);
+                if (!rigs.TryGetValue(actor, out var forActor))
+                {
+                    rigs[actor] = forActor = new List<GameObject>();
+                }
+
+                forActor.Add(instance);
                 foreach (var r in instance.GetComponentsInChildren<SkinnedMeshRenderer>(true))
                 {
                     var key = Garments.FirstOrDefault(g =>
@@ -381,7 +408,7 @@ public static class NewWearExtractor
                     continue;
                 }
 
-                if (ExtractGarment(g, renderers, log))
+                if (ExtractGarment(g, renderers, rigs, log))
                 {
                     done++;
                 }
@@ -412,8 +439,27 @@ public static class NewWearExtractor
     private static bool ExtractGarment(
         GarmentSpec g,
         Dictionary<(ActorName, string), SkinnedMeshRenderer> renderers,
+        Dictionary<ActorName, List<GameObject>> rigs,
         System.Text.StringBuilder log)
     {
+        if (g.SourceKeys != null)
+        {
+            foreach (var pair in rigs)
+            {
+                // Only one of a girl's rigs holds this kit; the rest belong to
+                // other drops and are expected to come back empty.
+                foreach (var rig in pair.Value)
+                {
+                    var welded = MergeParts(g, rig);
+                    if (welded != null)
+                    {
+                        renderers[(pair.Key, g.SourceKey)] = welded;
+                        break;
+                    }
+                }
+            }
+        }
+
         if (!renderers.TryGetValue((ActorName.Jana, g.SourceKey), out var reference))
         {
             Debug.LogError($"[NewWear] {g.SourceKey}: no renderer in the jana FBX — skipped");
@@ -464,7 +510,12 @@ public static class NewWearExtractor
         var mats = new Dictionary<string, Material>();
         foreach (var spec in g.Materials)
         {
-            mats[spec.Source] = BuildMaterial(g, spec);
+            var built = BuildMaterial(g, spec);
+            mats[spec.Source] = built;
+            foreach (var alias in spec.Aliases)
+            {
+                mats[alias] = built;
+            }
         }
 
         // --- prefab -----------------------------------------------------------
@@ -482,6 +533,247 @@ public static class NewWearExtractor
 
         log.AppendLine($"  {g.SourceKey} -> {PrefabPath(g)} ({meshes.Count} meshes, {mats.Count} mats)");
         return true;
+    }
+
+    // --- welding an assembly into one garment --------------------------------
+    //
+    //  Some DAZ products are not a garment but a kit. The Jaguar Headdress
+    //  exports as twenty-nine renderers: a rigid helmet parented straight to
+    //  the head bone, plus twenty-eight feathers and cords, each skinned to ONE
+    //  private bone. The wardrobe takes exactly one SkinnedMeshRenderer and one
+    //  Mesh per garment, so a kit cannot be worn at all until it is welded.
+    //
+    //  Those private bones are dead weight HERE: Wear.Construct binds a
+    //  garment's skeleton to the body BY NAME, and no girl has a bone called
+    //  "Bone". Nothing can ever drive them, so the feathers cannot sway
+    //  whatever we do — they are rigid bodies hanging off the head. That makes
+    //  this merge exact rather than a compromise: bake every part into the one
+    //  bone they all really follow and the result matches DAZ, at one bone and
+    //  one draw call per material.
+    //
+    //  The maths is just the skinning identity. A skinned vertex lands at
+    //      world = bone.localToWorld * bindpose * v
+    //  so a part's authored-space matrix is bone.localToWorld * bindpose⁻¹,
+    //  read off the instance while it still stands in its bind pose. Every part
+    //  is pushed through that into the rig's own space, and one bindpose
+    //  (anchor.worldToLocal * rig.localToWorld) sends the whole thing back.
+    private static SkinnedMeshRenderer MergeParts(GarmentSpec g, GameObject rig)
+    {
+        if (g.Materials == null || g.Materials.Length == 0)
+        {
+            Debug.LogError($"[NewWear] {g.SourceKey}: сборный предмет без материалов");
+            return null;
+        }
+
+        // The body is simply the rig's richest skeleton — 172 bones against the
+        // one bone every prop part carries.
+        var body = rig.GetComponentsInChildren<SkinnedMeshRenderer>(true)
+            .OrderByDescending(r => r.bones.Length)
+            .FirstOrDefault();
+        var bodyBones = new HashSet<Transform>(
+            body != null ? body.bones.Where(b => b != null) : Enumerable.Empty<Transform>());
+        if (bodyBones.Count == 0)
+        {
+            Debug.LogError($"[NewWear] {g.SourceKey}: в FBX нет скелета тела");
+            return null;
+        }
+
+        var parts = new List<(Renderer renderer, Mesh mesh, Matrix4x4 toRig, Transform anchor)>();
+        Transform shared = null;
+        foreach (var r in rig.GetComponentsInChildren<Renderer>(true))
+        {
+            if (!g.SourceKeys.Any(k => r.name.StartsWith(k, System.StringComparison.Ordinal)))
+            {
+                continue;
+            }
+
+            Mesh mesh;
+            Matrix4x4 authored;
+            Transform from;
+            if (r is SkinnedMeshRenderer skinned)
+            {
+                mesh = skinned.sharedMesh;
+                var bind = mesh != null ? mesh.bindposes : null;
+                var i = System.Array.FindIndex(skinned.bones, b => b != null);
+                if (mesh == null || bind == null || i < 0 || i >= bind.Length)
+                {
+                    Debug.LogWarning($"[NewWear] {g.SourceKey}: {r.name} без пригодного скиннинга — пропущен");
+                    continue;
+                }
+
+                authored = skinned.bones[i].localToWorldMatrix * bind[i].inverse;
+                from = skinned.bones[i];
+            }
+            else
+            {
+                var filter = r.GetComponent<MeshFilter>();
+                mesh = filter != null ? filter.sharedMesh : null;
+                if (mesh == null)
+                {
+                    continue;
+                }
+
+                authored = r.transform.localToWorldMatrix;
+                from = r.transform;
+            }
+
+            var anchor = NearestBone(from, bodyBones);
+            if (anchor == null)
+            {
+                Debug.LogWarning($"[NewWear] {g.SourceKey}: {r.name} ни к чему не привязан — пропущен");
+                continue;
+            }
+
+            shared = shared == null ? anchor : CommonAncestor(shared, anchor);
+            parts.Add((r, mesh, rig.transform.worldToLocalMatrix * authored, anchor));
+        }
+
+        if (parts.Count == 0 || shared == null)
+        {
+            // Not an error: the caller offers every rig the girl has, and only
+            // one of them was exported with this kit on her.
+            return null;
+        }
+
+        // --- pour every part into one buffer ---------------------------------
+        var vertices = new List<Vector3>();
+        var normals = new List<Vector3>();
+        var tangents = new List<Vector4>();
+        var uvs = new List<Vector2>();
+        var order = new List<MatSpec>();
+        var triangles = new Dictionary<MatSpec, List<int>>();
+        var samples = new Dictionary<MatSpec, Material>();
+
+        foreach (var (renderer, mesh, toRig, _) in parts)
+        {
+            var offset = vertices.Count;
+            var src = mesh.vertices;
+            var srcNormals = mesh.normals;
+            var srcTangents = mesh.tangents;
+            var srcUv = mesh.uv;
+            for (var i = 0; i < src.Length; i++)
+            {
+                vertices.Add(toRig.MultiplyPoint3x4(src[i]));
+                normals.Add(i < srcNormals.Length
+                    ? toRig.MultiplyVector(srcNormals[i]).normalized
+                    : Vector3.up);
+                if (i < srcTangents.Length)
+                {
+                    var t = srcTangents[i];
+                    var dir = toRig.MultiplyVector(new Vector3(t.x, t.y, t.z)).normalized;
+                    tangents.Add(new Vector4(dir.x, dir.y, dir.z, t.w));
+                }
+                else
+                {
+                    tangents.Add(new Vector4(1f, 0f, 0f, -1f));
+                }
+
+                uvs.Add(i < srcUv.Length ? srcUv[i] : Vector2.zero);
+            }
+
+            var slots = renderer.sharedMaterials;
+            for (var sub = 0; sub < mesh.subMeshCount; sub++)
+            {
+                var slot = sub < slots.Length ? slots[sub] : null;
+                var spec = SpecFor(g, slot != null ? slot.name.Replace(" (Instance)", "") : "");
+                if (!triangles.TryGetValue(spec, out var bucket))
+                {
+                    bucket = new List<int>();
+                    triangles[spec] = bucket;
+                    samples[spec] = slot;
+                    order.Add(spec);
+                }
+
+                foreach (var index in mesh.GetTriangles(sub))
+                {
+                    bucket.Add(index + offset);
+                }
+            }
+        }
+
+        // Every vertex rides the one bone the whole kit really follows.
+        var weights = new BoneWeight[vertices.Count];
+        for (var i = 0; i < weights.Length; i++)
+        {
+            weights[i] = new BoneWeight { boneIndex0 = 0, weight0 = 1f };
+        }
+
+        var merged = new Mesh
+        {
+            name = g.SourceKey,
+            indexFormat = UnityEngine.Rendering.IndexFormat.UInt32,
+        };
+        merged.SetVertices(vertices);
+        merged.SetNormals(normals);
+        merged.SetTangents(tangents);
+        merged.SetUVs(0, uvs);
+        merged.bindposes = new[] { shared.worldToLocalMatrix * rig.transform.localToWorldMatrix };
+        merged.boneWeights = weights;
+        merged.subMeshCount = order.Count;
+        for (var i = 0; i < order.Count; i++)
+        {
+            merged.SetTriangles(triangles[order[i]], i);
+        }
+
+        merged.RecalculateBounds();
+
+        var go = new GameObject(g.SourceKey + " (merged)");
+        go.transform.SetParent(rig.transform, false);
+        var smr = go.AddComponent<SkinnedMeshRenderer>();
+        smr.sharedMesh = merged;
+        smr.bones = new[] { shared };
+        smr.rootBone = shared;
+        smr.localBounds = merged.bounds;
+        // Real FBX materials, not placeholders: their names go through the same
+        // alias table BuildMaterial was keyed by, so the mapping stays honest.
+        smr.sharedMaterials = order.Select(spec => samples[spec]).ToArray();
+
+        Debug.Log($"[NewWear] {g.SourceKey}: собрано {parts.Count} част(и) → " +
+                  $"{vertices.Count} вершин, {order.Count} материал(а), кость '{shared.name}'");
+        return smr;
+    }
+
+    private static MatSpec SpecFor(GarmentSpec g, string materialName)
+    {
+        foreach (var spec in g.Materials)
+        {
+            if (spec.Source == materialName ||
+                System.Array.IndexOf(spec.Aliases, materialName) >= 0)
+            {
+                return spec;
+            }
+        }
+
+        return g.Materials[0];
+    }
+
+    private static Transform NearestBone(Transform from, HashSet<Transform> bones)
+    {
+        for (var t = from; t != null; t = t.parent)
+        {
+            if (bones.Contains(t))
+            {
+                return t;
+            }
+        }
+
+        return null;
+    }
+
+    private static Transform CommonAncestor(Transform a, Transform b)
+    {
+        for (var x = a; x != null; x = x.parent)
+        {
+            for (var y = b; y != null; y = y.parent)
+            {
+                if (x == y)
+                {
+                    return x;
+                }
+            }
+        }
+
+        return a;
     }
 
     private static Material BuildMaterial(GarmentSpec g, MatSpec spec)

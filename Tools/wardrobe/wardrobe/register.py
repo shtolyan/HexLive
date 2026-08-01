@@ -65,9 +65,14 @@ def _newline(text: str) -> str:
 
 # --- GarmentLibrary ---------------------------------------------------------
 
+# Each layer's rows end where the NEXT comment banner starts. Outerwear is the
+# last clothing section, so its banner is the §72 raider kit that follows it —
+# without this entry the first Outerwear garment (the jaguar headdress) had
+# nowhere to go and register refused it.
 _SECTION_END = {
     "Underwear": "// --- Wear: the main clothing layer",
     "Wear": "// --- Outerwear: the top layer",
+    "Outerwear": "// --- §72: снаряжение чужака",
 }
 
 

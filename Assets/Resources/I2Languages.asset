@@ -2529,6 +2529,22 @@ MonoBehaviour:
       - 'Носимый предмет.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'item.clothing_headdress_jaguar.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Jaguar Headdress'
+      - 'Убор ягуара'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_headdress_jaguar.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A carved ceremonial helmet crowned with feathers. Keeps the head warm and turns a glancing blow.'
+      - 'Резной церемониальный шлем в венце из перьев. Греет голову и держит скользящий удар.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'item.unknown.name'
       TermType: 0
       Description: 

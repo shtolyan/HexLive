@@ -82,6 +82,7 @@ namespace HexLive.Simulation.Content
             ["clothing.coat"] = new[] { WearSlot.Chest, WearSlot.ShoulderR, WearSlot.ShoulderL, WearSlot.ForearmR, WearSlot.ForearmL },
             ["clothing.dress_fur"] = new[] { WearSlot.Chest, WearSlot.Belly, WearSlot.Pelvis },
             ["clothing.dress_night"] = new[] { WearSlot.Chest, WearSlot.Belly, WearSlot.Pelvis },
+            ["clothing.headdress_jaguar"] = new[] { WearSlot.Head },
             ["clothing.leather_pants"] = new[] { WearSlot.Pelvis, WearSlot.ThighR, WearSlot.ThighL, WearSlot.ShinR, WearSlot.ShinL },
             ["clothing.leggings_fitness"] = new[] { WearSlot.Pelvis, WearSlot.ThighR, WearSlot.ThighL, WearSlot.ShinR, WearSlot.ShinL },
             ["clothing.shorts_cherry"] = new[] { WearSlot.Pelvis },

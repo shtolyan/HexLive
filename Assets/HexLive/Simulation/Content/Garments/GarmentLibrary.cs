@@ -212,6 +212,7 @@ namespace HexLive.Simulation.Content
                 // the whole point; the token 0.05 armor is the buckled leather
                 // strap itself, and gives her a reason to want it on.
                 new("legHolster_2204",       "Kabura na nogu",   WearLayer.Outerwear, 0.00f, 0.05f,  0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR),
+                new("clothing.headdress_jaguar", "Jaguar Headdress", WearLayer.Outerwear, 0.05f, 0.10f, 0.00f, dress, 0, BodyPart.Head),
 
                 // --- §72: снаряжение чужака ------------------------------------
                 // Он не выживальщик в трусах, а боец: тактический комплект с

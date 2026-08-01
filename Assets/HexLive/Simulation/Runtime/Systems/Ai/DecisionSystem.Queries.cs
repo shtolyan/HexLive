@@ -741,7 +741,10 @@ public sealed partial class DecisionSystem
         {
             if (obj.IsReachable &&
                 ObjectUsableBy(obj, npc.Id) &&
-                obj.AvailableInteractions.Contains(interactionType))
+                obj.AvailableInteractions.Contains(interactionType) &&
+                // §84: чужую по полу вещь не видно как одежду вовсе.
+                (interactionType != InteractionType.Dress ||
+                 Content.GarmentLibrary.FitsSex(npc.Sex, obj.DefinitionId)))
             {
                 return true;
             }
@@ -805,7 +808,7 @@ public sealed partial class DecisionSystem
         foreach (var obj in npc.Perception.Objects)
         {
             if (obj.IsReachable && ObjectUsableBy(obj, npc.Id) &&
-                CandidateArmor(world, obj) > npc.EquippedArmor)
+                CandidateArmor(world, obj, npc.Sex) > npc.EquippedArmor)
             {
                 return true;
             }
@@ -814,7 +817,8 @@ public sealed partial class DecisionSystem
         return false;
     }
 
-    internal static float CandidateArmor(WorldState world, PerceivedObject obj)
+    internal static float CandidateArmor(
+        WorldState world, PerceivedObject obj, Content.GarmentSex wearerSex)
     {
         if (!world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition))
         {
@@ -825,6 +829,7 @@ public sealed partial class DecisionSystem
         foreach (var interaction in definition.Interactions)
         {
             if (interaction.Type == InteractionType.Dress &&
+                Content.GarmentLibrary.FitsSex(wearerSex, obj.DefinitionId) &&
                 interaction.Effects.ArmorDelta > best)
             {
                 best = interaction.Effects.ArmorDelta;

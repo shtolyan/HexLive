@@ -498,6 +498,18 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     continue;
                 }
 
+                // §84: чужая по полу вещь отсекается ДО всех прочих правил —
+                // она для этого тела вообще не одежда. Здесь, в выборе цели
+                // плана, стоит последний рубеж: аукцион мог позвать одеваться
+                // из-за другой вещи, а по дороге подвернулась эта.
+                if (interactionType == InteractionType.Dress &&
+                    !Content.GarmentLibrary.FitsSex(npc.Sex, perceived.DefinitionId))
+                {
+                    Trace.Emit(world, npc.Id, "PlanCandidateSkipped",
+                        $"Obj={perceived.Id.Value} Def={perceived.DefinitionId} WrongSex");
+                    continue;
+                }
+
                 // §52.7: a cold-driven Dress only targets a REAL warmth upgrade —
                 // never walk to an identical/worse shirt (clamp-aware gain over
                 // what she wears now). Armor-driven dressing (preferArmor) keeps
@@ -518,7 +530,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
 
                 if (preferArmor)
                 {
-                    var armor = DecisionSystem.CandidateArmor(world, perceived);
+                    var armor = DecisionSystem.CandidateArmor(world, perceived, npc.Sex);
                     if (selected is null || armor > selectedArmor + 0.01f ||
                         (System.Math.Abs(armor - selectedArmor) <= 0.01f &&
                          perceived.Distance < selected.Distance))

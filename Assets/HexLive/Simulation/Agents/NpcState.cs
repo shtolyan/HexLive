@@ -164,6 +164,14 @@ public sealed class NPCState
 
     public string ActorMesh { get; set; } = string.Empty;
 
+    // §84: на какое тело сшита его одежда. Выводится из меша, а не хранится
+    // отдельно: тело и пол — это одно и то же, и второе поле рано или поздно
+    // разошлось бы с первым. Зеркало презентационного ActorSex.Of.
+    public Content.GarmentSex Sex =>
+        ActorMesh is "Kshishtof" or "Tonny"
+            ? Content.GarmentSex.Male
+            : Content.GarmentSex.Female;
+
     // §74: the three traits that used to be implied by ActorMesh and are now
     // rolled independently. EMPTY MEANS "as before": the body's own materials,
     // the hairstyle authored on the actor prefab, and the voice folder named

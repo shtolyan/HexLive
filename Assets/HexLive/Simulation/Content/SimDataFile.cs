@@ -162,8 +162,23 @@ namespace HexLive.Simulation.Content
                         }
                     }
 
+                    // §84: пол берётся из КОДОВЫХ умолчаний по id — в экспорте
+                    // такого поля нет, а без переноса импорт стирал бы пол у
+                    // всех вещей разом, и запрет молча переставал работать
+                    // именно в headless-пробах, где его и проверяют.
+                    var gid = Str(g, "id");
+                    var gsex = GarmentSex.Any;
+                    foreach (var d in GarmentLibrary.Defaults)
+                    {
+                        if (d.Id == gid)
+                        {
+                            gsex = d.Sex;
+                            break;
+                        }
+                    }
+
                     list.Add(new GarmentParams(
-                        Str(g, "id"),
+                        gid,
                         Str(g, "displayName"),
                         System.Enum.TryParse<WearLayer>(Str(g, "layer"), true, out var layer)
                             ? layer
@@ -173,6 +188,7 @@ namespace HexLive.Simulation.Content
                         F(g, "thermalDelta", 0f),
                         I(g, "dressDurationTicks", 20),
                         I(g, "capacity", 0),
+                        gsex,
                         covers.ToArray()));
                 }
 

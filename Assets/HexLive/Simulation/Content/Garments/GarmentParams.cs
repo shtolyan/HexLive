@@ -26,7 +26,24 @@ namespace HexLive.Simulation.Content
             int dressDurationTicks,
             int capacity,
             params BodyPart[] covers)
+            : this(id, displayName, layer, warmth, armor, thermalDelta,
+                   dressDurationTicks, capacity, GarmentSex.Any, covers)
         {
+        }
+
+        public GarmentParams(
+            string id,
+            string displayName,
+            WearLayer layer,
+            float warmth,
+            float armor,
+            float thermalDelta,
+            int dressDurationTicks,
+            int capacity,
+            GarmentSex sex,
+            params BodyPart[] covers)
+        {
+            Sex = sex;
             Id = id;
             DisplayName = displayName;
             Layer = layer;
@@ -43,6 +60,14 @@ namespace HexLive.Simulation.Content
         public string Id { get; }
 
         public string DisplayName { get; }
+
+        // §84: на кого сшито. Меш каждой вещи вылеплен под конкретное тело, и
+        // женская вещь на мужском теле рисуется вывернутым мешем — поэтому
+        // запрет живёт в СИМУЛЯЦИИ, а не в виде: чужую одежду не надо
+        // отрисовывать правильнее, её не надо даже рассматривать.
+        //
+        // Any — вещь без пола (верёвка на поясе, подсумок): её носят все.
+        public GarmentSex Sex { get; }
 
         public WearLayer Layer { get; }
 

@@ -54,9 +54,23 @@ namespace HexLive.UnityPresentation.Config
                     cap = def;
                 }
 
+                // §84: пол берётся из КОДОВЫХ умолчаний по id — в ассете
+                // одежды такого поля нет, и без этого переноса каталог стирал
+                // бы пол у всех вещей разом (ровно как раньше поступал с
+                // ёмкостью карманов, см. cap выше).
+                var sex = GarmentSex.Any;
+                foreach (var d in GarmentLibrary.Defaults)
+                {
+                    if (d.Id == g.Id)
+                    {
+                        sex = d.Sex;
+                        break;
+                    }
+                }
+
                 result.Add(new GarmentParams(
                     g.Id, g.DisplayName, g.Layer, g.Warmth, g.Armor, g.ThermalDelta,
-                    g.DressDurationTicks, cap, g.Covers.ToArray()));
+                    g.DressDurationTicks, cap, sex, g.Covers.ToArray()));
             }
 
             return result;

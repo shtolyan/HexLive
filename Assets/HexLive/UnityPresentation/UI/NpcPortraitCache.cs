@@ -231,8 +231,18 @@ namespace HexLive.UnityPresentation.UI
             var previous = RenderTexture.active;
             RenderTexture.active = _scratch;
             texture.ReadPixels(new Rect(0f, 0f, TextureSize, TextureSize), 0, 0, false);
-            texture.Apply(false);
             RenderTexture.active = previous;
+
+            // §90: круглая маска. Квадратный кадр с однотонной подложкой рядом
+            // с круглыми аватарками отношений выглядит инородно, а над головой
+            // он ещё и читается как «плашка», а не как лицо.
+            //
+            // Маска пишется В САМУ ТЕКСТУРУ, а не поверх шейдером: снимок и так
+            // делается раз в игровой час, поэтому дешевле один раз обнулить
+            // альфу по углам, чем гонять отдельный материал и в пузыре, и в
+            // трёх местах панели.
+            ApplyCircleMask(texture);
+            texture.Apply(false);
 
             _bakedAtTick[npcId] = _lastSweepTick;
 
@@ -243,6 +253,39 @@ namespace HexLive.UnityPresentation.UI
                 Destroy(stale);
                 _sprites.Remove(npcId);
             }
+        }
+
+        // Мягкий край в один пиксель: жёсткая обрезка даёт «лесенку» по кругу,
+        // особенно заметную на маленькой аватарке в списке отношений.
+        private static void ApplyCircleMask(Texture2D texture)
+        {
+            var size = texture.width;
+            var pixels = texture.GetPixels32();
+            var centre = (size - 1) * 0.5f;
+            var radius = centre;
+            var inner = radius - 1.5f;
+
+            for (var y = 0; y < size; y++)
+            {
+                for (var x = 0; x < size; x++)
+                {
+                    var dx = x - centre;
+                    var dy = y - centre;
+                    var d = Mathf.Sqrt(dx * dx + dy * dy);
+                    if (d <= inner)
+                    {
+                        continue;
+                    }
+
+                    var i = y * size + x;
+                    var a = d >= radius ? 0f : 1f - (d - inner) / (radius - inner);
+                    var p = pixels[i];
+                    p.a = (byte)(p.a * a);
+                    pixels[i] = p;
+                }
+            }
+
+            texture.SetPixels32(pixels);
         }
 
         private void OnDestroy()

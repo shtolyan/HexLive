@@ -289,8 +289,8 @@
     "Spec72.Enabled": true,
     "Spec72.EnemyDeathRelief": 0.150000006,
     "Spec72.MaxCampRadiusTiles": 6,
-    "Spec72.MeleeHoldDistance": 0.9,
-    "Spec72.MeleeHoldGlideSpeed": 0.8,
+    "Spec72.MeleeHoldDistance": 0.899999976,
+    "Spec72.MeleeHoldGlideSpeed": 0.800000012,
     "Spec72.OutsiderAgility": 0.5,
     "Spec72.OutsiderCampMinDistanceTiles": 8,
     "Spec72.OutsiderCompassionMax": 0.25,
@@ -379,6 +379,7 @@
     "Spec81.AbuseForceDefenseWeight": 0.400000006,
     "Spec81.AbuseForceOffenseWeight": 0.600000024,
     "Spec81.AbuseGraceDays": 2,
+    "Spec81.AbuseLockTicks": 240,
     "Spec81.AbuseMarkSocialGain": 0,
     "Spec81.AbuseMarkStressCost": 0.300000012,
     "Spec81.AbuseMaxBlows": 2,
@@ -387,6 +388,7 @@
     "Spec81.AbuseNoBlowHealthFloor": 0.5,
     "Spec81.AbuseRaidLockoutTicks": 600,
     "Spec81.AbuseRespectsSanctuary": true,
+    "Spec81.AbuseRetryTicks": 40,
     "Spec81.AbuseScanRadiusTiles": 7,
     "Spec81.AbuseSocialFloor": 0.449999988,
     "Spec81.AbuseSocialGain": 0.349999994,
@@ -394,7 +396,7 @@
     "Spec81.AbuseSupersedesPassiveTheft": true,
     "Spec81.AbuseSupplyFloor": 0.550000012,
     "Spec81.AbuseTrustLoss": 0.25,
-    "Spec82.LonelinessDriveMult": 1.79999995,
+    "Spec82.LonelinessDriveMult": 3,
     "Spec82.SunburnDressWeight": 1,
     "Spec82.TerritorialEnabled": true,
     "Spec82.TerritoryCooldownTicks": 300,
@@ -406,7 +408,7 @@
     "Spec86.MercyAppliesToOutsiders": true,
     "Spec86.MercyEnabled": true,
     "Spec86.MercyHealthFloor": 0.550000012,
-    "Spec86.MercyPartFloor": 0.05,
+    "Spec86.MercyPartFloor": 0.0500000007,
     "AiBalance.GoalLockTicks": 24,
     "AiBalance.LockOverrideDelta": 0.5,
     "AiBalance.MemoryTtlTicks": 2400,
@@ -465,8 +467,8 @@
     "MovementSystem.SwimSpeedFactor": 0.600000024
   },
   "mobs": [
-    {"id": "dog", "maxHealth": 1.71, "attackDamage": 0.085, "attackWindupSeconds": 0.5, "attackCooldownSeconds": 0.8, "aggroRadiusTiles": 2, "roamChance": 0.2, "chaseStepsPerTick": 3, "glideSegmentSeconds": 1, "glideSnapDistance": 6, "raidChancePerDay": 0.08, "raidPackSize": 3},
-    {"id": "shark", "maxHealth": 1, "attackDamage": 0.2, "attackWindupSeconds": 0.1, "attackCooldownSeconds": 0.8, "aggroRadiusTiles": 2, "roamChance": 0.2, "chaseStepsPerTick": 1, "glideSegmentSeconds": 1, "glideSnapDistance": 6, "raidChancePerDay": 0, "raidPackSize": 0}
+    {"id": "dog", "maxHealth": 1.71, "attackDamage": 0.085, "attackWindupSeconds": 0.5, "attackCooldownSeconds": 0.8, "aggroRadiusTiles": 2, "roamChance": 0.2, "chaseStepsPerTick": 3, "glideSegmentSeconds": 1, "glideSnapDistance": 6, "meleeHoldDistance": 0.9, "raidChancePerDay": 0.08, "raidPackSize": 3},
+    {"id": "shark", "maxHealth": 1, "attackDamage": 0.2, "attackWindupSeconds": 0.1, "attackCooldownSeconds": 0.8, "aggroRadiusTiles": 2, "roamChance": 0.2, "chaseStepsPerTick": 1, "glideSegmentSeconds": 1, "glideSnapDistance": 6, "meleeHoldDistance": 0, "raidChancePerDay": 0, "raidPackSize": 0}
   ],
   "gear": [
     {"id": "", "damage": 0.048, "hitDelaySeconds": 1.1, "attackDurationSeconds": 1.5, "cooldownSeconds": 1.5, "attackSpeed": 1, "meleePriority": 0, "twoHanded": false, "harvestSpeedMult": 1, "capabilities": [], "strikes": [{"hitDelaySeconds": 0.2, "attackDurationSeconds": 0.4, "cooldownSeconds": 0.2}, {"hitDelaySeconds": 0.2, "attackDurationSeconds": 0.4, "cooldownSeconds": 0.2}, {"hitDelaySeconds": 0.2, "attackDurationSeconds": 0.4, "cooldownSeconds": 0.2}, {"hitDelaySeconds": 0.2, "attackDurationSeconds": 0.4, "cooldownSeconds": 0.2}]},

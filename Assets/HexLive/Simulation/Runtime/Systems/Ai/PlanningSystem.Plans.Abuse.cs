@@ -26,6 +26,23 @@ public sealed partial class PlanningSystem
         var mark = ResolveAbuseMark(world, npc);
         if (mark is null)
         {
+            // §90: некого трясти ЗДЕСЬ — значит идём искать.
+            //
+            // Так он ищет кирку и камни: цель есть, объекта под рукой нет —
+            // человек идёт туда, где объект бывает. С приключениями было
+            // иначе: не нашёл жертву в этот тик — цель сбрасывалась, и он
+            // возвращался к быту. Отсюда и «у него общение ноль, а он идёт
+            // присесть».
+            //
+            // Идти есть куда: якорь чужого лагеря — то самое место, где люди
+            // заведомо бывают. Тот же ProwlTarget, которым ходит налёт.
+            if (TryBuildProwlPlan(world, npc))
+            {
+                Trace.Emit(world, npc.Id, "AbuseProwl",
+                    $"Social={npc.Needs.Social:F2} — идёт искать, кого задеть");
+                return;
+            }
+
             npc.Plan.Status = PlanStatus.Failed;
             AbandonAbuse(world, npc, "NoMark");
             Trace.Emit(world, npc.Id, "PlanFailed", "Goal=Abuse NoMark");

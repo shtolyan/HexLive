@@ -1441,6 +1441,22 @@ MonoBehaviour:
       - 'Отдыхает'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'goal.Abuse'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Looking for someone to shake down'
+      - 'Хочет докопаться'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.Raid'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Hunting the colony'
+      - 'Идёт на охоту'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'dream.Campfire'
       TermType: 0
       Description:

@@ -32,7 +32,7 @@ import time
 import urllib.error
 import urllib.request
 
-from . import config
+from . import config, watchdog
 
 # How long to keep re-offering work that DAZ refused as STUDIO_BUSY. Generous:
 # the losing case is a cold scene load, which is minutes of real disk reading.
@@ -73,6 +73,13 @@ def execute(script: str, params: object = None,
     Raises DazError with the DAZ-side message on failure, so callers can just
     let it propagate and the stage report records something actionable.
     """
+    # A modal box owns DAZ's main thread, which is the thread this script is
+    # about to run on, so the guard has to be up BEFORE the call — and on every
+    # call, because any of them can be the one that opens content. Wiring it
+    # into a single stage was the earlier mistake: a run stalled on a "Missing
+    # Files" box that appeared in a stage nobody had guarded.
+    watchdog.ensure_running()
+
     if timeout is None:
         timeout = SCRIPT_TIMEOUT_SECONDS
     if params is not None:

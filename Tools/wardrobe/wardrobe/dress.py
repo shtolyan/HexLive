@@ -177,18 +177,22 @@ def dress_all(garments: list[Path], drop: str, girls: list[str] | None = None) -
     # Loading a girl's scene is where DAZ throws its "Missing Files" box, and
     # that box owns the main thread the script server runs on — one missing
     # texture used to stall the whole run until a human clicked OK. The guard
-    # answers exactly the dialogs it recognises and reports the rest.
-    with watchdog.Watchdog() as guard:
-        for girl in girls:
-            out = config.DROP_DIR / f"{girl.lower()} {drop}.fbx"
-            try:
-                entry = dress_one(girl, garments, out)
-            except daz.DazError as e:
-                report["errors"].append(str(e))
-                continue
-            report["girls"].append(entry)
+    # itself is started by `daz.execute` and lives for the whole process, so it
+    # is up whichever stage hits the dialog; this only notes where this stage's
+    # share of the log begins.
+    watchdog.ensure_running()
+    mark = watchdog.mark()
 
-    report["dialogs"] = guard.report()
+    for girl in girls:
+        out = config.DROP_DIR / f"{girl.lower()} {drop}.fbx"
+        try:
+            entry = dress_one(girl, garments, out)
+        except daz.DazError as e:
+            report["errors"].append(str(e))
+            continue
+        report["girls"].append(entry)
+
+    report["dialogs"] = watchdog.since(mark)
     # Missing content is not cosmetic: it ships as white shoes. Surface it as a
     # finding on the run rather than leaving it in a log nobody opens.
     for line in report["dialogs"]["needs_attention"]:

@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import threading
 import uuid
 from collections.abc import Callable, Iterator
 from pathlib import Path
@@ -28,6 +29,12 @@ from pathlib import Path
 from . import config
 
 Progress = Callable[[str], None]
+
+# The running session, so an operator can stop it from outside (the bot's
+# /stop). One job at a time is enforced by the caller; this is just the handle.
+_current: subprocess.Popen | None = None
+_current_lock = threading.Lock()
+_cancelled = False
 
 # Scoped rather than blanket. An unattended agent with `bypassPermissions` can
 # run anything in the repository; this list is what the wardrobe pipeline
@@ -104,6 +111,22 @@ def build_prompt(task: str) -> str:
     return _BRIEF.format(task=task.strip(), python=python)
 
 
+def is_running() -> bool:
+    with _current_lock:
+        return _current is not None and _current.poll() is None
+
+
+def cancel() -> bool:
+    """Stop the running session. True if there was one to stop."""
+    global _cancelled
+    with _current_lock:
+        if _current is None or _current.poll() is not None:
+            return False
+        _cancelled = True
+        _current.kill()
+        return True
+
+
 def _render(event: dict) -> Iterator[str]:
     """Turn one stream-json event into human-readable progress lines.
 
@@ -120,12 +143,20 @@ def _render(event: dict) -> Iterator[str]:
         for block in (event.get("message") or {}).get("content") or []:
             if not isinstance(block, dict):
                 continue
-            if block.get("type") == "text" and block.get("text", "").strip():
+            block_type = block.get("type")
+            if block_type == "text" and block.get("text", "").strip():
                 yield block["text"].strip()
-            elif block.get("type") == "tool_use":
+            elif block_type == "thinking":
+                # Only present when the session surfaces reasoning; empty
+                # otherwise, and an empty line is worse than none.
+                thought = (block.get("thinking") or "").strip()
+                if thought:
+                    yield "💭 " + thought
+            elif block_type == "tool_use":
                 name = block.get("name", "?")
-                cmd = (block.get("input") or {}).get("command")
-                yield f"▸ {name}" + (f": {str(cmd)[:120]}" if cmd else "")
+                params = block.get("input") or {}
+                detail = params.get("command") or params.get("file_path") or params.get("pattern")
+                yield f"▸ {name}" + (f": {str(detail)[:160]}" if detail else "")
         return
 
     if kind == "result":
@@ -154,6 +185,7 @@ def run(task: str, progress: Progress = lambda _: None,
         "--allowedTools", *(allowed_tools or DEFAULT_ALLOWED_TOOLS),
     ]
 
+    global _current, _cancelled
     lines: list[str] = []
     report: dict = {"session": session, "lines": lines, "errors": []}
     try:
@@ -163,6 +195,10 @@ def run(task: str, progress: Progress = lambda _: None,
             errors="replace", bufsize=1)
     except OSError as e:
         return {"ok": False, "errors": [f"не удалось запустить CLI: {e}"]}
+
+    with _current_lock:
+        _current = process
+        _cancelled = False
 
     try:
         for raw in process.stdout:
@@ -189,9 +225,14 @@ def run(task: str, progress: Progress = lambda _: None,
     finally:
         if process.poll() is None:
             process.kill()
+        with _current_lock:
+            _current = None
 
     report["exit_code"] = process.returncode
-    if any("Not logged in" in line for line in lines):
+    report["cancelled"] = _cancelled
+    if _cancelled:
+        report["errors"].append("остановлено оператором")
+    elif any("Not logged in" in line for line in lines):
         report["errors"].append(
             "CLI не авторизован. Запустите его один раз вручную и выполните /login: "
             f"{binary}")

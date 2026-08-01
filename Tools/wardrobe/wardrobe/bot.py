@@ -73,8 +73,9 @@ async def start(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         "пересылаю сюда по ходу дела.\n\n"
         "Останавливаемся на черновике манифеста: названия вещей и слоты — "
         "решение человека, а не вычисление.\n\n"
-        "/raw <ссылки> — прогнать без надзирателя, голым конвейером\n"
-        "/status — что сейчас происходит")
+        "/stop — прервать прогон прямо сейчас\n"
+        "/status — что сейчас происходит\n"
+        "/raw <ссылки> — прогнать без надзирателя, голым конвейером")
 
 
 async def status(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
@@ -82,7 +83,27 @@ async def status(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         return
     await update.message.reply_text(
         ("Занят — идёт поставка." if _lock.locked() else "Свободен.")
+        + f"\nНадзиратель: {'работает' if supervisor.is_running() else 'не запущен'}"
         + f"\nDAZ Studio: {'на связи' if daz.alive() else 'НЕ отвечает'}")
+
+
+async def stop(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    """Kill the running session. The stages it already finished stay done."""
+    if not _allowed(update):
+        return
+    if supervisor.cancel():
+        await update.message.reply_text(
+            "Остановил. Что успело отработать — осталось как есть; "
+            "проверьте /status и отчёты перед повторным запуском.")
+    else:
+        await update.message.reply_text("Останавливать нечего — надзиратель не запущен.")
+
+
+# Telegram throttles hard, and a working agent narrates faster than a chat can
+# take. Lines are gathered for a moment and sent as one message rather than one
+# each — otherwise the flood control drops exactly the lines worth reading.
+_FLUSH_SECONDS = 4.0
+_MAX_MESSAGE = 3500
 
 
 def _relay(context: ContextTypes.DEFAULT_TYPE, chat: int):
@@ -93,13 +114,30 @@ def _relay(context: ContextTypes.DEFAULT_TYPE, chat: int):
     def progress(line: str) -> None:
         loop.call_soon_threadsafe(queue.put_nowait, line)
 
+    async def send(text: str) -> None:
+        for i in range(0, len(text), _MAX_MESSAGE):
+            try:
+                await context.bot.send_message(chat, text[i:i + _MAX_MESSAGE])
+            except Exception:  # noqa: BLE001 — a lost line must not kill the job
+                log.exception("не отправилась строка прогресса")
+
     async def pump() -> None:
-        while (line := await queue.get()) is not None:
-            for chunk in (line[i:i + 3500] for i in range(0, len(line), 3500)):
-                try:
-                    await context.bot.send_message(chat, chunk)
-                except Exception:  # noqa: BLE001 — a lost line must not kill the job
-                    log.exception("не отправилась строка прогресса")
+        buffer: list[str] = []
+        done = False
+        while not done:
+            try:
+                line = await asyncio.wait_for(queue.get(), timeout=_FLUSH_SECONDS)
+                if line is None:
+                    done = True
+                else:
+                    buffer.append(line)
+                    if sum(len(x) for x in buffer) < _MAX_MESSAGE:
+                        continue
+            except asyncio.TimeoutError:
+                pass
+            if buffer:
+                await send("\n".join(buffer))
+                buffer.clear()
 
     return progress, queue, pump
 
@@ -214,6 +252,7 @@ def main() -> None:
     app = Application.builder().token(token).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("status", status))
+    app.add_handler(CommandHandler("stop", stop))
     app.add_handler(CommandHandler("raw", raw))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, links))
     log.info("бот запущен")

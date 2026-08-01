@@ -117,9 +117,31 @@ public sealed class WorldStateFactory
         string[] startBottoms = { "Panty_11571", "Bikini Bottom", "underwear.panty_leo", "underwear.panty_stars", "underwear.panty_flair", "underwear.panty_basic", "underwear.swim_bottom", "underwear.panty_dots", "underwear.panty_stripe", "underwear.panty_cherry" };
         string[] startTops = { "Bikini top", "Top_11927", "CowTop", "clothing.top_tiedye", "clothing.top_tropic", "underwear.bra_basic", "underwear.swim_top", "underwear.bra_dots", "underwear.bra_stripe", "underwear.bra_cherry" };
         string[] startShorts = { "Shorts Green", "Shorts short", "Shorts 1389", "clothing.shorts_red", "clothing.shorts_olive", "clothing.shorts_cherry" };
+        // §72: чужак сходит на берег не потерпевшим, а бойцом — в своём
+        // тактическом комплекте. Раздавать ему женское пляжное бельё было бы
+        // не только нелепо на вид: без брони он гиб на всех сидах, дважды даже
+        // не успев напасть (истёк кровью; загрызла собака на 1.6-й день).
+        string[] outsiderKit =
+        {
+            "TonnyFlash", "FCO Pants Male", "FCO Belt Male", "FCO Gloves Male",
+            "FAO Harness Male", "FCO Boots Male", "FCO Legs Straps Male",
+            "FCO Knee Straps Male", "FCO Waist Strappy Male",
+        };
+
         foreach (var npc in world.Entities.Npcs.Values)
         {
             var id = npc.Id.Value;
+            if (npc.Faction != Faction.Colony)
+            {
+                foreach (var piece in outsiderKit)
+                {
+                    npc.WornItems.Add(piece);
+                }
+
+                Runtime.EquipmentMath.Recalculate(world, npc);
+                continue;
+            }
+
             npc.WornItems.Add(startBottoms[(int)(MathUtil.Hash01(world.Seed, id, 11, 4201) * startBottoms.Length)]);
             if (MathUtil.Hash01(world.Seed, id, 12, 4202) < 0.8f)
             {
@@ -806,6 +828,11 @@ public sealed class WorldStateFactory
         if (bootstrap.Faction != Faction.Colony &&
             HexLive.Simulation.Runtime.Spec72.OutsiderStartsArmed)
         {
+            // Копьё, а не нож: 0.375 урона против 0.221 и высший приоритет в
+            // BestMeleeWeapon. С ножом он выходил на четверых, которые сбегаются
+            // все разом, и стабильно проигрывал размен — 20 его ударов против
+            // 30 ответных. Нож остаётся: им он свежует и мастерит.
+            npc.Inventory.Items.Add(new Agents.ItemInstance("tool.spear"));
             npc.Inventory.Items.Add(new Agents.ItemInstance("tool.knife"));
         }
         // Spec 40.3 / §44 r2: four bandages start in the med pouch

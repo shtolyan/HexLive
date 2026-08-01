@@ -32,6 +32,19 @@ namespace HexLive.Simulation.Content
         // matters only for readability; matching NAMES are what the sweep uses).
         private static readonly Dictionary<string, WearSlot[]> Slots = new()
         {
+            // §72: снаряжение чужака. Слоты взяты ИЗ ПРЕФАБОВ (§52.9 —
+            // вытеснение решают слоты, а не Covers), поэтому портупея и
+            // поддоспешник оба Chest и вытесняют друг друга по слоям, а
+            // набедренники и наколенники живут раздельно.
+            ["TonnyFlash"] = new[] { WearSlot.Chest },
+            ["FAO Harness Male"] = new[] { WearSlot.Chest },
+            ["FCO Belt Male"] = new[] { WearSlot.Belly },
+            ["FCO Boots Male"] = new[] { WearSlot.FootR, WearSlot.FootL },
+            ["FCO Gloves Male"] = new[] { WearSlot.HandR, WearSlot.HandL },
+            ["FCO Knee Straps Male"] = new[] { WearSlot.ShinR, WearSlot.ShinL },
+            ["FCO Legs Straps Male"] = new[] { WearSlot.ThighR, WearSlot.ThighL },
+            ["FCO Pants Male"] = new[] { WearSlot.Pelvis, WearSlot.ThighR, WearSlot.ThighL, WearSlot.ShinR, WearSlot.ShinL },
+            ["FCO Waist Strappy Male"] = new[] { WearSlot.Pelvis },
             ["Bikini Bottom"] = new[] { WearSlot.Pelvis },
             ["Bikini top"] = new[] { WearSlot.Chest },
             ["Boots"] = new[] { WearSlot.FootR, WearSlot.FootL },

@@ -112,12 +112,16 @@ public static class Spec72
     public static float RaidPursuitMaxTicks = 600f;
     public static int RaidLockTicks = 240;
 
-    // Two adjacent defenders on him and he runs.
-    public static int RaidBreakOffDefenders = 2;
+    // Сколько защитниц вокруг заставляют его отступить. Двое — это почти
+    // всегда (friend-guard срабатывал 147 раз за прогон), поэтому он убегал, не
+    // успев ничего сделать. Трое — уже настоящая толпа.
+    public static int RaidBreakOffDefenders = 3;
 
-    // Last-resort damage dial. Scales only HIS blows, so softening the raider
-    // never touches the gear sheets the girls swing too.
-    public static float RaidStrikeDamageMult = 1f;
+    // Множитель ТОЛЬКО его ударов — им и утяжеляют, и смягчают чужака, не
+    // трогая оружейные листы, которыми машут и девушки. 1.35: с ровно единицей
+    // он не убил никого за 7 дней на трёх сидах, размениваясь 20 ударами против
+    // 30 ответных.
+    public static float RaidStrikeDamageMult = 1.35f;
 
     // No raid before this many game days — the colony gets a fire, a hut and
     // usually a knife first (dogs start raiding at 2).

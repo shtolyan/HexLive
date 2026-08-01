@@ -74,7 +74,7 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Прибавка к весу за качество добычи: итог = база + это × оценка.")]
         [Range(0f, 1f)] public float raidOpportunityGain = 0.5f;
         [Tooltip("Урон за удар. Множитель поверх урона оружия — единственная ручка, которой можно смягчить ЕГО, не трогая оружие девушек.")]
-        [Range(0.1f, 2f)] public float raidStrikeDamageMult = 1f;
+        [Range(0.1f, 2f)] public float raidStrikeDamageMult = 1.35f;
         [Tooltip("Он даёт бой только с этого дня — колония успевает завести огонь, хижину и нож.")]
         [Range(0, 20)] public int raidGraceDays = 5;
         [Tooltip("Пауза между налётами, тиков. Главная ручка против мясорубки.")]
@@ -92,7 +92,7 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Здоровье жертвы, ниже которого она бежит.")]
         [Range(0f, 1f)] public float raidVictimFleeHealth = 0.6f;
         [Tooltip("Столько защитниц вокруг — и он отступает.")]
-        [Range(1, 5)] public int raidBreakOffDefenders = 2;
+        [Range(1, 5)] public int raidBreakOffDefenders = 3;
 
         [Header("Оборона колонии")]
         [Tooltip("Против ЧУЖАКА поднимать всю фракцию в радиусе без порога симпатии — в первые дни её ещё нет, а «дать отпор сплочённо» нужно именно тогда.")]

@@ -71,6 +71,27 @@ whole garment set came from there.**
   *finishes anyway*. Never treat that message as failure: poll for the artefact the
   command was supposed to produce.
 
+### Wardrobe — three rules bought the hard way
+
+The DAZ→Unity clothing pipeline lives in `Tools/wardrobe` (see also
+`HEEL_POSE_SPEC.md` and `ICON_GENERATION_SPEC.md`). Three mistakes cost real
+time and are worth not repeating:
+
+- **A garment is identified by its DAZ MESH KEY, never by its name.**
+  `armor.leather` and `S3D_DdlSlc_Top` are the same top; matching on the display
+  name finds nothing, or worse, finds the wrong piece. Tripped over three times.
+- **Verify a rebuild by CONTENT, not by file timestamps.** Unity rewrites a mesh
+  asset even when nothing about it changed, so "the file is newer" proves only
+  that the menu ran. Compare what is inside — vertex count, channel layout, the
+  actual bytes — or the report will be confidently wrong.
+- **Refresh assets BEFORE running the extractor.** Otherwise it faithfully builds
+  prefabs from a stale FBX import and everything looks like it worked.
+
+Two more that read as bugs and are not: `blender -b` is forbidden only for the
+MCP bridge (the add-on needs an event loop) — for a plain script it is the
+normal mode, which is what `ICON_GENERATION_SPEC.md` uses; and a `.duf` that
+keys the foot rotations to zero is a RESET, not a pose (`HEEL_POSE_SPEC.md` §2).
+
 ## ⭐ ALL SOUND GOES THROUGH FMOD — and through BOTH of its halves
 
 **Never** add `AudioSource` / `AudioClip` / `PlayOneShot` — Unity audio is

@@ -71,6 +71,8 @@ public static class NewWearExtractor
     // Every girl the drops cover, each listed once.
     private static ActorName[] Actors => Sources.Select(s => s.actor).Distinct().ToArray();
 
+    private static readonly int BumpMap = Shader.PropertyToID("_BumpMap");
+
     private sealed class MatSpec
     {
         public string Source;       // material name inside the FBX
@@ -416,7 +418,12 @@ public static class NewWearExtractor
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log($"[NewWear] extracted {done}, skipped (already built) {skipped}\n{log}");
+            var report = $"[NewWear] extracted {done}, skipped (already built) {skipped}\n{log}";
+            Debug.Log(report);
+            // Also to a file: the MCP bridge's console read is the first thing
+            // to time out on a busy editor, and this run's own verdict is
+            // exactly what an agent needs when it cannot read the console.
+            File.WriteAllText("Temp/newwear.txt", report);
 
             if (done > 0)
             {
@@ -442,6 +449,24 @@ public static class NewWearExtractor
         Dictionary<ActorName, List<GameObject>> rigs,
         System.Text.StringBuilder log)
     {
+        EnsureFolder($"{ImportRoot}/{g.Folder}/Meshes");
+        EnsureFolder($"{ImportRoot}/{g.Folder}/Materials");
+        EnsureFolder($"{WearRoot}/{g.SimId}");
+
+        // --- materials (URP Lit, flat albedo per the art style) --------------
+        // Built BEFORE the weld: MergeParts decides whether the merged mesh
+        // needs tangents, and the only honest answer comes from OUR materials.
+        var mats = new Dictionary<string, Material>();
+        foreach (var spec in g.Materials)
+        {
+            var built = BuildMaterial(g, spec);
+            mats[spec.Source] = built;
+            foreach (var alias in spec.Aliases)
+            {
+                mats[alias] = built;
+            }
+        }
+
         if (g.SourceKeys != null)
         {
             foreach (var pair in rigs)
@@ -450,7 +475,7 @@ public static class NewWearExtractor
                 // other drops and are expected to come back empty.
                 foreach (var rig in pair.Value)
                 {
-                    var welded = MergeParts(g, rig);
+                    var welded = MergeParts(g, rig, mats);
                     if (welded != null)
                     {
                         renderers[(pair.Key, g.SourceKey)] = welded;
@@ -465,10 +490,6 @@ public static class NewWearExtractor
             Debug.LogError($"[NewWear] {g.SourceKey}: no renderer in the jana FBX — skipped");
             return false;
         }
-
-        EnsureFolder($"{ImportRoot}/{g.Folder}/Meshes");
-        EnsureFolder($"{ImportRoot}/{g.Folder}/Materials");
-        EnsureFolder($"{WearRoot}/{g.SimId}");
 
         // --- meshes: one fitted copy per girl --------------------------------
         var meshes = new Dictionary<ActorName, Mesh>();
@@ -485,7 +506,29 @@ public static class NewWearExtractor
             var path = $"{ImportRoot}/{g.Folder}/Meshes/{actor}.mesh";
             var copy = Object.Instantiate(r.sharedMesh);
             copy.name = actor.ToString();
+            // The COPY is what ships, and Object.Instantiate does not carry a
+            // lean vertex layout across — so the layout is applied here, to the
+            // mesh that actually becomes the asset.
+            var welded = g.SourceKeys != null;
+            if (welded)
+            {
+                Slim(copy, WantsTangents(mats));
+            }
+
             var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            if (existing != null && welded)
+            {
+                // CopySerialized writes INTO the object already in the asset
+                // database, and that object keeps its own vertex layout — a
+                // slim mesh copied into a fat one comes back out fat, which is
+                // how three girls ended up at 4.97 MB and the fourth at 9.66
+                // from the same run. Deleting through AssetDatabase (not just
+                // unlinking the file — the database caches the object and hands
+                // the stale one back) is what makes the layout reproducible.
+                AssetDatabase.DeleteAsset(path);
+                existing = null;
+            }
+
             if (existing != null)
             {
                 // Keep the GUID stable across re-runs — prefab refs survive.
@@ -506,18 +549,6 @@ public static class NewWearExtractor
             return false;
         }
 
-        // --- materials (URP Lit, flat albedo per the art style) --------------
-        var mats = new Dictionary<string, Material>();
-        foreach (var spec in g.Materials)
-        {
-            var built = BuildMaterial(g, spec);
-            mats[spec.Source] = built;
-            foreach (var alias in spec.Aliases)
-            {
-                mats[alias] = built;
-            }
-        }
-
         // --- prefab -----------------------------------------------------------
         var root = new GameObject(g.Name);
         try
@@ -531,7 +562,8 @@ public static class NewWearExtractor
             Object.DestroyImmediate(root);
         }
 
-        log.AppendLine($"  {g.SourceKey} -> {PrefabPath(g)} ({meshes.Count} meshes, {mats.Count} mats)");
+        log.AppendLine($"  {g.SourceKey} -> {PrefabPath(g)} ({meshes.Count} meshes, {mats.Count} mats)" +
+                       (meshes.TryGetValue(ActorName.Jana, out var saved) ? $"\n      сохранённый: {Layout(saved)}" : ""));
         return true;
     }
 
@@ -557,7 +589,8 @@ public static class NewWearExtractor
     //  read off the instance while it still stands in its bind pose. Every part
     //  is pushed through that into the rig's own space, and one bindpose
     //  (anchor.worldToLocal * rig.localToWorld) sends the whole thing back.
-    private static SkinnedMeshRenderer MergeParts(GarmentSpec g, GameObject rig)
+    private static SkinnedMeshRenderer MergeParts(
+        GarmentSpec g, GameObject rig, Dictionary<string, Material> mats)
     {
         if (g.Materials == null || g.Materials.Length == 0)
         {
@@ -644,12 +677,19 @@ public static class NewWearExtractor
         var triangles = new Dictionary<MatSpec, List<int>>();
         var samples = new Dictionary<MatSpec, Material>();
 
+        // Tangents are only ever read by a normal-mapped shader, and cost 16
+        // bytes a vertex — a fifth of this mesh. Ours are flat URP/Lit with an
+        // albedo and nothing else, so they are dead weight; asked of the built
+        // materials rather than assumed, so a normal map added later brings
+        // them back on its own.
+        var wantsTangents = WantsTangents(mats);
+
         foreach (var (renderer, mesh, toRig, _) in parts)
         {
             var offset = vertices.Count;
             var src = mesh.vertices;
             var srcNormals = mesh.normals;
-            var srcTangents = mesh.tangents;
+            var srcTangents = wantsTangents ? mesh.tangents : System.Array.Empty<Vector4>();
             var srcUv = mesh.uv;
             for (var i = 0; i < src.Length; i++)
             {
@@ -657,15 +697,18 @@ public static class NewWearExtractor
                 normals.Add(i < srcNormals.Length
                     ? toRig.MultiplyVector(srcNormals[i]).normalized
                     : Vector3.up);
-                if (i < srcTangents.Length)
+                if (wantsTangents)
                 {
-                    var t = srcTangents[i];
-                    var dir = toRig.MultiplyVector(new Vector3(t.x, t.y, t.z)).normalized;
-                    tangents.Add(new Vector4(dir.x, dir.y, dir.z, t.w));
-                }
-                else
-                {
-                    tangents.Add(new Vector4(1f, 0f, 0f, -1f));
+                    if (i < srcTangents.Length)
+                    {
+                        var t = srcTangents[i];
+                        var dir = toRig.MultiplyVector(new Vector3(t.x, t.y, t.z)).normalized;
+                        tangents.Add(new Vector4(dir.x, dir.y, dir.z, t.w));
+                    }
+                    else
+                    {
+                        tangents.Add(new Vector4(1f, 0f, 0f, -1f));
+                    }
                 }
 
                 uvs.Add(i < srcUv.Length ? srcUv[i] : Vector2.zero);
@@ -691,24 +734,25 @@ public static class NewWearExtractor
             }
         }
 
-        // Every vertex rides the one bone the whole kit really follows.
-        var weights = new BoneWeight[vertices.Count];
-        for (var i = 0; i < weights.Length; i++)
-        {
-            weights[i] = new BoneWeight { boneIndex0 = 0, weight0 = 1f };
-        }
-
         var merged = new Mesh
         {
             name = g.SourceKey,
-            indexFormat = UnityEngine.Rendering.IndexFormat.UInt32,
+            // 32-bit indices double the index buffer and buy nothing under
+            // 65 536 vertices. The headdress sits at 55 844.
+            indexFormat = vertices.Count > 65535
+                ? UnityEngine.Rendering.IndexFormat.UInt32
+                : UnityEngine.Rendering.IndexFormat.UInt16,
         };
         merged.SetVertices(vertices);
         merged.SetNormals(normals);
-        merged.SetTangents(tangents);
+        if (wantsTangents)
+        {
+            merged.SetTangents(tangents);
+        }
+
         merged.SetUVs(0, uvs);
         merged.bindposes = new[] { shared.worldToLocalMatrix * rig.transform.localToWorldMatrix };
-        merged.boneWeights = weights;
+        SetSingleBoneSkin(merged, vertices.Count);
         merged.subMeshCount = order.Count;
         for (var i = 0; i < order.Count; i++)
         {
@@ -729,8 +773,97 @@ public static class NewWearExtractor
         smr.sharedMaterials = order.Select(spec => samples[spec]).ToArray();
 
         Debug.Log($"[NewWear] {g.SourceKey}: собрано {parts.Count} част(и) → " +
-                  $"{vertices.Count} вершин, {order.Count} материал(а), кость '{shared.name}'");
+                  $"{vertices.Count} вершин, {order.Count} материал(а), кость '{shared.name}'; " +
+                  Layout(merged));
         return smr;
+    }
+
+    // Tangents are only ever read by a normal-mapped shader and cost 16 bytes a
+    // vertex — a fifth of a welded mesh. Asked of the built materials rather
+    // than assumed, so a normal map added later brings them back on its own.
+    private static bool WantsTangents(Dictionary<string, Material> mats)
+    {
+        return mats.Values.Any(
+            m => m != null && m.HasProperty(BumpMap) && m.GetTexture(BumpMap) != null);
+    }
+
+    // What a mesh actually costs per vertex. Worth logging rather than
+    // assuming: a mesh authored lean can be widened again by a later copy.
+    private static string Layout(Mesh mesh)
+    {
+        var bones = mesh.GetBonesPerVertex();
+        var influences = bones.Length > 0 ? bones[0] : (byte)0;
+        var text = $"тангенсы={mesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Tangent)}, " +
+                   $"влияний/вершину={influences}, индексы={mesh.indexFormat}";
+        bones.Dispose();
+        return text;
+    }
+
+    /// <summary>
+    /// Strip a welded mesh down to what it actually needs.
+    /// </summary>
+    /// <remarks>
+    /// Only for welded kits (spec §31B.4D), where every vertex genuinely rides
+    /// one bone. An ordinary garment's weights are real and must not be touched.
+    ///
+    /// Measured on the headdress, per vertex: position 12 + normal 12 + tangent
+    /// 16 + uv 8 + four blend weights and four indices 32 = 80 bytes, down to
+    /// 36. With the 16-bit index buffer that is 10.79 MB a mesh to 4.97 —
+    /// −54%, and nothing about the garment changes.
+    ///
+    /// ⚠️ Two things have to be true for any of it to reach the file, and both
+    /// cost hours to find: it must run on the COPY that becomes the asset
+    /// (`Object.Instantiate` does not carry a lean layout across), and the old
+    /// asset must be DELETED rather than copied into — see the caller. Judge
+    /// the result by the file's content, never by a file merely being there: a
+    /// `.mesh` left from an earlier run reads exactly like a failure.
+    /// </remarks>
+    private static void Slim(Mesh mesh, bool keepTangents)
+    {
+        if (!keepTangents)
+        {
+            mesh.SetTangents(new List<Vector4>());
+        }
+
+        SetSingleBoneSkin(mesh, mesh.vertexCount);
+    }
+
+    /// <summary>
+    /// Bind every vertex to bone 0 with weight 1, storing ONE influence.
+    /// </summary>
+    /// <remarks>
+    /// `mesh.boneWeights = …` always writes the four-influence layout: four
+    /// indices and four weights, 32 bytes a vertex, of which this mesh uses
+    /// eight and pads the rest with zeroes. That was the single biggest block
+    /// in the file — bigger than positions, normals and UVs together. The
+    /// modern API stores exactly what is there.
+    ///
+    /// The catch is that the LEGACY `mesh.boneWeights` GETTER then comes back
+    /// empty, which is the trap `HealthDollStage` already documents (it painted
+    /// the whole doll one colour). Anything reading weights off a garment has
+    /// to use GetAllBoneWeights — see the matching fix in SeveredLimbFactory.
+    /// </remarks>
+    private static void SetSingleBoneSkin(Mesh mesh, int vertexCount)
+    {
+        var bonesPerVertex = new Unity.Collections.NativeArray<byte>(
+            vertexCount, Unity.Collections.Allocator.Temp);
+        var influences = new Unity.Collections.NativeArray<BoneWeight1>(
+            vertexCount, Unity.Collections.Allocator.Temp);
+        try
+        {
+            for (var i = 0; i < vertexCount; i++)
+            {
+                bonesPerVertex[i] = 1;
+                influences[i] = new BoneWeight1 { boneIndex = 0, weight = 1f };
+            }
+
+            mesh.SetBoneWeights(bonesPerVertex, influences);
+        }
+        finally
+        {
+            bonesPerVertex.Dispose();
+            influences.Dispose();
+        }
     }
 
     private static MatSpec SpecFor(GarmentSpec g, string materialName)

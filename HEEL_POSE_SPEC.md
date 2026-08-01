@@ -45,10 +45,18 @@ The angles scale with heel height — same shape of pose, different magnitude.
 
 ## 2. Getting the numbers out of the product
 
-Every heeled DAZ product ships a foot-pose preset. Find it next to the shoe
-(`*FootPose*.duf`, `Feet Pose/*.duf`) — **it is excluded from the garment list
-on purpose** (it is a pose, not a wearable), so nobody trips over it during
-`dress`.
+⚠️ **Not every heeled product ships a preset.** That was the assumption when
+this spec was written and it does not hold: *Charlotte High Heels* (Arryn,
+G3F+G8F) contains no pose file at all — zero `.duf` with "pose" in the name —
+and its wearable `Charlotte High Heels.duf` keys **every** `lFoot`/`rFoot`/
+`lToe`/`rToe` rotation to **0**. That is a RESET, not a pose: it flattens the
+foot on load. Read such a file as authored numbers and you get a flat shoe with
+a confident-looking `heelPose` of zero. **Non-zero is the test, not presence.**
+
+When there IS a preset it wins — it is the authored answer. Find it next to the
+shoe (`*FootPose*.duf`, `Feet Pose/*.duf`) — **it is excluded from the garment
+list on purpose** (it is a pose, not a wearable), so nobody trips over it
+during `dress`.
 
 A `.duf` is JSON, gzipped or not depending on the author's save setting:
 
@@ -78,6 +86,50 @@ from the END of the url, not the start.
 ```
 lift ≈ 0.11 × sin(foot°)        # 0.11 m = heel-to-ball on Genesis 3 Female
 ```
+
+## 2A. When there is no preset — measure the shoe (automatic)
+
+`Tools/wardrobe/wardrobe/heels.py`. **The pipeline now does this by itself**;
+this section is here so the next person knows what the numbers mean, not so
+they can be produced by hand.
+
+**Recognising a heel costs nothing.** The `dress` stage fits the shoe to a girl
+standing FLAT, so a shoe modelled around a raised heel reaches *below the floor*
+by exactly the heel height. `y` in these exports is centimetres above the ground
+— the same axis `manifest._zone` slices the body with — so:
+
+```
+heel height = −min(y) over the shoe's vertices
+```
+
+That is the "her foot pokes through the sole" failure seen from the other side,
+and it is already in the FBX we parse. No DAZ round-trip, no product
+conventions. A flat shoe dips a centimetre or two for its sole, which is why
+the threshold is 2.5 cm (`heels.MIN_HEEL_CM`).
+
+The measured drop **is** the `lift`, so the angle is §2's formula inverted:
+
+```
+foot° = asin(heelHeight / 0.11)     toe° = −foot°
+```
+
+Checked against the shipped table above: Flair's 0.078 m gives 45.2° (tuned
+45.0), Cindy's 0.052 m gives 28.2° (tuned 28.2). The toe is the weaker half of
+the model — Flair's authored toe is −40° where the formula says −45° — so it is
+the first thing to nudge if the toes look wrong.
+
+Beyond `heels.MAX_FOOT_DEGREES` (55°, steeper than anything the project has)
+the pose is clamped and flagged `_review` in the manifest rather than emitted
+silently: an absurd angle means the measurement is wrong, not that the shoe is
+extraordinary.
+
+**Where it plugs in.** `manifest.propose()` asks `heels.propose()` only for
+garments whose inferred slots contain `FootR`/`FootL`, writes the `heelPose`
+block, and records `_measured.heelCm` as the evidence — so a wrong guess is
+visible next to the number, like the slot list. `manifest.merge()` keeps a
+hand-corrected pose verbatim; it adopts a newly measured one only when the
+reviewed entry has **no** `heelPose` key, and an explicit `"heelPose": null` is
+respected as a decision.
 
 ## 3. Runtime — `BodyBones`, and it MUST be LateUpdate
 

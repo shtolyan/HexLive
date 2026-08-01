@@ -28,6 +28,17 @@ model ships as a plain `.glb` in `Resources/HexLive/Objects/<id>.glb` — see
 **`TOOL_GENERATION_SPEC.md` §3b** (`tool.machete`, `tool.bottle`, `tool.saw`,
 `item.bandage` went that way).
 
+## Heeled shoes — the raised heel
+
+**Follow `HEEL_POSE_SPEC.md`.** A heeled shoe in DAZ ships a foot POSE next to
+the mesh (heel up, toes bent back) and the shoe is modelled around it; Unity has
+no equivalent, so without it the girl stands flat inside the shoe and her foot
+pokes through the sole. It is two rotations and a lift, carried in the drop
+manifest as `heelPose` and applied by `BodyBones.LateUpdate` — **a new pair of
+heels needs no C# at all**. The pose numbers come out of the product's own
+`*FootPose*.duf`; the rotation AXIS is data, not a constant, because an FBX
+import can permute a bone's local axes — verify in play before believing it.
+
 ## Generating inventory ICONS (the pictures in the item list)
 
 **Follow `ICON_GENERATION_SPEC.md`** — a different pipeline from the models

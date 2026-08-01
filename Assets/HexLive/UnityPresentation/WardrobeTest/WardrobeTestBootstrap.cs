@@ -59,6 +59,19 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
     private readonly HashSet<string> _dirty = new();
     private string _selectedKey;
 
+    // Hair is NOT wardrobe (spec §31B.4B): no slot, no layer, never equipped —
+    // one instance swapped through BodyBones.SetHair. It also does not live in
+    // Resources, so it gets its own list instead of riding _entries.
+    private sealed class HairEntry
+    {
+        public string DisplayName;
+        public Wear Asset;          // null = the "bald" row
+        public VisualElement Row;
+    }
+
+    private readonly List<HairEntry> _hair = new();
+    private HairEntry _selectedHair;
+
     private ActorName _girl = ActorName.Marta;
     private GameObject _actorRoot;
     private BodyBones _bodyBones;
@@ -129,6 +142,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
 
         BuildEnvironment();
         CollectWearEntries();
+        CollectHairEntries();
         BuildUi();
         SpawnGirl(_girl);
     }
@@ -226,6 +240,79 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         });
     }
 
+    // Every prefab under ImportedActors/Wear IS a hairstyle — garments live in
+    // Resources/HexLive/Wear instead, so the folder alone is the discriminator
+    // (verified 2026-08: all 17 prefabs there are hair, all with empty slots).
+    // Editor-only: hair is referenced straight off the actor prefabs and is
+    // deliberately NOT in Resources, so there is nothing to enumerate at
+    // runtime. The panel simply stays empty in a build.
+    private void CollectHairEntries()
+    {
+        _hair.Clear();
+        // Asset == null IS the bald row; its label is resolved at build time,
+        // because BuildUi re-runs on language change but this does not.
+        _hair.Add(new HairEntry { DisplayName = null, Asset = null });
+
+#if UNITY_EDITOR
+        foreach (var guid in UnityEditor.AssetDatabase.FindAssets(
+                     "t:Prefab", new[] { "Assets/ImportedActors/Wear" }))
+        {
+            var path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
+            var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            var wear = prefab != null ? prefab.GetComponent<Wear>() : null;
+            if (wear == null)
+            {
+                continue;
+            }
+
+            _hair.Add(new HairEntry { DisplayName = prefab.name, Asset = wear });
+        }
+#endif
+
+        _hair.Sort((a, b) =>
+        {
+            // The bald row stays pinned at the top (and has no DisplayName).
+            if (a.Asset == null)
+            {
+                return b.Asset == null ? 0 : -1;
+            }
+
+            if (b.Asset == null)
+            {
+                return 1;
+            }
+
+            return string.Compare(a.DisplayName, b.DisplayName, StringComparison.OrdinalIgnoreCase);
+        });
+    }
+
+    private void OnHairClicked(HairEntry entry)
+    {
+        if (_bodyBones == null)
+        {
+            return;
+        }
+
+        _selectedHair = entry;
+        _bodyBones.SetHair(entry.Asset);
+
+        // A new hairstyle brings new renderers — they need the same culling
+        // relaxation the body got, or the strands vanish mid-sleep.
+        RelaxSkinCulling();
+        RefreshHairRows();
+    }
+
+    private void RefreshHairRows()
+    {
+        foreach (var entry in _hair)
+        {
+            if (entry.Row != null)
+            {
+                entry.Row.style.backgroundColor = entry == _selectedHair ? Accent : Raised;
+            }
+        }
+    }
+
     // ---- actor ----
 
     private void SpawnGirl(ActorName girl)
@@ -305,6 +392,12 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         RefreshAllRows();
         RefreshGirlButtons();
         RefreshScalePanel();
+
+        // A fresh body wears the hairstyle authored on HER actor prefab, so the
+        // panel follows the girl instead of keeping the previous selection.
+        var authored = _bodyBones != null ? _bodyBones.DefaultHair : null;
+        _selectedHair = _hair.Find(h => h.Asset == authored) ?? _hair.Find(h => h.Asset == null);
+        RefreshHairRows();
     }
 
     // Lying poses stretch outside the authored skin bounds and get
@@ -725,7 +818,46 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
 
         BuildLeftPanel(root);
         BuildWardrobePanel(root);
+        BuildHairPanel(root);
         BuildScalePanel(root);
+    }
+
+    // Sits just left of the clothes panel (which is 260 wide at right:14).
+    private void BuildHairPanel(VisualElement root)
+    {
+        var box = MakePanel();
+        box.style.right = 288f;
+        box.style.top = 14f;
+        box.style.bottom = 14f;
+        box.style.width = 200f;
+        root.Add(box);
+
+        box.Add(MakeTitle(Loc.Get("wardrobe.hair")));
+
+        var hint = new Label(Loc.Get("wardrobe.hair_hint"));
+        hint.style.color = Muted;
+        hint.style.fontSize = 10;
+        hint.style.whiteSpace = WhiteSpace.Normal;
+        hint.style.marginBottom = 6f;
+        box.Add(hint);
+
+        var scroll = new ScrollView(ScrollViewMode.Vertical);
+        scroll.style.flexGrow = 1f;
+        box.Add(scroll);
+
+        foreach (var entry in _hair)
+        {
+            var captured = entry;
+            var label = entry.Asset == null ? Loc.Get("wardrobe.hair_none") : entry.DisplayName;
+            var row = MakeButton(label, Raised, () => OnHairClicked(captured));
+            row.style.height = 24f;
+            row.style.marginBottom = 3f;
+            ((Label)row[0]).style.fontSize = 11;
+            entry.Row = row;
+            scroll.Add(row);
+        }
+
+        RefreshHairRows();
     }
 
     private void BuildLeftPanel(VisualElement root)

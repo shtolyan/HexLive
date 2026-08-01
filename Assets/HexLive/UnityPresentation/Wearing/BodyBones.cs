@@ -22,6 +22,8 @@ public sealed class BodyBones : MonoBehaviour
     private readonly Dictionary<VisualWearLayer, Dictionary<VisualWearSlot, Wear>> _byLayer = new();
     private readonly Dictionary<Wear, string> _wearKeys = new();
     private ActorName _actorMesh;
+    private Wear _hairInstance;
+    private readonly List<GameObject> _hairBones = new();
 
     public Transform WearTransform => wearTransform;
 
@@ -51,17 +53,72 @@ public sealed class BodyBones : MonoBehaviour
             }
         }
 
-        if (hair != null)
+        // A fresh body owns no hair yet — anything from a previous Construct
+        // died with the old GameObject.
+        _hairInstance = null;
+        _hairBones.Clear();
+        SetHair(hair);
+    }
+
+    // The hairstyle authored on this actor prefab (spec §31B.4B). Dev tools
+    // read it to show which one is the default.
+    public Wear DefaultHair => hair;
+
+    // Spec §31B.4B: swap the hairstyle on a LIVE body; null = bald. Hair is
+    // not a wardrobe item — it owns no slot, never goes through Equip, and
+    // only ever has one instance — so it gets its own seam instead of riding
+    // the _wears map. Used by Construct and by the WardrobeTest tool.
+    public void SetHair(Wear hairPrefab)
+    {
+        // Wear.Construct re-parents a garment's bones ONTO the body skeleton
+        // (ParentConnection), so the hair's bones do NOT stay under the hair
+        // root — destroying the root alone strands them under the body and
+        // every swap piles up another dead skeleton. Kill them explicitly.
+        foreach (var bone in _hairBones)
         {
-            var spawned = Instantiate(hair, wearTransform);
-            spawned.Construct(_actorMesh, this, "hair");
-            // Hair must never catch SKIN-layer decals (dirt/sweat grain in the
-            // strands): imported prefabs ship odd rendering-layer masks (257),
-            // so pin every hair renderer to the cloth bit explicitly.
-            foreach (var renderer in spawned.GetComponentsInChildren<Renderer>(true))
+            if (bone != null)
             {
-                renderer.renderingLayerMask = Wear.ClothDecalLayer;
+                Destroy(bone);
             }
+        }
+
+        _hairBones.Clear();
+
+        if (_hairInstance != null)
+        {
+            Destroy(_hairInstance.gameObject);
+            _hairInstance = null;
+        }
+
+        if (hairPrefab == null)
+        {
+            return;
+        }
+
+        _hairInstance = Instantiate(hairPrefab, wearTransform);
+
+        // Snapshot the bone subtree BEFORE Construct scatters it across the body.
+        foreach (var t in _hairInstance.GetComponentsInChildren<Transform>(true))
+        {
+            if (t.name == "hip")
+            {
+                foreach (var bone in t.GetComponentsInChildren<Transform>(true))
+                {
+                    _hairBones.Add(bone.gameObject);
+                }
+
+                break;
+            }
+        }
+
+        _hairInstance.Construct(_actorMesh, this, "hair");
+
+        // Hair must never catch SKIN-layer decals (dirt/sweat grain in the
+        // strands): imported prefabs ship odd rendering-layer masks (257),
+        // so pin every hair renderer to the cloth bit explicitly.
+        foreach (var renderer in _hairInstance.GetComponentsInChildren<Renderer>(true))
+        {
+            renderer.renderingLayerMask = Wear.ClothDecalLayer;
         }
     }
 

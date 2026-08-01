@@ -77,23 +77,29 @@ render — generate the model first (`TOOL_GENERATION_SPEC.md`), then the icon.
 
 ```bash
 /Applications/Blender.app/Contents/MacOS/Blender -b -P Tools/render_item_icon.py -- \
-    <model.obj|model.glb> <out.png> [--install <itemId>] [--fit 1.25] [--samples 64]
+    <model.obj|model.glb> <out.png> [--install <itemId>] [--style cloth|tool] \
+    [--fit 1.25] [--samples 64]
 ```
 
-The constants at the top of `Tools/render_item_icon.py` ARE the house style:
+Two presets, because two batches of icons shipped and they are NOT identical.
+The script picks by source type — **OBJ ⇒ `cloth`, GLB ⇒ `tool`** — and
+`--style` overrides:
 
-| | |
-|---|---|
-| camera | ORTHO, direction `(0.55, −1.0, 0.30)` — ¾ front, models face Blender −Y |
-| framing | `ortho_scale = max bbox dimension × 1.25` (the padding of the shipped icons) |
-| engine | Cycles, 64 samples + denoise, `film_transparent`, view transform `Standard` |
-| lights | 4 suns: key 4.0 `(0.7,−1,0.9)`, fill 1.8 `(−1,−0.6,0.25)`, rim 2.2 `(−0.2,1,0.6)`, top 1.2 `(0,−0.1,1)` |
-| surface | Principled: Specular 0.15, Roughness 0.62, Sheen 0.15 |
-| output | 512×512 PNG RGBA |
+| | `cloth` (garments) | `tool` (props/tools) |
+|---|---|---|
+| matches | `Shorts_10_14636.png` | `tool.axe_stone.png`, `tool.lighter.png` |
+| camera dir | `(0.55, −1.0, 0.30)` | `(0.75, −1.0, 0.30)` |
+| framing | `ortho_scale = maxdim × 1.25` | `× 1.35` (a touch more air) |
+| surface | Roughness 0.62, Specular 0.15, Sheen 0.15, smooth | Roughness 0.9, Specular 0, **flat-shaded** |
+
+Shared by both: ORTHO camera aimed at the bbox centre, Cycles 64 samples +
+denoise, `film_transparent`, view transform `Standard`, 512×512 RGBA, and 4
+suns — key 4.0 `(0.7,−1,0.9)`, fill 1.8 `(−1,−0.6,0.25)`, rim 2.2
+`(−0.2,1,0.6)`, top 1.2 `(0,−0.1,1)`.
 
 Both importers land the model with its front at Blender −Y (OBJ:
-`axis_forward='-Z', axis_up='Y'`; glTF: the importer's own Y-up→Z-up), so one
-camera serves garments and props.
+`axis_forward='-Z', axis_up='Y'`; glTF: the importer's own Y-up→Z-up), so the
+camera math is the same for garments and props.
 
 **Always eyeball the result next to an existing icon** (`Shorts_10_14636.png` is
 the reference) before installing — same size in frame, same lighting side.

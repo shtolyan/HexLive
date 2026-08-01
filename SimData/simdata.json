@@ -112,6 +112,7 @@
     "SimBalance.NeedRunSpeedFactor": 1.60000002,
     "SimBalance.NpcStrikePerPass": 0.150000006,
     "SimBalance.PalmGroveReserve": 4,
+    "SimBalance.PickUpFirstRadiusTiles": 4,
     "SimBalance.PostTurnPauseSeconds": 0.150000006,
     "SimBalance.PredationBaseScore": 0.0500000007,
     "SimBalance.PredationComfortPenalty": 0.600000024,

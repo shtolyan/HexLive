@@ -25,12 +25,18 @@ import uuid
 import bpy
 from mathutils import Vector
 
-# --- the shipped look (do not tune casually) -----------------------------
-CAMERA_DIR = Vector((0.55, -1.0, 0.30))  # 3/4 front; models face Blender -Y
-FIT = 1.25          # ortho_scale = max bbox dimension * FIT (padding)
+# --- the shipped looks (do not tune casually) ----------------------------
+# Two presets, because two batches of icons shipped: the cloth one matches the
+# Molly garment icons (Shorts_10_14636.png), the tool one matches the AI tool
+# icons (tool.axe_stone.png, tool.lighter.png). Both are 3/4 from the same
+# side; the tool preset sits a little wider and harder.
+STYLES = {
+    #        camera direction          fit   roughness  spec  sheen  flat
+    "cloth": (Vector((0.55, -1.0, 0.30)), 1.25, 0.62, 0.15, 0.15, False),
+    "tool":  (Vector((0.75, -1.0, 0.30)), 1.35, 0.90, 0.00, 0.00, True),
+}
 SAMPLES = 64        # Cycles + denoise
 RESOLUTION = 512
-SPECULAR, ROUGHNESS, SHEEN = 0.15, 0.62, 0.15
 SUNS = (  # direction, energy: key / fill / rim / top
     ((0.7, -1.0, 0.9), 4.0),
     ((-1.0, -0.6, 0.25), 1.8),
@@ -45,11 +51,17 @@ META_TEMPLATE = os.path.join(ICON_DIR, "Bikini Bottom.png.meta")
 def parse_args():
     argv = sys.argv[sys.argv.index("--") + 1:]
     src, dst = argv[0], argv[1]
-    opts = {"install": None, "fit": FIT, "samples": SAMPLES}
-    for key in ("install", "fit", "samples"):
-        if f"--{key}" in argv:
-            val = argv[argv.index(f"--{key}") + 1]
-            opts[key] = val if key == "install" else type(opts[key])(val)
+    # OBJ comes from a garment mesh, GLB from a prop — override with --style
+    style = "tool" if src.lower().endswith((".glb", ".gltf")) else "cloth"
+    if "--style" in argv:
+        style = argv[argv.index("--style") + 1]
+    opts = {"install": None, "style": style, "fit": None, "samples": SAMPLES}
+    if "--install" in argv:
+        opts["install"] = argv[argv.index("--install") + 1]
+    if "--fit" in argv:
+        opts["fit"] = float(argv[argv.index("--fit") + 1])
+    if "--samples" in argv:
+        opts["samples"] = int(argv[argv.index("--samples") + 1])
     return src, dst, opts
 
 
@@ -75,7 +87,14 @@ def world_bbox(meshes):
     return lo, hi
 
 
-def setup_materials(meshes):
+def setup_materials(meshes, style):
+    _, _, roughness, specular, sheen, flat = STYLES[style]
+    if flat:
+        bpy.ops.object.select_all(action='DESELECT')
+        for ob in meshes:
+            ob.select_set(True)
+        bpy.context.view_layer.objects.active = meshes[0]
+        bpy.ops.object.shade_flat()
     for ob in meshes:
         for slot in ob.material_slots:
             mat = slot.material
@@ -85,10 +104,10 @@ def setup_materials(meshes):
             bsdf = next((n for n in mat.node_tree.nodes if n.type == 'BSDF_PRINCIPLED'), None)
             if bsdf is None:
                 continue
-            bsdf.inputs['Specular'].default_value = SPECULAR
-            bsdf.inputs['Roughness'].default_value = ROUGHNESS
+            bsdf.inputs['Specular'].default_value = specular
+            bsdf.inputs['Roughness'].default_value = roughness
             if 'Sheen' in bsdf.inputs:
-                bsdf.inputs['Sheen'].default_value = SHEEN
+                bsdf.inputs['Sheen'].default_value = sheen
             # icons are always opaque: a see-through prop (the plastic bottle)
             # would otherwise render as a ghost on the transparent film
             if 'Alpha' in bsdf.inputs and not bsdf.inputs['Alpha'].links:
@@ -96,7 +115,9 @@ def setup_materials(meshes):
             mat.blend_method = 'OPAQUE'
 
 
-def render(dst, meshes, fit, samples):
+def render(dst, meshes, style, fit, samples):
+    cam_dir, default_fit = STYLES[style][0], STYLES[style][1]
+    fit = default_fit if fit is None else fit
     scene = bpy.context.scene
     lo, hi = world_bbox(meshes)
     centre, maxdim = (lo + hi) / 2, max(hi - lo)
@@ -106,7 +127,7 @@ def render(dst, meshes, fit, samples):
     cam_data.ortho_scale = maxdim * fit
     cam = bpy.data.objects.new("Cam", cam_data)
     scene.collection.objects.link(cam)
-    d = CAMERA_DIR.normalized()
+    d = cam_dir.normalized()
     cam.location = centre + d * (maxdim * 4.0)
     cam.rotation_mode = 'QUATERNION'
     cam.rotation_quaternion = d.to_track_quat('Z', 'Y')
@@ -154,9 +175,9 @@ def install(png, item_id):
 def main():
     src, dst, opts = parse_args()
     meshes = load(src)
-    setup_materials(meshes)
-    render(dst, meshes, opts["fit"], opts["samples"])
-    print("WROTE", dst)
+    setup_materials(meshes, opts["style"])
+    render(dst, meshes, opts["style"], opts["fit"], opts["samples"])
+    print(f"WROTE {dst} (style={opts['style']})")
     if opts["install"]:
         install(dst, opts["install"])
 

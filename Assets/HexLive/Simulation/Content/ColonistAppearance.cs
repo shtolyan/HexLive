@@ -89,26 +89,51 @@ public static class ColonistAppearance
     // colony, which is what keeps a soak, a bug report and a save reproducible
     // (spec 29C.1). Salt block (74, 74xx) is unused by anything else.
     //
-    // Only the NAME is de-duplicated: two girls may share a body, a skin set,
-    // a hairstyle or a voice — that is the point, "maybe two Janas happen" —
-    // but two identical names would be unreadable in the UI. `taken` carries
-    // the names already handed out in this world; the walk forward from the
-    // rolled index keeps the resolution deterministic and order-stable.
-    public static Look Roll(int seed, int npcId, ICollection<string> taken)
+    // Individual traits are FREE to repeat: two girls may share a body, a skin
+    // set, a hairstyle or a voice — that is the point, "maybe two Janas
+    // happen". Exactly two things are de-duplicated:
+    //
+    // - the NAME, because two identical names are unreadable in the UI;
+    // - the VISIBLE look (mesh + skin set + hairstyle), because two women the
+    //   eye cannot tell apart are not variety, they are a bug report waiting to
+    //   happen. Voice is NOT part of that key on purpose: a shared voice is
+    //   heard one line at a time and reads as a family resemblance, while a
+    //   shared silhouette is on screen permanently.
+    //
+    // Both resolve by walking FORWARD from the rolled index — deterministic and
+    // order-stable, so the same seed lands on the same colony every time. The
+    // look walks the hairstyle axis: it is the widest pool (16), so a collision
+    // is settled by changing her hair rather than her body.
+    public static Look Roll(int seed, int npcId,
+        ICollection<string> takenNames, ICollection<string> takenLooks)
     {
         var mesh = Meshes[(int)(MathUtil.Hash01(seed, npcId, 74, 7401) * Meshes.Length)];
         var skin = SkinSets[(int)(MathUtil.Hash01(seed, npcId, 74, 7402) * SkinSets.Length)];
-        var hair = Hairstyles[(int)(MathUtil.Hash01(seed, npcId, 74, 7403) * Hairstyles.Length)];
         var voice = VoiceBanks[(int)(MathUtil.Hash01(seed, npcId, 74, 7404) * VoiceBanks.Length)];
 
-        var start = (int)(MathUtil.Hash01(seed, npcId, 74, 7405) * NameIds.Length);
-        var name = NameIds[start];
-        if (taken != null)
+        var hairStart = (int)(MathUtil.Hash01(seed, npcId, 74, 7403) * Hairstyles.Length);
+        var hair = Hairstyles[hairStart];
+        if (takenLooks != null)
+        {
+            for (var step = 0; step < Hairstyles.Length; step++)
+            {
+                var candidate = Hairstyles[(hairStart + step) % Hairstyles.Length];
+                if (!takenLooks.Contains(LookKey(mesh, skin, candidate)))
+                {
+                    hair = candidate;
+                    break;
+                }
+            }
+        }
+
+        var nameStart = (int)(MathUtil.Hash01(seed, npcId, 74, 7405) * NameIds.Length);
+        var name = NameIds[nameStart];
+        if (takenNames != null)
         {
             for (var step = 0; step < NameIds.Length; step++)
             {
-                var candidate = NameIds[(start + step) % NameIds.Length];
-                if (!taken.Contains(candidate))
+                var candidate = NameIds[(nameStart + step) % NameIds.Length];
+                if (!takenNames.Contains(candidate))
                 {
                     name = candidate;
                     break;
@@ -118,6 +143,13 @@ public static class ColonistAppearance
 
         return new Look(mesh, skin, hair, voice, name);
     }
+
+    /// <summary>
+    /// What the player SEES of a colonist — body, face and hair. Two girls must
+    /// never share this key; name and voice are separate axes.
+    /// </summary>
+    public static string LookKey(string mesh, string skinSet, string hairstyle)
+        => mesh + "/" + skinSet + "/" + hairstyle;
 }
 
 }

@@ -798,17 +798,18 @@ public sealed class WorldStateFactory
     // - only Colony rolls, because the pools are the four female actresses and
     //   the outsider's male body must not receive their skins or voices;
     // - ids are walked in ASCENDING ORDER, not dictionary order, so the name
-    //   de-duplication resolves identically on every run and platform.
+    //   and look de-duplication resolve identically on every run and platform.
     private static void AssignAppearance(WorldState world)
     {
         var ids = new List<int>();
-        var taken = new HashSet<string>();
+        var takenNames = new HashSet<string>();
+        var takenLooks = new HashSet<string>();
         foreach (var npc in world.Entities.Npcs.Values)
         {
             ids.Add(npc.Id.Value);
             if (!string.IsNullOrEmpty(npc.DisplayName))
             {
-                taken.Add(npc.DisplayName);
+                takenNames.Add(npc.DisplayName);
             }
         }
 
@@ -822,7 +823,7 @@ public sealed class WorldStateFactory
                 continue;
             }
 
-            var look = ColonistAppearance.Roll(world.Seed, id, taken);
+            var look = ColonistAppearance.Roll(world.Seed, id, takenNames, takenLooks);
 
             if (string.IsNullOrEmpty(npc.ActorMesh))
             {
@@ -847,8 +848,14 @@ public sealed class WorldStateFactory
             if (string.IsNullOrEmpty(npc.DisplayName))
             {
                 npc.DisplayName = look.NameId;
-                taken.Add(npc.DisplayName);
+                takenNames.Add(npc.DisplayName);
             }
+
+            // Claim the look as ASSEMBLED, not as rolled: a hand-authored field
+            // above may have overridden part of it, and the next girl must be
+            // compared against what this one actually looks like.
+            takenLooks.Add(ColonistAppearance.LookKey(
+                npc.ActorMesh, npc.SkinSet, npc.Hairstyle));
         }
     }
 

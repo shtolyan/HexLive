@@ -70,8 +70,15 @@ def load(src):
     if src.lower().endswith(".glb") or src.lower().endswith(".gltf"):
         bpy.ops.import_scene.gltf(filepath=src)
     else:
-        # Unity Y-up / +Z-forward -> Blender Z-up, model front at -Y
-        bpy.ops.import_scene.obj(filepath=src, axis_forward='-Z', axis_up='Y')
+        # Unity Y-up / +Z-forward -> Blender Z-up, model front at -Y.
+        # The legacy operator was REMOVED in Blender 4.0, so pick whichever this
+        # build has: the icons must keep landing in the same orientation whether
+        # they are rendered on the 3.2.2 the spec was written against or on a
+        # current build. The axis pair is the same, only spelled differently.
+        if hasattr(bpy.ops.wm, "obj_import"):
+            bpy.ops.wm.obj_import(filepath=src, forward_axis='NEGATIVE_Z', up_axis='Y')
+        else:
+            bpy.ops.import_scene.obj(filepath=src, axis_forward='-Z', axis_up='Y')
     meshes = [o for o in bpy.context.scene.objects if o.type == 'MESH']
     assert meshes, f"no mesh in {src}"
     return meshes
@@ -85,6 +92,14 @@ def world_bbox(meshes):
             for i in range(3):
                 lo[i], hi[i] = min(lo[i], w[i]), max(hi[i], w[i])
     return lo, hi
+
+
+def _set_input(bsdf, value, *names):
+    """Set the first Principled input that exists under any of `names`."""
+    for name in names:
+        if name in bsdf.inputs:
+            bsdf.inputs[name].default_value = value
+            return
 
 
 def setup_materials(meshes, style):
@@ -104,10 +119,13 @@ def setup_materials(meshes, style):
             bsdf = next((n for n in mat.node_tree.nodes if n.type == 'BSDF_PRINCIPLED'), None)
             if bsdf is None:
                 continue
-            bsdf.inputs['Specular'].default_value = specular
-            bsdf.inputs['Roughness'].default_value = roughness
-            if 'Sheen' in bsdf.inputs:
-                bsdf.inputs['Sheen'].default_value = sheen
+            # Blender 4.x renamed several Principled inputs, so address them by
+            # whichever name this build knows. Missing ones are skipped rather
+            # than fatal: an icon without sheen still matches the shipped set far
+            # better than no icon at all.
+            _set_input(bsdf, specular, 'Specular', 'Specular IOR Level')
+            _set_input(bsdf, roughness, 'Roughness')
+            _set_input(bsdf, sheen, 'Sheen', 'Sheen Weight')
             # icons are always opaque: a see-through prop (the plastic bottle)
             # would otherwise render as a ghost on the transparent film
             if 'Alpha' in bsdf.inputs and not bsdf.inputs['Alpha'].links:

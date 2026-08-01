@@ -1,0 +1,128 @@
+[
+  {
+    "simId": "clothing.jacket_cindy",
+    "fbx": "Assets/Temp/jana cindy.fbx",
+    "mesh": "Jacket_7653",
+    "folder": "CindyJacket",
+    "texture": "Cloth D.png"
+  },
+  {
+    "simId": "clothing.shorts_cindy",
+    "fbx": "Assets/Temp/jana cindy.fbx",
+    "mesh": "bottom daz_5767",
+    "folder": "CindyShorts",
+    "texture": "Cloth D.png"
+  },
+  {
+    "simId": "clothing.belt_cindy",
+    "fbx": "Assets/Temp/jana cindy.fbx",
+    "mesh": "belt daz_7248",
+    "folder": "CindyBelt",
+    "texture": "Accesories.png"
+  },
+  {
+    "simId": "clothing.boots_cindy",
+    "fbx": "Assets/Temp/jana cindy.fbx",
+    "mesh": "boots daz_6436",
+    "folder": "CindyBoots",
+    "texture": "Cloth D.png"
+  },
+  {
+    "simId": "clothing.gloves_cindy",
+    "fbx": "Assets/Temp/jana cindy.fbx",
+    "mesh": "gloves daz_4228",
+    "folder": "CindyGloves",
+    "texture": "Cloth D.png"
+  },
+  {
+    "simId": "clothing.top_deadly",
+    "fbx": "Assets/Temp/jana deadlysilence.fbx",
+    "mesh": "S3D_DdlSlc_Top",
+    "folder": "DeadlyTop",
+    "texture": "S3D_DS_Top_BaseColor.jpg"
+  },
+  {
+    "simId": "clothing.shorts_deadly",
+    "fbx": "Assets/Temp/jana deadlysilence.fbx",
+    "mesh": "S3D_DdlSlc_Shorts_19751",
+    "folder": "DeadlyShorts",
+    "texture": "S3D_DdlSlc_Shorts_BaseColor.jpg"
+  },
+  {
+    "simId": "clothing.glove_deadly_r",
+    "fbx": "Assets/Temp/jana deadlysilence.fbx",
+    "mesh": "glove_right_1610",
+    "folder": "DeadlyGloveR",
+    "texture": "S3D_DdlSlc_Add_basecolor.jpg"
+  },
+  {
+    "simId": "clothing.pouches_deadly",
+    "fbx": "Assets/Temp/jana deadlysilence.fbx",
+    "mesh": "pouches_5674",
+    "folder": "DeadlyPouches",
+    "texture": "S3D_DdlSlc_Add_basecolor.jpg"
+  },
+  {
+    "simId": "clothing.skirt_flair",
+    "fbx": "Assets/Temp/jana flair.fbx",
+    "mesh": "fl-skirt_3552",
+    "folder": "SkirtFlair",
+    "texture": "flair-skirt-01.jpg"
+  },
+  {
+    "simId": "clothing.pumps_flair",
+    "fbx": "Assets/Temp/jana flair.fbx",
+    "mesh": "fl-pumps_12068",
+    "folder": "PumpsFlair",
+    "texture": null
+  },
+  {
+    "simId": "clothing.necklace_night",
+    "fbx": "Assets/Temp/jana nightdress.fbx",
+    "mesh": "ndrss_necklace_44217",
+    "folder": "NightNecklace",
+    "texture": null
+  },
+  {
+    "simId": "clothing.collar_fur",
+    "fbx": "Assets/Temp/jana primaldress.fbx",
+    "mesh": "PriDre_plain_fur_collar_20825",
+    "folder": "FurCollar",
+    "texture": "PrDr_fur.jpg"
+  },
+  {
+    "simId": "clothing.skirt_sweetjane",
+    "fbx": "Assets/Temp/jana sweetjane.fbx",
+    "mesh": "skirt_28126",
+    "folder": "SweetJaneSkirt",
+    "texture": "SJSkirt4.jpg"
+  },
+  {
+    "simId": "clothing.tank_sweetjane",
+    "fbx": "Assets/Temp/jana sweetjane.fbx",
+    "mesh": "tank_4360",
+    "folder": "SweetJaneTank",
+    "texture": "SJTank4.jpg"
+  },
+  {
+    "simId": "clothing.top_fitness",
+    "fbx": "Assets/Temp/jana sweetjane.fbx",
+    "mesh": "FitnessIdol_CroppedTop_G3F",
+    "folder": "FitnessTop",
+    "texture": "FITop_base.png"
+  },
+  {
+    "simId": "clothing.leggings_fitness",
+    "fbx": "Assets/Temp/jana sweetjane.fbx",
+    "mesh": "FitnessIdol_Leggings_G3F",
+    "folder": "FitnessLeggings",
+    "texture": "FILeg_base.png"
+  },
+  {
+    "simId": "clothing.sleeves_fitness",
+    "fbx": "Assets/Temp/jana sweetjane.fbx",
+    "mesh": "Sleeves_G3F",
+    "folder": "FitnessSleeves",
+    "texture": "FITop_base.png"
+  }
+]

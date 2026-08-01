@@ -7,11 +7,12 @@ using UnityEditor;
 using UnityEngine;
 
 // ---------------------------------------------------------------------------
-//  New-wear extractor (spec §31B.4, "new wear" drop of 2026-07).
+//  New-wear extractor (spec §31B.4, "new wear" drop of 2026-07 and the
+//  Sweet Jane / Fitness Idol drop of 2026-08).
 //
-//  Assets/Temp holds three DAZ FBX exports — jana / marta / molly, each
-//  wearing the SAME nine garments fitted to her body. This tool pulls the
-//  garment meshes out of every FBX and assembles the standard wear assets:
+//  Assets/Temp holds one DAZ FBX export per girl per drop, each wearing the
+//  SAME garments fitted to her body. This tool pulls the garment meshes out of
+//  every FBX and assembles the standard wear assets:
 //
 //    Assets/ImportedActors/Wear/<Folder>/Meshes/<Actor>.mesh   (per girl)
 //    Assets/ImportedActors/Wear/<Folder>/Materials/<mat>.mat   (URP Lit)
@@ -37,13 +38,39 @@ public static class NewWearExtractor
     private const string ImportRoot = "Assets/ImportedActors/Wear";
     private const string WearRoot = "Assets/Resources/HexLive/Wear";
 
-    // FBX file -> which girl the garments are fitted to.
-    private static readonly (string path, ActorName actor)[] Sources =
+    // Where the automated pipeline drops its manifests. Anything in here is
+    // merged with the hand-written tables below, so a NEW drop needs no C# at
+    // all — tools/wardrobe writes the JSON and the extractor picks it up.
+    private const string DropRoot = "Assets/Editor/WearDrops";
+
+    // FBX file -> which girl the garments are fitted to. One file per girl per
+    // drop; a girl may appear more than once (different drops carry different
+    // garments), so the renderer index is keyed by (actor, garment), not by file.
+    private static readonly (string path, ActorName actor)[] BuiltInSources =
     {
+        // 2026-07 drop: panty/skirt/sweater, bra, panties, swimsuit, dresses.
+        // Later drops live in Assets/Editor/WearDrops/*.json — see EnsureLoaded.
         ("Assets/Temp/molly new.fbx", ActorName.Molly),
         ("Assets/Temp/marta new wear.fbx", ActorName.Marta),
         ("Assets/Temp/jana new wear.fbx", ActorName.Jana),
     };
+
+    // Built-ins + every JSON drop, resolved once per domain reload.
+    private static (string path, ActorName actor)[] _sources;
+    private static GarmentSpec[] _garments;
+
+    private static (string path, ActorName actor)[] Sources
+    {
+        get { EnsureLoaded(); return _sources; }
+    }
+
+    private static GarmentSpec[] Garments
+    {
+        get { EnsureLoaded(); return _garments; }
+    }
+
+    // Every girl the drops cover, each listed once.
+    private static ActorName[] Actors => Sources.Select(s => s.actor).Distinct().ToArray();
 
     private sealed class MatSpec
     {
@@ -70,7 +97,7 @@ public static class NewWearExtractor
 
     // Slot / layer choices mirror the closest shipped garment (skirt =
     // Skirt G3F, sweater = Jacket_7653, dresses = CityDress_1).
-    private static readonly GarmentSpec[] Garments =
+    private static readonly GarmentSpec[] BuiltInGarments =
     {
         new()
         {
@@ -178,6 +205,183 @@ public static class NewWearExtractor
         },
     };
 
+    // --- JSON drops ---------------------------------------------------------
+    //  `tools/wardrobe` writes one of these per batch of new clothing, so the
+    //  pipeline never has to edit this file. Shape (see wardrobe/manifest.py):
+    //
+    //    { "drop": "sweetjane",
+    //      "sources":  [ { "fbx": "Assets/Temp/jana sweetjane.fbx", "actor": "Jana" } ],
+    //      "garments": [ { "sourceKey": "...", "folder": "...", "name": "...",
+    //                      "simId": "clothing.x", "layer": "Wear",
+    //                      "slots": ["Chest"], "noHide": [],
+    //                      "materials": [ { "source": "tank", "texture": "a.jpg",
+    //                                       "smoothness": 0.3, "alphaClip": false } ] } ] }
+    //
+    //  Unknown enum names and malformed files are reported and skipped rather
+    //  than throwing — one bad drop must not take the whole wardrobe down.
+
+    [System.Serializable] private sealed class DropFile
+    {
+        public string drop;
+        public DropSource[] sources;
+        public DropGarment[] garments;
+    }
+
+    [System.Serializable] private sealed class DropSource
+    {
+        public string fbx;
+        public string actor;
+    }
+
+    [System.Serializable] private sealed class DropGarment
+    {
+        public string sourceKey, folder, name, simId, layer;
+        public string[] slots, noHide;
+        public DropMaterial[] materials;
+    }
+
+    [System.Serializable] private sealed class DropMaterial
+    {
+        public string source, texture, color;
+        public float smoothness = 0.3f, metallic;
+        public bool doubleSided = true, alphaClip;
+    }
+
+    private static void EnsureLoaded()
+    {
+        if (_garments != null)
+        {
+            return;
+        }
+
+        var sources = new List<(string, ActorName)>(BuiltInSources);
+        var garments = new List<GarmentSpec>(BuiltInGarments);
+
+        if (Directory.Exists(DropRoot))
+        {
+            foreach (var file in Directory.GetFiles(DropRoot, "*.json").OrderBy(f => f))
+            {
+                try
+                {
+                    LoadDrop(file, sources, garments);
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"[NewWear] поставка {Path.GetFileName(file)} не прочиталась: {e.Message}");
+                }
+            }
+        }
+
+        _sources = sources.ToArray();
+        _garments = garments.ToArray();
+    }
+
+    private static void LoadDrop(string file, List<(string, ActorName)> sources, List<GarmentSpec> garments)
+    {
+        var parsed = JsonUtility.FromJson<DropFile>(File.ReadAllText(file));
+        if (parsed == null)
+        {
+            throw new IOException("не разобрался JSON");
+        }
+
+        foreach (var s in parsed.sources ?? new DropSource[0])
+        {
+            if (!System.Enum.TryParse<ActorName>(s.actor, out var actor))
+            {
+                Debug.LogError($"[NewWear] {Path.GetFileName(file)}: неизвестная девушка '{s.actor}'");
+                continue;
+            }
+
+            // A re-run of the same drop must not index the same FBX twice.
+            if (!sources.Any(existing => existing.Item1 == s.fbx))
+            {
+                sources.Add((s.fbx, actor));
+            }
+        }
+
+        foreach (var g in parsed.garments ?? new DropGarment[0])
+        {
+            if (garments.Any(existing => existing.SimId == g.simId))
+            {
+                Debug.LogWarning($"[NewWear] {Path.GetFileName(file)}: {g.simId} уже описан — пропущен");
+                continue;
+            }
+
+            garments.Add(new GarmentSpec
+            {
+                SourceKey = g.sourceKey,
+                Folder = g.folder,
+                Name = g.name,
+                SimId = g.simId,
+                Layer = ParseEnum(g.layer, VisualWearLayer.Wear, file),
+                Slots = ParseSlots(g.slots, file),
+                NoHide = ParseSlots(g.noHide, file),
+                Materials = (g.materials ?? new DropMaterial[0]).Select(m => new MatSpec
+                {
+                    Source = m.source,
+                    Texture = string.IsNullOrEmpty(m.texture) ? null : m.texture,
+                    Color = ParseColor(m.color),
+                    Smoothness = m.smoothness,
+                    Metallic = m.metallic,
+                    DoubleSided = m.doubleSided,
+                    AlphaClip = m.alphaClip,
+                }).ToArray(),
+            });
+        }
+    }
+
+    private static T ParseEnum<T>(string value, T fallback, string file) where T : struct
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return fallback;
+        }
+
+        if (System.Enum.TryParse<T>(value, out var parsed))
+        {
+            return parsed;
+        }
+
+        Debug.LogError($"[NewWear] {Path.GetFileName(file)}: не знаю {typeof(T).Name} '{value}', беру {fallback}");
+        return fallback;
+    }
+
+    private static VisualWearSlot[] ParseSlots(string[] names, string file)
+    {
+        if (names == null)
+        {
+            return new VisualWearSlot[0];
+        }
+
+        var slots = new List<VisualWearSlot>();
+        foreach (var name in names)
+        {
+            if (System.Enum.TryParse<VisualWearSlot>(name, out var slot))
+            {
+                slots.Add(slot);
+            }
+            else
+            {
+                Debug.LogError($"[NewWear] {Path.GetFileName(file)}: нет такого слота '{name}'");
+            }
+        }
+
+        return slots.ToArray();
+    }
+
+    // "RRGGBB" / "#RRGGBB"; empty means plain white.
+    private static Color ParseColor(string hex)
+    {
+        if (string.IsNullOrEmpty(hex))
+        {
+            return Color.white;
+        }
+
+        return ColorUtility.TryParseHtmlString(hex.StartsWith("#") ? hex : "#" + hex, out var c)
+            ? c
+            : Color.white;
+    }
+
     // One-shot auto-run: fires after every compile, does nothing once all nine
     // prefabs exist (or when the Temp FBX drop is gone from this machine).
     [InitializeOnLoadMethod]
@@ -202,6 +406,11 @@ public static class NewWearExtractor
 
     private static void Run(bool force)
     {
+        // Editing a drop JSON re-imports the asset but does not reload the
+        // domain, so the cached tables would be stale on a manual re-run.
+        _sources = null;
+        _garments = null;
+
         var missingFbx = Sources.Where(s => !File.Exists(s.path)).Select(s => s.path).ToList();
         if (missingFbx.Count > 0)
         {
@@ -294,10 +503,12 @@ public static class NewWearExtractor
 
         // --- meshes: one fitted copy per girl --------------------------------
         var meshes = new Dictionary<ActorName, Mesh>();
-        foreach (var (_, actor) in Sources)
+        foreach (var actor in Actors)
         {
             if (!renderers.TryGetValue((actor, g.SourceKey), out var r) || r.sharedMesh == null)
             {
+                // Expected when a girl was not part of this garment's drop —
+                // she simply cannot wear it until someone re-exports her.
                 Debug.LogWarning($"[NewWear] {g.SourceKey}: no mesh for {actor}");
                 continue;
             }
@@ -402,9 +613,7 @@ public static class NewWearExtractor
         GarmentSpec g, SkinnedMeshRenderer reference, Mesh defaultMesh,
         Dictionary<string, Material> mats, GameObject root)
     {
-        var srcHip = FindByName(reference.rootBone != null
-            ? reference.rootBone.root
-            : reference.transform.root, "hip");
+        var srcHip = FindGarmentHip(reference);
         if (srcHip == null)
         {
             throw new IOException($"{g.SourceKey}: no 'hip' bone in the source FBX");
@@ -441,9 +650,23 @@ public static class NewWearExtractor
         meshGo.transform.SetParent(root.transform, false);
         var smr = meshGo.AddComponent<SkinnedMeshRenderer>();
         smr.sharedMesh = defaultMesh;
-        smr.bones = reference.bones
-            .Select(b => b != null && clones.TryGetValue(b.name, out var c) ? c : hipClone)
+        // Quietly collapsing an unresolved bone onto the root is how the Sweet
+        // Jane skirt shipped welded to the hip: its two thigh bones were absent
+        // from the cloned skeleton, so the hem never followed the legs and it
+        // read as a fitting problem rather than a broken bind.
+        var missing = reference.bones
+            .Where(b => b == null || !clones.ContainsKey(b.name))
+            .Select(b => b != null ? b.name : "<null>")
+            .Distinct()
             .ToArray();
+        if (missing.Length > 0)
+        {
+            throw new IOException(
+                $"{g.SourceKey}: {missing.Length} bone(s) missing from the cloned " +
+                $"skeleton under '{srcHip.name}': {string.Join(", ", missing)}");
+        }
+
+        smr.bones = reference.bones.Select(b => clones[b.name]).ToArray();
         smr.rootBone = reference.rootBone != null &&
             clones.TryGetValue(reference.rootBone.name, out var rb)
             ? rb
@@ -500,6 +723,11 @@ public static class NewWearExtractor
     private static void FillWearComponent(
         GarmentSpec g, Dictionary<ActorName, Mesh> meshes, GameObject root)
     {
+        // Fit scales are tuned by hand in WardrobeTest and are NOT authored here
+        // (every garment lands at 1.0). Carry the tuned values over, or a force
+        // re-extract quietly throws away the fitting pass on every older piece.
+        var tuned = ReadTunedFit(g);
+
         var wear = root.AddComponent<Wear>();
         var so = new SerializedObject(wear);
 
@@ -509,8 +737,10 @@ public static class NewWearExtractor
         foreach (var pair in meshes.OrderBy(p => (int)p.Key))
         {
             var e = configs.GetArrayElementAtIndex(i++);
+            var fit = tuned.TryGetValue(pair.Key, out var f) ? f : (scale: 1f, heightOffset: 0f);
             e.FindPropertyRelative("actorName").enumValueIndex = (int)pair.Key;
-            e.FindPropertyRelative("scale").floatValue = 1f;
+            e.FindPropertyRelative("scale").floatValue = fit.scale;
+            e.FindPropertyRelative("heightOffset").floatValue = fit.heightOffset;
             e.FindPropertyRelative("mesh").objectReferenceValue = pair.Value;
         }
 
@@ -519,6 +749,30 @@ public static class NewWearExtractor
         so.FindProperty("layer").enumValueIndex = (int)g.Layer;
         so.FindProperty("gender").enumValueIndex = (int)VisualGender.Female;
         so.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    // Read the fit tuned into the prefab we are about to overwrite. Empty on a
+    // first extract, and for any girl who was not part of the earlier drop.
+    private static Dictionary<ActorName, (float scale, float heightOffset)> ReadTunedFit(
+        GarmentSpec g)
+    {
+        var tuned = new Dictionary<ActorName, (float scale, float heightOffset)>();
+        var existing = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath(g));
+        if (existing == null || !existing.TryGetComponent<Wear>(out var wear))
+        {
+            return tuned;
+        }
+
+        var configs = new SerializedObject(wear).FindProperty("configs");
+        for (var i = 0; i < configs.arraySize; i++)
+        {
+            var e = configs.GetArrayElementAtIndex(i);
+            tuned[(ActorName)e.FindPropertyRelative("actorName").enumValueIndex] = (
+                e.FindPropertyRelative("scale").floatValue,
+                e.FindPropertyRelative("heightOffset").floatValue);
+        }
+
+        return tuned;
     }
 
     private static void WriteSlotList(SerializedProperty list, VisualWearSlot[] slots)
@@ -530,10 +784,28 @@ public static class NewWearExtractor
         }
     }
 
-    private static Transform FindByName(Transform root, string name)
+    // A DAZ FBX of a dressed figure carries ONE skeleton copy PER FITTED GARMENT
+    // on top of the figure's own, each rooted at its own node called "hip" and
+    // pruned by DAZ to just the bones that garment is weighted to. Searching the
+    // whole file for "hip" lands on whichever copy comes first — a foreign one,
+    // whose pruning has nothing to do with this garment: the Sweet Jane FBX has
+    // six of them, and the tank's copy (torso only) has no thigh bones at all.
+    // Walk up from this garment's own bones instead; copies are siblings, never
+    // nested, so the nearest "hip" ancestor is always the right one.
+    private static Transform FindGarmentHip(SkinnedMeshRenderer reference)
     {
-        return root.GetComponentsInChildren<Transform>(true)
-            .FirstOrDefault(t => t.name == name);
+        foreach (var bone in reference.bones)
+        {
+            for (var t = bone; t != null; t = t.parent)
+            {
+                if (t.name == "hip")
+                {
+                    return t;
+                }
+            }
+        }
+
+        return null;
     }
 
     private static string Sanitize(string name)

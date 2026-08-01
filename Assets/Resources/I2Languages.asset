@@ -2929,6 +2929,86 @@ MonoBehaviour:
       - 'Простое тканевое бельё — стартовый слой, тепла почти не даёт.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'item.clothing_skirt_sweetjane.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sweet Jane Skirt'
+      - 'Юбка «Sweet Jane»'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_sweetjane.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A long tiered skirt with a lace hem — pretty, and it keeps the legs warm.'
+      - 'Длинная многоярусная юбка с кружевным подолом — красиво, и ноги в тепле.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tank_sweetjane.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sweet Jane Tank'
+      - 'Майка «Sweet Jane»'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tank_sweetjane.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A soft tank with a lace trim — barely any warmth, but it goes with everything.'
+      - 'Мягкая майка с кружевной отделкой — греет едва-едва, зато идёт ко всему.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_fitness.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fitness Top'
+      - 'Спортивный топ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_fitness.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A cropped sports top — light, snug, and it leaves the midriff bare.'
+      - 'Укороченный спортивный топ — лёгкий, плотно сидит, живот открыт.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_fitness.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fitness Leggings'
+      - 'Спортивные легинсы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_fitness.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stretchy leggings that hug the leg — warmer than they look.'
+      - 'Эластичные легинсы по ноге — теплее, чем кажутся.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sleeves_fitness.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fitness Sleeves'
+      - 'Нарукавники'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sleeves_fitness.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Matching arm sleeves — they cover the arms and do almost nothing else.'
+      - 'Нарукавники в комплект к топу — прикрывают руки, и только.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'item.clothing_top_tropic.name'
       TermType: 0
       Description: 

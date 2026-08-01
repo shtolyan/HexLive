@@ -36,6 +36,7 @@ public sealed class RaidSystem : ISimulationSystem
         }
 
         _dead.Clear();
+        TryStartHunts(world);
 
         // Safety net. A human fight resolves on the FAST layer, so it can kill
         // between medium passes; MobSystem's own sweep (which removes EVERY
@@ -163,6 +164,75 @@ public sealed class RaidSystem : ISimulationSystem
         foreach (var deadId in _dead)
         {
             MobSystem.RemoveDeadNpc(world, deadId);
+        }
+    }
+
+    // §72: the hunt STARTS by interrupting, not by winning the auction.
+    //
+    // Bidding was the first design and it never fired once in ten game days on
+    // six seeds. Two measured reasons: a lone man is permanently uncomfortable
+    // and short on stamina, so his Sit ("leisure") bid runs as high as 0.85; and
+    // DecisionSystem re-runs the auction ONLY between interactions, so the short
+    // window in which a girl is actually alone almost never coincides with a
+    // re-decision.
+    //
+    // This is the same shape §57's help cry and §62's first strike already use,
+    // for the same reason — a time-critical opportunity aborts the current plan
+    // and takes the goal directly. The auction bid stays as the quiet fallback
+    // that walks him over when nothing of his own is pressing.
+    private static void TryStartHunts(WorldState world)
+    {
+        if (world.Tick < Spec72.RaidGraceDays * EnvironmentSystem.DayLengthTicks)
+        {
+            return;
+        }
+
+        foreach (var raider in world.Entities.Npcs.Values)
+        {
+
+            if (raider.Faction == Faction.Colony ||
+                raider.Health <= 0f ||
+                raider.Mind.CurrentGoal == GoalType.Raid ||
+                raider.Mind.CurrentGoal == GoalType.Flee ||
+                raider.IsFighting ||
+                raider.IsUnconscious(world.Tick) ||
+                world.Tick < raider.Mind.RaidCooldownUntilTick ||
+                raider.Needs.Hunger > Spec72.RaidSelfNeedCeiling ||
+                raider.Needs.Thirst > Spec72.RaidSelfNeedCeiling ||
+                raider.Needs.Energy < Spec72.RaidSelfEnergyFloor ||
+                !RaidMath.IsFitToRaid(raider, world))
+            {
+                continue;
+            }
+
+            var victim = RaidMath.BestVictim(world, raider, out var opportunity);
+            if (victim is null)
+            {
+                continue;
+            }
+
+            if (raider.Plan.Status == PlanStatus.Active ||
+                raider.Execution.Status == ExecutionStatus.InProgress)
+            {
+                PlanInterruption.Abort(world, raider, $"Hunting NPC{victim.Id.Value}");
+            }
+
+            raider.Mind.CurrentGoal = GoalType.Raid;
+            raider.Mind.RaidTargetNpcId = victim.Id;
+            raider.Mind.RaidStartedTick = world.Tick;
+            raider.Mind.RaidLastJunction = raider.CurrentJunction;
+            raider.Mind.RaidStallSinceTick = 0;
+            raider.Mind.GoalLock = new GoalLock
+            {
+                Goal = GoalType.Raid,
+                StartTick = world.Tick,
+                EndTick = world.Tick + Spec72.RaidLockTicks
+            };
+
+            Trace.Emit(world, raider.Id, "RaidStarted",
+                $"Victim=NPC{victim.Id.Value} Opp={opportunity:F2} " +
+                $"Allies={RaidMath.AlliesAround(world, victim)} " +
+                $"Dist={HexSpatialMath.HexDistance(raider.Tile, victim.Tile)}");
         }
     }
 

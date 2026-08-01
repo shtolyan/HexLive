@@ -2385,10 +2385,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
     }
 
-    public void PopSocialCue(string cueKind)
+    // §80: portrait — лицо того, о ком кьюшка (страх перед конкретным
+    // человеком). Голос от него не зависит: реплика привязана к ВИДУ кьюшки.
+    public void PopSocialCue(string cueKind, Sprite portrait = null)
     {
         EnsureSpeechBubble();
-        _speechBubble?.PopSocialCue(cueKind);
+        _speechBubble?.PopSocialCue(cueKind, portrait);
         _speech?.OnCue(cueKind);
     }
 

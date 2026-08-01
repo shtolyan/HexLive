@@ -37,7 +37,7 @@ Material:
   m_CustomRenderQueue: 2450
   stringTagMap:
     MotionVector: User
-    RenderType: Opaque
+    RenderType: TransparentCutout
   disabledShaderPasses:
   - MOTIONVECTORS
   - TransparentBackface

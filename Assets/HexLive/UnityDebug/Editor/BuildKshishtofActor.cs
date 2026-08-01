@@ -75,7 +75,8 @@ namespace HexLive.UnityDebug.Editor
                 root.name = "Kshishtof";
 
                 var report = new List<string>();
-                StripWornMeshes(root, report);
+                var genitals = FindGenitals(root, report);
+                StripWornMeshes(root, genitals, report);
                 StripForeignComponents(root, report);
                 ReportBody(root, report);
                 EnsureAnimator(root, report);
@@ -96,13 +97,52 @@ namespace HexLive.UnityDebug.Editor
             }
         }
 
-        /// <summary>Одежда исходного проекта. Базовый актёр голый — §31B.3.</summary>
-        private static void StripWornMeshes(GameObject root, List<string> report)
+        /// <summary>
+        /// На что смотрит BodyBones.genitals — графт-меш §70, который обязан
+        /// пережить срез. Поле приватное [SerializeField], поэтому читаем через
+        /// SerializedObject, а не по имени объекта: имя у него даз-овское и
+        /// меняется от экспорта к экспорту.
+        /// </summary>
+        private static GameObject FindGenitals(GameObject root, List<string> report)
+        {
+            var bones = root.GetComponentsInChildren<Component>(true)
+                .FirstOrDefault(c => c != null &&
+                    c.GetType().FullName == "HexLive.UnityPresentation.Wearing.BodyBones");
+            if (bones == null)
+            {
+                return null;
+            }
+
+            var field = new SerializedObject(bones).FindProperty("genitals");
+            var value = field?.objectReferenceValue as GameObject;
+            report.Add(value == null
+                ? "  genitals: ссылка пуста (тело останется гладким)"
+                : $"  genitals: '{value.name}' — сохраняем от среза");
+            return value;
+        }
+
+        /// <summary>
+        /// Одежда исходного проекта. Базовый актёр голый — §31B.3.
+        ///
+        /// Исключение — графт гениталий: это тоже SkinnedMeshRenderer, но не
+        /// одежда, а часть тела, и §70 включает/выключает его по занятости
+        /// слота Pelvis. Без этой оговорки срез уносил его вместе с боксерами,
+        /// и BodyBones.genitals оставался висеть на пустом обрубке.
+        /// </summary>
+        private static void StripWornMeshes(GameObject root, GameObject genitals, List<string> report)
         {
             foreach (var renderer in root.GetComponentsInChildren<SkinnedMeshRenderer>(true).ToArray())
             {
                 if (renderer == null || renderer.gameObject.name == BodyRenderer)
                 {
+                    continue;
+                }
+
+                if (genitals != null &&
+                    (renderer.gameObject == genitals ||
+                     renderer.transform.IsChildOf(genitals.transform)))
+                {
+                    report.Add($"  оставлен графт: {renderer.gameObject.name}");
                     continue;
                 }
 

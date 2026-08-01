@@ -102,6 +102,26 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private const float AttackSwingCycles = 2.6f;
     private const string ChopBaseClip = "Standing Melee Attack Horizontal";
     private const string DeathBaseClip = "X Bot@Death From Back Headshot";
+    // §81: ключ ОДНОРАЗОВОЙ сценки. Само по себе то, что тут сальса, значения
+    // не имеет — это только адрес слота, в который вид заряжает нужный клип
+    // перед срабатыванием триггера.
+    private const string EmoteBaseClip = "X Bot@Salsa Dancing";
+
+    // Безделье: сколько молча простоять, прежде чем начать чудить; какой шанс
+    // в секунду; и сколько держать паузу между сценками.
+    private const float FidgetIdleWarmup = 6f;
+    private const float FidgetChancePerSecond = 0.03f;
+    private const float FidgetMinGap = 25f;
+    // Сколько держится грустная походка после сцены абьюза.
+    private const float SadWalkSeconds = 90f;
+
+    private float _idleSince;
+    private float _lastEmoteTime = -999f;
+    private float _lastFidgetRoll;
+    private float _sadWalkUntil;
+    private bool _sadWalkApplied;
+    private bool _busyInteraction;
+    private bool _combatFighting;
     private static readonly int LimpingParam = Animator.StringToHash("Limping");
     private static readonly int CrawlingParam = Animator.StringToHash("Crawling"); // §50
     private static readonly int JumpUpParam = Animator.StringToHash("JumpUp");
@@ -2361,6 +2381,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     public void SetSpeechInteraction(string interaction)
     {
         EnsureSpeechBubble();
+        // §81: «занята» для безделья — это ЛЮБОЕ взаимодействие. Пустая строка
+        // = сим не дал ей дела, и вот тогда она и может поплясать.
+        _busyInteraction = !string.IsNullOrEmpty(interaction);
         _speech?.OnInteraction(interaction);
     }
 
@@ -2392,6 +2415,27 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         EnsureSpeechBubble();
         _speechBubble?.PopSocialCue(cueKind, portrait);
         _speech?.OnCue(cueKind);
+
+        // §81: такты сцены абьюза играются телом, а не только эмодзи. Кьюшка
+        // уже приходит ровно в нужный момент и ровно тому, кого касается, —
+        // отдельного сигнала для анимации заводить незачем.
+        if (_animSet == null)
+        {
+            return;
+        }
+
+        switch (cueKind)
+        {
+            case "AbuseThreatened":
+                PlayEmote(_animSet.rejected);
+                break;
+            case "AbuseCry":
+            case "AbuseGaveUp":
+                PlayEmote(_animSet.crying);
+                // Дальше она какое-то время ходит понуро.
+                _sadWalkUntil = Time.time + SadWalkSeconds;
+                break;
+        }
     }
 
     private void EnsureSpeechBubble()
@@ -2435,6 +2479,98 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // a legless NPC on the prone idle; Walk is left to the crawl override for the
     // legless (it re-applies "Walk"->CrawlClip every frame and wins). Applied on
     // prop change (SetHandProp early-returns when the id is unchanged).
+    // §81: сыграть одноразовую сценку. Клип заряжается в общий слот и тут же
+    // запускается триггером — так же, как выбирается случайная смерть или
+    // случайная реплика разговора.
+    private void PlayEmote(AnimationClip clip)
+    {
+        if (_animator == null || clip == null)
+        {
+            return;
+        }
+
+        OverrideClip(EmoteBaseClip, Standing(clip));
+        _animator.SetTrigger("Emote");
+        _lastEmoteTime = Time.time;
+    }
+
+    // §81: «просто существует». Когда делать нечего, изредка — сплясать,
+    // присесть, пошарить по карманам.
+    //
+    // Решает ВИД, а не симуляция, и намеренно: у безделья нет последствий —
+    // ни расхода сил, ни изменения нужд, ни следа в сейве, — а всё, что сим
+    // решает, он обязан решать детерминированно и хранить. Платить полем в
+    // снапшоте за то, что ничего не меняет, незачем.
+    private void UpdateIdleFidget(bool busy)
+    {
+        if (_animSet == null || _animSet.idleFidgets == null || _animSet.idleFidgets.Length == 0 ||
+            _animator == null || _legless || busy)
+        {
+            _idleSince = 0f;
+            return;
+        }
+
+        if (_idleSince <= 0f)
+        {
+            _idleSince = Time.time;
+            return;
+        }
+
+        // Постоять молча хотя бы FidgetIdleWarmup, и не чаще FidgetMinGap —
+        // иначе это не «иногда», а тик.
+        if (Time.time - _idleSince < FidgetIdleWarmup ||
+            Time.time - _lastEmoteTime < FidgetMinGap)
+        {
+            return;
+        }
+
+        // Бросок раз в секунду, а не каждый кадр: иначе частота зависела бы от
+        // FPS, и на быстрой машине она плясала бы вдвое чаще.
+        if (Time.time - _lastFidgetRoll < 1f)
+        {
+            return;
+        }
+
+        _lastFidgetRoll = Time.time;
+        if (Random.value > FidgetChancePerSecond)
+        {
+            return;
+        }
+
+        PlayEmote(_animSet.idleFidgets[Random.Range(0, _animSet.idleFidgets.Length)]);
+        _idleSince = 0f;
+    }
+
+    // §81: грустная походка. Держится минуты после сцены — это не состояние
+    // симуляции, а след в теле, и живёт он там же, где остальная мимика.
+    private void UpdateSadWalk()
+    {
+        if (_animSet == null || _animSet.sadWalk == null || _legless)
+        {
+            return;
+        }
+
+        var sad = Time.time < _sadWalkUntil;
+        if (sad == _sadWalkApplied)
+        {
+            return;
+        }
+
+        _sadWalkApplied = sad;
+        if (sad)
+        {
+            OverrideClip(GaitClipKeys[0], _animSet.sadWalk);
+        }
+        else
+        {
+            var baseWalk = BaseLocomotionClip(GaitClipKeys[0]);
+            if (baseWalk != null)
+            {
+                OverrideClip(GaitClipKeys[0], baseWalk);
+            }
+        }
+    }
+
     private void UpdateArmedStance(string itemId)
     {
         if (_animSet == null)
@@ -2758,9 +2894,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // the view rolls a random clip like before.
     public void SetCombat(bool fighting, string weaponId, bool swinging, int strikeIndex = -1)
     {
+        // §81: дерущаяся не пляшет.
+        _combatFighting = fighting;
         if (_legless)  // §50-prone: lying — no weapons, no fight pose
         {
             fighting = false;
+            _combatFighting = false;
             weaponId = null;
             SetHandProp(null);
         }
@@ -4109,6 +4248,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         SampleMotion();
         PollActionSounds();
         UpdateTalkTurns();
+        // §81: безделье и грустная походка. Идут ПОСЛЕ SampleMotion, потому что
+        // «стоит на месте» берётся из только что посчитанной скорости.
+        UpdateIdleFidget(_busyInteraction || _combatFighting || _wasWalking || _dead || _laying);
+        UpdateSadWalk();
         // §67.10: hands the bubble back to a running conversation once a line
         // fades, and paces the ambient self-talk layer.
         _speech?.Tick();

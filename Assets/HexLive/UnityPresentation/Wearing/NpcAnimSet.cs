@@ -41,6 +41,19 @@ namespace HexLive.UnityPresentation.Wearing
         [Tooltip("§Wardrobe: снятие одежды — первый такт (перед газерингом, одежда ещё на теле). Пусто = базовый клип состояния Undress.")]
         public AnimationClip undress;
 
+        [Header("§81 Безделье — случайная сценка, когда делать нечего")]
+        [Tooltip("Клипы «просто существует»: сальса, приседания, джампинг-джеки, шарит по карманам. " +
+                 "Выбирается случайный и играется РЕДКО — это приправа, а не занятие.")]
+        public AnimationClip[] idleFidgets;
+
+        [Header("§81 Такты сцены абьюза")]
+        [Tooltip("Отшатнулась, когда на неё наехали (X Bot@Rejected).")]
+        public AnimationClip rejected;
+        [Tooltip("Плачет (X Bot@Crying) — такт «она плачет» и такт «сдалась».")]
+        public AnimationClip crying;
+        [Tooltip("Грустная походка (X Bot@Sad Walk). Подменяет обычный шаг на несколько минут после сцены.")]
+        public AnimationClip sadWalk;
+
         [Header("Вооружённый idle/ходьба — если в руке инструмент/оружие (tool.*)")]
         [Tooltip("Стойка с предметом в руке (Standing Idle). Подменяет базовый Idle, пока в руке любой tool.* (топор/нож/молоток/копьё…). Пусто = обычный idle.")]
         public AnimationClip armedIdle;

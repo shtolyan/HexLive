@@ -187,6 +187,7 @@ public sealed class AnimalCombatSystem : ISimulationSystem
         {
             dog.AttackLandsAtTick = world.Tick +
                 SecondsToTicks(Stats(dog).AttackWindupSeconds);
+            dog.AttackStartTick = world.Tick;
             Trace.EmitSystem(world, "DogWindup",
                 $"Dog={dog.Id} lunges at NPC{target.Id.Value}");
         }
@@ -309,6 +310,7 @@ public sealed class AnimalCombatSystem : ISimulationSystem
                 out var hitDelay, out var duration, out _);
             npc.StrikeLandsAtTick = world.Tick + SecondsToTicks(hitDelay);
             npc.AttackAnimUntilTick = world.Tick + SecondsToTicks(duration);
+            npc.SwingStartTick = world.Tick;
         }
     }
 

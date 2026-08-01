@@ -1,0 +1,57 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Спек §59.3 / CLAUDE.md «Headless simulation probes».
+
+    Зачем этот файл существует, если Unity и так генерирует HexLive.Simulation.csproj:
+    тот csproj лежит в .gitignore (строка 19, `*.csproj`), рождается только когда Unity
+    открыт, целится в net471 и в git-воркtree его нет вообще. Headless-путь на него
+    опираться не может.
+
+    Здесь — та же сборка, но коммитимая, самодостаточная и на net9.0:
+
+        dotnet build HexLive.Simulation.Standalone.csproj
+
+    Компилируются РОВНО те же 130 файлов, что видит Unity-асмдеф
+    Assets/HexLive/Simulation/HexLive.Simulation.asmdef (`noEngineReferences: true`,
+    `references: []`). Никаких PackageReference здесь быть НЕ ДОЛЖНО: спек §59.3
+    держит сборку симуляции свободной от зависимостей, а появившаяся тут ссылка
+    скомпилируется здесь и развалится в Unity.
+
+    Настройки зеркалят то, что Unity кладёт в свой csproj (LangVersion 9.0, nullable
+    выключен, NoWarn 0169/0649) — чтобы код, прошедший здесь, гарантированно проходил
+    и там. Не поднимай LangVersion: C# 13 соберётся тут и сломается в Unity.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <AssemblyName>HexLive.Simulation</AssemblyName>
+    <RootNamespace>HexLive.Simulation</RootNamespace>
+
+    <!-- Паритет с Unity-асмдефом. -->
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <!-- 0169/0649 — как у Unity. 8632 («T? вне #nullable-контекста») — 44 штуки по
+         всей симуляции: nullable выключен, поэтому `?` на ссылочных типах там чисто
+         декоративный. Шум затопил бы вывод headless-сборки. -->
+    <NoWarn>0169;0649;8632</NoWarn>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+
+    <!-- Файлы подключаются явным глобом ниже (иначе SDK утащил бы весь репозиторий). -->
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+
+    <!-- bin → Build/, который целиком в .gitignore (строка 4, `[Bb]uild/`).
+         obj остаётся дефолтным (./obj, .gitignore строка 3): BaseIntermediateOutputPath
+         из PropertyGroup читается уже ПОСЛЕ Microsoft.Common.props и даёт MSB3539,
+         а переносить его пришлось бы через Directory.Build.props — который подхватят
+         и все Unity-генерируемые csproj. Не стоит того: ./obj и так игнорируется. -->
+    <BaseOutputPath>Build/dotnet/bin/HexLive.Simulation/</BaseOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Assets/HexLive/Simulation/**/*.cs" />
+  </ItemGroup>
+
+</Project>

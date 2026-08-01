@@ -35,6 +35,13 @@ public static class BalanceReflection
         typeof(WorldBalance),
         typeof(WildlifeBalance),
         typeof(HexHopTuning),
+        // MovementSystem carries exactly two tunables — the swim entry pause and
+        // the deep-water speed factor. They are simulation knobs (the speed
+        // factor changes how long a crossing takes, i.e. pathing timing), but
+        // they lived outside this list and outside simdata.json, so a headless
+        // run or a server silently used the code defaults instead of the tuned
+        // asset. Spec §59.3 exists to prevent exactly that.
+        typeof(MovementSystem),
     };
 
     public static bool IsTunable(FieldInfo field)

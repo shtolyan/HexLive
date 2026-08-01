@@ -219,6 +219,18 @@ public sealed class NPCState
     // (StrikeLandsAtTick = start + HitDelaySeconds). Not persisted.
     public int AttackAnimUntilTick { get; set; }
 
+    // The tick that window OPENED. Presentation fires the attack clip on a
+    // swing-start it has not played yet, rather than on the rising edge of
+    // "is the window open right now".
+    //
+    // Why the edge is not enough: the window is 1-2 ticks wide (fists round
+    // down to 1), and the view renders the LAST tick of a frame, not every
+    // tick. At 50x/MAX the runner steps dozens of ticks per frame, so most
+    // swings open and close entirely between two rendered frames — the blow
+    // lands on a body that never moved. A tick stamp survives the skip; a
+    // boolean edge cannot. Not persisted (transient, like the window itself).
+    public int SwingStartTick { get; set; }
+
     // Which strike variant the current swing uses when the drawn gear has
     // per-strike timings (fists: 2 punches + 2 kicks). Picked at swing start,
     // mirrored to the snapshot so the view plays the MATCHING clip. -1 =

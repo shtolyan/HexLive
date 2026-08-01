@@ -8,9 +8,24 @@ public sealed class WorldSnapshot
 {
     public int Tick { get; set; }
 
+    // Spec 29C.1: the seed every chance roll mixes. Consumers that used to read
+    // WorldState.Seed directly (the history log picks its file by it) get it here
+    // instead — a client that does not own a WorldState has no other way to know.
+    public int Seed { get; set; }
+
+    // Seconds of world time one tick is worth. Needed to turn a tick STAMP into
+    // "how long ago was that" — the view uses it to shorten a hop arc it observed
+    // late, and a networked client needs it to pace its own interpolation clock.
+    public float TickDeltaTime { get; set; }
+
     public float Temperature { get; set; }
 
     public string Clock { get; set; } = string.Empty;
+
+    // The same time of day as Clock, unformatted (0..1). Clock is for humans; the
+    // sky/ambience controllers need the raw number and were reaching into
+    // WorldState.Environment to get it.
+    public float TimeOfDayNormalized { get; set; }
 
     public string DayPhase { get; set; } = string.Empty;
 
@@ -93,6 +108,11 @@ public sealed class MobSnapshot
     // Timed melee: true while the bite is winding up (the 0.2 s snap) —
     // presentation pulses the attack animation on this flag.
     public bool IsAttacking { get; set; }
+
+    // The tick that windup started. The flag above is only ~2 ticks wide, so a
+    // frame that skips those ticks (fast-forward, or a decimated stream) never
+    // sees it — the stamp does. 0 = never attacked.
+    public int AttackStartTick { get; set; }
 }
 
 // Spec 40.18: a shark patrolling the water (presentation renders a fin/model).
@@ -241,6 +261,12 @@ public sealed class NpcSnapshot
     // across exactly this window.
     public bool IsSwinging { get; set; }
 
+    // The tick that swing window OPENED. IsSwinging spans 1-2 ticks, which a
+    // frame can skip whole (fast-forward renders only the last tick it stepped);
+    // the view fires the attack clip on a start tick it has not played yet.
+    // 0 = never swung.
+    public int SwingStartTick { get; set; }
+
     // Which strike variant the current swing uses when the drawn gear has
     // per-strike timings (fists: punches/kicks). The view plays the matching
     // clip from GearConfig.strikes. -1 = single-timing gear (random clip).
@@ -331,6 +357,13 @@ public sealed class NpcSnapshot
     // ground height (water dives land below the surface, not one step down).
     public TileCoord HopTargetTile { get; set; } = TileCoord.Zero;
 
+    // §21.21B: the tick the hop started. The view arms the arc on a start it
+    // has not played yet (HopKind's rising edge is lost whenever the frame
+    // skips the tick that raised it) and, when it observes one late, shortens
+    // the arc to what is left of the window instead of overshooting with a
+    // full-length one. 0 = never hopped.
+    public int HopStartTick { get; set; }
+
     // Spec 40.13: knocked out — the presentation lays the body limp.
     public bool IsFainted { get; set; }
 
@@ -399,10 +432,35 @@ public sealed class NpcSnapshot
     public string SocialCueKind { get; set; } = string.Empty;
     public int? SocialCuePeerId { get; set; }
 
-    // §Wardrobe-anim: 0..1 fraction of the current timed interaction, so the
+    // §Wardrobe-anim: the tick window of the current timed interaction, so the
     // view can split dress/undress into their gather + garment-in-hand beats.
-    // 0 when no timed interaction is running.
-    public float InteractionProgress { get; set; }
+    // Both 0 when no timed interaction is running.
+    //
+    // This used to be a precomputed 0..1 progress float — but progress is a
+    // function of the CURRENT tick, so it changed every single tick and marked
+    // an otherwise-motionless crafting colonist as "changed" on every frame.
+    // Two ints that change once, plus ProgressAt() below, cost nothing to keep
+    // fresh and let the view derive the same number exactly.
+    public int ExecutionStartTick { get; set; }
+
+    public int ExecutionEndTick { get; set; }
+
+    /// <summary>
+    /// Fraction [0..1] of the current timed interaction at <paramref name="worldTick"/>,
+    /// or 0 when none is running. Lives here rather than in the view so both
+    /// ends compute it identically.
+    /// </summary>
+    public float ProgressAt(int worldTick)
+    {
+        var total = ExecutionEndTick - ExecutionStartTick;
+        if (total <= 0)
+        {
+            return 0f;
+        }
+
+        var elapsed = (worldTick - ExecutionStartTick) / (float)total;
+        return elapsed < 0f ? 0f : elapsed > 1f ? 1f : elapsed;
+    }
 
     // §Wardrobe-anim: the garment the NPC is holding in hand mid dress/undress
     // (spawned as a hand prop by the view), or empty. During the "don" beat of
@@ -523,6 +581,10 @@ public sealed class GoalScoreSnapshot
 
 public sealed class TraceEventSnapshot
 {
+    // Monotonic id from SimulationEventBuffer — lets a consumer dedup by watermark
+    // instead of by object identity, which no longer works once events are exported.
+    public long Seq { get; set; }
+
     public int Tick { get; set; }
 
     public int? EntityId { get; set; }

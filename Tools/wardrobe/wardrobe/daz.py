@@ -15,15 +15,28 @@ Gotchas baked in here the hard way:
   * the server accepts an "args" field but NEVER binds it — scripts using it
     die with `ReferenceError: Can't find variable: args` (measured, both via
     this client and via the MCP wrapper). So `params` is inlined into the
-    script source as a `var args = {...}` prelude instead.
+    script source as a `var args = {...}` prelude instead;
+  * the server refuses work with HTTP 503 STUDIO_BUSY whenever DAZ's main
+    thread is occupied, and a girl's scene takes MINUTES to open the first time
+    (every garment in it is read off disk) against ~4 s once DAZ has it cached.
+    So the first load of each scene reliably trips the guard even though nothing
+    is wrong — hence the retry below. Without it a four-girl run dies on girl
+    one, which reads as a broken pipeline.
 """
 from __future__ import annotations
 
 import json
+import os
+import time
 import urllib.error
 import urllib.request
 
 from . import config
+
+# How long to keep re-offering work that DAZ refused as STUDIO_BUSY. Generous:
+# the losing case is a cold scene load, which is minutes of real disk reading.
+BUSY_RETRY_SECONDS = float(os.environ.get("DAZ_BUSY_RETRY_SECONDS", "900"))
+BUSY_POLL_SECONDS = 10.0
 
 
 class DazError(RuntimeError):
@@ -37,44 +50,57 @@ def _token() -> str:
         return ""
 
 
-def execute(script: str, params: object = None, timeout: float = 600.0) -> object:
+def execute(script: str, params: object = None, timeout: float = 600.0,
+            retry_busy: bool = True) -> object:
     """Run DazScript and return its result value.
 
     `params` is exposed to the script as the global `args` — inlined as source,
     because the server's own args field is inert (see the module docstring).
+
+    A STUDIO_BUSY refusal is retried until `BUSY_RETRY_SECONDS` runs out: it
+    means DAZ is mid-operation, not that the script is wrong.
 
     Raises DazError with the DAZ-side message on failure, so callers can just
     let it propagate and the stage report records something actionable.
     """
     if params is not None:
         script = f"var args = {json.dumps(params, ensure_ascii=False)};\n{script}"
-    payload = {"script": script}
+    payload = json.dumps({"script": script}).encode("utf-8")
 
-    request = urllib.request.Request(
-        f"http://{config.DAZ_HOST}:{config.DAZ_PORT}/execute",
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json", "X-API-Token": _token()},
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            body = json.loads(response.read().decode("utf-8"))
-    except urllib.error.HTTPError as e:
-        raise DazError(f"DAZ вернул HTTP {e.code}: {e.read().decode('utf-8', 'replace')[:400]}")
-    except urllib.error.URLError as e:
-        raise DazError(
-            f"DAZ Studio недоступна на {config.DAZ_HOST}:{config.DAZ_PORT} ({e.reason}). "
-            "Проверьте: Window → Panes → Daz Script Server → Start Server, "
-            "и что студию перезапускали после установки плагина.")
+    deadline = time.monotonic() + (BUSY_RETRY_SECONDS if retry_busy else 0.0)
+    while True:
+        request = urllib.request.Request(
+            f"http://{config.DAZ_HOST}:{config.DAZ_PORT}/execute",
+            data=payload,
+            headers={"Content-Type": "application/json", "X-API-Token": _token()},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                body = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            detail = e.read().decode("utf-8", "replace")[:400]
+            if "STUDIO_BUSY" in detail and time.monotonic() < deadline:
+                time.sleep(BUSY_POLL_SECONDS)
+                continue
+            raise DazError(f"DAZ вернул HTTP {e.code}: {detail}")
+        except urllib.error.URLError as e:
+            raise DazError(
+                f"DAZ Studio недоступна на {config.DAZ_HOST}:{config.DAZ_PORT} ({e.reason}). "
+                "Проверьте: Window → Panes → Daz Script Server → Start Server, "
+                "и что студию перезапускали после установки плагина.")
 
-    if not body.get("success", False):
-        raise DazError(str(body.get("error") or body))
-    return body.get("result")
+        if not body.get("success", False):
+            raise DazError(str(body.get("error") or body))
+        return body.get("result")
 
 
 def alive() -> bool:
+    """Is DAZ reachable AND free right now — a liveness probe, so it never waits
+    out a STUDIO_BUSY the way real work does."""
     try:
-        return execute("(function(){ return 'ok'; })()", timeout=10.0) == "ok"
+        return execute("(function(){ return 'ok'; })()", timeout=10.0,
+                       retry_busy=False) == "ok"
     except DazError:
         return False
 

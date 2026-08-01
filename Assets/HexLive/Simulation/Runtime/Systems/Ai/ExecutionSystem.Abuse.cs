@@ -260,9 +260,58 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        var damage = GearCatalog.Damage(GearCatalog.Fist) *
-            abuser.StrikeFactor() * Spec81.AbuseBlowDamageMult;
-        MeleeSwing.ApplyHumanBlow(world, abuser, mark, damage, GearCatalog.Fist, "AbuseStruck");
+        // §91: по умолчанию — РУКОПАШКА. Кулак, локоть, нога: сцена начинается
+        // как наезд, а не как поножовщина, и в подавляющем большинстве случаев
+        // так и заканчивается.
+        //
+        // ⭐ Нож достаётся не по броску кубика, а ПО ОТНОШЕНИЯМ. Пока она для
+        // него просто прохожая, он машет руками; когда он её уже возненавидел —
+        // а симпатия падает с каждой сценой (§81) — в ход идёт то, что в руке.
+        // Это тот же принцип, что и в пощаде §86: жестокость есть следствие
+        // истории отношений, а не отдельная ручка.
+        var affinity = abuser.Social.GetOrCreate(mark.Id).Affinity;
+        var armed = abuser.Body.CanUseToolsOrWeapons &&
+            affinity <= Spec81.AbuseWeaponAffinity;
+
+        var weapon = GearCatalog.Fist;
+        if (armed)
+        {
+            var best = SimBalance.BestMeleeWeapon(abuser.Inventory.Items, abuser.Body.IntactHands);
+            if (!string.IsNullOrEmpty(best))
+            {
+                weapon = best;
+            }
+        }
+
+        var damage = GearCatalog.Damage(weapon) * abuser.StrikeFactor() *
+            Spec81.AbuseBlowDamageMult;
+        MeleeSwing.ApplyHumanBlow(world, abuser, mark, damage, weapon, "AbuseStruck");
+
+        // §91: и она может ОГРЫЗНУТЬСЯ. Это не решение «драться» — оно
+        // принимается в приговоре, — а рефлекс: получила и ударила. Без него
+        // сцена читалась как избиение столба, всегда одинаковое.
+        //
+        // Ответ возможен, только если она в состоянии его дать: без сознания и
+        // на земле не отвечают.
+        var canSnap = !mark.IsUnconscious(world.Tick) && !mark.Body.IsProne &&
+            mark.Body.CanUseToolsOrWeapons;
+        if (canSnap &&
+            MathUtil.Hash01(world.Seed, world.Tick, mark.Id.Value, 4471) <
+                Spec81.AbuseFightBackChance)
+        {
+            var herWeapon = SimBalance.BestMeleeWeapon(mark.Inventory.Items, mark.Body.IntactHands);
+            if (string.IsNullOrEmpty(herWeapon))
+            {
+                herWeapon = GearCatalog.Fist;
+            }
+
+            var herDamage = GearCatalog.Damage(herWeapon) * mark.StrikeFactor() *
+                Spec81.AbuseBlowDamageMult;
+            MeleeSwing.ApplyHumanBlow(world, mark, abuser, herDamage, herWeapon, "AbuseFoughtBack");
+            SocialCueSignals.Stamp(world, mark, "AbuseDefied", abuser.Id);
+            Trace.Emit(world, mark.Id, "AbuseFoughtBack",
+                $"Against=NPC{abuser.Id.Value} Weapon={herWeapon}");
+        }
 
         // Кричать, когда тебя бьют, — правильно, и подруги должны прибежать. Но
         // зовём ТОЛЬКО дружеское прикрытие, без широкого клича §57: клич поднял
@@ -287,8 +336,18 @@ public sealed partial class ExecutionSystem
             mark.Needs.Social = MathUtil.Clamp01(mark.Needs.Social + Spec81.AbuseMarkSocialGain);
         }
 
-        // Она это запоминает. Симпатия к нему падает у НЕЁ; у него к ней — нет,
-        // ему всё равно, и в этом вся разница между ними.
+        // §91: портится с ОБЕИХ сторон. Первая версия роняла симпатию только у
+        // неё — «ему всё равно», — и это оказалось не красивой деталью, а
+        // багом: оружие он достаёт именно по СВОЕЙ неприязни (§91), а она не
+        // росла, значит нож не появился бы никогда.
+        //
+        // Да и по сути: презрение к тому, кого сам же трясёшь, копится. Он
+        // теряет к ней меньше, чем она к нему, — бьют всё-таки её.
+        var mine = npc.Social.GetOrCreate(mark.Id);
+        mine.Affinity = MathUtil.Clamp(
+            mine.Affinity - Spec81.AbuseAffinityLoss * Spec81.AbuserOwnAffinityShare, -1f, 1f);
+        mine.Familiarity = MathUtil.Clamp01(mine.Familiarity + 0.05f);
+
         var rel = mark.Social.GetOrCreate(npc.Id);
         rel.Affinity = MathUtil.Clamp(rel.Affinity - Spec81.AbuseAffinityLoss, -1f, 1f);
         rel.Trust = MathUtil.Clamp(rel.Trust - Spec81.AbuseTrustLoss, -1f, 1f);

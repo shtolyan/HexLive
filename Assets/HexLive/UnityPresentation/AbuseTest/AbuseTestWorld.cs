@@ -5,62 +5,115 @@ using HexLive.Simulation.Bootstrap;
 namespace HexLive.UnityPresentation.AbuseTest
 {
     /// <summary>
-    /// §87: арена «он и она». Крошечный плоский островок, один чужак и одна
-    /// девушка в двух шагах друг от друга — и больше НИЧЕГО: ни зверей, ни
-    /// стройки, ни голода.
+    /// §91: арена «он и она» — маленький, но НАСТОЯЩИЙ островок.
     ///
-    /// ⭐ Мир описан ЗДЕСЬ, в общем классе, а не в бутстрапе сцены, потому что
-    /// его строит и Unity-сцена, и headless-проба. Иначе мы с пользователем
-    /// смотрели бы на два разных мира и спорили, у кого что происходит, — а
-    /// именно из-за этого арена и понадобилась.
+    /// ⭐ Первая версия была стерильной лабораторией: нужды заморожены,
+    /// отвлечений нет, вокруг голая земля. Она доказывала ровно ничего — в
+    /// таких условиях абьюз случается неизбежно, а вопрос был не «может ли
+    /// он», а «переживёт ли он конкуренцию с пеньком, кокосом и жаждой».
+    /// Именно на пеньке он и залипал в настоящей игре.
+    ///
+    /// Поэтому здесь всё как в жизни, только тесно: нужды текут, есть где
+    /// посидеть, что съесть, что выпить и что подобрать. Остров маленький
+    /// НАРОЧНО — чтобы они постоянно попадались друг другу и «не встретились»
+    /// перестало быть объяснением.
+    ///
+    /// Мир живёт в общем классе: его строит и Unity-сцена, и headless-проба.
+    /// Иначе мы смотрим на два разных мира и спорим, у кого что происходит.
     /// </summary>
     public static class AbuseTestWorld
     {
-        public const int GirlId = 1;
+        public const int GirlId = 1;   // ещё две — 2 и 3
         public const int OutsiderId = 101;
+
+        private static NpcBootstrap Girl(int id, string name, int q, int r) =>
+            new()
+            {
+                Id = id,
+                DisplayName = name,
+                ActorMesh = name,
+                FragmentId = 1,
+                TileQ = q,
+                TileR = r,
+                // Обычные живые девушки, а не манекены: им есть чем заняться и
+                // есть от чего отвлечься.
+                Hunger = 0.35f,
+                Thirst = 0.35f,
+                Energy = 0.8f,
+                Comfort = 0.5f,
+                Social = 0.6f,
+                ThermalDiscomfort = 0.2f
+            };
 
         public static WorldBootstrapDefinition Build(int seed = 313)
         {
             var tiles = new List<TileBootstrap>();
-            for (var r = -4; r <= 4; r++)
+            for (var r = -3; r <= 3; r++)
             {
-                for (var q = -5; q <= 5; q++)
+                for (var q = -4; q <= 4; q++)
                 {
+                    // Полоса воды по южному краю: пить, купаться, стирать —
+                    // всё то, на что он отвлекался в настоящей игре.
+                    var water = r == 3;
                     tiles.Add(new TileBootstrap
                     {
                         Q = q,
                         R = r,
-                        Walkable = true,
-                        Water = false,
-                        Elevation = 1
+                        Walkable = !water,
+                        Water = water,
+                        Elevation = water ? 0 : 1
                     });
                 }
             }
+
+            var objects = new List<ObjectBootstrap>();
+            var id = 1;
+            void Put(string def, int q, int r) =>
+                objects.Add(new ObjectBootstrap
+                {
+                    Id = id++,
+                    DefinitionId = def,
+                    FragmentId = 1,
+                    TileQ = q,
+                    TileR = r
+                });
+
+            // ⭐ ПЕНЬКИ. Тот самый соблазн, на котором он завис в игре:
+            // «посидеть» у одинокого человека выигрывает постоянно и длится
+            // долго, а пока он сидит, аукцион не переигрывается вовсе.
+            Put("sit.stump", -3, -1);
+            Put("sit.stump", 2, 1);
+            Put("sit.stump", 0, -2);
+
+            // Еда и вода под ногами: голод и жажда должны быть решаемы, но
+            // отнимать время.
+            Put("tree.palm", -4, 0);
+            Put("tree.palm", 3, -1);
+            Put("food.coconut", -2, 1);
+            Put("food.coconut", 1, -1);
+
+            // Работа: камни и волокно. Ровно те цели, за которыми он уходил
+            // через полкарты вместо дела.
+            Put("rock.boulder", -1, 2);
+            Put("rock.boulder", 3, 2);
+            Put("plant.yucca", 0, 1);
+            Put("plant.yucca", -3, 1);
 
             return new WorldBootstrapDefinition
             {
                 Simulation = new SimulationBootstrapSettings { Seed = seed },
                 Environment = new EnvironmentBootstrap { GlobalTemperature = 18f },
                 Fragments = { new FragmentBootstrap { Id = 1, Tiles = tiles } },
+                Objects = objects,
                 Npcs =
                 {
-                    new NpcBootstrap
-                    {
-                        Id = GirlId,
-                        DisplayName = "Jana",
-                        ActorMesh = "Jana",
-                        FragmentId = 1,
-                        TileQ = -1,
-                        TileR = 0,
-                        // Все нужды закрыты: ей не за чем уходить, и ничто не
-                        // конкурирует со сценой.
-                        Hunger = 0.2f,
-                        Thirst = 0.2f,
-                        Energy = 0.95f,
-                        Comfort = 0.9f,
-                        Social = 0.9f,
-                        ThermalDiscomfort = 0.1f
-                    },
+                    // ТРОЕ девушек, как в настоящей колонии. Это не только
+                    // «побольше народу»: они ходят друг к другу общаться, и
+                    // подруга рядом с жертвой — вес против него. Проверяем в
+                    // том числе и это.
+                    Girl(GirlId, "Jana", -2, 0),
+                    Girl(GirlId + 1, "Marta", -3, 0),
+                    Girl(GirlId + 2, "Molly", -2, -1),
                     new NpcBootstrap
                     {
                         Id = OutsiderId,
@@ -68,17 +121,17 @@ namespace HexLive.UnityPresentation.AbuseTest
                         ActorMesh = "Kshishtof",
                         Faction = Faction.Outsiders,
                         FragmentId = 1,
-                        TileQ = 1,
+                        TileQ = 2,
                         TileR = 0,
-                        // Сыт, напоен, выспан — и ПОЛНОСТЬЮ одинок. Единственная
-                        // незакрытая нужда во всём мире, чтобы в аукционе не
-                        // осталось ни одного конкурента.
-                        Hunger = 0.2f,
-                        Thirst = 0.2f,
-                        Energy = 0.95f,
-                        Comfort = 0.9f,
+                        // Он тоже живой: голод и жажда текут и ДОЛЖНЫ
+                        // конкурировать с желанием докопаться. Иначе тест снова
+                        // ничего не проверяет.
+                        Hunger = 0.35f,
+                        Thirst = 0.35f,
+                        Energy = 0.8f,
+                        Comfort = 0.5f,
                         Social = 0f,
-                        ThermalDiscomfort = 0.1f
+                        ThermalDiscomfort = 0.2f
                     }
                 }
             };

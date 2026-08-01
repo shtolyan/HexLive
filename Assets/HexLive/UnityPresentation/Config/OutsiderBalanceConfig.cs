@@ -182,6 +182,12 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 12)] public int abuseMaxBlows = 2;
         [Tooltip("Сила тычка — кулаком, не оружием: труп ему не нужен.")]
         [Range(0f, 2f)] public float abuseBlowDamageMult = 0.35f;
+        [Tooltip("§91: симпатия, ниже которой он берётся за ОРУЖИЕ. Выше — только рукопашка. Нож достаётся по истории отношений, а не по броску кубика.")]
+        [Range(-1f, 1f)] public float abuseWeaponAffinity = -0.5f;
+        [Tooltip("§91: какая доля потери симпатии достаётся ЕМУ. Без неё его собственная неприязнь не растёт, а от неё зависит, возьмётся ли он за нож и добьёт ли.")]
+        [Range(0f, 1f)] public float abuserOwnAffinityShare = 0.5f;
+        [Tooltip("§91: вероятность, что она ОГРЫЗНЁТСЯ на тычок. Не решение драться (оно в приговоре), а рефлекс.")]
+        [Range(0f, 1f)] public float abuseFightBackChance = 0.4f;
         [Tooltip("Ниже этого здоровья удар не наносится вовсе.")]
         [Range(0f, 2f)] public float abuseNoBlowHealthFloor = 0.5f;
         [Tooltip("Сколько защитниц рядом заставляют его бросить сцену.")]

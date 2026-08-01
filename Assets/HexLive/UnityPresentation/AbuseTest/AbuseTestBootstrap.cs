@@ -58,38 +58,28 @@ namespace HexLive.UnityPresentation.AbuseTest
             var world = _runner.Engine?.World;
             if (world != null)
             {
-                world.Tick = 900;   // 15:00, светло
+                // Стартуем ПОСЛЕ льготных суток абьюза и в 15:00 — светло, и
+                // ждать нечего.
+                world.Tick = Simulation.Runtime.Spec81.AbuseGraceDays *
+                    Simulation.Runtime.EnvironmentSystem.DayLengthTicks + 900;
             }
 
             EquipBoth();
-            PushTestOverrides();
             InstallCharacterPanel();
         }
 
-        // Абьюз — ЕДИНСТВЕННОЕ, что здесь проверяется, поэтому всё остальное
-        // выключено: нужды заморожены, зверей нет, тепло круглые сутки.
-        // Толкается каждый кадр, потому что HexTuning.LoadAndApply
-        // (AfterSceneLoad, то есть ПОСЛЕ Awake) переписывает статики из ассета.
-        private void PushTestOverrides()
-        {
-            SimBalance.HungerRate = 0f;
-            SimBalance.ThirstRate = 0f;
-            SimBalance.EnergyRate = 0f;
-            SimBalance.BaseTemperature = 18f;
-            SimBalance.TemperatureAmplitude = 2f;
-            MobCatalog.For(MobIds.Dog).RaidChancePerDay = 0f;
-
-            // ⭐ Отсрочка в НОЛЬ: в настоящей игре чужак не трогает колонию два
-            // дня, и именно поэтому «ничего не происходит» так долго читалось
-            // как поломка. На арене ждать нечего.
-            Spec81.AbuseGraceDays = 0;
-
-            var world = _runner != null ? _runner.Engine?.World : null;
-            if (world != null)
-            {
-                world.NextMobSpawnCheckTick = int.MaxValue;
-            }
-        }
+        // §91: ⭐ НИКАКИХ ПОДПОРОК. Отличие от настоящей игры ровно одно —
+        // КАРТА. Погода, дождь, смена температуры, звери, голод, жажда, сон —
+        // всё работает как в бою.
+        //
+        // Первая версия арены глушила нужды, держала вечные +18° и запрещала
+        // зверей. Такой тест доказывал ровно ничего: вопрос не «может ли он
+        // докопаться в вакууме», а «переживёт ли желание конкуренцию с
+        // голодом, пеньком и дождём». Именно на этом мы и залипли.
+        //
+        // Единственная поблажка — СТАРТОВЫЙ ТИК: мир начинается уже после
+        // льготных двух суток (§81), потому что смотреть на пустое ожидание
+        // незачем. Это не правка поведения, а точка входа.
 
         // Ему — его обычная амуниция и оружие, ей — каменный нож, чтобы у неё
         // был выбор огрызнуться, а не только сдаться.
@@ -101,11 +91,14 @@ namespace HexLive.UnityPresentation.AbuseTest
                 return;
             }
 
-            if (world.Entities.Npcs.TryGetValue(
-                    new EntityId(AbuseTestWorld.GirlId), out var girl))
+            for (var i = 0; i < 3; i++)
             {
-                WardrobeDebugHelpers.Redress(world, girl, "clothing.top_tropic", "Shorts 1389");
-                girl.Inventory.Items.Add("tool.knife");
+                if (world.Entities.Npcs.TryGetValue(
+                        new EntityId(AbuseTestWorld.GirlId + i), out var girl))
+                {
+                    WardrobeDebugHelpers.Redress(world, girl, "clothing.top_tropic", "Shorts 1389");
+                    girl.Inventory.Items.Add("tool.knife");
+                }
             }
 
             if (world.Entities.Npcs.TryGetValue(
@@ -123,8 +116,6 @@ namespace HexLive.UnityPresentation.AbuseTest
 
         private void Update()
         {
-            PushTestOverrides();
-
             // §90: промотка времени. Сцена нужна ровно для того, чтобы ловить
             // редкие моменты, а ждать их в реальном времени бессмысленно —
             // цикл абьюза повторяется примерно раз в 1000 тиков.
@@ -159,11 +150,38 @@ namespace HexLive.UnityPresentation.AbuseTest
             {
                 _runner.TogglePause();
             }
+            else if (keyboard.leftArrowKey.wasPressedThisFrame)
+            {
+                CycleSelection(-1);
+            }
+            else if (keyboard.rightArrowKey.wasPressedThisFrame)
+            {
+                CycleSelection(1);
+            }
             else if (keyboard.rKey.wasPressedThisFrame)
             {
                 UnityEngine.SceneManagement.SceneManager.LoadScene(
                     UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
             }
+        }
+
+        // §91: стрелками — по всем, кто есть. Смотреть надо не только на него:
+        // половина вопросов («а что у НЕЁ со статами, почему она не убегает»)
+        // без этого просто не задаётся.
+        private static readonly int[] Everyone =
+        {
+            AbuseTestWorld.OutsiderId,
+            AbuseTestWorld.GirlId,
+            AbuseTestWorld.GirlId + 1,
+            AbuseTestWorld.GirlId + 2,
+        };
+
+        private int _selected;
+
+        private void CycleSelection(int step)
+        {
+            _selected = (_selected + step + Everyone.Length) % Everyone.Length;
+            Input.NpcSelection.Select(Everyone[_selected]);
         }
 
         private void InstallCharacterPanel()

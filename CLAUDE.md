@@ -92,6 +92,18 @@ MCP bridge (the add-on needs an event loop) — for a plain script it is the
 normal mode, which is what `ICON_GENERATION_SPEC.md` uses; and a `.duf` that
 keys the foot rotations to zero is a RESET, not a pose (`HEEL_POSE_SPEC.md` §2).
 
+**A DAZ modal box stalls the whole run**, because DazScript executes on the Qt
+main thread the dialog owns — one missing texture and the script server answers
+STUDIO_BUSY until a human clicks OK. `Tools/wardrobe/daz_dialog_watchdog.ps1`
+(wired into the `dress` stage via `wardrobe/watchdog.py`) closes the boxes it
+positively recognises, through Win32, with no screenshots and no moving the
+mouse. Two things keep it honest and must stay: a **deny list that overrides
+the allow list** — DAZ also asks "overwrite this file?" and we write FBX files —
+and a **log of every dismissal**, or missing content stops being visible and
+resurfaces as white shoes. Note DAZ is Qt, so its buttons have no window of
+their own: the dialog is closed with `WM_CLOSE` (what the X does), not by
+clicking OK. It relieves the stall; it does not install the missing content.
+
 ## ⭐ ALL SOUND GOES THROUGH FMOD — and through BOTH of its halves
 
 **Never** add `AudioSource` / `AudioClip` / `PlayOneShot` — Unity audio is

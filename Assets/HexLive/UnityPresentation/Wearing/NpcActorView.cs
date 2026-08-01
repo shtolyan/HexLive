@@ -114,7 +114,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private bool _talkTurnOn;         // this NPC's turn to speak right now
     private bool _wasFighting;        // rising-edge detect for the attack trigger
     private bool _bareStance;         // fists fight: Idle swapped for the boxing stance
-    private bool _wasSwinging;        // rising edge of the sim's swing window
+    // The sim swing-start tick we have already played. Replaces the old
+    // "rising edge of IsSwinging" detect: that window is 1-2 ticks wide and a
+    // frame renders only the LAST tick it stepped, so at fast-forward (and over
+    // any network that drops a tick) most swings opened and closed unseen and
+    // the blow landed on a motionless body. A stamp we have not played yet
+    // survives the skip. -1 = nothing seen yet.
+    private int _lastSwingStartTick = -1;
     private float _attackSpeed = 1f;
     private string _combatWeaponId;
     // §67.10: длиннее реплики (кап 4.2 с) — иначе следующий ход начинается,
@@ -462,7 +468,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // The up-arc apex rises this fraction ABOVE the target ledge before the
     // body drops onto it (0.3 => ~0.17 wu over a 0.55 step).
     private const float JumpUpOvershoot = 1.3f;
-    private string _hopKind = string.Empty;
+    // The sim hop-start tick we have already armed an arc for. Replaces the old
+    // "HopKind changed" edge — see SetHopSignal. 0 = nothing seen yet.
+    private int _lastHopStartTick;
     // §21.21B v7: the VIEW is vertical-only. The sim already moves the root's
     // XZ perfectly (gather → straight takeoff→landing), so the body follows
     // the root's XZ exactly and adds ONLY a Y arc that smooths the ground-
@@ -508,19 +516,25 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     }
 
     // §21.21B: sim hop signal ("Up"/"Down"/""), fed every sync. Starts the
-    // ballistic arc on the rising edge. heightDeltaWorld is the EXACT signed
-    // root-level difference (renderer-computed; water dives include the swim
-    // sink depth).
-    public void SetHopSignal(string hopKind, float heightDeltaWorld, bool intoWater = false)
+    // ballistic arc on a hop the sim began and we have not played yet.
+    // heightDeltaWorld is the EXACT signed root-level difference
+    // (renderer-computed; water dives include the swim sink depth).
+    //
+    // hopStartTick / ageSeconds: the tick the sim opened the hop, and how long
+    // ago that was in world time. Keying on the stamp rather than on HopKind's
+    // rising edge matters because a frame renders only the last tick it stepped:
+    // fast-forward (and any dropped network tick) can swallow the whole "Up",
+    // after which she just glides up the ledge with no jump at all. ageSeconds
+    // then shortens the arc to what is LEFT of the window — replaying a
+    // full-length arc for a hop already half over overshoots the landing.
+    public void SetHopSignal(string hopKind, float heightDeltaWorld, bool intoWater = false,
+        int hopStartTick = 0, float ageSeconds = 0f)
     {
         hopKind ??= string.Empty;
-        if (hopKind == _hopKind)
-        {
-            return;
-        }
 
-        _hopKind = hopKind;
-        if (hopKind.Length == 0)
+        var started = hopKind.Length > 0 && hopStartTick > 0 && hopStartTick != _lastHopStartTick;
+        _lastHopStartTick = hopStartTick;
+        if (!started)
         {
             return;
         }
@@ -535,7 +549,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // FRACTIONS stay tied to HopSeconds (same shape), only the total window
         // changes, so the sim window, the arc and the clip scale together.
         var hop = HexLive.Simulation.Navigation.HexHopTuning.HopSeconds;
-        var window = HexLive.Simulation.Navigation.HexHopTuning.WindowSeconds(up);
+        var fullWindow = HexLive.Simulation.Navigation.HexHopTuning.WindowSeconds(up);
+        // Observed late (fast-forward / a dropped tick): fly only what is left,
+        // so the arc still lands where the sim already put her. A floor keeps a
+        // very late sighting from degenerating into an instant snap.
+        var window = Mathf.Max(fullWindow * 0.25f, fullWindow - Mathf.Max(0f, ageSeconds));
         // Same jump for everything — water or land (no special water handling);
         // only up vs down differs, via the window.
         StartJumpArc(
@@ -2561,7 +2579,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // strikeIndex: the sim's picked strike variant for THIS swing (fists:
     // punches/kicks — GearConfig.strikes order); -1 = single-timing gear,
     // the view rolls a random clip like before.
-    public void SetCombat(bool fighting, string weaponId, bool swinging, int strikeIndex = -1)
+    // swingStartTick: the tick the sim opened THIS swing's window (0 = never
+    // swung). The clip fires on a stamp we have not played yet — see
+    // _lastSwingStartTick for why the old boolean edge was not enough.
+    public void SetCombat(bool fighting, string weaponId, bool swinging, int strikeIndex = -1,
+        int swingStartTick = 0)
     {
         if (_legless)  // §50-prone: lying — no weapons, no fight pose
         {
@@ -2572,8 +2594,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         if (!fighting)
         {
+            // ADOPT the stamp rather than clearing it. The sim does not reset
+            // SwingStartTick when a fight ends, so clearing here would make the
+            // stale stamp look new at the START of the next fight and fire a
+            // phantom swing before she has thrown one.
+            _lastSwingStartTick = swingStartTick;
             _wasFighting = false;
-            _wasSwinging = false;
             _attackSpeed = 1f;
             _combatWeaponId = null;
             _action = ActionKind.None;
@@ -2586,6 +2612,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
             return;
         }
+
+        // A swing the sim started that we have not played. In the ordinary
+        // frame-per-tick case this is exactly the old rising edge of `swinging`;
+        // it additionally survives a frame that skipped the whole window.
+        var swingStarted = swingStartTick > 0 && swingStartTick != _lastSwingStartTick;
+        _lastSwingStartTick = swingStartTick;
 
         var weaponChanged = _combatWeaponId != weaponId;
         if (!_wasFighting || weaponChanged)
@@ -2631,7 +2663,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // Clip-based attack: fire the one-shot at the sim's swing start.
             // The sim's strike pick (fists: which punch/kick) wins; -1 or a
             // stale index = the old random roll.
-            if (swinging && !_wasSwinging)
+            // Deliberately NOT gated on `swinging`: when the frame skipped the
+            // whole 1-2 tick window the flag is already false, and the clip must
+            // still play — a landed blow with no swing is the bug this fixes.
+            if (swingStarted)
             {
                 var clip = strikeIndex >= 0 && strikeIndex < attackClips.Length
                     ? attackClips[strikeIndex]
@@ -2659,7 +2694,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _action = weaponId == "tool.bow" ? ActionKind.BowDraw
                 : weaponId == "tool.spear" ? ActionKind.SpearThrust
                 : ActionKind.Attack;
-            if (!_wasSwinging)
+            if (swingStarted)
             {
                 _actionPhase = 0f;
                 // §67: процедурный замах тоже свистит.
@@ -2679,7 +2714,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _action = ActionKind.None;
         }
 
-        _wasSwinging = swinging;
         _wasFighting = true;
         if (!string.IsNullOrEmpty(weaponId))
         {

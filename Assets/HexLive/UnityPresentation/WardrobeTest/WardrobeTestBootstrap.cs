@@ -11,7 +11,7 @@ using UnityEngine.UIElements;
 namespace HexLive.UnityPresentation.WardrobeTest
 {
 
-// Wardrobe test scene (dev tool): pick one of the three girls, try any wear
+// Wardrobe test scene (dev tool): pick one of the actors, try any wear
 // prefab the game ships (Resources/HexLive/Wear/**), watch her run the
 // sit -> sleep -> get-up loop, and tune each garment's per-actor fit scale
 // (WearConfig.scale) live with the arrow keys. "Save" persists the tuned
@@ -19,8 +19,14 @@ namespace HexLive.UnityPresentation.WardrobeTest
 [RequireComponent(typeof(UIDocument))]
 public sealed class WardrobeTestBootstrap : MonoBehaviour
 {
-    private static readonly ActorName[] Girls =
-        { ActorName.Molly, ActorName.Marta, ActorName.Jana, ActorName.Jolly };
+    // §70: no longer only girls — Kshishtof is the male outsider. A new actor
+    // has to be added HERE as well as shipped as a prefab, or the scene simply
+    // will not offer him and the omission reads as a broken import.
+    private static readonly ActorName[] Actors =
+    {
+        ActorName.Molly, ActorName.Marta, ActorName.Jana, ActorName.Jolly,
+        ActorName.Kshishtof,
+    };
 
     private static readonly int SittingParam = Animator.StringToHash("Sitting");
     private static readonly int LayingParam = Animator.StringToHash("Laying");
@@ -733,7 +739,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         girlsTitle.style.marginTop = 6f;
         box.Add(girlsTitle);
 
-        foreach (var girl in Girls)
+        foreach (var girl in Actors)
         {
             var captured = girl;
             var button = MakeButton(girl.ToString(), Raised, () => SpawnGirl(captured));

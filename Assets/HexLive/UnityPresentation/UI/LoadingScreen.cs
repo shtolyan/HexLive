@@ -906,7 +906,10 @@ namespace HexLive.UnityPresentation.UI
             }
 
             NpcSelection.Clear();
-            NpcSelection.Select(FindJana(npcs));
+            // §74: the remote branch kept calling the deleted name-based lookup
+            // long after the local one moved to FindOpeningTarget — the rename
+            // was applied to one of the two copies of this ending.
+            NpcSelection.Select(FindOpeningTarget(npcs));
 
             // No Resume(), no autosave: the server owns both.
             Destroy(gameObject);

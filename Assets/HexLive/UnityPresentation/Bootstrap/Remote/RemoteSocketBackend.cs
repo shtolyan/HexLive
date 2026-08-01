@@ -14,6 +14,10 @@ using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Wire;
 using UnityEngine;
+// `using System.Diagnostics` above (Stopwatch) collides with UnityEngine over
+// the name `Debug`. Aliased once here rather than qualifying every call site:
+// in a MonoBehaviour-adjacent file Debug always means Unity's.
+using Debug = UnityEngine.Debug;
 
 namespace HexLive.UnityPresentation.Bootstrap.Remote
 {

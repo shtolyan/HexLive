@@ -95,7 +95,11 @@ public static class SessionConfig
         string[] args;
         try
         {
-            args = Environment.GetCommandLineArgs();
+            // Fully qualified on purpose: this file sits in
+            // HexLive.UnityPresentation.Bootstrap, and the sibling NAMESPACE
+            // HexLive.UnityPresentation.Environment (CampfireEffect, the sky
+            // controller, TreeFall) shadows System.Environment from here.
+            args = System.Environment.GetCommandLineArgs();
         }
         catch (Exception)
         {

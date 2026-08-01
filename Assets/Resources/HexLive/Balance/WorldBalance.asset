@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3ac004c90a3b4688801acef1a4e06ac6, type: 3}
   m_Name: WorldBalance
   m_EditorClassIdentifier: 
+  colonistCount: 3
   dayLengthTicks: 24000
   eventCycleTicks: 2400
   shadowRaySteps: 7

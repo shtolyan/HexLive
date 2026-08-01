@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: OutsiderBalance
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Config.OutsiderBalanceConfig
   enabled: 1
-  spawnOutsider: 1
+  outsiderCount: 1
   outsiderCampMinDistanceTiles: 8
   campKnowledgeRadiusTiles: 4
   maxCampRadiusTiles: 6

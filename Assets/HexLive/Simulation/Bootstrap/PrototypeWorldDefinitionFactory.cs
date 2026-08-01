@@ -110,78 +110,53 @@ namespace HexLive.Simulation.Bootstrap
                 // authored is what the simulation actually reads: the tiles
                 // they wash ashore on and the desynchronized need profiles
                 // below, so the four never queue for the same need at once.
-                Npcs =
-                {
-                    new NpcBootstrap
-                    {
-                        Id = 1,
-                        FragmentId = 1,
-                        TileQ = 0,
-                        TileR = 0,
-                        Hunger = 0.7f,
-                        Thirst = 0.5f,
-                        Energy = 0.45f,
-                        Comfort = 0.35f,
-                        Social = 0.5f,
-                        ThermalDiscomfort = 0.6f
-                    },
-                    // Second inhabitant (iteration 3): different need profile,
-                    // contends for the single bed/chair/coat and the apples.
-                    new NpcBootstrap
-                    {
-                        Id = 2,
-                        FragmentId = 1,
-                        TileQ = 2,
-                        TileR = 0,
-                        Hunger = 0.55f,
-                        Thirst = 0.4f,
-                        Energy = 0.5f,
-                        Comfort = 0.4f,
-                        Social = 0.6f,
-                        ThermalDiscomfort = 0.5f
-                    },
-                    // Third inhabitant (iteration 8): well-rested and sociable,
-                    // desynchronized from the others. Beds stay at two — the
-                    // scarcity is deliberate (spec 33.4 iteration-8 note).
-                    new NpcBootstrap
-                    {
-                        Id = 3,
-                        FragmentId = 1,
-                        TileQ = 0,
-                        TileR = 3,
-                        Hunger = 0.4f,
-                        Thirst = 0.6f,
-                        Energy = 0.75f,
-                        Comfort = 0.55f,
-                        Social = 0.45f,
-                        ThermalDiscomfort = 0.35f
-                    },
-                    // Fourth inhabitant: starts hungry and cold but rested —
-                    // another desynchronized profile, so the four never queue
-                    // for the same need at once. Beds still stay scarce
-                    // (spec 33.4).
-                    new NpcBootstrap
-                    {
-                        Id = 4,
-                        FragmentId = 1,
-                        TileQ = 2,
-                        TileR = 3,
-                        Hunger = 0.65f,
-                        Thirst = 0.45f,
-                        Energy = 0.6f,
-                        Comfort = 0.45f,
-                        Social = 0.7f,
-                        ThermalDiscomfort = 0.55f
-                    }
-                }
+                Npcs = { }
             };
 
+            AddColonists(definition);
             AddWilderness(definition.Fragments[0]);
             AddIslandElevation(definition.Fragments[0], seed);
             AddSeaChannel(definition.Fragments[0], seed);
             AddNaturalFeatures(definition, seed);
             AddOutsiderCamp(definition, seed);
             return definition;
+        }
+
+        // §75: состав колонии генерируется от WorldBalance.ColonistCount, а не
+        // задан списком строк. Дом авторский и конечный, поэтому мест ровно
+        // столько, сколько размечено — больше народу просто некуда посадить.
+        //
+        // Профили нужд разведены по индексу СПЕЦИАЛЬНО: если все стартуют
+        // одинаковыми, они синхронно захотят пить, синхронно пойдут к воде и
+        // синхронно встанут в очередь за одной кружкой (spec 33.4).
+        private static void AddColonists(WorldBootstrapDefinition definition)
+        {
+            var spots = new[]
+            {
+                (0, 0), (2, 0), (0, 3), (2, 3), (2, 1), (-1, 3), (0, 2), (3, 1),
+            };
+
+            var count = System.Math.Max(0,
+                System.Math.Min(HexLive.Simulation.Runtime.WorldBalance.ColonistCount, spots.Length));
+            for (var i = 0; i < count; i++)
+            {
+                var (q, r) = spots[i];
+                // Смещения подобраны так, чтобы соседние по индексу профили не
+                // совпадали ни по одной нужде.
+                definition.Npcs.Add(new NpcBootstrap
+                {
+                    Id = i + 1,
+                    FragmentId = 1,
+                    TileQ = q,
+                    TileR = r,
+                    Hunger = 0.70f - 0.10f * (i % 4),
+                    Thirst = 0.40f + 0.07f * (i % 3),
+                    Energy = 0.45f + 0.10f * (i % 4),
+                    Comfort = 0.35f + 0.07f * (i % 3),
+                    Social = 0.45f + 0.09f * (i % 3),
+                    ThermalDiscomfort = 0.60f - 0.09f * (i % 3),
+                });
+            }
         }
 
         // §72: the hostile survivor and his camp on the far side of the island.
@@ -324,35 +299,55 @@ namespace HexLive.Simulation.Bootstrap
                 });
             }
 
-            if (!HexLive.Simulation.Runtime.Spec72.SpawnOutsider)
+            var outsiders = System.Math.Max(0, HexLive.Simulation.Runtime.Spec72.OutsiderCount);
+            if (outsiders == 0)
             {
                 return;
             }
 
-            // Id 5 — AFTER the four girls, so the colony's dictionary insertion
-            // order (and every hash-seeded tie-break that rides on it) is bit
-            // identical to the pre-§72 world.
-            definition.Npcs.Add(new NpcBootstrap
+            // Идентификаторы чужаков начинаются с 101, а не продолжают ряд
+            // девушек: состав колонии теперь переменной длины, и «следующий
+            // свободный номер» разъезжался бы при каждой смене ColonistCount.
+            // Дырка в нумерации ничему не мешает — id идёт в хеши числом, а не
+            // индексом, — зато чужаки всегда вставляются ПОСЛЕ колонии, и
+            // порядок обхода словаря у неё остаётся прежним.
+            var seats = new List<TileCoord> { camp };
+            foreach (var dir in HexDirection.All)
             {
-                Id = 5,
-                DisplayName = "Kshishtof",
-                // Must parse to the ActorName enum, or the view silently falls
-                // back to MARTA's body — the failure reads as a broken import
-                // rather than a typo, so it is worth naming here.
-                ActorMesh = "Kshishtof",
-                Faction = Agents.Faction.Outsiders,
-                FragmentId = 1,
-                TileQ = camp.Q,
-                TileR = camp.R,
-                // He washed ashore like everyone else: rested, hungry, thirsty.
-                // Nothing is handed to him — he crafts his knife at his own fire.
-                Hunger = 0.5f,
-                Thirst = 0.45f,
-                Energy = 0.7f,
-                Comfort = 0.4f,
-                Social = 0.3f,
-                ThermalDiscomfort = 0.5f
-            });
+                var around = new TileCoord(camp.Q + dir.DQ, camp.R + dir.DR);
+                if (byCoord.TryGetValue((around.Q, around.R), out var seat) && IsLand(seat))
+                {
+                    seats.Add(around);
+                }
+            }
+
+            for (var i = 0; i < outsiders && i < seats.Count; i++)
+            {
+                definition.Npcs.Add(new NpcBootstrap
+                {
+                    Id = 101 + i,
+                    // Имя и тело только у первого — остальные пока безымянные:
+                    // §74 раскатывает облик от сида, а мужской набор внешностей
+                    // ещё не заведён, так что все они получат тело Кшиштофа.
+                    DisplayName = i == 0 ? "Kshishtof" : string.Empty,
+                    // Должно разбираться в ActorName, иначе вид молча подставит
+                    // тело МАРТЫ — а это читается как сломанный импорт, не как
+                    // опечатка.
+                    ActorMesh = "Kshishtof",
+                    Faction = Agents.Faction.Outsiders,
+                    FragmentId = 1,
+                    TileQ = seats[i].Q,
+                    TileR = seats[i].R,
+                    // Сошёл на берег как все: выспавшийся, голодный, жаждущий.
+                    // Ничего ему не дарят — нож и копьё он приносит с собой.
+                    Hunger = 0.50f - 0.06f * (i % 3),
+                    Thirst = 0.45f + 0.06f * (i % 3),
+                    Energy = 0.70f - 0.08f * (i % 3),
+                    Comfort = 0.40f,
+                    Social = 0.30f,
+                    ThermalDiscomfort = 0.50f,
+                });
+            }
         }
 
         // Spec 20.16: the world is an island — seeded value noise times a

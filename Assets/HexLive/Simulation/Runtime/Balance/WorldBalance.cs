@@ -11,6 +11,12 @@ public static class WorldBalance
     // the sky, the four day phases, the temperature sinusoid, UV, FormatClock
     // and the "Day N" counter all derive from it, and nothing else does.
     // 24000 ticks = 100 real minutes at 0.25 s/tick.
+    // §75: сколько девушек на старте. Раньше состав задавался ДЛИНОЙ списка
+    // строк в PrototypeWorldDefinitionFactory, то есть «убавить одну» значило
+    // править код. Позиции и профили нужд генерируются от индекса, поэтому
+    // число можно крутить, не трогая ничего больше.
+    public static int ColonistCount = 3;
+
     public static int DayLengthTicks = 24000;
 
     // The GAMEPLAY CADENCE — how often the seeded "once per day" rolls happen

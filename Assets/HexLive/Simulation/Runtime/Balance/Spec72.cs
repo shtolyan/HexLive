@@ -21,7 +21,7 @@ namespace HexLive.Simulation.Runtime
 //
 // Enabled = false collapses FactionRelations to "everyone is an ally", so every
 // gate in the sim answers exactly as it did pre-§72. Together with
-// SpawnOutsider = false the world is the pre-§72 world byte for byte — the two
+// OutsiderCount = 0 the world is the pre-§72 world byte for byte — the two
 // flags are separate so a soak can bisect "the faction plumbing" and "the extra
 // body" independently (the extra body alone perturbs dog spawn placement).
 public static class Spec72
@@ -32,10 +32,14 @@ public static class Spec72
     // это скорее «он есть и мешает жить», чем «он страшен».
     public static bool Enabled = true;
 
-    // Селить ли его в мире вообще. Отдельный флаг от Enabled, чтобы соак мог
-    // развести влияние ПРАВИЛ и влияние лишнего тела (оно само по себе двигает
-    // спавн собак и маршруты).
-    public static bool SpawnOutsider = true;
+    // Сколько чужаков селить. 0 — ни одного: это и есть прежний флаг «не
+    // селить», только без второй ручки рядом, которая неминуемо разошлась бы с
+    // первой. Отдельно от Enabled, чтобы соак мог развести влияние ПРАВИЛ и
+    // влияние лишних тел (они сами по себе двигают спавн собак и маршруты).
+    //
+    // Все чужаки — одна фракция, то есть союзники друг другу, и живут одним
+    // лагерем: садятся на якорь стоянки и кольцо вокруг него.
+    public static int OutsiderCount = 1;
 
     // --- His camp -----------------------------------------------------------
 

@@ -25,6 +25,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(4, 16)] public int outsiderCampMinDistanceTiles = 8;
         [Tooltip("Радиус, в котором выживший стартует со знанием построек СВОЕГО лагеря. Чужие лагеря он не знает.")]
         [Range(1, 10)] public int campKnowledgeRadiusTiles = 4;
+        [Tooltip("Насколько далеко от ЛЮБОЙ стоянки заводятся собаки. Обычные 5 гексов считаются от тела, а не от очага, поэтому стая заводилась у логова, пока хозяин отошёл.")]
+        [Range(0, 20)] public int dogSpawnMinDistanceFromCamp = 9;
         [Tooltip("Насколько широк лагерь: в этом радиусе от якоря очаг и мебель считаются «нашими».")]
         [Range(2, 12)] public int maxCampRadiusTiles = 6;
         [Tooltip("Нижняя граница черты сострадания чужака (у колонии диапазон §53 начинается с 0.35).")]

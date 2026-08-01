@@ -288,6 +288,26 @@ namespace HexLive.Simulation.Bootstrap
 
             var camp = new TileCoord(best.Q, best.R);
 
+            // §72.12: ЛОГОВО. Санктуарий в этом мире — это буквально indoor-тайл
+            // (MobSystem.IsNpcInSanctuary), и у колонии он есть, потому что её
+            // дом размечен вручную: собаки бросают погоню у двери (§29C.4A).
+            // Стоянка чужака вычисляется в дикой земле, indoor-тайлов там нет —
+            // то есть девушкам всегда есть куда нырнуть, а ему некуда НИКОГДА.
+            // Отсюда и его смерти от волков на 0.3-й день.
+            //
+            // Даём ему тот же механизм, а не особое правило: якорь и кольцо
+            // вокруг него становятся indoor. Вода и скалы пропускаются — логово
+            // должно быть проходимой сушей.
+            best.Indoor = true;
+            foreach (var dir in HexDirection.All)
+            {
+                if (byCoord.TryGetValue((camp.Q + dir.DQ, camp.R + dir.DR), out var around) &&
+                    IsLand(around))
+                {
+                    around.Indoor = true;
+                }
+            }
+
             if (HexLive.Simulation.Runtime.Spec72.Enabled)
             {
                 definition.FactionHomes.Add(new FactionHomeBootstrap

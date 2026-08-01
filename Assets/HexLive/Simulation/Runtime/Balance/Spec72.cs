@@ -48,6 +48,14 @@ public static class Spec72
     // the girls' entire camp layout (and they know his).
     public static int CampKnowledgeRadiusTiles = 4;
 
+    // Насколько далеко от ЛЮБОЙ стоянки заводятся собаки. Обычное правило
+    // спавна держит 5 гексов от каждого NPC, но это от того места, где он
+    // стоит СЕЙЧАС: стоит ему отойти за дровами, и стая заводится прямо у его
+    // очага, а вернувшись он входит в неё. У колонии это скрадывалось тем, что
+    // четверо девушек постоянно топчутся дома и закрывают собой округу; у
+    // одиночки скрадывать некому.
+    public static int DogSpawnMinDistanceFromCamp = 9;
+
     // The widest a camp may be — the anchor-scoped hearth search radius, so a
     // faction's "our fire" is its own and not whichever campfire hashes first.
     public static int MaxCampRadiusTiles = 6;

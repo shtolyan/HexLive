@@ -1,0 +1,351 @@
+{
+  "drop": "cindy",
+  "sources": [
+    {
+      "fbx": "Assets/Temp/jolly cindy.fbx",
+      "actor": "Jolly"
+    },
+    {
+      "fbx": "Assets/Temp/jana cindy.fbx",
+      "actor": "Jana"
+    },
+    {
+      "fbx": "Assets/Temp/marta cindy.fbx",
+      "actor": "Marta"
+    },
+    {
+      "fbx": "Assets/Temp/molly cindy.fbx",
+      "actor": "Molly"
+    }
+  ],
+  "garments": [
+    {
+      "sourceKey": "Jacket_7653",
+      "folder": "CindyJacket",
+      "name": "CindyJacket",
+      "simId": "clothing.jacket_cindy",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "ShoulderR",
+        "ShoulderL",
+        "ForearmR",
+        "ForearmL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Top Leather",
+          "texture": "Cloth D.png",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Basic Metal",
+          "texture": "Accesories.png",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Basic Leather",
+          "texture": "Accesories.png",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 7653,
+        "polys": 8182,
+        "bbox": [
+          -67.7,
+          67.5,
+          119.3,
+          158.9,
+          -12.7,
+          14.8
+        ],
+        "zones": {
+          "Chest": 0.72,
+          "Shoulder": 0.154,
+          "Forearm": 0.065,
+          "Neck": 0.046,
+          "Wrist": 0.008,
+          "Head": 0.007
+        }
+      }
+    },
+    {
+      "sourceKey": "Bra_1529",
+      "folder": "Bra",
+      "name": "Bra",
+      "simId": "clothing.bra",
+      "layer": "Wear",
+      "slots": [
+        "Chest"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Bikini Top",
+          "texture": "Bikini tex.jpg",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 1529,
+        "polys": 1268,
+        "bbox": [
+          -14.0,
+          14.0,
+          124.6,
+          155.1,
+          -8.9,
+          13.2
+        ],
+        "zones": {
+          "Chest": 0.923,
+          "Neck": 0.077
+        }
+      }
+    },
+    {
+      "sourceKey": "Bikini Bottom_699",
+      "folder": "BikiniBottom",
+      "name": "BikiniBottom",
+      "simId": "clothing.bikinibottom",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Bikini Bottom",
+          "texture": "Bikini tex.jpg",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 699,
+        "polys": 640,
+        "bbox": [
+          -15.9,
+          15.8,
+          87.7,
+          106.2,
+          -10.9,
+          11.6
+        ],
+        "zones": {
+          "Pelvis": 0.645,
+          "Belly": 0.355
+        }
+      }
+    },
+    {
+      "sourceKey": "bottom daz_5767",
+      "folder": "CindyShorts",
+      "name": "CindyShorts",
+      "simId": "clothing.shorts_cindy",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Short Pants",
+          "texture": "Cloth D.png",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Button",
+          "texture": "Accesories.png",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 5767,
+        "polys": 5665,
+        "bbox": [
+          -18.1,
+          18.1,
+          86.5,
+          104.2,
+          -13.1,
+          12.6
+        ],
+        "zones": {
+          "Pelvis": 0.984,
+          "Belly": 0.016
+        }
+      }
+    },
+    {
+      "sourceKey": "belt daz_7248",
+      "folder": "CindyBelt",
+      "name": "CindyBelt",
+      "simId": "clothing.belt_cindy",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Belt",
+          "texture": "Accesories.png",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "metal",
+          "texture": "Accesories.png",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 7248,
+        "polys": 6266,
+        "bbox": [
+          -27.7,
+          27.9,
+          75.5,
+          109.1,
+          -17.5,
+          13.1
+        ],
+        "zones": {
+          "Pelvis": 0.823,
+          "Thigh": 0.104,
+          "Belly": 0.073
+        }
+      }
+    },
+    {
+      "sourceKey": "boots daz_6436",
+      "folder": "CindyBoots",
+      "name": "CindyBoots",
+      "simId": "clothing.boots_cindy",
+      "layer": "Wear",
+      "slots": [
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Boots",
+          "texture": "Cloth D.png",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Shocks",
+          "texture": "Cloth D.png",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Metal",
+          "texture": "Accesories.png",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 6436,
+        "polys": 7184,
+        "bbox": [
+          -21.1,
+          21.1,
+          -7.0,
+          73.4,
+          -13.2,
+          17.9
+        ],
+        "zones": {
+          "Foot": 0.454,
+          "Shin": 0.389,
+          "Thigh": 0.157
+        }
+      },
+      "heelPose": {
+        "foot": 28.2,
+        "toe": -27.91,
+        "lift": 0.052,
+        "axis": []
+      }
+    },
+    {
+      "sourceKey": "gloves daz_4228",
+      "folder": "CindyGloves",
+      "name": "CindyGloves",
+      "simId": "clothing.gloves_cindy",
+      "layer": "Wear",
+      "slots": [
+        "WristR",
+        "WristL",
+        "HandR",
+        "HandL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Gloves",
+          "texture": "Cloth D.png",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 4228,
+        "polys": 4484,
+        "bbox": [
+          -84.5,
+          84.5,
+          141.1,
+          148.0,
+          -1.4,
+          11.5
+        ],
+        "zones": {
+          "Wrist": 0.534,
+          "Hand": 0.431,
+          "Forearm": 0.035
+        }
+      }
+    }
+  ]
+}

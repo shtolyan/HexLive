@@ -1,0 +1,234 @@
+{
+  "drop": "flair",
+  "sources": [
+    {
+      "fbx": "Assets/Temp/jolly flair.fbx",
+      "actor": "Jolly"
+    },
+    {
+      "fbx": "Assets/Temp/jana flair.fbx",
+      "actor": "Jana"
+    },
+    {
+      "fbx": "Assets/Temp/marta flair.fbx",
+      "actor": "Marta"
+    },
+    {
+      "fbx": "Assets/Temp/molly flair.fbx",
+      "actor": "Molly"
+    }
+  ],
+  "garments": [
+    {
+      "sourceKey": "fl-sweater_8621",
+      "folder": "SweaterFlair",
+      "name": "SweaterFlair",
+      "simId": "clothing.sweater_flair",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "ShoulderR",
+        "ShoulderL",
+        "ForearmR",
+        "ForearmL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "sweater",
+          "texture": "flair-sweat-01.jpg",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Sleeves",
+          "texture": "flair-sweat-01.jpg",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 8621,
+        "polys": 8434,
+        "bbox": [
+          -36.4,
+          36.4,
+          110.2,
+          152.6,
+          -12.9,
+          13.8
+        ],
+        "zones": {
+          "Chest": 0.461,
+          "Shoulder": 0.37,
+          "Belly": 0.159,
+          "Neck": 0.011
+        }
+      }
+    },
+    {
+      "sourceKey": "fl-skirt_3552",
+      "folder": "SkirtFlair",
+      "name": "SkirtFlair",
+      "simId": "clothing.skirt_flair",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis",
+        "ThighR",
+        "ThighL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "skirt",
+          "texture": "flair-skirt-01.jpg",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "waistband",
+          "texture": "flair-skirt-01.jpg",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 3552,
+        "polys": 3456,
+        "bbox": [
+          -24.6,
+          24.6,
+          72.6,
+          113.7,
+          -16.7,
+          14.6
+        ],
+        "zones": {
+          "Pelvis": 0.369,
+          "Belly": 0.359,
+          "Thigh": 0.272
+        }
+      }
+    },
+    {
+      "sourceKey": "fl-panty_1661",
+      "folder": "PantyFlair",
+      "name": "PantyFlair",
+      "simId": "underwear.panty_flair",
+      "layer": "Underwear",
+      "slots": [
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "panty",
+          "texture": "flair-panty-01.jpg",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 1661,
+        "polys": 1576,
+        "bbox": [
+          -17.3,
+          17.3,
+          87.9,
+          108.8,
+          -13.0,
+          12.3
+        ],
+        "zones": {
+          "Pelvis": 0.598,
+          "Belly": 0.402
+        }
+      }
+    },
+    {
+      "sourceKey": "fl-pumps_12068",
+      "folder": "PumpsFlair",
+      "name": "PumpsFlair",
+      "simId": "clothing.pumps_flair",
+      "layer": "Wear",
+      "slots": [
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "heeltip",
+          "texture": null,
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "heel",
+          "texture": null,
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "sole",
+          "texture": null,
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "shoe",
+          "texture": null,
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "innershoe",
+          "texture": null,
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 12068,
+        "polys": 11840,
+        "bbox": [
+          -21.2,
+          21.2,
+          -11.5,
+          7.3,
+          -10.9,
+          15.7
+        ],
+        "zones": {
+          "Foot": 1.0
+        }
+      },
+      "heelPose": {
+        "foot": 45.0,
+        "toe": -40.0,
+        "lift": 0.078,
+        "axis": []
+      }
+    }
+  ]
+}

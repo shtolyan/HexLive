@@ -16,7 +16,14 @@ public sealed class Wear : MonoBehaviour
     [SerializeField] private VisualWearLayer layer;
     [SerializeField] private VisualGender gender = VisualGender.Female;
 
+    // Spec §31B.4C: non-zero only on heeled shoes. Everything else leaves it at
+    // default, which reads as "no heel" — so this is additive to the serialized
+    // layout and every existing prefab keeps binding unchanged.
+    [SerializeField] private HeelPose heel;
+
     public VisualWearLayer Layer => layer;
+
+    public HeelPose Heel => heel;
 
     // Serialization contract with the imported prefabs — read back so the
     // compiler (and future gender-aware wardrobes) see it used.

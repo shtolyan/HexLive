@@ -93,6 +93,7 @@ public static class NewWearExtractor
         public VisualWearSlot[] Slots;
         public VisualWearSlot[] NoHide = { };
         public MatSpec[] Materials;
+        public HeelPose Heel;       // default = flat, which is almost everything
     }
 
     // Slot / layer choices mirror the closest shipped garment (skirt =
@@ -238,6 +239,15 @@ public static class NewWearExtractor
         public string sourceKey, folder, name, simId, layer;
         public string[] slots, noHide;
         public DropMaterial[] materials;
+        public DropHeel heelPose;   // spec §31B.4C — heeled shoes only
+    }
+
+    // Straight out of the DAZ foot-pose preset that ships with a heeled shoe.
+    // Absent on every other garment, and absent means "flat".
+    [System.Serializable] private sealed class DropHeel
+    {
+        public float foot, toe, lift;
+        public float[] axis;        // empty = the bone's X, which is DAZ's axis
     }
 
     [System.Serializable] private sealed class DropMaterial
@@ -326,8 +336,27 @@ public static class NewWearExtractor
                     DoubleSided = m.doubleSided,
                     AlphaClip = m.alphaClip,
                 }).ToArray(),
+                Heel = ParseHeel(g.heelPose),
             });
         }
+    }
+
+    private static HeelPose ParseHeel(DropHeel heel)
+    {
+        if (heel == null)
+        {
+            return default;
+        }
+
+        return new HeelPose
+        {
+            footDegrees = heel.foot,
+            toeDegrees = heel.toe,
+            lift = heel.lift,
+            axis = heel.axis != null && heel.axis.Length == 3
+                ? new Vector3(heel.axis[0], heel.axis[1], heel.axis[2])
+                : Vector3.zero,
+        };
     }
 
     private static T ParseEnum<T>(string value, T fallback, string file) where T : struct
@@ -743,6 +772,12 @@ public static class NewWearExtractor
             e.FindPropertyRelative("heightOffset").floatValue = fit.heightOffset;
             e.FindPropertyRelative("mesh").objectReferenceValue = pair.Value;
         }
+
+        var heel = so.FindProperty("heel");
+        heel.FindPropertyRelative("footDegrees").floatValue = g.Heel.footDegrees;
+        heel.FindPropertyRelative("toeDegrees").floatValue = g.Heel.toeDegrees;
+        heel.FindPropertyRelative("lift").floatValue = g.Heel.lift;
+        heel.FindPropertyRelative("axis").vector3Value = g.Heel.axis;
 
         WriteSlotList(so.FindProperty("slots"), g.Slots);
         WriteSlotList(so.FindProperty("noHideUnderwearSlots"), g.NoHide);

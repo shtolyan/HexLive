@@ -1,0 +1,133 @@
+{
+  "drop": "nightdress",
+  "sources": [
+    {
+      "fbx": "Assets/Temp/jolly nightdress.fbx",
+      "actor": "Jolly"
+    },
+    {
+      "fbx": "Assets/Temp/jana nightdress.fbx",
+      "actor": "Jana"
+    },
+    {
+      "fbx": "Assets/Temp/marta nightdress.fbx",
+      "actor": "Marta"
+    },
+    {
+      "fbx": "Assets/Temp/molly nightdress.fbx",
+      "actor": "Molly"
+    }
+  ],
+  "garments": [
+    {
+      "sourceKey": "ndrss_dress_27797",
+      "folder": "NightDress",
+      "name": "NightDress",
+      "simId": "clothing.dress_night",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "Belly",
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Base",
+          "texture": "mytilus_ndrss_dress_tex.jpg",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Clasp",
+          "texture": null,
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "SkirtLace",
+          "texture": "mytilus_ndrss_dress_tex_mytilus_ndrss_dress_tr.png",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        }
+      ],
+      "_measured": {
+        "verts": 27797,
+        "polys": 27342,
+        "bbox": [
+          -22.0,
+          22.0,
+          83.8,
+          138.1,
+          -17.3,
+          16.2
+        ],
+        "zones": {
+          "Pelvis": 0.603,
+          "Chest": 0.276,
+          "Belly": 0.107,
+          "Thigh": 0.014
+        }
+      }
+    },
+    {
+      "sourceKey": "ndrss_necklace_44217",
+      "folder": "NightNecklace",
+      "name": "NightNecklace",
+      "simId": "clothing.necklace_night",
+      "layer": "Wear",
+      "slots": [
+        "Neck"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "SBean",
+          "texture": null,
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "BBean",
+          "texture": null,
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Metal",
+          "texture": null,
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 44217,
+        "polys": 43568,
+        "bbox": [
+          -8.0,
+          7.6,
+          144.4,
+          155.4,
+          -9.7,
+          6.1
+        ],
+        "zones": {
+          "Chest": 0.515,
+          "Neck": 0.485
+        }
+      }
+    }
+  ]
+}

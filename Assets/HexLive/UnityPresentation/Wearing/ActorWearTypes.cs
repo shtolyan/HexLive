@@ -79,6 +79,40 @@ public static class ActorSex
     }
 }
 
+// Spec §31B.4C: a heeled shoe is not just a mesh. In DAZ the product ships a
+// foot POSE — the heel lifts, the toes bend back, and the shoe is modelled
+// around that posed foot. Unity has no equivalent, so a girl wearing pumps
+// stands flat inside a shoe shaped for a raised heel and her foot pokes
+// through the sole.
+//
+// The whole thing is two rotations and a lift, read straight out of the DAZ
+// preset (Flair pumps: foot +45°, toes −40°; Cindy boots: +28.2° / −27.9° —
+// the numbers scale with heel height). BodyBones applies them every LateUpdate,
+// because the Animator rewrites the legs each frame and would wipe anything
+// applied earlier.
+[Serializable]
+public struct HeelPose
+{
+    // Plantarflexion: the foot pitches down so the heel comes off the ground.
+    public float footDegrees;
+
+    // The toes bend the other way, keeping the ball of the foot flat on the floor.
+    public float toeDegrees;
+
+    // Metres the body rises once it is standing on the ball instead of the sole.
+    // Without it she sinks into the ground by exactly the heel height.
+    public float lift;
+
+    // The bone's own pitch axis. DAZ turns the foot about X, but an FBX import
+    // may permute a bone's local axes, so this stays DATA and is tuned in play
+    // rather than trusted blind. Zero means "X", so old prefabs need no edit.
+    public Vector3 axis;
+
+    public bool Any => Mathf.Abs(footDegrees) > 0.01f || Mathf.Abs(toeDegrees) > 0.01f;
+
+    public Vector3 Axis => axis.sqrMagnitude < 0.0001f ? Vector3.right : axis.normalized;
+}
+
 // Spec 31B.2: one wear prefab fits every girl — the mesh swaps per actor.
 [Serializable]
 public class WearConfig

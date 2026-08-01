@@ -1,0 +1,377 @@
+{
+  "drop": "deadlysilence",
+  "sources": [
+    {
+      "fbx": "Assets/Temp/jolly deadlysilence.fbx",
+      "actor": "Jolly"
+    },
+    {
+      "fbx": "Assets/Temp/jana deadlysilence.fbx",
+      "actor": "Jana"
+    },
+    {
+      "fbx": "Assets/Temp/marta deadlysilence.fbx",
+      "actor": "Marta"
+    },
+    {
+      "fbx": "Assets/Temp/molly deadlysilence.fbx",
+      "actor": "Molly"
+    }
+  ],
+  "garments": [
+    {
+      "sourceKey": "S3D_DdlSlc_Top",
+      "folder": "DeadlyTop",
+      "name": "DeadlyTop",
+      "simId": "clothing.top_deadly",
+      "layer": "Wear",
+      "slots": [
+        "Chest"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Top",
+          "texture": "S3D_DS_Top_BaseColor.jpg",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 3184,
+        "polys": 2995,
+        "bbox": [
+          -14.6,
+          14.6,
+          116.4,
+          156.0,
+          -8.9,
+          15.1
+        ],
+        "zones": {
+          "Chest": 0.939,
+          "Neck": 0.037,
+          "Belly": 0.024
+        }
+      }
+    },
+    {
+      "sourceKey": "S3D_DdlSlc_Shorts_19751",
+      "folder": "DeadlyShorts",
+      "name": "DeadlyShorts",
+      "simId": "clothing.shorts_deadly",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis",
+        "ThighR",
+        "ThighL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Shorts",
+          "texture": "S3D_DdlSlc_Shorts_BaseColor.jpg",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 19751,
+        "polys": 19368,
+        "bbox": [
+          -20.5,
+          20.5,
+          78.8,
+          111.3,
+          -13.2,
+          13.3
+        ],
+        "zones": {
+          "Pelvis": 0.41,
+          "Belly": 0.387,
+          "Thigh": 0.203
+        }
+      }
+    },
+    {
+      "sourceKey": "DS_Tights_1818",
+      "folder": "DSTights",
+      "name": "DSTights",
+      "simId": "clothing.dstights",
+      "layer": "Wear",
+      "slots": [
+        "ThighR",
+        "ThighL",
+        "ShinR",
+        "ShinL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "main",
+          "texture": "DS_Tights_main_BaseColor_DS_Tights_main_opacity.png",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        }
+      ],
+      "_measured": {
+        "verts": 1818,
+        "polys": 1770,
+        "bbox": [
+          -19.0,
+          19.0,
+          8.7,
+          83.1,
+          -11.5,
+          10.2
+        ],
+        "zones": {
+          "Thigh": 0.537,
+          "Shin": 0.416,
+          "Foot": 0.047
+        }
+      }
+    },
+    {
+      "sourceKey": "S3D_DS_Boots_155064",
+      "folder": "S3DDSBoots",
+      "name": "S3DDSBoots",
+      "simId": "clothing.s3ddsboots",
+      "layer": "Wear",
+      "slots": [
+        "ShinR",
+        "ShinL",
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "rubber_Lft",
+          "texture": "S3D_Ddl_Slc_Boot_add_BaseColor.jpg",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "lace_Lft",
+          "texture": "S3D_Ddl_Slc_Boot_add_BaseColor.jpg",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "steel_Lft",
+          "texture": "S3D_Ddl_Slc_Boot_add_BaseColor.jpg",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "textile_Lft",
+          "texture": "S3D_Ddl_Slc_Boot_main_BaseColor.jpg",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "leather_Lft",
+          "texture": "S3D_Ddl_Slc_Boot_main_BaseColor.jpg",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "rubber_Rht",
+          "texture": "S3D_Ddl_Slc_Boot_add_BaseColor.jpg",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "lace_Rht",
+          "texture": "S3D_Ddl_Slc_Boot_add_BaseColor.jpg",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "steel_Rht",
+          "texture": "S3D_Ddl_Slc_Boot_add_BaseColor.jpg",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "textile_Rht",
+          "texture": "S3D_Ddl_Slc_Boot_main_BaseColor.jpg",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "leather_Rht",
+          "texture": "S3D_Ddl_Slc_Boot_main_BaseColor.jpg",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 155064,
+        "polys": 150980,
+        "bbox": [
+          -19.8,
+          19.8,
+          -2.5,
+          29.1,
+          -11.8,
+          15.6
+        ],
+        "zones": {
+          "Shin": 0.637,
+          "Foot": 0.363
+        }
+      }
+    },
+    {
+      "sourceKey": "glove_left_2245",
+      "folder": "GloveLeft",
+      "name": "GloveLeft",
+      "simId": "clothing.gloveleft",
+      "layer": "Wear",
+      "slots": [
+        "ShoulderR",
+        "ShoulderL",
+        "ForearmR",
+        "ForearmL",
+        "WristR",
+        "WristL",
+        "HandR",
+        "HandL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "latex",
+          "texture": "S3D_DdlSlc_Add_basecolor_S3D_DdlSlc_Add_opacity.png",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        }
+      ],
+      "_measured": {
+        "verts": 2245,
+        "polys": 2240,
+        "bbox": [
+          28.3,
+          84.4,
+          140.3,
+          149.1,
+          -9.6,
+          11.3
+        ],
+        "zones": {
+          "Wrist": 0.345,
+          "Shoulder": 0.302,
+          "Hand": 0.232,
+          "Forearm": 0.121
+        }
+      }
+    },
+    {
+      "sourceKey": "glove_right_1610",
+      "folder": "DeadlyGloveR",
+      "name": "DeadlyGloveR",
+      "simId": "clothing.glove_deadly_r",
+      "layer": "Wear",
+      "slots": [
+        "ForearmR",
+        "WristR",
+        "HandR"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "fabric",
+          "texture": "S3D_DdlSlc_Add_basecolor.jpg",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 1610,
+        "polys": 1604,
+        "bbox": [
+          -84.4,
+          -61.3,
+          141.2,
+          148.4,
+          -1.9,
+          11.3
+        ],
+        "zones": {
+          "Wrist": 0.529,
+          "Hand": 0.323,
+          "Forearm": 0.148
+        }
+      }
+    },
+    {
+      "sourceKey": "pouches_5674",
+      "folder": "DeadlyPouches",
+      "name": "DeadlyPouches",
+      "simId": "clothing.pouches_deadly",
+      "layer": "Wear",
+      "slots": [
+        "Belly"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "fabric",
+          "texture": "S3D_DdlSlc_Add_basecolor.jpg",
+          "smoothness": 0.3,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 5674,
+        "polys": 5548,
+        "bbox": [
+          5.9,
+          25.1,
+          98.3,
+          115.0,
+          -16.6,
+          9.0
+        ],
+        "zones": {
+          "Belly": 0.965,
+          "Pelvis": 0.035
+        }
+      }
+    }
+  ]
+}

@@ -44,6 +44,7 @@ public sealed class BodyBones : MonoBehaviour
         _byLayer[VisualWearLayer.Outerwear] = new Dictionary<VisualWearSlot, Wear>();
 
         UpdateGenitals();
+        RefreshHeel();
 
         foreach (var bone in hip.GetComponentsInChildren<Transform>(true))
         {
@@ -125,6 +126,62 @@ public sealed class BodyBones : MonoBehaviour
     public Transform GetBone(string boneName)
     {
         return _bonesMap.TryGetValue(boneName, out var bone) ? bone : null;
+    }
+
+    // --- §31B.4C: heels -----------------------------------------------------
+    // The tallest heel currently worn. Recomputed when the wardrobe changes
+    // rather than scanned every frame — LateUpdate runs on every dressed body
+    // in the colony, so it must stay a field read.
+    private HeelPose _heel;
+
+    private void RefreshHeel()
+    {
+        _heel = default;
+        foreach (var wear in _wears.Values)
+        {
+            // Tallest wins: boots over pumps reads better than the average of
+            // two heels, and only one shoe can own the foot slots anyway.
+            if (wear != null && wear.Heel.Any && wear.Heel.footDegrees > _heel.footDegrees)
+            {
+                _heel = wear.Heel;
+            }
+        }
+    }
+
+    // Has to be LateUpdate: the Animator writes the legs every frame, so a pose
+    // applied at equip time (or in Update) is gone before it is ever drawn.
+    // Nothing accumulates — each frame starts from what the animation wrote.
+    private void LateUpdate()
+    {
+        if (_heel.Any == false)
+        {
+            return;
+        }
+
+        var axis = _heel.Axis;
+        Pitch(GetBone("lFoot"), axis, _heel.footDegrees);
+        Pitch(GetBone("rFoot"), axis, _heel.footDegrees);
+        Pitch(GetBone("lToe"), axis, _heel.toeDegrees);
+        Pitch(GetBone("rToe"), axis, _heel.toeDegrees);
+
+        // Standing on the ball of the foot instead of the sole makes her taller;
+        // without the lift she sinks into the ground by exactly the heel height.
+        // Along the BODY's up, not the world's, so it still reads when she is
+        // knocked over or lying down.
+        if (hip != null && Mathf.Abs(_heel.lift) > 0.0001f)
+        {
+            hip.position += transform.up * _heel.lift;
+        }
+    }
+
+    private static void Pitch(Transform bone, Vector3 axis, float degrees)
+    {
+        if (bone == null || Mathf.Abs(degrees) < 0.01f)
+        {
+            return;
+        }
+
+        bone.localRotation *= Quaternion.AngleAxis(degrees, axis);
     }
 
     public bool IsEquipped(string key)
@@ -268,6 +325,7 @@ public sealed class BodyBones : MonoBehaviour
         _wears[key] = newWear;
         _wearKeys[newWear] = key;
         UpdateGenitals();
+        RefreshHeel();
     }
 
     public void TakeOff(string key)
@@ -305,6 +363,7 @@ public sealed class BodyBones : MonoBehaviour
         _wears.Remove(key);
         _wearKeys.Remove(wear);
         UpdateGenitals();
+        RefreshHeel();
     }
 
     // §72: восстановленная логика molly_copy (в §31B.3 её сознательно срезали —

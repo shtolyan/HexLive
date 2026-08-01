@@ -41,10 +41,7 @@ public sealed class BodyBones : MonoBehaviour
         _byLayer[VisualWearLayer.Wear] = new Dictionary<VisualWearSlot, Wear>();
         _byLayer[VisualWearLayer.Outerwear] = new Dictionary<VisualWearSlot, Wear>();
 
-        if (genitals != null)
-        {
-            genitals.SetActive(false);
-        }
+        UpdateGenitals();
 
         foreach (var bone in hip.GetComponentsInChildren<Transform>(true))
         {
@@ -213,6 +210,7 @@ public sealed class BodyBones : MonoBehaviour
 
         _wears[key] = newWear;
         _wearKeys[newWear] = key;
+        UpdateGenitals();
     }
 
     public void TakeOff(string key)
@@ -249,6 +247,29 @@ public sealed class BodyBones : MonoBehaviour
         Destroy(wear.gameObject);
         _wears.Remove(key);
         _wearKeys.Remove(wear);
+        UpdateGenitals();
+    }
+
+    // §70: восстановленная логика molly_copy (в §31B.3 её сознательно срезали —
+    // девушкам она не нужна). Видно ТОЛЬКО когда слот Pelvis свободен на всех
+    // трёх слоях: бельё, одежда, верхняя.
+    //
+    // Гендерного гейта нет и не нужно: у всех четырёх девушек поле genitals
+    // пустое (fileID: 0), заполнено оно только у Kshishtof, так что ранний
+    // выход по null оставляет их поведение ровно прежним.
+    private void UpdateGenitals()
+    {
+        if (genitals == null)
+        {
+            return;
+        }
+
+        var covered =
+            _byLayer[VisualWearLayer.Underwear].ContainsKey(VisualWearSlot.Pelvis) ||
+            _byLayer[VisualWearLayer.Wear].ContainsKey(VisualWearSlot.Pelvis) ||
+            _byLayer[VisualWearLayer.Outerwear].ContainsKey(VisualWearSlot.Pelvis);
+
+        genitals.SetActive(!covered);
     }
 
     // Debug: hide every equipped garment (skin inspection) / show them back.

@@ -49,6 +49,10 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         public VisualElement Row;
     }
 
+    // §70: заголовок группы прячется вместе со всеми её строками, иначе после
+    // гендерного фильтра остаются висеть подписи без содержимого.
+    private readonly Dictionary<string, VisualElement> _groupHeaders = new();
+
     private readonly List<WearEntry> _entries = new();
     private readonly Dictionary<string, WearEntry> _byKey = new();
     private readonly HashSet<string> _equipped = new();
@@ -234,6 +238,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         _girl = girl;
         _phase = CyclePhase.Idle;
         _phaseTime = 0f;
+        ApplyActorFilter();
 
         var prefab = Resources.Load<GameObject>($"HexLive/Actors/{girl}");
         if (prefab == null)
@@ -866,6 +871,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
                 header.style.marginTop = 6f;
                 header.style.marginBottom = 2f;
                 scroll.Add(header);
+                _groupHeaders[group] = header;
             }
 
             var captured = entry;
@@ -875,6 +881,36 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
             ((Label)row[0]).style.fontSize = 11;
             entry.Row = row;
             scroll.Add(row);
+        }
+
+        ApplyActorFilter();
+    }
+
+    // §70: показываем только ту одежду, что скроена под ТЕЛО выбранного актёра.
+    // Женская вещь на мужском теле рисуется искорёженным мешем (фит всегда
+    // пофигурный), так что это не косметика списка, а защита от заведомо
+    // неверного показа.
+    private void ApplyActorFilter()
+    {
+        var sex = ActorSex.Of(_girl);
+        var groupHasVisible = new Dictionary<string, bool>();
+
+        foreach (var entry in _entries)
+        {
+            var fits = entry.Asset != null && entry.Asset.Gender == sex;
+            if (entry.Row != null)
+            {
+                entry.Row.style.display = fits ? DisplayStyle.Flex : DisplayStyle.None;
+            }
+
+            groupHasVisible.TryGetValue(entry.Group, out var any);
+            groupHasVisible[entry.Group] = any || fits;
+        }
+
+        foreach (var pair in _groupHeaders)
+        {
+            groupHasVisible.TryGetValue(pair.Key, out var any);
+            pair.Value.style.display = any ? DisplayStyle.Flex : DisplayStyle.None;
         }
     }
 

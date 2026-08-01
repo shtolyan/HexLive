@@ -57,6 +57,28 @@ public enum VisualGender
     Female
 }
 
+// §70: which body an actor has. Every garment carries a VisualGender and every
+// fit mesh is sculpted for one sex, so a female piece on a male body renders as
+// a mangled mesh — the wardrobe has to know who it is dressing.
+//
+// A lookup rather than a field on the prefab: ActorName's ORDER is a
+// serialization contract with the imported wear prefabs and must never change,
+// so the sex lives here, in one readable place right next to it.
+public static class ActorSex
+{
+    public static VisualGender Of(ActorName actor)
+    {
+        switch (actor)
+        {
+            case ActorName.Tonny:
+            case ActorName.Kshishtof:
+                return VisualGender.Male;
+            default:
+                return VisualGender.Female;
+        }
+    }
+}
+
 // Spec 31B.2: one wear prefab fits every girl — the mesh swaps per actor.
 [Serializable]
 public class WearConfig

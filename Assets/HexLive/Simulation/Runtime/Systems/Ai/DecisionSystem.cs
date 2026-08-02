@@ -1836,8 +1836,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
             {
                 Trace.Emit(world, npc.Id, "GoalScored",
                     $"{score.Goal}: Base={score.BaseScore:F3} Need={score.NeedModifier:F3} " +
-                    $"Mem={score.MemoryModifier:F3} Soc={score.SocialModifier:F3} " +
-                    $"Env={score.EnvironmentModifier:F3} Cmd={score.CommandModifier:F3} " +
+                    $"Soc={score.SocialModifier:F3} " +
+                    $"Env={score.EnvironmentModifier:F3} " +
                     $"Emg={score.EmergencyModifier:F3} " +
                     $"=> Final={score.FinalScore:F3}");
 

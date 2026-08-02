@@ -329,13 +329,15 @@ public sealed class GoalScore
 
     public float NeedModifier { get; set; }
 
-    public float MemoryModifier { get; set; }
+    // MemoryModifier и CommandModifier отсюда УБРАНЫ: они объявлялись,
+    // печатались в трассу отдельными колонками — и не присваивались никогда.
+    // Трасса тем самым обещала разложение оценки, которого в модели нет:
+    // читающий видел «Mem=0,000» и думал, что память учтена и просто не
+    // сработала, а её там не было вовсе.
 
     public float SocialModifier { get; set; }
 
     public float EnvironmentModifier { get; set; }
-
-    public float CommandModifier { get; set; }
 
     public float EmergencyModifier { get; set; }
 

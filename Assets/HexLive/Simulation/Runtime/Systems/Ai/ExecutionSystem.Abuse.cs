@@ -500,10 +500,11 @@ public sealed partial class ExecutionSystem
             SpatialMutations.ReleaseJunctionReservation(world, jId, npc.Id);
         }
 
-        npc.Execution.Status = ExecutionStatus.None;
-        npc.Execution.CurrentInteraction = null;
-        npc.Execution.StartTick = 0;
-        npc.Execution.EndTick = 0;
+        // Четыре сброса выполнения, стоявшие здесь, убраны: Abort строкой ниже
+        // выставляет ровно их — и ещё освобождает клеймы, раскладку крафта,
+        // приглашение к разговору, брони оставшихся шагов и несомую вещь.
+        // Дубль перед вызовом создавал ложное впечатление, будто демонтаж тут
+        // свой.
         PlanInterruption.Abort(world, npc, $"Abuse aborted: {reason}");
         PlanningSystem.AbandonAbuse(world, npc, reason);
     }

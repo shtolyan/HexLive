@@ -1,0 +1,29 @@
+# Места, где выполнение сбрасывается вручную, мимо PlanInterruption.Abort.
+#
+# Это НЕ список багов: почти все они завершают работу успешно, а Abort
+# ставит Plan.Status = Invalid и эмитит GoalInterrupted — подменять их
+# было бы ошибкой. Список нужен, чтобы НОВОЕ такое место было заметно:
+# забытое освобождение не падает, оно протекает.
+#
+# Ключ: <файл>\t#<номер вхождения в файле>. Номер строки не годится —
+# он ползёт от любой правки выше.
+#
+# Перегенерация: HEXLIVE_UPDATE_ALLOWLIST=1 dotnet test --filter Teardown
+
+Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.Abuse.cs	#1
+Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.Abuse.cs	#2
+Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.Craft.cs	#1
+Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.InventoryWear.cs	#1
+Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.InventoryWear.cs	#2
+Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.InventoryWear.cs	#3
+Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.RestHygiene.cs	#1
+Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.RestHygiene.cs	#2
+Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.RestHygiene.cs	#3
+Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.RestHygiene.cs	#4
+Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.RestHygiene.cs	#5
+Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.SelfTreat.cs	#1
+Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.Social.cs	#1
+Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.Social.cs	#2
+Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.cs	#1
+Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.cs	#2
+Assets/HexLive/Simulation/Runtime/Systems/Ai/ExecutionSystem.cs	#3

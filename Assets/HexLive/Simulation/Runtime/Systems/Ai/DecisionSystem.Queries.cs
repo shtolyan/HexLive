@@ -108,6 +108,40 @@ public sealed partial class DecisionSystem
         return true;
     }
 
+    // ⭐ ОДНО место, где решается «этот кокос вообще возьмут».
+    //
+    // Фильтры обязаны совпадать с PlanningSystem.TryFindCoconutObject — и это
+    // не стилистика. Когда доступность говорит «есть», а план отвечает «нечего
+    // взять», цель выигрывает аукцион, план проваливается, и так каждый проход:
+    // NPC спамит Drink/PlanFailed, пока не умрёт от той самой нужды, ради
+    // которой цель и бралась. Это уже случалось (Jul 2026, смерть от жажды).
+    //
+    // Фикс тогда внесли в ОДНУ копию из двух: у воды фильтр появился, у еды —
+    // нет, хотя план у них общий. Здесь копия ровно одна, поэтому расходиться
+    // больше нечему.
+    internal static bool HasUsableCoconut(
+        NPCState npc, WorldState world, string definitionId, bool requireWater = false)
+    {
+        foreach (var obj in npc.Perception.Objects)
+        {
+            if (!obj.IsReachable ||
+                obj.DefinitionId != definitionId ||
+                !ObjectUsableBy(obj, npc.Id) ||
+                // недавно оказался занят по прибытии — не топтаться вокруг него
+                npc.Memory.IsShunned(obj.Id, world.Tick) ||
+                // виден в восприятии, но в мире его уже нет
+                !world.Entities.Objects.TryGetValue(obj.Id, out var worldObject) ||
+                (requireWater && worldObject.ResourceAmount <= 0f))
+            {
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
     internal static bool HasCoconutMeal(NPCState npc, WorldState world)
     {
         if (npc.Inventory.Items.Contains("food.coconut_open"))
@@ -123,27 +157,14 @@ public sealed partial class DecisionSystem
             return true;
         }
 
-        foreach (var obj in npc.Perception.Objects)
+        if (HasUsableCoconut(npc, world, "food.coconut_open"))
         {
-            if (!obj.IsReachable || !ObjectUsableBy(obj, npc.Id))
-            {
-                continue;
-            }
-
-            if (obj.DefinitionId == "food.coconut_open")
-            {
-                return true;
-            }
-
-            if (hasBlade &&
-                (obj.DefinitionId == "food.coconut" ||
-                 obj.DefinitionId == "food.coconut_pierced"))
-            {
-                return true;
-            }
+            return true;
         }
 
-        return false;
+        return hasBlade &&
+            (HasUsableCoconut(npc, world, "food.coconut") ||
+             HasUsableCoconut(npc, world, "food.coconut_pierced"));
     }
 
     internal static bool HasCoconutWater(NPCState npc, WorldState world)
@@ -162,33 +183,12 @@ public sealed partial class DecisionSystem
             }
         }
 
-        foreach (var obj in npc.Perception.Objects)
+        if (hasBlade && HasUsableCoconut(npc, world, "food.coconut"))
         {
-            // Jul 2026: availability must mirror the PLANNER's own filters —
-            // shunned (recently contested) and stale (perceived but already
-            // despawned) objects made drinkAvail say "yes" while the plan
-            // said "nothing drinkable", and the girl spammed Drink/PlanFailed
-            // until she died of the thirst the goal was for.
-            if (!obj.IsReachable || !ObjectUsableBy(obj, npc.Id) ||
-                npc.Memory.IsShunned(obj.Id, world.Tick) ||
-                !world.Entities.Objects.TryGetValue(obj.Id, out var worldObject))
-            {
-                continue;
-            }
-
-            if (hasBlade && obj.DefinitionId == "food.coconut")
-            {
-                return true;
-            }
-
-            if (obj.DefinitionId == "food.coconut_pierced" &&
-                worldObject.ResourceAmount > 0f)
-            {
-                return true;
-            }
+            return true;
         }
 
-        return false;
+        return HasUsableCoconut(npc, world, "food.coconut_pierced", requireWater: true);
     }
 
     internal static bool HasBottleWater(NPCState npc) =>
@@ -245,9 +245,9 @@ public sealed partial class DecisionSystem
             return true;
         }
 
-        return HasReachableDefinition(npc, world, "food.coconut") ||
-            HasReachableDefinition(npc, world, "food.coconut_pierced") ||
-            HasReachableDefinition(npc, world, "food.coconut_open") ||
+        return HasUsableCoconut(npc, world, "food.coconut") ||
+            HasUsableCoconut(npc, world, "food.coconut_pierced") ||
+            HasUsableCoconut(npc, world, "food.coconut_open") ||
             KnowsReachableCoconutProducer(npc, world);
     }
 

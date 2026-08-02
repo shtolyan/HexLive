@@ -145,120 +145,25 @@ namespace HexLive.Simulation.Content
             return new List<GarmentParams>
             {
                 // --- Underwear: worn against the skin, decorative warmth. -------
-                new("underwear.cloth",       "Cloth Underwear",  WearLayer.Underwear, 0.02f, 0.00f,  0.00f, dress, 1, GarmentSex.Female, BodyPart.Torso, BodyPart.Pelvis),
-                new("underwear.panty_leo",   "Leopard Panties",  WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, GarmentSex.Female, BodyPart.Pelvis),
-                new("underwear.panty_stars", "Star Panties",     WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, GarmentSex.Female, BodyPart.Pelvis),
-                new("Bikini Bottom",         "Bikini nizkii",    WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, GarmentSex.Female, BodyPart.Pelvis),
-                new("Bikini top",            "Bikini verx",      WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, GarmentSex.Female, BodyPart.Torso),
-                new("Panty_11571",           "Trusiki kruzhevnye", WearLayer.Underwear, 0.01f, 0.00f, 0.00f, dress, 1, GarmentSex.Female, BodyPart.Pelvis),
                 // New-wear drop (2026-07, Temp FBX extraction — spec §31B.4).
-                new("underwear.panty_flair", "Flair Panties",    WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, GarmentSex.Female, BodyPart.Pelvis),
-                new("underwear.panty_basic", "Cotton Panties",   WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, GarmentSex.Female, BodyPart.Pelvis),
-                new("underwear.bra_basic",   "Cotton Bra",       WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, GarmentSex.Female, BodyPart.Torso),
-                new("underwear.swim_top",    "Swimsuit Top",     WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, GarmentSex.Female, BodyPart.Torso),
-                new("underwear.swim_bottom", "Swimsuit Bottom",  WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, GarmentSex.Female, BodyPart.Pelvis),
                 // AI-print skins of the basic panty/bra (2026-07, fal.ai prints — spec §31B.4).
-                new("underwear.panty_dots",  "Polka-Dot Panties", WearLayer.Underwear, 0.01f, 0.00f, 0.00f, dress, 1, GarmentSex.Female, BodyPart.Pelvis),
-                new("underwear.panty_stripe","Striped Panties",  WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, GarmentSex.Female, BodyPart.Pelvis),
-                new("underwear.panty_cherry","Cherry Panties",   WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, GarmentSex.Female, BodyPart.Pelvis),
-                new("underwear.bra_dots",    "Polka-Dot Bra",    WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, GarmentSex.Female, BodyPart.Torso),
-                new("underwear.bra_stripe",  "Striped Bra",      WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, GarmentSex.Female, BodyPart.Torso),
-                new("underwear.bra_cherry",  "Cherry Bra",       WearLayer.Underwear, 0.01f, 0.00f,  0.00f, dress, 1, GarmentSex.Female, BodyPart.Torso),
-                new("CowTop",                "Korotkij top",     WearLayer.Underwear, 0.03f, 0.00f,  0.00f, dress, 1, GarmentSex.Female, BodyPart.Torso),
-                new("Top_11927",             "Top",              WearLayer.Underwear, 0.03f, 0.00f,  0.00f, dress, 1, GarmentSex.Female, BodyPart.Torso),
-                new("NeckWarmer_1259",       "Sharf",            WearLayer.Underwear, 0.06f, 0.00f,  0.00f, dress, 0, GarmentSex.Female, BodyPart.Torso),
-                new("Necklace_2228",         "Kolie",            WearLayer.Underwear, 0.00f, 0.00f,  0.00f, dress, 0, GarmentSex.Female, BodyPart.Torso),
-                new("Got stock",             "Chulki",           WearLayer.Underwear, 0.04f, 0.00f,  0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR),
-                new("Stockings_8731",        "Chulki",           WearLayer.Underwear, 0.04f, 0.00f,  0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR),
-                new("Over Knee G3F_18296",   "Chulki za koleno", WearLayer.Underwear, 0.04f, 0.00f,  0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR),
-                new("Tights Old",            "Kolgotki starye",  WearLayer.Underwear, 0.05f, 0.00f,  0.00f, dress, 0, GarmentSex.Female, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
-                new("Tights_1818",           "Kolgotki",         WearLayer.Underwear, 0.05f, 0.00f,  0.00f, dress, 0, GarmentSex.Female, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
-                new("Boots 20496",           "Sapozhki",         WearLayer.Underwear, 0.12f, 0.05f,  0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR),
                 // A dense leather bra (was Outerwear armor): worn against the skin,
                 // the one underwear piece that still dampens a torso bite (§29C.4).
-                new("armor.leather",         "Leather Armor",    WearLayer.Underwear, 0.15f, 0.15f, -0.10f, dress, 4, GarmentSex.Female, BodyPart.Torso),
-                new("clothing.socks_nerd", "Knee Socks", WearLayer.Underwear, 0.05f, 0.00f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR),
-                new("underwear.bra_crux", "Wild Bra", WearLayer.Underwear, 0.02f, 0.00f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Torso),
-                new("underwear.panty_crux", "Wild Panties", WearLayer.Underwear, 0.02f, 0.00f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Pelvis),
-                new("clothing.stockings_spooky", "Spooky Stockings", WearLayer.Underwear, 0.04f, 0.00f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR),
-                new("underwear.babydoll_sweety", "Babydoll", WearLayer.Underwear, 0.04f, 0.00f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Torso, BodyPart.Pelvis),
-                new("underwear.panty_sweety", "Sweety Panties", WearLayer.Underwear, 0.02f, 0.00f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Torso, BodyPart.Pelvis),
 
                 // --- Wear: the main clothing layer, carries the warmth budget. --
-                new("clothing.coat",         "Coat",             WearLayer.Wear, 0.40f, 0.00f, -0.30f, dress, 6, GarmentSex.Female, BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR),
-                new("clothing.leather_pants","Leather Pants",    WearLayer.Wear, 0.25f, 0.20f, -0.10f, dress, 4, GarmentSex.Female, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
-                new("Pants_24055",           "Bryuki",           WearLayer.Wear, 0.25f, 0.05f, -0.10f, dress, 4, GarmentSex.Female, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
-                new("pants_21038",           "Shtany",           WearLayer.Wear, 0.25f, 0.05f, -0.10f, dress, 4, GarmentSex.Female, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
-                new("CityDress",             "Plate",            WearLayer.Wear, 0.20f, 0.00f, -0.05f, dress, 4, GarmentSex.Female, BodyPart.Torso, BodyPart.Pelvis),
-                new("Shirt G3F_31977",       "Rubashka",         WearLayer.Wear, 0.15f, 0.00f, -0.05f, dress, 2, GarmentSex.Female, BodyPart.Torso),
-                new("clothing.top_tropic",   "Tropic Top",       WearLayer.Wear, 0.12f, 0.00f,  0.00f, dress, 2, GarmentSex.Female, BodyPart.Torso),
-                new("clothing.top_tiedye",   "Tie-Dye Top",      WearLayer.Wear, 0.12f, 0.00f,  0.00f, dress, 2, GarmentSex.Female, BodyPart.Torso),
-                new("Top_2300",              "Sportivnyj top",   WearLayer.Wear, 0.12f, 0.00f,  0.00f, dress, 2, GarmentSex.Female, BodyPart.Torso),
-                new("TankTop9_20034",        "Majka",            WearLayer.Wear, 0.10f, 0.00f,  0.00f, dress, 2, GarmentSex.Female, BodyPart.Torso),
-                new("Skirt 29046",           "Yubka",            WearLayer.Wear, 0.10f, 0.00f,  0.00f, dress, 2, GarmentSex.Female, BodyPart.Pelvis),
-                new("Skirt G3F_27980",       "Yubka",            WearLayer.Wear, 0.10f, 0.00f,  0.00f, dress, 2, GarmentSex.Female, BodyPart.Pelvis),
                 // New-wear drop (2026-07, Temp FBX extraction — spec §31B.4).
-                new("clothing.sweater_flair","Flair Sweater",    WearLayer.Wear, 0.30f, 0.00f, -0.15f, dress, 4, GarmentSex.Female, BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR),
-                new("clothing.dress_night",  "Night Dress",      WearLayer.Wear, 0.10f, 0.00f,  0.00f, dress, 4, GarmentSex.Female, BodyPart.Torso, BodyPart.Pelvis),
-                new("clothing.dress_fur",    "Fur Dress",        WearLayer.Wear, 0.35f, 0.05f, -0.15f, dress, 4, GarmentSex.Female, BodyPart.Torso, BodyPart.Pelvis),
-                new("Skirt_2799",            "Yubka mini",       WearLayer.Wear, 0.06f, 0.00f,  0.00f, dress, 2, GarmentSex.Female, BodyPart.Pelvis),
-                new("Shorts 1389",           "Shorty",           WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, GarmentSex.Female, BodyPart.Pelvis),
-                new("Shorts Green",          "Shorty zelyonye",  WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, GarmentSex.Female, BodyPart.Pelvis),
-                new("Shorts_10_14636",       "Shorty",           WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, GarmentSex.Female, BodyPart.Pelvis),
                 // Detail-preserving retextures of the denim shorts (2026-07,
                 // PIL recolor — seams/pockets/zipper kept, fabric re-dyed).
-                new("clothing.shorts_red",   "Red Shorts",       WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, GarmentSex.Female, BodyPart.Pelvis),
-                new("clothing.shorts_olive", "Olive Shorts",     WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, GarmentSex.Female, BodyPart.Pelvis),
-                new("clothing.shorts_cherry","Cherry Shorts",    WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, GarmentSex.Female, BodyPart.Pelvis),
                 // Pattern retextures of the Bottom_1389 shorts (2026-08, PIL —
                 // original fold shading kept, fabric re-dyed in UV space).
-                new("clothing.shorts_white", "White Shorts",     WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, GarmentSex.Female, BodyPart.Pelvis),
-                new("clothing.shorts_hearts","Heart Shorts",     WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, GarmentSex.Female, BodyPart.Pelvis),
-                new("clothing.shorts_critters","Critter Shorts", WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, GarmentSex.Female, BodyPart.Pelvis),
-                new("Shorts short",          "Mini-shorty",      WearLayer.Wear, 0.06f, 0.00f,  0.00f, dress, 2, GarmentSex.Female, BodyPart.Pelvis),
-                new("Glove_2245",            "Perchatki",        WearLayer.Wear, 0.04f, 0.00f,  0.00f, dress, 0, GarmentSex.Female, BodyPart.ArmL, BodyPart.ArmR),
-                new("Gloves_17510",          "Perchatki",        WearLayer.Wear, 0.04f, 0.00f,  0.00f, dress, 0, GarmentSex.Female, BodyPart.ArmL, BodyPart.ArmR),
-                new("Gloves_5480",           "Perchatki korotkie", WearLayer.Wear, 0.03f, 0.00f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.ArmL, BodyPart.ArmR),
-                new("Gloves_8128",           "Perchatki kozhanye", WearLayer.Wear, 0.05f, 0.05f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.ArmL, BodyPart.ArmR),
-                new("Sleeve_19793",          "Narukavniki",      WearLayer.Wear, 0.03f, 0.00f,  0.00f, dress, 0, GarmentSex.Female, BodyPart.ArmL, BodyPart.ArmR),
                 // Sweet Jane + Fitness Idol drop (2026-08, Temp FBX extraction —
                 // spec §31B.4). The first garments fitted to all FOUR girls.
-                new("clothing.skirt_sweetjane",  "Sweet Jane Skirt", WearLayer.Wear, 0.14f, 0.00f, -0.05f, dress, 2, GarmentSex.Female, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
-                new("clothing.tank_sweetjane",   "Sweet Jane Tank",  WearLayer.Wear, 0.10f, 0.00f,  0.00f, dress, 2, GarmentSex.Female, BodyPart.Torso),
-                new("clothing.top_fitness",      "Fitness Top",      WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, GarmentSex.Female, BodyPart.Torso),
-                new("clothing.leggings_fitness", "Fitness Leggings", WearLayer.Wear, 0.20f, 0.00f, -0.08f, dress, 2, GarmentSex.Female, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
-                new("clothing.sleeves_fitness",  "Fitness Sleeves",  WearLayer.Wear, 0.03f, 0.00f,  0.00f, dress, 0, GarmentSex.Female, BodyPart.ArmL, BodyPart.ArmR),
-                new("clothing.gloves_classic", "Classic Gloves", WearLayer.Wear, 0.05f, 0.03f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.ArmL, BodyPart.ArmR),
-                new("clothing.shorts_classic", "Classic Shorts", WearLayer.Wear, 0.07f, 0.00f, 0.00f, dress, 2, GarmentSex.Female, BodyPart.Pelvis),
-                new("clothing.top_classic", "Classic Top", WearLayer.Wear, 0.06f, 0.00f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Torso),
-                new("clothing.glasses_nerd", "Glasses", WearLayer.Wear, 0.00f, 0.00f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Head),
-                new("clothing.blouse_nerd", "School Blouse", WearLayer.Wear, 0.09f, 0.00f, 0.00f, dress, 1, GarmentSex.Female, BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR),
-                new("clothing.bowtie_nerd", "Bow Tie", WearLayer.Wear, 0.01f, 0.00f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Torso),
-                new("clothing.suspenders_nerd", "Suspenders", WearLayer.Wear, 0.01f, 0.00f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.ArmL, BodyPart.ArmR),
-                new("clothing.skirt_tutu", "Tutu Skirt", WearLayer.Wear, 0.06f, 0.00f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Torso, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
-                new("clothing.cap_stars", "Uniform Cap", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Head),
-                new("clothing.gloves_stars", "Uniform Gloves", WearLayer.Wear, 0.04f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.ArmL, BodyPart.ArmR),
-                new("clothing.pants_stars", "Uniform Trousers", WearLayer.Wear, 0.17f, 0.02f, 0.00f, dress, 2, GarmentSex.Female, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
-                new("clothing.top_stars", "Uniform Top", WearLayer.Wear, 0.09f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR),
-                new("clothing.skirt_crux", "Wild Skirt", WearLayer.Wear, 0.05f, 0.00f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Pelvis),
 
                 // --- Outerwear: the top layer — jackets, boots, armor. ----------
-                new("armor.heavy",           "Heavy Armor",      WearLayer.Outerwear, 0.25f, 0.50f, -0.10f, dress, 6, GarmentSex.Female, BodyPart.Torso, BodyPart.Pelvis),
-                new("Boots",                 "Sapogi",           WearLayer.Outerwear, 0.15f, 0.10f,  0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR),
-                new("Boots_155064",          "Botinki",          WearLayer.Outerwear, 0.14f, 0.10f,  0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR),
                 // §52.8 tool holster: GEAR, not clothing — no warmth, no thermal
                 // pull, 0 pockets. Its 3 TYPED weapon slots (HolsterCatalog) are
                 // the whole point; the token 0.05 armor is the buckled leather
                 // strap itself, and gives her a reason to want it on.
-                new("legHolster_2204",       "Kabura na nogu",   WearLayer.Outerwear, 0.00f, 0.05f,  0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR),
-                new("clothing.headdress_jaguar", "Jaguar Headdress", WearLayer.Outerwear, 0.05f, 0.10f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Head),
-                new("clothing.boots_classic", "Classic Boots", WearLayer.Outerwear, 0.14f, 0.12f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR),
-                new("clothing.scarf_classic", "Scarf", WearLayer.Outerwear, 0.09f, 0.00f, 0.02f, dress, 0, GarmentSex.Female, BodyPart.Torso),
-                new("clothing.slipons_fads", "Slip-Ons", WearLayer.Outerwear, 0.06f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR),
-                new("clothing.sneakers_nerd", "Sneakers", WearLayer.Outerwear, 0.07f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR),
-                new("clothing.belt_stars", "Uniform Belt", WearLayer.Outerwear, 0.00f, 0.02f, 0.00f, dress, 2, GarmentSex.Female, BodyPart.Torso, BodyPart.Pelvis),
-                new("clothing.vest_stars", "Uniform Vest", WearLayer.Outerwear, 0.13f, 0.05f, 0.00f, dress, 1, GarmentSex.Female, BodyPart.Torso),
-                new("clothing.boots_cammy", "Combat Boots", WearLayer.Outerwear, 0.15f, 0.14f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR),
 
                 // --- §72: снаряжение чужака ------------------------------------
                 // Он не выживальщик в трусах, а боец: тактический комплект с

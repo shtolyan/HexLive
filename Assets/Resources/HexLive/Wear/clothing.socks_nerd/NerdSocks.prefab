@@ -210,7 +210,7 @@ MonoBehaviour:
     heightOffset: 0
     mesh: {fileID: 4300000, guid: 6515be82026f0e142bbb4653f99aaa1a, type: 2}
   - actorName: 1
-    scale: 1
+    scale: 1.01
     heightOffset: 0
     mesh: {fileID: 4300000, guid: 3e785dda6d8c1924883d381192d4d224, type: 2}
   - actorName: 2
@@ -218,7 +218,7 @@ MonoBehaviour:
     heightOffset: 0
     mesh: {fileID: 4300000, guid: 342abb391d010a34babfb5f00cb1489e, type: 2}
   - actorName: 5
-    scale: 1
+    scale: 1.04
     heightOffset: 0
     mesh: {fileID: 4300000, guid: c3ade82266a67ec4cb0231b9e27c2fb6, type: 2}
   slots: 11000000120000001300000014000000

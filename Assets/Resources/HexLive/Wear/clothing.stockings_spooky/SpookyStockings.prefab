@@ -285,11 +285,11 @@ MonoBehaviour:
     heightOffset: 0
     mesh: {fileID: 4300000, guid: 1199fb2f129fd7348a74e6ac76c3b9f2, type: 2}
   - actorName: 2
-    scale: 1
+    scale: 1.01
     heightOffset: 0
     mesh: {fileID: 4300000, guid: d4f51db9851268548a3cd7fcfad284ec, type: 2}
   - actorName: 5
-    scale: 1
+    scale: 1.01
     heightOffset: 0
     mesh: {fileID: 4300000, guid: c194e464d7706ce46ae18f0f66a7d2a5, type: 2}
   slots: 0f0000001000000011000000120000001300000014000000

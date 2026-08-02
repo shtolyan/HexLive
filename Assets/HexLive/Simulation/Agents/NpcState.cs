@@ -189,6 +189,18 @@ public sealed class NPCState
     // and every old save behaves exactly as before.
     public Faction Faction { get; set; } = Faction.Colony;
 
+    // §28.15C v3: когда она умерла. 0 — жива. Ставится ровно один раз, в
+    // момент переезда в EntityRepository.Corpses, и с тех пор не меняется:
+    // по нему вид отличает «упала прямо сейчас» (проиграть клип смерти с
+    // нуля) от «лежит с прошлой сессии» (сразу последний кадр).
+    public int DeathTick { get; set; }
+
+    // §28.15C v3: КАКИМ клипом она упала. Выбирается симуляцией по хешу сида,
+    // а не видом по Random: иначе одно и то же тело падало бы по-разному у
+    // сервера и у каждого зрителя, и по-новому после каждой перезагрузки —
+    // поза лежащего тела это состояние мира, а не украшение кадра.
+    public int DeathAnimVariant { get; set; }
+
     public FragmentId Fragment { get; set; }
 
     public TileCoord Tile { get; set; } = TileCoord.Zero;

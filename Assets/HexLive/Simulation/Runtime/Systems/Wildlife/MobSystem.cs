@@ -1057,6 +1057,12 @@ public sealed class MobSystem : ISimulationSystem
 
     // Spec 29C.2: death cleanup must be total.
     // §56: also invoked by PredationSystem when a stalked victim is killed.
+    //
+    // §28.15C v3: «total» относится к ПРИТЯЗАНИЯМ, а не к телу. Мёртвая обязана
+    // отпустить всё, что держала в мире (брони, занятые джанкшены, объекты под
+    // ней), иначе живые вечно упираются в призрака. Но сама она никуда не
+    // девается: NPCState целиком переезжает в Entities.Corpses и лежит там до
+    // конца игры — вместе с надетым и карманами.
     internal static void RemoveDeadNpc(WorldState world, EntityId deadId)
     {
         if (world.Entities.Npcs.TryGetValue(deadId, out var dying))

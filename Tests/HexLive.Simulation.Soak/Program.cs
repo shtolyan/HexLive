@@ -5,6 +5,8 @@ using System.IO;
 using System.Text;
 using HexLive.Simulation.Bootstrap;
 using HexLive.Simulation.Content;
+using HexLive.Simulation.Agents;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Wire;
@@ -60,8 +62,40 @@ public static class Program
     {
         // Те же три вызова, что делает сервер (WorldHost) — харнесс, собирающий
         // мир по-своему, меряет не ту игру.
-        var definition = PrototypeWorldDefinitionFactory.Create(seed);
+        // Арена абьюза строится ТЕМ ЖЕ классом, что и сцена в Unity: иначе
+        // мы смотрим на два разных мира и спорим о показаниях.
+        var definition = options.Arena == "abuse"
+            ? HexLive.UnityPresentation.AbuseTest.AbuseTestWorld.Build(seed)
+            : PrototypeWorldDefinitionFactory.Create(seed);
         var world = new WorldStateFactory().Create(definition);
+
+        if (options.Arena == "abuse")
+        {
+            // Ровно то же, что делает AbuseTestBootstrap перед первым тиком:
+            // перевести часы ЗА льготные сутки §81 и раздать то единственное,
+            // что арена добавляет от себя. Без этого мир формально тот же, а
+            // сцена не случается никогда — отсрочка считается от DayLengthTicks
+            // (24000), и короткий прогон до неё просто не доживает.
+            world.Tick = Spec81.AbuseGraceDays * EnvironmentSystem.DayLengthTicks + 900;
+
+            for (var i = 0; i < 3; i++)
+            {
+                if (world.Entities.Npcs.TryGetValue(
+                        new EntityId(HexLive.UnityPresentation.AbuseTest.AbuseTestWorld.GirlId + i),
+                        out var girl))
+                {
+                    girl.Inventory.Items.Add(ContentIds.Knife);
+                }
+            }
+
+            if (world.Entities.Npcs.TryGetValue(
+                    new EntityId(HexLive.UnityPresentation.AbuseTest.AbuseTestWorld.OutsiderId),
+                    out var outsider))
+            {
+                outsider.Inventory.Items.Add(ContentIds.Spear);
+                outsider.Inventory.Items.Add(ContentIds.Knife);
+            }
+        }
 
         var settings = new SimulationSettings
         {
@@ -111,6 +145,11 @@ public static class Program
                 options, ref explained);
             metrics.SampleTick(world);
 
+            if (options.CombatFrames)
+            {
+                CombatFrames.Sample(world);
+            }
+
             if (options.StateHashEvery > 0 && world.Tick % options.StateHashEvery == 0)
             {
                 trace?.WriteLine(world.Tick + "|-|STATE|" + StateHash.Of(world));
@@ -119,6 +158,11 @@ public static class Program
 
         stopwatch.Stop();
         trace?.Dispose();
+
+        if (options.CombatFrames)
+        {
+            CombatFrames.Report();
+        }
 
         metrics.TicksRun = world.Tick;
         metrics.NpcsAtEnd = world.Entities.Npcs.Count;

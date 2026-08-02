@@ -845,8 +845,24 @@ namespace HexLive.Simulation.Content
     /// AttackDurationSeconds → CooldownSeconds of recovery.</summary>
     public sealed class StrikeVariant
     {
-        public float HitDelaySeconds = 0.2f;
-        public float AttackDurationSeconds = 0.4f;
-        public float CooldownSeconds = 0.2f;
+        // ⭐ Значения по умолчанию — ДЛИНА НАСТОЯЩЕГО КЛИПА, а не заглушка.
+        //
+        // Здесь стояло 0.2 / 0.4 / 0.2 с пометкой «placeholder, tuned via the
+        // asset sliders». Оттюнены они не были, а StrikeTimings предпочитает
+        // вариант базовым цифрам оружия — то есть базовые 1.1/1.5/1.5 у кулака
+        // были мертвы, и работали заглушки.
+        //
+        // Цена: при 4 тиках в секунду 0.4 с превращаются в ДВА тика, и ровно
+        // столько вид получает на проигрыш полуторасекундного клипа удара.
+        // Снаружи это выглядит как «начался замах и всё оборвалось» — сцена
+        // абьюза на пять секунд читалась как одна.
+        //
+        // Теперь по умолчанию столько же, сколько у базового кулака: замах
+        // 1.1 с, клип 1.5 с, восстановление 1.5 с. Ассет (fist.asset) вправе
+        // задать своё — но молчание ассета больше не означает «четверть
+        // секунды».
+        public float HitDelaySeconds = 1.1f;
+        public float AttackDurationSeconds = 1.5f;
+        public float CooldownSeconds = 1.5f;
     }
 }

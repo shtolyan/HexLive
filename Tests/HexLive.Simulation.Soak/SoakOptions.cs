@@ -26,6 +26,13 @@ public sealed class SoakOptions
     /// </summary>
     public int ExplainStuck = 3;
 
+    /// <summary>Какой мир строить: прототипный остров или арена абьюза (§91).</summary>
+    public string Arena = "prototype";
+
+    /// <summary>Печатать по-тиковую раскадровку боя: замах, попадание,
+    /// готовность, такт сцены. То, чего не видно ни в одном событии.</summary>
+    public bool CombatFrames;
+
     /// <summary>
     /// Пресеты трассы. <c>decisions</c> — дёшево и без шума, для проверки
     /// «поведение не поехало» на гигиенических правках. <c>scores</c> добавляет
@@ -111,6 +118,12 @@ public sealed class SoakOptions
                     case "--explain-stuck":
                         options.ExplainStuck = int.Parse(Next(arg), CultureInfo.InvariantCulture);
                         break;
+                    case "--arena":
+                        options.Arena = Next(arg);
+                        break;
+                    case "--combat-frames":
+                        options.CombatFrames = true;
+                        break;
                     case "--quiet":
                         options.Quiet = true;
                         break;
@@ -153,6 +166,8 @@ public sealed class SoakOptions
   --trace-types A,B,C     свой список типов вместо пресета
   --state-hash-every N    добавлять в трассу хэш полного кадра раз в N тиков
 
+  --arena NAME            prototype (по умолчанию) | abuse — арена §91
+  --combat-frames         по-тиковая раскадровка боя: замах/попадание/готовность
   --explain-stuck N       разобрать первые N застоев: печатает хвост событий
                           зависшего NPC (по умолчанию 3, 0 — выключить)
   --quiet                 без человекочитаемого вывода

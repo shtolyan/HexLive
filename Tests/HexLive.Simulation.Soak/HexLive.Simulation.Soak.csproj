@@ -31,4 +31,14 @@
     <ProjectReference Include="../../HexLive.Simulation.Standalone.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      Арена абьюза строится ТЕМ ЖЕ классом, что и сцена в Unity, — иначе мы
+      смотрим на два разных мира и спорим о показаниях. Файл живёт в
+      UnityPresentation, но не ссылается на UnityEngine ни разу, поэтому
+      подключается сюда напрямую.
+    -->
+    <Compile Include="../../Assets/HexLive/UnityPresentation/AbuseTest/AbuseTestWorld.cs" />
+  </ItemGroup>
+
 </Project>

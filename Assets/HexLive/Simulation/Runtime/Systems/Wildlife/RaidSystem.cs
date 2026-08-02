@@ -275,6 +275,35 @@ public sealed class RaidSystem : ISimulationSystem
             return;
         }
 
+        // §103: ⭐ ПЕРЕЗАЩЁЛКНУТЬ БОЙ ИДУЩЕЙ СЦЕНЕ.
+        //
+        // MobSystem каждый средний проход гасит IsFighting у ВСЕХ и заново
+        // выводит его из собачьих сцепок; налёту флаг возвращает код ниже, а
+        // сцене абьюза не возвращал никто. Исполнитель ставил его на быстром
+        // слое, и на каждом среднем тике флаг снова падал — из четырёх тиков
+        // секунды NPC был «в бою» три. Для модели почти незаметно, а вид читает
+        // IsFighting как боевую стойку, и сцена шла в мирной позе с мигающими
+        // замахами.
+        //
+        // Здесь — сразу после MobSystem, тем же приёмом, что у налёта.
+        foreach (var scene in world.Entities.Npcs.Values)
+        {
+            if (scene.Mind.CurrentGoal != GoalType.Abuse ||
+                scene.Execution.Status != ExecutionStatus.InProgress ||
+                scene.Mind.AbuseTargetNpcId is not { } sceneMark ||
+                !world.Entities.Npcs.TryGetValue(sceneMark, out var sceneVictim))
+            {
+                continue;
+            }
+
+            scene.IsFighting = true;
+            scene.Mind.CombatOpponentNpcId = sceneVictim.Id;
+            if (sceneVictim.Mind.CombatOpponentNpcId is { } back && back.Equals(scene.Id))
+            {
+                sceneVictim.IsFighting = true;
+            }
+        }
+
         foreach (var abuser in world.Entities.Npcs.Values)
         {
             if (abuser.Faction == Faction.Colony ||

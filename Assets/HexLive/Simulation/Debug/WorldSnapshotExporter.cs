@@ -650,6 +650,7 @@ public static class WorldSnapshotExporter
             RotationDegrees = npc.RotationDegrees,
             Health = npc.Health,
             IsFighting = npc.IsFighting,
+            CombatOpponentNpcId = npc.Mind.CombatOpponentNpcId?.Value ?? -1,
             IsSwinging = world.Tick < npc.AttackAnimUntilTick,
             SwingStartTick = npc.SwingStartTick,
             // Спрашиваем ТО ЖЕ правило, по которому бьёт симуляция.

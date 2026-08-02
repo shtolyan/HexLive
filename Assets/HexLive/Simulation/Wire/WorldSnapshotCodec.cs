@@ -448,6 +448,7 @@ public static class WorldSnapshotCodec
         // combat
         w.Write(n.Health);
         w.Write(n.IsFighting);
+        w.Write(n.CombatOpponentNpcId);
         w.Write(n.IsSwinging);
         w.Write(n.SwingStartTick);
         w.Write(n.MeleeWeaponId ?? string.Empty);
@@ -620,6 +621,7 @@ public static class WorldSnapshotCodec
 
         n.Health = r.ReadSingle();
         n.IsFighting = r.ReadBoolean();
+        n.CombatOpponentNpcId = r.ReadInt32();
         n.IsSwinging = r.ReadBoolean();
         n.SwingStartTick = r.ReadInt32();
         n.MeleeWeaponId = r.ReadString();

@@ -272,6 +272,11 @@ public sealed class NpcSnapshot
 
     public bool IsFighting { get; set; }
 
+    // ⭐ §104 r10: С КЕМ она дерётся (-1 — ни с кем). Вид наводит боевой IK на
+    // ЭТОГО противника. Считать «ближайшего дерущегося» самому он больше не
+    // может: пока правило жило в виде, оно уводило руку к волку за полкарты.
+    public int CombatOpponentNpcId { get; set; } = -1;
+
     // Timed melee: true while this NPC's attack ANIMATION window is running
     // (swing started, clip not finished) — presentation plays the attack clip
     // across exactly this window.

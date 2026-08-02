@@ -1464,84 +1464,74 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return HexRadius * FoodRadiusFactor * 1.8f;
     }
 
+    /// <summary>
+    /// ⭐ §104 r10: КУДА ТЯНЕТСЯ РУКА В БОЮ — по НАЗВАННОМУ противнику, а не по
+    /// «ближайшему кому-нибудь».
+    ///
+    /// <para>
+    /// Здесь стояло «ближайшая живая собака на всём острове, иначе ближайший
+    /// дерущийся NPC» — без единого ограничения по расстоянию. Кшиштоф бил
+    /// колонистку кулаком в упор, а тело уезжало к волку за полкарты: IK честно
+    /// тянул руку к цели, которую вид выбрал сам. Симуляция при этом знала
+    /// точный ответ (<c>Mind.CombatOpponentNpcId</c>, у собаки — её
+    /// <c>TargetNpcId</c>), просто её не спрашивали. Шестая копия правила «кто
+    /// мой противник», и та же болезнь, что «бьёт ножом, а урон как рукой».
+    /// </para>
+    /// <para>
+    /// Потолок дистанции остаётся страховкой на случай рассинхрона: цель дальше
+    /// удара — значит цели нет, и рука опускается, а не тянется через остров.
+    /// </para>
+    /// </summary>
     private bool TryGetCombatActionTargetPosition(
         WorldSnapshot snapshot, NpcSnapshot npc, out Vector3 point)
     {
-        if (TryGetNearestDogPosition(snapshot, npc, out point))
+        // Собака, которая дерётся ИМЕННО С НЕЙ.
+        foreach (var dog in snapshot.Mobs)
         {
-            return true;
+            if (dog.Health > 0f && dog.TargetNpcId == npc.Id.Value &&
+                WithinStrikeReach(npc, dog.Position))
+            {
+                point = SimulationUnityMapper.ToUnityPosition(dog.Position, GroundY(dog.Tile));
+                point.y += HexRadius * NpcHeightFactor * 0.6f;
+                return true;
+            }
         }
 
-        if (TryGetNearestFightingNpcPosition(snapshot, npc, out point))
+        // Человек, с которым она в паре — так её назвала симуляция.
+        if (npc.CombatOpponentNpcId >= 0)
         {
-            return true;
+            foreach (var other in snapshot.Npcs)
+            {
+                if (other.Id.Value != npc.CombatOpponentNpcId ||
+                    !WithinStrikeReach(npc, other.Position))
+                {
+                    continue;
+                }
+
+                point = SimulationUnityMapper.ToUnityPosition(
+                    other.Position, ActorGroundY(other.Tile));
+                point.y += HexRadius * NpcHeightFactor * 1.1f;
+                return true;
+            }
         }
 
+        point = default;
         return false;
     }
 
-    private bool TryGetNearestDogPosition(WorldSnapshot snapshot, NpcSnapshot npc, out Vector3 point)
+    // Потолок в МИРОВЫХ ЕДИНИЦАХ симуляции — тех же, в которых лежит
+    // NpcSnapshot.Position. Соседний тайл отстоит на 2.25-2.6 wu
+    // (HexRadius 1.5 × шаг), так что 3.5 накрывает бой в упор и через
+    // границу тайла, но не тянет руку через остров. Это НЕ гейт удара
+    // (он в §26.6A InteractionReach, по соседству узлов) — только страховка
+    // прицела на случай, когда пара в снапшоте разъехалась с картинкой.
+    private const float StrikeReachWorldUnits = 3.5f;
+
+    private static bool WithinStrikeReach(NpcSnapshot npc, Float2 target)
     {
-        var bestSq = float.MaxValue;
-        MobSnapshot? best = null;
-        foreach (var dog in snapshot.Mobs)
-        {
-            if (dog.Health <= 0f)
-            {
-                continue;
-            }
-
-            var dx = dog.Position.X - npc.Position.X;
-            var dy = dog.Position.Y - npc.Position.Y;
-            var sq = dx * dx + dy * dy;
-            if (sq < bestSq)
-            {
-                bestSq = sq;
-                best = dog;
-            }
-        }
-
-        if (best is null)
-        {
-            point = default;
-            return false;
-        }
-
-        point = SimulationUnityMapper.ToUnityPosition(best.Position, GroundY(best.Tile));
-        point.y += HexRadius * NpcHeightFactor * 0.6f;
-        return true;
-    }
-
-    private bool TryGetNearestFightingNpcPosition(WorldSnapshot snapshot, NpcSnapshot npc, out Vector3 point)
-    {
-        NpcSnapshot? best = null;
-        var bestSq = float.MaxValue;
-        foreach (var other in snapshot.Npcs)
-        {
-            if (other.Id.Value == npc.Id.Value || !other.IsFighting)
-            {
-                continue;
-            }
-
-            var dx = other.Position.X - npc.Position.X;
-            var dy = other.Position.Y - npc.Position.Y;
-            var sq = dx * dx + dy * dy;
-            if (sq < bestSq)
-            {
-                bestSq = sq;
-                best = other;
-            }
-        }
-
-        if (best is null)
-        {
-            point = default;
-            return false;
-        }
-
-        point = SimulationUnityMapper.ToUnityPosition(best.Position, ActorGroundY(best.Tile));
-        point.y += HexRadius * NpcHeightFactor * 1.1f;
-        return true;
+        var dx = target.X - npc.Position.X;
+        var dy = target.Y - npc.Position.Y;
+        return dx * dx + dy * dy <= StrikeReachWorldUnits * StrikeReachWorldUnits;
     }
 
     // Spec 33.1: the weapon slung on the back — the carried spear/bow, so it

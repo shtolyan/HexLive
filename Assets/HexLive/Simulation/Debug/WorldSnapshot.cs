@@ -304,6 +304,14 @@ public sealed class NpcSnapshot
     // Чем попали: "" — кулаки, id снаряжения, "bite" — зубы.
     public string HitWeaponId { get; set; } = string.Empty;
 
+    // Куда попали — зона тела строкой, той же, что у ран ("Torso", "Head"…):
+    // вид ищет кость одной таблицей и отбивает её назад.
+    public string HitPart { get; set; } = string.Empty;
+
+    // Откуда ударили (мировая позиция бьющего). Направление отбоя вид считает
+    // от кости к этой точке и толкает в противоположную сторону.
+    public Float2 HitFrom { get; set; }
+
     public List<string> BodyParts { get; } = new();
 
     // "Zone=0.35" — worn-armor absorption per body part (EquipmentMath),

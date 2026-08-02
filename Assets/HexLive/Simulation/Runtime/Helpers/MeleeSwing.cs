@@ -165,10 +165,13 @@ internal static class MeleeSwing
     /// читает вид (<see cref="GearCatalog.Bite"/>).</summary>
     internal const string BiteWeaponId = GearCatalog.Bite;
 
-    internal static void StampHit(WorldState world, NPCState target, string weaponId)
+    internal static void StampHit(WorldState world, NPCState target, string weaponId,
+        BodyPart part, Float2 from)
     {
         target.HitStampTick = world.Tick;
         target.HitWeaponId = weaponId ?? string.Empty;
+        target.HitPart = part;
+        target.HitFrom = from;
     }
 
     // A man aims high — far more torso and head than a dog's leg-first bite.
@@ -191,13 +194,14 @@ internal static class MeleeSwing
         WorldState world, NPCState attacker, NPCState target,
         float damage, string weaponId, string traceName)
     {
-        // ⭐ §104 r5: вот сейчас, вот этим. Единственный сигнал, по которому вид
-        // синхронно даёт кровь, флинч и звук удара — см. NPCState.HitStampTick.
-        // Ставится ДО пощады и до обнуления урона: удар случился в любом случае.
-        StampHit(world, target, weaponId);
-
         var part = AmputateSystemHelpers.RedirectFromStump(
             target, PickHumanPart(world, attacker.Id.Value));
+
+        // ⭐ §104 r5: вот сейчас, вот этим, вот сюда. Единственный сигнал, по
+        // которому вид синхронно даёт кровь, отбой тела и звук удара — см.
+        // NPCState.HitStampTick. Ставится ДО пощады и до обнуления урона: удар
+        // случился в любом случае, и видно его быть обязано.
+        StampHit(world, target, weaponId, part, attacker.Position);
         var partArmor = EquipmentMath.ArmorForPart(world, target, part); // trace only
         var landed = EquipmentMath.Mitigate(world, target, part, damage);
 

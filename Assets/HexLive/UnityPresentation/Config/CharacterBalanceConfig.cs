@@ -318,7 +318,7 @@ namespace HexLive.UnityPresentation.Config
 
         [Header("Бой — ближний бой NPC")]
         [Tooltip("§104: ВСЕ удары по таймлайну замаха (видимые), а не по легаси-фазе. Меняет каденцию и летальность §56 — включать только после A/B-соаков.")]
-        public bool timedMeleeEverywhere = false;
+        public bool timedMeleeEverywhere = true;
         [Tooltip("Базовый ответный удар NPC голыми руками за попадание (оружие/инструменты — в GearCatalog). Не действует при timedMeleeEverywhere.")]
         [Range(0f, 0.5f)] public float npcStrikePerPass = 0.15f;
         [Tooltip("Сколько тиков после урона держится адреналин: персонаж не может уснуть, эффект виден в панели.")]

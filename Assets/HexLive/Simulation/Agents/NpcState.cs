@@ -303,6 +303,15 @@ public sealed class NPCState
     // — зубы. Вид выбирает по этому звук удара и характер брызги.
     public string HitWeaponId { get; set; } = string.Empty;
 
+    // ⭐ §104 r9: КУДА попали и ОТКУДА. Вид отбивает эту кость назад — не
+    // клипом реакции, а процедурно, поверх любой анимации, поэтому ему нужны
+    // ровно две вещи: зона тела и позиция бьющего (направление считается от
+    // кости). Зона — та же, что у ран, чтобы кость искалась одной таблицей.
+    public BodyPart HitPart { get; set; } = BodyPart.Torso;
+
+    // Мировая позиция того, кто ударил, на момент удара.
+    public Float2 HitFrom { get; set; }
+
     // Spec 35.4: accumulated sun exposure; burns at 1.0.
     public float SunExposure { get; set; }
 

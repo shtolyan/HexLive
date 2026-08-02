@@ -1240,7 +1240,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             npc.SwingStartTick);
         // ⭐ §104 r5: ВОТ СЕЙЧАС по ней попали — кровь, вздрагивание и звук
         // удара одним кадром, по штампу из симуляции.
-        actorView.SignalHit(npc.HitStampTick, npc.HitWeaponId);
+        actorView.SignalHit(npc.HitStampTick, npc.HitWeaponId, npc.HitPart,
+            SimulationUnityMapper.ToUnityPosition(npc.HitFrom, ActorGroundY(npc.Tile)));
         // §29C.3-hit: a health drop staggers her — only while standing still.
         // Остаётся фолбэком для урона НЕ от удара (падение, акула, огонь): там
         // хит-штампа нет, а вздрогнуть всё равно надо.

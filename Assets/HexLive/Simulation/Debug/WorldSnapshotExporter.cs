@@ -657,6 +657,8 @@ public static class WorldSnapshotExporter
             StrikeIndex = npc.SwingStrikeIndex,
             HitStampTick = npc.HitStampTick,
             HitWeaponId = npc.HitWeaponId ?? string.Empty,
+            HitPart = npc.HitPart.ToString(),
+            HitFrom = npc.HitFrom,
             Hunger = npc.Needs.Hunger,
             Thirst = npc.Needs.Thirst,
             Energy = npc.Needs.Energy,

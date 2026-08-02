@@ -2116,12 +2116,17 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return;
         }
 
-        if (_dead || _laying || _swimming || _ragdollActive || _wasWalking || _animator == null)
+        // §104 r9: ФОЛБЭК для урона НЕ от удара — падение, акула, огонь: там
+        // хит-штампа нет, и о том, откуда прилетело, сказать нечего. Толкаем
+        // корпус назад от её же взгляда. Настоящий удар сюда не доходит: он
+        // уже отыгран по штампу, со своей зоной и своим направлением.
+        if (_hitRecoilAge < HitRecoilSeconds)
         {
             return;
         }
 
-        PlayHitReact();
+        var root = _bodyRoot != null ? _bodyRoot : transform;
+        StartHitRecoil("Torso", root.position + root.forward);
     }
 
     /// <summary>
@@ -2144,7 +2149,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     /// акула, огонь) — там штампа нет.
     /// </para>
     /// </summary>
-    public void SignalHit(int hitStampTick, string hitWeaponId)
+    public void SignalHit(int hitStampTick, string hitWeaponId, string hitPart,
+        Vector3 hitFrom)
     {
         var fresh = hitStampTick > 0 && hitStampTick != _lastHitStampTick;
         _lastHitStampTick = hitStampTick;
@@ -2153,8 +2159,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return;
         }
 
-        PlayHitReact();
-        SpawnHitBlood();
+        StartHitRecoil(hitPart, hitFrom);
+        SpawnHitBlood(hitPart);
 
         if (_simSpeed <= 4.01f)
         {
@@ -2184,16 +2190,93 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             : Audio.FmodSfx.Sfx.HitPunch;
     }
 
-    private void PlayHitReact()
+    // ── §104 r9: ОТБОЙ ТЕЛА ОТ УДАРА ──────────────────────────────────────
+    //
+    // ⭐ Клипа реакции здесь БОЛЬШЕ НЕТ, и это осознанно. Клип — это состояние
+    // аниматора: он спорит с тем, что играет сейчас (шаг, работа, замах),
+    // требует, чтобы она стояла, и всё равно опаздывает на переход. Удар же
+    // должен читаться В ТОТ ЖЕ КАДР и из любой позы.
+    //
+    // Поэтому реакция процедурная: кость ЗОНЫ, в которую попали, толкается
+    // прочь от бьющего поверх любой анимации — как §71 дыхание и §40.9 хромота,
+    // тем же слоем и по тем же правилам (при рагдолле не писать: там кости
+    // принадлежат физике).
+    private string _hitRecoilBone;
+    private Vector3 _hitRecoilDir;      // мировое направление «прочь от удара»
+    private float _hitRecoilAge = 999f; // секунд с момента удара
+    private const float HitRecoilSeconds = 0.34f;
+    // Доля роста актёра: смещение считается от него, потому что актёры
+    // отнормированы (~0.35 от человеческого) и константа в метрах читалась бы
+    // на них как вывих.
+    private const float HitRecoilTorso = 0.055f;
+    private const float HitRecoilHead = 0.075f;
+    private const float HitRecoilLimb = 0.045f;
+
+    private void StartHitRecoil(string hitPart, Vector3 hitFrom)
     {
-        // Вздрагивать может только та, что стоит: у идущей, плывущей и лежащей
-        // своё движение, и флинч поверх него читается как рывок.
-        if (_dead || _laying || _swimming || _ragdollActive || _wasWalking || _animator == null)
+        var zone = string.IsNullOrEmpty(hitPart) ? "Torso" : hitPart;
+        if (_bodyBones == null || !ZoneBoneAnchors.TryGetValue(zone, out var boneName))
         {
             return;
         }
 
-        _animator.SetTrigger(HitReactParam);
+        var bone = _bodyBones.GetBone(boneName);
+        if (bone == null)
+        {
+            return;
+        }
+
+        // Прочь от бьющего: горизонтально, чтобы удар не подбрасывал и не
+        // вдавливал в землю. Если бьют в упор (позиции совпали) — толкаем
+        // назад от её собственного взгляда.
+        var away = bone.position - hitFrom;
+        away.y = 0f;
+        if (away.sqrMagnitude < 0.0001f)
+        {
+            var root = _bodyRoot != null ? _bodyRoot : transform;
+            away = -root.forward;
+        }
+
+        _hitRecoilBone = boneName;
+        _hitRecoilDir = away.normalized;
+        _hitRecoilAge = 0f;
+    }
+
+    /// <summary>
+    /// Толкает задетую кость прочь от удара и отпускает обратно. Зовётся из
+    /// LateUpdate вместе с остальными процедурными позами — то есть ПОСЛЕ
+    /// аниматора, поверх любого клипа и в любом состоянии.
+    /// </summary>
+    private void ApplyHitRecoil()
+    {
+        if (_hitRecoilAge >= HitRecoilSeconds || _hitRecoilBone == null || _bodyBones == null)
+        {
+            return;
+        }
+
+        _hitRecoilAge += Time.deltaTime * Mathf.Max(0.01f, _simSpeed);
+        var u = Mathf.Clamp01(_hitRecoilAge / HitRecoilSeconds);
+
+        var bone = _bodyBones.GetBone(_hitRecoilBone);
+        if (bone == null)
+        {
+            return;
+        }
+
+        // Резкий выброс и медленный возврат: пик на ~пятой части окна. Ровная
+        // синусоида читалась бы как покачивание, а удар — это толчок.
+        var impulse = Mathf.Sin(Mathf.PI * Mathf.Pow(u, 0.38f));
+
+        var root = _bodyRoot != null ? _bodyRoot : transform;
+        var scale = Mathf.Max(0.01f, root.lossyScale.y);
+        var reach = _hitRecoilBone switch
+        {
+            "head" => HitRecoilHead,
+            "abdomenUpper" or "pelvis" => HitRecoilTorso,
+            _ => HitRecoilLimb,
+        };
+
+        bone.position += _hitRecoilDir * (reach * scale * impulse);
     }
 
     // Spec 40.13: collapse (faint) => go limp; wake => animator takes over.
@@ -3767,9 +3850,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     /// поэтому берём торс: он у любой раны рядом, а точное место всё равно
     /// докрасит рана, когда появится.
     /// </summary>
-    private void SpawnHitBlood()
+    private void SpawnHitBlood(string hitPart)
     {
-        SplashAt("Torso", _lastHitStampTick);
+        SplashAt(string.IsNullOrEmpty(hitPart) ? "Torso" : hitPart, _lastHitStampTick);
     }
 
     // Spec 40.7: paint the bare skin from tan (0..1) and acute sunburn (0..1).
@@ -4807,6 +4890,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             // Layer the current action's arm swing over the animated pose.
             ApplyActionPose();
+
+            // §104 r9: и отбой от удара — поверх всего, в любой позе.
+            ApplyHitRecoil();
 
             // Spec 40.7 / 33: thermal body language — shiver when cold, fan when hot.
             ApplyThermalPose();

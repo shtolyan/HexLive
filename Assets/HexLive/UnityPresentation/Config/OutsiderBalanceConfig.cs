@@ -154,8 +154,6 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 4800)] public int abuseRaidLockoutTicks = 600;
         [Tooltip("Радиус поиска жертвы, тайлы.")]
         [Range(0, 12)] public int abuseScanRadiusTiles = 7;
-        [Tooltip("Сколько подруг рядом с жертвой он ещё терпит.")]
-        [Range(0, 12)] public int abuseMaxMarkAllies = 1;
         [Tooltip("У порога дома разворачивается, как волк и как налёт.")]
         public bool abuseRespectsSanctuary = true;
         [Tooltip("Во сколько раз он должен быть сильнее, чтобы она сдалась.")]
@@ -172,20 +170,14 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 4800)] public int abuseBeatCryTicks = 2;
         [Tooltip("Такт первого тычка.")]
         [Range(0, 4800)] public int abuseBeatBlowTicks = 4;
-        [Tooltip("Такт второго тычка.")]
-        [Range(0, 4800)] public int abuseBeatBlowSecondTicks = 12;
         [Tooltip("§103: ПОТОЛОК приговора. Обычно он наступает раньше — как только легли все назначенные удары.")]
         [Range(0, 4800)] public int abuseBeatVerdictTicks = 48;
-        [Tooltip("Потолок такта «забрал добычу».")]
-        [Range(0, 4800)] public int abuseBeatTakeTicks = 52;
         [Tooltip("§103: пауза между приговором и тем, как он лезет в её рюкзак.")]
         [Range(0, 60)] public int abuseTakeDelayTicks = 4;
         [Tooltip("§103: сколько ударов он наносит. Столько сцена и длится — три в модели, три в анимации.")]
         [Range(0, 12)] public int abuseMaxBlows = 3;
         [Tooltip("§99: во сколько ДЛИН КЛИПА разводятся удары сцены. Своя скорость оружия для короткой сцены слишком частая — второй замах перебивал первый, и удара было не видно.")]
         [Range(0.5f, 4f)] public float abuseBlowSpacing = 1.2f;
-        [Tooltip("Сила тычка — кулаком, не оружием: труп ему не нужен.")]
-        [Range(0f, 2f)] public float abuseBlowDamageMult = 1f;
         [Tooltip("§91: симпатия, ниже которой он берётся за ОРУЖИЕ. Выше — только рукопашка. Нож достаётся по истории отношений, а не по броску кубика.")]
         [Range(-1f, 1f)] public float abuseWeaponAffinity = -0.5f;
         [Tooltip("§93: насколько глубоко (0..1 от порога до дна) должна зайти ненависть, чтобы он взялся за САМОЕ тяжёлое оружие. Ниже — берёт что полегче.")]
@@ -196,8 +188,6 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 2f)] public float abuseFightBackBase = 0.9f;
         [Tooltip("§101: сколько храбрости добавляет ЗЛОСТЬ. Та, кого тиранят неделю, огрызается и заведомо проигрывая.")]
         [Range(0f, 2f)] public float abuseFightBackHatred = 0.5f;
-        [Tooltip("Ниже этого здоровья удар не наносится вовсе.")]
-        [Range(0f, 2f)] public float abuseNoBlowHealthFloor = 0.5f;
         [Tooltip("Сколько защитниц рядом заставляют его бросить сцену.")]
         [Range(0, 12)] public int abuseBreakOffDefenders = 3;
         [Tooltip("⭐ Насколько сцена закрывает ЕГО нужду в общении.")]

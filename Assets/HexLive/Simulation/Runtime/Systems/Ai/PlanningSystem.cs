@@ -964,54 +964,12 @@ public sealed partial class PlanningSystem : ISimulationSystem
             $"{goal} on cooldown until tick {world.Tick + FailureCooldownTicks}");
     }
 
-    private static InteractionType? GoalToInteraction(GoalType goal)
-    {
-        return goal switch
-        {
-            GoalType.GetFood => InteractionType.PickUp,
-            GoalType.GatherWood => InteractionType.PickUp,
-            GoalType.GatherTools => InteractionType.PickUp,
-            GoalType.GetWater => InteractionType.PickUp, // §55: fetch a coconut to crack open
-            GoalType.StowBottle => InteractionType.PlaceVessel, // §54.15: park the bottle in the collector
-            GoalType.TendFire => InteractionType.Fuel,
-            GoalType.CraftSpear => InteractionType.Craft,
-            GoalType.CookMeat => InteractionType.Craft,
-            GoalType.CraftLeather => InteractionType.Craft,
-            GoalType.CraftAxe => InteractionType.Craft,
-            GoalType.CraftPickaxe => InteractionType.Craft,
-            GoalType.CraftRack => InteractionType.Craft,
-            GoalType.CraftBed => InteractionType.Craft,
-            GoalType.CraftTent => InteractionType.Craft,
-            GoalType.BuildRaft => InteractionType.BuildRaft,
-            GoalType.CraftBow => InteractionType.Craft,
-            GoalType.CraftArrows => InteractionType.Craft,
-            GoalType.DryClothes => InteractionType.Hang,
-            GoalType.GatherStone => InteractionType.PickUp,
-            GoalType.HarvestTree => InteractionType.Harvest,
-            GoalType.MineBoulder => InteractionType.Harvest,
-            GoalType.SplitLog => InteractionType.Process,
-            GoalType.ChopCrown => InteractionType.Process,
-            GoalType.GatherLeaves => InteractionType.PickUp,
-            GoalType.HarvestYucca => InteractionType.Harvest,
-            GoalType.Butcher => InteractionType.Butcher,
-            GoalType.Build => InteractionType.Build,
-            GoalType.BuildFurniture => InteractionType.Build,
-            GoalType.Mourn => InteractionType.Observe,
-            GoalType.WarmUp => InteractionType.Observe,
-            GoalType.HaulToFire => InteractionType.Observe,
-            GoalType.GatherHerb => InteractionType.PickUp,
-            GoalType.CraftBandage => InteractionType.Craft,
-            GoalType.GatherFiber => InteractionType.PickUp,
-            GoalType.CraftRope => InteractionType.Craft,
-            GoalType.CraftCloth => InteractionType.Craft,
-            GoalType.CraftKnife => InteractionType.Craft,
-            GoalType.Bury => InteractionType.Bury,
-            GoalType.Sleep => InteractionType.Sleep,
-            GoalType.Sit => InteractionType.Sit,
-            GoalType.Dress => InteractionType.Dress,
-            _ => null
-        };
-    }
+    // §4-колонка: 41-рукавный switch переехал в GoalCatalog. Знание «какое
+    // взаимодействие исполняет эту цель» — свойство ЦЕЛИ, и жить ему положено
+    // в одной строке таблицы рядом с остальными её свойствами, а не отдельным
+    // списком, про который надо помнить.
+    private static InteractionType? GoalToInteraction(GoalType goal) =>
+        AI.GoalCatalog.InteractionFor(goal);
 
     private static bool IsValidTargetFor(WorldState world, NPCState npc, GoalType goal, PerceivedObject perceived)
     {

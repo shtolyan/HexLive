@@ -251,11 +251,12 @@ public sealed class PathfindingSystem : ISimulationSystem
     // and anyone already fighting or fleeing obviously ignore it.
     internal static bool AvoidsHostileRings(NPCState npc)
     {
+        // Кто обходит кольца ВРАЖДЕБНОЙ ФРАКЦИИ — колонка IgnoresHostileRings.
+        // Кольца зверя (§62, AvoidsThreatRings ниже) — ОТДЕЛЬНЫЙ набор, уже
+        // этого: налётчика в нём нет, потому что волк страшен обеим сторонам.
         return Spec72.Enabled &&
             !npc.IsFighting &&
-            npc.Mind.CurrentGoal != GoalType.Flee &&
-            npc.Mind.CurrentGoal != GoalType.Defend &&
-            npc.Mind.CurrentGoal != GoalType.Raid;
+            !AI.GoalCatalog.IgnoresHostileRings(npc.Mind.CurrentGoal);
     }
 
     // Spec §62: who pays the danger-ring cost. Fit fighters walk wherever they

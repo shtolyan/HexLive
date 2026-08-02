@@ -46,25 +46,8 @@ public sealed partial class ExecutionSystem
         return true;
     }
 
-    private static bool CraftNeedsToolsOrWeapons(GoalType goal)
-    {
-        switch (goal)
-        {
-            case GoalType.CraftSpear:
-            case GoalType.CraftAxe:
-            case GoalType.CraftPickaxe:
-            case GoalType.CraftRack:
-            case GoalType.CraftTent:
-            case GoalType.CraftBow:
-            case GoalType.CraftArrows:
-            case GoalType.CraftRope:
-            case GoalType.CraftCloth:
-            case GoalType.CraftKnife:
-                return true;
-            default:
-                return false;
-        }
-    }
+    private static bool CraftNeedsToolsOrWeapons(GoalType goal) =>
+        AI.GoalCatalog.CraftNeedsHands(goal);
 
     // Spec §54 (R2): consume a recipe's inputs from the pack. Mirrors the exact
     // Remove-per-ingredient the effect switch used to do inline.
@@ -212,32 +195,15 @@ public sealed partial class ExecutionSystem
     // §gear-craft v2: which inventory ITEMS the craft lays on the ground for
     // the take beat. Non-item outputs (the bandage counter, leather worn
     // straight onto the body) return null and grant instantly at work's end.
-    private static string[] CraftGroundOutputs(GoalType goal) => goal switch
-    {
-        GoalType.CraftSpear => new[] { ContentIds.Spear },
-        GoalType.CraftAxe => new[] { ContentIds.AxeStone },
-        GoalType.CraftPickaxe => new[] { ContentIds.PickaxeStone },
-        GoalType.CraftKnife => new[] { ContentIds.Knife },
-        GoalType.CraftBow => new[] { ContentIds.Bow },
-        GoalType.CraftArrows => new[] { ContentIds.Arrow, ContentIds.Arrow, ContentIds.Arrow },
-        GoalType.CraftRope => new[] { ContentIds.Rope },
-        GoalType.CraftCloth => new[] { ContentIds.Cloth },
-        _ => null
-    };
+    // §gear-craft v2: что крафт выкладывает на землю на такте «взять».
+    // Таблица в GoalCatalog: раньше это был ТРЕТИЙ параллельный switch по цели
+    // в одном файле, и все три надо было держать согласованными вручную.
+    private static string[] CraftGroundOutputs(GoalType goal) =>
+        AI.GoalCatalog.CraftGroundOutputs(goal);
 
     // The legacy per-goal trace names, kept stable for soak metrics.
-    private static string CraftedTraceName(GoalType goal) => goal switch
-    {
-        GoalType.CraftSpear => "CraftedSpear",
-        GoalType.CraftAxe => "CraftedAxe",
-        GoalType.CraftPickaxe => "CraftedPickaxe",
-        GoalType.CraftKnife => "CraftedKnife",
-        GoalType.CraftBow => "CraftedBow",
-        GoalType.CraftArrows => "CraftedArrows",
-        GoalType.CraftRope => "CraftedRope",
-        GoalType.CraftCloth => "CraftedCloth",
-        _ => "CraftedItem"
-    };
+    private static string CraftedTraceName(GoalType goal) =>
+        AI.GoalCatalog.CraftTraceName(goal);
 
     // §61: she kneels FACING the work — turn toward the centroid of the
     // laid-out pieces (beat 2) / the finished item (beat 3). Snap in the sim

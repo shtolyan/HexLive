@@ -487,29 +487,28 @@ public sealed class MovementSystem : ISimulationSystem
                 urgency = SimBalance.AdrenalineMoveSpeedFactor;
             }
 
-            // (§57 help cry / 29C.4B friend guard / §62 first strike): she is
-            // running to put herself between a housemate and the animal.
-            if (npc.Mind.CurrentGoal == GoalType.Defend)
-            {
-                urgency = System.MathF.Max(urgency, Spec57.DefendMoveSpeedFactor);
-            }
-
-            if (npc.Mind.CurrentGoal == GoalType.Flee)
-            {
-                urgency = System.MathF.Max(urgency, SimBalance.FleeRunSpeedFactor);
-            }
-
-            // §89: он ДОГОНЯЕТ. Она отошла на шаг — он рвётся следом, а не
-            // плетётся: пока он шёл прогулочным шагом, она успевала отойти
-            // снова, и сцена не начиналась никогда. Гопник не провожает жертву
-            // взглядом.
+            // Насколько цель торопит — колонка Urgency в GoalCatalog. Здесь
+            // стояли четыре отдельных сравнения с GoalType, и каждая новая
+            // спешащая цель требовала не забыть дописать пятое.
             //
-            // Та же скорость, что у бегущей на подмогу (§57): это единственное
-            // мирное время, когда бежать осмысленно.
-            if (npc.Mind.CurrentGoal == GoalType.Abuse ||
-                npc.Mind.CurrentGoal == GoalType.Raid)
+            // (§57 клич о помощи / 29C.4B защита подруги / §62 первый удар):
+            // бежит встать между подругой и зверем. §89: он ДОГОНЯЕТ — пока он
+            // шёл прогулочным шагом, она успевала отойти снова, и сцена не
+            // начиналась никогда; гопник не провожает жертву взглядом. Та же
+            // скорость, что у бегущей на подмогу: это единственное мирное
+            // время, когда бежать осмысленно.
+            //
+            // Множитель РАЗРЕШАЕТСЯ ЗДЕСЬ, а не хранится в таблице: ручки
+            // баланса тюнятся, а таблица строится один раз и заморозила бы их
+            // значения на момент своей постройки.
+            switch (AI.GoalCatalog.UrgencyFor(npc.Mind.CurrentGoal))
             {
-                urgency = System.MathF.Max(urgency, Spec57.DefendMoveSpeedFactor);
+                case AI.UrgencyClass.Hurry:
+                    urgency = System.MathF.Max(urgency, Spec57.DefendMoveSpeedFactor);
+                    break;
+                case AI.UrgencyClass.Flee:
+                    urgency = System.MathF.Max(urgency, SimBalance.FleeRunSpeedFactor);
+                    break;
             }
 
             // A body in real trouble hurries to the food or the water — the

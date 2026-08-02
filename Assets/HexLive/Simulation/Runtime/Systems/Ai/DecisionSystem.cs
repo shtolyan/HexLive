@@ -1824,123 +1824,175 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 }
             }
 
-            Trace.Emit(world, npc.Id, "DecisionInput",
-                $"Needs=[{Trace.FormatNeeds(npc.Needs)}] " +
-                $"Available=[Eat={eatAvail} GetFood={getFoodAvail} Sleep={sleepAvail} Sit={sitAvail} " +
-                $"Dress={dressAvail} Socialize={socializeAvail}] " +
-                $"Inventory=[{string.Join(",", npc.Inventory.Items)}] " +
-                $"PrevGoal={previousGoal} PlanStatus={npc.Plan.Status} ExecStatus={npc.Execution.Status}");
+            ChooseGoal(world, npc, previousGoal,
+                new AvailabilityTrace(eatAvail, getFoodAvail, sleepAvail,
+                    sitAvail, dressAvail, socializeAvail),
+                aidErrandGoal, aidErrandKindNow, aidErrandTargetNow, aidErrandBid);
+        }
+    }
 
-            GoalScore? best = null;
+
+    /// <summary>Что было доступно на этом проходе — только для строки трассы
+    /// <c>DecisionInput</c>. Отдельными параметрами эти шесть флагов ничего не
+    /// объясняли бы, а сигнатуру раздували.</summary>
+    private readonly struct AvailabilityTrace
+    {
+        public AvailabilityTrace(bool eat, bool getFood, bool sleep,
+            bool sit, bool dress, bool socialize)
+        {
+            EatAvail = eat;
+            GetFoodAvail = getFood;
+            SleepAvail = sleep;
+            SitAvail = sit;
+            DressAvail = dress;
+            SocializeAvail = socialize;
+        }
+
+        public bool EatAvail { get; }
+        public bool GetFoodAvail { get; }
+        public bool SleepAvail { get; }
+        public bool SitAvail { get; }
+        public bool DressAvail { get; }
+        public bool SocializeAvail { get; }
+    }
+
+    /// <summary>
+    /// Выбор цели: печать входа, разложение оценок, максимум и правило
+    /// «держать или сменить» (§23.8/23.9).
+    ///
+    /// <para>
+    /// Вынесено из тела цикла, где это было последними ста строками
+    /// девятнадцатисотстрочного метода. Само решение — не самая длинная его
+    /// часть, но самая ЧИТАЕМАЯ: сюда приходят с готовыми оценками, и весь
+    /// арбитраж виден целиком, без прокрутки через семьдесят скоринг-блоков.
+    /// </para>
+    /// <para>
+    /// Шесть флагов доступности собраны в <see cref="AvailabilityTrace"/>: они
+    /// нужны ровно одной строке трассы и параметрами только шумели бы.
+    /// </para>
+    /// </summary>
+    private static void ChooseGoal(
+        WorldState world, NPCState npc, GoalType previousGoal,
+        in AvailabilityTrace avail,
+        GoalType? aidErrandGoal, AidKind aidErrandKindNow,
+        EntityId? aidErrandTargetNow, float aidErrandBid)
+    {
+        Trace.Emit(world, npc.Id, "DecisionInput",
+            $"Needs=[{Trace.FormatNeeds(npc.Needs)}] " +
+            $"Available=[Eat={avail.EatAvail} GetFood={avail.GetFoodAvail} Sleep={avail.SleepAvail} Sit={avail.SitAvail} " +
+            $"Dress={avail.DressAvail} Socialize={avail.SocializeAvail}] " +
+            $"Inventory=[{string.Join(",", npc.Inventory.Items)}] " +
+            $"PrevGoal={previousGoal} PlanStatus={npc.Plan.Status} ExecStatus={npc.Execution.Status}");
+
+        GoalScore? best = null;
+        foreach (var score in npc.Mind.LastScores)
+        {
+            Trace.Emit(world, npc.Id, "GoalScored",
+                $"{score.Goal}: Base={score.BaseScore:F3} Need={score.NeedModifier:F3} " +
+                $"Soc={score.SocialModifier:F3} " +
+                $"Env={score.EnvironmentModifier:F3} " +
+                $"Emg={score.EmergencyModifier:F3} " +
+                $"=> Final={score.FinalScore:F3}");
+
+            if (best is null || score.FinalScore > best.FinalScore)
+            {
+                best = score;
+            }
+        }
+
+        if (best is null)
+        {
+            Trace.Emit(world, npc.Id, "DecisionSkipped", "No scores available");
+            return;
+        }
+
+        // Spec 23.8/23.9 (iteration 3): hold-or-adopt. A competing goal must
+        // beat the current one by a margin; locks resist ordinary drift.
+        if (best.Goal != previousGoal &&
+            previousGoal != GoalType.None && previousGoal != GoalType.Idle)
+        {
+            var currentScore = 0f;
             foreach (var score in npc.Mind.LastScores)
             {
-                Trace.Emit(world, npc.Id, "GoalScored",
-                    $"{score.Goal}: Base={score.BaseScore:F3} Need={score.NeedModifier:F3} " +
-                    $"Soc={score.SocialModifier:F3} " +
-                    $"Env={score.EnvironmentModifier:F3} " +
-                    $"Emg={score.EmergencyModifier:F3} " +
-                    $"=> Final={score.FinalScore:F3}");
-
-                if (best is null || score.FinalScore > best.FinalScore)
+                if (score.Goal == previousGoal)
                 {
-                    best = score;
+                    currentScore = score.FinalScore;
+                    break;
                 }
             }
 
-            if (best is null)
+            var hasActivePlan = npc.Plan.Status == PlanStatus.Active ||
+                npc.Execution.Status == ExecutionStatus.InProgress;
+            var locked = npc.Mind.GoalLock is { } goalLock &&
+                goalLock.Goal == previousGoal && world.Tick < goalLock.EndTick;
+            var threshold = locked ? LockOverrideDelta : (hasActivePlan ? SwitchDelta : 0f);
+
+            if (best.FinalScore - currentScore <= threshold)
             {
-                Trace.Emit(world, npc.Id, "DecisionSkipped", "No scores available");
-                continue;
+                Trace.Emit(world, npc.Id, "GoalHeld",
+                    $"{previousGoal} kept over {best.Goal} " +
+                    $"(lead={best.FinalScore - currentScore:F3} <= {threshold:F2}" +
+                    $"{(locked ? $", locked until {npc.Mind.GoalLock!.EndTick}" : "")})");
+                return;
             }
+        }
 
-            // Spec 23.8/23.9 (iteration 3): hold-or-adopt. A competing goal must
-            // beat the current one by a margin; locks resist ordinary drift.
-            if (best.Goal != previousGoal &&
-                previousGoal != GoalType.None && previousGoal != GoalType.Idle)
+        npc.Mind.CurrentGoal = best.Goal;
+        npc.Mind.LastDecision = new DecisionResult
+        {
+            SelectedGoal = best.Goal,
+            Reason = $"Selected {best.Goal} at tick {world.Tick}"
+        };
+
+        foreach (var score in npc.Mind.LastScores)
+        {
+            npc.Mind.LastDecision.Scores.Add(score);
+        }
+
+        var changed = previousGoal != best.Goal;
+        if (changed && best.Goal != GoalType.Idle && best.Goal != GoalType.None)
+        {
+            npc.Mind.GoalLock = new GoalLock
             {
-                var currentScore = 0f;
-                foreach (var score in npc.Mind.LastScores)
-                {
-                    if (score.Goal == previousGoal)
-                    {
-                        currentScore = score.FinalScore;
-                        break;
-                    }
-                }
-
-                var hasActivePlan = npc.Plan.Status == PlanStatus.Active ||
-                    npc.Execution.Status == ExecutionStatus.InProgress;
-                var locked = npc.Mind.GoalLock is { } goalLock &&
-                    goalLock.Goal == previousGoal && world.Tick < goalLock.EndTick;
-                var threshold = locked ? LockOverrideDelta : (hasActivePlan ? SwitchDelta : 0f);
-
-                if (best.FinalScore - currentScore <= threshold)
-                {
-                    Trace.Emit(world, npc.Id, "GoalHeld",
-                        $"{previousGoal} kept over {best.Goal} " +
-                        $"(lead={best.FinalScore - currentScore:F3} <= {threshold:F2}" +
-                        $"{(locked ? $", locked until {npc.Mind.GoalLock!.EndTick}" : "")})");
-                    continue;
-                }
-            }
-
-            npc.Mind.CurrentGoal = best.Goal;
-            npc.Mind.LastDecision = new DecisionResult
-            {
-                SelectedGoal = best.Goal,
-                Reason = $"Selected {best.Goal} at tick {world.Tick}"
+                Goal = best.Goal,
+                StartTick = world.Tick,
+                EndTick = world.Tick + GoalLockTicks
             };
+        }
 
-            foreach (var score in npc.Mind.LastScores)
+        Trace.Emit(world, npc.Id, "GoalSelected",
+            $"{best.Goal} (Score={best.FinalScore:F3}) " +
+            $"{(changed ? $"CHANGED from {previousGoal}" : "UNCHANGED")}");
+
+        // §53.7: the chore she just picked IS the errand — stamp it so it
+        // keeps its aid weight while she walks out of the sufferer's sight,
+        // and so the trace says WHY a well-fed girl went foraging.
+        if (aidErrandGoal is { } stampedErrand && best.Goal == stampedErrand &&
+            aidErrandKindNow != AidKind.None)
+        {
+            var fresh = npc.Mind.AidErrandKind != aidErrandKindNow ||
+                npc.Mind.AidErrandFor?.Value != aidErrandTargetNow?.Value;
+            npc.Mind.AidErrandKind = aidErrandKindNow;
+            npc.Mind.AidErrandFor = aidErrandTargetNow;
+            npc.Mind.AidErrandBid = aidErrandBid;
+            npc.Mind.AidErrandUntilTick = world.Tick + Spec53.AidErrandTicks;
+            if (fresh)
             {
-                npc.Mind.LastDecision.Scores.Add(score);
+                Trace.Emit(world, npc.Id, "AidErrandStarted",
+                    $"Kind={aidErrandKindNow} " +
+                    $"For={(aidErrandTargetNow is { } ward ? $"NPC{ward.Value}" : "unknown")} " +
+                    $"Goal={stampedErrand} Bid={aidErrandBid:F2}");
             }
+        }
 
-            var changed = previousGoal != best.Goal;
-            if (changed && best.Goal != GoalType.Idle && best.Goal != GoalType.None)
-            {
-                npc.Mind.GoalLock = new GoalLock
-                {
-                    Goal = best.Goal,
-                    StartTick = world.Tick,
-                    EndTick = world.Tick + GoalLockTicks
-                };
-            }
-
-            Trace.Emit(world, npc.Id, "GoalSelected",
-                $"{best.Goal} (Score={best.FinalScore:F3}) " +
-                $"{(changed ? $"CHANGED from {previousGoal}" : "UNCHANGED")}");
-
-            // §53.7: the chore she just picked IS the errand — stamp it so it
-            // keeps its aid weight while she walks out of the sufferer's sight,
-            // and so the trace says WHY a well-fed girl went foraging.
-            if (aidErrandGoal is { } stampedErrand && best.Goal == stampedErrand &&
-                aidErrandKindNow != AidKind.None)
-            {
-                var fresh = npc.Mind.AidErrandKind != aidErrandKindNow ||
-                    npc.Mind.AidErrandFor?.Value != aidErrandTargetNow?.Value;
-                npc.Mind.AidErrandKind = aidErrandKindNow;
-                npc.Mind.AidErrandFor = aidErrandTargetNow;
-                npc.Mind.AidErrandBid = aidErrandBid;
-                npc.Mind.AidErrandUntilTick = world.Tick + Spec53.AidErrandTicks;
-                if (fresh)
-                {
-                    Trace.Emit(world, npc.Id, "AidErrandStarted",
-                        $"Kind={aidErrandKindNow} " +
-                        $"For={(aidErrandTargetNow is { } ward ? $"NPC{ward.Value}" : "unknown")} " +
-                        $"Goal={stampedErrand} Bid={aidErrandBid:F2}");
-                }
-            }
-
-            // Spec 23.17: a goal change over an active plan must abort cleanly,
-            // releasing object occupancy and junction reservation before replanning.
-            if (changed &&
-                (npc.Plan.Status == PlanStatus.Active || npc.Execution.Status == ExecutionStatus.InProgress))
-            {
-                PlanInterruption.Abort(world, npc,
-                    $"Goal changed {previousGoal}->{best.Goal} over active plan " +
-                    $"(Starving={npc.Mind.IsStarving})");
-            }
+        // Spec 23.17: a goal change over an active plan must abort cleanly,
+        // releasing object occupancy and junction reservation before replanning.
+        if (changed &&
+            (npc.Plan.Status == PlanStatus.Active || npc.Execution.Status == ExecutionStatus.InProgress))
+        {
+            PlanInterruption.Abort(world, npc,
+                $"Goal changed {previousGoal}->{best.Goal} over active plan " +
+                $"(Starving={npc.Mind.IsStarving})");
         }
     }
 

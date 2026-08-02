@@ -22,7 +22,7 @@ import zipfile
 from pathlib import Path
 from urllib.parse import unquote
 
-from . import config
+from . import cache, config
 
 # Top-level folders DAZ reads. Finding one means we have found the content root.
 _CONTENT_DIRS = {"people", "runtime", "data", "props", "environments", "animals",
@@ -149,12 +149,16 @@ def _match_generation(text: str) -> str | None:
 
 
 def _generation(duf: Path, data: dict, library: Path) -> str | None:
-    """Which figure the item is built for — three sources, best first.
+    """Which figure the item is built for — four sources, best first.
 
     1. The install path. DAZ files most clothing under
        `People/<generation>/Clothing/...` and so does the store.
-    2. The `.duf` contents.
-    3. The geometry `.dsf` the item references. Some vendors (measured on
+    2. The short label as the file's own name. Products that ship one wearable
+       preset per figure name them exactly that — `Wearable Presets/G3F.duf`
+       (measured on "Mesoamerican Jaguar Headdress"). Without this the most
+       explicit statement of compatibility a product can make is missed.
+    3. The `.duf` contents.
+    4. The geometry `.dsf` the item references. Some vendors (measured on
        "dFORCE Stocking & Sock") file everything under `Figures/<vendor>/` and
        never name the figure in the `.duf` at all — the only mention is inside
        the data file, so without this step the generation comes back unknown.
@@ -162,6 +166,11 @@ def _generation(duf: Path, data: dict, library: Path) -> str | None:
     parts = [p.lower() for p in duf.parts]
     for needle, label in _GENERATIONS:
         if needle.lower() in parts:
+            return label
+
+    stem = duf.stem.strip().upper()
+    for _, label in _GENERATIONS:
+        if stem == label.upper():
             return label
 
     blob = json.dumps(data)
@@ -202,11 +211,102 @@ def classify(duf: Path, library: Path | None = None) -> dict | None:
     }
 
 
-def install(archives: list[Path]) -> dict:
+# Sub-folders that hold pieces of an item rather than the item: re-skins, and
+# the individual components a "Parts" folder breaks an assembly into.
+_COMPONENT_DIRS = ("/materials", "/iray materials", "/parts/", "/props/parts/")
+
+
+def _product_root(relative: str) -> str:
+    """The folder that owns an item, for grouping its variants together.
+
+    Everything from a `Wearable Presets` / `Parts` / `Materials` sub-folder
+    onwards is stripped, so `Props/Jaguar Headdress/Wearable Presets/G3F.duf`
+    and `Props/Jaguar Headdress/Jaguar Helmet.duf` land in the same group.
+    """
+    parts = relative.split("/")
+    for i, part in enumerate(parts):
+        if part.lower() in ("wearable presets", "parts", "materials", "iray materials"):
+            return "/".join(parts[:i])
+    return "/".join(parts[:-1])
+
+
+def _prefer_wearable_presets(found: list[dict]) -> list[dict]:
+    """Within one product, a `wearable` preset beats a `scene_subset`.
+
+    They mean different things. A `wearable` preset FITS the item to the
+    selected figure; a `scene_subset` just drops the geometry into the scene,
+    unparented. Products that ship both (measured on "Mesoamerican Jaguar
+    Headdress": five `Wearable Presets/G<gen>.duf` beside 30 standalone helmet
+    and feather files) would otherwise be dressed with the standalone ones —
+    which load fine, report success, and attach to nobody.
+
+    Products with no `wearable` preset at all (dFORCE Stocking & Sock) keep
+    their `scene_subset` entries.
+    """
+    has_preset = {_product_root(w["relative"]) for w in found if w["type"] == "wearable"}
+    return [w for w in found
+            if w["type"] == "wearable" or _product_root(w["relative"]) not in has_preset]
+
+
+def _geometry_refs(duf: Path) -> frozenset[str]:
+    """The garment geometries a preset puts in the scene, as `/data/...dsf` ids.
+
+    A wearable preset's `scene.nodes` is exactly the list of nodes it creates,
+    and every one of them names the `.dsf` it comes from — so the set of those
+    files is what the preset actually brings, whatever the file is called.
+    """
+    data = read_duf(duf) or {}
+    nodes = data.get("scene", {}).get("nodes") or []
+    return frozenset(filter(None, (re.sub(r"#.*", "", n.get("url", "")).lower()
+                                   for n in nodes)))
+
+
+def _drop_redundant(found: list[dict]) -> list[dict]:
+    """Drop presets that bring no geometry another preset does not already bring.
+
+    Vendors duplicate themselves two ways, and both make `dress` fit the same
+    garment twice — which reads as "надето 38 из 32" and would export the mesh
+    twice even if nobody counted:
+
+      * an outfit preset sitting beside the pieces it is made of. "Classic Reiko
+        Outfit" carries the same five geometries as Classic Boot/Glove/Scarf/
+        Shorts/Top next to it; "dforceSweety Complete G3F" carries the babydoll
+        and the panty that ship as their own files.
+      * the same preset filed under two vendor folders. Reiko ships identical
+        Hair and Outfit presets under `Perfect Slam` and `Ryona Comics`, both
+        pointing at the very same `/data/perfect slam/...` geometry.
+
+    Smallest first, so the individual pieces claim their geometry and the outfit
+    that merely repeats them falls out. A preset with anything of its own is
+    never a subset, so it always survives.
+    """
+    geometry = {w["file"]: _geometry_refs(Path(w["file"])) for w in found}
+    claimed: set[str] = set()
+    redundant: set[str] = set()
+    for item in sorted(found, key=lambda w: (len(geometry[w["file"]]), w["relative"])):
+        refs = geometry[item["file"]]
+        if refs and refs <= claimed:
+            redundant.add(item["file"])
+            continue
+        claimed |= refs
+    return [w for w in found if w["file"] not in redundant]
+
+
+def install(archives: list[Path], progress=lambda _: None,
+            force: bool = False) -> dict:
     report = {"archives": [], "installed": 0, "wearables": [], "errors": []}
 
     for archive in archives:
         entry = {"archive": str(archive)}
+
+        if not force and (known := cache.installed(archive)) is not None:
+            progress(f"   ⏭ {archive.name} — уже в библиотеке, пропускаю")
+            entry.update(files=known["files"], cached=True)
+            report["installed"] += known["files"]
+            report["wearables"].extend(known["wearables"])
+            report["archives"].append(entry)
+            continue
+
         try:
             staging = config.UNPACKED / archive.stem
             if staging.exists():
@@ -231,16 +331,22 @@ def install(archives: list[Path]) -> dict:
             # `Figures/<vendor>/<product>/` — filtering on the path missed the
             # latter entirely (measured on "dFORCE Stocking & Sock": 14 items,
             # none of them under a Clothing folder).
+            found = []
             for relative in written:
-                lowered = relative.lower()
+                lowered = "/" + relative.lower()
                 if not lowered.endswith(".duf"):
                     continue
-                if "/materials" in lowered or "/iray materials" in lowered:
+                if any(marker in lowered for marker in _COMPONENT_DIRS):
                     continue
                 described = classify(config.DAZ_LIBRARY / relative, config.DAZ_LIBRARY)
                 if described and described["wearable"]:
                     described["relative"] = relative
-                    report["wearables"].append(described)
+                    found.append(described)
+            chosen = _drop_redundant(_prefer_wearable_presets(found))
+            report["wearables"].extend(chosen)
+            cache.remember_install(archive, chosen, len(written))
+            progress(f"   ✔ {archive.name} — {len(written)} файлов, "
+                     f"вещей: {len(chosen)}")
         except Exception as e:  # noqa: BLE001 — the report is the error channel
             entry["error"] = str(e)
             report["errors"].append(f"{archive.name}: {e}")

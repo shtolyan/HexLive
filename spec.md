@@ -6573,10 +6573,16 @@ garment, cold sim item, or blood that never soaks the cloth).
    back to the emoji glyph — that fallback in play is the "step 4 was
    skipped" symptom. Format: **512×512 PNG, transparent background, imported
    as Sprite (2D and UI)** (`textureType 8`, `alphaIsTransparency 1`) — match
-   the existing icons. There is no automated photographer tool: shoot the
-   garment prefab in the editor (instantiate it against an empty backdrop,
-   positioned camera render / `manage_camera` screenshot, crop square) or
-   photograph it worn if the piece only reads on a body.
+   the existing icons. Run **HexLive → Wear → Shoot Missing Item Icons**
+   (`WearIconShooter`): it photographs every wear prefab that has no icon yet
+   and sets the import settings. Transparency comes from compositing two
+   renders, one on black and one on white — Unity's preview target has no
+   usable alpha of its own, and the difference also gets alpha-clipped edges
+   (feathers, lace) right instead of fringed. The frame is fitted to the
+   bounding box's projected corners, not to a bounding sphere, or a wide flat
+   piece shrinks to a third of the icon. Re-shoot one deliberately with
+   **Shoot Item Icons (Re-shoot All)**. Photograph by hand only when the piece
+   just does not read off the body.
 
 5. **Paint point maps (§40.8-G).** Run **HexLive → Paint Maps → Regenerate**.
    It bakes `garment_<meshName>_<vertexCount>` for the default mesh AND every
@@ -6698,6 +6704,61 @@ longer be found by walking down from it. Tuned live per girl in the
 **WardrobeTest** hair panel (scale ±0.01, height ±0.005 m) and saved into the
 hair prefab. Strands weighted to neck/chest bones are stitched elsewhere and
 stay put, so these are fit nudges, not a general transform.
+
+### 31B.4D Assemblies — a product that arrives as a KIT, not a garment
+
+(Lettered D, not C: code already points at `§31B.4C` for the heeled-shoe foot
+pose.)
+
+Some DAZ products are not one garment. The **Mesoamerican Jaguar Headdress**
+(2026-08) exports as **29 renderers**: a rigid helmet parented straight to the
+`head` bone, plus 28 feathers and cords, each skinned to ONE private bone of
+its own. The wardrobe takes exactly one `SkinnedMeshRenderer` and one `Mesh`
+per garment (§31B.4A step 1), so a kit cannot be worn at all until it is
+welded. Extracted naively it becomes 29 separate wardrobe items — which is how
+it once produced twenty-nine folders holding a single texture each and no
+meshes.
+
+**The private bones are dead weight, and that is what makes the weld exact.**
+`Wear.Construct` binds a garment's skeleton to the body BY NAME, and no girl
+has a bone called `Bone`. Nothing can ever drive them, so the feathers cannot
+sway however they are rigged — they are rigid bodies hanging off the head.
+Baking the whole kit into the single bone they really follow is therefore not a
+compromise but the correct representation, and it costs one bone instead of
+twenty-nine unmapped ones.
+
+`NewWearExtractor.MergeParts` does it through the skinning identity. A skinned
+vertex lands at `world = bone.localToWorld * bindpose * v`, so a part's
+authored-space matrix is `bone.localToWorld * bindpose⁻¹`, read off the FBX
+instance while it still stands in its bind pose (a rigid part just uses its own
+`localToWorldMatrix`). Every part is pushed through that into the rig's space,
+and one bindpose — `anchor.worldToLocal * rig.localToWorld` — sends the merged
+mesh back. The anchor is the common body-bone ancestor of all the parts (`head`
+here); `Wear.Construct` then stitches `hip…head` by name as for any garment.
+
+Two drop-manifest fields drive it (`Assets/Editor/WearDrops/*.json`):
+
+- **`sourceKeys`** — the renderer-name prefixes to weld into this garment
+  (`["Helmet", "Feathers Tail", "Feather Big", "Feather Small", "Strings A",
+  "Strings B"]`). `sourceKey` stays as the merged mesh's name.
+- **`alsoSources`** — more FBX surfaces that share one of our materials. A DAZ
+  prop splits one atlas across dozens of named surfaces (the headdress: 30
+  surfaces, but its DUF `image_library` holds only NINE images), and a submesh
+  per surface would be thirty draw calls for one hat. Folded down to two.
+
+Traps met building it:
+
+- A girl now has **several rigs** — one FBX per drop. Keyed by girl alone the
+  second drop overwrites the first, and the weld goes looking for the helmet in
+  the Sweet Jane export. Each garment is offered every rig she has; only one
+  answers, and an empty answer is normal, not an error.
+- `MergeFollowers=true` on the DAZ FBX exporter is NOT the answer: measured, it
+  wrote no file at all and left the scene with nothing worn.
+- Blender's `join` is not the answer either: importing a DAZ export dies with
+  `KeyError: Genesis3Female` in `import_fbx.py`, because DAZ writes one skeleton
+  copy per fitted item.
+- The merged mesh is heavy — 55 844 vertices, ~10.8 MB per girl. Acceptable for
+  now; decimation (as in `TOOL_GENERATION_SPEC.md`) is the lever if it hurts.
 
 ### 31B.5 Renderer bridge
 

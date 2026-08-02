@@ -55,18 +55,18 @@ def intake(urls: list[str], progress: Progress = _noop,
         progress("⚠ DAZ Studio не отвечает. Скачаю и распакую, но одеть не смогу — "
                  "включите Window → Panes → Daz Script Server → Start Server.")
 
-    progress(f"Качаю {len(urls)} ссылк(и)…")
-    fetched = fetch.fetch(urls)
+    progress(f"⬇️ Качаю — ссылок {len(urls)}")
+    fetched = fetch.fetch(urls, progress=progress)
     report["fetch"] = fetched
-    for f in fetched["files"]:
-        progress(f"  ✔ {f['name']} — {f['size_mb']} МБ за {f['seconds']} с")
     if not fetched["archives"]:
         report["errors"] = fetched["errors"] or ["скачивать нечего"]
         return report
-    progress("Всё скачано.")
+    reused = sum(1 for f in fetched["files"] if f.get("cached"))
+    progress("✅ Всё на месте" if reused == len(fetched["files"]) else "✅ Всё скачано")
 
-    progress("Распаковываю в библиотеку DAZ…")
-    installed = install.install([Path(a) for a in fetched["archives"]])
+    progress("📦 Распаковываю в библиотеку DAZ")
+    installed = install.install([Path(a) for a in fetched["archives"]],
+                                progress=progress)
     report["install"] = installed
     if not installed["wearables"]:
         report["errors"] = installed["errors"]
@@ -86,10 +86,10 @@ def intake(urls: list[str], progress: Progress = _noop,
             + ", ".join(sorted({w['generation'] or '?' for w in installed['wearables']}))]
         return report
 
-    progress(f"Библиотека обновлена: {installed['installed']} файлов, "
-             f"{len(wanted)} вещ(и) для {generation}.")
+    progress(f"✅ Библиотека обновлена — {installed['installed']} файлов, "
+             f"вещей для {generation}: {len(wanted)}")
     for w in wanted:
-        progress(f"  • {w['name']}")
+        progress(f"   • {w['name']}")
 
     drop = drop or drop_name(fetched["archives"])
     report["drop"] = drop
@@ -99,17 +99,16 @@ def intake(urls: list[str], progress: Progress = _noop,
                             "Daz Script Server → Start Server"]
         return report
 
-    progress(f"Одеваю девушек ({', '.join(config.girl_names())})…")
+    progress(f"👗 Одеваю девушек — {', '.join(config.girl_names())}")
     dressed = dress.dress_all([Path(w["file"]) for w in wanted], drop)
     report["dress"] = dressed
     for girl in dressed["girls"]:
-        progress(f"  ✔ {girl['girl']} — {girl['fbx'].split(chr(92))[-1]} "
-                 f"({girl['size_mb']} МБ)")
+        progress(f"   ✔ {girl['girl']} — {girl['size_mb']} МБ")
     if not dressed["ok"]:
         report["errors"] = dressed["errors"]
         return report
 
-    progress("Переношу текстуры и составляю манифест…")
+    progress("🎨 Переношу текстуры и собираю манифест")
     source = Path(dressed["girls"][0]["fbx"])
     meshes = fbx.geometries(source)
     body = max(meshes.values(), key=lambda m: m.height, default=None)

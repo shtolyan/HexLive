@@ -177,6 +177,12 @@ namespace HexLive.Simulation.Content
                 // A dense leather bra (was Outerwear armor): worn against the skin,
                 // the one underwear piece that still dampens a torso bite (§29C.4).
                 new("armor.leather",         "Leather Armor",    WearLayer.Underwear, 0.15f, 0.15f, -0.10f, dress, 4, GarmentSex.Female, BodyPart.Torso),
+                new("clothing.socks_nerd", "Knee Socks", WearLayer.Underwear, 0.05f, 0.00f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR),
+                new("underwear.bra_crux", "Wild Bra", WearLayer.Underwear, 0.02f, 0.00f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Torso),
+                new("underwear.panty_crux", "Wild Panties", WearLayer.Underwear, 0.02f, 0.00f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Pelvis),
+                new("clothing.stockings_spooky", "Spooky Stockings", WearLayer.Underwear, 0.04f, 0.00f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR),
+                new("underwear.babydoll_sweety", "Babydoll", WearLayer.Underwear, 0.04f, 0.00f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Torso, BodyPart.Pelvis),
+                new("underwear.panty_sweety", "Sweety Panties", WearLayer.Underwear, 0.02f, 0.00f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Torso, BodyPart.Pelvis),
 
                 // --- Wear: the main clothing layer, carries the warmth budget. --
                 new("clothing.coat",         "Coat",             WearLayer.Wear, 0.40f, 0.00f, -0.30f, dress, 6, GarmentSex.Female, BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR),
@@ -222,6 +228,20 @@ namespace HexLive.Simulation.Content
                 new("clothing.top_fitness",      "Fitness Top",      WearLayer.Wear, 0.08f, 0.00f,  0.00f, dress, 2, GarmentSex.Female, BodyPart.Torso),
                 new("clothing.leggings_fitness", "Fitness Leggings", WearLayer.Wear, 0.20f, 0.00f, -0.08f, dress, 2, GarmentSex.Female, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
                 new("clothing.sleeves_fitness",  "Fitness Sleeves",  WearLayer.Wear, 0.03f, 0.00f,  0.00f, dress, 0, GarmentSex.Female, BodyPart.ArmL, BodyPart.ArmR),
+                new("clothing.outfit_reiko", "Wrestler Outfit", WearLayer.Wear, 0.22f, 0.06f, 0.00f, dress, 2, GarmentSex.Female, BodyPart.Torso, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
+                new("clothing.gloves_classic", "Classic Gloves", WearLayer.Wear, 0.05f, 0.03f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.ArmL, BodyPart.ArmR),
+                new("clothing.shorts_classic", "Classic Shorts", WearLayer.Wear, 0.07f, 0.00f, 0.00f, dress, 2, GarmentSex.Female, BodyPart.Pelvis),
+                new("clothing.top_classic", "Classic Top", WearLayer.Wear, 0.06f, 0.00f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Torso),
+                new("clothing.glasses_nerd", "Glasses", WearLayer.Wear, 0.00f, 0.00f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Head),
+                new("clothing.blouse_nerd", "School Blouse", WearLayer.Wear, 0.09f, 0.00f, 0.00f, dress, 1, GarmentSex.Female, BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR),
+                new("clothing.bowtie_nerd", "Bow Tie", WearLayer.Wear, 0.01f, 0.00f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Torso),
+                new("clothing.suspenders_nerd", "Suspenders", WearLayer.Wear, 0.01f, 0.00f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Torso),
+                new("clothing.skirt_tutu", "Tutu Skirt", WearLayer.Wear, 0.06f, 0.00f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Torso, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
+                new("clothing.cap_stars", "Uniform Cap", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Head),
+                new("clothing.gloves_stars", "Uniform Gloves", WearLayer.Wear, 0.04f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.ArmL, BodyPart.ArmR),
+                new("clothing.pants_stars", "Uniform Trousers", WearLayer.Wear, 0.17f, 0.02f, 0.00f, dress, 2, GarmentSex.Female, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
+                new("clothing.top_stars", "Uniform Top", WearLayer.Wear, 0.09f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR),
+                new("clothing.skirt_crux", "Wild Skirt", WearLayer.Wear, 0.05f, 0.00f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Pelvis),
 
                 // --- Outerwear: the top layer — jackets, boots, armor. ----------
                 new("armor.heavy",           "Heavy Armor",      WearLayer.Outerwear, 0.25f, 0.50f, -0.10f, dress, 6, GarmentSex.Female, BodyPart.Torso, BodyPart.Pelvis),
@@ -232,6 +252,14 @@ namespace HexLive.Simulation.Content
                 // the whole point; the token 0.05 armor is the buckled leather
                 // strap itself, and gives her a reason to want it on.
                 new("legHolster_2204",       "Kabura na nogu",   WearLayer.Outerwear, 0.00f, 0.05f,  0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR),
+                new("clothing.headdress_jaguar", "Jaguar Headdress", WearLayer.Outerwear, 0.05f, 0.10f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Head),
+                new("clothing.boots_classic", "Classic Boots", WearLayer.Outerwear, 0.14f, 0.12f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR),
+                new("clothing.scarf_classic", "Scarf", WearLayer.Outerwear, 0.09f, 0.00f, 0.02f, dress, 0, GarmentSex.Female, BodyPart.Torso),
+                new("clothing.slipons_fads", "Slip-Ons", WearLayer.Outerwear, 0.06f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR),
+                new("clothing.sneakers_nerd", "Sneakers", WearLayer.Outerwear, 0.07f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR),
+                new("clothing.belt_stars", "Uniform Belt", WearLayer.Outerwear, 0.00f, 0.02f, 0.00f, dress, 2, GarmentSex.Female, BodyPart.Torso, BodyPart.Pelvis),
+                new("clothing.vest_stars", "Uniform Vest", WearLayer.Outerwear, 0.13f, 0.05f, 0.00f, dress, 1, GarmentSex.Female, BodyPart.Torso),
+                new("clothing.boots_cammy", "Combat Boots", WearLayer.Outerwear, 0.15f, 0.14f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR),
 
                 // --- §72: снаряжение чужака ------------------------------------
                 // Он не выживальщик в трусах, а боец: тактический комплект с

@@ -22,9 +22,9 @@ MonoBehaviour:
   - Zone: Head
     Points:
     - Slot: 0
-      Uv: {x: 0.40198615, y: 0.18969922}
-      BindPerU: 0.5719088
-      BindPerV: 0.40495774
+      Uv: {x: 0.40908432, y: 0.18969919}
+      BindPerU: 0.5701726
+      BindPerV: 0.4109668
       Valid: 1
   - Zone: Torso
     Points:

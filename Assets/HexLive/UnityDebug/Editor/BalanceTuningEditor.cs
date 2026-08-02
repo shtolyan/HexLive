@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using HexLive.Simulation.Content;
 using HexLive.UnityPresentation.Config;
 using UnityEditor;
@@ -26,20 +25,17 @@ namespace HexLive.UnityDebug.Editor
         [MenuItem("HexLive/Validate Tuning Coverage")]
         public static void ValidateMenu()
         {
+            // Console only — a modal box here holds Unity's main thread, and
+            // therefore the MCP bridge, until a human clicks it. See the same
+            // note in ExportSimData.
             var errors = Validate();
             if (errors.Count == 0)
             {
                 Debug.Log("[BalanceTuning] Coverage OK — каждый тюнинг-статик покрыт ровно одним конфигом.");
-                EditorUtility.DisplayDialog(
-                    "Validate Tuning Coverage", "OK: каждый тюнинг-статик покрыт ровно одним конфиг-ассетом.", "OK");
             }
             else
             {
                 Debug.LogError("[BalanceTuning] Coverage FAILED:\n" + string.Join("\n", errors));
-                EditorUtility.DisplayDialog(
-                    "Validate Tuning Coverage — ОШИБКА",
-                    string.Join("\n", errors.Take(25)) + (errors.Count > 25 ? $"\n…и ещё {errors.Count - 25}" : ""),
-                    "OK");
             }
         }
 

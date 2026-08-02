@@ -28,6 +28,17 @@ model ships as a plain `.glb` in `Resources/HexLive/Objects/<id>.glb` — see
 **`TOOL_GENERATION_SPEC.md` §3b** (`tool.machete`, `tool.bottle`, `tool.saw`,
 `item.bandage` went that way).
 
+## Heeled shoes — the raised heel
+
+**Follow `HEEL_POSE_SPEC.md`.** A heeled shoe in DAZ ships a foot POSE next to
+the mesh (heel up, toes bent back) and the shoe is modelled around it; Unity has
+no equivalent, so without it the girl stands flat inside the shoe and her foot
+pokes through the sole. It is two rotations and a lift, carried in the drop
+manifest as `heelPose` and applied by `BodyBones.LateUpdate` — **a new pair of
+heels needs no C# at all**. The pose numbers come out of the product's own
+`*FootPose*.duf`; the rotation AXIS is data, not a constant, because an FBX
+import can permute a bone's local axes — verify in play before believing it.
+
 ## Generating inventory ICONS (the pictures in the item list)
 
 **Follow `ICON_GENERATION_SPEC.md`** — a different pipeline from the models
@@ -49,6 +60,49 @@ whole garment set came from there.**
 - Unity work goes through the UnityMCP bridge; it drops on domain reload / when the
   editor is unfocused — re-pin the instance and retry. Guard mutations with
   `if (Application.productName != "HexLive") return;` (a second project may share the bridge).
+- **Never `EditorUtility.DisplayDialog` for a result — log it.** A modal box owns
+  Unity's main thread, and the bridge runs on that thread, so an "OK" nobody is
+  there to click freezes every command until a human comes back. Menu items on the
+  automated path (SimData export, tuning validation) log instead. The exception is a
+  genuine confirmation before something destructive (`Reset Values From Defaults`),
+  which must stay modal and must stay off the automated path.
+- The bridge caps a command at **30 s**. Anything longer — a compile, the wear
+  extraction, a paint-map rebake — reports "Command processing timed out" and
+  *finishes anyway*. Never treat that message as failure: poll for the artefact the
+  command was supposed to produce.
+
+### Wardrobe — three rules bought the hard way
+
+The DAZ→Unity clothing pipeline lives in `Tools/wardrobe` (see also
+`HEEL_POSE_SPEC.md` and `ICON_GENERATION_SPEC.md`). Three mistakes cost real
+time and are worth not repeating:
+
+- **A garment is identified by its DAZ MESH KEY, never by its name.**
+  `armor.leather` and `S3D_DdlSlc_Top` are the same top; matching on the display
+  name finds nothing, or worse, finds the wrong piece. Tripped over three times.
+- **Verify a rebuild by CONTENT, not by file timestamps.** Unity rewrites a mesh
+  asset even when nothing about it changed, so "the file is newer" proves only
+  that the menu ran. Compare what is inside — vertex count, channel layout, the
+  actual bytes — or the report will be confidently wrong.
+- **Refresh assets BEFORE running the extractor.** Otherwise it faithfully builds
+  prefabs from a stale FBX import and everything looks like it worked.
+
+Two more that read as bugs and are not: `blender -b` is forbidden only for the
+MCP bridge (the add-on needs an event loop) — for a plain script it is the
+normal mode, which is what `ICON_GENERATION_SPEC.md` uses; and a `.duf` that
+keys the foot rotations to zero is a RESET, not a pose (`HEEL_POSE_SPEC.md` §2).
+
+**A DAZ modal box stalls the whole run**, because DazScript executes on the Qt
+main thread the dialog owns — one missing texture and the script server answers
+STUDIO_BUSY until a human clicks OK. `Tools/wardrobe/daz_dialog_watchdog.ps1`
+(wired into the `dress` stage via `wardrobe/watchdog.py`) closes the boxes it
+positively recognises, through Win32, with no screenshots and no moving the
+mouse. Two things keep it honest and must stay: a **deny list that overrides
+the allow list** — DAZ also asks "overwrite this file?" and we write FBX files —
+and a **log of every dismissal**, or missing content stops being visible and
+resurfaces as white shoes. Note DAZ is Qt, so its buttons have no window of
+their own: the dialog is closed with `WM_CLOSE` (what the X does), not by
+clicking OK. It relieves the stall; it does not install the missing content.
 
 ## ⭐ ALL SOUND GOES THROUGH FMOD — and through BOTH of its halves
 

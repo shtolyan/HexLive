@@ -1,0 +1,93 @@
+{
+  "drop": "jaguar",
+  "_comment": "Mesoamerican Jaguar Headdress (Sade/Sadriel). The product is a KIT: a rigid helmet parented to the head bone plus 28 feathers and cords, each on a private bone. sourceKeys welds them into one skinned mesh riding the head — see MergeParts in NewWearExtractor. Its 30 surfaces sample only two atlases, so alsoSources folds them onto two materials.",
+  "sources": [
+    {
+      "fbx": "Assets/Temp/jolly jaguar.fbx",
+      "actor": "Jolly"
+    },
+    {
+      "fbx": "Assets/Temp/jana jaguar.fbx",
+      "actor": "Jana"
+    },
+    {
+      "fbx": "Assets/Temp/marta jaguar.fbx",
+      "actor": "Marta"
+    },
+    {
+      "fbx": "Assets/Temp/molly jaguar.fbx",
+      "actor": "Molly"
+    }
+  ],
+  "garments": [
+    {
+      "sourceKey": "JaguarHeaddress",
+      "sourceKeys": [
+        "Helmet",
+        "Feathers Tail",
+        "Feather Big",
+        "Feather Small",
+        "Strings A",
+        "Strings B"
+      ],
+      "folder": "JaguarHeaddress",
+      "name": "JaguarHeaddress",
+      "simId": "clothing.headdress_jaguar",
+      "layer": "Outerwear",
+      "slots": [
+        "Head"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Helm_A",
+          "alsoSources": [
+            "Head_01_A",
+            "Head_01_B",
+            "Head_03",
+            "Head_04",
+            "Head_05",
+            "Teeth_01",
+            "Teeth_02",
+            "Teeth_03",
+            "Teeth_04",
+            "Teeth_04_Ties",
+            "Top_01",
+            "Top_02",
+            "Side_Deco_A",
+            "Side_Deco_B",
+            "Nose",
+            "Eyes",
+            "Feather_Hold",
+            "Feather_Holders",
+            "Strings",
+            "Beads_01",
+            "Beads_02"
+          ],
+          "texture": "helmet.jpg",
+          "smoothness": 0.2,
+          "metallic": 0.0,
+          "doubleSided": false,
+          "alphaClip": false
+        },
+        {
+          "source": "default",
+          "alsoSources": [
+            "SFeather01",
+            "SFeather02",
+            "SFeather03",
+            "SFeather04",
+            "Feather_Tail_01",
+            "Feather_Tail_02",
+            "Feather_Tail_03"
+          ],
+          "texture": "feathers.png",
+          "smoothness": 0.15,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        }
+      ]
+    }
+  ]
+}

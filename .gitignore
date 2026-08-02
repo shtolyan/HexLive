@@ -61,6 +61,11 @@ Assets/Screenshots.meta
 # global [Tt]emp/ rule; the stray .meta needs its own line.
 Assets/Temp.meta
 
+# Which drop the next extraction is scoped to — a per-run scratch value written
+# by tools/wardrobe, not project content (NewWearExtractor.ActiveDropFile).
+Assets/Editor/WearDrops/_active.txt
+Assets/Editor/WearDrops/_active.txt.meta
+
 # Huge third-party animal pack — kept locally, never committed (wolf assets copied to Assets/HexLive/Art/Wolf)
 /[Aa]ssets/ANIMALS FULL PACK/
 /[Aa]ssets/ANIMALS FULL PACK.meta

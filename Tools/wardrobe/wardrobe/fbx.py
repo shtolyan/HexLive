@@ -114,6 +114,90 @@ def _nodes(path: Path) -> tuple[list[_Node], int]:
     return out, version
 
 
+def _catalog(nodes: list[_Node]) -> tuple[dict, dict]:
+    """`{uid: (class, name)}` plus `{model uid: local translation}`."""
+    names: dict = {}
+    local: dict = {}
+    current = None
+    for node in nodes:
+        if node.name in ("Geometry", "Model", "Pose") and len(node.props) >= 3:
+            current = node.props[0]
+            names[current] = (node.name, _text(node.props[1]))
+        elif (node.name == "P" and len(node.props) >= 7
+              and names.get(current, ("",))[0] == "Model"
+              and _text(node.props[0]) == "Lcl Translation"):
+            local[current] = tuple(float(v) for v in node.props[4:7])
+    return names, local
+
+
+def _bind_world(nodes: list[_Node]) -> dict:
+    """`{model uid: world position}`, read from the export's bind pose.
+
+    A `PoseNode` block is a node id followed by its 4×4 matrix, and the bind
+    pose is absolute — so the last row is where that bone stands on the figure.
+    """
+    world: dict = {}
+    current = None
+    for node in nodes:
+        if node.name == "PoseNode":
+            current = None
+        elif node.name == "Node" and node.props:
+            current = node.props[0]
+        elif node.name == "Matrix" and current is not None:
+            matrix = _unpack(node.props[0])
+            if matrix and len(matrix) >= 15:
+                world.setdefault(current, (matrix[12], matrix[13], matrix[14]))
+            current = None
+    return world
+
+
+def _placements(nodes: list[_Node]) -> dict[str, tuple[float, float, float]]:
+    """Where each mesh's vertices actually sit on the figure.
+
+    A conforming garment is exported in the figure's own space and needs
+    nothing. An accessory PARENTED to a bone — glasses, a bowtie, the buttons
+    on a pair of suspenders — is not: its vertices are local to its own node,
+    so measured raw it sits at the floor. That read as `очки: Foot 100%` in a
+    drafted manifest, which is worse than no guess at all, because the zone
+    table is the evidence a reviewer is supposed to check the guess against.
+
+    The bone's place comes from the bind pose, which is absolute; the prop's
+    offset from it is the chain of `Lcl Translation` in between. Rotation is
+    deliberately ignored — this feeds the anatomical zones, which are coarse,
+    and nothing hangs off a bone at an angle wide enough to change one.
+    """
+    names, local = _catalog(nodes)
+    world = _bind_world(nodes)
+
+    parent: dict = {}
+    model_of: dict[str, int] = {}
+    for c in nodes:
+        if c.name != "C" or len(c.props) < 3:
+            continue
+        src, dst = c.props[1], c.props[2]
+        kinds = (names.get(src, ("",))[0], names.get(dst, ("",))[0])
+        if kinds == ("Model", "Model"):
+            parent[src] = dst
+        elif kinds == ("Geometry", "Model"):
+            model_of[names[src][1]] = dst
+
+    placements: dict[str, tuple[float, float, float]] = {}
+    for mesh, uid in model_of.items():
+        offset = [0.0, 0.0, 0.0]
+        seen: set = set()
+        while uid is not None and uid not in seen:
+            seen.add(uid)
+            if uid in world:  # a bone: absolute, so the walk ends here
+                anchor = world[uid]
+                offset = [offset[i] + anchor[i] for i in range(3)]
+                break
+            step = local.get(uid, (0.0, 0.0, 0.0))
+            offset = [offset[i] + step[i] for i in range(3)]
+            uid = parent.get(uid)
+        placements[mesh] = tuple(offset)
+    return placements
+
+
 def geometries(path: Path, sample: int = 20000) -> dict[str, Geometry]:
     """Every mesh in the file, keyed by its DAZ node name.
 
@@ -121,9 +205,12 @@ def geometries(path: Path, sample: int = 20000) -> dict[str, Geometry]:
     shape statistics slot inference needs, without holding a 50 K-vertex pair
     of leggings in memory for every garment in the drop.
     """
+    nodes = _nodes(path)[0]
+    placements = _placements(nodes)
+
     result: dict[str, Geometry] = {}
     current: Geometry | None = None
-    for node in _nodes(path)[0]:
+    for node in nodes:
         if node.name == "Geometry" and len(node.props) > 1:
             current = Geometry(_text(node.props[1]))
             result[current.name] = current
@@ -134,8 +221,11 @@ def geometries(path: Path, sample: int = 20000) -> dict[str, Geometry]:
         elif node.name == "Vertices":
             values = _unpack(node.props[0])
             if values:
+                dx, dy, dz = placements.get(current.name, (0.0, 0.0, 0.0))
                 current.verts = len(values) // 3
-                xs, ys, zs = values[0::3], values[1::3], values[2::3]
+                xs = [v + dx for v in values[0::3]]
+                ys = [v + dy for v in values[1::3]]
+                zs = [v + dz for v in values[2::3]]
                 current.bbox = (min(xs), max(xs), min(ys), max(ys), min(zs), max(zs))
                 step = max(1, current.verts // sample) if sample else 1
                 current.points = list(zip(xs[::step], ys[::step], zs[::step]))

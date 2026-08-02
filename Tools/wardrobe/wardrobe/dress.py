@@ -21,9 +21,10 @@ which does not exist in this DAZ build. We drive `DzFbxExporter` directly.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
-from . import config, daz
+from . import config, daz, watchdog
 
 _STRIP_AND_FIT = """
 (function(){
@@ -33,28 +34,55 @@ _STRIP_AND_FIT = """
   var fig = Scene.findNodeByLabel(args.figure);
   if (!fig) return JSON.stringify({error: "в сцене нет фигуры " + args.figure});
 
-  // Collect first, remove after — removing shifts the node indices.
-  var drop = [];
-  for (var i = 0; i < Scene.getNumNodes(); i++) {
-    var n = Scene.getNode(i);
-    if (n != fig && n.inherits("DzFigure") && n.getFollowTarget && n.getFollowTarget()) drop.push(n);
+  // DAZ has TWO ways to wear something, and counting only the first reported a
+  // correctly-worn item as missing:
+  //   * conforming clothing is a DzFigure that FOLLOWS the figure;
+  //   * an accessory (headdress, jewellery) is PARENTED to one of its bones.
+  // `worn` is the top level of either — the node whose parent is the figure or
+  // one of its bones. Sub-parts hanging off that node are not counted again.
+  function ownBone(n) {
+    return n && n.inherits("DzBone") && n.getSkeleton && n.getSkeleton() == fig;
   }
+  function worn(n) {
+    if (n == fig) return false;
+    if (n.inherits("DzFigure") && n.getFollowTarget && n.getFollowTarget()) return true;
+    if (n.inherits("DzBone")) return false;
+    var p = n.getNodeParent ? n.getNodeParent() : null;
+    return !!p && (p == fig || ownBone(p));
+  }
+
+  function wornNodes() {
+    var found = [];
+    for (var i = 0; i < Scene.getNumNodes(); i++) {
+      var n = Scene.getNode(i);
+      if (worn(n)) found.push(n);
+    }
+    return found;
+  }
+
+  // Collect first, remove after — removing shifts the node indices.
+  var drop = wornNodes();
   for (var i = 0; i < drop.length; i++) { out.dropped.push(drop[i].getLabel()); Scene.removeNode(drop[i]); }
 
   // Clothing of the figure's own generation auto-fits on load, with no dialog,
-  // as long as the figure is the current selection.
+  // as long as the figure is the current selection. `added` is how many things
+  // that file actually put ON her — see the note in `dress_one` about why the
+  // answer is not always one.
   for (var i = 0; i < args.garments.length; i++) {
     Scene.selectAllNodes(false);
     Scene.setPrimarySelection(fig);
+    var before = wornNodes().length;
     var ok = App.getContentMgr().openFile(args.garments[i], true);
-    out.loaded.push({ file: args.garments[i], ok: ok });
+    out.loaded.push({ file: args.garments[i], ok: ok, added: wornNodes().length - before });
   }
 
-  for (var i = 0; i < Scene.getNumNodes(); i++) {
-    var n = Scene.getNode(i);
-    if (n != fig && n.inherits("DzFigure") && n.getFollowTarget && n.getFollowTarget()) {
-      out.fitted.push({ label: n.getLabel(), name: n.getName() });
-    }
+  var fitted = wornNodes();
+  for (var i = 0; i < fitted.length; i++) {
+    out.fitted.push({
+      label: fitted[i].getLabel(),
+      name: fitted[i].getName(),
+      how: (fitted[i].getFollowTarget && fitted[i].getFollowTarget()) ? "conform" : "parent"
+    });
   }
   return JSON.stringify(out);
 })()
@@ -105,10 +133,25 @@ def dress_one(girl: str, garments: list[Path], out_fbx: Path) -> dict:
     failed = [x["file"] for x in result["loaded"] if not x["ok"]]
     if failed:
         raise daz.DazError(f"{girl}: не загрузились предметы: {', '.join(failed)}")
-    if len(result["fitted"]) != len(garments):
+
+    # One .duf is not one worn thing, in either direction, so counting is the
+    # wrong guard: "Fads Slip Ons" fits a left and a right shoe as two figures,
+    # and an outfit preset fits five at once. What must hold is that every file
+    # put something ON her — a `scene_subset` that lands in the scene unparented
+    # loads fine, reports success, and attaches to nobody.
+    silent = [Path(x["file"]).stem for x in result["loaded"] if not x.get("added")]
+    if silent:
         raise daz.DazError(
-            f"{girl}: надето {len(result['fitted'])} из {len(garments)} — "
-            f"{[x['label'] for x in result['fitted']]}")
+            f"{girl}: загрузились, но ни на ком не сидят: {', '.join(silent)}")
+
+    # DAZ renames a second copy of an already-loaded item to "Classic Boot (2)".
+    # Seeing one means two garment files carry the same geometry — the outfit
+    # preset beside its own pieces, or one product filed under two vendors.
+    labels = {x["label"] for x in result["fitted"]}
+    twice = sorted(x["label"] for x in result["fitted"]
+                   if (m := re.fullmatch(r"(.+) \(\d+\)", x["label"])) and m[1] in labels)
+    if twice:
+        raise daz.DazError(f"{girl}: надето дважды: {', '.join(twice)}")
 
     out_fbx.parent.mkdir(parents=True, exist_ok=True)
     exported = json.loads(daz.execute(_EXPORT, {"path": _daz_path(out_fbx)}))
@@ -131,6 +174,15 @@ def dress_all(garments: list[Path], drop: str, girls: list[str] | None = None) -
     girls = girls or config.girl_names()
     report = {"drop": drop, "garments": [str(g) for g in garments], "girls": [], "errors": []}
 
+    # Loading a girl's scene is where DAZ throws its "Missing Files" box, and
+    # that box owns the main thread the script server runs on — one missing
+    # texture used to stall the whole run until a human clicked OK. The guard
+    # itself is started by `daz.execute` and lives for the whole process, so it
+    # is up whichever stage hits the dialog; this only notes where this stage's
+    # share of the log begins.
+    watchdog.ensure_running()
+    mark = watchdog.mark()
+
     for girl in girls:
         out = config.DROP_DIR / f"{girl.lower()} {drop}.fbx"
         try:
@@ -139,6 +191,12 @@ def dress_all(garments: list[Path], drop: str, girls: list[str] | None = None) -
             report["errors"].append(str(e))
             continue
         report["girls"].append(entry)
+
+    report["dialogs"] = watchdog.since(mark)
+    # Missing content is not cosmetic: it ships as white shoes. Surface it as a
+    # finding on the run rather than leaving it in a log nobody opens.
+    for line in report["dialogs"]["needs_attention"]:
+        report["errors"].append(f"окно DAZ требует человека: {line}")
 
     # Every girl must yield the same garment node names, or the Unity extractor
     # cannot match one garment across bodies.

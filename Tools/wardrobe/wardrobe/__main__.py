@@ -50,7 +50,7 @@ def cmd_unity(args: argparse.Namespace) -> int:
     if not unity.alive():
         return _emit({"ok": False, "errors": [
             "мост Unity молчит на 127.0.0.1:6400 — редактор запущен?"]})
-    report = unity.build_wear(force=args.force)
+    report = unity.build_wear(force=args.force, drop=args.drop)
     return _emit(report, config.REPORTS / "unity.json")
 
 
@@ -162,7 +162,10 @@ def main(argv: list[str] | None = None) -> int:
     p.set_defaults(fn=cmd_fetch)
 
     p = sub.add_parser("unity", help="прогнать сборку префабов в живом редакторе")
-    p.add_argument("--force", action="store_true", help="пересобрать даже готовые префабы")
+    p.add_argument("--drop", required=True,
+                   help="какую поставку собирать; без неё экстрактор берёт ВСЕ манифесты")
+    p.add_argument("--force", action="store_true",
+                   help="пересобрать даже готовые префабы этой поставки")
     p.set_defaults(fn=cmd_unity)
 
     p = sub.add_parser("register", help="прописать вещи в GarmentLibrary, слоты и I2")

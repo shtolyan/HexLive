@@ -59,19 +59,17 @@ namespace HexLive.UnityDebug.Editor
                     $"mobs: {Count(json, "\"maxHealth\"")}, gear: {Count(json, "\"meleePriority\"")}, " +
                     $"garments: {Count(json, "\"dressDurationTicks\"")}, " +
                     $"worldObjects: {Count(json, "\"interactions\"")}, recipes: {Count(json, "\"output\"")}";
+                // Console only, deliberately. A modal dialog owns Unity's main
+                // thread until someone clicks it, and this export is a routine
+                // step of the automated wardrobe pipeline — the box left the
+                // editor (and the MCP bridge with it) frozen for however long
+                // it took a human to come back. The log already says everything
+                // the dialog said.
                 Debug.Log($"[ExportSimData] OK — written {path} ({summary})");
-                EditorUtility.DisplayDialog(
-                    "Export Sim Data",
-                    $"Успешно выгружено:\n{path}\n\n{summary}",
-                    "OK");
             }
             catch (System.Exception e)
             {
-                Debug.LogError($"[ExportSimData] FAILED: {e}");
-                EditorUtility.DisplayDialog(
-                    "Export Sim Data — ОШИБКА",
-                    $"Экспорт НЕ выполнен{(path != null ? $" ({path})" : "")}:\n\n{e.Message}",
-                    "OK");
+                Debug.LogError($"[ExportSimData] FAILED{(path != null ? $" ({path})" : "")}: {e}");
             }
         }
 

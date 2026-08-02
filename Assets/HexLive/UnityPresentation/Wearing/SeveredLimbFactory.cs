@@ -107,11 +107,33 @@ public static class SeveredLimbFactory
 
         // A vertex belongs to the limb if its dominant bone weight is a limb
         // bone. Keep triangles all of whose vertices are limb vertices.
-        var weights = mesh.boneWeights;
-        var vertexInLimb = new bool[weights.Length];
-        for (var v = 0; v < weights.Length; v++)
+        //
+        // Modern skin-weight API, for the reason HealthDollStage already
+        // documents: the legacy mesh.boneWeights getter comes back EMPTY unless
+        // the mesh carries exactly four influences per vertex. Welded garments
+        // (spec §31B.4D) store ONE, so the old call sliced nothing off them and
+        // the cloth on a severed arm silently stayed whole. GetAllBoneWeights
+        // sorts influences most-significant first, so the dominant bone is the
+        // first entry of each run.
+        var bonesPerVertex = mesh.GetBonesPerVertex();
+        var allWeights = mesh.GetAllBoneWeights();
+        if (bonesPerVertex.Length != mesh.vertexCount)
         {
-            vertexInLimb[v] = DominantBoneInLimb(weights[v], inLimb);
+            return null;   // unskinned mesh — nothing to slice by
+        }
+
+        var vertexInLimb = new bool[mesh.vertexCount];
+        var cursor = 0;
+        for (var v = 0; v < vertexInLimb.Length; v++)
+        {
+            int count = bonesPerVertex[v];
+            if (count > 0)
+            {
+                var bone = allWeights[cursor].boneIndex;
+                vertexInLimb[v] = bone >= 0 && bone < inLimb.Length && inLimb[bone];
+            }
+
+            cursor += count;
         }
 
         var limbMesh = SliceMesh(mesh, vertexInLimb);
@@ -176,17 +198,6 @@ public static class SeveredLimbFactory
         }
 
         return best;
-    }
-
-    private static bool DominantBoneInLimb(BoneWeight w, bool[] inLimb)
-    {
-        // Pick the highest-weight bone of the four and test membership.
-        var bi = w.boneIndex0;
-        var bw = w.weight0;
-        if (w.weight1 > bw) { bw = w.weight1; bi = w.boneIndex1; }
-        if (w.weight2 > bw) { bw = w.weight2; bi = w.boneIndex2; }
-        if (w.weight3 > bw) { bi = w.boneIndex3; }
-        return bi >= 0 && bi < inLimb.Length && inLimb[bi];
     }
 
     // Build a new mesh from the triangles fully inside the limb-vertex set,

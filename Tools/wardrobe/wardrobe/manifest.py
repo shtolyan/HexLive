@@ -16,7 +16,7 @@ import json
 import re
 from pathlib import Path
 
-from . import config, fbx
+from . import config, fbx, heels
 
 # Anatomical zones on the Genesis 3 Female base figure all four girls share:
 # ~180 cm tall, hip joint at ~105 cm, fingertips at x ±84. Every vertex lands in
@@ -134,14 +134,20 @@ def propose(fbx_path: Path, drop: str, texture_report: dict,
             }
             for material, spec in staged[key].items()
         ]
-        garments.append({
+        slots = infer_slots(geometry)
+        # Footwear gets one more question asked of it: is there a heel? The
+        # export answers for free — a shoe modelled for a raised heel, fitted to
+        # a girl standing flat, reaches below the floor by the heel height.
+        heel, heel_cm = heels.propose(geometry, slots)
+
+        entry = {
             "sourceKey": key,
             "folder": name,
             "name": name,
             # REVIEW: the agent replaces this with a real id + display names.
             "simId": f"clothing.{name.lower()}",
             "layer": "Wear",
-            "slots": infer_slots(geometry),
+            "slots": slots,
             "noHide": [],
             "materials": materials,
             # Evidence for the reviewer: the slot list above is inferred from
@@ -151,8 +157,12 @@ def propose(fbx_path: Path, drop: str, texture_report: dict,
                 "polys": geometry.polys,
                 "bbox": [round(v, 1) for v in geometry.bbox] if geometry.bbox else None,
                 "zones": zone_shares(geometry),
+                "heelCm": round(heel_cm, 2),
             },
-        })
+        }
+        if heel:
+            entry["heelPose"] = heel
+        garments.append(entry)
 
     return {
         "drop": drop,
@@ -195,6 +205,12 @@ def merge(existing: dict, draft: dict) -> dict:
             continue
         kept = dict(prior)
         kept["_measured"] = drafted["_measured"]
+        # A heel the reviewed entry never had is not a decision to overrule —
+        # it is a measurement the tool could not make yet. Adopt it, flagged.
+        # An explicit `"heelPose": null` IS a decision and stays untouched.
+        if "heelPose" not in kept and "heelPose" in drafted:
+            kept["heelPose"] = drafted["heelPose"]
+            kept["_review"] = "каблук замерен впервые — проверьте позу в WardrobeTest"
         garments.append(kept)
 
     # Anything the export no longer contains stays, flagged rather than dropped.

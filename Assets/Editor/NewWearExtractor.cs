@@ -52,15 +52,38 @@ public static class NewWearExtractor
     // already described, and the built-ins were seeded FIRST, so the JSON entry
     // lost. Those eight pieces kept being built from the old `* new wear.fbx`
     // exports, which is how Jana's re-fit silently missed them.
-    private static readonly (string path, ActorName actor)[] BuiltInSources = { };
+    private static readonly (string path, ActorName actor, string drop)[] BuiltInSources = { };
+
+    // A DROP IS THE UNIT OF WORK. `tools/wardrobe` writes this file with the
+    // name of the drop it just built, and everything below is then scoped to it:
+    // that drop's FBX files are the only ones instantiated and its garments the
+    // only ones (re)built. Without it every run touched the whole wardrobe —
+    // one new pair of knickers re-stamped all 23 garments, re-imported every
+    // girl's export, and rewrote materials other people had tuned by hand.
+    //
+    // Absent = no scope, i.e. everything. That is the deliberate manual case,
+    // and it says so in the log rather than happening quietly.
+    private const string ActiveDropFile = DropRoot + "/_active.txt";
 
     // Built-ins + every JSON drop, resolved once per domain reload.
-    private static (string path, ActorName actor)[] _sources;
+    private static (string path, ActorName actor, string drop)[] _sources;
     private static GarmentSpec[] _garments;
 
-    private static (string path, ActorName actor)[] Sources
+    private static (string path, ActorName actor, string drop)[] Sources
     {
         get { EnsureLoaded(); return _sources; }
+    }
+
+    /// <summary>Name of the drop this run is limited to, or null for all.</summary>
+    private static string ActiveDrop()
+    {
+        if (!File.Exists(ActiveDropFile))
+        {
+            return null;
+        }
+
+        var name = File.ReadAllText(ActiveDropFile).Trim();
+        return string.IsNullOrEmpty(name) ? null : name;
     }
 
     private static GarmentSpec[] Garments
@@ -68,12 +91,16 @@ public static class NewWearExtractor
         get { EnsureLoaded(); return _garments; }
     }
 
-    // Every girl the drops cover, each listed once.
-    private static ActorName[] Actors => Sources.Select(s => s.actor).Distinct().ToArray();
+    private static readonly int BumpMap = Shader.PropertyToID("_BumpMap");
 
     private sealed class MatSpec
     {
         public string Source;       // material name inside the FBX
+        // Other FBX material names that should land on this same material. A
+        // DAZ prop splits one texture atlas across dozens of named surfaces —
+        // the headdress has eighteen for the helmet alone — and shipping a
+        // submesh per surface would be eighteen draw calls for one hat.
+        public string[] Aliases = { };
         public string Texture;      // file under <Folder>/Textures (null = plain color)
         public Color Color = Color.white;
         public float Smoothness = 0.3f;
@@ -84,7 +111,12 @@ public static class NewWearExtractor
 
     private sealed class GarmentSpec
     {
+        public string Drop;         // which manifest described it
         public string SourceKey;    // mesh name inside the FBX
+        // Set when the garment arrives as an ASSEMBLY of meshes rather than
+        // one: every renderer whose name starts with one of these is welded
+        // into a single skinned mesh under SourceKey. See MergeParts.
+        public string[] SourceKeys;
         public string Folder;       // ImportedActors/Wear/<Folder>
         public string Name;         // prefab + root GameObject name
         public string SimId;        // Resources/HexLive/Wear/<SimId>/
@@ -131,6 +163,11 @@ public static class NewWearExtractor
     [System.Serializable] private sealed class DropGarment
     {
         public string sourceKey, folder, name, simId, layer;
+        // An accessory can arrive as an ASSEMBLY rather than one mesh: the
+        // Jaguar Headdress exports as 29 (a rigid helmet plus 28 feathers and
+        // cords). Listing them here merges them into the one skinned mesh the
+        // wardrobe contract allows — see MergeParts.
+        public string[] sourceKeys;
         public string[] slots, noHide;
         public DropMaterial[] materials;
         public DropHeel heelPose;   // spec §31B.4C — heeled shoes only
@@ -147,6 +184,7 @@ public static class NewWearExtractor
     [System.Serializable] private sealed class DropMaterial
     {
         public string source, texture, color;
+        public string[] alsoSources;    // more FBX surfaces sharing this material
         public float smoothness = 0.3f, metallic;
         public bool doubleSided = true, alphaClip;
     }
@@ -158,7 +196,7 @@ public static class NewWearExtractor
             return;
         }
 
-        var sources = new List<(string, ActorName)>(BuiltInSources);
+        var sources = new List<(string, ActorName, string)>(BuiltInSources);
         var garments = new List<GarmentSpec>(BuiltInGarments);
 
         if (Directory.Exists(DropRoot))
@@ -180,13 +218,17 @@ public static class NewWearExtractor
         _garments = garments.ToArray();
     }
 
-    private static void LoadDrop(string file, List<(string, ActorName)> sources, List<GarmentSpec> garments)
+    private static void LoadDrop(string file, List<(string, ActorName, string)> sources, List<GarmentSpec> garments)
     {
         var parsed = JsonUtility.FromJson<DropFile>(File.ReadAllText(file));
         if (parsed == null)
         {
             throw new IOException("не разобрался JSON");
         }
+
+        var drop = !string.IsNullOrEmpty(parsed.drop)
+            ? parsed.drop
+            : Path.GetFileNameWithoutExtension(file);
 
         foreach (var s in parsed.sources ?? new DropSource[0])
         {
@@ -199,7 +241,7 @@ public static class NewWearExtractor
             // A re-run of the same drop must not index the same FBX twice.
             if (!sources.Any(existing => existing.Item1 == s.fbx))
             {
-                sources.Add((s.fbx, actor));
+                sources.Add((s.fbx, actor, drop));
             }
         }
 
@@ -213,7 +255,9 @@ public static class NewWearExtractor
 
             garments.Add(new GarmentSpec
             {
+                Drop = drop,
                 SourceKey = g.sourceKey,
+                SourceKeys = g.sourceKeys != null && g.sourceKeys.Length > 0 ? g.sourceKeys : null,
                 Folder = g.folder,
                 Name = g.name,
                 SimId = g.simId,
@@ -223,6 +267,7 @@ public static class NewWearExtractor
                 Materials = (g.materials ?? new DropMaterial[0]).Select(m => new MatSpec
                 {
                     Source = m.source,
+                    Aliases = m.alsoSources ?? new string[0],
                     Texture = string.IsNullOrEmpty(m.texture) ? null : m.texture,
                     Color = ParseColor(m.color),
                     Smoothness = m.smoothness,
@@ -305,16 +350,25 @@ public static class NewWearExtractor
             : Color.white;
     }
 
-    // One-shot auto-run: fires after every compile, does nothing once all nine
-    // prefabs exist (or when the Temp FBX drop is gone from this machine).
+    // One-shot auto-run: fires after every compile, and does nothing unless
+    // some drop has an export sitting there with a garment still to build.
+    // Scoped like everything else — a finished drop whose exports have been
+    // cleaned up must not stop a new one from being noticed.
     [InitializeOnLoadMethod]
     private static void AutoRun()
     {
         EditorApplication.delayCall += () =>
         {
             if (Application.productName != "HexLive") return;
-            if (Sources.Any(s => !File.Exists(s.path))) return;
-            if (Garments.All(g => File.Exists(PrefabPath(g)))) return;
+            var only = ActiveDrop();
+            var pending = Garments.Where(g => (only == null || g.Drop == only) &&
+                                              !File.Exists(PrefabPath(g)))
+                .Select(g => g.Drop)
+                .ToHashSet();
+            if (pending.Count == 0) return;
+            // Only worth starting if the exports those garments come from are
+            // actually here.
+            if (!Sources.Any(s => pending.Contains(s.drop) && File.Exists(s.path))) return;
             Run(force: false);
         };
     }
@@ -325,6 +379,114 @@ public static class NewWearExtractor
     [MenuItem("HexLive/Wear/Extract New Wear (Force Re-Extract)")]
     private static void RunForceMenu() => Run(force: true);
 
+    /// <summary>
+    /// Rebuild the drops' MATERIALS in place, without touching meshes.
+    /// </summary>
+    /// <remarks>
+    /// Materials need no FBX — only the manifest and the textures on disk — and
+    /// that matters because a finished drop's exports are thrown away
+    /// (DiscardExports), which makes a normal re-extract impossible afterwards.
+    /// A material is exactly the thing you fix later: `build` stages textures
+    /// under a folder named from the DAZ mesh key, so renaming a garment during
+    /// review strands them, and every material comes out with no albedo — a
+    /// white garment in the world, not just on the icon.
+    ///
+    /// The prefabs reference these `.mat` assets by GUID, so refreshing them in
+    /// place is enough; nothing has to be re-extracted.
+    /// </remarks>
+    [MenuItem("HexLive/Wear/Rebuild Materials From Drops")]
+    private static void RebuildMaterialsMenu()
+    {
+        _sources = null;
+        _garments = null;
+
+        var only = ActiveDrop();
+        var done = 0;
+        var blank = new List<string>();
+        foreach (var g in Garments.Where(g => only == null || g.Drop == only))
+        {
+            EnsureFolder($"{ImportRoot}/{g.Folder}/Materials");
+            foreach (var spec in g.Materials)
+            {
+                var mat = BuildMaterial(g, spec);
+                done++;
+                if (spec.Texture != null && mat.GetTexture("_BaseMap") == null)
+                {
+                    blank.Add($"{g.Folder}/{spec.Source} ← {spec.Texture}");
+                }
+            }
+        }
+
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        var report = $"[NewWear] материалов пересобрано: {done}" +
+                     (blank.Count > 0
+                         ? $"\n  БЕЗ ТЕКСТУРЫ {blank.Count} (файла нет в <вещь>/Textures):\n    " +
+                           string.Join("\n    ", blank.Take(20))
+                         : "");
+        Debug.Log(report);
+        File.WriteAllText("Temp/newwear-materials.txt", report);
+    }
+
+    /// <summary>
+    /// Throw away the exports of every drop that is already built.
+    /// </summary>
+    /// <remarks>
+    /// A one-off broom for what accumulated before a drop became the unit of
+    /// work: measured, `Assets/Temp` held 38 FBX exports, and every extraction
+    /// instantiated all of them — eight-plus full Genesis rigs at once, which
+    /// is enough to take the editor down. Manual on purpose: deleting that many
+    /// files is a decision, and anything not described by a manifest is left
+    /// alone and merely listed.
+    /// </remarks>
+    [MenuItem("HexLive/Wear/Discard Finished Drop Exports")]
+    private static void DiscardFinishedMenu()
+    {
+        _sources = null;
+        _garments = null;
+
+        var removed = new List<string>();
+        var kept = new List<string>();
+        foreach (var drop in Sources.Select(s => s.drop).Distinct())
+        {
+            var theirs = Garments.Where(g => g.Drop == drop).ToArray();
+            var unfinished = theirs.Count(g => !File.Exists(PrefabPath(g)));
+            if (theirs.Length == 0 || unfinished > 0)
+            {
+                kept.Add($"{drop} (не собрано {unfinished} из {theirs.Length})");
+                continue;
+            }
+
+            foreach (var (path, _, _) in Sources.Where(s => s.drop == drop))
+            {
+                if (File.Exists(path) && AssetDatabase.DeleteAsset(path))
+                {
+                    removed.Add(Path.GetFileName(path));
+                }
+            }
+        }
+
+        // Exports no manifest mentions — the pre-manifest era. Not ours to
+        // delete, but the operator should know they are sitting there.
+        var described = new HashSet<string>(Sources.Select(s => s.path.Replace('\\', '/')));
+        var strays = Directory.Exists("Assets/Temp")
+            ? Directory.GetFiles("Assets/Temp", "*.fbx")
+                .Select(p => p.Replace('\\', '/'))
+                .Where(p => !described.Contains(p))
+                .Select(Path.GetFileName)
+                .ToArray()
+            : new string[0];
+
+        AssetDatabase.Refresh();
+        Debug.Log($"[NewWear] убрано экспортов: {removed.Count}" +
+                  (removed.Count > 0 ? "\n  " + string.Join(", ", removed) : "") +
+                  (kept.Count > 0 ? "\n  оставлены незаконченные: " + string.Join("; ", kept) : "") +
+                  (strays.Length > 0
+                      ? $"\n  ничьих (ни в одном манифесте), решайте сами — {strays.Length}: " +
+                        string.Join(", ", strays)
+                      : ""));
+    }
+
     private static string PrefabPath(GarmentSpec g) => $"{WearRoot}/{g.SimId}/{g.Name}.prefab";
 
     private static void Run(bool force)
@@ -334,19 +496,56 @@ public static class NewWearExtractor
         _sources = null;
         _garments = null;
 
-        var missingFbx = Sources.Where(s => !File.Exists(s.path)).Select(s => s.path).ToList();
-        if (missingFbx.Count > 0)
+        var only = ActiveDrop();
+        var sources = Sources.Where(s => only == null || s.drop == only).ToArray();
+        var garments = Garments.Where(g => only == null || g.Drop == only).ToArray();
+        if (only != null)
         {
-            Debug.LogError("[NewWear] FBX not found: " + string.Join(", ", missingFbx));
-            return;
+            if (garments.Length == 0)
+            {
+                Debug.LogError($"[NewWear] поставка '{only}' не найдена среди манифестов в {DropRoot}");
+                return;
+            }
+
+            Debug.Log($"[NewWear] работаю только с поставкой '{only}': " +
+                      $"{garments.Length} вещ(и), {sources.Length} экспорт(ов)");
+        }
+        else
+        {
+            Debug.LogWarning("[NewWear] поставка не указана — беру ВСЕ манифесты. " +
+                             $"Обычно это не то, что нужно: одна новая вещь пересоберёт все " +
+                             $"{Garments.Length}. Запись имени в {ActiveDropFile} ограничивает прогон.");
         }
 
-        // Instantiate the three FBX rigs once; index every garment renderer.
+        // A drop whose exports have been cleaned up is DONE, not broken — the
+        // FBX is a temporary, and its meshes already live in the project. It is
+        // only an error when that drop is the one we were asked to build.
+        var missingFbx = sources.Where(s => !File.Exists(s.path)).Select(s => s.path).ToList();
+        if (missingFbx.Count > 0)
+        {
+            if (only != null)
+            {
+                Debug.LogError("[NewWear] нет экспортов поставки: " + string.Join(", ", missingFbx));
+                return;
+            }
+
+            Debug.Log($"[NewWear] пропускаю {missingFbx.Count} убранных экспорт(ов) — " +
+                      "их вещи уже собраны");
+            var gone = new HashSet<string>(sources.Where(s => !File.Exists(s.path)).Select(s => s.drop));
+            sources = sources.Where(s => File.Exists(s.path)).ToArray();
+            garments = garments.Where(g => !gone.Contains(g.Drop)).ToArray();
+        }
+
+        // Instantiate the FBX rigs once; index every garment renderer.
         var instances = new List<GameObject>();
+        // One girl now has several rigs — one FBX per drop — so this is a list.
+        // Keyed by girl alone, the second drop simply overwrote the first and a
+        // welded garment went looking for its helmet in the Sweet Jane export.
+        var rigs = new Dictionary<ActorName, List<GameObject>>();
         var renderers = new Dictionary<(ActorName actor, string key), SkinnedMeshRenderer>();
         try
         {
-            foreach (var (path, actor) in Sources)
+            foreach (var (path, actor, _) in sources)
             {
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
                 if (prefab == null)
@@ -358,9 +557,15 @@ public static class NewWearExtractor
                 var instance = Object.Instantiate(prefab);
                 instance.hideFlags = HideFlags.HideAndDontSave;
                 instances.Add(instance);
+                if (!rigs.TryGetValue(actor, out var forActor))
+                {
+                    rigs[actor] = forActor = new List<GameObject>();
+                }
+
+                forActor.Add(instance);
                 foreach (var r in instance.GetComponentsInChildren<SkinnedMeshRenderer>(true))
                 {
-                    var key = Garments.FirstOrDefault(g =>
+                    var key = garments.FirstOrDefault(g =>
                         r.sharedMesh != null && r.sharedMesh.name.StartsWith(g.SourceKey) ||
                         r.name.StartsWith(g.SourceKey))?.SourceKey;
                     if (key != null)
@@ -373,7 +578,7 @@ public static class NewWearExtractor
             var done = 0;
             var skipped = 0;
             var log = new System.Text.StringBuilder();
-            foreach (var g in Garments)
+            foreach (var g in garments)
             {
                 if (!force && File.Exists(PrefabPath(g)))
                 {
@@ -381,7 +586,7 @@ public static class NewWearExtractor
                     continue;
                 }
 
-                if (ExtractGarment(g, renderers, log))
+                if (ExtractGarment(g, renderers, rigs, log))
                 {
                     done++;
                 }
@@ -389,7 +594,12 @@ public static class NewWearExtractor
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log($"[NewWear] extracted {done}, skipped (already built) {skipped}\n{log}");
+            var report = $"[NewWear] extracted {done}, skipped (already built) {skipped}\n{log}";
+            Debug.Log(report);
+            // Also to a file: the MCP bridge's console read is the first thing
+            // to time out on a busy editor, and this run's own verdict is
+            // exactly what an agent needs when it cannot read the console.
+            File.WriteAllText("Temp/newwear.txt", report);
 
             if (done > 0)
             {
@@ -398,6 +608,11 @@ public static class NewWearExtractor
                 // (spec §59.3 — headless probes refuse to run without it).
                 EditorApplication.ExecuteMenuItem("HexLive/Garments/Rebuild Catalog From Defaults");
                 EditorApplication.ExecuteMenuItem("HexLive/Export Sim Data (JSON)");
+            }
+
+            if (only != null)
+            {
+                DiscardExports(only, sources, garments, instances);
             }
         }
         finally
@@ -409,24 +624,117 @@ public static class NewWearExtractor
         }
     }
 
+    /// <summary>
+    /// Throw away a finished drop's FBX exports.
+    /// </summary>
+    /// <remarks>
+    /// The FBX is an INTERMEDIATE, not an asset: what ships is the mesh cut out
+    /// of it, which is now a `.mesh` of its own. Left behind, the exports are
+    /// megabytes Unity re-imports on every launch, they show up in the project
+    /// as a full outfit on a rig nobody wears, and — worst — the next run
+    /// instantiates them all over again, so one new pair of knickers drags the
+    /// entire wardrobe through the extractor.
+    ///
+    /// Only when the drop actually finished: every one of its garments has a
+    /// prefab. A half-built drop keeps its exports so the run can be repeated.
+    /// </remarks>
+    private static void DiscardExports(
+        string drop,
+        (string path, ActorName actor, string drop)[] sources,
+        GarmentSpec[] garments,
+        List<GameObject> instances)
+    {
+        var unfinished = garments.Where(g => !File.Exists(PrefabPath(g))).Select(g => g.Name).ToArray();
+        if (unfinished.Length > 0)
+        {
+            Debug.LogWarning($"[NewWear] экспорты поставки '{drop}' оставлены: " +
+                             $"не собрано {unfinished.Length} вещ(и) — {string.Join(", ", unfinished)}");
+            return;
+        }
+
+        // The rigs are still instantiated from these very assets; drop them
+        // first or Unity deletes the file out from under a live object.
+        foreach (var instance in instances)
+        {
+            Object.DestroyImmediate(instance);
+        }
+
+        instances.Clear();
+
+        var removed = new List<string>();
+        foreach (var (path, _, _) in sources)
+        {
+            if (AssetDatabase.DeleteAsset(path))
+            {
+                removed.Add(Path.GetFileName(path));
+            }
+            else if (File.Exists(path))
+            {
+                Debug.LogWarning($"[NewWear] не удалось убрать {path}");
+            }
+        }
+
+        if (removed.Count > 0)
+        {
+            AssetDatabase.Refresh();
+            Debug.Log($"[NewWear] поставка '{drop}' собрана — убрал промежуточные экспорты: " +
+                      string.Join(", ", removed));
+        }
+    }
+
     private static bool ExtractGarment(
         GarmentSpec g,
         Dictionary<(ActorName, string), SkinnedMeshRenderer> renderers,
+        Dictionary<ActorName, List<GameObject>> rigs,
         System.Text.StringBuilder log)
     {
+        EnsureFolder($"{ImportRoot}/{g.Folder}/Meshes");
+        EnsureFolder($"{ImportRoot}/{g.Folder}/Materials");
+        EnsureFolder($"{WearRoot}/{g.SimId}");
+
+        // --- materials (URP Lit, flat albedo per the art style) --------------
+        // Built BEFORE the weld: MergeParts decides whether the merged mesh
+        // needs tangents, and the only honest answer comes from OUR materials.
+        var mats = new Dictionary<string, Material>();
+        foreach (var spec in g.Materials)
+        {
+            var built = BuildMaterial(g, spec);
+            mats[spec.Source] = built;
+            foreach (var alias in spec.Aliases)
+            {
+                mats[alias] = built;
+            }
+        }
+
+        if (g.SourceKeys != null)
+        {
+            foreach (var pair in rigs)
+            {
+                // Only one of a girl's rigs holds this kit; the rest belong to
+                // other drops and are expected to come back empty.
+                foreach (var rig in pair.Value)
+                {
+                    var welded = MergeParts(g, rig, mats);
+                    if (welded != null)
+                    {
+                        renderers[(pair.Key, g.SourceKey)] = welded;
+                        break;
+                    }
+                }
+            }
+        }
+
         if (!renderers.TryGetValue((ActorName.Jana, g.SourceKey), out var reference))
         {
             Debug.LogError($"[NewWear] {g.SourceKey}: no renderer in the jana FBX — skipped");
             return false;
         }
 
-        EnsureFolder($"{ImportRoot}/{g.Folder}/Meshes");
-        EnsureFolder($"{ImportRoot}/{g.Folder}/Materials");
-        EnsureFolder($"{WearRoot}/{g.SimId}");
-
         // --- meshes: one fitted copy per girl --------------------------------
+        // The girls of THIS run, not every girl any drop ever covered: with the
+        // run scoped to one drop, the others are simply not in the room.
         var meshes = new Dictionary<ActorName, Mesh>();
-        foreach (var actor in Actors)
+        foreach (var actor in rigs.Keys.OrderBy(a => (int)a))
         {
             if (!renderers.TryGetValue((actor, g.SourceKey), out var r) || r.sharedMesh == null)
             {
@@ -439,7 +747,29 @@ public static class NewWearExtractor
             var path = $"{ImportRoot}/{g.Folder}/Meshes/{actor}.mesh";
             var copy = Object.Instantiate(r.sharedMesh);
             copy.name = actor.ToString();
+            // The COPY is what ships, and Object.Instantiate does not carry a
+            // lean vertex layout across — so the layout is applied here, to the
+            // mesh that actually becomes the asset.
+            var welded = g.SourceKeys != null;
+            if (welded)
+            {
+                Slim(copy, WantsTangents(mats));
+            }
+
             var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            if (existing != null && welded)
+            {
+                // CopySerialized writes INTO the object already in the asset
+                // database, and that object keeps its own vertex layout — a
+                // slim mesh copied into a fat one comes back out fat, which is
+                // how three girls ended up at 4.97 MB and the fourth at 9.66
+                // from the same run. Deleting through AssetDatabase (not just
+                // unlinking the file — the database caches the object and hands
+                // the stale one back) is what makes the layout reproducible.
+                AssetDatabase.DeleteAsset(path);
+                existing = null;
+            }
+
             if (existing != null)
             {
                 // Keep the GUID stable across re-runs — prefab refs survive.
@@ -460,13 +790,6 @@ public static class NewWearExtractor
             return false;
         }
 
-        // --- materials (URP Lit, flat albedo per the art style) --------------
-        var mats = new Dictionary<string, Material>();
-        foreach (var spec in g.Materials)
-        {
-            mats[spec.Source] = BuildMaterial(g, spec);
-        }
-
         // --- prefab -----------------------------------------------------------
         var root = new GameObject(g.Name);
         try
@@ -480,8 +803,377 @@ public static class NewWearExtractor
             Object.DestroyImmediate(root);
         }
 
-        log.AppendLine($"  {g.SourceKey} -> {PrefabPath(g)} ({meshes.Count} meshes, {mats.Count} mats)");
+        log.AppendLine($"  {g.SourceKey} -> {PrefabPath(g)} ({meshes.Count} meshes, {mats.Count} mats)" +
+                       (meshes.TryGetValue(ActorName.Jana, out var saved) ? $"\n      сохранённый: {Layout(saved)}" : ""));
         return true;
+    }
+
+    // --- welding an assembly into one garment --------------------------------
+    //
+    //  Some DAZ products are not a garment but a kit. The Jaguar Headdress
+    //  exports as twenty-nine renderers: a rigid helmet parented straight to
+    //  the head bone, plus twenty-eight feathers and cords, each skinned to ONE
+    //  private bone. The wardrobe takes exactly one SkinnedMeshRenderer and one
+    //  Mesh per garment, so a kit cannot be worn at all until it is welded.
+    //
+    //  Those private bones are dead weight HERE: Wear.Construct binds a
+    //  garment's skeleton to the body BY NAME, and no girl has a bone called
+    //  "Bone". Nothing can ever drive them, so the feathers cannot sway
+    //  whatever we do — they are rigid bodies hanging off the head. That makes
+    //  this merge exact rather than a compromise: bake every part into the one
+    //  bone they all really follow and the result matches DAZ, at one bone and
+    //  one draw call per material.
+    //
+    //  The maths is just the skinning identity. A skinned vertex lands at
+    //      world = bone.localToWorld * bindpose * v
+    //  so a part's authored-space matrix is bone.localToWorld * bindpose⁻¹,
+    //  read off the instance while it still stands in its bind pose. Every part
+    //  is pushed through that into the rig's own space, and one bindpose
+    //  (anchor.worldToLocal * rig.localToWorld) sends the whole thing back.
+    private static SkinnedMeshRenderer MergeParts(
+        GarmentSpec g, GameObject rig, Dictionary<string, Material> mats)
+    {
+        if (g.Materials == null || g.Materials.Length == 0)
+        {
+            Debug.LogError($"[NewWear] {g.SourceKey}: сборный предмет без материалов");
+            return null;
+        }
+
+        // The body is simply the rig's richest skeleton — 172 bones against the
+        // one bone every prop part carries.
+        var body = rig.GetComponentsInChildren<SkinnedMeshRenderer>(true)
+            .OrderByDescending(r => r.bones.Length)
+            .FirstOrDefault();
+        var bodyBones = new HashSet<Transform>(
+            body != null ? body.bones.Where(b => b != null) : Enumerable.Empty<Transform>());
+        var byName = new Dictionary<string, Transform>();
+        foreach (var bone in bodyBones)
+        {
+            byName[bone.name] = bone;
+        }
+
+        if (bodyBones.Count == 0)
+        {
+            Debug.LogError($"[NewWear] {g.SourceKey}: в FBX нет скелета тела");
+            return null;
+        }
+
+        var parts = new List<(Renderer renderer, Mesh mesh, Matrix4x4 toRig, Transform anchor)>();
+        Transform shared = null;
+        foreach (var r in rig.GetComponentsInChildren<Renderer>(true))
+        {
+            if (!g.SourceKeys.Any(k => r.name.StartsWith(k, System.StringComparison.Ordinal)))
+            {
+                continue;
+            }
+
+            Mesh mesh;
+            Matrix4x4 authored;
+            Transform from;
+            if (r is SkinnedMeshRenderer skinned)
+            {
+                mesh = skinned.sharedMesh;
+                var bind = mesh != null ? mesh.bindposes : null;
+                var i = System.Array.FindIndex(skinned.bones, b => b != null);
+                if (mesh == null || bind == null || i < 0 || i >= bind.Length)
+                {
+                    Debug.LogWarning($"[NewWear] {g.SourceKey}: {r.name} без пригодного скиннинга — пропущен");
+                    continue;
+                }
+
+                authored = skinned.bones[i].localToWorldMatrix * bind[i].inverse;
+                from = skinned.bones[i];
+            }
+            else
+            {
+                var filter = r.GetComponent<MeshFilter>();
+                mesh = filter != null ? filter.sharedMesh : null;
+                if (mesh == null)
+                {
+                    continue;
+                }
+
+                authored = r.transform.localToWorldMatrix;
+                from = r.transform;
+            }
+
+            var anchor = NearestBone(from, bodyBones, byName);
+            if (anchor == null)
+            {
+                Debug.LogWarning($"[NewWear] {g.SourceKey}: {r.name} ни к чему не привязан — пропущен");
+                continue;
+            }
+
+            shared = shared == null ? anchor : CommonAncestor(shared, anchor);
+            parts.Add((r, mesh, rig.transform.worldToLocalMatrix * authored, anchor));
+        }
+
+        if (parts.Count == 0 || shared == null)
+        {
+            // Not an error: the caller offers every rig the girl has, and only
+            // one of them was exported with this kit on her.
+            return null;
+        }
+
+        // --- pour every part into one buffer ---------------------------------
+        var vertices = new List<Vector3>();
+        var normals = new List<Vector3>();
+        var tangents = new List<Vector4>();
+        var uvs = new List<Vector2>();
+        var order = new List<MatSpec>();
+        var triangles = new Dictionary<MatSpec, List<int>>();
+        var samples = new Dictionary<MatSpec, Material>();
+
+        // Tangents are only ever read by a normal-mapped shader, and cost 16
+        // bytes a vertex — a fifth of this mesh. Ours are flat URP/Lit with an
+        // albedo and nothing else, so they are dead weight; asked of the built
+        // materials rather than assumed, so a normal map added later brings
+        // them back on its own.
+        var wantsTangents = WantsTangents(mats);
+
+        foreach (var (renderer, mesh, toRig, _) in parts)
+        {
+            var offset = vertices.Count;
+            var src = mesh.vertices;
+            var srcNormals = mesh.normals;
+            var srcTangents = wantsTangents ? mesh.tangents : System.Array.Empty<Vector4>();
+            var srcUv = mesh.uv;
+            for (var i = 0; i < src.Length; i++)
+            {
+                vertices.Add(toRig.MultiplyPoint3x4(src[i]));
+                normals.Add(i < srcNormals.Length
+                    ? toRig.MultiplyVector(srcNormals[i]).normalized
+                    : Vector3.up);
+                if (wantsTangents)
+                {
+                    if (i < srcTangents.Length)
+                    {
+                        var t = srcTangents[i];
+                        var dir = toRig.MultiplyVector(new Vector3(t.x, t.y, t.z)).normalized;
+                        tangents.Add(new Vector4(dir.x, dir.y, dir.z, t.w));
+                    }
+                    else
+                    {
+                        tangents.Add(new Vector4(1f, 0f, 0f, -1f));
+                    }
+                }
+
+                uvs.Add(i < srcUv.Length ? srcUv[i] : Vector2.zero);
+            }
+
+            var slots = renderer.sharedMaterials;
+            for (var sub = 0; sub < mesh.subMeshCount; sub++)
+            {
+                var slot = sub < slots.Length ? slots[sub] : null;
+                var spec = SpecFor(g, slot != null ? slot.name.Replace(" (Instance)", "") : "");
+                if (!triangles.TryGetValue(spec, out var bucket))
+                {
+                    bucket = new List<int>();
+                    triangles[spec] = bucket;
+                    samples[spec] = slot;
+                    order.Add(spec);
+                }
+
+                foreach (var index in mesh.GetTriangles(sub))
+                {
+                    bucket.Add(index + offset);
+                }
+            }
+        }
+
+        var merged = new Mesh
+        {
+            name = g.SourceKey,
+            // 32-bit indices double the index buffer and buy nothing under
+            // 65 536 vertices. The headdress sits at 55 844.
+            indexFormat = vertices.Count > 65535
+                ? UnityEngine.Rendering.IndexFormat.UInt32
+                : UnityEngine.Rendering.IndexFormat.UInt16,
+        };
+        merged.SetVertices(vertices);
+        merged.SetNormals(normals);
+        if (wantsTangents)
+        {
+            merged.SetTangents(tangents);
+        }
+
+        merged.SetUVs(0, uvs);
+        merged.bindposes = new[] { shared.worldToLocalMatrix * rig.transform.localToWorldMatrix };
+        SetSingleBoneSkin(merged, vertices.Count);
+        merged.subMeshCount = order.Count;
+        for (var i = 0; i < order.Count; i++)
+        {
+            merged.SetTriangles(triangles[order[i]], i);
+        }
+
+        merged.RecalculateBounds();
+
+        var go = new GameObject(g.SourceKey + " (merged)");
+        go.transform.SetParent(rig.transform, false);
+        var smr = go.AddComponent<SkinnedMeshRenderer>();
+        smr.sharedMesh = merged;
+        smr.bones = new[] { shared };
+        smr.rootBone = shared;
+        smr.localBounds = merged.bounds;
+        // Real FBX materials, not placeholders: their names go through the same
+        // alias table BuildMaterial was keyed by, so the mapping stays honest.
+        smr.sharedMaterials = order.Select(spec => samples[spec]).ToArray();
+
+        Debug.Log($"[NewWear] {g.SourceKey}: собрано {parts.Count} част(и) → " +
+                  $"{vertices.Count} вершин, {order.Count} материал(а), кость '{shared.name}'; " +
+                  Layout(merged));
+        return smr;
+    }
+
+    // Tangents are only ever read by a normal-mapped shader and cost 16 bytes a
+    // vertex — a fifth of a welded mesh. Asked of the built materials rather
+    // than assumed, so a normal map added later brings them back on its own.
+    private static bool WantsTangents(Dictionary<string, Material> mats)
+    {
+        return mats.Values.Any(
+            m => m != null && m.HasProperty(BumpMap) && m.GetTexture(BumpMap) != null);
+    }
+
+    // What a mesh actually costs per vertex. Worth logging rather than
+    // assuming: a mesh authored lean can be widened again by a later copy.
+    private static string Layout(Mesh mesh)
+    {
+        var bones = mesh.GetBonesPerVertex();
+        var influences = bones.Length > 0 ? bones[0] : (byte)0;
+        var text = $"тангенсы={mesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Tangent)}, " +
+                   $"влияний/вершину={influences}, индексы={mesh.indexFormat}";
+        bones.Dispose();
+        return text;
+    }
+
+    /// <summary>
+    /// Strip a welded mesh down to what it actually needs.
+    /// </summary>
+    /// <remarks>
+    /// Only for welded kits (spec §31B.4D), where every vertex genuinely rides
+    /// one bone. An ordinary garment's weights are real and must not be touched.
+    ///
+    /// Measured on the headdress, per vertex: position 12 + normal 12 + tangent
+    /// 16 + uv 8 + four blend weights and four indices 32 = 80 bytes, down to
+    /// 36. With the 16-bit index buffer that is 10.79 MB a mesh to 4.97 —
+    /// −54%, and nothing about the garment changes.
+    ///
+    /// ⚠️ Two things have to be true for any of it to reach the file, and both
+    /// cost hours to find: it must run on the COPY that becomes the asset
+    /// (`Object.Instantiate` does not carry a lean layout across), and the old
+    /// asset must be DELETED rather than copied into — see the caller. Judge
+    /// the result by the file's content, never by a file merely being there: a
+    /// `.mesh` left from an earlier run reads exactly like a failure.
+    /// </remarks>
+    private static void Slim(Mesh mesh, bool keepTangents)
+    {
+        if (!keepTangents)
+        {
+            mesh.SetTangents(new List<Vector4>());
+        }
+
+        SetSingleBoneSkin(mesh, mesh.vertexCount);
+    }
+
+    /// <summary>
+    /// Bind every vertex to bone 0 with weight 1, storing ONE influence.
+    /// </summary>
+    /// <remarks>
+    /// `mesh.boneWeights = …` always writes the four-influence layout: four
+    /// indices and four weights, 32 bytes a vertex, of which this mesh uses
+    /// eight and pads the rest with zeroes. That was the single biggest block
+    /// in the file — bigger than positions, normals and UVs together. The
+    /// modern API stores exactly what is there.
+    ///
+    /// The catch is that the LEGACY `mesh.boneWeights` GETTER then comes back
+    /// empty, which is the trap `HealthDollStage` already documents (it painted
+    /// the whole doll one colour). Anything reading weights off a garment has
+    /// to use GetAllBoneWeights — see the matching fix in SeveredLimbFactory.
+    /// </remarks>
+    private static void SetSingleBoneSkin(Mesh mesh, int vertexCount)
+    {
+        var bonesPerVertex = new Unity.Collections.NativeArray<byte>(
+            vertexCount, Unity.Collections.Allocator.Temp);
+        var influences = new Unity.Collections.NativeArray<BoneWeight1>(
+            vertexCount, Unity.Collections.Allocator.Temp);
+        try
+        {
+            for (var i = 0; i < vertexCount; i++)
+            {
+                bonesPerVertex[i] = 1;
+                influences[i] = new BoneWeight1 { boneIndex = 0, weight = 1f };
+            }
+
+            mesh.SetBoneWeights(bonesPerVertex, influences);
+        }
+        finally
+        {
+            bonesPerVertex.Dispose();
+            influences.Dispose();
+        }
+    }
+
+    private static MatSpec SpecFor(GarmentSpec g, string materialName)
+    {
+        foreach (var spec in g.Materials)
+        {
+            if (spec.Source == materialName ||
+                System.Array.IndexOf(spec.Aliases, materialName) >= 0)
+            {
+                return spec;
+            }
+        }
+
+        return g.Materials[0];
+    }
+
+    /// <summary>
+    /// The body bone a part really hangs from.
+    /// </summary>
+    /// <remarks>
+    /// Walking up for a bone of the BODY is not enough. A prop can be pinned to
+    /// a garment instead — the Nerd Crush bow tie hangs off the blouse's own
+    /// rig, not off the girl — and then the walk reaches the top having found
+    /// nothing, and the piece is dropped. A conforming garment mirrors the
+    /// body's bone names, though, and `Wear.Construct` stitches by name anyway,
+    /// so a bone called `chestUpper` on the blouse means the body's `chestUpper`.
+    /// </remarks>
+    private static Transform NearestBone(
+        Transform from, HashSet<Transform> bones, Dictionary<string, Transform> byName)
+    {
+        for (var t = from; t != null; t = t.parent)
+        {
+            if (bones.Contains(t))
+            {
+                return t;
+            }
+        }
+
+        for (var t = from; t != null; t = t.parent)
+        {
+            if (byName.TryGetValue(t.name, out var mirrored))
+            {
+                return mirrored;
+            }
+        }
+
+        return null;
+    }
+
+    private static Transform CommonAncestor(Transform a, Transform b)
+    {
+        for (var x = a; x != null; x = x.parent)
+        {
+            for (var y = b; y != null; y = y.parent)
+            {
+                if (x == y)
+                {
+                    return x;
+                }
+            }
+        }
+
+        return a;
     }
 
     private static Material BuildMaterial(GarmentSpec g, MatSpec spec)

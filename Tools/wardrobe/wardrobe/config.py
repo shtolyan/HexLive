@@ -38,6 +38,26 @@ DAZ_TOKEN_FILE = Path(os.path.expanduser("~")) / ".daz3d" / "dazscriptserver_tok
 # --- external tools ---------------------------------------------------------
 BLENDER = _path(
     "BLENDER_EXE", r"C:\Users\shtolyan\AppData\Local\Programs\Blender\blender.exe")
+
+# The Claude Code CLI the desktop app ships — the same binary an interactive
+# session runs on, so a supervised job needs nothing extra installed. Its auth
+# is separate from the desktop app's, though: run it once and do /login.
+#
+# ⚠ Use the PHYSICAL path, not `%APPDATA%\Claude\...`. The desktop app is a
+# Store package, so its `%APPDATA%` is virtualised: processes the app itself
+# spawned see `Roaming\Claude\claude-code`, and a plain terminal opened by the
+# user does not — same file, two views. Everything under `LocalCache\Roaming`
+# is the real thing and resolves from any shell.
+CLAUDE_PACKAGE = _path(
+    "CLAUDE_PACKAGE",
+    str(Path(os.environ.get("LOCALAPPDATA", "")) / "Packages"
+        / "Claude_pzs8sxrjxfjjc" / "LocalCache" / "Roaming" / "Claude" / "claude-code"))
+CLAUDE_CLI = _path("CLAUDE_CLI", str(CLAUDE_PACKAGE / "2.1.219" / "claude.exe"))
+
+# The interpreter the pipeline stages run under (the package's own venv).
+WARDROBE_PYTHON = os.environ.get(
+    "WARDROBE_PYTHON",
+    str(Path(__file__).resolve().parent.parent / ".venv" / "Scripts" / "python.exe"))
 WINRAR = _path("WINRAR_EXE", r"C:\Program Files\WinRAR\WinRAR.exe")
 UNITY = _path(
     "UNITY_EXE", r"C:\Program Files\Unity\Hub\Editor\6000.4.5f1\Editor\Unity.exe")

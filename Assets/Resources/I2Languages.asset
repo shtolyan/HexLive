@@ -2545,6 +2545,454 @@ MonoBehaviour:
       - 'Носимый предмет.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'item.clothing_outfit_reiko.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wrestler Outfit'
+      - 'Костюм рестлерши'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_outfit_reiko.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A one-piece fighting outfit with boots. Covers her head to toe and moves with her.'
+      - 'Цельный боевой костюм с сапогами. Закрывает с ног до головы и не мешает двигаться.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_classic.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Classic Boots'
+      - 'Классические сапоги'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_classic.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'High leather boots. Warm, and they turn a bite that would open a bare shin.'
+      - 'Высокие кожаные сапоги. Тёплые, и держат укус, который порвал бы голую голень.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_classic.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Classic Gloves'
+      - 'Классические перчатки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_classic.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long gloves to the elbow. Little warmth, but they save the knuckles.'
+      - 'Длинные перчатки до локтя. Тепла немного, зато костяшки целы.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_scarf_classic.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Scarf'
+      - 'Шарф'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_scarf_classic.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wound around the neck. Small piece, disproportionate difference in the cold.'
+      - 'Обмотан вокруг шеи. Вещь маленькая, а на холоде разница несоразмерная.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_classic.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Classic Shorts'
+      - 'Классические шорты'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_classic.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Short and plain, with pockets that actually hold something.'
+      - 'Короткие и простые, с карманами, куда правда что-то влезает.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_classic.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Classic Top'
+      - 'Классический топ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_classic.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A cropped top. Covers the chest and nothing else.'
+      - 'Укороченный топ. Закрывает грудь и больше ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_slipons_fads.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Slip-Ons'
+      - 'Слипоны'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_slipons_fads.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Soft shoes with no laces. Comfortable, and no protection whatsoever.'
+      - 'Мягкие туфли без шнурков. Удобные, и никакой защиты.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_glasses_nerd.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Glasses'
+      - 'Очки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_glasses_nerd.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thick frames. They do nothing for the cold and everything for reading.'
+      - 'Толстая оправа. От холода никак, а читать помогает.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_blouse_nerd.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'School Blouse'
+      - 'Школьная блузка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_blouse_nerd.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long sleeves, buttoned to the throat. Thin cloth, but it covers the arms.'
+      - 'Длинные рукава, застёгнута под горло. Ткань тонкая, зато руки закрыты.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_bowtie_nerd.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bow Tie'
+      - 'Бабочка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_bowtie_nerd.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A ribbon at the collar. Decoration, and she knows it.'
+      - 'Лента у воротника. Украшение, и она это знает.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sneakers_nerd.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sneakers'
+      - 'Кеды'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sneakers_nerd.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Canvas sneakers. Quiet on stone, useless in a river.'
+      - 'Тканевые кеды. Тихие по камню, бесполезные в реке.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_socks_nerd.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Knee Socks'
+      - 'Гольфы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_socks_nerd.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Up to the knee. Worn under everything, felt all day.'
+      - 'До колена. Носятся под всем, а чувствуются весь день.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_suspenders_nerd.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Suspenders'
+      - 'Подтяжки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_suspenders_nerd.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'They hold the skirt up. That is the whole job.'
+      - 'Держат юбку. В этом вся работа.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_tutu.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tutu Skirt'
+      - 'Юбка-пачка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_tutu.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Layers of stiff net. Impractical, and she wears it anyway.'
+      - 'Слои жёсткой сетки. Непрактично, и всё равно носит.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_belt_stars.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Uniform Belt'
+      - 'Ремень формы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_belt_stars.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A wide belt with loops. No warmth — it is there to carry things.'
+      - 'Широкий ремень с петлями. Не греет — он для того, чтобы носить.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_cap_stars.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Uniform Cap'
+      - 'Форменная кепка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_cap_stars.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Peaked cap. Keeps the sun off and the head warm.'
+      - 'Кепка с козырьком. Прячет от солнца и греет голову.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_stars.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Uniform Gloves'
+      - 'Форменные перчатки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_stars.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Short gloves to the wrist. Part of the uniform, not of the armour.'
+      - 'Короткие перчатки по запястье. Часть формы, а не брони.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_pants_stars.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Uniform Trousers'
+      - 'Форменные брюки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_pants_stars.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Full-length trousers. The warmest thing in the set, and they have pockets.'
+      - 'Брюки в полную длину. Самое тёплое в комплекте, и с карманами.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_stars.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Uniform Top'
+      - 'Форменный верх'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_stars.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A fitted top with shoulder panels. Uniform, so it fits properly.'
+      - 'Приталенный верх с наплечниками. Форма, поэтому сидит как надо.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_vest_stars.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Uniform Vest'
+      - 'Форменный жилет'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_vest_stars.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A padded vest over the top. The layer that decides whether a cold night hurts.'
+      - 'Стёганый жилет поверх. Тот слой, от которого зависит, больно ли будет ночью.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_crux.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wild Bra'
+      - 'Дикий бюстгальтер'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_crux.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Worn against the skin. Decorative warmth, and she notices when it is gone.'
+      - 'Носится на голое тело. Тепла символически, а без него замечает сразу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_panty_crux.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wild Panties'
+      - 'Дикие трусики'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_panty_crux.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The last thing she takes off and the first she looks for.'
+      - 'Последнее, что снимает, и первое, что ищет.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_crux.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wild Skirt'
+      - 'Дикая юбка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_crux.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A short wrap skirt. Covers little, weighs nothing.'
+      - 'Короткая юбка с запа́хом. Закрывает мало, весит ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_stockings_spooky.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Spooky Stockings'
+      - 'Жуткие чулки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_stockings_spooky.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Torn cobweb stockings, thigh to toe. More statement than insulation.'
+      - 'Рваные чулки-паутина, от бедра до пальцев. Заявление, а не утепление.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_cammy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Combat Boots'
+      - 'Боевые ботинки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_cammy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Heavy boots to mid-calf. The best thing here between a wolf and her ankle.'
+      - 'Тяжёлые ботинки до середины икры. Лучшее здесь между волком и её лодыжкой.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_babydoll_sweety.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Babydoll'
+      - 'Бэбидолл'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_babydoll_sweety.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Loose and light, meant for sleeping. It does not survive a working day.'
+      - 'Свободный и лёгкий, для сна. Рабочий день не переживает.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_panty_sweety.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sweety Panties'
+      - 'Милые трусики'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_panty_sweety.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain and comfortable. The pair she reaches for without thinking.'
+      - 'Простые и удобные. Те, за которыми тянется не думая.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_headdress_jaguar.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Jaguar Headdress'
+      - 'Убор ягуара'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_headdress_jaguar.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A carved ceremonial helmet crowned with feathers. Keeps the head warm and turns a glancing blow.'
+      - 'Резной церемониальный шлем в венце из перьев. Греет голову и держит скользящий удар.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'item.unknown.name'
       TermType: 0
       Description: 

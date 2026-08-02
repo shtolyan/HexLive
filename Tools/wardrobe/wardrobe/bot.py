@@ -25,7 +25,7 @@ from telegram.constants import ParseMode
 from telegram.ext import (Application, CommandHandler, ContextTypes,
                           MessageHandler, filters)
 
-from . import config, daz, pipeline
+from . import cache, config, daz, pipeline, supervisor
 
 log = logging.getLogger("wardrobe.bot")
 
@@ -67,10 +67,17 @@ async def start(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         return
     await update.message.reply_text(
         "Кидай ссылки на архивы с ассетами DAZ — по одной в строке.\n\n"
-        "Я скачаю, распакую в библиотеку, одену всех четырёх девушек, "
-        "выгружу FBX, перенесу текстуры и покажу черновик манифеста.\n\n"
-        "На названиях и параметрах остановлюсь: их придумывать не мне.\n\n"
-        "/status — что сейчас происходит")
+        "Я гоню конвейер и пересылаю сюда, что он делает. Пока всё идёт "
+        "хорошо, агента не зову — скрипт говорит сам за себя. Сломается — "
+        "подниму сессию Claude Code, и она разберётся и починит.\n\n"
+        "Уже скачанное не качаю заново, уже установленное не распаковываю. "
+        "Если архив на той стороне обновился — /forget.\n\n"
+        "Останавливаемся на черновике манифеста: названия вещей и слоты — "
+        "решение человека, а не вычисление.\n\n"
+        "/stop — прервать прогон прямо сейчас\n"
+        "/forget <имя> — забыть скачанное или установленное, чтобы сделать заново\n"
+        "/status — что сейчас происходит\n"
+        "/raw <ссылки> — прогнать без надзирателя, голым конвейером")
 
 
 async def status(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
@@ -78,15 +85,173 @@ async def status(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         return
     await update.message.reply_text(
         ("Занят — идёт поставка." if _lock.locked() else "Свободен.")
+        + f"\nНадзиратель: {'работает' if supervisor.is_running() else 'не запущен'}"
         + f"\nDAZ Studio: {'на связи' if daz.alive() else 'НЕ отвечает'}")
 
 
+async def forget(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Drop a cached step so the next run redoes it — for a re-uploaded archive."""
+    if not _allowed(update):
+        return
+    what = " ".join(context.args or []).strip()
+    if not what:
+        remembered = cache.load()
+        names = list((remembered.get("installs") or {}).keys())
+        await update.message.reply_text(
+            "Использование: /forget <имя архива или ссылка>\n\n"
+            + ("Помню установленным:\n" + "\n".join(f"• {n}" for n in names[:20])
+               if names else "Пока ничего не помню."))
+        return
+    await update.message.reply_text(
+        "Забыл — в следующий раз сделаю заново." if cache.forget(what)
+        else "Такого в памяти нет. Имя должно совпадать точно.")
+
+
+async def stop(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    """Kill the running session. The stages it already finished stay done."""
+    if not _allowed(update):
+        return
+    if supervisor.cancel():
+        await update.message.reply_text(
+            "Остановил. Что успело отработать — осталось как есть; "
+            "проверьте /status и отчёты перед повторным запуском.")
+    else:
+        await update.message.reply_text("Останавливать нечего — надзиратель не запущен.")
+
+
+# Telegram throttles hard, and a working agent narrates faster than a chat can
+# take. Lines are gathered for a moment and sent as one message rather than one
+# each — otherwise the flood control drops exactly the lines worth reading.
+_FLUSH_SECONDS = 4.0
+_MAX_MESSAGE = 3500
+
+
+def _relay(context: ContextTypes.DEFAULT_TYPE, chat: int):
+    """A progress callback usable from a worker thread, plus its pump task."""
+    queue: asyncio.Queue[str | None] = asyncio.Queue()
+    loop = asyncio.get_running_loop()
+
+    def progress(line: str) -> None:
+        loop.call_soon_threadsafe(queue.put_nowait, line)
+
+    async def send(text: str) -> None:
+        for i in range(0, len(text), _MAX_MESSAGE):
+            chunk = text[i:i + _MAX_MESSAGE]
+            try:
+                await context.bot.send_message(chat, chunk, parse_mode=ParseMode.HTML)
+            except Exception:  # noqa: BLE001 — a lost line must not kill the job
+                # Malformed markup must not cost the line itself; a split
+                # mid-tag is enough to make Telegram reject the whole message.
+                try:
+                    await context.bot.send_message(chat, chunk)
+                except Exception:
+                    log.exception("не отправилась строка прогресса")
+
+    async def pump() -> None:
+        buffer: list[str] = []
+        done = False
+        while not done:
+            try:
+                line = await asyncio.wait_for(queue.get(), timeout=_FLUSH_SECONDS)
+                if line is None:
+                    done = True
+                else:
+                    buffer.append(line)
+                    if sum(len(x) for x in buffer) < _MAX_MESSAGE:
+                        continue
+            except asyncio.TimeoutError:
+                pass
+            if buffer:
+                await send("\n".join(buffer))
+                buffer.clear()
+
+    return progress, queue, pump
+
+
 async def links(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Run the pipeline and relay it; call the agent in only when it breaks.
+
+    The agent is expensive and its narration is second-hand. On the happy path
+    the script already says what it is doing, so it speaks for itself and no
+    session is started at all — the agent is an escalation, not a narrator.
+    """
     if not _allowed(update):
         return
     urls = _URL.findall(update.message.text or "")
     if not urls:
         await update.message.reply_text("Не вижу ссылок.")
+        return
+    if _lock.locked():
+        await update.message.reply_text("Уже занят поставкой — дождись конца.")
+        return
+
+    chat = update.effective_chat.id
+
+    async with _lock:
+        await context.bot.send_message(
+            chat, f"🌙 <b>Новая поставка</b>\nСсылок: {len(urls)}",
+            parse_mode=ParseMode.HTML)
+        progress, queue, pump = _relay(context, chat)
+        pumping = asyncio.create_task(pump())
+
+        def plain(line: str) -> None:
+            progress(html.escape(line))
+
+        try:
+            report = await asyncio.to_thread(pipeline.intake, urls, plain)
+        except Exception as e:  # noqa: BLE001
+            log.exception("поставка упала")
+            report = {"ok": False, "errors": [f"неожиданная ошибка: {e}"]}
+
+        if report.get("ok"):
+            await queue.put(None)
+            await pumping
+            summary = pipeline.summarise(report.get("garments") or [])
+            await context.bot.send_message(
+                chat,
+                f"✅ <b>Поставка {html.escape(report.get('drop', ''))} собрана</b>\n\n"
+                f"<pre>{html.escape(summary)}</pre>\n\n"
+                "Дальше нужны названия, описания и параметры — это решение человека.",
+                parse_mode=ParseMode.HTML)
+            return
+
+        # Something broke. Now the agent earns its keep.
+        problems = "\n".join(f"• {e}" for e in (report.get("errors") or ["без подробностей"]))
+        progress("⚠️ <b>Что-то пошло не так</b>\n" + html.escape(problems)
+                 + "\n\n🤖 <i>Зову агента разбираться…</i>")
+
+        task = (
+            "Прогон конвейера сорвался. Вот что сообщила упавшая стадия:\n\n"
+            + problems
+            + "\n\nСсылки поставки:\n" + "\n".join(f"  {u}" for u in urls)
+            + "\n\nРазберись, почему так вышло, и почини. Стадии, которые уже "
+              "отработали, повторять не нужно — скачанное и распакованное на "
+              "месте. Девушки — Genesis 3 Female."
+        )
+        try:
+            fixed = await asyncio.to_thread(supervisor.run, task, progress)
+        except Exception as e:  # noqa: BLE001
+            log.exception("надзиратель упал")
+            fixed = {"ok": False, "errors": [f"неожиданная ошибка: {e}"]}
+        finally:
+            await queue.put(None)
+            await pumping
+
+    if fixed.get("ok"):
+        await context.bot.send_message(
+            chat, "🤖 Агент закончил разбор. Проверьте вывод выше и запустите поставку снова.")
+    else:
+        trouble = "\n".join(f"• {e}" for e in (fixed.get("errors") or ["без подробностей"]))
+        await context.bot.send_message(chat, f"❌ Не выправилось:\n{trouble}")
+
+
+async def raw(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """The old fixed pipeline, with no agent watching — for comparison."""
+    if not _allowed(update):
+        return
+    urls = _URL.findall(update.message.text or "")
+    if not urls:
+        await update.message.reply_text("Использование: /raw <ссылки>")
         return
     if _lock.locked():
         await update.message.reply_text("Уже занят поставкой — дождись конца.")
@@ -146,6 +311,9 @@ def main() -> None:
     app = Application.builder().token(token).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("status", status))
+    app.add_handler(CommandHandler("stop", stop))
+    app.add_handler(CommandHandler("forget", forget))
+    app.add_handler(CommandHandler("raw", raw))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, links))
     log.info("бот запущен")
     app.run_polling()

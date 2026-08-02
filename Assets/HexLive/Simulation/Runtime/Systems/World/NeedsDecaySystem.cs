@@ -310,7 +310,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
     internal static void WakeFromComa(WorldState world, NPCState npc, string cause)
     {
         npc.Mind.ComaCause = ComaCause.None;
-        npc.Mind.WakeGraceUntilTick = world.Tick + 12; // spec 41.5 wake grace
+        npc.Mind.WakeGraceUntilTick = world.Tick + AiBalance.WakeGraceTicks; // spec 41.5
 
         ExecutionSystem.ReleaseClaims(world, npc);
         if (npc.CurrentJunction is { } lay)

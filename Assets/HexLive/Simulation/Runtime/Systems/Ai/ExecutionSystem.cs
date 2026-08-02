@@ -239,7 +239,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 if (!InteractionReach.CheckObjectStart(world, npc, worldObject,
                         definition.ObstacleRadius))
                 {
-                    npc.Memory.Shun(worldObject.Id, world.Tick + 600);
+                    npc.Memory.Shun(worldObject.Id, world.Tick + AiBalance.ShunTicks);
                     PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
                     PlanInterruption.Abort(world, npc,
                         $"Target {worldObject.DefinitionId} not adjacently reachable (too far to interact)");
@@ -270,7 +270,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     // Jul 2026: remember the contested object briefly so the
                     // next plan reaches for a DIFFERENT source (e.g. pierce a
                     // fresh coconut) instead of re-targeting this one forever.
-                    npc.Memory.Shun(worldObject.Id, world.Tick + 600);
+                    npc.Memory.Shun(worldObject.Id, world.Tick + AiBalance.ShunTicks);
                     PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
                     PlanInterruption.Abort(world, npc,
                         $"Target {worldObject.DefinitionId} occupied on arrival");
@@ -732,7 +732,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     npc.Mind.Cooldowns.Add(new GoalCooldown
                     {
                         Goal = GoalType.Sit,
-                        EndTick = world.Tick + 240
+                        EndTick = world.Tick + AiBalance.SitCooldownTicks
                     });
                 }
 
@@ -836,7 +836,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     npc.Mind.Cooldowns.Add(new GoalCooldown
                     {
                         Goal = GoalType.Dress,
-                        EndTick = world.Tick + 160
+                        EndTick = world.Tick + AiBalance.DressCooldownTicks
                     });
                 }
                 else if (completedInteraction.Type == InteractionType.Craft &&
@@ -1180,7 +1180,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 // senses for a beat before the next errand.
                 if (completedInteraction.Type == InteractionType.Sleep)
                 {
-                    npc.Mind.WakeGraceUntilTick = world.Tick + 12;
+                    npc.Mind.WakeGraceUntilTick = world.Tick + AiBalance.WakeGraceTicks;
                 }
 
                 npc.Plan.Status = PlanStatus.Completed;

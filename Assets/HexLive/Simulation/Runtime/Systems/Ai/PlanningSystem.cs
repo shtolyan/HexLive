@@ -934,7 +934,10 @@ public sealed partial class PlanningSystem : ISimulationSystem
 
     // Spec 23.10: a failed plan puts its goal on cooldown so the NPC does
     // something else instead of hammering the same target.
-    private const int FailureCooldownTicks = 40;
+    // Переехала в AiBalance: тот же срок применяется к завершённому уходу
+    // за собой (RestHygiene), и приватной константой планировщика он быть
+    // перестал — второе место жило голым числом 40.
+    private static int FailureCooldownTicks => AiBalance.FailureCooldownTicks;
 
     internal static void SetGoalCooldown(WorldState world, NPCState npc, GoalType goal)
     {

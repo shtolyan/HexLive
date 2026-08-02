@@ -44,6 +44,18 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Пока застой длится, повторять жалобу не чаще этого.")]
         [Range(50, 2000)] public int stuckRepeatEmitTicks = 200;
 
+        [Header("Длительности решений (были продублированы числом в 2-3 местах)")]
+        [Tooltip("Источник оказался занят по прибытии — столько тиков к нему не возвращается.")]
+        [Range(60, 2400)] public int shunTicks = 600;
+        [Tooltip("Посидев, не садится снова столько тиков (анти-дребезг §35.4).")]
+        [Range(20, 1200)] public int sitCooldownTicks = 240;
+        [Tooltip("Одевшись, не переодевается столько тиков.")]
+        [Range(20, 1200)] public int dressCooldownTicks = 160;
+        [Tooltip("Только что проснулась: столько тиков стоит и приходит в себя (§41.5).")]
+        [Range(0, 120)] public int wakeGraceTicks = 12;
+        [Tooltip("Цель, чей план не построился, отдыхает столько тиков.")]
+        [Range(10, 400)] public int failureCooldownTicks = 40;
+
         [Header("Нужды — скорость (за медленный тик, ~150/день)")]
         [Tooltip("Сколько ГОЛОДА набегает за медленный тик. Больше = быстрее хочет есть. §53.7: вдвое медленнее (было 0.0037).")]
         [Range(0f, 0.05f)] public float hungerRate = 0.00185f;

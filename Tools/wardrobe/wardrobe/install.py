@@ -248,6 +248,50 @@ def _prefer_wearable_presets(found: list[dict]) -> list[dict]:
             if w["type"] == "wearable" or _product_root(w["relative"]) not in has_preset]
 
 
+def _geometry_refs(duf: Path) -> frozenset[str]:
+    """The garment geometries a preset puts in the scene, as `/data/...dsf` ids.
+
+    A wearable preset's `scene.nodes` is exactly the list of nodes it creates,
+    and every one of them names the `.dsf` it comes from — so the set of those
+    files is what the preset actually brings, whatever the file is called.
+    """
+    data = read_duf(duf) or {}
+    nodes = data.get("scene", {}).get("nodes") or []
+    return frozenset(filter(None, (re.sub(r"#.*", "", n.get("url", "")).lower()
+                                   for n in nodes)))
+
+
+def _drop_redundant(found: list[dict]) -> list[dict]:
+    """Drop presets that bring no geometry another preset does not already bring.
+
+    Vendors duplicate themselves two ways, and both make `dress` fit the same
+    garment twice — which reads as "надето 38 из 32" and would export the mesh
+    twice even if nobody counted:
+
+      * an outfit preset sitting beside the pieces it is made of. "Classic Reiko
+        Outfit" carries the same five geometries as Classic Boot/Glove/Scarf/
+        Shorts/Top next to it; "dforceSweety Complete G3F" carries the babydoll
+        and the panty that ship as their own files.
+      * the same preset filed under two vendor folders. Reiko ships identical
+        Hair and Outfit presets under `Perfect Slam` and `Ryona Comics`, both
+        pointing at the very same `/data/perfect slam/...` geometry.
+
+    Smallest first, so the individual pieces claim their geometry and the outfit
+    that merely repeats them falls out. A preset with anything of its own is
+    never a subset, so it always survives.
+    """
+    geometry = {w["file"]: _geometry_refs(Path(w["file"])) for w in found}
+    claimed: set[str] = set()
+    redundant: set[str] = set()
+    for item in sorted(found, key=lambda w: (len(geometry[w["file"]]), w["relative"])):
+        refs = geometry[item["file"]]
+        if refs and refs <= claimed:
+            redundant.add(item["file"])
+            continue
+        claimed |= refs
+    return [w for w in found if w["file"] not in redundant]
+
+
 def install(archives: list[Path], progress=lambda _: None,
             force: bool = False) -> dict:
     report = {"archives": [], "installed": 0, "wearables": [], "errors": []}
@@ -298,7 +342,7 @@ def install(archives: list[Path], progress=lambda _: None,
                 if described and described["wearable"]:
                     described["relative"] = relative
                     found.append(described)
-            chosen = _prefer_wearable_presets(found)
+            chosen = _drop_redundant(_prefer_wearable_presets(found))
             report["wearables"].extend(chosen)
             cache.remember_install(archive, chosen, len(written))
             progress(f"   ✔ {archive.name} — {len(written)} файлов, "

@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
+  MeshName: Marta
+  VertexCount: 9370
+  TSamples: 1
+  AzimuthSamples: 1
+  TMin: 0
+  TMax: 1
+  Zones:
+  - Zone: Head
+    Points:
+    - Slot: 14
+      Uv: {x: 0.31617865, y: 0.570776}
+      BindPerU: 0.40859452
+      BindPerV: 0.21102591
+      Valid: 1
+  - Zone: Torso
+    Points:
+    - Slot: 7
+      Uv: {x: 0.74098164, y: 0.041619897}
+      BindPerU: 0.04732218
+      BindPerV: 0.08034164
+      Valid: 1
+  - Zone: Pelvis
+    Points:
+    - Slot: 9
+      Uv: {x: 0.53542966, y: 0.9685154}
+      BindPerU: 0.41688326
+      BindPerV: 0.1702705
+      Valid: 1
+  - Zone: ArmL
+    Points:
+    - Slot: 0
+      Uv: {x: 0.8138303, y: 0.2262212}
+      BindPerU: 0.20941232
+      BindPerV: 0.08106242
+      Valid: 1
+  - Zone: ArmR
+    Points:
+    - Slot: 0
+      Uv: {x: 0.8138304, y: 0.22622132}
+      BindPerU: 0.20941232
+      BindPerV: 0.08106242
+      Valid: 1
+  - Zone: LegL
+    Points:
+    - Slot: 3
+      Uv: {x: 0.483138, y: 0.90926933}
+      BindPerU: 0.4834923
+      BindPerV: 0.7558171
+      Valid: 1
+  - Zone: LegR
+    Points:
+    - Slot: 3
+      Uv: {x: 0.483138, y: 0.90926933}
+      BindPerU: 0.4834923
+      BindPerV: 0.7558171
+      Valid: 1

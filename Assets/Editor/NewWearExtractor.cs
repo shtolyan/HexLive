@@ -380,6 +380,55 @@ public static class NewWearExtractor
     private static void RunForceMenu() => Run(force: true);
 
     /// <summary>
+    /// Rebuild the drops' MATERIALS in place, without touching meshes.
+    /// </summary>
+    /// <remarks>
+    /// Materials need no FBX — only the manifest and the textures on disk — and
+    /// that matters because a finished drop's exports are thrown away
+    /// (DiscardExports), which makes a normal re-extract impossible afterwards.
+    /// A material is exactly the thing you fix later: `build` stages textures
+    /// under a folder named from the DAZ mesh key, so renaming a garment during
+    /// review strands them, and every material comes out with no albedo — a
+    /// white garment in the world, not just on the icon.
+    ///
+    /// The prefabs reference these `.mat` assets by GUID, so refreshing them in
+    /// place is enough; nothing has to be re-extracted.
+    /// </remarks>
+    [MenuItem("HexLive/Wear/Rebuild Materials From Drops")]
+    private static void RebuildMaterialsMenu()
+    {
+        _sources = null;
+        _garments = null;
+
+        var only = ActiveDrop();
+        var done = 0;
+        var blank = new List<string>();
+        foreach (var g in Garments.Where(g => only == null || g.Drop == only))
+        {
+            EnsureFolder($"{ImportRoot}/{g.Folder}/Materials");
+            foreach (var spec in g.Materials)
+            {
+                var mat = BuildMaterial(g, spec);
+                done++;
+                if (spec.Texture != null && mat.GetTexture("_BaseMap") == null)
+                {
+                    blank.Add($"{g.Folder}/{spec.Source} ← {spec.Texture}");
+                }
+            }
+        }
+
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        var report = $"[NewWear] материалов пересобрано: {done}" +
+                     (blank.Count > 0
+                         ? $"\n  БЕЗ ТЕКСТУРЫ {blank.Count} (файла нет в <вещь>/Textures):\n    " +
+                           string.Join("\n    ", blank.Take(20))
+                         : "");
+        Debug.Log(report);
+        File.WriteAllText("Temp/newwear-materials.txt", report);
+    }
+
+    /// <summary>
     /// Throw away the exports of every drop that is already built.
     /// </summary>
     /// <remarks>
@@ -797,6 +846,12 @@ public static class NewWearExtractor
             .FirstOrDefault();
         var bodyBones = new HashSet<Transform>(
             body != null ? body.bones.Where(b => b != null) : Enumerable.Empty<Transform>());
+        var byName = new Dictionary<string, Transform>();
+        foreach (var bone in bodyBones)
+        {
+            byName[bone.name] = bone;
+        }
+
         if (bodyBones.Count == 0)
         {
             Debug.LogError($"[NewWear] {g.SourceKey}: в FBX нет скелета тела");
@@ -842,7 +897,7 @@ public static class NewWearExtractor
                 from = r.transform;
             }
 
-            var anchor = NearestBone(from, bodyBones);
+            var anchor = NearestBone(from, bodyBones, byName);
             if (anchor == null)
             {
                 Debug.LogWarning($"[NewWear] {g.SourceKey}: {r.name} ни к чему не привязан — пропущен");
@@ -1072,13 +1127,33 @@ public static class NewWearExtractor
         return g.Materials[0];
     }
 
-    private static Transform NearestBone(Transform from, HashSet<Transform> bones)
+    /// <summary>
+    /// The body bone a part really hangs from.
+    /// </summary>
+    /// <remarks>
+    /// Walking up for a bone of the BODY is not enough. A prop can be pinned to
+    /// a garment instead — the Nerd Crush bow tie hangs off the blouse's own
+    /// rig, not off the girl — and then the walk reaches the top having found
+    /// nothing, and the piece is dropped. A conforming garment mirrors the
+    /// body's bone names, though, and `Wear.Construct` stitches by name anyway,
+    /// so a bone called `chestUpper` on the blouse means the body's `chestUpper`.
+    /// </remarks>
+    private static Transform NearestBone(
+        Transform from, HashSet<Transform> bones, Dictionary<string, Transform> byName)
     {
         for (var t = from; t != null; t = t.parent)
         {
             if (bones.Contains(t))
             {
                 return t;
+            }
+        }
+
+        for (var t = from; t != null; t = t.parent)
+        {
+            if (byName.TryGetValue(t.name, out var mirrored))
+            {
+                return mirrored;
             }
         }
 

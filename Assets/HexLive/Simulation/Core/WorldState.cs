@@ -31,6 +31,18 @@ public sealed class WorldState
 
     public SimulationEventBuffer Events { get; } = new();
 
+    /// <summary>
+    /// Spec §30.14. Отладочный бортовой самописец: последние ~64 события каждого
+    /// NPC. Null в сборке игрока и вообще везде, где его не включили явно.
+    /// <para>
+    /// Намеренно НЕ сохраняется и НЕ едет в снапшоте: это инструмент наблюдения,
+    /// а не состояние мира. Значит ни <c>WorldSaveSerializer</c>, ни
+    /// <c>WorldSnapshotCodec</c> о нём не знают, и гейт покрытия провода его не
+    /// касается.
+    /// </para>
+    /// </summary>
+    public Runtime.FlightRecorder FlightRecorder { get; set; }
+
     public ContentCatalog Content { get; } = new();
 
     // Runtime-spawned objects allocate ids from here; bootstrap ids stay below 1000.

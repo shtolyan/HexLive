@@ -23,6 +23,36 @@ public static class AiBalance
 
     // §28.15: how long the invited listener waits for the talk to start.
     public static int TalkWaitTimeoutTicks = 120;
+
+    // spec §30.15 — when to say out loud "this one is not getting anywhere".
+    //
+    // These live HERE, in an already-registered balance class, on purpose: a NEW
+    // static class needs a row in BalanceReflection.BalanceClasses, and without
+    // it the knobs still mirror into the asset and still pass the coverage gate
+    // while silently never being exported or applied (see the Spec81 scar
+    // comment there). Cheaper to join a registered bag than to remember.
+
+    /// <summary>Goal set, no interaction running, not moving — the §102
+    /// signature. 40 ticks is ten seconds of world time: long enough that a
+    /// normal hand-off between plan and path never trips it.</summary>
+    public static int StuckIdleTicks = 40;
+
+    /// <summary>One plan step held for this long. Generous: the longest honest
+    /// interactions (building, sleeping) run for hundreds of ticks.</summary>
+    public static int StuckStepTicks = 600;
+
+    /// <summary>No goal at all while some need is past its crisis line — she is
+    /// not idle by choice, the auction is failing to produce anything.</summary>
+    public static int StuckGoallessTicks = 120;
+
+    /// <summary>Says it is walking, but has not actually moved. The pursue-loop
+    /// signature: a path that is rebuilt every tick and never advances.</summary>
+    public static int StuckFrozenTicks = 60;
+
+    /// <summary>While a stall persists, repeat the complaint no more often than
+    /// this. Onset is always reported; the repeat is what makes a long freeze
+    /// visible in a trace tail without drowning it.</summary>
+    public static int StuckRepeatEmitTicks = 200;
 }
 
 }

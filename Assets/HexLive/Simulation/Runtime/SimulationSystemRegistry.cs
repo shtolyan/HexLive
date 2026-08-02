@@ -51,6 +51,11 @@ public static class SimulationSystemRegistry
         engine.Register(new WaterCollectorSystem()); // §54.15: rain fills the parked bottle
         engine.Register(new HazardSystem()); // §50: prepared amputation hazards
 
+        // §30.15: LAST, and it is the one system whose position does not matter —
+        // it only reads and emits. It goes at the end so it sees the tick as it
+        // finally settled, rather than half-way through someone else's pass.
+        engine.Register(new StuckDiagnosticSystem());
+
         // NOT registered, on purpose-of-record rather than by decision: SharkSystem.
         // It is implemented (Systems/Wildlife/SharkSystem.cs, TickLayer.Medium) and
         // world.Sharks IS persisted by WorldSaveSerializer, so sharks are spawned and

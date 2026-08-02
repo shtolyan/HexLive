@@ -20,6 +20,13 @@ public sealed class SoakOptions
     public bool Quiet;
 
     /// <summary>
+    /// Сколько первых застоев разобрать вслух: печатается хвост бортового
+    /// самописца — что этот NPC делал ПЕРЕД тем, как замереть. Ровно то, что
+    /// в §102 добывалось ручным printf'ом раз в 120 тиков.
+    /// </summary>
+    public int ExplainStuck = 3;
+
+    /// <summary>
     /// Пресеты трассы. <c>decisions</c> — дёшево и без шума, для проверки
     /// «поведение не поехало» на гигиенических правках. <c>scores</c> добавляет
     /// <c>GoalScored</c>: это ТОЧНЫЙ float-выхлоп каждого скоринг-блока, поэтому
@@ -101,6 +108,9 @@ public sealed class SoakOptions
                     case "--state-hash-every":
                         options.StateHashEvery = int.Parse(Next(arg), CultureInfo.InvariantCulture);
                         break;
+                    case "--explain-stuck":
+                        options.ExplainStuck = int.Parse(Next(arg), CultureInfo.InvariantCulture);
+                        break;
                     case "--quiet":
                         options.Quiet = true;
                         break;
@@ -143,6 +153,8 @@ public sealed class SoakOptions
   --trace-types A,B,C     свой список типов вместо пресета
   --state-hash-every N    добавлять в трассу хэш полного кадра раз в N тиков
 
+  --explain-stuck N       разобрать первые N застоев: печатает хвост событий
+                          зависшего NPC (по умолчанию 3, 0 — выключить)
   --quiet                 без человекочитаемого вывода
 
 Несколько сидов и --trace-out: файл на сид, суффикс .seed<N>.";

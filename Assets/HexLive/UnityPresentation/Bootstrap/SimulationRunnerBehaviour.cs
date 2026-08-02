@@ -403,6 +403,16 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
         // and headless probes cannot drift apart — see SimulationSystemRegistry.
         SimulationSystemRegistry.RegisterDefaults(engine);
 
+        // §30.14: бортовой самописец — по кольцу последних событий на каждого
+        // NPC, чтобы дебаг-панель могла показать, ЧТО эта делала до того, как
+        // застряла. Общее кольцо на 2048 записей на такой вопрос не отвечает:
+        // при ~200 событиях в тик оно живёт около одиннадцати тиков. Только в
+        // редакторе и development-сборках — там же, где включён полный трейс.
+        if (Application.isEditor || UnityEngine.Debug.isDebugBuild)
+        {
+            engine.World.FlightRecorder = HexLive.Simulation.Runtime.FlightRecorder.ForBehavior();
+        }
+
         _backend?.Shutdown();
         _backend = CreateBackend(new LocalEngineBackend(engine, clock, settings));
         SimulationSource.Current = this;

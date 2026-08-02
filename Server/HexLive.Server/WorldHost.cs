@@ -93,6 +93,14 @@ public sealed class WorldHost
         _engine = new SimulationEngine(world, _settings, _clock);
         SimulationSystemRegistry.RegisterDefaults(_engine);
 
+        // §30.14: самописец едет вместе с остальной отладкой — за тем же флагом,
+        // что и per-NPC дампы в снапшоте. По проводу он пока не ездит: смотреть
+        // его можно на самом сервере, из подключённой Unity — нет.
+        if (includeDebugDetails)
+        {
+            world.FlightRecorder = HexLive.Simulation.Runtime.FlightRecorder.ForBehavior();
+        }
+
         // Definition ids travel as indices into a table derived from the content
         // catalog. The client derives the same one from the simdata we ship in the
         // handshake, so nothing is negotiated — but it must exist before the first

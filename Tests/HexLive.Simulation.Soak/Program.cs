@@ -77,6 +77,10 @@ public static class Program
         SimulationSystemRegistry.RegisterDefaults(engine);
         DefinitionIdTable.Build(world.Content);
 
+        // §30.14: в headless-прогоне самописец включён всегда — здесь он ничего
+        // не стоит, а без него событие застоя сообщает только ЧТО, но не ПОЧЕМУ.
+        world.FlightRecorder = FlightRecorder.ForBehavior();
+
         var metrics = new SoakMetrics
         {
             Seed = seed,
@@ -98,10 +102,13 @@ public static class Program
         var watermark = world.Events.HighestSeq;
         var stopwatch = Stopwatch.StartNew();
 
+        var explained = 0;
+
         for (var i = 0; i < options.Ticks && !world.Completed; i++)
         {
             engine.Step();
-            watermark = Drain(world, watermark, metrics, trace, options.TraceTypes);
+            watermark = Drain(world, watermark, metrics, trace, options.TraceTypes,
+                options, ref explained);
             metrics.SampleTick(world);
 
             if (options.StateHashEvery > 0 && world.Tick % options.StateHashEvery == 0)
@@ -125,7 +132,7 @@ public static class Program
     /// дало бы дубликаты в счётчиках.
     /// </summary>
     private static long Drain(WorldState world, long watermark, SoakMetrics metrics,
-        StreamWriter trace, HashSet<string> traceTypes)
+        StreamWriter trace, HashSet<string> traceTypes, SoakOptions options, ref int explained)
     {
         var items = world.Events.Items;
         var lowest = world.Events.LowestSeq;
@@ -148,6 +155,14 @@ public static class Program
             watermark = simulationEvent.Seq;
             metrics.CountEvent(simulationEvent);
 
+            if (explained < options.ExplainStuck && !options.Quiet &&
+                simulationEvent.Type == "StuckDetected" &&
+                simulationEvent.Message.Contains("ONSET", StringComparison.Ordinal))
+            {
+                explained++;
+                ExplainStuck(world, simulationEvent);
+            }
+
             if (trace == null || traceTypes == null || !traceTypes.Contains(simulationEvent.Type))
             {
                 continue;
@@ -162,6 +177,46 @@ public static class Program
         }
 
         return watermark;
+    }
+
+    /// <summary>
+    /// Печатает застой вместе с тем, что этот NPC делал ДО него.
+    /// <para>
+    /// В §102 именно этого не хватало: событие «стоит» ответило бы на «что», но
+    /// не на «почему», а общее кольцо к моменту застоя уже тысячу раз вытеснено
+    /// чужой болтовнёй. Хвост самописца вытесняют только её собственные события,
+    /// поэтому там так и лежат последние решения перед остановкой.
+    /// </para>
+    /// </summary>
+    private static void ExplainStuck(WorldState world, SimulationEvent stuck)
+    {
+        Console.WriteLine();
+        Console.WriteLine("  ── застой: тик " + stuck.Tick + ", NPC " +
+                          (stuck.EntityId?.ToString() ?? "-"));
+        Console.WriteLine("     " + stuck.Message);
+
+        if (world.FlightRecorder == null || stuck.EntityId == null)
+        {
+            return;
+        }
+
+        var tail = world.FlightRecorder.Tail(stuck.EntityId.Value, 12);
+        if (tail.Count == 0)
+        {
+            Console.WriteLine("     (самописец пуст — она не эмитила вообще ничего)");
+            return;
+        }
+
+        Console.WriteLine("     что было до этого:");
+        foreach (var entry in tail)
+        {
+            var message = entry.Message.Length > 96
+                ? entry.Message.Substring(0, 96) + "…"
+                : entry.Message;
+            Console.WriteLine("       [" + entry.Tick + "] " + entry.Type + "  " + message);
+        }
+
+        Console.WriteLine();
     }
 }
 

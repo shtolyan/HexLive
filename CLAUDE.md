@@ -246,6 +246,19 @@ and splitting them would mean a third copy of the harness):
 dotnet run --project Tests/HexLive.Simulation.Soak -- --seed 12345 --ticks 12000
 ```
 
+**When something is stuck, ask it directly:**
+
+```bash
+dotnet run --project Tests/HexLive.Simulation.Soak -- --seed 12345 --ticks 12000 --explain-stuck 5
+```
+
+`StuckDiagnosticSystem` (spec §30.15) watches for the four shapes of "not getting
+anywhere" — `IdleWithGoal` (the §102 signature: goal set, no interaction, not
+moving), `StepOverrun`, `GoallessCrisis`, `PositionFrozen` — and `--explain-stuck`
+prints the flight-recorder tail beside each one, i.e. what that colonist was doing
+BEFORE she froze. Watch the `Reason=`; the per-NPC ring (spec §30.14) is what makes
+the tail survive, since the colony-wide ring only holds ~11 ticks.
+
 `-h` lists the rest. It reports the spec §30.16 metrics: goal churn per NPC-day
 (both raw field changes and "dropped one job for another", which is the number
 §35.4a means), median/mean goal dwell, plan-failure rate, and **stuck NPC-ticks** —

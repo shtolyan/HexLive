@@ -66,6 +66,7 @@ public sealed class SystemRegistryGateTests
         "BedSiteSystem",
         "WaterCollectorSystem",
         "HazardSystem",
+        "StuckDiagnosticSystem",
     };
 
     [Test]

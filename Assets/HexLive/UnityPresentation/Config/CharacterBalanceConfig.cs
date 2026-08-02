@@ -32,6 +32,18 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Сколько тиков приглашённая ждёт начала разговора (§28.15).")]
         [Range(20, 600)] public int talkWaitTimeoutTicks = 120;
 
+        [Header("Обнаружение застоя (§30.15) — только диагностика, поведение не трогает")]
+        [Tooltip("Цель есть, дела нет, не идёт — столько тиков, и это застой (подпись §102).")]
+        [Range(10, 400)] public int stuckIdleTicks = 40;
+        [Tooltip("Одно взаимодействие держится дольше стольких тиков.")]
+        [Range(100, 4000)] public int stuckStepTicks = 600;
+        [Tooltip("Цели нет вообще, а нужда уже кричит — столько тиков.")]
+        [Range(20, 1200)] public int stuckGoallessTicks = 120;
+        [Tooltip("«Иду», но с места не сдвинулась — столько тиков.")]
+        [Range(20, 600)] public int stuckFrozenTicks = 60;
+        [Tooltip("Пока застой длится, повторять жалобу не чаще этого.")]
+        [Range(50, 2000)] public int stuckRepeatEmitTicks = 200;
+
         [Header("Нужды — скорость (за медленный тик, ~150/день)")]
         [Tooltip("Сколько ГОЛОДА набегает за медленный тик. Больше = быстрее хочет есть. §53.7: вдвое медленнее (было 0.0037).")]
         [Range(0f, 0.05f)] public float hungerRate = 0.00185f;

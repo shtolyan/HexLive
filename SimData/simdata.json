@@ -421,7 +421,7 @@
     "AiBalance.LockOverrideDelta": 0.5,
     "AiBalance.MemoryTtlTicks": 2400,
     "AiBalance.PerceptionRadiusTiles": 2,
-    "AiBalance.SwitchDelta": 0.150000006,
+    "AiBalance.StuckFrozenTicks":60,"AiBalance.StuckGoallessTicks":120,"AiBalance.StuckIdleTicks":40,"AiBalance.StuckRepeatEmitTicks":200,"AiBalance.StuckStepTicks":600,"AiBalance.SwitchDelta": 0.150000006,
     "AiBalance.TalkWaitTimeoutTicks": 120,
     "SocialBalance.AmbientSocialCap": 0.600000024,
     "SocialBalance.LonelinessOverrideThreshold": 0.25,

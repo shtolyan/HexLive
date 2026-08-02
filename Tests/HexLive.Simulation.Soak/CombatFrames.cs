@@ -38,6 +38,17 @@ public static class CombatFrames
     private static readonly List<Row> Rows = new List<Row>();
     private static readonly Dictionary<int, string> Signature = new Dictionary<int, string>();
 
+    /// <summary>
+    /// Забыть предыдущий прогон. Обязателен между сидами: раскадровка
+    /// накапливалась в статике, и отчёт второго сида включал строки первого —
+    /// то есть показания одного мира читались как показания другого.
+    /// </summary>
+    public static void Reset()
+    {
+        Rows.Clear();
+        Signature.Clear();
+    }
+
     public static void Sample(WorldState world)
     {
         foreach (var npc in world.Entities.Npcs.Values)

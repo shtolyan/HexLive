@@ -71,30 +71,9 @@ public static class Program
 
         if (options.Arena == "abuse")
         {
-            // Ровно то же, что делает AbuseTestBootstrap перед первым тиком:
-            // перевести часы ЗА льготные сутки §81 и раздать то единственное,
-            // что арена добавляет от себя. Без этого мир формально тот же, а
-            // сцена не случается никогда — отсрочка считается от DayLengthTicks
-            // (24000), и короткий прогон до неё просто не доживает.
-            world.Tick = Spec81.AbuseGraceDays * EnvironmentSystem.DayLengthTicks + 900;
-
-            for (var i = 0; i < 3; i++)
-            {
-                if (world.Entities.Npcs.TryGetValue(
-                        new EntityId(HexLive.UnityPresentation.AbuseTest.AbuseTestWorld.GirlId + i),
-                        out var girl))
-                {
-                    girl.Inventory.Items.Add(ContentIds.Knife);
-                }
-            }
-
-            if (world.Entities.Npcs.TryGetValue(
-                    new EntityId(HexLive.UnityPresentation.AbuseTest.AbuseTestWorld.OutsiderId),
-                    out var outsider))
-            {
-                outsider.Inventory.Items.Add(ContentIds.Spear);
-                outsider.Inventory.Items.Add(ContentIds.Knife);
-            }
+            // Подготовка живёт в самой арене — ровно то же делает сцена Unity и
+            // гейт контракта снапшота. Копия здесь уже разошлась однажды.
+            HexLive.UnityPresentation.AbuseTest.AbuseTestWorld.Prepare(world);
         }
 
         var settings = new SimulationSettings
@@ -114,6 +93,10 @@ public static class Program
         // §30.14: в headless-прогоне самописец включён всегда — здесь он ничего
         // не стоит, а без него событие застоя сообщает только ЧТО, но не ПОЧЕМУ.
         world.FlightRecorder = FlightRecorder.ForBehavior();
+
+        // Раскадровка копится в статике: без сброса отчёт этого сида включал бы
+        // строки предыдущего.
+        CombatFrames.Reset();
 
         var metrics = new SoakMetrics
         {

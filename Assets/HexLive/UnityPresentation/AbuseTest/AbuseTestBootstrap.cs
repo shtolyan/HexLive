@@ -59,19 +59,14 @@ namespace HexLive.UnityPresentation.AbuseTest
             // шейдеров: сцена начинается сразу, и пропустить её легко.
             _runner.Configure(AbuseTestWorld.Build(), startPaused: true, initialSpeed: 1f);
 
-            var world = _runner.Engine?.World;
-            if (world != null)
-            {
-                // Стартуем ПОСЛЕ льготных суток абьюза и в 15:00 — светло, и
-                // ждать нечего.
-                world.Tick = Simulation.Runtime.Spec81.AbuseGraceDays *
-                    Simulation.Runtime.EnvironmentSystem.DayLengthTicks + 900;
-            }
+            // Часы и снаряжение — общей подготовкой арены: соак и гейт делают
+            // ровно это же, и разойтись им больше негде.
+            AbuseTestWorld.Prepare(_runner.Engine?.World);
 
             var rts = camGo.AddComponent<Input.RtsCameraController>();
             rts.SetRunner(_runner);
 
-            EquipBoth();
+            DressOutsider();
             InstallCharacterPanel();
         }
 
@@ -88,9 +83,16 @@ namespace HexLive.UnityPresentation.AbuseTest
         // льготных двух суток (§81), потому что смотреть на пустое ожидание
         // незачем. Это не правка поведения, а точка входа.
 
-        // Ему — его обычная амуниция и оружие, ей — каменный нож, чтобы у неё
-        // был выбор огрызнуться, а не только сдаться.
-        private void EquipBoth()
+        // Единственное, что остаётся сцене: ОДЕЖДА чужака. Она требует
+        // Unity-гардероба, поэтому в общую подготовку арены не переезжает —
+        // а часы, ножи, копьё и одиночество там (AbuseTestWorld.Prepare).
+        //
+        // §95: одежду девушкам НЕ трогаем. Раньше здесь стояло принудительное
+        // переодевание в один и тот же комплект — и все трое выходили
+        // одинаковыми, хотя мир раздаёт им разные вещи из общей ротации по
+        // хешу от сида и id. Тест не должен переодевать то, что и так работает:
+        // иначе он проверяет собственную заглушку.
+        private void DressOutsider()
         {
             var world = _runner?.Engine?.World;
             if (world == null)
@@ -98,32 +100,11 @@ namespace HexLive.UnityPresentation.AbuseTest
                 return;
             }
 
-            // §95: одежду девушкам НЕ трогаем. Раньше здесь стояло принудительное
-            // переодевание в один и тот же комплект — и все трое выходили
-            // одинаковыми, хотя мир раздаёт им разные вещи из общей ротации по
-            // хешу от сида и id. Тест не должен переодевать то, что и так
-            // работает: иначе он проверяет собственную заглушку.
-            for (var i = 0; i < 3; i++)
-            {
-                if (world.Entities.Npcs.TryGetValue(
-                        new EntityId(AbuseTestWorld.GirlId + i), out var girl))
-                {
-                    // Нож — чтобы у неё был выбор огрызнуться, а не только
-                    // сдаться. Это единственное, что арена добавляет.
-                    girl.Inventory.Items.Add("tool.knife");
-                }
-            }
-
             if (world.Entities.Npcs.TryGetValue(
                     new EntityId(AbuseTestWorld.OutsiderId), out var outsider))
             {
                 WardrobeDebugHelpers.Redress(world, outsider,
                     "TonnyFlash", "FCO Pants Male", "FAO Harness Male", "FCO Boots Male");
-                outsider.Inventory.Items.Add("tool.spear");
-                outsider.Inventory.Items.Add("tool.knife");
-                // Он должен ХОТЕТЬ прямо сейчас: одиночество — единственная
-                // незакрытая нужда во всём мире.
-                outsider.Needs.Social = 0f;
             }
         }
 

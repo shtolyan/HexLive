@@ -42,6 +42,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      Арена абьюза строится ТЕМ ЖЕ классом, что и сцена в Unity и прогон соака.
+      Файл живёт в UnityPresentation, но не ссылается на UnityEngine ни разу,
+      поэтому подключается сюда напрямую — так же, как в hexsoak.
+    -->
+    <Compile Include="../../Assets/HexLive/UnityPresentation/AbuseTest/AbuseTestWorld.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="known_hardcoded_ids.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

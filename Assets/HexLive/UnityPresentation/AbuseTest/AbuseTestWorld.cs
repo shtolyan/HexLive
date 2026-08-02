@@ -1,6 +1,10 @@
 using System.Collections.Generic;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.Bootstrap;
+using HexLive.Simulation.Common;
+using HexLive.Simulation.Content;
+using HexLive.Simulation.Core;
+using HexLive.Simulation.Runtime;
 
 namespace HexLive.UnityPresentation.AbuseTest
 {
@@ -141,6 +145,51 @@ namespace HexLive.UnityPresentation.AbuseTest
                     }
                 }
             };
+        }
+
+        /// <summary>
+        /// ⭐ ВСЁ, что арена добавляет к построенному миру перед первым тиком.
+        ///
+        /// <para>
+        /// Живёт здесь, а не у каждого запускающего, по той же причине, что и
+        /// сам <see cref="Build"/>: соак, гейт и сцена Unity обязаны смотреть на
+        /// ОДИН мир. Раньше это была копия в <c>Soak/Program.cs</c> и вторая в
+        /// <c>AbuseTestBootstrap</c> — и они уже разошлись (соак не трогал
+        /// одиночество чужака).
+        /// </para>
+        /// <para>
+        /// Перевод часов — не правка поведения, а точка входа: отсрочка §81
+        /// считается от <c>DayLengthTicks</c> (24000), и короткий прогон до неё
+        /// просто не доживает.
+        /// </para>
+        /// </summary>
+        public static void Prepare(WorldState world)
+        {
+            if (world == null)
+            {
+                return;
+            }
+
+            // Начинаем ПОСЛЕ льготных суток и в 15:00 — светло, и ждать нечего.
+            world.Tick = Spec81.AbuseGraceDays * EnvironmentSystem.DayLengthTicks + 900;
+
+            for (var i = 0; i < 3; i++)
+            {
+                if (world.Entities.Npcs.TryGetValue(new EntityId(GirlId + i), out var girl))
+                {
+                    // Нож — чтобы у неё был выбор огрызнуться, а не только сдаться.
+                    girl.Inventory.Items.Add(ContentIds.Knife);
+                }
+            }
+
+            if (world.Entities.Npcs.TryGetValue(new EntityId(OutsiderId), out var outsider))
+            {
+                outsider.Inventory.Items.Add(ContentIds.Spear);
+                outsider.Inventory.Items.Add(ContentIds.Knife);
+                // Он должен ХОТЕТЬ прямо сейчас: одиночество — единственная
+                // незакрытая нужда во всём мире.
+                outsider.Needs.Social = 0f;
+            }
         }
     }
 }

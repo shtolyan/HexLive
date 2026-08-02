@@ -296,12 +296,7 @@ public sealed class RaidSystem : ISimulationSystem
                 continue;
             }
 
-            scene.IsFighting = true;
-            scene.Mind.CombatOpponentNpcId = sceneVictim.Id;
-            if (sceneVictim.Mind.CombatOpponentNpcId is { } back && back.Equals(scene.Id))
-            {
-                sceneVictim.IsFighting = true;
-            }
+            FightScene.Latch(world, scene, sceneVictim);
         }
 
         foreach (var abuser in world.Entities.Npcs.Values)

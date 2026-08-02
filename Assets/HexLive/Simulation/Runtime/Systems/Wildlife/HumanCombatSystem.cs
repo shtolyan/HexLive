@@ -51,7 +51,8 @@ public sealed class HumanCombatSystem : ISimulationSystem
             HoldStandOff(world, actor, opponent);
 
             var inReach = InteractionReach.CanStrike(world, actor, opponent);
-            if (!MeleeSwing.TryAdvanceSwing(world, actor, inReach, out var damage, out var weaponId))
+            if (!MeleeSwing.TryAdvanceSwing(world, actor, inReach,
+                    out var damage, out var weaponId, out var clipSeconds))
             {
                 continue;
             }
@@ -76,45 +77,14 @@ public sealed class HumanCombatSystem : ISimulationSystem
                 damage *= Spec72.RaidStrikeDamageMult;
             }
 
-            // §97: удары СЦЕНЫ считаются здесь же — она заканчивается по числу
-            // попаданий, а не по таймеру. «Пара ударов и разошлись» должно
-            // означать ровно пару, сколько бы ни длилось окно.
-            // Сцена абьюза — это ОБЕ стороны: он трясёт, она отбивается. Темп
-            // разводится обоим, иначе её ответы сливаются в мельницу, которую
-            // так же не видно, как раньше не было видно его ударов.
-            var abuserHere = actor.Mind.CurrentGoal == GoalType.Abuse &&
-                actor.Mind.AbuseTargetNpcId is { } abused && abused.Equals(opponent.Id);
-            var defenderHere = opponent.Mind.CurrentGoal == GoalType.Abuse &&
-                opponent.Mind.AbuseTargetNpcId is { } defended && defended.Equals(actor.Id);
-
-            if (abuserHere || defenderHere)
-            {
-                if (abuserHere)
-                {
-                    actor.Mind.AbuseBlows++;
-                }
-
-                // §99: ⭐ РАЗВЕСТИ УДАРЫ ПО ВРЕМЕНИ КЛИПА. Своя скорость оружия
-                // ставит их слишком часто: кулак машется 1.5 с, а следующий
-                // удар ложился через 0.75 — второй замах перебивал первый на
-                // середине, и со стороны выходило «крови добавилось, а удара не
-                // видел». В обычном бою это теряется среди прочего, а сцена
-                // короткая: в ней каждый удар должен читаться.
-                //
-                // Отодвигаем готовность так, чтобы клип успел доиграть целиком.
-                var clip = GearCatalog.AttackDurationSeconds(weaponId);
-                // §100: своё он уже сказал — дальше стоит и смотрит, а сцена
-                // доигрывает до приговора. Столько ударов, сколько назначено,
-                // и ни одним больше, даже если время ещё есть.
-                var spacing = abuserHere && actor.Mind.AbuseBlows >= Spec81.AbuseMaxBlows
-                    ? Spec81.AbuseDurationTicks
-                    : MeleeSwing.SecondsToTicks(clip * Spec81.AbuseBlowSpacing);
-                var floor = world.Tick + spacing;
-                if (actor.StrikeReadyAtTick < floor)
-                {
-                    actor.StrikeReadyAtTick = floor;
-                }
-            }
+            // §103: постановочная сцена САМА считает свои удары и сама решает,
+            // когда открыть следующий замах — см. AI/FightScene. Здесь стоял
+            // блок, знавший про абьюз поимённо: он различал бьющего и
+            // отбивающуюся, лез в Spec81 за числом ударов и разводил их по
+            // БАЗОВОЙ длительности оружия, тогда как сам замах брался из
+            // варианта удара. Две мерки на одно расстояние — ровно та болезнь,
+            // что дала мёртвую зону §102, только во времени.
+            FightScene.OnBlowLanded(world, actor, clipSeconds);
 
             MeleeSwing.ApplyHumanBlow(world, actor, opponent, damage, weaponId,
                 raiding ? "RaidStruck" : "RaidFoughtBack");

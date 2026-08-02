@@ -200,11 +200,11 @@ public sealed partial class ExecutionSystem
             // §97: чем он будет бить — решает глубина неприязни, а не «что
             // получше в рюкзаке». Наезд это наезд: кулаки; тесак достают, когда
             // уже ненавидят.
-            npc.Mind.ForcedMeleeWeaponId = PickAbuseWeapon(npc, mark);
-            npc.Mind.AbuseBlows = 0;
-
-            npc.IsFighting = true;
-            npc.Mind.CombatOpponentNpcId = mark.Id;
+            // §103: намерение сцены объявляется ОДНОЙ строкой — чем, сколько
+            // раз, с какой паузой. Дальше боевая система только сообщает о
+            // попаданиях, а сцена спрашивает «готово?».
+            FightScene.Begin(world, npc, mark,
+                PickAbuseWeapon(npc, mark), Spec81.AbuseMaxBlows, Spec81.AbuseBlowSpacing);
             // §100: она отвечает НЕ ВСЕГДА. Испугалась — стоит и терпит, и он
             // просто пару раз бьёт. Бросок детерминированный, поэтому реплей
             // повторяется в точности.
@@ -237,12 +237,7 @@ public sealed partial class ExecutionSystem
         // Для модели это было почти незаметно (удары наносит HumanCombatSystem
         // по своим таймингам), а для ВИДА фатально: он читает IsFighting как
         // «в боевой стойке», и вся сцена шла в мирной позе, без замахов.
-        npc.IsFighting = true;
-        npc.Mind.CombatOpponentNpcId = mark.Id;
-        if (mark.Mind.CombatOpponentNpcId is { } markFoe && markFoe.Equals(npc.Id))
-        {
-            mark.IsFighting = true;
-        }
+        FightScene.Latch(world, npc, mark);
 
         // --- Такт 2: она плачет ----------------------------------------------
         if (npc.Mind.AbuseBeat < 1 && elapsed >= Spec81.AbuseBeatCryTicks)
@@ -275,9 +270,8 @@ public sealed partial class ExecutionSystem
         //
         // Время осталось ПОТОЛКОМ: если удары почему-то не ложатся (она ушла,
         // он не достаёт), сцена всё равно закончится.
-        var blowsDone = npc.Mind.AbuseBlows >= Spec81.AbuseMaxBlows;
         if (npc.Mind.AbuseBeat < 4 &&
-            (blowsDone || elapsed >= Spec81.AbuseBeatVerdictTicks))
+            (FightScene.IsComplete(npc) || elapsed >= Spec81.AbuseBeatVerdictTicks))
         {
             npc.Mind.AbuseBeat = 4;
             npc.Mind.AbuseVerdictTick = world.Tick;
@@ -414,24 +408,21 @@ public sealed partial class ExecutionSystem
         return lighter ?? GearCatalog.Fist;
     }
 
+    // §103: конец сцены — один вызов. Раньше здесь вручную гасились те же семь
+    // полей, и «намерение сцены» (сколько ударов) не снималось вовсе: оно жило
+    // до следующего Begin.
     private static void LeaveCombat(WorldState world, NPCState a, NPCState b)
     {
-        a.Mind.ForcedMeleeWeaponId = null;
+        var partner = b is not null && b.Mind.CombatOpponentNpcId is { } held && held.Equals(a.Id)
+            ? b
+            : null;
+
         if (b is not null)
         {
             b.Mind.ForcedMeleeWeaponId = null;
         }
 
-        a.IsFighting = false;
-        a.Mind.CombatOpponentNpcId = null;
-        a.StrikeLandsAtTick = 0;
-
-        if (b is not null && b.Mind.CombatOpponentNpcId is { } held && held.Equals(a.Id))
-        {
-            b.IsFighting = false;
-            b.Mind.CombatOpponentNpcId = null;
-            b.StrikeLandsAtTick = 0;
-        }
+        FightScene.End(world, a, partner);
     }
 
     private static void FinishAbuse(

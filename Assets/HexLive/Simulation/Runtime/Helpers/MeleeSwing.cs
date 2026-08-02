@@ -37,9 +37,19 @@ internal static class MeleeSwing
     // lands this tick (damage/weaponId then describe it); starts a fresh windup
     // when recovered and the target is in reach.
     internal static bool TryAdvanceSwing(
-        WorldState world, NPCState actor, bool inReach, out float damage, out string weaponId)
+        WorldState world, NPCState actor, bool inReach, out float damage, out string weaponId) =>
+        TryAdvanceSwing(world, actor, inReach, out damage, out weaponId, out _);
+
+    // §103: отдаёт ещё и длину КЛИПА, который только что отыграл. Постановочная
+    // сцена разводит удары по ней, а не по базовой длительности оружия: у
+    // кулака это разные числа (вариант удара против базы), и пауза считалась
+    // не тем, чем меряется замах.
+    internal static bool TryAdvanceSwing(
+        WorldState world, NPCState actor, bool inReach,
+        out float damage, out string weaponId, out float clipSeconds)
     {
         damage = 0f;
+        clipSeconds = 0f;
         // §97: обычно дерутся ЛУЧШИМ, что есть в руках. Но сцена может назначить
         // оружие сама — наезд начинается рукопашкой, а тесак достают, когда уже
         // ненавидят (§93). Пустая строка это кулаки, null — «как обычно».
@@ -61,6 +71,7 @@ internal static class MeleeSwing
             // speeding them up would desync the view's attack window.
             actor.StrikeReadyAtTick = world.Tick + SecondsToTicks(
                 (duration - hitDelay + cooldown) * AttributeMath.AttackCooldownMult(actor));
+            clipSeconds = duration;
             // Spec 19.3C: hurt arms strike weaker; the weapon owns its damage.
             // §76: StrikeFactor() now also carries her Strength and her Combat.
             damage = GearCatalog.Damage(weaponId) * actor.StrikeFactor();

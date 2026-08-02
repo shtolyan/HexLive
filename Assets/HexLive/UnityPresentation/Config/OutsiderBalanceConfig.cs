@@ -166,20 +166,22 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 2f)] public float abuseForceDefenseWeight = 0.4f;
         [Tooltip("Сколько силы добавляет ей каждая подруга рядом.")]
         [Range(0f, 2f)] public float abuseAllyForceShare = 0.6f;
-        [Tooltip("Длина всей сцены, тиков.")]
-        [Range(0, 4800)] public int abuseDurationTicks = 28;
-        [Tooltip("Такт «она плачет», тиков от начала.")]
-        [Range(0, 4800)] public int abuseBeatCryTicks = 6;
+        [Tooltip("§103: ПОТОЛОК сцены, тиков. Кончается она по числу ударов; это лишь страховка, если удары не ложатся.")]
+        [Range(0, 4800)] public int abuseDurationTicks = 60;
+        [Tooltip("Такт «она плачет», тиков от начала. §103: обязан быть РАНЬШЕ первого тычка, иначе такт не наступает никогда.")]
+        [Range(0, 4800)] public int abuseBeatCryTicks = 2;
         [Tooltip("Такт первого тычка.")]
         [Range(0, 4800)] public int abuseBeatBlowTicks = 4;
         [Tooltip("Такт второго тычка.")]
         [Range(0, 4800)] public int abuseBeatBlowSecondTicks = 12;
-        [Tooltip("Такт «сдалась или отказала».")]
-        [Range(0, 4800)] public int abuseBeatVerdictTicks = 20;
-        [Tooltip("Такт «забрал добычу».")]
-        [Range(0, 4800)] public int abuseBeatTakeTicks = 24;
-        [Tooltip("Сколько раз он бьёт для острастки.")]
-        [Range(0, 12)] public int abuseMaxBlows = 2;
+        [Tooltip("§103: ПОТОЛОК приговора. Обычно он наступает раньше — как только легли все назначенные удары.")]
+        [Range(0, 4800)] public int abuseBeatVerdictTicks = 48;
+        [Tooltip("Потолок такта «забрал добычу».")]
+        [Range(0, 4800)] public int abuseBeatTakeTicks = 52;
+        [Tooltip("§103: пауза между приговором и тем, как он лезет в её рюкзак.")]
+        [Range(0, 60)] public int abuseTakeDelayTicks = 4;
+        [Tooltip("§103: сколько ударов он наносит. Столько сцена и длится — три в модели, три в анимации.")]
+        [Range(0, 12)] public int abuseMaxBlows = 3;
         [Tooltip("§99: во сколько ДЛИН КЛИПА разводятся удары сцены. Своя скорость оружия для короткой сцены слишком частая — второй замах перебивал первый, и удара было не видно.")]
         [Range(0.5f, 4f)] public float abuseBlowSpacing = 1.2f;
         [Tooltip("Сила тычка — кулаком, не оружием: труп ему не нужен.")]

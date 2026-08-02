@@ -135,6 +135,8 @@ namespace HexLive.UnityPresentation.AbuseTest
             //
             // Раскладка та же, что в соседних тестовых сценах, чтобы не
             // переучиваться: 1/2/3 — скорость, пробел — пауза, R — заново.
+            DropToRealtimeWhenSceneStarts();
+
             var keyboard = Keyboard.current;
             if (keyboard == null || _runner == null)
             {
@@ -167,6 +169,62 @@ namespace HexLive.UnityPresentation.AbuseTest
             {
                 UnityEngine.SceneManagement.SceneManager.LoadScene(
                     UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
+            }
+        }
+
+        // Кого мы уже поймали на замахе: чтобы сбросить скорость ОДИН раз за
+        // сцену, а не держать её на единице всю оставшуюся игру.
+        private int _slowedForAbuseTick = -1;
+
+        /// <summary>
+        /// ⭐ Промотал — и не проспал сцену. Как только чужак берёт цель
+        /// «хочу докопаться», скорость падает до реального времени.
+        /// <para>
+        /// Смысл ровно в этом: сцена длится секунды, повторяется примерно раз в
+        /// тысячу тиков, и на промотке её видно как мелькнувший кадр. Ждать
+        /// вживую бессмысленно, а промотка съедает то, ради чего ждали.
+        /// </para>
+        /// <para>
+        /// Живёт в бутстрапе ТЕСТОВОЙ сцены, а не в игре: это удобство отладки,
+        /// и настоящему миру решать за игрока скорость незачем.
+        /// </para>
+        /// </summary>
+        private void DropToRealtimeWhenSceneStarts()
+        {
+            var world = _runner?.Engine?.World;
+            if (world == null || _runner.IsPaused)
+            {
+                return;
+            }
+
+            var abusing = false;
+            foreach (var npc in world.Entities.Npcs.Values)
+            {
+                if (npc.Mind.CurrentGoal == Simulation.AI.GoalType.Abuse)
+                {
+                    abusing = true;
+                    break;
+                }
+            }
+
+            if (!abusing)
+            {
+                // Сцена кончилась — снимаем метку, чтобы поймать следующую.
+                _slowedForAbuseTick = -1;
+                return;
+            }
+
+            if (_slowedForAbuseTick >= 0)
+            {
+                return; // эту сцену уже притормозили
+            }
+
+            _slowedForAbuseTick = world.Tick;
+            if (_runner.SpeedMultiplier > 1f)
+            {
+                _runner.SetSpeed(1f);
+                Debug.Log($"[AbuseTest] Сцена началась на тике {world.Tick} — " +
+                          "скорость сброшена до 1x.");
             }
         }
 

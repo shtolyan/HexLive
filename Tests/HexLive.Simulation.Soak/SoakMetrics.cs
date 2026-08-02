@@ -182,6 +182,14 @@ public sealed class SoakMetrics
                         "  (" + (StuckShare * 100).ToString("F1", invariant) +
                         "% — цель есть, дела нет, не идёт)");
         text.AppendLine("  событий             " + TotalEvents);
+        // §54.17: вся мясная цепочка одной строкой — охота до тарелки. Ноль в
+        // MeatRoasted/MeatEaten при ненулевом Butchered = цепь порвана.
+        text.AppendLine("  мясо                " +
+                        "Butchered=" + EventCount("Butchered") +
+                        ", Hung=" + EventCount("MeatHungOnSpit") +
+                        ", Roasted=" + EventCount("MeatRoasted") +
+                        ", Eaten=" + EventCount("MeatEaten") +
+                        ", Spoiled=" + EventCount("MeatSpoiled"));
 
         var top = _eventCounts
             .OrderByDescending(pair => pair.Value)
@@ -214,6 +222,11 @@ public sealed class SoakMetrics
                ",\"stuckNpcTicks\":" + StuckTicks +
                ",\"stuckShare\":" + StuckShare.ToString("F4", invariant) +
                ",\"totalEvents\":" + TotalEvents +
+               ",\"butchered\":" + EventCount("Butchered") +
+               ",\"meatHung\":" + EventCount("MeatHungOnSpit") +
+               ",\"meatRoasted\":" + EventCount("MeatRoasted") +
+               ",\"meatEaten\":" + EventCount("MeatEaten") +
+               ",\"meatSpoiled\":" + EventCount("MeatSpoiled") +
                "}";
     }
 }

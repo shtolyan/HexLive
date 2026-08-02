@@ -140,7 +140,9 @@ public sealed class NeedsDecaySystem : ISimulationSystem
     // stamina faint (spec 40.13); idempotent while already out.
     internal static void EnterComa(WorldState world, NPCState npc, ComaCause cause)
     {
-        if (npc.Mind.ComaCause != ComaCause.None || npc.Health <= 0f)
+        // §105: умирание глубже комы и уже держит тело на земле — кома поверх
+        // него только подменила бы условие пробуждения на своё.
+        if (npc.Mind.ComaCause != ComaCause.None || npc.Health <= 0f || npc.IsDying)
         {
             return;
         }
@@ -172,45 +174,12 @@ public sealed class NeedsDecaySystem : ISimulationSystem
         // lie down wherever the free-junction scan landed, and that scan
         // excluded the junction she actually stood on, drifting the body off
         // the edge; the no-free-junction fallback left her un-snapped entirely).
-        // The centre is pinned first and unconditionally; the scan below now
-        // only picks a free junction to anchor the lying footprint (spec 29G)
-        // so housemates path around the body — it no longer decides position.
-        ExecutionSystem.LieDownCentered(world, npc);
-
-        var center = npc.Position;
-        JunctionId? spot = null;
-        var best = float.MaxValue;
-        if (world.Tiles.Items.TryGetValue(npc.Tile, out var comaTile))
-        {
-            foreach (var junctionId in comaTile.Junctions)
-            {
-                if (!world.Junctions.Items.TryGetValue(junctionId, out var junction) ||
-                    junction.Blocked ||
-                    !SpatialQueries.IsJunctionFree(world, junctionId))
-                {
-                    continue;
-                }
-
-                var d = HexSpatialMath.Distance(junction.WorldPosition, center);
-                if (d < best)
-                {
-                    best = d;
-                    spot = junctionId;
-                }
-            }
-        }
-
-        if (spot is { } lieSpot)
-        {
-            npc.CurrentJunction = lieSpot;
-            SpatialMutations.OccupyJunction(world, lieSpot, npc.Id);
-            ExecutionSystem.ClaimLyingFootprint(world, npc, lieSpot);
-        }
-        else if (npc.CurrentJunction is { } here)
-        {
-            // Crowded tile — no free junction to anchor on; claim where she is.
-            ExecutionSystem.ClaimLyingFootprint(world, npc, here);
-        }
+        // The centre is pinned first and unconditionally; the scan only picks a
+        // free junction to anchor the lying footprint (spec 29G) so housemates
+        // path around the body — it no longer decides position.
+        // §105: сам примитив переехал в MortalityHelpers — умирание кладёт тело
+        // на землю ровно тем же способом, и двух редакций §60.2a быть не должно.
+        MortalityHelpers.AnchorLyingBody(world, npc);
 
         // §60 r2: exhaustion reads as SLEEP (she crashed dead-tired), only
         // blood loss reads as unconsciousness — the "coma" framing is gone.
@@ -504,12 +473,11 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                         System.Math.Max(SickTorsoFloor, npc.Body.Parts[BodyPart.Torso] - dock);
                     npc.Mind.SicknessDamageRemaining -= dock;
                     npc.Health = npc.Body.Mean();
-                    if (npc.Body.VitalDestroyed(out var sickVital))
-                    {
-                        npc.Health = 0f;
-                        Trace.Emit(world, npc.Id, "VitalPartDestroyed",
-                            $"{sickVital} destroyed by sickness");
-                    }
+                    // §105: через общую развилку, как и всякий другой урон по
+                    // телу. (Практически недостижимо — SickTorsoFloor 0.15 не
+                    // даёт болезни доломать грудь; ветка живёт ради того, чтобы
+                    // ни один сайт урона не остался со своим ответом.)
+                    MortalityHelpers.ResolveTrauma(world, npc, dock, "sickness");
 
                     DamageReactionSystemHelpers.GrantAdrenaline(world, npc, dock, "Sickness");
                 }
@@ -540,13 +508,21 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                  0.10f * npc.Needs.Comfort) * AttributeMath.StaminaCeilingMult(npc));
             var resting = npc.Execution.CurrentInteraction is
                 InteractionType.Sit or InteractionType.Sleep ||
-                npc.Mind.ComaCause != ComaCause.None; // §60: a coma rests the body too
+                npc.Mind.ComaCause != ComaCause.None || // §60: a coma rests the body too
+                npc.IsDying;                            // §105: и лежащая на грани тоже
             var working = npc.Execution.Status == ExecutionStatus.InProgress && !resting;
             // §76: and she spends it slower at the job. Only the WORK drain is
             // scaled — the rest/idle gains are the body's clock, not hers.
-            var staminaDelta = resting ? SimBalance.StaminaRestGain
-                : working ? -SimBalance.StaminaWorkDrain * AttributeMath.StaminaDrainMult(npc)
-                : SimBalance.StaminaIdleGain;
+            // §105: «едва живая» после спасения — восстанавливается втрое
+            // медленнее, тратит вдвое быстрее. Множители сидят ровно там же,
+            // где §76-й: одна цепочка на стамину, а не вторая ветка рядом.
+            var convalescing = Spec105.DyingEnabled && world.Tick < npc.Mind.ConvalescentUntilTick;
+            var staminaRegen = convalescing ? Spec105.ConvalescentStaminaRegenFactor : 1f;
+            var staminaDrain = convalescing ? Spec105.ConvalescentStaminaDrainFactor : 1f;
+            var staminaDelta = resting ? SimBalance.StaminaRestGain * staminaRegen
+                : working
+                    ? -SimBalance.StaminaWorkDrain * AttributeMath.StaminaDrainMult(npc) * staminaDrain
+                    : SimBalance.StaminaIdleGain * staminaRegen;
             npc.Needs.Stamina = MathUtil.Clamp(
                 npc.Needs.Stamina + staminaDelta, 0f, staminaCeiling);
 
@@ -592,34 +568,18 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // Gentle rates so the healthy colony is unaffected: only a mauled
             // NPC bleeds, and it's survivable if the wounds close. At zero the
             // NPC dies of blood loss.
-            var worstPart = 1f;
-            foreach (var part in AllBodyParts)
-            {
-                // §50: a severed zone is 0 forever and unbandageable — without a
-                // floor it pins the bleed at maximum for the whole clotting
-                // window and every amputation bleeds out. The stump's trauma is
-                // already charged as the one-off LimbSeverBloodLoss.
-                var partHealth = npc.Body.IsSevered(part)
-                    ? System.Math.Max(npc.Body.Parts[part], Spec50.StumpBleedPartFloor)
-                    : npc.Body.Parts[part];
-                if (partHealth < worstPart)
-                {
-                    worstPart = partHealth;
-                }
-            }
-
+            // §50: a severed zone is 0 forever and unbandageable — without a
+            // floor it pins the bleed at maximum for the whole clotting
+            // window and every amputation bleeds out. The stump's trauma is
+            // already charged as the one-off LimbSeverBloodLoss.
             // Spec 44: clotting — only a FRESH wound (heal01 < 0.3) bleeds;
             // once it starts closing the blood stops, so the deadly window is
             // the first hours after the mauling, not the whole two-day heal.
-            var freshWound = false;
-            foreach (var wound in npc.Wounds)
-            {
-                if (wound.Heal01 < 0.3f && wound.Severity >= 0.05f)
-                {
-                    freshWound = true;
-                    break;
-                }
-            }
+            // §105: обе половины гейта переехали в MortalityHelpers — умирание
+            // спрашивает ровно этот вопрос («отпустило ли кровотечение?»), и
+            // вторая редакция условия разошлась бы с этой на первой правке.
+            var worstPart = MortalityHelpers.WorstBleedPart(npc);
+            var freshWound = MortalityHelpers.HasFreshWound(npc);
 
             if (worstPart < 0.4f && freshWound)
             {
@@ -715,8 +675,18 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     npc.Needs.Blood = MathUtil.Clamp01(npc.Needs.Blood - bleed);
                     if (npc.Needs.Blood <= 0f)
                     {
-                        npc.Health = 0f;
-                        Trace.Emit(world, npc.Id, "BledOut", $"Worst part {worstPart:F2} — blood loss");
+                        // §105: кровь на нуле больше не убивает В ТОТ ЖЕ ТИК —
+                        // тело падает и умирает, пока запас не вытечет. Кил-свитч
+                        // возвращает мгновенную смерть слово в слово.
+                        if (Spec105.DyingEnabled)
+                        {
+                            MortalityHelpers.EnterDying(world, npc, DyingCause.BloodLoss);
+                        }
+                        else
+                        {
+                            npc.Health = 0f;
+                            Trace.Emit(world, npc.Id, "BledOut", $"Worst part {worstPart:F2} — blood loss");
+                        }
                     }
                     else
                     {
@@ -909,7 +879,12 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 }
             }
 
-            if (starved || parched)
+            // §105: пока идёт окно умирания, истощение больше НЕ грызёт зоны —
+            // часы теперь отсчитывает запас, и вторая шкала поверх него просто
+            // ломала бы пол витальных зон каждый тик. Умирающая от кровопотери
+            // тем самым получает поблажку по голоду: она и так умирает, и
+            // одного обратного отсчёта на тело достаточно.
+            if ((starved || parched) && !npc.IsDying)
             {
                 // §45 r5: attrition eased 0.03/0.05 -> 0.02/0.035. The 25-day
                 // baseline showed every colony losing 1-2 girls to ACUTE
@@ -927,7 +902,21 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 npc.Health = npc.Body.Mean();
                 if (npc.Body.VitalDestroyed(out _))
                 {
-                    npc.Health = 0f;
+                    // §105: тело сдалось — но не умерло в этот тик. Причина
+                    // берётся по тому, чего именно не хватило, потому что она
+                    // же выбирает, ЧЕМ её спасать: голодной нужна еда, а не
+                    // бинт. Витальную зону здесь не разбирают на голову и
+                    // грудь: истощение точит все семь разом, и «выстрел в
+                    // голову» от голода был бы бессмыслицей.
+                    if (Spec105.DyingEnabled)
+                    {
+                        MortalityHelpers.EnterDying(world, npc,
+                            starved ? DyingCause.Starvation : DyingCause.Dehydration);
+                    }
+                    else
+                    {
+                        npc.Health = 0f;
+                    }
                 }
 
                 DamageReactionSystemHelpers.GrantAdrenaline(world, npc, damage, "Starvation");
@@ -1018,10 +1007,26 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // Health from the body parts and would otherwise "resurrect" a
             // bled-out body in the same pass (parts stay > 0 when the death
             // came from the drained blood, not from destroyed zones).
-            if (npc.Needs.Blood <= 0f)
+            // §105: пока идёт окно умирания, пин ОТМЕНЁН — иначе он убивал бы
+            // её тем же тиком, в котором она упала, и всё окно свелось бы к
+            // одному кадру. Обнуляет здоровье теперь только истёкший запас.
+            if (npc.Needs.Blood <= 0f && !npc.IsDying)
             {
-                npc.Health = 0f;
+                if (Spec105.DyingEnabled)
+                {
+                    MortalityHelpers.EnterDying(world, npc, DyingCause.BloodLoss);
+                }
+                else
+                {
+                    npc.Health = 0f;
+                }
             }
+
+            // §105: обратный отсчёт — последним, по итогам всего, что этот тик
+            // сделал с телом (кровь вытекла или, наоборот, рана закрылась и
+            // крови набралось). Здесь же наступает и смерть, когда запас
+            // кончился: Health падает в ноль, и свип MobSystem уносит тело.
+            MortalityHelpers.TickDying(world, npc);
 
             Trace.Emit(world, npc.Id, "NeedsDecay",
                 $"Hunger={prevHunger:F3}->{npc.Needs.Hunger:F3}(+{HungerRate}) " +

@@ -43,7 +43,11 @@ public static class WorldSnapshotCodec
     /// §77.5 InteractionSeconds, §76 attributes/skills/perks.
     /// v4: §103 MeleeWeaponId — чем сим бьёт СЕЙЧАС (сцена может назначить
     /// кулаки при ноже в рюкзаке); вид считал это сам и показывал не то.
-    public const int WireVersion = 4;
+    /// v5: §28.15C v3 — секция Corpses (тела не исчезают) + DeathAnimVariant
+    /// в записи человека.
+    /// v6: §105 IsDying — она лежит и умирает, и вид роняет её на землю.
+    /// v7: §85 EyeColor — цвет глаз отвязан от SkinSet и катится своей осью.
+    public const int WireVersion = 7;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -65,6 +69,7 @@ public static class WorldSnapshotCodec
         WriteTiles(snapshot, w);
         WriteObjects(snapshot, w);
         WriteNpcs(snapshot, w, includeDebugDetails);
+        WriteCorpses(snapshot, w, includeDebugDetails);
         WriteMobs(snapshot, w);
         WriteCrabs(snapshot, w);
         WriteSharks(snapshot, w);
@@ -99,6 +104,7 @@ public static class WorldSnapshotCodec
         ReadTiles(r, into);
         ReadObjects(r, into);
         ReadNpcs(r, into, includeDebugDetails);
+        ReadCorpses(r, into, includeDebugDetails);
         ReadMobs(r, into);
         ReadCrabs(r, into);
         ReadSharks(r, into);
@@ -427,6 +433,30 @@ public static class WorldSnapshotCodec
         }
     }
 
+    // §28.15C v3: тела едут ТОЙ ЖЕ записью, что и живые — WriteNpcRecord один на
+    // оба списка. Своя, урезанная запись для трупа была бы вторым местом, где
+    // можно забыть поле, а забытое поле в дельте портит зеркало до следующего
+    // ключевого кадра (и рефлексионный гейт покрытия сторожит именно одну).
+    private static void WriteCorpses(WorldSnapshot snapshot, BinaryWriter w, bool includeDebugDetails)
+    {
+        var corpses = snapshot.Corpses;
+        w.Write(corpses.Count);
+        for (var i = 0; i < corpses.Count; i++)
+        {
+            WriteNpcRecord(w, corpses[i], includeDebugDetails);
+        }
+    }
+
+    private static void ReadCorpses(BinaryReader r, WorldSnapshot into, bool includeDebugDetails)
+    {
+        var count = r.ReadInt32();
+        WireIo.Resize(into.Corpses, count);
+        for (var i = 0; i < count; i++)
+        {
+            ReadNpcRecord(r, into.Corpses[i], includeDebugDetails);
+        }
+    }
+
     /// <summary>ONE colonist, self-contained — see <see cref="WriteObjectRecord"/>.</summary>
     internal static void WriteNpcRecord(BinaryWriter w, NpcSnapshot n, bool includeDebugDetails)
     {
@@ -437,6 +467,7 @@ public static class WorldSnapshotCodec
         // §74 composition + §72 faction. Faction travels as a byte: the enum is
         // tiny and both ends link the same definition.
         WireIo.WriteString(w, n.SkinSet);
+        WireIo.WriteString(w, n.EyeColor);
         WireIo.WriteString(w, n.Hairstyle);
         WireIo.WriteString(w, n.VoiceBank);
         w.Write((byte)n.Faction);
@@ -495,6 +526,7 @@ public static class WorldSnapshotCodec
         w.Write(n.HopStartTick);
         w.Write(n.IsFainted);
         w.Write(n.IsUnconscious);
+        w.Write(n.IsDying); // §105
         w.Write(n.AidTargetLyingDown);
         w.Write(n.IsLedgeSit);
         w.Write(n.LedgeSeatStepsUp);
@@ -541,6 +573,9 @@ public static class WorldSnapshotCodec
         WireIo.WriteStrings(w, n.InventoryBloodiness);
         WireIo.WriteStrings(w, n.InventoryWater);
         w.Write(n.InventoryCapacity);
+
+        // §28.15C v3: каким клипом она упала.
+        w.Write(n.DeathAnimVariant);
 
         // worn
         WireIo.WriteStrings(w, n.WornItems);
@@ -611,6 +646,7 @@ public static class WorldSnapshotCodec
         n.DisplayName = r.ReadString();
         n.ActorMesh = r.ReadString();
         n.SkinSet = r.ReadString();
+        n.EyeColor = r.ReadString();
         n.Hairstyle = r.ReadString();
         n.VoiceBank = r.ReadString();
         n.Faction = (Agents.Faction)r.ReadByte();
@@ -665,6 +701,7 @@ public static class WorldSnapshotCodec
         n.HopStartTick = r.ReadInt32();
         n.IsFainted = r.ReadBoolean();
         n.IsUnconscious = r.ReadBoolean();
+        n.IsDying = r.ReadBoolean(); // §105
         n.AidTargetLyingDown = r.ReadBoolean();
         n.IsLedgeSit = r.ReadBoolean();
         n.LedgeSeatStepsUp = r.ReadInt32();
@@ -707,6 +744,8 @@ public static class WorldSnapshotCodec
         WireIo.ReadStrings(r, n.InventoryBloodiness);
         WireIo.ReadStrings(r, n.InventoryWater);
         n.InventoryCapacity = r.ReadInt32();
+
+        n.DeathAnimVariant = r.ReadInt32();
 
         WireIo.ReadStrings(r, n.WornItems);
         WireIo.ReadStrings(r, n.HolsteredItems);

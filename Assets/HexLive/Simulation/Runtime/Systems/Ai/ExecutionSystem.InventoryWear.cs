@@ -619,6 +619,15 @@ public sealed partial class ExecutionSystem
                     ? $" CoconutWaterLeft={item.ResourceAmount:F0}"
                     : string.Empty));
 
+            // §54.17: the whole meat chain's finish line — hunt/butcher/cook
+            // metrics read THIS, not ItemConsumed (which verbose-traces every
+            // coconut). Player-visible: it closes the story MeatRoasted opens.
+            if (verb == InteractionType.Eat && itemId == ContentIds.MeatCooked)
+            {
+                Trace.Emit(world, npc.Id, "MeatEaten",
+                    $"{itemId} eaten NeedsAfter=[{needsAfter}]");
+            }
+
             npc.Plan.Status = PlanStatus.Completed;
             npc.Plan.Steps.Clear();
             npc.Plan.TargetItemDefinitionId = null;
@@ -734,11 +743,10 @@ public sealed partial class ExecutionSystem
                 }
                 npc.Health = npc.Body.Mean();
                 npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort - 0.2f);
-                if (npc.Body.VitalDestroyed(out var sickVital0))
-                {
-                    npc.Health = 0f;
-                    Trace.Emit(world, npc.Id, "VitalPartDestroyed", $"{sickVital0} destroyed by sickness");
-                }
+                // §105: через общую развилку (пол 0.1 не даёт болезни доломать
+                // грудь — ветка живёт ради единственности ответа).
+                MortalityHelpers.ResolveTrauma(
+                    world, npc, beforeTorso - npc.Body.Parts[BodyPart.Torso], "sickness");
                 DamageReactionSystemHelpers.GrantAdrenaline(
                     world, npc, beforeTorso - npc.Body.Parts[BodyPart.Torso], "Sickness");
                 Trace.Emit(world, npc.Id, "GotSick", $"Raw water (Roll={sickRoll:F2}) instant");

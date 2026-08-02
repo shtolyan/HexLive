@@ -76,9 +76,11 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Шанс скачка за тик (снуют, а не бегут).")]
         [Range(0f, 1f)] public float rabbitHopChance = 0.2f;
         [Tooltip("Шанс добить краба вручную за подход.")]
-        [Range(0f, 1f)] public float rabbitKillChance = 0.5f;
+        [Range(0f, 1f)] public float rabbitKillChance = 0.75f;
         [Tooltip("Сколько тиков краб напуган после промаха.")]
         [Range(0, 600)] public int rabbitSpookTicks = 150;
+        [Tooltip("Выпад копья по крабу, в долях радиуса гекса (сверх соседства узлов).")]
+        [Range(0f, 3f)] public float rabbitSpearReachHexFraction = 1f;
         [Tooltip("Шанс попадания стрелой из лука.")]
         [Range(0f, 1f)] public float rabbitBowHitChance = 0.6f;
         [Tooltip("Шанс вытащить стрелу из добычи обратно.")]

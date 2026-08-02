@@ -52,6 +52,15 @@ public sealed class SoakOptions
                 "GoalSelected", "PlanStarted", "PlanFailed", "PlanAborted",
                 "ExecFailed", "GoalInterrupted", "StuckDetected"
             },
+            // §81.11: жизнь чужака одной строкой на событие. AbuseBlocked —
+            // ПРИЧИНА, почему он сейчас НЕ абьюзит (раз в 64 тика), остальное —
+            // вехи сцены. GoalSelected рядом, чтобы видеть, чем он занят вместо.
+            ["abuse"] = new[]
+            {
+                "AbuseBlocked", "AbuseTriggered", "AbuseProwl", "AbuseSpotted",
+                "AbuseRetarget", "AbusePursues", "AbuseStarted", "AbuseAbandoned",
+                "AbuseDone", "GoalSelected"
+            },
         };
 
     public static SoakOptions Parse(string[] args, out string error)
@@ -171,7 +180,7 @@ public sealed class SoakOptions
   --metrics-json PATH     выгрузить метрики в JSON
 
   --trace-out PATH        писать трассу (эталон для golden_trace.sh)
-  --trace-preset NAME     decisions | scores | execution (по умолчанию decisions)
+  --trace-preset NAME     decisions | scores | execution | abuse (по умолчанию decisions)
   --trace-types A,B,C     свой список типов вместо пресета
   --state-hash-every N    добавлять в трассу хэш полного кадра раз в N тиков
 

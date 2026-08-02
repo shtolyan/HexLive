@@ -843,6 +843,11 @@ public sealed class WorldStateFactory
                 npc.SkinSet = look.SkinSet;
             }
 
+            if (string.IsNullOrEmpty(npc.EyeColor))
+            {
+                npc.EyeColor = look.EyeColor;
+            }
+
             if (string.IsNullOrEmpty(npc.Hairstyle))
             {
                 npc.Hairstyle = look.Hairstyle;
@@ -877,6 +882,7 @@ public sealed class WorldStateFactory
             DisplayName = bootstrap.DisplayName,
             ActorMesh = bootstrap.ActorMesh,
             SkinSet = bootstrap.SkinSet,
+            EyeColor = bootstrap.EyeColor,
             Hairstyle = bootstrap.Hairstyle,
             VoiceBank = bootstrap.VoiceBank,
             Faction = bootstrap.Faction,

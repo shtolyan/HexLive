@@ -86,6 +86,15 @@ public static class AbuseMath
         return System.Math.Max(supply, social);
     }
 
+    // §81.11: держат ли ещё льготные дни. Оба входа в цель — аукцион
+    // DecisionSystem и прерывание RaidSystem.TryStartAbuse — обязаны звать
+    // ЭТО, а не сравнивать тик сами: два рукописных сравнения уже разъехались
+    // бы, как §72/§81. Смотрит ТОЛЬКО общение, не Drive: одержимость — про
+    // пустые дни, а не про пустой живот.
+    public static bool GraceHolds(WorldState world, NPCState npc) =>
+        world.Tick < Spec81.AbuseGraceDays * EnvironmentSystem.DayLengthTicks &&
+        npc.Needs.Social > Spec81.AbuseObsessionSocialCeiling;
+
     // Боевая мощь в глазах смотрящего. Всё безразмерное, поэтому сумма —
     // сравнимое число, а не мешанина единиц.
     //
@@ -145,13 +154,34 @@ public static class AbuseMath
         return MathUtil.Hash01(world.Seed, world.Tick, mark.Id.Value, 5501) < chance;
     }
 
+    // §81.11: почему у BestMark никого не осталось. Счётчики, а не «последняя
+    // причина»: последняя нерепрезентативна, когда трёх девушек отсеяли три
+    // РАЗНЫХ фильтра. Struct на стеке, строка собирается только при эмите.
+    public struct MarkFilterTally
+    {
+        public int Hostile;    // живых враждебных кандидаток всего
+        public int OutOfSight; // §81.12: есть, но он её не видит
+        public int Helpless;   // без сознания / ничком
+        public int Asleep, Fleeing, Sanctuary, Swimming, Claimed;
+
+        public string ToMessage() =>
+            $"Hostile={Hostile} OutOfSight={OutOfSight} Helpless={Helpless} " +
+            $"Asleep={Asleep} Flee={Fleeing} Sanct={Sanctuary} " +
+            $"Swim={Swimming} Claimed={Claimed}";
+    }
+
     // Кого выбрать. Перебор идёт по РОСТЕРУ, а не по Perception.Agents: §72
     // развёл списки, и у чужака девушки лежат в Hostiles, а PerceivedAgent и
     // вовсе не носит содержимого рюкзака. Ничью разрывает меньший id — иначе
     // порядок обхода словаря протёк бы в реплей.
-    public static NPCState BestMark(WorldState world, NPCState abuser, out bool hasLoot)
+    public static NPCState BestMark(WorldState world, NPCState abuser, out bool hasLoot) =>
+        BestMark(world, abuser, out hasLoot, out _);
+
+    public static NPCState BestMark(WorldState world, NPCState abuser, out bool hasLoot,
+        out MarkFilterTally tally)
     {
         hasLoot = false;
+        tally = default;
         NPCState best = null;
         var bestScore = float.MinValue;
 
@@ -159,21 +189,59 @@ public static class AbuseMath
         {
             if (mark.Id.Equals(abuser.Id) ||
                 mark.Health <= 0f ||
-                !FactionRelations.AreHostile(abuser.Faction, mark.Faction) ||
-                mark.IsUnconscious(world.Tick) ||
-                mark.Body.IsProne ||
-                // Спящую не трогаем: кьюшка над спящей молча гасится (§60), и
-                // вся сцена прошла бы без единого эмодзи, а «она взвесила силы
-                // и сдалась» требует, чтобы она вообще была в сознании. Тихий
-                // грабёж спящей — это другая механика, кража §40.5.
-                mark.Execution.CurrentInteraction == InteractionType.Sleep ||
-                mark.Mind.CurrentGoal == GoalType.Flee)
+                !FactionRelations.AreHostile(abuser.Faction, mark.Faction))
             {
+                continue;
+            }
+
+            tally.Hostile++;
+
+            // §81.12: глазами, не ростером. Дальше радиуса взгляда женщины для
+            // него не существует — пусть идёт туда, где люди бывают (prowl §90),
+            // и замечает их по дороге. §85 r2 снимал радиус, потому что тот
+            // резал ВЫБОР при всевидящем знании; здесь режется само ЗНАНИЕ,
+            // а выбор внутри поля зрения по-прежнему без порогов.
+            if (Spec81.AbuseHuntBySight &&
+                HexSpatialMath.HexDistance(abuser.Tile, mark.Tile) >
+                    Spec81.AbuseSightRadiusTiles)
+            {
+                tally.OutOfSight++;
+                continue;
+            }
+
+            if (mark.IsUnconscious(world.Tick) || mark.Body.IsProne)
+            {
+                tally.Helpless++;
+                continue;
+            }
+
+            // Спящую не трогаем: кьюшка над спящей молча гасится (§60), и
+            // вся сцена прошла бы без единого эмодзи, а «она взвесила силы
+            // и сдалась» требует, чтобы она вообще была в сознании. Тихий
+            // грабёж спящей — это другая механика, кража §40.5.
+            if (mark.Execution.CurrentInteraction == InteractionType.Sleep)
+            {
+                tally.Asleep++;
+                continue;
+            }
+
+            if (mark.Mind.CurrentGoal == GoalType.Flee)
+            {
+                tally.Fleeing++;
                 continue;
             }
 
             if (Spec81.AbuseRespectsSanctuary && MobSystem.IsNpcInSanctuary(world, mark))
             {
+                tally.Sanctuary++;
+                continue;
+            }
+
+            // §106: пловчиху не выбирают — вода второй санктуарий, и сцена,
+            // которую нельзя начать (CanStrike), не должна и планироваться.
+            if (Spec106.WaterSanctuaryEnabled && CombatMedium.IsNpcSwimming(world, mark))
+            {
+                tally.Swimming++;
                 continue;
             }
 
@@ -189,6 +257,7 @@ public static class AbuseMath
             // Уже занята чужим рукопожатием — не влезаем в чужую сцену.
             if (mark.Mind.PendingAbuseFrom is { } claimed && !claimed.Equals(abuser.Id))
             {
+                tally.Claimed++;
                 continue;
             }
 

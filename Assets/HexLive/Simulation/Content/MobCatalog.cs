@@ -77,6 +77,7 @@ namespace HexLive.Simulation.Content
                     GlideSegmentSeconds = 1.0f,   // rendered-move ease over ~one medium period
                     GlideSnapDistance = 6.0f,     // teleport past this (spawn/save-load)
                     MeleeHoldDistance = 0.9f,     // rendered stand-off from the engaged quarry (wu)
+                    AttackMediums = AttackMedium.Land, // §106: a swimmer is out of its reach
                     RaidChancePerDay = 0.08f,     // night pack-raid probability per day
                     RaidPackSize = 3,             // dogs per night raid
                 },
@@ -97,11 +98,26 @@ namespace HexLive.Simulation.Content
                     // A shark strikes from below the swimmer — no visible
                     // side-by-side stand-off to keep, so no clamp.
                     MeleeHoldDistance = 0f,
+                    AttackMediums = AttackMedium.Water, // §106: bites swimmers only, inert ashore
                     RaidChancePerDay = 0f,
                     RaidPackSize = 0,
                 },
             };
         }
+    }
+
+    /// <summary>§106: where a creature's attack works. A wolf bites on land and
+    /// is dormant against a swimmer; a shark is the exact inverse. Flags so an
+    /// amphibious predator (a croc, one day) is one value, not a new axis.
+    /// Humans have no mob sheet — their Land-only medium is declared once in
+    /// <c>CombatMedium.NpcMelee</c>, not here.</summary>
+    [System.Flags]
+    public enum AttackMedium
+    {
+        None = 0,
+        Land = 1,
+        Water = 2,
+        Amphibious = Land | Water,
     }
 
     /// <summary>Known mob ids — the keys into <see cref="MobCatalog"/>. New mobs
@@ -140,6 +156,11 @@ namespace HexLive.Simulation.Content
         // junction-based and unaffected — junction spacing (~0.37 wu) is far
         // tighter than any model, which is exactly why this exists. 0 = off.
         public float MeleeHoldDistance = 0.9f;
+
+        // §106: the medium this creature's attack works in. Land beasts are
+        // dormant against a swimmer, water beasts against anyone ashore —
+        // checked where the bite is gated, not where the swing runs.
+        public AttackMedium AttackMediums = AttackMedium.Land;
 
         // Pack raid (a dog-pack director knob; 0 for lone creatures).
         public float RaidChancePerDay = 0f;

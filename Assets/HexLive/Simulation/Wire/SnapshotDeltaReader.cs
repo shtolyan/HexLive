@@ -58,6 +58,9 @@ public static class SnapshotDeltaReader
         ApplySection(r, into.Npcs, n => n.Id.Value,
             (reader, n) => WorldSnapshotCodec.ReadNpcRecord(reader, n, includeDebugDetails));
 
+        ApplySection(r, into.Corpses, n => n.Id.Value,
+            (reader, n) => WorldSnapshotCodec.ReadNpcRecord(reader, n, includeDebugDetails));
+
         ApplySection(r, into.Mobs, m => m.Id,
             (reader, m) => WorldSnapshotCodec.ReadMobRecord(reader, m));
 

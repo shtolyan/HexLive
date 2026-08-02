@@ -309,36 +309,8 @@ public sealed partial class ExecutionSystem
     // Spec §53: what a suffering NPC most needs help with right now, and how
     // badly (0..1). Mirrors the perception build so a helper re-checks on
     // arrival — she may have recovered, worsened, or died on the way over.
-    private static AidKind AssessAidKind(NPCState t, int tick, out float severity)
-    {
-        severity = 0f;
-        if (t.Health <= 0f)
-        {
-            return AidKind.None;
-        }
-
-        var treatSev = t.Wounds.Count > 0 || t.Needs.Blood < 0.6f
-            ? System.Math.Max(1f - t.Needs.Blood, 1f - t.Health)
-            : 0f;
-        var medSev = t.Mind.SickUntilTick > tick
-            ? 0.6f
-            : (t.Health < 0.4f && t.Wounds.Count == 0 ? 1f - t.Health : 0f);
-        var hydrateSev = t.Needs.Thirst >= 0.55f ? t.Needs.Thirst : 0f;
-        var feedSev = t.Needs.Hunger >= 0.55f ? t.Needs.Hunger : 0f;
-        var consoleSev = tick < t.Mind.GrievingUntilTick ? 0.5f : 0f;
-        if (t.Needs.Stress > 0.6f)
-        {
-            consoleSev = System.Math.Max(consoleSev, t.Needs.Stress * 0.6f);
-        }
-
-        var kind = AidKind.Treat;
-        severity = treatSev;
-        if (medSev > severity) { severity = medSev; kind = AidKind.Medicate; }
-        if (hydrateSev > severity) { severity = hydrateSev; kind = AidKind.Hydrate; }
-        if (feedSev > severity) { severity = feedSev; kind = AidKind.Feed; }
-        if (consoleSev > severity) { severity = consoleSev; kind = AidKind.Console; }
-        return severity <= 0f ? AidKind.None : kind;
-    }
+    private static AidKind AssessAidKind(NPCState t, int tick, out float severity) =>
+        AidAssessment.Assess(t, tick, out severity);
 
     // Spec §53: apply the help to the TARGET. §53.7: the matching supply has
     // just left the HELPER's own stores (AidSupply.TrySpend), and `spend` says
@@ -427,6 +399,11 @@ public sealed partial class ExecutionSystem
                     helper.Needs.Stress - Spec53.ConsoleStressRelief * 0.3f);
                 break;
         }
+
+        // §105: помощь могла вытащить её с грани — проверить ПРЯМО ЗДЕСЬ, а не
+        // ждать следующего Slow-тика: иначе спасённая ещё десяток тиков лежит
+        // «умирающей» уже после того, как её напоили, и вид держит её на земле.
+        MortalityHelpers.TryExitAfterAid(world, target);
     }
 
     // Spec §53: walk-up-and-help execution. Structured like RunTalk (arrive,

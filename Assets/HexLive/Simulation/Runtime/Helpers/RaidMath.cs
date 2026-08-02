@@ -138,6 +138,13 @@ public static class RaidMath
                 continue;
             }
 
+            // §106: a swimmer is the water's business, not his — without this
+            // the hunt would pick her and the plan would walk him into the sea.
+            if (Spec106.WaterSanctuaryEnabled && CombatMedium.IsNpcSwimming(world, candidate))
+            {
+                continue;
+            }
+
             if (!from.Equals(candidateJunction) &&
                 !Connectivity.Reachable(world, from, candidateJunction, raider.Body.CanJump))
             {

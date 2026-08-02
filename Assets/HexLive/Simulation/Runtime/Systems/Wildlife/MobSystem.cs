@@ -188,8 +188,9 @@ public sealed class MobSystem : ISimulationSystem
             {
                 foreach (var npc in world.Entities.Npcs.Values)
                 {
-                    // Sanctuary (spec 29C.4A): indoor NPCs are never targets.
-                    if (IsNpcInSanctuary(world, npc))
+                    // Sanctuary (spec 29C.4A) + water (§106): unreachable-by-
+                    // medium NPCs are never targets.
+                    if (IsNpcInRefugeFrom(world, dog, npc))
                     {
                         continue;
                     }
@@ -214,13 +215,24 @@ public sealed class MobSystem : ISimulationSystem
             }
         }
         else if (HexSpatialMath.HexDistance(dog.Tile, target.Tile) > Stats(dog).AggroRadiusTiles + 3 ||
-                 IsNpcInSanctuary(world, target))
+                 IsNpcInRefugeFrom(world, dog, target))
         {
-            // Lost interest — target got far away or reached sanctuary
-            // (spec 29C.4A: dogs give up at the door).
+            // Lost interest — target got far away or reached refuge: a door
+            // (spec 29C.4A) or the water's edge (§106). The wolf lets go NOW,
+            // not after the chase-stall timer — standing statue at the shore
+            // read as a bug, not as patience.
+            // Причина — в локальную: перенос строки ВНУТРИ дырки интерполяции
+            // компилируется только с C# 11, а headless-проект
+            // (HexLive.Simulation.Standalone) собирается на C# 9 — Unity это
+            // проглатывала, а `dotnet build` падал, то есть гейты и соаки
+            // просто не запускались. Текст трассы не изменился.
+            var lostReason = IsNpcInSanctuary(world, target)
+                ? " (went indoors)"
+                : IsNpcInRefugeFrom(world, dog, target)
+                    ? " (in the water)"
+                    : string.Empty;
             Trace.EmitSystem(world, "DogLostTarget",
-                $"Dog={dog.Id} lost NPC{target.Id.Value}" +
-                $"{(IsNpcInSanctuary(world, target) ? " (went indoors)" : "")}");
+                $"Dog={dog.Id} lost NPC{target.Id.Value}{lostReason}");
             dog.TargetNpc = null;
             dog.Status = Wildlife.MobStatus.Roaming;
             target = null;
@@ -232,11 +244,15 @@ public sealed class MobSystem : ISimulationSystem
             return;
         }
 
-        // In range? Same or adjacent junction = melee.
+        // In range? Same or adjacent junction = melee. §106: and the medium
+        // must match — a wolf on the shore junction is ADJACENT to the swimmer
+        // one junction out, but its teeth stop at the waterline.
         var inMelee = target.CurrentJunction is { } npcJunction &&
             (npcJunction.Equals(dog.Junction) ||
              (world.Junctions.Items.TryGetValue(dog.Junction, out var dogJunction) &&
-              dogJunction.Neighbors.Contains(npcJunction)));
+              dogJunction.Neighbors.Contains(npcJunction))) &&
+            (!Spec106.WaterSanctuaryEnabled ||
+             CombatMedium.CanEngage(world, Stats(dog).AttackMediums, target));
 
         if (!inMelee)
         {
@@ -524,6 +540,15 @@ public sealed class MobSystem : ISimulationSystem
         IsIndoorTile(world, npc.Tile) ||
         (npc.CurrentJunction is { } junction && IsIndoorJunction(world, junction));
 
+    // §106: для зверя вода — вторая форма санктуария (§29C.4A): по способности
+    // моба (AttackMediums) туда не дотянуться зубами, и топтаться статуей у
+    // кромки до stall-таймера — не выжидание, а баг. НЕ слито в IsNpcInSanctuary:
+    // «indoor» читают и Raid/Abuse/Threat со СВОИМИ ручками, у воды — своя.
+    private static bool IsNpcInRefugeFrom(WorldState world, Wildlife.MobState mob, NPCState npc) =>
+        IsNpcInSanctuary(world, npc) ||
+        (Spec106.WaterSanctuaryEnabled &&
+         !CombatMedium.CanEngage(world, Stats(mob).AttackMediums, npc));
+
     private static int CountAdjacentDogs(WorldState world, NPCState npc)
     {
         if (npc.CurrentJunction is not { } npcJunction)
@@ -566,7 +591,9 @@ public sealed class MobSystem : ISimulationSystem
             var adjacent = defenderJunction.Equals(dog.Junction) ||
                 (world.Junctions.Items.TryGetValue(dog.Junction, out var dogJunction) &&
                  dogJunction.Neighbors.Contains(defenderJunction));
-            if (!adjacent)
+            if (!adjacent ||
+                // §106: подмога не дерётся из воды — пловчиха не бьёт.
+                (Spec106.WaterSanctuaryEnabled && CombatMedium.IsNpcSwimming(world, defender)))
             {
                 continue;
             }
@@ -1164,17 +1191,25 @@ public sealed class MobSystem : ISimulationSystem
 
         dropJunction ??= npc.CurrentJunction;
 
-        foreach (var item in npc.WornItems)
+        // §28.15C v3: вещи НЕ падают на землю — они остаются на теле. Раньше
+        // смерть вываливала весь гардероб и карманы кучей под ноги, и колония
+        // получала обратно всё до нитки бесплатно; теперь за этим надо прийти
+        // (§28.15F Loot), а до тех пор она лежит одетая — такой, какой её
+        // видели живой.
+        //
+        // Тело переезжает в отдельный реестр целиком. Позиция подтягивается к
+        // якорю: труп лежит в ЦЕНТРЕ гекса (§60.2a), а упасть она могла на
+        // ободе — иначе одежда на теле и объект-якорь оказались бы в разных
+        // точках, и обирать её пришлось бы не с той клетки, где она лежит.
+        npc.DeathAnimVariant = (int)(MathUtil.Hash01(world.Seed, world.Tick, deadId.Value, 977) * 1024f);
+        if (dropJunction is { } restJunction &&
+            world.Junctions.Items.TryGetValue(restJunction, out var restNode))
         {
-            ExecutionSystem.DropItemAtFeet(world, npc, item);
+            npc.CurrentJunction = restJunction;
+            npc.Position = restNode.WorldPosition;
         }
 
-        foreach (var item in npc.Inventory.Items)
-        {
-            // §gear-personal: the bottle drops with the rest now — personal
-            // effects are retired; every item lives by the same rules.
-            ExecutionSystem.DropItemAtFeet(world, npc, item);
-        }
+        world.Entities.Corpses[deadId] = npc;
 
         // Spec 28.15C: the body remains; witnesses grieve immediately.
         if (dropJunction is { } corpseJunction)
@@ -1182,7 +1217,10 @@ public sealed class MobSystem : ISimulationSystem
             var corpse = WorldObjectMutations.SpawnObject(
                 world, ContentIds.CorpseNpc, npc.Fragment, npc.Tile, corpseJunction);
             corpse.CurrentUser = deadId; // whose body this is
-            corpse.ResourceAmount = 4800f; // decay timer (2 days)
+            corpse.SpawnTick = world.Tick;
+            // §28.15C v3: таймера гниения здесь БОЛЬШЕ НЕТ. Тело не истлевает и
+            // не хоронится — оно лежит до конца игры. Убрать его может только
+            // нож (§56), и это уже осознанный поступок живого человека.
 
             foreach (var witness in world.Entities.Npcs.Values)
             {
@@ -1223,7 +1261,7 @@ public sealed class MobSystem : ISimulationSystem
         Trace.Emit(world, deadId, "NpcDied",
             $"NPC{deadId.Value} ({npc.DisplayName}) died at Tile={npc.Tile.Q},{npc.Tile.R} " +
             $"Cause=[{deathCause}] " +
-            $"dropping worn=[{string.Join(",", npc.WornItems)}] " +
+            $"keeping worn=[{string.Join(",", npc.WornItems)}] " +
             $"inventory=[{string.Join(",", npc.Inventory.Items)}]");
     }
 

@@ -25,6 +25,7 @@ MonoBehaviour:
   glideSegmentSeconds: 1
   glideSnapDistance: 6
   meleeHoldDistance: 0
+  attackMediums: 2
   raidChancePerDay: 0
   raidPackSize: 0
 

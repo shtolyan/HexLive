@@ -68,10 +68,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private const float WardrobeHandoffFraction = 0.5f;
     private readonly HashSet<int> _wardrobeHiddenObjects = new();
 
-    // Spec 40.13: dead actors stay as physics-ragdoll corpses — keyed by the
-    // corpse.npc OBJECT id (the sim's logic anchor for mourn/bury/decay), so
-    // the body view lives exactly as long as the corpse object does.
-    private readonly Dictionary<int, GameObject> _corpseBodyViews = new();
+    // §28.15C v3: ТЕЛА. Ключ — id самой погибшей, а не объекта-якоря: тело это
+    // она, и живёт оно ровно столько, сколько её NPCState живёт в
+    // Entities.Corpses (то есть до конца игры или до ножа).
+    private readonly Dictionary<int, GameObject> _corpseViews = new();
+    private readonly Dictionary<int, NpcActorView> _corpseActorViews = new();
+    private readonly HashSet<int> _liveCorpseIds = new();
+    private readonly List<int> _staleCorpseKeys = new();
     private readonly Dictionary<int, GameObject> _npcViews = new();
 
     // Spec 31B.5: actor-backed views (Marta/Molly/Jana bodies); primitive
@@ -757,22 +760,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
         }
 
-        // Spec 40.13: the ragdolled body follows its corpse object out of the
-        // world (decayed or buried into a grave).
-        var staleCorpseBodies = new List<int>();
-        foreach (var key in _corpseBodyViews.Keys)
-        {
-            if (!liveObjectIds.Contains(key))
-            {
-                staleCorpseBodies.Add(key);
-            }
-        }
-
-        foreach (var key in staleCorpseBodies)
-        {
-            Destroy(_corpseBodyViews[key]);
-            _corpseBodyViews.Remove(key);
-        }
+        // §28.15C v3: тела больше не привязаны к времени жизни объекта-якоря —
+        // они уходят вместе со своей записью в snapshot.Corpses (SyncCorpseViews).
 
         // Items picked up only for the animation beat vanish from the ground,
         // so we never show the same piece both on the floor and in the hand.
@@ -843,12 +832,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
         foreach (var worldObject in snapshot.Objects)
         {
             var key = worldObject.Id.Value;
-            // Spec 40.13: an adopted actor body IS the corpse's view — no blob.
-            if (_corpseBodyViews.ContainsKey(key))
-            {
-                continue;
-            }
-
+            // §28.15C v3: у corpse.npc нет своего вида — CreateObjectView отдаёт
+            // за него невидимый якорь. Тело рисует сама погибшая
+            // (SyncCorpseViews), а объект нужен лишь для «подойти и что-то
+            // сделать»: оплакать, обобрать, разделать.
             if (!_objectViews.TryGetValue(key, out var objectView))
             {
                 objectView = CreateObjectView(worldObject, junctionPositions, snapshot.Tick);
@@ -1064,48 +1051,43 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         foreach (var key in staleNpcKeys)
         {
-            // Spec 40.13: death — the actor body stays where she fell as a
-            // physics ragdoll, adopted as her corpse.npc object's view (the
-            // sim already drives grief/mourn/bury around that object). Only
-            // when no matching corpse exists does the view just vanish.
-            var adopted = false;
-            if (_actorViews.TryGetValue(key, out var deadActor) && deadActor != null)
+            // §28.15C v3: она УПАЛА ЗДЕСЬ. Живой вид не уничтожается и не
+            // заменяется — он переезжает в реестр тел как есть, тем же телом,
+            // в той же одежде, с теми же ранами, и падает на месте. Создать
+            // вместо него новый вид значило бы моргнуть телом ровно в тот кадр,
+            // на который смотрит игрок.
+            //
+            // Прежняя версия усыновляла вид ОБЪЕКТУ corpse.npc и ключевалась
+            // его id. Теперь ключ — id самой погибшей: тело это она, а объект
+            // рядом с ней всего лишь якорь для «подойти и что-то сделать».
+            var handedOver = false;
+            if (FindCorpse(snapshot, key) is { } fallen &&
+                _actorViews.TryGetValue(key, out var deadActor) && deadActor != null)
             {
-                foreach (var worldObject in snapshot.Objects)
-                {
-                    if (worldObject.DefinitionId != "corpse.npc" ||
-                        worldObject.OwnerNpcId != key)
-                    {
-                        continue;
-                    }
+                deadActor.SetLedgeSit(false);
+                deadActor.ClearGaze();
+                deadActor.ClearActionTarget();
+                // Spec 40.13 v2: death is a quiet fall, then the pose
+                // freezes (SetDead) — NO ragdoll: the hex tiles carry no
+                // colliders, so physics bodies spun out and fell through.
+                deadActor.SetRagdoll(false);
+                deadActor.SetDead(GroundY(fallen.Tile), fallen.DeathAnimVariant, fresh: true);
 
-                    var corpseId = worldObject.Id.Value;
-                    deadActor.SetLedgeSit(false);
-                    deadActor.ClearGaze();
-                    deadActor.ClearActionTarget();
-                    // Spec 40.13 v2: death is a quiet lie-down, then the pose
-                    // freezes (SetDead) — NO ragdoll: the hex tiles carry no
-                    // colliders, so physics bodies spun out and fell through.
-                    deadActor.SetRagdoll(false);
-                    deadActor.SetDead(GroundY(worldObject.Tile));
+                // Симуляция кладёт тело в ЦЕНТР гекса (§60.2a), а упасть она
+                // могла на ободе — интерполяция живых видов для неё больше не
+                // работает, так что позицию надо поставить здесь и сейчас.
+                // Иначе тело замрёт на ободе, а якорь, к которому подходят
+                // обирать, останется в середине.
+                _npcViews[key].transform.SetPositionAndRotation(
+                    SimulationUnityMapper.ToUnityPosition(fallen.Position, ActorGroundY(fallen.Tile)),
+                    Quaternion.Euler(0f, SimulationUnityMapper.ToUnityYawDegrees(fallen.RotationDegrees), 0f));
 
-                    // The capsule-blob corpse view from this frame's object
-                    // pass is replaced by the real body.
-                    if (_objectViews.TryGetValue(corpseId, out var blob))
-                    {
-                        Destroy(blob);
-                        _objectViews.Remove(corpseId);
-                        _prevObjectPositions.Remove(corpseId);
-                        _currObjectPositions.Remove(corpseId);
-                    }
-
-                    _corpseBodyViews[corpseId] = _npcViews[key];
-                    adopted = true;
-                    break;
-                }
+                _corpseViews[key] = _npcViews[key];
+                _corpseActorViews[key] = deadActor;
+                handedOver = true;
             }
 
-            if (!adopted)
+            if (!handedOver)
             {
                 Destroy(_npcViews[key]);
             }
@@ -1117,6 +1099,93 @@ public sealed class HexWorldRenderer : MonoBehaviour
             _prevNpcPoses.Remove(key);
             _currNpcPoses.Remove(key);
             _npcOnWater.Remove(key);
+        }
+
+        SyncCorpseViews(snapshot);
+    }
+
+    /// <summary>Запись тела в снапшоте по id погибшей, или null.</summary>
+    private static NpcSnapshot FindCorpse(WorldSnapshot snapshot, int npcId)
+    {
+        foreach (var body in snapshot.Corpses)
+        {
+            if (body.Id.Value == npcId)
+            {
+                return body;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// §28.15C v3: ТЕЛА. Лежат до конца игры, поэтому пасс устроен так, чтобы
+    /// стоить почти ничего: поза замерла (аниматор выключен в
+    /// <c>NpcActorView.SetDead</c>), позиция ставится один раз, и каждый кадр
+    /// синхронизируется ровно одно — ГАРДЕРОБ.
+    ///
+    /// <para>
+    /// Гардероб обязателен именно потому, что вещи остались на теле: когда
+    /// живая приходит и снимает с покойной куртку (§28.15F), это должно быть
+    /// ВИДНО. Иначе одежда живёт в двух версиях — в симуляции её уже унесли, а
+    /// на теле она всё ещё надета.
+    /// </para>
+    /// <para>
+    /// Тело, пропавшее из списка, — это разделанная ножом (§56), единственное,
+    /// что убирает труп с острова.
+    /// </para>
+    /// </summary>
+    private void SyncCorpseViews(WorldSnapshot snapshot)
+    {
+        _liveCorpseIds.Clear();
+        foreach (var body in snapshot.Corpses)
+        {
+            var key = body.Id.Value;
+            _liveCorpseIds.Add(key);
+
+            if (!_corpseViews.TryGetValue(key, out var view) || view == null)
+            {
+                // Тело, которого этот зритель не видел падающим: загруженный
+                // сейв или только что подключившийся клиент. Оно обязано
+                // появиться СРАЗУ лежачим — падение уже случилось, и
+                // проигрывать его заново значило бы врать о том, когда.
+                view = CreateNpcView(body);
+                _corpseViews[key] = view;
+                if (_actorViews.TryGetValue(key, out var restored) && restored != null)
+                {
+                    // CreateNpcView регистрирует вид в живом реестре — забрать
+                    // его оттуда, иначе живой пасс станет ходить по трупу.
+                    _actorViews.Remove(key);
+                    _corpseActorViews[key] = restored;
+                    restored.SetRagdoll(false);
+                    restored.SetDead(GroundY(body.Tile), body.DeathAnimVariant, fresh: false);
+                }
+
+                view.transform.SetPositionAndRotation(
+                    SimulationUnityMapper.ToUnityPosition(body.Position, ActorGroundY(body.Tile)),
+                    Quaternion.Euler(0f, SimulationUnityMapper.ToUnityYawDegrees(body.RotationDegrees), 0f));
+            }
+
+            if (_corpseActorViews.TryGetValue(key, out var actor) && actor != null)
+            {
+                actor.SyncWorn(body.WornItems);
+            }
+        }
+
+        _staleCorpseKeys.Clear();
+        foreach (var key in _corpseViews.Keys)
+        {
+            if (!_liveCorpseIds.Contains(key))
+            {
+                _staleCorpseKeys.Add(key);
+            }
+        }
+
+        foreach (var key in _staleCorpseKeys)
+        {
+            Destroy(_corpseViews[key]);
+            _corpseViews.Remove(key);
+            _corpseActorViews.Remove(key);
         }
     }
 
@@ -1194,7 +1263,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
             Wounded = npc.Wounds.Count > 0,
             Sick = HasEffect(npc, "Sick"),
             Asleep = npc.CurrentInteraction == "Sleep",
-            Fainted = npc.IsFainted || npc.IsUnconscious
+            // §105: умирающая для речи и мимики — такое же выключенное тело,
+            // как потерявшая сознание: реплик не подаёт, пузырей не рисует.
+            Fainted = npc.IsFainted || npc.IsUnconscious || npc.IsDying
         });
         actorView.SetSpeechInteraction(npc.CurrentInteraction);
         if (npc.SocialCueTick > 0 && !string.IsNullOrEmpty(npc.SocialCueKind))
@@ -1322,17 +1393,23 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
 
         // Spec 31C.2: sleeping happens lying on the bed's attach point.
-        // Spec 40.13: a fainted body lies limp where it dropped (no bed).
-        // Spec §60: a comatose body lies EXACTLY like a ground sleeper — the
-        // same laying flow pins it to its own junction at the right surface
-        // height (the death clip left feet poking into neighbouring hexes);
-        // waking releases Laying so the usual GetUp plays.
-        if (npc.IsFainted || npc.IsUnconscious)
+        //
+        // §105: ПАДЕНИЕ — своя цепочка клипов. Умирающая (§105), потерявшая
+        // сознание от кровопотери (§60) и сбитая с ног обмороком (§40.13)
+        // теперь ВАЛЯТСЯ: FallDown → FallenIdle → StandUp. Раньше все трое
+        // ложились сонным LieDown, и «упала замертво» читалось как «прилегла»
+        // — тело аккуратно опускалось на землю в позе спящей.
+        //
+        // Сон остался на прежней цепочке: он уходит в кровать, к точке
+        // крепления, и держит свою позу. Крах от истощения (§60 r2) экспортёр
+        // намеренно выдаёт за сон — она и правда просто заснула, где стояла, —
+        // так что он тоже остаётся здесь.
+        if (npc.IsDying || npc.IsFainted || npc.IsUnconscious)
         {
             // Spec 40.13 v2: collapse lies down with the baked laying clip —
             // ragdoll physics is retired (no tile colliders to land on).
             actorView.SetRagdoll(false);
-            actorView.SetLaying(true, null, GroundY(npc.Tile));
+            actorView.SetFallen(true, GroundY(npc.Tile));
         }
         else if (npc.CurrentInteraction == "Sleep" && npc.ExecutionStatus == "InProgress")
         {
@@ -1342,7 +1419,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
         else
         {
             actorView.SetRagdoll(false);
+            // Снять ОБЕ цепочки: она могла лежать любой из них, и оставленный
+            // висеть второй bool держал бы её на земле уже на ногах.
             actorView.SetLaying(false, null);
+            actorView.SetFallen(false);
         }
 
         var hasTargetObject = TryGetTargetObject(snapshot, npc, out var targetObject);
@@ -2740,8 +2820,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 // §74: the body is the mesh, but the face, the hair and the
                 // voice are hers alone — the simulation rolled them from the
                 // seed and saved them, so a reload rebuilds the same woman.
+                // §85: and her eyes, on an axis of their own.
                 view.Construct(npc.ActorMesh, npc.Id.Value,
-                    npc.SkinSet, npc.Hairstyle, npc.VoiceBank);
+                    npc.SkinSet, npc.EyeColor, npc.Hairstyle, npc.VoiceBank);
                 _actorViews[npc.Id.Value] = view;
                 _lastTalkResultTick[npc.Id.Value] = npc.TalkResultTick;
                 _lastSocialCueKey[npc.Id.Value] =
@@ -3177,6 +3258,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         foreach (var npc in snapshot.Npcs)
         {
             if (npc.IsFainted || npc.IsUnconscious || // §60: a coma flattens the grass too
+                npc.IsDying ||                        // §105: и лежащая на грани
                 (npc.CurrentInteraction == "Sleep" && npc.ExecutionStatus == "InProgress"))
             {
                 _lyingTiles.Add(npc.Tile);

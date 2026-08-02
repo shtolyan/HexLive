@@ -185,6 +185,19 @@ public static class SpatialQueries
         return true;
     }
 
+    // §106/§40.18-B: deep water = swimming; walkable river shallows are waded,
+    // not swum. THE definition of "in the water" — MovementSystem (entry pause,
+    // stroke speed) and every combat gate read this one predicate, so the sim
+    // cannot disagree with itself about who is swimming. Note TileFlags.Swimmable
+    // is a dead flag (declared, never set) — this is deliberately not it.
+    public static bool IsSwimTile(Tile tile) =>
+        (tile.Flags & TileFlags.Water) != 0 && (tile.Flags & TileFlags.Walkable) == 0;
+
+    // Measured per TILE, not per junction: shore junctions are mixed land+water,
+    // and a girl standing on their dry tile is not swimming.
+    public static bool IsSwimTile(WorldState world, TileCoord coord) =>
+        world.Tiles.Items.TryGetValue(coord, out var tile) && IsSwimTile(tile);
+
     // §54.9A: true when every junction inside `radius` of the anchor is
     // passable dry ground — the piece's PHYSICAL footprint fits here without
     // crossing walls, obstacle-blocked junctions (boulders, palms, the fire's

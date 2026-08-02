@@ -42,6 +42,79 @@ public sealed partial class PlanningSystem
         return false;
     }
 
+    // §54.17 r2: a roast hanging on a perceived spit beats whatever is in the
+    // pack — walk over and take it; the NEXT Eat pass consumes it from the
+    // pack (BestFoodInInventory then picks the cooked chunk). Every obstacle
+    // returns false, never PlanFailed: the pack coconut stays the fallback,
+    // and a vanished/contested fire must not cost the meal she already holds.
+    private static bool TryBuildSpitTakePlan(WorldState world, NPCState npc, string? bestInPack)
+    {
+        var packNutrition = bestInPack is null ? 0f : FoodMath.NutritionOf(world, bestInPack);
+        if (packNutrition + 0.01f >= SimBalance.CookedMeatHunger)
+        {
+            return false; // the pack already holds a meal at least as good
+        }
+
+        if (!npc.Inventory.HasSpace)
+        {
+            return false; // take.from.spit lands the chunk in the pack
+        }
+
+        foreach (var perceived in npc.Perception.Objects)
+        {
+            if (!perceived.IsReachable ||
+                !DecisionSystem.ObjectUsableBy(perceived, npc.Id) ||
+                !world.Content.ObjectDefinitions.TryGetValue(perceived.DefinitionId, out var definition) ||
+                !definition.Tags.Contains("Campfire") ||
+                !world.Entities.Objects.TryGetValue(perceived.Id, out var fire) ||
+                fire.Junctions.Count == 0 ||
+                BuildSiteMath.HangingMeat(fire, ContentIds.MeatCooked) == 0)
+            {
+                continue;
+            }
+
+            var anchorJunction = fire.Junctions[0];
+            var reach = SpatialQueries.BesideReach(definition.ObstacleRadius);
+            if (!TryReserveBesideJunction(world, npc, anchorJunction, 48, out var targetJunction, reach))
+            {
+                continue;
+            }
+
+            if (npc.CurrentJunction is not { } current || !current.Equals(targetJunction))
+            {
+                if (!SpatialMutations.TryReserveJunction(world, targetJunction, npc.Id, world.Tick, 48))
+                {
+                    continue;
+                }
+            }
+
+            npc.Plan.TargetObjectId = perceived.Id;
+            npc.Plan.TargetTile = perceived.Tile;
+            npc.Plan.TargetJunctionId = targetJunction;
+            npc.Plan.Steps.Add(new PlanStep
+            {
+                Type = PlanStepType.MoveToJunction,
+                TargetJunction = targetJunction,
+                TargetObject = perceived.Id
+            });
+            npc.Plan.Steps.Add(new PlanStep
+            {
+                Type = PlanStepType.Interact,
+                TargetObject = perceived.Id,
+                TargetJunction = targetJunction,
+                Interaction = InteractionType.PickUp
+            });
+            npc.Plan.CurrentStepIndex = 0;
+            npc.Plan.Status = PlanStatus.Active;
+            Trace.Emit(world, npc.Id, "PlanBuilt",
+                $"Goal=Eat Target={perceived.DefinitionId} (spit roast) " +
+                $"Tile={perceived.Tile.Q},{perceived.Tile.R} Steps=[MoveToJunction,PickUp]");
+            return true;
+        }
+
+        return false;
+    }
+
     private static bool BuildCoconutEatPlan(WorldState world, NPCState npc)
     {
         if (TryFindInventoryItem(npc, ContentIds.CoconutOpen, out _))

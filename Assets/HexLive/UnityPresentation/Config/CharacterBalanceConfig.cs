@@ -15,6 +15,7 @@ namespace HexLive.UnityPresentation.Config
     [MirrorTarget(typeof(SimBalance))]
     [MirrorTarget(typeof(Spec85))]
     [MirrorTarget(typeof(Spec94))]
+    [MirrorTarget(typeof(Spec105))]
     [MirrorTarget(typeof(AiBalance))]
     public sealed class CharacterBalanceConfig : ScriptableObject
     {
@@ -252,13 +253,13 @@ namespace HexLive.UnityPresentation.Config
 
         [Header("Солнце / загар / ожог")]
         [Tooltip("Скорость загара на открытой коже (за (UV−0.5) за часть). Меняет только СКОРОСТЬ набора, не темноту.")]
-        [Range(0f, 0.01f)] public float tanRate = 0.0009f;
+        [Range(0f, 0.01f)] public float tanRate = 0.00009f;
         [Tooltip("Темнота/сила загара на максимуме: 1 = полный загорелый вид, ниже = светлее/менее тёмный (0 = кожа без загара). Крутит цвет, а не скорость.")]
         [Range(0f, 1f)] public float tanStrength = 1f;
         [Tooltip("Скорость покраснения (быстрее загара).")]
-        [Range(0f, 0.02f)] public float sunburnRate = 0.004f;
+        [Range(0f, 0.02f)] public float sunburnRate = 0.0004f;
         [Tooltip("Скорость набора «экспозиции» до события ожога.")]
-        [Range(0f, 1f)] public float sunExposureRate = 0.3f;
+        [Range(0f, 1f)] public float sunExposureRate = 0.03f;
         [Tooltip("Урон части тела при событии солнечного ожога.")]
         [Range(0f, 0.3f)] public float sunburnBurnDamage = 0.08f;
         [Tooltip("§82: ниже этого порога солнце не доламывает ВИТАЛЬНУЮ часть (голова, торс). Солнечный удар доводит до беспамятства, но не убивает: без порога забронированный целиком человек сгорал за треть дня — у него открыта ровно одна часть, и все удары шли в неё.")]
@@ -373,5 +374,37 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 0.01f)] public float grudgeDriftPerTick = 0.0006f;
         [Tooltip("Насколько остывает симпатия за медленный тик.")]
         [Range(0f, 0.01f)] public float warmthDriftPerTick = 0.0002f;
+
+        [Header("§105 На грани смерти — окно, когда её ещё можно спасти")]
+        [Tooltip("Выключить — смерть снова мгновенная, ПОБИТОВО как до §105. Это выключатель для бисекции соаком, а не режим игры.")]
+        public bool dyingEnabled = true;
+        [Tooltip("Сколько тиков она лежит и умирает от КРОВОПОТЕРИ, прежде чем запас кончится. Меньше ~600 — помощница физически не успевает дойти, и окно превращается в косметику.")]
+        [Range(200, 4000)] public int windowTicksBloodLoss = 900;
+        [Tooltip("То же для ПРОБИТОЙ ГРУДИ.")]
+        [Range(200, 4000)] public int windowTicksTorso = 1200;
+        [Tooltip("То же для ГОЛОДА: тело сдаётся медленнее, чем вытекает кровь.")]
+        [Range(200, 6000)] public int windowTicksStarvation = 1800;
+        [Tooltip("То же для ЖАЖДЫ.")]
+        [Range(200, 6000)] public int windowTicksDehydration = 1500;
+        [Tooltip("Насколько характеристика растягивает окно (§76-форма: при разбросе 0.5 и усилении 0.3 это ±15%). Кровь и грудь держит Стойкость, голод и жажду — Неприхотливость.")]
+        [Range(0f, 1f)] public float holdGain = 0.3f;
+        [Tooltip("Во сколько раз урон по ЛЕЖАЩЕЙ срезает запас смерти. Волк догрызает упавшую: 1.5 значит, что укус в 0.2 HP снимает 0.3 запаса, и стая добивает за три-четыре.")]
+        [Range(0f, 5f)] public float damageReserveFactor = 1.5f;
+        [Tooltip("Пока помощница РАБОТАЕТ над ней, запас не тает. Выключить — можно умереть на последнем тике перевязки.")]
+        public bool aidFreezesReserve = true;
+        [Tooltip("На сколько пиннится витальная зона умирающей вместо нуля. ⭐ НЕ поблажка: около сорока мест читают Health<=0 как «труп», и без пола её перестали бы видеть ровно те системы, которые должны над ней склониться.")]
+        [Range(0.001f, 0.2f)] public float bodyFloor = 0.02f;
+        [Tooltip("Сколько крови надо набрать сверх нуля, чтобы кровопотеря отпустила (при остановленном кровотечении).")]
+        [Range(0f, 0.5f)] public float bloodExitFloor = 0.05f;
+        [Tooltip("Надбавка к ставке помощи на УМИРАЮЩУЮ, в долях StarvingBoost. 1 — спасение обгоняет любую работу и любую другую помощь. Собственный кризис помощницы (§53.5) сильнее в любом случае.")]
+        [Range(0f, 2f)] public float rescueEmergencyBoost = 1f;
+        [Tooltip("Сколько тиков после спасения она «едва живая». Сутки визуально 24000 тиков, то есть 3600 ≈ три с половиной часа.")]
+        [Range(0, 12000)] public int convalescentTicks = 3600;
+        [Tooltip("Во сколько раз МЕДЛЕННЕЕ восстанавливается выносливость, пока действует штраф.")]
+        [Range(0.05f, 1f)] public float convalescentStaminaRegenFactor = 0.3333f;
+        [Tooltip("Во сколько раз БЫСТРЕЕ тратится выносливость, пока действует штраф.")]
+        [Range(1f, 5f)] public float convalescentStaminaDrainFactor = 2f;
+        [Tooltip("Во сколько раз медленнее она ходит, пока действует штраф.")]
+        [Range(0.1f, 1f)] public float convalescentMoveFactor = 0.5f;
     }
 }

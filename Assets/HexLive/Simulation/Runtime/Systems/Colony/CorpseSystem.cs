@@ -11,7 +11,16 @@ using HexLive.Simulation.Social;
 namespace HexLive.Simulation.Runtime
 {
 
-// Spec 28.15C: bodies decay away after two days.
+// §50/§54: то, что истлевает само — отрубленная конечность и звериная туша.
+//
+// §28.15C v3: ЧЕЛОВЕЧЕСКОГО тела здесь больше нет. Раньше труп гнил двое суток
+// и исчезал, а вместе с ним исчезали и вещи на нём, и сам факт, что тут кто-то
+// погиб. Теперь тело лежит там, где упало, до конца игры — остров помнит своих
+// мёртвых. Убрать его может только нож (§56).
+//
+// Тег «Corpse» намеренно НЕ входит в фильтр: разница между «истлевает» и «нет»
+// живёт ровно в этом одном условии, а не в таймере, который кто-то мог бы
+// однажды выставить трупу «на всякий случай».
 public sealed class CorpseSystem : ISimulationSystem
 {
     public string Name => nameof(CorpseSystem);
@@ -25,10 +34,8 @@ public sealed class CorpseSystem : ISimulationSystem
         _decayed.Clear();
         foreach (var obj in world.Entities.Objects.Values)
         {
-            // §50: a severed limb ("Decays" tag) rots away on the same clock as
-            // a body, but without the mourn/bury interactions a Corpse carries.
             if (!world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
-                !(definition.Tags.Contains("Corpse") || definition.Tags.Contains("Decays")))
+                !definition.Tags.Contains("Decays"))
             {
                 continue;
             }

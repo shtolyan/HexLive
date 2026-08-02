@@ -18,6 +18,19 @@ MonoBehaviour:
   lockOverrideDelta: 0.5
   switchDelta: 0.15
   talkWaitTimeoutTicks: 120
+  stuckIdleTicks: 40
+  stuckStepTicks: 600
+  stuckGoallessTicks: 120
+  stuckFrozenTicks: 60
+  stuckRepeatEmitTicks: 200
+  shunTicks: 600
+  sitCooldownTicks: 240
+  dressCooldownTicks: 160
+  wakeGraceTicks: 12
+  failureCooldownTicks: 40
+  drinkThirstThreshold: 0.35
+  freezingComfortThreshold: -0.35
+  buildSiteMaterialPull: 0.35
   hungerRate: 0.0025
   thirstRate: 0.006
   energyRate: 0.0045
@@ -88,6 +101,7 @@ MonoBehaviour:
   fireThawRecovery: 0.25
   thermalDamageGate: 0.85
   thermalHpHit: 0.012
+  thermalVitalFloor: 0.35
   indoorWarmthBonus: 4
   waterCoolBonus: 3
   fireWarmthRange1: 18
@@ -96,11 +110,12 @@ MonoBehaviour:
   coolOffClearThreshold: 0.2
   coolOffSunClear: 0.45
   coolOffSettleTicks: 120
-  tanRate: 0.0003
+  tanRate: 0.00003
   tanStrength: 0.8
-  sunburnRate: 0.004
-  sunExposureRate: 0.3
+  sunburnRate: 0.0004
+  sunExposureRate: 0.03
   sunburnBurnDamage: 0.08
+  sunburnVitalFloor: 0.45
   hygieneWashGain: 0.05
   hygieneDriftLoss: 0.0004
   clothingDirtGain: 0.00035
@@ -123,6 +138,7 @@ MonoBehaviour:
   maxWounds: 36
   gashesPerHit: 3
   minSplittableDamage: 0.09
+  timedMeleeEverywhere: 1
   npcStrikePerPass: 0.15
   adrenalineTicks: 80
   adrenalineEnergyFloor: 0.05
@@ -141,3 +157,22 @@ MonoBehaviour:
   breathReArm: 0.35
   clothingBiteDurabilityWear: 0.0026
   clothingPassiveWearPerDay: 0.001
+  sleepMetabolismFactor: 0.1
+  sleepSocialFactor: 0.1
+  grudgeDriftPerTick: 0.0006
+  warmthDriftPerTick: 0.0002
+  dyingEnabled: 1
+  windowTicksBloodLoss: 900
+  windowTicksTorso: 1200
+  windowTicksStarvation: 1800
+  windowTicksDehydration: 1500
+  holdGain: 0.3
+  damageReserveFactor: 1.5
+  aidFreezesReserve: 1
+  bodyFloor: 0.02
+  bloodExitFloor: 0.05
+  rescueEmergencyBoost: 1
+  convalescentTicks: 3600
+  convalescentStaminaRegenFactor: 0.3333
+  convalescentStaminaDrainFactor: 2
+  convalescentMoveFactor: 0.5

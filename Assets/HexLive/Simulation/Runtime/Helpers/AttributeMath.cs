@@ -177,6 +177,29 @@ internal static class AttributeMath
     public static float BleedMult(NPCState npc) =>
         System.MathF.Max(0f, InverseMult(npc, AttributeKind.Toughness, Spec76.BleedGain));
 
+    // §105: насколько дольше ОНА держится на грани. Кровь и разбитая грудь —
+    // это Стойкость (та же ось, что заживление и свёртываемость); голод и
+    // жажда — Неприхотливость, «она может дольше не есть и не пить».
+    // Умножает ОКНО, поэтому больше — лучше, и обе ветки берут прямой Mult.
+    public static float DyingHoldMult(NPCState npc, DyingCause cause)
+    {
+        if (!Spec105.DyingEnabled)
+        {
+            return 1f;
+        }
+
+        var kind = cause switch
+        {
+            DyingCause.Starvation or DyingCause.Dehydration => AttributeKind.Hardiness,
+            _ => AttributeKind.Toughness
+        };
+
+        // Пол на четверти окна: даже самая хилая девушка успевает упасть и
+        // побыть спасаемой, иначе «умирает» вырождается обратно в мгновенную
+        // смерть на нижнем краю разброса.
+        return System.MathF.Max(0.25f, Mult(npc, kind, Spec105.HoldGain));
+    }
+
     // The healer's skill, applied to relief delivered to someone else (or to
     // herself via §68 self-treat).
     public static float TreatPowerMult(NPCState npc) =>

@@ -293,7 +293,9 @@ public sealed class AnimalCombatSystem : ISimulationSystem
                 continue;
             }
 
-            var inMelee = HexSpatialMath.HexDistance(helper.Tile, dog.Tile) <= 1;
+            // §106: a helper mid-swim throws no punches — swimmers don't strike.
+            var inMelee = HexSpatialMath.HexDistance(helper.Tile, dog.Tile) <= 1 &&
+                !(Spec106.WaterSanctuaryEnabled && CombatMedium.IsNpcSwimming(world, helper));
             if (inMelee)
             {
                 helper.IsFighting = true;
@@ -414,12 +416,9 @@ public sealed class AnimalCombatSystem : ISimulationSystem
         EquipmentMath.WearCoveringItems(world, target, bitPart,
             SimBalance.ClothingBiteDurabilityWear);
 
-        if (target.Body.VitalDestroyed(out var vitalPart))
-        {
-            target.Health = 0f;
-            Trace.Emit(world, target.Id, "VitalPartDestroyed",
-                $"{vitalPart} destroyed by Dog={dog.Id}");
-        }
+        // §105: единая развилка. Укус по уже лежащей на грани срезает запас
+        // смерти — зверь догрызает упавшую, и это ускоряет её конец.
+        MortalityHelpers.ResolveTrauma(world, target, damage, $"Dog={dog.Id}");
 
         Trace.Emit(world, target.Id, "DogFight",
             $"Dog={dog.Id} bit: {bitPart} -{damage:F3} (PartArmor={partArmor:F2}) " +
@@ -429,6 +428,17 @@ public sealed class AnimalCombatSystem : ISimulationSystem
 
     private static bool InMelee(WorldState world, Wildlife.MobState dog, NPCState target)
     {
+        // §106: adjacency alone is not a bite — the medium must match too. A
+        // wolf at the shore is one junction from the swimmer and still cannot
+        // reach her (and she, mid-stroke, cannot counter it either: the fast
+        // layer runs between the medium-pass target-drop and this check).
+        if (Spec106.WaterSanctuaryEnabled &&
+            !CombatMedium.CanEngage(world,
+                Content.MobCatalog.For(dog.MobId).AttackMediums, target))
+        {
+            return false;
+        }
+
         return target.CurrentJunction is { } npcJunction &&
             (npcJunction.Equals(dog.Junction) ||
              (world.Junctions.Items.TryGetValue(dog.Junction, out var dogJunction) &&

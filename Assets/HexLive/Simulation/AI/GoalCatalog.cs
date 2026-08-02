@@ -169,7 +169,10 @@ public static class GoalCatalog
         Add(GoalType.Aid);
         Add(GoalType.TreatWounds);
         Add(GoalType.Mourn, InteractionType.Observe);
-        Add(GoalType.Bury, InteractionType.Bury);
+        // §28.15C v3: похорон больше нет. Тело остаётся лежать там, где упало,
+        // до конца игры — некому и незачем закапывать. Ординал остаётся занят:
+        // сейв хранит цель числом.
+        Add(GoalType.Bury, dead: true);
 
         // ── Добыча ───────────────────────────────────────────────────────
         Add(GoalType.GatherTools, InteractionType.PickUp);
@@ -225,7 +228,9 @@ public static class GoalCatalog
         Add(GoalType.CraftRack, InteractionType.Craft, craftNeedsHands: true, dead: true);
 
         // ── Охота и бой ──────────────────────────────────────────────────
-        Add(GoalType.Hunt);
+        // Hunt бежит: краб отпрыгивает на узел каждый Medium-тик, шагом
+        // (Stroll) погоня вырождается в вечный пинг-понг «шаг к — шаг от».
+        Add(GoalType.Hunt, urgency: UrgencyClass.Hurry);
         Add(GoalType.Prey);
         Add(GoalType.Flee, urgency: UrgencyClass.Flee,
             ignoresHostileRings: true, reactive: true);
@@ -234,6 +239,11 @@ public static class GoalCatalog
         Add(GoalType.Raid, urgency: UrgencyClass.Hurry,
             ignoresHostileRings: true, reactive: true);
         Add(GoalType.Abuse, urgency: UrgencyClass.Hurry, reactive: true);
+
+        // §28.15F: обобрать тело. Взаимодействие снимает ОДНУ вещь, поэтому
+        // раздеть покойную целиком — это несколько отдельных походов, а не один
+        // такт; так же, как никто не уносит поленницу одной ходкой.
+        Add(GoalType.LootCorpse, InteractionType.Loot);
 
         // ── Мёртвые ординалы (§52: заявка на мебель стала стадийной) ─────
         Add(GoalType.PlaceSite, dead: true);

@@ -833,9 +833,41 @@ MonoBehaviour:
       - 'Комфортно и спокойно.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'effect.dying.title'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Dying'
+      - 'При смерти'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.dying.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'On the brink — she has minutes left unless someone helps her.'
+      - 'На грани — без чужой помощи ей осталось недолго.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.convalescent.title'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Barely alive'
+      - 'Едва живая'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.convalescent.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Pulled back from the brink — slow on her feet and out of breath at once.'
+      - 'Вытащили с того света — еле ходит и мгновенно выдыхается.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'effect.filthy.title'
       TermType: 0
-      Description: 
+      Description:
       Languages:
       - 'Filthy'
       - 'Грязная'
@@ -1633,12 +1665,12 @@ MonoBehaviour:
       - 'Скорбит'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'goal.Bury'
+    - Term: 'goal.LootCorpse'
       TermType: 0
-      Description: 
+      Description:
       Languages:
-      - 'Burying the dead'
-      - 'Хоронит'
+      - 'Searching a body'
+      - 'Обирает тело'
       Flags: 0101
       Languages_Touch: []
     - Term: 'goal.CraftAxe'

@@ -246,12 +246,10 @@ internal static class MeleeSwing
         AmputateSystemHelpers.TrySeverOnBite(world, target, part, landed);
         EquipmentMath.WearCoveringItems(world, target, part, SimBalance.ClothingBiteDurabilityWear);
 
-        if (target.Body.VitalDestroyed(out var vitalPart))
-        {
-            target.Health = 0f;
-            Trace.Emit(world, target.Id, "VitalPartDestroyed",
-                $"{vitalPart} destroyed by NPC{attacker.Id.Value}");
-        }
+        // §105: единая развилка «умерла или ещё умирает». Зовётся на КАЖДЫЙ
+        // удар, а не только на добивающий: по лежащей на грани удар срезает
+        // запас смерти напрямую — её догрызают.
+        MortalityHelpers.ResolveTrauma(world, target, landed, $"NPC{attacker.Id.Value}");
 
         Trace.Emit(world, attacker.Id, traceName,
             $"Target=NPC{target.Id.Value} {part} -{landed:F3} (armor={partArmor:F2}) " +

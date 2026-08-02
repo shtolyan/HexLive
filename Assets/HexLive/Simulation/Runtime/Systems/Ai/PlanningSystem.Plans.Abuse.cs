@@ -135,6 +135,8 @@ public sealed partial class PlanningSystem
             current.Health > 0f &&
             !current.IsUnconscious(world.Tick) &&
             !(Spec81.AbuseRespectsSanctuary && MobSystem.IsNpcInSanctuary(world, current)) &&
+            // §106: нырнула — коммит рассыпается, в воду он за ней не идёт.
+            !(Spec106.WaterSanctuaryEnabled && CombatMedium.IsNpcSwimming(world, current)) &&
             HexSpatialMath.HexDistance(npc.Tile, current.Tile) <= Spec81.AbuseScanRadiusTiles)
         {
             return current;

@@ -53,6 +53,20 @@ public sealed class WorldSnapshot
 
     public List<NpcSnapshot> Npcs { get; } = new();
 
+    /// <summary>
+    /// §28.15C v3: тела погибших — та же запись, что и у живых, потому что тело
+    /// это и есть она: её лицо, её одежда, её раны.
+    ///
+    /// <para>
+    /// ⭐ ОТДЕЛЬНЫЙ список, а не флаг в <see cref="Npcs"/>. «Npcs» читают ростер,
+    /// камера, итоговая сводка и половина панелей, и все они спрашивают одно:
+    /// «кто ещё жив». Подмешать туда трупы значило бы, что каждое из этих мест
+    /// обязано вспомнить про флаг, а забывшее — молча посчитает покойницу
+    /// выжившей. Здесь «живые» так и остаются живыми.
+    /// </para>
+    /// </summary>
+    public List<NpcSnapshot> Corpses { get; } = new();
+
     public List<DeathRecordSnapshot> DeathRecords { get; } = new();
 
     public List<MobSnapshot> Mobs { get; } = new();
@@ -251,6 +265,10 @@ public sealed class NpcSnapshot
     // hair prefab, voice folder. Empty = the mesh's own, i.e. pre-§74 look.
     public string SkinSet { get; set; } = string.Empty;
 
+    // §85: iris colour, its own axis (Resources/HexLive/Eyes/<id>/). Empty =
+    // the eye materials the body prefab shipped with.
+    public string EyeColor { get; set; } = string.Empty;
+
     public string Hairstyle { get; set; } = string.Empty;
 
     public string VoiceBank { get; set; } = string.Empty;
@@ -416,6 +434,12 @@ public sealed class NpcSnapshot
     // the body motionless as if dead until IsUnconscious clears, then the
     // get-up plays (the wake grace covers it).
     public bool IsUnconscious { get; set; }
+
+    // Spec §105: она УМИРАЕТ — лежит, и запас смерти тикает. Вид роняет тело
+    // той же цепочкой падения, что и обморок, а полоска умирания едет в
+    // Effects чипом Dying (сила чипа = сколько уже вытекло), поэтому здесь
+    // хватает одного флага.
+    public bool IsDying { get; set; }
 
     // Spec §53 r2: while this NPC is aiding a housemate (Feed/Hydrate/Treat/…),
     // is her WARD lying down (coma/faint/asleep/prone)? The kneeling "tending"
@@ -604,6 +628,11 @@ public sealed class NpcSnapshot
     public float WoundLockedHp { get; set; }
 
     public int InventoryCapacity { get; set; }
+
+    // §28.15C v3: каким клипом она упала. Число обязано прийти из симуляции, а
+    // не родиться в кадре: иначе тело лежало бы в разной позе у сервера, у
+    // каждого зрителя и после каждой перезагрузки.
+    public int DeathAnimVariant { get; set; }
 
     public int? GoalLockEndTick { get; set; }
 

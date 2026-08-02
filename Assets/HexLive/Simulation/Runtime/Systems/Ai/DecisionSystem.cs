@@ -54,7 +54,9 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // Spec §60: comatose — the body lies as if dead; recovery runs in
             // NeedsDecaySystem (sleep rules) and the wake check lives there
             // too. No decisions of any kind while out.
-            if (npc.Mind.ComaCause != ComaCause.None)
+            // §105: то же и для умирающей — она лежит и ждёт, спасут её или
+            // нет; решать ей нечего. Обратный отсчёт крутит NeedsDecaySystem.
+            if (npc.Mind.ComaCause != ComaCause.None || npc.IsDying)
             {
                 continue;
             }
@@ -125,7 +127,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
             npc.Mind.Cooldowns.RemoveAll(c => c.EndTick <= world.Tick);
             // The danger mark ages out on the same TTL as the rest of the
             // memory (was a bare 2400 literal that silently duplicated it —
-            // and that MeatRawSpoilTicks is tuned to outlive, see SimBalance).
+            // MeatRawSpoilTicks outlives it by design, see SimBalance).
             npc.Memory.Dangers.RemoveAll(d => world.Tick - d.Tick > AiBalance.MemoryTtlTicks);
 
             // (UpdateStarvingStatus/UpdateDehydratedStatus now run at the top of
@@ -1073,15 +1075,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
             npc.Needs.Hunger >= 0.3f && npc.Needs.Hunger < 0.8f &&
             NearestVisibleRabbit(npc, world) is not null;
         var craftSpearAvail = ctx.CanUseToolsOrWeapons && !hasSpear && hasWood && CraftPlaceOk(GoalType.CraftSpear);
-        // §54.14 (r2): cooking is the SPIT's job (stage 3) — CookMeat now
+        // §54.14 (r2): cooking is the SPIT's job — CookMeat now
         // HANGS a raw chunk on the crossbar of a lit fire; the roast itself
         // runs in FireSystem over ~MeatRoastDurationTicks. No spit (or a
         // full crossbar) = no cooking, whatever else the fire can do.
-        var spitReady = BuildSiteMath.CampfireSpitComplete(campfireObj);
-        var spitHooksFree = spitReady &&
-            BuildSiteMath.HangingMeat(campfireObj, ContentIds.MeatRaw) +
-            BuildSiteMath.HangingMeat(campfireObj, ContentIds.MeatCooked) <
-            SimBalance.CampfireSpitCapacity;
+        var spitHooksFree = campfireObj != null && FoodMath.SpitHasFreeHook(campfireObj);
         var cookAvail = hasRawMeat && campfireSeen && campfireFuel > 0f && spitHooksFree;
         var craftLeatherAvail = hideCount >= 1 && CraftPlaceOk(GoalType.CraftLeather) &&
             !npc.WornItems.Contains(ContentIds.LeatherPants);
@@ -1093,8 +1091,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
             0.3f + 0.5f * npc.Needs.Hunger, huntAvail, ctx.EmergencyBoost);
         AddGoalScore(npc, world.Tick, GoalType.CraftSpear,
             0.2f + 0.2f * npc.Needs.Hunger, craftSpearAvail);
+        // §54.17: when cooking is actually possible, hanging the chunk must
+        // outbid GetFood (= Hunger) at EVERY hunger level — the old
+        // 0.3 + 0.4·H curve lost to GetFood on the whole domain where both
+        // were available, so she fetched forever and never hung the meat.
         AddGoalScore(npc, world.Tick, GoalType.CookMeat,
-            0.3f + 0.4f * npc.Needs.Hunger, cookAvail, ctx.EmergencyBoost);
+            SimBalance.CookMeatBase + SimBalance.CookMeatHungerWeight * npc.Needs.Hunger,
+            cookAvail, ctx.EmergencyBoost);
         AddGoalScore(npc, world.Tick, GoalType.CraftLeather, 0.35f, craftLeatherAvail);
 
         // Spec 35.6: bow & arrows — pants outrank the first hide (0.35).
@@ -1106,16 +1109,24 @@ public sealed partial class DecisionSystem : ISimulationSystem
         AddGoalScore(npc, world.Tick, GoalType.CraftBow, 0.3f, craftBowAvail);
         AddGoalScore(npc, world.Tick, GoalType.CraftArrows, 0.3f, craftArrowsAvail);
 
-        // Spec 28.15C/28.15D: a griever visits the body for closure;
-        // a lonely NPC visits a known grave for remembrance.
+        // Spec 28.15C: a griever visits the body for closure.
+        //
+        // §28.15C v3: могил больше нет — тело не закапывают, и «сходить к
+        // могиле от одиночества» ушло вместе с ними. Прощаться теперь ходят к
+        // самому телу, и оно никуда не денется: раньше скорбящая не успевала
+        // дойти, потому что труп истлевал по дороге.
         var corpseReachable = HasReachableWithTag(npc, world, "Corpse");
-        var graveVisit = !ctx.IsGrieving && npc.Needs.Social < 0.35f &&
-            HasReachableWithTag(npc, world, "Grave");
-        var mournAvail = (ctx.IsGrieving && corpseReachable) || graveVisit;
-        AddGoalScore(npc, world.Tick, GoalType.Mourn, ctx.IsGrieving ? 0.7f : 0.3f, mournAvail);
+        AddGoalScore(npc, world.Tick, GoalType.Mourn, 0.7f, ctx.IsGrieving && corpseReachable);
 
-        // Spec 28.15D: any housemate lays a body to rest.
-        AddGoalScore(npc, world.Tick, GoalType.Bury, 0.6f, corpseReachable);
+        // §28.15F: обобрать тело. Хозяйственная работа, а не нужда: ставка ниже
+        // и еды, и воды, и сна, и — намеренно — ниже прощания (0.7). Пока она
+        // скорбит, она не мародёрствует; горе проходит, вещи остаются.
+        //
+        // Гейт на свободные руки обязателен: без него цель выигрывает, NPC
+        // доходит до тела и разворачивается ни с чем — и так каждый проход.
+        AddGoalScore(npc, world.Tick, GoalType.LootCorpse, 0.34f,
+            !ctx.IsGrieving && npc.Inventory.HasSpace &&
+            CorpseMath.HasLootableCorpse(npc, world));
 
         if (piece is not null && fuelLow)
         {
@@ -1476,7 +1487,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var abuseAvail = false;
         if (Spec81.AbuseEnabled &&
             npc.Faction != Faction.Colony &&
-            world.Tick >= Spec81.AbuseGraceDays * EnvironmentSystem.DayLengthTicks &&
+            !AbuseMath.GraceHolds(world, npc) &&
             world.Tick >= npc.Mind.AbuseCooldownUntilTick &&
             !npc.IsFighting &&
             npc.Body.CanUseToolsOrWeapons &&
@@ -1486,6 +1497,19 @@ public sealed partial class DecisionSystem : ISimulationSystem
             abuseDrive = AbuseMath.Drive(npc);
             abuseAvail = abuseDrive > 0f &&
                 AbuseMath.BestMark(world, npc, out _) is not null;
+
+            // §81.12: охота глазами — «никого не вижу» не значит «нечего
+            // хотеть». Одинокий идёт ИСКАТЬ: цель берётся, план строит prowl
+            // §90 к лагерю, как он ходит за киркой к известной скале. Гейт по
+            // одиночеству, не по Drive: сытость-ветка ненулевая почти всегда
+            // (§93) и превратила бы его в вечного бродягу у чужого порога.
+            if (!abuseAvail && Spec81.AbuseHuntBySight &&
+                abuseDrive > 0f &&
+                npc.Needs.Social < Spec81.AbuseSocialFloor &&
+                RaidMath.ProwlTarget(world, npc) is not null)
+            {
+                abuseAvail = true;
+            }
         }
 
         // Сцена уже идёт — цель обязана остаться доступной, иначе аукцион
@@ -1911,6 +1935,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
     var bestSuffering = 0f;
     var bestSuffererAffinity = 0f;
     var bestAidKind = AidKind.None;
+    var bestSuffererDying = false; // §105
     var errandSuffering = 0f;
     errandKind = AidKind.None;
     errandTarget = null;
@@ -1953,6 +1978,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
                     bestSuffering = agent.Suffering;
                     bestSuffererAffinity = agent.Relationship.Affinity;
                     bestAidKind = agent.AidKind;
+                    bestSuffererDying = agent.IsDying; // §105
                     aidAvail = true;
                 }
             }
@@ -1972,9 +1998,15 @@ public sealed partial class DecisionSystem : ISimulationSystem
             aidAvail = true;
         }
     }
-    var aidEmergency = bestAidKind == AidKind.Treat && bestSuffering >= 0.65f
-        ? StarvingBoost * 0.75f
-        : 0f;
+    // §105: соседка УМИРАЕТ — надбавка полная, а не три четверти. Спасение
+    // обгоняет любую работу и любую другую помощь; собственный кризис
+    // помощницы (гейт selfOk выше, §53.5) по-прежнему сильнее — сначала
+    // выживает она сама, иначе на земле окажутся обе.
+    var aidEmergency = bestSuffererDying
+        ? Spec105.RescueEmergencyBoost * StarvingBoost
+        : bestAidKind == AidKind.Treat && bestSuffering >= 0.65f
+            ? StarvingBoost * 0.75f
+            : 0f;
     AddGoalScore(npc, world.Tick, GoalType.Aid,
         bestSuffering * npc.CompassionTrait * Spec53.AidWeight +
             (1f - npc.Needs.Compassion) * Spec53.PressureWeight,

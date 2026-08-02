@@ -95,6 +95,13 @@ namespace HexLive.UnityPresentation.Wearing
             public Texture? Effect;
             public Rect CellRect = new(0f, 0f, 1f, 1f);
             public bool IsDroplet;
+            // Spec 40.8-H zone-damage speckle: albedo-only (every other
+            // texture stays null, so the normal/gloss walks skip it) and
+            // drawn FIRST in RepaintSlot — wounds/bandages land on top.
+            public bool IsSpeckle;
+            // r4: seeded random spin (degrees) applied via the GL matrix at
+            // draw time, so the same splatter art never tiles visibly.
+            public float RotationDeg;
         }
 
         // 1024 visibly softened the 4096 Daz skin (the whole slot swaps to the
@@ -150,6 +157,71 @@ namespace HexLive.UnityPresentation.Wearing
         // flat v5 wound. ~half of dirt's 0.7 normal blend.
         private const float WoundReliefStrength = 0.35f;
 
+        // ---- Spec 40.8-H zone-damage speckle knobs ----
+        // A zone whose HP is low grows a field of small blood/bruise blots
+        // UNDER the wound art — near 0 HP the limb reads almost fully covered.
+        // First marks appear almost immediately (r2: the v1 onset of 0.15 +
+        // ease-in curve read as "very little blood" — the user's target is
+        // the OLD full-damage density already at ~15% damage, ~5× at full).
+        private const float SpeckleOnsetDamage = 0.05f;
+        // A damaged zone tints its neighbours at this fraction of its own
+        // damage, so a shattered arm bleeds a few blots onto the shoulder
+        // instead of a hard red-arm/white-torso border.
+        private const float SpeckleNeighborBleed = 0.38f;
+        private const float SpeckleAlphaMin = 0.45f;
+        private const float SpeckleAlphaMax = 1f;
+        // World-metre blot size at full 1.7 m rig scale. r4: ×5 over r3 —
+        // each stamp is a full palm-to-forearm-sized splatter; they freely
+        // overlap (centres stay unique via the grid walk, nothing else is
+        // deduplicated), which is what builds the solid gore near zero HP.
+        private const float SpeckleWorldSizeMin = 0.25f;
+        private const float SpeckleWorldSizeMax = 0.45f;
+        // Speckles get their own UV cap: the droplet 0.12 face-tile
+        // insurance would strangle these big splatters. 0.5 still keeps a
+        // single stamp from swallowing a whole dense UV tile.
+        private const float SpeckleMaxUvSize = 0.5f;
+        // Grid-cell stride for placement: odd => coprime with the 8×16 = 128
+        // cell PaintPointMap grid, so consecutive indices walk a full cycle
+        // with no duplicate cells and the fill grows evenly with damage.
+        private const int SpeckleCellStride = 45;
+        // r3: neutral — the stain art (the molly damage-decal splatter) is
+        // already a rich saturated red and "классно смотрится" as-is, so the
+        // stamp draws it unmodified instead of the r1 muted-bruise darkening.
+        private static Color SpeckleTint(float alpha) => StampTint(alpha);
+        // r5: size × count COMPOUND — the r2 ease-out curve was tuned for
+        // 3-6 cm dabs, and after the r4 ×5 size bump it flooded a torso at
+        // 9% damage (18 palm-sized splatters, the user's screenshot).
+        // Recalibrated so THAT look lands at ~50% damage instead:
+        // 120·q(0.5)^2.5 ≈ 18. Low damage = 1-2 big blots, full = 120.
+        private static float SpeckleRamp(float q) => Mathf.Pow(q, 2.5f);
+
+        // r2: ×5 over v1 ("very little blood"). Stays under the 128-cell
+        // PaintPointMap grid, so the stride walk still never duplicates.
+        private static int MaxSpecklesFor(string zone) => zone switch
+        {
+            "Torso" => 120,
+            "Pelvis" => 80,
+            "LegL" or "LegR" => 70,
+            "ArmL" or "ArmR" => 50,
+            "Head" => 40,
+            _ => 40
+        };
+
+        private static int SpeckleCountFor(string zone, float q) =>
+            q <= 0f ? 0 : Mathf.Max(1, Mathf.RoundToInt(MaxSpecklesFor(zone) * SpeckleRamp(q)));
+
+        // Which zones a zone's damage bleeds onto (both directions listed).
+        private static readonly Dictionary<string, string[]> SpeckleAdjacency = new()
+        {
+            ["Head"] = new[] { "Torso" },
+            ["Torso"] = new[] { "Head", "Pelvis", "ArmL", "ArmR" },
+            ["Pelvis"] = new[] { "Torso", "LegL", "LegR" },
+            ["ArmL"] = new[] { "Torso" },
+            ["ArmR"] = new[] { "Torso" },
+            ["LegL"] = new[] { "Pelvis" },
+            ["LegR"] = new[] { "Pelvis" },
+        };
+
         private static readonly int UnderTexId = Shader.PropertyToID("_UnderTex");
         private static readonly int SlotRectId = Shader.PropertyToID("_SlotRect");
         private static readonly int CellRectId = Shader.PropertyToID("_CellRect");
@@ -172,6 +244,10 @@ namespace HexLive.UnityPresentation.Wearing
         private static Texture2D? _texSplash;
         private static Texture2D? _texScratch;
         private static Texture2D? _texSplat;
+        // Spec 40.8-H r3: the zone-damage speckle art — the red splatter the
+        // molly damage decal used (copied back from molly_copy as
+        // blood_stain.png; the user asked for exactly this picture).
+        private static Texture2D? _texStain;
         private static Texture2D? _texBandage;
         private static Texture2D? _texGauze;
         // Matching relief maps (RGB = encoded tangent normal, A = stamp
@@ -384,10 +460,13 @@ namespace HexLive.UnityPresentation.Wearing
         /// becomes the gloss map's base so droplets sit ON the wet sheen.
         /// New wounds raycast-place once; heals repaint with lower alpha;
         /// fully healed marks vanish (composite rebuilt from the original).
+        /// zoneDamage (spec 40.8-H): per-zone damage 0..1 (1-hp, severed zones
+        /// excluded upstream) driving the bruise-speckle field.
         /// </summary>
         public void Sync(List<(string zone, int seed, float heal)> wounds, HashSet<string> bandaged,
             float sweat01 = 0f, HashSet<string>? uncovered = null, float wetSmoothness = 0.32f,
-            HashSet<string>? gauzed = null)
+            HashSet<string>? gauzed = null,
+            List<(string zone, float damage01)>? zoneDamage = null)
         {
             if (_body == null || _materials == null)
             {
@@ -485,6 +564,51 @@ namespace HexLive.UnityPresentation.Wearing
                         needsPlacement = true;
                     }
                 }
+            }
+
+            // Spec 40.8-H: zone-damage speckles. Gated on the baked map —
+            // ~100 stamps through the legacy ClosestSkinTriangle fallback
+            // would re-create the 40.8-G combat-frame cost, so a no-map actor
+            // simply gets none. Count/alpha are pure functions of the 0.05-
+            // quantized effective damage, so folding zone+bucket into the
+            // hash covers both; healing shrinks the count and the stale sweep
+            // below removes the tail keys for free. (A damaged zone with no
+            // wound records now flips its slots to the painted RT — in
+            // practice zone damage always coexists with wounds, so this
+            // rarely creates RTs that would not exist anyway.)
+            if (zoneDamage != null && zoneDamage.Count > 0 && _map != null)
+            {
+                ComputeEffectiveZoneDamage(zoneDamage);
+                foreach (var pair in _speckleQ)
+                {
+                    var count = SpeckleCountFor(pair.Key, pair.Value);
+                    if (count <= 0)
+                    {
+                        continue;
+                    }
+
+                    var alphaBase = Mathf.Lerp(SpeckleAlphaMin, SpeckleAlphaMax,
+                        SpeckleRamp(pair.Value));
+                    stateHash = stateHash * 31 + pair.Key.GetHashCode();
+                    stateHash = stateHash * 31 + (int)(pair.Value * 20f);
+                    for (var i = 0; i < count; i++)
+                    {
+                        var key = SpeckleKey(pair.Key, i);
+                        _desired.Add(key);
+                        // Stable per-blot variance so the field isn't uniform.
+                        _alpha[key] = alphaBase * (0.8f + 0.2f * SpeckleJitter01(pair.Key, i));
+                        if (!_stamps.ContainsKey(key))
+                        {
+                            needsPlacement = true;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Keep PlaceNewStamps from placing stale zones (e.g. a caller
+                // that stops passing zoneDamage).
+                _speckleQ.Clear();
             }
 
             // Drop records that no longer exist (healed / unbandaged).
@@ -623,6 +747,161 @@ namespace HexLive.UnityPresentation.Wearing
                     }
                 }
             }
+
+            // Spec 40.8-H: speckles read the effective damage Sync just
+            // computed (_speckleQ). Baked map only — see the gate in Sync.
+            if (_map != null && _speckleQ.Count > 0)
+            {
+                foreach (var pair in _speckleQ)
+                {
+                    var count = SpeckleCountFor(pair.Key, pair.Value);
+                    for (var i = 0; i < count; i++)
+                    {
+                        var key = SpeckleKey(pair.Key, i);
+                        if (!_stamps.ContainsKey(key))
+                        {
+                            TryPlaceSpeckle(key, pair.Key, i);
+                        }
+                    }
+                }
+            }
+        }
+
+        // ---- Spec 40.8-H zone-damage speckle helpers ----
+
+        // zone -> own damage / quantized onset-remapped effective damage.
+        private readonly Dictionary<string, float> _speckleOwn = new();
+        private readonly Dictionary<string, float> _speckleQ = new();
+
+        // Speckle keys are hot (up to ~100 per NPC per Sync) — cache the
+        // strings once, shared across all NPCs.
+        private static readonly Dictionary<string, List<string>> SpeckleKeyCache = new();
+
+        private static string SpeckleKey(string zone, int index)
+        {
+            if (!SpeckleKeyCache.TryGetValue(zone, out var list))
+            {
+                list = new List<string>();
+                SpeckleKeyCache[zone] = list;
+            }
+
+            while (list.Count <= index)
+            {
+                list.Add($"dz{zone}#{list.Count}");
+            }
+
+            return list[index];
+        }
+
+        private static float SpeckleJitter01(string zone, int index)
+        {
+            var state = (uint)(zone.GetHashCode() * 31 + index * 977) | 1u;
+            return NextRand(ref state);
+        }
+
+        // eff[z] = max(own, NeighborBleed * max(adjacent own)), then remapped
+        // through the onset so hp above ~0.85 stays clean. Only zones present
+        // in the input participate — severed zones are excluded upstream, so
+        // they neither draw speckles nor donate bleed (the stump wound is the
+        // visual there).
+        private void ComputeEffectiveZoneDamage(List<(string zone, float damage01)> zoneDamage)
+        {
+            _speckleOwn.Clear();
+            _speckleQ.Clear();
+            foreach (var (zone, dmg) in zoneDamage)
+            {
+                _speckleOwn[zone] = Mathf.Clamp01(dmg);
+            }
+
+            foreach (var pair in _speckleOwn)
+            {
+                var eff = pair.Value;
+                if (SpeckleAdjacency.TryGetValue(pair.Key, out var neighbours))
+                {
+                    foreach (var neighbour in neighbours)
+                    {
+                        if (_speckleOwn.TryGetValue(neighbour, out var nd))
+                        {
+                            eff = Mathf.Max(eff, nd * SpeckleNeighborBleed);
+                        }
+                    }
+                }
+
+                var q = Mathf.Clamp01((eff - SpeckleOnsetDamage) / (1f - SpeckleOnsetDamage));
+                if (q <= 0f)
+                {
+                    continue;
+                }
+
+                q = Mathf.Round(q * 20f) / 20f; // 0.05 buckets — repaint per step
+                if (q > 0f)
+                {
+                    _speckleQ[pair.Key] = q;
+                }
+            }
+        }
+
+        // Placement is a straight grid-cell walk, NOT PointAt: PointAt
+        // quantizes (t, azimuth) onto the 8×16 grid, so two dozen "random"
+        // rolls collide into duplicate cells. A coprime stride visits every
+        // cell exactly once per cycle — the fill grows evenly with damage,
+        // and existing speckles never move when the count grows. No probing
+        // on an invalid cell (that would shift cells later indices own).
+        private void TryPlaceSpeckle(string key, string zoneName, int index)
+        {
+            var points = _map!.PointsFor(zoneName);
+            var n = points.Length;
+            if (n == 0)
+            {
+                PlaceTombstone(key, index, isBandage: false);
+                return;
+            }
+
+            var start = (int)((((uint)(_npcId * 40503)) ^ (uint)zoneName.GetHashCode()) % (uint)n);
+            var point = points[(start + index * SpeckleCellStride) % n];
+            if (!point.Valid)
+            {
+                PlaceTombstone(key, index, isBandage: false);
+                return;
+            }
+
+            EnsureStampTextures();
+            var state = (uint)(_npcId * 83492791 ^ (zoneName.GetHashCode() * 31 + index)) | 1u;
+            var targetWorld = (SpeckleWorldSizeMin +
+                               NextRand(ref state) * (SpeckleWorldSizeMax - SpeckleWorldSizeMin)) *
+                              (_height / 1.7f);
+            SizeFromDensity(point, targetWorld, out var sizeU, out var sizeV, minUv: 0.004f);
+            sizeU = Mathf.Min(sizeU, SpeckleMaxUvSize);
+            sizeV = Mathf.Min(sizeV, SpeckleMaxUvSize);
+            _stamps[key] = new Stamp
+            {
+                Key = key,
+                Slot = point.Slot,
+                Uv = point.Uv,
+                Seed = index,
+                UvSizeX = sizeU,
+                UvSizeY = sizeV,
+                Over = SpeckleVariant(ref state),
+                IsSpeckle = true,
+                RotationDeg = NextRand(ref state) * 360f
+            };
+        }
+
+        // r3: every speckle is the SAME art — blood_stain, the red splatter
+        // the molly damage decal sprayed on hit (the user asked for exactly
+        // this picture; the r1 splash/splat/scratch mix read wrong). The
+        // seeded roll only varies nothing today but keeps the signature so
+        // variants can return without touching callers. Fallback chain
+        // covers an un-imported PNG — fewer shapes, never a hole.
+        private static Texture? SpeckleVariant(ref uint state)
+        {
+            _ = NextRand(ref state);
+            if (_texStain != null)
+            {
+                return _texStain;
+            }
+
+            return _texSplash != null ? _texSplash : _texSplat;
         }
 
         // Spec 40.8 v4.1: a PATCH of small shaded water drops per stamp.
@@ -1028,6 +1307,15 @@ namespace HexLive.UnityPresentation.Wearing
                 return;
             }
 
+            // Spec 40.8-H: speckles are albedo-only by design — backfilling
+            // them below would grow a 1.6× blood-splash underlay plus wound
+            // gloss/relief after a domain reload.
+            if (stamp.IsSpeckle)
+            {
+                stamp.Over ??= _texStain != null ? _texStain : _texSplash;
+                return;
+            }
+
             stamp.Under ??= _texSplash;
             var (wover, wgloss, wnormal) = WoundVariant(stamp.Seed);
             stamp.Over ??= wover;
@@ -1158,7 +1446,7 @@ namespace HexLive.UnityPresentation.Wearing
         private static void ResetStatics()
         {
             _stampTexturesLoaded = false;
-            _texSplash = _texScratch = _texSplat = _texBandage = _texGauze = null;
+            _texSplash = _texScratch = _texSplat = _texBandage = _texGauze = _texStain = null;
             _texSplashN = _texScratchN = _texSplatN = _texSweatN = null;
             _texScratchG = _texSplatG = null;
             _woundOver = System.Array.Empty<Texture2D?>();
@@ -1177,13 +1465,14 @@ namespace HexLive.UnityPresentation.Wearing
             if (_stampTexturesLoaded && _texScratchN != null && _texSplatN != null &&
                 _texSplashN != null && _texSweatN != null && _dropletStamp != null &&
                 _texScratchG != null && _texSplatG != null && _glossStamp != null &&
-                _skinTintBlit != null)
+                _skinTintBlit != null && _texStain != null)
             {
                 return;
             }
 
             _stampTexturesLoaded = true;
             _texSplash = Resources.Load<Texture2D>("HexLive/Decals/blood_splash");
+            _texStain = Resources.Load<Texture2D>("HexLive/Decals/blood_stain");
             _texScratch = Resources.Load<Texture2D>("HexLive/Decals/wound_scratch");
             _texSplat = Resources.Load<Texture2D>("HexLive/Decals/blood_splat");
             _texBandage = Resources.Load<Texture2D>("HexLive/Decals/bandage_wrap");
@@ -1418,9 +1707,38 @@ namespace HexLive.UnityPresentation.Wearing
                 GL.PushMatrix();
                 GL.LoadPixelMatrix(0f, 1f, 1f, 0f); // (0,0) top-left, UV v flips below
 
+                // Spec 40.8-H: the zone-damage speckle field goes down FIRST —
+                // wounds, bandages and droplets all land on top of the bruised
+                // base. Explicit pass because Dictionary iteration order after
+                // removals is not layering order.
                 foreach (var stamp in _stamps.Values)
                 {
-                    if (stamp.Slot != slot || !_alpha.TryGetValue(stamp.Key, out var alpha) || alpha <= 0.01f)
+                    if (!stamp.IsSpeckle || stamp.Slot != slot || stamp.Over == null ||
+                        !_alpha.TryGetValue(stamp.Key, out var speckleAlpha) || speckleAlpha <= 0.01f)
+                    {
+                        continue;
+                    }
+
+                    var scx = stamp.Uv.x;
+                    var scy = 1f - stamp.Uv.y;
+                    // r4: seeded spin around the stamp centre — a GL matrix
+                    // because Graphics.DrawTexture has no rotation of its
+                    // own. Push/pop per stamp keeps the pixel matrix intact
+                    // for everything painted after.
+                    GL.PushMatrix();
+                    GL.MultMatrix(Matrix4x4.Translate(new Vector3(scx, scy, 0f)) *
+                                  Matrix4x4.Rotate(Quaternion.Euler(0f, 0f, stamp.RotationDeg)) *
+                                  Matrix4x4.Translate(new Vector3(-scx, -scy, 0f)));
+                    Graphics.DrawTexture(new Rect(scx - stamp.UvSizeX * 0.5f, scy - stamp.UvSizeY * 0.5f,
+                            stamp.UvSizeX, stamp.UvSizeY),
+                        stamp.Over, new Rect(0f, 0f, 1f, 1f), 0, 0, 0, 0, SpeckleTint(speckleAlpha));
+                    GL.PopMatrix();
+                }
+
+                foreach (var stamp in _stamps.Values)
+                {
+                    if (stamp.IsSpeckle || stamp.Slot != slot ||
+                        !_alpha.TryGetValue(stamp.Key, out var alpha) || alpha <= 0.01f)
                     {
                         continue;
                     }

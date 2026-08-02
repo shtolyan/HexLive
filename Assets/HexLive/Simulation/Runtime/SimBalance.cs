@@ -202,11 +202,15 @@ namespace HexLive.Simulation.Runtime
 
         // ─────────────────────────────────────────────────────────────
         // Sun / tan / sunburn (on uncovered parts, in open sun).
+        // Per-slow-tick rates, so they scale with DayLengthTicks: when the day
+        // went 2400 → 24000 ticks, the sun window got 10× more ticks and all
+        // three rates below were cut ×10 to keep the same per-DAY pacing
+        // (~10 sunny days to a full tan, ~2-3 burn events/day half-dressed).
         // ─────────────────────────────────────────────────────────────
-        public static float TanRate = 0.0009f;        // tan gained per (UV−0.5) per uncovered part. DEFAULT ONLY — tune live via CharacterBalance.asset (tanRate); BalanceTuning mirrors it over this at boot.
+        public static float TanRate = 0.00009f;       // tan gained per (UV−0.5) per uncovered part. DEFAULT ONLY — tune live via CharacterBalance.asset (tanRate); BalanceTuning mirrors it over this at boot.
         public static float TanStrength = 1f;          // overall tan DARKNESS (presentation-only): NpcActorView scales the tan tint toward bare skin by this. 1 = full look, lower = paler/less dark. Tune live via CharacterBalance.asset (tanStrength).
-        public static float SunburnRate = 0.004f;     // acute redness gained (faster than tan settles)
-        public static float SunExposureRate = 0.3f;   // exposure meter gained (fills toward a burn event)
+        public static float SunburnRate = 0.0004f;    // acute redness gained (faster than tan settles)
+        public static float SunExposureRate = 0.03f;  // exposure meter gained (fills toward a burn event)
         public static float SunburnBurnDamage = 0.08f; // HP torn off a part by a burn event
         // §82: ниже этого порога солнце ВИТАЛЬНУЮ часть не доламывает.
         // Солнечный удар доводит до беспамятства, но не отрывает голову: без
@@ -438,8 +442,10 @@ namespace HexLive.Simulation.Runtime
 
         // §54.14: the campfire is a STAGED build like the beds — a stick pile
         // (a working fire from stage 1 on), then upgrades raised in place:
-        // a dense stone ring, then the roasting spit (2 planted forked posts →
-        // crossbar → rope lashings). No hammer at any stage.
+        // the roasting spit (2 planted forked posts → crossbar → rope
+        // lashings), then the dense stone ring (§54.17 r3: the spit moved
+        // ahead of the ring so cooking unlocks in days, not never — the
+        // 18-stone ring is the long tail). No hammer at any stage.
         // §54.12 rule: MUST equal the per-material sums of
         // BuildSiteMath.CampfireStages (which mirror the campfire_final
         // prefab's staged piece groups "1".."5").
@@ -449,13 +455,23 @@ namespace HexLive.Simulation.Runtime
 
         // §54.14 (r2): the stages are FUNCTIONAL, not only visual.
         // Stage 1 (stick pile) = a working fire: warmth, comfort, crafting.
-        // Stage 2 (stone ring) insulates the pit — fuel burns at this fraction
-        // of the normal rate (0.5 = a load of wood lasts twice as long).
+        // The stone ring (last stage since §54.17 r3) insulates the pit — fuel
+        // burns at this fraction of the normal rate (0.5 = a load of wood
+        // lasts twice as long).
         public static float CampfireRingBurnMultiplier = 0.5f;
-        // Stage 3 (the roasting spit) unlocks cooking: raw meat is HUNG on the
+        // The roasting spit unlocks cooking: raw meat is HUNG on the
         // spit and roasts over a lit fire for this long (100 ticks = 1 game
         // hour), then turns into cooked meat that stays hanging until taken.
         public static int MeatRoastDurationTicks = 200;
+        // §54.17: CookMeat's auction curve. Base + weight are chosen so that
+        // whenever cooking is actually possible (raw meat in the pack, a lit
+        // fire with a free hook) it outbids GetFood (= Hunger) by a fixed
+        // margin at EVERY hunger level — the old 0.3 + 0.4·H curve lost to
+        // GetFood on the whole domain where both were available (crossover
+        // 0.33 vs the 0.35 GetFood threshold), so she fetched forever and
+        // never hung the chunk.
+        public static float CookMeatBase = 0.4f;
+        public static float CookMeatHungerWeight = 1.0f;
         // How many chunks hang on the crossbar at once (= the 6 fixed skewer
         // slots the CampfireSpitMeat view lays out along the bar).
         public static int CampfireSpitCapacity = 6;
@@ -594,12 +610,14 @@ namespace HexLive.Simulation.Runtime
 
         // Meat spoilage (ground items): raw rots fast, cooked lasts; cooking is
         // effectively preservation. Ticks from when the item lands on the ground.
-        // §54.16: raw was 1800 — SHORTER than the 2400-tick danger memory that
-        // every kill site carries, so meat dropped by a slain beast was
-        // guaranteed to rot before anyone was allowed to shop there. 2600 keeps
-        // the chunk alive past the mark even when the fear isn't cleared.
-        public static int MeatRawSpoilTicks = 2600;
-        public static int MeatCookedSpoilTicks = 4800;
+        // §54.16 history: raw was 1800 — SHORTER than the 2400-tick danger
+        // memory every kill site carries, so meat was guaranteed to rot before
+        // anyone was allowed to shop there; 2600 outlived the mark. §54.17
+        // raised both by design decision: raw 12000 (5 event cycles) so a kill
+        // survives long enough to be hauled and cooked, cooked 20000 so a
+        // roast is a real larder — cook today, the colony eats for days.
+        public static int MeatRawSpoilTicks = 12000;
+        public static int MeatCookedSpoilTicks = 20000;
 
         // Cannibalism: butchering a housemate's corpse is allowed but costs
         // comfort, and NPCs won't do it unless genuinely starving.

@@ -56,7 +56,10 @@ public sealed class PredationSystem : ISimulationSystem
                     // goal and its own resolver; keep the two from bleeding
                     // into each other.
                     !FactionRelations.AreAllies(predator, other) ||
-                    other.CurrentJunction is not { } otherJunction)
+                    other.CurrentJunction is not { } otherJunction ||
+                    // §106: не сцепляться через кромку с купальщицей — иначе до
+                    // ближайшего перестроения плана хищник кусал бы её с берега.
+                    (Spec106.WaterSanctuaryEnabled && CombatMedium.IsNpcSwimming(world, other)))
                 {
                     continue;
                 }
@@ -126,10 +129,8 @@ public sealed class PredationSystem : ISimulationSystem
             victim.Health = victim.Body.Mean();
             DamageReactionSystemHelpers.GrantAdrenaline(world, victim, damage, "PredationStrike");
             WoundMath.Inflict(world, victim, part, damage);
-            if (victim.Body.VitalDestroyed(out _))
-            {
-                victim.Health = 0f;
-            }
+            // §105: единая развилка — она же догрызает уже упавшую жертву.
+            MortalityHelpers.ResolveTrauma(world, victim, damage, $"NPC{predator.Id.Value}");
 
             Trace.Emit(world, predator.Id, "Preyed",
                 $"Victim={victim.Id.Value} {part} -{damage:F3} (armor={partArmor:F2}) " +
@@ -217,10 +218,7 @@ public sealed class PredationSystem : ISimulationSystem
                 predator.Health = predator.Body.Mean();
                 DamageReactionSystemHelpers.GrantAdrenaline(world, predator, defDamage, "PreyCounterStrike");
                 WoundMath.Inflict(world, predator, defPart, defDamage);
-                if (predator.Body.VitalDestroyed(out _))
-                {
-                    predator.Health = 0f;
-                }
+                MortalityHelpers.ResolveTrauma(world, predator, defDamage, $"NPC{victim.Id.Value}"); // §105
             }
 
             Trace.Emit(world, victim.Id, "PreyFoughtBack",
@@ -346,7 +344,11 @@ public sealed class PredationSystem : ISimulationSystem
             var adjacent = defenderJunction.Equals(attackerJunction) ||
                 (world.Junctions.Items.TryGetValue(attackerJunction, out var attackerJ) &&
                  attackerJ.Neighbors.Contains(defenderJunction));
-            if (!adjacent)
+            if (!adjacent ||
+                // §106: через кромку воды подмога не сцепляется — ни мокрая
+                // защитница с сухим нападающим, ни наоборот. Эта adjacency —
+                // копия мимо CanStrike, поэтому гейт повторён здесь.
+                !CombatMedium.NpcMelee(world, defender, attacker))
             {
                 continue;
             }
@@ -385,10 +387,7 @@ public sealed class PredationSystem : ISimulationSystem
                 attacker.Health = attacker.Body.Mean();
                 DamageReactionSystemHelpers.GrantAdrenaline(world, attacker, damage, "HelpCryDefended");
                 WoundMath.Inflict(world, attacker, part, damage);
-                if (attacker.Body.VitalDestroyed(out _))
-                {
-                    attacker.Health = 0f;
-                }
+                MortalityHelpers.ResolveTrauma(world, attacker, damage, $"NPC{defender.Id.Value}"); // §105
             }
 
             Trace.Emit(world, defender.Id, "HelpCryDefended",

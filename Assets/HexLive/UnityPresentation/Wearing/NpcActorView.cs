@@ -43,6 +43,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // feet move exactly when the body visibly moves.
     private static readonly int TurnDirectionParam = Animator.StringToHash("TurnDirection");
     private static readonly int LayingParam = Animator.StringToHash("Laying");
+
+    // §105: вторая лежачая цепочка — FallDown→FallenIdle→StandUp. Сон остался
+    // на Laying (он уходит в кровать), падение живёт здесь.
+    private static readonly int FallenParam = Animator.StringToHash("Fallen");
     private static readonly int WorkingParam = Animator.StringToHash("Working");
     // §axe: axe/pickaxe work (Harvest/Process) plays a real looping swing clip
     // (Standing Melee Attack Horizontal) via the Chop clip-state, replacing the
@@ -227,6 +231,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // prefabs are shared assets, so four maps serve the whole colony.
     private static readonly Dictionary<string, Dictionary<string, Material>> _skinSets = new();
 
+    // §85: eye colour id → the five eye materials by name. Static for the same
+    // reason — the whole island shares one set of eye assets per colour.
+    private static readonly Dictionary<string, Dictionary<string, Material>> _eyeSets = new();
+
     /// <summary>Spec §50: the owner's current skin tone (tan/sunburn/grime,
     /// no pain flush) — a severed-limb drop bakes it into its material so the
     /// limb matches the body it came off.</summary>
@@ -299,6 +307,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private readonly HashSet<string> _uncoveredScratch = new();
     private readonly HashSet<string> _bandagedScratch = new();
     private readonly HashSet<string> _gauzeScratch = new();
+    // Spec 40.8-H: per-zone damage (1-hp) feeding the skin painter's bruise
+    // speckles. When ANY zone is hurt, every non-severed zone rides along so
+    // the painter can bleed colour onto undamaged neighbours.
+    private readonly List<(string zone, float damage01)> _zoneDamageScratch = new();
 
     // Spec §50: zones already hidden by amputation (a limb never comes back, so
     // this only grows). Maps a severed BodyPart zone to the DISTAL bone whose
@@ -857,7 +869,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // which cast a fixed girl on purpose.
     public void Construct(string actorMeshName, int npcId = 0)
     {
-        Construct(actorMeshName, npcId, null, null, null);
+        Construct(actorMeshName, npcId, null, null, null, null);
     }
 
     // §74: a girl is a COMPOSITION. The mesh still decides the body — and with
@@ -865,11 +877,15 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // properties of the geometry — but the material set, the hairstyle and the
     // voice bank now come in separately and may belong to someone else.
     //
-    // Every one of the three is optional: null/empty means "the mesh's own",
+    // §85 adds a fourth: the iris. It used to ride inside the skin set, so
+    // "her mother's face with her father's eyes" was unsayable and the whole
+    // island drew from four irises.
+    //
+    // Every one of the four is optional: null/empty means "the mesh's own",
     // i.e. exactly the pre-§74 body, which is what a test scene and a pre-§74
     // save both get.
     public void Construct(string actorMeshName, int npcId,
-        string skinSet, string hairstyle, string voiceBank)
+        string skinSet, string eyeColor, string hairstyle, string voiceBank)
     {
         _npcId = npcId;
         // §67.6: голосовой банк персонажа = его меш-имя (Molly/Jana/…) —
@@ -1017,6 +1033,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // after either of them and the girl wears her donor's skin with the
             // previous body's paint targets, which reads as a shader bug.
             ApplySkinSet(skinSet);
+            // §85: and her eyes after it, because the skin set carries an eye
+            // map of its own — applying the eye set first would let the donor's
+            // irises overwrite the rolled ones. Both still land BEFORE
+            // BuildSkinTintTargets for the reason above.
+            ApplyEyeSet(eyeColor);
             BuildSkinTintTargets();
             // NOTE: an experiment swapping the SKIN to the GarmentTear paint
             // shader was reverted — Cull Off + the AlphaTest queue flickered on
@@ -1322,13 +1343,39 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             }
 
             SyncWoundSplashVfx();
+            // Spec 40.8-H: per-zone damage drives the speckle field. Raw
+            // damage travels — onset/curve/neighbour-bleed live in the
+            // painter (one tuning site). Severed zones are excluded: the
+            // limb is gone, the stump wound carries the visual.
+            _zoneDamageScratch.Clear();
+            var anyZoneDamage = false;
+            foreach (var pair in _zoneHealthScratch)
+            {
+                if (pair.Value < 0.99f && !_severedZones.Contains(pair.Key))
+                {
+                    anyZoneDamage = true;
+                    break;
+                }
+            }
+
+            if (anyZoneDamage)
+            {
+                foreach (var pair in _zoneHealthScratch)
+                {
+                    if (!_severedZones.Contains(pair.Key))
+                    {
+                        _zoneDamageScratch.Add((pair.Key, Mathf.Clamp01(1f - pair.Value)));
+                    }
+                }
+            }
+
             // The painter needs the current wet-skin gloss: it is the BASE of
             // the painted gloss map, so droplet pixels (0.95) sit on top of
             // the same sheen the rest of the body shows.
             var wetSmoothnessForPaint = Mathf.Lerp(DrySkinSmoothness, WetSkinSmoothness, _skinWetness);
             _skinPainter.Sync(_woundScratch, _bandagedScratch,
                 PaintSweatDroplets ? _skinWetness : 0f, _uncoveredScratch, wetSmoothnessForPaint,
-                _gauzeScratch);
+                _gauzeScratch, _zoneDamageScratch);
             // v4.3: the projector RAIN droplets serve rain AND sweat — the
             // unified wetness pool (whichever of rain/sweat is stronger)
             // feeds the rain pass, so a sweating body beads exactly like a
@@ -1896,7 +1943,22 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     // Spec 31C.2: sleeping snaps the view to the bed's attach point and
     // plays the Laying state; waking releases back to the renderer's flow.
-    public void SetLaying(bool laying, Transform attachPoint, float surfaceY = 0f)
+    public void SetLaying(bool laying, Transform attachPoint, float surfaceY = 0f) =>
+        ApplyLying(laying, attachPoint, surfaceY, fallenChain: false);
+
+    // §105: тело РУХНУЛО — умирает (окно спасения) или лежит без сознания.
+    //
+    // Вся механика лежания — пиннинг в центр гекса, per-frame bounds против
+    // frustum-culling, закрытые глаза, обнулённая скорость — переиспользуется
+    // ЦЕЛИКОМ: разница ровно одна, какой цепочкой клипов её положили. Сон
+    // уходит в кровать своим LieDown→Sleep→GetUp и держит её позу; падение
+    // приходит откуда угодно, включая бег и драку, и играет
+    // FallDown→FallenIdle→StandUp. Два bool'а взаимно исключаются здесь, в
+    // одном месте, а не в четырёх ветках рендерера.
+    public void SetFallen(bool fallen, float surfaceY = 0f) =>
+        ApplyLying(fallen, null, surfaceY, fallenChain: true);
+
+    private void ApplyLying(bool laying, Transform attachPoint, float surfaceY, bool fallenChain)
     {
         if (_laying && !laying && _bodyRoot != null)
         {
@@ -1929,7 +1991,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         if (_animator != null)
         {
-            _animator.SetBool(LayingParam, laying);
+            // §105: ровно один из двух — иначе она въехала бы в обе цепочки
+            // разом и аниматор выбрал бы по порядку переходов, а не по смыслу.
+            _animator.SetBool(LayingParam, laying && !fallenChain);
+            _animator.SetBool(FallenParam, laying && fallenChain);
         }
 
         if (_face != null)
@@ -2072,13 +2137,37 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _ragdollBodies = bodies.ToArray();
     }
 
-    // Spec 40.13 v2: death — the body lies down (the normal LieDown → Sleep
-    // flow) and then freezes in one pose; a corpse doesn't breathe the sleep
-    // loop. One-way: corpse views are destroyed, never revived.
+    // §28.15C v3: СМЕРТЬ — она падает, и на этом всё.
+    //
+    // Раньше смерть была тихим «лечь спать»: тело уходило в обычный LieDown →
+    // Sleep и там замирало, потому что клипов падения в наборе не лежало вовсе
+    // (`death: []`). Теперь их два (death2/death3), состояние Death в
+    // контроллере не имеет выхода, а клипы импортированы с Loop Time OFF — то
+    // есть падение проигрывается ОДИН раз и держит последний кадр.
+    //
+    // Дальше аниматор ВЫКЛЮЧАЕТСЯ совсем. Не «speed = 0», а enabled = false:
+    // поза остаётся ровно той, на которой кончился клип, и её больше некому
+    // сдвинуть — ни дыханию, ни взгляду, ни фиджетам. Тела копятся до конца
+    // игры, так что выключенный аниматор здесь ещё и единственная плата за то,
+    // что остров помнит своих мёртвых.
     private bool _dead;
+    private float _deathFreezeAt = -1f; // Time.time, когда клип докрутится
+    private static readonly int DeathStateHash = Animator.StringToHash("Death");
 
-    public void SetDead(float surfaceY)
+    /// <param name="variant">Какой из клипов падения — число из СИМУЛЯЦИИ, а
+    /// не Random: иначе одно и то же тело лежало бы по-разному у каждого
+    /// зрителя и после каждой перезагрузки.</param>
+    /// <param name="fresh">Она упала прямо сейчас (проиграть) или лежит с
+    /// прошлой сессии (сразу последний кадр). Второе — это загрузка сейва и
+    /// подключение зрителя к идущему миру: там никто не должен увидеть, как
+    /// давно погибшая падает заново.</param>
+    public void SetDead(float surfaceY, int variant = 0, bool fresh = true)
     {
+        if (_dead)
+        {
+            return; // односторонний переход; повторный вызов ничего не значит
+        }
+
         _dead = true;
         // §50: a corpse never crawls — clear the flag so the Crawl loop yields
         // to the death/laying pose (the Crawl transition also guards on !Dead).
@@ -2087,17 +2176,43 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _animator.SetBool(CrawlingParam, false);
         }
 
-        // Random death clip (config) that plays once and holds on the last
-        // frame (Death state has no exit; clip must be Loop Time OFF). Falls
-        // back to the frozen laying pose when no death clips are configured.
-        if (_animator != null && _animSet != null && _animSet.death != null && _animSet.death.Length > 0)
+        var clips = _animSet != null ? _animSet.death : null;
+        if (_animator == null || clips == null || clips.Length == 0)
         {
-            OverrideClip(DeathBaseClip, _animSet.death[Random.Range(0, _animSet.death.Length)]);
-            _animator.SetBool(DeadParam, true);
+            // Клипов не назначили — старое поведение: замереть лёжа. Заметно
+            // хуже, но это поза, а не дыра в кадре.
+            SetLaying(true, null, surfaceY);
             return;
         }
 
-        SetLaying(true, null, surfaceY);
+        var clip = clips[((variant % clips.Length) + clips.Length) % clips.Length];
+        OverrideClip(DeathBaseClip, clip);
+        _animator.SetBool(DeadParam, true);
+
+        if (fresh)
+        {
+            // Дать переходу отыграть, а потом заморозить. Длина берётся у
+            // САМОГО клипа: захардкоженная секунда разошлась бы с ним при
+            // первой же замене (ровно эта грабля — §104 r4).
+            _deathFreezeAt = Time.time + clip.length + 0.35f;
+            return;
+        }
+
+        // Загруженное тело: без перехода, сразу конец клипа, и заморозить в
+        // этом же кадре — падения никто не увидит.
+        _animator.Play(DeathStateHash, 0, 1f);
+        _animator.Update(0f);
+        FreezeDeathPose();
+    }
+
+    // Выключить аниматор насовсем. Поза остаётся той, что в костях сейчас.
+    private void FreezeDeathPose()
+    {
+        _deathFreezeAt = -1f;
+        if (_animator != null)
+        {
+            _animator.enabled = false;
+        }
     }
 
     // §29C.3-hit: a standing damage stagger. The renderer feeds every snapshot's
@@ -3968,11 +4083,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // the SAME 17 material slot names (Torso/Face/Arms/Legs/Cornea/… — §31B.1a
     // regenerated Jolly's from Molly's precisely so the sets stay parallel), so
     // the swap is a lookup BY NAME and never depends on submesh order.
-    //
-    // sharedMaterials is the right handle: SkinTexturePainter instantiates its
-    // own copies from whatever it finds (`body.materials`), and the tan on
-    // un-painted slots rides a MaterialPropertyBlock — so nothing here leaks
-    // one girl's wounds onto another's shared asset.
     private void ApplySkinSet(string skinSet)
     {
         if (string.IsNullOrEmpty(skinSet) || _bodySkins == null ||
@@ -3981,7 +4091,42 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return;
         }
 
-        var donor = LoadSkinSet(skinSet);
+        ReplaceBodyMaterials(LoadSkinSet(skinSet));
+    }
+
+    // §85: the iris, split out of the skin set above.
+    //
+    // The four actresses ship the same five eye materials with the same five
+    // names and byte-identical parameters, differing only in which 2048² Daz
+    // eye map they point at — so a colour is one shared set of materials with
+    // one recoloured map, and swapping it is the same replace-by-NAME as the
+    // skin set. Two of the five (Irises/Sclera) carry the map and live under
+    // the colour; the other three (Pupils/Cornea/EyeMoisture) have no texture
+    // at all and are literally the same assets for everyone.
+    //
+    // EyeSocket is deliberately NOT in the set: it is shaded from the FACE
+    // texture, so it belongs to the skin and follows her complexion, not her
+    // iris.
+    private void ApplyEyeSet(string eyeColor)
+    {
+        if (string.IsNullOrEmpty(eyeColor) || _bodySkins == null)
+        {
+            return;
+        }
+
+        ReplaceBodyMaterials(LoadEyeSet(eyeColor));
+    }
+
+    // Swap in every material of `donor` whose NAME matches one already on the
+    // body. By name, never by submesh index: the four bodies are separate Daz
+    // exports and nothing promises they ordered their 17 slots alike (§74.2).
+    //
+    // sharedMaterials is the right handle: SkinTexturePainter instantiates its
+    // own copies from whatever it finds (`body.materials`), and the tan on
+    // un-painted slots rides a MaterialPropertyBlock — so nothing here leaks
+    // one girl's wounds onto another's shared asset.
+    private void ReplaceBodyMaterials(Dictionary<string, Material> donor)
+    {
         if (donor == null || donor.Count == 0)
         {
             return;
@@ -3990,7 +4135,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         foreach (var skin in _bodySkins)
         {
             // Hair and garments carry their own materials and their own donor
-            // logic — the skin set is the BODY only.
+            // logic — these sets are the BODY only.
             if (skin == null || skin.GetComponentInParent<Wear>() != null)
             {
                 continue;
@@ -4015,6 +4160,49 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 skin.sharedMaterials = mats;
             }
         }
+    }
+
+    // Eye colour id → the five eye materials by name, merged from the shared
+    // folder and the colour's own (the colour wins, though today they do not
+    // overlap). Built once per colour for the whole run.
+    private static Dictionary<string, Material> LoadEyeSet(string eyeColor)
+    {
+        if (_eyeSets.TryGetValue(eyeColor, out var cached))
+        {
+            return cached;
+        }
+
+        var map = new Dictionary<string, Material>(System.StringComparer.OrdinalIgnoreCase);
+        foreach (var mat in Resources.LoadAll<Material>("HexLive/Eyes/Common"))
+        {
+            if (mat != null)
+            {
+                map[mat.name] = mat;
+            }
+        }
+
+        var tinted = Resources.LoadAll<Material>($"HexLive/Eyes/{eyeColor}");
+        if (tinted == null || tinted.Length == 0)
+        {
+            // No iris under that id: keep the body's own eyes rather than fit
+            // her with a shared sclera and someone else's iris colour.
+            Debug.LogWarning($"[§85] eye colour '{eyeColor}' has no materials at " +
+                $"Resources/HexLive/Eyes/{eyeColor} — the body keeps its own eyes.");
+            map.Clear();
+        }
+        else
+        {
+            foreach (var mat in tinted)
+            {
+                if (mat != null)
+                {
+                    map[mat.name] = mat;
+                }
+            }
+        }
+
+        _eyeSets[eyeColor] = map;
+        return map;
     }
 
     // Donor actor prefab → its body materials by name. Loading a prefab is not
@@ -4766,6 +4954,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     private void LateUpdate()
     {
+        // §28.15C v3: клип падения докрутился — выключить аниматор. Первым
+        // делом в кадре: всё, что ниже, тело уже не касается.
+        if (_deathFreezeAt >= 0f && Time.time >= _deathFreezeAt)
+        {
+            FreezeDeathPose();
+        }
+
         SampleMotion();
         PollActionSounds();
         UpdateTalkTurns();

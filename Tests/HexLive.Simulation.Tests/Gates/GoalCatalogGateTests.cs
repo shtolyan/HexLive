@@ -96,7 +96,14 @@ public sealed class GoalCatalogGateTests
             [GoalType.CraftRope] = InteractionType.Craft,
             [GoalType.CraftCloth] = InteractionType.Craft,
             [GoalType.CraftKnife] = InteractionType.Craft,
-            [GoalType.Bury] = InteractionType.Bury,
+            // §28.15C v3: Bury СНЯТА — тело остаётся лежать там, где упало, и
+            // хоронить его больше некому. Отсутствие строки здесь и есть
+            // утверждение «взаимодействия у цели больше нет».
+            //
+            // §28.15F: LootCorpse, наоборот, ДОПИСАНА — цели не было во времена
+            // switch'а, и её появление здесь это заявка, а не расхождение.
+            // Пин сторожит не «список не менялся», а «менялся осознанно».
+            [GoalType.LootCorpse] = InteractionType.Loot,
             [GoalType.Sleep] = InteractionType.Sleep,
             [GoalType.Sit] = InteractionType.Sit,
             [GoalType.Dress] = InteractionType.Dress,

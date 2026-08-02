@@ -41,6 +41,15 @@ public sealed partial class PlanningSystem
                 return null;
             }
 
+            // §106: she jumped into the water — the second sanctuary. He does
+            // not follow; a full "Swimming" abandon (not in the attempted-free
+            // list) so diving costs him the whole raid cooldown, like a door.
+            if (Spec106.WaterSanctuaryEnabled && CombatMedium.IsNpcSwimming(world, committed))
+            {
+                AbandonRaid(world, npc, "Swimming");
+                return null;
+            }
+
             // Her friends arrived, or she healed up — the odds turned.
             if (RaidMath.Opportunity(world, npc, committed) < Spec72.RaidAbandonOpportunity)
             {

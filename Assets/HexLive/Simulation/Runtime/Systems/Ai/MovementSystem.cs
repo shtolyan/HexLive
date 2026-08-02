@@ -27,9 +27,8 @@ public sealed class MovementSystem : ISimulationSystem
     public static float SwimEntryPauseSeconds = 0.75f;
     public static float SwimSpeedFactor = 0.6f;
 
-    // Deep water = swim tile; walkable river shallows are waded, not swum.
-    private static bool IsSwimTile(Tile tile) =>
-        (tile.Flags & TileFlags.Water) != 0 && (tile.Flags & TileFlags.Walkable) == 0;
+    // Deep water = swim tile; the definition moved to SpatialQueries.IsSwimTile
+    // (§106) so combat gates and movement can never disagree about who swims.
 
     // §40.18-B: crossing from land INTO deep water treads a beat in place before
     // stroking off. One definition shared by the two tile-switch sites (hop
@@ -39,7 +38,7 @@ public sealed class MovementSystem : ISimulationSystem
     {
         if (world.Tiles.Items.TryGetValue(toTile, out var landedTile) &&
             world.Tiles.Items.TryGetValue(fromTile, out var leftTile) &&
-            IsSwimTile(landedTile) && !IsSwimTile(leftTile))
+            SpatialQueries.IsSwimTile(landedTile) && !SpatialQueries.IsSwimTile(leftTile))
         {
             npc.Movement.ClimbPauseTimer = SwimEntryPauseSeconds;
             Trace.Emit(world, npc.Id, "SwimEnter",
@@ -206,7 +205,7 @@ public sealed class MovementSystem : ISimulationSystem
                     }
 
                     if (jt.Elevation != scanTile.Elevation &&
-                        (!IsSwimTile(jt) || jt.Elevation < scanTile.Elevation))
+                        (!SpatialQueries.IsSwimTile(jt) || jt.Elevation < scanTile.Elevation))
                     {
                         wallIndex = i;
                         wallTile = jt;
@@ -469,10 +468,18 @@ public sealed class MovementSystem : ISimulationSystem
             // HERE and deliberately NOT written into npc.MoveSpeed: that field
             // is persisted, so parking the attribute in it would store the same
             // number twice and desync every pre-§76 save.
+            // §105: «едва живая» — несколько часов после спасения она ходит
+            // вдвое медленнее. Ещё один множитель РОВНО в этой цепочке, рядом
+            // с мокрой одеждой: «состояние тела режет скорость» — прецедент,
+            // а не новая ветка (и npc.MoveSpeed по-прежнему не трогаем).
+            var convalescentMove = Spec105.DyingEnabled && world.Tick < npc.Mind.ConvalescentUntilTick
+                ? Spec105.ConvalescentMoveFactor
+                : 1f;
             var movementPerTick = npc.MoveSpeed * SimBalance.BaseMoveSpeedFactor *
                 AttributeMath.MoveSpeedMult(npc) *
                 npc.Body.MobilityFactor() *
                 EquipmentMath.WetMovementFactor(world, npc) *
+                convalescentMove *
                 alignmentFactor * world.TickDeltaTime;
 
             // §71: GAIT IS A DECISION. She walks unless there is a reason to
@@ -555,7 +562,7 @@ public sealed class MovementSystem : ISimulationSystem
             // Keyed off the SWIMMER's tile, so the slowdown starts once she is
             // in the water and ends when she has climbed out.
             if (world.Tiles.Items.TryGetValue(npc.Tile, out var swimStandTile) &&
-                IsSwimTile(swimStandTile))
+                SpatialQueries.IsSwimTile(swimStandTile))
             {
                 movementPerTick *= SwimSpeedFactor;
             }

@@ -329,7 +329,11 @@ public sealed partial class DecisionSystem
                 // §72: §56 predation stays inside the family — the other
                 // faction is the Raid goal's business, not the butcher's.
                 !FactionRelations.AreAllies(npc, other) ||
-                other.CurrentJunction is not { } otherJunction)
+                other.CurrentJunction is not { } otherJunction ||
+                // §106: a swimmer is no victim — water IS reachable (SwimCost),
+                // so without this filter the predator would wade in after her.
+                // The Prey plan then fails the normal way (cooldown included).
+                (Spec106.WaterSanctuaryEnabled && CombatMedium.IsNpcSwimming(world, other)))
             {
                 continue;
             }

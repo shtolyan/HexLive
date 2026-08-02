@@ -42,6 +42,11 @@ namespace HexLive.UnityDebug.Editor
             // §29C.3-hit: a standing stagger when damage lands while she stands still.
             AddParam(ac, "HitReact", AnimatorControllerParameterType.Trigger);
             AddParam(ac, "Crawling", AnimatorControllerParameterType.Bool); // §50: lost a leg
+            // §105: тело РУХНУЛО — умирает или лежит без сознания. Свой bool, а
+            // не переиспользованный Laying: сон входит в LieDown из каждого
+            // стоячего состояния своим переходом и уходит в кровать, а падение
+            // приходит откуда угодно, включая бег и драку.
+            AddParam(ac, "Fallen", AnimatorControllerParameterType.Bool);
             AddParam(ac, "Chopping", AnimatorControllerParameterType.Bool); // §axe: swinging an axe at work
             // §gear-craft v2: the staged in-place craft — kneeling over the
             // laid-out ingredients, working the ground (planting-style clip).
@@ -102,6 +107,12 @@ namespace HexLive.UnityDebug.Editor
             // Базовый клип — просто КЛЮЧ для подмены; какой именно, роли не
             // играет, лишь бы он существовал.
             var emote = AddState(sm, "Emote", Clip("X Bot@Salsa Dancing"));
+            // §105: рухнула → лежит → встала. Три состояния на один bool, ровно
+            // как LieDown→Sleep→GetUp у сна, но своей цепочкой: сон уходит в
+            // кровать и держит свою позу, а это падение с любого места.
+            var fallDown = AddState(sm, "FallDown", Clip("X Bot@Falling Down_once"));
+            var fallenIdle = AddState(sm, "FallenIdle", Clip("X Bot@Fallen Idle"));
+            var standUp = AddState(sm, "StandUp", Clip("X Bot@Standing Up_once"));
 
             // Loopy activities: enter while the bool is set, return to Idle when cleared.
             Loopy(sm, talk, idle, "Talking");
@@ -203,6 +214,43 @@ namespace HexLive.UnityDebug.Editor
             var co = crawl.AddTransition(idle);
             co.AddCondition(AnimatorConditionMode.IfNot, 0, "Crawling");
             co.hasExitTime = false; co.duration = 0.2f;
+
+            // §105: FallDown → FallenIdle → StandUp → Idle.
+            //
+            // Вход через AnyState и ПОСЛЕ Death/Crawl — порядок объявления есть
+            // порядок вычисления, и мёртвая не должна падать заново.
+            //
+            // Два выхода из падения намеренно: досрочный (её подняли, пока клип
+            // падения ещё играет) и обычный по времени. Без первого спасение на
+            // первых кадрах оставляло бы её доигрывать падение уже здоровой.
+            ClearAny(sm, fallDown);
+            ClearOut(fallDown);
+            ClearAny(sm, fallenIdle);
+            ClearOut(fallenIdle);
+            ClearAny(sm, standUp);
+            ClearOut(standUp);
+
+            var fi = sm.AddAnyStateTransition(fallDown);
+            fi.AddCondition(AnimatorConditionMode.If, 0, "Fallen");
+            fi.AddCondition(AnimatorConditionMode.IfNot, 0, "Dead");
+            fi.hasExitTime = false; fi.duration = 0.15f; fi.canTransitionToSelf = false;
+
+            // Падение доиграло — лечь в луп. Без условий, по времени: это одна
+            // непрерывная сцена, а не два независимых состояния.
+            var fl = fallDown.AddTransition(fallenIdle);
+            fl.hasExitTime = true; fl.exitTime = 0.95f; fl.duration = 0.3f;
+
+            // Досрочный подъём прямо из падения.
+            var fu = fallDown.AddTransition(standUp);
+            fu.AddCondition(AnimatorConditionMode.IfNot, 0, "Fallen");
+            fu.hasExitTime = false; fu.duration = 0.2f;
+
+            var lu = fallenIdle.AddTransition(standUp);
+            lu.AddCondition(AnimatorConditionMode.IfNot, 0, "Fallen");
+            lu.hasExitTime = false; lu.duration = 0.25f;
+
+            var ui = standUp.AddTransition(idle);
+            ui.hasExitTime = true; ui.exitTime = 0.9f; ui.duration = 0.25f;
 
             EditorUtility.SetDirty(ac);
             AssetDatabase.SaveAssets();

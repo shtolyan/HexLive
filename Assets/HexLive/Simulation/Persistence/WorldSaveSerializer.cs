@@ -35,7 +35,17 @@ public static class WorldSaveSerializer
     // "has breath" from "has breath AND factions".
     // v19 (§76) follows the same discipline: appended after the v18 strings,
     // never inserted mid-record, and read behind its own gate.
-    public const int BlobVersion = 19; // v19: §76 attributes & skills — 6 + 8 floats per NPC
+    // v20 (§28.15C v3): тела. Смерть больше не удаляет колонистку — её NPCState
+    // целиком переезжает в Entities.Corpses и лежит там до конца игры, вместе с
+    // одеждой и карманами. Значит сейв обязан нести ВТОРОЙ список людей: без
+    // него загруженный мир — это остров, с которого мёртвые исчезли вместе со
+    // своими вещами, то есть ровно то, от чего уходили.
+    // v23 (§105): умирание переживает сохранение — причина, остаток запаса и
+    // окно штрафа «едва живая». Иначе перезагрузка «лечила» бы лежащую на
+    // грани, ровно как когда-то чинила культю (§50).
+    // v24 (§85): цвет глаз. Отдельным полем, потому что до §85 он ехал внутри
+    // SkinSet — материалы актрисы несли и её глаза тоже.
+    public const int BlobVersion = 24;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -116,6 +126,15 @@ public static class WorldSaveSerializer
         foreach (var npc in world.Entities.Npcs.Values)
         {
             WriteNpc(w, npc);
+        }
+
+        // §28.15C v3 (v20): тела — тем же куском записи, что и живые. Читатель
+        // раскладывает их в ДРУГОЙ реестр, и это единственная разница: труп
+        // отличается от живой не набором полей, а тем, кто его тикает.
+        w.Write(world.Entities.Corpses.Count);
+        foreach (var body in world.Entities.Corpses.Values)
+        {
+            WriteNpc(w, body);
         }
 
         w.Write(world.Mobs.Count);
@@ -338,6 +357,19 @@ public static class WorldSaveSerializer
         {
             var npc = ReadNpc(r, version);
             world.Entities.Npcs[npc.Id] = npc;
+        }
+
+        // §28.15C v3: тела. У сейва до v20 список пуст — там мёртвых не было как
+        // сущностей вовсе, они истлевали в объект и исчезали.
+        world.Entities.Corpses.Clear();
+        if (version >= 20)
+        {
+            var corpseCount = r.ReadInt32();
+            for (var i = 0; i < corpseCount; i++)
+            {
+                var body = ReadNpc(r, version);
+                world.Entities.Corpses[body.Id] = body;
+            }
         }
 
         world.Mobs.Clear();
@@ -647,6 +679,17 @@ public static class WorldSaveSerializer
         w.Write(npc.Skills.Survival);
         w.Write(npc.Skills.Social);
 
+        // §28.15C v3 (v20): каким клипом она упала. Пишется для КАЖДОГО тела,
+        // живого и мёртвого, одним и тем же куском — тело мёртвой это тот же
+        // NPCState, только в другом реестре, и раздваивать запись значило бы
+        // завести второе место, где можно забыть поле.
+        w.Write(npc.DeathAnimVariant);
+
+        // §85 (v24): цвет глаз. В КОНЕЦ скалярной череды, а не рядом с SkinSet
+        // выше, ровно по причине §74.7 — вставка в середину переписала бы
+        // раскладку, которую уже читают сейвы v18-v23.
+        w.Write(npc.EyeColor);
+
         WriteItemList(w, npc.WornItems);
         WriteJunctionList(w, npc.ClaimedJunctions);
 
@@ -720,6 +763,14 @@ public static class WorldSaveSerializer
         // damage budget. Unsaved (pre-v15), a reload cured the sickness.
         w.Write(mind.SickUntilTick);
         w.Write(mind.SicknessDamageRemaining);
+        // §105 (v23): умирание переживает сохранение — иначе перезагрузка
+        // «лечила» бы лежащую на грани, ровно как когда-то чинила культю.
+        // DyingTickStamp НЕ пишется намеренно: он транзиентен, а сохранённая
+        // пара «запас + старый штамп» подарила бы ей при загрузке целое окно
+        // дрейна одним куском. Нулевой штамп значит «перештамповать».
+        w.Write((int)mind.DyingCause);
+        w.Write(mind.DyingReserve);
+        w.Write(mind.ConvalescentUntilTick);
         w.Write(mind.WakeGraceUntilTick);
         w.Write(mind.AdrenalineUntilTick);
         w.Write(mind.PendingTalkSinceTick);
@@ -978,6 +1029,21 @@ public static class WorldSaveSerializer
             npc.Skills.Social = r.ReadSingle();
         }
 
+        // §28.15C v3: до v20 мёртвых не существовало как сущностей — тело
+        // истлевало, и грузить было нечего. Ноль здесь и означает «жива».
+        if (version >= 20)
+        {
+            npc.DeathAnimVariant = r.ReadInt32();
+        }
+
+        // §85: до v24 цвет глаз ехал внутри SkinSet — материалы актрисы несли
+        // и глаза тоже. Пустая строка здесь и означает «глаза с префаба тела»,
+        // то есть ровно тот вид, в котором сейв писался.
+        if (version >= 24)
+        {
+            npc.EyeColor = r.ReadString();
+        }
+
         ReadItemList(r, npc.WornItems, version);
         ReadJunctionList(r, npc.ClaimedJunctions);
 
@@ -1062,6 +1128,16 @@ public static class WorldSaveSerializer
         {
             mind.SickUntilTick = r.ReadInt32();
             mind.SicknessDamageRemaining = r.ReadSingle();
+        }
+
+        if (version >= 23)
+        {
+            // §105: причина и остаток запаса. Штамп не читается — его нет в
+            // блобе (см. запись); ноль означает «перештамповать на первом
+            // тике», то есть загрузка стоит ей одного пропущенного вычета.
+            mind.DyingCause = (DyingCause)r.ReadInt32();
+            mind.DyingReserve = r.ReadSingle();
+            mind.ConvalescentUntilTick = r.ReadInt32();
         }
 
         mind.WakeGraceUntilTick = r.ReadInt32();

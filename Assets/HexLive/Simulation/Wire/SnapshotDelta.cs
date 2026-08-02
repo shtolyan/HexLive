@@ -35,6 +35,10 @@ public sealed class SnapshotDeltaEncoder
     /// <summary>Bytes last sent for each entity, keyed by id. The baseline.</summary>
     private readonly Dictionary<int, byte[]> _objects = new();
     private readonly Dictionary<int, byte[]> _npcs = new();
+    // §28.15C v3: тела. Дешевле всех остальных секций: труп не двигается и не
+    // меняется, поэтому стоит один апсерт в кадре появления — и ноль байт
+    // навсегда после. Ровно ради этого дельта и сравнивает БАЙТЫ, а не поля.
+    private readonly Dictionary<int, byte[]> _corpses = new();
     private readonly Dictionary<int, byte[]> _mobs = new();
     private readonly Dictionary<int, byte[]> _crabs = new();
     private readonly Dictionary<int, byte[]> _sharks = new();
@@ -59,6 +63,7 @@ public sealed class SnapshotDeltaEncoder
     {
         _objects.Clear();
         _npcs.Clear();
+        _corpses.Clear();
         _mobs.Clear();
         _crabs.Clear();
         _sharks.Clear();
@@ -121,6 +126,9 @@ public sealed class SnapshotDeltaEncoder
             (o) => o.Id.Value, (sw, o) => WorldSnapshotCodec.WriteObjectRecord(sw, o));
 
         WriteSection(w, snapshot.Npcs, _npcs,
+            (n) => n.Id.Value, (sw, n) => WorldSnapshotCodec.WriteNpcRecord(sw, n, includeDebugDetails));
+
+        WriteSection(w, snapshot.Corpses, _corpses,
             (n) => n.Id.Value, (sw, n) => WorldSnapshotCodec.WriteNpcRecord(sw, n, includeDebugDetails));
 
         WriteSection(w, snapshot.Mobs, _mobs,

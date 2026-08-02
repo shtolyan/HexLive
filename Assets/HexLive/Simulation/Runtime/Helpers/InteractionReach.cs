@@ -32,6 +32,11 @@ internal enum MeleeApproach
 //   --------------------------|-----------------------------------|-------------
 //   CanStrike                 | СОСЕДСТВО УЗЛОВ: свой узел или     | здесь
 //                             | смежный. Рука дальше не достаёт.   |
+//                             | Плюс СРЕДА (§106): по воде и из    |
+//                             | воды человек не бьёт — это не      |
+//                             | шестая мерка дистанции, а второй   |
+//                             | замер того же гейта, как           |
+//                             | CanTouchAcross у CheckObjectStart. |
 //   Talk / Aid / ForObject    | МЕТРИЧЕСКАЯ дистанция в мировых    | здесь
 //                             | единицах, через CheckStart.        |
 //   CheckObjectStart          | метрика И проходимость границы     | здесь
@@ -72,6 +77,16 @@ internal static class InteractionReach
     // этим, и кольцо между мерками молчало обеими.
     public static bool CanStrike(WorldState world, NPCState actor, NPCState target)
     {
+        // §106: вода — убежище. Пловец не бьёт, и по пловцу с суши не бьют;
+        // терренный гейт стоит ПЕРЕД меркой соседства, чтобы каждый вызывающий
+        // (HumanCombat, Raid, Abuse, AssessMelee) получил его одинаково. Уже
+        // НАЧАТЫЙ замах при этом долетает по таймеру и уходит в воздух — это
+        // «она отступила», ядро MeleeSwing (§104) среду не знает.
+        if (!CombatMedium.NpcMelee(world, actor, target))
+        {
+            return false;
+        }
+
         return actor.CurrentJunction is { } aj && target.CurrentJunction is { } bj &&
             (aj.Equals(bj) ||
              (world.Junctions.Items.TryGetValue(bj, out var junction) &&

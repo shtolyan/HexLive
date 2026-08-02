@@ -15,6 +15,7 @@ namespace HexLive.UnityPresentation.Config
     [MirrorTarget(typeof(Spec81))]
     [MirrorTarget(typeof(Spec82))]
     [MirrorTarget(typeof(Spec86))]
+    [MirrorTarget(typeof(Spec106))]
     public sealed class OutsiderBalanceConfig : ScriptableObject
     {
         [Header("Общее (§72)")]
@@ -144,6 +145,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 2f)] public float abuseBaseScore = 0.45f;
         [Tooltip("Сколько дней он не трогает колонию с начала игры.")]
         [Range(0, 12)] public int abuseGraceDays = 2;
+        [Tooltip("§81.11: сытость общением, НА или НИЖЕ которой одержимость пробивает льготные дни. Держать много ниже abuseSocialFloor.")]
+        [Range(0f, 0.45f)] public float abuseObsessionSocialCeiling = 0.05f;
         [Tooltip("Пауза после сцены.")]
         [Range(0, 4800)] public int abuseCooldownTicks = 900;
         [Tooltip("§87: на сколько цель абьюза запирается от аукциона после прерывания. Без замка ближайший пересчёт вернул бы его к «посидеть».")]
@@ -154,6 +157,12 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 4800)] public int abuseRaidLockoutTicks = 600;
         [Tooltip("Радиус поиска жертвы, тайлы.")]
         [Range(0, 12)] public int abuseScanRadiusTiles = 7;
+        [Tooltip("§81.12: жертву ищет ГЛАЗАМИ (радиус ниже), никого не видно — рыщет к лагерю. Выключено — всевидящий выбор по ростеру.")]
+        public bool abuseHuntBySight = false;
+        [Tooltip("§81.12: на каком радиусе он замечает человека. Симметрия с spotStrangerRadiusTiles.")]
+        [Range(0, 12)] public int abuseSightRadiusTiles = 6;
+        [Tooltip("§81.12: на сколько гексов новая жертва должна быть БЛИЖЕ, чтобы он передумал на бегу. Гистерезис против метания.")]
+        [Range(0, 6)] public int abuseRetargetGainTiles = 2;
         [Tooltip("У порога дома разворачивается, как волк и как налёт.")]
         public bool abuseRespectsSanctuary = true;
         [Tooltip("Во сколько раз он должен быть сильнее, чтобы она сдалась.")]
@@ -202,6 +211,10 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 2f)] public float abuseTrustLoss = 0.25f;
         [Tooltip("Закрыть тихую кражу §40.5 до своих — у чужака теперь есть настоящая сцена.")]
         public bool abuseSupersedesPassiveTheft = true;
+
+        [Header("§106 Вода — убежище")]
+        [Tooltip("Пловца не бьют с суши, пловец не бьёт сам, погоня за нырнувшей бросается (Prey/Raid/Abuse/волки). Выключено — вода снова ничего не значит в бою, поведение до-§106.")]
+        public bool waterSanctuaryEnabled = true;
 
         [Header("§82 Солнце и злость")]
         [Tooltip("Во что превращается краснота в ставке «одеться». 1.0 = полностью обгоревшая хочет прикрыться так же, как продрогшая.")]

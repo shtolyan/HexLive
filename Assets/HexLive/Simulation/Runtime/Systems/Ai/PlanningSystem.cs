@@ -23,9 +23,35 @@ public sealed partial class PlanningSystem : ISimulationSystem
         {
             if (npc.Plan.Status == PlanStatus.Active && npc.Plan.Goal == npc.Mind.CurrentGoal)
             {
-                Trace.Emit(world, npc.Id, "PlanSkipped",
-                    $"ActivePlan already matches Goal={npc.Mind.CurrentGoal} Step={npc.Plan.CurrentStepIndex}/{npc.Plan.Steps.Count}");
-                continue;
+                // Spec 29F.2: охота преследует ЖИВУЮ цель. Обычный скип держал
+                // бы план на узел, где краб стоял при планировании, до самого
+                // прихода — а краб прыгает каждый Medium-тик. Краб сдвинулся →
+                // план падает насквозь в Hunt-блок и перестраивается (как
+                // собачья погоня MobSystem.ChaseStep ре-путит каждый проход).
+                // В полёте (HopTimer > 0) не ретаргетим — подождёт тик (§21.21B:
+                // прыжок не должен пережить свой путь).
+                var huntStale = npc.Mind.CurrentGoal == GoalType.Hunt &&
+                    npc.Movement.HopTimer <= 0f &&
+                    DecisionSystem.NearestVisibleRabbit(npc, world)?.Junction is { } rj &&
+                    !(npc.Plan.TargetJunctionId is { } tj && tj.Equals(rj));
+                if (!huntStale)
+                {
+                    Trace.Emit(world, npc.Id, "PlanSkipped",
+                        $"ActivePlan already matches Goal={npc.Mind.CurrentGoal} Step={npc.Plan.CurrentStepIndex}/{npc.Plan.Steps.Count}");
+                    continue;
+                }
+
+                // Мягкий сброс хода — образец «housemate repath» из
+                // MovementSystem (§21.21B): иначе PathfindingSystem доиграет
+                // старый маршрут до конца и только потом посмотрит на новую
+                // цель. HopTimer уже проверен нулевым, оставшиеся hop-поля
+                // перепишет следующий arm+launch.
+                npc.Movement.JunctionPath.Clear();
+                npc.Movement.PathIndex = 0;
+                npc.Movement.IsMoving = false;
+                npc.Movement.Status = MovementStatus.Waiting;
+                npc.Movement.HopArmed = false;
+                npc.Movement.HopPathIndex = -1;
             }
 
             var prevStatus = npc.Plan.Status;
@@ -44,8 +70,18 @@ public sealed partial class PlanningSystem : ISimulationSystem
             if (npc.Mind.CurrentGoal == GoalType.Eat)
             {
                 // Eating happens in place from inventory (spec 29B.3):
-                // no target object, no junction reservation.
-                var foodDefinitionId = npc.Inventory.FindFirstFood(world.Content);
+                // no target object, no junction reservation. §54.17: the MOST
+                // NUTRITIOUS item, not the first — cooked meat beats the
+                // coconut half that happened to enter the pack earlier.
+                var foodDefinitionId = FoodMath.BestFoodInInventory(world, npc);
+                // §54.17 r2: a roast on a perceived spit outranks the pack —
+                // otherwise "coconut in hand" wins forever and the cooked
+                // meat hangs untouched until it burns through colony turnover.
+                if (TryBuildSpitTakePlan(world, npc, foodDefinitionId))
+                {
+                    continue;
+                }
+
                 if (foodDefinitionId is not null)
                 {
                     npc.Plan.TargetItemDefinitionId = foodDefinitionId;
@@ -452,11 +488,23 @@ public sealed partial class PlanningSystem : ISimulationSystem
             // fallback (no hard filter), so a colonist whose bed isn't built yet
             // never ground-sleeps beside an empty bed. Survival is unchanged.
             var preferOwnBed = SpecDream.Enabled && interactionType == InteractionType.Sleep;
+            // §54.17: food targets rank by hunger payoff, distance breaks ties —
+            // the nearest-wins fallback made cooked meat invisible next to a
+            // coconut. Raw meat's prospect depends on whether the colony can
+            // actually roast it, so the fire is checked once, before the loop.
+            var preferFood = npc.Mind.CurrentGoal == GoalType.GetFood;
+            var fireUsable = false;
+            if (preferFood)
+            {
+                var (_, fuel, fire) = DecisionSystem.FindCampfire(npc, world);
+                fireUsable = fire != null && fuel > 0f && FoodMath.SpitHasFreeHook(fire);
+            }
 
             PerceivedObject? selected = null;
             var selectedArmor = 0f;
             var selectedBoiled = false;
             var selectedMine = false;
+            var selectedNutrition = 0f;
             var candidateCount = 0;
             foreach (var perceived in npc.Perception.Objects)
             {
@@ -562,6 +610,17 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     {
                         selected = perceived;
                         selectedMine = mine;
+                    }
+                }
+                else if (preferFood)
+                {
+                    var nutrition = FoodMath.ProspectiveNutrition(world, perceived.DefinitionId, fireUsable);
+                    if (selected is null || nutrition > selectedNutrition + 0.01f ||
+                        (System.Math.Abs(nutrition - selectedNutrition) <= 0.01f &&
+                         perceived.Distance < selected.Distance))
+                    {
+                        selected = perceived;
+                        selectedNutrition = nutrition;
                     }
                 }
                 else if (selected is null || perceived.Distance < selected.Distance)
@@ -1119,7 +1178,15 @@ public sealed partial class PlanningSystem : ISimulationSystem
             case GoalType.BuildRaft:
                 return definition.Tags.Contains("Raft");
             case GoalType.Mourn:
-                return definition.Tags.Contains("Corpse") || definition.Tags.Contains("Grave");
+                return definition.Tags.Contains("Corpse");
+            case GoalType.LootCorpse:
+                // §28.15F: ровно то же условие, что считал аукцион — тело, на
+                // котором ещё что-то есть. Пустой труп мимо: иначе цель
+                // выигрывала бы снова и снова, а поход каждый раз кончался бы
+                // ничем (та же петля, что съела колонию на кокосах).
+                return definition.Tags.Contains("Corpse") &&
+                    world.Entities.Objects.TryGetValue(perceived.Id, out var lootAnchor) &&
+                    CorpseMath.HasSpoils(CorpseMath.BodyOf(world, lootAnchor));
             case GoalType.WarmUp:
                 // Spec 42: only a BURNING fire warms — a cold pit is no target.
                 return definition.Tags.Contains("Campfire") &&
@@ -1128,8 +1195,6 @@ public sealed partial class PlanningSystem : ISimulationSystem
             case GoalType.HaulToFire:
                 // Spec §52: the stockpile is the hearth — any campfire, lit or not.
                 return definition.Tags.Contains("Campfire");
-            case GoalType.Bury:
-                return definition.Tags.Contains("Corpse");
             case GoalType.GetWater:
                 // Fetch a whole coconut; Drink will put it on the ground and
                 // open it with a blade before sipping. (The collector draw is

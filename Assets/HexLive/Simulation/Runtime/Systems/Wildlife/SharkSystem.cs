@@ -87,10 +87,16 @@ public sealed class SharkSystem : ISimulationSystem
     // Bite an NPC that's swimming on/next to the shark (dormant until swimming).
     private static void BiteSwimmers(WorldState world, Wildlife.SharkState shark)
     {
+        // §106: the shark's medium comes from its sheet (AttackMediums=Water),
+        // through the same gate every land beast uses inverted — turning the
+        // shark on later is a registration, not a new rule. The old hand check
+        // (SwimJunctions membership) counted a girl on a shore junction's dry
+        // tile as bait; the tile predicate does not.
+        var mediums = Content.MobCatalog.For(Content.MobIds.Shark).AttackMediums;
         foreach (var npc in world.Entities.Npcs.Values)
         {
             if (npc.Health <= 0f || npc.CurrentJunction is not { } njct ||
-                !world.SwimJunctions.Contains(njct))
+                !CombatMedium.CanEngage(world, mediums, npc))
             {
                 continue;
             }
@@ -122,6 +128,10 @@ public sealed class SharkSystem : ISimulationSystem
             // Spec §50: a shark's 0.2 bite clears the big-blow threshold — if it
             // takes the leg to 0, it comes off.
             AmputateSystemHelpers.TrySeverOnBite(world, npc, bitPart, sharkBite);
+            // §105: единая развилка «умерла или ещё умирает» — акула кусает в
+            // ногу, но добивает уже лежащую на грани так же, как всякий другой
+            // урон, и второго ответа на этот вопрос в проекте быть не должно.
+            MortalityHelpers.ResolveTrauma(world, npc, sharkBite, $"Shark={shark.Id}");
             Trace.Emit(world, npc.Id, "SharkBite", $"NPC{npc.Id.Value} bitten by shark {shark.Id}");
             break;
         }

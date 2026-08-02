@@ -106,8 +106,9 @@ internal static class AidSupply
         spend = new Spend(string.Empty, Spec53.FeedRelief, false);
 
         // A ready-to-eat item feeds her by its OWN nutrition — sharing meat is
-        // worth more than sharing a scrap.
-        if (npc.Inventory.FindFirstFood(world.Content) is { } foodId)
+        // worth more than sharing a scrap; §54.17: the BEST item, same rule
+        // the donor would use for herself.
+        if (FoodMath.BestFoodInInventory(world, npc) is { } foodId)
         {
             npc.Inventory.Items.Remove(foodId);
             spend = new Spend(foodId, NutritionOf(world, foodId), false);
@@ -218,23 +219,9 @@ internal static class AidSupply
         return false;
     }
 
-    // The Hunger the food's own Eat interaction removes; the §53 flat value
-    // when the definition declares none.
-    private static float NutritionOf(WorldState world, string definitionId)
-    {
-        if (world.Content.ObjectDefinitions.TryGetValue(definitionId, out var definition))
-        {
-            foreach (var interaction in definition.Interactions)
-            {
-                if (interaction.Type == InteractionType.Eat && interaction.Effects.HungerDelta < 0f)
-                {
-                    return -interaction.Effects.HungerDelta;
-                }
-            }
-        }
-
-        return Spec53.FeedRelief;
-    }
+    // §54.17: the shared item-nutrition rule lives in FoodMath now.
+    private static float NutritionOf(WorldState world, string definitionId) =>
+        FoodMath.NutritionOf(world, definitionId);
 }
 
 }

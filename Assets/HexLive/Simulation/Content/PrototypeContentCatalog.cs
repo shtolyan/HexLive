@@ -535,13 +535,15 @@ public static class PrototypeContentCatalog
                         DurationTicks = 16,
                         Effects = { ComfortDelta = 0.1f }
                     },
+                    // §28.15F: обобрать тело — одна вещь за подход. Дольше
+                    // обычного подбора (4 такта): вещь надо СНЯТЬ с человека,
+                    // а не поднять с земли.
                     new InteractionDefinition
                     {
-                        Id = "bury.body",
-                        Type = InteractionType.Bury,
+                        Id = "loot.body",
+                        Type = InteractionType.Loot,
 
-                        DurationTicks = 20,
-                        Effects = { ComfortDelta = 0.15f }
+                        DurationTicks = 20
                     },
                     // Spec §54: a housemate's body can be butchered for meat + hide
                     // (cannibalism) — dark, gated behind starvation + a comfort hit.
@@ -553,7 +555,15 @@ public static class PrototypeContentCatalog
                         DurationTicks = SimBalance.ButcherDurationTicks,
                         Yields =
                         {
-                            new HarvestDrop { DefinitionId = "food.meat_raw", Count = SimBalance.CarcassMeatYield, Scatter = true },
+                            // §54.17 r2: meat goes INTO the butcher's pack
+                            // (Scatter=false → GiveOrDrop), not onto the
+                            // ground. Field soaks showed ground chunks are
+                            // never picked up — GetFood is gated off while any
+                            // food is in the pack (a coconut always is), so
+                            // every kill rotted where it fell. Carried meat
+                            // does not spoil and waits for a lit fire; the
+                            // full-pack fallback still drops at her feet.
+                            new HarvestDrop { DefinitionId = "food.meat_raw", Count = SimBalance.CarcassMeatYield, Scatter = false },
                             new HarvestDrop { DefinitionId = "resource.hide", Count = 1, Scatter = true }
                         }
                     }
@@ -577,29 +587,24 @@ public static class PrototypeContentCatalog
                         DurationTicks = SimBalance.ButcherDurationTicks,
                         Yields =
                         {
-                            new HarvestDrop { DefinitionId = "food.meat_raw", Count = SimBalance.CarcassMeatYield, Scatter = true },
+                            // §54.17 r2: same as butcher.body above — meat to
+                            // the pack, hide to the ground.
+                            new HarvestDrop { DefinitionId = "food.meat_raw", Count = SimBalance.CarcassMeatYield, Scatter = false },
                             new HarvestDrop { DefinitionId = "resource.hide", Count = 1, Scatter = true }
                         }
                     }
                 }
             },
-            // Spec 28.15D: permanent — CorpseSystem only decays the Corpse tag.
+            // §28.15C v3: могила ВЫВЕДЕНА ИЗ ОБОРОТА — хоронить больше некому и
+            // незачем, тело остаётся лежать там, где упало. Определение живёт
+            // дальше, но БЕЗ взаимодействий: без него старый сейв, в котором
+            // могилы успели появиться, не нашёл бы для них описания при
+            // загрузке. Ничто в мире её больше не порождает.
             ["grave.npc"] = new ObjectDefinition
             {
                 Id = "grave.npc",
                 DisplayName = "Grave",
-                Tags = { "Grave" },
-                Interactions =
-                {
-                    new InteractionDefinition
-                    {
-                        Id = "visit.grave",
-                        Type = InteractionType.Observe,
-
-                        DurationTicks = 12,
-                        Effects = { ComfortDelta = 0.1f }
-                    }
-                }
+                Tags = { "Grave" }
             },
             // Spec §50: a limb that came off a survivor. CurrentUser records
             // whose (which actor mesh); Variant records which limb. Tagged
@@ -720,7 +725,11 @@ public static class PrototypeContentCatalog
                 DisplayName = "Raw Meat",
                 // Deliberately NO Eat interaction: raw meat is inedible —
                 // the fire is the only path to calories (spec 29F.3).
-                Tags = { "RawMeat" },
+                // §54.17: "Food" lives HERE too, not only in the Unity asset
+                // override (meat_raw.asset isFood) — a world built from the
+                // bare catalog (unit tests, probes) must also let GetFood
+                // pick the chunk up, or the whole cook chain dies at step 1.
+                Tags = { "RawMeat", "Food" },
                 Interactions =
                 {
                     new InteractionDefinition

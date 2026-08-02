@@ -4148,10 +4148,52 @@ heals. Relationships oscillate instead of saturating at eternal friendship.
 
 A housemate's death must not pass unnoticed.
 
-**Corpse:** death spawns `corpse.npc` at the death site (in addition to the
-dropped items, 31A.5A). `CurrentUser` stores *whose* corpse it is (the field
-is unused on corpses otherwise). The body decays away after **4800 ticks**
-(2 days, `CorpseSystem` on the ResourceAmount-as-timer pattern of 29E.3).
+**⭐ v3 (тела остаются): она НЕ исчезает.** Раньше смерть удаляла колонистку
+из мира, вываливала её гардероб и карманы кучей под ноги и оставляла объект
+`corpse.npc`, который истлевал за двое суток. Через два дня от человека не
+оставалось ничего — ни тела, ни места, ни повода вспомнить; а вещи колония
+получала обратно бесплатно, просто пройдя мимо.
+
+Теперь смерть — это **переезд, а не удаление**:
+
+| | Было | Стало (v3) |
+|---|---|---|
+| Сущность | `Entities.Npcs.Remove` — её нет | `NPCState` целиком → `Entities.Corpses` |
+| Вещи | падают на землю под ноги | **остаются на теле** — надетое и карманы |
+| Срок | истлевает за 4800 тиков | **лежит до конца игры** |
+| Убрать | само гниение, либо похороны | только нож (§56, разделка) |
+| Вид | капсула-заглушка, затем ничего | её собственное тело в позе падения |
+
+**Почему ОТДЕЛЬНЫЙ реестр, а не флаг `IsDead` в `Npcs`.** Живой ростер
+обходят несколько десятков систем, и каждая должна была бы вспомнить про флаг;
+забытая проверка — это труп, который решает, голосует в аукционе и идёт за
+водой, молча и не сразу. В отдельном словаре «мёртвых не тикает никто» —
+свойство структуры, а не дисциплины. Плата: тело не участвует ни в чём само,
+всё с ним делают через объект-якорь.
+
+**Якорь:** `corpse.npc` по-прежнему спавнится на джанкшене в ЦЕНТРЕ гекса
+смерти (§60.2a), `CurrentUser` хранит id покойной. Он больше не гниёт
+(`CorpseSystem` фильтрует только тег `Decays` — конечности и звериные туши) и
+ничего не рисует: тело рисует сама погибшая. Якорь нужен ровно для «подойти и
+что-то сделать»: оплакать (§28.15C), обобрать (§28.15F), разделать (§56).
+
+**Поза смерти — состояние мира, а не украшение кадра.**
+`NPCState.DeathAnimVariant` выбирается СИМУЛЯЦИЕЙ по хешу сида, один раз, в
+момент переезда, и едет в сейве (blob v20) и по проводу (wire v5, секция
+`Corpses`). Выбери вид клип сам через `Random` — и одно и то же тело лежало бы
+по-разному у сервера, у каждого зрителя и после каждой перезагрузки.
+
+«Упала прямо сейчас» против «лежит с прошлой сессии» вид различает по тому,
+был ли у него ЖИВОЙ вид этого тела кадром раньше: если был — она падает у него
+на глазах, клип `death2`/`death3` играется с нуля; если нет (загруженный сейв,
+только что подключившийся зритель) — тело появляется сразу на последнем кадре,
+и падения никто не видит. Отдельного «тика смерти» для этого нет намеренно:
+момент уже хранит `world.DeathRecords`, а второе поле с тем же смыслом рано
+или поздно разошлось бы с первым.
+
+Клип доигрывает — и **аниматор выключается совсем** (`enabled = false`, не
+`speed = 0`): позу больше некому сдвинуть, ни дыханию, ни взгляду, ни фиджетам,
+а накопленные за игру тела перестают что-либо стоить.
 
 **Learning of death:**
 
@@ -4174,35 +4216,65 @@ the ritual must survive the long walk to the body against everyday needs;
 0.5 kept getting interrupted mid-pilgrimage until the corpse rotted)
 targets the corpse with the existing `Observe` interaction (16 ticks).
 Completing it ends the mourning period early ("простился") with a small
-Comfort recovery (+0.1). If the corpse decays before anyone comes, grief
-simply times out.
+Comfort recovery (+0.1).
 
-### 28.15D Burial & Graves (Iteration 16)
+v3: тело больше не истлевает, поэтому прощание всегда доходит до конца —
+раньше скорбящая не успевала дойти, труп рассыпался по дороге, и горе просто
+истекало по таймеру. Ставка Mourn упрощена до 0.7 без второй ветки.
 
-The death arc closes: a body can be laid to rest, and fear becomes memory.
+### 28.15D Похороны — СНЯТЫ (v3)
 
-**Burial:**
+Механики похорон больше нет. Тело остаётся лежать там, где упало, до конца
+игры: остров помнит своих мёртвых, и место смерти — это место смерти, а не
+аккуратный холмик, который через день ничем не отличается от соседнего.
 
-| Rule | Value |
+Сняты: цель `Bury`, взаимодействие `bury.body`, спавн `grave.npc`, «посетить
+могилу от одиночества» (Observe на `Grave`) и события `Buried`/`VisitedGrave`.
+Ординалы `GoalType.Bury` и `InteractionType.Bury` остаются занятыми — сейв
+хранит и цели, и взаимодействия числом, и вырезание середины перемаркировало
+бы каждое последующее значение в каждом существующем сейве. Определение
+`grave.npc` тоже остаётся, но пустым, без взаимодействий: без него старый
+сейв, в котором могилы успели появиться, не нашёл бы для них описания при
+загрузке. Ничто в мире их больше не порождает.
+
+Заодно ушла «санктификация» — снятие метки страха с гекса смерти при
+захоронении. Метка и так истекает сама (2400 тиков), так что вечного страха
+это не оставляет.
+
+### 28.15F Обобрать тело (v3)
+
+Вещи остались на покойной — значит за ними надо **прийти**. Без этого правки
+не было бы вовсе, а был бы регресс: колония теряла бы весь снаряжённый на
+человека инвентарь навсегда.
+
+| Правило | Значение |
 |---|---|
-| `Bury` goal | any housemate who perceives/remembers a corpse; score 0.6 (below Mourn 0.7 — rite first, burial after) |
-| Interaction | `Bury` on the corpse, 20 ticks, no tool needed in v1 |
-| Result | corpse despawns → **`grave.npc` spawns at the same junction** (permanent, never decays; `CurrentUser` still records who lies there) |
-| Closure | the burier's mourning ends; Comfort +0.15 |
-| Sanctification | the death tile is removed from **every living NPC's** danger memory — the place is no longer frightening, it is sacred |
+| Цель | `GoalType.LootCorpse`, ставка **0.34** |
+| Доступна | видит достижимое тело, на котором ещё что-то есть, **и у неё есть свободный слот**, и она сейчас не скорбит |
+| Взаимодействие | `Loot` на `corpse.npc`, **20 тиков** (вещь надо снять с человека, а не поднять с земли) |
+| Берёт | **ОДНУ** вещь за подход: сначала карманы, потом надетое |
+| Итог | вещь у неё в рюкзаке, тело лежит дальше — пустое, но на месте |
 
-**Grave visits (remembrance):** the `Mourn` goal widens — when *not*
-grieving but lonely (Social < 0.35) and a grave is known, it targets the
-grave (Observe, 12 ticks, score 0.3): Comfort +0.1, **Social +0.15** — the
-dead keep a lasting social presence; lonely housemates come to talk to the
-grave.
+**Порядок «карманы раньше одежды» — не косметика.** Ёмкость карманов даётся
+одеждой: сними куртку раньше, чем вынешь из неё нож, — и на теле останется
+вещь, которую хранить уже негде.
 
-**Loot, not inheritance:** the deceased's dropped gear is simply
-**ownerless** — ordinary world items at the death site that anyone may pick
-up, wear, or use through the normal PickUp/Dress goals. There is no
-ownership or inheritance concept; the grave's `CurrentUser` records only
-*who lies there* (identity for grief), never possession of the items around
-it.
+**Ставка 0.34 — ниже прощания (0.7) намеренно.** Пока она скорбит, она не
+мародёрствует; горе проходит, вещи остаются. Ниже еды, воды и сна — это
+хозяйственная работа, а не нужда.
+
+**Гейт на свободные руки обязателен**, и это тот же урок, что стоил колонии
+жизни на кокосах (§HasUsableCoconut): когда доступность говорит «есть», а
+поход кончается ничем, цель выигрывает аукцион снова и снова. По той же
+причине доступность в аукционе и выбор цели в плане спрашивают ОДНИ И ТЕ ЖЕ
+функции — `CorpseMath`.
+
+**Разделка (§56) — единственное, что убирает тело.** При этом всё, что на нём
+ещё оставалось, вываливается под ноги: вещи не исчезают вместе с ней.
+
+**Loot, not inheritance:** права собственности в игре нет. `CurrentUser` на
+якоре записывает только *кто здесь лежит* (опознание для скорби), но никогда
+не владение вещами.
 
 ### 28.15E Conversation Topics & Overhead Bubbles (Iteration — Sims-style chat)
 
@@ -5077,7 +5149,10 @@ prepare.
 
 **Sanctuary:** dogs never enter Indoor tiles — roaming, chasing, and
 spawning all skip indoor junctions. Home is safe; "run home" is a real
-strategy, not a metaphor.
+strategy, not a metaphor. §106 adds the second form of refuge: **deep water**.
+A target the mob's `AttackMediums` cannot reach (a swimmer, for a land wolf) is
+dropped IMMEDIATELY (`DogLostTarget … (in the water)`), not after the
+chase-stall timer — the shore statue read as a bug, not as patience.
 
 **Flight:**
 
@@ -5318,13 +5393,30 @@ seeds wiped — hunts stay rare-but-real at 4.)
   the availability window, not the curve, protects mealtimes. (History:
   0.15 + 0.5 × Hunger was strictly dominated — zero hunts across four
   seeds; an uncapped 0.3 + 0.5 × Hunger caused starving storms.)
-- The plan is a move-only chase to the rabbit's junction; the rabbit flees;
-  re-planning each arrival produces a genuine pursuit (NPC walk speed beats
-  hop speed).
-- Kill resolution is automatic on adjacency (RabbitSystem): seeded roll,
-  **50 % kill / 50 % miss**. Miss → rabbit spooked, hunter gets a Hunt
-  cooldown. Kill → rabbit despawns; **1 raw meat + 1 hide auto-loot** into
-  the hunter's inventory (overflow drops at feet).
+- The plan is a move-only chase to the crab's junction — a LIVE one. The
+  original «re-plan on arrival» pursuit was a standing ping-pong: the plan
+  aimed at the junction the crab occupied at planning time, arrival reset
+  the goal to None, and the hunter stood through a full decision auction
+  while the crab hopped away — a hunt that structurally never cashed in.
+  Now (r2): (a) the Hunt plan **retargets every Medium tick** the crab's
+  junction differs from the plan's (PlanningSystem falls through the
+  active-plan skip, soft-resetting movement the §21.21B way — never
+  mid-flight); (b) arrival with the crab still visible **keeps the goal**
+  (`HuntContinues`) so the chase resumes next Medium tick with no auction
+  gap; (c) Hunt carries **UrgencyClass.Hurry** — hunters run (×2.5), crabs
+  hop 1 junction/s.
+- Kill resolution (RabbitSystem) resolves **before the crab's flee hop** —
+  the old order let the crab jump away in the very tick the hunter closed
+  in. Reach is spear reach, not arm reach: node adjacency (the CanStrike
+  measure, duplicated here because a crab is not an NPC) **or** metric
+  distance <= `RabbitSpearReachHexFraction` (1.0) × HexRadius — one
+  FleeHop moves the crab a single junction, far less than the lunge.
+  Seeded roll, **75 % kill / 25 % miss** (`RabbitKillChance`; 0.5 made the
+  hunt a lottery the ping-pong never got to play). Miss → crab spooked,
+  hunter gets a Hunt cooldown. Kill → carcass (§54), butcher for meat.
+- **Only a deliberate spear hunt kills**: the strike requires Goal=Hunt
+  *and* a carried spear, symmetric with the (retired) bow branch — no
+  killing crabs in passing, and no knife/fist path exists at all.
 
 ### 29F.3 Crafting at the Campfire
 
@@ -8805,9 +8897,14 @@ pass — order chosen to add robustness before difficulty.
   reads it as the red channel over the tan, masked by garment coverage.
 - **Rate & shade:** tan builds only on bare parts under the sun, gated by
   `effectiveUv > 0.5`, which already carries the shade penalty (shaded tiles
-  cut UV ×0.2), so you tan **less in shade**. Rate `0.0009/slow-tick·part`
-  ≈ ~20 game days to max at open-sun exposure (halved from 0.0018 —
-  tanning deliberately slow). Presentation tans THROUGH
+  cut UV ×0.2), so you tan **less in shade**. The pacing contract is per
+  **game day**, not per tick: ~10 sunny days of open sun to a full tan
+  (tanning deliberately slow). The per-slow-tick rates therefore scale with
+  `DayLengthTicks` — when the day went 2400 → 24000 ticks (§19.7B) the sun
+  window gained 10× more ticks and all three sun knobs were cut ×10:
+  `TanRate` (default 0.00009, tuned 0.00003 in CharacterBalance.asset),
+  `SunburnRate` 0.0004, `SunExposureRate` 0.03 (~2-3 burn events/day
+  half-dressed, as before). Lengthen the day again ⇒ scale them again. Presentation tans THROUGH
   red: pale skin first flushes toward a fresh-burn red (`0.79, 0.55, 0.57`
   by TanLevel 0.35 — the retired low-HP flush color, which read exactly
   like "just caught the sun"), then deepens into the full-tan **deep
@@ -8866,6 +8963,40 @@ pass — order chosen to add robustness before difficulty.
   painters cost zero. Verified in a 3-dog fight: wolves at 0.35 HP show
   6 map-placed stamps with `initFailed=false`, legacy topology never
   built, no PaintPointMap warnings.
+- **SHIPPED (40.8-H — zone-damage speckles, чисто косметика):** per-zone HP
+  (`BodyParts`, уже в снапшоте — сим/wire не тронуты) рисует на коже
+  растущее поле мелких «кисточных» кровоподтёков ПОМИМО ран: первые
+  метки почти сразу (onset 0.05), возле 0 HP конечность читается
+  почти сплошь красной. r3: арт пятна = **`blood_stain.png`** — тот самый
+  красный сплаттер, которым molly брызгала декалем при уроне (скопирован
+  из molly_copy `—Pngtree—splash red paint blood stain_8483619.png`,
+  материал skinblood.mat / blood.prefab); рисуется НЕИЗМЕНЁННЫМ
+  (нейтральный `StampTint` — своя сочная краснота, r1-затемнение убрано).
+  Максимум по площади зоны ×5 (Torso 120 … Head 40, всего ≤470, всё ещё
+  внутри 128-ячеечной сетки без дублей), альфа 0.45→1. r5: кривая
+  `q^2.5` — размер и количество ПЕРЕМНОЖАЮТСЯ, r2-кривая `q^0.6` под
+  3-6-см точки после r4-размеров заливала торс уже при 9% урона;
+  калибровка: та картинка (≈18 ладонных сплаттеров на торсе) должна
+  наступать к ~50% урона, малый урон = 1-2 крупных пятна, полный = 120. r4: размер ×5 — 25–45 см
+  (свой UV-кап 0.5 вместо капельного 0.12, иначе он душит крупный
+  штамп), обязательный случайный поворот каждого штампа (сид →
+  GL-матрица вокруг центра, у DrawTexture своего поворота нет);
+  пересечения разрешены — уникальны только центры (сетка), при таких
+  размерах штампы густо перекрываются в сплошную красноту задолго до
+  нуля HP. Гладкость между зонами: **neighbor bleed 0.38** —
+  разбитая рука подкрашивает плечо (Head↔Torso↔Pelvis↔конечности), нет
+  жёсткой границы «рука красная / торс белый». Размещение — прямая
+  индексация ячеек запечённой `PaintPointMap`-сетки взаимно-простым
+  шагом (stride 45 по 128 ячейкам): ровное заполнение без дублей, рост
+  урона НЕ двигает уже стоящие пятна, детерминизм per npc/zone. Пятна
+  albedo-only (без normal/gloss — не виниловеют), рисуются ПЕРВЫМИ, так
+  что раны/бинты/капли ложатся поверх; severed-зоны исключены (визуал
+  несёт рана культи). Перф: бакеты урона 0.05 в существующем хэше
+  состояния Sync, репейнт остаётся коалессированным (≤1/0.25 с),
+  **только через запечённую карту** — легаси-путь `ClosestSkinTriangle`
+  для пятен запрещён (вернул бы 40.8-G), актёр без карты просто без
+  пятен. Ключи `dz{zone}#{i}`; лечение уменьшает count, хвостовые ключи
+  убирает штатный stale-свип.
 - **SHIPPED (40.8-F v2 — toon blood splash):** the hit spray prefabs are
   now **Epic Toon FX** blood splats copied (GUID-intact, with their two
   URP Particles/Unlit materials + textures) from the w-empire-ios project
@@ -9546,6 +9677,10 @@ grows) — budget multi-round rebalancing per [[project_dog_fragility_balance]].
    is absent from land. Ship first as a dormant patroller (no swimmers yet →
    verifiably deaths==baseline, like the null advisor §40.16), then wire the
    bite once swimming exists.
+   **UPDATE (§106): the medium foundation is in.** `MobStats.AttackMediums`
+   (shark = `Water`) + the shared `CombatMedium.CanEngage` gate already drive
+   `SharkSystem.BiteSwimmers` — turning the shark on is a registration in
+   `SimulationSystemRegistry` plus a real combat timeline, not a new rule.
 3. **Second island.** Extend world-gen with a second land mass across a
    Swimmable strait, seeded with fresh loot (a pickaxe/saw already scatter,
    §40.12) and its own resources. Connectivity cache must span both.
@@ -11539,10 +11674,23 @@ mirror `BuildSiteMath.CampfireStages`:
 | stage | pieces | material | meaning |
 |---|---|---|---|
 | 1 | 9 × `stick_*` | 9 sticks | the bare stick pile — **a working, lightable fire** |
-| 2 | 18 × `stone_*` | 18 stones | the dense stone ring (packed edge to edge) |
-| 3 | 2 × `stick_post_*` | 2 sticks | two forked posts planted either side |
-| 4 | 1 × `stick_bar` | 1 stick | the crossbar laid across the forks |
-| 5 | 2 × `rope_*` | 2 rope | the lashings tying the bar to the posts |
+| 2 | 2 × `stick_post_*` | 2 sticks | two forked posts planted either side |
+| 3 | 1 × `stick_bar` | 1 stick | the crossbar laid across the forks |
+| 4 | 2 × `rope_*` | 2 rope | the lashings tying the bar to the posts |
+| 5 | 18 × `stone_*` | 18 stones | the dense stone ring (packed edge to edge) |
+
+**r3 (§54.17): the spit comes BEFORE the stone ring.** The old order (ring at
+stage 2) plus the stage machine's "only the current stage's shortfall is
+exposed" rule meant cooking waited on the 18-stone ring — which §63.4 records
+as *never finishing* in ~500 seed-days, and staying rare after the delivery
+fixes. So `MeatRoasted` was structurally impossible. Now the spit costs a
+working fire + 3 sticks + 2 rope (days, not weeks), and the ring is what it
+thematically always was: the long-tail fuel-economy upgrade. Bill totals are
+unchanged, `CampfireSpitComplete`/`CampfireRingComplete` test delivered
+*amounts* (stage-order-agnostic), and the renderer lights "the first N pieces
+per material" — so the swap is data-only (`BuildSiteMath.CampfireStages`).
+Old saves re-attribute their delivered pool cleanly (stones simply credit the
+now-last stage). Pinned by `CampfireStageTests`.
 
 The three visual tiers are also **functional tiers** (r2): the stick pile is
 a complete fire, the ring is a fuel saver, the spit is the cooker.
@@ -11550,8 +11698,8 @@ a complete fire, the ring is a fuel saver, the spit is the cooker.
 | functional tier | complete when | what it gives |
 |---|---|---|
 | pile (stage 1) | 9 sticks delivered (site raises) | a real campfire: fuel/light, **full warmth + Cozy comfort**, crafting station |
-| ring (stage 2) | 18 stones delivered | fuel burns at `CampfireRingBurnMultiplier` (0.5) — the same wood lasts **2×** |
-| spit (stages 3-5) | full stick + rope bill delivered | **cooking unlocked** (§54.14A roasting) |
+| spit (stages 2-4) | full stick + rope bill delivered | **cooking unlocked** (§54.14A roasting) |
+| ring (stage 5) | 18 stones delivered | fuel burns at `CampfireRingBurnMultiplier` (0.5) — the same wood lasts **2×** |
 
 Mechanics:
 
@@ -11771,6 +11919,8 @@ Three fixes, all needed:
 3. **`MeatRawSpoilTicks` 1800 → 2600**, so a chunk outlives a 2400-tick mark
    even when the fear is never cleared. Tuned in `ResourceLoopBalance.asset`
    (mirrored to `SimBalance` + `SimData/simdata.json`).
+   *(§54.17 later raised the spoil clocks outright: raw 2600 → **12000**,
+   cooked 4800 → **20000** — see below.)*
 
 **Probe** (`/private/tmp/cookprobe`, A/B on one scene — lit fire with a
 finished spit, wolf carcass in the next hex, two girls with knives, hunger
@@ -11781,6 +11931,108 @@ finished spit, wolf carcass in the next hex, two girls with knives, hunger
 | no mark | butcher t234 → hang → roast → eat, hunger → 0.01 | unchanged |
 | **mark** | butchered t65, **both chunks rot t1872**, hunger 0.55 → 0.78 | butcher t65 → hang t133 → roast t336 → eaten t435, hunger → 0.19 |
 | live wolf on the spot | meat not taken | meat not taken (guard holds) |
+
+### §54.17 Meat feeds the colony (cook score + food preference)
+
+§54.16 fixed the fear-vs-rot collision, yet meat still ended as coconut's
+understudy: the player had **never once** seen meat roast. Three independent
+defects, each sufficient on its own:
+
+1. **The spit was structurally unreachable.** Cooking gates on
+   `CampfireSpitComplete`, but the stage machine demanded the 18-stone ring
+   *before* the spit's sticks and rope — and §63.4 records the ring as never
+   finishing. Fixed by reordering `CampfireStages` (spit stages 2-4, ring
+   last; see §54.14 r3).
+2. **Score inversion: fetching forever, hanging never.** GetFood/Eat score
+   `0.1 + Hunger`; CookMeat scored `0.1 + 0.3 + 0.4·H`, which loses to
+   GetFood on the entire domain where both are available (crossover at
+   H = 0.33, below GetFood's own 0.35 threshold). Raw meat has no Eat
+   interaction, so it never reads as "food in inventory" — a girl carrying a
+   chunk kept fetching more instead of hanging it. Fixed with two knobs:
+   **`CookMeatBase` (0.4) + `CookMeatHungerWeight` (1.0)** — CookMeat now
+   beats GetFood by a fixed 0.3 margin at *every* hunger level whenever
+   cooking is actually possible (raw meat in pack + lit fire + free hook).
+   The cycle: pick up chunk → hang it (~8 ticks) → `cookAvail` drops →
+   GetFood resumes (next chunk, or a coconut while the roast runs). No haul
+   goal was added and `getFoodAvail` is untouched: `FindCampfire` already
+   sees remembered fires, and `campfireFuel > 0` is the anti-churn guard
+   (§35.4a).
+3. **Nutrition was invisible to every food choice.** Eat consumed the FIRST
+   edible item in the pack (insertion order, `FindFirstFood`); GetFood walked
+   to the NEAREST `Food`-tagged object. Cooked meat's edge (−0.9 hunger vs
+   coconut half's −0.675) influenced nothing. Now `FoodMath`
+   (`Runtime/Helpers/FoodMath.cs`) is the single item-nutrition authority:
+   - `BestFoodInInventory` — Eat plans and §53.7 feed-aid donate the most
+     nutritious ready-to-eat item (ties keep insertion order, so meatless
+     packs behave exactly as before);
+   - `ProspectiveNutrition` — GetFood candidates rank by expected hunger
+     payoff with distance as tiebreak (the `preferArmor` idiom): a campfire
+     candidate (valid only while cooked hangs) and raw meat near a usable
+     fire both read as a cooked chunk (0.9); raw meat with no usable fire is
+     a gamble valued at `Spec53.FeedRelief` (0.5) — below an open coconut;
+   - `NutritionOf` moved here from `AidSupply` (which now delegates).
+   The coconut ladder (`BuildCoconutEatPlan`) is untouched as the fallback —
+   it stays the survival backbone.
+
+Supporting changes:
+
+- **Spoil clocks raised** (design decision): `MeatRawSpoilTicks` 2600 →
+  **12000** (5 event cycles — a kill survives long enough to be hauled and
+  cooked), `MeatCookedSpoilTicks` 4800 → **20000** (a roast is a real
+  larder: cook today, the colony eats for days). `ResourceLoopConfig` ranges
+  widened to 24000 to admit them.
+- **Catalog parity:** `food.meat_raw` carries the `Food` tag in
+  `PrototypeContentCatalog` itself, not only via the Unity asset override —
+  a world built from the bare catalog (unit tests, probes) must also pick
+  chunks up. The deliberate *no Eat interaction* rule (§29F.3) stands.
+- **`MeatEaten` trace** (player-visible, whitelisted): emitted when a cooked
+  chunk is eaten from inventory — the finish line of the chain
+  hunt → butcher → hang (`MeatHungOnSpit`) → roast (`MeatRoasted`) → eat.
+  The soak report prints the whole chain in one line
+  (`Butchered/Hung/Roasted/Eaten/Spoiled`).
+
+**r2 — the field soaks said "still zero", and closed two more holes.** With
+everything above in place, five 60000-tick soaks still showed
+`Hung=Roasted=Eaten=0` while `Spoiled = 2×Butchered`. The trace named the
+missing links:
+
+- **Nobody ever picked the chunks up.** `GetFood` is unavailable while ANY
+  food is in the pack — and a coconut always is — so ground meat was
+  unreachable by the only goal that fetches food. Fix: **butchering puts the
+  meat straight into the butcher's pack** (`Scatter=false` on both
+  `butcher.carcass` and `butcher.body` meat drops — hide still scatters).
+  Carried meat does not spoil; it simply waits in the pack until a lit fire
+  is in view and the dominant CookMeat score hangs it. A full pack first
+  bumps a less-important item (`InventoryMath.MakeRoomFor` on non-scatter
+  harvest yields — meat outranks sticks/hides), and only then falls back to
+  the ground drop.
+- **Nobody ever took the roast off the spit.** Same gate from the other
+  side: a girl with a coconut in the pack satisfies Eat from inventory and
+  `GetFood` (which knows how to take from the spit) never runs — the roast
+  hung untouched for 40 000+ ticks. Fix: the Eat plan gained a spit step
+  (`TryBuildSpitTakePlan`, ranked ABOVE the pack): if a perceived, reachable
+  campfire holds cooked meat and nothing in the pack is at least as
+  nutritious, she walks over and takes the chunk (`take.from.spit`); the
+  next Eat pass consumes it. Every obstacle in that branch returns false —
+  never PlanFailed — so the pack coconut stays the guaranteed fallback.
+
+After r2 the chain closes end-to-end in the field: butcher → pack → hang →
+roast → take → `MeatEaten`.
+
+**r2 field verification** (5 × 60000-tick soaks, `TimedMeleeEverywhere=true`):
+seed 42 ran the whole chain — `Butchered=3, Hung=2, Roasted=2, Eaten=1,
+Spoiled=0` — and `Spoiled` collapsed to 0-1 on every seed (was 2×Butchered:
+every chunk rotted). The remaining per-seed variance is NOT the meat chain:
+the other seeds stalled on spit stick #12 (sticks contested by fuel, beds
+and a second hearth) while the colony died to dogs — the §104.7 "включён до
+калибровки DPS" cost. Meat waits in packs either way; when a spit finishes
+and a fire burns, it flows.
+
+**Accepted golden-trace divergence:** the very first differing line is the
+CookMeat score at tick 0 (`Need 0.58 → 1.10` at H = 0.48-equivalent), after
+which trajectories fork wholesale (GoalScored/GoalSelected/PlanStarted) — the
+intended consequence of new scores, new target ranking, new stage order and
+the r2 yield/plan changes. Pinned by `CampfireStageTests` + `FoodMathTests`.
 
 ## §55 Rivers retired, drink from the coconut (iteration 55)
 
@@ -11877,7 +12129,9 @@ starving hour with an empty island.
 lowest `Health`, with a discount for a **sleeper** (an easy kill is preferred)
 and the nearest breaking ties. A starved predator preys on the frail; when no
 soft target is in reach the goal simply has no victim and **fails** — so the plan
-is *not always solvable*, by design.
+is *not always solvable*, by design. §106: a **swimmer is not a victim** — water
+is reachable (SwimCost), so without the filter the predator would wade in after
+her; with it the goal fails the normal way (cooldown included).
 
 ### §56.3 The kill is a **fight**, not an execution — `PredationSystem`
 
@@ -12492,6 +12746,11 @@ pending.
 Итог соака: кирки крафтятся (2/колония), камни доставляются в кольцо
 (contents 9→10-12 к d20-25); полное кольцо за 25 дней — редкость (плот
 выигрывают раньше), длинная стройка по дизайну.
+
+**r3 (§54.17):** «редкость по дизайну» перестала запирать еду: кольцо
+демотировано в ПОСЛЕДНЮЮ стадию, вертел (палки+верёвка) идёт сразу за
+рабочим костром — жарка больше не ждёт 18 камней. Кольцо остаётся тем же
+длинным хвостом, но теперь ценой откладывается только экономия топлива.
 
 ## §64 Мечта — цель-стремление колонии, строим по плану (iteration 64)
 
@@ -14485,6 +14744,48 @@ t51596 AbuseDone:    Mark=NPC1 Took=nothing Social=0.35 MarkAffinity=-0.35
 за то, что ничего не меняет, незачем. Бросок делается раз в СЕКУНДУ, а не каждый
 кадр: иначе частота зависела бы от FPS и на быстрой машине плясала бы вдвое чаще.
 
+**81.11 ⭐ Одержимость пробивает льготные дни.** Симптом, проживший дольше всех
+остальных багов абьюза вместе взятых: в реальном мире чужак НЕ АБЬЮЗИЛ НИКОГДА.
+Оба входа в цель — и ставка аукциона, и прерывание `TryStartAbuse` — молчали до
+тика `AbuseGraceDays × DayLengthTicks` = 48 000 (≈3 ч 20 мин реального времени
+на 1×), а Social чужака падал в ноль уже к ~тику 800. Сорок семь тысяч тиков он
+был «одержим», но заперт календарём — и занимался бытом: исследовал остров,
+искал инструменты (быт ему открыт наравне с колонистками, §89.4 гейтит только
+гигиену). Арена §91 симптом скрывала, потому что перематывает грейс сама себе
+(`Tick = 48900`) — «в сцене всё работает» ничего не говорило о мире.
+
+Лечение — грейс стал персональным. `AbuseMath.GraceHolds`: льготные дни держат,
+только пока `Social > AbuseObsessionSocialCeiling` (0.05). На дне общения —
+навязчивая идея, и календарь не спрашивают. Оба входа обязаны звать ЭТОТ
+предикат, а не сравнивать тик сами (два рукописных сравнения уже разъехались
+бы). Порог не строгий ноль: любой будущий эпсилон (квантование сейва, крошка
+Clamp01) молча выключил бы одержимость навсегда. Порог много ниже
+`AbuseSocialFloor` (0.45): «одиноковато» грейс уважает, «на дне» — нет. После
+сцены Social = 0.35 → грейс формально снова в силе, но его съедает кулдаун 900
+(0.35 → 0.05 за ≈800 тиков) — обрыва поведения нет. Supply-ветка `Drive` грейс
+НЕ пробивает никогда: она ненулевая почти всегда (§93) и убила бы льготные дни
+с первого тика. `RaidGraceDays` (5 дней, налёт) не тронут. На новом старте фора
+колонии теперь ~700 тиков (Social 0.30 → 0.05), не двое суток — принято
+осознанно, вместе с дифом golden_trace: Abuse Final у чужака поднимается с 0 до
+~3.55 начиная с «первой одержимости», и дальше каскадом меняются его выборы.
+
+Два стража, чтобы класс бага не переродился:
+
+- **`AbuseBlocked`** — трасса ПРИЧИНЫ, почему он сейчас не абьюзит, раз в 64
+  тика из `TryStartAbuse` (аукцион для этого не годится: пока идёт интеракция,
+  он не переигрывается вовсе — урок §87). Коды: `Grace` (+Social и тиков до
+  конца), `Cooldown`, `Unfit`, `Busy`, `NoDrive`, `NoMark` — последний с
+  раскладом счётчиков `BestMark`, каким фильтром отсеялась каждая кандидатка
+  (`Hostile/Helpless/Asleep/Flee/Sanct/Swim/Claimed`). Диагностика «почему не
+  гнобит» — одна строка `hexsoak --trace-preset abuse` вместо четырёх
+  археологов. Сцена уже идёт (`CurrentGoal == Abuse`) — молчим, это не
+  блокировка.
+- **Гейт `AbuseRealWorldTests`** — прототипный остров (сид симптома 816616098),
+  12 000 тиков: `AbuseTriggered` обязан случиться хотя бы раз. Ассерт только на
+  взятие цели, не на финиш сцены (сон/санктуарий/налёт сделали бы его флаки);
+  при провале печатает хвост последних `AbuseBlocked` — гейт сам объясняет,
+  чем заперт.
+
 ## §82 Солнце и злость (iteration 82)
 
 Три поломки солнца и одна — чужака, все из одной игровой сессии.
@@ -14711,6 +15012,92 @@ vs §84 — см. итог итерации. Попутно починена hea
 пересобрать саму симуляцию, иначе проба молча крутит старый код и «правка не
 работает». Потеряно полчаса на выяснение.
 
+## §85 Цвет глаз — пятая ось внешности (iteration 85)
+
+**Цель.** §74 разложил девушку на пять признаков, и цвет глаз в этот список не
+попал: глаза ехали внутри `SkinSet`, потому что набор материалов актрисы несёт и
+свои `Cornea/Sclera/Irises/Pupils/EyeMoisture`. Следствий два, и оба видны.
+Во-первых, «лицо одной, глаза другой» было невыразимо: взял чужую кожу — взял
+чужие глаза. Во-вторых, на весь остров приходилось ровно ЧЕТЫРЕ радужки, по
+числу импортированных актрис, и три из них — серо-голубые.
+
+Теперь цвет глаз катится своей осью и своей солью, а материалы глаз — ОДИН
+общий набор на всех.
+
+**85.1 Что оказалось уже готово, а что нет.** «Вырезать глаза из общих текстур»
+делать не пришлось: у Genesis3 глаза изначально лежат отдельными материалами и
+отдельной картой 2048² (`ACSabrinaEye2.jpg` и три её ровесницы) — верхняя
+половина карты это пара склер, нижняя пара радужек. Разделены были АССЕТЫ;
+слипшимся был выбор.
+
+Одно исключение сознательное: `EyeSocket` в набор глаз НЕ входит. Он шейдится с
+карты ЛИЦА, то есть принадлежит коже и обязан следовать за цветом кожи, а не за
+радужкой.
+
+**85.2 Восемь цветов из одной карты.** `Tools/make_eye_textures.py` берёт ОДНУ
+базовую карту (Jolly — самые чёткие волокна и самая нейтральная база) и
+перекрашивает только два круга радужки; склера, влажный ободок и сосуды во всех
+восьми — буквально те же пиксели. Отсюда и «общие материалы»: карта одна,
+меняется её радужка.
+
+Перекраска идёт **ЯРКОСТЬ → РАМПА, а не поворот тона**. База — приглушённо
+сине-серая, и поворот тона тащил бы этот остаточный синий в каждый результат:
+зелёный выходил бы бирюзовым. Читаем яркость (весь рисунок волокон живёт именно
+в ней) и гоним через градиент из четырёх стопов, у которого полная власть над
+цветом. Холодная половина палитры намеренно на ступень менее насыщена, чем
+хочется рампе: на полной цветности синий и зелёный читаются как линзы. Тёплой
+половине сдержанность не нужна — карие глаза ДЕЙСТВИТЕЛЬНО такие насыщенные.
+
+Пул: `blue`, `blue_green`, `green`, `grey`, `hazel`, `amber`, `brown`,
+`dark_brown`. Новый цвет = новая строка палитры в скрипте плюс её id в
+`ColonistAppearance.EyeColors` — C# при этом не трогается.
+
+**85.3 Материалы: общее отдельно от цветного.** `Resources/HexLive/Eyes/Common/`
+держит три материала без единой текстуры (`Pupils/Cornea/EyeMoisture`) — они
+физически одни и те же ассеты для всей колонии. `Eyes/<id>/` держит два, что
+несут карту (`Irises/Sclera`). Вид сливает две папки ПО ИМЕНИ материала — тем же
+поиском, что и `ApplySkinSet` (§74.2), поэтому порядок сабмешей опять ни при чём.
+Общий цикл подмены вынесен в `ReplaceBodyMaterials`, чтобы «подменить по имени»
+жило в одном месте, а не в двух.
+
+Материалы скопированы с молливских дословно, кроме текстуры: у всех четырёх
+актрис параметры глаз побайтово одинаковы (metallic 1, smoothness 0.516,
+alpha-clip радужки на очереди 2450) и отличается только карта. Это и делает
+«один набор, меняем текстуру» честным, а не переделкой того, как глаза шейдятся.
+
+**85.4 Порядок в `Construct` — снова не стилистика.** `ApplyEyeSet` идёт СРАЗУ
+ПОСЛЕ `ApplySkinSet` и до `BuildSkinTintTargets`. После набора кожи — потому что
+тот несёт свои глаза и, отработав вторым, затёр бы выпавшую радужку донорской.
+До построения целей загара — по причине §74.3: фильтр слотов классифицирует по
+ИМЕНИ материала, а `SkinTexturePainter` однократно снимает `body.materials` и
+больше туда не смотрит. Отсюда же требование, чтобы подменный материал СОХРАНЯЛ
+имя (`Irises`, а не `Irises_green`): по этому имени его и находят, и исключают
+из загара.
+
+**85.5 Бросок.** Соль `(74, 7406)` — своя, поэтому четыре старых оси не
+шелохнулись: A/B против `HEAD` даёт побайтово тот же состав тел, кож, причёсок,
+голосов и имён на пяти сидах. Цвет глаз в `LookKey` НЕ входит и повторяется
+свободно — радужка не видна на дистанции игры и читается только в портрете, так
+что две голубоглазые это не баг-репорт, в отличие от двух одинаковых силуэтов.
+Пустое поле, как и везде в §74, значит «глаза с префаба тела»: чужак §72,
+тестовые сцены и сейвы до v24 не тронуты.
+
+**85.6 Провод и сейв.** Снапшот +1 строка (`WireVersion` 6→7), блоб 23 → 24:
+`EyeColor` дописан В КОНЕЦ скалярной череды и читается под своим гейтом
+`version >= 24` — вставка рядом со `SkinSet` переписала бы раскладку, которую
+уже читают сейвы v18-v23. Дельта-кодек не тронут вовсе: он не смотрит на поля, а
+сравнивает байты обычной записи (§83).
+
+**85.7 Что проверено.** Headless-пробой: на 40 бросках выпадают все восемь
+цветов, внутри одной колонии из восьми — минимум три разных; каждый id
+разрешается в реальные `Irises.mat`/`Sclera.mat` с `.meta` и ссылкой ИМЕННО на
+свою карту; имя материала сохранено; круг сейва v24 и круг провода v7 сохраняют
+цвет, включая пустоту у чужака. Гейт `WireCoverageGate` (поле снапшота, забытое
+кодеком) проходит. **НЕ проверено:** глазами в Unity — ни одна из восьми карт ещё
+ни разу не импортировалась, и совпадение UV глаз между четырьмя экспортами
+остаётся тем же ДОПУЩЕНИЕМ, что и в §74.8, только теперь оно нагружено сильнее:
+там наборы менялись целиком, здесь одна карта ложится на все четыре головы.
+
 ## §86 Бой не до смерти, если нет ненависти (iteration 86)
 
 Зверь дерётся насмерть, потому что он ест. Человек — почти никогда: он бьёт,
@@ -14803,6 +15190,15 @@ vs §84 — см. итог итерации. Попутно починена hea
 Остров тесный НАРОЧНО, и на нём есть всё, на что он отвлекался: три пенька, две
 пальмы, кокосы, валуны, юкка, полоса воды. Девушек трое — они ходят друг к другу
 общаться, и подруга рядом с жертвой это вес против него.
+
+⭐ Пеньков при этом долго НЕ БЫЛО: три `Put` спавнили объект по id ИНТЕРАКЦИИ
+`sit.stump` вместо объекта `stump.palm`. `WorldStateFactory.AddObject` id не
+валидирует — объекты создавались молча, Perception их пропускал, рендер не
+рисовал. Арена, написанная ради пенька-соблазна, этот соблазн не воспроизводила,
+и «отвлечения на месте» из 91.6 меряли мир без главного отвлечения. Починено на
+константу `ContentIds.PalmStump`, чтобы строка не могла разойтись с каталогом.
+Урок тот же, что у §81.11: молчаливое создание невалидного — класс багов, а не
+опечатка.
 
 **91.2 Проба зовёт ОБЩИЙ реестр систем.** `SimulationSystemRegistry.RegisterDefaults`
 — тот же, что и игра. Раньше пробы перечисляли системы руками, и это была прямая
@@ -15072,11 +15468,17 @@ Golden-трасса: хеш состояния сдвинулся (два нов
   `HumanCombatSystem`: хищник и ответившая жертва объявляют сцепку и уходят, а
   удары наносятся на быстром слое, с окном анимации и хит-штампом.
 
-`SimBalance.TimedMeleeEverywhere` по умолчанию ВЫКЛЮЧЕН, и при выключенном
-флаге golden-трасса не сдвигается ни на строку — откат мгновенный.
+`SimBalance.TimedMeleeEverywhere`: при выключенном флаге golden-трасса не
+сдвигается ни на строку — откат мгновенный.
 
-**⭐ И выключенным он пока и остаётся: A/B-соаки сказали «нет».** 60 000 тиков,
-три сида, всё остальное неизменно:
+**r9: флаг ВКЛЮЧЁН по просьбе автора** — баланс дальше тюнится на видимых
+ударах, калибровка урона за удар по эквиваленту DPS остаётся следующей
+задачей, и до неё колония слабее прежнего (см. таблицу A/B ниже). Код,
+экспорт simdata и это место спеки выровнены на `true`; ключ
+`hexsoak --timed-melee` остаётся для сравнения с легаси.
+
+**История решения: первые A/B-соаки сказали «нет»** (r8, флаг тогда остался
+выключенным). 60 000 тиков, три сида, всё остальное неизменно:
 
 | сид | легаси | таймлайн |
 |---|---|---|
@@ -15091,7 +15493,237 @@ Golden-трасса: хеш состояния сдвинулся (два нов
 падает в полтора-два раза, собаки живут дольше — и колония платит за это
 жизнями. Ровно то, о чём предупреждал июльский аудит: она и так на грани.
 
-Вывод для следующей итерации: миграция не может быть чистым переносом, ей
-нужна КАЛИБРОВКА урона за удар по эквиваленту DPS, и только потом повторные
-A/B. Механизм для этого уже стоит: флаг, ключ `hexsoak --timed-melee` и
-метрики, которыми и получена таблица выше.
+Вывод (остаётся в силе и при включённом флаге): миграция не может быть
+чистым переносом, ей нужна КАЛИБРОВКА урона за удар по эквиваленту DPS и
+повторные A/B — до этого включённый таймлайн сознательно оплачивается
+жизнями колонии. Механизм для калибровки уже стоит: флаг, ключ
+`hexsoak --timed-melee` и метрики, которыми и получена таблица выше.
+
+## §105 На грани смерти: умирание вместо мгновенной смерти (iteration 105)
+
+Смерть перестала быть событием одного тика. Между «должна умереть» и «умерла»
+теперь есть ОКНО: тело падает, лежит и тает — и всё это время его можно спасти.
+
+### 105.1 Что происходит
+
+Четыре исхода, которые раньше убивали немедленно, теперь роняют её в состояние
+«умирает»: кровь вытекла до нуля, грудь пробита в ноль, голод и жажда доели
+тело. Она падает, лежит, ничего не решает и не защищается — и под капотом у неё
+тает ЗАПАС (`NPCMind.DyingReserve`, 1 → 0). Кончился запас — смерть.
+
+**Голова — намеренное исключение.** Разбитая в ноль голова убивает сразу, как и
+до §105. В игре должен остаться хотя бы один мгновенный исход, иначе любая
+смерть превращается в отложенную сцену, и удар в голову перестаёт что-либо
+значить.
+
+### 105.2 Почему запас, а не отрицательный стат
+
+Задумано было «стат уходит в минус». Реализовано как скрытый запас, и это не
+упрощение, а необходимость: `Blood`/`Hunger`/`Thirst` читают больше тридцати
+систем как 0..1, и настоящий минус пришлось бы протаскивать через каждый
+`Clamp01` и каждую формулу, где стат участвует. Запас живёт в одном месте,
+считается по одной формуле и виден игроку — чип `Dying` показывает ровно
+`1 − Reserve`, то есть он и ЕСТЬ полоска умирания.
+
+### 105.3 ⭐ Инвариант: умирающая ЖИВА
+
+Витальные зоны умирающей пиннятся на `Spec105.BodyFloor` (0.02), а не на ноль,
+и `Health` тем самым остаётся строго положительным.
+
+Это несущая конструкция, а не поблажка. «Мертва» в этом проекте — свойство
+структурное (переезд в `Entities.Corpses`, см. `EntityRepository`), но около
+сорока мест читают `Health <= 0f` как «труп»: бой, рейд, хищники, мечты,
+опасности, оценка помощи. Если бы умирающая проходила эту проверку, её
+перестали бы видеть ровно те системы, которые должны над ней склониться — и
+починка свелась бы к сорока правкам, из которых одну забыли бы. Пол решает это
+одним числом: смерть по-прежнему наступает единственным способом — `Health`
+падает в ноль, и свип `MobSystem` уносит тело.
+
+### 105.4 Модель
+
+- `NPCMind.DyingCause` (`None / BloodLoss / TorsoDestroyed / Starvation /
+  Dehydration`) — причина выбирает и длину окна, и характеристику, и ЧЕМ её
+  спасать. `NPCMind.DyingReserve`, `DyingTickStamp` (транзиентный),
+  `ConvalescentUntilTick`.
+- `NPCState.IsDying`; умирание входит В `IsUnconscious`, а не заводит
+  параллельный вопрос — тем самым все три десятка читателей (бой не бьёт
+  беспомощную, перцепция не зовёт её болтать, помощь считает её лежачей)
+  получают верную семантику без единой правки у себя.
+- Вся механика — `Runtime/Helpers/MortalityHelpers.cs`. Сайты урона зовут
+  `ResolveTrauma` и не знают ни про окно, ни про запас, ни про исключение для
+  головы. До §105 этот ответ был размазан по восьми сайтам одинаковой парой
+  строк `if (VitalDestroyed) { Health = 0; трасса; }` — восемь мест, где новое
+  правило забыли бы.
+- Падение обязано идти через `LieDownCentered` (§60.2a). Примитив укладывания
+  вынесен в `MortalityHelpers.AnchorLyingBody` и общий с комой: двух редакций
+  §60.2a быть не должно, иначе одно из тел начнёт свешиваться с кромки гекса.
+
+### 105.5 Часы и характеристики
+
+Окно — тики, по причинам: кровь 900, грудь 1200, жажда 1500, голод 1800.
+Считается по ФАКТИЧЕСКИ прошедшим тикам (штамп), поэтому цифры не зависят от
+слоя, на котором крутится тик.
+
+Растягивают окно характеристики §76: **Стойкость** держит кровь и разбитую
+грудь (та же ось, что заживление и свёртываемость), **Неприхотливость** —
+голод и жажду («она может дольше не есть и не пить»). Форма как у всех
+множителей §76, `1 ± (attr − Mean) × Gain`, с полом в четверть окна: даже самая
+хилая успевает побыть спасаемой.
+
+**Догрызают.** Удар по лежащей срезает запас напрямую
+(`landed × DamageReserveFactor`), а не только точит зоны. Упасть в бою с волком
+— почти приговор, если никто не отгонит; это и задумано.
+
+**Пока над ней работают, запас замирает.** Умереть на последнем тике
+перевязки читалось бы как издевательство, а не как драма.
+
+### 105.6 Спасение — это §53, а не новая механика
+
+Нового `AidKind` НЕ появилось. Умирающая просто получает срочность 1.0 и вид
+помощи по причине: кровь и грудь → `Treat`, голод → `Feed`, жажда → `Hydrate`.
+Весь конвейер §53 (аукцион, поход, заявка `PendingAidFrom`, колени над лежащей,
+расход припасов, поручение за бинтом) работает как есть.
+
+Что добавлено: надбавка `RescueEmergencyBoost` — полный `StarvingBoost`, чтобы
+спасение обгоняло любую работу и любую другую помощь. Гейт §53.5 «сначала
+выживи сама» НЕ ослаблен: помощница в собственном кризисе не идёт, иначе на
+земле окажутся обе.
+
+Заодно формула срочности перестала существовать в двух копиях. Она жила в
+перцепции и в `AssessAidKind` (переоценка по прибытии) — расхождение читалось
+бы не как баг, а как «дошла и передумала». Теперь это `AidAssessment.Assess`,
+одна на обе точки; §105 был ровно тем изменением, при котором одну из копий
+забыли бы.
+
+### 105.7 Выход симметричный
+
+Причина ушла — она встаёт. Кто её убрал, помощница или собственный организм,
+безразлично:
+
+| Причина | Условие выхода |
+|---|---|
+| `BloodLoss` | кровотечение остановлено И `Blood > BloodExitFloor` |
+| `TorsoDestroyed` | `Torso > BodyFloor` |
+| `Starvation` / `Dehydration` | `Hunger`/`Thirst` ниже `StarveDeathThreshold` |
+
+Одна перевязка закрывает первые две: `StabilizeBleedingOnAidStart` закрывает
+окно свежей раны, `TreatHeal` поднимает зоны, `TreatBlood` доливает крови.
+Заклоттившаяся сама рана у сытой девушки даёт тот же исход без чужих рук — и
+это не поблажка, а следствие того, что правило одно.
+
+### 105.8 «Едва живая» — цена спасения
+
+Несколько игровых часов (`ConvalescentTicks` 3600 ≈ 3.5 визуальных часа) после
+подъёма: выносливость восстанавливается втрое медленнее, тратится вдвое
+быстрее, ходит вдвое медленнее. Чип `Convalescent` (🤒).
+
+Множители сидят РОВНО в тех цепочках, где живут §76-е — стамина в
+`NeedsDecaySystem`, скорость в `MovementSystem` рядом с мокрой одеждой
+(«состояние тела режет скорость» — прецедент, а не новая ветка). `npc.MoveSpeed`
+не трогается: оно сериализуется.
+
+### 105.9 Провод, сейв, события
+
+`NpcSnapshot.IsDying` (кодек v6) — вид роняет тело; полоска умирания едет
+чипом в `Effects` и не требует своего поля. Сейв v21 пишет причину, остаток
+запаса и окно штрафа: перезагрузка не должна «лечить» лежащую на грани, ровно
+как когда-то чинила культю (§50). Штамп транзиентен намеренно — сохранённая
+пара «запас + старый штамп» подарила бы ей при загрузке целое окно дрейна одним
+куском.
+
+События: `Collapsed` (наконец-то действительно эмитится — раньше имя годами
+ждало отправителя) и `Rescued`. Промежуточный `Dying` в whitelist НЕ входит: он
+тикает каждый медленный тик и залил бы историю.
+
+### 105.10 Кил-свитч
+
+`Spec105.Enabled = false` восстанавливает доигровое поведение ПОБИТОВО, вплоть
+до текста трассы: ни одна точка входа не отклоняется, смерть снова мгновенная.
+Это выключатель для бисекции соаком — паттерн `Spec53.Enabled` /
+`Spec76.AttributeSpread = 0`.
+
+## §106 Вода — убежище (iteration 106)
+
+Пока она плывёт — её не достать. Пловца не бьют с суши, пловец не бьёт сам, и
+всякий план убийства по нырнувшей жертве срывается: хищница §56, налётчик §72
+и абьюзер §81 бросают погоню у кромки, волк отпускает цель сразу, а не после
+stall-таймера. Обратная сторона той же монеты — **среда атаки как данные**:
+акула (§40.18) бьёт ТОЛЬКО пловцов и дремлет против суши, тем же гейтом,
+только инвертированным значением.
+
+Ручка: `Spec106.WaterSanctuaryEnabled` (bool, по умолчанию true; зеркало в
+`OutsiderBalance.asset`). Выключена — вода снова ничего не значит в бою,
+поведение до-§106.
+
+**106.1 Один предикат «плывёт».** Глубокая вода = `Water && !Walkable`
+(§40.18-B); ходибельная мель — брод, не плавание. Определение жило приватом в
+`MovementSystem.IsSwimTile` — теперь оно в `SpatialQueries.IsSwimTile`, и
+движение с боем физически не могут разойтись в том, кто пловец. Меряется по
+ТАЙЛУ (`npc.Tile`), не по джанкшену: береговой узел смешанный, и стоящая на
+его сухом тайле — не пловчиха. Флага состояния на NPC нет намеренно —
+вычисляемый предикат не протухает (и в save/wire ничего не поехало).
+`TileFlags.Swimmable` остаётся мёртвым флагом — НЕ использовать.
+
+**106.2 Среда атаки — данные, не хардкод.** `AttackMedium` (флаговый enum:
+`Land | Water | Amphibious`) + поле `MobStats.AttackMediums`: волк — `Land`,
+акула — `Water`. Хелпер `CombatMedium` отвечает на оба вопроса: `Of` — в какой
+среде боец стоит сейчас, `CanEngage` — достаёт ли атака с такими средами до
+цели там, где та стоит. У людей моб-листа нет — их Land-only объявлен ОДИН раз
+в `CombatMedium.NpcMelee`. `SharkSystem.BiteSwimmers` переведён с рукописного
+`SwimJunctions.Contains` на этот же гейт (заодно перестав считать наживкой
+стоящую на сухом тайле берегового узла); система по-прежнему НЕ
+зарегистрирована — включение акулы потом = регистрация + боевой таймлайн,
+гейт уже готов.
+
+**106.3 Гейт удара — в `CanStrike`, не шестая мерка.** Терренная проверка
+стоит ПЕРВОЙ строкой `InteractionReach.CanStrike` — тот же приём, что
+`CanTouchAcross` у `CheckObjectStart`: мера соседства та же, среда — второй
+замер того же гейта. Одна правка закрывает `HumanCombatSystem` (замах уходит
+в воздух — §104-ядро `MeleeSwing` среду не знает, уже НАЧАТЫЙ замах долетает
+вхолостую: «она отступила»), `RaidSystem`, старт abuse-сцены и `AssessMelee`.
+Симметрия обеих сторон бесплатно: `NpcMelee` требует, чтобы И актор, И цель
+стояли на суше.
+
+**106.4 Клапаны отказа — гейт без них был бы кольцом §102.** Запрет бить без
+запрета хотеть = «иду → не достаю → иду» навечно. Поэтому у каждой погони
+свой явный отказ, рядом с её sanctuary-строкой:
+
+- **Prey (§56):** `NearestPreyVictim` пловчиху не выбирает (план валится
+  штатно: `PlanFailed Goal=Prey NoReachableVictim` + кулдаун 40 тиков — у
+  купальщицы хищница молотит этот отказ раз в ~40 тиков, принято); adjacency-
+  скан `PredationSystem` не сцепляется через кромку.
+- **Raid (§72):** `BestVictim` фильтрует; `ResolveRaidVictim` бросает
+  закоммиченную (`RaidAbandoned Reason=Swimming`, ПОЛНЫЙ кулдаун — нырок
+  стоит ему налёта, как дверь); Unpair-дыра `RaidSystem` закрыта явным
+  `AbandonRaid` — молчаливая расцепка оставляла план жив, и между
+  medium-перестроениями он вёл налётчика в море.
+- **Abuse (§81/§87):** `BestMark` фильтрует, коммит `ResolveAbuseMark`
+  рассыпается, а в исполнении клапан `AbortAbuse("MarkSwimming")` стоит ДО
+  ветки преследования — иначе `Approach` (CanStrike по пловчихе всегда false)
+  отправил бы его догонять ровно в море. Срыв = retry-кулдаун §89, не полный.
+- **Волки (§29C):** `IsNpcInRefugeFrom(mob, npc)` = sanctuary ИЛИ «среда моба
+  не достаёт» — захват и сброс цели идут через него (`DogLostTarget … (in the
+  water)` СРАЗУ, на medium-тике). НЕ слито в `IsNpcInSanctuary`: «indoor»
+  читают Raid/Abuse/Threat со СВОИМИ ручками, у воды своя. Страховка
+  однотикового окна: `AnimalCombatSystem.InMelee` и melee-ветка `MobSystem`
+  повторяют гейт — укус через кромку невозможен даже до сброса цели; подмога
+  и защитницы (`RunAssistStrikes`, `RunDogDefenders`, `RunNpcDefenders`) из
+  воды не сцепляются и не бьют.
+- **ThreatAlert (§62):** пловчиха в skip-списке — из воды не бывает ни
+  attack-first, ни обхода; Defend-план лишь вытащил бы её из убежища на клыки.
+
+**106.5 Осознанные побочки.**
+
+- **Купание §40.6/Bathe = бесплатный щит**, пока акула не включена: цена
+  нырка — гигиена, голая на берегу одежда и время. После включения акулы щит
+  станет СТАВКОЙ — ровно та драматургия, ради которой §40.18 задуман.
+- **Cornered-fight valve (§29C.4A) не обесценен:** «бегство спасает, только
+  если разорвало контакт» — доплыть до swim-тайла под укусами стоит те же
+  тики, что добежать до двери; вода — второй выход из ловушки, не чит.
+- **В flee вода НЕ добавлена** (вне скоупа): `TryStartFlee` по-прежнему ищет
+  только indoor. Девушки не планируют нырок как побег — они лишь получают
+  тишину, если оказались в воде.
+- Новых имён событий нет (переиспользованы `RaidAbandoned` / `AbuseAbandoned`
+  / `PlanFailed` / `DogLostTarget`, причина в `Message`) — whitelist §83 не
+  тронут; порядок систем не менялся; детерминизм: все проверки — чистые
+  функции состояния, ни одного нового броска.

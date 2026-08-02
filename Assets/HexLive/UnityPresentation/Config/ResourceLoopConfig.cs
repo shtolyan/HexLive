@@ -33,6 +33,10 @@ namespace HexLive.UnityPresentation.Config
         [Range(50, 800)] public int meatRoastDurationTicks = 200;
         [Tooltip("Сколько кусков висит на перекладине одновременно (= 6 слотам вида CampfireSpitMeat).")]
         [Range(1, 8)] public int campfireSpitCapacity = 6;
+        [Tooltip("§54.17: базовая ставка аукциона CookMeat (Base + Weight·Hunger — вместе перебивают GetFood при любом голоде, иначе она вечно носит мясо и не вешает).")]
+        [Range(0f, 1f)] public float cookMeatBase = 0.4f;
+        [Tooltip("§54.17: вес голода в ставке аукциона CookMeat.")]
+        [Range(0f, 2f)] public float cookMeatHungerWeight = 1f;
         [Tooltip("Сколько палок рассыпано у метки очага на старте мира (иначе холодный старт дедлочится).")]
         [Range(0, 30)] public int campfireStarterSticks = 14;
         [Tooltip("Сколько тиков после последнего замерзания доступно трение-разжигание (ручное сверло).")]
@@ -121,8 +125,8 @@ namespace HexLive.UnityPresentation.Config
 
         [Header("Порча мяса (наземные предметы)")]
         [Tooltip("Сырое мясо гниёт через столько тиков на земле.")]
-        [Range(300, 9600)] public int meatRawSpoilTicks = 2600;
+        [Range(300, 24000)] public int meatRawSpoilTicks = 12000;
         [Tooltip("Жареное мясо держится дольше (жарка = консервация).")]
-        [Range(300, 19200)] public int meatCookedSpoilTicks = 4800;
+        [Range(300, 24000)] public int meatCookedSpoilTicks = 20000;
     }
 }

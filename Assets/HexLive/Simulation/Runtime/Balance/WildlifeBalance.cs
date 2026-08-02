@@ -30,8 +30,15 @@ public static class WildlifeBalance
     public static int RabbitSpawnMinDistanceFromNpc = 3;
     public static int RabbitFleeRadiusTiles = 2;
     public static float RabbitHopChance = 0.2f;
-    public static float RabbitKillChance = 0.5f;
+    // Spec 29F.2: контакт почти всегда = добыча — промах и так стоит спука
+    // (краб исчезает из виду) плюс кулдауна Hunt; 0.5 сверху делал охоту
+    // лотереей, которую пинг-понг погони почти никогда не доигрывал.
+    public static float RabbitKillChance = 0.75f;
     public static int RabbitSpookTicks = 150;
+    // Выпад копья в долях HexRadius (метрическая часть RabbitSystem-овой
+    // мерки «достаю»; топологическая — соседство узлов, как CanStrike).
+    // FleeHop сдвигает краба на ОДИН узел, т.е. сильно меньше этого выпада.
+    public static float RabbitSpearReachHexFraction = 1.0f;
     // Bow hunt: chance an arrow connects, and chance the arrow is recovered
     // from the kill (§54: the kill drops a carcass, not instant loot).
     public static float RabbitBowHitChance = 0.6f;

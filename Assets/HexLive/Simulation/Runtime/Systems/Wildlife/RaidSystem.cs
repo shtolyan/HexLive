@@ -69,6 +69,18 @@ public sealed class RaidSystem : ISimulationSystem
                 continue;
             }
 
+            // §106: she dove — a silent Unpair here would leave the plan alive,
+            // and between medium rebuilds it would walk him into the sea after
+            // her. An explicit abandon, same as the stalk-side "Swimming" valve.
+            if (Spec106.WaterSanctuaryEnabled && CombatMedium.IsNpcSwimming(world, victim))
+            {
+                Unpair(raider);
+                Unpair(victim);
+                PlanningSystem.AbandonRaid(world, raider, "Swimming");
+                raider.IsFighting = false;
+                continue;
+            }
+
             if (!InteractionReach.CanStrike(world, raider, victim))
             {
                 // Still stalking — the plan walks him in. Drop the pairing so
@@ -270,10 +282,10 @@ public sealed class RaidSystem : ISimulationSystem
             return;
         }
 
-        if (world.Tick < Spec81.AbuseGraceDays * EnvironmentSystem.DayLengthTicks)
-        {
-            return;
-        }
+        // §81.11: world-гейта по льготным дням здесь больше НЕТ — грейс стал
+        // персональным (AbuseMath.GraceHolds: календарь ИЛИ одержимость) и
+        // проверяется ниже, в цикле по абьюзерам. Латч-цикл поэтому обязан
+        // работать и до тика 48000: одержимая сцена возможна с первого дня.
 
         // §103: ⭐ ПЕРЕЗАЩЁЛКНУТЬ БОЙ ИДУЩЕЙ СЦЕНЕ.
         //
@@ -299,26 +311,97 @@ public sealed class RaidSystem : ISimulationSystem
             FightScene.Latch(world, scene, sceneVictim);
         }
 
+        // §81.11: причина «почему НЕ абьюзит» видна в трассе, а не вычисляется
+        // четырьмя археологами. Троттл как у RaidScored: раз в 64 тика (medium
+        // тикает каждый 4-й, 64 % 4 == 0 — строка гарантированно случается).
+        // Причины считаются только на тике эмита; в остальные тики цепочка
+        // ниже стоит ровно столько же, сколько стоила.
+        var explain = world.Tick % 64 == 0;
+
         foreach (var abuser in world.Entities.Npcs.Values)
         {
             if (abuser.Faction == Faction.Colony ||
-                abuser.Health <= 0f ||
-                abuser.IsFighting ||
-                abuser.IsUnconscious(world.Tick) ||
-                abuser.Body.IsProne ||
-                !abuser.Body.CanUseToolsOrWeapons ||
-                abuser.Mind.CurrentGoal == GoalType.Abuse ||
-                abuser.Mind.CurrentGoal == GoalType.Raid ||
-                abuser.Mind.CurrentGoal == GoalType.Flee ||
-                world.Tick < abuser.Mind.AbuseCooldownUntilTick ||
-                AbuseMath.Drive(abuser) <= 0f)
+                abuser.Health <= 0f)
             {
                 continue;
             }
 
-            var mark = AbuseMath.BestMark(world, abuser, out var hasLoot);
+            if (abuser.Mind.CurrentGoal == GoalType.Abuse)
+            {
+                // Сцена/поход уже идут — это не блокировка, AbuseBlocked
+                // молчит. Но §81.12: по пути он смотрит по сторонам.
+                TryRetargetCloserMark(world, abuser);
+                continue;
+            }
+
+            if (AbuseMath.GraceHolds(world, abuser))
+            {
+                if (explain)
+                {
+                    var graceEnd = Spec81.AbuseGraceDays * EnvironmentSystem.DayLengthTicks;
+                    Trace.Emit(world, abuser.Id, "AbuseBlocked",
+                        $"Reason=Grace Social={abuser.Needs.Social:F2} " +
+                        $"Left={graceEnd - world.Tick}");
+                }
+                continue;
+            }
+
+            if (world.Tick < abuser.Mind.AbuseCooldownUntilTick)
+            {
+                if (explain)
+                {
+                    Trace.Emit(world, abuser.Id, "AbuseBlocked",
+                        $"Reason=Cooldown Until={abuser.Mind.AbuseCooldownUntilTick}");
+                }
+                continue;
+            }
+
+            if (abuser.IsUnconscious(world.Tick) ||
+                abuser.Body.IsProne ||
+                !abuser.Body.CanUseToolsOrWeapons)
+            {
+                if (explain)
+                {
+                    Trace.Emit(world, abuser.Id, "AbuseBlocked",
+                        $"Reason=Unfit Uncon={abuser.IsUnconscious(world.Tick)} " +
+                        $"Prone={abuser.Body.IsProne} " +
+                        $"Hands={abuser.Body.CanUseToolsOrWeapons}");
+                }
+                continue;
+            }
+
+            if (abuser.IsFighting ||
+                abuser.Mind.CurrentGoal == GoalType.Raid ||
+                abuser.Mind.CurrentGoal == GoalType.Flee)
+            {
+                if (explain)
+                {
+                    Trace.Emit(world, abuser.Id, "AbuseBlocked",
+                        $"Reason=Busy Goal={abuser.Mind.CurrentGoal} " +
+                        $"Fighting={abuser.IsFighting}");
+                }
+                continue;
+            }
+
+            if (AbuseMath.Drive(abuser) <= 0f)
+            {
+                if (explain)
+                {
+                    Trace.Emit(world, abuser.Id, "AbuseBlocked",
+                        $"Reason=NoDrive Social={abuser.Needs.Social:F2} " +
+                        $"H={abuser.Needs.Hunger:F2} W={abuser.Needs.Thirst:F2}");
+                }
+                continue;
+            }
+
+            var mark = AbuseMath.BestMark(world, abuser, out var hasLoot, out var tally);
             if (mark is null)
             {
+                if (explain)
+                {
+                    Trace.Emit(world, abuser.Id, "AbuseBlocked",
+                        $"Reason=NoMark {tally.ToMessage()}");
+                }
                 continue;
             }
 
@@ -345,6 +428,70 @@ public sealed class RaidSystem : ISimulationSystem
                 $"Drive={AbuseMath.Drive(abuser):F2} Loot={hasLoot} " +
                 $"Dist={HexSpatialMath.HexDistance(abuser.Tile, mark.Tile)}");
         }
+    }
+
+    // §81.12: он бежит через полкарты к выбранной — а по пути ближе прошла
+    // другая. Держаться старой в этот момент читается как телепатия («он ЗНАЕТ,
+    // что дальняя лучше»); человек передумывает. Гистерезис
+    // AbuseRetargetGainTiles бережёт от метания между равноудалёнными —
+    // пинг-понг ретаргета уже стоил нам охоты на краба (§29F.2).
+    private static void TryRetargetCloserMark(WorldState world, NPCState abuser)
+    {
+        // Сцена уже идёт — поздно передумывать.
+        if (abuser.Execution.Status == ExecutionStatus.InProgress)
+        {
+            return;
+        }
+
+        if (abuser.Mind.AbuseTargetNpcId is not { } currentId ||
+            !world.Entities.Npcs.TryGetValue(currentId, out var current))
+        {
+            // Рыскал без цели (prowl §90) — и кто-то показался. Оборвать
+            // поход; ближайшее планирование возьмёт её через ResolveAbuseMark.
+            if (abuser.Plan.Status == PlanStatus.Active &&
+                AbuseMath.BestMark(world, abuser, out _) is { } spotted)
+            {
+                PlanInterruption.Abort(world, abuser, $"Spotted NPC{spotted.Id.Value}");
+                Trace.Emit(world, abuser.Id, "AbuseSpotted",
+                    $"Mark=NPC{spotted.Id.Value} " +
+                    $"Dist={HexSpatialMath.HexDistance(abuser.Tile, spotted.Tile)}");
+            }
+            return;
+        }
+
+        var currentDistance = HexSpatialMath.HexDistance(abuser.Tile, current.Tile);
+        var best = AbuseMath.BestMark(world, abuser, out var hasLoot);
+        if (best is null || best.Id.Equals(currentId))
+        {
+            return;
+        }
+
+        var bestDistance = HexSpatialMath.HexDistance(abuser.Tile, best.Tile);
+        if (bestDistance + Spec81.AbuseRetargetGainTiles > currentDistance)
+        {
+            return;
+        }
+
+        // Снять заявку со старой ОБЯЗАТЕЛЬНО — иначе она помечена навсегда
+        // и её не выберет никто (тот же инвариант, что в AbandonAbuse).
+        if (current.Mind.PendingAbuseFrom is { } claimed && claimed.Equals(abuser.Id))
+        {
+            current.Mind.PendingAbuseFrom = null;
+        }
+
+        abuser.Mind.AbuseTargetNpcId = best.Id;
+        abuser.Mind.AbuseHasLoot = hasLoot;
+        abuser.Mind.AbuseBeat = 0;
+        abuser.Mind.AbuseBlows = 0;
+
+        if (abuser.Plan.Status == PlanStatus.Active)
+        {
+            PlanInterruption.Abort(world, abuser, $"Retarget NPC{best.Id.Value}");
+        }
+
+        Trace.Emit(world, abuser.Id, "AbuseRetarget",
+            $"From=NPC{currentId.Value} To=NPC{best.Id.Value} " +
+            $"Dist={currentDistance}->{bestDistance}");
     }
 
     // §82: кто залез на его двор. Ближайший — а не «самый слабый»: он не

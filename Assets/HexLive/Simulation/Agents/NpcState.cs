@@ -179,6 +179,12 @@ public sealed class NPCState
     // bootstrap and the outsider all keep working untouched.
     public string SkinSet { get; set; } = string.Empty;
 
+    // §85: iris colour, split out of SkinSet so a face and a pair of eyes are
+    // two choices. Empty means "the eye materials the body prefab shipped with",
+    // which is what keeps the outsider, the test scenes and pre-§85 saves as
+    // they were.
+    public string EyeColor { get; set; } = string.Empty;
+
     public string Hairstyle { get; set; } = string.Empty;
 
     public string VoiceBank { get; set; } = string.Empty;
@@ -189,16 +195,15 @@ public sealed class NPCState
     // and every old save behaves exactly as before.
     public Faction Faction { get; set; } = Faction.Colony;
 
-    // §28.15C v3: когда она умерла. 0 — жива. Ставится ровно один раз, в
-    // момент переезда в EntityRepository.Corpses, и с тех пор не меняется:
-    // по нему вид отличает «упала прямо сейчас» (проиграть клип смерти с
-    // нуля) от «лежит с прошлой сессии» (сразу последний кадр).
-    public int DeathTick { get; set; }
-
     // §28.15C v3: КАКИМ клипом она упала. Выбирается симуляцией по хешу сида,
     // а не видом по Random: иначе одно и то же тело падало бы по-разному у
     // сервера и у каждого зрителя, и по-новому после каждой перезагрузки —
     // поза лежащего тела это состояние мира, а не украшение кадра.
+    //
+    // Момента смерти здесь намеренно НЕТ: его уже хранит world.DeathRecords, а
+    // виду он не нужен — «упала прямо сейчас» против «лежит с прошлой сессии»
+    // он различает по тому, был ли у него живой вид этого тела кадром раньше.
+    // Второе поле с тем же смыслом рано или поздно разошлось бы с первым.
     public int DeathAnimVariant { get; set; }
 
     public FragmentId Fragment { get; set; }
@@ -352,11 +357,21 @@ public sealed class NPCState
 
     public NPCMind Mind { get; } = new();
 
+    // Spec §105: она УМИРАЕТ — лежит с обнулённым статом, и запас смерти
+    // тикает. Живая (Health держится над нулём полом Spec105.BodyFloor,
+    // именно чтобы её не приняли за труп три десятка проверок `Health <= 0`),
+    // но беспомощная и спасаемая.
+    public bool IsDying => Mind.DyingCause != AI.DyingCause.None;
+
     // Spec §60: out cold — either the short stamina faint (spec 40.13) or a
     // stat-gated coma. One question every consumer asks the same way: can this
     // body act at all right now? Combat/decision/presentation gate on THIS.
+    // §105: умирание входит СЮДА, а не заводит свой параллельный вопрос — тем
+    // самым все три десятка читателей (бой не бьёт беспомощную, перцепция не
+    // зовёт её болтать, помощь считает её лежачей) получают верную семантику
+    // без единой правки на своей стороне.
     public bool IsUnconscious(int tick) =>
-        Mind.ComaCause != AI.ComaCause.None || tick < Mind.FaintedUntilTick;
+        Mind.ComaCause != AI.ComaCause.None || IsDying || tick < Mind.FaintedUntilTick;
 
     // Spec §53/§60: is this body lying flat on the ground right now — knocked
     // out (coma/faint), asleep, or legless-prone? A lying ward keeps her

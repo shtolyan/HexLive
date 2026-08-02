@@ -945,27 +945,17 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             Trace.Emit(world, npc.Id, "Mourned",
                 $"Paid respects to NPC{worldObject.CurrentUser?.Value.ToString() ?? "?"}");
         }
-        else if (completedInteraction.Type == InteractionType.Observe &&
-                 definition.Tags.Contains("Grave"))
+        else if (completedInteraction.Type == InteractionType.Loot)
         {
-            // Spec 28.15D: remembrance — the dead keep a social presence.
-            npc.Needs.Social = MathUtil.Clamp01(npc.Needs.Social + 0.15f);
-            worldObject.IsOccupied = false; // owner preserved
-            Trace.Emit(world, npc.Id, "VisitedGrave",
-                $"Of NPC{worldObject.CurrentUser?.Value.ToString() ?? "?"} " +
-                $"Social={npc.Needs.Social:F2}");
-        }
-        else if (completedInteraction.Type == InteractionType.Hang)
-        {
-            if (!CompleteHang(world, npc, worldObject, definition,
+            if (!CompleteLoot(world, npc, worldObject, definition,
                 completedInteraction, needsBefore))
             {
                 return false;
             }
         }
-        else if (completedInteraction.Type == InteractionType.Bury)
+        else if (completedInteraction.Type == InteractionType.Hang)
         {
-            if (!CompleteBury(world, npc, worldObject, definition,
+            if (!CompleteHang(world, npc, worldObject, definition,
                 completedInteraction, needsBefore))
             {
                 return false;
@@ -1276,9 +1266,10 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         ObjectDefinition definition, InteractionDefinition completedInteraction,
         string needsBefore)
     {
-        // Spec §54: knife a carcass/corpse — meat + hide scatter on the
-        // ground; the body is consumed. Butchering a housemate costs
-        // comfort (cannibalism).
+        // Spec §54: knife a carcass/corpse — the body is consumed. §54.17 r2:
+        // meat goes into the butcher's pack (hide still scatters); see the
+        // yield declarations. Butchering a housemate costs comfort
+        // (cannibalism).
         ApplyHarvestYields(world, npc, worldObject, completedInteraction.Yields);
         var wasCorpse = definition.Tags.Contains("Corpse");
         if (wasCorpse && SimBalance.CannibalismEnabled)
@@ -1287,6 +1278,25 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             // subtracts.
             npc.Needs.Comfort = MathUtil.Clamp(
                 npc.Needs.Comfort - SimBalance.CannibalismComfortPenalty, 0f, 1f);
+        }
+
+        // §28.15C v3: нож — ЕДИНСТВЕННОЕ, что убирает человеческое тело с
+        // острова. Значит здесь же кончается и само тело, и всё, что на нём
+        // осталось: вещи не исчезают вместе с ней, а вываливаются под ноги —
+        // разделывающая раздела её раньше, чем взялась за мясо.
+        if (wasCorpse && CorpseMath.BodyOf(world, worldObject) is { } body)
+        {
+            foreach (var item in body.WornItems)
+            {
+                DropItemAtFeet(world, npc, item);
+            }
+
+            foreach (var item in body.Inventory.Items)
+            {
+                DropItemAtFeet(world, npc, item);
+            }
+
+            world.Entities.Corpses.Remove(body.Id);
         }
 
         Trace.Emit(world, npc.Id, "Butchered",
@@ -1331,31 +1341,45 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         return true;
     }
 
-    private static bool CompleteBury(
+    // §28.15F: обобрать тело — ОДНА вещь за подход, карманы раньше одежды
+    // (порядок держит CorpseMath: ёмкость карманов покойной даётся её же
+    // одеждой). Тело остаётся лежать пустым; убирает его только нож.
+    private static bool CompleteLoot(
         WorldState world, NPCState npc, WorldObjectState worldObject,
         ObjectDefinition definition, InteractionDefinition completedInteraction,
         string needsBefore)
     {
-        // Spec 28.15D: corpse -> permanent grave; the place is
-        // sanctified — fear leaves every living memory.
-        var deceased = worldObject.CurrentUser;
-        var graveJunction = worldObject.Junctions.Count > 0
-            ? worldObject.Junctions[0]
-            : npc.CurrentJunction ?? default;
-        WorldObjectMutations.DespawnObject(world, worldObject.Id);
-        var grave = WorldObjectMutations.SpawnObject(
-            world, ContentIds.GraveNpc, npc.Fragment, worldObject.Tile, graveJunction);
-        grave.CurrentUser = deceased;
-
-        foreach (var living in world.Entities.Npcs.Values)
+        var body = CorpseMath.BodyOf(world, worldObject);
+        var spoil = CorpseMath.NextSpoil(body, out var fromPockets);
+        if (spoil is null)
         {
-            living.Memory.Dangers.RemoveAll(dg => dg.Tile == worldObject.Tile);
+            // Кто-то успел раньше. Не провал плана — просто здесь уже пусто.
+            worldObject.IsOccupied = false;
+            Trace.Emit(world, npc.Id, "LootEmpty",
+                $"NPC{worldObject.CurrentUser?.Value.ToString() ?? "?"} has nothing left");
+            return true;
         }
 
-        npc.Mind.GrievingUntilTick = world.Tick;
-        Trace.Emit(world, npc.Id, "Buried",
-            $"NPC{deceased?.Value.ToString() ?? "?"} laid to rest at " +
-            $"Tile={worldObject.Tile.Q},{worldObject.Tile.R}");
+        if (!InventoryMath.MakeRoomFor(world, npc, spoil.DefinitionId))
+        {
+            worldObject.IsOccupied = false;
+            Trace.Emit(world, npc.Id, "LootBlocked",
+                $"Def={spoil.DefinitionId} " +
+                $"Inventory=[{string.Join(",", npc.Inventory.Items)}] " +
+                $"({npc.Inventory.UsedSlots}/{npc.Inventory.Capacity})");
+            return false;
+        }
+
+        CorpseMath.TakeSpoil(body, spoil, fromPockets);
+        npc.Inventory.Items.Add(spoil);
+        worldObject.IsOccupied = false; // owner (CurrentUser) preserved — тело её
+
+        Trace.Emit(world, npc.Id, "Looted",
+            $"Def={spoil.DefinitionId} from={(fromPockets ? "pockets" : "worn")} " +
+            $"NPC{body.Id.Value} ({body.DisplayName}) " +
+            $"left=[{string.Join(",", body.WornItems)}|{string.Join(",", body.Inventory.Items)}] " +
+            $"Inventory=[{string.Join(",", npc.Inventory.Items)}] " +
+            $"({npc.Inventory.UsedSlots}/{npc.Inventory.Capacity})");
 
         return true;
     }
@@ -1398,6 +1422,19 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             SocialCueSignals.Stamp(world, npc, "HelpCryAssistArrived", npc.Id);
             Trace.Emit(world, npc.Id, "HelpCryAssistArrived",
                 "Reached attacker and joined the fight");
+            return;
+        }
+
+        // Spec 29F.2: пришла, а краб уже отпрыгнул — погоня ПРОДОЛЖАЕТСЯ, не
+        // начинается заново. Сброс в None здесь ронял охоту в полный аукцион
+        // (NPC стоит тик-другой, краб уходит) — вечный пинг-понг. План уже
+        // Completed, так что PlanningSystem перестроит погоню следующим
+        // Medium-тиком; цель честно падает, лишь когда краба не видно.
+        if (npc.Mind.CurrentGoal == GoalType.Hunt &&
+            DecisionSystem.NearestVisibleRabbit(npc, world) is not null)
+        {
+            Trace.Emit(world, npc.Id, "HuntContinues",
+                "Arrived but the crab moved on — keep chasing");
             return;
         }
 
@@ -1453,6 +1490,10 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             {
                 if (!drop.Scatter)
                 {
+                    // §54.17 r2: a pocketed yield may bump a less important
+                    // item (importance-guarded) — a pack full of sticks must
+                    // not send fresh meat to rot on the ground.
+                    InventoryMath.MakeRoomFor(world, npc, drop.DefinitionId);
                     GiveOrDrop(world, npc, CreateYieldItem(world, drop.DefinitionId));
                     continue;
                 }

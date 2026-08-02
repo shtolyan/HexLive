@@ -87,6 +87,17 @@ public sealed partial class ExecutionSystem
             return;
         }
 
+        // §106: нырнула — сцена рассыпается ЦЕЛИКОМ, в воду он не полезет.
+        // Стоит ДО ветки преследования: иначе Approach (CanStrike по пловчихе
+        // всегда false) отправил бы его догонять — ровно в море. Срыв, не
+        // полный кулдаун (§89: passing up ≠ попытка) — вылезет на берег, может
+        // попробовать снова.
+        if (Spec106.WaterSanctuaryEnabled && CombatMedium.IsNpcSwimming(world, mark))
+        {
+            AbortAbuse(world, npc, "MarkSwimming");
+            return;
+        }
+
         // §89: ⭐ ОНА ПРОСТО ОТОШЛА — он идёт следом, а не бросает затею.
         //
         // Раньше любой её шаг убивал сцену целиком: обрыв «MarkGone» случался

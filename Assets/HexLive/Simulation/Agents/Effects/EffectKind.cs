@@ -48,7 +48,16 @@ namespace HexLive.Simulation.Agents.Effects
         Content,      // comfort high — at ease (buff)
 
         // ── Hygiene ───────────────────────────────────────────────────────
-        Filthy        // grubby — long overdue a wash
+        Filthy,       // grubby — long overdue a wash
+
+        // ── §105: на грани смерти ─────────────────────────────────────────
+        // Дописаны В КОНЕЦ: чип едет на провод строкой "<Kind>\t<Intensity>",
+        // но сейв и панель разбирают его по имени, а вставка в середину
+        // перемаркировала бы каждый существующий эффект.
+        Dying,        // §105: лежит и умирает — интенсивность = сколько запаса
+                      // уже вытекло, то есть чип и ЕСТЬ полоска умирания
+        Convalescent  // §105: едва живая — вытащили с того света, и несколько
+                      // часов она еле ходит и мгновенно выдыхается
     }
 
     // Colours the chip ring and sorts the row: buffs read green, debuffs red.

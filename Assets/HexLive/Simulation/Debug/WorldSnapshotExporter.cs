@@ -55,6 +55,7 @@ public static class WorldSnapshotExporter
     {
         snapshot.Objects.Sort(ByObjectId);
         snapshot.Npcs.Sort(ByNpcId);
+        snapshot.Corpses.Sort(ByNpcId);
         snapshot.Mobs.Sort(ByMobId);
         snapshot.Crabs.Sort(ByCrabId);
         snapshot.Sharks.Sort(BySharkId);
@@ -139,6 +140,17 @@ public static class WorldSnapshotExporter
         foreach (var pair in world.Entities.Npcs)
         {
             snapshot.Npcs.Add(ExportNpc(world, pair.Value));
+        }
+
+        // §28.15C v3: тела — той же самой записью. Вид рисует покойную ровно
+        // так, как рисовал живую (её меш, её одежда, её раны), и меняет только
+        // одно: аниматор уходит в Death и там замирает. Отдельная, урезанная
+        // запись для трупа означала бы вторую сборку тела и, значит, второе
+        // место, где одежда может «не доехать».
+        snapshot.Corpses.Clear();
+        foreach (var pair in world.Entities.Corpses)
+        {
+            snapshot.Corpses.Add(ExportNpc(world, pair.Value));
         }
 
         snapshot.DeathRecords.Clear();
@@ -641,6 +653,7 @@ public static class WorldSnapshotExporter
             DisplayName = npc.DisplayName,
             ActorMesh = npc.ActorMesh,
             SkinSet = npc.SkinSet,
+            EyeColor = npc.EyeColor,
             Hairstyle = npc.Hairstyle,
             VoiceBank = npc.VoiceBank,
             Faction = npc.Faction,
@@ -683,6 +696,7 @@ public static class WorldSnapshotExporter
             // CurrentInteraction below, so the view plays the sleeping flow.
             IsFainted = world.Tick < npc.Mind.FaintedUntilTick,
             IsUnconscious = npc.Mind.ComaCause == AI.ComaCause.BloodLoss,
+            IsDying = npc.IsDying, // §105
             IsWaking = world.Tick < npc.Mind.WakeGraceUntilTick,
             Stress = npc.Needs.Stress,
             CurrentGoal = npc.Mind.CurrentGoal.ToString(),
@@ -709,6 +723,7 @@ public static class WorldSnapshotExporter
             TargetTile = npc.Plan.TargetTile,
             IsStarving = npc.Mind.IsStarving,
             InventoryCapacity = npc.Inventory.Capacity,
+            DeathAnimVariant = npc.DeathAnimVariant, // §28.15C v3
             InventoryUsedSlots = npc.Inventory.UsedSlots,
             GoalLockEndTick = npc.Mind.GoalLock is { } goalLock &&
                 goalLock.Goal == npc.Mind.CurrentGoal && goalLock.EndTick > world.Tick

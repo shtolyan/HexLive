@@ -68,7 +68,10 @@ public sealed class ThreatAlertSystem : ISimulationSystem
                 npc.IsFighting ||
                 npc.Mind.CurrentGoal == GoalType.Flee ||
                 npc.Mind.CurrentGoal == GoalType.Defend ||
-                MobSystem.IsNpcInSanctuary(world, npc))
+                MobSystem.IsNpcInSanctuary(world, npc) ||
+                // §106: из воды не бывает ни attack-first, ни обхода — она в
+                // убежище, и Defend-план лишь вытащил бы её из него на клыки.
+                (Spec106.WaterSanctuaryEnabled && CombatMedium.IsNpcSwimming(world, npc)))
             {
                 continue;
             }

@@ -104,6 +104,12 @@ public sealed class PerceivedAgent
 
     public AidKind AidKind { get; set; } = AidKind.None;
 
+    // §105: она УМИРАЕТ — у неё тикает запас, и помощь ей не «когда освободишь
+    // руки», а сейчас. Отдельным флагом, а не выводом из Suffering == 1: по
+    // единице срочности нельзя отличить умирающую от просто очень плохой, а
+    // надбавку заслуживает только первая.
+    public bool IsDying { get; set; }
+
     // §72: kept on the entry even though the lists are already split — a trace
     // or a future consumer that concatenates must still be able to tell.
     public Agents.Faction Faction { get; set; } = Agents.Faction.Colony;

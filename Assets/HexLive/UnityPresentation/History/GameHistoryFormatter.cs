@@ -67,7 +67,7 @@ namespace HexLive.UnityPresentation.History
                 "FoodStolen" => T("Food was stolen in the camp.", "В лагере украли еду."),
                 "Grieving" => T($"{actor} is grieving.", $"{actor} скорбит."),
                 "Mourned" => T($"{actor} paid respects to the dead.", $"{actor} почтила память погибшей."),
-                "VisitedGrave" => T($"{actor} visited a grave.", $"{actor} посетила могилу."),
+                "Looted" => T($"{actor} took something from a body.", $"{actor} забрала вещь с тела."),
                 "NpcDied" => T($"{actor} died.", $"{actor} погибла."),
                 "BledOut" => T($"{actor} bled out.", $"{actor} истекла кровью."),
                 "StarvedToDeath" => T($"{actor} died from hunger or thirst.",
@@ -110,6 +110,11 @@ namespace HexLive.UnityPresentation.History
                 "FaintedBloodLoss" => T($"{actor} passed out from blood loss.",
                     $"{actor} отключилась от потери крови."),
                 "WokeUp" => T($"{actor} came to.", $"{actor} пришла в себя."),
+                // §105: «Collapsed» снова в деле — теперь его действительно
+                // эмитят, и это уже не обморок, а обратный отсчёт.
+                "Collapsed" => T($"{actor} is dying.", $"{actor} при смерти."),
+                "Rescued" => T($"{actor} was pulled back from the brink.",
+                    $"{actor} вытащили с того света."),
                 "WoundInflicted" => T($"{actor} was wounded.", $"{actor} получила рану."),
                 "GotSick" => T($"{actor} got sick from raw water.",
                     $"{actor} заболела от сырой воды."),
@@ -143,6 +148,8 @@ namespace HexLive.UnityPresentation.History
                 "MeatHungOnSpit" => T($"{actor} hung meat over the fire.",
                     $"{actor} повесила мясо над костром."),
                 "MeatSpoiled" => T("Meat went bad.", "Мясо испортилось."),
+                // §54.17: the finish line of the meat chain.
+                "MeatEaten" => T($"{actor} ate roasted meat.", $"{actor} съела жареное мясо."),
                 "RaftProgress" => T($"{actor} worked on the raft.", $"{actor} строит плот."),
                 "RaftLaunched" => T("The raft is finished.", "Плот готов."),
                 "BuildProgress" => T($"{actor} built part of the shelter.", $"{actor} построила часть укрытия."),
@@ -151,7 +158,6 @@ namespace HexLive.UnityPresentation.History
                 "BedCrafted" => T($"{actor} made a bed.", $"{actor} сделала постель."),
                 "TentCrafted" => T($"{actor} made a sun shelter.", $"{actor} сделала навес от солнца."),
                 "RackCrafted" => T($"{actor} made a drying rack.", $"{actor} сделала сушилку."),
-                "Buried" => T($"{actor} buried the dead.", $"{actor} похоронила погибшую."),
                 "Butchered" => T($"{actor} butchered a body.", $"{actor} разделала тушу."),
                 "EmergencyUnload" => T($"{actor} dropped supplies to make room for food.",
                     $"{actor} сбросила припасы, чтобы освободить место для еды."),
@@ -268,7 +274,8 @@ namespace HexLive.UnityPresentation.History
         private static GameHistoryTone Tone(string type)
         {
             if (type is "Aided" or "AidRequested" or "AidStarted" or "TalkCompleted" or "TalkRequested" or
-                "TalkStarted" or "FoodShared" or "RelationshipChanged" or "Mourned" or "VisitedGrave" or
+                "TalkStarted" or "FoodShared" or "RelationshipChanged" or "Mourned" or
+                "Rescued" or // §105: её вытащили — это про людей, а не про урон
                 "HelpCryAnswered")
             {
                 return GameHistoryTone.Social;
@@ -283,6 +290,7 @@ namespace HexLive.UnityPresentation.History
 
             if (type is "NpcDied" or "BledOut" or "StarvedToDeath" or "VitalPartDestroyed" or
                 "DogFight" or "NightRaid" or "Murdered" or "Preyed" or "SharkBite" or "LimbSevered" or
+                "Collapsed" or // §105: она при смерти — тревожнее этого в колонии ничего нет
                 "HelpCry" or "HelpCryAssistStarted" or "HelpCryAssistArrived" or "HelpCryDefended")
             {
                 return GameHistoryTone.Danger;

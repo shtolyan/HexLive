@@ -88,6 +88,8 @@ public static class GameEventTypes
         "MeatRoasted",
         "MeatHungOnSpit",
         "MeatSpoiled",
+        // §54.17: the meat chain's finish line — someone actually ate a roast.
+        "MeatEaten",
         "FoodShared",
         "FoodStolen",
 
@@ -129,16 +131,25 @@ public static class GameEventTypes
         "VitalPartDestroyed",
         "StarvedToDeath",
         "NpcDied",
-        "Buried",
+        // §28.15C v3: "Buried"/"VisitedGrave" сняты вместе с механикой похорон —
+        // их больше никто не эмитит, а имя в этом списке ждало бы события,
+        // которого не бывает (ровно то, что ловит EventWhitelistGate).
         "Butchered",
         "Grieving",
         "Mourned",
-        "VisitedGrave",
+        "Looted",
         // Was "Collapsed", which nothing has ever emitted — the coma path emits these two.
         "FellAsleepExhausted",
         "FaintedBloodLoss",
         "Fainted",
         "WokeUp",
+        // §105: «Collapsed» вернулось в список — но теперь его ДЕЙСТВИТЕЛЬНО
+        // эмитят (MortalityHelpers.EnterDying), и это самое громкое событие,
+        // какое бывает: кто-то упал и умирает. «Rescued» — счастливый конец
+        // той же сцены. Промежуточный "Dying" сюда НЕ входит намеренно: он
+        // тикает каждый медленный тик и залил бы историю.
+        "Collapsed",
+        "Rescued",
 
         // Distress
         "DireStraits",

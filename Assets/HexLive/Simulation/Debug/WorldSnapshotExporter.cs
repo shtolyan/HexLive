@@ -652,6 +652,8 @@ public static class WorldSnapshotExporter
             IsFighting = npc.IsFighting,
             IsSwinging = world.Tick < npc.AttackAnimUntilTick,
             SwingStartTick = npc.SwingStartTick,
+            // Спрашиваем ТО ЖЕ правило, по которому бьёт симуляция.
+            MeleeWeaponId = Runtime.MeleeSwing.EffectiveWeapon(npc),
             StrikeIndex = npc.SwingStrikeIndex,
             Hunger = npc.Needs.Hunger,
             Thirst = npc.Needs.Thirst,

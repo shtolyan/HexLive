@@ -41,7 +41,9 @@ public static class WorldSnapshotCodec
     /// ids interned against the shared content catalog.
     /// v3: §74 appearance (SkinSet/Hairstyle/VoiceBank), §72 faction pair,
     /// §77.5 InteractionSeconds, §76 attributes/skills/perks.
-    public const int WireVersion = 3;
+    /// v4: §103 MeleeWeaponId — чем сим бьёт СЕЙЧАС (сцена может назначить
+    /// кулаки при ноже в рюкзаке); вид считал это сам и показывал не то.
+    public const int WireVersion = 4;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -448,6 +450,7 @@ public static class WorldSnapshotCodec
         w.Write(n.IsFighting);
         w.Write(n.IsSwinging);
         w.Write(n.SwingStartTick);
+        w.Write(n.MeleeWeaponId ?? string.Empty);
         w.Write(n.StrikeIndex);
 
         // body
@@ -615,6 +618,7 @@ public static class WorldSnapshotCodec
         n.IsFighting = r.ReadBoolean();
         n.IsSwinging = r.ReadBoolean();
         n.SwingStartTick = r.ReadInt32();
+        n.MeleeWeaponId = r.ReadString();
         n.StrikeIndex = r.ReadInt32();
 
         WireIo.ReadStrings(r, n.BodyParts);

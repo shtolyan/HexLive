@@ -283,6 +283,12 @@ public sealed class NpcSnapshot
     // 0 = never swung.
     public int SwingStartTick { get; set; }
 
+    // §103 r5: чем она бьёт СЕЙЧАС — с учётом оружия, назначенного сценой.
+    // Вид считал это сам («лучшее из рюкзака») и не знал про назначенное:
+    // сцена абьюза бьёт кулаками, а на картинке был нож. Пустая строка —
+    // кулаки, ровно как в симуляции.
+    public string MeleeWeaponId { get; set; } = string.Empty;
+
     // Which strike variant the current swing uses when the drawn gear has
     // per-strike timings (fists: punches/kicks). The view plays the matching
     // clip from GearConfig.strikes. -1 = single-timing gear (random clip).

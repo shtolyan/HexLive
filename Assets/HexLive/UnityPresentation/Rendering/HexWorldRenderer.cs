@@ -1569,10 +1569,21 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return null;
         }
 
-        // §gear: bow retired — the pick is pure catalog melee now.
-        var best = HexLive.Simulation.Content.GearCatalog.BestMeleeWeapon(
-            npc.InventoryItems, IntactHands(npc));
-        return string.IsNullOrEmpty(best) ? null : best;
+        // §103 r5: ⭐ ЧЕМ ОНА БЬЁТ — спрашиваем СИМУЛЯЦИЮ, а не считаем сами.
+        //
+        // Здесь стоял свой расчёт «лучшее оружие из рюкзака», и он не знал про
+        // оружие, назначенное сценой: наезд §97 начинается РУКОПАШКОЙ, а в руке
+        // на картинке оставался нож. Снаружи это читалось как «бьёт ножом, а
+        // урон как рукой» — он и правда бил кулаком, врала картинка.
+        //
+        // Пустая строка это кулаки (сцена так и говорит), поэтому null здесь
+        // означает ровно одно: бить нечем.
+        // ⚠️ Запасного расчёта здесь БОЛЬШЕ НЕТ, и это принципиально: пустая
+        // строка — не «сим промолчал», а «кулаки». Оставь фолбэк на лучшее
+        // оружие из рюкзака — и он вернёт нож ровно в той сцене, ради которой
+        // всё это чинилось. Вне драки симуляция сама подставляет лучшее, так
+        // что ответ здесь полный всегда.
+        return string.IsNullOrEmpty(npc.MeleeWeaponId) ? null : npc.MeleeWeaponId;
     }
 
     private static int IntactHands(NpcSnapshot npc) =>

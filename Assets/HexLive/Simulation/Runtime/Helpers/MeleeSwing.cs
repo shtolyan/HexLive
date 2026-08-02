@@ -50,13 +50,7 @@ internal static class MeleeSwing
     {
         damage = 0f;
         clipSeconds = 0f;
-        // §97: обычно дерутся ЛУЧШИМ, что есть в руках. Но сцена может назначить
-        // оружие сама — наезд начинается рукопашкой, а тесак достают, когда уже
-        // ненавидят (§93). Пустая строка это кулаки, null — «как обычно».
-        weaponId = !actor.Body.CanUseToolsOrWeapons
-            ? string.Empty
-            : actor.Mind.ForcedMeleeWeaponId
-              ?? SimBalance.BestMeleeWeapon(actor.Inventory.Items, actor.Body.IntactHands);
+        weaponId = EffectiveWeapon(actor);
 
         var gear = GearCatalog.For(weaponId);
 
@@ -110,6 +104,27 @@ internal static class MeleeSwing
 
         return false;
     }
+
+    /// <summary>
+    /// ⭐ ЧЕМ ОНА БЬЁТ НА САМОМ ДЕЛЕ — одно место на всех.
+    ///
+    /// <para>
+    /// §97: обычно дерутся ЛУЧШИМ, что есть в руках. Но сцена может назначить
+    /// оружие сама — наезд начинается рукопашкой, а тесак достают, когда уже
+    /// ненавидят (§93). Пустая строка это кулаки, null — «как обычно».
+    /// </para>
+    /// <para>
+    /// §103 r5: правило вынесено сюда, потому что вид считал его ПО-СВОЕМУ —
+    /// брал лучшее оружие из рюкзака и не знал про назначенное сценой. Выходило
+    /// «бьёт ножом, а урон как рукой»: он и правда бил кулаком, врала картинка.
+    /// Экспортер снапшота теперь спрашивает здесь же.
+    /// </para>
+    /// </summary>
+    internal static string EffectiveWeapon(NPCState actor) =>
+        !actor.Body.CanUseToolsOrWeapons
+            ? string.Empty
+            : actor.Mind.ForcedMeleeWeaponId
+              ?? SimBalance.BestMeleeWeapon(actor.Inventory.Items, actor.Body.IntactHands);
 
     private static void StrikeTimings(GearStats gear, int strikeIndex,
         out float hitDelaySeconds, out float durationSeconds, out float cooldownSeconds)

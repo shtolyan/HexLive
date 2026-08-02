@@ -215,10 +215,61 @@ Telemetry is deliberately off (`BLENDER_MCP_DISABLE_TELEMETRY=true` in the serve
 The `user_prompt` argument every tool asks for feeds that; it is inert while the flag is
 set, so pass anything short.
 
-## Headless simulation probes (no Unity)
+## Headless checks (no Unity) — gates, soaks, golden traces
 
-For AI/GOAP/simulation checks, do not start Unity just to run ticks. Build the
-simulation assembly first:
+**Start here, not with a scratchpad probe.** The harness used to be rewritten from
+scratch every session, and its bugs were reborn with it: wrong checkout, stale
+simdata, a hand-copied system list. It is committed now, in two projects that live
+OUTSIDE `Assets/` (so they may carry `PackageReference`, which the simulation
+assembly may not):
+
+```bash
+dotnet test Tests/HexLive.Simulation.Tests
+```
+
+Seven gates, none of which a human can hold in their head:
+
+| Gate | Catches |
+|---|---|
+| `EventWhitelistGate` | a `GameEventTypes` name nothing emits — comas and cooking were silently missing from history and audio for years |
+| `TraceEmitLint` | an event `Type` composed at runtime (§63's `"ClothesWashed underwear.bra …"`), which makes the type set infinite and ungreppable |
+| `SystemRegistryGate` | a system implemented but never registered (`SharkSystem`), and any reordering — registration order is execution order and is load-bearing |
+| `GoalTypeCoverageGate` | a `GoalType` nobody scores and nobody assigns; dead ordinals are declared, not pretended away |
+| `HardcodedIdLint` | a NEW hardcoded content id in `Runtime/Systems` (ratchet over `known_hardcoded_ids.txt`) |
+| `WireCoverageGate` | a `WorldSnapshot` field the codec forgot — every property is stamped non-default and round-tripped |
+| `BalanceParityGate` | a tuning knob missing from `simdata.json`, i.e. the "the inspector dial silently does nothing" trap |
+
+Soaks and trace recording are one binary (`hexsoak` — both are "step and listen",
+and splitting them would mean a third copy of the harness):
+
+```bash
+dotnet run --project Tests/HexLive.Simulation.Soak -- --seed 12345 --ticks 12000
+```
+
+`-h` lists the rest. It reports the spec §30.16 metrics: goal churn per NPC-day
+(both raw field changes and "dropped one job for another", which is the number
+§35.4a means), median/mean goal dwell, plan-failure rate, and **stuck NPC-ticks** —
+goal set, no interaction running, not moving, the exact §102 signature that emitted
+nothing at all for 2872 consecutive ticks.
+
+**Before and after any refactor, prove behaviour did not move:**
+
+```bash
+Tools/golden_trace.sh HEAD --preset scores
+```
+
+It builds and runs `<base-ref>` in a throwaway `git worktree` (never `git stash` —
+that touches your working state), records the decision trace on fixed seeds from
+both sides, and diffs them as text. ⭐ **Float operation order IS behaviour**: the
+same sequence is bit-identical, so rewriting `a + b + c` as `a + (b + c)` shows up
+as a diff. That is the point — in a world where every roll is a hash of the seed,
+that reordering changed the game. A diff means "accept it consciously and write it
+into spec.md", never "ignore it". `--preset scores` includes `GoalScored`, i.e. the
+exact float output of every scoring block; `decisions` is the cheap one.
+
+### When the committed tools cannot ask your question
+
+Only then write a throwaway probe. Build the simulation assembly first:
 
 ```bash
 dotnet build HexLive.Simulation.Standalone.csproj
@@ -266,7 +317,14 @@ is roughly every 11 ticks.
 
 This works for focused checks like “without a knife, does a hungry NPC craft a
 tool before planning coconut food/water?” and avoids re-discovering the Unity
-runtime path every session.
+runtime path every session. `Tests/HexLive.Simulation.Soak/Program.cs` already
+does the bootstrap-and-drain dance correctly — copy from there rather than from
+memory.
+
+⚠️ **A soak answers a different question than an arena.** «How many times in eight
+days» is not «why is there none right now» (§102.7): the arena answers in twenty
+seconds, the soak takes half an hour and misses. Measure «did it reach the act»,
+not «was there an opportunity».
 
 **Sim data for headless runs (spec §59.3 — MANDATORY):** the tuned
 ScriptableObject catalogs (mobs, gear, world objects, recipes) are exported to

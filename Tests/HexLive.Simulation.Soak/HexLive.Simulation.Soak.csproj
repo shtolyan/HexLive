@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    hexsoak — прогон мира без Unity: метрики поведения и запись трасс.
+
+    Как звать и какие есть ключи — в SoakOptions.Usage (`hexsoak -h`); повторить
+    командную строку здесь нельзя, XML-комментарий не выносит двойного дефиса.
+
+    Раньше это писалось заново в скретчпаде каждую сессию, и вместе с харнессом
+    заново рождались его ошибки: не тот чекаут, не переснятый simdata, свой
+    список систем. Теперь мир строится ровно теми же тремя вызовами, что у
+    сервера, а список систем берётся из SimulationSystemRegistry.
+
+    Тот же бинарь и метрики, и трассы: обе задачи — это «шагай и слушай события»,
+    и разводить их значило бы завести третью копию харнесса.
+
+    Ноль NuGet-пакетов, как у сервера.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <RootNamespace>HexLive.Simulation.Soak</RootNamespace>
+    <AssemblyName>hexsoak</AssemblyName>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <BaseOutputPath>../../Build/dotnet/bin/HexLive.Simulation.Soak/</BaseOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../HexLive.Simulation.Standalone.csproj" />
+  </ItemGroup>
+
+</Project>

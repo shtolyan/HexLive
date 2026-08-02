@@ -2545,22 +2545,6 @@ MonoBehaviour:
       - 'Носимый предмет.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'item.clothing_outfit_reiko.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Wrestler Outfit'
-      - 'Костюм рестлерши'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_outfit_reiko.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'A one-piece fighting outfit with boots. Covers her head to toe and moves with her.'
-      - 'Цельный боевой костюм с сапогами. Закрывает с ног до головы и не мешает двигаться.'
-      Flags: 0101
-      Languages_Touch: []
     - Term: 'item.clothing_boots_classic.name'
       TermType: 0
       Description: 

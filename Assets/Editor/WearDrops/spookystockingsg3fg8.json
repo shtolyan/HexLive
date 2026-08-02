@@ -20,209 +20,6 @@
   ],
   "garments": [
     {
-      "sourceKey": "RR_7185",
-      "folder": "ReikoOutfit",
-      "name": "ReikoOutfit",
-      "simId": "clothing.outfit_reiko",
-      "layer": "Wear",
-      "slots": [
-        "Chest",
-        "Belly",
-        "Pelvis",
-        "ThighR",
-        "ThighL",
-        "ShinR",
-        "ShinL",
-        "FootR",
-        "FootL"
-      ],
-      "noHide": [],
-      "materials": [
-        {
-          "source": "Glove, Wrist",
-          "texture": "glove_wrist_left_diffuse.tga",
-          "smoothness": 0.3,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        },
-        {
-          "source": "Glove, Lower",
-          "texture": "gloves_lower_diffuse.tga",
-          "smoothness": 0.3,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        },
-        {
-          "source": "Glove, Upper",
-          "texture": "gloves_upper_diffuse.tga",
-          "smoothness": 0.3,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        },
-        {
-          "source": "Shoes",
-          "texture": "shoes_diffuse.tga",
-          "smoothness": 0.3,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        },
-        {
-          "source": "Zipper Handle",
-          "texture": "zip_diffuse.tga",
-          "smoothness": 0.3,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        },
-        {
-          "source": "Zipper",
-          "texture": "zip_diffuse.tga",
-          "smoothness": 0.3,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        },
-        {
-          "source": "Buttons",
-          "texture": "buttons_diffuse.tga",
-          "smoothness": 0.3,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        },
-        {
-          "source": "Laces",
-          "texture": "laces_diffuse.tga",
-          "smoothness": 0.3,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        },
-        {
-          "source": "Shorts",
-          "texture": "shorts_diffuse.tga",
-          "smoothness": 0.3,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        },
-        {
-          "source": "Pants",
-          "texture": "pants_diffuse.tga",
-          "smoothness": 0.3,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        },
-        {
-          "source": "Shorts Pocket, Right",
-          "texture": "pockets_diffuse.tga",
-          "smoothness": 0.3,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        },
-        {
-          "source": "Shorts Pocket Left",
-          "texture": "pockets_diffuse.tga",
-          "smoothness": 0.3,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        },
-        {
-          "source": "Bra, Right",
-          "texture": "bra_right_diffuse.tga",
-          "smoothness": 0.3,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        },
-        {
-          "source": "Bra, Left",
-          "texture": "bra_left_diffuse.tga",
-          "smoothness": 0.3,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        },
-        {
-          "source": "Bra",
-          "texture": "bra_diffuse.tga",
-          "smoothness": 0.3,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        },
-        {
-          "source": "Ribbon",
-          "texture": "ribbon_diffuse.tga",
-          "smoothness": 0.3,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        },
-        {
-          "source": "Knot",
-          "texture": "knot_diffuse.tga",
-          "smoothness": 0.3,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        }
-      ],
-      "_measured": {
-        "verts": 7185,
-        "polys": 7753,
-        "bbox": [
-          -79.4,
-          79.4,
-          -3.9,
-          156.0,
-          -17.8,
-          16.1
-        ],
-        "zones": {
-          "Shin": 0.315,
-          "Chest": 0.162,
-          "Pelvis": 0.159,
-          "Foot": 0.128,
-          "Wrist": 0.115,
-          "Neck": 0.039,
-          "Hand": 0.036,
-          "Forearm": 0.026,
-          "Belly": 0.018
-        },
-        "heelCm": 3.94
-      },
-      "heelPose": {
-        "foot": 20.99,
-        "toe": -20.99,
-        "lift": 0.0394,
-        "axis": [
-          1.0,
-          0.0,
-          0.0
-        ],
-        "_source": "по высоте каблука 3.9 см"
-      },
-      "sim": {
-        "displayName": "Wrestler Outfit",
-        "nameRu": "Костюм рестлерши",
-        "descEn": "A one-piece fighting outfit with boots. Covers her head to toe and moves with her.",
-        "descRu": "Цельный боевой костюм с сапогами. Закрывает с ног до головы и не мешает двигаться.",
-        "warmth": 0.22,
-        "armor": 0.06,
-        "thermalDelta": 0.0,
-        "capacity": 2,
-        "covers": []
-      }
-    },
-    {
       "sourceKey": "Classic Boot_12488",
       "folder": "ClassicBoots",
       "name": "ClassicBoots",
@@ -1056,8 +853,8 @@
       "simId": "clothing.suspenders_nerd",
       "layer": "Wear",
       "slots": [
-        "Chest",
-        "Belly"
+        "ShoulderR",
+        "ShoulderL"
       ],
       "noHide": [],
       "materials": [
@@ -1121,7 +918,10 @@
         "armor": 0.0,
         "thermalDelta": 0.0,
         "capacity": 0,
-        "covers": []
+        "covers": [
+          "ArmL",
+          "ArmR"
+        ]
       }
     },
     {
@@ -2086,6 +1886,7 @@
   "skipped": [
     "FadsSlipOn_R_8822",
     "Nerd Crush Buttons",
+    "RR_7185",
     "Reiko Hair_3626",
     "cap and hair_1778"
   ]

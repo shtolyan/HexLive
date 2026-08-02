@@ -117,6 +117,9 @@ public static class NewWearExtractor
         // one: every renderer whose name starts with one of these is welded
         // into a single skinned mesh under SourceKey. See MergeParts.
         public string[] SourceKeys;
+        // Materials whose geometry is dropped from the built mesh — see the
+        // note on DropGarment.dropMaterials.
+        public string[] DropMaterials = { };
         public string Folder;       // ImportedActors/Wear/<Folder>
         public string Name;         // prefab + root GameObject name
         public string SimId;        // Resources/HexLive/Wear/<SimId>/
@@ -168,6 +171,12 @@ public static class NewWearExtractor
         // cords). Listing them here merges them into the one skinned mesh the
         // wardrobe contract allows — see MergeParts.
         public string[] sourceKeys;
+        // Material names whose geometry is NOT wanted. A kit often carries
+        // parts you would rather not ship — the jaguar headdress is a helmet
+        // plus a fan of feathers, and the feathers are the half that reads
+        // badly in game. Applied to the built meshes by Strip Dropped
+        // Materials, so it needs no re-export.
+        public string[] dropMaterials;
         public string[] slots, noHide;
         public DropMaterial[] materials;
         public DropHeel heelPose;   // spec §31B.4C — heeled shoes only
@@ -258,6 +267,7 @@ public static class NewWearExtractor
                 Drop = drop,
                 SourceKey = g.sourceKey,
                 SourceKeys = g.sourceKeys != null && g.sourceKeys.Length > 0 ? g.sourceKeys : null,
+                DropMaterials = g.dropMaterials ?? new string[0],
                 Folder = g.folder,
                 Name = g.name,
                 SimId = g.simId,
@@ -378,6 +388,159 @@ public static class NewWearExtractor
 
     [MenuItem("HexLive/Wear/Extract New Wear (Force Re-Extract)")]
     private static void RunForceMenu() => Run(force: true);
+
+    /// <summary>
+    /// Cut the geometry of unwanted materials out of already-built meshes.
+    /// </summary>
+    /// <remarks>
+    /// A kit does not always ship a whole you want. The jaguar headdress is a
+    /// helmet plus a fan of feathers, and the feathers read badly in game — but
+    /// the pieces already welded into one mesh, and the drop's FBX exports are
+    /// gone (DiscardExports), so re-extracting without them is not an option.
+    ///
+    /// It does not need to be. The weld groups geometry into one SUBMESH per
+    /// material, so a part is already separable: keep the submeshes whose
+    /// material is wanted, drop the rest, and compact the vertices no surviving
+    /// triangle uses. The prefab's material array is trimmed to match.
+    ///
+    /// Idempotent: a mesh that no longer has the dropped material is left alone.
+    /// </remarks>
+    [MenuItem("HexLive/Wear/Strip Dropped Materials")]
+    private static void StripDroppedMaterialsMenu()
+    {
+        _sources = null;
+        _garments = null;
+
+        var only = ActiveDrop();
+        var log = new System.Text.StringBuilder();
+        foreach (var g in Garments.Where(g => only == null || g.Drop == only))
+        {
+            if (g.DropMaterials == null || g.DropMaterials.Length == 0)
+            {
+                continue;
+            }
+
+            var unwanted = new HashSet<string>(g.DropMaterials);
+            // The renderer's material order IS the submesh order, so the prefab
+            // is what says which submesh belongs to which material.
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath(g));
+            var smr = prefab != null ? prefab.GetComponentInChildren<SkinnedMeshRenderer>(true) : null;
+            if (smr == null)
+            {
+                Debug.LogWarning($"[NewWear] {g.Name}: префаба нет, нечего чистить");
+                continue;
+            }
+
+            var keep = new List<int>();
+            for (var i = 0; i < smr.sharedMaterials.Length; i++)
+            {
+                var m = smr.sharedMaterials[i];
+                var name = m != null ? m.name.Replace(" (Instance)", "") : "";
+                if (!unwanted.Contains(name))
+                {
+                    keep.Add(i);
+                }
+            }
+
+            if (keep.Count == smr.sharedMaterials.Length)
+            {
+                log.AppendLine($"  {g.Name}: уже почищен");
+                continue;
+            }
+
+            if (keep.Count == 0)
+            {
+                Debug.LogError($"[NewWear] {g.Name}: убрать просят ВСЁ — отказ");
+                continue;
+            }
+
+            foreach (var actor in System.Enum.GetValues(typeof(ActorName)).Cast<ActorName>())
+            {
+                var path = $"{ImportRoot}/{g.Folder}/Meshes/{actor}.mesh";
+                var mesh = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+                if (mesh == null)
+                {
+                    continue;
+                }
+
+                var before = mesh.vertexCount;
+                var trimmed = KeepSubMeshes(mesh, keep);
+                EditorUtility.CopySerialized(trimmed, mesh);
+                Object.DestroyImmediate(trimmed);
+                EditorUtility.SetDirty(mesh);
+                log.AppendLine($"  {g.Name}/{actor}: {before} -> {mesh.vertexCount} вершин");
+            }
+
+            var root = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+            var live = root.GetComponentInChildren<SkinnedMeshRenderer>(true);
+            live.sharedMaterials = keep.Select(i => smr.sharedMaterials[i]).ToArray();
+            PrefabUtility.SaveAsPrefabAsset(root, PrefabPath(g));
+            Object.DestroyImmediate(root);
+        }
+
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        var report = "[NewWear] вырезано лишнее:\n" + log;
+        Debug.Log(report);
+        File.WriteAllText("Temp/newwear-strip.txt", report);
+    }
+
+    /// <summary>A copy of `mesh` carrying only the listed submeshes.</summary>
+    private static Mesh KeepSubMeshes(Mesh mesh, List<int> keep)
+    {
+        var used = new SortedSet<int>();
+        var kept = keep.Select(mesh.GetTriangles).ToList();
+        foreach (var index in kept.SelectMany(t => t))
+        {
+            used.Add(index);
+        }
+
+        var remap = new Dictionary<int, int>(used.Count);
+        foreach (var old in used)
+        {
+            remap[old] = remap.Count;
+        }
+
+        var src = mesh.vertices;
+        var normals = mesh.normals;
+        var tangents = mesh.tangents;
+        var uv = mesh.uv;
+        var order = used.ToArray();
+
+        var copy = new Mesh
+        {
+            name = mesh.name,
+            indexFormat = order.Length > 65535
+                ? UnityEngine.Rendering.IndexFormat.UInt32
+                : UnityEngine.Rendering.IndexFormat.UInt16,
+        };
+        copy.SetVertices(order.Select(i => src[i]).ToList());
+        if (normals.Length == src.Length)
+        {
+            copy.SetNormals(order.Select(i => normals[i]).ToList());
+        }
+
+        if (tangents.Length == src.Length)
+        {
+            copy.SetTangents(order.Select(i => tangents[i]).ToList());
+        }
+
+        if (uv.Length == src.Length)
+        {
+            copy.SetUVs(0, order.Select(i => uv[i]).ToList());
+        }
+
+        copy.bindposes = mesh.bindposes;
+        SetSingleBoneSkin(copy, order.Length);
+        copy.subMeshCount = kept.Count;
+        for (var i = 0; i < kept.Count; i++)
+        {
+            copy.SetTriangles(kept[i].Select(t => remap[t]).ToArray(), i);
+        }
+
+        copy.RecalculateBounds();
+        return copy;
+    }
 
     /// <summary>
     /// Rebuild the drops' MATERIALS in place, without touching meshes.

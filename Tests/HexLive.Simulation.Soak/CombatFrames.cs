@@ -32,6 +32,7 @@ public static class CombatFrames
         public int AnimUntil;
         public string Goal;
         public string Weapon;
+        public int SwingStamp;
     }
 
     private static readonly List<Row> Rows = new List<Row>();
@@ -62,6 +63,7 @@ public static class CombatFrames
                 ReadyAt = npc.StrikeReadyAtTick,
                 AnimUntil = npc.AttackAnimUntilTick,
                 Goal = npc.Mind.CurrentGoal.ToString(),
+                SwingStamp = npc.SwingStartTick,
                 Weapon = string.IsNullOrEmpty(npc.Mind.ForcedMeleeWeaponId)
                     ? (npc.Mind.ForcedMeleeWeaponId == null ? "(как обычно)" : "кулаки")
                     : npc.Mind.ForcedMeleeWeaponId,
@@ -70,7 +72,7 @@ public static class CombatFrames
             // Пишем только КАДРЫ ИЗМЕНЕНИЯ: подряд идущие одинаковые состояния
             // ничего не добавляют, а раскадровку топят.
             var sig = row.Fighting + "|" + row.Swinging + "|" + row.Beat + "|" +
-                      row.Blows + "|" + row.LandsAt + "|" + row.ReadyAt + "|" + row.Goal + "|" + row.Weapon;
+                      row.Blows + "|" + row.LandsAt + "|" + row.ReadyAt + "|" + row.Goal + "|" + row.Weapon + "|" + row.SwingStamp;
             if (Signature.TryGetValue(npc.Id.Value, out var prev) && prev == sig)
             {
                 continue;
@@ -91,14 +93,14 @@ public static class CombatFrames
 
         Console.WriteLine();
         Console.WriteLine("  ── раскадровка боя (только кадры изменения) ──");
-        Console.WriteLine("   тик   сек  NPC  бой замах такт удары  ляжет готов аним  цель        оружие");
+        Console.WriteLine("   тик   сек  NPC  бой замах такт удары  ляжет готов аним  цель        штамп  оружие");
         foreach (var r in Rows)
         {
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "  {0,5} {1,5:F2}  {2,3}  {3,3} {4,5} {5,4} {6,5}  {7,5} {8,5} {9,4}  {10,-10}  {11}",
+                "  {0,5} {1,5:F2}  {2,3}  {3,3} {4,5} {5,4} {6,5}  {7,5} {8,5} {9,4}  {10,-10}  {11,5}  {12}",
                 r.Tick, r.Tick * 0.25f, r.Npc,
                 r.Fighting ? "да" : "—", r.Swinging ? "ДА" : "—",
-                r.Beat, r.Blows, r.LandsAt, r.ReadyAt, r.AnimUntil, r.Goal, r.Weapon));
+                r.Beat, r.Blows, r.LandsAt, r.ReadyAt, r.AnimUntil, r.Goal, r.SwingStamp, r.Weapon));
         }
 
         Console.WriteLine();

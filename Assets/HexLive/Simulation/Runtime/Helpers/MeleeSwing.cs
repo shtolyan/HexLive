@@ -91,6 +91,21 @@ internal static class MeleeSwing
             StrikeTimings(gear, actor.SwingStrikeIndex, out var hitDelay, out var duration, out _);
             actor.StrikeLandsAtTick = world.Tick + SecondsToTicks(hitDelay);
             actor.AttackAnimUntilTick = world.Tick + SecondsToTicks(duration);
+            // ⭐ §103 r4: ШТАМП НАЧАЛА ЗАМАХА — то, по чему вид узнаёт, что бьют.
+            //
+            // Его здесь НЕ БЫЛО, и это была вся причина «удары есть, анимации
+            // нет». NpcActorView.SetCombat опознаёт новый удар не по флагу
+            // IsSwinging (окно живёт один-два тика и кадр может его проскочить),
+            // а по СМЕНЕ этого штампа. Ставил его только собачий бой
+            // (AnimalCombatSystem), а человек против человека — налёт и вся
+            // сцена абьюза — не ставил никогда. Штамп оставался нулевым или
+            // хранил чужой давний тик, смены не происходило, и вид не играл
+            // ничего: ни замаха, ни удара, при любых таймингах клипа.
+            //
+            // Отсюда же и обманчивость: правки длительностей, числа ударов и
+            // боевого флага честно меняли МОДЕЛЬ и не могли изменить картинку,
+            // потому что картинка ждала другого сигнала.
+            actor.SwingStartTick = world.Tick;
         }
 
         return false;

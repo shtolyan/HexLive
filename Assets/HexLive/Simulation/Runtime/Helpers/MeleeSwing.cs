@@ -11,10 +11,19 @@ using HexLive.Simulation.Social;
 namespace HexLive.Simulation.Runtime
 {
 
-// §72: one human swing, on the §29C.3 v2 timeline — windup → hit → recovery.
-// Lifted from AnimalCombatSystem.RunCounterStrike so a girl swinging at a man
-// feels exactly like a girl swinging at a wolf, and so presentation gets the
-// same AttackAnimUntilTick / SwingStrikeIndex window to play a clip across.
+// ⭐ ЕДИНСТВЕННЫЙ таймлайн замаха (§29C.3 v2): windup → hit → recovery.
+//
+// §104 r2: до этого он существовал ДВАЖДЫ — здесь и в
+// AnimalCombatSystem.RunCounterStrike, посимвольно, включая соль хеша 777.
+// Копия и была тем классом багов, что стоил §103 четырёх кругов: собачья
+// половина ставила SwingStartTick, человеческая эту строку потеряла, и удары
+// человека против человека не рисовались НИКОГДА. Разошедшаяся копия
+// компилируется и проходит тесты — поэтому её больше нет, а SwingTimelineGate
+// следит, чтобы не завелась снова.
+//
+// Кто чем бьёт и как применяется урон — дело ВЫЗЫВАЮЩЕГО: человек идёт полным
+// путём тела (ApplyHumanBlow — броня, рана, отрыв, износ, витали), собака
+// принимает плоский Health, потому что тела у неё нет.
 //
 // WHY this and not §56's per-pass model, which was the obvious thing to reuse:
 // PredationSystem deals PredationStrikePerPass(0.35) x MeleeStrikeBonus every
@@ -48,16 +57,28 @@ internal static class MeleeSwing
         WorldState world, NPCState actor, bool inReach,
         out float damage, out string weaponId, out float clipSeconds)
     {
+        weaponId = EffectiveWeapon(actor);
+        return TryAdvanceSwing(world, actor, inReach, weaponId, out damage, out clipSeconds);
+    }
+
+    /// <summary>
+    /// Ядро. Оружие называет вызывающий: человек спрашивает
+    /// <see cref="EffectiveWeapon"/> (знает про назначенное сценой), собачий бой
+    /// берёт лучшее из рюкзака.
+    /// </summary>
+    internal static bool TryAdvanceSwing(
+        WorldState world, NPCState actor, bool inReach, string weaponId,
+        out float damage, out float clipSeconds)
+    {
         damage = 0f;
         clipSeconds = 0f;
-        weaponId = EffectiveWeapon(actor);
 
         var gear = GearCatalog.For(weaponId);
 
         if (actor.StrikeLandsAtTick > 0 && world.Tick >= actor.StrikeLandsAtTick)
         {
             actor.StrikeLandsAtTick = 0;
-            StrikeTimings(gear, actor.SwingStrikeIndex,
+            gear.StrikeTimings(actor.SwingStrikeIndex,
                 out var hitDelay, out var duration, out var cooldown);
             // §76: Agility shortens the recovery between swings — the same
             // weapon, swung back into position sooner. The windup (hitDelay)
@@ -82,7 +103,7 @@ internal static class MeleeSwing
                     (int)(MathUtil.Hash01(world.Seed, world.Tick, actor.Id.Value, 777) *
                         gear.StrikeVariants.Length))
                 : -1;
-            StrikeTimings(gear, actor.SwingStrikeIndex, out var hitDelay, out var duration, out _);
+            gear.StrikeTimings(actor.SwingStrikeIndex, out var hitDelay, out var duration, out _);
             actor.StrikeLandsAtTick = world.Tick + SecondsToTicks(hitDelay);
             actor.AttackAnimUntilTick = world.Tick + SecondsToTicks(duration);
             // ⭐ §103 r4: ШТАМП НАЧАЛА ЗАМАХА — то, по чему вид узнаёт, что бьют.
@@ -126,22 +147,9 @@ internal static class MeleeSwing
             : actor.Mind.ForcedMeleeWeaponId
               ?? SimBalance.BestMeleeWeapon(actor.Inventory.Items, actor.Body.IntactHands);
 
-    private static void StrikeTimings(GearStats gear, int strikeIndex,
-        out float hitDelaySeconds, out float durationSeconds, out float cooldownSeconds)
-    {
-        if (gear.HasStrikeVariants && strikeIndex >= 0 && strikeIndex < gear.StrikeVariants.Length)
-        {
-            var variant = gear.StrikeVariants[strikeIndex];
-            hitDelaySeconds = variant.HitDelaySeconds;
-            durationSeconds = variant.AttackDurationSeconds;
-            cooldownSeconds = variant.CooldownSeconds;
-            return;
-        }
-
-        hitDelaySeconds = gear.HitDelaySeconds;
-        durationSeconds = gear.AttackDurationSeconds;
-        cooldownSeconds = gear.CooldownSeconds;
-    }
+    // Тайминги переехали в GearStats.StrikeTimings: это свойство снаряжения, и
+    // спрашивать их должен ещё и ВИД (иначе он мерит замах базой, пока сим
+    // мерит вариантом). Копия жила здесь и в AnimalCombatSystem.
 
     // A man aims high — far more torso and head than a dog's leg-first bite.
     internal static BodyPart PickHumanPart(WorldState world, int actorId)

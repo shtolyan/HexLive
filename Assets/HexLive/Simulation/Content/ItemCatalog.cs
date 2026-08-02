@@ -827,6 +827,39 @@ namespace HexLive.Simulation.Content
 
         public bool HasStrikeVariants => StrikeVariants != null && StrikeVariants.Length > 0;
 
+        /// <summary>
+        /// ⭐ ТАЙМИНГИ ТЕКУЩЕГО ЗАМАХА — один расчёт на всех.
+        ///
+        /// <para>
+        /// Выбранный вариант удара, когда он есть у снаряжения (кулаки), иначе
+        /// плоский лист. Живёт здесь, а не в боевой системе, по двум причинам:
+        /// это свойство СНАРЯЖЕНИЯ, и спрашивать его должен ещё и вид — иначе
+        /// он мерит замах базовой длительностью, пока сим мерит вариантом.
+        /// Ровно эта пара мерок стоила §103 (и, в пространстве, §102).
+        /// </para>
+        /// <para>
+        /// Раньше метод существовал ДВАЖДЫ, посимвольно: в MeleeSwing и в
+        /// AnimalCombatSystem. Копия и есть тот класс багов, из-за которого
+        /// удары человека были невидимы.
+        /// </para>
+        /// </summary>
+        public void StrikeTimings(int strikeIndex,
+            out float hitDelaySeconds, out float durationSeconds, out float cooldownSeconds)
+        {
+            if (HasStrikeVariants && strikeIndex >= 0 && strikeIndex < StrikeVariants.Length)
+            {
+                var variant = StrikeVariants[strikeIndex];
+                hitDelaySeconds = variant.HitDelaySeconds;
+                durationSeconds = variant.AttackDurationSeconds;
+                cooldownSeconds = variant.CooldownSeconds;
+                return;
+            }
+
+            hitDelaySeconds = HitDelaySeconds;
+            durationSeconds = AttackDurationSeconds;
+            cooldownSeconds = CooldownSeconds;
+        }
+
         // ── Tool side ──
         public GearCapability Capabilities = GearCapability.None;
 

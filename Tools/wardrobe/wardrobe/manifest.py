@@ -69,6 +69,12 @@ _MIN_SHARE = 0.10
 _TORSO_ZONES = ("Head", "Neck", "Chest", "Belly")
 _BOTTOM_CENTRE = 100.0
 
+# How many zones a mesh must genuinely cover before it reads as a whole outfit
+# rather than a garment. Five is above anything real in the wardrobe: the
+# fullest single piece shipped so far is a dress at four (chest, belly, pelvis,
+# thigh), while the Rowdy Reiko set reached seven.
+_SET_ZONES = 5
+
 
 def zone_shares(geometry: fbx.Geometry) -> dict[str, float]:
     """Share of the mesh's vertices sitting in each anatomical zone."""
@@ -162,6 +168,21 @@ def propose(fbx_path: Path, drop: str, texture_report: dict,
         }
         if heel:
             entry["heelPose"] = heel
+        # A DAZ product very often ships the WHOLE OUTFIT as one mesh next to
+        # its separate pieces, and `dress` fits both — so the colony ends up
+        # owning the set and its own parts as different items. Measured on the
+        # Rowdy Reiko boxing outfit: one mesh from chest to feet, alongside the
+        # boots, gloves, top and shorts it is made of.
+        #
+        # A genuine single garment almost never spans this much of a body, so
+        # the span is the signal. Flagged rather than dropped: which of the two
+        # to keep is a judgement (usually the pieces, for the wardrobe's sake).
+        spanned = sum(1 for share in zone_shares(geometry).values() if share >= _MIN_SHARE)
+        if spanned >= _SET_ZONES:
+            entry["_review"] = (
+                f"покрывает {spanned} зон — похоже на КОМПЛЕКТ целиком. "
+                "Проверьте, не приехали ли отдельные его части: держать нужно "
+                "что-то одно")
         garments.append(entry)
 
     return {

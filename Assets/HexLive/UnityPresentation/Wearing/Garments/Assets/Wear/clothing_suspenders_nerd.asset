@@ -15,7 +15,7 @@ MonoBehaviour:
   id: clothing.suspenders_nerd
   displayName: Suspenders
   layer: 1
-  covers: 01000000
+  covers: 0300000004000000
   warmth: 0.01
   armor: 0
   thermalDelta: 0

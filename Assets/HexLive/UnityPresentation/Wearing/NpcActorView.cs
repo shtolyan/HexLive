@@ -4708,7 +4708,10 @@ internal static class ActorWardrobe
         }
 
         var result = new List<Wear>();
-        foreach (var prefab in Resources.LoadAll<GameObject>($"HexLive/Wear/{simDefinitionId}"))
+        // §31B.4E: an item wears its PROTOTYPE's art. For all but a variant the
+        // prototype is itself, so this is the same folder as before.
+        foreach (var prefab in Resources.LoadAll<GameObject>(
+                     $"HexLive/Wear/{Garments.GarmentVariants.ArtIdOf(simDefinitionId)}"))
         {
             var wear = prefab.GetComponent<Wear>();
             if (wear != null)

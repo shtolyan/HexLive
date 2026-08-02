@@ -274,6 +274,14 @@ public sealed class BodyBones : MonoBehaviour
         }
     }
 
+    // The key is "<definition id>#<index>" — see SetWearGrime, which matches on
+    // the same prefix.
+    private static string KeyToDefinitionId(string key)
+    {
+        var hash = key != null ? key.IndexOf('#') : -1;
+        return hash >= 0 ? key.Substring(0, hash) : key;
+    }
+
     // key = sim item definition id + index (a sim item may map to several
     // visual garments, each equipped under its own key).
     public void Equip(string key, Wear wearPrefab)
@@ -286,6 +294,11 @@ public sealed class BodyBones : MonoBehaviour
         var layerDict = _byLayer[wearPrefab.Layer];
         var underwear = _byLayer[VisualWearLayer.Underwear];
         var newWear = Instantiate(wearPrefab, wearTransform);
+        // §31B.4E: a variant is the prototype's mesh in its own materials. It
+        // must be painted BEFORE Construct, which caches each slot's dry colour
+        // and smoothness to restore after dirt and wet — cache the prototype's
+        // and the variant would wash back to the wrong colour.
+        newWear.ApplyVariant(Garments.GarmentVariants.MaterialsOf(KeyToDefinitionId(key)));
         newWear.Construct(_actorMesh, this, key);
 
         foreach (var slot in newWear.Slots)

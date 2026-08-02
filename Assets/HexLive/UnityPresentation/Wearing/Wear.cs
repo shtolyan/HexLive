@@ -33,6 +33,46 @@ public sealed class Wear : MonoBehaviour
 
     private SkinnedMeshRenderer _meshRenderer;
 
+    /// <summary>
+    /// Paint this instance in a variant's materials (spec §31B.4E).
+    /// </summary>
+    /// <remarks>
+    /// Must run BEFORE <see cref="Construct"/>: that caches each slot's dry
+    /// colour and smoothness so dirt and wet can be washed back off, and a
+    /// cache taken from the prototype would restore the wrong colour the first
+    /// time it rained.
+    ///
+    /// A shorter array than the mesh has submeshes leaves the rest as the
+    /// prototype's — a variant may recolour the cloth and keep the buttons.
+    /// Null or empty means "this item is not a variant", which is most of them.
+    /// </remarks>
+    public void ApplyVariant(Material[] materials)
+    {
+        if (materials == null || materials.Length == 0)
+        {
+            return;
+        }
+
+        var renderer = _meshRenderer != null
+            ? _meshRenderer
+            : GetComponentInChildren<SkinnedMeshRenderer>();
+        if (renderer == null)
+        {
+            return;
+        }
+
+        var current = renderer.sharedMaterials;
+        for (var i = 0; i < current.Length && i < materials.Length; i++)
+        {
+            if (materials[i] != null)
+            {
+                current[i] = materials[i];
+            }
+        }
+
+        renderer.sharedMaterials = current;
+    }
+
     public void Construct(ActorName actorMesh, BodyBones bodyBones, string equipKey = null)
     {
         // Spec 40.10-D: the wear painter seeds its stains from this — the piece's
@@ -43,6 +83,7 @@ public sealed class Wear : MonoBehaviour
             equipKey ?? name, bodyBones != null ? bodyBones.GetInstanceID() : 0);
         _meshRenderer = GetComponentInChildren<SkinnedMeshRenderer>();
         var hip = FindHip();
+
         if (hip == null || _meshRenderer == null)
         {
             Debug.LogWarning($"Wear '{name}': no hip or renderer — skipping construct", this);

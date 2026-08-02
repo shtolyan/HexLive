@@ -45,6 +45,7 @@ namespace HexLive.Simulation.Content
         {
             Sex = sex;
             Id = id;
+            PrototypeId = id;   // its own art until a variant says otherwise
             DisplayName = displayName;
             Layer = layer;
             Warmth = warmth;
@@ -55,9 +56,28 @@ namespace HexLive.Simulation.Content
             Covers = new List<BodyPart>(covers);
         }
 
-        // Stable content id — matches the Resources/HexLive/Wear/<id>/ folder so
-        // the visual still loads. Never rename without moving the art.
+        // Stable content id — the ITEM. Keys saves, localization and the sim.
+        // Never rename.
         public string Id { get; }
+
+        /// <summary>
+        /// Which garment's ART this item wears (spec §31B.4E).
+        /// </summary>
+        /// <remarks>
+        /// The id used to be three things at once: the item, the address of the
+        /// art folder, and a frozen key. Variants need the first two apart —
+        /// polka-dot and starred knickers are two items over ONE geometry, and
+        /// duplicating the mesh, the prefab, the icon and six registrations per
+        /// colour is what this splits.
+        ///
+        /// Defaults to <see cref="Id"/>, so every garment that has no variants
+        /// is unchanged and no existing row has to say anything.
+        ///
+        /// Settable rather than a constructor argument on purpose: a hundred
+        /// rows in GarmentLibrary pass positional arguments, and they all want
+        /// the default. Only a variant sets it, and only from the catalog asset.
+        /// </remarks>
+        public string PrototypeId { get; set; }
 
         public string DisplayName { get; }
 

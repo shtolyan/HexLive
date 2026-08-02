@@ -6760,6 +6760,94 @@ Traps met building it:
 - The merged mesh is heavy — 55 844 vertices, ~10.8 MB per girl. Acceptable for
   now; decimation (as in `TOOL_GENERATION_SPEC.md`) is the lever if it hurts.
 
+### 31B.4E Prototypes and variants — one garment, many materials
+
+**Status: designed, not built.** Written before the code so the migration has
+something to aim at.
+
+#### What is actually duplicated
+
+Measured on the shipped wardrobe (`Temp/wardrobe-inventory.json`, regenerate by
+grouping every wear prefab by the set of meshes it points at):
+
+| | |
+|---|---|
+| garments with geometry of their own | 88 |
+| prototypes that already exist in several colours | 6 |
+| items those 6 account for | 22 |
+
+The meshes are **not** duplicated — a recolour already points at the same
+`.mesh` assets, and the drop pipeline produces one geometry per garment (75
+items, 75 geometries, no repeats). What is duplicated is the SCAFFOLDING: every
+colour costs a prefab, a `simId`, an art folder, an icon, a `GarmentDefinition`
+asset, a `GarmentLibrary` row, a `WearSlotCatalog` row and two I2 terms. Eight
+places per colour, all of which a human keeps in step by hand.
+
+The real prize is upstream. A DAZ product ships its colourways as material
+presets — *Charlotte High Heels* carries around forty (Faux Leather, Metals,
+Real World, Super Shiny) — and today the pipeline keeps ONE and throws the rest
+away, because a second colourway would mean a second garment. Harvesting them is
+already within reach: the presets are `.duf` files and the pipeline parses those
+(`heels.from_pose_preset` reads the same format).
+
+#### The shape
+
+    prototype  = geometry + skeleton + slots + layer + fit          (the art)
+    variant    = material set + display name + stat overrides       (the item)
+    item       = one variant; what the colony owns and wears
+
+A prototype owns everything that follows from the MESH: which slots it occupies,
+which layer it sits on, the per-girl `WearConfig` fits, the paint-point map. A
+variant owns everything a player can see or feel: what it is called, what it
+looks like, what it does in the cold.
+
+#### The one structural change
+
+`simId` today is three things at once: the item's identity, the address of its
+art folder (`Resources/HexLive/Wear/<simId>/`), and a frozen key. Variants need
+the first two split:
+
+- `GarmentDefinition.id` — the ITEM. Frozen, keys saves and I2 terms.
+- `GarmentDefinition.prototypeId` — the ART. Several items share it.
+
+Everything else follows from that split; nothing else about the wardrobe
+contract changes. `Wear` keeps one `SkinnedMeshRenderer` and one mesh per girl.
+
+#### What it touches, and what it fixes for free
+
+- **Runtime.** `Wear` already keeps per-slot material state and swaps materials
+  for dirt, wetness and tears through a `MaterialPropertyBlock`. Applying a
+  variant's materials at equip time is another user of that seam, not a new
+  mechanism.
+- **Paint maps.** Keyed `garment_<Actor>_<vertexCount>`, so variants sharing
+  geometry share one map — fewer assets, and correct. The generator currently
+  treats a key collision as an ERROR; it has to learn that for variants it is
+  the intent (§40.8-G).
+- **Icons.** Still one per variant — the colour is the point — but rendered off
+  the shared mesh with the variant's materials, which `WearIconShooter` already
+  does.
+- **Localization.** Terms follow the ITEM id, unchanged.
+
+#### The rule that keeps the balance honest
+
+**A variant changes how a garment LOOKS. Stats are inherited from the prototype
+and overridden only when the MATERIAL genuinely differs** — leather against
+mesh, yes; polka dots against stars, no. Without this rule the wardrobe grows
+forty arbitrary warmth values, and nobody will ever be able to say why the
+starred knickers are warmer than the spotted ones.
+
+#### Order of migration
+
+1. **Inventory** — done, above: the six prototypes are the first things to
+   convert, and they prove the schema on content that already exists.
+2. **Schema** — `prototypeId` on `GarmentDefinition`, the catalog and SimData;
+   the wire format follows (`Simulation/Wire/` — a new field means a codec
+   field, §31C).
+3. **Harvest** — read a product's material presets in `tools/wardrobe` and emit
+   one variant per preset instead of discarding all but one.
+4. **Content** — re-import onto the new schema. Doing it in this order means the
+   wardrobe moves once, not twice.
+
 ### 31B.5 Renderer bridge
 
 `HexWorldRenderer.CreateNpcView` instantiates

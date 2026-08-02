@@ -19,10 +19,23 @@ namespace HexLive.UnityPresentation.Wearing.Garments
     public sealed class GarmentDefinition : ScriptableObject
     {
         [Header("Идентификация")]
-        [Tooltip("Content-id вещи. ДОЛЖЕН совпадать с папкой арта Resources/HexLive/Wear/<id>. Не переименовывать.")]
+        [Tooltip("Content-id вещи. Ключ сохранений, локализации и симуляции. Не переименовывать.")]
         public string id = string.Empty;
+        [Tooltip("Чей АРТ носит эта вещь (§31B.4E). Пусто = свой собственный, папка Resources/HexLive/Wear/<id>. " +
+                 "Заполняется только у ВАРИАЦИИ: трусы в горошек и трусы со звёздочками — две вещи на одной геометрии.")]
+        public string prototypeId = string.Empty;
         [Tooltip("Отображаемое имя (запасное, если нет строки в локализации).")]
         public string displayName = string.Empty;
+
+        [Header("Вариация (§31B.4E)")]
+        [Tooltip("Материалы этой вариации, по одному на подмеш прототипа, в его порядке. " +
+                 "Пусто = материалы прототипа как есть. Меняет ТОЛЬКО вид: статы наследуются, " +
+                 "и переопределять их стоит лишь когда ткань правда другая (кожа против сетки), " +
+                 "а не когда узор другой.")]
+        public Material[] variantMaterials = System.Array.Empty<Material>();
+
+        /// <summary>Art address: this garment's own folder, or its prototype's.</summary>
+        public string ArtId => string.IsNullOrEmpty(prototypeId) ? id : prototypeId;
 
         [Header("Слой и покрытие")]
         [Tooltip("Слой одежды: Underwear (на тело) / Wear (основной) / Outerwear (верхний). Внутри слоя вещи вытесняют друг друга по зоне.")]
@@ -59,7 +72,10 @@ namespace HexLive.UnityPresentation.Wearing.Garments
                 thermalDelta,
                 dressDurationTicks,
                 capacity,
-                parts);
+                parts)
+            {
+                PrototypeId = ArtId,
+            };
         }
     }
 }

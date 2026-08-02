@@ -189,7 +189,14 @@ namespace HexLive.Simulation.Content
                         I(g, "dressDurationTicks", 20),
                         I(g, "capacity", 0),
                         gsex,
-                        covers.ToArray()));
+                        covers.ToArray())
+                    {
+                        // Absent means "its own art" — the constructor already
+                        // set that, so an older export still reads correctly.
+                        PrototypeId = string.IsNullOrEmpty(Str(g, "prototypeId"))
+                            ? gid
+                            : Str(g, "prototypeId"),
+                    });
                 }
 
                 if (list.Count > 0)
@@ -549,8 +556,17 @@ namespace HexLive.Simulation.Content
                 sb.Append("    {")
                   .Append($"\"id\": {Q(g.Id)}, \"displayName\": {Q(g.DisplayName)}, \"layer\": {Q(g.Layer.ToString())}, ")
                   .Append($"\"warmth\": {N(g.Warmth)}, \"armor\": {N(g.Armor)}, \"thermalDelta\": {N(g.ThermalDelta)}, ")
-                  .Append($"\"dressDurationTicks\": {g.DressDurationTicks}, \"capacity\": {g.Capacity}, ")
-                  .Append($"\"covers\": [{covers}]}}");
+                  .Append($"\"dressDurationTicks\": {g.DressDurationTicks}, \"capacity\": {g.Capacity}, ");
+
+                // Only when it differs (§31B.4E): almost every garment is its
+                // own prototype, and writing the id twice on ~100 rows would be
+                // noise in a file people read.
+                if (!string.IsNullOrEmpty(g.PrototypeId) && g.PrototypeId != g.Id)
+                {
+                    sb.Append($"\"prototypeId\": {Q(g.PrototypeId)}, ");
+                }
+
+                sb.Append($"\"covers\": [{covers}]}}");
             }
 
             sb.Append("\n  ],\n  \"worldObjects\": [\n");

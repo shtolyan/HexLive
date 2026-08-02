@@ -692,16 +692,16 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // deliver chain outranks peacetime leisure (Sit/Socialize/idle) so the
             // mat actually finishes — still peacetime-gated, so hunger/thirst/danger
             // always preempt it (survival is never traded for a bed).
-            var bedLeafPull = siteNeedsLeaves ? 0.35f : 0f;
-            var bedStickPull = siteNeedsSticks ? 0.35f : 0f;
+            var bedLeafPull = siteNeedsLeaves ? AiBalance.BuildSiteMaterialPull : 0f;
+            var bedStickPull = siteNeedsSticks ? AiBalance.BuildSiteMaterialPull : 0f;
             // §64.9: LOGS were the one bill material with no pull anywhere —
             // bed.basic's stage 1 is four side rails, and §64.8's PremiumBedChance
             // stakes a bed.basic as some girls' FIRST bed. Soak (6 seeds x 10
             // days): four seeds staked a bed.basic and every one of them sat at
             // log 0/4 for ~22 000 ticks. GatherWood carried siteNeedsLogs in its
             // availability but nothing in its score, so it lost every auction.
-            var bedLogPull = siteWantsLogs ? 0.35f : 0f;
-            var bedRopePull = siteNeedsRope ? 0.35f : 0f;
+            var bedLogPull = siteWantsLogs ? AiBalance.BuildSiteMaterialPull : 0f;
+            var bedRopePull = siteNeedsRope ? AiBalance.BuildSiteMaterialPull : 0f;
             // BuildFurniture fires when I can advance the site: bring a material
             // it still needs, or raise it once stocked — with a hammer, except a
             // §54 campfire (piled from stones) and the leaf mat (hand-lashed).
@@ -757,13 +757,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // zero VesselTaken, four girls circling at thirst ~0.5). Drink now
             // sees it too; the planner draws from it once nothing drinkable is
             // in hand, before walking to a coconut.
-            var drinkAvail = npc.Needs.Thirst >= 0.35f &&
+            var drinkAvail = npc.Needs.Thirst >= AiBalance.DrinkThirstThreshold &&
                 (hasBottleWater || hasCoconutWater || collectorDrawSeen);
             var waterSourceReachable = collectorDrawSeen ||
                 (hasCoconutBlade &&
                  (HasReachableDefinitionWorthCarrying(npc, world, ContentIds.Coconut) ||
                   KnowsReachableProducer(npc, world)));
-            var getWaterAvail = npc.Needs.Thirst >= 0.35f && !hasCoconutWater && !hasBottleWater &&
+            var getWaterAvail = npc.Needs.Thirst >= AiBalance.DrinkThirstThreshold && !hasCoconutWater && !hasBottleWater &&
                 waterSourceReachable;
             // §53.7: the errand half — fetching water to CARRY to a parched
             // housemate cares only about what is in hand (bottle / pierced
@@ -776,7 +776,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
             var knifeStickCost = Content.RecipeCatalog.InputCount(GoalType.CraftKnife, ContentIds.Stick);
             var knifeStoneCost = Content.RecipeCatalog.InputCount(GoalType.CraftKnife, ContentIds.Stone);
             var coconutToolPressure = !hasCoconutBlade &&
-                (npc.Needs.Thirst >= 0.35f || npc.Needs.Hunger >= getFoodHungerThreshold) &&
+                (npc.Needs.Thirst >= AiBalance.DrinkThirstThreshold || npc.Needs.Hunger >= getFoodHungerThreshold) &&
                 HasCoconutOpportunity(npc, world);
             var coconutToolBoost = coconutToolPressure
                 ? System.MathF.Max(npc.Needs.Thirst, npc.Needs.Hunger)
@@ -851,12 +851,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // stays in her hands for a grace window — the probe showed the
             // walk to the pit warming her past the gate, the goal collapsing
             // mid-route and the fire never lighting (cold start regression).
-            if (npc.Needs.ThermalComfort < -0.35f)
+            if (npc.Needs.ThermalComfort < AiBalance.FreezingComfortThreshold)
             {
                 npc.Mind.LastFreezingTick = world.Tick;
             }
 
-            var canFrictionLight = npc.Needs.ThermalComfort < -0.35f ||
+            var canFrictionLight = npc.Needs.ThermalComfort < AiBalance.FreezingComfortThreshold ||
                 world.Tick - npc.Mind.LastFreezingTick < SimBalance.FrictionLightGraceTicks;
             var tendFireAvail = hasWood && fuelLow &&
                 (campfireFuel > 0f || canFrictionLight || (canUseToolsOrWeapons && hasLighter));

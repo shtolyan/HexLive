@@ -56,6 +56,14 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Цель, чей план не построился, отдыхает столько тиков.")]
         [Range(10, 400)] public int failureCooldownTicks = 40;
 
+        [Header("Пороги аукциона (одно число значило пять разных вещей)")]
+        [Tooltip("Жажда, выше которой идёт пить и идёт ЗА водой.")]
+        [Range(0f, 1f)] public float drinkThirstThreshold = 0.35f;
+        [Tooltip("Тепловой комфорт, НИЖЕ которого считается, что мёрзнет (открывает розжиг трением).")]
+        [Range(-1f, 0f)] public float freezingComfortThreshold = -0.35f;
+        [Tooltip("Насколько недостающий материал тянет к стройплощадке (одинаково для всех четырёх).")]
+        [Range(0f, 2f)] public float buildSiteMaterialPull = 0.35f;
+
         [Header("Нужды — скорость (за медленный тик, ~150/день)")]
         [Tooltip("Сколько ГОЛОДА набегает за медленный тик. Больше = быстрее хочет есть. §53.7: вдвое медленнее (было 0.0037).")]
         [Range(0f, 0.05f)] public float hungerRate = 0.00185f;

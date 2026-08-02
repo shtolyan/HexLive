@@ -417,7 +417,7 @@
     "Spec86.MercyPartFloor": 0.0500000007,
     "Spec94.GrudgeDriftPerTick": 0.000600000028,
     "Spec94.WarmthDriftPerTick": 0.000199999995,
-    "AiBalance.DressCooldownTicks":160,"AiBalance.FailureCooldownTicks":40,"AiBalance.GoalLockTicks": 24,
+    "AiBalance.BuildSiteMaterialPull":0.35,"AiBalance.DressCooldownTicks":160,"AiBalance.DrinkThirstThreshold":0.35,"AiBalance.FailureCooldownTicks":40,"AiBalance.FreezingComfortThreshold":-0.35,"AiBalance.GoalLockTicks": 24,
     "AiBalance.LockOverrideDelta": 0.5,
     "AiBalance.MemoryTtlTicks": 2400,
     "AiBalance.PerceptionRadiusTiles": 2,

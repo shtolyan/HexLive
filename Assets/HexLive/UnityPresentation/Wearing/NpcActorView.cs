@@ -2916,11 +2916,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // Spec 20.16: combat/hunt overrides the idle interaction — the weapon
     // appears in hand and drives a draw (bow) or thrust (spear) motion.
     // Timed melee: the SIM owns the attack cadence. `swinging` is true across
-    // the whole attack-animation window (GearCatalog.AttackDurationSeconds
-    // from the swing start); the clip/procedural swing plays exactly then, the
-    // damage lands mid-window (HitDelaySeconds, sim-side), and between swings
-    // she stands recovering — no more view-local attack timer drifting out of
-    // sync with the actual blows.
+    // the whole attack-animation window — GearStats.StrikeTimings of the PICKED
+    // strike variant, counted from the swing start; the clip/procedural swing
+    // plays exactly then, the damage lands mid-window (HitDelaySeconds,
+    // sim-side), and between swings she stands recovering — no more view-local
+    // attack timer drifting out of sync with the actual blows.
     // strikeIndex: the sim's picked strike variant for THIS swing (fists:
     // punches/kicks — GearConfig.strikes order); -1 = single-timing gear,
     // the view rolls a random clip like before.
@@ -2966,6 +2966,35 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
     }
 
+    /// <summary>
+    /// ⭐ НОВЫЙ ЛИ ЭТО УДАР — единственное место, где вид отвечает на вопрос.
+    ///
+    /// <para>
+    /// Опознаётся по СМЕНЕ штампа, а не по флагу <c>IsSwinging</c>: окно живёт
+    /// один-два тика, кадр рисует только последний из шагнутых тиков, и на
+    /// перемотке (или через сеть, потерявшую тик) большинство замахов
+    /// открывалось и закрывалось незамеченными — удар прилетал в неподвижное
+    /// тело. Непроигранный штамп такой пропуск переживает.
+    /// </para>
+    /// <para>
+    /// Штамп УСВАИВАЕТСЯ в любом случае, даже когда играть нечего: сим не
+    /// обнуляет <c>SwingStartTick</c> по окончании боя, и несброшенный кэш
+    /// показал бы старый штамп новым в НАЧАЛЕ следующего боя — фантомный удар
+    /// до первого замаха.
+    /// </para>
+    /// <para>
+    /// §104 r3: правило жило в двух копиях (бой и одиночный замах), и вторая
+    /// уже разошлась — гейтилась на <c>swinging</c> и теряла удар. Копия правила
+    /// о том, как ловить пропуск, сама была пропуском.
+    /// </para>
+    /// </summary>
+    private bool ConsumeSwingStamp(int swingStartTick)
+    {
+        var started = swingStartTick > 0 && swingStartTick != _lastSwingStartTick;
+        _lastSwingStartTick = swingStartTick;
+        return started;
+    }
+
     public void SetCombat(bool fighting, string weaponId, bool swinging, int strikeIndex = -1,
         int swingStartTick = 0)
     {
@@ -2982,27 +3011,25 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         if (!fighting)
         {
             // §96: ⭐ ЗАМАХ БЕЗ БОЯ. Раньше здесь стоял безусловный выход, и
-            // весь путь анимации удара висел за боевым флагом. Сцена абьюза
-            // (§81) намеренно НЕ выставляет IsFighting — иначе рвётся вся
-            // машинерия подмоги, — и потому её удары ландили невидимо: урон
-            // есть, рана есть, кровь есть, а замаха нет ни у него, ни у неё.
+            // весь путь анимации удара висел за боевым флагом. Бьющий не всегда
+            // в паре: жертва, которая не отвечает, IsFighting не получает
+            // (FightScene.Latch зажигает её, только если она сама сцепилась), а
+            // до §103 r3 сцена абьюза не зажигала и нападающего. Тогда её удары
+            // ландили невидимо: урон есть, рана есть, кровь есть, а замаха нет.
             //
             // Окно замаха самодостаточно: сим уже сказал «сейчас бьют», и
             // рисовать это не требует боевой пары. Поэтому одиночный удар
             // проигрывается ДО выхода, а всё остальное (стойка, скорость,
             // прицел) по-прежнему только для настоящего боя.
-            if (swinging && swingStartTick != _lastSwingStartTick && _animator != null)
+            //
+            // §104 r3: фронт штампа опознаётся ТЕМ ЖЕ хелпером, что и в бою.
+            // Здесь стояло своё условие с гейтом на `swinging` — то есть ровно
+            // тот баг, который штамп и заводился лечить: окно живёт один-два
+            // тика, кадр его проскакивает, флаг уже опущен, а else тихо
+            // усваивал штамп, и удар терялся навсегда.
+            if (ConsumeSwingStamp(swingStartTick) && _animator != null)
             {
-                _lastSwingStartTick = swingStartTick;
                 PlayLooseSwing(weaponId, strikeIndex);
-            }
-            else
-            {
-                // ADOPT the stamp rather than clearing it. The sim does not
-                // reset SwingStartTick when a fight ends, so clearing here would
-                // make the stale stamp look new at the START of the next fight
-                // and fire a phantom swing before she has thrown one.
-                _lastSwingStartTick = swingStartTick;
             }
 
             _wasFighting = false;
@@ -3019,11 +3046,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return;
         }
 
-        // A swing the sim started that we have not played. In the ordinary
-        // frame-per-tick case this is exactly the old rising edge of `swinging`;
-        // it additionally survives a frame that skipped the whole window.
-        var swingStarted = swingStartTick > 0 && swingStartTick != _lastSwingStartTick;
-        _lastSwingStartTick = swingStartTick;
+        var swingStarted = ConsumeSwingStamp(swingStartTick);
 
         var weaponChanged = _combatWeaponId != weaponId;
         if (!_wasFighting || weaponChanged)
@@ -3110,8 +3133,15 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 }
             }
 
-            var duration = Mathf.Max(0.25f,
-                HexLive.Simulation.Content.GearCatalog.AttackDurationSeconds(weaponId));
+            // §104 r3: длительность СПРАШИВАЕТСЯ У ТОГО ЖЕ РАСЧЁТА, что и в
+            // симуляции (GearStats.StrikeTimings) — с учётом варианта удара.
+            // Здесь стояла базовая длительность оружия, а сим открывает окно по
+            // варианту: у кулака это разные листы, и совпадали они только
+            // случайно. Две мерки на одно расстояние — та же болезнь, что дала
+            // мёртвую зону §102, только во времени.
+            HexLive.Simulation.Content.GearCatalog.For(weaponId ?? string.Empty)
+                .StrikeTimings(strikeIndex, out _, out var clipSeconds, out _);
+            var duration = Mathf.Max(0.25f, clipSeconds);
             _attackSpeed = 1f / (AttackSwingCycles * duration);
         }
         else
@@ -3121,10 +3151,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         _wasFighting = true;
-        if (!string.IsNullOrEmpty(weaponId))
-        {
-            SetHandProp(weaponId);
-        }
+        // §104 r3: пустой id — это КУЛАКИ, а не «оружие неизвестно». Условие
+        // стояло на непустой строке, и предмет, вложенный в руку предыдущим
+        // занятием (SetInteraction), оставался в кулаке всю кулачную драку.
+        SetHandProp(string.IsNullOrEmpty(weaponId) ? null : weaponId);
     }
 
     private void SetHandProp(string itemId)

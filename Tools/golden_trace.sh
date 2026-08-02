@@ -68,7 +68,7 @@ echo "сиды:    $SEEDS, тиков: $TICKS, пресет: $PRESET"
 echo
 
 echo "==> отдельное дерево на $BASE_REF"
-git -C "$REPO_ROOT" worktree add --detach "$BASE_TREE" "$BASE_REF" >/dev/null
+git -C "$REPO_ROOT" worktree add --detach "$BASE_TREE" "$BASE_REF" >/dev/null 2>&1
 
 # simdata ПЕРЕКРЫВАЕТ код: если экспорт между ревизиями разный, разойдутся и
 # трассы — и это будет не про вашу правку. Предупредить, но не чинить молча.

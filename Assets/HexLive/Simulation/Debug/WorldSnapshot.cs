@@ -294,6 +294,16 @@ public sealed class NpcSnapshot
     // clip from GearConfig.strikes. -1 = single-timing gear (random clip).
     public int StrikeIndex { get; set; } = -1;
 
+    // ⭐ §104 r5: тик, в который по НЕЙ попали (0 — ни разу). Вид ловит смену
+    // штампа и в тот же кадр даёт брызгу крови, флинч и звук удара. До этого
+    // он узнавал о попадании по падению здоровья (порог 0.02 по среднему —
+    // кулак не дотягивал) и по новой ране с гейтом 0.4 с, а звука удара по
+    // человеку не было вовсе.
+    public int HitStampTick { get; set; }
+
+    // Чем попали: "" — кулаки, id снаряжения, "bite" — зубы.
+    public string HitWeaponId { get; set; } = string.Empty;
+
     public List<string> BodyParts { get; } = new();
 
     // "Zone=0.35" — worn-armor absorption per body part (EquipmentMath),

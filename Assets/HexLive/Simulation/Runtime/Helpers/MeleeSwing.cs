@@ -151,6 +151,26 @@ internal static class MeleeSwing
     // спрашивать их должен ещё и ВИД (иначе он мерит замах базой, пока сим
     // мерит вариантом). Копия жила здесь и в AnimalCombatSystem.
 
+    /// <summary>
+    /// ⭐ ОТМЕТИТЬ ПОПАДАНИЕ ПО ЧЕЛОВЕКУ — один вызов на удар, кто бы ни бил.
+    ///
+    /// <para>
+    /// Момент удара живёт один тик, и вид рисует только последний тик кадра —
+    /// поэтому это ШТАМП, а не флаг (спек §83.2.3, тот же приём, что спас
+    /// замах в §103). Зовётся и укусом зверя, и человеческим ударом: жертве
+    /// всё равно, чем в неё прилетело, а виду нужен один сигнал.
+    /// </para>
+    /// </summary>
+    /// <summary>Зубы зверя как «оружие» хит-штампа — та же константа, что
+    /// читает вид (<see cref="GearCatalog.Bite"/>).</summary>
+    internal const string BiteWeaponId = GearCatalog.Bite;
+
+    internal static void StampHit(WorldState world, NPCState target, string weaponId)
+    {
+        target.HitStampTick = world.Tick;
+        target.HitWeaponId = weaponId ?? string.Empty;
+    }
+
     // A man aims high — far more torso and head than a dog's leg-first bite.
     internal static BodyPart PickHumanPart(WorldState world, int actorId)
     {
@@ -171,6 +191,11 @@ internal static class MeleeSwing
         WorldState world, NPCState attacker, NPCState target,
         float damage, string weaponId, string traceName)
     {
+        // ⭐ §104 r5: вот сейчас, вот этим. Единственный сигнал, по которому вид
+        // синхронно даёт кровь, флинч и звук удара — см. NPCState.HitStampTick.
+        // Ставится ДО пощады и до обнуления урона: удар случился в любом случае.
+        StampHit(world, target, weaponId);
+
         var part = AmputateSystemHelpers.RedirectFromStump(
             target, PickHumanPart(world, attacker.Id.Value));
         var partArmor = EquipmentMath.ArmorForPart(world, target, part); // trace only

@@ -452,6 +452,8 @@ public static class WorldSnapshotCodec
         w.Write(n.SwingStartTick);
         w.Write(n.MeleeWeaponId ?? string.Empty);
         w.Write(n.StrikeIndex);
+        w.Write(n.HitStampTick);
+        w.Write(n.HitWeaponId ?? string.Empty);
 
         // body
         WireIo.WriteStrings(w, n.BodyParts);
@@ -620,6 +622,8 @@ public static class WorldSnapshotCodec
         n.SwingStartTick = r.ReadInt32();
         n.MeleeWeaponId = r.ReadString();
         n.StrikeIndex = r.ReadInt32();
+        n.HitStampTick = r.ReadInt32();
+        n.HitWeaponId = r.ReadString();
 
         WireIo.ReadStrings(r, n.BodyParts);
         WireIo.ReadStrings(r, n.PartArmor);

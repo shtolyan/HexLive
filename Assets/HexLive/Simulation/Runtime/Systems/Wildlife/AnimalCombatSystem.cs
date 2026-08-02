@@ -349,6 +349,10 @@ public sealed class AnimalCombatSystem : ISimulationSystem
 
     private static void LandBite(WorldState world, Wildlife.MobState dog, NPCState target)
     {
+        // §104 r5: жертве всё равно, чем в неё прилетело — виду нужен ОДИН
+        // сигнал «сейчас попали», и укус даёт его тем же штампом, что удар.
+        MeleeSwing.StampHit(world, target, MeleeSwing.BiteWeaponId);
+
         // Spec 19.3C: the bite lands on a specific part; only garments
         // covering that part absorb it. §50: never a severed limb.
         var bitPart = AmputateSystemHelpers.RedirectFromStump(target,

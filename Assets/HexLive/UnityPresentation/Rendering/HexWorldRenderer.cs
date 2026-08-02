@@ -1238,7 +1238,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // Timed melee: IsSwinging spans the sim's attack-animation window.
         actorView.SetCombat(npc.IsFighting, WeaponFor(npc), npc.IsSwinging, npc.StrikeIndex,
             npc.SwingStartTick);
+        // ⭐ §104 r5: ВОТ СЕЙЧАС по ней попали — кровь, вздрагивание и звук
+        // удара одним кадром, по штампу из симуляции.
+        actorView.SignalHit(npc.HitStampTick, npc.HitWeaponId);
         // §29C.3-hit: a health drop staggers her — only while standing still.
+        // Остаётся фолбэком для урона НЕ от удара (падение, акула, огонь): там
+        // хит-штампа нет, а вздрогнуть всё равно надо.
         actorView.SignalHealth(npc.Health);
         // Spec 33.1: a carried weapon rides slung on the back when it isn't in
         // the hand (SetBackWeapon hides it if it's the current hand prop).

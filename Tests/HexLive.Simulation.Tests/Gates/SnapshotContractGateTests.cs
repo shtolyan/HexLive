@@ -63,6 +63,8 @@ public sealed class SnapshotContractGateTests
         npc.SwingStrikeIndex = 2;
         npc.AttackAnimUntilTick = world.Tick + 5;
         npc.Mind.ForcedMeleeWeaponId = ContentIds.Knife;
+        npc.HitStampTick = 4247;
+        npc.HitWeaponId = "bite";
 
         var open = Find(WorldSnapshotExporter.Export(world), npc.Id.Value);
 
@@ -80,6 +82,12 @@ public sealed class SnapshotContractGateTests
         Assert.That(open.IsSwinging, Is.True,
             "Окно анимации открыто (Tick < AttackAnimUntilTick), а IsSwinging " +
             "говорит обратное — проверь производную в WorldSnapshotExporter.");
+        Assert.That(open.HitStampTick, Is.EqualTo(4247),
+            "Штамп попадания не доехал — вид не даст ни брызги, ни флинча, ни " +
+            "звука удара в момент, когда удар лёг (§104 r5).");
+        Assert.That(open.HitWeaponId, Is.EqualTo("bite"),
+            "Чем попали — не доехало: звук удара выбирается по этому полю " +
+            "(кулак, клинок, зубы).");
 
         // Окно закрылось — флаг обязан погаснуть, иначе процедурный замах
         // вида зависнет навсегда.
@@ -129,6 +137,9 @@ public sealed class SnapshotContractGateTests
         var wasFighting = false;
         var sawFight = false;
         var lowestVictimHealth = 1f;
+        var hits = new List<int>();            // все РАЗНЫЕ штампы попадания по жертвам
+        var hitWeapons = new HashSet<string>();
+        var lastHitByNpc = new Dictionary<int, int>();
 
         for (var i = 0; i < ArenaTicks && !world.Completed; i++)
         {
@@ -175,6 +186,32 @@ public sealed class SnapshotContractGateTests
                 {
                     lowestVictimHealth = girl.Health;
                 }
+
+                // Штамп попадания — по ЛЮБОМУ, кого ударили: сцена бьёт
+                // девушку, она отвечает, помощницы вмешиваются.
+                if (girl.HitStampTick <= 0)
+                {
+                    continue;
+                }
+
+                var seen = lastHitByNpc.TryGetValue(girl.Id.Value, out var prev) ? prev : 0;
+                if (girl.HitStampTick == seen)
+                {
+                    continue;
+                }
+
+                lastHitByNpc[girl.Id.Value] = girl.HitStampTick;
+                hits.Add(girl.HitStampTick);
+                hitWeapons.Add(girl.HitWeaponId ?? string.Empty);
+
+                // Штамп ставится в тик удара, а SimulationEngine.Step двигает
+                // часы ПОСЛЕ систем — значит свежий штамп это ровно тик,
+                // который только что отработал. Иначе кто-то ставит его задним
+                // числом (или наперёд), и вид даст кровь со звуком не в тот
+                // момент, когда бьют.
+                Assert.That(girl.HitStampTick, Is.EqualTo(world.Tick - 1),
+                    $"NPC{girl.Id.Value}: штамп попадания {girl.HitStampTick} после " +
+                    $"тика {world.Tick - 1} — момент удара смещён.");
             }
         }
 
@@ -209,6 +246,21 @@ public sealed class SnapshotContractGateTests
         Assert.That(lowestVictimHealth, Is.LessThan(1f),
             "Никто не пострадал — сцена не дошла до ударов, инварианты выше " +
             "проверяют пустоту.");
+
+        // §104 r5: удары ЛОЖИЛИСЬ (здоровье падало) — значит и штамп попадания
+        // обязан был смениться. Иначе кровь, флинч и звук молчат ровно так же,
+        // как молчал замах до §103.
+        Assert.That(hits.Count, Is.GreaterThanOrEqualTo(3),
+            $"Здоровье жертвы падало, а штамп попадания сменился {hits.Count} " +
+            "раз(а). Вид даёт брызгу, флинч и звук удара по СМЕНЕ этого штампа: " +
+            "не меняется — удар прилетает в неподвижное тело беззвучно.");
+
+        Assert.That(hitWeapons, Is.Not.Empty,
+            "Ни одного «чем попали» — звук удара выбирать не по чему.");
+        Assert.That(hitWeapons.All(w => w == "bite" || GearCatalog.Active.ContainsKey(w)),
+            Is.True,
+            "«Чем попали» не опознаётся ни как зубы, ни как снаряжение: " +
+            string.Join(", ", hitWeapons.Select(w => "'" + w + "'")));
     }
 
     private static NpcSnapshot Find(WorldSnapshot snapshot, int id)

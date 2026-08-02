@@ -655,6 +655,8 @@ public static class WorldSnapshotExporter
             // Спрашиваем ТО ЖЕ правило, по которому бьёт симуляция.
             MeleeWeaponId = Runtime.MeleeSwing.EffectiveWeapon(npc),
             StrikeIndex = npc.SwingStrikeIndex,
+            HitStampTick = npc.HitStampTick,
+            HitWeaponId = npc.HitWeaponId ?? string.Empty,
             Hunger = npc.Needs.Hunger,
             Thirst = npc.Needs.Thirst,
             Energy = npc.Needs.Energy,

@@ -18,6 +18,11 @@ var CATALOG = [
     { id: "mine_stone",      vol: 0.80, min: 1.2, max: 26, spatial: true,  loop: false },
     { id: "hammer",          vol: 0.70, min: 1.2, max: 24, spatial: true,  loop: false },
     { id: "hit_flesh",       vol: 0.85, min: 1.2, max: 28, spatial: true,  loop: false },
+    // §104 r5: удар по человеку — кулаком и клинком. Раньше человеческий удар
+    // не звучал вовсе: hit_flesh играл только на укус, отрыв конечности,
+    // разделку туши и на удар ПО ВОЛКУ.
+    { id: "hit_punch",       vol: 0.85, min: 1.2, max: 28, spatial: true,  loop: false },
+    { id: "hit_blade",       vol: 0.85, min: 1.2, max: 28, spatial: true,  loop: false },
     { id: "body_fall",       vol: 0.80, min: 1.2, max: 24, spatial: true,  loop: false },
     { id: "swing",           vol: 0.50, min: 1.0, max: 18, spatial: true,  loop: false },
     { id: "chop_accent",     vol: 0.90, min: 1.5, max: 30, spatial: true,  loop: false },

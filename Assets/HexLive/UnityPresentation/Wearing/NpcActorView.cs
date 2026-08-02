@@ -284,6 +284,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private readonly HashSet<int> _seenWoundSeeds = new();
     private bool _woundVfxPrimed;
     private float _lastSplashTime;
+    // §104 r5: последний отыгранный штамп попадания. -1 = ничего не видели;
+    // как и у замаха, сравнение идёт со ЗНАЧЕНИЕМ, а не с фронтом флага.
+    private int _lastHitStampTick = -1;
+    // Одна брызга на удар: сим дробит попадание на три раны (GashesPerHit), а
+    // на перемотке ударов приходит пачками. Гейт — реального времени, поэтому
+    // он одинаково работает на любой скорости симуляции.
+    private const float SplashGateSeconds = 0.4f;
 
     // Spec 40.8/40.6: skin decal layer (wounds/dirt/sweat on bare zones only).
     private SkinDecals _skinDecals;
@@ -2114,6 +2121,78 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return;
         }
 
+        PlayHitReact();
+    }
+
+    /// <summary>
+    /// ⭐ §104 r5: ПО НЕЙ ПОПАЛИ ПРЯМО СЕЙЧАС — кровь, вздрагивание и звук
+    /// удара, всё в один кадр.
+    ///
+    /// <para>
+    /// Раньше вид узнавал о попадании двумя косвенными путями, и оба врали.
+    /// Флинч висел на падении здоровья мимо порога 0.02 по СРЕДНЕМУ — а кулак
+    /// снимает <c>landed/7</c> ≈ 0.015, то есть вздрагивания от кулака не было
+    /// никогда. Брызга висела на появлении новой раны с гейтом в 0.4 с
+    /// реального времени, так что часть ударов проходила вовсе без картинки.
+    /// Звука удара по человеку не существовало.
+    /// </para>
+    /// <para>
+    /// Теперь сим отмечает сам момент (<c>HitStampTick</c>), а вид ловит смену
+    /// штампа — тем же приёмом, которым ловит начало замаха, и по той же
+    /// причине: событие живёт один тик, а кадр рисует только последний тик.
+    /// Порог здоровья остаётся ФОЛБЭКОМ для урона не от удара (падение,
+    /// акула, огонь) — там штампа нет.
+    /// </para>
+    /// </summary>
+    public void SignalHit(int hitStampTick, string hitWeaponId)
+    {
+        var fresh = hitStampTick > 0 && hitStampTick != _lastHitStampTick;
+        _lastHitStampTick = hitStampTick;
+        if (!fresh)
+        {
+            return;
+        }
+
+        PlayHitReact();
+        SpawnHitBlood();
+
+        if (_simSpeed <= 4.01f)
+        {
+            Audio.FmodSfx.Play(ImpactSfxFor(hitWeaponId), transform.position);
+        }
+    }
+
+    /// <summary>Чем ударили — тем и звучит. Пустой id это кулаки.</summary>
+    private static string ImpactSfxFor(string weaponId)
+    {
+        if (string.IsNullOrEmpty(weaponId))
+        {
+            return Audio.FmodSfx.Sfx.HitPunch;
+        }
+
+        if (weaponId == HexLive.Simulation.Content.GearCatalog.Bite)
+        {
+            return Audio.FmodSfx.Sfx.WolfBite;
+        }
+
+        // Клинковое — режет; всё прочее (молоток, кирка, копьё) — тупой удар.
+        return weaponId is HexLive.Simulation.Content.GearCatalog.Knife
+            or HexLive.Simulation.Content.GearCatalog.Machete
+            or HexLive.Simulation.Content.GearCatalog.Axe
+            or HexLive.Simulation.Content.GearCatalog.Saw
+            ? Audio.FmodSfx.Sfx.HitBlade
+            : Audio.FmodSfx.Sfx.HitPunch;
+    }
+
+    private void PlayHitReact()
+    {
+        // Вздрагивать может только та, что стоит: у идущей, плывущей и лежащей
+        // своё движение, и флинч поверх него читается как рывок.
+        if (_dead || _laying || _swimming || _ragdollActive || _wasWalking || _animator == null)
+        {
+            return;
+        }
+
         _animator.SetTrigger(HitReactParam);
     }
 
@@ -3636,16 +3715,35 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             }
         }
 
-        if (splashZone == null || Time.time - _lastSplashTime < 0.4f ||
-            _bodyBones == null || !ZoneBoneAnchors.TryGetValue(splashZone, out var boneName))
+        if (splashZone == null || !SplashAt(splashZone, splashSeed))
         {
             return;
+        }
+
+        // §67/§67.10: свежая рана — вскрик, личный для персонажа (§67.6), с
+        // общим женским фолбэком, и бабл с раной/кровью над головой. Alarm-ранг
+        // перебивает болтовню; гейт 0.4 s от брызг не даёт хора из одного рта.
+        Say("hurt_wound");
+    }
+
+    /// <summary>
+    /// Брызга крови у кости зоны. Общая для двух поводов: НОВАЯ РАНА (её ищет
+    /// SyncWoundSplashVfx по seed'ам) и ХИТ-ШТАМП (§104 r5) — удар мог не
+    /// оставить раны вовсе, попав в броню или в пощаду, но видно его быть
+    /// обязано. Возвращает false, когда спавнить нечего или ещё рано.
+    /// </summary>
+    private bool SplashAt(string zone, int seed)
+    {
+        if (Time.time - _lastSplashTime < SplashGateSeconds || _bodyBones == null ||
+            !ZoneBoneAnchors.TryGetValue(zone, out var boneName))
+        {
+            return false;
         }
 
         var bone = _bodyBones.GetBone(boneName);
         if (bone == null)
         {
-            return;
+            return false;
         }
 
         _lastSplashTime = Time.time;
@@ -3660,12 +3758,18 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // The pack is authored for a full-size human; our actors are ~0.35
         // scale — the shared spawner scales sizes AND velocities together.
         Rendering.BloodSplashVfx.SpawnHitSplash(
-            bone.position, outward, root.lossyScale.y, splashSeed);
+            bone.position, outward, root.lossyScale.y, seed);
+        return true;
+    }
 
-        // §67/§67.10: свежая рана — вскрик, личный для персонажа (§67.6), с
-        // общим женским фолбэком, и бабл с раной/кровью над головой. Alarm-ранг
-        // перебивает болтовню; гейт 0.4 s от брызг не даёт хора из одного рта.
-        Say("hurt_wound");
+    /// <summary>
+    /// Кровь по хит-штампу. Зона неизвестна — сим шлёт момент, а не место, —
+    /// поэтому берём торс: он у любой раны рядом, а точное место всё равно
+    /// докрасит рана, когда появится.
+    /// </summary>
+    private void SpawnHitBlood()
+    {
+        SplashAt("Torso", _lastHitStampTick);
     }
 
     // Spec 40.7: paint the bare skin from tan (0..1) and acute sunburn (0..1).

@@ -323,6 +323,11 @@ namespace HexLive.Simulation.Content
     public static class GearCatalog
     {
         public const string Fist = "";                  // bare hands (empty id)
+        // §104 r5: «чем попали» для хит-штампа, когда попали ЗУБЫ. Не id
+        // снаряжения: пустая строка уже занята кулаками, а вид выбирает по
+        // этому полю звук удара. Живёт здесь, чтобы модель и вид читали одну
+        // константу, а не две одинаковые строки в разных сборках.
+        public const string Bite = "bite";
         public const string Knife = "tool.knife";
         public const string Axe = "tool.axe_stone";
         public const string Machete = "tool.machete";

@@ -675,146 +675,9 @@ public sealed partial class DecisionSystem : ISimulationSystem
             social: (ctx.BestAffinity ?? 0f) * 0.1f - npc.Social.Embarrassment * 0.3f -
                 (ctx.IsGrieving ? 0.2f : 0f));
 
-        // Spec §53: compassion — tend the worst-off reachable housemate
-        // (feed/treat/medicate/console). Gated HARD behind the helper's own
-        // survival: a girl in her own crisis (starving, dehydrated, badly
-        // hurt or bleeding, fighting, fleeing) looks after herself first.
-        // The bid scales with the sufferer's plight × this girl's personality
-        // CompassionTrait, plus the accumulated pressure of a spent
-        // Compassion need — so a caring girl (high trait) will outbid a bed
-        // build for a dying housemate, a reserved one only helps when idle.
-        // §53.7: help is PAID FOR out of the helper's own pack, so the
-        // scan splits in two — the worst-off housemate she can help RIGHT
-        // NOW (bids Aid), and the worst-off one she'd have to fetch a
-        // supply for first (bids the fetching chore, below).
-        var aidAvail = false;
-        var bestSuffering = 0f;
-        var bestSuffererAffinity = 0f;
-        var bestAidKind = AidKind.None;
-        var errandSuffering = 0f;
-        var errandKind = AidKind.None;
-        EntityId? errandTarget = null;
-        var aidSelfOk = false;
-        if (Spec53.Enabled)
-        {
-            var selfOk = !npc.Mind.IsStarving && !npc.Mind.IsDehydrated &&
-                !npc.IsFighting && npc.Mind.CurrentGoal != GoalType.Flee &&
-                npc.Needs.Hunger < Spec53.SelfHungerGate &&
-                npc.Health >= Spec53.SelfHealthGate &&
-                npc.Needs.Blood >= Spec53.SelfHealthGate;
-            aidSelfOk = selfOk;
-            if (selfOk)
-            {
-                foreach (var agent in npc.Perception.Agents)
-                {
-                    if (agent.AidKind == AidKind.None ||
-                        agent.Suffering < Spec53.SufferingThreshold ||
-                        !agent.IsReachable || agent.IsBusy || agent.IsMoving)
-                    {
-                        continue;
-                    }
-
-                    // Nothing to give? She still WANTS to help — remember
-                    // her as the errand and go and get it (§53.7).
-                    if (!AidSupply.Has(world, npc, agent.AidKind))
-                    {
-                        if (agent.Suffering > errandSuffering)
-                        {
-                            errandSuffering = agent.Suffering;
-                            errandKind = agent.AidKind;
-                            errandTarget = agent.Id;
-                        }
-
-                        continue;
-                    }
-
-                    if (agent.Suffering > bestSuffering)
-                    {
-                        bestSuffering = agent.Suffering;
-                        bestSuffererAffinity = agent.Relationship.Affinity;
-                        bestAidKind = agent.AidKind;
-                        aidAvail = true;
-                    }
-                }
-            }
-            // An in-flight aid (walking to the sufferer or mid-care) keeps its
-            // goal available so the availability scan can't zero a live plan.
-            var curIt = npc.Execution.CurrentInteraction;
-            var inAidExec = curIt == InteractionType.FeedOther ||
-                curIt == InteractionType.HydrateOther ||
-                curIt == InteractionType.TreatOther ||
-                curIt == InteractionType.MedicateOther ||
-                curIt == InteractionType.ConsoleOther;
-            if ((npc.Plan.Status == PlanStatus.Active &&
-                 npc.Mind.CurrentGoal == GoalType.Aid && npc.Plan.TargetAgentId is not null) ||
-                (npc.Execution.Status == ExecutionStatus.InProgress && inAidExec))
-            {
-                aidAvail = true;
-            }
-        }
-        var aidEmergency = bestAidKind == AidKind.Treat && bestSuffering >= 0.65f
-            ? StarvingBoost * 0.75f
-            : 0f;
-        AddGoalScore(npc, world.Tick, GoalType.Aid,
-            bestSuffering * npc.CompassionTrait * Spec53.AidWeight +
-                (1f - npc.Needs.Compassion) * Spec53.PressureWeight,
-            aidAvail, aidEmergency, social: System.Math.Max(0f, bestSuffererAffinity) * 0.05f);
-
-        // §53.7: the errand bid MIRRORS the aid bid — same suffering ×
-        // trait × weight, same compassion pressure, same bleed-out
-        // emergency — and is only then shaded by AidErrandBidShare. It has
-        // to: a girl who WOULD have walked over and helped must not simply
-        // shrug because her hands are empty. An errand worth strictly less
-        // than the aid it serves would lose to the very chores the aid used
-        // to outbid, and the ward would starve beside a willing helper.
-        var errandNeed = errandSuffering * npc.CompassionTrait * Spec53.AidWeight +
-            (1f - npc.Needs.Compassion) * Spec53.PressureWeight;
-        var errandEmergency = errandKind == AidKind.Treat && errandSuffering >= 0.65f
-            ? StarvingBoost * 0.75f
-            : 0f;
-        var errandFullBid = (0.1f + errandNeed + errandEmergency) * Spec53.AidErrandBidShare;
-
-        // §53.7: an errand already under way keeps pulling even when the
-        // sufferer is out of sight behind her — but it ends the moment the
-        // supply is in hand (that is the whole point), when the ward is
-        // beyond help or gone, when her own body drops into the red, or
-        // when the window runs out.
-        if (npc.Mind.AidErrandKind != AidKind.None)
-        {
-            string? errandDone = null;
-            if (!Spec53.Enabled || !Spec53.AidCostsSupplies)
-            {
-                errandDone = "disabled";
-            }
-            else if (!aidSelfOk)
-            {
-                errandDone = "helper in her own crisis";
-            }
-            else if (world.Tick >= npc.Mind.AidErrandUntilTick)
-            {
-                errandDone = "timed out";
-            }
-            else if (AidSupply.Has(world, npc, npc.Mind.AidErrandKind))
-            {
-                errandDone = "supply in hand";
-            }
-            else if (npc.Mind.AidErrandFor is not { } wardId ||
-                     !world.Entities.Npcs.TryGetValue(wardId, out var ward) ||
-                     ward.Health <= 0f)
-            {
-                errandDone = "ward gone";
-            }
-
-            if (errandDone is not null)
-            {
-                Trace.Emit(world, npc.Id, "AidErrandCleared",
-                    $"Kind={npc.Mind.AidErrandKind} Reason={errandDone}");
-                npc.Mind.AidErrandKind = AidKind.None;
-                npc.Mind.AidErrandFor = null;
-                npc.Mind.AidErrandUntilTick = 0;
-                npc.Mind.AidErrandBid = 0f;
-            }
-        }
+        ScoreCompassion(world, npc, in ctx,
+            out var aidSelfOk, out var errandKind,
+            out var errandTarget, out var errandFullBid);
 
         // Spec 35.3: what the communal hut needs next (null = done/absent).
         // Construction is peacetime work: material hauling pauses while
@@ -2012,6 +1875,168 @@ public sealed partial class DecisionSystem : ISimulationSystem
         }
 
     }
+    /// <summary>
+    /// §53: сострадание. Кто рядом страдает, могу ли я помочь — и если помочь
+    /// нечем, за чем идти.
+    ///
+    /// <para>
+    /// Цельная подсистема: она сама решает свою ставку и сама оставляет метку
+    /// поручения. Из скоринга её видно тремя величинами на выходе, а не сотней
+    /// строк посреди чужих целей.
+    /// </para>
+    /// </summary>
+    private static void ScoreCompassion(
+        WorldState world, NPCState npc, in DecisionContext ctx,
+        out bool aidSelfOk, out AidKind errandKind,
+        out EntityId? errandTarget, out float errandFullBid)
+    {
+        aidSelfOk = false;
+        errandKind = AidKind.None;
+        errandTarget = null;
+        errandFullBid = 0f;
+
+    // Spec §53: compassion — tend the worst-off reachable housemate
+    // (feed/treat/medicate/console). Gated HARD behind the helper's own
+    // survival: a girl in her own crisis (starving, dehydrated, badly
+    // hurt or bleeding, fighting, fleeing) looks after herself first.
+    // The bid scales with the sufferer's plight × this girl's personality
+    // CompassionTrait, plus the accumulated pressure of a spent
+    // Compassion need — so a caring girl (high trait) will outbid a bed
+    // build for a dying housemate, a reserved one only helps when idle.
+    // §53.7: help is PAID FOR out of the helper's own pack, so the
+    // scan splits in two — the worst-off housemate she can help RIGHT
+    // NOW (bids Aid), and the worst-off one she'd have to fetch a
+    // supply for first (bids the fetching chore, below).
+    var aidAvail = false;
+    var bestSuffering = 0f;
+    var bestSuffererAffinity = 0f;
+    var bestAidKind = AidKind.None;
+    var errandSuffering = 0f;
+    errandKind = AidKind.None;
+    errandTarget = null;
+    aidSelfOk = false;
+    if (Spec53.Enabled)
+    {
+        var selfOk = !npc.Mind.IsStarving && !npc.Mind.IsDehydrated &&
+            !npc.IsFighting && npc.Mind.CurrentGoal != GoalType.Flee &&
+            npc.Needs.Hunger < Spec53.SelfHungerGate &&
+            npc.Health >= Spec53.SelfHealthGate &&
+            npc.Needs.Blood >= Spec53.SelfHealthGate;
+        aidSelfOk = selfOk;
+        if (selfOk)
+        {
+            foreach (var agent in npc.Perception.Agents)
+            {
+                if (agent.AidKind == AidKind.None ||
+                    agent.Suffering < Spec53.SufferingThreshold ||
+                    !agent.IsReachable || agent.IsBusy || agent.IsMoving)
+                {
+                    continue;
+                }
+
+                // Nothing to give? She still WANTS to help — remember
+                // her as the errand and go and get it (§53.7).
+                if (!AidSupply.Has(world, npc, agent.AidKind))
+                {
+                    if (agent.Suffering > errandSuffering)
+                    {
+                        errandSuffering = agent.Suffering;
+                        errandKind = agent.AidKind;
+                        errandTarget = agent.Id;
+                    }
+
+                    continue;
+                }
+
+                if (agent.Suffering > bestSuffering)
+                {
+                    bestSuffering = agent.Suffering;
+                    bestSuffererAffinity = agent.Relationship.Affinity;
+                    bestAidKind = agent.AidKind;
+                    aidAvail = true;
+                }
+            }
+        }
+        // An in-flight aid (walking to the sufferer or mid-care) keeps its
+        // goal available so the availability scan can't zero a live plan.
+        var curIt = npc.Execution.CurrentInteraction;
+        var inAidExec = curIt == InteractionType.FeedOther ||
+            curIt == InteractionType.HydrateOther ||
+            curIt == InteractionType.TreatOther ||
+            curIt == InteractionType.MedicateOther ||
+            curIt == InteractionType.ConsoleOther;
+        if ((npc.Plan.Status == PlanStatus.Active &&
+             npc.Mind.CurrentGoal == GoalType.Aid && npc.Plan.TargetAgentId is not null) ||
+            (npc.Execution.Status == ExecutionStatus.InProgress && inAidExec))
+        {
+            aidAvail = true;
+        }
+    }
+    var aidEmergency = bestAidKind == AidKind.Treat && bestSuffering >= 0.65f
+        ? StarvingBoost * 0.75f
+        : 0f;
+    AddGoalScore(npc, world.Tick, GoalType.Aid,
+        bestSuffering * npc.CompassionTrait * Spec53.AidWeight +
+            (1f - npc.Needs.Compassion) * Spec53.PressureWeight,
+        aidAvail, aidEmergency, social: System.Math.Max(0f, bestSuffererAffinity) * 0.05f);
+
+    // §53.7: the errand bid MIRRORS the aid bid — same suffering ×
+    // trait × weight, same compassion pressure, same bleed-out
+    // emergency — and is only then shaded by AidErrandBidShare. It has
+    // to: a girl who WOULD have walked over and helped must not simply
+    // shrug because her hands are empty. An errand worth strictly less
+    // than the aid it serves would lose to the very chores the aid used
+    // to outbid, and the ward would starve beside a willing helper.
+    var errandNeed = errandSuffering * npc.CompassionTrait * Spec53.AidWeight +
+        (1f - npc.Needs.Compassion) * Spec53.PressureWeight;
+    var errandEmergency = errandKind == AidKind.Treat && errandSuffering >= 0.65f
+        ? StarvingBoost * 0.75f
+        : 0f;
+    errandFullBid = (0.1f + errandNeed + errandEmergency) * Spec53.AidErrandBidShare;
+
+    // §53.7: an errand already under way keeps pulling even when the
+    // sufferer is out of sight behind her — but it ends the moment the
+    // supply is in hand (that is the whole point), when the ward is
+    // beyond help or gone, when her own body drops into the red, or
+    // when the window runs out.
+    if (npc.Mind.AidErrandKind != AidKind.None)
+    {
+        string? errandDone = null;
+        if (!Spec53.Enabled || !Spec53.AidCostsSupplies)
+        {
+            errandDone = "disabled";
+        }
+        else if (!aidSelfOk)
+        {
+            errandDone = "helper in her own crisis";
+        }
+        else if (world.Tick >= npc.Mind.AidErrandUntilTick)
+        {
+            errandDone = "timed out";
+        }
+        else if (AidSupply.Has(world, npc, npc.Mind.AidErrandKind))
+        {
+            errandDone = "supply in hand";
+        }
+        else if (npc.Mind.AidErrandFor is not { } wardId ||
+                 !world.Entities.Npcs.TryGetValue(wardId, out var ward) ||
+                 ward.Health <= 0f)
+        {
+            errandDone = "ward gone";
+        }
+
+        if (errandDone is not null)
+        {
+            Trace.Emit(world, npc.Id, "AidErrandCleared",
+                $"Kind={npc.Mind.AidErrandKind} Reason={errandDone}");
+            npc.Mind.AidErrandKind = AidKind.None;
+            npc.Mind.AidErrandFor = null;
+            npc.Mind.AidErrandUntilTick = 0;
+            npc.Mind.AidErrandBid = 0f;
+        }
+    }
+    }
+
 
     /// <summary>
     /// Выбор цели: печать входа, разложение оценок, максимум и правило

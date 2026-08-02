@@ -63,6 +63,13 @@ namespace HexLive.UnityDebug.Editor
             // made the window. Same idiom as JumpSpeed (§HexHop). Default 1 =
             // authored pace, so a controller built before this reads identical.
             AddParam(ac, "ActionSpeed", AnimatorControllerParameterType.Float, 1f);
+            // §104 r4: то же для УДАРА, но своим параметром — иначе боевой темп
+            // и рабочий писали бы в одну ячейку по очереди каждый кадр. Клип
+            // замаха обязан уложиться ровно в окно, которое открыл сим: у
+            // кулака Punch A длится 2.17 с против окна 1.5 с, и без подгонки
+            // удар либо обрывается на выходе в Idle, либо доигрывает поверх
+            // следующего замаха.
+            AddParam(ac, "AttackSpeed", AnimatorControllerParameterType.Float, 1f);
 
             var sm = ac.layers[0].stateMachine;
             var idle = Find(sm, "Idle");
@@ -113,11 +120,27 @@ namespace HexLive.UnityDebug.Editor
             FitClipToWindow(craft);
 
             // Attack: fired by a trigger, plays once, exits by time.
+            //
+            // §104 r4, два изменения, оба про рассинхрон с симуляцией:
+            //
+            // speedParameter — клип играет ровно столько, сколько окно замаха
+            // в модели (вид считает AttackSpeed из живой длины клипа). Без него
+            // авторская длина и sim-окно были ДВА ЧИСЛА, ОБЯЗАННЫЕ СОВПАДАТЬ, и
+            // не совпадали ни у одного оружия: кулак 2.17 против 1.5, копьё
+            // 3.27 против 2.0.
+            //
+            // canTransitionToSelf — новый замах РЕЖЕТ предыдущий клип. Раньше
+            // повторный триггер посреди удара не брался и оставался взведённым:
+            // он выстреливал сразу после возврата в Idle, давая фантомный удар
+            // без замаха в модели. Триггер ставится ровно раз на замах (по
+            // смене штампа), так что перезапуск здесь — это и есть «начался
+            // следующий удар».
             ClearAny(sm, attack);
             ClearOut(attack);
+            FitClipToWindow(attack, "AttackSpeed");
             var ai = sm.AddAnyStateTransition(attack);
             ai.AddCondition(AnimatorConditionMode.If, 0, "Attack");
-            ai.hasExitTime = false; ai.duration = 0.1f; ai.canTransitionToSelf = false;
+            ai.hasExitTime = false; ai.duration = 0.1f; ai.canTransitionToSelf = true;
             var ao = attack.AddTransition(idle);
             ao.hasExitTime = true; ao.exitTime = 0.9f; ao.duration = 0.15f;
 
@@ -219,11 +242,11 @@ namespace HexLive.UnityDebug.Editor
         // brisk. Only states where ONE interaction IS ONE gesture get this:
         // Chop is a REPEATED swing at a tree and must keep looping, and the
         // wardrobe/talk beats have their own timing.
-        static void FitClipToWindow(AnimatorState s)
+        static void FitClipToWindow(AnimatorState s, string parameter = "ActionSpeed")
         {
             if (s == null) return;
             s.speedParameterActive = true;
-            s.speedParameter = "ActionSpeed";
+            s.speedParameter = parameter;
         }
 
         static AnimatorState Find(AnimatorStateMachine sm, string n)

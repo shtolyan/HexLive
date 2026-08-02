@@ -73,6 +73,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // hands us. Same idiom as JumpSpeed. Both states read this float; every
     // other state keeps its authored pace.
     private static readonly int ActionSpeedParam = Animator.StringToHash("ActionSpeed");
+    // §104 r4: темп клипа УДАРА — свой параметр, чтобы бой и работа не писали
+    // в одну ячейку по очереди каждый кадр (SetInteraction идёт перед SetCombat).
+    private static readonly int AttackSpeedParam = Animator.StringToHash("AttackSpeed");
     // Base-clip KEYS of the two fitted states, for looking up their live length
     // (the override controller may have swapped in a different take).
     private const string GatherBaseClip = "X Bot@Gathering Objects";
@@ -2995,6 +2998,24 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         return started;
     }
 
+    /// <summary>
+    /// ⭐ ОКНО ЗАМАХА В СЕКУНДАХ — ровно то, что открыл сим.
+    ///
+    /// <para>
+    /// Спрашивается у ТОГО ЖЕ расчёта (<c>GearStats.StrikeTimings</c>) и с тем
+    /// же вариантом удара. Здесь стояла базовая длительность оружия, а сим
+    /// открывает окно по варианту: у кулака это разные листы, и совпадали они
+    /// только случайно. Две мерки на одно расстояние — та же болезнь, что дала
+    /// мёртвую зону §102, только во времени.
+    /// </para>
+    /// </summary>
+    private static float SwingWindowSeconds(string weaponId, int strikeIndex)
+    {
+        HexLive.Simulation.Content.GearCatalog.For(weaponId ?? string.Empty)
+            .StrikeTimings(strikeIndex, out _, out var clipSeconds, out _);
+        return clipSeconds;
+    }
+
     public void SetCombat(bool fighting, string weaponId, bool swinging, int strikeIndex = -1,
         int swingStartTick = 0)
     {
@@ -3104,6 +3125,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 if (clip != null)
                 {
                     OverrideClip(AttackBaseClip, clip);
+                    // §104 r4: и сразу подогнать ТЕМП под окно, которое открыл
+                    // сим для ИМЕННО ЭТОГО варианта удара — иначе авторская
+                    // длина клипа и окно расходятся (кулак: 2.17 с против 1.5),
+                    // и удар либо обрывается, либо доигрывает поверх
+                    // следующего. Ставится ПОСЛЕ подмены клипа: делим на длину
+                    // того, что реально забиндено (идиом §77.5).
+                    _animator.SetFloat(AttackSpeedParam,
+                        FitClipSpeed(AttackBaseClip, SwingWindowSeconds(weaponId, strikeIndex)));
                     _animator.SetTrigger(AttackParam);
                 }
 
@@ -3133,15 +3162,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 }
             }
 
-            // §104 r3: длительность СПРАШИВАЕТСЯ У ТОГО ЖЕ РАСЧЁТА, что и в
-            // симуляции (GearStats.StrikeTimings) — с учётом варианта удара.
-            // Здесь стояла базовая длительность оружия, а сим открывает окно по
-            // варианту: у кулака это разные листы, и совпадали они только
-            // случайно. Две мерки на одно расстояние — та же болезнь, что дала
-            // мёртвую зону §102, только во времени.
-            HexLive.Simulation.Content.GearCatalog.For(weaponId ?? string.Empty)
-                .StrikeTimings(strikeIndex, out _, out var clipSeconds, out _);
-            var duration = Mathf.Max(0.25f, clipSeconds);
+            var duration = Mathf.Max(0.25f, SwingWindowSeconds(weaponId, strikeIndex));
             _attackSpeed = 1f / (AttackSwingCycles * duration);
         }
         else

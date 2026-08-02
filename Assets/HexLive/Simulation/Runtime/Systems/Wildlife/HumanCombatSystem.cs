@@ -50,7 +50,7 @@ public sealed class HumanCombatSystem : ISimulationSystem
             // keeps (AnimalCombatSystem.ClampToHoldDistance).
             HoldStandOff(world, actor, opponent);
 
-            var inReach = MeleeSwing.InReach(world, actor, opponent);
+            var inReach = InteractionReach.CanStrike(world, actor, opponent);
             if (!MeleeSwing.TryAdvanceSwing(world, actor, inReach, out var damage, out var weaponId))
             {
                 continue;

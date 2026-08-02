@@ -69,7 +69,7 @@ public sealed class RaidSystem : ISimulationSystem
                 continue;
             }
 
-            if (!MeleeSwing.InReach(world, raider, victim))
+            if (!InteractionReach.CanStrike(world, raider, victim))
             {
                 // Still stalking — the plan walks him in. Drop the pairing so
                 // nobody swings at thin air across the island.
@@ -438,7 +438,7 @@ public sealed class RaidSystem : ISimulationSystem
                 defender.Mind.CurrentGoal != GoalType.Defend ||
                 defender.Mind.CombatAssistAttackerNpcId is not { } assistId ||
                 !assistId.Equals(raider.Id) ||
-                !MeleeSwing.InReach(world, defender, raider))
+                !InteractionReach.CanStrike(world, defender, raider))
             {
                 continue;
             }

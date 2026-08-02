@@ -7,12 +7,44 @@ using HexLive.Simulation.Agents;
 namespace HexLive.Simulation.Runtime
 {
 
+/// <summary>Единственные два ответа на «достаю ли я до неё» (§102 r4).</summary>
+internal enum MeleeApproach
+{
+    /// <summary>Не достаю — иду.</summary>
+    Approach,
+
+    /// <summary>Достаю — начинаю или продолжаю.</summary>
+    Act,
+}
+
 // Spec §26.3 r3: the ONE table of "how close is close enough" for starting an
 // interaction. The recurring "acts from a whole hex away" family (build /
 // craft / harvest / feed / treat at range) always traces back to some site
 // rolling its own tolerance constant; every start gate must read this class,
 // and every start must be measured through CheckStart so a soak run can count
 // violations ("InteractionTooFar" events) instead of waiting for a screenshot.
+//
+// ⭐ ПЯТЬ МЕР БЛИЗОСТИ, и путать их дорого. Раньше этот комментарий обещал «одну
+// таблицу», а соседство узлов жило в боевом хелпере и в таблицу не входило —
+// ровно из этого зазора и вырос §102. Теперь таблица честная:
+//
+//   мера                      | что значит                        | где
+//   --------------------------|-----------------------------------|-------------
+//   CanStrike                 | СОСЕДСТВО УЗЛОВ: свой узел или     | здесь
+//                             | смежный. Рука дальше не достаёт.   |
+//   Talk / Aid / ForObject    | МЕТРИЧЕСКАЯ дистанция в мировых    | здесь
+//                             | единицах, через CheckStart.        |
+//   CheckObjectStart          | метрика И проходимость границы     | здесь
+//                             | (через обрыв не дотянешься).       |
+//   HexDistance               | ЦЕЛЫЕ тайлы. Прикидка «далеко ли», | HexSpatialMath
+//                             | не гейт старта.                    |
+//   Connectivity.Reachable    | СУЩЕСТВУЕТ ЛИ МАРШРУТ вообще.      | Connectivity
+//                             | Не про близость: сюда не сводится. |
+//
+// Первые три — «достаточно ли близко, чтобы действовать», и жить им положено
+// здесь. Последние две отвечают на ДРУГИЕ вопросы и намеренно оставлены
+// снаружи: свести их сюда значило бы сделать вид, что «в двух тайлах» и «туда
+// есть дорога» — про одно и то же.
 internal static class InteractionReach
 {
     // Object work (harvest/craft/build/pickup/sit...): the object's physical
@@ -30,6 +62,45 @@ internal static class InteractionReach
     // half) read as chatting across the camp. The planner reserves the same
     // arm's-length approach as aid; 2*R is drift slack, not a target.
     public static float Talk => HexSpatialMath.HexRadius * 2f;
+
+    // Рука достаёт до СВОЕГО узла и до СМЕЖНОГО — и не дальше. Мера
+    // топологическая, а не метрическая: через обрыв между двумя близкими по
+    // прямой узлами кулаком не дотянешься, а вдоль пологой границы — да.
+    //
+    // Жила в MeleeSwing и потому не считалась «дистанцией взаимодействия».
+    // Именно это и стоило §102: преследование мерило метрикой, старт — вот
+    // этим, и кольцо между мерками молчало обеими.
+    public static bool CanStrike(WorldState world, NPCState actor, NPCState target)
+    {
+        return actor.CurrentJunction is { } aj && target.CurrentJunction is { } bj &&
+            (aj.Equals(bj) ||
+             (world.Junctions.Items.TryGetValue(bj, out var junction) &&
+              junction.Neighbors.Contains(aj)));
+    }
+
+    // ⭐ Правило §102 r4 одной функцией: НЕ ДОСТАЮ → ИДУ; ДОСТАЮ → НАЧИНАЮ.
+    //
+    // Смысл в том, что и «пора догонять», и «можно начинать» отвечает ОДНО
+    // место. Пока это были два условия в разных строках, между ними existовал
+    // зазор, в котором молчали оба: замер на арене — 2951 из 12000 тиков в этом
+    // кольце, самый длинный застой 2872 тика подряд. Теперь «идти» — это
+    // буквально «не действовать», и третьего состояния взяться неоткуда.
+    //
+    // Гистерезис у меры честный и намеренный, как у порогов нужд: ВОЙТИ в сцену
+    // можно только с ударной дистанции (§98 — иначе сцены начинались там, откуда
+    // рука не достаёт), а УДЕРЖИВАТЬ её позволено на разговорной (§89 — за узкую
+    // мерку внутри сцены платили десятками срывов за прогон, стоило жертве
+    // переступить). Разные пороги на вход и на выход — не расхождение мер, если
+    // они названы и живут рядом.
+    public static MeleeApproach AssessMelee(
+        WorldState world, NPCState actor, NPCState target, bool sceneStarted, string what)
+    {
+        var close = sceneStarted
+            ? CheckStart(world, actor, target.Position, Talk, what)
+            : CanStrike(world, actor, target);
+
+        return close ? MeleeApproach.Act : MeleeApproach.Approach;
+    }
 
     // True when the NPC stands close enough to the anchor to begin; otherwise
     // emits the standardized InteractionTooFar trace (the caller aborts with

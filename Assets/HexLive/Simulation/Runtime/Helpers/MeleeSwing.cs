@@ -195,13 +195,9 @@ internal static class MeleeSwing
         return attacker.Social.GetOrCreate(target.Id).Affinity > Spec86.HatredAffinity;
     }
 
-    internal static bool InReach(WorldState world, NPCState a, NPCState b)
-    {
-        return a.CurrentJunction is { } aj && b.CurrentJunction is { } bj &&
-            (aj.Equals(bj) ||
-             (world.Junctions.Items.TryGetValue(bj, out var junction) &&
-              junction.Neighbors.Contains(aj)));
-    }
+    // «Достаёт ли рука» переехало в InteractionReach.CanStrike — туда, где
+    // объявлена вся таблица мер близости. Здесь оно было пятой мерой, о которой
+    // таблица не знала, и §102 вырос ровно из этого зазора.
 }
 
 }

@@ -34,6 +34,43 @@ namespace HexLive.Simulation.AI
 public static class FightScene
 {
     /// <summary>
+    /// «Своё он уже сказал»: отсрочка следующего замаха настолько большая, что
+    /// он не наступит до конца сцены. Не бесконечность, потому что это ТИК, и
+    /// его складывают с текущим.
+    /// </summary>
+    private const int SceneOverSentinel = int.MaxValue / 4;
+
+    /// <summary>
+    /// ⭐ ОТПУСТИТЬ СЛОТ ЗАМАХА. Зовётся при ЛЮБОМ расцеплении пары, не только
+    /// при штатном конце сцены.
+    ///
+    /// <para>
+    /// §104 r7: сентинел «сцена доиграна» — это отсрочка на полмиллиарда тиков,
+    /// и пережить сцену он не должен. Штатный <see cref="End"/> её снимал, а
+    /// обрыв мимо него (RaidSystem расцепляет пару своим Unpair) — нет: боец
+    /// оставался без замахов до переполнения, то есть навсегда. Сегодня все
+    /// пути сцены идут через End, так что дыра закрыта косвенно — этот метод
+    /// закрывает её структурно.
+    /// </para>
+    /// </summary>
+    public static void ReleaseSwingSlot(NPCState npc)
+    {
+        if (npc == null)
+        {
+            return;
+        }
+
+        npc.StrikeLandsAtTick = 0;
+
+        // Порог различает сентинел (~5·10⁸) и легальный кулдаун оружия
+        // (десятки тиков): настоящую готовность мы не трогаем.
+        if (npc.StrikeReadyAtTick >= SceneOverSentinel / 2)
+        {
+            npc.StrikeReadyAtTick = 0;
+        }
+    }
+
+    /// <summary>
     /// Объявить сцену. <paramref name="weaponId"/>: пустая строка — кулаки,
     /// null — «как обычно, лучшим». <paramref name="spacingClips"/> — во
     /// сколько ДЛИН КЛИПА разводятся удары (1.0 — следующий сразу после того,
@@ -87,7 +124,7 @@ public static class FightScene
         // Своё он уже сказал: дальше стоит и смотрит, а сцена доигрывает до
         // приговора. Столько ударов, сколько назначено, и ни одним больше.
         var pause = IsComplete(actor)
-            ? int.MaxValue / 4
+            ? SceneOverSentinel
             : Runtime.MeleeSwing.SecondsToTicks(clipSeconds * actor.Mind.SceneBlowSpacingClips);
 
         var floor = world.Tick + pause;
@@ -95,6 +132,71 @@ public static class FightScene
         {
             actor.StrikeReadyAtTick = floor;
         }
+    }
+
+    /// <summary>
+    /// ⭐ ЧЕМ ОН БУДЕТ БИТЬ — лестница ненависти §93/§97.
+    ///
+    /// <para>
+    /// Наезд начинается рукопашкой, а тесак достают, когда уже ненавидят:
+    /// симпатия падает с каждой сценой насилия, поэтому «кулаком или ножом»
+    /// становится следствием ИСТОРИИ отношений, а не броска кубика. Между
+    /// «злится» и «ненавидит» есть ступенька: нож вместо мачете.
+    /// </para>
+    /// <para>
+    /// §104 r7: живёт здесь, потому что докблок этого класса обещает «чем
+    /// бить» своим, а правило лежало в такте сцены (ExecutionSystem.Abuse) —
+    /// то есть у того, кто сцену ИГРАЕТ, а не у того, кто её объявляет.
+    /// </para>
+    /// </summary>
+    public static string PickWeapon(NPCState abuser, NPCState mark)
+    {
+        var affinity = abuser.Social.GetOrCreate(mark.Id).Affinity;
+        if (!abuser.Body.CanUseToolsOrWeapons || affinity > Runtime.Spec81.AbuseWeaponAffinity)
+        {
+            return Content.GearCatalog.Fist;
+        }
+
+        var best = Runtime.SimBalance.BestMeleeWeapon(
+            abuser.Inventory.Items, abuser.Body.IntactHands);
+        if (string.IsNullOrEmpty(best))
+        {
+            return Content.GearCatalog.Fist;
+        }
+
+        var depth = MathUtil.Clamp01(
+            (Runtime.Spec81.AbuseWeaponAffinity - affinity) /
+            System.Math.Max(0.0001f, 1f + Runtime.Spec81.AbuseWeaponAffinity));
+        return depth >= Runtime.Spec81.AbuseHeavyWeaponDepth ? best : LighterThan(abuser, best);
+    }
+
+    // Ступенька ниже самого тяжёлого — нож вместо мачете. Если ничего легче
+    // нет, остаются кулаки: лёгкая злость не берётся за тесак.
+    private static string LighterThan(NPCState npc, string heaviest)
+    {
+        string lighter = null;
+        foreach (var item in npc.Inventory.Items)
+        {
+            var id = item.DefinitionId;
+            if (id == heaviest)
+            {
+                continue;
+            }
+
+            var gear = Content.GearCatalog.For(id);
+            if (gear.Id != id || gear.MeleePriority <= 0)
+            {
+                continue;
+            }
+
+            if (lighter is null ||
+                Content.GearCatalog.Damage(id) > Content.GearCatalog.Damage(lighter))
+            {
+                lighter = id;
+            }
+        }
+
+        return lighter ?? Content.GearCatalog.Fist;
     }
 
     /// <summary>Все назначенные удары легли.</summary>
@@ -108,6 +210,8 @@ public static class FightScene
         actor.Mind.SceneBlowsPlanned = 0;
         actor.Mind.SceneBlowSpacingClips = 0f;
         actor.Mind.ForcedMeleeWeaponId = null;
+        // Готовность здесь гасится ПОЛНОСТЬЮ, а не по порогу: сцена кончилась,
+        // и ждать её кулдаун незачем — дальше обычный бой по своим правилам.
         actor.StrikeReadyAtTick = 0;
         actor.StrikeLandsAtTick = 0;
 
@@ -118,7 +222,7 @@ public static class FightScene
         {
             target.IsFighting = false;
             target.Mind.CombatOpponentNpcId = null;
-            target.StrikeLandsAtTick = 0;
+            ReleaseSwingSlot(target);
         }
     }
 }

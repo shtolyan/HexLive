@@ -443,7 +443,10 @@ public sealed class RaidSystem : ISimulationSystem
     private static void Unpair(NPCState npc)
     {
         npc.Mind.CombatOpponentNpcId = null;
-        npc.StrikeLandsAtTick = 0;
+        // §104 r7: слот замаха отпускает ОДНО место — иначе оборванная мимо
+        // FightScene.End сцена оставляла бойца с сентинелом «больше не бью» и
+        // без замахов навсегда.
+        FightScene.ReleaseSwingSlot(npc);
     }
 
     // Every ally who answered the cry and is standing next to him joins the

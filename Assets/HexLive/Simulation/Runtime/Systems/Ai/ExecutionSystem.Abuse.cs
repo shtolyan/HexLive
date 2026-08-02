@@ -28,7 +28,7 @@ namespace HexLive.Simulation.Runtime
 // IsFighting, и сцена перезажигает его через FightScene.Latch, иначе вид
 // показывал бы мирную позу посреди драки.
 //
-// Оружие выбирает PickAbuseWeapon: наезд начинается рукопашкой, а тесак
+// Оружие выбирает FightScene.PickWeapon: наезд начинается рукопашкой, а тесак
 // достают, когда уже ненавидят (лестница ненависти §93). Это не «кулаками
 // всегда» — симпатия падает с каждой сценой, и чем бьют, становится
 // следствием ИСТОРИИ отношений.
@@ -211,7 +211,8 @@ public sealed partial class ExecutionSystem
             // раз, с какой паузой. Дальше боевая система только сообщает о
             // попаданиях, а сцена спрашивает «готово?».
             FightScene.Begin(world, npc, mark,
-                PickAbuseWeapon(npc, mark), Spec81.AbuseMaxBlows, Spec81.AbuseBlowSpacing);
+                FightScene.PickWeapon(npc, mark), Spec81.AbuseMaxBlows,
+                Spec81.AbuseBlowSpacing);
             // §100: она отвечает НЕ ВСЕГДА. Испугалась — стоит и терпит, и он
             // просто пару раз бьёт. Бросок детерминированный, поэтому реплей
             // повторяется в точности.
@@ -365,56 +366,6 @@ public sealed partial class ExecutionSystem
     //
     // Расцеплять надо ОБЕ стороны и обязательно: HumanCombatSystem работает
     // ровно по CombatOpponentNpcId, и забытая пара — это вечная драка.
-    // §97: лестница ненависти — теперь она назначает оружие настоящему бою, а
-    // не рисует отдельный «сценарный» удар.
-    private static string PickAbuseWeapon(NPCState abuser, NPCState mark)
-    {
-        var affinity = abuser.Social.GetOrCreate(mark.Id).Affinity;
-        if (!abuser.Body.CanUseToolsOrWeapons || affinity > Spec81.AbuseWeaponAffinity)
-        {
-            return GearCatalog.Fist;
-        }
-
-        var best = SimBalance.BestMeleeWeapon(abuser.Inventory.Items, abuser.Body.IntactHands);
-        if (string.IsNullOrEmpty(best))
-        {
-            return GearCatalog.Fist;
-        }
-
-        var depth = MathUtil.Clamp01(
-            (Spec81.AbuseWeaponAffinity - affinity) /
-            System.Math.Max(0.0001f, 1f + Spec81.AbuseWeaponAffinity));
-        return depth >= Spec81.AbuseHeavyWeaponDepth ? best : LighterThan(abuser, best);
-    }
-
-    // Ступенька ниже самого тяжёлого — нож вместо мачете. Если ничего легче
-    // нет, остаются кулаки: лёгкая злость не берётся за тесак.
-    private static string LighterThan(NPCState npc, string heaviest)
-    {
-        string lighter = null;
-        foreach (var item in npc.Inventory.Items)
-        {
-            var id = item.DefinitionId;
-            if (id == heaviest)
-            {
-                continue;
-            }
-
-            var gear = GearCatalog.For(id);
-            if (gear.Id != id || gear.MeleePriority <= 0)
-            {
-                continue;
-            }
-
-            if (lighter is null || GearCatalog.Damage(id) > GearCatalog.Damage(lighter))
-            {
-                lighter = id;
-            }
-        }
-
-        return lighter ?? GearCatalog.Fist;
-    }
-
     // §103: конец сцены — один вызов. Раньше здесь вручную гасились те же семь
     // полей, и «намерение сцены» (сколько ударов) не снималось вовсе: оно жило
     // до следующего Begin.

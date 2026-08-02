@@ -30,9 +30,9 @@ public sealed class FruitProductionSystem : ISimulationSystem
         _rotted.Clear();
         foreach (var candidate in world.Entities.Objects.Values)
         {
-            if ((candidate.DefinitionId == "food.coconut" ||
-                 candidate.DefinitionId == "food.coconut_pierced" ||
-                 candidate.DefinitionId == "food.coconut_open") &&
+            if ((candidate.DefinitionId == ContentIds.Coconut ||
+                 candidate.DefinitionId == ContentIds.CoconutPierced ||
+                 candidate.DefinitionId == ContentIds.CoconutOpen) &&
                 candidate.SpawnTick > 0 && world.Tick - candidate.SpawnTick > WorldBalance.FruitRotTicks &&
                 !candidate.IsOccupied)
             {

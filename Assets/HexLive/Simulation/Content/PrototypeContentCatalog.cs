@@ -128,7 +128,7 @@ public static class PrototypeContentCatalog
                 // BuildFurniture planner could never TARGET it: stones for the
                 // ring were gathered, then had nowhere to go (0/18 delivered
                 // across every 25-day soak since the staged campfire shipped).
-                Tags = { "Campfire", "Obstacle", "FurnitureSite" },
+                Tags = { "Campfire", "Obstacle", "FurnitureSite", ObjectTags.HandBuilt },
                 // 0.55R (0.825 wu) blocks the anchor + the first two point
                 // rings (0.375 / 0.65-0.75 wu) — nobody paths through the
                 // flames — while the 1.10-1.18 wu ring stays standable, so
@@ -626,7 +626,7 @@ public static class PrototypeContentCatalog
             {
                 Id = "station.drying_rack",
                 DisplayName = "Drying rack",
-                Tags = { "Station", "Rack" },
+                Tags = { "Station", "Rack", ObjectTags.HandBuilt },
                 Interactions =
                 {
                     new InteractionDefinition
@@ -647,7 +647,7 @@ public static class PrototypeContentCatalog
             {
                 Id = "station.water_collector",
                 DisplayName = "Water collector",
-                Tags = { "Station", "Obstacle" },
+                Tags = { "Station", "Obstacle", ObjectTags.HandBuilt },
                 Interactions =
                 {
                     new InteractionDefinition
@@ -1012,7 +1012,9 @@ public static class PrototypeContentCatalog
                         Effects = { EnergyDelta = SimBalance.LeafBedEnergy } // spec 42
                     }
                 },
-                Tags = { "Bed", "Obstacle" }
+                // §54.9: HandBuilt — циновку вяжут руками из палок, верёвок и
+                // листьев, молоток для неё не нужен.
+                Tags = { "Bed", "Obstacle", ObjectTags.HandBuilt }
             },
             // Spec 31A.5B: everyone starts in "underwear.cloth" — that garment,
             // the coat, the armors and the imported wardrobe now all live in

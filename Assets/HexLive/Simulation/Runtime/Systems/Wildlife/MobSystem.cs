@@ -621,7 +621,7 @@ public sealed class MobSystem : ISimulationSystem
     // recoverable after the fight; the spear/bottle/tools/food stay.
     private static readonly string[] _bulkyHandItems =
     {
-        "resource.log", "resource.stick", "resource.stone", "resource.palm_leaf"
+        ContentIds.Log, ContentIds.Stick, ContentIds.Stone, ContentIds.PalmLeaf
     };
 
     internal static void ReadySpearHands(WorldState world, NPCState npc)
@@ -882,14 +882,14 @@ public sealed class MobSystem : ISimulationSystem
                 // §72: nobody spends the colony's scarce arrows saving the man
                 // who hunts them from a wolf.
                 !FactionRelations.AreAllies(archer, quarry) ||
-                !archer.Inventory.Items.Contains("tool.bow") ||
-                !archer.Inventory.Items.Contains("resource.arrow") ||
+                !archer.Inventory.Items.Contains(ContentIds.Bow) ||
+                !archer.Inventory.Items.Contains(ContentIds.Arrow) ||
                 HexSpatialMath.HexDistance(archer.Tile, dog.Tile) > 3)
             {
                 continue;
             }
 
-            archer.Inventory.Items.Remove("resource.arrow");
+            archer.Inventory.Items.Remove(ContentIds.Arrow);
             var roll = MathUtil.Hash01(world.Seed, world.Tick, dog.Id * 191 + archer.Id.Value, 907);
             if (roll < 0.5f)
             {
@@ -1169,7 +1169,7 @@ public sealed class MobSystem : ISimulationSystem
         if (dropJunction is { } corpseJunction)
         {
             var corpse = WorldObjectMutations.SpawnObject(
-                world, "corpse.npc", npc.Fragment, npc.Tile, corpseJunction);
+                world, ContentIds.CorpseNpc, npc.Fragment, npc.Tile, corpseJunction);
             corpse.CurrentUser = deadId; // whose body this is
             corpse.ResourceAmount = 4800f; // decay timer (2 days)
 

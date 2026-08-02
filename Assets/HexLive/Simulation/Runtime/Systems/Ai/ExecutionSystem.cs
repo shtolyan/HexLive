@@ -357,9 +357,9 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 {
                     var pendingPiece = DecisionSystem.NextBuildPiece(world);
                     var billOk = pendingPiece is { } bill &&
-                        DecisionSystem.CountInventory(npc, "resource.log") >= bill.Logs &&
-                        DecisionSystem.CountInventory(npc, "resource.stone") >= bill.Stones &&
-                        DecisionSystem.CountInventory(npc, "resource.palm_leaf") >= bill.Leaves;
+                        DecisionSystem.CountInventory(npc, ContentIds.Log) >= bill.Logs &&
+                        DecisionSystem.CountInventory(npc, ContentIds.Stone) >= bill.Stones &&
+                        DecisionSystem.CountInventory(npc, ContentIds.PalmLeaf) >= bill.Leaves;
                     if (!billOk)
                     {
                         PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
@@ -484,7 +484,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 // enough to friction/hand-drill it (§45 r5).
                 if (interaction.Type == InteractionType.Fuel)
                 {
-                    var hasWoodNow = npc.Inventory.Items.Contains("resource.stick");
+                    var hasWoodNow = npc.Inventory.Items.Contains(ContentIds.Stick);
                     // §45 r5 parity: the DECISION layer already lets a genuinely
                     // cold girl SELECT TendFire without the one colony lighter
                     // (canFrictionLight = ThermalComfort < -0.35). Execution must
@@ -848,23 +848,23 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     // burns; the cooked chunk stays on the crossbar until a
                     // hungry housemate takes it (GetFood → PickUp).
                     if (BuildSiteMath.CampfireSpitComplete(worldObject) &&
-                        BuildSiteMath.HangingMeat(worldObject, "food.meat_raw") +
-                        BuildSiteMath.HangingMeat(worldObject, "food.meat_cooked") <
+                        BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatRaw) +
+                        BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatCooked) <
                         SimBalance.CampfireSpitCapacity)
                     {
                         ConsumeRecipeInputs(npc, npc.Plan.Goal);
                         // ResourceAmount doubles as roast progress (ticks).
-                        worldObject.Contents.Add(new ItemInstance("food.meat_raw"));
+                        worldObject.Contents.Add(new ItemInstance(ContentIds.MeatRaw));
                         Trace.Emit(world, npc.Id, "MeatHungOnSpit",
                             $"food.meat_raw on the spit at Tile={worldObject.Tile.Q},{worldObject.Tile.R} " +
-                            $"hanging raw={BuildSiteMath.HangingMeat(worldObject, "food.meat_raw")} " +
-                            $"cooked={BuildSiteMath.HangingMeat(worldObject, "food.meat_cooked")}");
+                            $"hanging raw={BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatRaw)} " +
+                            $"cooked={BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatCooked)}");
                     }
                     else
                     {
                         Trace.Emit(world, npc.Id, "SpitHangFailed",
                             $"spitComplete={BuildSiteMath.CampfireSpitComplete(worldObject)} " +
-                            $"hooksUsed={BuildSiteMath.HangingMeat(worldObject, "food.meat_raw") + BuildSiteMath.HangingMeat(worldObject, "food.meat_cooked")}" +
+                            $"hooksUsed={BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatRaw) + BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatCooked)}" +
                             $"/{SimBalance.CampfireSpitCapacity}");
                     }
 
@@ -894,12 +894,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                                 // + 2 stick rails — consumed via the catalog). The
                                 // premium bedroll is built at a progressive build-site,
                                 // not here.
-                                PlaceCraftedFurniture(world, npc, worldObject, "bed.leaf");
+                                PlaceCraftedFurniture(world, npc, worldObject, ContentIds.BedLeaf);
                                 Trace.Emit(world, npc.Id, "BedCrafted", "A leaf sleeping-mat");
                                 break;
                             case GoalType.CraftTent:
                                 // Spec 40.14: 4 leaves woven into a shade canopy.
-                                PlaceCraftedFurniture(world, npc, worldObject, "shelter.tent");
+                                PlaceCraftedFurniture(world, npc, worldObject, ContentIds.Tent);
                                 Trace.Emit(world, npc.Id, "TentCrafted", "A leaf sun shelter");
                                 break;
                         }
@@ -928,8 +928,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 {
                     // Spec 40.15: every carried log goes into the raft; at the
                     // target the colony can sail off the island.
-                    var deposited = DecisionSystem.CountInventory(npc, "resource.log");
-                    npc.Inventory.Items.RemoveAll(i => i.DefinitionId == "resource.log");
+                    var deposited = DecisionSystem.CountInventory(npc, ContentIds.Log);
+                    npc.Inventory.Items.RemoveAll(i => i.DefinitionId == ContentIds.Log);
                     world.RaftProgress = System.Math.Min(WorldState.RaftTarget, world.RaftProgress + deposited);
                     worldObject.IsOccupied = false;
                     worldObject.CurrentUser = null;
@@ -955,7 +955,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                         var stoneYield = 0;
                         foreach (var drop in completedInteraction.Yields)
                         {
-                            if (drop.DefinitionId == "resource.stone")
+                            if (drop.DefinitionId == ContentIds.Stone)
                             {
                                 stoneYield += drop.Count;
                             }
@@ -984,7 +984,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
                     if (leavesStump && stumpJunction is { } sj)
                     {
-                        WorldObjectMutations.SpawnObject(world, "stump.palm", stumpFragment, stumpTile, sj);
+                        WorldObjectMutations.SpawnObject(world, ContentIds.PalmStump, stumpFragment, stumpTile, sj);
                     }
                 }
                 else if (completedInteraction.Type == InteractionType.Process)
@@ -1029,7 +1029,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     }
                 }
                 else if (completedInteraction.Type == InteractionType.Eat &&
-                         worldObject.DefinitionId == "food.coconut_open")
+                         worldObject.DefinitionId == ContentIds.CoconutOpen)
                 {
                     WorldObjectMutations.DespawnObject(world, worldObject.Id);
                     Trace.Emit(world, npc.Id, "CoconutEaten", $"{worldObject.DefinitionId} consumed");
@@ -1057,7 +1057,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 else if (completedInteraction.Type == InteractionType.Fuel)
                 {
                     // Spec 29E.3 / §54: one stick per fueling, half a day of fire.
-                    npc.Inventory.Items.Remove("resource.stick");
+                    npc.Inventory.Items.Remove(ContentIds.Stick);
                     var wasLit = worldObject.ResourceAmount > 0f;
                     worldObject.ResourceAmount += 1200f;
                     Trace.Emit(world, npc.Id, wasLit ? "FireFueled" : "FireLit",
@@ -1138,7 +1138,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                         : npc.CurrentJunction ?? default;
                     WorldObjectMutations.DespawnObject(world, worldObject.Id);
                     var grave = WorldObjectMutations.SpawnObject(
-                        world, "grave.npc", npc.Fragment, worldObject.Tile, graveJunction);
+                        world, ContentIds.GraveNpc, npc.Fragment, worldObject.Tile, graveJunction);
                     grave.CurrentUser = deceased;
 
                     foreach (var living in world.Entities.Npcs.Values)
@@ -1277,7 +1277,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             break;
         }
 
-        var carcass = WorldObjectMutations.SpawnObject(world, "carcass.animal", fragment, tile, junction);
+        var carcass = WorldObjectMutations.SpawnObject(world, ContentIds.CarcassAnimal, fragment, tile, junction);
         carcass.ResourceAmount = SimBalance.CarcassDecayTicks;
         carcass.SpawnTick = world.Tick;
         carcass.Variant = variant;

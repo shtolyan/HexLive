@@ -921,7 +921,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
     // and hangs there untouched.
     private static bool IsMeatSource(WorldState world, PerceivedObject perceived)
     {
-        if (perceived.DefinitionId is "food.meat_raw" or "food.meat_cooked")
+        if (perceived.DefinitionId is ContentIds.MeatRaw or ContentIds.MeatCooked)
         {
             return true;
         }
@@ -929,7 +929,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
         return world.Content.ObjectDefinitions.TryGetValue(perceived.DefinitionId, out var definition) &&
             definition.Tags.Contains("Campfire") &&
             world.Entities.Objects.TryGetValue(perceived.Id, out var fire) &&
-            BuildSiteMath.HangingMeat(fire, "food.meat_cooked") > 0;
+            BuildSiteMath.HangingMeat(fire, ContentIds.MeatCooked) > 0;
     }
 
     // Spec 23.10: a failed plan puts its goal on cooldown so the NPC does
@@ -1025,7 +1025,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 if (definition.Tags.Contains("Campfire"))
                 {
                     return world.Entities.Objects.TryGetValue(perceived.Id, out var spitSource) &&
-                        BuildSiteMath.HangingMeat(spitSource, "food.meat_cooked") > 0;
+                        BuildSiteMath.HangingMeat(spitSource, ContentIds.MeatCooked) > 0;
                 }
 
                 return definition.Tags.Contains("Food") &&
@@ -1095,8 +1095,8 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 return definition.Tags.Contains("Campfire") &&
                     world.Entities.Objects.TryGetValue(perceived.Id, out var spitFire) &&
                     BuildSiteMath.CampfireSpitComplete(spitFire) &&
-                    BuildSiteMath.HangingMeat(spitFire, "food.meat_raw") +
-                    BuildSiteMath.HangingMeat(spitFire, "food.meat_cooked") <
+                    BuildSiteMath.HangingMeat(spitFire, ContentIds.MeatRaw) +
+                    BuildSiteMath.HangingMeat(spitFire, ContentIds.MeatCooked) <
                     SimBalance.CampfireSpitCapacity;
             case GoalType.CraftRope:
             case GoalType.CraftCloth:
@@ -1173,7 +1173,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // Fetch a whole coconut; Drink will put it on the ground and
                 // open it with a blade before sipping. (The collector draw is
                 // a custom plan branch, not this generic path.)
-                return HasCoconutBlade(npc) && perceived.DefinitionId == "food.coconut";
+                return HasCoconutBlade(npc) && perceived.DefinitionId == ContentIds.Coconut;
             case GoalType.StowBottle:
                 // §54.15: a finished collector whose vessel slot is empty.
                 return perceived.DefinitionId == WaterCollectorMath.CollectorId &&

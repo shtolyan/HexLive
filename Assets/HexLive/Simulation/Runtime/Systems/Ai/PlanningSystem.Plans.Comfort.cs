@@ -606,7 +606,7 @@ public sealed partial class PlanningSystem
         foreach (var perceived in npc.Perception.Objects)
         {
             if (perceived.IsReachable &&
-                perceived.DefinitionId == "campfire.spot" &&
+                perceived.DefinitionId == ContentIds.Campfire &&
                 world.Entities.Objects.TryGetValue(perceived.Id, out var campfire) &&
                 campfire.ResourceAmount > 0f &&
                 (fire is null || perceived.Distance < fire.Distance))

@@ -15,25 +15,25 @@ public sealed partial class PlanningSystem
 {
     private static bool BuildCoconutDrinkPlan(WorldState world, NPCState npc)
     {
-        if (TryFindInventoryItem(npc, "food.coconut_pierced", requireWater: true, out _))
+        if (TryFindInventoryItem(npc, ContentIds.CoconutPierced, requireWater: true, out _))
         {
             return false;
         }
 
         if (HasCoconutBlade(npc) &&
-            TryFindInventoryItem(npc, "food.coconut", out var carriedWhole))
+            TryFindInventoryItem(npc, ContentIds.Coconut, out var carriedWhole))
         {
             return BuildCoconutInventoryPlan(world, npc, GoalType.Drink, carriedWhole,
                 InteractionType.Process, InteractionType.PickUp);
         }
 
-        if (TryFindCoconutObject(npc, world, "food.coconut_pierced", requireWater: true, out var pierced))
+        if (TryFindCoconutObject(npc, world, ContentIds.CoconutPierced, requireWater: true, out var pierced))
         {
             return BuildCoconutWorldPlan(world, npc, GoalType.Drink, pierced, InteractionType.PickUp);
         }
 
         if (HasCoconutBlade(npc) &&
-            TryFindCoconutObject(npc, world, "food.coconut", requireWater: false, out var whole))
+            TryFindCoconutObject(npc, world, ContentIds.Coconut, requireWater: false, out var whole))
         {
             return BuildCoconutWorldPlan(world, npc, GoalType.Drink, whole,
                 InteractionType.Process, InteractionType.PickUp);
@@ -44,7 +44,7 @@ public sealed partial class PlanningSystem
 
     private static bool BuildCoconutEatPlan(WorldState world, NPCState npc)
     {
-        if (TryFindInventoryItem(npc, "food.coconut_open", out _))
+        if (TryFindInventoryItem(npc, ContentIds.CoconutOpen, out _))
         {
             return false;
         }
@@ -55,7 +55,7 @@ public sealed partial class PlanningSystem
         // was about to drink. Order now: drained husks first, then whole nuts;
         // a watered pierced coconut is only eaten when nothing else is left.
         if (HasCoconutBlade(npc) &&
-            TryFindInventoryItem(npc, "food.coconut_pierced", requireWater: false,
+            TryFindInventoryItem(npc, ContentIds.CoconutPierced, requireWater: false,
                 out var carriedDrained, requireDrained: true))
         {
             return BuildCoconutInventoryPlan(world, npc, GoalType.Eat, carriedDrained,
@@ -63,26 +63,26 @@ public sealed partial class PlanningSystem
         }
 
         if (HasCoconutBlade(npc) &&
-            TryFindInventoryItem(npc, "food.coconut", out var carriedWhole))
+            TryFindInventoryItem(npc, ContentIds.Coconut, out var carriedWhole))
         {
             return BuildCoconutInventoryPlan(world, npc, GoalType.Eat, carriedWhole,
                 InteractionType.Process, InteractionType.Process, InteractionType.PickUp);
         }
 
-        if (TryFindCoconutObject(npc, world, "food.coconut_open", requireWater: false, out var open))
+        if (TryFindCoconutObject(npc, world, ContentIds.CoconutOpen, requireWater: false, out var open))
         {
             return BuildCoconutWorldPlan(world, npc, GoalType.Eat, open, InteractionType.PickUp);
         }
 
         if (HasCoconutBlade(npc) &&
-            TryFindCoconutObject(npc, world, "food.coconut", requireWater: false, out var whole))
+            TryFindCoconutObject(npc, world, ContentIds.Coconut, requireWater: false, out var whole))
         {
             return BuildCoconutWorldPlan(world, npc, GoalType.Eat, whole,
                 InteractionType.Process, InteractionType.Process, InteractionType.PickUp);
         }
 
         if (HasCoconutBlade(npc) &&
-            TryFindCoconutObject(npc, world, "food.coconut_pierced", requireWater: false,
+            TryFindCoconutObject(npc, world, ContentIds.CoconutPierced, requireWater: false,
                 out var pierced, preferDrained: true))
         {
             return BuildCoconutWorldPlan(world, npc, GoalType.Eat, pierced,
@@ -90,7 +90,7 @@ public sealed partial class PlanningSystem
         }
 
         if (HasCoconutBlade(npc) &&
-            TryFindInventoryItem(npc, "food.coconut_pierced", out var carriedWatered))
+            TryFindInventoryItem(npc, ContentIds.CoconutPierced, out var carriedWatered))
         {
             return BuildCoconutInventoryPlan(world, npc, GoalType.Eat, carriedWatered,
                 InteractionType.Process, InteractionType.PickUp);

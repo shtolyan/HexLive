@@ -247,17 +247,17 @@ public sealed partial class ExecutionSystem
     private static void PlaceRack(WorldState world, NPCState npc, WorldObjectState campfire)
     {
         // Spec 35.7: spaced away from the fire and the bed (no more heap).
-        var spot = FindSpacedFurnitureSpot(world, campfire, "station.drying_rack") ?? npc.CurrentJunction;
+        var spot = FindSpacedFurnitureSpot(world, campfire, ContentIds.DryingRack) ?? npc.CurrentJunction;
         if (spot is not { } junction)
         {
-            GiveOrDrop(world, npc, "resource.stick");
-            GiveOrDrop(world, npc, "resource.stick");
+            GiveOrDrop(world, npc, ContentIds.Stick);
+            GiveOrDrop(world, npc, ContentIds.Stick);
             Trace.Emit(world, npc.Id, "ExecFailed", "CraftRack: nowhere to place the rack");
             return;
         }
 
         var rack = WorldObjectMutations.SpawnObject(
-            world, "station.drying_rack", npc.Fragment, npc.Tile, junction);
+            world, ContentIds.DryingRack, npc.Fragment, npc.Tile, junction);
         Trace.Emit(world, npc.Id, "RackCrafted",
             $"Obj={rack.Id.Value} Junction={junction.Value}");
     }

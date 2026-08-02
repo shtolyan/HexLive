@@ -617,13 +617,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
             }
             // Spec §54: logs frame the builds/raft/premium bed; sticks are the
             // fuel + hand-tool currency (split from logs, or picked from deadfall).
-            var carriedLogs = CountInventory(npc, "resource.log");
-            var carriedSticks = CountInventory(npc, "resource.stick");
-            var carriedLeaves = CountInventory(npc, "resource.palm_leaf");
+            var carriedLogs = CountInventory(npc, ContentIds.Log);
+            var carriedSticks = CountInventory(npc, ContentIds.Stick);
+            var carriedLeaves = CountInventory(npc, ContentIds.PalmLeaf);
             // Spec §54: cordage chain + knife.
-            var carriedFiber = CountInventory(npc, "resource.fiber");
-            var carriedRope = CountInventory(npc, "resource.rope");
-            var carriedCloth = CountInventory(npc, "resource.cloth");
+            var carriedFiber = CountInventory(npc, ContentIds.Fiber);
+            var carriedRope = CountInventory(npc, ContentIds.Rope);
+            var carriedCloth = CountInventory(npc, ContentIds.Cloth);
             var hasKnife = Content.GearCatalog.HasCapability(
                 npc.Inventory.Items, Content.GearCapability.Cut);
             // The knife is today's only Butcher tool, but the CAPABILITY is the
@@ -661,7 +661,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // campfire-site bypasses the peacetime gate and outranks everything —
             // the colony must pile the stones and light up before it can thrive.
             var noCampfireYet = !HasReachableWithTag(npc, world, "Campfire");
-            var siteIsHearth = buildSite != null && buildSite.BuildProduct == "campfire.spot";
+            var siteIsHearth = buildSite != null && buildSite.BuildProduct == ContentIds.Campfire;
             // §54.14 (r2): the bypass stops at the LIFE-critical band — the
             // bare-site cold start made the first hearth a longer project, and
             // a girl must never starve to death with the pile sticks in her
@@ -705,10 +705,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // BuildFurniture fires when I can advance the site: bring a material
             // it still needs, or raise it once stocked — with a hammer, except a
             // §54 campfire (piled from stones) and the leaf mat (hand-lashed).
-            var siteIsBed = buildSite?.BuildProduct is "bed.leaf" or "bed.basic";
+            var siteIsBed = buildSite?.BuildProduct is ContentIds.BedLeaf or ContentIds.BedBasic;
             // §35.5B: the rack is lashed sticks like the leaf mat — no hammer.
             var siteWaivesHammer = siteIsHearth ||
-                buildSite?.BuildProduct is "bed.leaf" or "station.drying_rack";
+                buildSite?.BuildProduct is ContentIds.BedLeaf or ContentIds.DryingRack;
             // §54.13: this is only the RAISE half. The deliver half is decided
             // next to the BuildFurniture score, where the gather flags exist —
             // staged sites take bundles, not single pieces (see below).
@@ -723,7 +723,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
             var hasPot = Content.GearCatalog.HasCapability(
                 npc.Inventory.Items, Content.GearCapability.Boil);
             // Spec §54: "wood in hand" for fire/craft now means a STICK.
-            var hasWood = npc.Inventory.Items.Contains("resource.stick");
+            var hasWood = npc.Inventory.Items.Contains(ContentIds.Stick);
             var (campfireSeen, campfireFuel, campfireObj) = FindCampfire(npc, world);
             // §gear-craft: a recipe with NO station crafts in place — its
             // availability must not demand a campfire in view.
@@ -761,7 +761,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 (hasBottleWater || hasCoconutWater || collectorDrawSeen);
             var waterSourceReachable = collectorDrawSeen ||
                 (hasCoconutBlade &&
-                 (HasReachableDefinitionWorthCarrying(npc, world, "food.coconut") ||
+                 (HasReachableDefinitionWorthCarrying(npc, world, ContentIds.Coconut) ||
                   KnowsReachableProducer(npc, world)));
             var getWaterAvail = npc.Needs.Thirst >= 0.35f && !hasCoconutWater && !hasBottleWater &&
                 waterSourceReachable;
@@ -771,10 +771,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
             var waterFetchPossible = !HasInventoryCoconutWater(npc) && waterSourceReachable;
             // Costs come from the RECIPES (asset-overridable), not constants —
             // an asset that reprices a tool re-prices its gathering too.
-            var axeStoneCost = Content.RecipeCatalog.InputCount(GoalType.CraftAxe, "resource.stone");
-            var pickaxeStoneCost = Content.RecipeCatalog.InputCount(GoalType.CraftPickaxe, "resource.stone");
-            var knifeStickCost = Content.RecipeCatalog.InputCount(GoalType.CraftKnife, "resource.stick");
-            var knifeStoneCost = Content.RecipeCatalog.InputCount(GoalType.CraftKnife, "resource.stone");
+            var axeStoneCost = Content.RecipeCatalog.InputCount(GoalType.CraftAxe, ContentIds.Stone);
+            var pickaxeStoneCost = Content.RecipeCatalog.InputCount(GoalType.CraftPickaxe, ContentIds.Stone);
+            var knifeStickCost = Content.RecipeCatalog.InputCount(GoalType.CraftKnife, ContentIds.Stick);
+            var knifeStoneCost = Content.RecipeCatalog.InputCount(GoalType.CraftKnife, ContentIds.Stone);
             var coconutToolPressure = !hasCoconutBlade &&
                 (npc.Needs.Thirst >= 0.35f || npc.Needs.Hunger >= getFoodHungerThreshold) &&
                 HasCoconutOpportunity(npc, world);
@@ -925,7 +925,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
 
             // Spec 44: the herbal first-aid chain — gather leaves, craft a
             // bandage at the fire. Urgency scales with how hurt anyone is.
-            var herbLeaves = CountInventory(npc, "resource.herb_leaf");
+            var herbLeaves = CountInventory(npc, ContentIds.HerbLeaf);
             // §68: the resupply half of self first-aid. A flat 0.3 step at
             // Health < 0.7 barely moved the herb run, and now that she SPENDS
             // her own dressings the pouch has to be refilled — so how badly she
@@ -975,12 +975,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
                     : 0f);
 
             // Spec 29F: hunting & crafting.
-            var hasSpear = npc.Inventory.Items.Contains("tool.spear");
-            var hasRawMeat = npc.Inventory.Items.Contains("food.meat_raw");
-            var hideCount = CountInventory(npc, "resource.hide");
+            var hasSpear = npc.Inventory.Items.Contains(ContentIds.Spear);
+            var hasRawMeat = npc.Inventory.Items.Contains(ContentIds.MeatRaw);
+            var hideCount = CountInventory(npc, ContentIds.Hide);
             // Spec 35.6: ranged hunters need no spear.
-            var hasBow = npc.Inventory.Items.Contains("tool.bow");
-            var arrowCount = CountInventory(npc, "resource.arrow");
+            var hasBow = npc.Inventory.Items.Contains(ContentIds.Bow);
+            var arrowCount = CountInventory(npc, ContentIds.Arrow);
             // Spec §52: the spear is two-handed — wielding it needs both hands,
             // so a one-armed survivor (§50) can't spear-hunt. The bow is likewise
             // two-handed. Lose an arm and hunting is off the table.
@@ -1005,12 +1005,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // full crossbar) = no cooking, whatever else the fire can do.
             var spitReady = BuildSiteMath.CampfireSpitComplete(campfireObj);
             var spitHooksFree = spitReady &&
-                BuildSiteMath.HangingMeat(campfireObj, "food.meat_raw") +
-                BuildSiteMath.HangingMeat(campfireObj, "food.meat_cooked") <
+                BuildSiteMath.HangingMeat(campfireObj, ContentIds.MeatRaw) +
+                BuildSiteMath.HangingMeat(campfireObj, ContentIds.MeatCooked) <
                 SimBalance.CampfireSpitCapacity;
             var cookAvail = hasRawMeat && campfireSeen && campfireFuel > 0f && spitHooksFree;
             var craftLeatherAvail = hideCount >= 1 && CraftPlaceOk(GoalType.CraftLeather) &&
-                !npc.WornItems.Contains("clothing.leather_pants");
+                !npc.WornItems.Contains(ContentIds.LeatherPants);
 
             // Inside the peckish window the hunt genuinely outbids GetFood
             // (0.3+0.5h > h for h < 0.6); the availability window above is
@@ -1057,7 +1057,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
             var hasSaw = false; // folded into the ChopWood capability above
             var hasPickaxe = Content.GearCatalog.HasCapability(
                 npc.Inventory.Items, Content.GearCapability.Mine);
-            var stoneCount = CountInventory(npc, "resource.stone");
+            var stoneCount = CountInventory(npc, ContentIds.Stone);
             var stonesNeeded = (!hasAxe && !hasSaw ? axeStoneCost : 0) + (!hasPickaxe ? pickaxeStoneCost : 0);
             // §63 r2: a stone-hungry site (the fire's 18-stone ring) is worth
             // a real armful, not one pebble per round trip — carry up to 3.
@@ -1112,7 +1112,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
                  // log stage itself is now avoided for FIRST beds — see
                  // SpecDream.PremiumBedChance.
                  (!pendingLeafSource && groveHasSurplus &&
-                  (CountInventory(npc, "resource.palm_leaf") == 0 ||
+                  (CountInventory(npc, ContentIds.PalmLeaf) == 0 ||
                    (piece is { } pLeaf && carriedLeaves < pLeaf.Leaves) ||
                    (bedDeficit && carriedLeaves < 3)) &&
                   HasReachableWithTag(npc, world, "Palm")));
@@ -1245,7 +1245,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // knife OR whatever the asset lists) — canChop is only the legacy
             // fallback for undeclared content.
             var splitLogAvail = carriedSticks < stickCap &&
-                CanPerformDeclared(world, npc, "resource.log", InteractionType.Process,
+                CanPerformDeclared(world, npc, ContentIds.Log, InteractionType.Process,
                     legacyOk: canChop) &&
                 npc.Inventory.HasSpace &&
                 HasReachableWithTag(npc, world, "Log") && wantsSticks;
@@ -1314,10 +1314,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // to lay it back out; gathering remains the fallback for fiber
             // scattered too thin to cover one craft's bill in a single spot.
             var ropeGroundPileOk = carriedFiber < SimBalance.RopeFiberCost &&
-                FindGroundInputPile(npc, world, "resource.fiber",
+                FindGroundInputPile(npc, world, ContentIds.Fiber,
                     SimBalance.RopeFiberCost - carriedFiber) is not null;
             var clothGroundPileOk = carriedFiber < SimBalance.ClothFiberCost &&
-                FindGroundInputPile(npc, world, "resource.fiber",
+                FindGroundInputPile(npc, world, ContentIds.Fiber,
                     SimBalance.ClothFiberCost - carriedFiber) is not null;
             var craftRopeAvail = canUseToolsOrWeapons && wantRope &&
                 (carriedFiber >= SimBalance.RopeFiberCost || ropeGroundPileOk) &&

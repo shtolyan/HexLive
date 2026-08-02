@@ -19,7 +19,7 @@ public sealed partial class DecisionSystem
     {
         foreach (var obj in world.Entities.Objects.Values)
         {
-            if (obj.DefinitionId == "station.drying_rack")
+            if (obj.DefinitionId == ContentIds.DryingRack)
             {
                 return true;
             }
@@ -144,51 +144,51 @@ public sealed partial class DecisionSystem
 
     internal static bool HasCoconutMeal(NPCState npc, WorldState world)
     {
-        if (npc.Inventory.Items.Contains("food.coconut_open"))
+        if (npc.Inventory.Items.Contains(ContentIds.CoconutOpen))
         {
             return true;
         }
 
         var hasBlade = HasCoconutBlade(npc);
         if (hasBlade &&
-            (npc.Inventory.Items.Contains("food.coconut") ||
-             npc.Inventory.Items.Contains("food.coconut_pierced")))
+            (npc.Inventory.Items.Contains(ContentIds.Coconut) ||
+             npc.Inventory.Items.Contains(ContentIds.CoconutPierced)))
         {
             return true;
         }
 
-        if (HasUsableCoconut(npc, world, "food.coconut_open"))
+        if (HasUsableCoconut(npc, world, ContentIds.CoconutOpen))
         {
             return true;
         }
 
         return hasBlade &&
-            (HasUsableCoconut(npc, world, "food.coconut") ||
-             HasUsableCoconut(npc, world, "food.coconut_pierced"));
+            (HasUsableCoconut(npc, world, ContentIds.Coconut) ||
+             HasUsableCoconut(npc, world, ContentIds.CoconutPierced));
     }
 
     internal static bool HasCoconutWater(NPCState npc, WorldState world)
     {
         var hasBlade = HasCoconutBlade(npc);
-        if (hasBlade && npc.Inventory.Items.Contains("food.coconut"))
+        if (hasBlade && npc.Inventory.Items.Contains(ContentIds.Coconut))
         {
             return true;
         }
 
         foreach (var item in npc.Inventory.Items)
         {
-            if (item.DefinitionId == "food.coconut_pierced" && item.ResourceAmount > 0f)
+            if (item.DefinitionId == ContentIds.CoconutPierced && item.ResourceAmount > 0f)
             {
                 return true;
             }
         }
 
-        if (hasBlade && HasUsableCoconut(npc, world, "food.coconut"))
+        if (hasBlade && HasUsableCoconut(npc, world, ContentIds.Coconut))
         {
             return true;
         }
 
-        return HasUsableCoconut(npc, world, "food.coconut_pierced", requireWater: true);
+        return HasUsableCoconut(npc, world, ContentIds.CoconutPierced, requireWater: true);
     }
 
     internal static bool HasBottleWater(NPCState npc) =>
@@ -196,14 +196,14 @@ public sealed partial class DecisionSystem
 
     internal static bool HasInventoryCoconutMeal(NPCState npc)
     {
-        if (npc.Inventory.Items.Contains("food.coconut_open"))
+        if (npc.Inventory.Items.Contains(ContentIds.CoconutOpen))
         {
             return true;
         }
 
         return HasCoconutBlade(npc) &&
-            (npc.Inventory.Items.Contains("food.coconut") ||
-             npc.Inventory.Items.Contains("food.coconut_pierced"));
+            (npc.Inventory.Items.Contains(ContentIds.Coconut) ||
+             npc.Inventory.Items.Contains(ContentIds.CoconutPierced));
     }
 
     internal static bool HasInventoryCoconutWater(NPCState npc)
@@ -213,14 +213,14 @@ public sealed partial class DecisionSystem
             return true;
         }
 
-        if (HasCoconutBlade(npc) && npc.Inventory.Items.Contains("food.coconut"))
+        if (HasCoconutBlade(npc) && npc.Inventory.Items.Contains(ContentIds.Coconut))
         {
             return true;
         }
 
         foreach (var item in npc.Inventory.Items)
         {
-            if (item.DefinitionId == "food.coconut_pierced" && item.ResourceAmount > 0f)
+            if (item.DefinitionId == ContentIds.CoconutPierced && item.ResourceAmount > 0f)
             {
                 return true;
             }
@@ -238,16 +238,16 @@ public sealed partial class DecisionSystem
 
     internal static bool HasCoconutOpportunity(NPCState npc, WorldState world)
     {
-        if (npc.Inventory.Items.Contains("food.coconut") ||
-            npc.Inventory.Items.Contains("food.coconut_pierced") ||
-            npc.Inventory.Items.Contains("food.coconut_open"))
+        if (npc.Inventory.Items.Contains(ContentIds.Coconut) ||
+            npc.Inventory.Items.Contains(ContentIds.CoconutPierced) ||
+            npc.Inventory.Items.Contains(ContentIds.CoconutOpen))
         {
             return true;
         }
 
-        return HasUsableCoconut(npc, world, "food.coconut") ||
-            HasUsableCoconut(npc, world, "food.coconut_pierced") ||
-            HasUsableCoconut(npc, world, "food.coconut_open") ||
+        return HasUsableCoconut(npc, world, ContentIds.Coconut) ||
+            HasUsableCoconut(npc, world, ContentIds.CoconutPierced) ||
+            HasUsableCoconut(npc, world, ContentIds.CoconutOpen) ||
             KnowsReachableCoconutProducer(npc, world);
     }
 
@@ -269,8 +269,8 @@ public sealed partial class DecisionSystem
             if (definition.Tags.Contains("Campfire"))
             {
                 if (world.Entities.Objects.TryGetValue(obj.Id, out var fire) &&
-                    BuildSiteMath.HangingMeat(fire, "food.meat_cooked") > 0 &&
-                    InventoryMath.CanMakeRoomFor(world, npc, "food.meat_cooked"))
+                    BuildSiteMath.HangingMeat(fire, ContentIds.MeatCooked) > 0 &&
+                    InventoryMath.CanMakeRoomFor(world, npc, ContentIds.MeatCooked))
                 {
                     return true;
                 }
@@ -301,7 +301,7 @@ public sealed partial class DecisionSystem
         {
             if (obj.IsReachable &&
                 world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
-                definition.Produce?.ProducedDefinitionId == "food.coconut")
+                definition.Produce?.ProducedDefinitionId == ContentIds.Coconut)
             {
                 return true;
             }
@@ -883,7 +883,7 @@ public sealed partial class DecisionSystem
             if (obj.IsReachable &&
                 world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
                 definition.Produce != null &&
-                (definition.Produce.ProducedDefinitionId != "food.coconut" || hasBlade))
+                (definition.Produce.ProducedDefinitionId != ContentIds.Coconut || hasBlade))
             {
                 return true;
             }

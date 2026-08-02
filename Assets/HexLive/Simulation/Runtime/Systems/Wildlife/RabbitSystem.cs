@@ -92,14 +92,14 @@ public sealed class RabbitSystem : ISimulationSystem
         {
             if (npc.Mind.CurrentGoal != GoalType.Hunt ||
                 !npc.Body.CanUseToolsOrWeapons ||
-                !npc.Inventory.Items.Contains("tool.bow") ||
-                !npc.Inventory.Items.Contains("resource.arrow") ||
+                !npc.Inventory.Items.Contains(ContentIds.Bow) ||
+                !npc.Inventory.Items.Contains(ContentIds.Arrow) ||
                 HexSpatialMath.HexDistance(npc.Tile, rabbit.Tile) > 3)
             {
                 continue;
             }
 
-            npc.Inventory.Items.Remove("resource.arrow");
+            npc.Inventory.Items.Remove(ContentIds.Arrow);
             var hitRoll = MathUtil.Hash01(world.Seed, world.Tick, rabbit.Id * 173 + npc.Id.Value, 806);
             Trace.Emit(world, npc.Id, "BowShot",
                 $"Rabbit={rabbit.Id} Dist={HexSpatialMath.HexDistance(npc.Tile, rabbit.Tile)} Roll={hitRoll:F2}");
@@ -108,7 +108,7 @@ public sealed class RabbitSystem : ISimulationSystem
                 // Spec §54: no instant loot — the kill drops a carcass to butcher.
                 if (MathUtil.Hash01(world.Seed, world.Tick, rabbit.Id * 211 + npc.Id.Value, 807) < WildlifeBalance.ArrowRecoverChance)
                 {
-                    ExecutionSystem.GiveOrDrop(world, npc, "resource.arrow");
+                    ExecutionSystem.GiveOrDrop(world, npc, ContentIds.Arrow);
                     Trace.Emit(world, npc.Id, "ArrowRecovered", $"From rabbit {rabbit.Id}");
                 }
 
@@ -131,7 +131,7 @@ public sealed class RabbitSystem : ISimulationSystem
         foreach (var npc in world.Entities.Npcs.Values)
         {
             if (!npc.Body.CanUseToolsOrWeapons ||
-                !npc.Inventory.Items.Contains("tool.spear") ||
+                !npc.Inventory.Items.Contains(ContentIds.Spear) ||
                 npc.CurrentJunction is not { } npcJunction)
             {
                 continue;

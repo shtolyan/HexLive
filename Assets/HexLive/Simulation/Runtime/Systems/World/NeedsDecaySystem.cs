@@ -52,11 +52,11 @@ public sealed class NeedsDecaySystem : ISimulationSystem
         {
             perNight = obj.DefinitionId switch
             {
-                "bed.basic" => Spec49.SleepComfortBedNight,
-                "bed.leaf" => Spec49.SleepComfortLeafNight,
+                ContentIds.BedBasic => Spec49.SleepComfortBedNight,
+                ContentIds.BedLeaf => Spec49.SleepComfortLeafNight,
                 _ => perNight
             };
-            onBed = obj.DefinitionId is "bed.basic" or "bed.leaf";
+            onBed = obj.DefinitionId is ContentIds.BedBasic or ContentIds.BedLeaf;
         }
 
         // A worn jacket/coat padding the bare ground beats sleeping on plain
@@ -106,7 +106,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 continue;
             }
 
-            if (def.Layer == WearLayer.Outerwear || def.Id == "clothing.coat")
+            if (def.Layer == WearLayer.Outerwear || def.Id == ContentIds.Coat)
             {
                 return true;
             }
@@ -383,8 +383,8 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 {
                     wake += bedObj.DefinitionId switch
                     {
-                        "bed.basic" => SimBalance.SleepEnergyBasicBedBonus,
-                        "bed.leaf" => SimBalance.SleepEnergyLeafBedBonus,
+                        ContentIds.BedBasic => SimBalance.SleepEnergyBasicBedBonus,
+                        ContentIds.BedLeaf => SimBalance.SleepEnergyLeafBedBonus,
                         _ => 0f
                     };
                 }
@@ -786,10 +786,10 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 npc.Inventory.FindFirstFood(world.Content) is null;
             var packParched = npc.Needs.Thirst >= 0.8f &&
                 npc.Inventory.FindFirstDrink(world.Content) is null &&
-                !npc.Inventory.Items.Contains("food.coconut");
+                !npc.Inventory.Items.Contains(ContentIds.Coconut);
             if ((packStarved || packParched) && !npc.Inventory.HasSpace)
             {
-                foreach (var junk in new[] { "resource.log", "resource.stick", "resource.palm_leaf", "resource.stone" })
+                foreach (var junk in new[] { ContentIds.Log, ContentIds.Stick, ContentIds.PalmLeaf, ContentIds.Stone })
                 {
                     var idx = npc.Inventory.Items.FindIndex(i => i.DefinitionId == junk);
                     if (idx >= 0)

@@ -116,15 +116,15 @@ internal static class AidSupply
 
         // Otherwise a coconut out of the pack: an open one is handed over as is,
         // a whole/pierced one she splits with the blade she is carrying.
-        if (npc.Inventory.Items.Remove("food.coconut_open"))
+        if (npc.Inventory.Items.Remove(ContentIds.CoconutOpen))
         {
-            spend = new Spend("food.coconut_open", NutritionOf(world, "food.coconut_open"), false);
+            spend = new Spend(ContentIds.CoconutOpen, NutritionOf(world, ContentIds.CoconutOpen), false);
             return true;
         }
 
         if (DecisionSystem.HasCoconutBlade(npc))
         {
-            foreach (var id in new[] { "food.coconut_pierced", "food.coconut" })
+            foreach (var id in new[] { ContentIds.CoconutPierced, ContentIds.Coconut })
             {
                 if (npc.Inventory.Items.Remove(id))
                 {
@@ -151,25 +151,25 @@ internal static class AidSupply
                 npc.BottleWater = WaterKind.None;
             }
 
-            spend = new Spend("tool.bottle", Spec53.HydrateRelief, false);
+            spend = new Spend(ContentIds.Bottle, Spec53.HydrateRelief, false);
             return true;
         }
 
         // A pierced coconut she carries keeps its water like a canteen.
         foreach (var item in npc.Inventory.Items)
         {
-            if (item.DefinitionId == "food.coconut_pierced" && item.ResourceAmount > 0f)
+            if (item.DefinitionId == ContentIds.CoconutPierced && item.ResourceAmount > 0f)
             {
                 item.ResourceAmount = System.MathF.Max(0f, item.ResourceAmount - 1f);
-                spend = new Spend("food.coconut_pierced", Spec53.HydrateRelief, false);
+                spend = new Spend(ContentIds.CoconutPierced, Spec53.HydrateRelief, false);
                 return true;
             }
         }
 
         // Last: pierce a whole nut for her — the nut is gone either way.
-        if (DecisionSystem.HasCoconutBlade(npc) && npc.Inventory.Items.Remove("food.coconut"))
+        if (DecisionSystem.HasCoconutBlade(npc) && npc.Inventory.Items.Remove(ContentIds.Coconut))
         {
-            spend = new Spend("food.coconut", Spec53.HydrateRelief, false);
+            spend = new Spend(ContentIds.Coconut, Spec53.HydrateRelief, false);
             return true;
         }
 
@@ -193,7 +193,7 @@ internal static class AidSupply
             npc.Needs.HerbalBandages--;
         }
 
-        spend = new Spend(herbal ? "bandage.herbal" : "bandage.medkit", 0f, herbal);
+        spend = new Spend(herbal ? ContentIds.Bandage : ContentIds.Medkit, 0f, herbal);
         return true;
     }
 
@@ -211,7 +211,7 @@ internal static class AidSupply
         {
             npc.Needs.HerbalBandages--;
             npc.Needs.Bandages--;
-            spend = new Spend("bandage.herbal", 0f, true);
+            spend = new Spend(ContentIds.Bandage, 0f, true);
             return true;
         }
 

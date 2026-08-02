@@ -278,6 +278,26 @@ namespace HexLive.Simulation.Runtime
         // ─────────────────────────────────────────────────────────────
         public static float NpcStrikePerPass = 0.15f;   // an NPC's bare strike-back baseline per landed hit
 
+        /// <summary>
+        /// ⭐ §104 r8: ВСЕ удары идут по таймлайну замаха, а не по легаси-фазе.
+        ///
+        /// <para>
+        /// Половина melee-урона в игре до сих пор наносится «по проходу»:
+        /// защитницы против собак (MobSystem) и весь §56 (PredationSystem)
+        /// бьют раз в средний тик под фазовым гейтом <see cref="MeleeStrikeReady"/>
+        /// и НЕ ставят ни одного видового сигнала. Кровь есть, замаха нет —
+        /// ровно тот класс бага, что чинил §103, только он там и остался.
+        /// </para>
+        /// <para>
+        /// Включение меняет и каденцию, и летальность: §56 бьёт 0.35/сек, а
+        /// таймлайн — 0.221 раз в 2.74 с. Это ЖЕЛАЕМЫЙ сдвиг (коллективная
+        /// защита становится физически возможной, см. шапку MeleeSwing), но
+        /// собачий баланс на грани, поэтому по умолчанию ВЫКЛЮЧЕНО: сначала
+        /// A/B-соаки, потом решение.
+        /// </para>
+        /// </summary>
+        public static bool TimedMeleeEverywhere = false;
+
         // §71: the colony's global walking pace, multiplied into the one place
         // distance-per-tick is computed (MovementSystem). The per-NPC
         // npc.MoveSpeed field has always been a hardcoded 1 that nothing ever

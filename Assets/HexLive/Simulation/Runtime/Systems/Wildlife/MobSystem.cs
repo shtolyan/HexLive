@@ -586,7 +586,12 @@ public sealed class MobSystem : ISimulationSystem
                 : string.Empty;
             var weaponMult = SimBalance.MeleeStrikeBonus(weaponId);
             var attackSpeed = SimBalance.MeleeAttackSpeed(weaponId);
-            var strikeReady = SimBalance.MeleeStrikeReady(world.Tick, defender.Id.Value, weaponId);
+            // §104 r8: когда удары всех идут по таймлайну, эти наносит
+            // AnimalCombatSystem.RunAssistStrikes — на быстром слое, с окном
+            // анимации и штампом замаха. Здесь остаётся только подход, стойка
+            // и трасса: два источника урона по одной собаке били бы вдвое.
+            var strikeReady = !SimBalance.TimedMeleeEverywhere &&
+                SimBalance.MeleeStrikeReady(world.Tick, defender.Id.Value, weaponId);
             var strike = strikeReady
                 ? NpcStrikePerPass * defender.StrikeFactor() * weaponMult
                 : 0f;

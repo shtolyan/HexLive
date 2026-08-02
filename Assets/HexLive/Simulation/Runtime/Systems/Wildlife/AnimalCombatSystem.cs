@@ -262,6 +262,46 @@ public sealed class AnimalCombatSystem : ISimulationSystem
         {
             RunCounterStrike(world, dog, target, inMelee);
         }
+
+        // 4) §104 r8: ПОДМОГА бьёт по тому же таймлайну, что и жертва.
+        //
+        // Помощницы дрались по легаси-модели (MobSystem, урон за средний
+        // проход) и не ставили НИ ОДНОГО видового сигнала: их удары были
+        // невидимы — кровь у собаки есть, замаха нет. Здесь они получают
+        // ровно то же, что жертва: окно анимации, штамп замаха, вариант удара.
+        if (SimBalance.TimedMeleeEverywhere && dog.Health > 0f)
+        {
+            RunAssistStrikes(world, dog);
+        }
+    }
+
+    /// <summary>
+    /// Удары тех, кто прибежал на помощь (§57): та же собака, тот же таймлайн.
+    /// Жертва обслужена выше и в список не попадает — <c>_struckNpcs</c>
+    /// держит правило «один замах на тело за проход».
+    /// </summary>
+    private void RunAssistStrikes(WorldState world, Wildlife.MobState dog)
+    {
+        foreach (var helper in world.Entities.Npcs.Values)
+        {
+            if (helper.Mind.CombatAssistDogId != dog.Id ||
+                helper.Health <= 0f ||
+                helper.Body.IsProne ||
+                helper.IsUnconscious(world.Tick) ||
+                !_struckNpcs.Add(helper.Id.Value))
+            {
+                continue;
+            }
+
+            var inMelee = HexSpatialMath.HexDistance(helper.Tile, dog.Tile) <= 1;
+            if (inMelee)
+            {
+                helper.IsFighting = true;
+                FaceDog(world, helper, dog);
+            }
+
+            RunCounterStrike(world, dog, helper, inMelee);
+        }
     }
 
     // Instant reactive defense (fast layer). Mirrors MobSystem's medium-pass

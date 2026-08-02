@@ -33,6 +33,9 @@ public sealed class SoakOptions
     /// готовность, такт сцены. То, чего не видно ни в одном событии.</summary>
     public bool CombatFrames;
 
+    /// <summary>Все удары по таймлайну замаха (§104 r8), поверх simdata.</summary>
+    public bool TimedMelee;
+
     /// <summary>
     /// Пресеты трассы. <c>decisions</c> — дёшево и без шума, для проверки
     /// «поведение не поехало» на гигиенических правках. <c>scores</c> добавляет
@@ -123,6 +126,12 @@ public sealed class SoakOptions
                         break;
                     case "--combat-frames":
                         options.CombatFrames = true;
+                        break;
+                    // §104 r8: A/B-переключатель миграции ударов на таймлайн.
+                    // Ставится ПОСЛЕ применения simdata, поэтому перебивает
+                    // экспорт — иначе сравнить две модели одним бинарём нельзя.
+                    case "--timed-melee":
+                        options.TimedMelee = true;
                         break;
                     case "--quiet":
                         options.Quiet = true;

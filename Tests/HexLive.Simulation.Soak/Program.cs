@@ -30,6 +30,13 @@ public static class Program
         try
         {
             SimDataFile.Require(options.SimDataPath);
+            if (options.TimedMelee)
+            {
+                // ПОСЛЕ Require: экспорт несёт своё значение флага, а ключ
+                // командной строки для того и нужен, чтобы сравнить две модели
+                // одним бинарём и одним simdata.
+                SimBalance.TimedMeleeEverywhere = true;
+            }
         }
         catch (Exception exception)
         {

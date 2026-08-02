@@ -75,6 +75,28 @@ public sealed class PredationSystem : ISimulationSystem
                 continue;
             }
 
+            // ⭐ §104 r8: удары ведёт ОБЩИЙ таймлайн замаха.
+            //
+            // Здесь стоял свой урон — 0.35 за КАЖДЫЙ средний тик, то есть
+            // 0.516/с с ножом: полное туловище разрушается за две секунды, и
+            // подмога §57 физически не успевает дойти (шапка MeleeSwing
+            // объясняет, почему §72 не стал это переиспользовать). Плюс он не
+            // ставил ни одного видового сигнала — удары §56 были невидимы.
+            //
+            // Пара «человек против человека» — ровно то, что умеет вести
+            // HumanCombatSystem: сцепка, замах, попадание, полный путь тела.
+            // Достаточно объявить пару и уйти: он ударит на быстром слое, с
+            // окном анимации и хит-штампом.
+            if (SimBalance.TimedMeleeEverywhere)
+            {
+                predator.IsFighting = true;
+                predator.Mind.CombatOpponentNpcId = victim.Id;
+                Trace.Emit(world, predator.Id, "PreyEngaged",
+                    $"Victim={victim.Id.Value} Health={victim.Health:F2}");
+                RunVictimResponse(world, predator, victim);
+                continue;
+            }
+
             // A starved attacker is weak (StrikeFactor); weapons bite deeper
             // while heavy weapons strike less often.
             var weaponId = predator.Body.CanUseToolsOrWeapons
@@ -246,6 +268,61 @@ public sealed class PredationSystem : ISimulationSystem
         return BodyPart.LegR;
     }
 
+    /// <summary>
+    /// §104 r8: ответ жертвы, когда удары ведёт общий таймлайн.
+    ///
+    /// <para>
+    /// Легаси-ветка выше делает то же самое вперемешку с собственным уроном;
+    /// здесь урона нет вовсе — только решения: запомнить опасность, позвать
+    /// подмогу, бежать или сцепиться в ответ. Сами удары нанесёт
+    /// <c>HumanCombatSystem</c> на быстром слое, обеим сторонам сразу.
+    /// </para>
+    /// </summary>
+    private static void RunVictimResponse(WorldState world, NPCState predator, NPCState victim)
+    {
+        MobSystem.RememberDanger(world, victim);
+        CombatHelpSystem.RallyFriends(world, victim, null, predator.Id,
+            $"Attacker=NPC{predator.Id.Value}");
+
+        // §60: из комы не отвечают и не бегут. Подмога уже позвана выше.
+        if (victim.IsUnconscious(world.Tick))
+        {
+            return;
+        }
+
+        var fleeing = victim.Mind.CurrentGoal == GoalType.Flee;
+        if (!fleeing &&
+            (victim.Health < SimBalance.PredationFleeHealth ||
+             MobSystem.WorstPartHealth(victim) < 0.35f))
+        {
+            fleeing = MobSystem.TryStartFlee(world, victim, 1, attackerNpcId: predator.Id);
+        }
+
+        if (fleeing)
+        {
+            // Бегущая не отвечает: пара с её стороны не заводится, и таймлайн
+            // её замахов не ведёт.
+            victim.Mind.CombatOpponentNpcId = null;
+            Trace.Emit(world, victim.Id, "PreyFled",
+                $"From NPC{predator.Id.Value} (Health={victim.Health:F2})");
+        }
+        else
+        {
+            // Стоит и дерётся: бросает дела и отвечает по тому же таймлайну.
+            victim.IsFighting = true;
+            if (victim.Plan.Status == PlanStatus.Active ||
+                victim.Execution.Status == ExecutionStatus.InProgress)
+            {
+                PlanInterruption.Abort(world, victim, $"Fighting off NPC{predator.Id.Value}");
+                victim.Mind.CurrentGoal = GoalType.None;
+            }
+
+            victim.Mind.CombatOpponentNpcId = predator.Id;
+        }
+
+        RunNpcDefenders(world, predator, victim);
+    }
+
     private static void RunNpcDefenders(WorldState world, NPCState attacker, NPCState victim)
     {
         if (attacker.CurrentJunction is not { } attackerJunction)
@@ -275,6 +352,21 @@ public sealed class PredationSystem : ISimulationSystem
             }
 
             defender.IsFighting = true;
+
+            // §104 r8: подмога дерётся по общему таймлайну — сцепка объявлена,
+            // удары наносит HumanCombatSystem. Здесь остаётся трасса и
+            // соц-метка: два источника урона по одному нападающему били бы
+            // вдвое, а невидимых ударов не осталось бы всё равно.
+            if (SimBalance.TimedMeleeEverywhere)
+            {
+                defender.Mind.CombatOpponentNpcId = attacker.Id;
+                Trace.Emit(world, defender.Id, "HelpCryDefended",
+                    $"Victim=NPC{victim.Id.Value} Attacker=NPC{attacker.Id.Value} engaged " +
+                    $"AttackerHealth={attacker.Health:F2}");
+                SocialCueSignals.Stamp(world, defender, "HelpCryDefended", victim.Id);
+                continue;
+            }
+
             var weaponId = defender.Body.CanUseToolsOrWeapons
                 ? SimBalance.BestMeleeWeapon(defender.Inventory.Items, defender.Body.IntactHands)
                 : string.Empty;

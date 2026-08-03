@@ -18,6 +18,18 @@ public static class WorldSnapshotExporter
     // while it is visible; everyone else gets the lean snapshot.
     public static bool IncludeDebugDetails { get; set; }
 
+    // PERF (profiling, Aug-2026): the same bargain, one level down. Refreshing
+    // the MUTABLE junction flags costs ~56 000 dictionary/hash lookups over the
+    // ~14 000 junctions, every tick — and NOTHING in the shipped view reads
+    // them. The only consumers are the junction debug markers and the hex
+    // inspector, so they opt in while someone is actually looking; a flip is
+    // picked up on the next tick, which for a debug overlay is instant enough.
+    // IsClimbSeam is deliberately NOT part of this bargain: it is worldgen
+    // output (WorldStateFactory writes ClimbSeams and nothing else ever does),
+    // so the values the first full export copied stay right forever — which
+    // matters, because the §40.17 seam dots are always shown, debug or not.
+    public static bool IncludeJunctionFlags { get; set; }
+
     public static WorldSnapshot Export(WorldState world) => Export(world, null);
 
     // Passing the previous snapshot lets the exporter refresh the tile and
@@ -279,6 +291,10 @@ public static class WorldSnapshotExporter
         var junctions = snapshot.Junctions;
         if (junctions.Count == world.Junctions.Items.Count)
         {
+            // See IncludeJunctionFlags: the identity sweep below stays (it is
+            // what detects a world swap, and it is only a struct compare each),
+            // but the four hash lookups per junction are debug-only work.
+            var refreshFlags = IncludeDebugDetails || IncludeJunctionFlags;
             var i = 0;
             var match = true;
             foreach (var pair in world.Junctions.Items)
@@ -291,7 +307,10 @@ public static class WorldSnapshotExporter
                     break;
                 }
 
-                RefreshJunctionFlags(world, junction, cached);
+                if (refreshFlags)
+                {
+                    RefreshJunctionFlags(world, junction, cached);
+                }
             }
 
             if (match)

@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
   MeshName: Marta_L
   VertexCount: 2692
+  Version: 0
+  MeshHeight: 1.7
   TSamples: 1
   AzimuthSamples: 1
   TMin: 0
@@ -21,6 +23,7 @@ MonoBehaviour:
   Zones:
   - Zone: Head
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Torso
     Points:
     - Slot: 0
@@ -28,8 +31,12 @@ MonoBehaviour:
       BindPerU: 0.47869033
       BindPerV: 0.6431677
       Valid: 1
+      BindPos: {x: -0.28404832, y: 1.4081837, z: -0.04859683}
+      BindNormal: {x: 0.9952401, y: -0.090388246, z: -0.03643038}
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Pelvis
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmL
     Points:
     - Slot: 0
@@ -37,9 +44,15 @@ MonoBehaviour:
       BindPerU: 0.62093914
       BindPerV: 0.607893
       Valid: 1
+      BindPos: {x: -0.4166884, y: 1.4652466, z: -0.07002755}
+      BindNormal: {x: -0.032039803, y: 0.6372836, z: -0.769963}
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmR
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegL
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegR
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}

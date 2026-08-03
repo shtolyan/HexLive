@@ -287,6 +287,7 @@ public sealed class BodyBones : MonoBehaviour
         var underwear = _byLayer[VisualWearLayer.Underwear];
         var newWear = Instantiate(wearPrefab, wearTransform);
         newWear.Construct(_actorMesh, this, key);
+        SuppressGarmentShadows(newWear);
 
         foreach (var slot in newWear.Slots)
         {
@@ -326,6 +327,27 @@ public sealed class BodyBones : MonoBehaviour
         _wearKeys[newWear] = key;
         UpdateGenitals();
         RefreshHeel();
+    }
+
+    // PERF (profiling, Aug-2026): every worn piece is a SkinnedMeshRenderer, and
+    // a dressed colonist wears several — each one skinned and drawn again in
+    // every shadow cascade it lands in. The BODY still casts, so she keeps her
+    // shadow; what is lost is the cloth's own contribution to that silhouette,
+    // which at play distance reads as a slightly slimmer blob. Flip this to keep
+    // garment shadows if a wide skirt ever needs its outline back.
+    private const bool GarmentsCastShadows = false;
+
+    private static void SuppressGarmentShadows(Wear wear)
+    {
+        if (GarmentsCastShadows)
+        {
+            return;
+        }
+
+        foreach (var renderer in wear.GetComponentsInChildren<Renderer>(true))
+        {
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
     }
 
     public void TakeOff(string key)

@@ -111,8 +111,14 @@ namespace HexLive.UnityDebug.Editor
             // как LieDown→Sleep→GetUp у сна, но своей цепочкой: сон уходит в
             // кровать и держит свою позу, а это падение с любого места.
             var fallDown = AddState(sm, "FallDown", Clip("X Bot@Falling Down_once"));
-            var fallenIdle = AddState(sm, "FallenIdle", Clip("X Bot@Fallen Idle"));
+            var fallenIdle = AddState(sm, "FallenIdle", Clip("X Bot@Sleeping Idle"));
             var standUp = AddState(sm, "StandUp", Clip("X Bot@Standing Up_once"));
+            // §105: беспамятство — ОДИН КАДР позы сна, намертво. Скорость 0
+            // означает «оставайся на первом кадре»: тело лежит, но не дышит и
+            // не ворочается — тем и отличается от спящей, которая рядом играет
+            // ТОТ ЖЕ клип живьём. Клип, а не отдельная поза, потому что вторая
+            // копия той же позы разошлась бы с первой при первой же замене.
+            fallenIdle.speed = 0f;
 
             // Loopy activities: enter while the bool is set, return to Idle when cleared.
             Loopy(sm, talk, idle, "Talking");

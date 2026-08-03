@@ -31,6 +31,15 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private readonly List<string> _holsterRemoveScratch = new();
     private readonly HashSet<string> _slotClashWarned = new();
 
+    // §52.9 / PERF: sim items whose visual was evicted the instant it was
+    // equipped — another garment owns the same (layer, slot). Re-stitching a
+    // garment onto the body is Instantiate + ~57 SetParent + a fresh material
+    // set, so retrying that every tick is a permanent frame fire (measured at
+    // ~100 ms/tick, and it leaked the material instances of every discarded
+    // copy). Marked here so the repair in SyncWorn stays a ONE-SHOT; the mark
+    // is dropped only on a real wardrobe change, never on a timer.
+    private readonly HashSet<string> _clashedSimItems = new();
+
     public ActorName ActorMesh => _actorMesh;
 
     private Transform _gazeTarget;
@@ -804,6 +813,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // HEAD-BONE space, so at runtime they ride the bone through any pose —
     // walking, sitting, lying flat — and the camera stays nailed to the face.
     private Transform _headBone;
+    private Transform _lEye;
+    private Transform _rEye;
     private Vector3 _faceLocalCenter;
     private Vector3 _faceLocalForward;
     private Vector3 _faceLocalUp;
@@ -812,6 +823,43 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     public bool TryGetFace(out Vector3 faceCenter, out Vector3 faceForward, out Vector3 faceUp, out float scale)
     {
         scale = _bodyRoot != null ? _bodyRoot.lossyScale.y : transform.lossyScale.y;
+
+        // ⭐ §107.4 r2: рамка лица строится по ГЛАЗАМ, а не по осям кости головы.
+        // Оси головы приходилось калибровать один раз — «в позе покоя» пекли
+        // transform.forward в пространство кости, — и любой перекос в тот
+        // момент (или рига, у которого локальные оси кости переставлены при
+        // импорте FBX) навсегда уезжал в каждый снимок: лицо выходило чуть
+        // повёрнутым. Два глаза задают горизонтальную ось лица однозначно и
+        // без всякой калибровки, поэтому камера встаёт строго анфас.
+        if (_lEye != null && _rEye != null)
+        {
+            var left = _lEye.position;
+            var right = _rEye.position;
+            var across = right - left;
+            if (across.sqrMagnitude > 1e-8f)
+            {
+                across.Normalize();
+
+                // Вертикаль берём МИРОВУЮ — кадр не должен заваливаться вслед
+                // за наклоном головы. Если её всё же положило набок (across
+                // почти вертикален), падаем на ось головы, иначе векторное
+                // произведение вырождается.
+                var upRef = Vector3.up;
+                if (Mathf.Abs(Vector3.Dot(across, upRef)) > 0.9f)
+                {
+                    upRef = _faceCalibrated && _headBone != null
+                        ? _headBone.TransformDirection(_faceLocalUp).normalized
+                        : transform.up;
+                }
+
+                faceForward = Vector3.Cross(across, upRef).normalized;
+                faceUp = Vector3.Cross(faceForward, across).normalized;
+                // Центр кадра чуть НИЖЕ линии глаз: иначе подбородок срезан, а
+                // над макушкой пусто.
+                faceCenter = (left + right) * 0.5f - faceUp * (0.02f * scale);
+                return true;
+            }
+        }
 
         if (_faceCalibrated && _headBone != null)
         {
@@ -825,6 +873,26 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         faceForward = transform.forward;
         faceUp = Vector3.up;
         return true;
+    }
+
+    // §80 r2: годится ли она сейчас для СНИМКА. Лицевой якорь честно едет за
+    // костью в любой позе, но фотография лёжа, вплавь или вниз головой — это
+    // не портрет, а кадр из падения. Такую съёмку откладываем до следующего
+    // захода, благо кадр стоит доли миллисекунды.
+    public bool IsPhotogenic
+    {
+        get
+        {
+            if (_laying || _swimming || !_faceCalibrated || _headBone == null)
+            {
+                return false;
+            }
+
+            // Голова держится вертикально: наклон до ~50° прощаем (она может
+            // смотреть под ноги), кувырок — нет.
+            var up = _headBone.TransformDirection(_faceLocalUp).normalized;
+            return Vector3.Dot(up, Vector3.up) > 0.64f;
+        }
     }
 
     // Orbit-camera pivot: the visual center of the body in ANY pose — a point
@@ -851,6 +919,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private void CalibrateFaceAnchor()
     {
         _headBone = _bodyBones != null ? _bodyBones.GetBone("head") : null;
+        // Глаза — основная рамка лица (см. TryGetFace); кость головы остаётся
+        // запасной, для рига без глаз и для проверки «стоит ли она вообще».
+        _lEye = _bodyBones != null ? _bodyBones.GetBone("lEye") : null;
+        _rEye = _bodyBones != null ? _bodyBones.GetBone("rEye") : null;
         if (_headBone == null)
         {
             return;
@@ -1775,6 +1847,15 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             }
 
             _equippedSimItems.Remove(simId);
+            _clashedSimItems.Remove(simId);
+        }
+
+        // A garment coming OFF can free the slot a clashing one lost, so a real
+        // wardrobe change earns everyone exactly one more attempt. Ticking does
+        // not — that is the whole point of the mark.
+        if (_removeScratch.Count > 0)
+        {
+            _clashedSimItems.Clear();
         }
 
         foreach (var simId in wornDefinitionIds)
@@ -1794,6 +1875,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 continue;
             }
 
+            // The repair is a ONE-SHOT (see _clashedSimItems). Equipping a
+            // garment means instantiating the prefab and stitching every one of
+            // its ~57 bones onto the body; when the piece is evicted the instant
+            // it lands, repeating that each tick is a permanent ~100 ms/tick
+            // fire that the console never mentions (the warning below is
+            // once-per-id). The piece then stays MISSING until the data is
+            // fixed — a visible, greppable symptom, which is what we want.
+            if (_clashedSimItems.Contains(simId))
+            {
+                continue;
+            }
+
+            var isNewItem = !_equippedSimItems.ContainsKey(simId);
             var prefabs = ActorWardrobe.GetVisuals(simId);
             for (var i = 0; i < prefabs.Count; i++)
             {
@@ -1814,16 +1908,28 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // mirrors it in `WearSlotCatalog`. So the repair is: bring the SIM
             // table (and, if the layer itself is wrong, the garment's sim
             // WearLayer) into line with the prefab — never coarsen the prefab.
-            if (prefabs.Count > 0 && !_bodyBones.IsEquipped($"{simId}#0") &&
-                _slotClashWarned.Add(simId))
+            if (prefabs.Count > 0 && !_bodyBones.IsEquipped($"{simId}#0"))
             {
-                Debug.LogWarning(
-                    $"[Wear] '{simId}' was evicted the instant it was equipped, by " +
-                    $"{_bodyBones.DescribeSlotOwners(prefabs[0])} — their visual " +
-                    "(layer, slot) collide while the sim allows both to be worn. " +
-                    "Sync WearSlotCatalog (and the sim WearLayer) TO this prefab — " +
-                    "do not coarsen the prefab's slots to match Covers.",
-                    this);
+                // Do not try again on the next tick — see _clashedSimItems.
+                _clashedSimItems.Add(simId);
+                if (_slotClashWarned.Add(simId))
+                {
+                    Debug.LogWarning(
+                        $"[Wear] '{simId}' was evicted the instant it was equipped, by " +
+                        $"{_bodyBones.DescribeSlotOwners(prefabs[0])} — their visual " +
+                        "(layer, slot) collide while the sim allows both to be worn. " +
+                        "Sync WearSlotCatalog (and the sim WearLayer) TO this prefab — " +
+                        "do not coarsen the prefab's slots to match Covers. " +
+                        "The piece stays OFF the body until that is fixed: re-stitching " +
+                        "it every tick was ~100 ms/tick and leaked a material set each time.",
+                        this);
+                }
+            }
+            else if (isNewItem)
+            {
+                // A genuinely new garment landed — the slot map moved, so anyone
+                // previously blocked deserves one more attempt.
+                _clashedSimItems.Clear();
             }
         }
     }
@@ -2735,13 +2841,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
     }
 
-    // §80: portrait — лицо того, о ком кьюшка (страх перед конкретным
+    // §80/§107.5: portrait — лицо того, о ком кьюшка (страх перед конкретным
     // человеком). Голос от него не зависит: реплика привязана к ВИДУ кьюшки.
+    // Своего пузыря у кьюшки больше НЕТ — она встаёт в общую очередь к тому
+    // единственному, что висит над головой, и выигрывает его по рангу.
     public void PopSocialCue(string cueKind, Sprite portrait = null)
     {
         EnsureSpeechBubble();
-        _speechBubble?.PopSocialCue(cueKind, portrait);
-        _speech?.OnCue(cueKind);
+        _speech?.OnCue(cueKind, portrait);
 
         // §81: такты сцены абьюза играются телом, а не только эмодзи. Кьюшка
         // уже приходит ровно в нужный момент и ровно тому, кого касается, —
@@ -2796,11 +2903,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     void UI.ISpeechStage.StopVoiceLine() => Audio.FmodSfx.StopLoop(ref _voiceChannel);
 
-    void UI.ISpeechStage.ShowSpeechIcon(string iconKey, float seconds)
-        => _speechBubble?.ShowIcon(iconKey, seconds);
+    void UI.ISpeechStage.ShowSpeechIcon(string iconKey, float seconds, bool alarm)
+        => _speechBubble?.ShowIcon(iconKey, seconds, alarm);
 
-    void UI.ISpeechStage.ShowSpeechPortrait(Sprite portrait, float seconds)
-        => _speechBubble?.ShowIcon(portrait, seconds);
+    void UI.ISpeechStage.ShowSpeechPortrait(Sprite portrait, float seconds, bool alarm)
+        => _speechBubble?.ShowIcon(portrait, seconds, alarm);
 
     void UI.ISpeechStage.HideSpeechIcon() => _speechBubble?.HideIcon();
 
@@ -5202,10 +5309,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _lookAtIK.solver.target = _gazeTarget;
             if (_portraitGaze)
             {
-                // §80: на фото решают ГЛАЗА. Голову ведём чуть-чуть (камера
-                // висит на её же осях), тело не двигаем совсем, клэмп глаз
-                // отпускаем — иначе взгляд снова уходит мимо объектива.
-                _lookAtIK.solver.headWeight = 0.35f;
+                // §80 r2: на фото решают ГЛАЗА, и ТОЛЬКО глаза. Голову не ведём
+                // совсем — камера прибита к кости головы, поэтому любой её
+                // доворот утаскивает за собой кадр, и объектив гонится за
+                // лицом, которое сам же и двигает. С нулевым весом головы
+                // обратной связи нет: кость стоит как стояла, камера висит
+                // перед ней, а в объектив смотрят зрачки.
+                _lookAtIK.solver.headWeight = 0f;
                 _lookAtIK.solver.eyesWeight = 1f;
                 _lookAtIK.solver.bodyWeight = 0f;
                 _lookAtIK.solver.clampWeight = 0.5f;

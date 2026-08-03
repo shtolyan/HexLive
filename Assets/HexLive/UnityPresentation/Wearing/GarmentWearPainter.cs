@@ -18,7 +18,7 @@ namespace HexLive.UnityPresentation.Wearing
     /// the mesh → slot + wrapped UV (always on a UV island).
     /// Everything is event-driven on state buckets — no per-frame work.
     /// </summary>
-    public sealed class GarmentWearPainter : MonoBehaviour
+    public sealed class GarmentWearPainter : MonoBehaviour, IPaintTarget
     {
         private const int MaskSize = 512;
         private const float TearBucket = 0.05f;
@@ -90,7 +90,13 @@ namespace HexLive.UnityPresentation.Wearing
         // changes mark dirty, LateUpdate composites at most once per interval.
         private bool _repaintDirty;
         private float _lastRepaintTime;
-        private const float RepaintIntervalSeconds = 0.25f;
+        // Spec 40.8-K: a garment painter is CHEAP (dirt/blood/tears through
+        // the plain point map — garments never got the seam-free projection),
+        // but there is one per WORN PIECE, so they are the most numerous
+        // painters in the world. Their cost was never the algorithm, it was
+        // the count times the rate; grime and tears drift far too slowly to
+        // need four looks a second.
+        private const float RepaintIntervalSeconds = 1f;
 
         // Ragged hole stamp (dark core, noisy rim) + shared art, generated once.
         private static Texture2D? _holeStamp;
@@ -308,13 +314,25 @@ namespace HexLive.UnityPresentation.Wearing
 
         private void LateUpdate()
         {
-            if (!_repaintDirty)
-            {
-                enabled = false;
-                return;
-            }
+            // Painting is driven by SkinPaintScheduler (spec 40.8-K), which
+            // registers itself on Awake and exists in dev scenes too. Doing it
+            // here as well would paint AHEAD of the scheduler's frame budget —
+            // exactly the pile-up the budget exists to prevent.
+            enabled = false;
+        }
 
-            if (Time.unscaledTime - _lastRepaintTime < RepaintIntervalSeconds)
+        /// <summary>IPaintTarget: a garment has no cheap "just appeared" path —
+        /// dirt and tears creep, they never pop.</summary>
+        public bool WantsFreshPass => false;
+
+        public void PaintFresh()
+        {
+        }
+
+        /// <summary>IPaintTarget: this garment's scheduled turn.</summary>
+        public void PaintCycle()
+        {
+            if (!_repaintDirty)
             {
                 return;
             }
@@ -1058,8 +1076,12 @@ namespace HexLive.UnityPresentation.Wearing
             _holeStamp.Apply();
         }
 
+        private void Awake() => SkinPaintScheduler.Register(this);
+
         private void OnDestroy()
         {
+            SkinPaintScheduler.Unregister(this);
+
             foreach (var rt in _maskRt)
             {
                 if (rt != null)
@@ -1081,6 +1103,24 @@ namespace HexLive.UnityPresentation.Wearing
             if (_bakedMesh != null)
             {
                 Destroy(_bakedMesh);
+            }
+
+            // `renderer.materials` handed us INSTANCES, and Unity does not free
+            // those with the renderer — they outlive the garment as orphans.
+            // Measured: 1 801 materials (and ~170 MB of their textures) leaked
+            // in 80 s of play. The static stamp materials above are shared and
+            // must NOT be touched here; only this per-instance set.
+            if (_materials != null)
+            {
+                foreach (var material in _materials)
+                {
+                    if (material != null)
+                    {
+                        Destroy(material);
+                    }
+                }
+
+                _materials = null;
             }
         }
     }

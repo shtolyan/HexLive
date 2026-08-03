@@ -65,7 +65,8 @@ namespace HexLive.UnityPresentation.UI
         private Label _effectTooltipDesc;
         // Only rebuild the chips when the SET of effects changes, so hovering
         // stays stable across ticks (intensity-only shifts recolour in place).
-        private string _effectSig = null;
+        private readonly List<EffectKind> _effectSigKinds = new();
+        private readonly List<EffectView> _effectParseScratch = new();
 
         // Spec §51: character inventory — a backpack button on the identity
         // column pops a floating window listing worn + carried items; clicking
@@ -128,7 +129,7 @@ namespace HexLive.UnityPresentation.UI
         private SheetTab _sheetTab = SheetTab.Needs;
         private readonly List<SheetBinding> _attrBindings = new();
         private readonly List<SheetBinding> _skillBindings = new();
-        private string _perkSig;
+        private readonly List<string> _perkSig = new();
         private Label _relationsTitle;
         private Button _langButton;
 
@@ -582,6 +583,12 @@ namespace HexLive.UnityPresentation.UI
             {
                 _boundActorId = npc.Id.Value;
                 BindPortrait(npc.Id.Value);
+                // A different colonist's relations must redraw even if the row
+                // count and numbers happen to line up — the cached signature is
+                // about HER list, so it does not carry over.
+                _relationSig.Clear();
+                _relationSigSelected = int.MinValue;
+                _relationsBuiltEmpty = false;
             }
 
             var hp = Mathf.Clamp01(npc.Health);
@@ -769,13 +776,22 @@ namespace HexLive.UnityPresentation.UI
         // elements every tick would be pure churn.
         private void UpdatePerks(NpcSnapshot npc)
         {
-            var signature = string.Join("|", npc.Perks);
-            if (signature == _perkSig)
+            // PERF: was string.Join every tick — a fresh string allocated only to
+            // find out the perk set had not moved. Perks are permanent; compare
+            // the keys directly.
+            var changed = _perkSig.Count != npc.Perks.Count;
+            for (var i = 0; !changed && i < npc.Perks.Count; i++)
+            {
+                changed = _perkSig[i] != npc.Perks[i];
+            }
+
+            if (!changed)
             {
                 return;
             }
 
-            _perkSig = signature;
+            _perkSig.Clear();
+            _perkSig.AddRange(npc.Perks);
             _perkRow.Clear();
             foreach (var key in npc.Perks)
             {
@@ -910,7 +926,11 @@ namespace HexLive.UnityPresentation.UI
         // otherwise only the ring colours refresh.
         private void UpdateEffects(NpcSnapshot npc)
         {
-            var parsed = new List<EffectView>(npc.Effects.Count);
+            // PERF: scratch list reused across ticks; the intensity is parsed off
+            // a span so the "Kind\t0.42" row costs one short string (the kind,
+            // which Enum.TryParse has no span overload for) instead of two.
+            var parsed = _effectParseScratch;
+            parsed.Clear();
             foreach (var raw in npc.Effects)
             {
                 var tab = raw.IndexOf('\t');
@@ -925,7 +945,7 @@ namespace HexLive.UnityPresentation.UI
                 if (tab >= 0)
                 {
                     float.TryParse(
-                        raw.Substring(tab + 1),
+                        raw.AsSpan(tab + 1),
                         System.Globalization.NumberStyles.Float,
                         System.Globalization.CultureInfo.InvariantCulture,
                         out intensity);
@@ -946,15 +966,22 @@ namespace HexLive.UnityPresentation.UI
                 return b.Intensity.CompareTo(a.Intensity);
             });
 
-            var sig = string.Empty;
-            for (var i = 0; i < parsed.Count; i++)
+            // PERF: was a string built by += in a loop — quadratic garbage every
+            // tick to answer a yes/no question. The kinds are compared directly.
+            var changed = _effectSigKinds.Count != parsed.Count;
+            for (var i = 0; !changed && i < parsed.Count; i++)
             {
-                sig += (int)parsed[i].Kind + ",";
+                changed = _effectSigKinds[i] != parsed[i].Kind;
             }
 
-            if (sig != _effectSig)
+            if (changed)
             {
-                _effectSig = sig;
+                _effectSigKinds.Clear();
+                for (var i = 0; i < parsed.Count; i++)
+                {
+                    _effectSigKinds.Add(parsed[i].Kind);
+                }
+
                 HideEffectTooltip();
                 _effectsRow.Clear();
                 foreach (var e in parsed)
@@ -2303,10 +2330,16 @@ namespace HexLive.UnityPresentation.UI
 
         private void UpdateRelations(NpcSnapshot npc)
         {
-            _relationsContainer.Clear();
-
             if (npc.RelationshipDetails.Count == 0)
             {
+                if (_relationsBuiltEmpty)
+                {
+                    return;
+                }
+
+                _relationsBuiltEmpty = true;
+                _relationSig.Clear();
+                _relationsContainer.Clear();
                 var none = new Label(Loc.Get("panel.none"));
                 none.style.color = TextMute;
                 none.style.fontSize = 11;
@@ -2314,7 +2347,9 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            var relations = new List<RelationshipSnapshot>(npc.RelationshipDetails);
+            var relations = _relationScratch;
+            relations.Clear();
+            relations.AddRange(npc.RelationshipDetails);
             relations.Sort((a, b) =>
             {
                 var byAffinity = Mathf.Abs(b.Affinity).CompareTo(Mathf.Abs(a.Affinity));
@@ -2324,15 +2359,104 @@ namespace HexLive.UnityPresentation.UI
                         StringComparison.CurrentCultureIgnoreCase);
             });
 
-            var selected = relations.Find(r => r.OtherId == _selectedRelationId);
+            // Plain loop, not List.Find: the predicate would capture `this` for
+            // _selectedRelationId, i.e. a closure allocated on every tick.
+            RelationshipSnapshot selected = null;
+            for (var i = 0; i < relations.Count; i++)
+            {
+                if (relations[i].OtherId == _selectedRelationId)
+                {
+                    selected = relations[i];
+                    break;
+                }
+            }
+
             if (selected == null)
             {
                 selected = relations[0];
                 _selectedRelationId = selected.OtherId;
             }
 
+            // PERF: this subtree — a tab per relation, each with a portrait, plus
+            // the focus card — was torn down and rebuilt EVERY tick, which is
+            // where most of the panel's ~211 KB/tick of garbage and its share of
+            // the UIElements layout+repaint came from. It only ever changes when
+            // a relationship moves or the player picks another tab, so rebuild on
+            // exactly that, the way the effect chips and the inventory list
+            // already do.
+            if (!_relationsBuiltEmpty && RelationsUnchanged(relations))
+            {
+                return;
+            }
+
+            RememberRelations(relations);
+            _relationsBuiltEmpty = false;
+
+            _relationsContainer.Clear();
             _relationsContainer.Add(BuildRelationTabs(relations, selected.OtherId, npc));
             _relationsContainer.Add(BuildRelationFocusCard(selected));
+        }
+
+        // The signature is kept field-wise rather than as a joined string: a
+        // string would allocate every tick just to decide there was nothing to
+        // do. Values are COPIED — the snapshot is reused in place between ticks
+        // (spec 31.17), so holding the RelationshipSnapshot objects themselves
+        // would compare a list against itself and never see a change.
+        private readonly struct RelationSig
+        {
+            public RelationSig(RelationshipSnapshot r)
+            {
+                OtherId = r.OtherId;
+                OtherName = r.OtherName;
+                Trust = r.Trust;
+                Familiarity = r.Familiarity;
+                Affinity = r.Affinity;
+            }
+
+            public readonly int OtherId;
+            public readonly string OtherName;
+            public readonly float Trust;
+            public readonly float Familiarity;
+            public readonly float Affinity;
+
+            public bool Matches(RelationshipSnapshot r) =>
+                OtherId == r.OtherId && OtherName == r.OtherName &&
+                Trust == r.Trust && Familiarity == r.Familiarity && Affinity == r.Affinity;
+        }
+
+        private readonly List<RelationSig> _relationSig = new();
+        private readonly List<RelationshipSnapshot> _relationScratch = new();
+        private int _relationSigSelected = int.MinValue;
+        private bool _relationsBuiltEmpty;
+
+        private bool RelationsUnchanged(List<RelationshipSnapshot> relations)
+        {
+            if (_relationSigSelected != _selectedRelationId ||
+                _relationSig.Count != relations.Count)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < relations.Count; i++)
+            {
+                if (!_relationSig[i].Matches(relations[i]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private void RememberRelations(List<RelationshipSnapshot> relations)
+        {
+            _relationSig.Clear();
+            for (var i = 0; i < relations.Count; i++)
+            {
+                _relationSig.Add(new RelationSig(relations[i]));
+            }
+
+            _relationSigSelected = _selectedRelationId;
         }
 
         private VisualElement BuildRelationTabs(List<RelationshipSnapshot> relations, int selectedId, NpcSnapshot npc)
@@ -3633,7 +3757,12 @@ namespace HexLive.UnityPresentation.UI
                 _skillBindings[i].Label.text = Loc.Get(_skillBindings[i].Config.Key);
             }
 
-            _perkSig = null;
+            _perkSig.Clear();
+            // The relation tabs carry localized names (Loc.NpcName), so the
+            // cached signature must not survive a language switch either.
+            _relationSig.Clear();
+            _relationSigSelected = int.MinValue;
+            _relationsBuiltEmpty = false;
             if (_langButton != null)
             {
                 _langButton.text = Loc.Code;

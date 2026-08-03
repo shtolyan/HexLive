@@ -43,6 +43,12 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
     [SerializeField] private bool _logImportantEventsToConsole = true;
     [SerializeField] private bool _logTraceEventsToConsole;
 
+    // Holds the prewarmed object prefabs alive. Resources.LoadAll hands back
+    // assets nothing references, which a later UnloadUnusedAssets would be free
+    // to drop again — and the whole point of loading them was to not read them
+    // from disk mid-tick.
+    private static GameObject[]? _objectPrefabPin;
+
     private ISimulationBackend? _backend;
     private long _lastLoggedSeq;
     private readonly List<SimulationEvent> _drainedEvents = new();
@@ -392,6 +398,23 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
         foreach (var mobId in Config.MobLibrary.Ids)
         {
             Config.MobLibrary.LoadPrefab(mobId);
+        }
+
+        // PERF (profiling, Aug-2026) — the same trap, one level out: a world
+        // OBJECT's model is loaded the first time one of its kind appears, which
+        // happens mid-game, inside the tick, on the main thread. The deep capture
+        // caught a 205 ms frame whose HexWorldRenderer.Update spent 67 ms in a
+        // single blocking File.Read. The whole folder goes in one call on
+        // purpose: a hand-kept id list here would drift the moment someone adds
+        // a prefab (8.3 MB / 64 assets, so there is nothing to ration).
+        _objectPrefabPin = Resources.LoadAll<GameObject>("HexLive/Objects");
+        // Dropped clothing is the other lazy path (ActorWardrobe reads
+        // Resources/HexLive/Wear/<id> per item). Warmed per KNOWN id rather than
+        // by folder: LoadAll over all of Wear/ would pull in garments this world
+        // never spawns, and the wear TEXTURES are the memory-heavy half.
+        foreach (var id in world.Content.ObjectDefinitions.Keys)
+        {
+            Wearing.GarmentDropFactory.Prewarm(id);
         }
 
         // Loopback runs the local world through the wire codec, which interns

@@ -209,24 +209,23 @@ public static class SpeechCatalog
 
     // ---- one-shot social cue (WorldSnapshot.SocialCueKind) ---------------
 
-    public enum CueTone
-    {
-        Neutral,   // white
-        Positive,  // green
-        Negative   // red
-    }
 
     public readonly struct CueVisual
     {
         public readonly string PopIcon;   // Resources/HexLive/UI/Emoji/<PopIcon>.png
         public readonly string SpeechId;  // null = this cue has no utterance of its own
-        public readonly CueTone Tone;
 
-        public CueVisual(string popIcon, string speechId, CueTone tone)
+        // §107.5: пузырь ОДИН, и место в нём разыгрывается по рангу — «хочу
+        // пить» никогда не перебьёт «рядом чужак». У кьюшки со своей репликой
+        // ранг берётся из неё; у молчаливой (TalkRequest, AbuseHurt) он живёт
+        // здесь, иначе такой кьюшке нечем было бы соревноваться за пузырь.
+        public readonly Rank Rank;
+
+        public CueVisual(string popIcon, string speechId, Rank rank = Rank.Action)
         {
             PopIcon = popIcon;
             SpeechId = speechId;
-            Tone = tone;
+            Rank = rank;
         }
     }
 
@@ -241,75 +240,77 @@ public static class SpeechCatalog
     private static readonly Dictionary<string, CueVisual> Cues = new()
     {
         // ---- крик о помощи: картинка зависит от того, КТО напал ----------
-        ["HelpCry:dog"] = new("Dogs", "call_help", CueTone.Negative),
-        ["HelpCry:npc"] = new("Attack", "call_help", CueTone.Negative),
-        ["HelpCry"] = new("Dogs", "call_help", CueTone.Negative),
+        ["HelpCry:dog"] = new("Dogs", "call_help"),
+        ["HelpCry:npc"] = new("Attack", "call_help"),
+        ["HelpCry"] = new("Dogs", "call_help"),
 
-        ["HelpCryAssistStarted:dog"] = new("Dogs", "angry_defend", CueTone.Negative),
-        ["HelpCryAssistArrived:dog"] = new("Dogs", "angry_defend", CueTone.Negative),
-        ["HelpCryDefended:dog"] = new("Dogs", "angry_defend", CueTone.Negative),
-        ["HelpCryAssistStarted:npc"] = new("Attack", "angry_defend", CueTone.Negative),
-        ["HelpCryAssistArrived:npc"] = new("Attack", "angry_defend", CueTone.Negative),
-        ["HelpCryDefended:npc"] = new("Attack", "angry_defend", CueTone.Negative),
-        ["HelpCryAssistStarted"] = new("Dogs", "angry_defend", CueTone.Negative),
-        ["HelpCryAssistArrived"] = new("Dogs", "angry_defend", CueTone.Negative),
-        ["HelpCryDefended"] = new("Dogs", "angry_defend", CueTone.Negative),
+        ["HelpCryAssistStarted:dog"] = new("Dogs", "angry_defend"),
+        ["HelpCryAssistArrived:dog"] = new("Dogs", "angry_defend"),
+        ["HelpCryDefended:dog"] = new("Dogs", "angry_defend"),
+        ["HelpCryAssistStarted:npc"] = new("Attack", "angry_defend"),
+        ["HelpCryAssistArrived:npc"] = new("Attack", "angry_defend"),
+        ["HelpCryDefended:npc"] = new("Attack", "angry_defend"),
+        ["HelpCryAssistStarted"] = new("Dogs", "angry_defend"),
+        ["HelpCryAssistArrived"] = new("Dogs", "angry_defend"),
+        ["HelpCryDefended"] = new("Dogs", "angry_defend"),
 
-        ["HelpCryIgnored"] = new("Grumble", null, CueTone.Negative),
-        ["HelpCryAnswer"] = new("Home", null, CueTone.Positive),
-        ["HelpCryAnswered"] = new("Home", null, CueTone.Positive),
+        ["HelpCryIgnored"] = new("Grumble", null, Rank.Talk),
+        ["HelpCryAnswer"] = new("Home", null, Rank.Action),
+        ["HelpCryAnswered"] = new("Home", null, Rank.Action),
 
         // ---- угроза замечена издалека (§62/§72) --------------------------
         // Над головой — жёлтый треугольник: это ещё не бой, это «вижу».
         // Реплика уже про конкретного: зверь, акула или человек.
-        ["DangerSpotted:dog"] = new("Warning", "fear_wolf", CueTone.Neutral),
-        ["DangerSpotted:shark"] = new("Warning", "fear_shark", CueTone.Neutral),
-        ["DangerSpotted:*"] = new("Warning", "fear_flee", CueTone.Neutral),
-        ["DangerSpotted"] = new("Warning", "fear_wolf", CueTone.Neutral),
+        ["DangerSpotted:dog"] = new("Warning", "fear_wolf"),
+        ["DangerSpotted:shark"] = new("Warning", "fear_shark"),
+        ["DangerSpotted:*"] = new("Warning", "fear_flee"),
+        ["DangerSpotted"] = new("Warning", "fear_wolf"),
         // §80: чужак-человек. Над ним всплывает ЛИЦО (портрет перекрывает
         // иконку), а кричит она про чужака, а не про зверюгу.
-        ["DangerStranger"] = new("Warning", "fear_stranger", CueTone.Neutral),
+        ["DangerStranger"] = new("Warning", "fear_stranger"),
 
         // ---- взаимопомощь (§53) ------------------------------------------
-        ["AidRequest"] = new("Food", "sad_aid_ask", CueTone.Positive),
-        ["AidIncoming"] = new("Food", "happy_aid_give", CueTone.Positive),
-        ["AidStarted"] = new("Food", "happy_aid_give", CueTone.Positive),
-        ["AidCompleted"] = new("Food", "happy_aid_thanks", CueTone.Positive),
+        ["AidRequest"] = new("Food", "sad_aid_ask"),
+        ["AidIncoming"] = new("Food", "happy_aid_give"),
+        ["AidStarted"] = new("Food", "happy_aid_give"),
+        ["AidCompleted"] = new("Food", "happy_aid_thanks"),
 
         // ---- разговор ------------------------------------------------------
-        ["TalkSuccess"] = new("Joke", null, CueTone.Positive),
-        ["TalkRejected"] = new("Grumble", null, CueTone.Negative),
-        ["TalkRefused"] = new("Grumble", null, CueTone.Negative),
-        ["TalkQuarrel"] = new("Grumble", null, CueTone.Negative),
-        ["Resentment"] = new("Grumble", null, CueTone.Negative),
+        ["TalkRequest"] = new("SmallTalk", null, Rank.Talk),
+        ["TalkIncoming"] = new("SmallTalk", null, Rank.Talk),
+        ["TalkSuccess"] = new("Joke", null, Rank.Talk),
+        ["TalkRejected"] = new("Grumble", null, Rank.Talk),
+        ["TalkRefused"] = new("Grumble", null, Rank.Talk),
+        ["TalkQuarrel"] = new("Grumble", null, Rank.Talk),
+        ["Resentment"] = new("Grumble", null, Rank.Talk),
 
         // Увидела убийство. Раньше здесь всплывала АКУЛА 🦈 — та же болезнь, что
         // собака на человека: картинка из соседней строки таблицы.
-        ["WitnessedMurder"] = new("Death", "cry_corpse", CueTone.Negative),
+        ["WitnessedMurder"] = new("Death", "cry_corpse"),
 
         // ---- §81: сцена абьюза. Своих групп на хекскуфе пока нет — берём
         // ближайшие существующие, чтобы сцена не шла в полной тишине;
         // заменится на angry_extort_* / cry_extort_* одной строкой.
-        ["AbuseDemand"] = new("Attack", "angry_attack", CueTone.Negative),
-        ["AbuseStruck"] = new("Attack", "angry_attack", CueTone.Negative),
-        ["AbuseThreatened"] = new("Warning", null, CueTone.Negative),
-        ["AbuseCowed"] = new("Warning", null, CueTone.Negative),
-        ["AbuseCry"] = new("Grief", "cry_corpse", CueTone.Negative),
-        ["AbuseGaveUp"] = new("Gift", "cry_corpse", CueTone.Negative),
-        ["AbuseHurt"] = new("Blood", null, CueTone.Negative),
-        ["AbuseSubmit"] = new("Gift", null, CueTone.Negative),
-        ["AbuseTook"] = new("Gift", null, CueTone.Negative),
-        ["AbuseDefied"] = new("Grumble", "angry_defend", CueTone.Negative),
-        ["AbuseRefused"] = new("Grumble", null, CueTone.Negative),
-        ["AbuseFled"] = new("Flee", null, CueTone.Negative),
+        ["AbuseDemand"] = new("Attack", "angry_attack"),
+        ["AbuseStruck"] = new("Attack", "angry_attack"),
+        ["AbuseThreatened"] = new("Warning", null, Rank.Alarm),
+        ["AbuseCowed"] = new("Warning", null, Rank.Alarm),
+        ["AbuseCry"] = new("Grief", "cry_corpse"),
+        ["AbuseGaveUp"] = new("Gift", "cry_corpse"),
+        ["AbuseHurt"] = new("Blood", null, Rank.Alarm),
+        ["AbuseSubmit"] = new("Gift", null, Rank.Alarm),
+        ["AbuseTook"] = new("Gift", null, Rank.Alarm),
+        ["AbuseDefied"] = new("Grumble", "angry_defend"),
+        ["AbuseRefused"] = new("Grumble", null, Rank.Alarm),
+        ["AbuseFled"] = new("Flee", null, Rank.Alarm),
         // §81.13: проигравший сцену убегает домой с плачем.
-        ["AbuseFledHome"] = new("Flee", "cry_beaten", CueTone.Negative),
+        ["AbuseFledHome"] = new("Flee", "cry_beaten"),
 
         // ---- §108: сговор и увиденная сцена. Обе несут ЕГО id, так что над
         // головой всплывает его лицо, а иконка — запасная на тот час, пока
         // снимок ещё не сделан.
-        ["GroupHuntPact"] = new("Attack", "angry_defend", CueTone.Negative),
-        ["AbuseWitnessed"] = new("Warning", "angry_attack", CueTone.Negative)
+        ["GroupHuntPact"] = new("Attack", "angry_defend"),
+        ["AbuseWitnessed"] = new("Warning", "angry_attack")
     };
 
     // Never fails: an unknown cue still draws (fallback icon, no utterance).
@@ -319,7 +320,7 @@ public static class SpeechCatalog
     {
         if (string.IsNullOrEmpty(cueKind))
         {
-            return new CueVisual(FallbackIcon, null, CueTone.Neutral);
+            return new CueVisual(FallbackIcon, null);
         }
 
         if (Cues.TryGetValue(cueKind, out var visual))
@@ -338,7 +339,7 @@ public static class SpeechCatalog
             }
         }
 
-        return new CueVisual(FallbackIcon, null, CueTone.Neutral);
+        return new CueVisual(FallbackIcon, null);
     }
 
     // The verb she is performing right now (WorldSnapshot.CurrentInteraction) →

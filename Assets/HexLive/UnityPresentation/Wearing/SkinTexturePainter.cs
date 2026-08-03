@@ -28,7 +28,7 @@ namespace HexLive.UnityPresentation.Wearing
     /// on painted slots (un-painted skin still gets the cheap _BaseColor tint).
     /// Clothing occludes it all naturally.
     /// </summary>
-    public sealed class SkinTexturePainter : MonoBehaviour
+    public sealed class SkinTexturePainter : MonoBehaviour, IPaintTarget
     {
         private sealed class Zone
         {
@@ -133,6 +133,10 @@ namespace HexLive.UnityPresentation.Wearing
             // heavy part of placing a stamp and they land right on the frame a
             // hit is taken). Nothing paints until this flips true.
             public volatile bool GeometryReady;
+            // Spec 40.8-K fresh lane: draw the plain rectangle stamp for now
+            // (Uv/UvSizeX/UvSizeY are filled even on the projected path), and
+            // switch to the seam-free projection on the next scheduled cycle.
+            public bool DrawAsRect;
         }
 
         // 1024 visibly softened the 4096 Daz skin (the whole slot swaps to the
@@ -407,19 +411,63 @@ namespace HexLive.UnityPresentation.Wearing
         // body without being tanned themselves. White = no weathering.
         private Color _skinTone = Color.white;
 
+        // Spec 40.8-K: the tone currently BAKED INTO the paint targets, which
+        // lags _skinTone until the Tone layer comes due.
+        //
+        // The composite is stacked bottom-up — tinted base, then the speckle
+        // field, then wounds and bandages, then droplets — so the tan is the
+        // BOTTOM layer and there is no way to re-tint it without redrawing
+        // everything above. That makes a tan step the single most expensive
+        // trigger in the painter, and it is also the least urgent thing on the
+        // body. Holding it here is what makes the cap mean something: until it
+        // expires, new wounds keep compositing over the OLD base (cheap,
+        // additive), instead of every drifting tan step dragging a full
+        // rebuild along with the first wound that follows it.
+        private Color _appliedTone = Color.white;
+
         private readonly Dictionary<string, Stamp> _stamps = new();
         private readonly Dictionary<string, float> _alpha = new(); // key -> current fade
         private readonly HashSet<string> _desired = new();
         private readonly List<string> _stale = new();
         private int _lastStateHash;
 
-        // Spec 40.8-G repaint coalescing: Sync only marks the composite
-        // dirty; the actual per-slot blit+stamps+mips pass runs at most once
-        // per interval (combat reopens wounds every tick — one repaint
-        // covers the whole burst, always painting the LATEST state).
-        private bool _repaintDirty;
-        private float _lastRepaintTime;
-        private const float RepaintIntervalSeconds = 0.25f;
+        // ---- Spec 40.8-K: a flat cycle, spread out, plus a fresh lane ----
+        //
+        // Every painter is rebuilt on a fixed cycle (SkinPaintScheduler), and
+        // the scheduler spreads the turns so only one rebuild happens at a
+        // time. There is no per-reason bookkeeping: whatever changed, the next
+        // turn redraws the whole composite. The one thing that cannot wait ten
+        // seconds is a mark that JUST appeared — a bite, a dressing — so those
+        // are drawn immediately through the cheap rectangle path and upgraded
+        // to the seam-free one on the next scheduled rebuild.
+        private bool _freshPending;
+
+        public bool WantsFreshPass => _freshPending && _materials != null;
+
+        /// <summary>Draw just what appeared, on top of what is already there.
+        /// Cheap by construction: no base blit, no earlier stamp redrawn, and
+        /// the new marks use the plain rectangle stamp — the seam-free
+        /// projection lands on the next cycle.</summary>
+        public void PaintFresh()
+        {
+            _freshPending = false;
+            RepaintAll();
+        }
+
+        /// <summary>This painter's scheduled turn: rebuild everything, promote
+        /// the tan into the base, and upgrade every rectangle stamp placed by
+        /// the fresh lane to its seam-free form.</summary>
+        public void PaintCycle()
+        {
+            _appliedTone = _skinTone;
+            foreach (var stamp in _stamps.Values)
+            {
+                stamp.DrawAsRect = false;
+            }
+
+            _freshPending = false;
+            RepaintAll();
+        }
 
         // ---- raycast working set (lazy: built on the FIRST placement) ----
         // Triangle indices + per-triangle slot never change when a pose is
@@ -435,7 +483,10 @@ namespace HexLive.UnityPresentation.Wearing
         public void Construct(SkinnedMeshRenderer body, IEnumerable<int> skinSlots,
             BodyBones bones, Transform bodyRoot, int npcId, string actorMesh = "")
         {
-            enabled = false; // LateUpdate runs only while a repaint is pending
+            // Painting is driven by SkinPaintScheduler, not by this
+            // component's own Update — see spec 40.8-K.
+            enabled = false;
+            SkinPaintScheduler.Register(this);
             _body = body;
             _bones = bones;
             _bodyRoot = bodyRoot;
@@ -751,7 +802,8 @@ namespace HexLive.UnityPresentation.Wearing
             // repaint — minutes away. IsCreated() flips false on loss, and
             // binding the RT during a repaint re-creates it, so forcing a
             // repaint here fully restores the skin the same frame.
-            if (stateHash == _lastStateHash && !needsPlacement && !AnyPaintRtLost())
+            var targetsLost = AnyPaintRtLost();
+            if (stateHash == _lastStateHash && !needsPlacement && !targetsLost)
             {
                 return; // nothing changed — no repaint
             }
@@ -763,42 +815,12 @@ namespace HexLive.UnityPresentation.Wearing
                 PlaceNewStamps(wounds, bandaged, sweat, uncovered, gauzed);
             }
 
-            // Coalesced: mark dirty, LateUpdate paints at most once per
-            // interval (spec 40.8-G).
-            _repaintDirty = true;
-            enabled = true;
-        }
-
-        private void LateUpdate()
-        {
-            // A worker finished a stamp's slots/windows — that is new paint.
-            if (_geometryArrived)
+            // A brand-new mark (or a lost target) must not wait for this
+            // painter's turn in the cycle — the fresh lane draws it next frame.
+            if (needsPlacement || targetsLost)
             {
-                _geometryArrived = false;
-                _repaintDirty = true;
+                _freshPending = true;
             }
-
-            if (!_repaintDirty)
-            {
-                // Stay awake while placements are still cooking, or their
-                // result would never be picked up.
-                if (System.Threading.Volatile.Read(ref _pendingPlacements) == 0)
-                {
-                    enabled = false;
-                }
-
-                return;
-            }
-
-            if (Time.unscaledTime - _lastRepaintTime < RepaintIntervalSeconds)
-            {
-                return; // next eligible frame paints the latest state
-            }
-
-            _repaintDirty = false;
-            _lastRepaintTime = Time.unscaledTime;
-            enabled = System.Threading.Volatile.Read(ref _pendingPlacements) > 0;
-            RepaintAll();
         }
 
         // ---- placement: molly's bake-and-raycast, collider-free ----
@@ -1460,11 +1482,20 @@ namespace HexLive.UnityPresentation.Wearing
 
             EnsureStampTextures();
             var (over, gloss, _) = WoundVariant(seed);
+            // Spec 40.8-K: the plain rectangle is filled in too. It costs two
+            // divisions and it is what the fresh lane paints the instant the
+            // bite lands or the dressing goes on — the seam-free projection
+            // needs a worker pass and a scheduled rebuild, and a wound the
+            // player cannot see for ten seconds is not a wound.
+            SizeFromDensity(point, targetWorld, out var rectSizeU, out var rectSizeV);
             var stamp = new Stamp
             {
                 Key = key,
                 Slot = point.Slot,
                 Uv = point.Uv,
+                UvSizeX = rectSizeU,
+                UvSizeY = rectSizeV,
+                DrawAsRect = true,
                 Seed = seed,
                 Under = isBandage ? null : _texSplash,
                 Over = isGauze ? _texGauze : (isBandage ? _texBandage : over),
@@ -1521,7 +1552,6 @@ namespace HexLive.UnityPresentation.Wearing
             var slots = _paintSlots;
 
             System.Threading.Interlocked.Increment(ref _pendingPlacements);
-            enabled = true; // LateUpdate must still be running when it lands
             System.Threading.Tasks.Task.Run(() =>
             {
                 try
@@ -1531,8 +1561,14 @@ namespace HexLive.UnityPresentation.Wearing
                 }
                 finally
                 {
-                    System.Threading.Interlocked.Decrement(ref _pendingPlacements);
+                    // Order matters: RAISE THE FLAG FIRST. LateUpdate turns the
+                    // component off once nothing is pending, so decrementing
+                    // first leaves a window where it sees "0 pending, nothing
+                    // arrived", disables itself, and only then the flag is set
+                    // — with no LateUpdate left to read it. The stamp would
+                    // then wait for the next unrelated state change to appear.
                     _geometryArrived = true;
+                    System.Threading.Interlocked.Decrement(ref _pendingPlacements);
                 }
             });
         }
@@ -1609,6 +1645,14 @@ namespace HexLive.UnityPresentation.Wearing
             // worker publishes it. Treating the anchor as touched here used to
             // allocate an empty 2048² RT and record the stamp as already drawn;
             // the subsequent additive pass could then skip the real draw.
+            // While the fresh lane owns it, the stamp is a plain rectangle on
+            // its anchor slot — that is where it was drawn and where it must be
+            // accounted for.
+            if (stamp.IsProjected && stamp.DrawAsRect)
+            {
+                return stamp.Slot == slot;
+            }
+
             if (stamp.IsProjected && !stamp.GeometryReady)
             {
                 return false;
@@ -1964,7 +2008,7 @@ namespace HexLive.UnityPresentation.Wearing
             unchecked
             {
                 var h = 17;
-                h = h * 31 + SkinToneHash(_skinTone);
+                h = h * 31 + SkinToneHash(_appliedTone);
                 h = h * 31 + Mathf.RoundToInt(_wetSmoothness * 100f);
                 h = h * 31 + (hasAlbedo ? 1 : 0) + (hasNormal ? 2 : 0) +
                     (hasGloss ? 4 : 0) + (hasDroplet ? 8 : 0);
@@ -1982,7 +2026,8 @@ namespace HexLive.UnityPresentation.Wearing
                     var alpha = _alpha.TryGetValue(pair.Key, out var a) ? a : 0f;
                     var one = pair.Key.GetHashCode() * 397 ^
                               Mathf.RoundToInt(alpha * 100f) * 31 ^
-                              (pair.Value.GeometryReady ? 0x5bf03635 : 0);
+                              (pair.Value.GeometryReady ? 0x5bf03635 : 0) ^
+                              (pair.Value.DrawAsRect ? 0x27d4eb2d : 0);
                     mixed ^= one;
                     summed += one;
                     count++;
@@ -2026,7 +2071,7 @@ namespace HexLive.UnityPresentation.Wearing
                 return false;
             }
 
-            if (SkinToneHash(_paintedTone[slot]) != SkinToneHash(_skinTone) ||
+            if (SkinToneHash(_paintedTone[slot]) != SkinToneHash(_appliedTone) ||
                 !Mathf.Approximately(_paintedWet[slot], _wetSmoothness))
             {
                 return false;
@@ -2062,8 +2107,8 @@ namespace HexLive.UnityPresentation.Wearing
         {
             if (_rtBudget <= 0)
             {
-                _repaintDirty = true;
-                enabled = true;
+                // Come back next frame for the rest.
+                _freshPending = true;
                 _slotDeferred = true;
                 return false;
             }
@@ -2207,7 +2252,7 @@ namespace HexLive.UnityPresentation.Wearing
                 }
 
                 _paintedSig[slot] = _slotDeferred ? 0 : signature;
-                _paintedTone[slot] = _skinTone;
+                _paintedTone[slot] = _appliedTone;
                 _paintedWet[slot] = _wetSmoothness;
 
                 if (watch != null && (hasAlbedo || hasNormal || hasGloss))
@@ -2456,7 +2501,7 @@ namespace HexLive.UnityPresentation.Wearing
                 {
                     if (_skinTintBlit != null)
                     {
-                        _skinTintBlit.SetColor(SkinTintColorId, _skinTone);
+                        _skinTintBlit.SetColor(SkinTintColorId, _appliedTone);
                         Graphics.Blit(source, rt, _skinTintBlit);
                     }
                     else
@@ -2517,8 +2562,9 @@ namespace HexLive.UnityPresentation.Wearing
 
                     // Spec 40.8-J: the seam-free stamp covers the whole target
                     // and decides per texel, so it cannot be expressed as a
-                    // rect — it gets its own pass.
-                    if (stamp.IsProjected)
+                    // rect — it gets its own pass. Unless the fresh lane is
+                    // still carrying it, in which case it IS a rect.
+                    if (stamp.IsProjected && !stamp.DrawAsRect)
                     {
                         DrawProjectedAlbedo(stamp, slot, alpha);
                         continue;
@@ -2650,7 +2696,7 @@ namespace HexLive.UnityPresentation.Wearing
                         continue;
                     }
 
-                    if (stamp.IsProjected)
+                    if (stamp.IsProjected && !stamp.DrawAsRect)
                     {
                         DrawProjectedGloss(stamp, slot, alpha);
                         continue;
@@ -2854,6 +2900,8 @@ namespace HexLive.UnityPresentation.Wearing
 
         private void OnDestroy()
         {
+            SkinPaintScheduler.Unregister(this);
+
             foreach (var rt in _slotRt)
             {
                 if (rt != null)
@@ -2884,6 +2932,24 @@ namespace HexLive.UnityPresentation.Wearing
             if (_bakedMesh != null)
             {
                 Destroy(_bakedMesh);
+            }
+
+            // `body.materials` handed us INSTANCES (one per submesh), and Unity
+            // does not free those with the renderer — they outlive the actor as
+            // orphans, dragging their textures along. The stamp materials
+            // (_skinTintBlit, _glossStamp, …) are STATIC and shared: they must
+            // not be destroyed here.
+            if (_materials != null)
+            {
+                foreach (var material in _materials)
+                {
+                    if (material != null)
+                    {
+                        Destroy(material);
+                    }
+                }
+
+                _materials = null;
             }
         }
 

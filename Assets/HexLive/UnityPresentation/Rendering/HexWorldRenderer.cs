@@ -58,6 +58,35 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private readonly Dictionary<int, GameObject> _seamMarkers = new();
     private readonly Dictionary<int, GameObject> _objectViews = new();
 
+    // PERF: the per-tick object loop used to re-ask every view for the same
+    // handful of components (campfire, assembly, spit, garment, build pile).
+    // ~5 GetComponent × ~218 objects × 4 Hz, and the MISSES are the expensive
+    // half — Unity builds a null-error message for each one. The components a
+    // view owns are decided once, when the view is built, and never change
+    // afterwards, so they are resolved there and remembered here.
+    private struct ObjectViewParts
+    {
+        public HexLive.UnityPresentation.Environment.CampfireEffect Fire;
+        public HexLive.UnityPresentation.Environment.BedAssembly Assembly;
+        public HexLive.UnityPresentation.Environment.CampfireSpitMeat SpitMeat;
+        public GarmentWorldCondition Garment;
+        public HexLive.UnityPresentation.Environment.BuildSitePile Pile;
+    }
+
+    private readonly Dictionary<int, ObjectViewParts> _objectViewParts = new();
+
+    // PERF: junction id -> world position. Worldgen output, so it is built once
+    // per world instead of every tick (see RenderSnapshot). _junctionMarkersBuilt
+    // remembers which _showJunctionMarkers state the walk was made under, so
+    // flipping the debug toggle at runtime still spawns the spheres.
+    private readonly Dictionary<int, Float2> _junctionPositions = new();
+    private bool _junctionMarkersBuilt;
+
+    // Per-tick scratch for the snapshot-diff despawn — reused instead of
+    // reallocated (this runs 4×/s for the life of the game).
+    private readonly HashSet<int> _liveObjectIdScratch = new();
+    private readonly List<int> _staleObjectKeyScratch = new();
+
     // Spec §54: object keys whose view is a tree, so despawn (a chop) plays a
     // fall animation + leaves a stump instead of a hard cut.
     private readonly HashSet<int> _treeViewKeys = new();
@@ -272,6 +301,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return false;
     }
 
+    // §80 r2: можно ли снимать её прямо сейчас. Без актёрского вью (примитивный
+    // вид на дальнем плане) позировать некому — снимок пропускаем.
+    public bool IsNpcPhotogenic(int npcId)
+    {
+        return _actorViews.TryGetValue(npcId, out var actorView) && actorView != null &&
+               actorView.IsPhotogenic;
+    }
+
     // §80: на время съёмки портрета отдать взгляд камере. Возвращает false,
     // если тела нет или оно не в состоянии позировать (ragdoll, кома).
     public bool TryBeginPortraitGaze(int npcId, Vector3 eyeWorldPos)
@@ -330,6 +367,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 // is the same wrongness as a colonist doing it.
                 _prevAnimalPoses.Clear();
                 _currAnimalPoses.Clear();
+
+                // The junction lookup is cached for the life of a WORLD (see
+                // RebuildJunctionLookup). This branch is exactly "the world
+                // under us is not the one we cached" — a restore, a reconnect,
+                // a new island — so drop it and let the next line rebuild it.
+                // Without this a same-size island would keep the old positions.
+                _junctionPositions.Clear();
             }
 
             RenderSnapshot(snapshot);
@@ -667,6 +711,33 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return go.transform;
     }
 
+    // One walk of the ~14 000 junctions per WORLD: the position lookup plus the
+    // two marker sets that are keyed off immutable junction data. Called from
+    // RenderSnapshot only when the junction set changed (new world, restore) or
+    // when the debug-marker toggle flipped.
+    private void RebuildJunctionLookup(WorldSnapshot snapshot)
+    {
+        _junctionPositions.Clear();
+        foreach (var junction in snapshot.Junctions)
+        {
+            var key = junction.Id.Value;
+            _junctionPositions[key] = junction.WorldPosition;
+
+            if (_showJunctionMarkers && !_junctionViews.ContainsKey(key))
+            {
+                _junctionViews[key] = CreateJunctionView(junction);
+            }
+
+            // Spec 40.17: climb-seam dots — always shown, once per seam.
+            if (junction.IsClimbSeam && !_seamMarkers.ContainsKey(key))
+            {
+                _seamMarkers[key] = CreateSeamMarker(junction);
+            }
+        }
+
+        _junctionMarkersBuilt = _showJunctionMarkers;
+    }
+
     private void RenderSnapshot(WorldSnapshot snapshot)
     {
         // Spec 31C.4: the river gets banks — tiles adjacent to water are sand.
@@ -716,37 +787,30 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // seam-free wave across every water hex (see EnsureWaterSurface).
         EnsureWaterSurface(snapshot);
 
-        // Build lookup for junction positions
-        var junctionPositions = new Dictionary<int, Float2>();
-        foreach (var junction in snapshot.Junctions)
+        // PERF: a junction's id, WorldPosition and IsClimbSeam are worldgen
+        // output and never move — the exporter refreshes only the mutable flags
+        // (WorldSnapshotExporter.RefreshJunctionFlags). So walking ~14 000 of
+        // them EVERY tick to rebuild the identical lookup cost ~0.9 MB of
+        // garbage per tick for a map only CreateObjectView ever reads. Build it
+        // once per world; _junctionPositions is cleared on a world swap (see
+        // Update's snap branch), which is what forces the rebuild.
+        if (_junctionPositions.Count != snapshot.Junctions.Count ||
+            _junctionMarkersBuilt != _showJunctionMarkers)
         {
-            junctionPositions[junction.Id.Value] = junction.WorldPosition;
-
-            if (_showJunctionMarkers)
-            {
-                var key = junction.Id.Value;
-                if (!_junctionViews.ContainsKey(key))
-                {
-                    _junctionViews[key] = CreateJunctionView(junction);
-                }
-            }
-
-            // Spec 40.17: climb-seam dots — always shown, once per seam.
-            if (junction.IsClimbSeam && !_seamMarkers.ContainsKey(junction.Id.Value))
-            {
-                _seamMarkers[junction.Id.Value] = CreateSeamMarker(junction);
-            }
+            RebuildJunctionLookup(snapshot);
         }
 
         // Snapshot-diff despawn (spec 31.15): destroy views whose object
         // disappeared from the simulation (eaten/picked-up apples).
-        var liveObjectIds = new HashSet<int>();
+        var liveObjectIds = _liveObjectIdScratch;
+        liveObjectIds.Clear();
         foreach (var worldObject in snapshot.Objects)
         {
             liveObjectIds.Add(worldObject.Id.Value);
         }
 
-        var staleObjectKeys = new List<int>();
+        var staleObjectKeys = _staleObjectKeyScratch;
+        staleObjectKeys.Clear();
         foreach (var key in _objectViews.Keys)
         {
             if (!liveObjectIds.Contains(key))
@@ -759,6 +823,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         {
             var view = _objectViews[key];
             _objectViews.Remove(key);
+            _objectViewParts.Remove(key);
             _prevObjectPositions.Remove(key);
             _currObjectPositions.Remove(key);
 
@@ -854,14 +919,27 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // сделать»: оплакать, обобрать, разделать.
             if (!_objectViews.TryGetValue(key, out var objectView))
             {
-                objectView = CreateObjectView(worldObject, junctionPositions, snapshot.Tick);
+                objectView = CreateObjectView(worldObject, _junctionPositions, snapshot.Tick);
                 _objectViews[key] = objectView;
+                // PERF: resolve the optional per-view components ONCE, here.
+                // Which of them a view owns is fixed by the prefab it was built
+                // from, so the per-tick loop below just reads the record.
+                _objectViewParts[key] = new ObjectViewParts
+                {
+                    Fire = objectView.GetComponent<HexLive.UnityPresentation.Environment.CampfireEffect>(),
+                    Assembly = objectView.GetComponent<HexLive.UnityPresentation.Environment.BedAssembly>(),
+                    SpitMeat = objectView.GetComponent<HexLive.UnityPresentation.Environment.CampfireSpitMeat>(),
+                    Garment = objectView.GetComponent<GarmentWorldCondition>(),
+                    Pile = objectView.GetComponent<HexLive.UnityPresentation.Environment.BuildSitePile>(),
+                };
                 // Spec §54: remember trees so felling them animates.
                 if (worldObject.DefinitionId.Contains("tree"))
                 {
                     _treeViewKeys.Add(key);
                 }
             }
+
+            _objectViewParts.TryGetValue(key, out var parts);
 
             // §Wardrobe-anim: hide/show the ground garment as its owner picks it
             // up / drops it (SetActive is idempotent, so this is cheap per frame).
@@ -874,7 +952,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // Spec 29E.3: the campfire burns only while it has fuel.
             if (worldObject.DefinitionId == "campfire.spot")
             {
-                var fire = objectView.GetComponent<HexLive.UnityPresentation.Environment.CampfireEffect>();
+                var fire = parts.Fire;
                 if (fire != null)
                 {
                     fire.SetLit(worldObject.ResourceAmount > 0f);
@@ -883,7 +961,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 // §54.14: grow the staged pieces (stone ring, spit) as upgrade
                 // materials land; show everything once the bill is closed.
                 // Cheap per frame — Apply only flips pieces whose state changed.
-                var fireAsm = objectView.GetComponent<HexLive.UnityPresentation.Environment.BedAssembly>();
+                var fireAsm = parts.Assembly;
                 if (fireAsm != null)
                 {
                     if (string.IsNullOrEmpty(worldObject.BuildProduct))
@@ -900,14 +978,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
                 // §54.14 (r2): meat hanging on the roasting spit — raw chunks
                 // roasting, cooked ones waiting to be taken.
-                var spitMeat = objectView.GetComponent<HexLive.UnityPresentation.Environment.CampfireSpitMeat>();
+                var spitMeat = parts.SpitMeat;
                 if (spitMeat != null)
                 {
                     spitMeat.Refresh(worldObject.RoastingRaw, worldObject.RoastingCooked);
                 }
             }
 
-            var garmentCondition = objectView.GetComponent<GarmentWorldCondition>();
+            var garmentCondition = parts.Garment;
             if (garmentCondition != null)
             {
                 garmentCondition.Sync(worldObject.Durability, worldObject.Dirtiness,
@@ -917,7 +995,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // Spec §54: re-pile a build-site as its delivered materials grow.
             if (!string.IsNullOrEmpty(worldObject.BuildProduct))
             {
-                var pile = objectView.GetComponent<HexLive.UnityPresentation.Environment.BuildSitePile>();
+                var pile = parts.Pile;
                 if (pile != null)
                 {
                     pile.Refresh(worldObject);
@@ -1027,7 +1105,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         UpdateGrassFlattening(snapshot);
 
-        // §80/§107.4: фотосессия раз в игровые сутки, днём. В снапшоте
+        // §80/§107.4: фотосессия — сразу на входе в мир, дальше раз в игровые
+        // сутки; свет даёт вспышка, поэтому часа суток тут нет. В снапшоте
         // лежат только живые (мёртвых убирает MobSystem.RemoveDeadNpc), а их
         // снимки остаются в кэше — лицо погибшей во вкладке отношений должно
         // жить дальше, тела-то уже нет.
@@ -1040,8 +1119,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
 
             _portraitCache.Sweep(
-                snapshot.Tick, HexLive.Simulation.Runtime.WorldBalance.DayLengthTicks,
-                snapshot.TimeOfDayNormalized, _portraitIds);
+                snapshot.Tick, HexLive.Simulation.Runtime.WorldBalance.DayLengthTicks, _portraitIds);
         }
 
         SyncAnimalViews(snapshot);
@@ -2545,6 +2623,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             garment.transform.localScale = Vector3.one * garmentScale;
             garment.transform.localRotation = Quaternion.Euler(0f, (worldObject.Id.Value * 73) % 360, 0f);
             GroundVisual(garment, lift: 0.01f); // epsilon: thin cloth vs tile z-fight
+            SuppressSmallPropShadows(garment); // flat cloth on the ground — see above
             var garmentPos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
             garmentRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
                 garmentPos, GroundY(worldObject.Tile));
@@ -3424,6 +3503,41 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
 
         GroundVisual(instance);
+        SuppressSmallPropShadows(instance);
+    }
+
+    // PERF (profiling, Aug-2026): the shadow pass was drawing ~2 300 casters a
+    // frame and cost ~3 ms on the render thread. A prop this short throws a
+    // shadow a few pixels wide — nothing you can see at play distance — while
+    // still costing a draw call in every cascade it falls into. Measured by the
+    // fitted bounds rather than by an id list, so a new item classifies itself;
+    // trees, beds, fires and the girls are all far above the line and keep
+    // their shadows.
+    private const float ShadowCastMinHeightFactor = 0.30f;
+
+    private void SuppressSmallPropShadows(GameObject instance)
+    {
+        var renderers = instance.GetComponentsInChildren<Renderer>();
+        if (renderers.Length == 0)
+        {
+            return;
+        }
+
+        var bounds = renderers[0].bounds;
+        for (var i = 1; i < renderers.Length; i++)
+        {
+            bounds.Encapsulate(renderers[i].bounds);
+        }
+
+        if (bounds.size.y > HexRadius * ShadowCastMinHeightFactor)
+        {
+            return;
+        }
+
+        for (var i = 0; i < renderers.Length; i++)
+        {
+            renderers[i].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
     }
 
     // A dropped prop's ground pose: a deterministic random yaw so the map doesn't

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using HexLive.UnityPresentation.Rendering;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace HexLive.UnityPresentation.UI
 {
@@ -38,27 +39,39 @@ namespace HexLive.UnityPresentation.UI
         // Те же числа, что в PortraitStage: подобраны на модели ростом 1.7 м и
         // домножаются на мировой масштаб.
         private const float FaceDistanceMeters = 0.72f;
-        private const float EyeLiftMeters = 0.03f;
+        // Объектив строго на линии кадра: подъём был компенсацией за якорь,
+        // считавшийся от кости шеи. Якорь теперь строится от глаз (§107.4 r2),
+        // и любой подъём здесь — это наклон камеры, то есть съёмка сверху.
+        private const float EyeLiftMeters = 0f;
 
         // Фон ПРОЗРАЧНЫЙ: снимок — вырезка персонажа, а не плашка. Тёмную
         // подложку под неё рисует та панель, которой она нужна.
         private static readonly Color Backdrop = new(0.10f, 0.12f, 0.14f, 0f);
 
-        // Снимать при дневном свете: ночью колонистка — тёмный силуэт, и
-        // фотография ни на что не годится. Окно 10:00-16:00 (0 = 06:00).
-        private const float DaylightFrom = 4f / 24f;
-        private const float DaylightTo = 10f / 24f;
-
         // Кадров на «посмотри в камеру», прежде чем нажать затвор: взгляд
         // ведёт Final-IK, и мгновенно он не доезжает.
         private const int GazeConvergeFrames = 4;
 
-        // Между снимками — пауза в реальном времени: за один дневной оконный
-        // проход надо снять всех, но не десятком ReadPixels в одном кадре.
-        private const float BakeSpacingSeconds = 0.75f;
+        // Между снимками — пауза в реальном времени: фотосессию на всю колонию
+        // надо провести быстро, но не десятком ReadPixels в одном кадре.
+        private const float BakeSpacingSeconds = 0.35f;
+
+        // §80 r2: ВСПЫШКА. Портрет должен быть одинаково освещён у всех и в
+        // любой час, иначе половина колонии на фото — тёмные силуэты. Свет
+        // зажигается ТОЛЬКО на отрисовку портретной камеры (колбэки URP
+        // begin/endCameraRendering) и гаснет сразу после, поэтому в игровом
+        // кадре вспышки не видно: главная камера рисуется в другой момент.
+        // Это ЗАПОЛНЯЮЩИЙ свет, а не студийная вспышка в упор: он складывается
+        // с уже имеющимся освещением сцены, и первая версия (1.35) днём
+        // выбивала лицо в белое. Задача — вытянуть ночь до читаемого, а не
+        // пересветить день.
+        private const float FlashIntensity = 0.42f;
+        private const float FlashRangeMeters = 2.5f;
+        private static readonly Color FlashTint = new(1f, 0.97f, 0.92f);
 
         private RenderTexture _scratch;
         private Camera _camera;
+        private Light _flash;
         private HexWorldRenderer _worldRenderer;
         private bool _maskResolved;
 
@@ -127,11 +140,16 @@ namespace HexLive.UnityPresentation.UI
         }
 
         /// <summary>
-        /// Фотосессия раз в СУТКИ и только при дневном свете. Один NPC за
+        /// Фотосессия. Первый заход — СРАЗУ, как только колония появилась в
+        /// мире: лица нужны с первой секунды, а не «когда солнце дойдёт до
+        /// десяти». Дальше — по разу в игровые сутки на каждую. Один NPC за
         /// проход: съёмка — это кадр камеры плюс чтение из GPU, и растянуть её
         /// по одному телу дешевле, чем снимать всех разом.
+        ///
+        /// Часа суток здесь больше нет: свет даёт ВСПЫШКА, поэтому ночной
+        /// снимок не хуже полуденного — и, что важнее, они одинаковые.
         /// </summary>
-        public void Sweep(int tick, int dayLengthTicks, float timeOfDay01, IReadOnlyList<int> npcIds)
+        public void Sweep(int tick, int dayLengthTicks, IReadOnlyList<int> npcIds)
         {
             if (npcIds == null || npcIds.Count == 0)
             {
@@ -141,9 +159,7 @@ namespace HexLive.UnityPresentation.UI
             _lastSweepTick = tick;
             _currentDay = tick / Mathf.Max(1, dayLengthTicks);
 
-            if (_pendingNpcId >= 0 ||
-                timeOfDay01 < DaylightFrom || timeOfDay01 > DaylightTo ||
-                Time.unscaledTime < _nextBakeTime)
+            if (_pendingNpcId >= 0 || Time.unscaledTime < _nextBakeTime)
             {
                 return;
             }
@@ -190,6 +206,41 @@ namespace HexLive.UnityPresentation.UI
             _camera.farClipPlane = 60f;
             _camera.cullingMask = ~(1 << 5);
             _camera.enabled = false;
+
+            // Вспышка висит на самой камере — свет всегда ровно оттуда, откуда
+            // смотрит объектив, значит тени на лице одинаковы у всех. Теней не
+            // бросает: они тут только добавили бы шума на маленьком кадре.
+            var flashGo = new GameObject("PortraitFlash");
+            flashGo.transform.SetParent(camGo.transform, false);
+            _flash = flashGo.AddComponent<Light>();
+            _flash.type = LightType.Point;
+            _flash.color = FlashTint;
+            _flash.intensity = FlashIntensity;
+            _flash.range = FlashRangeMeters;
+            _flash.shadows = LightShadows.None;
+            _flash.enabled = false;
+
+            RenderPipelineManager.beginCameraRendering += OnBeginCameraRendering;
+            RenderPipelineManager.endCameraRendering += OnEndCameraRendering;
+        }
+
+        // Вспышка горит РОВНО на отрисовку портретной камеры. В том же кадре
+        // главная камера рисуется отдельным вызовом, и к её очереди свет уже
+        // выключен — поэтому в игре вспышки не видно.
+        private void OnBeginCameraRendering(ScriptableRenderContext ctx, Camera cam)
+        {
+            if (_flash != null && cam == _camera)
+            {
+                _flash.enabled = true;
+            }
+        }
+
+        private void OnEndCameraRendering(ScriptableRenderContext ctx, Camera cam)
+        {
+            if (_flash != null && cam == _camera)
+            {
+                _flash.enabled = false;
+            }
         }
 
         private void LateUpdate()
@@ -211,27 +262,13 @@ namespace HexLive.UnityPresentation.UI
                 }
             }
 
-            switch (_phase)
+            // Затвор: камера уже отрисовала кого просили — забрать пиксели.
+            if (_phase == BakePhase.Rendering)
             {
-                // Затвор: камера уже отрисовала кого просили — забрать пиксели.
-                case BakePhase.Rendering:
-                    Capture(_pendingNpcId);
-                    _camera.enabled = false;
-                    FinishBake();
-                    return;
-
-                // Взгляд доезжает до объектива, камера при этом СТОИТ там, куда
-                // её навели: она висит на осях кости головы, и если её двигать
-                // вслед за поворотом, она будет гнаться сама за собой.
-                case BakePhase.Converge:
-                    if (--_convergeFrames > 0)
-                    {
-                        return;
-                    }
-
-                    _camera.enabled = true;
-                    _phase = BakePhase.Rendering;
-                    return;
+                Capture(_pendingNpcId);
+                _camera.enabled = false;
+                FinishBake();
+                return;
             }
 
             if (_pendingNpcId < 0)
@@ -239,7 +276,6 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            // Навести, заморозить, попросить посмотреть в камеру.
             if (_worldRenderer == null)
             {
                 _worldRenderer = FindAnyObjectByType<HexWorldRenderer>();
@@ -250,20 +286,58 @@ namespace HexLive.UnityPresentation.UI
             }
 
             if (!_worldRenderer.TryGetNpcFace(
-                    _pendingNpcId, out var face, out var forward, out var up, out var scale))
+                    _pendingNpcId, out var face, out var forward, out var up, out var scale) ||
+                !_worldRenderer.IsNpcPhotogenic(_pendingNpcId))
             {
-                // Тела ещё нет в мире (или уже нет) — попробуем в следующий раз.
+                // Тела ещё нет в мире, или она лежит/плывёт — не портрет.
+                // Отложим: снимок ничего не стоит, а кривой кадр останется на
+                // сутки в каждой вкладке отношений.
                 FinishBake();
                 return;
             }
 
-            var eye = face + forward * (FaceDistanceMeters * scale) + up * (EyeLiftMeters * scale);
-            _camera.transform.position = eye;
-            _camera.transform.rotation = Quaternion.LookRotation(face - eye, up);
+            // ⭐ Камера ПРИБИТА к кости головы и наводится ЗАНОВО каждый кадр,
+            // включая тот, в котором щёлкает затвор. Раньше её наводили один
+            // раз и замораживали на все кадры сходимости взгляда — а голова за
+            // это время продолжала жить (шаг, дыхание, доворот), и лицо к
+            // моменту съёмки уезжало из кадра. Гнаться сама за собой она больше
+            // не может: на время съёмки вес головы у LookAtIK нулевой, кость
+            // стоит как стояла, ведут только зрачки.
+            AimAt(face, forward, up, scale, out var eye);
 
-            _gazeHeld = _worldRenderer.TryBeginPortraitGaze(_pendingNpcId, eye);
-            _convergeFrames = _gazeHeld ? GazeConvergeFrames : 1;
-            _phase = BakePhase.Converge;
+            switch (_phase)
+            {
+                case BakePhase.Converge:
+                    if (--_convergeFrames > 0)
+                    {
+                        return;
+                    }
+
+                    _camera.enabled = true;
+                    _phase = BakePhase.Rendering;
+                    return;
+
+                default:
+                    _gazeHeld = _worldRenderer.TryBeginPortraitGaze(_pendingNpcId, eye);
+                    _convergeFrames = _gazeHeld ? GazeConvergeFrames : 1;
+                    _phase = BakePhase.Converge;
+                    return;
+            }
+        }
+
+        // Единственное место, где решается кадр: перед лицом, по осям лицевого
+        // рига, на фиксированном расстоянии — одна и та же точка съёмки у всех.
+        private void AimAt(Vector3 face, Vector3 forward, Vector3 up, float scale, out Vector3 eye)
+        {
+            eye = face + forward * (FaceDistanceMeters * scale) + up * (EyeLiftMeters * scale);
+
+            // Горизонт держим по МИРУ, а не по темечку: наклон головы иначе
+            // заваливает весь кадр, и в круглой аватарке это читается как брак
+            // печати. Если её всё же перевернуло — падаем на ось головы.
+            var levelUp = Vector3.Dot(up, Vector3.up) > 0.5f ? Vector3.up : up;
+
+            _camera.transform.position = eye;
+            _camera.transform.rotation = Quaternion.LookRotation(face - eye, levelUp);
         }
 
         // Снять взгляд и закрыть съёмку. Вызывается на КАЖДОМ выходе, в том
@@ -362,6 +436,9 @@ namespace HexLive.UnityPresentation.UI
 
         private void OnDestroy()
         {
+            RenderPipelineManager.beginCameraRendering -= OnBeginCameraRendering;
+            RenderPipelineManager.endCameraRendering -= OnEndCameraRendering;
+
             if (_gazeHeld && _worldRenderer != null && _pendingNpcId >= 0)
             {
                 _worldRenderer.EndPortraitGaze(_pendingNpcId);

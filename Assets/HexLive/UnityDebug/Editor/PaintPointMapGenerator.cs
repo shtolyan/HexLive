@@ -310,11 +310,12 @@ namespace HexLive.UnityDebug.Editor
             return true;
         }
 
-        // Half-float positions survive only in an HDR format — EXR keeps them
-        // exactly and stays compact on disk.
+        // Half-float positions survive only in an HDR format. ZIP compression
+        // is lossless and roughly halves the file — uncompressed these were
+        // 2 MB apiece, i.e. ~44 MB of binary across five actresses.
         private static Texture2D WriteExr(Texture2D source, string path)
         {
-            System.IO.File.WriteAllBytes(path, source.EncodeToEXR(Texture2D.EXRFlags.None));
+            System.IO.File.WriteAllBytes(path, source.EncodeToEXR(Texture2D.EXRFlags.CompressZIP));
             Object.DestroyImmediate(source);
             AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
             if (AssetImporter.GetAtPath(path) is TextureImporter importer)

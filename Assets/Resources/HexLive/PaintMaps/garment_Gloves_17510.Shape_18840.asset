@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
   MeshName: Gloves_17510.Shape
   VertexCount: 18840
+  Version: 0
+  MeshHeight: 1.7
   TSamples: 1
   AzimuthSamples: 1
   TMin: 0
@@ -21,6 +23,7 @@ MonoBehaviour:
   Zones:
   - Zone: Head
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Torso
     Points:
     - Slot: 1
@@ -28,8 +31,12 @@ MonoBehaviour:
       BindPerU: 0.52891374
       BindPerV: 1.0600984
       Valid: 1
+      BindPos: {x: -0.6114703, y: 1.428994, z: 0.022485016}
+      BindNormal: {x: 0.015582885, y: -0.9548425, z: 0.2967035}
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Pelvis
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmL
     Points:
     - Slot: 1
@@ -37,6 +44,9 @@ MonoBehaviour:
       BindPerU: 0.6681421
       BindPerV: 1.0531203
       Valid: 1
+      BindPos: {x: -0.6143482, y: 1.4261478, z: 0.0074854777}
+      BindNormal: {x: -0.14118233, y: -0.93708915, z: 0.31926715}
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmR
     Points:
     - Slot: 5
@@ -44,7 +54,12 @@ MonoBehaviour:
       BindPerU: 0.6749543
       BindPerV: 1.071711
       Valid: 1
+      BindPos: {x: 0.6143482, y: 1.4261476, z: 0.007485479}
+      BindNormal: {x: 0.14124496, y: -0.93707746, z: 0.31927365}
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegL
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegR
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}

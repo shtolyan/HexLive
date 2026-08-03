@@ -54,6 +54,13 @@ namespace HexLive.UnityPresentation.Wearing
         [Tooltip("Грустная походка (X Bot@Sad Walk). Подменяет обычный шаг на несколько минут после сцены.")]
         public AnimationClip sadWalk;
 
+        [Header("§105 Сон — поза на каждую девушку своя")]
+        [Tooltip("Позы сна (Sleep, Sleeping Idle). Вариант выбирается по id колонистки и держится всю жизнь: " +
+                 "четыре тела в одинаковой позе у костра читались как копипаста. " +
+                 "Пусто = у всех авторский клип состояния Sleep. " +
+                 "Заполняется меню HexLive ▸ Actors ▸ Assign Sleep Poses.")]
+        public AnimationClip[] sleep;
+
         [Header("Вооружённый idle/ходьба — если в руке инструмент/оружие (tool.*)")]
         [Tooltip("Стойка с предметом в руке (Standing Idle). Подменяет базовый Idle, пока в руке любой tool.* (топор/нож/молоток/копьё…). Пусто = обычный idle.")]
         public AnimationClip armedIdle;

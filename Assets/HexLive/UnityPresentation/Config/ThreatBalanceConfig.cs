@@ -58,6 +58,24 @@ namespace HexLive.UnityPresentation.Config
         [Range(1, 20)] public int friendGuardRadiusTiles = 6;
         [Tooltip("Минимальная симпатия, чтобы считаться другом для защиты.")]
         [Range(-1f, 1f)] public float friendGuardAffinity = 0.25f;
+        [Tooltip("§109: вес симпатии к жертве в решении вписаться.")]
+        [Range(0f, 1f)] public float friendGuardAffinityWeight = 0.45f;
+        [Tooltip("§109: вес своих шансов против этого противника (размен Force).")]
+        [Range(0f, 1f)] public float friendGuardEdgeWeight = 0.35f;
+        [Tooltip("§109: вес собственного состояния (здоровье/худшая часть).")]
+        [Range(0f, 1f)] public float friendGuardConditionWeight = 0.20f;
+        [Tooltip("§109: бонус злости на самого обидчика.")]
+        [Range(0f, 1f)] public float friendGuardHatredBonus = 0.15f;
+        [Tooltip("§109: порог взвешенной суммы, ниже — не вписывается.")]
+        [Range(0f, 1f)] public float friendGuardDecisionFloor = 0.50f;
+        [Tooltip("§109: своё здоровье, ниже которого не вписывается никогда.")]
+        [Range(0f, 1f)] public float friendGuardHealthGate = 0.50f;
+        [Tooltip("§109: «сила» зверя в единицах Force — об неё меряются шансы против собаки.")]
+        [Range(0.1f, 5f)] public float friendGuardDogForce = 1.0f;
+        [Tooltip("§109: если тебя бьют — бей в ответ (бросает дела, достаёт оружие, отвечает ближайшему).")]
+        public bool answerBlowsEnabled = true;
+        [Tooltip("§109: погоня ближе этого радиуса — встаёт в боевую стойку заранее.")]
+        [Range(1, 8)] public int answerReadyRadiusTiles = 3;
         [Tooltip("§71: СПРИНТ НА ПОМОЩЬ — во сколько раз быстрее она бежит, пока цель Defend (крик о помощи, охрана друга, первый удар §62). НЕ складывается с адреналином: берётся БОЛЬШИЙ множитель.")]
         [Range(1f, 5f)] public float defendMoveSpeedFactor = 2.5f;
 

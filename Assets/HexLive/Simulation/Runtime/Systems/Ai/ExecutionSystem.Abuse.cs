@@ -417,6 +417,22 @@ public sealed partial class ExecutionSystem
         }
 
         FightScene.End(world, a, partner);
+
+        // §109: сцена кончилась — из боя выходят ВСЕ, кто в неё вписался, а
+        // не только пара. Без этого защитница оставалась сцепленной с уже
+        // ушедшим обидчиком (CombatOpponentNpcId — это вечная драка для
+        // HumanCombatSystem) до чужой метлы, которой могло и не случиться.
+        foreach (var third in world.Entities.Npcs.Values)
+        {
+            if (third.Mind.CombatAssistAttackerNpcId is { } assistId &&
+                assistId.Equals(a.Id))
+            {
+                CombatHelpSystem.ClearAssist(third);
+                third.Mind.CombatOpponentNpcId = null;
+                third.IsFighting = false;
+                FightScene.ReleaseSwingSlot(third);
+            }
+        }
     }
 
     // §81.13: сколько здоровья сторона оставила в сцене. Дельта, а не счётчик

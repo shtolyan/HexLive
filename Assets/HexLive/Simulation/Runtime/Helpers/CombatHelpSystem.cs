@@ -183,6 +183,58 @@ internal static class CombatHelpSystem
                 continue;
             }
 
+            // §109: вписаться — РЕШЕНИЕ, а не рефлекс. Раньше порог дружбы
+            // тащил в драку любую соседку независимо от её шансов и состояния.
+            // Теперь она взвешивает: дорога ли ей та, кого бьют; потянет ли
+            // она ЭТОГО противника; и жива ли сама. Умирающая и разбитая не
+            // лезет никогда.
+            if (helper.Health < Spec57.FriendGuardHealthGate ||
+                helper.IsDying ||
+                !helper.Body.CanUseToolsOrWeapons)
+            {
+                continue;
+            }
+
+            // Шансы: размен Force против человека; против зверя — об константу
+            // (у собак нет оружия и брони, их Force не считается).
+            var myForce = AbuseMath.Force(world, helper);
+            var foeForce = attackerId is { } foeId &&
+                world.Entities.Npcs.TryGetValue(foeId, out var foe)
+                    ? AbuseMath.Force(world, foe)
+                    : Spec57.FriendGuardDogForce;
+            var edge = MathUtil.Clamp01(
+                myForce / System.Math.Max(foeForce, 0.0001f));
+
+            var condition = MathUtil.Clamp01(
+                System.Math.Min(helper.Health, MobSystem.WorstPartHealth(helper)));
+            var affinity01 = MathUtil.Clamp01((relationship.Affinity + 1f) * 0.5f);
+            var hatred = attackerId is { } hatedId
+                ? MathUtil.Clamp01(-helper.Social.GetOrCreate(hatedId).Affinity)
+                : 0f;
+
+            var score = affinity01 * Spec57.FriendGuardAffinityWeight +
+                edge * Spec57.FriendGuardEdgeWeight +
+                condition * Spec57.FriendGuardConditionWeight +
+                hatred * Spec57.FriendGuardHatredBonus;
+
+            // Бросок на ОКНО боя, не на тик: RallyFriends зовут каждый средний
+            // проход, и по-тиковый переброс превратил бы любой порог в
+            // «рано или поздно да».
+            var window = world.Tick / System.Math.Max(1, Spec57.HelpCryCooldownTicks);
+            var roll = MathUtil.Hash01(
+                world.Seed, window, victim.Id.Value, helper.Id.Value);
+            if (score < Spec57.FriendGuardDecisionFloor || roll > score)
+            {
+                if (world.Tick % 64 == 0)
+                {
+                    Trace.Emit(world, helper.Id, "FriendGuardDeclined",
+                        $"Victim=NPC{victim.Id.Value} {attackerLabel} " +
+                        $"Score={score:F2} Roll={roll:F2} Edge={edge:F2} " +
+                        $"Cond={condition:F2} Aff={relationship.Affinity:F2}");
+                }
+                continue;
+            }
+
             if (helper.Plan.Status == PlanStatus.Active ||
                 helper.Execution.Status == ExecutionStatus.InProgress)
             {
@@ -205,6 +257,7 @@ internal static class CombatHelpSystem
             SocialCueSignals.Stamp(world, victim, "HelpCryAnswered", helper.Id);
             Trace.Emit(world, helper.Id, "FriendGuard",
                 $"Victim=NPC{victim.Id.Value} {attackerLabel} " +
+                $"Score={score:F2} Roll={roll:F2} Edge={edge:F2} " +
                 $"Affinity={relationship.Affinity:F2} " +
                 $"Dist={HexSpatialMath.HexDistance(helper.Tile, victim.Tile)}");
         }

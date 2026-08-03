@@ -59,7 +59,8 @@ public sealed class SoakOptions
             {
                 "AbuseBlocked", "AbuseTriggered", "AbuseProwl", "AbuseSpotted",
                 "AbuseRetarget", "AbusePursues", "AbuseStarted", "AbuseAbandoned",
-                "AbuseDone", "AbuseRouted", "FleeStarted", "GoalSelected"
+                "AbuseDone", "AbuseRouted", "FleeStarted", "FriendGuard",
+                "AnswersBlows", "GoalSelected"
             },
             // §108: дуга сговора. GroupHuntBlocked — ПРИЧИНА, почему они сейчас
             // НЕ сговариваются (раз в 64 тика), как AbuseBlocked у него;

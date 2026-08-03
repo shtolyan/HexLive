@@ -166,7 +166,12 @@ public sealed class RaidSystem : ISimulationSystem
             if (npc.Mind.CombatAssistAttackerNpcId is { } attackerId &&
                 (!world.Entities.Npcs.TryGetValue(attackerId, out var attacker) ||
                  attacker.Health <= 0f ||
-                 attacker.Mind.CurrentGoal != GoalType.Raid))
+                 // §109: сцена абьюза — тоже бой, в который вписываются.
+                 // Раньше метла требовала строго Raid и сносила ассист
+                 // защитницы на первом же среднем тике сцены: подруги
+                 // НИКОГДА не могли вступиться в абьюз, только в налёт.
+                 (attacker.Mind.CurrentGoal != GoalType.Raid &&
+                  attacker.Mind.CurrentGoal != GoalType.Abuse)))
             {
                 CombatHelpSystem.ClearAssist(npc);
                 npc.Mind.CombatOpponentNpcId = null;
@@ -174,9 +179,175 @@ public sealed class RaidSystem : ISimulationSystem
             }
         }
 
+        AnswerBlows(world);
+
         foreach (var deadId in _dead)
         {
             MobSystem.RemoveDeadNpc(world, deadId);
+        }
+    }
+
+    // §109: ЕСЛИ ТЕБЯ БЬЮТ — БЕЙ В ОТВЕТ, кем бы ты ни был. Защитницы §57 и
+    // охотницы §108 сцепляются через CombatOpponentNpcId, а сторону ЦЕЛИ не
+    // ставил никто: чужак стоял под тремя ножами (или продолжал собирать
+    // палки, пока за ним бежали) и умирал, не вынув мачете. Правило общее и
+    // симметричное — работает для любого NPC под ударами людей.
+    //
+    // Порядок важен: после MobSystem (он гасит IsFighting у всех) и ДО
+    // GroupHuntSystem — решение §108 «квари бежит домой» имеет право
+    // перекрыть стойку, и наоборот не бывает.
+    private static void AnswerBlows(WorldState world)
+    {
+        if (!Spec57.AnswerBlowsEnabled)
+        {
+            return;
+        }
+
+        foreach (var target in world.Entities.Npcs.Values)
+        {
+            if (target.Health <= 0f ||
+                target.IsUnconscious(world.Tick) ||
+                target.Body.IsProne ||
+                !target.Body.CanUseToolsOrWeapons ||
+                // Бегущий бежит: клапаны §29C.4A/§108 сами решают, когда
+                // бегство превращается в бой до победного.
+                target.Mind.CurrentGoal == GoalType.Flee ||
+                // Боевые цели ведут собственную сцепку — не дёргать.
+                // Abuse — особый случай НИЖЕ: идущий докапываться под ударами
+                // отвечает, но похода не бросает.
+                target.Mind.CurrentGoal == GoalType.Raid ||
+                target.Mind.CurrentGoal == GoalType.Defend ||
+                target.Mind.CurrentGoal == GoalType.GroupHunt ||
+                // Сценой абьюза правит сцена — с обеих сторон: он в такте,
+                // она приняла решение в AnswersBack, и «не отвечает» — тоже
+                // решение.
+                target.Execution.CurrentInteraction == InteractionType.Abuse ||
+                target.Mind.PendingAbuseFrom is not null)
+            {
+                continue;
+            }
+
+            // Кто на него идёт: сцепленные (CombatOpponentNpcId на него) —
+            // с любой дистанции; погоня (Defend/GroupHunt с ним как целью) —
+            // в радиусе готовности.
+            NPCState nearest = null;
+            var nearestDist = int.MaxValue;
+            foreach (var attacker in world.Entities.Npcs.Values)
+            {
+                if (attacker.Id.Equals(target.Id) || attacker.Health <= 0f)
+                {
+                    continue;
+                }
+
+                // «Сцеплен» = пара + ЖИВОЙ бой. MobSystem гасит IsFighting у
+                // всех в начале среднего прохода, а владеющая боем система
+                // (сцена/налёт/охота) перезащёлкивает его заново — значит
+                // пара без флага к этому месту прохода — ПРИЗРАК: бой давно
+                // кончился, а сцепку никто не отпустил. Такой призрак после
+                // первой же сцены замораживал чужака навсегда.
+                var paired = attacker.Mind.CombatOpponentNpcId is { } oppId &&
+                    oppId.Equals(target.Id);
+                if (paired && !attacker.IsFighting &&
+                    attacker.Mind.CurrentGoal != GoalType.Raid &&
+                    attacker.Mind.CurrentGoal != GoalType.Abuse &&
+                    attacker.Mind.CurrentGoal != GoalType.Defend &&
+                    attacker.Mind.CurrentGoal != GoalType.GroupHunt &&
+                    attacker.Mind.CurrentGoal != GoalType.Prey &&
+                    attacker.Execution.CurrentInteraction != InteractionType.Abuse)
+                {
+                    attacker.Mind.CombatOpponentNpcId = null;
+                    FightScene.ReleaseSwingSlot(attacker);
+                    continue;
+                }
+
+                var engaged = paired && attacker.IsFighting;
+                var pursuing =
+                    (attacker.Mind.CurrentGoal == GoalType.Defend &&
+                     attacker.Mind.CombatAssistAttackerNpcId is { } aId &&
+                     aId.Equals(target.Id)) ||
+                    (attacker.Mind.CurrentGoal == GoalType.GroupHunt &&
+                     attacker.Mind.GroupHuntTargetNpcId is { } hId &&
+                     hId.Equals(target.Id));
+                if (!engaged && !pursuing)
+                {
+                    continue;
+                }
+
+                var dist = HexSpatialMath.HexDistance(attacker.Tile, target.Tile);
+                if (!engaged && dist > Spec57.AnswerReadyRadiusTiles)
+                {
+                    continue;
+                }
+
+                if (dist < nearestDist)
+                {
+                    nearestDist = dist;
+                    nearest = attacker;
+                }
+            }
+
+            if (nearest is null)
+            {
+                continue;
+            }
+
+            // Уже отвечает живому противнику — не перебивать его размен.
+            if (target.IsFighting &&
+                target.Mind.CombatOpponentNpcId is { } currentOpp &&
+                world.Entities.Npcs.TryGetValue(currentOpp, out var currentFoe) &&
+                currentFoe.Health > 0f)
+            {
+                continue;
+            }
+
+            // §81.14: идущий докапываться под ударами ОТВЕЧАЕТ, но похода не
+            // бросает: пара ставится, план и цель — нет. Заморозка (первая
+            // версия) рвала его план каждый средний тик и мигала
+            // «пить↔гнобить»; полное игнорирование (вторая) делало его грушей
+            // для защитниц — стоял, пока не падал.
+            if (target.Mind.CurrentGoal == GoalType.Abuse)
+            {
+                if (InteractionReach.CanStrike(world, target, nearest))
+                {
+                    target.IsFighting = true;
+                    var freshPair = target.Mind.CombatOpponentNpcId is not { } po ||
+                        !po.Equals(nearest.Id);
+                    target.Mind.CombatOpponentNpcId = nearest.Id;
+                    if (freshPair)
+                    {
+                        Trace.Emit(world, target.Id, "AnswersBlows",
+                            $"Attacker=NPC{nearest.Id.Value} Dist={nearestDist} KeptGoal=Abuse");
+                    }
+                }
+                continue;
+            }
+
+            // Бросает дела: сборщик под ножами — покойник.
+            if (target.Plan.Status == PlanStatus.Active ||
+                target.Execution.Status == ExecutionStatus.InProgress)
+            {
+                PlanInterruption.Abort(world, target,
+                    $"Attacked by NPC{nearest.Id.Value}");
+                target.Mind.CurrentGoal = GoalType.None;
+            }
+
+            // Лучшее оружие, что есть, — никаких сценных ограничений.
+            target.Mind.ForcedMeleeWeaponId = null;
+            target.IsFighting = true;
+            if (InteractionReach.CanStrike(world, target, nearest))
+            {
+                // Трасса — только на НОВУЮ сцепку: перезащёлкивание идёт
+                // каждый средний тик (MobSystem гасит IsFighting у всех), и
+                // без этой кромки одна драка давала сотни одинаковых строк.
+                var fresh = target.Mind.CombatOpponentNpcId is not { } prevOpp ||
+                    !prevOpp.Equals(nearest.Id);
+                target.Mind.CombatOpponentNpcId = nearest.Id;
+                if (fresh)
+                {
+                    Trace.Emit(world, target.Id, "AnswersBlows",
+                        $"Attacker=NPC{nearest.Id.Value} Dist={nearestDist}");
+                }
+            }
         }
     }
 
@@ -309,6 +480,18 @@ public sealed class RaidSystem : ISimulationSystem
             }
 
             FightScene.Latch(world, scene, sceneVictim);
+
+            // §109: свидетельницы решают вписаться ВСЮ сцену, а не только на
+            // её старте — как у собак и налёта, каждый средний проход. Та, что
+            // подошла на пятом тике сцены, тоже видит драку.
+            CombatHelpSystem.RallyFriends(world, sceneVictim, null, scene.Id,
+                $"Abuse=NPC{scene.Id.Value}");
+
+            // §109: вписавшиеся защитницы дерутся и в сцене абьюза, не только
+            // в налёте. Раньше их сюда не тянул никто: PullDefenders работал
+            // лишь для goal==Raid, и подруга с целью Defend стояла рядом со
+            // сценой, не нанося ни одного удара.
+            PullDefenders(world, scene, sceneVictim);
         }
 
         // §81.11: причина «почему НЕ абьюзит» видна в трассе, а не вычисляется
@@ -328,6 +511,19 @@ public sealed class RaidSystem : ISimulationSystem
 
             if (abuser.Mind.CurrentGoal == GoalType.Abuse)
             {
+                // §81.14: одержимость — это и есть адреналин. Пока он идёт
+                // докапываться, тело не даст ему заснуть на полдороге: без
+                // подпитки поход, взятый на последней энергии, кончался
+                // «вырубился в трёх гексах от жертвы». Продлеваем, когда
+                // осталось меньше половины, — иначе трейс шумел бы каждые
+                // четыре тика.
+                if (abuser.Mind.AdrenalineUntilTick - world.Tick <
+                    SimBalance.AdrenalineTicks / 2)
+                {
+                    DamageReactionSystemHelpers.GrantAdrenaline(
+                        world, abuser, 1f, "AbuseObsession");
+                }
+
                 // Сцена/поход уже идут — это не блокировка, AbuseBlocked
                 // молчит. Но §81.12: по пути он смотрит по сторонам.
                 TryRetargetCloserMark(world, abuser);

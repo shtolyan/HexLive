@@ -1532,6 +1532,18 @@ public sealed partial class DecisionSystem : ISimulationSystem
             abuseAvail = true;
         }
 
+        // §81.14: и ПОХОД тоже. Взял цель — идёт до конца, пока есть тяга:
+        // мигание доступности (жертва на миг вышла из поля зрения §81.12,
+        // prowl у кромки лагеря) роняло его в «посидеть» на полпути, и со
+        // стороны это читалось как «его колбасит туда-сюда». Перебить поход
+        // может только нокаут — без сознания решений не принимают вовсе.
+        // Drive считается напрямую: верхний блок мог не дойти до него из-за
+        // своих гейтов, а тяга у идущего должна оцениваться всегда.
+        if (npc.Mind.CurrentGoal == GoalType.Abuse && AbuseMath.Drive(npc) > 0f)
+        {
+            abuseAvail = true;
+        }
+
         AddGoalScore(npc, world.Tick, GoalType.Abuse,
             Spec81.AbuseBaseScore + abuseDrive, abuseAvail);
         if (raidAvail && world.Tick % 64 == 0)

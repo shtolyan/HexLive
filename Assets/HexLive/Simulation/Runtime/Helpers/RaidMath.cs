@@ -145,6 +145,15 @@ public static class RaidMath
                 continue;
             }
 
+            // §105.14: притворяется мёртвой — исключение ДО скоринга, а не
+            // штраф внутри него. Opportunity весит беспомощность В ПЛЮС
+            // (RaidWeightHelpless), так что дай он ей попасть в оценку — и
+            // притворство сделало бы её предпочтительной целью.
+            if (candidate.IsPlayingDead(world.Tick))
+            {
+                continue;
+            }
+
             if (!from.Equals(candidateJunction) &&
                 !Connectivity.Reachable(world, from, candidateJunction, raider.Body.CanJump))
             {

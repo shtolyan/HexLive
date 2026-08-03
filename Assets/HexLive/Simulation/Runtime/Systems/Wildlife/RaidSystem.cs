@@ -81,6 +81,17 @@ public sealed class RaidSystem : ISimulationSystem
                 continue;
             }
 
+            // §105.14: она притворилась мёртвой — то же runtime-зеркало, что и
+            // у воды: молчаливого Unpair мало, план надо оборвать явно.
+            if (victim.IsPlayingDead(world.Tick))
+            {
+                Unpair(raider);
+                Unpair(victim);
+                PlanningSystem.AbandonRaid(world, raider, "PlayDead");
+                raider.IsFighting = false;
+                continue;
+            }
+
             if (!InteractionReach.CanStrike(world, raider, victim))
             {
                 // Still stalking — the plan walks him in. Drop the pairing so

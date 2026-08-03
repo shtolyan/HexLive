@@ -149,6 +149,9 @@ public sealed class NeedsDecaySystem : ISimulationSystem
 
         npc.Mind.ComaCause = cause;
         npc.Mind.CryingUntilTick = 0; // §110: кома глубже слёз и вытесняет их
+        // §105.14: и глубже притворства — WakeFromComa переспросит на выходе.
+        npc.Mind.PlayDeadUntilTick = 0;
+        npc.Mind.PlayDeadSinceTick = 0;
         PlanInterruption.Abort(world, npc, "Collapsed — coma");
         npc.Mind.CurrentGoal = GoalType.None;
         npc.IsFighting = false; // a body that just switched off holds no stance
@@ -291,6 +294,10 @@ public sealed class NeedsDecaySystem : ISimulationSystem
 
         Trace.Emit(world, npc.Id, "WokeUp",
             $"Cause={cause} Energy={npc.Needs.Energy:F2} Blood={npc.Needs.Blood:F2}");
+
+        // §105.14: очнулась — а враг рядом. Тогда не вставать: притвориться
+        // мёртвой. Болевое пробуждение (WoundMath) проходит этой же дверью.
+        MortalityHelpers.TryStartPlayDead(world, npc);
     }
 
     public void Run(WorldState world)
@@ -307,6 +314,20 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // before this tick's decay so a recovered body never oversleeps
             // its own wake line.
             TryWakeFromComa(world, npc);
+
+            // §105.14: пока враг в радиусе, окно притворства перевзводится —
+            // это и есть гистерезис (Slow 16 тиков против Hold 240), без него
+            // она вскакивала бы и падала на каждом шаге зверя туда-сюда.
+            // Потолок PlayDeadMaxTicks считается от старта: волк, поселившийся
+            // у лагеря, иначе уложил бы её навсегда.
+            if (npc.Mind.PlayDeadSinceTick != 0 &&
+                world.Tick < npc.Mind.PlayDeadUntilTick &&
+                MortalityHelpers.HostileNearby(world, npc))
+            {
+                npc.Mind.PlayDeadUntilTick = System.Math.Min(
+                    world.Tick + Spec105.PlayDeadHoldTicks,
+                    npc.Mind.PlayDeadSinceTick + Spec105.PlayDeadMaxTicks);
+            }
 
             // Spec 31C.7A: a sleeping body burns less — hour-long sleep
             // blocks must not guarantee a starving wake-up.

@@ -459,6 +459,11 @@ public sealed class NpcSnapshot
     // переживает сейв, доезжает до удалённого зрителя и не врёт на перемотке.
     public bool IsSadWalk { get; set; }
 
+    // §105.14: притворяется мёртвой — очнулась, но не встаёт, пока рядом враг.
+    // Вид держит её упавшей (цепочка падения, без сна): для игрока это тело,
+    // которое лежит подозрительно неподвижно, а панель говорит, что она жива.
+    public bool IsPlayingDead { get; set; }
+
     // Spec §53 r2: while this NPC is aiding a housemate (Feed/Hydrate/Treat/…),
     // is her WARD lying down (coma/faint/asleep/prone)? The kneeling "tending"
     // craft pose only plays over a lying ward; over a standing ward the helper

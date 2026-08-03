@@ -80,7 +80,10 @@ public sealed class GroupHuntSystem : ISimulationSystem
 
             // Свалился — расправа удалась. Проверяется у КАЖДОЙ, потому что
             // финальный удар мог лечь на быстром слое между проходами.
-            if (quarry.Health <= 0f || quarry.IsUnconscious(world.Tick) || quarry.Body.IsProne)
+            // §105.14: притворился мёртвым — для группы это тот же «свалился»,
+            // они теряют к нему интерес и расходятся (как §72 бросает налёт).
+            if (quarry.Health <= 0f || quarry.IsUnconscious(world.Tick) ||
+                quarry.Body.IsProne || quarry.IsPlayingDead(world.Tick))
             {
                 // Свалился — но их ли это заслуга? Ни одного удара значит, что
                 // его достал кто-то другой (волк, голод, другая драка), и
@@ -120,16 +123,24 @@ public sealed class GroupHuntSystem : ISimulationSystem
             // втроём и легли. Замер, сид 42: три головы, разбитые машете за 700
             // тиков, колония 4→1 с одной охоты.
             //
-            // Порог тот же, что у жертвы налёта: пока цела — бьёт, разбили —
-            // уходит. Уходит ОДНА: остальные решают за себя, и охота кончается
-            // не потому, что кто-то скомандовал, а потому что в ней осталось
+            // Мерка — УРОН, ПОЛУЧЕННЫЙ ЗДЕСЬ, а не абсолютное здоровье: с
+            // абсолютным порогом колонистка со старым рубцом (Worst=0,28 при
+            // здоровье 0,84) выбывала, не получив ни одного удара, и охота
+            // рассыпалась ещё на подходе. Разницу считает §81.13 — та же мысль.
+            //
+            // Уходит ОДНА: остальные решают за себя, и охота кончается не
+            // потому, что кто-то скомандовал, а потому что в ней осталось
             // меньше двоих (PartyCollapsed ниже).
-            if (hunter.Health < Spec108.GroupHuntHunterFleeHealth ||
-                MobSystem.WorstPartHealth(hunter) < Spec108.GroupHuntHunterFleeWorstPart)
+            var worstNow = MobSystem.WorstPartHealth(hunter);
+            var tookOverall = hunter.Mind.GroupHuntStartHealth - hunter.Health;
+            var tookWorst = hunter.Mind.GroupHuntStartWorstPart - worstNow;
+            if (tookOverall >= Spec108.GroupHuntHunterFleeDamage ||
+                tookWorst >= Spec108.GroupHuntHunterFleeWorstDrop)
             {
                 Trace.Emit(world, hunter.Id, "GroupHuntHunterFled",
                     $"Target=NPC{quarryId.Value} Health={hunter.Health:F2} " +
-                    $"Worst={MobSystem.WorstPartHealth(hunter):F2}");
+                    $"Took={tookOverall:F2} WorstDrop={tookWorst:F2} " +
+                    $"Blows={hunter.Mind.GroupHuntBlowsLanded}");
                 EndHunt(world, hunter, "Hurt");
                 MobSystem.TryStartFlee(world, hunter, 1, attackerNpcId: quarryId);
                 continue;
@@ -220,7 +231,8 @@ public sealed class GroupHuntSystem : ISimulationSystem
                 }
             }
 
-            if (inReach == 0 || quarry.IsUnconscious(world.Tick) || quarry.Body.IsProne)
+            if (inReach == 0 || quarry.IsUnconscious(world.Tick) || quarry.Body.IsProne ||
+                quarry.IsPlayingDead(world.Tick)) // §105.14
             {
                 continue;
             }
@@ -340,6 +352,7 @@ public sealed class GroupHuntSystem : ISimulationSystem
     private static string DownReason(WorldState world, NPCState quarry) =>
         quarry.Health <= 0f ? "Killed"
         : quarry.IsUnconscious(world.Tick) ? "Unconscious"
+        : quarry.IsPlayingDead(world.Tick) ? "PlayingDead" // §105.14
         : "Prone";
 
     // Конец охоты для ВСЕЙ группы, с расплатой. Одно место на обе концовки —

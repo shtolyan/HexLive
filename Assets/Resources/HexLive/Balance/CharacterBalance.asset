@@ -176,6 +176,10 @@ MonoBehaviour:
   vitalExitHealth: 0.15
   minDyingTicks: 300
   stayDownIfSpent: 1
+  playDeadEnabled: 1
+  playDeadRadiusTiles: 3
+  playDeadHoldTicks: 240
+  playDeadMaxTicks: 4800
   rescueEmergencyBoost: 1
   convalescentTicks: 3600
   convalescentStaminaRegenFactor: 0.3333

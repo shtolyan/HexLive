@@ -59,7 +59,11 @@ public sealed class PredationSystem : ISimulationSystem
                     other.CurrentJunction is not { } otherJunction ||
                     // §106: не сцепляться через кромку с купальщицей — иначе до
                     // ближайшего перестроения плана хищник кусал бы её с берега.
-                    (Spec106.WaterSanctuaryEnabled && CombatMedium.IsNpcSwimming(world, other)))
+                    (Spec106.WaterSanctuaryEnabled && CombatMedium.IsNpcSwimming(world, other)) ||
+                    // §105.14: притворяется мёртвой — хищник теряет к ней
+                    // интерес. Персистентной цели тут нет, жертва выбирается
+                    // заново каждый тик, так что «бросить погоню» = этот continue.
+                    other.IsPlayingDead(world.Tick))
                 {
                     continue;
                 }

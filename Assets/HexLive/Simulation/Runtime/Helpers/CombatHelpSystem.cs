@@ -62,6 +62,7 @@ internal static class CombatHelpSystem
                 // §60: asleep or out cold — the cry does not register at all:
                 // no waking into Defend, no "ignored" cue, not even an emoji.
                 helper.IsUnconscious(world.Tick) ||
+                helper.IsPlayingDead(world.Tick) || // §105.14: лежит и не выдаёт себя
                 helper.Execution.CurrentInteraction == InteractionType.Sleep ||
                 HexSpatialMath.HexDistance(helper.Tile, victim.Tile) > Spec57.HelpCryRadiusTiles)
             {
@@ -152,6 +153,7 @@ internal static class CombatHelpSystem
                 helper.Health <= 0f ||
                 helper.Body.IsProne ||
                 helper.IsUnconscious(world.Tick) || // §60: out cold — no rushing anywhere
+                helper.IsPlayingDead(world.Tick) || // §105.14: и притворяющаяся не вскакивает
                 helper.Execution.CurrentInteraction == InteractionType.Sleep || // §60: sleepers ignore cries too
                 helper.IsFighting ||
                 helper.Mind.CurrentGoal == GoalType.Defend ||

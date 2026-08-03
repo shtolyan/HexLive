@@ -1001,6 +1001,30 @@ MonoBehaviour:
       - 'При смерти'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'state.playdead'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Playing dead'
+      - 'Притворяется мёртвой'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.playingdead.title'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Playing dead'
+      - 'Притворяется мёртвой'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.playingdead.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Lying limp with an enemy nearby — getting up would only earn another beating.'
+      - 'Лежит не шевелясь, пока рядом враг: встать значит огрести снова.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'effect.dying.title'
       TermType: 0
       Description:

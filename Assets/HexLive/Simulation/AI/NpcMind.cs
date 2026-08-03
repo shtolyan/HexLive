@@ -54,6 +54,15 @@ public sealed class NPCMind
     // утешение (§53 Console) укорачивает. 0 = не плачет.
     public int CryingUntilTick { get; set; }
 
+    // §105.14: притворяется мёртвой — очнулась, а враг рядом, и вставать
+    // значит огрести снова; лежит и не шевелится до этого тика. Окно
+    // перевзводит Slow-тик NeedsDecaySystem, пока враг в радиусе; SinceTick —
+    // старт притворства, от него считается потолок PlayDeadMaxTicks.
+    // ОБА НЕ сериализуются НАМЕРЕННО (как DyingTickStamp): перезагрузка
+    // просто поднимет её — безобидно, а блоб трогать не приходится.
+    public int PlayDeadUntilTick { get; set; }
+    public int PlayDeadSinceTick { get; set; }
+
     // Spec §60: coma — the deep unconsciousness. Unlike the timed faint above,
     // a coma has no deadline: the body lies as if dead, recovering exactly as
     // in sleep, until the STAT that felled it climbs back over its wake
@@ -264,6 +273,15 @@ public sealed class NPCMind
 
     // Когда сговорились — от этого тика считается бюджет охоты.
     public int GroupHuntStartedTick { get; set; }
+
+    // ⭐ Здоровье И худшая часть НА ВХОДЕ в расправу — образец §81.13, где
+    // «кто проиграл» тоже считается разницей, а не абсолютом. Уходит та, кому
+    // досталось ЗДЕСЬ. Абсолютный порог этого не отличал: колонистка со старым
+    // рубцом на ноге (Worst=0,28 при здоровье 0,84) выбывала, не получив ни
+    // одного удара, — то есть хромая не имела права и подойти.
+    public float GroupHuntStartHealth { get; set; }
+
+    public float GroupHuntStartWorstPart { get; set; }
 
     // Сколько ударов ОНА успела всадить за эту охоту — её личный вклад, для
     // трейса ухода: видно, ушла она отбив своё или сразу.

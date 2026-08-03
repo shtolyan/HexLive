@@ -209,7 +209,11 @@ public static class AbuseMath
                 continue;
             }
 
-            if (mark.IsUnconscious(world.Tick) || mark.Body.IsProne)
+            // §105.14: притворяющаяся идёт сюда же — лежит неподвижно, и
+            // абьюзер теряет к ней интерес (Body.IsProne её НЕ покрывает: это
+            // безногость, а не поза).
+            if (mark.IsUnconscious(world.Tick) || mark.Body.IsProne ||
+                mark.IsPlayingDead(world.Tick))
             {
                 tally.Helpless++;
                 continue;

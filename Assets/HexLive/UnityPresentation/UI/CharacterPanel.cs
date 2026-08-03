@@ -664,6 +664,14 @@ namespace HexLive.UnityPresentation.UI
                 key = "state.fainted";
                 dot = Warn;
             }
+            // §105.14: она В СОЗНАНИИ и решает сама — поэтому НИЖЕ обморока и
+            // отдельной строкой: игрок должен понимать, что тело на земле
+            // живое и ждёт, пока волк уйдёт, а не отключилось.
+            else if (npc.IsPlayingDead)
+            {
+                key = "state.playdead";
+                dot = Warn;
+            }
             else if (npc.CurrentInteraction == "Sleep" && npc.ExecutionStatus == "InProgress")
             {
                 key = "state.sleeping";

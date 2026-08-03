@@ -107,6 +107,14 @@ namespace HexLive.UnityPresentation.Input
             _runner = runner;
         }
 
+        /// <summary>
+        /// Spec §112: what the rig is framing right now — the followed colonist
+        /// while orbiting, the ground pivot while panning. The foliage culler
+        /// clears the leaves standing between the lens and this point.
+        /// </summary>
+        public Vector3 FocusPoint =>
+            _mode == Mode.Orbit && _hasSmoothedTarget ? _smoothedTarget : _freePivot;
+
         private void Start()
         {
             _camera = GetComponent<Camera>();

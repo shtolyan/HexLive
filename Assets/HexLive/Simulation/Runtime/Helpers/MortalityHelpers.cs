@@ -156,6 +156,9 @@ internal static class MortalityHelpers
         npc.Mind.ComaCause = ComaCause.None;
         npc.Mind.FaintedUntilTick = 0;
         npc.Mind.CryingUntilTick = 0; // §110: слёзы тоже вытесняются
+        // §105.14: и притворство — умирание глубже; ExitDying переспросит.
+        npc.Mind.PlayDeadUntilTick = 0;
+        npc.Mind.PlayDeadSinceTick = 0;
 
         PinVitals(npc);
         PlanInterruption.Abort(world, npc, "Collapsed — dying");
@@ -351,7 +354,7 @@ internal static class MortalityHelpers
         Trace.Emit(world, npc.Id, "Rescued",
             $"Cause={cause} Reason={reason} Health={npc.Health:F2} Blood={npc.Needs.Blood:F2}");
 
-        StayDownIfSpent(world, npc);
+        StayDownIfNeeded(world, npc);
     }
 
     // §105 r5: ⭐ ПЕРЕД ТЕМ КАК ВСТАТЬ — СПРОСИТЬ СЕБЯ, А НАДО ЛИ.
@@ -369,16 +372,120 @@ internal static class MortalityHelpers
     // Порог — тот самый, по которому аукцион и выбрал бы сон
     // (SimBalance.SleepEnergyThreshold): спрашивать надо ровно то, что она
     // решила бы сама, иначе «остаться лежать» и «пойти спать» разойдутся.
-    private static void StayDownIfSpent(WorldState world, NPCState npc)
+    // §105.14 добавил вторую причину остаться лежать — враг рядом. Порядок
+    // важен: вымотанная сначала засыпает (сон восстанавливает, притворство —
+    // нет), и только бодрая переходит к притворству.
+    private static void StayDownIfNeeded(WorldState world, NPCState npc)
     {
-        if (!Spec105.StayDownIfSpent || npc.Needs.Energy > SimBalance.SleepEnergyThreshold)
+        if (Spec105.StayDownIfSpent && npc.Needs.Energy <= SimBalance.SleepEnergyThreshold)
         {
+            NeedsDecaySystem.EnterComa(world, npc, ComaCause.Exhaustion);
+            Trace.Emit(world, npc.Id, "StayedDown",
+                $"Too spent to get up (Energy={npc.Needs.Energy:F2}) — rolled over and slept");
             return;
         }
 
-        NeedsDecaySystem.EnterComa(world, npc, ComaCause.Exhaustion);
-        Trace.Emit(world, npc.Id, "StayedDown",
-            $"Too spent to get up (Energy={npc.Needs.Energy:F2}) — rolled over and slept");
+        TryStartPlayDead(world, npc);
+    }
+
+    // §105.14: ⭐ ПРИТВОРЯЕТСЯ МЁРТВОЙ (механика Kenshi).
+    //
+    // Очнулась — а рядом волк. Вставать невыгодно: собьют снова, и §105 срежет
+    // запас смерти с каждого удара по лежащей. Поэтому она НЕ встаёт: лежит
+    // неподвижно, пока враг не потеряет интерес и не уйдёт.
+    //
+    // ⭐ Половина механики живёт НА СТОРОНЕ ВРАГА, и без неё притворство было бы
+    // самоубийством: в этом проекте беспомощных догрызают (MobSystem helpless,
+    // RaidMath.Opportunity весит беспомощность В ПЛЮС). Поэтому IsPlayingDead
+    // намеренно НЕ входит в IsUnconscious, а четыре вражьих системы получают
+    // пару гейтов по форме §106 «Вода — убежище»: новая агрессия не наводится
+    // И уже ведущаяся погоня бросается. Одного гейта мало — охотник вечно
+    // шагал бы к недосягаемой цели (кольцо §102).
+    //
+    // ЕДИНСТВЕННАЯ точка чтения Spec105.PlayDeadEnabled: выключенная ручка
+    // значит «окно никогда не взводится», и все проверки IsPlayingDead ниже по
+    // течению становятся инертны — прежнее поведение побитово.
+    internal static bool TryStartPlayDead(WorldState world, NPCState npc)
+    {
+        if (!Spec105.PlayDeadEnabled ||
+            npc.Health <= 0f ||
+            npc.IsDying ||
+            npc.Mind.ComaCause != ComaCause.None ||
+            !HostileNearby(world, npc))
+        {
+            return false;
+        }
+
+        npc.Mind.PlayDeadSinceTick = world.Tick;
+        npc.Mind.PlayDeadUntilTick = world.Tick + Spec105.PlayDeadHoldTicks;
+        // Путь пробуждения только что выдал грацию подъёма (§41.5) и отпустил
+        // лежачий след — но вставать она передумала: грацию снять, след занять
+        // обратно (её выдаст EndPlayDead, когда она действительно поднимется).
+        npc.Mind.WakeGraceUntilTick = 0;
+        npc.Mind.CurrentGoal = GoalType.None;
+        AnchorLyingBody(world, npc);
+
+        Trace.Emit(world, npc.Id, "PlayDeadStarted",
+            $"Hostile within {Spec105.PlayDeadRadiusTiles} tiles — staying limp");
+        return true;
+    }
+
+    // §105.14: враг ушёл (или вышел потолок) — теперь можно вставать. Зеркало
+    // выхода из комы: грация подъёма и отпущенный лежачий след.
+    internal static void EndPlayDead(WorldState world, NPCState npc)
+    {
+        npc.Mind.PlayDeadUntilTick = 0;
+        npc.Mind.PlayDeadSinceTick = 0;
+        npc.Mind.WakeGraceUntilTick = world.Tick + AiBalance.WakeGraceTicks; // §41.5
+
+        ExecutionSystem.ReleaseClaims(world, npc);
+        if (npc.CurrentJunction is { } lay)
+        {
+            SpatialMutations.FreeJunction(world, lay, npc.Id);
+            SpatialMutations.ReleaseJunctionReservation(world, lay, npc.Id);
+        }
+
+        Trace.Emit(world, npc.Id, "PlayDeadEnded", "Coast clear — getting up");
+    }
+
+    // §105.14: «враг рядом» — одно определение на все точки входа. Радиус —
+    // своя ручка: радиус восприятия и радиус агро отмеряны под другое.
+    //
+    // ⭐ Каннибал §56 по фракции СОЮЗНИК, поэтому одной проверки AreHostile
+    // мало: без ветки Prey притворство против него не взводилось бы вовсе, и
+    // гейт в PredationSystem был бы недостижим.
+    //
+    // Зовётся только для лежащих (единицы за тик) — линейный проход дёшев.
+    internal static bool HostileNearby(WorldState world, NPCState npc)
+    {
+        foreach (var mob in world.Mobs)
+        {
+            if (mob.Health > 0f &&
+                HexSpatialMath.HexDistance(mob.Tile, npc.Tile) <= Spec105.PlayDeadRadiusTiles)
+            {
+                return true;
+            }
+        }
+
+        foreach (var other in world.Entities.Npcs.Values)
+        {
+            if (other.Id.Equals(npc.Id) ||
+                other.Health <= 0f ||
+                other.IsUnconscious(world.Tick))
+            {
+                continue;
+            }
+
+            var hostile = FactionRelations.AreHostile(npc, other) ||
+                other.Mind.CurrentGoal == GoalType.Prey; // §56
+            if (hostile &&
+                HexSpatialMath.HexDistance(other.Tile, npc.Tile) <= Spec105.PlayDeadRadiusTiles)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // §53: помощь довела показатель до выхода — проверить прямо на месте, а не

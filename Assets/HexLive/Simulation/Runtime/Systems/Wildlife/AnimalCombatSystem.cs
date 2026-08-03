@@ -428,6 +428,15 @@ public sealed class AnimalCombatSystem : ISimulationSystem
 
     private static bool InMelee(WorldState world, Wildlife.MobState dog, NPCState target)
     {
+        // §105.14: притворяется мёртвой — зверь потерял к ней интерес и не
+        // кусает. Зеркало гейта medium-слоя (MobSystem.IsNpcInRefugeFrom):
+        // быстрый слой крутится между сбросом цели и укусом, так что без этой
+        // проверки он успевал бы догрызть уже брошенную цель.
+        if (target.IsPlayingDead(world.Tick))
+        {
+            return false;
+        }
+
         // §106: adjacency alone is not a bite — the medium must match too. A
         // wolf at the shore is one junction from the swimmer and still cannot
         // reach her (and she, mid-stroke, cannot counter it either: the fast

@@ -53,7 +53,9 @@ public static class WorldSnapshotCodec
     /// ходит вдвое медленнее), а была таймером внутри вида.
     /// v10: §105 r2 VitalHealth — худшая витальная зона; кольцо вокруг
     /// портрета показывает ЕЁ, а не среднее по семи зонам.
-    public const int WireVersion = 10;
+    /// v11: §105.14 IsPlayingDead — притворяется мёртвой; вид держит её
+    /// упавшей, а панель показывает чип и строку состояния.
+    public const int WireVersion = 11;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -536,6 +538,7 @@ public static class WorldSnapshotCodec
         w.Write(n.IsDying); // §105
         w.Write(n.IsCrying); // §110
         w.Write(n.IsSadWalk); // §81.10
+        w.Write(n.IsPlayingDead); // §105.14
         w.Write(n.AidTargetLyingDown);
         w.Write(n.IsLedgeSit);
         w.Write(n.LedgeSeatStepsUp);
@@ -716,6 +719,7 @@ public static class WorldSnapshotCodec
         n.IsDying = r.ReadBoolean(); // §105
         n.IsCrying = r.ReadBoolean(); // §110
         n.IsSadWalk = r.ReadBoolean(); // §81.10
+        n.IsPlayingDead = r.ReadBoolean(); // §105.14
         n.AidTargetLyingDown = r.ReadBoolean();
         n.IsLedgeSit = r.ReadBoolean();
         n.LedgeSeatStepsUp = r.ReadInt32();

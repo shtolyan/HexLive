@@ -69,6 +69,16 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 continue;
             }
 
+            // §105.14: окно обморока вышло — прежде чем встать, спросить себя,
+            // а надо ли (враг рядом → притвориться мёртвой). Поле потребляем в
+            // ноль: это устоявшийся идиом (боль уже зануляет CryingUntilTick),
+            // и 0 читается везде так же, как протухший тик.
+            if (npc.Mind.FaintedUntilTick != 0)
+            {
+                npc.Mind.FaintedUntilTick = 0;
+                MortalityHelpers.TryStartPlayDead(world, npc);
+            }
+
             // Spec §110: crying her heart out — conscious, but no decisions
             // until she is done. The body rests exactly like the faint above.
             //
@@ -86,6 +96,28 @@ public sealed partial class DecisionSystem : ISimulationSystem
             {
                 npc.Needs.Stamina = MathUtil.Clamp01(npc.Needs.Stamina + 0.02f);
                 continue;
+            }
+
+            // §105.14: выплакалась — те же ворота перед подъёмом.
+            if (npc.Mind.CryingUntilTick != 0)
+            {
+                npc.Mind.CryingUntilTick = 0;
+                MortalityHelpers.TryStartPlayDead(world, npc);
+            }
+
+            // §105.14: притворяется мёртвой — решений не принимает, тело
+            // отдыхает ровно как в обмороке выше. Окно перевзводит Slow-тик
+            // NeedsDecaySystem, пока враг рядом; здесь только истечение.
+            if (world.Tick < npc.Mind.PlayDeadUntilTick)
+            {
+                npc.Needs.Stamina = MathUtil.Clamp01(npc.Needs.Stamina + 0.02f);
+                continue;
+            }
+
+            if (npc.Mind.PlayDeadSinceTick != 0)
+            {
+                MortalityHelpers.EndPlayDead(world, npc);
+                continue; // грация подъёма всё равно гейтит этот тик
             }
 
             // Spec 41.5: just woke up — stand where you slept and come to

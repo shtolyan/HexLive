@@ -271,6 +271,13 @@ namespace HexLive.Simulation.Agents.Effects
                 results.Add(new ActiveEffect(EffectKind.Stressed, needs.Stress));
             }
 
+            // §105.14: притворяется мёртвой — единственный видимый признак
+            // того, что она жива и всё решает сама, а не лежит в отключке.
+            if (npc.IsPlayingDead(currentTick))
+            {
+                results.Add(new ActiveEffect(EffectKind.PlayingDead, 1f));
+            }
+
             if (needs.Social < LonelyShow)
             {
                 results.Add(new ActiveEffect(EffectKind.Lonely, 1f - needs.Social / LonelyShow));

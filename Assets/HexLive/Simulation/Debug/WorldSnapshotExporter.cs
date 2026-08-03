@@ -721,6 +721,7 @@ public static class WorldSnapshotExporter
             // затыкает ей рот, чтобы всхлипы и слёзный смайл шли своим чередом.
             IsCrying = npc.IsCrying(world.Tick),
             IsSadWalk = world.Tick < npc.Mind.SadWalkUntilTick, // §81.10
+            IsPlayingDead = npc.IsPlayingDead(world.Tick), // §105.14
             IsWaking = world.Tick < npc.Mind.WakeGraceUntilTick,
             Stress = npc.Needs.Stress,
             CurrentGoal = npc.Mind.CurrentGoal.ToString(),

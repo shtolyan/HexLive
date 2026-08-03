@@ -228,9 +228,11 @@ public sealed class MobSystem : ISimulationSystem
             // просто не запускались. Текст трассы не изменился.
             var lostReason = IsNpcInSanctuary(world, target)
                 ? " (went indoors)"
-                : IsNpcInRefugeFrom(world, dog, target)
-                    ? " (in the water)"
-                    : string.Empty;
+                : target.IsPlayingDead(world.Tick)
+                    ? " (playing dead)"
+                    : IsNpcInRefugeFrom(world, dog, target)
+                        ? " (in the water)"
+                        : string.Empty;
             Trace.EmitSystem(world, "DogLostTarget",
                 $"Dog={dog.Id} lost NPC{target.Id.Value}{lostReason}");
             dog.TargetNpc = null;
@@ -544,8 +546,13 @@ public sealed class MobSystem : ISimulationSystem
     // моба (AttackMediums) туда не дотянуться зубами, и топтаться статуей у
     // кромки до stall-таймера — не выжидание, а баг. НЕ слито в IsNpcInSanctuary:
     // «indoor» читают и Raid/Abuse/Threat со СВОИМИ ручками, у воды — своя.
+    // §105.14: притворяющаяся мёртвой — третья форма того же убежища. Зверь не
+    // наводится на неподвижное тело и БРОСАЕТ уже ведущуюся погоню: обе половины
+    // достаются одной строкой, потому что и захват цели (:193), и ветка
+    // DogLostTarget спрашивают этот предикат.
     private static bool IsNpcInRefugeFrom(WorldState world, Wildlife.MobState mob, NPCState npc) =>
         IsNpcInSanctuary(world, npc) ||
+        npc.IsPlayingDead(world.Tick) ||
         (Spec106.WaterSanctuaryEnabled &&
          !CombatMedium.CanEngage(world, Stats(mob).AttackMediums, npc));
 

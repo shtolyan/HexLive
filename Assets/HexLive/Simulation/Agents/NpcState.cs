@@ -420,6 +420,13 @@ public sealed class NPCState
     // cues/speech still show), she just can't act until she cries it out.
     public bool IsCrying(int tick) => tick < Mind.CryingUntilTick;
 
+    // §105.14: притворяется мёртвой — лежит неподвижно, пока рядом враг.
+    // Она В СОЗНАНИИ, и это НАМЕРЕННО не входит в IsUnconscious: его читатели
+    // (MobSystem helpless, RaidMath.Opportunity, §56/§81) — это и есть
+    // «догрызают беспомощную», а притворство обязано делать ровно обратное:
+    // враг теряет к ней интерес (гейты по форме §106, см. IsNpcInRefugeFrom).
+    public bool IsPlayingDead(int tick) => tick < Mind.PlayDeadUntilTick;
+
     // Spec §53/§60: is this body lying flat on the ground right now — knocked
     // out (coma/faint), asleep, crying (§110), or legless-prone? A lying ward
     // keeps her authored pose (helpers/chatters must not spin her to "face"
@@ -427,6 +434,7 @@ public sealed class NPCState
     public bool IsLyingDown(int tick) =>
         IsUnconscious(tick) ||
         IsCrying(tick) ||
+        IsPlayingDead(tick) ||
         Execution.CurrentInteraction == InteractionType.Sleep ||
         Body.IsProne;
 

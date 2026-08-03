@@ -108,6 +108,9 @@ namespace HexLive.Simulation.Agents.Effects
             // §110: сломалась от стресса — лежит и рыдает.
             Add(EffectKind.Crying, EffectPolarity.Debuff, EffectCategory.Mind, "😭");
 
+            // §105.14: притворяется мёртвой — лежит и не выдаёт себя.
+            Add(EffectKind.PlayingDead, EffectPolarity.Debuff, EffectCategory.Mind, "🫥");
+
             return map;
         }
     }

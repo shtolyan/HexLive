@@ -944,6 +944,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 {
                     _treeViewKeys.Add(key);
                 }
+
+                // §112: leaves let the camera through. Marking the view is the
+                // whole hookup — CameraFoliageCuller finds it from the marker.
+                if (HexLive.UnityPresentation.Environment.FoliageOccluder.IsFoliage(worldObject.DefinitionId) &&
+                    objectView.GetComponent<HexLive.UnityPresentation.Environment.FoliageOccluder>() == null)
+                {
+                    objectView.AddComponent<HexLive.UnityPresentation.Environment.FoliageOccluder>();
+                }
             }
 
             _objectViewParts.TryGetValue(key, out var parts);
@@ -1388,7 +1396,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             Asleep = npc.CurrentInteraction == "Sleep",
             // §105: умирающая для речи и мимики — такое же выключенное тело,
             // как потерявшая сознание: реплик не подаёт, пузырей не рисует.
-            Fainted = npc.IsFainted || npc.IsUnconscious || npc.IsDying,
+            // §105.14: притворяющаяся молчит по своей воле — труп не болтает.
+            Fainted = npc.IsFainted || npc.IsUnconscious || npc.IsDying || npc.IsPlayingDead,
             // §110: рыдающая, наоборот, ГОВОРИТ — всхлипы и есть смысл сцены.
             Crying = npc.IsCrying
         });
@@ -1530,7 +1539,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // крепления, и держит свою позу. Крах от истощения (§60 r2) экспортёр
         // намеренно выдаёт за сон — она и правда просто заснула, где стояла, —
         // так что он тоже остаётся здесь.
-        if (npc.IsDying || npc.IsUnconscious)
+        // §105.14: притворяется мёртвой — той же цепочкой падения, что и
+        // умирающая. Клип не нужен: FallenIdle и есть застывшее лежачее тело,
+        // притворство — это просто «лежит дольше». Сонную цепочку взять
+        // нельзя: она читалась бы как «прилегла», а вся суть в том, что для
+        // волка она труп.
+        if (npc.IsDying || npc.IsUnconscious || npc.IsPlayingDead)
         {
             // Spec 40.13 v2: collapse lies down with the baked laying clip —
             // ragdoll physics is retired (no tile colliders to land on).
@@ -3408,6 +3422,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         {
             if (npc.IsFainted || npc.IsUnconscious || // §60: a coma flattens the grass too
                 npc.IsDying ||                        // §105: и лежащая на грани
+                npc.IsPlayingDead ||                  // §105.14: и притворяющаяся
                 (npc.CurrentInteraction == "Sleep" && npc.ExecutionStatus == "InProgress"))
             {
                 _lyingTiles.Add(npc.Tile);

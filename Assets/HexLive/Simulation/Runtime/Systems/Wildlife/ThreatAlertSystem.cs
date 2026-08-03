@@ -64,6 +64,7 @@ public sealed class ThreatAlertSystem : ISimulationSystem
         {
             if (npc.Health <= 0f ||
                 npc.IsUnconscious(world.Tick) ||
+                npc.IsPlayingDead(world.Tick) || // §105.14: она уже «мертва» — не реагирует
                 npc.Execution.CurrentInteraction == InteractionType.Sleep ||
                 npc.IsFighting ||
                 npc.Mind.CurrentGoal == GoalType.Flee ||

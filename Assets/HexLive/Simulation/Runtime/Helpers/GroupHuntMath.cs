@@ -33,6 +33,7 @@ public static class GroupHuntMath
             if (other.Health <= 0f ||
                 !FactionRelations.AreAllies(other, npc) ||
                 other.IsUnconscious(world.Tick) ||
+                other.IsPlayingDead(world.Tick) || // §105.14: лежачую в сговор не берут
                 other.Body.IsProne ||
                 other.IsFighting ||
                 other.Mind.CurrentGoal == GoalType.Flee ||
@@ -147,7 +148,10 @@ public static class GroupHuntMath
         // уже отключённого завершался успехом в тот же тик, охота считалась
         // «удавшейся», группа получала расплату и уходила в кулдаун, ни разу
         // никого не ударив (арена 313: пакт на 55983, GroupHuntDone на 55984).
-        if (stranger.IsUnconscious(world.Tick) || stranger.Body.IsProne)
+        // §105.14: и притворившийся мёртвым — лежачий; сговор против него не
+        // складывается (тот же гейт «не наводиться», что у зверя и налётчика).
+        if (stranger.IsUnconscious(world.Tick) || stranger.Body.IsProne ||
+            stranger.IsPlayingDead(world.Tick))
         {
             blocked = "AlreadyDown";
             return false;
@@ -226,6 +230,9 @@ public static class GroupHuntMath
             girl.Mind.CurrentGoal = GoalType.GroupHunt;
             girl.Mind.GroupHuntTargetNpcId = stranger.Id;
             girl.Mind.GroupHuntStartedTick = world.Tick;
+            // Мерка отступления — разница, а не абсолют (§108.5).
+            girl.Mind.GroupHuntStartHealth = girl.Health;
+            girl.Mind.GroupHuntStartWorstPart = MobSystem.WorstPartHealth(girl);
             girl.Mind.GoalLock = new GoalLock
             {
                 Goal = GoalType.GroupHunt,

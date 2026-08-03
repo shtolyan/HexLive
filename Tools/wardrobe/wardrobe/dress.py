@@ -28,7 +28,7 @@ from . import config, daz, watchdog
 
 _STRIP_AND_FIT = """
 (function(){
-  var out = { dropped: [], fitted: [], loaded: [] };
+  var out = { dropped: [], fitted: [], loaded: [], posed: [] };
 
   if (!App.getContentMgr().openFile(args.scene, false)) return JSON.stringify({error: "не открылась сцена " + args.scene});
   var fig = Scene.findNodeByLabel(args.figure);
@@ -80,6 +80,55 @@ _STRIP_AND_FIT = """
     return false;
   }
 
+  // ⭐ Обувь на каблуке ПОЗИРУЕТ СТОПУ ФИГУРЫ, и это ломает весь заход.
+  // Great Charm Boots приносят с собой морф «CDw Foot Pose», ERC доворачивает
+  // ей lFoot/rFoot на 55° и пальцы на −65°, а таз не поднимает. В результате
+  // НИЖЕ ПОЛА уезжает не только сапог, а всё, что сидит на стопе: слипоны на
+  // 9.5 см, чулки на 9.3. Замер каблука (heels.heel_drop_cm) после этого врёт
+  // всем вещам заходa, а меши экспортируются в чужой позе.
+  //
+  // Конвейер требует девушку, стоящую ПЛОСКО (см. heels.py). Поэтому позу
+  // стопы снимаем ДО одевания, после каждого файла сверяем и, если вещь её
+  // тронула, — записываем числа (это и есть АВТОРСКАЯ поза каблука, лучше
+  // всякого расчёта) и возвращаем стопу на место, обнулив тот морф, который
+  // её увёл.
+  var FOOT_BONES = ["lFoot", "rFoot", "lToe", "rToe"];
+
+  function footPose() {
+    var pose = {};
+    for (var i = 0; i < FOOT_BONES.length; i++) {
+      var b = fig.findBone(FOOT_BONES[i]);
+      if (b) pose[FOOT_BONES[i]] = b.getXRotControl().getValue();
+    }
+    return pose;
+  }
+
+  function poseDiffers(a, b) {
+    for (var k in a) if (Math.abs(a[k] - b[k]) > 0.5) return true;
+    return false;
+  }
+
+  // Кость доворачивает не она сама, а ERC поверх неё, поэтому ставить ноль в
+  // саму кость бесполезно: контроллер вернёт своё. Гасим ИСТОЧНИК.
+  function unpose() {
+    var zeroed = [];
+    for (var i = 0; i < FOOT_BONES.length; i++) {
+      var b = fig.findBone(FOOT_BONES[i]);
+      if (!b) continue;
+      var c = b.getXRotControl();
+      for (var k = 0; k < c.getNumControllers(); k++) {
+        var p = c.getController(k).getProperty();
+        if (p && p.getValue && p.getValue() != 0) {
+          zeroed.push(p.getLabel());
+          p.setValue(0);
+        }
+      }
+    }
+    return zeroed;
+  }
+
+  var basePose = footPose();
+
   for (var i = 0; i < args.garments.length; i++) {
     Scene.selectAllNodes(false);
     Scene.setPrimarySelection(fig);
@@ -112,6 +161,21 @@ _STRIP_AND_FIT = """
     var names = [];
     for (var k = 0; k < after.length; k++) {
       if (!has(seenWorn, after[k])) names.push(after[k].getName());
+    }
+
+    var posed = footPose();
+    if (poseDiffers(posed, basePose)) {
+      var zeroed = unpose();
+      var left = footPose();
+      out.posed.push({
+        file: args.garments[i],
+        pose: posed,
+        zeroed: zeroed,
+        // Не вернулась — значит позу держит что-то, чего мы не нашли, и весь
+        // экспорт уедет в чужой позе. Молчать об этом нельзя.
+        restored: !poseDiffers(left, basePose),
+        left: left
+      });
     }
 
     out.loaded.push({ file: args.garments[i], ok: ok,
@@ -195,6 +259,14 @@ def dress_one(girl: str, garments: list[Path], out_fbx: Path) -> dict:
     if twice:
         raise daz.DazError(f"{girl}: надето дважды: {', '.join(twice)}")
 
+    # Позу вернуть не удалось — экспортировать нельзя: в чужой позе уедут ВСЕ
+    # вещи заходa, а не только та, что её принесла.
+    stuck = [Path(p["file"]).stem for p in result.get("posed", []) if not p["restored"]]
+    if stuck:
+        raise daz.DazError(
+            f"{girl}: стопа осталась в позе после {', '.join(stuck)} — "
+            "экспорт был бы кривым для всего заходa")
+
     out_fbx.parent.mkdir(parents=True, exist_ok=True)
     exported = json.loads(daz.execute(_EXPORT, {"path": _daz_path(out_fbx)}))
     if "error" in exported:
@@ -211,6 +283,9 @@ def dress_one(girl: str, garments: list[Path], out_fbx: Path) -> dict:
         # Какой файл что надел. Нужно расцветкам: пресеты лежат под именем
         # ФАЙЛА вещи, а метка фигуры вендором с ним не сверяется.
         "loaded": result["loaded"],
+        # Кто позировал стопу и какими числами. Это авторская поза каблука —
+        # её нужно перенести в `heelPose` вещи вместо расчёта по высоте.
+        "posed": result.get("posed", []),
     }
 
 
@@ -250,5 +325,12 @@ def dress_all(garments: list[Path], drop: str, girls: list[str] | None = None) -
     if len(distinct) > 1:
         report["errors"].append(f"имена мешей разошлись между девушками: {keys}")
     report["mesh_keys"] = sorted(next(iter(distinct))) if len(distinct) == 1 else []
+
+    # Сводка по авторским позам стопы: файл -> углы. Одинаковая у всех девушек,
+    # поэтому берётся у первой, а расхождение — само по себе находка.
+    report["foot_poses"] = {
+        Path(p["file"]).stem: p["pose"]
+        for g in report["girls"][:1] for p in g.get("posed", [])
+    }
     report["ok"] = not report["errors"]
     return report

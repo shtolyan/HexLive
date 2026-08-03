@@ -67,6 +67,28 @@ def _save_cutout(colour: Path, opacity: Path, target: Path) -> None:
         merged.save(target, optimize=True)
 
 
+# Что пишет экспортёр, когда цвета у поверхности нет вовсе. Значение молчаливое
+# и встречается пачками: у Great Charm Boots все десять поверхностей приезжают
+# ровно таким. Принять его за авторский цвет — значит покрасить вещь в серое и
+# думать, что так и задумано.
+_EXPORTER_GREY = (0.753, 0.753, 0.753)
+
+
+def _authored_colour(colours: dict, node: str, material: str) -> str | None:
+    """Цвет поверхности без карты — строкой `#RRGGBB`.
+
+    Формат не наш выбор: `NewWearExtractor.ParseColor` кормит его в
+    `ColorUtility.TryParseHtmlString`, а всё, что не разобралось, молча
+    становится белым.
+    """
+    rgb = (colours.get(node) or {}).get(material)
+    if rgb is None:
+        return None
+    if all(abs(c - g) < 0.005 for c, g in zip(rgb, _EXPORTER_GREY)):
+        return None
+    return "#" + "".join(f"{max(0, min(255, round(c * 255))):02X}" for c in rgb)
+
+
 def stage(fbx_path: Path, folders: dict[str, str]) -> dict:
     """Copy the textures every garment in `fbx_path` needs.
 
@@ -75,6 +97,7 @@ def stage(fbx_path: Path, folders: dict[str, str]) -> dict:
     materials need alpha clipping — exactly what the drop manifest wants.
     """
     mapping = fbx.material_textures(Path(fbx_path))
+    colours = fbx.material_colors(Path(fbx_path))
     report: dict = {"garments": {}, "missing": [], "written": []}
 
     for node, folder in folders.items():
@@ -89,7 +112,12 @@ def stage(fbx_path: Path, folders: dict[str, str]) -> dict:
             diffuse = channels.get("DiffuseColor")
             opacity = channels.get("TransparentColor")
             if not diffuse:
-                entry[material] = {"texture": None, "alphaClip": False}
+                # Карты нет — значит цвет задан числом, и его надо перенести,
+                # иначе вещь приедет белой. Костюм-пластырь так и есть: розовый
+                # (1.0, 0.42, 0.64) и ни одной картинки, ни у него, ни в его
+                # пресетах.
+                entry[material] = {"texture": None, "alphaClip": False,
+                                   "color": _authored_colour(colours, node, material)}
                 continue
 
             source = _resolve(diffuse)

@@ -83,6 +83,36 @@ def surfaces(preset: Path) -> dict[str, str]:
     return out
 
 
+def tints(preset: Path) -> dict[str, str]:
+    """Поверхность -> ЦВЕТ, которым пресет красит карту, строкой `#RRGGBB`.
+
+    ⭐ Половина вендоров различает расцветки не картинкой, а оттенком поверх
+    одной и той же. Autumn Jacket: восемнадцать пресетов, во всех
+    `AUTUMN_Texture01.jpg`, и разные они только по `diffuse/value`. X-Fashion
+    Bikini — то же самое, шесть на один `BasicTop_Dif.jpg`.
+
+    Пока читались одни карты, такие наборы молча схлопывались отсевом в одну-две
+    расцветки: по картам они И правда одинаковые. Восемнадцать вещей превращались
+    в две, и заметить это можно было только сверив с планом импорта.
+    """
+    doc = _load(preset)
+    if not doc:
+        return {}
+
+    out: dict[str, str] = {}
+    for entry in doc.get("scene", {}).get("animations", []) or []:
+        url = unquote(str(entry.get("url", "")))
+        if "#materials/" not in url or not url.endswith("diffuse/value"):
+            continue
+        surface = url.split("#materials/", 1)[1].split(":", 1)[0]
+        keys = entry.get("keys") or []
+        rgb = keys[0][1] if keys and len(keys[0]) > 1 else None
+        if isinstance(rgb, (list, tuple)) and len(rgb) >= 3:
+            out[surface] = "#" + "".join(
+                f"{max(0, min(255, round(float(c) * 255))):02X}" for c in rgb[:3])
+    return out
+
+
 def _preset_folders(product: Path) -> list[Path]:
     """Где у ЭТОГО продукта лежат пресеты материалов.
 
@@ -178,10 +208,10 @@ def harvest(product: Path) -> dict[str, list[dict]]:
             if colour.lower().endswith(flavour.lower()):
                 colour = colour[:-len(flavour)].strip(" -_") or "Default"
                 break
-        maps = surfaces(preset)
-        if maps:
+        maps, paint = surfaces(preset), tints(preset)
+        if maps or paint:
             claimed.add(preset)
-            found[owner].append({"name": colour, "surfaces": maps,
+            found[owner].append({"name": colour, "surfaces": maps, "tints": paint,
                                  "preset": preset.name})
 
     # Запасной путь для вендоров, которые не связывают имена вообще: у Street
@@ -193,9 +223,11 @@ def harvest(product: Path) -> dict[str, list[dict]]:
     # ОДНОГО продукта и только среди вещей, которым имя ничего не дало, и берём
     # лишь однозначное совпадение. Ничья — не выбор.
     found["__orphans__"] = [
-        {"name": _colour_of(p.stem), "surfaces": surfaces(p), "preset": p.name}
+        {"name": _colour_of(p.stem), "surfaces": maps, "tints": paint, "preset": p.name}
         for p in presets
-        if p not in claimed and surfaces(p)
+        if p not in claimed
+        for maps, paint in [(surfaces(p), tints(p))]
+        if maps or paint
     ]
 
     return {k: v for k, v in found.items() if v}
@@ -222,8 +254,14 @@ def adopt_orphans(harvested: dict[str, list[dict]],
     ЕДИНСТВЕННОМ подходящем. Ничья — не выбор.
     """
     orphans = harvested.pop("__orphans__", [])
+    # Поверхности, которых нет НИ У ОДНОЙ вещи продукта, из сравнения выкидываем.
+    # Вендор называет в пресете и то, чего в экспорте нет: у юбки Sweet Jane это
+    # `seams` при живых `Seam 1..3`. Одно такое имя ломало полное вхождение, и
+    # все десять расцветок юбки оставались сиротами — а различить ими всё равно
+    # ничего нельзя, раз их не носит никто.
+    known = set().union(*mine.values()) if mine else set()
     for colour in orphans:
-        keys = set(colour["surfaces"])
+        keys = (set(colour["surfaces"]) | set(colour.get("tints") or {})) & known
         fits = [name for name, theirs in mine.items() if keys and keys <= theirs]
         if len(fits) == 1:
             harvested.setdefault(fits[0], []).append(colour)
@@ -302,6 +340,10 @@ def dedupe(colours: list[dict], prototype: dict[str, str] | None = None) -> list
         # на девушке неотличима. Собственные карты сравнивать бессмысленно.
         painted = dict(base)
         painted.update({t["source"]: t["texture"] for t in colour["textures"]})
+        # Оттенок — такая же часть вида, как и карта: у Autumn Jacket все
+        # восемнадцать расцветок стоят на одной картинке и различаются ТОЛЬКО им.
+        painted.update({f"{c['source']}#tint": c["color"]
+                        for c in colour.get("colors") or []})
         key = tuple(sorted(painted.items()))
         if key in seen:
             continue

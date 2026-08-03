@@ -2593,6 +2593,2054 @@ MonoBehaviour:
       - 'Носимый предмет.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'item.clothing_halter_vamp.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Buckled Halter'
+      - 'Топ с пряжками'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_halter_vamp.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leather cut to the ribs, held by buckles and rivets.'
+      - 'Кожа, обрезанная по рёбрам, на пряжках и заклёпках.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_halter_vamp_blk_lea.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Buckled Halter (Blk Lea)'
+      - 'Топ с пряжками (Blk Lea)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_halter_vamp_blk_lea.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leather cut to the ribs, held by buckles and rivets.'
+      - 'Кожа, обрезанная по рёбрам, на пряжках и заклёпках.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_halter_vamp_burgundy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Buckled Halter (Burgundy)'
+      - 'Топ с пряжками (Burgundy)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_halter_vamp_burgundy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leather cut to the ribs, held by buckles and rivets.'
+      - 'Кожа, обрезанная по рёбрам, на пряжках и заклёпках.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_halter_vamp_purple_lace.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Buckled Halter (Purple Lace)'
+      - 'Топ с пряжками (Purple Lace)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_halter_vamp_purple_lace.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leather cut to the ribs, held by buckles and rivets.'
+      - 'Кожа, обрезанная по рёбрам, на пряжках и заклёпках.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_vamp.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Laced Shorts'
+      - 'Шорты со шнуровкой'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_vamp.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Short, laced at the hip. More show than cover.'
+      - 'Короткие, со шнуровкой на бедре. Скорее вид, чем защита.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_vamp_blk_lea.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Laced Shorts (Blk Lea)'
+      - 'Шорты со шнуровкой (Blk Lea)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_vamp_blk_lea.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Short, laced at the hip. More show than cover.'
+      - 'Короткие, со шнуровкой на бедре. Скорее вид, чем защита.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_vamp_blk_lea___lace.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Laced Shorts (Blk Lea + Lace)'
+      - 'Шорты со шнуровкой (Blk Lea + Lace)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_vamp_blk_lea___lace.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Short, laced at the hip. More show than cover.'
+      - 'Короткие, со шнуровкой на бедре. Скорее вид, чем защита.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tank_jane.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Jersey Tank'
+      - 'Трикотажная майка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tank_jane.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thin jersey, trimmed at the hem. Everyday wear.'
+      - 'Тонкий трикотаж с окантовкой по низу. На каждый день.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tank_jane_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Jersey Tank (Black)'
+      - 'Трикотажная майка (Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tank_jane_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thin jersey, trimmed at the hem. Everyday wear.'
+      - 'Тонкий трикотаж с окантовкой по низу. На каждый день.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tank_jane_blues.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Jersey Tank (Blues)'
+      - 'Трикотажная майка (Blues)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tank_jane_blues.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thin jersey, trimmed at the hem. Everyday wear.'
+      - 'Тонкий трикотаж с окантовкой по низу. На каждый день.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tank_jane_lavendar.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Jersey Tank (Lavendar)'
+      - 'Трикотажная майка (Lavendar)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tank_jane_lavendar.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thin jersey, trimmed at the hem. Everyday wear.'
+      - 'Тонкий трикотаж с окантовкой по низу. На каждый день.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tank_jane_reds.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Jersey Tank (Reds)'
+      - 'Трикотажная майка (Reds)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tank_jane_reds.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thin jersey, trimmed at the hem. Everyday wear.'
+      - 'Тонкий трикотаж с окантовкой по низу. На каждый день.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tank_jane_rosey.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Jersey Tank (Rosey)'
+      - 'Трикотажная майка (Rosey)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tank_jane_rosey.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thin jersey, trimmed at the hem. Everyday wear.'
+      - 'Тонкий трикотаж с окантовкой по низу. На каждый день.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_jane.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tiered Skirt'
+      - 'Ярусная юбка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_jane.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Four tiers to the shin, seams between them.'
+      - 'Четыре яруса до голени, между ними швы.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_jane_blacks.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tiered Skirt (Blacks)'
+      - 'Ярусная юбка (Blacks)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_jane_blacks.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Four tiers to the shin, seams between them.'
+      - 'Четыре яруса до голени, между ними швы.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_jane_blues.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tiered Skirt (Blues)'
+      - 'Ярусная юбка (Blues)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_jane_blues.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Four tiers to the shin, seams between them.'
+      - 'Четыре яруса до голени, между ними швы.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_jane_bluest.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tiered Skirt (BluesT)'
+      - 'Ярусная юбка (BluesT)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_jane_bluest.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Four tiers to the shin, seams between them.'
+      - 'Четыре яруса до голени, между ними швы.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_jane_lavendar.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tiered Skirt (Lavendar)'
+      - 'Ярусная юбка (Lavendar)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_jane_lavendar.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Four tiers to the shin, seams between them.'
+      - 'Четыре яруса до голени, между ними швы.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_jane_reds.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tiered Skirt (Reds)'
+      - 'Ярусная юбка (Reds)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_jane_reds.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Four tiers to the shin, seams between them.'
+      - 'Четыре яруса до голени, между ними швы.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_jane_redst.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tiered Skirt (RedsT)'
+      - 'Ярусная юбка (RedsT)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_jane_redst.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Four tiers to the shin, seams between them.'
+      - 'Четыре яруса до голени, между ними швы.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_jane_rosey.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tiered Skirt (Rosey)'
+      - 'Ярусная юбка (Rosey)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_jane_rosey.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Four tiers to the shin, seams between them.'
+      - 'Четыре яруса до голени, между ними швы.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_jane_roseyt.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tiered Skirt (RoseyT)'
+      - 'Ярусная юбка (RoseyT)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_jane_roseyt.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Four tiers to the shin, seams between them.'
+      - 'Четыре яруса до голени, между ними швы.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-High Boots'
+      - 'Ботфорты'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Up to the thigh, on a heel that makes walking a decision.'
+      - 'До бедра, на каблуке, с которым ходьба — уже решение.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_latex_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-High Boots (Latex Blue)'
+      - 'Ботфорты (Latex Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_latex_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Up to the thigh, on a heel that makes walking a decision.'
+      - 'До бедра, на каблуке, с которым ходьба — уже решение.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_latex_grey.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-High Boots (Latex Grey)'
+      - 'Ботфорты (Latex Grey)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_latex_grey.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Up to the thigh, on a heel that makes walking a decision.'
+      - 'До бедра, на каблуке, с которым ходьба — уже решение.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_latex_pink.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-High Boots (Latex Pink)'
+      - 'Ботфорты (Latex Pink)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_latex_pink.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Up to the thigh, on a heel that makes walking a decision.'
+      - 'До бедра, на каблуке, с которым ходьба — уже решение.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_latex_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-High Boots (Latex Red)'
+      - 'Ботфорты (Latex Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_latex_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Up to the thigh, on a heel that makes walking a decision.'
+      - 'До бедра, на каблуке, с которым ходьба — уже решение.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_latex_white.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-High Boots (Latex White)'
+      - 'Ботфорты (Latex White)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_latex_white.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Up to the thigh, on a heel that makes walking a decision.'
+      - 'До бедра, на каблуке, с которым ходьба — уже решение.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_leather_beige.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-High Boots (Leather Beige)'
+      - 'Ботфорты (Leather Beige)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_leather_beige.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Up to the thigh, on a heel that makes walking a decision.'
+      - 'До бедра, на каблуке, с которым ходьба — уже решение.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_leather_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-High Boots (Leather Black)'
+      - 'Ботфорты (Leather Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_leather_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Up to the thigh, on a heel that makes walking a decision.'
+      - 'До бедра, на каблуке, с которым ходьба — уже решение.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_leather_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-High Boots (Leather Blue)'
+      - 'Ботфорты (Leather Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_leather_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Up to the thigh, on a heel that makes walking a decision.'
+      - 'До бедра, на каблуке, с которым ходьба — уже решение.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_leather_brown.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-High Boots (Leather Brown)'
+      - 'Ботфорты (Leather Brown)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_leather_brown.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Up to the thigh, on a heel that makes walking a decision.'
+      - 'До бедра, на каблуке, с которым ходьба — уже решение.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_leather_grey.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-High Boots (Leather Grey)'
+      - 'Ботфорты (Leather Grey)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_leather_grey.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Up to the thigh, on a heel that makes walking a decision.'
+      - 'До бедра, на каблуке, с которым ходьба — уже решение.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_leather_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-High Boots (Leather Red)'
+      - 'Ботфорты (Leather Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_leather_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Up to the thigh, on a heel that makes walking a decision.'
+      - 'До бедра, на каблуке, с которым ходьба — уже решение.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_velvet_beige.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-High Boots (Velvet Beige)'
+      - 'Ботфорты (Velvet Beige)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_velvet_beige.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Up to the thigh, on a heel that makes walking a decision.'
+      - 'До бедра, на каблуке, с которым ходьба — уже решение.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_velvet_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-High Boots (Velvet Black)'
+      - 'Ботфорты (Velvet Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_velvet_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Up to the thigh, on a heel that makes walking a decision.'
+      - 'До бедра, на каблуке, с которым ходьба — уже решение.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_velvet_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-High Boots (Velvet Blue)'
+      - 'Ботфорты (Velvet Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_velvet_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Up to the thigh, on a heel that makes walking a decision.'
+      - 'До бедра, на каблуке, с которым ходьба — уже решение.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_velvet_brown.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-High Boots (Velvet Brown)'
+      - 'Ботфорты (Velvet Brown)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_velvet_brown.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Up to the thigh, on a heel that makes walking a decision.'
+      - 'До бедра, на каблуке, с которым ходьба — уже решение.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_velvet_purple.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-High Boots (Velvet Purple)'
+      - 'Ботфорты (Velvet Purple)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_velvet_purple.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Up to the thigh, on a heel that makes walking a decision.'
+      - 'До бедра, на каблуке, с которым ходьба — уже решение.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_velvet_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-High Boots (Velvet Red)'
+      - 'Ботфорты (Velvet Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_charm_velvet_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Up to the thigh, on a heel that makes walking a decision.'
+      - 'До бедра, на каблуке, с которым ходьба — уже решение.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Autumn Jacket'
+      - 'Осенняя куртка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Zipped jacket over a turtleneck. The warmest thing here.'
+      - 'Куртка на молнии поверх водолазки. Самое тёплое, что тут есть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material01.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Autumn Jacket (Jacket Material01)'
+      - 'Осенняя куртка (Jacket Material01)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material01.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Zipped jacket over a turtleneck. The warmest thing here.'
+      - 'Куртка на молнии поверх водолазки. Самое тёплое, что тут есть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material02.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Autumn Jacket (Jacket Material02)'
+      - 'Осенняя куртка (Jacket Material02)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material02.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Zipped jacket over a turtleneck. The warmest thing here.'
+      - 'Куртка на молнии поверх водолазки. Самое тёплое, что тут есть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material03.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Autumn Jacket (Jacket Material03)'
+      - 'Осенняя куртка (Jacket Material03)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material03.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Zipped jacket over a turtleneck. The warmest thing here.'
+      - 'Куртка на молнии поверх водолазки. Самое тёплое, что тут есть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material04.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Autumn Jacket (Jacket Material04)'
+      - 'Осенняя куртка (Jacket Material04)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material04.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Zipped jacket over a turtleneck. The warmest thing here.'
+      - 'Куртка на молнии поверх водолазки. Самое тёплое, что тут есть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material05.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Autumn Jacket (Jacket Material05)'
+      - 'Осенняя куртка (Jacket Material05)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material05.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Zipped jacket over a turtleneck. The warmest thing here.'
+      - 'Куртка на молнии поверх водолазки. Самое тёплое, что тут есть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material06.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Autumn Jacket (Jacket Material06)'
+      - 'Осенняя куртка (Jacket Material06)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material06.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Zipped jacket over a turtleneck. The warmest thing here.'
+      - 'Куртка на молнии поверх водолазки. Самое тёплое, что тут есть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material07.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Autumn Jacket (Jacket Material07)'
+      - 'Осенняя куртка (Jacket Material07)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material07.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Zipped jacket over a turtleneck. The warmest thing here.'
+      - 'Куртка на молнии поверх водолазки. Самое тёплое, что тут есть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material08.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Autumn Jacket (Jacket Material08)'
+      - 'Осенняя куртка (Jacket Material08)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material08.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Zipped jacket over a turtleneck. The warmest thing here.'
+      - 'Куртка на молнии поверх водолазки. Самое тёплое, что тут есть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material09.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Autumn Jacket (Jacket Material09)'
+      - 'Осенняя куртка (Jacket Material09)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material09.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Zipped jacket over a turtleneck. The warmest thing here.'
+      - 'Куртка на молнии поверх водолазки. Самое тёплое, что тут есть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material10.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Autumn Jacket (Jacket Material10)'
+      - 'Осенняя куртка (Jacket Material10)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material10.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Zipped jacket over a turtleneck. The warmest thing here.'
+      - 'Куртка на молнии поверх водолазки. Самое тёплое, что тут есть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material11.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Autumn Jacket (Jacket Material11)'
+      - 'Осенняя куртка (Jacket Material11)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material11.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Zipped jacket over a turtleneck. The warmest thing here.'
+      - 'Куртка на молнии поверх водолазки. Самое тёплое, что тут есть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material12.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Autumn Jacket (Jacket Material12)'
+      - 'Осенняя куртка (Jacket Material12)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material12.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Zipped jacket over a turtleneck. The warmest thing here.'
+      - 'Куртка на молнии поверх водолазки. Самое тёплое, что тут есть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material13.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Autumn Jacket (Jacket Material13)'
+      - 'Осенняя куртка (Jacket Material13)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material13.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Zipped jacket over a turtleneck. The warmest thing here.'
+      - 'Куртка на молнии поверх водолазки. Самое тёплое, что тут есть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material14.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Autumn Jacket (Jacket Material14)'
+      - 'Осенняя куртка (Jacket Material14)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material14.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Zipped jacket over a turtleneck. The warmest thing here.'
+      - 'Куртка на молнии поверх водолазки. Самое тёплое, что тут есть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material15.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Autumn Jacket (Jacket Material15)'
+      - 'Осенняя куртка (Jacket Material15)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material15.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Zipped jacket over a turtleneck. The warmest thing here.'
+      - 'Куртка на молнии поверх водолазки. Самое тёплое, что тут есть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material16.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Autumn Jacket (Jacket Material16)'
+      - 'Осенняя куртка (Jacket Material16)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material16.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Zipped jacket over a turtleneck. The warmest thing here.'
+      - 'Куртка на молнии поверх водолазки. Самое тёплое, что тут есть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material17.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Autumn Jacket (Jacket Material17)'
+      - 'Осенняя куртка (Jacket Material17)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material17.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Zipped jacket over a turtleneck. The warmest thing here.'
+      - 'Куртка на молнии поверх водолазки. Самое тёплое, что тут есть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material18.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Autumn Jacket (Jacket Material18)'
+      - 'Осенняя куртка (Jacket Material18)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_autumn_jacket_material18.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Zipped jacket over a turtleneck. The warmest thing here.'
+      - 'Куртка на молнии поверх водолазки. Самое тёплое, что тут есть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_suit_bandaid.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strap Bodysuit'
+      - 'Боди из ремешков'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_suit_bandaid.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps and mesh. Covers the idea of the body, not the body.'
+      - 'Ремешки и сетка. Прикрывают мысль о теле, а не тело.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_suit_bandaid_bs_bluemesh.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strap Bodysuit (BS_BlueMesh)'
+      - 'Боди из ремешков (BS_BlueMesh)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_suit_bandaid_bs_bluemesh.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps and mesh. Covers the idea of the body, not the body.'
+      - 'Ремешки и сетка. Прикрывают мысль о теле, а не тело.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_suit_bandaid_bs_blueshine.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strap Bodysuit (BS_BlueShine)'
+      - 'Боди из ремешков (BS_BlueShine)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_suit_bandaid_bs_blueshine.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps and mesh. Covers the idea of the body, not the body.'
+      - 'Ремешки и сетка. Прикрывают мысль о теле, а не тело.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_suit_bandaid_bs_pinkmesh.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strap Bodysuit (BS_PinkMesh)'
+      - 'Боди из ремешков (BS_PinkMesh)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_suit_bandaid_bs_pinkmesh.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps and mesh. Covers the idea of the body, not the body.'
+      - 'Ремешки и сетка. Прикрывают мысль о теле, а не тело.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_suit_bandaid_bs_pinkshine.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strap Bodysuit (BS_PinkShine)'
+      - 'Боди из ремешков (BS_PinkShine)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_suit_bandaid_bs_pinkshine.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps and mesh. Covers the idea of the body, not the body.'
+      - 'Ремешки и сетка. Прикрывают мысль о теле, а не тело.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_suit_bandaid_bs_purplemesh.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strap Bodysuit (BS_PurpleMesh)'
+      - 'Боди из ремешков (BS_PurpleMesh)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_suit_bandaid_bs_purplemesh.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps and mesh. Covers the idea of the body, not the body.'
+      - 'Ремешки и сетка. Прикрывают мысль о теле, а не тело.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_suit_bandaid_bs_purpleshine.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strap Bodysuit (BS_PurpleShine)'
+      - 'Боди из ремешков (BS_PurpleShine)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_suit_bandaid_bs_purpleshine.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps and mesh. Covers the idea of the body, not the body.'
+      - 'Ремешки и сетка. Прикрывают мысль о теле, а не тело.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_slipons_fads.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Slip-Ons'
+      - 'Слипоны'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_slipons_fads.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Flat canvas, elastic at the sides. No laces to break.'
+      - 'Плоская парусина с резинками по бокам. Ломаться нечему.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_slipons_fads_checks.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Slip-Ons (Checks)'
+      - 'Слипоны (Checks)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_slipons_fads_checks.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Flat canvas, elastic at the sides. No laces to break.'
+      - 'Плоская парусина с резинками по бокам. Ломаться нечему.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_slipons_fads_graffiti.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Slip-Ons (Graffiti)'
+      - 'Слипоны (Graffiti)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_slipons_fads_graffiti.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Flat canvas, elastic at the sides. No laces to break.'
+      - 'Плоская парусина с резинками по бокам. Ломаться нечему.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_slipons_fads_ladybugs.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Slip-Ons (Ladybugs)'
+      - 'Слипоны (Ladybugs)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_slipons_fads_ladybugs.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Flat canvas, elastic at the sides. No laces to break.'
+      - 'Плоская парусина с резинками по бокам. Ломаться нечему.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_slipons_fads_navy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Slip-Ons (Navy)'
+      - 'Слипоны (Navy)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_slipons_fads_navy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Flat canvas, elastic at the sides. No laces to break.'
+      - 'Плоская парусина с резинками по бокам. Ломаться нечему.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_slipons_fads_pink.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Slip-Ons (Pink)'
+      - 'Слипоны (Pink)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_slipons_fads_pink.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Flat canvas, elastic at the sides. No laces to break.'
+      - 'Плоская парусина с резинками по бокам. Ломаться нечему.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_slipons_fads_plaid.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Slip-Ons (Plaid)'
+      - 'Слипоны (Plaid)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_slipons_fads_plaid.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Flat canvas, elastic at the sides. No laces to break.'
+      - 'Плоская парусина с резинками по бокам. Ломаться нечему.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_slipons_fads_planets.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Slip-Ons (Planets)'
+      - 'Слипоны (Planets)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_slipons_fads_planets.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Flat canvas, elastic at the sides. No laces to break.'
+      - 'Плоская парусина с резинками по бокам. Ломаться нечему.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_slipons_fads_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Slip-Ons (Red)'
+      - 'Слипоны (Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_slipons_fads_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Flat canvas, elastic at the sides. No laces to break.'
+      - 'Плоская парусина с резинками по бокам. Ломаться нечему.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_slipons_fads_skulls.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Slip-Ons (Skulls)'
+      - 'Слипоны (Skulls)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_slipons_fads_skulls.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Flat canvas, elastic at the sides. No laces to break.'
+      - 'Плоская парусина с резинками по бокам. Ломаться нечему.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_slipons_fads_white.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Slip-Ons (White)'
+      - 'Слипоны (White)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_slipons_fads_white.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Flat canvas, elastic at the sides. No laces to break.'
+      - 'Плоская парусина с резинками по бокам. Ломаться нечему.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_top.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bikini Top'
+      - 'Верх бикини'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_top.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Two triangles and a knot.'
+      - 'Два треугольника и узел.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_top_mat01.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bikini Top (Mat01)'
+      - 'Верх бикини (Mat01)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_top_mat01.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Two triangles and a knot.'
+      - 'Два треугольника и узел.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_top_mat02.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bikini Top (Mat02)'
+      - 'Верх бикини (Mat02)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_top_mat02.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Two triangles and a knot.'
+      - 'Два треугольника и узел.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_top_mat03.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bikini Top (Mat03)'
+      - 'Верх бикини (Mat03)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_top_mat03.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Two triangles and a knot.'
+      - 'Два треугольника и узел.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_top_mat04.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bikini Top (Mat04)'
+      - 'Верх бикини (Mat04)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_top_mat04.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Two triangles and a knot.'
+      - 'Два треугольника и узел.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_top_mat05.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bikini Top (Mat05)'
+      - 'Верх бикини (Mat05)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_top_mat05.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Two triangles and a knot.'
+      - 'Два треугольника и узел.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_top_mat06.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bikini Top (Mat06)'
+      - 'Верх бикини (Mat06)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_top_mat06.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Two triangles and a knot.'
+      - 'Два треугольника и узел.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_briefs.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bikini Briefs'
+      - 'Низ бикини'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_briefs.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'High on the hip, tied at the sides.'
+      - 'Высоко на бедре, завязки по бокам.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_briefs_mat01.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bikini Briefs (Mat01)'
+      - 'Низ бикини (Mat01)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_briefs_mat01.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'High on the hip, tied at the sides.'
+      - 'Высоко на бедре, завязки по бокам.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_briefs_mat02.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bikini Briefs (Mat02)'
+      - 'Низ бикини (Mat02)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_briefs_mat02.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'High on the hip, tied at the sides.'
+      - 'Высоко на бедре, завязки по бокам.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_briefs_mat03.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bikini Briefs (Mat03)'
+      - 'Низ бикини (Mat03)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_briefs_mat03.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'High on the hip, tied at the sides.'
+      - 'Высоко на бедре, завязки по бокам.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_briefs_mat04.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bikini Briefs (Mat04)'
+      - 'Низ бикини (Mat04)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_briefs_mat04.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'High on the hip, tied at the sides.'
+      - 'Высоко на бедре, завязки по бокам.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_briefs_mat05.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bikini Briefs (Mat05)'
+      - 'Низ бикини (Mat05)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_briefs_mat05.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'High on the hip, tied at the sides.'
+      - 'Высоко на бедре, завязки по бокам.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_briefs_mat06.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bikini Briefs (Mat06)'
+      - 'Низ бикини (Mat06)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bikini_briefs_mat06.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'High on the hip, tied at the sides.'
+      - 'Высоко на бедре, завязки по бокам.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_strappy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Bra'
+      - 'Лиф на ремешках'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_strappy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Rings and straps, more architecture than cloth.'
+      - 'Кольца и ремешки — больше конструкции, чем ткани.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_strappy_mat01.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Bra (Mat01)'
+      - 'Лиф на ремешках (Mat01)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_strappy_mat01.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Rings and straps, more architecture than cloth.'
+      - 'Кольца и ремешки — больше конструкции, чем ткани.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_strappy_mat02.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Bra (Mat02)'
+      - 'Лиф на ремешках (Mat02)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_strappy_mat02.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Rings and straps, more architecture than cloth.'
+      - 'Кольца и ремешки — больше конструкции, чем ткани.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_strappy_mat03.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Bra (Mat03)'
+      - 'Лиф на ремешках (Mat03)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_strappy_mat03.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Rings and straps, more architecture than cloth.'
+      - 'Кольца и ремешки — больше конструкции, чем ткани.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_strappy_mat04.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Bra (Mat04)'
+      - 'Лиф на ремешках (Mat04)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_strappy_mat04.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Rings and straps, more architecture than cloth.'
+      - 'Кольца и ремешки — больше конструкции, чем ткани.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_strappy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Briefs'
+      - 'Трусики на ремешках'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_strappy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The bra''s other half.'
+      - 'Вторая половина того же комплекта.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_strappy_mat01.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Briefs (Mat01)'
+      - 'Трусики на ремешках (Mat01)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_strappy_mat01.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The bra''s other half.'
+      - 'Вторая половина того же комплекта.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_strappy_mat02.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Briefs (Mat02)'
+      - 'Трусики на ремешках (Mat02)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_strappy_mat02.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The bra''s other half.'
+      - 'Вторая половина того же комплекта.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_strappy_mat03.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Briefs (Mat03)'
+      - 'Трусики на ремешках (Mat03)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_strappy_mat03.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The bra''s other half.'
+      - 'Вторая половина того же комплекта.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_strappy_mat04.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Briefs (Mat04)'
+      - 'Трусики на ремешках (Mat04)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_strappy_mat04.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The bra''s other half.'
+      - 'Вторая половина того же комплекта.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Patterned Stockings'
+      - 'Узорчатые чулки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-high, printed. Warmth is not the point.'
+      - 'До бедра, с рисунком. Тепло тут ни при чём.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_01.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Patterned Stockings (01)'
+      - 'Узорчатые чулки (01)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_01.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-high, printed. Warmth is not the point.'
+      - 'До бедра, с рисунком. Тепло тут ни при чём.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_02.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Patterned Stockings (02)'
+      - 'Узорчатые чулки (02)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_02.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-high, printed. Warmth is not the point.'
+      - 'До бедра, с рисунком. Тепло тут ни при чём.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_03.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Patterned Stockings (03)'
+      - 'Узорчатые чулки (03)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_03.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-high, printed. Warmth is not the point.'
+      - 'До бедра, с рисунком. Тепло тут ни при чём.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_04.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Patterned Stockings (04)'
+      - 'Узорчатые чулки (04)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_04.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-high, printed. Warmth is not the point.'
+      - 'До бедра, с рисунком. Тепло тут ни при чём.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_05.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Patterned Stockings (05)'
+      - 'Узорчатые чулки (05)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_05.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-high, printed. Warmth is not the point.'
+      - 'До бедра, с рисунком. Тепло тут ни при чём.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_06.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Patterned Stockings (06)'
+      - 'Узорчатые чулки (06)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_06.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-high, printed. Warmth is not the point.'
+      - 'До бедра, с рисунком. Тепло тут ни при чём.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_07.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Patterned Stockings (07)'
+      - 'Узорчатые чулки (07)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_07.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-high, printed. Warmth is not the point.'
+      - 'До бедра, с рисунком. Тепло тут ни при чём.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_08.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Patterned Stockings (08)'
+      - 'Узорчатые чулки (08)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_08.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-high, printed. Warmth is not the point.'
+      - 'До бедра, с рисунком. Тепло тут ни при чём.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_09.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Patterned Stockings (09)'
+      - 'Узорчатые чулки (09)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_09.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-high, printed. Warmth is not the point.'
+      - 'До бедра, с рисунком. Тепло тут ни при чём.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_10.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Patterned Stockings (10)'
+      - 'Узорчатые чулки (10)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_10.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-high, printed. Warmth is not the point.'
+      - 'До бедра, с рисунком. Тепло тут ни при чём.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_11.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Patterned Stockings (11)'
+      - 'Узорчатые чулки (11)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_11.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-high, printed. Warmth is not the point.'
+      - 'До бедра, с рисунком. Тепло тут ни при чём.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_13.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Patterned Stockings (13)'
+      - 'Узорчатые чулки (13)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_13.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-high, printed. Warmth is not the point.'
+      - 'До бедра, с рисунком. Тепло тут ни при чём.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_14.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Patterned Stockings (14)'
+      - 'Узорчатые чулки (14)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_14.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-high, printed. Warmth is not the point.'
+      - 'До бедра, с рисунком. Тепло тут ни при чём.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_15.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Patterned Stockings (15)'
+      - 'Узорчатые чулки (15)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_15.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-high, printed. Warmth is not the point.'
+      - 'До бедра, с рисунком. Тепло тут ни при чём.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_16.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Patterned Stockings (16)'
+      - 'Узорчатые чулки (16)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_16.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-high, printed. Warmth is not the point.'
+      - 'До бедра, с рисунком. Тепло тут ни при чём.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_17.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Patterned Stockings (17)'
+      - 'Узорчатые чулки (17)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_17.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-high, printed. Warmth is not the point.'
+      - 'До бедра, с рисунком. Тепло тут ни при чём.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_18.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Patterned Stockings (18)'
+      - 'Узорчатые чулки (18)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_spooky_18.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh-high, printed. Warmth is not the point.'
+      - 'До бедра, с рисунком. Тепло тут ни при чём.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_plain.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain Panties'
+      - 'Простые трусики'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_plain.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain cotton. Nothing to say about them.'
+      - 'Простой хлопок. Сказать о них нечего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_plain_mat01.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain Panties (Mat01)'
+      - 'Простые трусики (Mat01)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_plain_mat01.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain cotton. Nothing to say about them.'
+      - 'Простой хлопок. Сказать о них нечего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_plain_mat02.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain Panties (Mat02)'
+      - 'Простые трусики (Mat02)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_plain_mat02.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain cotton. Nothing to say about them.'
+      - 'Простой хлопок. Сказать о них нечего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_plain_mat03.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain Panties (Mat03)'
+      - 'Простые трусики (Mat03)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_plain_mat03.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain cotton. Nothing to say about them.'
+      - 'Простой хлопок. Сказать о них нечего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_plain_mat04.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain Panties (Mat04)'
+      - 'Простые трусики (Mat04)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_plain_mat04.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain cotton. Nothing to say about them.'
+      - 'Простой хлопок. Сказать о них нечего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_plain_shima01.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain Panties (Shima01)'
+      - 'Простые трусики (Shima01)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_plain_shima01.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain cotton. Nothing to say about them.'
+      - 'Простой хлопок. Сказать о них нечего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_plain_shima02.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain Panties (Shima02)'
+      - 'Простые трусики (Shima02)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_plain_shima02.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain cotton. Nothing to say about them.'
+      - 'Простой хлопок. Сказать о них нечего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_plain_shima03.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain Panties (Shima03)'
+      - 'Простые трусики (Shima03)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_plain_shima03.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain cotton. Nothing to say about them.'
+      - 'Простой хлопок. Сказать о них нечего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_plain_shima04.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain Panties (Shima04)'
+      - 'Простые трусики (Shima04)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_plain_shima04.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain cotton. Nothing to say about them.'
+      - 'Простой хлопок. Сказать о них нечего.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'item.clothing_tshirt_summer_i13sw_tshirt_02.name'
       TermType: 0
       Description: 

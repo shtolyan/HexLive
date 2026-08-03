@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_slipons_fads_ladybugs
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.slipons_fads_ladybugs
+  prototypeId: clothing.slipons_fads
+  displayName: Slip-Ons (Ladybugs)
+  variantMaterials:
+  - {fileID: 2100000, guid: 87948b5a47d3f334b81d8b4cb6535aad, type: 2}
+  - {fileID: 2100000, guid: c546e706945534c44a64f4668b956156, type: 2}
+  - {fileID: 2100000, guid: a391d49622490604aa3b1089dda3d2fe, type: 2}
+  - {fileID: 2100000, guid: 8ebc19d60db87134bba8e6c0ea909fc1, type: 2}
+  - {fileID: 2100000, guid: 7eca80a78072e2c4fa173ba477e9b0e3, type: 2}
+  - {fileID: 2100000, guid: 8d8d12be76162f34ebaa93f6a935e56a, type: 2}
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.05
+  armor: 0.04
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

@@ -121,6 +121,42 @@ def _rotations(doc: dict) -> dict[str, float]:
     return out
 
 
+def from_dress_report(report: dict) -> dict[str, dict]:
+    """Ключ меша -> авторская поза, взятая с самой примерки.
+
+    Лучший источник из всех, и достаётся даром. Часть наборов задаёт позу не
+    файлом `*FootPose*.duf` с поворотами костей, а СВОИМ МОРФОМ на фигуре:
+    Great Charm Boots приносят «CDw Foot Pose», и ERC доворачивает стопу на 55°,
+    а пальцы на −65°. В пресете продукта при этом лежит только `value/value = 1`
+    — читать оттуда нечего, и `from_pose_preset` возвращает None.
+
+    Поэтому этап одевания снимает позу до и после каждого файла (`dress.py`):
+    что вещь навязала фигуре — то и есть её авторская поза. Заодно она там же
+    снимается обратно, иначе в чужой позе уедет ВЕСЬ заход.
+    """
+    poses: dict[str, dict] = {}
+    for girl in report.get("girls") or []:
+        by_file = {entry.get("file"): entry.get("names") or []
+                   for entry in girl.get("loaded") or []}
+        for posed in girl.get("posed") or []:
+            pose = posed.get("pose") or {}
+            foot = pose.get("lFoot", pose.get("rFoot", 0.0))
+            if abs(foot) <= 1.0:
+                continue
+            toe = pose.get("lToe", pose.get("rToe", -foot))
+            answer = {
+                "foot": round(float(foot), 2),
+                "toe": round(float(toe), 2),
+                "lift": round(ANKLE_TO_BALL * math.sin(math.radians(abs(foot))), 4),
+                "axis": [1.0, 0.0, 0.0],
+                "_source": f"поза, наложенная самой вещью при примерке: "
+                           f"{Path(str(posed.get('file'))).stem}",
+            }
+            for name in by_file.get(posed.get("file"), []):
+                poses[name] = answer
+    return poses
+
+
 def from_pose_preset(product_root: Path) -> dict | None:
     """The authored pose, if this product ships one.
 

@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_slipons_fads_planets
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.slipons_fads_planets
+  prototypeId: clothing.slipons_fads
+  displayName: Slip-Ons (Planets)
+  variantMaterials:
+  - {fileID: 2100000, guid: 33e3a30693afda640a9e2e3b3da7c718, type: 2}
+  - {fileID: 2100000, guid: afcd6b77fc95f964a94551a72b8a02f9, type: 2}
+  - {fileID: 2100000, guid: 0ffadd565e237c3489f1d4d2dc6b3f17, type: 2}
+  - {fileID: 2100000, guid: 081b2e9a9f12814439033922bb261840, type: 2}
+  - {fileID: 2100000, guid: 0dd85401f4615544496dc7b906a2a8da, type: 2}
+  - {fileID: 2100000, guid: ea951c8e6544a39429408b68d66f8553, type: 2}
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.05
+  armor: 0.04
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

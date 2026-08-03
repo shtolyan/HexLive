@@ -134,6 +134,9 @@ def propose(fbx_path: Path, drop: str, texture_report: dict,
             {
                 "source": material,
                 "texture": spec["texture"],
+                # Только у поверхностей без карты: экспортёр кладёт туда
+                # дефолтный серый, и им можно зря притемнить текстуру (§8).
+                **({"color": spec["color"]} if spec.get("color") else {}),
                 # Matte. Measured, not guessed: the same boot mesh under the same
                 # light renders (53,56,64) — bluish grey, no leather left — at
                 # 0.3, and (27,21,20) brown at 0. URP mirrors the skybox in the

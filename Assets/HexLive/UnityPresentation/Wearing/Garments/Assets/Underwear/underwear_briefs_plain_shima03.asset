@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: underwear_briefs_plain_shima03
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: underwear.briefs_plain_shima03
+  prototypeId: underwear.briefs_plain
+  displayName: Plain Panties (Shima03)
+  variantMaterials:
+  - {fileID: 2100000, guid: d023423f4468de3468e8735f6e827205, type: 2}
+  - {fileID: 2100000, guid: fc2b47144d92ae543a1248e4b992c87a, type: 2}
+  - {fileID: 2100000, guid: d942de71f73ec83408f803240c5c2d9d, type: 2}
+  - {fileID: 2100000, guid: fa59827c9d60790498db4b5c6db127dc, type: 2}
+  - {fileID: 2100000, guid: e4e9ecb958603724cb1a6c64d9b56961, type: 2}
+  layer: 0
+  covers: 02000000
+  warmth: 0.01
+  armor: 0
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

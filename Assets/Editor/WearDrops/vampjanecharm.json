@@ -1,0 +1,6121 @@
+{
+  "drop": "vampjanecharm",
+  "sources": [
+    {
+      "fbx": "Assets/Temp/jolly vampjanecharm.fbx",
+      "actor": "Jolly"
+    },
+    {
+      "fbx": "Assets/Temp/jana vampjanecharm.fbx",
+      "actor": "Jana"
+    },
+    {
+      "fbx": "Assets/Temp/marta vampjanecharm.fbx",
+      "actor": "Marta"
+    },
+    {
+      "fbx": "Assets/Temp/molly vampjanecharm.fbx",
+      "actor": "Molly"
+    }
+  ],
+  "garments": [
+    {
+      "sourceKey": "CruX Halter_12946",
+      "folder": "VampHalter",
+      "name": "VampHalter",
+      "simId": "clothing.halter_vamp",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "Belly"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "halter",
+          "texture": "CruX Vamp Halter.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "buckles",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false,
+          "color": "#88837B"
+        },
+        {
+          "source": "rivets",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false,
+          "color": "#88837B"
+        },
+        {
+          "source": "eyelets",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false,
+          "color": "#88837B"
+        }
+      ],
+      "_measured": {
+        "verts": 12946,
+        "polys": 12242,
+        "bbox": [
+          -16.0,
+          16.0,
+          99.6,
+          156.4,
+          -11.8,
+          13.7
+        ],
+        "zones": {
+          "Belly": 0.751,
+          "Chest": 0.183,
+          "Pelvis": 0.034,
+          "Neck": 0.032
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Buckled Halter",
+        "nameRu": "Топ с пряжками",
+        "descEn": "Leather cut to the ribs, held by buckles and rivets.",
+        "descRu": "Кожа, обрезанная по рёбрам, на пряжках и заклёпках.",
+        "warmth": 0.06,
+        "armor": 0.05,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Blk Lea",
+          "from": "CruX Vamp Halter",
+          "textures": [
+            {
+              "source": "halter",
+              "texture": "CruX Vamp Halter.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "buckles",
+              "color": "#88837B"
+            },
+            {
+              "source": "eyelets",
+              "color": "#88837B"
+            },
+            {
+              "source": "halter",
+              "color": "#959595"
+            },
+            {
+              "source": "rivets",
+              "color": "#88837B"
+            }
+          ]
+        },
+        {
+          "name": "Burgundy",
+          "from": "CruX Vamp Halter",
+          "textures": [
+            {
+              "source": "halter",
+              "texture": "CruX Vamp Halter3.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "buckles",
+              "color": "#88837B"
+            },
+            {
+              "source": "eyelets",
+              "color": "#88837B"
+            },
+            {
+              "source": "halter",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "rivets",
+              "color": "#88837B"
+            }
+          ]
+        },
+        {
+          "name": "Purple Lace",
+          "from": "CruX Vamp Halter",
+          "textures": [
+            {
+              "source": "halter",
+              "texture": "CruX Vamp Halter2.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "buckles",
+              "color": "#88837B"
+            },
+            {
+              "source": "eyelets",
+              "color": "#88837B"
+            },
+            {
+              "source": "halter",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "rivets",
+              "color": "#88837B"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "CruX Vamp Shorts_5836",
+      "folder": "VampShorts",
+      "name": "VampShorts",
+      "simId": "clothing.shorts_vamp",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "shorts",
+          "texture": "CruX Vamp Shorts.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "button",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false,
+          "color": "#88837B"
+        }
+      ],
+      "_measured": {
+        "verts": 5836,
+        "polys": 5699,
+        "bbox": [
+          -18.3,
+          18.2,
+          86.7,
+          107.9,
+          -12.7,
+          12.1
+        ],
+        "zones": {
+          "Pelvis": 0.729,
+          "Belly": 0.271
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Laced Shorts",
+        "nameRu": "Шорты со шнуровкой",
+        "descEn": "Short, laced at the hip. More show than cover.",
+        "descRu": "Короткие, со шнуровкой на бедре. Скорее вид, чем защита.",
+        "warmth": 0.05,
+        "armor": 0.03,
+        "thermalDelta": 0.0,
+        "capacity": 1,
+        "covers": [
+          "Pelvis"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Blk Lea",
+          "from": "CruX Vamp Shorts",
+          "textures": [
+            {
+              "source": "shorts",
+              "texture": "CruX Vamp Shorts.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "button",
+              "color": "#88837B"
+            },
+            {
+              "source": "shorts",
+              "color": "#959595"
+            }
+          ]
+        },
+        {
+          "name": "Blk Lea + Lace",
+          "from": "CruX Vamp Shorts",
+          "textures": [
+            {
+              "source": "shorts",
+              "texture": "CruX Vamp Shorts2.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "button",
+              "color": "#88837B"
+            },
+            {
+              "source": "shorts",
+              "color": "#959595"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "tank_4360",
+      "folder": "JaneTank",
+      "name": "JaneTank",
+      "simId": "clothing.tank_jane",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "Belly"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "tank",
+          "texture": "SJTank4.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "bottom edge",
+          "texture": "SJTank4_SJTankT.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "upper trim",
+          "texture": "SJTank4.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 4360,
+        "polys": 4218,
+        "bbox": [
+          -15.1,
+          15.1,
+          112.4,
+          153.7,
+          -12.7,
+          14.1
+        ],
+        "zones": {
+          "Chest": 0.839,
+          "Belly": 0.119,
+          "Neck": 0.042
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Jersey Tank",
+        "nameRu": "Трикотажная майка",
+        "descEn": "Thin jersey, trimmed at the hem. Everyday wear.",
+        "descRu": "Тонкий трикотаж с окантовкой по низу. На каждый день.",
+        "warmth": 0.05,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Black",
+          "from": "Sweet Jane Tank",
+          "textures": [
+            {
+              "source": "bottom edge",
+              "texture": "SJTank5.jpg"
+            },
+            {
+              "source": "tank",
+              "texture": "SJTank5.jpg"
+            },
+            {
+              "source": "upper trim",
+              "texture": "SJTank5.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "bottom edge",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "tank",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "upper trim",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "Blues",
+          "from": "Sweet Jane Tank",
+          "textures": [
+            {
+              "source": "bottom edge",
+              "texture": "SJTank2.jpg"
+            },
+            {
+              "source": "tank",
+              "texture": "SJTank2.jpg"
+            },
+            {
+              "source": "upper trim",
+              "texture": "SJTank2.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "bottom edge",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "tank",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "upper trim",
+              "color": "#C0C0C0"
+            }
+          ]
+        },
+        {
+          "name": "Lavendar",
+          "from": "Sweet Jane Tank",
+          "textures": [
+            {
+              "source": "bottom edge",
+              "texture": "SJTank4.jpg"
+            },
+            {
+              "source": "tank",
+              "texture": "SJTank4.jpg"
+            },
+            {
+              "source": "upper trim",
+              "texture": "SJTank4.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "bottom edge",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "tank",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "upper trim",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "Reds",
+          "from": "Sweet Jane Tank",
+          "textures": [
+            {
+              "source": "bottom edge",
+              "texture": "SJTank3.jpg"
+            },
+            {
+              "source": "tank",
+              "texture": "SJTank3.jpg"
+            },
+            {
+              "source": "upper trim",
+              "texture": "SJTank3.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "bottom edge",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "tank",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "upper trim",
+              "color": "#C0C0C0"
+            }
+          ]
+        },
+        {
+          "name": "Rosey",
+          "from": "Sweet Jane Tank",
+          "textures": [
+            {
+              "source": "bottom edge",
+              "texture": "SJTank1.jpg"
+            },
+            {
+              "source": "tank",
+              "texture": "SJTank1.jpg"
+            },
+            {
+              "source": "upper trim",
+              "texture": "SJTank1.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "bottom edge",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "tank",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "upper trim",
+              "color": "#FFFFFF"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "skirt_28126",
+      "folder": "JaneSkirt",
+      "name": "JaneSkirt",
+      "simId": "clothing.skirt_jane",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis",
+        "ThighR",
+        "ThighL",
+        "ShinR",
+        "ShinL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "waistband",
+          "texture": "SJSkirt4.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Tier 4",
+          "texture": "SJSkirt4_SJSkirt_T1.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "Tier 3",
+          "texture": "SJSkirt4.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Tier 2",
+          "texture": "SJSkirt4.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Tier 1",
+          "texture": "SJSkirt4.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Seam 3",
+          "texture": "SJSkirt4.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Seam 2",
+          "texture": "SJSkirt4.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Seam 1",
+          "texture": "SJSkirt4.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 28126,
+        "polys": 27932,
+        "bbox": [
+          -37.9,
+          38.4,
+          6.9,
+          103.6,
+          -33.3,
+          28.2
+        ],
+        "zones": {
+          "Shin": 0.497,
+          "Thigh": 0.333,
+          "Pelvis": 0.131,
+          "Foot": 0.038
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Tiered Skirt",
+        "nameRu": "Ярусная юбка",
+        "descEn": "Four tiers to the shin, seams between them.",
+        "descRu": "Четыре яруса до голени, между ними швы.",
+        "warmth": 0.08,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Blacks",
+          "from": "Sweet Jane Skirt",
+          "textures": [
+            {
+              "source": "Seam 1",
+              "texture": "SJSkirt5.jpg"
+            },
+            {
+              "source": "Seam 2",
+              "texture": "SJSkirt5.jpg"
+            },
+            {
+              "source": "Seam 3",
+              "texture": "SJSkirt5.jpg"
+            },
+            {
+              "source": "Tier 1",
+              "texture": "SJSkirt5.jpg"
+            },
+            {
+              "source": "Tier 2",
+              "texture": "SJSkirt5.jpg"
+            },
+            {
+              "source": "Tier 3",
+              "texture": "SJSkirt5.jpg"
+            },
+            {
+              "source": "Tier 4",
+              "texture": "SJSkirt5.jpg"
+            },
+            {
+              "source": "waistband",
+              "texture": "SJSkirt5.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Seam 1",
+              "color": "#E8E8E8"
+            },
+            {
+              "source": "Seam 2",
+              "color": "#E8E8E8"
+            },
+            {
+              "source": "Seam 3",
+              "color": "#E8E8E8"
+            },
+            {
+              "source": "Tier 1",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Tier 2",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Tier 3",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Tier 4",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "waistband",
+              "color": "#C0C0C0"
+            }
+          ]
+        },
+        {
+          "name": "Blues",
+          "from": "Sweet Jane Skirt",
+          "textures": [
+            {
+              "source": "Seam 1",
+              "texture": "SJSkirt2.jpg"
+            },
+            {
+              "source": "Seam 2",
+              "texture": "SJSkirt2.jpg"
+            },
+            {
+              "source": "Seam 3",
+              "texture": "SJSkirt2.jpg"
+            },
+            {
+              "source": "Tier 1",
+              "texture": "SJSkirt2.jpg"
+            },
+            {
+              "source": "Tier 2",
+              "texture": "SJSkirt2.jpg"
+            },
+            {
+              "source": "Tier 3",
+              "texture": "SJSkirt2.jpg"
+            },
+            {
+              "source": "Tier 4",
+              "texture": "SJSkirt2.jpg"
+            },
+            {
+              "source": "waistband",
+              "texture": "SJSkirt2.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Seam 1",
+              "color": "#E8E8E8"
+            },
+            {
+              "source": "Seam 2",
+              "color": "#E8E8E8"
+            },
+            {
+              "source": "Seam 3",
+              "color": "#E8E8E8"
+            },
+            {
+              "source": "Tier 1",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Tier 2",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Tier 3",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Tier 4",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "waistband",
+              "color": "#C0C0C0"
+            }
+          ]
+        },
+        {
+          "name": "BluesT",
+          "from": "Sweet Jane Skirt",
+          "textures": [
+            {
+              "source": "Seam 1",
+              "texture": "SJSkirt2.jpg"
+            },
+            {
+              "source": "Seam 2",
+              "texture": "SJSkirt2.jpg"
+            },
+            {
+              "source": "Seam 3",
+              "texture": "SJSkirt2.jpg"
+            },
+            {
+              "source": "Tier 1",
+              "texture": "SJSkirt2.jpg"
+            },
+            {
+              "source": "Tier 2",
+              "texture": "SJSkirt2.jpg"
+            },
+            {
+              "source": "Tier 3",
+              "texture": "SJSkirt2.jpg"
+            },
+            {
+              "source": "Tier 4",
+              "texture": "SJSkirt2a.jpg"
+            },
+            {
+              "source": "waistband",
+              "texture": "SJSkirt2.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Seam 1",
+              "color": "#B8D7FF"
+            },
+            {
+              "source": "Seam 2",
+              "color": "#008080"
+            },
+            {
+              "source": "Seam 3",
+              "color": "#B3E1E8"
+            },
+            {
+              "source": "Tier 1",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Tier 2",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Tier 3",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Tier 4",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "waistband",
+              "color": "#C0C0C0"
+            }
+          ]
+        },
+        {
+          "name": "Lavendar",
+          "from": "Sweet Jane Skirt",
+          "textures": [
+            {
+              "source": "Seam 1",
+              "texture": "SJSkirt4.jpg"
+            },
+            {
+              "source": "Seam 2",
+              "texture": "SJSkirt4.jpg"
+            },
+            {
+              "source": "Seam 3",
+              "texture": "SJSkirt4.jpg"
+            },
+            {
+              "source": "Tier 1",
+              "texture": "SJSkirt4.jpg"
+            },
+            {
+              "source": "Tier 2",
+              "texture": "SJSkirt4.jpg"
+            },
+            {
+              "source": "Tier 3",
+              "texture": "SJSkirt4.jpg"
+            },
+            {
+              "source": "Tier 4",
+              "texture": "SJSkirt4.jpg"
+            },
+            {
+              "source": "waistband",
+              "texture": "SJSkirt4.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Seam 1",
+              "color": "#E8E8E8"
+            },
+            {
+              "source": "Seam 2",
+              "color": "#E8E8E8"
+            },
+            {
+              "source": "Seam 3",
+              "color": "#E8E8E8"
+            },
+            {
+              "source": "Tier 1",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Tier 2",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Tier 3",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Tier 4",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "waistband",
+              "color": "#C0C0C0"
+            }
+          ]
+        },
+        {
+          "name": "Reds",
+          "from": "Sweet Jane Skirt",
+          "textures": [
+            {
+              "source": "Seam 1",
+              "texture": "SJSkirt3.jpg"
+            },
+            {
+              "source": "Seam 2",
+              "texture": "SJSkirt3.jpg"
+            },
+            {
+              "source": "Seam 3",
+              "texture": "SJSkirt3.jpg"
+            },
+            {
+              "source": "Tier 1",
+              "texture": "SJSkirt3.jpg"
+            },
+            {
+              "source": "Tier 2",
+              "texture": "SJSkirt3.jpg"
+            },
+            {
+              "source": "Tier 3",
+              "texture": "SJSkirt3.jpg"
+            },
+            {
+              "source": "Tier 4",
+              "texture": "SJSkirt3.jpg"
+            },
+            {
+              "source": "waistband",
+              "texture": "SJSkirt3.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Seam 1",
+              "color": "#E8E8E8"
+            },
+            {
+              "source": "Seam 2",
+              "color": "#E8E8E8"
+            },
+            {
+              "source": "Seam 3",
+              "color": "#E8E8E8"
+            },
+            {
+              "source": "Tier 1",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Tier 2",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Tier 3",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Tier 4",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "waistband",
+              "color": "#C0C0C0"
+            }
+          ]
+        },
+        {
+          "name": "RedsT",
+          "from": "Sweet Jane Skirt",
+          "textures": [
+            {
+              "source": "Seam 1",
+              "texture": "SJSkirt3.jpg"
+            },
+            {
+              "source": "Seam 2",
+              "texture": "SJSkirt3.jpg"
+            },
+            {
+              "source": "Seam 3",
+              "texture": "SJSkirt3.jpg"
+            },
+            {
+              "source": "Tier 1",
+              "texture": "SJSkirt3.jpg"
+            },
+            {
+              "source": "Tier 2",
+              "texture": "SJSkirt3.jpg"
+            },
+            {
+              "source": "Tier 3",
+              "texture": "SJSkirt3a.jpg"
+            },
+            {
+              "source": "Tier 4",
+              "texture": "SJSkirt3a.jpg"
+            },
+            {
+              "source": "waistband",
+              "texture": "SJSkirt3.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Seam 1",
+              "color": "#E8E8E8"
+            },
+            {
+              "source": "Seam 2",
+              "color": "#E8E8E8"
+            },
+            {
+              "source": "Seam 3",
+              "color": "#E8E8E8"
+            },
+            {
+              "source": "Tier 1",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Tier 2",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Tier 3",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Tier 4",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "waistband",
+              "color": "#C0C0C0"
+            }
+          ]
+        },
+        {
+          "name": "Rosey",
+          "from": "Sweet Jane Skirt",
+          "textures": [
+            {
+              "source": "Seam 1",
+              "texture": "SJSkirt1.jpg"
+            },
+            {
+              "source": "Seam 2",
+              "texture": "SJSkirt1.jpg"
+            },
+            {
+              "source": "Seam 3",
+              "texture": "SJSkirt1.jpg"
+            },
+            {
+              "source": "Tier 1",
+              "texture": "SJSkirt1.jpg"
+            },
+            {
+              "source": "Tier 2",
+              "texture": "SJSkirt1.jpg"
+            },
+            {
+              "source": "Tier 3",
+              "texture": "SJSkirt1.jpg"
+            },
+            {
+              "source": "Tier 4",
+              "texture": "SJSkirt1.jpg"
+            },
+            {
+              "source": "waistband",
+              "texture": "SJSkirt1.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Seam 1",
+              "color": "#E8E8E8"
+            },
+            {
+              "source": "Seam 2",
+              "color": "#E8E8E8"
+            },
+            {
+              "source": "Seam 3",
+              "color": "#E8E8E8"
+            },
+            {
+              "source": "Tier 1",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Tier 2",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Tier 3",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Tier 4",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "waistband",
+              "color": "#C0C0C0"
+            }
+          ]
+        },
+        {
+          "name": "RoseyT",
+          "from": "Sweet Jane Skirt",
+          "textures": [
+            {
+              "source": "Seam 1",
+              "texture": "SJSkirt1A.jpg"
+            },
+            {
+              "source": "Seam 2",
+              "texture": "SJSkirt1A.jpg"
+            },
+            {
+              "source": "Seam 3",
+              "texture": "SJSkirt1A.jpg"
+            },
+            {
+              "source": "Tier 1",
+              "texture": "SJSkirt1.jpg"
+            },
+            {
+              "source": "Tier 2",
+              "texture": "SJSkirt1.jpg"
+            },
+            {
+              "source": "Tier 3",
+              "texture": "SJSkirt1A.jpg"
+            },
+            {
+              "source": "Tier 4",
+              "texture": "SJSkirt1A.jpg"
+            },
+            {
+              "source": "waistband",
+              "texture": "SJSkirt1.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Seam 1",
+              "color": "#E8E8E8"
+            },
+            {
+              "source": "Seam 2",
+              "color": "#E8E8E8"
+            },
+            {
+              "source": "Seam 3",
+              "color": "#E8E8E8"
+            },
+            {
+              "source": "Tier 1",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Tier 2",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Tier 3",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Tier 4",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "waistband",
+              "color": "#C0C0C0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Great Charm Boots g3f",
+      "folder": "CharmBoots",
+      "name": "CharmBoots",
+      "simId": "clothing.boots_charm",
+      "layer": "Outerwear",
+      "slots": [
+        "ThighR",
+        "ThighL",
+        "ShinR",
+        "ShinL",
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "GCB_Fab1",
+          "texture": "GCB ltx BaseColor.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false,
+          "color": "#FFFFFF"
+        },
+        {
+          "source": "GCB_Fab2",
+          "texture": "GCB ltx BaseColor.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false,
+          "color": "#FFFFFF"
+        },
+        {
+          "source": "GCB_Sole",
+          "texture": "GCB ltx BaseColor.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false,
+          "color": "#FFFFFF"
+        },
+        {
+          "source": "GCB_Int_Sole",
+          "texture": "GCB ltx BaseColor.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false,
+          "color": "#FFFFFF"
+        },
+        {
+          "source": "GCB_Rubber",
+          "texture": "GCB ltx BaseColor.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false,
+          "color": "#C0C0C0"
+        },
+        {
+          "source": "GCB_Tip",
+          "texture": "GCB ltx BaseColor.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false,
+          "color": "#C0C0C0"
+        },
+        {
+          "source": "GCB_Fab3",
+          "texture": "GCB ltx BaseColor.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false,
+          "color": "#FFFFFF"
+        },
+        {
+          "source": "GCB_Zip",
+          "texture": "GCB ltx BaseColor.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false,
+          "color": "#808080"
+        },
+        {
+          "source": "GCB_Heel",
+          "texture": "GCB ltx BaseColor.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false,
+          "color": "#FFFFFF"
+        },
+        {
+          "source": "GCB_Fab4",
+          "texture": "GCB ltx BaseColor.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false,
+          "color": "#FFFFFF"
+        }
+      ],
+      "_measured": {
+        "verts": 18134,
+        "polys": 18068,
+        "bbox": [
+          -22.0,
+          22.0,
+          -15.8,
+          77.9,
+          -11.4,
+          24.4
+        ],
+        "zones": {
+          "Foot": 0.628,
+          "Thigh": 0.246,
+          "Shin": 0.127
+        },
+        "heelCm": 15.77
+      },
+      "heelPose": {
+        "foot": 55.0,
+        "toe": -65.0,
+        "lift": 0.0901,
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "_source": "поза, наложенная самой вещью при примерке: Great Charm Boots"
+      },
+      "sim": {
+        "displayName": "Thigh-High Boots",
+        "nameRu": "Ботфорты",
+        "descEn": "Up to the thigh, on a heel that makes walking a decision.",
+        "descRu": "До бедра, на каблуке, с которым ходьба — уже решение.",
+        "warmth": 0.14,
+        "armor": 0.1,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Latex Blue",
+          "from": "Great Charm Boots",
+          "textures": [
+            {
+              "source": "GCB_Fab1",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab2",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab3",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab4",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Heel",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Rubber",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Sole",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Tip",
+              "texture": "GCB ltxw BaseColor.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "GCB_Fab1",
+              "color": "#004080"
+            },
+            {
+              "source": "GCB_Fab2",
+              "color": "#004080"
+            },
+            {
+              "source": "GCB_Fab3",
+              "color": "#004080"
+            },
+            {
+              "source": "GCB_Fab4",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "GCB_Heel",
+              "color": "#004080"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "color": "#000040"
+            },
+            {
+              "source": "GCB_Rubber",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "GCB_Sole",
+              "color": "#004080"
+            },
+            {
+              "source": "GCB_Tip",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Zip",
+              "color": "#004080"
+            }
+          ]
+        },
+        {
+          "name": "Latex Grey",
+          "from": "Great Charm Boots",
+          "textures": [
+            {
+              "source": "GCB_Fab1",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab2",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab3",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab4",
+              "texture": "GCB ltx BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Heel",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Sole",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Zip",
+              "texture": "GCB ltx BaseColor.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "GCB_Fab1",
+              "color": "#373737"
+            },
+            {
+              "source": "GCB_Fab2",
+              "color": "#373737"
+            },
+            {
+              "source": "GCB_Fab3",
+              "color": "#373737"
+            },
+            {
+              "source": "GCB_Fab4",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "GCB_Heel",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "color": "#181818"
+            },
+            {
+              "source": "GCB_Rubber",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Sole",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Tip",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Zip",
+              "color": "#808080"
+            }
+          ]
+        },
+        {
+          "name": "Latex Pink",
+          "from": "Great Charm Boots",
+          "textures": [
+            {
+              "source": "GCB_Fab1",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab2",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab3",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab4",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Heel",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Sole",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Tip",
+              "texture": "GCB ltxw BaseColor.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "GCB_Fab1",
+              "color": "#FF80C0"
+            },
+            {
+              "source": "GCB_Fab2",
+              "color": "#FF80C0"
+            },
+            {
+              "source": "GCB_Fab3",
+              "color": "#FF80C0"
+            },
+            {
+              "source": "GCB_Fab4",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Heel",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Rubber",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Sole",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Tip",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Zip",
+              "color": "#F379BC"
+            }
+          ]
+        },
+        {
+          "name": "Latex Red",
+          "from": "Great Charm Boots",
+          "textures": [
+            {
+              "source": "GCB_Fab1",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab2",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab3",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab4",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Heel",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Rubber",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Sole",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Tip",
+              "texture": "GCB ltxw BaseColor.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "GCB_Fab1",
+              "color": "#B32626"
+            },
+            {
+              "source": "GCB_Fab2",
+              "color": "#B32626"
+            },
+            {
+              "source": "GCB_Fab3",
+              "color": "#B32626"
+            },
+            {
+              "source": "GCB_Fab4",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Heel",
+              "color": "#B32626"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "color": "#6B1616"
+            },
+            {
+              "source": "GCB_Rubber",
+              "color": "#B32626"
+            },
+            {
+              "source": "GCB_Sole",
+              "color": "#B32626"
+            },
+            {
+              "source": "GCB_Tip",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Zip",
+              "color": "#780000"
+            }
+          ]
+        },
+        {
+          "name": "Latex White",
+          "from": "Great Charm Boots",
+          "textures": [
+            {
+              "source": "GCB_Fab1",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab2",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab3",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab4",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Heel",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Sole",
+              "texture": "GCB ltxw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Tip",
+              "texture": "GCB ltxw BaseColor.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "GCB_Fab1",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Fab2",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Fab3",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Fab4",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Heel",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Rubber",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Sole",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Tip",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Zip",
+              "color": "#C0C0C0"
+            }
+          ]
+        },
+        {
+          "name": "Leather Beige",
+          "from": "Great Charm Boots",
+          "textures": [
+            {
+              "source": "GCB_Fab1",
+              "texture": "GCB vv Rou.jpg"
+            },
+            {
+              "source": "GCB_Fab2",
+              "texture": "GCB vv Rou.jpg"
+            },
+            {
+              "source": "GCB_Fab3",
+              "texture": "GCB vv Rou.jpg"
+            },
+            {
+              "source": "GCB_Fab4",
+              "texture": "GCB vv BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Heel",
+              "texture": "GCB lthw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "texture": "GCB vvw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Sole",
+              "texture": "GCB lthw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Zip",
+              "texture": "GCB lth BaseColor.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "GCB_Fab1",
+              "color": "#8C6C47"
+            },
+            {
+              "source": "GCB_Fab2",
+              "color": "#8C6C47"
+            },
+            {
+              "source": "GCB_Fab3",
+              "color": "#8C6C47"
+            },
+            {
+              "source": "GCB_Fab4",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Heel",
+              "color": "#3B2E20"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "color": "#37281B"
+            },
+            {
+              "source": "GCB_Rubber",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Sole",
+              "color": "#3B2E20"
+            },
+            {
+              "source": "GCB_Tip",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Zip",
+              "color": "#86704E"
+            }
+          ]
+        },
+        {
+          "name": "Leather Black",
+          "from": "Great Charm Boots",
+          "textures": [
+            {
+              "source": "GCB_Fab1",
+              "texture": "GCB lth BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab2",
+              "texture": "GCB lth BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab3",
+              "texture": "GCB lth BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab4",
+              "texture": "GCB vv BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Heel",
+              "texture": "GCB lth BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "texture": "GCB vv BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Rubber",
+              "texture": "GCB lth BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Sole",
+              "texture": "GCB lth BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Tip",
+              "texture": "GCB lth BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Zip",
+              "texture": "GCB lth BaseColor.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "GCB_Fab1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "GCB_Fab2",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "GCB_Fab3",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "GCB_Fab4",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Heel",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Rubber",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "GCB_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "GCB_Tip",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "GCB_Zip",
+              "color": "#808080"
+            }
+          ]
+        },
+        {
+          "name": "Leather Blue",
+          "from": "Great Charm Boots",
+          "textures": [
+            {
+              "source": "GCB_Fab1",
+              "texture": "GCB vv Rou.jpg"
+            },
+            {
+              "source": "GCB_Fab2",
+              "texture": "GCB vv Rou.jpg"
+            },
+            {
+              "source": "GCB_Fab3",
+              "texture": "GCB vv Rou.jpg"
+            },
+            {
+              "source": "GCB_Fab4",
+              "texture": "GCB lthw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Heel",
+              "texture": "GCB lthw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "texture": "GCB lthw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Sole",
+              "texture": "GCB lthw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Zip",
+              "texture": "GCB lth BaseColor.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "GCB_Fab1",
+              "color": "#003163"
+            },
+            {
+              "source": "GCB_Fab2",
+              "color": "#003163"
+            },
+            {
+              "source": "GCB_Fab3",
+              "color": "#003163"
+            },
+            {
+              "source": "GCB_Fab4",
+              "color": "#00274E"
+            },
+            {
+              "source": "GCB_Heel",
+              "color": "#001933"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "color": "#001021"
+            },
+            {
+              "source": "GCB_Rubber",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Sole",
+              "color": "#001933"
+            },
+            {
+              "source": "GCB_Tip",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Zip",
+              "color": "#09345E"
+            }
+          ]
+        },
+        {
+          "name": "Leather Brown",
+          "from": "Great Charm Boots",
+          "textures": [
+            {
+              "source": "GCB_Fab1",
+              "texture": "GCB vvwr BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab2",
+              "texture": "GCB vvwr BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab3",
+              "texture": "GCB vvwr BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab4",
+              "texture": "GCB vv BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Heel",
+              "texture": "GCB lthw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "texture": "GCB vv BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Sole",
+              "texture": "GCB lthw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Zip",
+              "texture": "GCB lth BaseColor.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "GCB_Fab1",
+              "color": "#3F1A00"
+            },
+            {
+              "source": "GCB_Fab2",
+              "color": "#3F1A00"
+            },
+            {
+              "source": "GCB_Fab3",
+              "color": "#3F1A00"
+            },
+            {
+              "source": "GCB_Fab4",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Heel",
+              "color": "#1A0B00"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Rubber",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Sole",
+              "color": "#1A0B00"
+            },
+            {
+              "source": "GCB_Tip",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Zip",
+              "color": "#3B1B00"
+            }
+          ]
+        },
+        {
+          "name": "Leather Grey",
+          "from": "Great Charm Boots",
+          "textures": [
+            {
+              "source": "GCB_Fab1",
+              "texture": "GCB vvwr BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab2",
+              "texture": "GCB vvwr BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab3",
+              "texture": "GCB vvwr BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab4",
+              "texture": "GCB vv BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Heel",
+              "texture": "GCB lthw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "texture": "GCB lth BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Sole",
+              "texture": "GCB lthw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Zip",
+              "texture": "GCB lth BaseColor.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "GCB_Fab1",
+              "color": "#4A4A4A"
+            },
+            {
+              "source": "GCB_Fab2",
+              "color": "#4A4A4A"
+            },
+            {
+              "source": "GCB_Fab3",
+              "color": "#4A4A4A"
+            },
+            {
+              "source": "GCB_Fab4",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Heel",
+              "color": "#808080"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "color": "#808080"
+            },
+            {
+              "source": "GCB_Rubber",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Sole",
+              "color": "#808080"
+            },
+            {
+              "source": "GCB_Tip",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Zip",
+              "color": "#404040"
+            }
+          ]
+        },
+        {
+          "name": "Leather Red",
+          "from": "Great Charm Boots",
+          "textures": [
+            {
+              "source": "GCB_Fab1",
+              "texture": "GCB vv Rou.jpg"
+            },
+            {
+              "source": "GCB_Fab2",
+              "texture": "GCB vv Rou.jpg"
+            },
+            {
+              "source": "GCB_Fab3",
+              "texture": "GCB vv Rou.jpg"
+            },
+            {
+              "source": "GCB_Fab4",
+              "texture": "GCB vv BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Heel",
+              "texture": "GCB lthw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "texture": "GCB vv BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Sole",
+              "texture": "GCB lthw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Zip",
+              "texture": "GCB lth BaseColor.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "GCB_Fab1",
+              "color": "#800000"
+            },
+            {
+              "source": "GCB_Fab2",
+              "color": "#800000"
+            },
+            {
+              "source": "GCB_Fab3",
+              "color": "#800000"
+            },
+            {
+              "source": "GCB_Fab4",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "GCB_Heel",
+              "color": "#0B0B0B"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "GCB_Rubber",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Sole",
+              "color": "#0B0B0B"
+            },
+            {
+              "source": "GCB_Tip",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Zip",
+              "color": "#650000"
+            }
+          ]
+        },
+        {
+          "name": "Velvet Beige",
+          "from": "Great Charm Boots",
+          "textures": [
+            {
+              "source": "GCB_Fab1",
+              "texture": "GCB vvw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab2",
+              "texture": "GCB vvw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab3",
+              "texture": "GCB vvw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab4",
+              "texture": "GCB vv BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Heel",
+              "texture": "GCB vv BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "texture": "GCB vvw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Sole",
+              "texture": "GCB vvw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Zip",
+              "texture": "GCB vv BaseColor.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "GCB_Fab1",
+              "color": "#695032"
+            },
+            {
+              "source": "GCB_Fab2",
+              "color": "#695032"
+            },
+            {
+              "source": "GCB_Fab3",
+              "color": "#695032"
+            },
+            {
+              "source": "GCB_Fab4",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Heel",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "color": "#332A1F"
+            },
+            {
+              "source": "GCB_Rubber",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Sole",
+              "color": "#695032"
+            },
+            {
+              "source": "GCB_Tip",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Zip",
+              "color": "#6B5B4A"
+            }
+          ]
+        },
+        {
+          "name": "Velvet Black",
+          "from": "Great Charm Boots",
+          "textures": [
+            {
+              "source": "GCB_Fab1",
+              "texture": "GCB vv BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab2",
+              "texture": "GCB vv BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab3",
+              "texture": "GCB vv BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab4",
+              "texture": "GCB vv BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Heel",
+              "texture": "GCB vv BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "texture": "GCB vv BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Sole",
+              "texture": "GCB vv BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Zip",
+              "texture": "GCB vv BaseColor.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "GCB_Fab1",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Fab2",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Fab3",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Fab4",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Heel",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Rubber",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Sole",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Tip",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Zip",
+              "color": "#535353"
+            }
+          ]
+        },
+        {
+          "name": "Velvet Blue",
+          "from": "Great Charm Boots",
+          "textures": [
+            {
+              "source": "GCB_Fab1",
+              "texture": "GCB vvw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab2",
+              "texture": "GCB vvw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab3",
+              "texture": "GCB vvw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab4",
+              "texture": "GCB vv BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Heel",
+              "texture": "GCB vv BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "texture": "GCB vvw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Sole",
+              "texture": "GCB vvw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Zip",
+              "texture": "GCB vv BaseColor.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "GCB_Fab1",
+              "color": "#002952"
+            },
+            {
+              "source": "GCB_Fab2",
+              "color": "#002952"
+            },
+            {
+              "source": "GCB_Fab3",
+              "color": "#002952"
+            },
+            {
+              "source": "GCB_Fab4",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Heel",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "color": "#001830"
+            },
+            {
+              "source": "GCB_Rubber",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Sole",
+              "color": "#002952"
+            },
+            {
+              "source": "GCB_Tip",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Zip",
+              "color": "#002F5F"
+            }
+          ]
+        },
+        {
+          "name": "Velvet Brown",
+          "from": "Great Charm Boots",
+          "textures": [
+            {
+              "source": "GCB_Fab1",
+              "texture": "GCB vvw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab2",
+              "texture": "GCB vvw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab3",
+              "texture": "GCB vvw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab4",
+              "texture": "GCB vv BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Heel",
+              "texture": "GCB vv BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "texture": "GCB vvw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Sole",
+              "texture": "GCB vvw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Zip",
+              "texture": "GCB vv BaseColor.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "GCB_Fab1",
+              "color": "#361500"
+            },
+            {
+              "source": "GCB_Fab2",
+              "color": "#361500"
+            },
+            {
+              "source": "GCB_Fab3",
+              "color": "#361500"
+            },
+            {
+              "source": "GCB_Fab4",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Heel",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "color": "#332A1F"
+            },
+            {
+              "source": "GCB_Rubber",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Sole",
+              "color": "#361500"
+            },
+            {
+              "source": "GCB_Tip",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Zip",
+              "color": "#361B00"
+            }
+          ]
+        },
+        {
+          "name": "Velvet Purple",
+          "from": "Great Charm Boots",
+          "textures": [
+            {
+              "source": "GCB_Fab1",
+              "texture": "GCB vvw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab2",
+              "texture": "GCB vvw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab3",
+              "texture": "GCB vvw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab4",
+              "texture": "GCB vv BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Heel",
+              "texture": "GCB vv BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "texture": "GCB vvw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Sole",
+              "texture": "GCB vvw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Zip",
+              "texture": "GCB vv BaseColor.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "GCB_Fab1",
+              "color": "#2D002D"
+            },
+            {
+              "source": "GCB_Fab2",
+              "color": "#2D002D"
+            },
+            {
+              "source": "GCB_Fab3",
+              "color": "#2D002D"
+            },
+            {
+              "source": "GCB_Fab4",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Heel",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "color": "#0B0B0B"
+            },
+            {
+              "source": "GCB_Rubber",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Sole",
+              "color": "#2D002D"
+            },
+            {
+              "source": "GCB_Tip",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Zip",
+              "color": "#360036"
+            }
+          ]
+        },
+        {
+          "name": "Velvet Red",
+          "from": "Great Charm Boots",
+          "textures": [
+            {
+              "source": "GCB_Fab1",
+              "texture": "GCB vvw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab2",
+              "texture": "GCB vvw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab3",
+              "texture": "GCB vvw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Fab4",
+              "texture": "GCB vv BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Heel",
+              "texture": "GCB vv BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "texture": "GCB vv BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Sole",
+              "texture": "GCB vvw BaseColor.jpg"
+            },
+            {
+              "source": "GCB_Zip",
+              "texture": "GCB vv BaseColor.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "GCB_Fab1",
+              "color": "#400000"
+            },
+            {
+              "source": "GCB_Fab2",
+              "color": "#400000"
+            },
+            {
+              "source": "GCB_Fab3",
+              "color": "#400000"
+            },
+            {
+              "source": "GCB_Fab4",
+              "color": "#808080"
+            },
+            {
+              "source": "GCB_Heel",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "GCB_Int_Sole",
+              "color": "#808080"
+            },
+            {
+              "source": "GCB_Rubber",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Sole",
+              "color": "#400000"
+            },
+            {
+              "source": "GCB_Tip",
+              "color": "#000000"
+            },
+            {
+              "source": "GCB_Zip",
+              "color": "#450000"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "FemaleJacket04_39261",
+      "folder": "AutumnJacket",
+      "name": "AutumnJacket",
+      "simId": "clothing.jacket_autumn",
+      "layer": "Outerwear",
+      "slots": [
+        "Chest",
+        "Belly",
+        "ShoulderR",
+        "ShoulderL",
+        "ForearmR",
+        "ForearmL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Jacket02",
+          "texture": "AUTUMN_Texture03.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Zipper02",
+          "texture": "AUTUMN_Texture01_AUTUMN_TransTX01A.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "Zipper01",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false,
+          "color": "#C08FB8"
+        },
+        {
+          "source": "Tshirt01",
+          "texture": "AUTUMN_Texture02.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Tshirt02",
+          "texture": "AUTUMN_Texture02.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Turtleneck",
+          "texture": "AUTUMN_Texture02.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Jacket",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false,
+          "color": "#C2305C"
+        }
+      ],
+      "_measured": {
+        "verts": 39261,
+        "polys": 39083,
+        "bbox": [
+          -68.1,
+          69.0,
+          96.4,
+          161.1,
+          -14.1,
+          15.6
+        ],
+        "zones": {
+          "Chest": 0.398,
+          "Shoulder": 0.186,
+          "Belly": 0.171,
+          "Forearm": 0.135,
+          "Pelvis": 0.055,
+          "Neck": 0.044,
+          "Wrist": 0.007,
+          "Head": 0.005
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Autumn Jacket",
+        "nameRu": "Осенняя куртка",
+        "descEn": "Zipped jacket over a turtleneck. The warmest thing here.",
+        "descRu": "Куртка на молнии поверх водолазки. Самое тёплое, что тут есть.",
+        "warmth": 0.24,
+        "armor": 0.06,
+        "thermalDelta": 0.0,
+        "capacity": 2,
+        "covers": [
+          "Torso",
+          "ArmL",
+          "ArmR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Jacket Material01",
+          "from": "Autumn Jacket Female",
+          "textures": [
+            {
+              "source": "Jacket02",
+              "texture": "AUTUMN_Texture01.jpg"
+            },
+            {
+              "source": "Tshirt01",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Tshirt02",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Turtleneck",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Zipper02",
+              "texture": "AUTUMN_Texture01.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Jacket",
+              "color": "#424A4C"
+            },
+            {
+              "source": "Jacket02",
+              "color": "#758386"
+            },
+            {
+              "source": "Tshirt01",
+              "color": "#595959"
+            },
+            {
+              "source": "Tshirt02",
+              "color": "#595959"
+            },
+            {
+              "source": "Turtleneck",
+              "color": "#595959"
+            },
+            {
+              "source": "Zipper01",
+              "color": "#808080"
+            },
+            {
+              "source": "Zipper02",
+              "color": "#808080"
+            }
+          ]
+        },
+        {
+          "name": "Jacket Material02",
+          "from": "Autumn Jacket Female",
+          "textures": [
+            {
+              "source": "Jacket02",
+              "texture": "AUTUMN_Texture01.jpg"
+            },
+            {
+              "source": "Tshirt01",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Tshirt02",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Turtleneck",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Zipper02",
+              "texture": "AUTUMN_Texture01.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Jacket",
+              "color": "#244675"
+            },
+            {
+              "source": "Jacket02",
+              "color": "#5590E8"
+            },
+            {
+              "source": "Tshirt01",
+              "color": "#594054"
+            },
+            {
+              "source": "Tshirt02",
+              "color": "#594054"
+            },
+            {
+              "source": "Turtleneck",
+              "color": "#594054"
+            },
+            {
+              "source": "Zipper01",
+              "color": "#465B76"
+            },
+            {
+              "source": "Zipper02",
+              "color": "#465B76"
+            }
+          ]
+        },
+        {
+          "name": "Jacket Material03",
+          "from": "Autumn Jacket Female",
+          "textures": [
+            {
+              "source": "Jacket02",
+              "texture": "AUTUMN_Texture01.jpg"
+            },
+            {
+              "source": "Tshirt01",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Tshirt02",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Turtleneck",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Zipper02",
+              "texture": "AUTUMN_Texture01.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Jacket",
+              "color": "#40ABD5"
+            },
+            {
+              "source": "Jacket02",
+              "color": "#44BBE6"
+            },
+            {
+              "source": "Tshirt01",
+              "color": "#2F2F2F"
+            },
+            {
+              "source": "Tshirt02",
+              "color": "#2F2F2F"
+            },
+            {
+              "source": "Turtleneck",
+              "color": "#2F2F2F"
+            },
+            {
+              "source": "Zipper01",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Zipper02",
+              "color": "#C0C0C0"
+            }
+          ]
+        },
+        {
+          "name": "Jacket Material04",
+          "from": "Autumn Jacket Female",
+          "textures": [
+            {
+              "source": "Jacket02",
+              "texture": "AUTUMN_Texture01.jpg"
+            },
+            {
+              "source": "Tshirt01",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Tshirt02",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Turtleneck",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Zipper02",
+              "texture": "AUTUMN_Texture01.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Jacket",
+              "color": "#C3A5BB"
+            },
+            {
+              "source": "Jacket02",
+              "color": "#F8D2EE"
+            },
+            {
+              "source": "Tshirt01",
+              "color": "#E9C5DF"
+            },
+            {
+              "source": "Tshirt02",
+              "color": "#E9C5DF"
+            },
+            {
+              "source": "Turtleneck",
+              "color": "#E9C5DF"
+            },
+            {
+              "source": "Zipper01",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Zipper02",
+              "color": "#C0C0C0"
+            }
+          ]
+        },
+        {
+          "name": "Jacket Material05",
+          "from": "Autumn Jacket Female",
+          "textures": [
+            {
+              "source": "Jacket02",
+              "texture": "AUTUMN_Texture01.jpg"
+            },
+            {
+              "source": "Tshirt01",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Tshirt02",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Turtleneck",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Zipper02",
+              "texture": "AUTUMN_Texture01.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Jacket",
+              "color": "#2A8178"
+            },
+            {
+              "source": "Jacket02",
+              "color": "#36A699"
+            },
+            {
+              "source": "Tshirt01",
+              "color": "#FF8040"
+            },
+            {
+              "source": "Tshirt02",
+              "color": "#FF8040"
+            },
+            {
+              "source": "Turtleneck",
+              "color": "#FF8040"
+            },
+            {
+              "source": "Zipper01",
+              "color": "#3FC1B2"
+            },
+            {
+              "source": "Zipper02",
+              "color": "#3FC1B2"
+            }
+          ]
+        },
+        {
+          "name": "Jacket Material06",
+          "from": "Autumn Jacket Female",
+          "textures": [
+            {
+              "source": "Jacket02",
+              "texture": "AUTUMN_Texture01.jpg"
+            },
+            {
+              "source": "Tshirt01",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Tshirt02",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Turtleneck",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Zipper02",
+              "texture": "AUTUMN_Texture01.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Jacket",
+              "color": "#6471CA"
+            },
+            {
+              "source": "Jacket02",
+              "color": "#7E8FFF"
+            },
+            {
+              "source": "Tshirt01",
+              "color": "#594C79"
+            },
+            {
+              "source": "Tshirt02",
+              "color": "#594C79"
+            },
+            {
+              "source": "Turtleneck",
+              "color": "#594C79"
+            },
+            {
+              "source": "Zipper01",
+              "color": "#909BFF"
+            },
+            {
+              "source": "Zipper02",
+              "color": "#909BFF"
+            }
+          ]
+        },
+        {
+          "name": "Jacket Material07",
+          "from": "Autumn Jacket Female",
+          "textures": [
+            {
+              "source": "Jacket02",
+              "texture": "AUTUMN_Texture01.jpg"
+            },
+            {
+              "source": "Tshirt01",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Tshirt02",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Turtleneck",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Zipper02",
+              "texture": "AUTUMN_Texture01.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Jacket",
+              "color": "#9D7EB9"
+            },
+            {
+              "source": "Jacket02",
+              "color": "#D5B3FC"
+            },
+            {
+              "source": "Tshirt01",
+              "color": "#6C79CC"
+            },
+            {
+              "source": "Tshirt02",
+              "color": "#6C79CC"
+            },
+            {
+              "source": "Turtleneck",
+              "color": "#6C79CC"
+            },
+            {
+              "source": "Zipper01",
+              "color": "#DCB6FD"
+            },
+            {
+              "source": "Zipper02",
+              "color": "#DCB6FD"
+            }
+          ]
+        },
+        {
+          "name": "Jacket Material08",
+          "from": "Autumn Jacket Female",
+          "textures": [
+            {
+              "source": "Jacket02",
+              "texture": "AUTUMN_Texture01.jpg"
+            },
+            {
+              "source": "Tshirt01",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Tshirt02",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Turtleneck",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Zipper02",
+              "texture": "AUTUMN_Texture01.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Jacket",
+              "color": "#F78049"
+            },
+            {
+              "source": "Jacket02",
+              "color": "#FEB996"
+            },
+            {
+              "source": "Tshirt01",
+              "color": "#F78049"
+            },
+            {
+              "source": "Tshirt02",
+              "color": "#F78049"
+            },
+            {
+              "source": "Turtleneck",
+              "color": "#F78049"
+            },
+            {
+              "source": "Zipper01",
+              "color": "#FFC179"
+            },
+            {
+              "source": "Zipper02",
+              "color": "#FFC179"
+            }
+          ]
+        },
+        {
+          "name": "Jacket Material09",
+          "from": "Autumn Jacket Female",
+          "textures": [
+            {
+              "source": "Jacket02",
+              "texture": "AUTUMN_Texture03.jpg"
+            },
+            {
+              "source": "Tshirt01",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Tshirt02",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Turtleneck",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Zipper02",
+              "texture": "AUTUMN_Texture01.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Jacket",
+              "color": "#F684AD"
+            },
+            {
+              "source": "Jacket02",
+              "color": "#F684AD"
+            },
+            {
+              "source": "Tshirt01",
+              "color": "#D6B5F7"
+            },
+            {
+              "source": "Tshirt02",
+              "color": "#D6B5F7"
+            },
+            {
+              "source": "Turtleneck",
+              "color": "#D6B5F7"
+            },
+            {
+              "source": "Zipper01",
+              "color": "#D1B9C6"
+            },
+            {
+              "source": "Zipper02",
+              "color": "#D1B9C6"
+            }
+          ]
+        },
+        {
+          "name": "Jacket Material10",
+          "from": "Autumn Jacket Female",
+          "textures": [
+            {
+              "source": "Jacket02",
+              "texture": "AUTUMN_Texture03.jpg"
+            },
+            {
+              "source": "Tshirt01",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Tshirt02",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Turtleneck",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Zipper02",
+              "texture": "AUTUMN_Texture01.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Jacket",
+              "color": "#72B081"
+            },
+            {
+              "source": "Jacket02",
+              "color": "#72B081"
+            },
+            {
+              "source": "Tshirt01",
+              "color": "#3B5B4A"
+            },
+            {
+              "source": "Tshirt02",
+              "color": "#3B5B4A"
+            },
+            {
+              "source": "Turtleneck",
+              "color": "#3B5B4A"
+            },
+            {
+              "source": "Zipper01",
+              "color": "#B9D1BE"
+            },
+            {
+              "source": "Zipper02",
+              "color": "#B9D1BE"
+            }
+          ]
+        },
+        {
+          "name": "Jacket Material11",
+          "from": "Autumn Jacket Female",
+          "textures": [
+            {
+              "source": "Jacket02",
+              "texture": "AUTUMN_Texture03.jpg"
+            },
+            {
+              "source": "Tshirt01",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Tshirt02",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Turtleneck",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Zipper02",
+              "texture": "AUTUMN_Texture01.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Jacket",
+              "color": "#D88E77"
+            },
+            {
+              "source": "Jacket02",
+              "color": "#D88E77"
+            },
+            {
+              "source": "Tshirt01",
+              "color": "#714A3E"
+            },
+            {
+              "source": "Tshirt02",
+              "color": "#714A3E"
+            },
+            {
+              "source": "Turtleneck",
+              "color": "#714A3E"
+            },
+            {
+              "source": "Zipper01",
+              "color": "#D1BCB1"
+            },
+            {
+              "source": "Zipper02",
+              "color": "#D1BCB1"
+            }
+          ]
+        },
+        {
+          "name": "Jacket Material12",
+          "from": "Autumn Jacket Female",
+          "textures": [
+            {
+              "source": "Jacket02",
+              "texture": "AUTUMN_Texture03.jpg"
+            },
+            {
+              "source": "Tshirt01",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Tshirt02",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Turtleneck",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Zipper02",
+              "texture": "AUTUMN_Texture01.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Jacket",
+              "color": "#9D8171"
+            },
+            {
+              "source": "Jacket02",
+              "color": "#9D8171"
+            },
+            {
+              "source": "Tshirt01",
+              "color": "#E7C4AA"
+            },
+            {
+              "source": "Tshirt02",
+              "color": "#E7C4AA"
+            },
+            {
+              "source": "Turtleneck",
+              "color": "#E7C4AA"
+            },
+            {
+              "source": "Zipper01",
+              "color": "#D1B8A7"
+            },
+            {
+              "source": "Zipper02",
+              "color": "#D1B8A7"
+            }
+          ]
+        },
+        {
+          "name": "Jacket Material13",
+          "from": "Autumn Jacket Female",
+          "textures": [
+            {
+              "source": "Jacket02",
+              "texture": "AUTUMN_Texture03.jpg"
+            },
+            {
+              "source": "Tshirt01",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Tshirt02",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Turtleneck",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Zipper02",
+              "texture": "AUTUMN_Texture01.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Jacket",
+              "color": "#FABD8A"
+            },
+            {
+              "source": "Jacket02",
+              "color": "#FABD8A"
+            },
+            {
+              "source": "Tshirt01",
+              "color": "#9E7757"
+            },
+            {
+              "source": "Tshirt02",
+              "color": "#9E7757"
+            },
+            {
+              "source": "Turtleneck",
+              "color": "#9E7757"
+            },
+            {
+              "source": "Zipper01",
+              "color": "#FADBAF"
+            },
+            {
+              "source": "Zipper02",
+              "color": "#FADBAF"
+            }
+          ]
+        },
+        {
+          "name": "Jacket Material14",
+          "from": "Autumn Jacket Female",
+          "textures": [
+            {
+              "source": "Jacket02",
+              "texture": "AUTUMN_Texture03.jpg"
+            },
+            {
+              "source": "Tshirt01",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Tshirt02",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Turtleneck",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Zipper02",
+              "texture": "AUTUMN_Texture01.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Jacket",
+              "color": "#F67971"
+            },
+            {
+              "source": "Jacket02",
+              "color": "#F67971"
+            },
+            {
+              "source": "Tshirt01",
+              "color": "#FF9D7C"
+            },
+            {
+              "source": "Tshirt02",
+              "color": "#FF9D7C"
+            },
+            {
+              "source": "Turtleneck",
+              "color": "#FF9D7C"
+            },
+            {
+              "source": "Zipper01",
+              "color": "#FAB5A7"
+            },
+            {
+              "source": "Zipper02",
+              "color": "#FAB5A7"
+            }
+          ]
+        },
+        {
+          "name": "Jacket Material15",
+          "from": "Autumn Jacket Female",
+          "textures": [
+            {
+              "source": "Jacket02",
+              "texture": "AUTUMN_Texture03.jpg"
+            },
+            {
+              "source": "Tshirt01",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Tshirt02",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Turtleneck",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Zipper02",
+              "texture": "AUTUMN_Texture01.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Jacket",
+              "color": "#747474"
+            },
+            {
+              "source": "Jacket02",
+              "color": "#747474"
+            },
+            {
+              "source": "Tshirt01",
+              "color": "#D1D1D1"
+            },
+            {
+              "source": "Tshirt02",
+              "color": "#D1D1D1"
+            },
+            {
+              "source": "Turtleneck",
+              "color": "#D1D1D1"
+            },
+            {
+              "source": "Zipper01",
+              "color": "#D1D1D1"
+            },
+            {
+              "source": "Zipper02",
+              "color": "#D1D1D1"
+            }
+          ]
+        },
+        {
+          "name": "Jacket Material16",
+          "from": "Autumn Jacket Female",
+          "textures": [
+            {
+              "source": "Jacket02",
+              "texture": "AUTUMN_Texture03.jpg"
+            },
+            {
+              "source": "Tshirt01",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Tshirt02",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Turtleneck",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Zipper02",
+              "texture": "AUTUMN_Texture01.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Jacket",
+              "color": "#B75A5A"
+            },
+            {
+              "source": "Jacket02",
+              "color": "#B75A5A"
+            },
+            {
+              "source": "Tshirt01",
+              "color": "#FFBC8C"
+            },
+            {
+              "source": "Tshirt02",
+              "color": "#FFBC8C"
+            },
+            {
+              "source": "Turtleneck",
+              "color": "#FFBC8C"
+            },
+            {
+              "source": "Zipper01",
+              "color": "#F9B9B9"
+            },
+            {
+              "source": "Zipper02",
+              "color": "#F9B9B9"
+            }
+          ]
+        },
+        {
+          "name": "Jacket Material17",
+          "from": "Autumn Jacket Female",
+          "textures": [
+            {
+              "source": "Jacket02",
+              "texture": "AUTUMN_Texture03.jpg"
+            },
+            {
+              "source": "Tshirt01",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Tshirt02",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Turtleneck",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Zipper02",
+              "texture": "AUTUMN_Texture01.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Jacket",
+              "color": "#CDC56F"
+            },
+            {
+              "source": "Jacket02",
+              "color": "#CDC56F"
+            },
+            {
+              "source": "Tshirt01",
+              "color": "#CDC56F"
+            },
+            {
+              "source": "Tshirt02",
+              "color": "#CDC56F"
+            },
+            {
+              "source": "Turtleneck",
+              "color": "#CDC56F"
+            },
+            {
+              "source": "Zipper01",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Zipper02",
+              "color": "#C0C0C0"
+            }
+          ]
+        },
+        {
+          "name": "Jacket Material18",
+          "from": "Autumn Jacket Female",
+          "textures": [
+            {
+              "source": "Jacket02",
+              "texture": "AUTUMN_Texture03.jpg"
+            },
+            {
+              "source": "Tshirt01",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Tshirt02",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Turtleneck",
+              "texture": "AUTUMN_Texture02.jpg"
+            },
+            {
+              "source": "Zipper02",
+              "texture": "AUTUMN_Texture01.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Jacket",
+              "color": "#C2305C"
+            },
+            {
+              "source": "Jacket02",
+              "color": "#C2305C"
+            },
+            {
+              "source": "Tshirt01",
+              "color": "#8E2345"
+            },
+            {
+              "source": "Tshirt02",
+              "color": "#8E2345"
+            },
+            {
+              "source": "Turtleneck",
+              "color": "#8E2345"
+            },
+            {
+              "source": "Zipper01",
+              "color": "#C08FB8"
+            },
+            {
+              "source": "Zipper02",
+              "color": "#C08FB8"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Baidaid Suit_9109",
+      "folder": "BandaidSuit",
+      "name": "BandaidSuit",
+      "simId": "clothing.suit_bandaid",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "Belly",
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "suit",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false,
+          "color": "#000000"
+        }
+      ],
+      "_measured": {
+        "verts": 9109,
+        "polys": 8548,
+        "bbox": [
+          -14.9,
+          14.9,
+          87.9,
+          151.8,
+          -12.8,
+          11.9
+        ],
+        "zones": {
+          "Chest": 0.499,
+          "Belly": 0.303,
+          "Pelvis": 0.198
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Strap Bodysuit",
+        "nameRu": "Боди из ремешков",
+        "descEn": "Straps and mesh. Covers the idea of the body, not the body.",
+        "descRu": "Ремешки и сетка. Прикрывают мысль о теле, а не тело.",
+        "warmth": 0.03,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso",
+          "Pelvis"
+        ]
+      },
+      "variants": [
+        {
+          "name": "BS_BlueMesh",
+          "from": "Bandaid Suit",
+          "textures": [],
+          "colors": [
+            {
+              "source": "suit",
+              "color": "#2743A0"
+            }
+          ]
+        },
+        {
+          "name": "BS_BlueShine",
+          "from": "Bandaid Suit",
+          "textures": [],
+          "colors": [
+            {
+              "source": "suit",
+              "color": "#2546A0"
+            }
+          ]
+        },
+        {
+          "name": "BS_PinkMesh",
+          "from": "Bandaid Suit",
+          "textures": [],
+          "colors": [
+            {
+              "source": "suit",
+              "color": "#D55879"
+            }
+          ]
+        },
+        {
+          "name": "BS_PinkShine",
+          "from": "Bandaid Suit",
+          "textures": [],
+          "colors": [
+            {
+              "source": "suit",
+              "color": "#BC5684"
+            }
+          ]
+        },
+        {
+          "name": "BS_PurpleMesh",
+          "from": "Bandaid Suit",
+          "textures": [],
+          "colors": [
+            {
+              "source": "suit",
+              "color": "#673783"
+            }
+          ]
+        },
+        {
+          "name": "BS_PurpleShine",
+          "from": "Bandaid Suit",
+          "textures": [],
+          "colors": [
+            {
+              "source": "suit",
+              "color": "#552A80"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "FadsSlipOn_L_8822",
+      "folder": "SlipOns",
+      "name": "SlipOns",
+      "simId": "clothing.slipons_fads",
+      "layer": "Outerwear",
+      "slots": [
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "sole",
+          "texture": "FadsSO_Pink.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "tag_heel",
+          "texture": "FadsSO_Pink.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "foot_back",
+          "texture": "FadsSO_Pink.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "foot_front",
+          "texture": "FadsSO_Pink.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "elastic",
+          "texture": "FadsSO_Pink.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "tag_side",
+          "texture": "FadsSO_Pink.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 8822,
+        "polys": 8581,
+        "bbox": [
+          7.8,
+          19.8,
+          -1.6,
+          7.9,
+          -10.5,
+          16.5
+        ],
+        "zones": {
+          "Foot": 1.0
+        },
+        "heelCm": 1.56
+      },
+      "sourceKeys": [
+        "FadsSlipOn_L_8822",
+        "FadsSlipOn_R_8822"
+      ],
+      "sim": {
+        "displayName": "Slip-Ons",
+        "nameRu": "Слипоны",
+        "descEn": "Flat canvas, elastic at the sides. No laces to break.",
+        "descRu": "Плоская парусина с резинками по бокам. Ломаться нечему.",
+        "warmth": 0.05,
+        "armor": 0.04,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Checks",
+          "from": "Fads Slip Ons",
+          "textures": [
+            {
+              "source": "elastic",
+              "texture": "FadsSO_ChecksR.jpg"
+            },
+            {
+              "source": "foot_back",
+              "texture": "FadsSO_ChecksR.jpg"
+            },
+            {
+              "source": "foot_front",
+              "texture": "FadsSO_ChecksR.jpg"
+            },
+            {
+              "source": "sole",
+              "texture": "FadsSO_ChecksR.jpg"
+            },
+            {
+              "source": "tag_heel",
+              "texture": "FadsSO_ChecksR.jpg"
+            },
+            {
+              "source": "tag_side",
+              "texture": "FadsSO_ChecksR.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "elastic",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "foot_back",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "foot_front",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "sole",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "tag_heel",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "tag_side",
+              "color": "#E7E7E7"
+            }
+          ]
+        },
+        {
+          "name": "Graffiti",
+          "from": "Fads Slip Ons",
+          "textures": [
+            {
+              "source": "elastic",
+              "texture": "FadsSO_GrafR.jpg"
+            },
+            {
+              "source": "foot_back",
+              "texture": "FadsSO_GrafR.jpg"
+            },
+            {
+              "source": "foot_front",
+              "texture": "FadsSO_GrafR.jpg"
+            },
+            {
+              "source": "sole",
+              "texture": "FadsSO_GrafR.jpg"
+            },
+            {
+              "source": "tag_heel",
+              "texture": "FadsSO_GrafR.jpg"
+            },
+            {
+              "source": "tag_side",
+              "texture": "FadsSO_GrafR.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "elastic",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "foot_back",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "foot_front",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "sole",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "tag_heel",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "tag_side",
+              "color": "#E7E7E7"
+            }
+          ]
+        },
+        {
+          "name": "Ladybugs",
+          "from": "Fads Slip Ons",
+          "textures": [
+            {
+              "source": "elastic",
+              "texture": "FadsSO_LadybugsR.jpg"
+            },
+            {
+              "source": "foot_back",
+              "texture": "FadsSO_LadybugsR.jpg"
+            },
+            {
+              "source": "foot_front",
+              "texture": "FadsSO_LadybugsR.jpg"
+            },
+            {
+              "source": "sole",
+              "texture": "FadsSO_LadybugsR.jpg"
+            },
+            {
+              "source": "tag_heel",
+              "texture": "FadsSO_LadybugsR.jpg"
+            },
+            {
+              "source": "tag_side",
+              "texture": "FadsSO_LadybugsR.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "elastic",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "foot_back",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "foot_front",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "sole",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "tag_heel",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "tag_side",
+              "color": "#E7E7E7"
+            }
+          ]
+        },
+        {
+          "name": "Navy",
+          "from": "Fads Slip Ons",
+          "textures": [
+            {
+              "source": "elastic",
+              "texture": "FadsSO_NavyR.jpg"
+            },
+            {
+              "source": "foot_back",
+              "texture": "FadsSO_NavyR.jpg"
+            },
+            {
+              "source": "foot_front",
+              "texture": "FadsSO_NavyR.jpg"
+            },
+            {
+              "source": "sole",
+              "texture": "FadsSO_NavyR.jpg"
+            },
+            {
+              "source": "tag_heel",
+              "texture": "FadsSO_NavyR.jpg"
+            },
+            {
+              "source": "tag_side",
+              "texture": "FadsSO_NavyR.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "elastic",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "foot_back",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "foot_front",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "sole",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "tag_heel",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "tag_side",
+              "color": "#E7E7E7"
+            }
+          ]
+        },
+        {
+          "name": "Pink",
+          "from": "Fads Slip Ons",
+          "textures": [
+            {
+              "source": "elastic",
+              "texture": "FadsSO_Pink.jpg"
+            },
+            {
+              "source": "foot_back",
+              "texture": "FadsSO_Pink.jpg"
+            },
+            {
+              "source": "foot_front",
+              "texture": "FadsSO_Pink.jpg"
+            },
+            {
+              "source": "sole",
+              "texture": "FadsSO_PinkR.jpg"
+            },
+            {
+              "source": "tag_heel",
+              "texture": "FadsSO_PinkR.jpg"
+            },
+            {
+              "source": "tag_side",
+              "texture": "FadsSO_PinkR.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "elastic",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "foot_back",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "foot_front",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "sole",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "tag_heel",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "tag_side",
+              "color": "#E7E7E7"
+            }
+          ]
+        },
+        {
+          "name": "Plaid",
+          "from": "Fads Slip Ons",
+          "textures": [
+            {
+              "source": "elastic",
+              "texture": "FadsSO_PlaidR.jpg"
+            },
+            {
+              "source": "foot_back",
+              "texture": "FadsSO_PlaidR.jpg"
+            },
+            {
+              "source": "foot_front",
+              "texture": "FadsSO_PlaidR.jpg"
+            },
+            {
+              "source": "sole",
+              "texture": "FadsSO_PlaidR.jpg"
+            },
+            {
+              "source": "tag_heel",
+              "texture": "FadsSO_PlaidR.jpg"
+            },
+            {
+              "source": "tag_side",
+              "texture": "FadsSO_PlaidR.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "elastic",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "foot_back",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "foot_front",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "sole",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "tag_heel",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "tag_side",
+              "color": "#E7E7E7"
+            }
+          ]
+        },
+        {
+          "name": "Planets",
+          "from": "Fads Slip Ons",
+          "textures": [
+            {
+              "source": "elastic",
+              "texture": "FadsSO_PlanetsR.jpg"
+            },
+            {
+              "source": "foot_back",
+              "texture": "FadsSO_PlanetsR.jpg"
+            },
+            {
+              "source": "foot_front",
+              "texture": "FadsSO_PlanetsR.jpg"
+            },
+            {
+              "source": "sole",
+              "texture": "FadsSO_PlanetsR.jpg"
+            },
+            {
+              "source": "tag_heel",
+              "texture": "FadsSO_PlanetsR.jpg"
+            },
+            {
+              "source": "tag_side",
+              "texture": "FadsSO_PlanetsR.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "elastic",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "foot_back",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "foot_front",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "sole",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "tag_heel",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "tag_side",
+              "color": "#E7E7E7"
+            }
+          ]
+        },
+        {
+          "name": "Red",
+          "from": "Fads Slip Ons",
+          "textures": [
+            {
+              "source": "elastic",
+              "texture": "FadsSO_RedR.jpg"
+            },
+            {
+              "source": "foot_back",
+              "texture": "FadsSO_RedR.jpg"
+            },
+            {
+              "source": "foot_front",
+              "texture": "FadsSO_RedR.jpg"
+            },
+            {
+              "source": "sole",
+              "texture": "FadsSO_RedR.jpg"
+            },
+            {
+              "source": "tag_heel",
+              "texture": "FadsSO_RedR.jpg"
+            },
+            {
+              "source": "tag_side",
+              "texture": "FadsSO_RedR.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "elastic",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "foot_back",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "foot_front",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "sole",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "tag_heel",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "tag_side",
+              "color": "#E7E7E7"
+            }
+          ]
+        },
+        {
+          "name": "Skulls",
+          "from": "Fads Slip Ons",
+          "textures": [
+            {
+              "source": "elastic",
+              "texture": "FadsSO_SkullsR.jpg"
+            },
+            {
+              "source": "foot_back",
+              "texture": "FadsSO_SkullsR.jpg"
+            },
+            {
+              "source": "foot_front",
+              "texture": "FadsSO_SkullsR.jpg"
+            },
+            {
+              "source": "sole",
+              "texture": "FadsSO_SkullsR.jpg"
+            },
+            {
+              "source": "tag_heel",
+              "texture": "FadsSO_SkullsR.jpg"
+            },
+            {
+              "source": "tag_side",
+              "texture": "FadsSO_SkullsR.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "elastic",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "foot_back",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "foot_front",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "sole",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "tag_heel",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "tag_side",
+              "color": "#E7E7E7"
+            }
+          ]
+        },
+        {
+          "name": "White",
+          "from": "Fads Slip Ons",
+          "textures": [
+            {
+              "source": "elastic",
+              "texture": "FadsSO_WhiteR.jpg"
+            },
+            {
+              "source": "foot_back",
+              "texture": "FadsSO_WhiteR.jpg"
+            },
+            {
+              "source": "foot_front",
+              "texture": "FadsSO_WhiteR.jpg"
+            },
+            {
+              "source": "sole",
+              "texture": "FadsSO_WhiteR.jpg"
+            },
+            {
+              "source": "tag_heel",
+              "texture": "FadsSO_WhiteR.jpg"
+            },
+            {
+              "source": "tag_side",
+              "texture": "FadsSO_WhiteR.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "elastic",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "foot_back",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "foot_front",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "sole",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "tag_heel",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "tag_side",
+              "color": "#E7E7E7"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Top_11182",
+      "folder": "BikiniTop",
+      "name": "BikiniTop",
+      "simId": "underwear.bikini_top",
+      "layer": "Underwear",
+      "slots": [
+        "Chest"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Basic_Cloth",
+          "texture": "BasicTop_Dif.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "XMat",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false,
+          "color": "#FFB854"
+        }
+      ],
+      "_measured": {
+        "verts": 11182,
+        "polys": 10864,
+        "bbox": [
+          -14.7,
+          14.7,
+          126.6,
+          152.3,
+          -12.8,
+          14.3
+        ],
+        "zones": {
+          "Chest": 0.988,
+          "Neck": 0.012
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Bikini Top",
+        "nameRu": "Верх бикини",
+        "descEn": "Two triangles and a knot.",
+        "descRu": "Два треугольника и узел.",
+        "warmth": 0.01,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Mat01",
+          "from": "X Top",
+          "textures": [
+            {
+              "source": "Basic_Cloth",
+              "texture": "BasicTop_Dif.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Basic_Cloth",
+              "color": "#FF9E9B"
+            },
+            {
+              "source": "XMat",
+              "color": "#FFB854"
+            }
+          ]
+        },
+        {
+          "name": "Mat02",
+          "from": "X Top",
+          "textures": [
+            {
+              "source": "Basic_Cloth",
+              "texture": "BasicTop_Dif.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Basic_Cloth",
+              "color": "#8FFFF6"
+            },
+            {
+              "source": "XMat",
+              "color": "#FFB854"
+            }
+          ]
+        },
+        {
+          "name": "Mat03",
+          "from": "X Top",
+          "textures": [
+            {
+              "source": "Basic_Cloth",
+              "texture": "BasicTop_Dif.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Basic_Cloth",
+              "color": "#0000DE"
+            },
+            {
+              "source": "XMat",
+              "color": "#FFB854"
+            }
+          ]
+        },
+        {
+          "name": "Mat04",
+          "from": "X Top",
+          "textures": [
+            {
+              "source": "Basic_Cloth",
+              "texture": "BasicTop_Dif.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Basic_Cloth",
+              "color": "#DA0000"
+            },
+            {
+              "source": "XMat",
+              "color": "#FFB854"
+            }
+          ]
+        },
+        {
+          "name": "Mat05",
+          "from": "X Top",
+          "textures": [
+            {
+              "source": "Basic_Cloth",
+              "texture": "BasicTop_Dif.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Basic_Cloth",
+              "color": "#262626"
+            },
+            {
+              "source": "XMat",
+              "color": "#FFB854"
+            }
+          ]
+        },
+        {
+          "name": "Mat06",
+          "from": "X Top",
+          "textures": [
+            {
+              "source": "Basic_Cloth",
+              "texture": "BasicTop_Dif.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Basic_Cloth",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "XMat",
+              "color": "#FFB854"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "X Bottom 04",
+      "folder": "BikiniBriefs",
+      "name": "BikiniBriefs",
+      "simId": "underwear.bikini_briefs",
+      "layer": "Underwear",
+      "slots": [
+        "Belly",
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "XMat",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false,
+          "color": "#FFB854"
+        },
+        {
+          "source": "Basic_MAt02",
+          "texture": "BasicBottom_Dif.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 32501,
+        "polys": 32308,
+        "bbox": [
+          -15.8,
+          15.9,
+          87.5,
+          106.7,
+          -12.3,
+          10.3
+        ],
+        "zones": {
+          "Pelvis": 0.62,
+          "Belly": 0.38
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Bikini Briefs",
+        "nameRu": "Низ бикини",
+        "descEn": "High on the hip, tied at the sides.",
+        "descRu": "Высоко на бедре, завязки по бокам.",
+        "warmth": 0.01,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso",
+          "Pelvis"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Mat01",
+          "from": "X Bottom",
+          "textures": [
+            {
+              "source": "Basic_MAt02",
+              "texture": "BasicBottom_Dif.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Basic_MAt02",
+              "color": "#FF9E9B"
+            },
+            {
+              "source": "XMat",
+              "color": "#FFB854"
+            }
+          ]
+        },
+        {
+          "name": "Mat02",
+          "from": "X Bottom",
+          "textures": [
+            {
+              "source": "Basic_MAt02",
+              "texture": "BasicBottom_Dif.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Basic_MAt02",
+              "color": "#8FFFF6"
+            },
+            {
+              "source": "XMat",
+              "color": "#FFB854"
+            }
+          ]
+        },
+        {
+          "name": "Mat03",
+          "from": "X Bottom",
+          "textures": [
+            {
+              "source": "Basic_MAt02",
+              "texture": "BasicBottom_Dif.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Basic_MAt02",
+              "color": "#0000DE"
+            },
+            {
+              "source": "XMat",
+              "color": "#FFB854"
+            }
+          ]
+        },
+        {
+          "name": "Mat04",
+          "from": "X Bottom",
+          "textures": [
+            {
+              "source": "Basic_MAt02",
+              "texture": "BasicBottom_Dif.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Basic_MAt02",
+              "color": "#DA0000"
+            },
+            {
+              "source": "XMat",
+              "color": "#FFB854"
+            }
+          ]
+        },
+        {
+          "name": "Mat05",
+          "from": "X Bottom",
+          "textures": [
+            {
+              "source": "Basic_MAt02",
+              "texture": "BasicBottom_Dif.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Basic_MAt02",
+              "color": "#262626"
+            },
+            {
+              "source": "XMat",
+              "color": "#FFB854"
+            }
+          ]
+        },
+        {
+          "name": "Mat06",
+          "from": "X Bottom",
+          "textures": [
+            {
+              "source": "Basic_MAt02",
+              "texture": "BasicBottom_Dif.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Basic_MAt02",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "XMat",
+              "color": "#FFB854"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "L6 Top",
+      "folder": "StrappyBra",
+      "name": "StrappyBra",
+      "simId": "underwear.bra_strappy",
+      "layer": "Underwear",
+      "slots": [
+        "Chest"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "L7_Trims_Mat",
+          "texture": "X-L6 Top Map D.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "L7_Basic_Mat",
+          "texture": "X-L6 Top Map D_X-L6 Top Map Transp.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "L7_Rings_Mat",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false,
+          "color": "#535251"
+        }
+      ],
+      "_measured": {
+        "verts": 7039,
+        "polys": 6872,
+        "bbox": [
+          -14.2,
+          14.2,
+          118.1,
+          152.3,
+          -12.4,
+          13.7
+        ],
+        "zones": {
+          "Chest": 0.989,
+          "Neck": 0.011
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Strappy Bra",
+        "nameRu": "Лиф на ремешках",
+        "descEn": "Rings and straps, more architecture than cloth.",
+        "descRu": "Кольца и ремешки — больше конструкции, чем ткани.",
+        "warmth": 0.02,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Mat01",
+          "from": "L6_Top",
+          "textures": [
+            {
+              "source": "L7_Basic_Mat",
+              "texture": "X-L6 Top Map D.jpg"
+            },
+            {
+              "source": "L7_Trims_Mat",
+              "texture": "X-L6 Top Map D.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "L7_Basic_Mat",
+              "color": "#010102"
+            },
+            {
+              "source": "L7_Rings_Mat",
+              "color": "#535251"
+            },
+            {
+              "source": "L7_Trims_Mat",
+              "color": "#010102"
+            }
+          ]
+        },
+        {
+          "name": "Mat02",
+          "from": "L6_Top",
+          "textures": [
+            {
+              "source": "L7_Basic_Mat",
+              "texture": "X-L6 Top Map D.jpg"
+            },
+            {
+              "source": "L7_Trims_Mat",
+              "texture": "X-L6 Top Map D.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "L7_Basic_Mat",
+              "color": "#D7D7D7"
+            },
+            {
+              "source": "L7_Rings_Mat",
+              "color": "#D7D7D7"
+            },
+            {
+              "source": "L7_Trims_Mat",
+              "color": "#D7D7D7"
+            }
+          ]
+        },
+        {
+          "name": "Mat03",
+          "from": "L6_Top",
+          "textures": [
+            {
+              "source": "L7_Basic_Mat",
+              "texture": "X-L6 Top Map D.jpg"
+            },
+            {
+              "source": "L7_Trims_Mat",
+              "texture": "X-L6 Top Map D.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "L7_Basic_Mat",
+              "color": "#C8C1B5"
+            },
+            {
+              "source": "L7_Rings_Mat",
+              "color": "#C8C1B5"
+            },
+            {
+              "source": "L7_Trims_Mat",
+              "color": "#C8C1B5"
+            }
+          ]
+        },
+        {
+          "name": "Mat04",
+          "from": "L6_Top",
+          "textures": [
+            {
+              "source": "L7_Basic_Mat",
+              "texture": "X-L6 Top Map D.jpg"
+            },
+            {
+              "source": "L7_Trims_Mat",
+              "texture": "X-L6 Top Map D.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "L7_Basic_Mat",
+              "color": "#FAD6C3"
+            },
+            {
+              "source": "L7_Rings_Mat",
+              "color": "#FAD6C3"
+            },
+            {
+              "source": "L7_Trims_Mat",
+              "color": "#FAD6C3"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "L6 Bottom",
+      "folder": "StrappyBriefs",
+      "name": "StrappyBriefs",
+      "simId": "underwear.briefs_strappy",
+      "layer": "Underwear",
+      "slots": [
+        "Belly",
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Bottom06-Mat",
+          "texture": "X-L6 Bottom Map D_X-L6 Bottom Map Transp.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        }
+      ],
+      "_measured": {
+        "verts": 9575,
+        "polys": 9008,
+        "bbox": [
+          -16.9,
+          16.9,
+          87.7,
+          108.3,
+          -12.7,
+          10.8
+        ],
+        "zones": {
+          "Pelvis": 0.698,
+          "Belly": 0.302
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Strappy Briefs",
+        "nameRu": "Трусики на ремешках",
+        "descEn": "The bra's other half.",
+        "descRu": "Вторая половина того же комплекта.",
+        "warmth": 0.01,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso",
+          "Pelvis"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Mat01",
+          "from": "L6_Bottom",
+          "textures": [
+            {
+              "source": "Bottom06-Mat",
+              "texture": "X-L6 Bottom Map D.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Bottom06-Mat",
+              "color": "#010102"
+            }
+          ]
+        },
+        {
+          "name": "Mat02",
+          "from": "L6_Bottom",
+          "textures": [
+            {
+              "source": "Bottom06-Mat",
+              "texture": "X-L6 Bottom Map D.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Bottom06-Mat",
+              "color": "#D7D7D7"
+            }
+          ]
+        },
+        {
+          "name": "Mat03",
+          "from": "L6_Bottom",
+          "textures": [
+            {
+              "source": "Bottom06-Mat",
+              "texture": "X-L6 Bottom Map D.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Bottom06-Mat",
+              "color": "#C8C1B5"
+            }
+          ]
+        },
+        {
+          "name": "Mat04",
+          "from": "L6_Bottom",
+          "textures": [
+            {
+              "source": "Bottom06-Mat",
+              "texture": "X-L6 Bottom Map D.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Bottom06-Mat",
+              "color": "#FAD6C3"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "SpookyStocking_16514",
+      "folder": "SpookyStockings",
+      "name": "SpookyStockings",
+      "simId": "underwear.stockings_spooky",
+      "layer": "Underwear",
+      "slots": [
+        "ThighR",
+        "ThighL",
+        "ShinR",
+        "ShinL",
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Stockings",
+          "texture": "01_KalSpookyStk_01_KalSpookyStkt.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        }
+      ],
+      "_measured": {
+        "verts": 16514,
+        "polys": 16448,
+        "bbox": [
+          -19.2,
+          19.2,
+          -0.3,
+          82.2,
+          -11.4,
+          14.3
+        ],
+        "zones": {
+          "Foot": 0.371,
+          "Shin": 0.342,
+          "Thigh": 0.287
+        },
+        "heelCm": 0.32
+      },
+      "sim": {
+        "displayName": "Patterned Stockings",
+        "nameRu": "Узорчатые чулки",
+        "descEn": "Thigh-high, printed. Warmth is not the point.",
+        "descRu": "До бедра, с рисунком. Тепло тут ни при чём.",
+        "warmth": 0.03,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "01",
+          "from": "Stockings",
+          "textures": [
+            {
+              "source": "Stockings",
+              "texture": "01_KalSpookyStk.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Stockings",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "02",
+          "from": "Stockings",
+          "textures": [
+            {
+              "source": "Stockings",
+              "texture": "02_KalSpookyStk.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Stockings",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "03",
+          "from": "Stockings",
+          "textures": [
+            {
+              "source": "Stockings",
+              "texture": "03_KalSpookyStk.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Stockings",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "04",
+          "from": "Stockings",
+          "textures": [
+            {
+              "source": "Stockings",
+              "texture": "04_KalSpookyStk.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Stockings",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "05",
+          "from": "Stockings",
+          "textures": [
+            {
+              "source": "Stockings",
+              "texture": "05_KalSpookyStk.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Stockings",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "06",
+          "from": "Stockings",
+          "textures": [
+            {
+              "source": "Stockings",
+              "texture": "06_KalSpookyStk.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Stockings",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "07",
+          "from": "Stockings",
+          "textures": [
+            {
+              "source": "Stockings",
+              "texture": "07_KalSpookyStk.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Stockings",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "08",
+          "from": "Stockings",
+          "textures": [
+            {
+              "source": "Stockings",
+              "texture": "08_KalSpookyStk.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Stockings",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "09",
+          "from": "Stockings",
+          "textures": [
+            {
+              "source": "Stockings",
+              "texture": "09_KalSpookyStk.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Stockings",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "10",
+          "from": "Stockings",
+          "textures": [
+            {
+              "source": "Stockings",
+              "texture": "10_KalSpookyStk.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Stockings",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "11",
+          "from": "Stockings",
+          "textures": [
+            {
+              "source": "Stockings",
+              "texture": "11_KalSpookyStk.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Stockings",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "13",
+          "from": "Stockings",
+          "textures": [
+            {
+              "source": "Stockings",
+              "texture": "13_KalSpookyStk.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Stockings",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "14",
+          "from": "Stockings",
+          "textures": [
+            {
+              "source": "Stockings",
+              "texture": "14_KalSpookyStk.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Stockings",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "15",
+          "from": "Stockings",
+          "textures": [
+            {
+              "source": "Stockings",
+              "texture": "15_KalSpookyStk.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Stockings",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "16",
+          "from": "Stockings",
+          "textures": [
+            {
+              "source": "Stockings",
+              "texture": "16_KalSpookyStk.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Stockings",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "17",
+          "from": "Stockings",
+          "textures": [
+            {
+              "source": "Stockings",
+              "texture": "17_KalSpookyStk.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Stockings",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "18",
+          "from": "Stockings",
+          "textures": [
+            {
+              "source": "Stockings",
+              "texture": "18_KalSpookyStk.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Stockings",
+              "color": "#FFFFFF"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "BasePanties_849",
+      "folder": "PlainPanties",
+      "name": "PlainPanties",
+      "simId": "underwear.briefs_plain",
+      "layer": "Underwear",
+      "slots": [
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "BackPanel",
+          "texture": "Panties_BaseDiffuse.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Crotchfd",
+          "texture": "Panties_BaseDiffuse.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "FrontPanel",
+          "texture": "Panties_BaseDiffuse.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Sides",
+          "texture": "Panties_BaseDiffuse.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Edges",
+          "texture": "Panties_BaseDiffuse.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 849,
+        "polys": 760,
+        "bbox": [
+          -17.2,
+          17.2,
+          87.8,
+          102.9,
+          -12.5,
+          11.2
+        ],
+        "zones": {
+          "Pelvis": 1.0
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Plain Panties",
+        "nameRu": "Простые трусики",
+        "descEn": "Plain cotton. Nothing to say about them.",
+        "descRu": "Простой хлопок. Сказать о них нечего.",
+        "warmth": 0.01,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Pelvis"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Mat01",
+          "from": "Panties",
+          "textures": [
+            {
+              "source": "BackPanel",
+              "texture": "Panties_BaseDiffuse.jpg"
+            },
+            {
+              "source": "Crotchfd",
+              "texture": "Panties_BaseDiffuse.jpg"
+            },
+            {
+              "source": "Edges",
+              "texture": "Panties_BaseDiffuse.jpg"
+            },
+            {
+              "source": "FrontPanel",
+              "texture": "Panties_BaseDiffuse.jpg"
+            },
+            {
+              "source": "Sides",
+              "texture": "Panties_BaseDiffuse.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BackPanel",
+              "color": "#878787"
+            },
+            {
+              "source": "Crotchfd",
+              "color": "#878787"
+            },
+            {
+              "source": "Edges",
+              "color": "#878787"
+            },
+            {
+              "source": "FrontPanel",
+              "color": "#878787"
+            },
+            {
+              "source": "Sides",
+              "color": "#878787"
+            }
+          ]
+        },
+        {
+          "name": "Mat02",
+          "from": "Panties",
+          "textures": [
+            {
+              "source": "BackPanel",
+              "texture": "Panties_BaseDiffuse.jpg"
+            },
+            {
+              "source": "Crotchfd",
+              "texture": "Panties_BaseDiffuse.jpg"
+            },
+            {
+              "source": "Edges",
+              "texture": "Panties_BaseDiffuse.jpg"
+            },
+            {
+              "source": "FrontPanel",
+              "texture": "Panties_BaseDiffuse.jpg"
+            },
+            {
+              "source": "Sides",
+              "texture": "Panties_BaseDiffuse.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BackPanel",
+              "color": "#222222"
+            },
+            {
+              "source": "Crotchfd",
+              "color": "#222222"
+            },
+            {
+              "source": "Edges",
+              "color": "#222222"
+            },
+            {
+              "source": "FrontPanel",
+              "color": "#222222"
+            },
+            {
+              "source": "Sides",
+              "color": "#222222"
+            }
+          ]
+        },
+        {
+          "name": "Mat03",
+          "from": "Panties",
+          "textures": [
+            {
+              "source": "BackPanel",
+              "texture": "Panties_BaseDiffuse.jpg"
+            },
+            {
+              "source": "Crotchfd",
+              "texture": "Panties_BaseDiffuse.jpg"
+            },
+            {
+              "source": "Edges",
+              "texture": "Panties_BaseDiffuse.jpg"
+            },
+            {
+              "source": "FrontPanel",
+              "texture": "Panties_BaseDiffuse.jpg"
+            },
+            {
+              "source": "Sides",
+              "texture": "Panties_BaseDiffuse.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BackPanel",
+              "color": "#9E3A6F"
+            },
+            {
+              "source": "Crotchfd",
+              "color": "#9E3A6F"
+            },
+            {
+              "source": "Edges",
+              "color": "#9E3A6F"
+            },
+            {
+              "source": "FrontPanel",
+              "color": "#9E3A6F"
+            },
+            {
+              "source": "Sides",
+              "color": "#9E3A6F"
+            }
+          ]
+        },
+        {
+          "name": "Mat04",
+          "from": "Panties",
+          "textures": [
+            {
+              "source": "BackPanel",
+              "texture": "Panties_BaseDiffuse.jpg"
+            },
+            {
+              "source": "Crotchfd",
+              "texture": "Panties_BaseDiffuse.jpg"
+            },
+            {
+              "source": "Edges",
+              "texture": "Panties_BaseDiffuse.jpg"
+            },
+            {
+              "source": "FrontPanel",
+              "texture": "Panties_BaseDiffuse.jpg"
+            },
+            {
+              "source": "Sides",
+              "texture": "Panties_BaseDiffuse.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BackPanel",
+              "color": "#16719B"
+            },
+            {
+              "source": "Crotchfd",
+              "color": "#16719B"
+            },
+            {
+              "source": "Edges",
+              "color": "#16719B"
+            },
+            {
+              "source": "FrontPanel",
+              "color": "#16719B"
+            },
+            {
+              "source": "Sides",
+              "color": "#16719B"
+            }
+          ]
+        },
+        {
+          "name": "Shima01",
+          "from": "Panties",
+          "textures": [
+            {
+              "source": "BackPanel",
+              "texture": "ShimaPan01.jpg"
+            },
+            {
+              "source": "Crotchfd",
+              "texture": "ShimaPan01.jpg"
+            },
+            {
+              "source": "Edges",
+              "texture": "ShimaPan01.jpg"
+            },
+            {
+              "source": "FrontPanel",
+              "texture": "ShimaPan01.jpg"
+            },
+            {
+              "source": "Sides",
+              "texture": "ShimaPan01.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BackPanel",
+              "color": "#747474"
+            },
+            {
+              "source": "Crotchfd",
+              "color": "#747474"
+            },
+            {
+              "source": "Edges",
+              "color": "#747474"
+            },
+            {
+              "source": "FrontPanel",
+              "color": "#747474"
+            },
+            {
+              "source": "Sides",
+              "color": "#747474"
+            }
+          ]
+        },
+        {
+          "name": "Shima02",
+          "from": "Panties",
+          "textures": [
+            {
+              "source": "BackPanel",
+              "texture": "Shimapan02.jpg"
+            },
+            {
+              "source": "Crotchfd",
+              "texture": "Shimapan02.jpg"
+            },
+            {
+              "source": "Edges",
+              "texture": "Shimapan02.jpg"
+            },
+            {
+              "source": "FrontPanel",
+              "texture": "Shimapan02.jpg"
+            },
+            {
+              "source": "Sides",
+              "texture": "Shimapan02.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BackPanel",
+              "color": "#747474"
+            },
+            {
+              "source": "Crotchfd",
+              "color": "#747474"
+            },
+            {
+              "source": "Edges",
+              "color": "#747474"
+            },
+            {
+              "source": "FrontPanel",
+              "color": "#747474"
+            },
+            {
+              "source": "Sides",
+              "color": "#747474"
+            }
+          ]
+        },
+        {
+          "name": "Shima03",
+          "from": "Panties",
+          "textures": [
+            {
+              "source": "BackPanel",
+              "texture": "Shimapan03.jpg"
+            },
+            {
+              "source": "Crotchfd",
+              "texture": "Shimapan03.jpg"
+            },
+            {
+              "source": "Edges",
+              "texture": "Shimapan03.jpg"
+            },
+            {
+              "source": "FrontPanel",
+              "texture": "Shimapan03.jpg"
+            },
+            {
+              "source": "Sides",
+              "texture": "Shimapan03.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BackPanel",
+              "color": "#747474"
+            },
+            {
+              "source": "Crotchfd",
+              "color": "#747474"
+            },
+            {
+              "source": "Edges",
+              "color": "#747474"
+            },
+            {
+              "source": "FrontPanel",
+              "color": "#747474"
+            },
+            {
+              "source": "Sides",
+              "color": "#747474"
+            }
+          ]
+        },
+        {
+          "name": "Shima04",
+          "from": "Panties",
+          "textures": [
+            {
+              "source": "BackPanel",
+              "texture": "Shimapan04.jpg"
+            },
+            {
+              "source": "Crotchfd",
+              "texture": "Shimapan04.jpg"
+            },
+            {
+              "source": "Edges",
+              "texture": "Shimapan04.jpg"
+            },
+            {
+              "source": "FrontPanel",
+              "texture": "Shimapan04.jpg"
+            },
+            {
+              "source": "Sides",
+              "texture": "Shimapan04.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BackPanel",
+              "color": "#747474"
+            },
+            {
+              "source": "Crotchfd",
+              "color": "#747474"
+            },
+            {
+              "source": "Edges",
+              "color": "#747474"
+            },
+            {
+              "source": "FrontPanel",
+              "color": "#747474"
+            },
+            {
+              "source": "Sides",
+              "color": "#747474"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "skipped": [
+    "FadsSlipOn_R_8822"
+  ]
+}

@@ -143,6 +143,11 @@ public static class NewWearExtractor
         // surfaces it actually changes: a variant may recolour the cloth and
         // leave the buckles as the prototype has them.
         public Dictionary<string, string> Textures = new Dictionary<string, string>();
+        // FBX surface -> the tint this colourway paints over that texture.
+        // Half the vendors ship colourways this way and change no picture at
+        // all: the Autumn Jacket has eighteen, every one of them the same
+        // `AUTUMN_Texture01.jpg` under a different diffuse colour.
+        public Dictionary<string, string> Colors = new Dictionary<string, string>();
     }
 
     // Empty for the same reason as BuiltInSources: every garment is described in
@@ -207,11 +212,17 @@ public static class NewWearExtractor
         public string name;
         // An array, not a map: JsonUtility cannot deserialise a dictionary.
         public DropVariantTexture[] textures;
+        public DropVariantColor[] colors;
     }
 
     [System.Serializable] private sealed class DropVariantTexture
     {
         public string source, texture;
+    }
+
+    [System.Serializable] private sealed class DropVariantColor
+    {
+        public string source, color;
     }
 
     // Straight out of the DAZ foot-pose preset that ships with a heeled shoe.
@@ -324,7 +335,12 @@ public static class NewWearExtractor
                         .Where(t => !string.IsNullOrEmpty(t.source))
                         .GroupBy(t => t.source)
                         .ToDictionary(grp => grp.Key, grp => grp.First().texture),
-                }).Where(v => !string.IsNullOrEmpty(v.Name) && v.Textures.Count > 0).ToArray(),
+                    Colors = (v.colors ?? new DropVariantColor[0])
+                        .Where(c => !string.IsNullOrEmpty(c.source) && !string.IsNullOrEmpty(c.color))
+                        .GroupBy(c => c.source)
+                        .ToDictionary(grp => grp.Key, grp => grp.First().color),
+                }).Where(v => !string.IsNullOrEmpty(v.Name)
+                              && (v.Textures.Count > 0 || v.Colors.Count > 0)).ToArray(),
                 Heel = ParseHeel(g.heelPose),
             });
         }
@@ -1125,9 +1141,12 @@ public static class NewWearExtractor
                     AssetDatabase.CreateAsset(mat, path);
                 }
 
-                // Everything but the texture comes from the prototype's spec:
-                // a colourway changes the picture, not how the cloth behaves.
-                mat.SetColor("_BaseColor", spec.Color);
+                // Everything but the picture and its tint comes from the
+                // prototype's spec: a colourway changes how the cloth LOOKS,
+                // not how it behaves.
+                mat.SetColor("_BaseColor", variant.Colors.TryGetValue(surface, out var tint)
+                    ? ParseColor(tint)
+                    : spec.Color);
                 mat.SetFloat("_Smoothness", spec.Smoothness);
                 mat.SetFloat("_Metallic", spec.Metallic);
                 if (spec.DoubleSided)

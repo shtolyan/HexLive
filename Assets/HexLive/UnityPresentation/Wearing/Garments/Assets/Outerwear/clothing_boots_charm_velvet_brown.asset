@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_boots_charm_velvet_brown
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.boots_charm_velvet_brown
+  prototypeId: clothing.boots_charm
+  displayName: Thigh-High Boots (Velvet Brown)
+  variantMaterials:
+  - {fileID: 2100000, guid: d83f671bc16d2dd41a39af89cc0c5b8c, type: 2}
+  - {fileID: 2100000, guid: d50578593a7879e47882a87af67aaf10, type: 2}
+  - {fileID: 2100000, guid: a4c9163964ed19d49a463d13cdbceb35, type: 2}
+  - {fileID: 2100000, guid: 85091c481114a2b4190c7024eb0381aa, type: 2}
+  - {fileID: 2100000, guid: c2bc37726f65eb245ab9da44ef1632ae, type: 2}
+  - {fileID: 2100000, guid: b8b883bc54d7ad4498568bba53d0ae3c, type: 2}
+  - {fileID: 2100000, guid: 261eb23556472ea47810d662bc172ff5, type: 2}
+  - {fileID: 2100000, guid: 8f7ad2b080d344c44a66bab6362b70b9, type: 2}
+  - {fileID: 2100000, guid: fda1cba331b0c134197205d01cf97933, type: 2}
+  - {fileID: 2100000, guid: 6c31b83972db87c4ba2bce27ea25b83d, type: 2}
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.14
+  armor: 0.1
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

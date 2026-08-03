@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_skirt_jane_redst
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.skirt_jane_redst
+  prototypeId: clothing.skirt_jane
+  displayName: Tiered Skirt (RedsT)
+  variantMaterials:
+  - {fileID: 2100000, guid: 3377adefb6bae7c4787f6c4a6e91ec7a, type: 2}
+  - {fileID: 2100000, guid: 235d23c94be3212458181f09c5b8c177, type: 2}
+  - {fileID: 2100000, guid: 95e048492ca7b6646b5888929543b279, type: 2}
+  - {fileID: 2100000, guid: ed97fca17c07dde4f935c393edb141f9, type: 2}
+  - {fileID: 2100000, guid: 31b8a722386a78f45bf81591b34325cb, type: 2}
+  - {fileID: 2100000, guid: 015b3fe19428dc4449d4e83f9c2d5f24, type: 2}
+  - {fileID: 2100000, guid: 118d6b78adb961140a5aa8d3bee96b60, type: 2}
+  - {fileID: 2100000, guid: 94126737689da6a49944bccdb71ddba3, type: 2}
+  layer: 1
+  covers: 020000000500000006000000
+  warmth: 0.08
+  armor: 0
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

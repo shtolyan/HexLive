@@ -3201,22 +3201,6 @@ MonoBehaviour:
       - 'Усиленная кожа до щиколотки. Тёплые и рвутся неохотно.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'item.clothing_boots_biker.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Biker Boots'
-      - 'Байкерские ботинки'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_boots_biker.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Buckled and hard-soled. The best thing between a wolf and her ankle.'
-      - 'На пряжках и жёсткой подошве. Лучшее между волком и её лодыжкой.'
-      Flags: 0101
-      Languages_Touch: []
     - Term: 'item.clothing_boots_leather.name'
       TermType: 0
       Description: 

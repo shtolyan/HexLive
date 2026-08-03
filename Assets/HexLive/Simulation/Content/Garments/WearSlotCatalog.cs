@@ -68,7 +68,6 @@ namespace HexLive.Simulation.Content
             ["clothing.boots_anarchy"] = new[] { WearSlot.ThighR, WearSlot.ThighL, WearSlot.ShinR, WearSlot.ShinL, WearSlot.FootR, WearSlot.FootL },
             ["clothing.boots_anarchy_purple"] = new[] { WearSlot.ShinR, WearSlot.ShinL, WearSlot.FootR, WearSlot.FootL },
             ["clothing.boots_anarchy_red"] = new[] { WearSlot.ShinR, WearSlot.ShinL, WearSlot.FootR, WearSlot.FootL },
-            ["clothing.boots_biker"] = new[] { WearSlot.ShinR, WearSlot.ShinL, WearSlot.FootR, WearSlot.FootL },
             ["clothing.boots_leather"] = new[] { WearSlot.ShinR, WearSlot.ShinL, WearSlot.FootR, WearSlot.FootL },
             ["clothing.boots_leather_lb_black_red_leather"] = new[] { WearSlot.ShinR, WearSlot.ShinL, WearSlot.FootR, WearSlot.FootL },
             ["clothing.boots_leather_lb_black_white_leather"] = new[] { WearSlot.ShinR, WearSlot.ShinL, WearSlot.FootR, WearSlot.FootL },

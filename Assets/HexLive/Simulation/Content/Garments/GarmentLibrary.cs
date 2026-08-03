@@ -397,7 +397,6 @@ namespace HexLive.Simulation.Content
                 new("clothing.sneakers_nerd_nc_sneakers_pink", "Canvas Sneakers (NC Sneakers Pink)", WearLayer.Outerwear, 0.07f, 0.03f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sneakers_nerd" },
                 new("clothing.sneakers_nerd_nc_sneakers_purple", "Canvas Sneakers (NC Sneakers Purple)", WearLayer.Outerwear, 0.07f, 0.03f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sneakers_nerd" },
                 new("clothing.jacket_biker", "Biker Jacket", WearLayer.Outerwear, 0.32f, 0.14f, 0.00f, dress, 3, BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR),
-                new("clothing.boots_biker", "Biker Boots", WearLayer.Outerwear, 0.15f, 0.14f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR),
                 new("clothing.boots_leather", "Leather Boots", WearLayer.Outerwear, 0.13f, 0.11f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR),
                 new("clothing.belt_fighter", "Wide Belt", WearLayer.Outerwear, 0.01f, 0.02f, 0.00f, dress, 2, BodyPart.Torso),
                 new("clothing.footwear_fighter", "Wrapped Sandals", WearLayer.Outerwear, 0.07f, 0.05f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR),

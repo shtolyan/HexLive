@@ -1818,16 +1818,18 @@ public static class NewWearExtractor
             mat.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Off);
         }
 
-        if (spec.Texture != null)
+        // Карта ставится ВСЕГДА, в том числе в null. Раньше её только
+        // назначали: если у поверхности текстуру убрали из манифеста, материал
+        // молча оставался со старой. Бойцовский топ так и остался в чужом
+        // атласе кэйкоги после того, как атлас был снят, — и выглядело это как
+        // «артефакт текстуры», а не как невыполненная правка.
+        var tex = spec.Texture != null ? FindTexture(g, spec.Texture) : null;
+        if (spec.Texture != null && tex == null)
         {
-            var tex = FindTexture(g, spec.Texture);
-            if (tex == null)
-            {
-                Debug.LogWarning($"[NewWear] {g.Folder}: texture {spec.Texture} not imported yet");
-            }
-
-            mat.SetTexture("_BaseMap", tex);
+            Debug.LogWarning($"[NewWear] {g.Folder}: texture {spec.Texture} not imported yet");
         }
+
+        mat.SetTexture("_BaseMap", tex);
 
         if (spec.AlphaClip)
         {

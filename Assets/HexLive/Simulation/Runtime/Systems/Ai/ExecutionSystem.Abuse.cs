@@ -579,10 +579,31 @@ public sealed partial class ExecutionSystem
 
     private static void AbortAbuse(WorldState world, NPCState npc, string reason)
     {
+        // §81.15: сорванная сцена — тоже сцена. Раньше плакала и убегала
+        // только жертва ДОИГРАННОЙ сцены (FinishAbuse), а когда подруг
+        // набегало трое и сцена рвалась «Outnumbered» — самый частый исход
+        // после §109, — жертва как ни в чём не бывало возвращалась к кокосу.
+        // Слёзы «пропали» ровно в тот день, когда защитницы заработали.
+        var sceneRan = npc.Execution.CurrentInteraction == InteractionType.Abuse;
+
         if (npc.Mind.AbuseTargetNpcId is { } leavingId &&
             world.Entities.Npcs.TryGetValue(leavingId, out var leaving))
         {
             LeaveCombat(world, npc, leaving);
+
+            if (sceneRan && Spec81.AbuseRoutEnabled &&
+                leaving.Health > 0f &&
+                !leaving.IsUnconscious(world.Tick) &&
+                !leaving.Body.IsProne &&
+                !(Spec106.WaterSanctuaryEnabled &&
+                  CombatMedium.IsNpcSwimming(world, leaving)))
+            {
+                SocialCueSignals.Stamp(world, leaving, "AbuseFledHome", npc.Id);
+                var fled = MobSystem.TryFleeToCamp(world, leaving,
+                    $"Shaken after abuse by NPC{npc.Id.Value}");
+                Trace.Emit(world, leaving.Id, "AbuseRouted",
+                    $"Winner=none Reason={reason} Fled={fled}");
+            }
         }
         else
         {

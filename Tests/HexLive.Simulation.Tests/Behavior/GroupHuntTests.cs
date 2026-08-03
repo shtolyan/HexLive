@@ -130,12 +130,16 @@ public sealed class GroupHuntTests
         var engine = TestWorld.CreateEngine(313);
         var world = engine.World;
 
+        var outsiderId = world.Entities.Npcs.Values
+            .First(n => n.Faction != Faction.Colony).Id;
+
         long watermark = 0;
         int? pactAt = null;
         int? struckAt = null;
+        int? slainAt = null;
         var blockedTail = new Queue<string>();
 
-        for (var tick = 0; tick < 24000 && struckAt is null; tick++)
+        for (var tick = 0; tick < 24000 && struckAt is null && slainAt is null; tick++)
         {
             engine.Step();
             foreach (var e in world.Events.Items)
@@ -154,6 +158,15 @@ public sealed class GroupHuntTests
                     case "GroupHuntStruck":
                         struckAt ??= world.Tick;
                         break;
+                    // §109.8: дуга ненависти может развязаться РАНЬШЕ сговора —
+                    // с честным ответным боем чужак может пасть от рук
+                    // колонистки в обычной драке (пощаду §86 снимает та же
+                    // ненависть, что копится к сговору). Это не провал охоты,
+                    // это её более ранний финал.
+                    case "NpcDied" when e.EntityId == outsiderId.Value &&
+                        e.Message.Contains("by NPC"):
+                        slainAt ??= world.Tick;
+                        break;
                     default:
                         if (e.Type.StartsWith("GroupHunt", System.StringComparison.Ordinal))
                         {
@@ -168,6 +181,12 @@ public sealed class GroupHuntTests
                 }
             }
 
+        }
+
+        if (slainAt is { } deathTick && struckAt is null)
+        {
+            Assert.Pass($"Чужак убит колонисткой на тике {deathTick} — ненависть " +
+                "развязалась honest-боем раньше, чем понадобился сговор (§109.8).");
         }
 
         Assert.That(pactAt, Is.Not.Null,

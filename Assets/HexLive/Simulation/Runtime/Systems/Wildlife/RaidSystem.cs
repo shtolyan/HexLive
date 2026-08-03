@@ -180,10 +180,55 @@ public sealed class RaidSystem : ISimulationSystem
         }
 
         AnswerBlows(world);
+        BraceMarks(world);
 
         foreach (var deadId in _dead)
         {
             MobSystem.RemoveDeadNpc(world, deadId);
+        }
+    }
+
+    // §81.15: она ЧУВСТВУЕТ, что за ней идут. Жертва дорубала кокос, пока
+    // через два гекса к ней бежал человек с целью «докопаться», — дела она
+    // бросала только в момент старта сцены. Теперь заявленная метка
+    // (PendingAbuseFrom) при приближении обидчика бросает занятие, встаёт в
+    // стойку и разворачивается к нему лицом — ждёт. Пары НЕТ намеренно: пара
+    // в HumanCombatSystem означает замах, а «ждать, что он сделает» — не
+    // «ударить первой». Решение отвечать принимает сцена (AnswersBack).
+    private static void BraceMarks(WorldState world)
+    {
+        foreach (var mark in world.Entities.Npcs.Values)
+        {
+            if (mark.Health <= 0f ||
+                mark.Mind.PendingAbuseFrom is not { } claimerId ||
+                !world.Entities.Npcs.TryGetValue(claimerId, out var claimer) ||
+                claimer.Health <= 0f ||
+                claimer.Mind.CurrentGoal != GoalType.Abuse ||
+                // Сцена уже идёт — дела бросает сама сцена.
+                claimer.Execution.CurrentInteraction == InteractionType.Abuse ||
+                mark.IsUnconscious(world.Tick) ||
+                mark.Execution.CurrentInteraction == InteractionType.Sleep ||
+                mark.Mind.CurrentGoal == GoalType.Flee ||
+                HexSpatialMath.HexDistance(mark.Tile, claimer.Tile) >
+                    Spec57.AnswerReadyRadiusTiles)
+            {
+                continue;
+            }
+
+            if (mark.Plan.Status == PlanStatus.Active ||
+                mark.Execution.Status == ExecutionStatus.InProgress)
+            {
+                PlanInterruption.Abort(world, mark,
+                    $"Braces for NPC{claimer.Id.Value}");
+                mark.Mind.CurrentGoal = GoalType.None;
+                Trace.Emit(world, mark.Id, "MarkBraces",
+                    $"Abuser=NPC{claimer.Id.Value} " +
+                    $"Dist={HexSpatialMath.HexDistance(mark.Tile, claimer.Tile)}");
+            }
+
+            // Стойка + разворот — и никакого первого удара.
+            mark.IsFighting = true;
+            HumanCombatSystem.FaceOpponent(world, mark, claimer);
         }
     }
 
@@ -288,6 +333,23 @@ public sealed class RaidSystem : ISimulationSystem
 
             if (nearest is null)
             {
+                continue;
+            }
+
+            // §109.8: разбитый ВЫХОДИТ из размена — бежит домой, как налётчик
+            // при BreakOff (тот же порог). «Бей в ответ» без «отступи, когда
+            // разбит» оказалось смертным приговором: клапаны отхода есть у
+            // налёта (0.55) и у квари охоты (0.85), а отвечающий дрался до
+            // разбитой головы — чужак погибал раньше, чем колония успевала
+            // накопить ненависть на сговор §108. Одержимого (цель Abuse)
+            // клапан не трогает — его перебивает только нокаут (§81.14).
+            if (target.Health < Spec72.RaidFleeHealth &&
+                target.Mind.CurrentGoal != GoalType.Abuse &&
+                MobSystem.TryFleeToCamp(world, target,
+                    $"Beaten by NPC{nearest.Id.Value}"))
+            {
+                target.Mind.CombatOpponentNpcId = null;
+                FightScene.ReleaseSwingSlot(target);
                 continue;
             }
 

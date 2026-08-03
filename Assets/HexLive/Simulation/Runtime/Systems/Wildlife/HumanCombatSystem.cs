@@ -164,7 +164,9 @@ public sealed class HumanCombatSystem : ISimulationSystem
         actor.Position += dir * step;
     }
 
-    private static void FaceOpponent(WorldState world, NPCState actor, NPCState opponent)
+    // §81.15: internal — жертва, почуявшая приближение, разворачивается тем же
+    // манером, что и боец, только без пары (пара тут означает замах).
+    internal static void FaceOpponent(WorldState world, NPCState actor, NPCState opponent)
     {
         var direction = new Float2(
             opponent.Position.X - actor.Position.X,

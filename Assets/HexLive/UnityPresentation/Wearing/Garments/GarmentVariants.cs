@@ -25,30 +25,60 @@ namespace HexLive.UnityPresentation.Wearing.Garments
     public static class GarmentVariants
     {
         private static Dictionary<string, GarmentDefinition> _byId;
+        private static Dictionary<string, List<GarmentDefinition>> _byArt;
 
         private static Dictionary<string, GarmentDefinition> Index
         {
             get
             {
-                if (_byId != null)
-                {
-                    return _byId;
-                }
-
-                _byId = new Dictionary<string, GarmentDefinition>();
-                var catalog = Resources.Load<GarmentCatalog>(GarmentCatalog.ResourcePath);
-                if (catalog != null && catalog.garments != null)
-                {
-                    foreach (var g in catalog.garments)
-                    {
-                        if (g != null && !string.IsNullOrEmpty(g.id))
-                        {
-                            _byId[g.id] = g;
-                        }
-                    }
-                }
-
+                Build();
                 return _byId;
+            }
+        }
+
+        // Both indexes are filled in ONE pass so Forget() can never leave half
+        // the lookup warm and half of it stale.
+        private static void Build()
+        {
+            if (_byId != null)
+            {
+                return;
+            }
+
+            _byId = new Dictionary<string, GarmentDefinition>();
+            _byArt = new Dictionary<string, List<GarmentDefinition>>();
+            var catalog = Resources.Load<GarmentCatalog>(GarmentCatalog.ResourcePath);
+            if (catalog == null || catalog.garments == null)
+            {
+                return;
+            }
+
+            foreach (var g in catalog.garments)
+            {
+                if (g == null || string.IsNullOrEmpty(g.id))
+                {
+                    continue;
+                }
+
+                _byId[g.id] = g;
+
+                if (!_byArt.TryGetValue(g.ArtId, out var family))
+                {
+                    family = new List<GarmentDefinition>();
+                    _byArt[g.ArtId] = family;
+                }
+
+                // The prototype leads its own family: a chooser that opens on
+                // the original reads as "this is the default colour", and the
+                // catalog's order between variants is otherwise arbitrary.
+                if (g.id == g.ArtId)
+                {
+                    family.Insert(0, g);
+                }
+                else
+                {
+                    family.Add(g);
+                }
             }
         }
 
@@ -79,10 +109,34 @@ namespace HexLive.UnityPresentation.Wearing.Garments
                 : null;
         }
 
+        /// <summary>
+        /// Every item painted on one prototype's art, the prototype first.
+        /// </summary>
+        /// <remarks>
+        /// The inverse of <see cref="ArtIdOf"/> — the wardrobe browser needs it
+        /// to offer "the same knickers, other colours" without walking the
+        /// catalog itself. An art id nobody claims answers with an empty list,
+        /// which is the honest answer for the 88 garments that have no variants
+        /// and the shape a caller must handle anyway.
+        /// </remarks>
+        public static IReadOnlyList<GarmentDefinition> VariantsOf(string artId)
+        {
+            if (string.IsNullOrEmpty(artId))
+            {
+                return System.Array.Empty<GarmentDefinition>();
+            }
+
+            Build();
+            return _byArt.TryGetValue(artId, out var family)
+                ? family
+                : System.Array.Empty<GarmentDefinition>();
+        }
+
         /// <summary>Drop the cache — the catalog changed under us (editor only).</summary>
         public static void Forget()
         {
             _byId = null;
+            _byArt = null;
         }
     }
 }

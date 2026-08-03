@@ -78,9 +78,16 @@ _SECTION_END = {
 
 def library_row(sim: dict, garment_id: str, layer: str) -> str:
     covers = ", ".join(f"BodyPart.{p}" for p in sim["covers"])
-    return (f'                new("{garment_id}", "{sim["displayName"]}", '
-            f'WearLayer.{layer}, {sim["warmth"]:.2f}f, {sim["armor"]:.2f}f, '
-            f'{sim["thermalDelta"]:.2f}f, dress, {sim["capacity"]}, {covers}),')
+    row = (f'                new("{garment_id}", "{sim["displayName"]}", '
+           f'WearLayer.{layer}, {sim["warmth"]:.2f}f, {sim["armor"]:.2f}f, '
+           f'{sim["thermalDelta"]:.2f}f, dress, {sim["capacity"]}, {covers})')
+    # A colourway is an item in its own right — its own name, its own row — that
+    # merely borrows another's geometry. `PrototypeId` is a settable property
+    # rather than a constructor argument, because ~100 existing rows pass their
+    # arguments positionally and none of them would survive a new parameter.
+    if sim.get("prototypeId"):
+        row += f' {{ PrototypeId = "{sim["prototypeId"]}" }}'
+    return row + ","
 
 
 def add_to_library(garments: list[dict]) -> dict:

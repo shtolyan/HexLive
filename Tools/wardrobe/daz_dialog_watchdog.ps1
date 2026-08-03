@@ -65,7 +65,10 @@ param(
 # Which file is missing therefore has to come from DAZ's own log
 # (%APPDATA%\DAZ 3D\Studio4\log.txt), not from here.
 $Allow = @(
-    'missing files',
+    # ЕДИНСТВЕННОЕ и множественное: DAZ показывает «Missing Files» списком,
+    # но на один потерянный файл — «Missing File». Второе встало прогоном, потому
+    # что шаблон требовал 's'.
+    'missing files?',
     'missingassetsdlg',
     'the files listed below could not be found',
     'could not find file',

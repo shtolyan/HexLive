@@ -68,9 +68,18 @@ namespace HexLive.UnityPresentation.Config
                     }
                 }
 
+                // §31B.4E: перенести ПРОТОТИП. Конструктор ставит PrototypeId
+                // равным Id — «сама себе геометрия», — так что строка, собранная
+                // заново, молча теряет связь с прототипом: все 39 расцветок
+                // заходa стали бы самостоятельными вещами без своего меша. Здесь
+                // это видно только по пропавшему полю в simdata.json, а в игре —
+                // по белой вещи ниоткуда.
                 result.Add(new GarmentParams(
                     g.Id, g.DisplayName, g.Layer, g.Warmth, g.Armor, g.ThermalDelta,
-                    g.DressDurationTicks, cap, sex, g.Covers.ToArray()));
+                    g.DressDurationTicks, cap, sex, g.Covers.ToArray())
+                {
+                    PrototypeId = g.PrototypeId,
+                });
             }
 
             return result;

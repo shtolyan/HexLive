@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using HexLive.Simulation.Content;
 using HexLive.UnityPresentation.Localization;
 using HexLive.UnityPresentation.Wearing;
+using HexLive.UnityPresentation.Wearing.Garments;
 using RootMotion.FinalIK;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -46,8 +48,22 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         public string Key;         // unique id (asset path in editor)
         public string DisplayName; // prefab name
         public string Group;       // Resources sub-folder = sim definition id
+        public int Index;          // this prefab's rank inside its Group
         public Wear Asset;         // the PREFAB ASSET's Wear component
         public VisualElement Row;
+
+        // §31B.4E: the items painted on this geometry, prototype first — empty
+        // for the (many) garments the catalog knows only one colour of.
+        public IReadOnlyList<GarmentDefinition> Variants;
+
+        // Which of them is on the body right now.
+        public string VariantId;
+
+        // BodyBones reads the variant's materials out of the key's "<item
+        // id>#<index>" head, so the CHOSEN colour has to travel in the key —
+        // the panel's own Key is an asset path and means nothing to the
+        // catalog. The index keeps two prefabs of one definition apart.
+        public string EquipKey => $"{VariantId}#{Index}";
     }
 
     // Вкладки по слою одежды (VisualWearLayer): бельё → одежда → верхняя,
@@ -60,6 +76,15 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
     private readonly HashSet<string> _equipped = new();
     private readonly HashSet<string> _dirty = new();
     private string _selectedKey;
+
+    // §31B.4E: the second level of the browser. The clothes grid lists one tile
+    // per GEOMETRY; the colours of whichever prototype is selected open here.
+    private VisualElement _variantsBox;
+    private Label _variantsTitle;
+    private ScrollView _variantsStrip;
+    private Label _variantsDesc;
+    private readonly Dictionary<string, VisualElement> _variantTiles = new();
+    private WearEntry _variantsFor;
 
     // Hair is NOT wardrobe (spec §31B.4B): no slot, no layer, never equipped —
     // one instance swapped through BodyBones.SetHair. It also does not live in
@@ -210,6 +235,10 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         _entries.Clear();
         _byKey.Clear();
 
+        // Several prefabs can share one definition folder (a dress that is a top
+        // plus a skirt), and they must not collide on the equip key.
+        var perGroup = new Dictionary<string, int>();
+
         foreach (var prefab in Resources.LoadAll<GameObject>("HexLive/Wear"))
         {
             var wear = prefab.GetComponent<Wear>();
@@ -229,12 +258,41 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
                 group = dir.Substring(dir.LastIndexOf('/') + 1);
             }
 #endif
+            // §31B.4E: the folder IS the art id, so the wear folders already are
+            // one-per-geometry and this list is prototypes only. Guard it anyway
+            // — a stray folder named after a VARIANT would otherwise smuggle a
+            // second tile for a geometry that is already in the grid.
+            if (!string.IsNullOrEmpty(group) && GarmentVariants.ArtIdOf(group) != group)
+            {
+                continue;
+            }
+
+#if UNITY_EDITOR
+            // A batch that has already been reviewed is not shown: the pause
+            // between batches exists to look at what is new, and every finished
+            // drop left in the grid makes that harder. Flip `done` in
+            // Assets/Editor/WearDrops/import-plan.json to bring one back.
+            if (!string.IsNullOrEmpty(group) && WardrobeDropFilter.Hidden.Contains(group))
+            {
+                continue;
+            }
+#endif
+
+            var index = perGroup.TryGetValue(group, out var used) ? used : 0;
+            perGroup[group] = index + 1;
+
+            var variants = GarmentVariants.VariantsOf(group);
             var entry = new WearEntry
             {
                 Key = key,
                 DisplayName = prefab.name,
                 Group = group,
+                Index = index,
                 Asset = wear,
+                Variants = variants,
+                // No catalog row (a dev-only prefab) still needs an item id for
+                // the equip key; the folder name is what the catalog would use.
+                VariantId = variants.Count > 0 ? variants[0].id : group,
             };
             _entries.Add(entry);
             _byKey[key] = entry;
@@ -386,12 +444,13 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
 
         BuildSkinPainter(body);
 
-        // Re-dress the outfit carried over from the previous girl.
+        // Re-dress the outfit carried over from the previous girl, each piece in
+        // the colour it was last wearing.
         foreach (var key in new List<string>(_equipped))
         {
             if (_byKey.TryGetValue(key, out var entry))
             {
-                _bodyBones?.Equip(key, entry.Asset);
+                _bodyBones?.Equip(entry.EquipKey, entry.Asset);
             }
         }
 
@@ -441,13 +500,13 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
             }
             else
             {
-                _bodyBones.TakeOff(entry.Key); // second click: undress
+                _bodyBones.TakeOff(entry.EquipKey); // second click: undress
                 _selectedKey = null;
             }
         }
         else
         {
-            _bodyBones.Equip(entry.Key, entry.Asset);
+            _bodyBones.Equip(entry.EquipKey, entry.Asset);
             _selectedKey = entry.Key;
             RelaxSkinCulling();
         }
@@ -469,7 +528,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
 
         foreach (var entry in _entries)
         {
-            if (_bodyBones.IsEquipped(entry.Key))
+            if (_bodyBones.IsEquipped(entry.EquipKey))
             {
                 _equipped.Add(entry.Key);
             }
@@ -507,10 +566,10 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         // the live instance's bones instead is NOT equivalent: Construct bakes
         // the scale into every stitched bone during re-parenting.)
         entry.Asset.SetConfigScale(_girl, value);
-        if (_bodyBones != null && _bodyBones.IsEquipped(entry.Key))
+        if (_bodyBones != null && _bodyBones.IsEquipped(entry.EquipKey))
         {
-            _bodyBones.TakeOff(entry.Key);
-            _bodyBones.Equip(entry.Key, entry.Asset);
+            _bodyBones.TakeOff(entry.EquipKey);
+            _bodyBones.Equip(entry.EquipKey, entry.Asset);
             RelaxSkinCulling();
         }
 
@@ -829,6 +888,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         BuildWardrobePanel(root);
         BuildHairPanel(root);
         BuildScalePanel(root);
+        BuildVariantsPanel(root);
     }
 
     // Sits just left of the clothes panel (which is 344 wide at right:14).
@@ -1183,9 +1243,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         iconBox.pickingMode = PickingMode.Ignore;
         tile.Add(iconBox);
 
-        var sprite = string.IsNullOrEmpty(entry.Group)
-            ? null
-            : Resources.Load<Sprite>($"HexLive/UI/Items/{entry.Group}");
+        var sprite = LoadItemIcon(entry.Group);
         if (sprite != null)
         {
             var image = new Image();
@@ -1302,6 +1360,273 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         RefreshScalePanel();
     }
 
+    // ---- variants (§31B.4E) ----
+
+    // Sits between the scale panel (left, 320 wide) and the hair panel, and
+    // stays hidden until a prototype with more than one colour is selected —
+    // most of the wardrobe has exactly one, and an always-present empty panel
+    // would just eat the view of the girl the tool exists to show.
+    private void BuildVariantsPanel(VisualElement root)
+    {
+        _variantsFor = null;
+        _variantTiles.Clear();
+
+        _variantsBox = MakePanel();
+        _variantsBox.style.left = 348f;
+        _variantsBox.style.bottom = 14f;
+        _variantsBox.style.width = 560f;
+        _variantsBox.style.display = DisplayStyle.None;
+        root.Add(_variantsBox);
+
+        _variantsTitle = MakeTitle(string.Empty);
+        _variantsBox.Add(_variantsTitle);
+
+        var hint = new Label(Loc.Get("wardrobe.variants_hint"));
+        hint.style.color = Muted;
+        hint.style.fontSize = 10;
+        hint.style.marginBottom = 6f;
+        _variantsBox.Add(hint);
+
+        _variantsStrip = new ScrollView(ScrollViewMode.Vertical);
+        // A DAZ product can ship 78 colourways — they wrap into rows and the
+        // panel scrolls, rather than growing a mile-wide horizontal strip.
+        _variantsStrip.style.maxHeight = 178f;
+        _variantsStrip.contentContainer.style.flexDirection = FlexDirection.Row;
+        _variantsStrip.contentContainer.style.flexWrap = Wrap.Wrap;
+        _variantsBox.Add(_variantsStrip);
+
+        _variantsDesc = new Label(string.Empty);
+        _variantsDesc.style.color = Muted;
+        _variantsDesc.style.fontSize = 10;
+        _variantsDesc.style.whiteSpace = WhiteSpace.Normal;
+        _variantsDesc.style.marginTop = 5f;
+        _variantsDesc.style.minHeight = 26f;
+        _variantsBox.Add(_variantsDesc);
+
+        RefreshVariantsPanel();
+    }
+
+    private void RefreshVariantsPanel()
+    {
+        if (_variantsBox == null)
+        {
+            return;
+        }
+
+        WearEntry entry = null;
+        if (_selectedKey != null)
+        {
+            _byKey.TryGetValue(_selectedKey, out entry);
+        }
+
+        // One colour is not a choice — the panel would only ever restate what
+        // the clothes grid already shows.
+        var variants = entry?.Variants;
+        if (variants == null || variants.Count < 2)
+        {
+            _variantsFor = null;
+            _variantsBox.style.display = DisplayStyle.None;
+            _variantsStrip.Clear();
+            _variantTiles.Clear();
+            return;
+        }
+
+        _variantsBox.style.display = DisplayStyle.Flex;
+
+        // Rebuilding the strip on every refresh would re-run 78 tiles per arrow
+        // key while the fit scale is being nudged; only the selection changes.
+        if (_variantsFor != entry)
+        {
+            _variantsFor = entry;
+            _variantsStrip.Clear();
+            _variantTiles.Clear();
+            _variantsTitle.text = string.Format(
+                Loc.Get("wardrobe.variants"), PrototypeName(entry), variants.Count);
+
+            foreach (var def in variants)
+            {
+                var captured = def;
+                var tile = MakeVariantTile(entry, captured);
+                _variantTiles[captured.id] = tile;
+                _variantsStrip.Add(tile);
+            }
+
+            ShowVariantDesc(SelectedVariant(entry));
+        }
+
+        RefreshVariantTiles(entry);
+    }
+
+    private VisualElement MakeVariantTile(WearEntry entry, GarmentDefinition def)
+    {
+        var tile = new VisualElement();
+        tile.style.width = 64f;
+        tile.style.height = 84f;
+        tile.style.marginRight = 4f;
+        tile.style.marginBottom = 4f;
+        tile.style.paddingTop = 3f;
+        tile.style.alignItems = Align.Center;
+        tile.style.backgroundColor = Raised;
+        SetRadius(tile, 8f);
+        tile.RegisterCallback<MouseDownEvent>(_ => OnVariantClicked(entry, def));
+        // The description belongs to one variant but is far too long for a
+        // 64-pixel tile, so it lives on a single line under the strip and
+        // follows the cursor.
+        tile.RegisterCallback<MouseEnterEvent>(_ => ShowVariantDesc(def));
+        tile.RegisterCallback<MouseLeaveEvent>(_ => ShowVariantDesc(SelectedVariant(entry)));
+
+        var iconBox = new VisualElement();
+        iconBox.style.width = 48f;
+        iconBox.style.height = 48f;
+        iconBox.style.flexShrink = 0f;
+        iconBox.style.alignItems = Align.Center;
+        iconBox.style.justifyContent = Justify.Center;
+        iconBox.pickingMode = PickingMode.Ignore;
+        tile.Add(iconBox);
+
+        var sprite = LoadItemIcon(def.id);
+        if (sprite != null)
+        {
+            var image = new Image();
+            image.sprite = sprite;
+            image.scaleMode = ScaleMode.ScaleToFit;
+            image.style.width = 46f;
+            image.style.height = 46f;
+            image.pickingMode = PickingMode.Ignore;
+            iconBox.Add(image);
+        }
+        else
+        {
+            // A colourway ships its own icon; a missing one is a hole in the
+            // drop, so it reads as an empty frame rather than a stand-in.
+            var placeholder = new Label("?");
+            placeholder.style.color = Muted;
+            placeholder.style.fontSize = 20;
+            placeholder.pickingMode = PickingMode.Ignore;
+            iconBox.Add(placeholder);
+        }
+
+        var name = new Label(VariantName(def));
+        name.style.color = Text;
+        name.style.fontSize = 9;
+        name.style.unityTextAlign = TextAnchor.UpperCenter;
+        name.style.whiteSpace = WhiteSpace.Normal;
+        name.style.overflow = Overflow.Hidden;
+        name.style.flexGrow = 1f;
+        name.style.width = 60f;
+        name.pickingMode = PickingMode.Ignore;
+        tile.Add(name);
+
+        return tile;
+    }
+
+    private void OnVariantClicked(WearEntry entry, GarmentDefinition def)
+    {
+        if (_bodyBones == null)
+        {
+            return;
+        }
+
+        // A variant's materials go on through Wear.ApplyVariant, which MUST run
+        // before Construct — that caches the dry colour to wash back to, and a
+        // cache taken from the prototype would rinse this piece into the wrong
+        // colour after the first rain. So the colour changes by re-dressing,
+        // never by repainting what is already on the body.
+        _bodyBones.TakeOff(entry.EquipKey); // no-op when it is not worn yet
+        entry.VariantId = def.id;
+        _bodyBones.Equip(entry.EquipKey, entry.Asset);
+        RelaxSkinCulling();
+
+        _selectedKey = entry.Key;
+        ResyncEquipped();
+        RefreshAllRows();
+        RefreshScalePanel();
+        ShowVariantDesc(def);
+    }
+
+    private void RefreshVariantTiles(WearEntry entry)
+    {
+        foreach (var pair in _variantTiles)
+        {
+            pair.Value.style.backgroundColor = pair.Key == entry.VariantId ? AccentSel : Raised;
+        }
+    }
+
+    private GarmentDefinition SelectedVariant(WearEntry entry)
+    {
+        if (entry?.Variants == null)
+        {
+            return null;
+        }
+
+        foreach (var def in entry.Variants)
+        {
+            if (def.id == entry.VariantId)
+            {
+                return def;
+            }
+        }
+
+        return null;
+    }
+
+    private void ShowVariantDesc(GarmentDefinition def)
+    {
+        if (_variantsDesc != null)
+        {
+            _variantsDesc.text = def == null ? string.Empty : VariantDesc(def);
+        }
+    }
+
+    // The heading names the GEOMETRY, so it reads off the prototype's own item
+    // term; the prefab name is a DAZ export artefact and means nothing to a
+    // reader. Falls back to it only when the folder has no catalog row at all.
+    private static string PrototypeName(WearEntry entry)
+    {
+        foreach (var def in entry.Variants)
+        {
+            if (def.id == entry.Group)
+            {
+                return VariantName(def);
+            }
+        }
+
+        return entry.DisplayName;
+    }
+
+    // §58: the player-facing name is the item's I2 term. The inspector's
+    // displayName and the raw id are dev fallbacks — a garment whose terms were
+    // never authored has to stay identifiable in the tool that shows it.
+    private static string VariantName(GarmentDefinition def)
+    {
+        var key = $"item.{ItemInfo.Slug(def.id)}.name";
+        if (Loc.Has(key))
+        {
+            return Loc.Get(key);
+        }
+
+        return string.IsNullOrEmpty(def.displayName) ? def.id : def.displayName;
+    }
+
+    private static string VariantDesc(GarmentDefinition def)
+    {
+        var key = $"item.{ItemInfo.Slug(def.id)}.desc";
+        return Loc.Has(key) ? Loc.Get(key) : def.id;
+    }
+
+    // Icons are named by ITEM id, which may carry dots ("clothing.belt_cindy");
+    // the slug form is the fallback, same rule the inventory panel follows.
+    private static Sprite LoadItemIcon(string id)
+    {
+        if (string.IsNullOrEmpty(id))
+        {
+            return null;
+        }
+
+        return Resources.Load<Sprite>($"HexLive/UI/Items/{id}") ??
+               Resources.Load<Sprite>($"HexLive/UI/Items/{ItemInfo.Slug(id)}");
+    }
+
     // ---- ui refresh ----
 
     private void RefreshGirlButtons()
@@ -1353,6 +1678,9 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         }
 
         RefreshAllRows();
+        // Every path that changes the selection already lands here, so the
+        // variants strip follows it from one place instead of six.
+        RefreshVariantsPanel();
     }
 
     // ---- ui primitives (DebugControlsPanel conventions) ----

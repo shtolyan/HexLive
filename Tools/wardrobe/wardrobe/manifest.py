@@ -133,7 +133,15 @@ def propose(fbx_path: Path, drop: str, texture_report: dict,
             {
                 "source": material,
                 "texture": spec["texture"],
-                "smoothness": 0.3,
+                # Matte. Measured, not guessed: the same boot mesh under the same
+                # light renders (53,56,64) — bluish grey, no leather left — at
+                # 0.3, and (27,21,20) brown at 0. URP mirrors the skybox in the
+                # gloss lobe, and a default sky over a dark albedo simply erases
+                # it. Turning specular highlights off changes nothing (53,56,64
+                # either way), so smoothness is the whole of it. Matte is also
+                # what the art style asks for (CLAUDE.md: flat / faceted), and a
+                # surface that genuinely wants a sheen can still say so here.
+                "smoothness": 0.0,
                 "metallic": 0.0,
                 "doubleSided": True,
                 "alphaClip": spec["alphaClip"],

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using HexLive.UnityPresentation.Wearing.Garments;
 using UnityEditor;
 using UnityEngine;
 
@@ -48,14 +49,14 @@ internal static class WearIconShooter
         var log = new System.Text.StringBuilder();
         var shot = new List<string>();
 
+        // The prototype's geometry, kept even when its own icon is already on
+        // disk: a variant (§31B.4E) borrows it and would otherwise be skipped
+        // for the wrong reason.
+        var art = new Dictionary<string, Mesh>();
+
         foreach (var folder in AssetDatabase.GetSubFolders(WearRoot).OrderBy(f => f))
         {
             var id = Path.GetFileName(folder);
-            var target = $"{IconRoot}/{id}.png";
-            if (!force && File.Exists(target))
-            {
-                continue;
-            }
 
             var prefab = AssetDatabase.FindAssets("t:GameObject", new[] { folder })
                 .Select(AssetDatabase.GUIDToAssetPath)
@@ -74,16 +75,49 @@ internal static class WearIconShooter
                 continue;
             }
 
-            var png = Capture(smr.sharedMesh, smr.sharedMaterials);
-            if (png == null)
+            art[id] = smr.sharedMesh;
+
+            var target = $"{IconRoot}/{id}.png";
+            if (!force && File.Exists(target))
             {
-                log.AppendLine($"  {id}: снимок не получился");
                 continue;
             }
 
-            File.WriteAllBytes(target, png);
-            shot.Add(target);
-            log.AppendLine($"  {id} -> {target}");
+            if (!Write(target, smr.sharedMesh, smr.sharedMaterials, shot, log, id))
+            {
+                continue;
+            }
+        }
+
+        // A variant is one geometry with other materials, so it is one item in
+        // the inventory and needs its own picture — the loader takes the id
+        // verbatim and has no fallback to the prototype's PNG.
+        foreach (var def in AssetDatabase.FindAssets("t:GarmentDefinition")
+                     .Select(AssetDatabase.GUIDToAssetPath)
+                     .Select(AssetDatabase.LoadAssetAtPath<GarmentDefinition>)
+                     .Where(d => d != null && !string.IsNullOrEmpty(d.id))
+                     .Where(d => d.variantMaterials != null && d.variantMaterials.Length > 0)
+                     .OrderBy(d => d.id))
+        {
+            var target = $"{IconRoot}/{def.id}.png";
+            if (!force && File.Exists(target))
+            {
+                continue;
+            }
+
+            if (!art.TryGetValue(def.ArtId, out var mesh))
+            {
+                log.AppendLine($"  {def.id}: нет арта прототипа {def.ArtId}");
+                continue;
+            }
+
+            if (mesh.subMeshCount > def.variantMaterials.Length)
+            {
+                log.AppendLine($"  {def.id}: материалов {def.variantMaterials.Length}, " +
+                               $"подмешей {mesh.subMeshCount} — часть меша не будет снята");
+            }
+
+            Write(target, mesh, def.variantMaterials, shot, log, def.id);
         }
 
         AssetDatabase.Refresh();
@@ -93,6 +127,22 @@ internal static class WearIconShooter
         }
 
         Debug.Log($"[WearIcon] снято {shot.Count}\n{log}");
+    }
+
+    private static bool Write(string target, Mesh mesh, Material[] materials,
+                              List<string> shot, System.Text.StringBuilder log, string id)
+    {
+        var png = Capture(mesh, materials);
+        if (png == null)
+        {
+            log.AppendLine($"  {id}: снимок не получился");
+            return false;
+        }
+
+        File.WriteAllBytes(target, png);
+        shot.Add(target);
+        log.AppendLine($"  {id} -> {target}");
+        return true;
     }
 
     private static byte[] Capture(Mesh mesh, Material[] materials)

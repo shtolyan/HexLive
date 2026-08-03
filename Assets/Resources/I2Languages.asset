@@ -2545,6 +2545,598 @@ MonoBehaviour:
       - 'Носимый предмет.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'item.clothing_cap_anarchy_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Studded Cap (Black)'
+      - 'Кепка с клёпками (Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_cap_anarchy_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Peaked, and studded along the brim. Keeps sun and rain off.'
+      - 'С козырьком и клёпками по канту. Прячет от солнца и дождя.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_cap_anarchy_brown.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Studded Cap (Brown)'
+      - 'Кепка с клёпками (Brown)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_cap_anarchy_brown.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Peaked, and studded along the brim. Keeps sun and rain off.'
+      - 'С козырьком и клёпками по канту. Прячет от солнца и дождя.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_cap_anarchy_purple.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Studded Cap (Purple)'
+      - 'Кепка с клёпками (Purple)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_cap_anarchy_purple.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Peaked, and studded along the brim. Keeps sun and rain off.'
+      - 'С козырьком и клёпками по канту. Прячет от солнца и дождя.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_hipbelt_anarchy_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hip Straps (Black)'
+      - 'Набедренные ремни (Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_hipbelt_anarchy_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps down the hips. Decoration that happens to hold a pouch.'
+      - 'Ремни по бёдрам. Украшение, которое заодно держит подсумок.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_belt_anarchy_brn.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Studded Belt (Brn)'
+      - 'Ремень с клёпками (Brn)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_belt_anarchy_brn.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wide, with loops. No warmth — it is there to carry things.'
+      - 'Широкий, с петлями. Не греет — он чтобы носить.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_anarchy_bra_purple.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Anarchy Top (Bra Purple)'
+      - 'Топ «Анархия» (Bra Purple)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_anarchy_bra_purple.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A cropped top with a printed front. Thin, and she likes it.'
+      - 'Укороченный топ с принтом. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_anarchy_bra_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Anarchy Top (Bra Red)'
+      - 'Топ «Анархия» (Bra Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_anarchy_bra_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A cropped top with a printed front. Thin, and she likes it.'
+      - 'Укороченный топ с принтом. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_anarchy_bra_redpurp.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Anarchy Top (Bra RedPurp)'
+      - 'Топ «Анархия» (Bra RedPurp)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_anarchy_bra_redpurp.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A cropped top with a printed front. Thin, and she likes it.'
+      - 'Укороченный топ с принтом. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_anarchy_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Anarchy Top (Red)'
+      - 'Топ «Анархия» (Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_anarchy_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A cropped top with a printed front. Thin, and she likes it.'
+      - 'Укороченный топ с принтом. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_anarchy_white.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Anarchy Top (White)'
+      - 'Топ «Анархия» (White)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_anarchy_white.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A cropped top with a printed front. Thin, and she likes it.'
+      - 'Укороченный топ с принтом. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_anarchy_purple.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Buckled Thigh Boots (Purple)'
+      - 'Ботфорты с чулками (Purple)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_anarchy_purple.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Heavy leather over the knee, torn stocking tops showing above. The best thing between a wolf and her leg.'
+      - 'Тяжёлая кожа выше колена, рваный чулок торчит поверху. Лучшее, что есть между волком и её ногой.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_anarchy_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Buckled Thigh Boots (Red)'
+      - 'Ботфорты с чулками (Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_anarchy_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Heavy leather over the knee, torn stocking tops showing above. The best thing between a wolf and her leg.'
+      - 'Тяжёлая кожа выше колена, рваный чулок торчит поверху. Лучшее, что есть между волком и её ногой.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_corset_anarchy_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Laced Corset (Red)'
+      - 'Корсет на шнуровке (Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_corset_anarchy_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stiff panels laced at the back. Holds a shape, and holds a knife edge off.'
+      - 'Жёсткие вставки на шнуровке сзади. Держит форму и держит лезвие.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_strap_anarchy_brn.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long Gloves (Brn)'
+      - 'Длинные перчатки (Brn)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_strap_anarchy_brn.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'To the elbow, fingers and all. Little warmth, but the knuckles stay whole.'
+      - 'До локтя, вместе с пальцами. Тепла немного, зато костяшки целы.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_strap_anarchy_redpurp.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long Gloves (RedPurp)'
+      - 'Длинные перчатки (RedPurp)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_strap_anarchy_redpurp.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'To the elbow, fingers and all. Little warmth, but the knuckles stay whole.'
+      - 'До локтя, вместе с пальцами. Тепла немного, зато костяшки целы.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_pants_anarchy_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Torn Trousers (Black)'
+      - 'Рваные штаны (Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_pants_anarchy_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Full length, and torn at the knees on purpose.'
+      - 'В полную длину, и на коленях рвано намеренно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_anarchy_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pleated Skirt (Red)'
+      - 'Плиссированная юбка (Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_anarchy_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Short and pleated. Moves well, warms nothing.'
+      - 'Короткая, в складку. Двигается хорошо, не греет совсем.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_collar_studded_anarchy_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strap Collar (Black)'
+      - 'Ошейник-ремень (Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_collar_studded_anarchy_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps, rings and rivets at the throat. Says more than it protects.'
+      - 'Ремни, кольца и клёпки на горле. Говорит больше, чем защищает.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_long_anarchy_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strap Gloves (Black)'
+      - 'Перчатки с ремешками (Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_long_anarchy_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plated forearm, buckled at the wrist. For grip, not for warmth.'
+      - 'Предплечье в пластинах, на ремешке у запястья. Для хвата, не для тепла.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_collar_anarchy_brn.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Studded Collar (Brn)'
+      - 'Ошейник с шипами (Brn)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_collar_anarchy_brn.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Metal studs on leather. Turns a bite that would open a throat.'
+      - 'Металлические шипы по коже. Держит укус, который вскрыл бы горло.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_thong_anarchy_purple.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thong (Purple)'
+      - 'Стринги (Purple)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_thong_anarchy_purple.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Worn against the skin. She notices when it is gone.'
+      - 'На голое тело. Без него замечает сразу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_thong_anarchy_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thong (Red)'
+      - 'Стринги (Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_thong_anarchy_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Worn against the skin. She notices when it is gone.'
+      - 'На голое тело. Без него замечает сразу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_cap_anarchy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Studded Cap'
+      - 'Кепка с клёпками'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_cap_anarchy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Peaked, and studded along the brim. Keeps sun and rain off.'
+      - 'С козырьком и клёпками по канту. Прячет от солнца и дождя.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_hipbelt_anarchy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hip Straps'
+      - 'Набедренные ремни'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_hipbelt_anarchy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps down the hips. Decoration that happens to hold a pouch.'
+      - 'Ремни по бёдрам. Украшение, которое заодно держит подсумок.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_belt_anarchy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Studded Belt'
+      - 'Ремень с клёпками'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_belt_anarchy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wide, with loops. No warmth — it is there to carry things.'
+      - 'Широкий, с петлями. Не греет — он чтобы носить.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_anarchy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Anarchy Top'
+      - 'Топ «Анархия»'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_anarchy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A cropped top with a printed front. Thin, and she likes it.'
+      - 'Укороченный топ с принтом. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_anarchy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Buckled Thigh Boots'
+      - 'Ботфорты с чулками'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_anarchy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Heavy leather over the knee, torn stocking tops showing above. The best thing between a wolf and her leg.'
+      - 'Тяжёлая кожа выше колена, рваный чулок торчит поверху. Лучшее, что есть между волком и её ногой.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_corset_anarchy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Laced Corset'
+      - 'Корсет на шнуровке'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_corset_anarchy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stiff panels laced at the back. Holds a shape, and holds a knife edge off.'
+      - 'Жёсткие вставки на шнуровке сзади. Держит форму и держит лезвие.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_strap_anarchy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long Gloves'
+      - 'Длинные перчатки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_strap_anarchy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'To the elbow, fingers and all. Little warmth, but the knuckles stay whole.'
+      - 'До локтя, вместе с пальцами. Тепла немного, зато костяшки целы.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_pants_anarchy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Torn Trousers'
+      - 'Рваные штаны'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_pants_anarchy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Full length, and torn at the knees on purpose.'
+      - 'В полную длину, и на коленях рвано намеренно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_anarchy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pleated Skirt'
+      - 'Плиссированная юбка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_anarchy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Short and pleated. Moves well, warms nothing.'
+      - 'Короткая, в складку. Двигается хорошо, не греет совсем.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_collar_studded_anarchy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strap Collar'
+      - 'Ошейник-ремень'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_collar_studded_anarchy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps, rings and rivets at the throat. Says more than it protects.'
+      - 'Ремни, кольца и клёпки на горле. Говорит больше, чем защищает.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_long_anarchy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strap Gloves'
+      - 'Перчатки с ремешками'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_long_anarchy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plated forearm, buckled at the wrist. For grip, not for warmth.'
+      - 'Предплечье в пластинах, на ремешке у запястья. Для хвата, не для тепла.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_cuffs_anarchy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Studded Cuffs'
+      - 'Клёпаные напульсники'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_cuffs_anarchy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A pair of studded bands. They have stopped a blade once.'
+      - 'Пара клёпаных полос. Однажды остановили лезвие.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_collar_anarchy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Studded Collar'
+      - 'Ошейник с шипами'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_collar_anarchy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Metal studs on leather. Turns a bite that would open a throat.'
+      - 'Металлические шипы по коже. Держит укус, который вскрыл бы горло.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_blouse_anarchy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Torn Blouse'
+      - 'Рваная блузка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_blouse_anarchy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sleeves and holes in equal measure. Covers the arms, and little else.'
+      - 'Рукава и дыры поровну. Руки закрывает, остальное — как получится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_thong_anarchy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thong'
+      - 'Стринги'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_thong_anarchy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Worn against the skin. She notices when it is gone.'
+      - 'На голое тело. Без него замечает сразу.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'item.unknown.name'
       TermType: 0
       Description: 
@@ -3439,6 +4031,22 @@ MonoBehaviour:
       Languages:
       - "Clothes"
       - "Одежда"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.variants"
+      TermType: 0
+      Description:
+      Languages:
+      - "Variants of {0} ({1})"
+      - "Расцветки: {0} ({1})"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: "wardrobe.variants_hint"
+      TermType: 0
+      Description:
+      Languages:
+      - "click a swatch — the worn garment is repainted"
+      - "клик по расцветке — вещь на девушке перекрашивается"
       Flags: 0000
       Languages_Touch: []
     - Term: "wardrobe.cycle_off"

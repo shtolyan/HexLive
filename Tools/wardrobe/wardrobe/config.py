@@ -73,27 +73,25 @@ REPORTS = WORK / "reports"
 # the ints are what WearConfig stores, so never renumber these.
 ACTOR_IDS = {"Molly": 0, "Jolly": 1, "Marta": 2, "Jana": 5}
 
-# Each girl's base scene. All four are Genesis 3 Female. The scenes still carry
-# the previous drop's garments — `dress` strips every follower before fitting,
-# so that leftover state does not matter. Note the DOUBLE space in three names:
-# that is genuinely how the files are called on disk.
+# Each girl's base scene. All four are Genesis 3 Female, and all four are
+# naked — `dress` strips every follower before fitting anyway, so a scene that
+# still carried the previous drop's garments would also work.
 #
-# Jana is the odd one out. Her garments were first fitted to `jana  new.duf`,
-# whose body is 11% shallower in the chest than the Jana the game actually
-# ships (`ImportedActors/Daz3D/Jana/Jana.fbx`) — measured as chest depth over
-# height, 0.1325 against 0.1481 — so her bust pushed through everything she
-# wore. `Jana naked.duf` is 0.1437, within 3%, and is what we fit to now.
+# ⚠ These are the REBUILT scenes of 2026-08-02. The bodies the game ships were
+# re-exported from them the same evening (`Actors/<Girl>/<Girl>.new.fbx`), so
+# scene and actor are the same figure by construction — which is the whole
+# point: a garment fitted to a body the game does not ship pokes through.
 #
-# It is still not her exact body: the game's Jana is 176.3 tall and every scene
-# in the library is ~180, i.e. a height morph nobody has found yet. If a scene
-# with a ~176 figure turns up, that is the real one — height is the tell, not
-# the bust. Marta was checked the same way and needs no change (0.1441 in game
-# against 0.1437 in her scene).
+# The scenes this pipeline used before that rebuild — `Jolly new.duf`,
+# `Jana naked.duf`, `marta  new.duf`, `molly  new.duf`, double spaces and all —
+# were moved to `Scenes/Легаси/` and must NOT be fitted to any more: they are
+# the older bodies, and matching them to the current actors is exactly the
+# chest-depth mismatch that once pushed Jana's bust through everything she wore.
 GIRL_SCENES = {
-    "Jolly": DAZ_SCENES / "Jolly new.duf",
-    "Jana": DAZ_SCENES / "Jana naked.duf",
-    "Marta": DAZ_SCENES / "marta  new.duf",
-    "Molly": DAZ_SCENES / "molly  new.duf",
+    "Jolly": DAZ_SCENES / "Jolly.duf",
+    "Jana": DAZ_SCENES / "Jana.duf",
+    "Marta": DAZ_SCENES / "Marta.duf",
+    "Molly": DAZ_SCENES / "Molly.duf",
 }
 
 FIGURE_LABEL = "Genesis 3 Female"

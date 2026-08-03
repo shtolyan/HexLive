@@ -236,6 +236,43 @@ def geometries(path: Path, sample: int = 20000) -> dict[str, Geometry]:
     return result
 
 
+def material_colors(path: Path) -> dict[str, dict[str, tuple[float, float, float]]]:
+    """{model: {material: diffuse colour}} — the colour DAZ set, not a texture.
+
+    Some surfaces ship no albedo map at all: the torn stockings are one flat
+    black, and the export says so with `DiffuseColor 0 0 0` and no image. Read
+    only in a colour, they came into the game pure white, because white is what
+    a material defaults to and nothing had ever contradicted it.
+    """
+    nodes = _nodes(path)[0]
+    names: dict[int, tuple[str, str]] = {}
+    colors: dict[int, tuple[float, float, float]] = {}
+    current: int | None = None
+
+    for node in nodes:
+        if node.name in ("Geometry", "Model", "Material") and len(node.props) >= 3:
+            current = node.props[0] if node.name == "Material" else None
+            names[node.props[0]] = (node.name, _text(node.props[1]))
+        elif (node.name == "P" and current is not None and len(node.props) >= 7
+              and _text(node.props[0]) == "DiffuseColor"):
+            # First writer wins: DAZ emits `DiffuseColor` and then the legacy
+            # `Diffuse` alias with the same value.
+            colors.setdefault(current, tuple(float(v) for v in node.props[4:7]))
+
+    result: dict[str, dict[str, tuple[float, float, float]]] = {}
+    for c in nodes:
+        if c.name != "C" or len(c.props) < 3:
+            continue
+        src, dst = c.props[1], c.props[2]
+        if names.get(src, ("",))[0] != "Material" or names.get(dst, ("",))[0] != "Model":
+            continue
+        model = names[dst][1]
+        model = model[:-6] if model.endswith(".Shape") else model
+        if src in colors:
+            result.setdefault(model, {})[names[src][1]] = colors[src]
+    return result
+
+
 def material_textures(path: Path) -> dict[str, dict[str, dict[str, str]]]:
     """{model: {material: {channel: absolute texture path}}}.
 

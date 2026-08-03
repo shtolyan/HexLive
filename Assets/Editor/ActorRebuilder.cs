@@ -250,6 +250,27 @@ public static class ActorRebuilder
                 var carried = new List<string>();
                 var rebound = 0;
                 var lost = new List<string>();
+
+                // The subtrees carried above came in through Instantiate, which
+                // keeps their components pointing at the OLD prefab — the breast
+                // physics held a `root` aimed at a prefab that is about to be
+                // deleted. Rebinding only the root's own components missed them.
+                foreach (var name in brought)
+                {
+                    var carriedName = name.Split('→')[0];
+                    if (!newByName.TryGetValue(carriedName, out var t))
+                    {
+                        continue;
+                    }
+
+                    foreach (var c in t.GetComponentsInChildren<Component>(true))
+                    {
+                        if (c != null && !(c is Transform))
+                        {
+                            rebound += Rebind(c, newByName, oldHierarchy, lost);
+                        }
+                    }
+                }
                 foreach (var component in oldPrefab.GetComponents<Component>())
                 {
                     if (component is Transform)

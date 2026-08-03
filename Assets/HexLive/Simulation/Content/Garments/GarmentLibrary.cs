@@ -149,6 +149,9 @@ namespace HexLive.Simulation.Content
                 // AI-print skins of the basic panty/bra (2026-07, fal.ai prints — spec §31B.4).
                 // A dense leather bra (was Outerwear armor): worn against the skin,
                 // the one underwear piece that still dampens a torso bite (§29C.4).
+                new("underwear.thong_anarchy", "Thong", WearLayer.Underwear, 0.01f, 0.00f, 0.00f, dress, 0, BodyPart.Pelvis),
+                new("underwear.thong_anarchy_purple", "Thong (Purple)", WearLayer.Underwear, 0.01f, 0.00f, 0.00f, dress, 0, BodyPart.Pelvis) { PrototypeId = "underwear.thong_anarchy" },
+                new("underwear.thong_anarchy_red", "Thong (Red)", WearLayer.Underwear, 0.01f, 0.00f, 0.00f, dress, 0, BodyPart.Pelvis) { PrototypeId = "underwear.thong_anarchy" },
 
                 // --- Wear: the main clothing layer, carries the warmth budget. --
                 // New-wear drop (2026-07, Temp FBX extraction — spec §31B.4).
@@ -158,12 +161,46 @@ namespace HexLive.Simulation.Content
                 // original fold shading kept, fabric re-dyed in UV space).
                 // Sweet Jane + Fitness Idol drop (2026-08, Temp FBX extraction —
                 // spec §31B.4). The first garments fitted to all FOUR girls.
+                new("clothing.cap_anarchy", "Studded Cap", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 0, BodyPart.Head),
+                new("clothing.top_anarchy", "Anarchy Top", WearLayer.Wear, 0.06f, 0.00f, 0.00f, dress, 0, BodyPart.Torso),
+                new("clothing.corset_anarchy", "Laced Corset", WearLayer.Wear, 0.10f, 0.08f, 0.00f, dress, 0, BodyPart.Torso),
+                new("clothing.gloves_strap_anarchy", "Long Gloves", WearLayer.Wear, 0.02f, 0.02f, 0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR),
+                new("clothing.pants_anarchy", "Torn Trousers", WearLayer.Wear, 0.15f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
+                new("clothing.skirt_anarchy", "Pleated Skirt", WearLayer.Wear, 0.06f, 0.00f, 0.00f, dress, 0, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
+                new("clothing.collar_studded_anarchy", "Strap Collar", WearLayer.Wear, 0.01f, 0.06f, 0.00f, dress, 0, BodyPart.Torso),
+                new("clothing.gloves_long_anarchy", "Strap Gloves", WearLayer.Wear, 0.05f, 0.03f, 0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR),
+                new("clothing.cuffs_anarchy", "Studded Cuffs", WearLayer.Wear, 0.01f, 0.04f, 0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR),
+                new("clothing.collar_anarchy", "Studded Collar", WearLayer.Wear, 0.01f, 0.00f, 0.00f, dress, 0, BodyPart.Torso),
+                new("clothing.blouse_anarchy", "Torn Blouse", WearLayer.Wear, 0.08f, 0.00f, 0.00f, dress, 1, BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR),
+                new("clothing.cap_anarchy_black", "Studded Cap (Black)", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 0, BodyPart.Head) { PrototypeId = "clothing.cap_anarchy" },
+                new("clothing.cap_anarchy_brown", "Studded Cap (Brown)", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 0, BodyPart.Head) { PrototypeId = "clothing.cap_anarchy" },
+                new("clothing.cap_anarchy_purple", "Studded Cap (Purple)", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 0, BodyPart.Head) { PrototypeId = "clothing.cap_anarchy" },
+                new("clothing.top_anarchy_bra_purple", "Anarchy Top (Bra Purple)", WearLayer.Wear, 0.06f, 0.00f, 0.00f, dress, 0, BodyPart.Torso) { PrototypeId = "clothing.top_anarchy" },
+                new("clothing.top_anarchy_bra_red", "Anarchy Top (Bra Red)", WearLayer.Wear, 0.06f, 0.00f, 0.00f, dress, 0, BodyPart.Torso) { PrototypeId = "clothing.top_anarchy" },
+                new("clothing.top_anarchy_bra_redpurp", "Anarchy Top (Bra RedPurp)", WearLayer.Wear, 0.06f, 0.00f, 0.00f, dress, 0, BodyPart.Torso) { PrototypeId = "clothing.top_anarchy" },
+                new("clothing.top_anarchy_red", "Anarchy Top (Red)", WearLayer.Wear, 0.06f, 0.00f, 0.00f, dress, 0, BodyPart.Torso) { PrototypeId = "clothing.top_anarchy" },
+                new("clothing.top_anarchy_white", "Anarchy Top (White)", WearLayer.Wear, 0.06f, 0.00f, 0.00f, dress, 0, BodyPart.Torso) { PrototypeId = "clothing.top_anarchy" },
+                new("clothing.corset_anarchy_red", "Laced Corset (Red)", WearLayer.Wear, 0.10f, 0.08f, 0.00f, dress, 0, BodyPart.Torso) { PrototypeId = "clothing.corset_anarchy" },
+                new("clothing.gloves_strap_anarchy_brn", "Long Gloves (Brn)", WearLayer.Wear, 0.02f, 0.02f, 0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR) { PrototypeId = "clothing.gloves_strap_anarchy" },
+                new("clothing.gloves_strap_anarchy_redpurp", "Long Gloves (RedPurp)", WearLayer.Wear, 0.02f, 0.02f, 0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR) { PrototypeId = "clothing.gloves_strap_anarchy" },
+                new("clothing.pants_anarchy_black", "Torn Trousers (Black)", WearLayer.Wear, 0.15f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.pants_anarchy" },
+                new("clothing.skirt_anarchy_red", "Pleated Skirt (Red)", WearLayer.Wear, 0.06f, 0.00f, 0.00f, dress, 0, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.skirt_anarchy" },
+                new("clothing.collar_studded_anarchy_black", "Strap Collar (Black)", WearLayer.Wear, 0.01f, 0.06f, 0.00f, dress, 0, BodyPart.Torso) { PrototypeId = "clothing.collar_studded_anarchy" },
+                new("clothing.gloves_long_anarchy_black", "Strap Gloves (Black)", WearLayer.Wear, 0.05f, 0.03f, 0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR) { PrototypeId = "clothing.gloves_long_anarchy" },
+                new("clothing.collar_anarchy_brn", "Studded Collar (Brn)", WearLayer.Wear, 0.01f, 0.00f, 0.00f, dress, 0, BodyPart.Torso) { PrototypeId = "clothing.collar_anarchy" },
 
                 // --- Outerwear: the top layer — jackets, boots, armor. ----------
                 // §52.8 tool holster: GEAR, not clothing — no warmth, no thermal
                 // pull, 0 pockets. Its 3 TYPED weapon slots (HolsterCatalog) are
                 // the whole point; the token 0.05 armor is the buckled leather
                 // strap itself, and gives her a reason to want it on.
+                new("clothing.hipbelt_anarchy", "Hip Straps", WearLayer.Outerwear, 0.00f, 0.02f, 0.00f, dress, 1, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
+                new("clothing.belt_anarchy", "Studded Belt", WearLayer.Outerwear, 0.00f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis),
+                new("clothing.boots_anarchy", "Buckled Thigh Boots", WearLayer.Outerwear, 0.14f, 0.13f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR),
+                new("clothing.hipbelt_anarchy_black", "Hip Straps (Black)", WearLayer.Outerwear, 0.00f, 0.02f, 0.00f, dress, 1, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.hipbelt_anarchy" },
+                new("clothing.belt_anarchy_brn", "Studded Belt (Brn)", WearLayer.Outerwear, 0.00f, 0.02f, 0.00f, dress, 2, BodyPart.Pelvis) { PrototypeId = "clothing.belt_anarchy" },
+                new("clothing.boots_anarchy_purple", "Buckled Boots (Purple)", WearLayer.Outerwear, 0.14f, 0.13f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.boots_anarchy" },
+                new("clothing.boots_anarchy_red", "Buckled Boots (Red)", WearLayer.Outerwear, 0.14f, 0.13f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.boots_anarchy" },
 
                 // --- §72: снаряжение чужака ------------------------------------
                 // Он не выживальщик в трусах, а боец: тактический комплект с

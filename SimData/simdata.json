@@ -473,6 +473,8 @@
     "Spec108.GroupHuntMaxPactDistanceTiles": 40,
     "Spec108.GroupHuntMercyHolds": false,
     "Spec108.GroupHuntMinGirls": 3,
+    "Spec108.GroupHuntHunterFleeHealth": 0.60000002,
+    "Spec108.GroupHuntHunterFleeWorstPart": 0.34999999,
     "Spec108.GroupHuntMinRemaining": 2,
     "Spec108.GroupHuntSpreadTiles": 2,
     "Spec108.GroupHuntStressRelief": 0.25,

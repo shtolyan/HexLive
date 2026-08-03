@@ -34,7 +34,26 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     npc.Movement.HopTimer <= 0f &&
                     DecisionSystem.NearestVisibleRabbit(npc, world)?.Junction is { } rj &&
                     !(npc.Plan.TargetJunctionId is { } tj && tj.Equals(rj));
-                if (!huntStale)
+
+                // ⭐ §108: та же болезнь, что у краба, только заметнее — цель
+                // ходит на своих двоих через весь остров. План вёл на клетку,
+                // где чужак стоял в МОМЕНТ СГОВОРА (обычно у его лагеря), и
+                // держался до самого прихода: тройка добегала до пустого места,
+                // разминувшись с ним по дороге, и только там разворачивалась.
+                // Со стороны это выглядело так, будто они его не узнали.
+                var groupHuntStale = npc.Mind.CurrentGoal == GoalType.GroupHunt &&
+                    npc.Movement.HopTimer <= 0f &&
+                    npc.Mind.GroupHuntTargetNpcId is { } huntedId &&
+                    world.Entities.Npcs.TryGetValue(huntedId, out var hunted) &&
+                    hunted.CurrentJunction is { } huntedJunction &&
+                    // Достала — хватит бежать: добегать до своей клетки, стоя в
+                    // паре шагов от него, и есть то самое «прошла мимо».
+                    (InteractionReach.CanStrike(world, npc, hunted) ||
+                     !(npc.Plan.TargetJunctionId is { } gj &&
+                       (gj.Equals(huntedJunction) ||
+                        IsAdjacentJunction(world, gj, huntedJunction))));
+
+                if (!huntStale && !groupHuntStale)
                 {
                     Trace.Emit(world, npc.Id, "PlanSkipped",
                         $"ActivePlan already matches Goal={npc.Mind.CurrentGoal} Step={npc.Plan.CurrentStepIndex}/{npc.Plan.Steps.Count}");
@@ -52,6 +71,16 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 npc.Movement.SetStatus(MovementStatus.Waiting);
                 npc.Movement.HopArmed = false;
                 npc.Movement.HopPathIndex = -1;
+
+                // Брошенный подход отдать сразу. У краба это не жало (кролик
+                // один, охотница одна), а тройка вокруг ОДНОГО чужака делит
+                // шесть соседних узлов: держать за собой те, что остались у
+                // его прежнего места, значит отталкивать подруг в
+                // NoFreeApproachJunction — на срок жизни резерва.
+                if (groupHuntStale && npc.Plan.TargetJunctionId is { } droppedApproach)
+                {
+                    SpatialMutations.ReleaseJunctionReservation(world, droppedApproach, npc.Id);
+                }
             }
 
             var prevStatus = npc.Plan.Status;

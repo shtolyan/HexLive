@@ -64,9 +64,16 @@ public sealed partial class PlanningSystem
 
         // Цель перечитывается КАЖДУЮ пересборку — отсюда живая погоня, ровно
         // как у Defend за движущимся зверем. Никакого отдельного «режима
-        // преследования» не нужно.
-        var onStation = npc.CurrentJunction is { } current &&
-            IsAdjacentJunction(world, current, quarryJunction);
+        // преследования» не нужно. Пересборка при этом идёт каждый средний
+        // проход, пока он движется: сторож устаревшего плана в PlanningSystem.
+        // Run роняет активный план, как только тот перестаёт вести К НЕМУ.
+        //
+        // «Достала» — это дистанция удара, а не соседство узлов: иначе она,
+        // стоя в шаге от него, продолжала бы добегать до зарезервированной
+        // клетки, и это читалось как «прошла мимо и не заметила».
+        var onStation = InteractionReach.CanStrike(world, npc, quarry) ||
+            (npc.CurrentJunction is { } current &&
+             IsAdjacentJunction(world, current, quarryJunction));
         if (onStation)
         {
             // Стоять и бить. План из одного шага «на свой же узел» здесь

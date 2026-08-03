@@ -72,6 +72,8 @@ MonoBehaviour:
   groupHuntLockTicks: 900
   groupHuntSpreadTiles: 2
   groupHuntTargetFleeHealth: 0.85
+  groupHuntHunterFleeHealth: 0.6
+  groupHuntHunterFleeWorstPart: 0.35
   groupHuntMinRemaining: 2
   groupHuntCooldownTicks: 3000
   groupHuntStressRelief: 0.25

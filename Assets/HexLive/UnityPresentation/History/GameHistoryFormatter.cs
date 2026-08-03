@@ -79,6 +79,8 @@ namespace HexLive.UnityPresentation.History
                 "Grieving" => T($"{actor} is grieving.", $"{actor} скорбит."),
                 "Mourned" => T($"{actor} paid respects to the dead.", $"{actor} почтила память погибшей."),
                 "Looted" => T($"{actor} took something from a body.", $"{actor} забрала вещь с тела."),
+                "StrippedHelpless" => T($"{actor} stripped a helpless enemy.",
+                    $"{actor} обчистила беспомощного врага."),
                 "NpcDied" => T($"{actor} died.", $"{actor} погибла."),
                 "BledOut" => T($"{actor} bled out.", $"{actor} истекла кровью."),
                 "StarvedToDeath" => T($"{actor} died from hunger or thirst.",
@@ -229,6 +231,9 @@ namespace HexLive.UnityPresentation.History
                 "NpcDied" => DeathDetail(record.Message),
                 "FoodStolen" => NpcArrowDetail(record.Message),
                 "Murdered" => NpcArrowDetail(record.Message),
+                "StrippedHelpless" => T(
+                    $"Taken: {Token(record.Message, "Count=")}. He will wake up unarmed.",
+                    $"Забрано вещей: {Token(record.Message, "Count=")}. Очнётся безоружным."),
                 "HelpCry" => HelpCryDetail(record.Message),
                 "HelpCryAnswered" => HelpCryDecisionDetail(record.Message),
                 "HelpCryIgnored" => HelpCryDecisionDetail(record.Message),
@@ -310,7 +315,10 @@ namespace HexLive.UnityPresentation.History
                 "HelpCry" or "HelpCryAssistStarted" or "HelpCryAssistArrived" or "HelpCryDefended" or
                 // §108: расправа — это драка, и в ленте она должна быть красной.
                 "GroupHuntPactFormed" or "GroupHuntEngaged" or "GroupHuntStruck" or
-                "GroupHuntTargetFled" or "GroupHuntDone" or "GroupHuntFailed")
+                "GroupHuntTargetFled" or "GroupHuntDone" or "GroupHuntFailed" or
+                // §111: обыск лежащего — не хозяйственная работа, а сцена
+                // насилия без сопротивления. В ленте она красная.
+                "StrippedHelpless")
             {
                 return GameHistoryTone.Danger;
             }

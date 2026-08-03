@@ -138,6 +138,9 @@ public static class GameEventTypes
         "Grieving",
         "Mourned",
         "Looted",
+        // §111: обыскал лежащего врага. ОДНО событие на сцену, а не на вещь:
+        // по событию на нож один обыск занимал бы всю ленту.
+        "StrippedHelpless",
         // Was "Collapsed", which nothing has ever emitted — the coma path emits these two.
         "FellAsleepExhausted",
         "FaintedBloodLoss",

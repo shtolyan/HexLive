@@ -158,13 +158,15 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Радиус поиска жертвы, тайлы.")]
         [Range(0, 12)] public int abuseScanRadiusTiles = 7;
         [Tooltip("§81.12: жертву ищет ГЛАЗАМИ (радиус ниже), никого не видно — рыщет к лагерю. Выключено — всевидящий выбор по ростеру.")]
-        public bool abuseHuntBySight = false;
+        public bool abuseHuntBySight = true;
         [Tooltip("§81.12: на каком радиусе он замечает человека. Симметрия с spotStrangerRadiusTiles.")]
         [Range(0, 12)] public int abuseSightRadiusTiles = 6;
         [Tooltip("§81.12: на сколько гексов новая жертва должна быть БЛИЖЕ, чтобы он передумал на бегу. Гистерезис против метания.")]
         [Range(0, 6)] public int abuseRetargetGainTiles = 2;
         [Tooltip("У порога дома разворачивается, как волк и как налёт.")]
         public bool abuseRespectsSanctuary = true;
+        [Tooltip("§81.13: проигравший сцену (кто потерял больше здоровья; при равенстве — жертва) плачет и убегает в свой лагерь.")]
+        public bool abuseRoutEnabled = true;
         [Tooltip("Во сколько раз он должен быть сильнее, чтобы она сдалась.")]
         [Range(0f, 2f)] public float abuseSubmitRatio = 1.2f;
         [Tooltip("Вклад оружия и рук в оценку силы.")]

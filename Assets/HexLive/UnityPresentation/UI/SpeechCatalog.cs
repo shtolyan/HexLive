@@ -103,6 +103,10 @@ public static class SpeechCatalog
         ["hurt_faint"] = new("Faint", Rank.Alarm, 20f),
         ["cry_corpse"] = new("Grief", Rank.Action, 25f),
         ["cry_bury"] = new("Bury", Rank.Action, 20f),
+        // §81.13: проигравший сцену абьюза бежит домой в слезах. Файлов
+        // voice_<char>_cry_beaten_<n> пока нет — фолбэк на банк cry сработает
+        // сам (PlayVoiceLine), а завести свои реплики = просто положить файлы.
+        ["cry_beaten"] = new("Grief", Rank.Action, 30f),
         ["angry_defend"] = new("Attack", Rank.Alarm, 10f),
         ["fear_dark_alone"] = new("Warning", Rank.Ambient, 120f),
         ["fear_stranger"] = new("Warning", Rank.Alarm, 15f),
@@ -283,6 +287,7 @@ public static class SpeechCatalog
         ["AbuseDemand"] = new("Attack", "angry_attack", CueTone.Negative),
         ["AbuseStruck"] = new("Attack", "angry_attack", CueTone.Negative),
         ["AbuseThreatened"] = new("Warning", null, CueTone.Negative),
+        ["AbuseCowed"] = new("Warning", null, CueTone.Negative),
         ["AbuseCry"] = new("Grief", "cry_corpse", CueTone.Negative),
         ["AbuseGaveUp"] = new("Gift", "cry_corpse", CueTone.Negative),
         ["AbuseHurt"] = new("Blood", null, CueTone.Negative),
@@ -290,7 +295,9 @@ public static class SpeechCatalog
         ["AbuseTook"] = new("Gift", null, CueTone.Negative),
         ["AbuseDefied"] = new("Grumble", "angry_defend", CueTone.Negative),
         ["AbuseRefused"] = new("Grumble", null, CueTone.Negative),
-        ["AbuseFled"] = new("Flee", null, CueTone.Negative)
+        ["AbuseFled"] = new("Flee", null, CueTone.Negative),
+        // §81.13: проигравший сцену убегает домой с плачем.
+        ["AbuseFledHome"] = new("Flee", "cry_beaten", CueTone.Negative)
     };
 
     // Never fails: an unknown cue still draws (fallback icon, no utterance).

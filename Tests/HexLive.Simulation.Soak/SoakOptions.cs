@@ -59,7 +59,7 @@ public sealed class SoakOptions
             {
                 "AbuseBlocked", "AbuseTriggered", "AbuseProwl", "AbuseSpotted",
                 "AbuseRetarget", "AbusePursues", "AbuseStarted", "AbuseAbandoned",
-                "AbuseDone", "GoalSelected"
+                "AbuseDone", "AbuseRouted", "FleeStarted", "GoalSelected"
             },
         };
 

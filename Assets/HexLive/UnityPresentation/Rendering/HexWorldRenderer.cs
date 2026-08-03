@@ -1421,12 +1421,21 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // крепления, и держит свою позу. Крах от истощения (§60 r2) экспортёр
         // намеренно выдаёт за сон — она и правда просто заснула, где стояла, —
         // так что он тоже остаётся здесь.
-        if (npc.IsDying || npc.IsFainted || npc.IsUnconscious)
+        if (npc.IsDying || npc.IsUnconscious)
         {
             // Spec 40.13 v2: collapse lies down with the baked laying clip —
             // ragdoll physics is retired (no tile colliders to land on).
+            // §105: умирает или без сознания от кровопотери — валится и ЛЕЖИТ
+            // безвольно, пока её не поднимут.
             actorView.SetRagdoll(false);
-            actorView.SetFallen(true, GroundY(npc.Tile));
+            actorView.SetFallen(true, sleepAfter: false, GroundY(npc.Tile));
+        }
+        else if (npc.IsFainted)
+        {
+            // §40.13/§105: потеряла сознание — рухнула тем же клипом, но дальше
+            // просто спит: обморок это не кома, и вставать ей обычным GetUp.
+            actorView.SetRagdoll(false);
+            actorView.SetFallen(true, sleepAfter: true, GroundY(npc.Tile));
         }
         else if (npc.CurrentInteraction == "Sleep" && npc.ExecutionStatus == "InProgress")
         {
@@ -1436,10 +1445,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
         else
         {
             actorView.SetRagdoll(false);
-            // Снять ОБЕ цепочки: она могла лежать любой из них, и оставленный
-            // висеть второй bool держал бы её на земле уже на ногах.
+            // Снимает ОБА флага разом (см. ApplyLying): «не лежит» одинаково
+            // верно для обеих цепочек, и оставленный висеть второй bool держал
+            // бы её на земле уже на ногах.
             actorView.SetLaying(false, null);
-            actorView.SetFallen(false);
         }
 
         var hasTargetObject = TryGetTargetObject(snapshot, npc, out var targetObject);

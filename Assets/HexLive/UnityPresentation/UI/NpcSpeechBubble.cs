@@ -386,12 +386,12 @@ public sealed class NpcSpeechBubble : MonoBehaviour
             // Grief лежали в папке и не были заняты ни одной кьюшкой, а Gift
             // на такте «отдаёт под нажимом» читается ровно так, как надо.
             "AbuseDemand" or "AbuseStruck" => "Attack",
-            "AbuseThreatened" => "Warning",
+            "AbuseThreatened" or "AbuseCowed" => "Warning",
             "AbuseCry" => "Grief",
             "AbuseHurt" => "Blood",
             "AbuseSubmit" or "AbuseGaveUp" or "AbuseTook" => "Gift",
             "AbuseDefied" or "AbuseRefused" => "Grumble",
-            "AbuseFled" => "Flee",
+            "AbuseFled" or "AbuseFledHome" => "Flee",
             _ => "SmallTalk"
         };
     }
@@ -403,9 +403,10 @@ public sealed class NpcSpeechBubble : MonoBehaviour
             "TalkRejected" or "TalkRefused" or "TalkQuarrel" or "Resentment" or "WitnessedMurder" or
                 "HelpCry" or "HelpCryAssistStarted" or "HelpCryAssistArrived" or "HelpCryDefended" or
                 "HelpCryIgnored" or
-                "AbuseDemand" or "AbuseThreatened" or "AbuseCry" or "AbuseStruck" or
-                "AbuseHurt" or "AbuseSubmit" or "AbuseGaveUp" or "AbuseTook" or
-                "AbuseDefied" or "AbuseRefused" or "AbuseFled" => NegColor,
+                "AbuseDemand" or "AbuseThreatened" or "AbuseCowed" or "AbuseCry" or
+                "AbuseStruck" or "AbuseHurt" or "AbuseSubmit" or "AbuseGaveUp" or
+                "AbuseTook" or "AbuseDefied" or "AbuseRefused" or "AbuseFled" or
+                "AbuseFledHome" => NegColor,
             "AidRequest" or "AidIncoming" or "AidStarted" or "AidCompleted" or "TalkSuccess" or
                 "HelpCryAnswer" or "HelpCryAnswered" => PosColor,
             _ => Color.white

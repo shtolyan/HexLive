@@ -103,6 +103,10 @@ public static class SpeechCatalog
         ["hurt_faint"] = new("Faint", Rank.Alarm, 20f),
         ["cry_corpse"] = new("Grief", Rank.Action, 25f),
         ["cry_bury"] = new("Bury", Rank.Action, 20f),
+        // §81.13: проигравший сцену абьюза бежит домой в слезах. Файлов
+        // voice_<char>_cry_beaten_<n> пока нет — фолбэк на банк cry сработает
+        // сам (PlayVoiceLine), а завести свои реплики = просто положить файлы.
+        ["cry_beaten"] = new("Grief", Rank.Action, 30f),
         ["angry_defend"] = new("Attack", Rank.Alarm, 10f),
         ["fear_dark_alone"] = new("Warning", Rank.Ambient, 120f),
 
@@ -220,9 +224,11 @@ public static class SpeechCatalog
             "AbuseDemand" => "angry_attack",
             "AbuseStruck" => "angry_attack",
             "AbuseCry" or "AbuseGaveUp" => "cry_corpse",
+            // §81.13: проигравший сцену убегает домой с плачем.
+            "AbuseFledHome" => "cry_beaten",
             "AbuseDefied" => "angry_defend",
-            "AbuseThreatened" or "AbuseHurt" or "AbuseSubmit" or "AbuseRefused"
-                or "AbuseTook" or "AbuseFled" => null,
+            "AbuseThreatened" or "AbuseCowed" or "AbuseHurt" or "AbuseSubmit"
+                or "AbuseRefused" or "AbuseTook" or "AbuseFled" => null,
             "TalkRejected" or "TalkRefused" or "TalkQuarrel" or "Resentment" => null,
             _ => null
         };

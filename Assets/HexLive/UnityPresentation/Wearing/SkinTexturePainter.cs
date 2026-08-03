@@ -102,6 +102,26 @@ namespace HexLive.UnityPresentation.Wearing
             // r4: seeded random spin (degrees) applied via the GL matrix at
             // draw time, so the same splatter art never tiles visibly.
             public float RotationDeg;
+
+            // ---- Spec 40.8-J: seam-free projected stamp ----
+            // A projected stamp is not a UV rectangle at all: it is a box in
+            // BIND (mesh) space, and every texel whose baked body point falls
+            // inside it gets painted — on whatever island, tile or texture
+            // that texel belongs to. That is what lets a hip wrap lie half on
+            // the leg and half on the torso instead of being scissored at the
+            // edge of the Legs tile.
+            public bool IsProjected;
+            // Bind space -> decal space (xy in [-0.5,0.5], z in mesh units).
+            public Matrix4x4 ObjectToDecal;
+            // Same for the 1.6x blood-splash underlay.
+            public Matrix4x4 UnderToDecal;
+            public Vector3 BindPos;
+            public Vector3 DecalNormal;
+            public float Depth;        // half-thickness of the accepted slab
+            // EVERY slot the decal reaches. Painting is per-slot (each slot
+            // owns its render target), so a stamp that crosses a texture
+            // boundary is drawn once per side.
+            public int[]? Slots;
         }
 
         // 1024 visibly softened the 4096 Daz skin (the whole slot swaps to the
@@ -188,23 +208,22 @@ namespace HexLive.UnityPresentation.Wearing
         // already a rich saturated red and "классно смотрится" as-is, so the
         // stamp draws it unmodified instead of the r1 muted-bruise darkening.
         private static Color SpeckleTint(float alpha) => StampTint(alpha);
-        // r5: size × count COMPOUND — the r2 ease-out curve was tuned for
-        // 3-6 cm dabs, and after the r4 ×5 size bump it flooded a torso at
-        // 9% damage (18 palm-sized splatters, the user's screenshot).
-        // Recalibrated so THAT look lands at ~50% damage instead:
-        // 120·q(0.5)^2.5 ≈ 18. Low damage = 1-2 big blots, full = 120.
-        private static float SpeckleRamp(float q) => Mathf.Pow(q, 2.5f);
+        // r6: NO solid flood — the r5 ceiling of 120 read as "перебор,
+        // некрасиво". User calibration: the ~18-splatter torso look sits at
+        // 80% damage, and 100% is only ~20% past it (≈22). So the ceiling
+        // IS ~22 and the curve is near-linear: f(q(0.8)) = 18/22 → q^0.85.
+        // Low damage still opens with a lone big blot.
+        private static float SpeckleRamp(float q) => Mathf.Pow(q, 0.85f);
 
-        // r2: ×5 over v1 ("very little blood"). Stays under the 128-cell
-        // PaintPointMap grid, so the stride walk still never duplicates.
+        // r6: ceilings scaled to the no-flood calibration (≈0.18 of r4).
         private static int MaxSpecklesFor(string zone) => zone switch
         {
-            "Torso" => 120,
-            "Pelvis" => 80,
-            "LegL" or "LegR" => 70,
-            "ArmL" or "ArmR" => 50,
-            "Head" => 40,
-            _ => 40
+            "Torso" => 22,
+            "Pelvis" => 15,
+            "LegL" or "LegR" => 13,
+            "ArmL" or "ArmR" => 9,
+            "Head" => 7,
+            _ => 7
         };
 
         private static int SpeckleCountFor(string zone, float q) =>
@@ -234,6 +253,27 @@ namespace HexLive.UnityPresentation.Wearing
         private static readonly int DropGlossId = Shader.PropertyToID("_DropGloss");
         private static readonly int GlossMaxId = Shader.PropertyToID("_GlossMax");
         private static readonly int SkinTintColorId = Shader.PropertyToID("_TintColor");
+        private static readonly int PosMapId = Shader.PropertyToID("_PosMap");
+        private static readonly int NrmMapId = Shader.PropertyToID("_NrmMap");
+        private static readonly int ObjectToDecalId = Shader.PropertyToID("_ObjectToDecal");
+        private static readonly int DecalNormalId = Shader.PropertyToID("_DecalNormal");
+        private static readonly int DepthId = Shader.PropertyToID("_Depth");
+        private static readonly int DepthFeatherId = Shader.PropertyToID("_DepthFeather");
+
+        // ---- Spec 40.8-J projected-decal knobs ----
+        // The accepted slab's half-thickness as a fraction of the decal's
+        // longest side. Thin enough that the far side of a limb never gets a
+        // mirrored copy, thick enough to follow the hip's curvature.
+        private const float ProjectedDepthFactor = 0.4f;
+        private const float ProjectedDepthFeather = 0.35f;
+        // Reach margin when deciding which slots a decal touches, on top of
+        // the baked sample spacing — a decal that only clips the corner of a
+        // slot must still claim it, or that sliver goes unpainted. Kept small
+        // on purpose: every slot claimed costs a ~21 MB render target, so the
+        // reach is measured against the DETAILED art, not the faint 1.6x
+        // blood halo around it (a clipped halo is invisible, a clipped wound
+        // is the bug this whole path exists to fix).
+        private const float ProjectedReachMargin = 0.005f;
 
         // Stamp art loads once per session, not once per wound.
         // NOTE: the RVFX pack splatters were tried as underlay variants and
@@ -295,6 +335,11 @@ namespace HexLive.UnityPresentation.Wearing
         // the albedo and its smoothness into the gloss map (DropletStamp.shader).
         private static Material? _dropletStamp;
         private static bool _dropletShaderWarned;
+        // Spec 40.8-J: paints one decal by asking every texel "which body
+        // point do you cover?" instead of filling a UV rectangle
+        // (ProjectedStamp.shader) — the seam-free path.
+        private static Material? _projectedStamp;
+        private static bool _projectedShaderWarned;
 
         private SkinnedMeshRenderer? _body;
         private BodyBones? _bones;
@@ -305,6 +350,10 @@ namespace HexLive.UnityPresentation.Wearing
         // Spec 40.8-G: editor-baked placement points — when present, wound/
         // droplet placement is a table lookup and BakeMesh never runs.
         private PaintPointMap? _map;
+        // Spec 40.8-J: per-texel body positions — when present (and the point
+        // map is v2), wounds and wraps paint through the seam-free projected
+        // path instead of a per-slot rectangle.
+        private SkinPositionMapSet? _posMaps;
 
         private Material[]? _materials;      // per-NPC instances
         private Texture?[] _originalAlbedo = System.Array.Empty<Texture?>();
@@ -368,8 +417,16 @@ namespace HexLive.UnityPresentation.Wearing
             // BakeMesh path — with its combat-frame cost — when missing).
             if (!string.IsNullOrEmpty(actorMesh))
             {
-                _map = PaintPointMap.Load($"skin_{actorMesh}",
-                    body.sharedMesh != null ? body.sharedMesh.vertexCount : 0);
+                var vertexCount = body.sharedMesh != null ? body.sharedMesh.vertexCount : 0;
+                _map = PaintPointMap.Load($"skin_{actorMesh}", vertexCount);
+                // Spec 40.8-J: both halves must be present and current — the
+                // frames live in the point map, the texels in the position
+                // maps. Either one stale and decals stay per-slot (clipped at
+                // UV seams) rather than landing in the wrong place.
+                if (_map != null && _map.HasProjectedFrames)
+                {
+                    _posMaps = SkinPositionMapSet.Load($"skinpos_{actorMesh}", vertexCount);
+                }
             }
 
             _materials = body.materials; // instantiate once, per NPC
@@ -1173,6 +1230,15 @@ namespace HexLive.UnityPresentation.Wearing
                 EnsureStampTextures();
                 var mapTarget = (isBandage ? 0.14f : 0.07f + NextRand(ref mapState) * 0.04f)
                                 * (_height / 1.7f);
+
+                // Spec 40.8-J: the seam-free path. Same seeded rolls, same
+                // grid cell, same art — only the FOOTPRINT changes, from a
+                // rectangle in one slot's UV to a box in body space.
+                if (TryPlaceProjected(key, zoneName, seed, isBandage, isGauze, point, mapTarget))
+                {
+                    return;
+                }
+
                 SizeFromDensity(point, mapTarget, out var mapSizeU, out var mapSizeV);
                 var (mover, mgloss, mnormal) = WoundVariant(seed);
                 _stamps[key] = new Stamp
@@ -1274,6 +1340,136 @@ namespace HexLive.UnityPresentation.Wearing
             };
         }
 
+        /// <summary>
+        /// Spec 40.8-J: records `key` as a PROJECTED stamp — a decal box in
+        /// bind (mesh) space rather than a rectangle in one slot's UV. Returns
+        /// false when the actor has no baked position maps (or the point sits
+        /// on a slot with no paintable texture), in which case the caller
+        /// keeps the legacy per-slot rect.
+        ///
+        /// The frame is built from the baked surface point: Z = the surface
+        /// normal, Y = the zone's bone axis flattened onto the surface (so the
+        /// art runs ALONG the limb, as the UV-aligned rect used to), X = their
+        /// cross product. Sizes come in world metres and convert to mesh units
+        /// through the map's own bind-pose height, so a body exported at a
+        /// different scale still gets a 14 cm wrap.
+        /// </summary>
+        private bool TryPlaceProjected(string key, string zoneName, int seed, bool isBandage,
+            bool isGauze, in PaintPointMap.Point point, float targetWorld)
+        {
+            if (_posMaps == null || _map == null)
+            {
+                return false;
+            }
+
+            if (point.BindNormal.sqrMagnitude < 1e-8f || _posMaps.GroupOf(point.Slot) < 0)
+            {
+                return false; // pre-v2 cell, or a slot with nothing to paint into
+            }
+
+            var zone = _map.ZoneFor(zoneName);
+            var axis = zone != null ? zone.BindAxisDir : Vector3.up;
+
+            // World metres -> mesh units. _height already carries the actor's
+            // scale, and the mesh is authored at MeshHeight.
+            var meshScale = Mathf.Max(0.0001f, _map.MeshHeight / 1.7f);
+            var size = targetWorld / Mathf.Max(0.0001f, _height / 1.7f) * meshScale;
+
+            var normal = point.BindNormal.normalized;
+            var along = axis - normal * Vector3.Dot(normal, axis);
+            if (along.sqrMagnitude < 1e-6f)
+            {
+                // Bone axis parallel to the normal (the head's stub axis on a
+                // crown texel): any tangent will do.
+                along = Vector3.Cross(normal, Vector3.right);
+                if (along.sqrMagnitude < 1e-6f)
+                {
+                    along = Vector3.Cross(normal, Vector3.forward);
+                }
+            }
+
+            along.Normalize();
+            // LookRotation(forward=normal, up=along): local +Z is the surface
+            // normal, +Y runs along the limb, +X around it.
+            var frame = Matrix4x4.TRS(point.BindPos,
+                Quaternion.LookRotation(normal, along), Vector3.one).inverse;
+            var scale = Matrix4x4.Scale(new Vector3(1f / size, 1f / size, 1f));
+            var underScale = Matrix4x4.Scale(new Vector3(1f / (size * 1.6f), 1f / (size * 1.6f), 1f));
+
+            var depth = size * ProjectedDepthFactor;
+            var reach = size * 0.7071f + _posMaps.SampleSpacing + ProjectedReachMargin;
+
+            EnsureStampTextures();
+            var (over, gloss, _) = WoundVariant(seed);
+            _stamps[key] = new Stamp
+            {
+                Key = key,
+                Slot = point.Slot,
+                Uv = point.Uv,
+                Seed = seed,
+                Under = isBandage ? null : _texSplash,
+                Over = isGauze ? _texGauze : (isBandage ? _texBandage : over),
+                OverGloss = isBandage ? null : gloss,
+                // No relief on the projected path: the wound's normal art is
+                // authored in the DECAL's tangent frame, which is not the
+                // surface's UV frame, so stamping it would tilt the lighting.
+                // The wet gloss carries the volume instead (the same call
+                // spec 40.8-D v5 made when relief flared at seams).
+                OverNormal = null,
+                IsBandage = isBandage,
+                IsGauze = isGauze,
+                IsProjected = true,
+                ObjectToDecal = scale * frame,
+                UnderToDecal = underScale * frame,
+                BindPos = point.BindPos,
+                DecalNormal = normal,
+                Depth = depth,
+                Slots = SlotsReached(point.Slot, point.BindPos, reach)
+            };
+            return true;
+        }
+
+        // Every skin slot whose baked surface samples fall inside the decal's
+        // reach. This gates RenderTexture allocation (~21 MB each), so it must
+        // stay tight — but the anchor slot is always included, or a decal
+        // could end up painting nothing at all.
+        private int[] SlotsReached(int anchorSlot, Vector3 center, float reach)
+        {
+            var slots = new List<int> { anchorSlot };
+            foreach (var slot in _skinSlots)
+            {
+                if (slot == anchorSlot || _posMaps!.GroupOf(slot) < 0)
+                {
+                    continue;
+                }
+
+                if (_posMaps.SlotReaches(slot, center, reach))
+                {
+                    slots.Add(slot);
+                }
+            }
+
+            return slots.ToArray();
+        }
+
+        private static bool StampTouchesSlot(Stamp stamp, int slot)
+        {
+            if (stamp.Slots == null)
+            {
+                return stamp.Slot == slot;
+            }
+
+            for (var i = 0; i < stamp.Slots.Length; i++)
+            {
+                if (stamp.Slots[i] == slot)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         // A dead stamp record: paints nothing (slot -1 never matches) but
         // stops Sync from re-attempting the same placement every frame.
         private void PlaceTombstone(string key, int seed, bool isBandage, bool isGauze = false)
@@ -1320,7 +1516,12 @@ namespace HexLive.UnityPresentation.Wearing
             var (wover, wgloss, wnormal) = WoundVariant(stamp.Seed);
             stamp.Over ??= wover;
             stamp.OverGloss ??= wgloss;
-            stamp.OverNormal ??= wnormal;
+            // Projected wounds carry no relief by design (see
+            // TryPlaceProjected) — backfilling it here would put it back.
+            if (!stamp.IsProjected)
+            {
+                stamp.OverNormal ??= wnormal;
+            }
         }
 
         // Deterministic per-seed wound art: the same seed always resolves to
@@ -1456,7 +1657,9 @@ namespace HexLive.UnityPresentation.Wearing
             _dropletStamp = null;
             _glossStamp = null;
             _skinTintBlit = null;
+            _projectedStamp = null;
             _dropletShaderWarned = false;
+            _projectedShaderWarned = false;
         }
 
         private static void EnsureStampTextures()
@@ -1465,7 +1668,7 @@ namespace HexLive.UnityPresentation.Wearing
             if (_stampTexturesLoaded && _texScratchN != null && _texSplatN != null &&
                 _texSplashN != null && _texSweatN != null && _dropletStamp != null &&
                 _texScratchG != null && _texSplatG != null && _glossStamp != null &&
-                _skinTintBlit != null && _texStain != null)
+                _skinTintBlit != null && _texStain != null && _projectedStamp != null)
             {
                 return;
             }
@@ -1510,6 +1713,8 @@ namespace HexLive.UnityPresentation.Wearing
             _glossStamp = glossShader != null ? new Material(glossShader) : null;
             var tintShader = Shader.Find("Hidden/HexLive/SkinTintBlit");
             _skinTintBlit = tintShader != null ? new Material(tintShader) : null;
+            var projectedShader = Shader.Find("Hidden/HexLive/ProjectedStamp");
+            _projectedStamp = projectedShader != null ? new Material(projectedShader) : null;
         }
 
         // ---- painting ----
@@ -1572,7 +1777,10 @@ namespace HexLive.UnityPresentation.Wearing
                 var hasGloss = false;
                 foreach (var stamp in _stamps.Values)
                 {
-                    if (stamp.Slot != slot)
+                    // A projected stamp claims EVERY slot it reaches, so a hip
+                    // wrap turns on the paint target of both the leg and the
+                    // torso (spec 40.8-J).
+                    if (!StampTouchesSlot(stamp, slot))
                     {
                         continue;
                     }
@@ -1615,7 +1823,8 @@ namespace HexLive.UnityPresentation.Wearing
                                      "droplet albedo/gloss muted (normal relief only)");
                 }
 
-                if ((hasDroplet && _dropletStamp != null) || (hasGloss && _glossStamp != null))
+                if ((hasDroplet && _dropletStamp != null) ||
+                    (hasGloss && (_glossStamp != null || _projectedStamp != null)))
                 {
                     RepaintSlotGloss(slot);
                 }
@@ -1650,6 +1859,99 @@ namespace HexLive.UnityPresentation.Wearing
         private Rect DropletRect(Stamp stamp) => new(
             stamp.Uv.x - stamp.UvSizeX * 0.5f, 1f - stamp.Uv.y - stamp.UvSizeY * 0.5f,
             stamp.UvSizeX, stamp.UvSizeY);
+
+        // ---- Spec 40.8-J: drawing a projected (seam-free) stamp ----
+
+        private static readonly Rect FullSourceRect = new(0f, 0f, 1f, 1f);
+
+        // True while this slot can run the projected path at all.
+        private bool CanProject(int slot) =>
+            _posMaps != null && _projectedStamp != null &&
+            _posMaps.PositionMapOf(slot) != null && _posMaps.NormalMapOf(slot) != null;
+
+        // The slot-UV window the decal can reach, from the baked cell grid.
+        // A projected stamp decides PER TEXEL, so without this it would have
+        // to sweep the whole 2048² target once per decal per channel.
+        private bool TryProjectedWindow(Stamp stamp, int slot, bool underlay, out Rect uvWindow)
+        {
+            var radius = stamp.Depth / ProjectedDepthFactor * (underlay ? 1.6f : 1f) * 0.7071f;
+            return _posMaps!.TryGetUvBounds(_posMaps.GroupOf(slot), stamp.BindPos,
+                radius + _posMaps.SampleSpacing, out uvWindow);
+        }
+
+        private void ConfigureProjectedMaterial(Stamp stamp, int slot, float fade, bool underlay,
+            in Rect uvWindow)
+        {
+            var mat = _projectedStamp!;
+            mat.SetTexture(PosMapId, _posMaps!.PositionMapOf(slot));
+            mat.SetTexture(NrmMapId, _posMaps.NormalMapOf(slot));
+            // Quad UV -> slot UV, the DropletStamp convention.
+            mat.SetVector(SlotRectId,
+                new Vector4(uvWindow.x, uvWindow.y, uvWindow.width, uvWindow.height));
+            mat.SetMatrix(ObjectToDecalId, underlay ? stamp.UnderToDecal : stamp.ObjectToDecal);
+            mat.SetVector(DecalNormalId, stamp.DecalNormal);
+            mat.SetFloat(FadeId, fade);
+            // The underlay spreads 1.6x wider, so its slab has to as well or
+            // the halo would be cut short of the art it is haloing.
+            var depth = underlay ? stamp.Depth * 1.6f : stamp.Depth;
+            mat.SetFloat(DepthId, depth);
+            mat.SetFloat(DepthFeatherId, depth * ProjectedDepthFeather);
+        }
+
+        // The window in the pixel matrix RepaintSlot installs (y flips).
+        private static Rect TargetRectOf(in Rect uvWindow) => new(
+            uvWindow.x, 1f - uvWindow.y - uvWindow.height, uvWindow.width, uvWindow.height);
+
+        private void DrawProjected(Stamp stamp, Texture art, int slot, float fade, bool underlay,
+            int pass)
+        {
+            if (!TryProjectedWindow(stamp, slot, underlay, out var window))
+            {
+                return; // the decal reaches nothing on this texture
+            }
+
+            ConfigureProjectedMaterial(stamp, slot, fade, underlay, window);
+            Graphics.DrawTexture(TargetRectOf(window), art, FullSourceRect,
+                0, 0, 0, 0, Color.white, _projectedStamp, pass);
+        }
+
+        private void DrawProjectedAlbedo(Stamp stamp, int slot, float alpha)
+        {
+            if (!CanProject(slot))
+            {
+                if (!_projectedShaderWarned)
+                {
+                    _projectedShaderWarned = true;
+                    Debug.LogWarning($"[SkinPaint] npc{_npcId} slot={slot}: ProjectedStamp shader " +
+                                     "or position map missing — seam-free decal skipped");
+                }
+
+                return;
+            }
+
+            // Same layering as the rect path: the pale blood-splash halo goes
+            // down first at half alpha, the detailed art on top.
+            if (stamp.Under != null)
+            {
+                DrawProjected(stamp, stamp.Under, slot, alpha * 0.5f, underlay: true, pass: 0);
+            }
+
+            if (stamp.Over != null)
+            {
+                DrawProjected(stamp, stamp.Over, slot, alpha, underlay: false, pass: 0);
+            }
+        }
+
+        private void DrawProjectedGloss(Stamp stamp, int slot, float alpha)
+        {
+            if (stamp.OverGloss == null || !CanProject(slot))
+            {
+                return;
+            }
+
+            _projectedStamp!.SetFloat(GlossMaxId, WoundWetGloss);
+            DrawProjected(stamp, stamp.OverGloss, slot, alpha, underlay: false, pass: 1);
+        }
 
         private void RepaintSlot(int slot)
         {
@@ -1737,9 +2039,18 @@ namespace HexLive.UnityPresentation.Wearing
 
                 foreach (var stamp in _stamps.Values)
                 {
-                    if (stamp.IsSpeckle || stamp.Slot != slot ||
+                    if (stamp.IsSpeckle || !StampTouchesSlot(stamp, slot) ||
                         !_alpha.TryGetValue(stamp.Key, out var alpha) || alpha <= 0.01f)
                     {
+                        continue;
+                    }
+
+                    // Spec 40.8-J: the seam-free stamp covers the whole target
+                    // and decides per texel, so it cannot be expressed as a
+                    // rect — it gets its own pass.
+                    if (stamp.IsProjected)
+                    {
+                        DrawProjectedAlbedo(stamp, slot, alpha);
                         continue;
                     }
 
@@ -1808,10 +2119,11 @@ namespace HexLive.UnityPresentation.Wearing
         // scalar, which NpcActorView pins to 1 while this map is live.
         private void RepaintSlotGloss(int slot)
         {
-            // Either stamp material serves: droplets need _dropletStamp,
-            // wound wet-gloss needs _glossStamp — per-stamp guards below.
+            // Any stamp material serves: droplets need _dropletStamp, rect
+            // wound gloss _glossStamp, projected wounds _projectedStamp —
+            // per-stamp guards below.
             if (_materials == null || _materials[slot] == null ||
-                (_dropletStamp == null && _glossStamp == null) ||
+                (_dropletStamp == null && _glossStamp == null && _projectedStamp == null) ||
                 !_materials[slot].HasProperty("_MetallicGlossMap"))
             {
                 return;
@@ -1842,9 +2154,15 @@ namespace HexLive.UnityPresentation.Wearing
 
                 foreach (var stamp in _stamps.Values)
                 {
-                    if (stamp.Slot != slot ||
+                    if (!StampTouchesSlot(stamp, slot) ||
                         !_alpha.TryGetValue(stamp.Key, out var alpha) || alpha <= 0.01f)
                     {
+                        continue;
+                    }
+
+                    if (stamp.IsProjected)
+                    {
+                        DrawProjectedGloss(stamp, slot, alpha);
                         continue;
                     }
 
@@ -1961,7 +2279,10 @@ namespace HexLive.UnityPresentation.Wearing
 
                 foreach (var stamp in _stamps.Values)
                 {
-                    if (stamp.Slot != slot || !_alpha.TryGetValue(stamp.Key, out var alpha) || alpha <= 0.01f)
+                    // Projected stamps carry no relief (TryPlaceProjected) —
+                    // the guards below skip them, this keeps the intent plain.
+                    if (stamp.IsProjected || !StampTouchesSlot(stamp, slot) ||
+                        !_alpha.TryGetValue(stamp.Key, out var alpha) || alpha <= 0.01f)
                     {
                         continue;
                     }

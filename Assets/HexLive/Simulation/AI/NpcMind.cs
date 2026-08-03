@@ -238,6 +238,12 @@ public sealed class NPCMind
 
     public bool AbuseHasLoot { get; set; }
 
+    // §81.13: здоровье на входе в сцену, у ОБЕИХ сторон. Разница на выходе и
+    // есть «кто проиграл»: дельта честнее счётчика ударов — она видит и броню,
+    // и пощаду §86, и тычки подошедших защитниц. В сейв не пишется, как и всё
+    // сценное: сцена длится ≤60 тиков и сохранение не переживает.
+    public float SceneStartHealth { get; set; }
+
     // Set on BOTH sides while a human fight is live. An NPC has a single swing
     // slot, so this is also how the human exchange claims it from the animal
     // one (AnimalCombatSystem bails while it is set).

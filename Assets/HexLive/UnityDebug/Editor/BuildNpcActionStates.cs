@@ -215,34 +215,108 @@ namespace HexLive.UnityDebug.Editor
             co.AddCondition(AnimatorConditionMode.IfNot, 0, "Crawling");
             co.hasExitTime = false; co.duration = 0.2f;
 
-            // §105: FallDown → FallenIdle → StandUp → Idle.
+            // §105: FallDown → (FallenIdle | Sleep) → подъём.
             //
-            // Вход через AnyState и ПОСЛЕ Death/Crawl — порядок объявления есть
-            // порядок вычисления, и мёртвая не должна падать заново.
+            // ⭐ Вход НЕ через AnyState, и это главное. Первая редакция вешала
+            // AnyState→FallDown на «Fallen == true» — а условие остаётся
+            // истинным всё время, пока она лежит, поэтому из FallenIdle тот же
+            // переход тут же дёргал её обратно в падение: она падала, падала и
+            // падала, не доходя до лежачего лупа. AnyState годится для
+            // ОДНОГО состояния (Death, Crawl) и ломается на цепочке из трёх.
+            // Сонная цепочка LieDown→Sleep→GetUp по этой же причине входит
+            // явными переходами из каждого стоячего состояния — делаем так же.
             //
-            // Два выхода из падения намеренно: досрочный (её подняли, пока клип
-            // падения ещё играет) и обычный по времени. Без первого спасение на
-            // первых кадрах оставляло бы её доигрывать падение уже здоровой.
+            // Ветвление после приземления — по Laying:
+            //   Laying == false → FallenIdle: кома и умирание, тело лежит
+            //                     безвольно, пока его не поднимут;
+            //   Laying == true  → Sleep: потеряла сознание — рухнула так же, но
+            //                     дальше просто спит, и встаёт обычным GetUp.
+            var sleep = Find(sm, "Sleep");
+            var lieDown = Find(sm, "LieDown");
+
             ClearAny(sm, fallDown);
-            ClearOut(fallDown);
             ClearAny(sm, fallenIdle);
-            ClearOut(fallenIdle);
             ClearAny(sm, standUp);
+            ClearInbound(sm, fallDown);
+            ClearInbound(sm, fallenIdle);
+            ClearInbound(sm, standUp);
+            ClearOut(fallDown);
+            ClearOut(fallenIdle);
             ClearOut(standUp);
 
-            var fi = sm.AddAnyStateTransition(fallDown);
-            fi.AddCondition(AnimatorConditionMode.If, 0, "Fallen");
-            fi.AddCondition(AnimatorConditionMode.IfNot, 0, "Dead");
-            fi.hasExitTime = false; fi.duration = 0.15f; fi.canTransitionToSelf = false;
+            // Падение приходит откуда угодно — из бега, из драки, из работы.
+            // Кроме: самой цепочки падения (это и был луп), смерти и тех, кто
+            // УЖЕ на земле — лежащую не роняют второй раз.
+            foreach (var cs in sm.states)
+            {
+                var s = cs.state;
+                if (s == fallDown || s == fallenIdle || s == standUp || s == death ||
+                    s == sleep || s == lieDown || s.name == "GetUp")
+                {
+                    continue;
+                }
 
-            // Падение доиграло — лечь в луп. Без условий, по времени: это одна
+                var enter = s.AddTransition(fallDown);
+                enter.AddCondition(AnimatorConditionMode.If, 0, "Fallen");
+                enter.hasExitTime = false;
+                enter.duration = 0.15f;
+            }
+
+            // Уже спящую (в кровати) кома роняет не клипом падения — она и так
+            // лежит; ей достаточно обмякнуть в лежачий луп.
+            foreach (var alreadyDown in new[] { sleep, lieDown })
+            {
+                if (alreadyDown == null)
+                {
+                    continue;
+                }
+
+                var slump = alreadyDown.AddTransition(fallenIdle);
+                slump.AddCondition(AnimatorConditionMode.If, 0, "Fallen");
+                slump.AddCondition(AnimatorConditionMode.IfNot, 0, "Laying");
+                slump.hasExitTime = false;
+                slump.duration = 0.25f;
+            }
+
+            // Сонная цепочка обязана пропускать падение вперёд — и на входе, и
+            // на выходе. Порядок переходов внутри состояния есть порядок
+            // вычисления, а эти записаны в контроллере раньше наших:
+            //
+            //   → LieDown: у потерявшей сознание подняты ОБА флага, и без этого
+            //     она уходила бы в аккуратное «прилегла» вместо падения;
+            //   → GetUp:   он срабатывает на «Laying == false», а ровно это и
+            //     значит «спящую накрыла кома» — она бы ВСТАЛА, чтобы тут же
+            //     рухнуть, вместо того чтобы обмякнуть на месте.
+            var getUp = Find(sm, "GetUp");
+            foreach (var cs in sm.states)
+            {
+                foreach (var t in cs.state.transitions)
+                {
+                    if ((lieDown != null && t.destinationState == lieDown) ||
+                        (getUp != null && t.destinationState == getUp))
+                    {
+                        EnsureCondition(t, AnimatorConditionMode.IfNot, "Fallen");
+                    }
+                }
+            }
+
+            // Падение доиграло — лечь. Обе ветки по времени: это одна
             // непрерывная сцена, а не два независимых состояния.
             var fl = fallDown.AddTransition(fallenIdle);
+            fl.AddCondition(AnimatorConditionMode.IfNot, 0, "Laying");
             fl.hasExitTime = true; fl.exitTime = 0.95f; fl.duration = 0.3f;
 
-            // Досрочный подъём прямо из падения.
+            if (sleep != null)
+            {
+                var fs = fallDown.AddTransition(sleep);
+                fs.AddCondition(AnimatorConditionMode.If, 0, "Laying");
+                fs.hasExitTime = true; fs.exitTime = 0.95f; fs.duration = 0.3f;
+            }
+
+            // Досрочный подъём прямо из падения: её подняли, пока клип ещё шёл.
             var fu = fallDown.AddTransition(standUp);
             fu.AddCondition(AnimatorConditionMode.IfNot, 0, "Fallen");
+            fu.AddCondition(AnimatorConditionMode.IfNot, 0, "Laying");
             fu.hasExitTime = false; fu.duration = 0.2f;
 
             var lu = fallenIdle.AddTransition(standUp);
@@ -342,6 +416,33 @@ namespace HexLive.UnityDebug.Editor
             {
                 s.RemoveTransition(t);
             }
+        }
+
+        // §105: снять ВХОДЯЩИЕ переходы из обычных состояний. Нужен, потому что
+        // цепочка падения входит не из AnyState, а явными переходами из каждого
+        // стоячего состояния — без этого повторный запуск меню добавлял бы их
+        // поверх старых, и один и тот же переход копился бы с каждым прогоном.
+        static void ClearInbound(AnimatorStateMachine sm, AnimatorState dst)
+        {
+            foreach (var cs in sm.states)
+            {
+                foreach (var t in new List<AnimatorStateTransition>(cs.state.transitions))
+                {
+                    if (t.destinationState == dst) cs.state.RemoveTransition(t);
+                }
+            }
+        }
+
+        // Идемпотентно: условие добавляется, только если его там ещё нет.
+        static void EnsureCondition(
+            AnimatorStateTransition t, AnimatorConditionMode mode, string parameter)
+        {
+            foreach (var c in t.conditions)
+            {
+                if (c.parameter == parameter && c.mode == mode) return;
+            }
+
+            t.AddCondition(mode, 0, parameter);
         }
 
         // §50: the Crawl state as a 1D blend on "Speed" — Prone Idle at 0 (she

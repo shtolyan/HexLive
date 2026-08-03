@@ -27,6 +27,13 @@ namespace HexLive.UnityPresentation.Wearing
         /// one flat list of area-weighted surface points.</summary>
         public const string MobSurfaceZone = "MobSurface";
 
+        /// <summary>Layout revision. v2 (spec 40.8-J) added the bind-pose
+        /// SURFACE FRAME (BindPos/BindNormal/BindAxisDir + MeshHeight) that
+        /// seam-free projected decals need. A v0/v1 asset deserializes those
+        /// as zero, so the runtime keeps the legacy per-slot rect path until
+        /// HexLive ▸ Paint Maps ▸ Regenerate runs.</summary>
+        public const int ProjectedVersion = 2;
+
         [System.Serializable]
         public struct Point
         {
@@ -35,6 +42,13 @@ namespace HexLive.UnityPresentation.Wearing
             public float BindPerU;   // rig-scale metres per UV unit along U
             public float BindPerV;
             public bool Valid;       // false = no surface found for this cell
+            // ---- v2: the 3D surface frame behind that UV ----
+            // Mesh(bind)-space position of the sampled surface point and its
+            // outward normal. A projected decal is anchored HERE, so it can
+            // spill onto whatever geometry is nearby — across UV islands and
+            // across the four separate skin textures alike.
+            public Vector3 BindPos;
+            public Vector3 BindNormal;
         }
 
         [System.Serializable]
@@ -42,12 +56,26 @@ namespace HexLive.UnityPresentation.Wearing
         {
             public string Zone = string.Empty;
             public Point[] Points = System.Array.Empty<Point>();
+            // v2: the zone's bone axis in mesh space — the decal's "along the
+            // limb" direction (its V axis once projected onto the surface).
+            public Vector3 BindAxisDir;
         }
 
         // Identity of the mesh the map was baked from — a stale map (mesh
         // re-exported with different topology) is refused loudly.
         public string MeshName = string.Empty;
         public int VertexCount;
+
+        // Layout revision (see ProjectedVersion) and the mesh's bind-pose
+        // height in mesh units. World-metre stamp sizes are authored for a
+        // 1.7 m rig, so a decal's size in MESH space is size × MeshHeight/1.7
+        // — robust to a body exported in centimetres or at a different scale.
+        public int Version;
+        public float MeshHeight = 1.7f;
+
+        /// <summary>True when this map carries the v2 surface frame, i.e. the
+        /// seam-free projected decal path can run off it.</summary>
+        public bool HasProjectedFrames => Version >= ProjectedVersion;
 
         // Skin grids: Points is TSamples rows × AzimuthSamples columns,
         // row-major; rows span [TMin..TMax] along the zone's bone axis.
@@ -58,6 +86,20 @@ namespace HexLive.UnityPresentation.Wearing
         public float TMax = 1f;
 
         public ZonePoints[] Zones = System.Array.Empty<ZonePoints>();
+
+        /// <summary>The zone record itself (points + v2 bone axis), or null.</summary>
+        public ZonePoints? ZoneFor(string zone)
+        {
+            foreach (var z in Zones)
+            {
+                if (z.Zone == zone)
+                {
+                    return z;
+                }
+            }
+
+            return null;
+        }
 
         public Point[] PointsFor(string zone)
         {

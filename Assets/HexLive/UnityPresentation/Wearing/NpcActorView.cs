@@ -1944,7 +1944,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // Spec 31C.2: sleeping snaps the view to the bed's attach point and
     // plays the Laying state; waking releases back to the renderer's flow.
     public void SetLaying(bool laying, Transform attachPoint, float surfaceY = 0f) =>
-        ApplyLying(laying, attachPoint, surfaceY, fallenChain: false);
+        ApplyLying(laying, attachPoint, surfaceY, fallenChain: false, sleepAfterFall: false);
 
     // §105: тело РУХНУЛО — умирает (окно спасения) или лежит без сознания.
     //
@@ -1955,10 +1955,16 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // приходит откуда угодно, включая бег и драку, и играет
     // FallDown→FallenIdle→StandUp. Два bool'а взаимно исключаются здесь, в
     // одном месте, а не в четырёх ветках рендерера.
-    public void SetFallen(bool fallen, float surfaceY = 0f) =>
-        ApplyLying(fallen, null, surfaceY, fallenChain: true);
+    /// <param name="sleepAfter">
+    /// Чем кончается падение. false — лежачий луп: кома и умирание, тело
+    /// безвольно лежит, пока его не поднимут. true — обычный сон: она потеряла
+    /// сознание, рухнула так же, но дальше просто спит и встаёт обычным GetUp.
+    /// </param>
+    public void SetFallen(bool fallen, bool sleepAfter = false, float surfaceY = 0f) =>
+        ApplyLying(fallen, null, surfaceY, fallenChain: true, sleepAfterFall: sleepAfter);
 
-    private void ApplyLying(bool laying, Transform attachPoint, float surfaceY, bool fallenChain)
+    private void ApplyLying(
+        bool laying, Transform attachPoint, float surfaceY, bool fallenChain, bool sleepAfterFall)
     {
         if (_laying && !laying && _bodyRoot != null)
         {
@@ -1991,9 +1997,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         if (_animator != null)
         {
-            // §105: ровно один из двух — иначе она въехала бы в обе цепочки
-            // разом и аниматор выбрал бы по порядку переходов, а не по смыслу.
-            _animator.SetBool(LayingParam, laying && !fallenChain);
+            // §105: Fallen решает, ПАДАЕТ ли она; Laying — чем это кончится.
+            //
+            // У потерявшей сознание подняты ОБА: она валится клипом падения и
+            // приземляется в сон. Поэтому вход в сонную цепочку в контроллере
+            // дополнительно требует «Fallen == false» — иначе она уходила бы в
+            // аккуратное LieDown вместо падения.
+            _animator.SetBool(LayingParam, laying && (!fallenChain || sleepAfterFall));
             _animator.SetBool(FallenParam, laying && fallenChain);
         }
 
@@ -2733,13 +2743,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         switch (cueKind)
         {
-            case "AbuseThreatened":
+            // §81.13: отшатывается ТОЛЬКО решившая не сопротивляться — это
+            // кьюшка её решения (сим шлёт AbuseCowed вместо AbuseThreatened,
+            // когда она не отвечает). Решившая драться встаёт в боевую стойку.
+            case "AbuseCowed":
                 PlayEmote(_animSet.rejected);
                 break;
+            // §81.13: плачет ПРОИГРАВШИЙ, в развязке, перед бегством домой.
+            // AbuseCry сим больше не шлёт (ранний плач выглядел заученным),
+            // ветка оставлена на случай старых реплеев.
             case "AbuseCry":
-            case "AbuseGaveUp":
+            case "AbuseFledHome":
                 PlayEmote(_animSet.crying);
-                // Дальше она какое-то время ходит понуро.
+                // Дальше какое-то время ходит понуро.
                 _sadWalkUntil = Time.time + SadWalkSeconds;
                 break;
         }

@@ -237,8 +237,17 @@ public sealed partial class ExecutionSystem
             CombatHelpSystem.RallyFriends(world, mark, null, npc.Id,
                 $"Abuse=NPC{npc.Id.Value}");
 
+            // §81.13: здоровье на входе — обеим сторонам. Разница на выходе
+            // решит, кто проиграл сцену и побежит домой плакать.
+            npc.Mind.SceneStartHealth = npc.Health;
+            mark.Mind.SceneStartHealth = mark.Health;
+
             SocialCueSignals.Stamp(world, npc, "AbuseDemand", mark.Id);
-            SocialCueSignals.Stamp(world, mark, "AbuseThreatened", npc.Id);
+            // §81.13: отшатывается (клип Rejected) только та, что РЕШИЛА не
+            // отвечать, — это её решение и есть. Решившая драться встаёт в
+            // боевую стойку, и отдельной кьюшки ей не нужно.
+            SocialCueSignals.Stamp(world, mark,
+                answers ? "AbuseThreatened" : "AbuseCowed", npc.Id);
             Trace.Emit(world, npc.Id, "AbuseStarted",
                 $"Mark=NPC{mark.Id.Value} Loot={npc.Mind.AbuseHasLoot} " +
                 $"Ratio={AbuseMath.Ratio(world, npc, mark):F2} " +
@@ -258,12 +267,16 @@ public sealed partial class ExecutionSystem
         // «в боевой стойке», и вся сцена шла в мирной позе, без замахов.
         FightScene.Latch(world, npc, mark);
 
-        // --- Такт 2: она плачет ----------------------------------------------
+        // --- Такт 2: ей страшно ----------------------------------------------
+        //
+        // §81.13: ПЛАЧА здесь больше нет. Слёзы в первые же секунды сцены
+        // выглядели заученными — она ещё не знает, чем кончится. Стресс
+        // остаётся (страх настоящий), а плачет теперь ПРОИГРАВШИЙ — в
+        // развязке, перед бегством домой (см. FinishAbuse).
         if (npc.Mind.AbuseBeat < 1 && elapsed >= Spec81.AbuseBeatCryTicks)
         {
             npc.Mind.AbuseBeat = 1;
             mark.Needs.Stress = MathUtil.Clamp01(mark.Needs.Stress + Spec81.AbuseMarkStressCost);
-            SocialCueSignals.Stamp(world, mark, "AbuseCry", npc.Id);
             return;
         }
 
@@ -321,8 +334,20 @@ public sealed partial class ExecutionSystem
                 //
                 // Убийство отсюда возможно, и это осознанно: цена отказа должна
                 // быть настоящей, иначе отказывать будут всегда.
-                FinishAbuse(world, npc, mark, submitted: false, taken: null);
-                RaidSystem.EscalateToRaid(world, npc, mark, "AbuseDefied");
+                //
+                // §81.13: НО не когда он сам уже разбит. Кулачный гопник против
+                // ножа мог за сцену потерять больше, чем она, — эскалировать
+                // избитому нечем: он проиграл, плачет и бежит к себе (рут в
+                // FinishAbuse). Иначе «цена отказа» превращалась в бесплатное
+                // продолжение для того, кто драку уже проиграл.
+                var abuserLost = Spec81.AbuseRoutEnabled &&
+                    SceneDamage(npc) > SceneDamage(mark);
+                FinishAbuse(world, npc, mark, submitted: false, taken: null,
+                    allowRout: abuserLost);
+                if (!abuserLost)
+                {
+                    RaidSystem.EscalateToRaid(world, npc, mark, "AbuseDefied");
+                }
                 return;
             }
 
@@ -394,8 +419,14 @@ public sealed partial class ExecutionSystem
         FightScene.End(world, a, partner);
     }
 
+    // §81.13: сколько здоровья сторона оставила в сцене. Дельта, а не счётчик
+    // ударов: она видит броню, пощаду §86 и тычки подошедших защитниц.
+    private static float SceneDamage(NPCState npc) =>
+        System.Math.Max(0f, npc.Mind.SceneStartHealth - npc.Health);
+
     private static void FinishAbuse(
-        WorldState world, NPCState npc, NPCState mark, bool submitted, string taken)
+        WorldState world, NPCState npc, NPCState mark, bool submitted, string taken,
+        bool allowRout = true)
     {
         LeaveCombat(world, npc, mark);
 
@@ -469,6 +500,30 @@ public sealed partial class ExecutionSystem
         npc.Execution.EndTick = 0;
         npc.Movement.JunctionPath.Clear();
         npc.Movement.PathIndex = 0;
+
+        // §81.13: РАЗВЯЗКА. Проигравший — кто потерял больше здоровья (при
+        // нуле и равенстве — жертва: её трясли, не наоборот) — плачет и бежит
+        // в СВОЙ лагерь. Без этого она через тик рубила кокос в двух шагах от
+        // обидчика, а разбитый гопник как ни в чём не бывало шёл исследовать.
+        // Плач именно ЗДЕСЬ, а не в начале сцены: слёзы до приговора выглядели
+        // заученными.
+        if (allowRout && Spec81.AbuseRoutEnabled)
+        {
+            var abuserLost = SceneDamage(npc) > SceneDamage(mark);
+            var loser = abuserLost ? npc : mark;
+            var winner = abuserLost ? mark : npc;
+            if (loser.Health > 0f &&
+                !loser.IsUnconscious(world.Tick) &&
+                !loser.Body.IsProne)
+            {
+                SocialCueSignals.Stamp(world, loser, "AbuseFledHome", winner.Id);
+                var fled = MobSystem.TryFleeToCamp(world, loser,
+                    $"Routed after abuse by NPC{winner.Id.Value}");
+                Trace.Emit(world, loser.Id, "AbuseRouted",
+                    $"Winner=NPC{winner.Id.Value} SelfDmg={SceneDamage(loser):F2} " +
+                    $"WinnerDmg={SceneDamage(winner):F2} Fled={fled}");
+            }
+        }
     }
 
     private static void AbortAbuse(WorldState world, NPCState npc, string reason)

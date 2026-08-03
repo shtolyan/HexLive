@@ -739,6 +739,72 @@ public sealed class MobSystem : ISimulationSystem
 
     // Spec 29C.4A: run for the nearest reachable indoor junction.
     // §56: also used by PredationSystem so a preyed-on victim can bolt.
+    // §81.13: бегство ДОМОЙ, а не в ближайшее укрытие. TryStartFlee ниже ищет
+    // ближайший indoor-узел — для чужака, стоящего во дворе колонии, это ЕЁ
+    // хижина (та самая грабля, что записана в RaidSystem.BreakOff). Разбитый
+    // после сцены бежит к якорю СВОЕЙ фракции: жертва — в лагерь к подругам,
+    // чужак — к себе. Цель та же Flee: скорость ×2.25, аукцион закрыт до
+    // прибытия, кольца угроз игнорируются.
+    internal static bool TryFleeToCamp(WorldState world, NPCState npc, string reason)
+    {
+        if (npc.CurrentJunction is not { } startJunction ||
+            !world.FactionHomes.TryGetValue(npc.Faction, out var camp))
+        {
+            return false;
+        }
+
+        JunctionId? best = null;
+        var bestScore = float.MaxValue;
+        foreach (var junction in world.Junctions.Items.Values)
+        {
+            if (junction.Blocked || junction.Tiles.Count == 0 ||
+                !SpatialQueries.IsJunctionFree(world, junction.Id))
+            {
+                continue;
+            }
+
+            // Сначала как можно ближе к якорю, при равенстве — ближе к себе.
+            var toCamp = HexSpatialMath.HexDistance(junction.Tiles[0], camp);
+            var score = toCamp * 1000f +
+                HexSpatialMath.Distance(npc.Position, junction.WorldPosition);
+            if (score < bestScore)
+            {
+                bestScore = score;
+                best = junction.Id;
+            }
+        }
+
+        if (best is not { } refuge ||
+            !Connectivity.Reachable(world, startJunction, refuge))
+        {
+            return false;
+        }
+
+        if (npc.Plan.Status == PlanStatus.Active ||
+            npc.Execution.Status == ExecutionStatus.InProgress)
+        {
+            PlanInterruption.Abort(world, npc, reason);
+        }
+
+        npc.IsFighting = false;
+        npc.Mind.FleeContactSinceTick = 0;
+        npc.Mind.CurrentGoal = GoalType.Flee;
+        npc.Plan.Goal = GoalType.Flee;
+        npc.Plan.TargetJunctionId = refuge;
+        npc.Plan.Steps.Clear();
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.MoveToJunction,
+            TargetJunction = refuge
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+
+        Trace.Emit(world, npc.Id, "FleeStarted",
+            $"To camp Junction={refuge.Value} ({reason} Health={npc.Health:F2})");
+        return true;
+    }
+
     internal static bool TryStartFlee(
         WorldState world,
         NPCState npc,

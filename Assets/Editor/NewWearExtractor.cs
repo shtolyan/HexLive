@@ -806,6 +806,7 @@ public static class NewWearExtractor
 
             var done = 0;
             var skipped = 0;
+            var failed = 0;
             var log = new System.Text.StringBuilder();
             foreach (var g in garments)
             {
@@ -815,15 +816,29 @@ public static class NewWearExtractor
                     continue;
                 }
 
-                if (ExtractGarment(g, renderers, rigs, log))
+                // Каждая вещь сама по себе. Одна необычная — колье Amy без
+                // собственной кости `hip` — валила исключением ВЕСЬ заход, и
+                // семнадцать здоровых вещей не собирались из-за одной. Ошибка
+                // должна стоить одну строку в отчёте, а не прогон.
+                try
                 {
-                    done++;
+                    if (ExtractGarment(g, renderers, rigs, log))
+                    {
+                        done++;
+                    }
+                }
+                catch (System.Exception e)
+                {
+                    failed++;
+                    log.AppendLine($"  {g.SourceKey}: СБОЙ — {e.Message}");
+                    Debug.LogError($"[NewWear] {g.SourceKey}: {e}");
                 }
             }
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            var report = $"[NewWear] extracted {done}, skipped (already built) {skipped}\n{log}";
+            var report = $"[NewWear] extracted {done}, skipped (already built) {skipped}"
+                + (failed > 0 ? $", СБОЙ у {failed}" : string.Empty) + $"\n{log}";
             Debug.Log(report);
             // Also to a file: the MCP bridge's console read is the first thing
             // to time out on a busy editor, and this run's own verdict is

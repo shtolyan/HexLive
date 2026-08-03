@@ -33,7 +33,7 @@
         }
       ],
       "drop": "riotranger",
-      "done": false
+      "done": true
     },
     {
       "batch": 3,
@@ -50,7 +50,7 @@
         }
       ],
       "drop": "riotranger",
-      "done": false
+      "done": true
     },
     {
       "batch": 4,
@@ -71,8 +71,8 @@
     },
     {
       "batch": 5,
-      "items": 21,
-      "variants": 55,
+      "items": 30,
+      "variants": 118,
       "products": [
         {
           "vendor": "Pretty3D",
@@ -89,16 +89,7 @@
           "wearables": 10,
           "variants": 52,
           "path": "People/Genesis 3 Female/Clothing/PS/Primal"
-        }
-      ],
-      "drop": "",
-      "done": false
-    },
-    {
-      "batch": 6,
-      "items": 22,
-      "variants": 78,
-      "products": [
+        },
         {
           "vendor": "Kony",
           "product": "Street Chic Amy",
@@ -106,7 +97,16 @@
           "wearables": 9,
           "variants": 63,
           "path": "People/Genesis 3 Female/Clothing/Kony/Street Chic Amy"
-        },
+        }
+      ],
+      "drop": "todprimalamy",
+      "done": false
+    },
+    {
+      "batch": 6,
+      "items": 13,
+      "variants": 15,
+      "products": [
         {
           "vendor": "Serzart",
           "product": "The Fighter",

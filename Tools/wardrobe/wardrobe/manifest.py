@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 from pathlib import Path
 
 from . import config, fbx, heels
@@ -263,11 +264,47 @@ def path_for(drop: str) -> Path:
     return config.DROP_MANIFESTS / f"{drop}.json"
 
 
+def restage_textures(data: dict) -> list[str]:
+    """Перенести картинки за переименованной вещью.
+
+    Этап `build` раскладывает текстуры по ЧЕРНОВЫМ именам папок — они берутся из
+    ключа меша, потому что других имён в тот момент ещё нет. Настоящие имена
+    вещам дают следующим шагом, и картинки остаются под старыми: вещь приезжает
+    в игру белой, а на диске всё вроде бы на месте.
+
+    Так вышло на трёх поставках подряд, то есть это не невезение, а порядок
+    шагов. Поэтому перенос делается ЗДЕСЬ — там, где имя меняется, — а не
+    вспоминается потом каждым, кто заметит белую вещь.
+    """
+    root = config.ASSETS / "ImportedActors" / "Wear"
+    moved: list[str] = []
+    for garment in data.get("garments") or []:
+        folder = garment.get("folder")
+        key = garment.get("sourceKey")
+        if not folder or not key:
+            continue
+        draft = root / _pretty(key) / "Textures"
+        dest = root / folder / "Textures"
+        if not draft.exists() or draft == dest:
+            continue
+        dest.mkdir(parents=True, exist_ok=True)
+        for image in draft.iterdir():
+            if image.suffix.lower() not in (".jpg", ".jpeg", ".png"):
+                continue
+            if (dest / image.name).exists():
+                continue
+            shutil.copy2(image, dest / image.name)
+            moved.append(f"{_pretty(key)} -> {folder}: {image.name}")
+    return moved
+
+
 def save(data: dict, drop: str | None = None) -> Path:
     target = path_for(drop or data["drop"])
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n",
                       encoding="utf-8")
+    for line in restage_textures(data):
+        print("   картинка переехала:", line)
     return target
 
 

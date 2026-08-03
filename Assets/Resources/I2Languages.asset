@@ -2593,6 +2593,646 @@ MonoBehaviour:
       - 'Носимый предмет.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'item.clothing_armwraps_primal_sleeve1.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide Arm Wraps (Sleeve1)'
+      - 'Кожаные обмотки (Sleeve1)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_armwraps_primal_sleeve1.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strips of hide bound from wrist to elbow. Warm, and they take a scrape.'
+      - 'Полосы кожи от запястья до локтя. Тепло, и ссадину примут на себя.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_armwraps_primal_sleeve2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide Arm Wraps (Sleeve2)'
+      - 'Кожаные обмотки (Sleeve2)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_armwraps_primal_sleeve2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strips of hide bound from wrist to elbow. Warm, and they take a scrape.'
+      - 'Полосы кожи от запястья до локтя. Тепло, и ссадину примут на себя.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_armwraps_primal_sleeve3.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide Arm Wraps (Sleeve3)'
+      - 'Кожаные обмотки (Sleeve3)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_armwraps_primal_sleeve3.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strips of hide bound from wrist to elbow. Warm, and they take a scrape.'
+      - 'Полосы кожи от запястья до локтя. Тепло, и ссадину примут на себя.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_primal_panty1.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide Briefs (Panty1)'
+      - 'Кожаная набедренная повязка (Panty1)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_primal_panty1.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Soft hide, tied at the hip. The oldest thing anyone wears.'
+      - 'Мягкая кожа, завязана на бедре. Древнейшее, что вообще носят.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_primal_panty2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide Briefs (Panty2)'
+      - 'Кожаная набедренная повязка (Panty2)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_primal_panty2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Soft hide, tied at the hip. The oldest thing anyone wears.'
+      - 'Мягкая кожа, завязана на бедре. Древнейшее, что вообще носят.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_primal_panty3.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide Briefs (Panty3)'
+      - 'Кожаная набедренная повязка (Panty3)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_primal_panty3.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Soft hide, tied at the hip. The oldest thing anyone wears.'
+      - 'Мягкая кожа, завязана на бедре. Древнейшее, что вообще носят.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_headband_primal_2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide Headband (2)'
+      - 'Кожаная повязка (2)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_headband_primal_2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A band across the brow. Keeps sweat and hair out of her eyes.'
+      - 'Полоса по лбу. Убирает из глаз пот и волосы.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_headband_primal_3.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide Headband (3)'
+      - 'Кожаная повязка (3)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_headband_primal_3.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A band across the brow. Keeps sweat and hair out of her eyes.'
+      - 'Полоса по лбу. Убирает из глаз пот и волосы.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_headband_primal_4.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide Headband (4)'
+      - 'Кожаная повязка (4)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_headband_primal_4.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A band across the brow. Keeps sweat and hair out of her eyes.'
+      - 'Полоса по лбу. Убирает из глаз пот и волосы.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_wrapboots_primal_1.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wrapped Boots (1)'
+      - 'Обмотанные сапоги (1)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_wrapboots_primal_1.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide bound around foot and shin with cord. Quiet on anything.'
+      - 'Кожа, примотанная шнуром к ступне и голени. Тихие по любому грунту.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_wrapboots_primal_2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wrapped Boots (2)'
+      - 'Обмотанные сапоги (2)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_wrapboots_primal_2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide bound around foot and shin with cord. Quiet on anything.'
+      - 'Кожа, примотанная шнуром к ступне и голени. Тихие по любому грунту.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_wrapboots_primal_3.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wrapped Boots (3)'
+      - 'Обмотанные сапоги (3)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_wrapboots_primal_3.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide bound around foot and shin with cord. Quiet on anything.'
+      - 'Кожа, примотанная шнуром к ступне и голени. Тихие по любому грунту.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_primal_1.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide Skirt (1)'
+      - 'Кожаная юбка (1)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_primal_1.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut short and left ragged. Moves without asking.'
+      - 'Обрезана коротко и оставлена рваной. Двигается не спрашивая.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_primal_2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide Skirt (2)'
+      - 'Кожаная юбка (2)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_primal_2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut short and left ragged. Moves without asking.'
+      - 'Обрезана коротко и оставлена рваной. Двигается не спрашивая.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_primal_3.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide Skirt (3)'
+      - 'Кожаная юбка (3)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_primal_3.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut short and left ragged. Moves without asking.'
+      - 'Обрезана коротко и оставлена рваной. Двигается не спрашивая.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_primal_1.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide Wrap (1)'
+      - 'Кожаная повязка на грудь (1)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_primal_1.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece of hide and a knot. Nothing to catch on a branch.'
+      - 'Один кусок кожи и узел. Не за что зацепиться веткой.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_primal_2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide Wrap (2)'
+      - 'Кожаная повязка на грудь (2)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_primal_2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece of hide and a knot. Nothing to catch on a branch.'
+      - 'Один кусок кожи и узел. Не за что зацепиться веткой.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_primal_3.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide Wrap (3)'
+      - 'Кожаная повязка на грудь (3)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_primal_3.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece of hide and a knot. Nothing to catch on a branch.'
+      - 'Один кусок кожи и узел. Не за что зацепиться веткой.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shirt_amy_07.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Street Shirt (07)'
+      - 'Уличная рубашка (07)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shirt_amy_07.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Loose, long-sleeved, worn open. Covers the arms and little else.'
+      - 'Свободная, с длинным рукавом, нараспашку. Закрывает руки, и только.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shirt_amy_08.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Street Shirt (08)'
+      - 'Уличная рубашка (08)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shirt_amy_08.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Loose, long-sleeved, worn open. Covers the arms and little else.'
+      - 'Свободная, с длинным рукавом, нараспашку. Закрывает руки, и только.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_amy_04.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pleated Skirt (04)'
+      - 'Юбка в складку (04)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_amy_04.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Short and pleated, sitting on the hip. Warms nothing at all.'
+      - 'Короткая, в складку, сидит на бедре. Не греет совсем.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_amy_05.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pleated Skirt (05)'
+      - 'Юбка в складку (05)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_amy_05.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Short and pleated, sitting on the hip. Warms nothing at all.'
+      - 'Короткая, в складку, сидит на бедре. Не греет совсем.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_babydoll_tod.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Babydoll'
+      - 'Кружевная сорочка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_babydoll_tod.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer to the point of pointless. Worn for the wearing, not the warmth.'
+      - 'Прозрачна до бессмысленности. Носится ради того, чтобы носить, а не греться.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_lace_tod.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Gloves'
+      - 'Кружевные перчатки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_lace_tod.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'To the elbow, and see-through the whole way. Keep nothing out.'
+      - 'До локтя и насквозь прозрачные. Не держат ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_greaves_tod.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Brass Greaves'
+      - 'Латунные поножи'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_greaves_tod.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plate strapped over the shin. Heavy, and worth the weight when teeth come.'
+      - 'Пластина поверх голени. Тяжело — и не зря, когда доходит до зубов.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_panty_tod.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Briefs'
+      - 'Кружевные трусики'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_panty_tod.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Worn against the skin. She notices when it is gone.'
+      - 'На голое тело. Без них замечает сразу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shoes_tod.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Buckled Shoes'
+      - 'Туфли с пряжкой'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shoes_tod.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thin soles and a hard heel. Made for floors, not for forests.'
+      - 'Тонкая подошва и жёсткий каблук. Для полов, не для леса.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_tod.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Stockings'
+      - 'Кружевные чулки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_tod.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh to shin, and you can see the leg through them.'
+      - 'От бедра до голени, и нога сквозь них видна.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_tod.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'High-collar Blouse'
+      - 'Блузка со стойкой'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_tod.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Buttoned to the jaw, sleeves to the wrist, and thin as smoke.'
+      - 'Застёгнута под челюсть, рукава до запястья, тонкая как дым.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_armwraps_primal.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide Arm Wraps'
+      - 'Кожаные обмотки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_armwraps_primal.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strips of hide bound from wrist to elbow. Warm, and they take a scrape.'
+      - 'Полосы кожи от запястья до локтя. Тепло, и ссадину примут на себя.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_primal.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide Briefs'
+      - 'Кожаная набедренная повязка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_primal.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Soft hide, tied at the hip. The oldest thing anyone wears.'
+      - 'Мягкая кожа, завязана на бедре. Древнейшее, что вообще носят.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_headband_primal.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide Headband'
+      - 'Кожаная повязка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_headband_primal.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A band across the brow. Keeps sweat and hair out of her eyes.'
+      - 'Полоса по лбу. Убирает из глаз пот и волосы.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_wrapboots_primal.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wrapped Boots'
+      - 'Обмотанные сапоги'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_wrapboots_primal.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide bound around foot and shin with cord. Quiet on anything.'
+      - 'Кожа, примотанная шнуром к ступне и голени. Тихие по любому грунту.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_primal.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide Skirt'
+      - 'Кожаная юбка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_primal.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut short and left ragged. Moves without asking.'
+      - 'Обрезана коротко и оставлена рваной. Двигается не спрашивая.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_primal.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide Wrap'
+      - 'Кожаная повязка на грудь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_primal.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece of hide and a knot. Nothing to catch on a branch.'
+      - 'Один кусок кожи и узел. Не за что зацепиться веткой.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_thighboots_amy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh Boots'
+      - 'Ботфорты'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_thighboots_amy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Over the knee, on a heel. Warm, and slower than she would like.'
+      - 'Выше колена, на каблуке. Тепло — и медленнее, чем ей хотелось бы.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_ankleboots_amy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ankle Boots'
+      - 'Полусапожки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_ankleboots_amy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'To the ankle, hard-soled. What she wears when there is walking to do.'
+      - 'До щиколотки, на жёсткой подошве. То, что надевают, когда надо идти.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_pendant_amy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pendant'
+      - 'Подвеска'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_pendant_amy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A stone on a cord. Worth nothing, and she would not sell it.'
+      - 'Камень на шнурке. Ничего не стоит, и она его не продаст.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shirt_amy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Street Shirt'
+      - 'Уличная рубашка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shirt_amy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Loose, long-sleeved, worn open. Covers the arms and little else.'
+      - 'Свободная, с длинным рукавом, нараспашку. Закрывает руки, и только.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_amy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pleated Skirt'
+      - 'Юбка в складку'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_amy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Short and pleated, sitting on the hip. Warms nothing at all.'
+      - 'Короткая, в складку, сидит на бедре. Не греет совсем.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'item.gear_backpack_riot_denim.name'
       TermType: 0
       Description: 

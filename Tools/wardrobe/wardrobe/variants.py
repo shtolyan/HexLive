@@ -140,6 +140,7 @@ def harvest(product: Path) -> dict[str, list[dict]]:
     aliases.sort(key=lambda pair: len(pair[0]), reverse=True)
 
     found: dict[str, list[dict]] = {n: [] for n in names}
+    claimed: set[Path] = set()
     for preset in sorted(folder.rglob("*.duf")):
         stem = preset.stem
         match = next(((alias, full) for alias, full in aliases if stem.startswith(alias)), None)
@@ -149,12 +150,62 @@ def harvest(product: Path) -> dict[str, list[dict]]:
         # алиас длина полного имени другая, и название расцветки уехало бы.
         alias, owner = match
         colour = stem[len(alias):].strip(" -_") or "Default"
+        # «Primal Skirt1 Iray» -> «1», а не «1 Iray»: вкус рендера мы уже выбрали
+        # папкой, и в названии предмета он игроку ничего не говорит.
+        for flavour in FLAVOURS:
+            if colour.lower().endswith(flavour.lower()):
+                colour = colour[:-len(flavour)].strip(" -_") or "Default"
+                break
         maps = surfaces(preset)
         if maps:
+            claimed.add(preset)
             found[owner].append({"name": colour, "surfaces": maps,
                                  "preset": preset.name})
 
+    # Запасной путь для вендоров, которые не связывают имена вообще: у Street
+    # Chic Amy вещь зовётся «Amy Boots A G3f», а её пресет — «Boots 01», и по
+    # имени тут не сойтись никогда. Тогда пресет узнают по НАБОРУ ПОВЕРХНОСТЕЙ.
+    #
+    # Это то самое сопоставление, которое однажды поменяло местами перчатки с
+    # ошейниками, поэтому оно обставлено двумя условиями: ищем только внутри
+    # ОДНОГО продукта и только среди вещей, которым имя ничего не дало, и берём
+    # лишь однозначное совпадение. Ничья — не выбор.
+    found["__orphans__"] = [
+        {"name": _colour_of(p.stem), "surfaces": surfaces(p), "preset": p.name}
+        for p in sorted(folder.rglob("*.duf"))
+        if p not in claimed and surfaces(p)
+    ]
+
     return {k: v for k, v in found.items() if v}
+
+
+def _colour_of(stem: str) -> str:
+    for flavour in FLAVOURS:
+        if stem.lower().endswith(flavour.lower()):
+            return stem[:-len(flavour)].strip(" -_") or "Default"
+    return stem
+
+
+def adopt_orphans(harvested: dict[str, list[dict]],
+                  mine: dict[str, set[str]]) -> dict[str, list[dict]]:
+    """Раздать безымянные пресеты вещам — по НАБОРУ ПОВЕРХНОСТЕЙ.
+
+    `mine` — поверхности каждой вещи, как их видит экспорт (из манифеста):
+    спрашивать их у самого `.duf` вещи бесполезно, там лежит фигура, а не
+    материалы.
+
+    Это то самое сопоставление, которое однажды поменяло местами перчатки с
+    ошейниками, поэтому обставлено условиями: только пресеты, которым имя
+    ничего не дало, только полное вхождение в поверхности вещи и только при
+    ЕДИНСТВЕННОМ подходящем. Ничья — не выбор.
+    """
+    orphans = harvested.pop("__orphans__", [])
+    for colour in orphans:
+        keys = set(colour["surfaces"])
+        fits = [name for name, theirs in mine.items() if keys and keys <= theirs]
+        if len(fits) == 1:
+            harvested.setdefault(fits[0], []).append(colour)
+    return harvested
 
 
 def owners(dress_report: dict) -> dict[str, str]:

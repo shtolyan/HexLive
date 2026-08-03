@@ -2689,7 +2689,7 @@ MonoBehaviour:
       - 'Короткие, со шнуровкой на бедре. Скорее вид, чем защита.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'item.clothing_shorts_vamp_blk_lea___lace.name'
+    - Term: 'item.clothing_shorts_vamp_blk_lea_lace.name'
       TermType: 0
       Description: 
       Languages:
@@ -2697,7 +2697,7 @@ MonoBehaviour:
       - 'Шорты со шнуровкой (Blk Lea + Lace)'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'item.clothing_shorts_vamp_blk_lea___lace.desc'
+    - Term: 'item.clothing_shorts_vamp_blk_lea_lace.desc'
       TermType: 0
       Description: 
       Languages:
@@ -3921,22 +3921,6 @@ MonoBehaviour:
       - 'Два треугольника и узел.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'item.underwear_bikini_top_mat06.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Bikini Top (Mat06)'
-      - 'Верх бикини (Mat06)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.underwear_bikini_top_mat06.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Two triangles and a knot.'
-      - 'Два треугольника и узел.'
-      Flags: 0101
-      Languages_Touch: []
     - Term: 'item.underwear_bikini_briefs.name'
       TermType: 0
       Description: 
@@ -4026,22 +4010,6 @@ MonoBehaviour:
       Flags: 0101
       Languages_Touch: []
     - Term: 'item.underwear_bikini_briefs_mat05.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'High on the hip, tied at the sides.'
-      - 'Высоко на бедре, завязки по бокам.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.underwear_bikini_briefs_mat06.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Bikini Briefs (Mat06)'
-      - 'Низ бикини (Mat06)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.underwear_bikini_briefs_mat06.desc'
       TermType: 0
       Description: 
       Languages:

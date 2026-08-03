@@ -46,6 +46,25 @@ def slug(garment_id: str) -> str:
     return "".join(c if c.isascii() and c.isalnum() else "_" for c in garment_id.lower())
 
 
+def variant_slug(colour_name: str) -> str:
+    """Имя расцветки -> хвост её id. Зеркало `NewWearExtractor.VariantSlug`.
+
+    ⚠️ Это НЕ `slug`, и разница не косметическая. Экстрактор схлопывает подряд
+    идущие подчёркивания, `ItemCatalog.Slug` — нет. У расцветки «Blk Lea + Lace»
+    получались два РАЗНЫХ id: `..._blk_lea_lace` у ассета определения и иконки,
+    `..._blk_lea___lace` у строки библиотеки. Дальше сборщик каталога честно
+    заводил под свой id пустого близнеца, и в игру попадал именно он — вещь без
+    материалов и без картинки (§9).
+
+    Один и тот же id должен получаться на обеих сторонах, поэтому правило здесь
+    ровно то же, что в C#: схлопнуть повторы и обрезать по краям.
+    """
+    tail = slug(colour_name)
+    while "__" in tail:
+        tail = tail.replace("__", "_")
+    return tail.strip("_")
+
+
 def covers_for(slots: list[str]) -> list[str]:
     parts = {_SLOT_TO_PART[s] for s in slots if s in _SLOT_TO_PART}
     return sorted(parts, key=_PART_ORDER.index)

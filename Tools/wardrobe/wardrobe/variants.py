@@ -328,7 +328,15 @@ def dedupe(colours: list[dict], prototype: dict[str, str] | None = None) -> list
     расцветка не нужна тем более: прототип уже стоит в списке первым, и именно
     поэтому первый и последний варианты выглядели одинаково.
     """
-    base = dict(prototype or {})
+    # Белый оттенок — это ОТСУТСТВИЕ оттенка: материал без своего цвета и так
+    # белый. Пресет, красящий в `#FFFFFF` поверх той же карты, что уже стоит на
+    # прототипе, даёт ровно прототип — так «Mat06» бикини и оказался
+    # неотличимым от первого пункта списка, что и заметил человек на осмотре.
+    def scrub(painted: dict) -> dict:
+        return {k: v for k, v in painted.items()
+                if not (k.endswith("#tint") and str(v).upper() in ("#FFFFFF", "#FFF"))}
+
+    base = scrub(dict(prototype or {}))
     seen: set[tuple] = {tuple(sorted(base.items()))} if base else set()
 
     out = []
@@ -344,7 +352,7 @@ def dedupe(colours: list[dict], prototype: dict[str, str] | None = None) -> list
         # восемнадцать расцветок стоят на одной картинке и различаются ТОЛЬКО им.
         painted.update({f"{c['source']}#tint": c["color"]
                         for c in colour.get("colors") or []})
-        key = tuple(sorted(painted.items()))
+        key = tuple(sorted(scrub(painted).items()))
         if key in seen:
             continue
         seen.add(key)

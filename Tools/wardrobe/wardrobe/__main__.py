@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 
 from . import (config, daz, dress, fbx, fetch, heels, install, manifest,
-               preview, register, textures, unity)
+               preview, register, remove, textures, unity)
 
 
 def _emit(report: dict, path: Path | None = None) -> int:
@@ -62,6 +62,11 @@ def cmd_register(args: argparse.Namespace) -> int:
                           "warmth/armor/thermalDelta/capacity/covers) для: "
                           + ", ".join(report["no_sim_block"]))
     return _emit(report, config.REPORTS / f"{args.drop}-register.json")
+
+
+def cmd_remove(args: argparse.Namespace) -> int:
+    report = remove.remove(args.drop, args.id)
+    return _emit(report, config.REPORTS / f"{args.drop}-remove.json")
 
 
 def cmd_preview(args: argparse.Namespace) -> int:
@@ -205,6 +210,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--drop", required=True)
     p.add_argument("--girls", nargs="*", default=None)
     p.set_defaults(fn=cmd_build)
+
+    p = sub.add_parser("remove", help="снять вещь или расцветку из всех семи мест")
+    p.add_argument("--drop", required=True)
+    p.add_argument("--id", action="append", required=True, help="simId предмета")
+    p.set_defaults(fn=cmd_remove)
 
     p = sub.add_parser("show", help="показать манифест с доказательствами")
     p.add_argument("--drop", required=True)

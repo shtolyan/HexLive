@@ -13,11 +13,9 @@ MonoBehaviour:
   m_Name: underwear_bikini_top_mat06
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.bikini_top_mat06
-  prototypeId: underwear.bikini_top
+  prototypeId: 
   displayName: Bikini Top (Mat06)
-  variantMaterials:
-  - {fileID: 2100000, guid: 23541441acf297041ba8bf6e7b6fb662, type: 2}
-  - {fileID: 2100000, guid: ff625d5ffe397cf48a069b815c61ba99, type: 2}
+  variantMaterials: []
   layer: 0
   covers: 01000000
   warmth: 0.01

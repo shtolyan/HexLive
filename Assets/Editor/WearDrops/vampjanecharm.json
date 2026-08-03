@@ -4806,26 +4806,6 @@
               "color": "#FFB854"
             }
           ]
-        },
-        {
-          "name": "Mat06",
-          "from": "X Top",
-          "textures": [
-            {
-              "source": "Basic_Cloth",
-              "texture": "BasicTop_Dif.jpg"
-            }
-          ],
-          "colors": [
-            {
-              "source": "Basic_Cloth",
-              "color": "#FFFFFF"
-            },
-            {
-              "source": "XMat",
-              "color": "#FFB854"
-            }
-          ]
         }
       ]
     },
@@ -4984,26 +4964,6 @@
             {
               "source": "Basic_MAt02",
               "color": "#262626"
-            },
-            {
-              "source": "XMat",
-              "color": "#FFB854"
-            }
-          ]
-        },
-        {
-          "name": "Mat06",
-          "from": "X Bottom",
-          "textures": [
-            {
-              "source": "Basic_MAt02",
-              "texture": "BasicBottom_Dif.jpg"
-            }
-          ],
-          "colors": [
-            {
-              "source": "Basic_MAt02",
-              "color": "#FFFFFF"
             },
             {
               "source": "XMat",

@@ -13,11 +13,9 @@ MonoBehaviour:
   m_Name: underwear_bikini_briefs_mat06
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.bikini_briefs_mat06
-  prototypeId: underwear.bikini_briefs
+  prototypeId: 
   displayName: Bikini Briefs (Mat06)
-  variantMaterials:
-  - {fileID: 2100000, guid: 5e7d509361a060f46ba5c1af088b4623, type: 2}
-  - {fileID: 2100000, guid: 36d38309be8f4754c946284d29e01cbc, type: 2}
+  variantMaterials: []
   layer: 0
   covers: 0100000002000000
   warmth: 0.01

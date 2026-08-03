@@ -236,7 +236,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   configs: []
-  slots: 
+  slots: 1300000014000000
   noHideUnderwearSlots: 
   layer: 0
   gender: 1

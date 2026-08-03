@@ -242,8 +242,17 @@ namespace HexLive.Simulation.Content
                 new("clothing.top_stars", "Uniform Top", WearLayer.Wear, 0.09f, 0.02f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR),
                 new("clothing.skirt_crux", "Wild Skirt", WearLayer.Wear, 0.05f, 0.00f, 0.00f, dress, 0, GarmentSex.Female, BodyPart.Pelvis),
 
+                // §52.9 r2: the cuirass is Wear, not Outerwear — its PREFAB says
+                // so (layer 1, Chest+Belly), and the prefab is the authority on
+                // where a garment sits. As Outerwear the sim let it coexist with
+                // every top while the body evicted one of the two on sight: 22 of
+                // the 30 clashing pairs were this one row. It replaces a shirt now
+                // (and still stacks under a vest/harness/scarf, which ARE
+                // Outerwear). To make it armour-over-shirt instead, move the
+                // PREFAB to Outerwear — never this row alone.
+                new("armor.heavy",           "Heavy Armor",      WearLayer.Wear, 0.25f, 0.50f, -0.10f, dress, 6, GarmentSex.Female, BodyPart.Torso, BodyPart.Pelvis),
+
                 // --- Outerwear: the top layer — jackets, boots, armor. ----------
-                new("armor.heavy",           "Heavy Armor",      WearLayer.Outerwear, 0.25f, 0.50f, -0.10f, dress, 6, GarmentSex.Female, BodyPart.Torso, BodyPart.Pelvis),
                 new("Boots",                 "Sapogi",           WearLayer.Outerwear, 0.15f, 0.10f,  0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR),
                 new("Boots_155064",          "Botinki",          WearLayer.Outerwear, 0.14f, 0.10f,  0.00f, dress, 0, GarmentSex.Female, BodyPart.LegL, BodyPart.LegR),
                 // §52.8 tool holster: GEAR, not clothing — no warmth, no thermal

@@ -112,9 +112,14 @@ for seed in "${SEED_LIST[@]}"; do
 
     STATUS=1
     echo "сид $seed: РАСХОЖДЕНИЕ"
+    # Дифф пишется В ФАЙЛ, а не в `| head`: под `set -euo pipefail` голова
+    # закрывает трубу, diff умирает по SIGPIPE, и скрипт молча обрывался на
+    # ПЕРВОМ разошедшемся сиде — об остальных не узнать.
+    diff "$a" "$b" > "$OUT_DIR/diff.seed$seed" || true
+    echo "  строк разошлось: $(grep -c '^[<>]' "$OUT_DIR/diff.seed$seed" || true) из $(wc -l < "$a" | tr -d ' ')"
     echo "  первое отличие:"
-    diff "$a" "$b" | head -6 | sed 's/^/    /'
-    echo "  полный дифф: diff $a $b"
+    head -6 "$OUT_DIR/diff.seed$seed" | sed 's/^/    /'
+    echo "  полный дифф: $OUT_DIR/diff.seed$seed"
 done
 
 echo

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: armor.heavy
   displayName: Heavy Armor
-  layer: 2
+  layer: 1
   covers: 0100000002000000
   warmth: 0.25
   armor: 0.5

@@ -596,7 +596,7 @@
     {"id": "TonnyFlash", "displayName": "Poddospeshnik", "layer": "Underwear", "warmth": 0.12, "armor": 0.1, "thermalDelta": -0.02, "dressDurationTicks": 8, "capacity": 0, "covers": ["Torso"]},
     {"id": "Top_11927", "displayName": "Top", "layer": "Underwear", "warmth": 0.03, "armor": 0, "thermalDelta": 0, "dressDurationTicks": 8, "capacity": 1, "covers": ["Torso"]},
     {"id": "Top_2300", "displayName": "Sportivnyj top", "layer": "Wear", "warmth": 0.12, "armor": 0, "thermalDelta": 0, "dressDurationTicks": 8, "capacity": 2, "covers": ["Torso"]},
-    {"id": "armor.heavy", "displayName": "Heavy Armor", "layer": "Outerwear", "warmth": 0.25, "armor": 0.5, "thermalDelta": -0.1, "dressDurationTicks": 8, "capacity": 6, "covers": ["Torso", "Pelvis"]},
+    {"id": "armor.heavy", "displayName": "Heavy Armor", "layer": "Wear", "warmth": 0.25, "armor": 0.5, "thermalDelta": -0.1, "dressDurationTicks": 8, "capacity": 6, "covers": ["Torso", "Pelvis"]},
     {"id": "armor.leather", "displayName": "Leather Armor", "layer": "Underwear", "warmth": 0.15, "armor": 0.15, "thermalDelta": -0.1, "dressDurationTicks": 8, "capacity": 4, "covers": ["Torso"]},
     {"id": "clothing.belt_stars", "displayName": "Uniform Belt", "layer": "Outerwear", "warmth": 0, "armor": 0.02, "thermalDelta": 0, "dressDurationTicks": 8, "capacity": 2, "covers": ["Torso", "Pelvis"]},
     {"id": "clothing.blouse_nerd", "displayName": "School Blouse", "layer": "Wear", "warmth": 0.09, "armor": 0, "thermalDelta": 0, "dressDurationTicks": 8, "capacity": 1, "covers": ["Torso", "ArmL", "ArmR"]},

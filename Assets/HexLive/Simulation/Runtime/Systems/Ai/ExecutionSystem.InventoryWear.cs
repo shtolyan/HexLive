@@ -15,19 +15,18 @@ public sealed partial class ExecutionSystem
 {
     // Spec 31A.5B: identify and REMOVE any worn item sharing (layer, part) with
     // the garment about to be worn — molly BodyBones.Equip semantics. §52.7: the
-    // displaced pieces are NOT dropped here — they are collected in
+    // displaced pieces are NOT disposed of here — they are collected in
     // _displacedGarments so the caller can don the replacement + recompute the
-    // pack capacity FIRST, then call DropDisplacedGarments. That order lets a
+    // pack capacity FIRST, then call StowDisplacedGarments. That order lets a
     // displaced garment's pocket items relocate INTO the new garment's slots
-    // wherever they fit, spilling only the true remainder to the ground.
+    // wherever they fit, spilling only the true remainder.
     private static readonly System.Collections.Generic.List<string> _conflictScratch = new();
     private static readonly System.Collections.Generic.List<ItemInstance> _displacedGarments = new();
 
     private static void ResolveWearConflicts(WorldState world, NPCState npc, string newItemId)
     {
         _displacedGarments.Clear();
-        if (!world.Content.ObjectDefinitions.TryGetValue(newItemId, out var newDefinition) ||
-            newDefinition.Layer is not { } newLayer)
+        if (!world.Content.ObjectDefinitions.TryGetValue(newItemId, out var newDefinition))
         {
             return;
         }
@@ -35,17 +34,13 @@ public sealed partial class ExecutionSystem
         _conflictScratch.Clear();
         foreach (var wornId in npc.WornItems)
         {
-            if (!world.Content.ObjectDefinitions.TryGetValue(wornId, out var wornDefinition) ||
-                wornDefinition.Layer != newLayer)
-            {
-                continue;
-            }
-
-            // §52.9: occupancy is a SLOT question, not a protection-zone one.
-            // Covers is far too coarse to displace by (thigh holster, stockings
-            // and boots all read "LegL+LegR"); WearSlotCatalog mirrors the
-            // prefab's fine slots and falls back to Covers for unauthored art.
-            if (WearSlotCatalog.SameSpot(newDefinition, wornDefinition))
+            // §52.9: occupancy is (layer, SLOT) — one predicate, the same one
+            // the prefab's BodyBones.Equip uses. Covers is far too coarse to
+            // displace by (thigh holster, stockings and boots all read
+            // "LegL+LegR"); WearSlotCatalog mirrors the prefab's fine slots and
+            // falls back to Covers only for unauthored art.
+            if (world.Content.ObjectDefinitions.TryGetValue(wornId, out var wornDefinition) &&
+                WearSlotCatalog.Occupies(newDefinition, wornDefinition))
             {
                 _conflictScratch.Add(wornId);
             }
@@ -62,20 +57,42 @@ public sealed partial class ExecutionSystem
         }
     }
 
-    // §52.7: lay every garment displaced by the most recent ResolveWearConflicts
-    // on the ground, each carrying down whatever pack overflow no longer fits now
-    // that the replacement's capacity is live (DropGarmentWithContents — lowest
-    // importance first, §52.3). Call AFTER WornItems.Add(new) + Recalculate, so
-    // items that STILL fit stay in the pack ("moved into the new garment") and
-    // only the true remainder rides down inside the dropped piece.
-    private static void DropDisplacedGarments(WorldState world, NPCState npc)
+    // §52.9 r2: where a garment displaced by the most recent ResolveWearConflicts
+    // GOES. Swapping one pair of panties for another must not litter the beach:
+    // the old piece is FOLDED INTO THE PACK when a pocket is free, and only falls
+    // to the ground when there is none (DropGarmentWithContents — the overflow
+    // rides down inside it, lowest importance first, §52.3).
+    //
+    // Call AFTER WornItems.Add(new) + Recalculate, so the capacity being tested
+    // is the live one — the replacement's pockets are already counted and the
+    // displaced piece's are already gone. Items that still fit stay in the pack
+    // ("moved into the new garment"); the true remainder spills at the end,
+    // which is also what evicts the stowed piece itself if it never fitted.
+    private static void StowDisplacedGarments(WorldState world, NPCState npc)
     {
         for (var i = 0; i < _displacedGarments.Count; i++)
         {
-            DropGarmentWithContents(world, npc, _displacedGarments[i]);
+            var garment = _displacedGarments[i];
+            if (npc.Inventory.HasSpace)
+            {
+                // No MakeRoomFor: a swapped-out shirt never outranks what is
+                // already carried — food and tools are not shed to fold laundry.
+                npc.Inventory.Items.Add(garment);
+                Trace.Emit(world, npc.Id, "GarmentStowed",
+                    $"{garment.DefinitionId} folded into the pack " +
+                    $"({npc.Inventory.UsedSlots}/{npc.Inventory.Capacity})");
+            }
+            else
+            {
+                DropGarmentWithContents(world, npc, garment);
+            }
         }
 
         _displacedGarments.Clear();
+        // Taking the piece off took its pockets with it — whatever no longer
+        // fits lands at her feet (the stowed garment included, if it is the
+        // least important thing she carries).
+        InventoryMath.SpillOverflow(world, npc);
     }
 
     // §35.5B: the rack holds up to SimBalance.RackCapacity garments — the

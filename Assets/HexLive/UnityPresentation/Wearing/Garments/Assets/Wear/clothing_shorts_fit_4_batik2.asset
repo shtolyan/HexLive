@@ -17,7 +17,7 @@ MonoBehaviour:
   displayName: Running Shorts (4 Batik2)
   variantMaterials:
   - {fileID: 2100000, guid: f8e1fd3fb490ccc468848a0932c43926, type: 2}
-  layer: 1
+  layer: 0
   covers: 02000000
   warmth: 0.04
   armor: 0

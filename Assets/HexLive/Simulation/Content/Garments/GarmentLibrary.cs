@@ -184,7 +184,6 @@ namespace HexLive.Simulation.Content
                 new("underwear.sportsbra_tek_bra_08_white", "Sports Bra (Bra 08 White)", WearLayer.Underwear, 0.03f, 0.00f, 0.00f, dress, 0, BodyPart.Torso) { PrototypeId = "underwear.sportsbra_tek" },
                 new("underwear.briefs_flair_panty_02", "Silk Briefs (Panty-02)", WearLayer.Underwear, 0.02f, 0.00f, 0.00f, dress, 0, BodyPart.Torso, BodyPart.Pelvis) { PrototypeId = "underwear.briefs_flair" },
                 new("underwear.briefs_flair_panty_03", "Silk Briefs (Panty-03)", WearLayer.Underwear, 0.02f, 0.00f, 0.00f, dress, 0, BodyPart.Torso, BodyPart.Pelvis) { PrototypeId = "underwear.briefs_flair" },
-                new("underwear.socks_fit_black2", "Ankle Socks (Black2)", WearLayer.Underwear, 0.03f, 0.00f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "underwear.socks_fit" },
                 new("underwear.socks_fit_blue", "Ankle Socks (Blue)", WearLayer.Underwear, 0.03f, 0.00f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "underwear.socks_fit" },
                 new("underwear.socks_fit_blue2", "Ankle Socks (Blue2)", WearLayer.Underwear, 0.03f, 0.00f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "underwear.socks_fit" },
 
@@ -279,7 +278,6 @@ namespace HexLive.Simulation.Content
                 new("clothing.gloves_fit", "Training Gloves", WearLayer.Wear, 0.03f, 0.04f, 0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR),
                 new("clothing.croptop_fit", "Crop Top", WearLayer.Wear, 0.05f, 0.00f, 0.00f, dress, 0, BodyPart.Torso),
                 new("clothing.shorts_fit", "Running Shorts", WearLayer.Wear, 0.04f, 0.00f, 0.00f, dress, 1, BodyPart.Pelvis),
-                new("clothing.tutu_nerd_nc_skirt_def", "Tutu Skirt (NC Skirt Def)", WearLayer.Wear, 0.04f, 0.00f, 0.00f, dress, 0, BodyPart.Torso, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.tutu_nerd" },
                 new("clothing.yogapants_tek_yoga_01_black_mesh", "Yoga Pants (Yoga 01 Black Mesh)", WearLayer.Wear, 0.12f, 0.00f, 0.00f, dress, 0, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.yogapants_tek" },
                 new("clothing.yogapants_tek_yoga_02_black", "Yoga Pants (Yoga 02 Black)", WearLayer.Wear, 0.12f, 0.00f, 0.00f, dress, 0, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.yogapants_tek" },
                 new("clothing.yogapants_tek_yoga_03_black_red", "Yoga Pants (Yoga 03 Black Red)", WearLayer.Wear, 0.12f, 0.00f, 0.00f, dress, 0, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.yogapants_tek" },
@@ -292,7 +290,6 @@ namespace HexLive.Simulation.Content
                 new("clothing.skirt_flair_skirt_03", "Pencil Skirt (Skirt-03)", WearLayer.Wear, 0.07f, 0.00f, 0.00f, dress, 1, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.skirt_flair" },
                 new("clothing.sweater_flair_sweater_02", "Knit Sweater (Sweater-02)", WearLayer.Wear, 0.19f, 0.00f, 0.00f, dress, 0, BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR) { PrototypeId = "clothing.sweater_flair" },
                 new("clothing.sweater_flair_sweater_03", "Knit Sweater (Sweater-03)", WearLayer.Wear, 0.19f, 0.00f, 0.00f, dress, 0, BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR) { PrototypeId = "clothing.sweater_flair" },
-                new("clothing.gloves_fit_black2", "Training Gloves (Black2)", WearLayer.Wear, 0.03f, 0.04f, 0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR) { PrototypeId = "clothing.gloves_fit" },
                 new("clothing.gloves_fit_blue", "Training Gloves (Blue)", WearLayer.Wear, 0.03f, 0.04f, 0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR) { PrototypeId = "clothing.gloves_fit" },
                 new("clothing.gloves_fit_blue2", "Training Gloves (Blue2)", WearLayer.Wear, 0.03f, 0.04f, 0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR) { PrototypeId = "clothing.gloves_fit" },
                 new("clothing.croptop_fit_1_blackblue", "Crop Top (1 BlackBlue)", WearLayer.Wear, 0.05f, 0.00f, 0.00f, dress, 0, BodyPart.Torso) { PrototypeId = "clothing.croptop_fit" },
@@ -366,12 +363,10 @@ namespace HexLive.Simulation.Content
                 new("clothing.wrapboots_primal_3", "Wrapped Boots (3)", WearLayer.Outerwear, 0.11f, 0.07f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.wrapboots_primal" },
                 new("clothing.glasses_nerd", "Round Glasses", WearLayer.Outerwear, 0.00f, 0.00f, 0.00f, dress, 0, BodyPart.Head),
                 new("clothing.sneakers_nerd", "Canvas Sneakers", WearLayer.Outerwear, 0.07f, 0.03f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR),
-                new("clothing.suspenders_nerd", "Suspenders", WearLayer.Outerwear, 0.01f, 0.00f, 0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR),
                 new("clothing.jacket_tek", "Training Jacket", WearLayer.Outerwear, 0.22f, 0.02f, 0.00f, dress, 2, BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR),
                 new("clothing.pumps_flair", "Pumps", WearLayer.Outerwear, 0.04f, 0.01f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR),
                 new("clothing.sneakers_nerd_nc_sneakers_pink", "Canvas Sneakers (NC Sneakers Pink)", WearLayer.Outerwear, 0.07f, 0.03f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sneakers_nerd" },
                 new("clothing.sneakers_nerd_nc_sneakers_purple", "Canvas Sneakers (NC Sneakers Purple)", WearLayer.Outerwear, 0.07f, 0.03f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sneakers_nerd" },
-                new("clothing.suspenders_nerd_nc_suspenders_checks", "Suspenders (NC Suspenders Checks)", WearLayer.Outerwear, 0.01f, 0.00f, 0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR) { PrototypeId = "clothing.suspenders_nerd" },
 
                 // --- §72: снаряжение чужака ------------------------------------
                 // Он не выживальщик в трусах, а боец: тактический комплект с

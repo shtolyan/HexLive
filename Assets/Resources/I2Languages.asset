@@ -2689,38 +2689,6 @@ MonoBehaviour:
       - 'До колена, в рубчик. Греют больше, чем кажется.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'item.clothing_suspenders_nerd_nc_suspenders_checks.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Suspenders (NC Suspenders Checks)'
-      - 'Подтяжки (NC Suspenders Checks)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_suspenders_nerd_nc_suspenders_checks.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Two straps over the shoulders. They hold the skirt up, and that is all.'
-      - 'Две лямки через плечи. Держат юбку — и только.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_tutu_nerd_nc_skirt_def.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Tutu Skirt (NC Skirt Def)'
-      - 'Юбка-пачка (NC Skirt Def)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_tutu_nerd_nc_skirt_def.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Layers of netting that stand out on their own. Warms nothing.'
-      - 'Слои сетки, что держат форму сами. Не греет совсем.'
-      Flags: 0101
-      Languages_Touch: []
     - Term: 'item.underwear_sportsbra_tek_bra_01_apply_black_bottom_trim.name'
       TermType: 0
       Description: 
@@ -3119,22 +3087,6 @@ MonoBehaviour:
       Languages:
       - 'Loose knit, off one shoulder. The warmest thing that is not a coat.'
       - 'Крупная вязка, с одного плеча. Самое тёплое, что ещё не пальто.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_gloves_fit_black2.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Training Gloves (Black2)'
-      - 'Тренировочные перчатки (Black2)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_gloves_fit_black2.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Padded across the knuckles. For grip, and for hitting things.'
-      - 'С подбивкой на костяшках. Для хвата и для ударов.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'item.clothing_gloves_fit_blue.name'
@@ -3841,22 +3793,6 @@ MonoBehaviour:
       - 'Лёгкие и короткие. Между ногами и погодой ничего.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'item.underwear_socks_fit_black2.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Ankle Socks (Black2)'
-      - 'Носки (Black2)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.underwear_socks_fit_black2.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Plain and short. Worn until they are not.'
-      - 'Простые и короткие. Носятся, пока носятся.'
-      Flags: 0101
-      Languages_Touch: []
     - Term: 'item.underwear_socks_fit_blue.name'
       TermType: 0
       Description: 
@@ -3967,22 +3903,6 @@ MonoBehaviour:
       Languages:
       - 'To the knee, ribbed. More warmth than they look like they hold.'
       - 'До колена, в рубчик. Греют больше, чем кажется.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_suspenders_nerd.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Suspenders'
-      - 'Подтяжки'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_suspenders_nerd.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Two straps over the shoulders. They hold the skirt up, and that is all.'
-      - 'Две лямки через плечи. Держат юбку — и только.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'item.clothing_tutu_nerd.name'

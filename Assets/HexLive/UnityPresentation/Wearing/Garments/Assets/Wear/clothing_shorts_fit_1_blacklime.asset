@@ -17,7 +17,7 @@ MonoBehaviour:
   displayName: Running Shorts (1 BlackLime)
   variantMaterials:
   - {fileID: 2100000, guid: 769468e72335b8e409b05312cbaf4e13, type: 2}
-  layer: 1
+  layer: 0
   covers: 02000000
   warmth: 0.04
   armor: 0

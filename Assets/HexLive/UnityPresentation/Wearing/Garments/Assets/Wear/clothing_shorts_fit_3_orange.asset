@@ -17,7 +17,7 @@ MonoBehaviour:
   displayName: Running Shorts (3 Orange)
   variantMaterials:
   - {fileID: 2100000, guid: c8f5b9f8151d72c4db3bb26006a86bd1, type: 2}
-  layer: 1
+  layer: 0
   covers: 02000000
   warmth: 0.04
   armor: 0

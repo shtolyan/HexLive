@@ -84,6 +84,18 @@ internal static class VariantLookAlikeProbe
             ? "неотличимых расцветок нет"
             : $"неотличимы от прототипа ({same.Count}): {string.Join(" ", same)}");
 
+        // Освободить ОБЯЗАТЕЛЬНО, и в finally бы тоже: Texture2D живёт вне
+        // сборщика мусора, и сотня атласов остаётся в памяти редактора до
+        // выхода. Один прогон без этого раздул Unity до 4 ГБ, и машина, к
+        // которой подключаются по RDP, перестала отвечать вовсе.
+        foreach (var texture in readable.Values)
+        {
+            Object.DestroyImmediate(texture);
+        }
+
+        readable.Clear();
+        Resources.UnloadUnusedAssets();
+
         File.WriteAllText(Report, log.ToString());
         Debug.Log($"[LookAlike] {Report}\n{log}");
     }
@@ -147,8 +159,21 @@ internal static class VariantLookAlikeProbe
 
         if (!cache.TryGetValue(path, out var loaded))
         {
+            // Уменьшенная копия, и та освобождается в конце прогона. Полные
+            // атласы 2048x2048 на сотню расцветок — это гигабайты, которые
+            // Texture2D держит вне сборщика мусора: редактор раздулся до 4 ГБ
+            // и перестал отвечать. Для «отличаются ли эти две картинки» хватает
+            // и четверти разрешения — мы сравниваем средние по площадкам, а не
+            // ищем разницу в пикселе.
             loaded = new Texture2D(2, 2);
             loaded.LoadImage(File.ReadAllBytes(path));
+            if (loaded.width > 512)
+            {
+                loaded.Reinitialize(512, 512);
+                loaded.LoadImage(File.ReadAllBytes(path));
+                loaded.Apply();
+            }
+
             cache[path] = loaded;
         }
 

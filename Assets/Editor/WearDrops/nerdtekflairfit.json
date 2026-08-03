@@ -454,103 +454,12 @@
       ]
     },
     {
-      "sourceKey": "Nerd Crush Suspenders_2189",
-      "folder": "NerdSuspenders",
-      "name": "NerdSuspenders",
-      "simId": "clothing.suspenders_nerd",
-      "layer": "Outerwear",
-      "slots": [
-        "ShoulderR",
-        "ShoulderL"
-      ],
-      "noHide": [],
-      "materials": [
-        {
-          "source": "met_rings",
-          "texture": null,
-          "smoothness": 0.0,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        },
-        {
-          "source": "back_patch",
-          "texture": null,
-          "smoothness": 0.0,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        },
-        {
-          "source": "met_clips",
-          "texture": null,
-          "smoothness": 0.0,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        },
-        {
-          "source": "suspenders",
-          "texture": "NCSuspendersDots.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        }
-      ],
-      "_measured": {
-        "verts": 2189,
-        "polys": 1959,
-        "bbox": [
-          -13.0,
-          13.0,
-          115.1,
-          153.0,
-          -12.6,
-          13.6
-        ],
-        "zones": {
-          "Chest": 0.751,
-          "Belly": 0.211,
-          "Neck": 0.038
-        },
-        "heelCm": 0.0
-      },
-      "sim": {
-        "displayName": "Suspenders",
-        "nameRu": "Подтяжки",
-        "descEn": "Two straps over the shoulders. They hold the skirt up, and that is all.",
-        "descRu": "Две лямки через плечи. Держат юбку — и только.",
-        "warmth": 0.01,
-        "armor": 0.0,
-        "thermalDelta": 0.0,
-        "capacity": 0,
-        "covers": [
-          "ArmL",
-          "ArmR"
-        ]
-      },
-      "variants": [
-        {
-          "name": "NC Suspenders Checks",
-          "from": "Nerd Crush Suspenders",
-          "textures": [
-            {
-              "source": "suspenders",
-              "texture": "NCSuspendersChecks.jpg"
-            }
-          ]
-        }
-      ]
-    },
-    {
       "sourceKey": "Nerd Crush Tutu Skirt_5628",
       "folder": "NerdTutu",
       "name": "NerdTutu",
       "simId": "clothing.tutu_nerd",
       "layer": "Wear",
       "slots": [
-        "Belly",
         "Pelvis",
         "ThighR",
         "ThighL"
@@ -605,37 +514,16 @@
         "nameRu": "Юбка-пачка",
         "descEn": "Layers of netting that stand out on their own. Warms nothing.",
         "descRu": "Слои сетки, что держат форму сами. Не греет совсем.",
-        "warmth": 0.04,
+        "warmth": 0.05,
         "armor": 0.0,
         "thermalDelta": 0.0,
         "capacity": 0,
         "covers": [
-          "Torso",
           "Pelvis",
           "LegL",
           "LegR"
         ]
-      },
-      "variants": [
-        {
-          "name": "NC Skirt Def",
-          "from": "Nerd Crush Tutu Skirt",
-          "textures": [
-            {
-              "source": "inner skirt",
-              "texture": "NCTutu.jpg"
-            },
-            {
-              "source": "outer skirt",
-              "texture": "NCTutu.jpg"
-            },
-            {
-              "source": "waistband",
-              "texture": "NCTutu.jpg"
-            }
-          ]
-        }
-      ]
+      }
     },
     {
       "sourceKey": "Teksportsbra_5401",
@@ -1654,16 +1542,15 @@
         "heelCm": 11.48
       },
       "heelPose": {
-        "_review": "каблук 11.5 см даёт 90° — круче, чем бывает у обуви; проверьте замер, прежде чем верить",
-        "foot": 55.0,
-        "toe": -55.0,
-        "lift": 0.1148,
+        "foot": 30.0,
+        "toe": -35.0,
+        "lift": 0.055,
         "axis": [
           1.0,
           0.0,
           0.0
         ],
-        "_source": "по высоте каблука 11.5 см (ОБРЕЗАНО)"
+        "_source": "опущено по осмотру (авторские 45° признаны завышенными)"
       },
       "sim": {
         "displayName": "Pumps",
@@ -1925,16 +1812,6 @@
         ]
       },
       "variants": [
-        {
-          "name": "Black2",
-          "from": "Fit N Sexy Gloves",
-          "textures": [
-            {
-              "source": "gloves",
-              "texture": "DMFnSgloves2.jpg"
-            }
-          ]
-        },
         {
           "name": "Blue",
           "from": "Fit N Sexy Gloves",
@@ -2538,16 +2415,6 @@
       },
       "variants": [
         {
-          "name": "Black2",
-          "from": "Fit N Sexy Socks",
-          "textures": [
-            {
-              "source": "socks",
-              "texture": "DMFnSsocks2.jpg"
-            }
-          ]
-        },
-        {
           "name": "Blue",
           "from": "Fit N Sexy Socks",
           "textures": [
@@ -2571,6 +2438,7 @@
     }
   ],
   "skipped": [
-    "Nerd Crush Buttons"
+    "Nerd Crush Buttons",
+    "Nerd Crush Suspenders_2189"
   ]
 }

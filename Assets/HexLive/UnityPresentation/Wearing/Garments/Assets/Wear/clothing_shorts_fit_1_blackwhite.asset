@@ -17,7 +17,7 @@ MonoBehaviour:
   displayName: Running Shorts (1 BlackWhite)
   variantMaterials:
   - {fileID: 2100000, guid: a770b4f9240abbf448aed960248b77bb, type: 2}
-  layer: 1
+  layer: 0
   covers: 02000000
   warmth: 0.04
   armor: 0

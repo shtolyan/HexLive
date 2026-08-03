@@ -394,20 +394,6 @@
               "texture": "FITop_NO_BaseColor.png"
             }
           ]
-        },
-        {
-          "name": "White",
-          "from": "CroppedTop",
-          "textures": [
-            {
-              "source": "Boundary",
-              "texture": "FITop_NO_BaseColor.png"
-            },
-            {
-              "source": "CroppedTop",
-              "texture": "FITop_NO_BaseColor.png"
-            }
-          ]
         }
       ]
     },
@@ -604,6 +590,22 @@
           "metallic": 0.0,
           "doubleSided": true,
           "alphaClip": false
+        },
+        {
+          "source": "Glove_Button_SG",
+          "texture": "ChRO_outfit-u1v2_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Glove_Zipper_Slider_SG",
+          "texture": "ChRO_outfit-u1v2_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
         }
       ],
       "_measured": {
@@ -693,6 +695,22 @@
         {
           "source": "Jacket_Inner_SG",
           "texture": "ChRO_outfit-u2v2_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Jacket_Buttons_SG",
+          "texture": "ChRO_outfit-u1v2_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Jacket_Zipper_Sliders_SG",
+          "texture": "ChRO_outfit-u1v2_color.jpg",
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
@@ -924,6 +942,14 @@
         {
           "source": "Shoes_Inner_SG",
           "texture": "ChRO_outfit-u2v2_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Glove_Zipper_Slider_SG",
+          "texture": "ChRO_outfit-u1v2_color.jpg",
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
@@ -1734,24 +1760,6 @@
       },
       "variants": [
         {
-          "name": "Dream Lace 3 Bra",
-          "from": "Dream Lace 3 Bra Victoria 7",
-          "textures": [
-            {
-              "source": "bowknot",
-              "texture": "Dreamlace3_Bra.jpg"
-            },
-            {
-              "source": "brassiere",
-              "texture": "Dreamlace3_Bra.jpg"
-            },
-            {
-              "source": "strap",
-              "texture": "Dreamlace3_Bra.jpg"
-            }
-          ]
-        },
-        {
           "name": "Dream Lace 3 Bra Black",
           "from": "Dream Lace 3 Bra Victoria 7",
           "textures": [
@@ -1830,20 +1838,6 @@
         ]
       },
       "variants": [
-        {
-          "name": "Dream Lace 3 Panty",
-          "from": "Dream Lace 3 Panty Victoria 7",
-          "textures": [
-            {
-              "source": "bowknot",
-              "texture": "Dreamlace3_Pan1.jpg"
-            },
-            {
-              "source": "pantie",
-              "texture": "Dreamlace3_Pan1.jpg"
-            }
-          ]
-        },
         {
           "name": "Dream Lace 3 Panty Black",
           "from": "Dream Lace 3 Panty Victoria 7",
@@ -2226,7 +2220,7 @@
       "materials": [
         {
           "source": "Material01",
-          "texture": "Keikogi-map.jpg",
+          "texture": null,
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,
@@ -2234,7 +2228,7 @@
         },
         {
           "source": "Material02",
-          "texture": "Keikogi-map.jpg",
+          "texture": null,
           "smoothness": 0.0,
           "metallic": 0.0,
           "doubleSided": true,

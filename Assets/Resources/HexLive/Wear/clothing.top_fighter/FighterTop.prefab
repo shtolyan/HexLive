@@ -250,7 +250,7 @@ MonoBehaviour:
     heightOffset: 0
     mesh: {fileID: 4300000, guid: 127a6486b94e71d439613e0bc7026caf, type: 2}
   - actorName: 2
-    scale: 1
+    scale: 1.01
     heightOffset: 0
     mesh: {fileID: 4300000, guid: 971cd63821d343f49a796388f9496a24, type: 2}
   - actorName: 5

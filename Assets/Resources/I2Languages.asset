@@ -2737,22 +2737,6 @@ MonoBehaviour:
       - 'Обрезан выше рёбер. Для движения, не для тепла.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'item.clothing_croptop_idol_white.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Cropped Top (White)'
-      - 'Топ (White)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_croptop_idol_white.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Cut off above the ribs. Made for moving, not for keeping warm.'
-      - 'Обрезан выше рёбер. Для движения, не для тепла.'
-      Flags: 0101
-      Languages_Touch: []
     - Term: 'item.clothing_leggings_idol_blue.name'
       TermType: 0
       Description: 
@@ -3009,22 +2993,6 @@ MonoBehaviour:
       - 'Простая кожа до середины икры. Ничего лишнего и нечему ломаться.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'item.underwear_bra_lace_dream_lace_3_bra.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Lace Bra (Dream Lace 3 Bra)'
-      - 'Кружевной лиф (Dream Lace 3 Bra)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.underwear_bra_lace_dream_lace_3_bra.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Worn against the skin. She notices when it is gone.'
-      - 'На голое тело. Без него замечает сразу.'
-      Flags: 0101
-      Languages_Touch: []
     - Term: 'item.underwear_bra_lace_dream_lace_3_bra_black.name'
       TermType: 0
       Description: 
@@ -3039,22 +3007,6 @@ MonoBehaviour:
       Languages:
       - 'Worn against the skin. She notices when it is gone.'
       - 'На голое тело. Без него замечает сразу.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.underwear_briefs_lace_dream_lace_3_panty.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Lace Briefs (Dream Lace 3 Panty)'
-      - 'Кружевные трусики (Dream Lace 3 Panty)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.underwear_briefs_lace_dream_lace_3_panty.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Worn against the skin. She notices when they are gone.'
-      - 'На голое тело. Без них замечает сразу.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'item.underwear_briefs_lace_dream_lace_3_panty_black.name'

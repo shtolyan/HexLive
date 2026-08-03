@@ -188,9 +188,7 @@ namespace HexLive.Simulation.Content
                 new("underwear.socks_fit_blue2", "Ankle Socks (Blue2)", WearLayer.Underwear, 0.03f, 0.00f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "underwear.socks_fit" },
                 new("underwear.bra_lace", "Lace Bra", WearLayer.Underwear, 0.02f, 0.00f, 0.00f, dress, 0, BodyPart.Torso),
                 new("underwear.briefs_lace", "Lace Briefs", WearLayer.Underwear, 0.02f, 0.00f, 0.00f, dress, 0, BodyPart.Pelvis),
-                new("underwear.bra_lace_dream_lace_3_bra", "Lace Bra (Dream Lace 3 Bra)", WearLayer.Underwear, 0.02f, 0.00f, 0.00f, dress, 0, BodyPart.Torso) { PrototypeId = "underwear.bra_lace" },
                 new("underwear.bra_lace_dream_lace_3_bra_black", "Lace Bra (Dream Lace 3 Bra Black)", WearLayer.Underwear, 0.02f, 0.00f, 0.00f, dress, 0, BodyPart.Torso) { PrototypeId = "underwear.bra_lace" },
-                new("underwear.briefs_lace_dream_lace_3_panty", "Lace Briefs (Dream Lace 3 Panty)", WearLayer.Underwear, 0.02f, 0.00f, 0.00f, dress, 0, BodyPart.Pelvis) { PrototypeId = "underwear.briefs_lace" },
                 new("underwear.briefs_lace_dream_lace_3_panty_black", "Lace Briefs (Dream Lace 3 Panty Black)", WearLayer.Underwear, 0.02f, 0.00f, 0.00f, dress, 0, BodyPart.Pelvis) { PrototypeId = "underwear.briefs_lace" },
                 new("underwear.briefs_lace_dream_lace_3_panty_blue1", "Lace Briefs (Dream Lace 3 Panty Blue1)", WearLayer.Underwear, 0.02f, 0.00f, 0.00f, dress, 0, BodyPart.Pelvis) { PrototypeId = "underwear.briefs_lace" },
                 new("underwear.briefs_lace_dream_lace_3_panty_blue2", "Lace Briefs (Dream Lace 3 Panty Blue2)", WearLayer.Underwear, 0.02f, 0.00f, 0.00f, dress, 0, BodyPart.Pelvis) { PrototypeId = "underwear.briefs_lace" },
@@ -364,7 +362,6 @@ namespace HexLive.Simulation.Content
                 new("clothing.tanktop_summer_i13sw_tank_04", "Tank Top (i13SW Tank 04)", WearLayer.Wear, 0.05f, 0.00f, 0.00f, dress, 0, BodyPart.Torso) { PrototypeId = "clothing.tanktop_summer" },
                 new("clothing.tanktop_summer_i13sw_tank_05", "Tank Top (i13SW Tank 05)", WearLayer.Wear, 0.05f, 0.00f, 0.00f, dress, 0, BodyPart.Torso) { PrototypeId = "clothing.tanktop_summer" },
                 new("clothing.croptop_idol_blue", "Cropped Top (Blue)", WearLayer.Wear, 0.04f, 0.00f, 0.00f, dress, 0, BodyPart.Torso) { PrototypeId = "clothing.croptop_idol" },
-                new("clothing.croptop_idol_white", "Cropped Top (White)", WearLayer.Wear, 0.04f, 0.00f, 0.00f, dress, 0, BodyPart.Torso) { PrototypeId = "clothing.croptop_idol" },
                 new("clothing.leggings_idol_blue", "Leggings (Blue)", WearLayer.Wear, 0.12f, 0.00f, 0.00f, dress, 0, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.leggings_idol" },
 
                 // --- Outerwear: the top layer — jackets, boots, armor. ----------

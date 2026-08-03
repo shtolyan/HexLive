@@ -1269,6 +1269,16 @@ public static class NewWearExtractor
     /// </remarks>
     private static bool KeyMatches(string key, string node)
     {
+        // Unity дописывает мешу «.Shape», и узел приезжает как
+        // `ChRO_gloveR_33641.Shape`. Без этого среза правило «после ключа
+        // только цифры» отвергало ВСЕ правые половины пар, и сваренная вещь
+        // выходила однобокой: один сапог, одна перчатка.
+        var dot = node.LastIndexOf(".Shape", System.StringComparison.Ordinal);
+        if (dot > 0)
+        {
+            node = node.Substring(0, dot);
+        }
+
         if (node == key)
         {
             return true;

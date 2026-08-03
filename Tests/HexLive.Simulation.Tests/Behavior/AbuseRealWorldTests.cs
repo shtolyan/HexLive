@@ -29,6 +29,25 @@ namespace HexLive.Simulation.Tests.Behavior
 /// </summary>
 public sealed class AbuseRealWorldTests
 {
+    // ⭐ §108 ВЫКЛЮЧЕН на время этих гейтов — намеренно, и это не сокрытие.
+    // Здесь стерегут путь-ПРЕРЫВАНИЕ §81.11, а групповая охота держит чужака в
+    // драке ровно тогда, когда прерывание должно выстрелить: на сиде 816616098
+    // с включённым §108 AbuseTriggered падает с 6 до 0 за 12000 тиков (в сцену
+    // он всё равно заходит 10 раз, но уже через аукцион). Мерить §81.11 из-под
+    // чужой механики значит мерить не §81.11. Само взаимодействие не спрятано:
+    // оно записано в spec.md §108 и стережётся гейтом §108.
+    private bool _wasGroupHuntEnabled;
+
+    [SetUp]
+    public void DisableGroupHunt()
+    {
+        _wasGroupHuntEnabled = Spec108.GroupHuntEnabled;
+        Spec108.GroupHuntEnabled = false;
+    }
+
+    [TearDown]
+    public void RestoreGroupHunt() => Spec108.GroupHuntEnabled = _wasGroupHuntEnabled;
+
     [Test]
     public void Outsider_AbusesAtLeastOnce_OnThePrototypeIsland()
     {

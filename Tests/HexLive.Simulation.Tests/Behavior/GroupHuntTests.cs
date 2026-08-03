@@ -127,6 +127,14 @@ public sealed class GroupHuntTests
     [Test]
     public void GroupHunt_LandsBlows_OnThePrototypeIsland()
     {
+        // Предусловие, а не украшение: оба выключателя — процесс-глобальные
+        // статики, и сосед по прогону, забывший вернуть свой, превращал этот
+        // гейт в загадку «сговора не случилось» с пустым списком причин.
+        Assert.That(Spec108.GroupHuntEnabled, Is.True,
+            "Кто-то оставил §108 выключенным — гейт мерил бы отключённую механику.");
+        Assert.That(Spec72.Enabled, Is.True,
+            "Кто-то оставил §72 выключенным — без фракций чужака нет вовсе.");
+
         var engine = TestWorld.CreateEngine(313);
         var world = engine.World;
 

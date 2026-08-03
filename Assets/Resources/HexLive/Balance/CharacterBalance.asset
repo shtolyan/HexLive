@@ -173,8 +173,9 @@ MonoBehaviour:
   aidFreezesReserve: 1
   bodyFloor: 0.02
   bloodExitFloor: 0.05
-  torsoExitHealth: 0.15
+  vitalExitHealth: 0.15
   minDyingTicks: 300
+  stayDownIfSpent: 1
   rescueEmergencyBoost: 1
   convalescentTicks: 3600
   convalescentStaminaRegenFactor: 0.3333

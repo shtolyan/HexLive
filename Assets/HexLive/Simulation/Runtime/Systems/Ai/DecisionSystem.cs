@@ -1159,6 +1159,31 @@ public sealed partial class DecisionSystem : ISimulationSystem
             !ctx.IsGrieving && npc.Inventory.HasSpace &&
             CorpseMath.HasLootableCorpse(npc, world));
 
+        // §111: обыскать беспомощного ВРАГА. В отличие от лута трупа — не
+        // хозяйственная работа, а окно возможности: лежащий вот-вот очнётся,
+        // и второго такого случая может не быть. Отсюда ставка почти на самом
+        // верху (0.85 + 0.1 = 0.95): бытовые дела она перебивает все.
+        //
+        // Аварийные контуры при этом не задеты, и специально ограждать их не
+        // нужно: в бою, в коме, при умирании и на бегстве аукцион закрыт
+        // целиком — ещё до того, как дойдёт до этой строки.
+        //
+        // ⭐ Доступность и валидность цели в плане спрашивают ОДНУ функцию
+        // (LootHelplessMath.IsLootableBy внутри BestMark) — разойдись они,
+        // цель выигрывала бы каждый проход и падала бы каждый план.
+        var helplessMark = Spec111.LootHelplessEnabled &&
+            world.Tick >= npc.Mind.LootHelplessCooldownUntilTick
+                ? LootHelplessMath.BestMark(world, npc)
+                : null;
+        AddGoalScore(npc, world.Tick, GoalType.LootHelpless,
+            Spec111.LootHelplessBaseScore,
+            helplessMark is not null,
+            // Прибавка за «у него оружие мощнее моего» — это и есть мотив
+            // защиты: разоружить сильного важнее, чем обчистить нищего.
+            helplessMark is not null && LootHelplessMath.HasBetterWeapon(npc, helplessMark)
+                ? Spec111.LootHelplessWeaponBonus
+                : 0f);
+
         if (piece is not null && fuelLow)
         {
             piece = null; // the hearth outranks the walls

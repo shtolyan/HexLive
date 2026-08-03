@@ -644,7 +644,32 @@ namespace HexLive.UnityPresentation.UI
         {
             string key;
             Color dot;
-            if (npc.MovementStatus == "Moving")
+            // §105 r5: СОСТОЯНИЕ ТЕЛА идёт первым и по убыванию тяжести.
+            // Раньше строка знала три вещи — «идёт», «занята», «отдыхает» — и
+            // умирающая, лежащая в коме и спящая одинаково попадали в
+            // «отдыхает» (цель у всех троих None). Панель сообщала «просто
+            // существует» ровно тогда, когда происходило самое важное.
+            if (npc.IsDying)
+            {
+                key = "state.dying";
+                dot = Crit;
+            }
+            else if (npc.IsUnconscious)
+            {
+                key = "state.coma";
+                dot = Crit;
+            }
+            else if (npc.IsFainted)
+            {
+                key = "state.fainted";
+                dot = Warn;
+            }
+            else if (npc.CurrentInteraction == "Sleep" && npc.ExecutionStatus == "InProgress")
+            {
+                key = "state.sleeping";
+                dot = Energy;
+            }
+            else if (npc.MovementStatus == "Moving")
             {
                 key = "state.moving";
                 dot = Thirst;
@@ -3240,7 +3265,7 @@ namespace HexLive.UnityPresentation.UI
             // отцентрован: кольцо рисуется по внешнему радиусу и не наползает
             // на лицо. Живой бейдж по-прежнему висит в углу обёртки.
             const float portraitSize = 156f;
-            const float ringPad = 12f;
+            const float ringPad = 8f;
             var wrap = new VisualElement();
             wrap.style.width = portraitSize + ringPad * 2f;
             wrap.style.height = portraitSize + ringPad * 2f;
@@ -3266,7 +3291,9 @@ namespace HexLive.UnityPresentation.UI
             _portrait.style.height = portraitSize;
             SetRadius(_portrait, portraitSize * 0.5f);
             _portrait.style.overflow = Overflow.Hidden;
-            SetBorder(_portrait, Gold, 2.5f);
+            // §105 r2: золотой ободок СНЯТ — теперь портрет обводит кольцо
+            // здоровья, и два кольца вокруг одного лица спорили бы за взгляд.
+            // Осталось «кружок камеры внутри кольца», как и задумано.
             _portrait.style.backgroundColor = new Color(0.10f, 0.12f, 0.14f);
             wrap.Add(_portrait);
             wrap.Add(BuildLiveBadge());

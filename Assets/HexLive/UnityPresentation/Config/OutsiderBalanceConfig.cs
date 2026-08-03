@@ -17,6 +17,7 @@ namespace HexLive.UnityPresentation.Config
     [MirrorTarget(typeof(Spec86))]
     [MirrorTarget(typeof(Spec106))]
     [MirrorTarget(typeof(Spec108))]
+    [MirrorTarget(typeof(Spec111))]
     public sealed class OutsiderBalanceConfig : ScriptableObject
     {
         [Header("Общее (§72)")]
@@ -289,5 +290,23 @@ namespace HexLive.UnityPresentation.Config
         public bool groupHuntMercyHolds = false;
         [Tooltip("Насколько он их за это возненавидит. Это его лестница оружия §91: побитый в следующий раз возьмётся за нож.")]
         [Range(0f, 1f)] public float groupHuntTargetGrudge = 0.30f;
+
+        [Header("Обобрать беспомощного (§111)")]
+        [Tooltip("Выключить — мир идёт байт-в-байт как до §111: лежащего врага никто не обыскивает.")]
+        public bool lootHelplessEnabled = true;
+        [Tooltip("Базовая ставка цели. Складывается в 0.95 — выше скорби и быта, ниже аварийных нужд. Он бросает дела и идёт обыскивать.")]
+        [Range(0f, 2f)] public float lootHelplessBaseScore = 0.85f;
+        [Tooltip("Прибавка, когда у лежащего оружие мощнее его собственного. Это и есть «защита» в мотиве: мачете нельзя скрафтить.")]
+        [Range(0f, 1f)] public float lootHelplessWeaponBonus = 0.30f;
+        [Tooltip("В каком радиусе он замечает лежащего, тайлы. Режется ЗНАНИЕ, а не только дорога — иначе он чует тело через полострова.")]
+        [Range(1, 20)] public int lootHelplessSightRadiusTiles = 6;
+        [Tooltip("Тиков на одну вещь. Вдвое быстрее лута трупа (20): там раздевание, тут «хоп-хоп» по карманам.")]
+        [Range(2, 60)] public int lootHelplessTakeTicks = 10;
+        [Tooltip("Передышка после сыгранной сцены — чтобы он не садился на то же тело снова.")]
+        [Range(0, 6000)] public int lootHelplessCooldownTicks = 600;
+        [Tooltip("Передышка после срыва (очнулась, умерла, не влезло). Короткая: срыв — не попытка.")]
+        [Range(0, 600)] public int lootHelplessRetryTicks = 40;
+        [Tooltip("Потолок сцены — страховка от зависшего такта, а не игровой срок.")]
+        [Range(60, 1200)] public int lootHelplessMaxSceneTicks = 240;
     }
 }

@@ -240,7 +240,7 @@ public sealed class DyingTests
         // поля: проверяем ту развилку, которой пользуется бой.
         AmputateSystemHelpers.DebugBite(world, girl, BodyPart.Torso, 1f);
         Assert.That(girl.IsDying, Is.True, "Грудь в ноль обязана ронять в умирание.");
-        Assert.That(girl.Mind.DyingCause, Is.EqualTo(DyingCause.TorsoDestroyed));
+        Assert.That(girl.Mind.DyingCause, Is.EqualTo(DyingCause.VitalCrushed));
 
         var downFor = 0;
         for (var i = 0; i < 1500 && girl.IsDying; i++)
@@ -256,6 +256,57 @@ public sealed class DyingTests
         Assert.That(girl.Body.Parts[BodyPart.Torso], Is.GreaterThan(Spec105.BodyFloor * 3f),
             "Встаёт, только когда грудь реально заросла ВЫШЕ порога падения, " +
             "а не на волосок над ним.");
+    }
+
+    /// <summary>
+    /// Перевязка упирается в ПОТОЛОК УМЕНИЙ, а не доводит до сотни.
+    ///
+    /// <para>
+    /// Регресс из игры: одна девочка садилась рядом и лечила соседку до 100% —
+    /// бинт поднимал зоны безостановочно, и «спасли с того света» превращалось
+    /// в «залечили начисто за пару минут».
+    /// </para>
+    ///
+    /// <para>
+    /// Обратная сторона важна не меньше: потолок новичка ОБЯЗАН быть выше
+    /// порога подъёма (<c>Spec105.VitalExitHealth</c>), потому что Medicine у
+    /// всех стартует с нуля. Потолок в 5%, о котором была первая мысль, сделал
+    /// бы спасение физически недостижимым в начале игры.
+    /// </para>
+    /// </summary>
+    [Test]
+    public void Treatment_StopsAtTheHealersSkillCeiling()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var patient = world.Entities.Npcs.Values.First();
+        var novice = world.Entities.Npcs.Values.Skip(1).First();
+
+        Assert.That(novice.Skills.Get(SkillKind.Medicine), Is.EqualTo(0f),
+            "Все стартуют с нулевым врачеванием — на этом и держится смысл теста.");
+
+        var cap = AttributeMath.TreatCap(novice);
+        Assert.That(cap, Is.GreaterThan(Spec105.VitalExitHealth),
+            "Потолок новичка обязан быть выше порога подъёма, иначе спасать " +
+            "в начале игры некому и §105 мертва.");
+        Assert.That(cap, Is.LessThan(1f), "…и всё-таки НЕ сотня.");
+
+        // Разбить зону и лечить много раз подряд — ровно то, что делала та
+        // девочка. Расходники не кончаются: меряем потолок, а не аптечку.
+        patient.Body.Parts[BodyPart.Torso] = 0.05f;
+        patient.Health = patient.Body.Mean();
+        for (var i = 0; i < 40; i++)
+        {
+            novice.Needs.Bandages = 4;
+            novice.Needs.HerbalBandages = 2;
+            ExecutionSystem.ApplyAidRelief(world, novice, patient, AidKind.Treat,
+                new AidSupply.Spend(ContentIds.Bandage, 0f, herbal: true));
+        }
+
+        Assert.That(patient.Body.Parts[BodyPart.Torso], Is.LessThanOrEqualTo(cap + 0.001f),
+            "Сорок перевязок подряд не поднимают зону выше потолка этих рук.");
+        Assert.That(patient.Body.Parts[BodyPart.Torso], Is.GreaterThan(Spec105.VitalExitHealth),
+            "…но до «встать» новичок довести обязан.");
     }
 
     [Test]

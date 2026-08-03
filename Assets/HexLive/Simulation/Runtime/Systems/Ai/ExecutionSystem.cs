@@ -136,6 +136,14 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 {
                     RunAbuse(world, npc);
                 }
+                // §111: обыск лежащего. Ветка обязана стоять ДО фолбэка на
+                // Talk — по той же причине, по которой её понадобилось заводить
+                // налёту: план тоже носит TargetAgentId, и без неё лутер
+                // «разговаривал» бы с телом без сознания.
+                else if (npc.Mind.CurrentGoal == GoalType.LootHelpless)
+                {
+                    RunLootHelpless(world, npc);
+                }
                 else
                 {
                     RunTalk(world, npc);

@@ -64,17 +64,23 @@ public sealed partial class ExecutionSystem
         // §76: a practised hand gets more out of the same dressing. Computed
         // once so the zone HP and the wound clotting below cannot disagree.
         var selfTreatHeal = Spec53.SelfTreatHeal * AttributeMath.TreatPowerMult(npc);
+        // §105 r3: свои руки ограничены тем же потолком, что и чужие. Иначе
+        // «полечить себя до сотни» осталось бы лазейкой мимо всего правила.
+        var selfTreatCap = AttributeMath.TreatCap(npc);
 
         var parts = new System.Collections.Generic.List<BodyPart>(npc.Body.Parts.Keys);
         var dressed = 0;
         foreach (var part in parts)
         {
-            if (npc.Body.IsSevered(part) || npc.Body.Parts[part] >= 1f)
+            if (npc.Body.IsSevered(part) || npc.Body.Parts[part] >= selfTreatCap)
             {
-                continue; // §50: a stump takes no dressing; a whole zone needs none
+                // §50: a stump takes no dressing; §105 r3: зона выше потолка её
+                // умений — тоже (бинт ей уже ничего не добавит).
+                continue;
             }
 
-            npc.Body.Parts[part] = MathUtil.Clamp01(npc.Body.Parts[part] + selfTreatHeal);
+            npc.Body.Parts[part] = System.Math.Min(
+                selfTreatCap, npc.Body.Parts[part] + selfTreatHeal);
             if (herbal)
             {
                 npc.BandagedZones.Add(part);

@@ -285,6 +285,14 @@ public static class SpeechCatalog
         // ---- взаимопомощь (§53) ------------------------------------------
         ["AidRequest"] = new("Food", "sad_aid_ask"),
         ["AidIncoming"] = new("Food", "happy_aid_give"),
+        // §105 r5: помощь подписана по ВИДУ — над помощницей всплывает знак
+        // того, что она делает. Ключ приходит как "AidStarted:<AidKind>";
+        // неизвестный вид падает на общий "AidStarted" (см. ForCue).
+        ["AidStarted:Treat"] = new("Aid", "happy_aid_give"),
+        ["AidStarted:Medicate"] = new("Aid", "happy_aid_give"),
+        ["AidStarted:Feed"] = new("Food", "happy_aid_give"),
+        ["AidStarted:Hydrate"] = new("Thirst", "happy_aid_give"),
+        ["AidStarted:Console"] = new("Console", "happy_aid_give"),
         ["AidStarted"] = new("Food", "happy_aid_give"),
         ["AidCompleted"] = new("Food", "happy_aid_thanks"),
 

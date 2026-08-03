@@ -167,7 +167,10 @@ public sealed class TemperatureSystem : ISimulationSystem
                     //
                     // Порог, а не запрет: замёрзнуть до комы по-прежнему можно
                     // (§60 при здоровье 0.15), конечности по-прежнему до нуля.
-                    var thermalFloor = part is BodyPart.Head or BodyPart.Torso
+                    // §105 r4: витальные зоны — по общему списку (голова, грудь,
+                    // ТАЗ), а не по паре, вписанной руками. Без этого жара
+                    // доламывала бы таз в ноль и убивала мимо окна §105.
+                    var thermalFloor = BodyState.IsVital(part)
                         ? SimBalance.ThermalVitalFloor
                         : 0f;
                     npc.Body.Parts[part] = System.Math.Max(
@@ -251,7 +254,8 @@ public sealed class TemperatureSystem : ISimulationSystem
                     // он доводит до беспамятства (§60 кома при здоровье 0.15) и
                     // калечит конечности до нуля по-прежнему. Он просто не
                     // отрывает голову.
-                    var burnFloor = burntPart is BodyPart.Head or BodyPart.Torso
+                    // §105 r4: то же и для ожога — см. BodyState.VitalParts.
+                    var burnFloor = BodyState.IsVital(burntPart)
                         ? SimBalance.SunburnVitalFloor
                         : 0f;
                     npc.Body.Parts[burntPart] = System.Math.Max(

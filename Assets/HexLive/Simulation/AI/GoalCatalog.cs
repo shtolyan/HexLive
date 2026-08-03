@@ -250,6 +250,13 @@ public static class GoalCatalog
         // такт; так же, как никто не уносит поленницу одной ходкой.
         Add(GoalType.LootCorpse, InteractionType.Loot);
 
+        // §111: обыскать беспомощного врага. Колонка взаимодействия НАМЕРЕННО
+        // пуста, как у Abuse: жертва — не объект мира, общий путь планировщика
+        // (перебор Perception.Objects) ей не годится, и взаимодействием владеет
+        // сама сцена — она кладёт InteractionType.Loot в шаг плана. Hurry:
+        // обмороки коротки, шагом он не успеет.
+        Add(GoalType.LootHelpless, urgency: UrgencyClass.Hurry);
+
         // ── Мёртвые ординалы (§52: заявка на мебель стала стадийной) ─────
         Add(GoalType.PlaceSite, dead: true);
         Add(GoalType.DeliverToSite, dead: true);

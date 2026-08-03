@@ -74,6 +74,24 @@ public static class Spec53
     public static float FeedRelief = 0.5f;          // target Hunger down
     public static float HydrateRelief = 0.5f;       // target Thirst down
     public static float TreatHeal = 0.15f;          // wounded body parts up
+
+    // §105 r3: ⭐ ПОТОЛОК ЛЕЧЕНИЯ — до какого уровня зоны вообще может довести
+    // перевязка В ЭТИХ РУКАХ. Без него сиделка с нулевым навыком вылечивала
+    // соседку до 100%, просто садясь рядом и повторяя: бинт поднимал зоны
+    // безостановочно, и «спасли с того света» превращалось в «залечили начисто
+    // за пару минут».
+    //
+    // Число выбрано ПОРОГОМ ПОДЪЁМА, а не на глаз. Встать можно с груди выше
+    // Spec105.VitalExitHealth (0.15), а Medicine у всех стартует с нуля — так
+    // что потолок новичка ОБЯЗАН быть заметно выше 0.15, иначе спасение
+    // физически недостижимо в начале игры и вся §105 умирает не родившись.
+    // 0.35 даёт запас: она встаёт и держит ещё три-четыре укуса волка —
+    // «залатали, но не вылечили».
+    //
+    // Собственное заживление тела этим НЕ ограничено: за дни она дойдёт до
+    // единицы сама. Потолок — про то, что умеют руки, а не про то, на что
+    // способно тело.
+    public static float TreatCapNovice = 0.35f;
     public static float TreatBlood = 0.2f;          // target Blood up
     public static float MedicateHeal = 0.1f;        // target Health up (+ sickness cleared)
     public static float ConsoleStressRelief = 0.3f; // target Stress down (+ grief eased)

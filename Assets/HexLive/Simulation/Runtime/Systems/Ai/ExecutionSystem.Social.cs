@@ -325,7 +325,9 @@ public sealed partial class ExecutionSystem
     // what it was — a meal's own nutrition feeds better than a scrap, a herbal
     // dressing leaves the plantain wrap where a medkit one leaves gauze. Both
     // sides' bond is credited by the caller.
-    private static void ApplyAidRelief(
+    // internal, а не private: §105 r3 потолок лечения проверяется регрессом,
+    // и звать его надо ровно тем же путём, каким ходит игра.
+    internal static void ApplyAidRelief(
         WorldState world, NPCState helper, NPCState target, AidKind kind, in AidSupply.Spend spend)
     {
         switch (kind)
@@ -346,6 +348,8 @@ public sealed partial class ExecutionSystem
                 // worth — the patient's own Toughness is a separate axis and
                 // shows up in her healing rate, not in someone else's hands.
                 var treatHeal = Spec53.TreatHeal * AttributeMath.TreatPowerMult(helper);
+                // §105 r3: выше этого её руки не вытянут — см. Spec53.TreatCapNovice.
+                var treatCap = AttributeMath.TreatCap(helper);
 
                 // Lift every intact wounded part and stop the bleed, and drop a
                 // gauze wrap decal on the treated zones (mirrors self first-aid).
@@ -356,9 +360,13 @@ public sealed partial class ExecutionSystem
                     {
                         continue;
                     }
-                    if (target.Body.Parts[part] < 1f)
+                    // §105 r3: зона выше потолка этих рук не трогается вовсе —
+                    // и НЕ опускается: перевязка не может сделать хуже, она
+                    // просто ничего не добавляет тому, что уже лучше её умений.
+                    if (target.Body.Parts[part] < treatCap)
                     {
-                        target.Body.Parts[part] = MathUtil.Clamp01(target.Body.Parts[part] + treatHeal);
+                        target.Body.Parts[part] = System.Math.Min(
+                            treatCap, target.Body.Parts[part] + treatHeal);
                         // Spec 44 / §53.7: the dressing that was actually spent
                         // decides the decal — a gathered plantain wrap or plain
                         // medkit gauze, one or the other, never both.
@@ -538,7 +546,12 @@ public sealed partial class ExecutionSystem
                 SpatialMutations.OccupyJunction(world, jId, npc.Id);
             }
 
-            SocialCueSignals.Stamp(world, npc, "AidStarted", target.Id);
+            // §105 r5: над ПОМОЩНИЦЕЙ всплывает знак того, ЧТО она делает —
+            // крест перевязки, а не еда. Раньше все пять видов помощи давали
+            // одну иконку («Food»), и врач с бинтом читался как подавальщица.
+            // Вид разбирает ключ по двоеточию (тот же приём, что у
+            // DangerSpotted:shark), так что неизвестный вид падает на общий.
+            SocialCueSignals.Stamp(world, npc, $"AidStarted:{kindNow}", target.Id);
             SocialCueSignals.Stamp(world, target, "AidStarted", npc.Id);
             Trace.Emit(world, npc.Id, "AidStarted",
                 $"Kind={kindNow} With NPC{targetId.Value} Severity={severity:F2} " +

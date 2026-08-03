@@ -275,6 +275,24 @@ public sealed class NPCMind
     // не удержал и они шли бы на него снова в тот же вечер.
     public int GroupHuntCooldownUntilTick { get; set; }
 
+    // §111: кого он обыскивает. Коммит на всю сцену — перевыбирать ближайшее
+    // тело на каждом ребилде значило бы метаться между двумя лежащими, ровно
+    // как §56 Prey метается между жертвами. TRANSIENT, как весь сценный блок.
+    public HexLive.Simulation.Common.EntityId? LootHelplessTargetNpcId { get; set; }
+
+    // Заявка НА ЖЕРТВЕ — чтобы двое не сели на одно тело. Зеркало
+    // PendingAbuseFrom, и снимать её обязаны ВСЕ выходы сцены: забытый клейм
+    // делает тело «занятым навсегда», и больше его не тронет никто.
+    public HexLive.Simulation.Common.EntityId? PendingLootedBy { get; set; }
+
+    // Передышка: длинная после сыгранной сцены, короткая после срыва.
+    public int LootHelplessCooldownUntilTick { get; set; }
+
+    // Сколько вещей снято этой сценой. Курсор такта хранится ЧИСЛОМ, а не
+    // выводится из времени: пропущенный тик иначе проглатывал бы вещь или
+    // снимал её дважды (тот же урок, что у AbuseBeat).
+    public int LootHelplessTakenCount { get; set; }
+
     // Set on BOTH sides while a human fight is live. An NPC has a single swing
     // slot, so this is also how the human exchange claims it from the animal
     // one (AnimalCombatSystem bails while it is set).
@@ -326,7 +344,7 @@ public enum DyingCause
 {
     None,
     BloodLoss,      // кровь на нуле — самый быстрый исход, лечится перевязкой
-    TorsoDestroyed, // грудь пробита в ноль — тоже перевязка
+    VitalCrushed, // грудь пробита в ноль — тоже перевязка
     Starvation,     // голод доел тело — нужна еда
     Dehydration     // жажда доела тело — нужна вода
 }
@@ -411,7 +429,13 @@ public enum GoalType
     // сама и не от испуга, а по сговору: её раздаёт GroupHuntMath.TryFormPact
     // сразу всем, кто стоял в кружке. Дописана в конец — сейв хранит цели
     // ординалом.
-    GroupHunt
+    GroupHunt,
+
+    // §111: обыскать беспомощного врага — лежащего в коме, умирающего или в
+    // обмороке. Не «добить», а «разоружить и обчистить»: между §81 (та в
+    // сознании) и §28.15F (та мертва) лежала живая, но выключенная, и её никто
+    // не трогал. Дописана в конец — сейв хранит цели ординалом.
+    LootHelpless
 }
 
 public sealed class GoalScore

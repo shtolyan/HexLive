@@ -69,7 +69,25 @@ public sealed class BodyState
         return sum / Parts.Count;
     }
 
-    // §105 r2: ВИТАЛЬНОЕ здоровье — худшая из двух зон, потеря которых убивает.
+    // §105 r4: ⭐ ЧТО ТАКОЕ ВИТАЛЬНАЯ ЗОНА — одно определение на весь проект.
+    //
+    // Голова, грудь и ТАЗ. Раньше пара «голова + грудь» была вписана руками в
+    // пяти местах (проверка смерти, пол умирающей, два температурных порога,
+    // расчёт полоски), и добавление таза означало вспомнить про каждое —
+    // ровно тот класс ошибок, ради которого §105 собрала восемь сайтов урона в
+    // один ResolveTrauma. Теперь спрашивают ЗДЕСЬ.
+    //
+    // Конечности сюда не входят намеренно: они доходят до нуля и даже
+    // отрываются (§50), не убивая, — калечат, но не кончают.
+    public static readonly BodyPart[] VitalParts =
+    {
+        BodyPart.Head, BodyPart.Torso, BodyPart.Pelvis
+    };
+
+    public static bool IsVital(BodyPart part) =>
+        part is BodyPart.Head or BodyPart.Torso or BodyPart.Pelvis;
+
+    // §105 r2: ВИТАЛЬНОЕ здоровье — худшая из зон, потеря которых убивает.
     //
     // Отличается от Health (среднее по семи зонам) намеренно, и показывать
     // игроку надо именно это. Среднее врёт в обе стороны: разбитая в хлам
@@ -80,21 +98,31 @@ public sealed class BodyState
     //
     // Балансу от этого ни жарко ни холодно: Health остаётся ровно тем же
     // числом, что и был, и все пороги симуляции по-прежнему смотрят на него.
-    public float VitalHealth() =>
-        System.Math.Min(Parts[BodyPart.Head], Parts[BodyPart.Torso]);
+    public float VitalHealth()
+    {
+        var worst = 1f;
+        foreach (var part in VitalParts)
+        {
+            if (Parts[part] < worst)
+            {
+                worst = Parts[part];
+            }
+        }
+
+        return worst;
+    }
 
     public bool VitalDestroyed(out BodyPart part)
     {
-        if (Parts[BodyPart.Head] <= 0f)
+        // Порядок — как в VitalParts: голова первой, потому что трасса и §105
+        // разбирают именно её отдельно (голова в ноль убивает мгновенно).
+        foreach (var candidate in VitalParts)
         {
-            part = BodyPart.Head;
-            return true;
-        }
-
-        if (Parts[BodyPart.Torso] <= 0f)
-        {
-            part = BodyPart.Torso;
-            return true;
+            if (Parts[candidate] <= 0f)
+            {
+                part = candidate;
+                return true;
+            }
         }
 
         part = BodyPart.Head;

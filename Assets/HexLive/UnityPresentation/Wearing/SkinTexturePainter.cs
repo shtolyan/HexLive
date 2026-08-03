@@ -441,6 +441,10 @@ namespace HexLive.UnityPresentation.Wearing
         // are drawn immediately through the cheap rectangle path and upgraded
         // to the seam-free one on the next scheduled rebuild.
         private bool _freshPending;
+        // Zone damage is recomputed every tick but the blots it implies are
+        // only materialised on this painter's scheduled turn.
+        private bool _specklesDirty;
+        private int _speckleHash;
 
         public bool WantsFreshPass => _freshPending && _materials != null;
 
@@ -450,6 +454,7 @@ namespace HexLive.UnityPresentation.Wearing
         /// projection lands on the next cycle.</summary>
         public void PaintFresh()
         {
+            ReconcileSpeckles();
             _freshPending = false;
             RepaintAll();
         }
@@ -729,37 +734,66 @@ namespace HexLive.UnityPresentation.Wearing
             // rarely creates RTs that would not exist anyway.)
             if (zoneDamage != null && zoneDamage.Count > 0 && _map != null)
             {
+                // Spec 40.8-K: the speckle field is the SLOW half of the
+                // picture — the gradual reddening of a battered limb, not the
+                // bite you just took. It is also the BOTTOM layer, so adding
+                // one blot forbids drawing additively (a new speckle would
+                // land on top of the wounds instead of under them) and drags a
+                // full rebuild with it. During a fight the zone-damage bucket
+                // moves constantly, so letting speckles into the fresh lane
+                // would mean a full rebuild on almost every bite — exactly the
+                // cost this scheduling exists to avoid.
+                //
+                // So the damage is COMPUTED here every tick (cheap, no
+                // allocation) and merely remembered; the stamps themselves are
+                // reconciled on this painter's scheduled turn.
                 ComputeEffectiveZoneDamage(zoneDamage);
+                var speckleHash = 17;
                 foreach (var pair in _speckleQ)
                 {
-                    var count = SpeckleCountFor(pair.Key, pair.Value);
-                    if (count <= 0)
-                    {
-                        continue;
-                    }
+                    speckleHash = speckleHash * 31 + pair.Key.GetHashCode();
+                    speckleHash = speckleHash * 31 + Mathf.RoundToInt(pair.Value * 20f);
+                }
 
-                    var alphaBase = Mathf.Lerp(SpeckleAlphaMin, SpeckleAlphaMax,
-                        SpeckleRamp(pair.Value));
-                    stateHash = stateHash * 31 + pair.Key.GetHashCode();
-                    stateHash = stateHash * 31 + (int)(pair.Value * 20f);
-                    for (var i = 0; i < count; i++)
+                stateHash = stateHash * 31 + speckleHash;
+                if (speckleHash != _speckleHash)
+                {
+                    _speckleHash = speckleHash;
+                    _specklesDirty = true;
+                }
+
+                // Keep the blots that are already painted alive through the
+                // general stale sweep below — ReconcileSpeckles owns their
+                // lifetime now.
+                foreach (var pair in _stamps)
+                {
+                    if (pair.Value.IsSpeckle)
                     {
-                        var key = SpeckleKey(pair.Key, i);
-                        _desired.Add(key);
-                        // Stable per-blot variance so the field isn't uniform.
-                        _alpha[key] = alphaBase * (0.8f + 0.2f * SpeckleJitter01(pair.Key, i));
-                        if (!_stamps.ContainsKey(key))
-                        {
-                            needsPlacement = true;
-                        }
+                        _desired.Add(pair.Key);
                     }
                 }
             }
             else
             {
-                // Keep PlaceNewStamps from placing stale zones (e.g. a caller
-                // that stops passing zoneDamage).
-                _speckleQ.Clear();
+                // Nothing damaged any more. Clear the demand and hand the
+                // leftovers to the reconciler on the next turn — dropping them
+                // here would leave _speckleHash describing a field that no
+                // longer exists, and the same damage returning later would
+                // then look "unchanged" and never re-place a single blot.
+                if (_speckleQ.Count > 0 || _speckleHash != 0)
+                {
+                    _speckleQ.Clear();
+                    _speckleHash = 0;
+                    _specklesDirty = true;
+                }
+
+                foreach (var pair in _stamps)
+                {
+                    if (pair.Value.IsSpeckle)
+                    {
+                        _desired.Add(pair.Key);
+                    }
+                }
             }
 
             // Drop records that no longer exist (healed / unbandaged).
@@ -883,22 +917,61 @@ namespace HexLive.UnityPresentation.Wearing
                 }
             }
 
-            // Spec 40.8-H: speckles read the effective damage Sync just
-            // computed (_speckleQ). Baked map only — see the gate in Sync.
-            if (_map != null && _speckleQ.Count > 0)
+            // Speckles are NOT placed here — they belong to the scheduled
+            // turn (ReconcileSpeckles), see the note in Sync.
+        }
+
+        // Brings the blot stamps in line with the damage Sync last computed:
+        // adds what appeared, drops what healed away, refreshes the alphas.
+        // Runs on the scheduled turn only, so a fight cannot make it churn.
+        private readonly HashSet<string> _speckleDesired = new();
+
+        private void ReconcileSpeckles()
+        {
+            if (!_specklesDirty || _map == null)
             {
-                foreach (var pair in _speckleQ)
+                return;
+            }
+
+            _specklesDirty = false;
+            _speckleDesired.Clear();
+
+            foreach (var pair in _speckleQ)
+            {
+                var count = SpeckleCountFor(pair.Key, pair.Value);
+                if (count <= 0)
                 {
-                    var count = SpeckleCountFor(pair.Key, pair.Value);
-                    for (var i = 0; i < count; i++)
+                    continue;
+                }
+
+                var alphaBase = Mathf.Lerp(SpeckleAlphaMin, SpeckleAlphaMax,
+                    SpeckleRamp(pair.Value));
+                for (var i = 0; i < count; i++)
+                {
+                    var key = SpeckleKey(pair.Key, i);
+                    _speckleDesired.Add(key);
+                    // Stable per-blot variance so the field isn't uniform.
+                    _alpha[key] = alphaBase * (0.8f + 0.2f * SpeckleJitter01(pair.Key, i));
+                    if (!_stamps.ContainsKey(key))
                     {
-                        var key = SpeckleKey(pair.Key, i);
-                        if (!_stamps.ContainsKey(key))
-                        {
-                            TryPlaceSpeckle(key, pair.Key, i);
-                        }
+                        TryPlaceSpeckle(key, pair.Key, i);
                     }
                 }
+            }
+
+            _stale.Clear();
+            foreach (var pair in _stamps)
+            {
+                if (pair.Value.IsSpeckle && !_speckleDesired.Contains(pair.Key))
+                {
+                    _stale.Add(pair.Key);
+                }
+            }
+
+            foreach (var key in _stale)
+            {
+                _stamps.Remove(key);
+                _alpha.Remove(key);
             }
         }
 

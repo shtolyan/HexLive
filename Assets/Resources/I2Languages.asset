@@ -945,6 +945,62 @@ MonoBehaviour:
       - 'Комфортно и спокойно.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'state.moving'
+      TermType: 0
+      Description:
+      Languages:
+      - 'On the move'
+      - 'Идёт'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'state.resting'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Idle'
+      - 'Без дела'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'state.busy'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Busy'
+      - 'Занята'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'state.sleeping'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Asleep'
+      - 'Спит'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'state.fainted'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Passed out'
+      - 'Без сознания'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'state.coma'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Unconscious'
+      - 'В отключке'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'state.dying'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Dying'
+      - 'При смерти'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'effect.dying.title'
       TermType: 0
       Description:

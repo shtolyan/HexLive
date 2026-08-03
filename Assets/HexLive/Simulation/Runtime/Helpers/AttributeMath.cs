@@ -245,6 +245,23 @@ internal static class AttributeMath
 
     // The healer's skill, applied to relief delivered to someone else (or to
     // herself via §68 self-treat).
+    // §105 r3: до какого уровня ЭТИ руки вообще могут довести зону. Новичок
+    // латает до Spec53.TreatCapNovice, мастер — до единицы; между ними прямая.
+    //
+    // Со снятыми навыками потолка нет: он выражает УМЕНИЕ, и без системы
+    // умений ему не на чем стоять — кил-свитч §76 обязан возвращать
+    // до-§105-r3 поведение, а не запирать всех на потолке новичка.
+    public static float TreatCap(NPCState healer)
+    {
+        if (!Spec76.Enabled || !Spec76.SkillsEnabled)
+        {
+            return 1f;
+        }
+
+        var novice = MathUtil.Clamp01(Spec53.TreatCapNovice);
+        return novice + (1f - novice) * Skill(healer, SkillKind.Medicine);
+    }
+
     public static float TreatPowerMult(NPCState npc) =>
         1f + Skill(npc, SkillKind.Medicine) * Spec76.SkillHealGain;
 

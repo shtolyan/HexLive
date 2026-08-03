@@ -406,6 +406,18 @@ namespace HexLive.UnityDebug.Editor
             fu.AddCondition(AnimatorConditionMode.IfNot, 0, "Laying");
             fu.hasExitTime = false; fu.duration = 0.2f;
 
+            // §105 r5: очнулась вымотанной — не встаёт, а переворачивается и
+            // спит. ОБЪЯВЛЕН РАНЬШЕ подъёма: порядок переходов внутри
+            // состояния есть порядок вычисления, а у уснувшей на месте оба
+            // условия истинны разом (Fallen снят, Laying поднят).
+            if (sleep != null)
+            {
+                var ls = fallenIdle.AddTransition(sleep);
+                ls.AddCondition(AnimatorConditionMode.IfNot, 0, "Fallen");
+                ls.AddCondition(AnimatorConditionMode.If, 0, "Laying");
+                ls.hasExitTime = false; ls.duration = 0.45f;
+            }
+
             var lu = fallenIdle.AddTransition(standUp);
             lu.AddCondition(AnimatorConditionMode.IfNot, 0, "Fallen");
             lu.hasExitTime = false; lu.duration = 0.25f;

@@ -81,14 +81,14 @@ internal static class MortalityHelpers
     private static void PinVitals(NPCState npc)
     {
         var floor = Spec105.BodyFloor;
-        if (npc.Body.Parts[BodyPart.Head] < floor)
+        // §105 r4: по списку витальных зон (голова, грудь, ТАЗ), а не по паре,
+        // вписанной руками — см. BodyState.VitalParts.
+        foreach (var part in BodyState.VitalParts)
         {
-            npc.Body.Parts[BodyPart.Head] = floor;
-        }
-
-        if (npc.Body.Parts[BodyPart.Torso] < floor)
-        {
-            npc.Body.Parts[BodyPart.Torso] = floor;
+            if (npc.Body.Parts[part] < floor)
+            {
+                npc.Body.Parts[part] = floor;
+            }
         }
 
         npc.Health = npc.Body.Mean();
@@ -173,7 +173,7 @@ internal static class MortalityHelpers
     private static int WindowTicks(DyingCause cause) => cause switch
     {
         DyingCause.BloodLoss => Spec105.WindowTicksBloodLoss,
-        DyingCause.TorsoDestroyed => Spec105.WindowTicksTorso,
+        DyingCause.VitalCrushed => Spec105.WindowTicksTorso,
         DyingCause.Starvation => Spec105.WindowTicksStarvation,
         DyingCause.Dehydration => Spec105.WindowTicksDehydration,
         _ => Spec105.WindowTicksTorso
@@ -188,8 +188,12 @@ internal static class MortalityHelpers
         // ⭐ ВЫШЕ порога падения, а не «выше пола». Пол — это то, во что её
         // запиннило падение; спрашивать про него значит спрашивать «поднялась
         // ли хоть на волосок», и она вставала через один тик.
-        DyingCause.TorsoDestroyed =>
-            npc.Body.Parts[BodyPart.Torso] > Spec105.TorsoExitHealth,
+        //
+        // §105 r4: по ХУДШЕЙ витальной зоне. Раз таз смертелен наравне с
+        // грудью, вставать с разбитым тазом и целой грудью нельзя ровно так
+        // же, как наоборот.
+        DyingCause.VitalCrushed =>
+            npc.Body.VitalHealth() > Spec105.VitalExitHealth,
         DyingCause.Starvation =>
             npc.Needs.Hunger < SimBalance.StarveDeathThreshold,
         DyingCause.Dehydration =>
@@ -346,6 +350,35 @@ internal static class MortalityHelpers
 
         Trace.Emit(world, npc.Id, "Rescued",
             $"Cause={cause} Reason={reason} Health={npc.Health:F2} Blood={npc.Needs.Blood:F2}");
+
+        StayDownIfSpent(world, npc);
+    }
+
+    // §105 r5: ⭐ ПЕРЕД ТЕМ КАК ВСТАТЬ — СПРОСИТЬ СЕБЯ, А НАДО ЛИ.
+    //
+    // Она приходила в себя, поднималась на ноги — и тут же ложилась обратно,
+    // потому что первое, что решал аукцион у вымотанного тела, был сон. Со
+    // стороны это читается как сбой: встала, постояла, легла.
+    //
+    // Теперь очнувшаяся вымотанная просто НЕ ВСТАЁТ: она переворачивается и
+    // засыпает там же. Механика для этого уже есть целиком — §60 r2 «сон без
+    // задних ног»: тот же лежачий покой, пробуждение по энергии 0.45, и
+    // экспортёр подаёт его виду как обычный сон. Вид доигрывает это одним
+    // движением (переход FallenIdle → Sleep), не поднимая её на ноги.
+    //
+    // Порог — тот самый, по которому аукцион и выбрал бы сон
+    // (SimBalance.SleepEnergyThreshold): спрашивать надо ровно то, что она
+    // решила бы сама, иначе «остаться лежать» и «пойти спать» разойдутся.
+    private static void StayDownIfSpent(WorldState world, NPCState npc)
+    {
+        if (!Spec105.StayDownIfSpent || npc.Needs.Energy > SimBalance.SleepEnergyThreshold)
+        {
+            return;
+        }
+
+        NeedsDecaySystem.EnterComa(world, npc, ComaCause.Exhaustion);
+        Trace.Emit(world, npc.Id, "StayedDown",
+            $"Too spent to get up (Energy={npc.Needs.Energy:F2}) — rolled over and slept");
     }
 
     // §53: помощь довела показатель до выхода — проверить прямо на месте, а не
@@ -394,10 +427,12 @@ internal static class MortalityHelpers
             return;
         }
 
-        if (npc.Body.Parts[BodyPart.Torso] <= 0f)
+        // §105 r4: грудь и ТАЗ роняют в умирание одинаково — оба смертельны,
+        // и разбираются они по общему списку витальных зон, а не поимённо.
+        if (npc.Body.VitalDestroyed(out var crushed))
         {
-            Trace.Emit(world, npc.Id, "VitalPartDestroyed", $"Torso destroyed by {source}");
-            EnterDying(world, npc, DyingCause.TorsoDestroyed);
+            Trace.Emit(world, npc.Id, "VitalPartDestroyed", $"{crushed} destroyed by {source}");
+            EnterDying(world, npc, DyingCause.VitalCrushed);
         }
     }
 }

@@ -1267,7 +1267,21 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // §67.10: the same bubble is now the mouth of every utterance — the
         // director also needs her body (for self-talk) and her current verb
         // (for work beats). Presentation-only: nothing here feeds the sim.
-        actorView.SetTalkTopic(npc.TalkTopic);
+        // §108: тема разговора может быть ЧЕЛОВЕКОМ — тогда в пузыре его
+        // круглое лицо, а не значок. Портрет уже с маской (§90), поэтому
+        // достаточно взять его по id; снимка ещё нет — просим снять вне
+        // очереди и в этот раз показываем значок (та же дорожка, что у кьюшек).
+        Sprite topicFace = null;
+        if (npc.TalkTopicPeerId is { } topicPeerId && _portraitCache != null)
+        {
+            topicFace = _portraitCache.SpriteFor(topicPeerId);
+            if (topicFace == null)
+            {
+                _portraitCache.RequestNow(topicPeerId);
+            }
+        }
+
+        actorView.SetTalkTopic(npc.TalkTopic, topicFace);
         actorView.SetSpeechState(new UI.SpeechCatalog.BodyState
         {
             Hunger = npc.Hunger,

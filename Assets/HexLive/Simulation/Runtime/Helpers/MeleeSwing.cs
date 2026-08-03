@@ -268,6 +268,22 @@ internal static class MeleeSwing
             return false;
         }
 
+        // §108: пришли ПОБИТЬ, а не казнить. Сговор набирает ненависть быстро
+        // (жертва -0.35 за сцену, свидетельницы -0.18), так что к моменту
+        // расправы почти каждая уже за порогом §86 — и замеры это подтвердили:
+        // в 2 охотах из 4 чужак умирал на четвёртый-пятый день, а он на острове
+        // один, и вместе с ним кончалась вся линия. Здесь пощада держится, пока
+        // цель — их общая цель охоты: они бьют до «свалился», он приходит в
+        // себя и ненавидит их сильнее (§91 — в следующий раз с ножом).
+        // Выключить ручку — и расправа снова может стать смертельной.
+        if (Spec108.GroupHuntMercyHolds &&
+            attacker.Mind.CurrentGoal == GoalType.GroupHunt &&
+            attacker.Mind.GroupHuntTargetNpcId is { } hunted &&
+            hunted.Equals(target.Id))
+        {
+            return true;
+        }
+
         return attacker.Social.GetOrCreate(target.Id).Affinity > Spec86.HatredAffinity;
     }
 

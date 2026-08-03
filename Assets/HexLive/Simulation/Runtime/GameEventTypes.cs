@@ -177,6 +177,16 @@ public static class GameEventTypes
         "InteractionBlocked",
         "InteractionRejected",
 
+        // §108: групповая охота на чужака. Вся дуга видима игроку — сговор,
+        // первое столкновение, его бегство и исход; «кто держит строй» и
+        // «почему сговор не сложился» остаются отладочными.
+        "GroupHuntPactFormed",
+        "GroupHuntEngaged",
+        "GroupHuntStruck",
+        "GroupHuntTargetFled",
+        "GroupHuntDone",
+        "GroupHuntFailed",
+
         // Escape
         "RaftLaunched",
         "RaftProgress",

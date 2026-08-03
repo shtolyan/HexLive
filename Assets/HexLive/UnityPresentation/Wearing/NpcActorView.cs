@@ -115,6 +115,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // перед срабатыванием триггера.
     private const string EmoteBaseClip = "X Bot@Salsa Dancing";
 
+    // §105: ключ подмены позы сна — имя КЛИПА, стоящего в состоянии Sleep.
+    private const string SleepBaseClip = "Sleep";
+
     // Безделье: сколько молча простоять, прежде чем начать чудить; какой шанс
     // в секунду; и сколько держать паузу между сценками.
     private const float FidgetIdleWarmup = 6f;
@@ -966,6 +969,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                     "— talk/death variants and weapon attacks fall back to the base clips.");
             }
         }
+
+        ApplySleepPose();
 
         if (System.Enum.TryParse(actorMeshName, out ActorName parsed) == false)
         {
@@ -2681,10 +2686,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private NpcSpeechBubble _speechBubble;
     private UI.NpcSpeechDirector _speech;
 
-    public void SetTalkTopic(string topicName)
+    public void SetTalkTopic(string topicName) => SetTalkTopic(topicName, null);
+
+    /// <summary>§108: тема с ЛИЦОМ — когда разговор про человека, в пузыре его
+    /// круглый портрет вместо значка.</summary>
+    public void SetTalkTopic(string topicName, Sprite subjectFace)
     {
         EnsureSpeechBubble();
-        _speech?.SetConversationTopic(topicName);
+        _speech?.SetConversationTopic(topicName, subjectFace);
     }
 
     // §67.10: her body, for the ambient self-talk layer (hungry/parched/cold…).
@@ -2789,6 +2798,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     void UI.ISpeechStage.ShowSpeechIcon(string iconKey, float seconds)
         => _speechBubble?.ShowIcon(iconKey, seconds);
+
+    void UI.ISpeechStage.ShowSpeechPortrait(Sprite portrait, float seconds)
+        => _speechBubble?.ShowIcon(portrait, seconds);
 
     void UI.ISpeechStage.HideSpeechIcon() => _speechBubble?.HideIcon();
 
@@ -3050,6 +3062,27 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     }
 
     // §NPC-anim: swap the clip a base-clip key plays, via the override controller.
+    // §105: у каждой девушки СВОЯ поза сна. Четыре тела в одинаковой позе у
+    // костра читались как копипаста.
+    //
+    // Вариант берётся от её id и держится всю жизнь — это её привычка, а не
+    // украшение кадра. Поэтому НЕ Random: тот дал бы разную позу на сервере и у
+    // каждого зрителя, и новую после каждой перезагрузки. Поле на провод при
+    // этом не нужно — id есть у обоих концов, и одинаковое число выводится из
+    // него на месте (в отличие от позы СМЕРТИ, которую сим считает сам: та
+    // выпадает один раз в момент падения и обязана пережить сохранение).
+    private void ApplySleepPose()
+    {
+        var poses = _animSet != null ? _animSet.sleep : null;
+        if (poses == null || poses.Length == 0)
+        {
+            return; // вариантов не назначили — у всех авторский клип состояния
+        }
+
+        var clip = poses[((_npcId % poses.Length) + poses.Length) % poses.Length];
+        OverrideClip(SleepBaseClip, clip);
+    }
+
     private void OverrideClip(string baseName, AnimationClip with)
     {
         if (_animOverride == null || with == null ||

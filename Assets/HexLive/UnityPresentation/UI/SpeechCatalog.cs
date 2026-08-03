@@ -192,6 +192,12 @@ public static class SpeechCatalog
             "Flirt" => "happy_topic_flirt",
             "Joke" => "happy_topic_joke",
             "Grumble" => "angry_topic_grumble",
+            // §108: разговор ПРО НЕГО. Значок — злая гримаса ворчания: в самом
+            // пузыре его всё равно заслоняет портрет (лицо старше значка), а
+            // значок остаётся запасным на тот единственный игровой час, пока
+            // снимок ещё не сделан. Своей группы реплик на хекскуфе пока нет —
+            // берётся ворчание, заменится одной строкой.
+            "Stranger" => "angry_topic_grumble",
             "Hunger" => "sad_hunger",
             "Thirst" => "sad_thirst",
             "Pain" => "hurt_wound",
@@ -297,7 +303,13 @@ public static class SpeechCatalog
         ["AbuseRefused"] = new("Grumble", null, CueTone.Negative),
         ["AbuseFled"] = new("Flee", null, CueTone.Negative),
         // §81.13: проигравший сцену убегает домой с плачем.
-        ["AbuseFledHome"] = new("Flee", "cry_beaten", CueTone.Negative)
+        ["AbuseFledHome"] = new("Flee", "cry_beaten", CueTone.Negative),
+
+        // ---- §108: сговор и увиденная сцена. Обе несут ЕГО id, так что над
+        // головой всплывает его лицо, а иконка — запасная на тот час, пока
+        // снимок ещё не сделан.
+        ["GroupHuntPact"] = new("Attack", "angry_defend", CueTone.Negative),
+        ["AbuseWitnessed"] = new("Warning", "angry_attack", CueTone.Negative)
     };
 
     // Never fails: an unknown cue still draws (fallback icon, no utterance).

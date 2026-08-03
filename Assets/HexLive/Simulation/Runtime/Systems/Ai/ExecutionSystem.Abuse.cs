@@ -463,6 +463,41 @@ public sealed partial class ExecutionSystem
         mark.Execution.LastTalkResultTick = world.Tick;
         mark.Execution.LastTalkAffinityDelta = -Spec81.AbuseAffinityLoss;
 
+        // ⭐ §108: СВИДЕТЕЛЬНИЦЫ. Без этого сцена портила отношения ровно с
+        // одной девушкой, а он фиксируется на удобной жертве: за арену он довёл
+        // одну до -1.00, пока две другие сидели на -0.35 и -0.42. Общей
+        // ненависти взяться было неоткуда, и сговор §108 не складывался почти
+        // никогда — не потому, что порог высок, а потому, что ненавидела его
+        // одна. Прецедент рядом: §56 роняет симпатию у всех, кто видел убийство.
+        // Под общим выключателем §108: «выключил — поведение как до §108»
+        // должно быть правдой целиком, а свидетельницы — его половина.
+        if (Spec108.GroupHuntEnabled && Spec108.GroupHuntWitnessAffinityLoss > 0f)
+        {
+            foreach (var witness in world.Entities.Npcs.Values)
+            {
+                if (witness.Id.Equals(mark.Id) || witness.Id.Equals(npc.Id) ||
+                    witness.Health <= 0f ||
+                    !FactionRelations.AreAllies(witness, mark) ||
+                    witness.IsUnconscious(world.Tick) ||
+                    witness.Execution.CurrentInteraction == InteractionType.Sleep ||
+                    HexSpatialMath.HexDistance(witness.Tile, mark.Tile) >
+                        Spec108.GroupHuntWitnessRadiusTiles)
+                {
+                    continue;
+                }
+
+                var seen = witness.Social.GetOrCreate(npc.Id);
+                seen.Affinity = MathUtil.Clamp(
+                    seen.Affinity - Spec108.GroupHuntWitnessAffinityLoss, -1f, 1f);
+                seen.Trust = MathUtil.Clamp(
+                    seen.Trust - Spec108.GroupHuntWitnessAffinityLoss, -1f, 1f);
+                SocialCueSignals.Stamp(world, witness, "AbuseWitnessed", npc.Id);
+                Trace.Emit(world, witness.Id, "AbuseWitnessed",
+                    $"Abuser=NPC{npc.Id.Value} Mark=NPC{mark.Id.Value} " +
+                    $"Affinity={seen.Affinity:F2}");
+            }
+        }
+
         Trace.Emit(world, npc.Id, submitted ? "AbuseDone" : "AbuseRebuffed",
             $"Mark=NPC{mark.Id.Value} Took={taken ?? "nothing"} " +
             $"Social={npc.Needs.Social:F2} MarkAffinity={rel.Affinity:F2}");

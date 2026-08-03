@@ -61,6 +61,16 @@ public sealed class SoakOptions
                 "AbuseRetarget", "AbusePursues", "AbuseStarted", "AbuseAbandoned",
                 "AbuseDone", "AbuseRouted", "FleeStarted", "GoalSelected"
             },
+            // §108: дуга сговора. GroupHuntBlocked — ПРИЧИНА, почему они сейчас
+            // НЕ сговариваются (раз в 64 тика), как AbuseBlocked у него;
+            // остальное — вехи охоты. TalkStarted рядом, чтобы видеть, о чём
+            // они вообще говорят вместо него.
+            ["grouphunt"] = new[]
+            {
+                "GroupHuntBlocked", "GroupHuntPactFormed", "GroupHuntHolding",
+                "GroupHuntEngaged", "GroupHuntStruck", "GroupHuntTargetFled",
+                "GroupHuntDone", "GroupHuntFailed", "TalkStarted", "AbuseDone"
+            },
         };
 
     public static SoakOptions Parse(string[] args, out string error)
@@ -180,7 +190,8 @@ public sealed class SoakOptions
   --metrics-json PATH     выгрузить метрики в JSON
 
   --trace-out PATH        писать трассу (эталон для golden_trace.sh)
-  --trace-preset NAME     decisions | scores | execution | abuse (по умолчанию decisions)
+  --trace-preset NAME     decisions | scores | execution | abuse | grouphunt
+                          (по умолчанию decisions)
   --trace-types A,B,C     свой список типов вместо пресета
   --state-hash-every N    добавлять в трассу хэш полного кадра раз в N тиков
 

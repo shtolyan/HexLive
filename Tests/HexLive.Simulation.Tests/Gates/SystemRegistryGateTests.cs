@@ -48,6 +48,9 @@ public sealed class SystemRegistryGateTests
         "PlanningSystem",
         "MobSystem",
         "RaidSystem",
+        // §108: между налётом и ударами — по той же причине, по какой налёт
+        // идёт после MobSystem: сцепку боя ставит последний, кто её трогает.
+        "GroupHuntSystem",
         "HumanCombatSystem",
         "AnimalCombatSystem",
         "PredationSystem",

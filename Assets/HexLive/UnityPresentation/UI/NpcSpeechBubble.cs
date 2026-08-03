@@ -140,6 +140,34 @@ public sealed class NpcSpeechBubble : MonoBehaviour
         if (_emoji != null)
         {
             _emoji.sprite = ResolveEmoji(iconKey);
+            _emoji.color = Color.white;
+            FitSpriteInside(_emoji, IconBoxUnitsWide, IconBoxUnitsTall);
+        }
+
+        _holdUntil = seconds > 0f ? Time.time + seconds : -1f;
+        SetVisible(true);
+    }
+
+    // §108: тема разговора — ЧЕЛОВЕК, и в пузыре его лицо, а не значок. Портрет
+    // приходит уже круглым: NpcPortraitCache печёт маску в саму текстуру (§90),
+    // так что кадрировать и обрезать здесь нечего. Квадрат 192×192 вписывается в
+    // ту же коробку, что и эмодзи, — она ландшафтная, поэтому лицо садится по
+    // высоте; отдельная коробка под портрет сделала бы два разных «внутри
+    // пузыря», и они разъехались бы при первой же правке размера.
+    public void ShowIcon(Sprite portrait, float seconds)
+    {
+        if (portrait == null)
+        {
+            HideIcon();
+            return;
+        }
+
+        if (_emoji != null)
+        {
+            _emoji.sprite = portrait;
+            // Лицо уже несёт свой цвет — тонировка сделала бы из него пятно
+            // (та же причина, что у портрета в кьюшке).
+            _emoji.color = Color.white;
             FitSpriteInside(_emoji, IconBoxUnitsWide, IconBoxUnitsTall);
         }
 

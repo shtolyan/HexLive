@@ -65,6 +65,13 @@ public sealed class HumanCombatSystem : ISimulationSystem
             // §97: «нападает» — это и налёт, и сцена абьюза. Без второй половины
             // ЕГО удары помечались как ответные (RaidFoughtBack), и по логу было
             // не разобрать, кто кого бьёт.
+            // §108: и третья половина — групповая охота. Тут «нападает» уже
+            // ОНА, и без этой ветки её удары попадали бы в лог как ответные,
+            // то есть расправа читалась бы как самооборона.
+            var hunting = FactionRelations.AreHostile(actor, opponent) &&
+                actor.Mind.CurrentGoal == GoalType.GroupHunt &&
+                actor.Mind.GroupHuntTargetNpcId is { } huntTarget &&
+                huntTarget.Equals(opponent.Id);
             var raiding = FactionRelations.AreHostile(actor, opponent) &&
                 ((actor.Mind.RaidTargetNpcId is { } raidTarget && raidTarget.Equals(opponent.Id)) ||
                  (actor.Mind.AbuseTargetNpcId is { } abuseTarget && abuseTarget.Equals(opponent.Id)));
@@ -86,8 +93,13 @@ public sealed class HumanCombatSystem : ISimulationSystem
             // что дала мёртвую зону §102, только во времени.
             FightScene.OnBlowLanded(world, actor, clipSeconds);
 
+            if (hunting)
+            {
+                actor.Mind.GroupHuntBlowsLanded++;
+            }
+
             MeleeSwing.ApplyHumanBlow(world, actor, opponent, damage, weaponId,
-                raiding ? "RaidStruck" : "RaidFoughtBack");
+                hunting ? "GroupHuntStruck" : raiding ? "RaidStruck" : "RaidFoughtBack");
 
             // Emit the outcome HERE, at the blow that caused it. MobSystem
             // sweeps every 0-health NPC on the next medium pass — before

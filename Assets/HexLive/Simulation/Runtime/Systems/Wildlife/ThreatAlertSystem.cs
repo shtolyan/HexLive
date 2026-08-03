@@ -105,7 +105,11 @@ public sealed class ThreatAlertSystem : ISimulationSystem
             // §72: the same look-out sees an approaching STRANGER. Deliberately
             // resolved after the mob scan and handled separately: a wolf can be
             // charged first (§62), a person never is.
-            if (watchesHostiles && ScanForHostile(world, npc) is { } hostile)
+            // §108: охотница идёт к нему НАРОЧНО — ей не от кого уворачиваться.
+            // Без этого её же собственный дозор гнул бы ей маршрут вокруг цели
+            // (DangerRing) и группа кружила бы рядом, не доходя.
+            var hunting = npc.Mind.CurrentGoal == GoalType.GroupHunt;
+            if (watchesHostiles && !hunting && ScanForHostile(world, npc) is { } hostile)
             {
                 var hostileKey = ((long)npc.Id.Value << 32) | (uint)hostile.Id.Value;
                 if (!_lastHostileCueTick.TryGetValue(hostileKey, out var hostileSeenTick) ||
@@ -130,6 +134,13 @@ public sealed class ThreatAlertSystem : ISimulationSystem
                     // §57 assist machinery keys on "who is the attacker" — if she
                     // swings first, SHE is, and once the outsiders are more than
                     // one THEIR rally would fire against her.
+                    //
+                    // §108 is the ONE sanctioned exception, and it buys its way
+                    // out of both objections: it is a deliberate collective
+                    // decision (so nobody needs rallying to it), and it accepts
+                    // the consequence — with more than one outsider, his side
+                    // rallying against the party is correct §57 semantics, not
+                    // a bug. A girl on that goal never reaches this branch.
                     AvoidHostile(world, npc, hostile);
                 }
             }

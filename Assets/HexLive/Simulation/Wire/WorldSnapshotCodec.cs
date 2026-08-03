@@ -544,6 +544,7 @@ public static class WorldSnapshotCodec
 
         // social cues
         WireIo.WriteString(w, n.TalkTopic);
+        WireIo.WriteNullableInt(w, n.TalkTopicPeerId);
         w.Write(n.TalkResultTick);
         w.Write(n.TalkResultDelta);
         w.Write(n.SocialCueTick);
@@ -717,6 +718,7 @@ public static class WorldSnapshotCodec
         n.HeldItemId = r.ReadString();
 
         n.TalkTopic = r.ReadString();
+        n.TalkTopicPeerId = WireIo.ReadNullableInt(r);
         n.TalkResultTick = r.ReadInt32();
         n.TalkResultDelta = r.ReadSingle();
         n.SocialCueTick = r.ReadInt32();

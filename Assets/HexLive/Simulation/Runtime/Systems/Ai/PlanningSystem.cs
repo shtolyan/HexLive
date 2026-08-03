@@ -253,6 +253,12 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 continue;
             }
 
+            if (npc.Mind.CurrentGoal == GoalType.GroupHunt)
+            {
+                BuildGroupHuntPlan(world, npc);
+                continue;
+            }
+
             if (npc.Mind.CurrentGoal == GoalType.Explore)
             {
                 BuildExplorePlan(world, npc);

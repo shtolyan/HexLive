@@ -1440,6 +1440,20 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             return;
         }
 
+        // §108: та же беда, что у §29F.2 краба, только цель бежит осмысленно.
+        // Сброс в None здесь ронял охоту на первом же прибытии: он отходит на
+        // узел, две подруги «пришли» и тут же теряли цель, а третья оставалась
+        // одна — охота разваливалась с Reason=PartyCollapsed, ни разу не дойдя
+        // до удара (арена 313: три пакта подряд, ноль столкновений). Погоню
+        // продолжает следующий Medium-тик, а кончает её GroupHuntSystem.
+        if (npc.Mind.CurrentGoal == GoalType.GroupHunt &&
+            npc.Mind.GroupHuntTargetNpcId is not null)
+        {
+            Trace.Emit(world, npc.Id, "GroupHuntContinues",
+                "Arrived but he moved on — keep after him");
+            return;
+        }
+
         npc.Mind.CurrentGoal = GoalType.None;
         Trace.Emit(world, npc.Id, "CycleReset",
             "Goal->None Plan->Completed (move-only plan arrived)");

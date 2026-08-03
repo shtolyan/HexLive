@@ -39,7 +39,15 @@ public enum TalkTopic
     Thirst,   // "I'm parched"
     Pain,     // "I'm hurt" — an open wound
     Tired,    // "I'm dead on my feet"
-    Cold      // "I'm freezing" — her own body, not the weather in general
+    Cold,     // "I'm freezing" — her own body, not the weather in general
+
+    // §108: ОН. A shared subject like the block above the complaints, but the
+    // only one that is about a particular person, so the bubble carries his
+    // face instead of an emoji (CurrentTalkTopicPeerId). When everybody in the
+    // circle hates him enough, this conversation becomes a pact — see
+    // GroupHuntMath. Appended last for the same reason as the complaints:
+    // values travel as ints in traces and snapshots.
+    Stranger
 }
 
 }

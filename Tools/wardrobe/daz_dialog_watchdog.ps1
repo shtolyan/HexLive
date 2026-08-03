@@ -73,7 +73,12 @@ $Allow = @(
     'the files listed below could not be found',
     'could not find file',
     'file not found',
-    'unable to (find|locate|load) (the )?(file|image|texture)'
+    'unable to (find|locate|load) (the )?(file|image|texture)',
+    # Приветственный экран DAZ. Не отчёт об ошибке, но ведёт себя как окно: висит
+    # поверх и ждёт человека, а прогон в это время стоит. Закрыть его безопасно —
+    # он ничего не спрашивает и ничего не перезаписывает.
+    '^welcome$',
+    'welcomedlg'
 )
 
 # Not dialogs at all — DAZ's own progress box and friends. Listed so they stay

@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: gear_legrig_ranger_default
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: gear.legrig_ranger_default
+  prototypeId: gear.legrig_ranger
+  displayName: Thigh Rig (Default)
+  variantMaterials:
+  - {fileID: 2100000, guid: 58aaf1c2f1bd46847bbf2e8a6845d1ed, type: 2}
+  - {fileID: 2100000, guid: d62ccccb36f4eaa45b3111a4173a432d, type: 2}
+  - {fileID: 2100000, guid: 931d69d2f4f490b4ab532317afb0697e, type: 2}
+  layer: 2
+  covers: 020000000500000006000000
+  warmth: 0
+  armor: 0.02
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

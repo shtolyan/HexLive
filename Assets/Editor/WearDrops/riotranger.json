@@ -1,0 +1,1820 @@
+{
+  "drop": "riotranger",
+  "sources": [
+    {
+      "fbx": "Assets/Temp/jolly riotranger.fbx",
+      "actor": "Jolly"
+    },
+    {
+      "fbx": "Assets/Temp/jana riotranger.fbx",
+      "actor": "Jana"
+    },
+    {
+      "fbx": "Assets/Temp/marta riotranger.fbx",
+      "actor": "Marta"
+    },
+    {
+      "fbx": "Assets/Temp/molly riotranger.fbx",
+      "actor": "Molly"
+    }
+  ],
+  "garments": [
+    {
+      "sourceKey": "holsterPack",
+      "folder": "RangerLegRig",
+      "name": "RangerLegRig",
+      "simId": "gear.legrig_ranger",
+      "layer": "Outerwear",
+      "slots": [
+        "Pelvis",
+        "ThighR",
+        "ThighL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Material.001",
+          "texture": "packs-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material.003",
+          "texture": "packs-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material.002",
+          "texture": "packs-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 1727,
+        "polys": 1665,
+        "bbox": [
+          -22.1,
+          -16.5,
+          78.1,
+          95.6,
+          5.7,
+          13.0
+        ],
+        "zones": {
+          "Pelvis": 0.673,
+          "Thigh": 0.327
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Thigh Rig",
+        "nameRu": "Набедренная подвеска",
+        "descEn": "Straps down the hip with a pouch on the thigh. Rides where the hands fall.",
+        "descRu": "Ремни по бедру и подсумок сбоку. Там, куда падают руки.",
+        "warmth": 0.0,
+        "armor": 0.02,
+        "thermalDelta": 0.0,
+        "capacity": 2,
+        "covers": [
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Default",
+          "from": "Holster Pack",
+          "textures": [
+            {
+              "source": "Material.001",
+              "texture": "packs-Map.jpg"
+            },
+            {
+              "source": "Material.002",
+              "texture": "packs-Map.jpg"
+            },
+            {
+              "source": "Material.003",
+              "texture": "packs-Map.jpg"
+            }
+          ]
+        }
+      ],
+      "sourceKeys": [
+        "holsterPack"
+      ]
+    },
+    {
+      "sourceKey": "vestPack01",
+      "folder": "RangerChestPack",
+      "name": "RangerChestPack",
+      "simId": "gear.chestpack_ranger",
+      "layer": "Outerwear",
+      "slots": [
+        "Chest",
+        "Belly"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Material.002",
+          "texture": "packs-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material.003",
+          "texture": "packs-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material.001",
+          "texture": "packs-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 1722,
+        "polys": 1664,
+        "bbox": [
+          -8.5,
+          -2.8,
+          113.3,
+          127.4,
+          14.0,
+          18.9
+        ],
+        "zones": {
+          "Chest": 0.697,
+          "Belly": 0.303
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Chest Pack",
+        "nameRu": "Нагрудный подсумок",
+        "descEn": "A flat pouch across the chest. Small, and always within reach.",
+        "descRu": "Плоский подсумок поперёк груди. Маленький, и всегда под рукой.",
+        "warmth": 0.0,
+        "armor": 0.01,
+        "thermalDelta": 0.0,
+        "capacity": 2,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "sourceKeys": [
+        "vestPack01"
+      ]
+    },
+    {
+      "sourceKey": "RGBackpack_21643",
+      "folder": "RiotBackpack",
+      "name": "RiotBackpack",
+      "simId": "gear.backpack_riot",
+      "layer": "Outerwear",
+      "slots": [
+        "Chest",
+        "Belly"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "M1Metal",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "M1Rope01",
+          "texture": "LNA_RiotM1_Square_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "M1Rope02",
+          "texture": "LNA_RiotM1_Square_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "M1BaseBag",
+          "texture": "LNA_RiotM1_Square_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 21643,
+        "polys": 21649,
+        "bbox": [
+          -16.1,
+          16.1,
+          100.1,
+          152.9,
+          -21.5,
+          6.7
+        ],
+        "zones": {
+          "Chest": 0.659,
+          "Belly": 0.197,
+          "Pelvis": 0.13,
+          "Neck": 0.013
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Canvas Backpack",
+        "nameRu": "Холщовый рюкзак",
+        "descEn": "Straps, buckles and room. Carries more than her hands ever could.",
+        "descRu": "Лямки, пряжки и место. Несёт больше, чем когда-либо унесут руки.",
+        "warmth": 0.02,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 8,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Denim",
+          "from": "Riot Girl Backpack",
+          "textures": [
+            {
+              "source": "M1BaseBag",
+              "texture": "LNA_RiotM1_Green_albedo.jpg"
+            },
+            {
+              "source": "M1Rope01",
+              "texture": "LNA_RiotM1_Green_albedo.jpg"
+            },
+            {
+              "source": "M1Rope02",
+              "texture": "LNA_RiotM1_Green_albedo.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Grey",
+          "from": "Riot Girl Backpack",
+          "textures": [
+            {
+              "source": "M1BaseBag",
+              "texture": "LNA_RiotM1_Flowers__albedo.jpg"
+            },
+            {
+              "source": "M1Rope01",
+              "texture": "LNA_RiotM1_Flowers__albedo.jpg"
+            },
+            {
+              "source": "M1Rope02",
+              "texture": "LNA_RiotM1_Flowers__albedo.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Leather",
+          "from": "Riot Girl Backpack",
+          "textures": [
+            {
+              "source": "M1BaseBag",
+              "texture": "LNA_RiotM1_Denim_albedo.jpg"
+            },
+            {
+              "source": "M1Rope01",
+              "texture": "LNA_RiotM1_Denim_albedo.jpg"
+            },
+            {
+              "source": "M1Rope02",
+              "texture": "LNA_RiotM1_Denim_albedo.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "RGBlouseWeist_19326",
+      "folder": "RiotBlouseWaist",
+      "name": "RiotBlouseWaist",
+      "simId": "clothing.blouse_waist_riot",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis",
+        "ThighR",
+        "ThighL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "M2BaseBlouseWeist",
+          "texture": "LNA_RiotM2_Square_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "M1Buttons",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "M1Laces",
+          "texture": "LNA_RiotM1_Square_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 19326,
+        "polys": 19163,
+        "bbox": [
+          -23.8,
+          26.8,
+          50.8,
+          109.1,
+          -17.5,
+          19.6
+        ],
+        "zones": {
+          "Pelvis": 0.687,
+          "Thigh": 0.165,
+          "Belly": 0.148
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Blouse Tied at the Waist",
+        "nameRu": "Блузка на поясе",
+        "descEn": "Sleeves knotted at the hip. Not worn so much as carried.",
+        "descRu": "Рукава завязаны на бедре. Скорее носится с собой, чем надета.",
+        "warmth": 0.04,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Denim",
+          "from": "Riot Girl Blouse Waist",
+          "textures": [
+            {
+              "source": "M1Laces",
+              "texture": "LNA_RiotM1_Square_albedo.jpg"
+            },
+            {
+              "source": "M2BaseBlouseWeist",
+              "texture": "LNA_RiotM2_Denim_albedo.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Green",
+          "from": "Riot Girl Blouse Waist",
+          "textures": [
+            {
+              "source": "M1Laces",
+              "texture": "LNA_RiotM1_Square_albedo.jpg"
+            },
+            {
+              "source": "M2BaseBlouseWeist",
+              "texture": "LNA_RiotM2_Green_albedo.jpg"
+            }
+          ]
+        },
+        {
+          "name": "SquaresClear",
+          "from": "Riot Girl Blouse Waist",
+          "textures": [
+            {
+              "source": "M1Laces",
+              "texture": "LNA_RiotM1_Square_albedo.jpg"
+            },
+            {
+              "source": "M2BaseBlouseWeist",
+              "texture": "LNA_RiotM2_RB_albedo.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "RGBlouseWear_11701",
+      "folder": "RiotBlouse",
+      "name": "RiotBlouse",
+      "simId": "clothing.blouse_riot",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "Belly",
+        "ShoulderR",
+        "ShoulderL",
+        "ForearmR",
+        "ForearmL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "M1Laces",
+          "texture": "LNA_RiotM1_Square_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "M1BaseBlouseWear",
+          "texture": "LNA_RiotM1_Square_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "M1Buttons",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 11701,
+        "polys": 11624,
+        "bbox": [
+          -52.4,
+          50.7,
+          89.1,
+          157.6,
+          -15.2,
+          16.2
+        ],
+        "zones": {
+          "Chest": 0.362,
+          "Forearm": 0.161,
+          "Belly": 0.15,
+          "Shoulder": 0.135,
+          "Neck": 0.11,
+          "Pelvis": 0.083
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Work Blouse",
+        "nameRu": "Рабочая блузка",
+        "descEn": "Long sleeves, buttoned to the throat. Thin, but it covers the arms.",
+        "descRu": "Длинные рукава, застёгнута под горло. Тонкая, зато руки закрыты.",
+        "warmth": 0.1,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 1,
+        "covers": [
+          "Torso",
+          "ArmL",
+          "ArmR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Denim",
+          "from": "Riot Girl Blouse Wear",
+          "textures": [
+            {
+              "source": "M1BaseBlouseWear",
+              "texture": "LNA_RiotM1_Denim_albedo.jpg"
+            },
+            {
+              "source": "M1Laces",
+              "texture": "LNA_RiotM1_Square_albedo.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Green",
+          "from": "Riot Girl Blouse Wear",
+          "textures": [
+            {
+              "source": "M1BaseBlouseWear",
+              "texture": "LNA_RiotM1_Green_albedo.jpg"
+            },
+            {
+              "source": "M1Laces",
+              "texture": "LNA_RiotM1_Square_albedo.jpg"
+            }
+          ]
+        },
+        {
+          "name": "SquaresClear",
+          "from": "Riot Girl Blouse Wear",
+          "textures": [
+            {
+              "source": "M1BaseBlouseWear",
+              "texture": "LNA_RiotM1_Flowers__albedo.jpg"
+            },
+            {
+              "source": "M1Laces",
+              "texture": "LNA_RiotM1_Square_albedo.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "RGBoots_27768",
+      "folder": "RiotBoots",
+      "name": "RiotBoots",
+      "simId": "clothing.boots_riot",
+      "layer": "Outerwear",
+      "slots": [
+        "ShinR",
+        "ShinL",
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "M2Metal",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "M2BaseBoots",
+          "texture": "LNA_RiotM2_Square_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "M2Soles",
+          "texture": "LNA_RiotM2_Square_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "M2Straps",
+          "texture": "LNA_RiotM2_Square_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "M2Laces",
+          "texture": "LNA_RiotM2_Square_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 27768,
+        "polys": 27230,
+        "bbox": [
+          -19.3,
+          19.3,
+          -2.0,
+          23.5,
+          -11.3,
+          15.6
+        ],
+        "zones": {
+          "Shin": 0.515,
+          "Foot": 0.485
+        },
+        "heelCm": 2.01
+      },
+      "sim": {
+        "displayName": "Laced Work Boots",
+        "nameRu": "Рабочие ботинки",
+        "descEn": "Laces, straps and a hard sole. Made for standing all day.",
+        "descRu": "Шнуровка, ремни и жёсткая подошва. Сделаны, чтобы стоять весь день.",
+        "warmth": 0.13,
+        "armor": 0.11,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Clear",
+          "from": "Riot Girl Boots",
+          "textures": [
+            {
+              "source": "M2BaseBoots",
+              "texture": "LNA_RiotM2_Denim_albedo.jpg"
+            },
+            {
+              "source": "M2Laces",
+              "texture": "LNA_RiotM2_Square_albedo.jpg"
+            },
+            {
+              "source": "M2Soles",
+              "texture": "LNA_RiotM2_Square_albedo.jpg"
+            },
+            {
+              "source": "M2Straps",
+              "texture": "LNA_RiotM2_Denim_albedo.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "RGBra_2979",
+      "folder": "RiotBra",
+      "name": "RiotBra",
+      "simId": "underwear.bra_riot",
+      "layer": "Underwear",
+      "slots": [
+        "Chest"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "M1Braces",
+          "texture": "LNA_RiotM1_Square_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "M1BaseBra",
+          "texture": "LNA_RiotM1_Square_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 2979,
+        "polys": 2697,
+        "bbox": [
+          -14.7,
+          14.7,
+          126.5,
+          152.0,
+          -12.2,
+          13.7
+        ],
+        "zones": {
+          "Chest": 1.0
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Plain Bra",
+        "nameRu": "Простой лифчик",
+        "descEn": "Worn against the skin. She notices when it is gone.",
+        "descRu": "На голое тело. Без него замечает сразу.",
+        "warmth": 0.02,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Blue",
+          "from": "Riot Girl Bra",
+          "textures": [
+            {
+              "source": "M1BaseBra",
+              "texture": "LNA_RiotM1_Flowers__albedo.jpg"
+            },
+            {
+              "source": "M1Braces",
+              "texture": "LNA_RiotM1_Flowers__albedo.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Pink",
+          "from": "Riot Girl Bra",
+          "textures": [
+            {
+              "source": "M1BaseBra",
+              "texture": "LNA_RiotM1_Green_albedo.jpg"
+            },
+            {
+              "source": "M1Braces",
+              "texture": "LNA_RiotM1_Green_albedo.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Red",
+          "from": "Riot Girl Bra",
+          "textures": [
+            {
+              "source": "M1BaseBra",
+              "texture": "LNA_RiotM1_Denim_albedo.jpg"
+            },
+            {
+              "source": "M1Braces",
+              "texture": "LNA_RiotM1_Denim_albedo.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "RGHat_6060",
+      "folder": "RiotCap",
+      "name": "RiotCap",
+      "simId": "clothing.cap_riot",
+      "layer": "Wear",
+      "slots": [
+        "Head"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "M1BaseHat",
+          "texture": "LNA_RiotM1_Square_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "M1Pin",
+          "texture": "LNA_RiotM1_Square_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "M1PinMetal",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 6060,
+        "polys": 6018,
+        "bbox": [
+          -10.3,
+          9.5,
+          162.2,
+          182.9,
+          -13.2,
+          10.0
+        ],
+        "zones": {
+          "Head": 1.0
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Pinned Cap",
+        "nameRu": "Кепка со значком",
+        "descEn": "A soft cap with a pin on the brim. Keeps sun and rain off.",
+        "descRu": "Мягкая кепка со значком на канте. Прячет от солнца и дождя.",
+        "warmth": 0.05,
+        "armor": 0.01,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Head"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Camel",
+          "from": "Riot Girl Hat",
+          "textures": [
+            {
+              "source": "M1BaseHat",
+              "texture": "LNA_RiotM1_Flowers__albedo.jpg"
+            },
+            {
+              "source": "M1Pin",
+              "texture": "LNA_RiotM1_Flowers__albedo.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Denim",
+          "from": "Riot Girl Hat",
+          "textures": [
+            {
+              "source": "M1BaseHat",
+              "texture": "LNA_RiotM1_Green_albedo.jpg"
+            },
+            {
+              "source": "M1Pin",
+              "texture": "LNA_RiotM1_Green_albedo.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Red",
+          "from": "Riot Girl Hat",
+          "textures": [
+            {
+              "source": "M1BaseHat",
+              "texture": "LNA_RiotM1_Denim_albedo.jpg"
+            },
+            {
+              "source": "M1Pin",
+              "texture": "LNA_RiotM1_Denim_albedo.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "RGPants_12208",
+      "folder": "RiotShorts",
+      "name": "RiotShorts",
+      "simId": "clothing.shorts_riot",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis",
+        "ThighR",
+        "ThighL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "M1BasePants",
+          "texture": "LNA_RiotM1_Square_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "M1Button",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 12208,
+        "polys": 11927,
+        "bbox": [
+          -20.0,
+          19.6,
+          81.1,
+          106.3,
+          -13.4,
+          12.4
+        ],
+        "zones": {
+          "Pelvis": 0.498,
+          "Thigh": 0.467,
+          "Belly": 0.035
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Cut-off Shorts",
+        "nameRu": "Обрезанные шорты",
+        "descEn": "Denim, cut at the thigh. Nothing between her knees and the weather.",
+        "descRu": "Джинса, обрезана по бедру. Между коленями и погодой ничего.",
+        "warmth": 0.06,
+        "armor": 0.01,
+        "thermalDelta": 0.0,
+        "capacity": 2,
+        "covers": [
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Brown",
+          "from": "Riot Girl Pants",
+          "textures": [
+            {
+              "source": "M1BasePants",
+              "texture": "LNA_RiotM1_Flowers__albedo.jpg"
+            }
+          ]
+        },
+        {
+          "name": "DenimGrey",
+          "from": "Riot Girl Pants",
+          "textures": [
+            {
+              "source": "M1BasePants",
+              "texture": "LNA_RiotM1_Green_albedo.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Green",
+          "from": "Riot Girl Pants",
+          "textures": [
+            {
+              "source": "M1BasePants",
+              "texture": "LNA_RiotM1_Denim_albedo.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "RGShirt_7370",
+      "folder": "RiotShirt",
+      "name": "RiotShirt",
+      "simId": "clothing.shirt_riot",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "Belly"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "M2Buttons",
+          "texture": "LNA_RiotM2_Square_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "M2BaseShirt",
+          "texture": "LNA_RiotM2_Square_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 7370,
+        "polys": 7110,
+        "bbox": [
+          -17.8,
+          17.9,
+          98.4,
+          152.0,
+          -12.5,
+          14.3
+        ],
+        "zones": {
+          "Chest": 0.533,
+          "Belly": 0.349,
+          "Pelvis": 0.118
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Buttoned Shirt",
+        "nameRu": "Рубашка на пуговицах",
+        "descEn": "Plain and buttoned. What she puts on without thinking.",
+        "descRu": "Простая, на пуговицах. Надевает не думая.",
+        "warmth": 0.09,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 1,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "variants": [
+        {
+          "name": "GreyDark",
+          "from": "Riot Girl Shirt",
+          "textures": [
+            {
+              "source": "M2BaseShirt",
+              "texture": "LNA_RiotM2_Green_albedo.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Pink",
+          "from": "Riot Girl Shirt",
+          "textures": [
+            {
+              "source": "M2BaseShirt",
+              "texture": "LNA_RiotM2_Denim_albedo.jpg"
+            },
+            {
+              "source": "M2Buttons",
+              "texture": "LNA_RiotM2_Denim_albedo.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Wine",
+          "from": "Riot Girl Shirt",
+          "textures": [
+            {
+              "source": "M2BaseShirt",
+              "texture": "LNA_RiotM2_RB_albedo.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "RGStockings_2691",
+      "folder": "RiotStockings",
+      "name": "RiotStockings",
+      "simId": "underwear.stockings_riot",
+      "layer": "Underwear",
+      "slots": [
+        "ThighR",
+        "ThighL",
+        "ShinR",
+        "ShinL",
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "M2BaseStockings",
+          "texture": "LNA_RiotM2_Square_albedo_LNA_M2RSt_opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        }
+      ],
+      "_measured": {
+        "verts": 2691,
+        "polys": 2672,
+        "bbox": [
+          -19.1,
+          19.1,
+          -0.6,
+          109.6,
+          -12.6,
+          14.7
+        ],
+        "zones": {
+          "Shin": 0.276,
+          "Thigh": 0.267,
+          "Foot": 0.249,
+          "Pelvis": 0.157,
+          "Belly": 0.051
+        },
+        "heelCm": 0.62
+      },
+      "sim": {
+        "displayName": "Long Stockings",
+        "nameRu": "Длинные чулки",
+        "descEn": "Thigh to toe. More warmth than they look like they hold.",
+        "descRu": "От бедра до пальцев. Греют больше, чем кажется.",
+        "warmth": 0.06,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "BlackCat",
+          "from": "Riot Girl Stockings",
+          "textures": [
+            {
+              "source": "M2BaseStockings",
+              "texture": "LNA_RiotM2_Square_albedo.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Clear",
+          "from": "Riot Girl Stockings",
+          "textures": [
+            {
+              "source": "M2BaseStockings",
+              "texture": "LNA_RiotM2_Denim_albedo.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "boots_24916",
+      "folder": "RangerBoots",
+      "name": "RangerBoots",
+      "simId": "clothing.boots_ranger",
+      "layer": "Outerwear",
+      "slots": [
+        "ShinR",
+        "ShinL",
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Material05",
+          "texture": "boots-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material07",
+          "texture": "boots-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material01",
+          "texture": "boots-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material02",
+          "texture": "boots-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material04",
+          "texture": "boots-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material06",
+          "texture": "boots-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material03",
+          "texture": "boots-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material08",
+          "texture": "boots-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material09",
+          "texture": "boots-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 24916,
+        "polys": 24966,
+        "bbox": [
+          -19.6,
+          19.6,
+          -1.4,
+          19.6,
+          -10.8,
+          15.4
+        ],
+        "zones": {
+          "Shin": 0.507,
+          "Foot": 0.493
+        },
+        "heelCm": 1.38
+      },
+      "sim": {
+        "displayName": "Ranger Boots",
+        "nameRu": "Ботинки рейнджера",
+        "descEn": "Reinforced to mid-calf. The best thing between a wolf and her ankle.",
+        "descRu": "Усилены до середины икры. Лучшее между волком и её лодыжкой.",
+        "warmth": 0.15,
+        "armor": 0.14,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Default",
+          "from": "Boots",
+          "textures": [
+            {
+              "source": "Material01",
+              "texture": "boots-Map.jpg"
+            },
+            {
+              "source": "Material02",
+              "texture": "boots-Map.jpg"
+            },
+            {
+              "source": "Material03",
+              "texture": "boots-Map.jpg"
+            },
+            {
+              "source": "Material04",
+              "texture": "boots-Map.jpg"
+            },
+            {
+              "source": "Material05",
+              "texture": "boots-Map.jpg"
+            },
+            {
+              "source": "Material06",
+              "texture": "boots-Map.jpg"
+            },
+            {
+              "source": "Material07",
+              "texture": "boots-Map.jpg"
+            },
+            {
+              "source": "Material08",
+              "texture": "boots-Map.jpg"
+            },
+            {
+              "source": "Material09",
+              "texture": "boots-Map.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "legHolster_2204",
+      "folder": "RangerBeltPouch",
+      "name": "RangerBeltPouch",
+      "simId": "gear.beltpouch_ranger",
+      "layer": "Outerwear",
+      "slots": [
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Material.004",
+          "texture": "packs-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material.003",
+          "texture": "packs-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material.001",
+          "texture": "packs-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material.002",
+          "texture": "packs-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 2204,
+        "polys": 2162,
+        "bbox": [
+          -20.6,
+          16.3,
+          77.8,
+          111.8,
+          -10.3,
+          14.2
+        ],
+        "zones": {
+          "Belly": 0.572,
+          "Pelvis": 0.364,
+          "Thigh": 0.064
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Belt Pouches",
+        "nameRu": "Подсумки на поясе",
+        "descEn": "Two pouches and a buckle. No warmth — they are there to carry things.",
+        "descRu": "Два подсумка и пряжка. Не греют — они чтобы носить.",
+        "warmth": 0.0,
+        "armor": 0.02,
+        "thermalDelta": 0.0,
+        "capacity": 3,
+        "covers": [
+          "Pelvis"
+        ]
+      }
+    },
+    {
+      "sourceKey": "jacket_8867",
+      "folder": "RangerJacket",
+      "name": "RangerJacket",
+      "simId": "clothing.jacket_ranger",
+      "layer": "Outerwear",
+      "slots": [
+        "Neck",
+        "Chest",
+        "Belly"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Material.002",
+          "texture": "jacket-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material.003",
+          "texture": "jacket-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material.004",
+          "texture": "jacket-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material.001",
+          "texture": "jacket-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "MaterialZip",
+          "texture": "jacket-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 8867,
+        "polys": 8760,
+        "bbox": [
+          -16.7,
+          16.8,
+          104.2,
+          157.5,
+          -13.2,
+          14.1
+        ],
+        "zones": {
+          "Chest": 0.676,
+          "Belly": 0.25,
+          "Neck": 0.074
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Ranger Jacket",
+        "nameRu": "Куртка рейнджера",
+        "descEn": "Zipped to the collar, lined and heavy. The warmest thing she owns.",
+        "descRu": "Застёгнута под горло, на подкладке и тяжёлая. Самое тёплое, что у неё есть.",
+        "warmth": 0.3,
+        "armor": 0.06,
+        "thermalDelta": 0.0,
+        "capacity": 3,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Green",
+          "from": "Jacket",
+          "textures": [
+            {
+              "source": "Material.001",
+              "texture": "jacket-Map.jpg"
+            },
+            {
+              "source": "Material.002",
+              "texture": "jacket-Map.jpg"
+            },
+            {
+              "source": "Material.003",
+              "texture": "jacket-Map.jpg"
+            },
+            {
+              "source": "Material.004",
+              "texture": "jacket-Map.jpg"
+            },
+            {
+              "source": "MaterialZip",
+              "texture": "jacket-Map.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "pants_21038",
+      "folder": "RangerPants",
+      "name": "RangerPants",
+      "simId": "clothing.pants_ranger",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis",
+        "ThighR",
+        "ThighL",
+        "ShinR",
+        "ShinL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Material.001",
+          "texture": "pants-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material.006",
+          "texture": "pants-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material.003",
+          "texture": "pants-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material.004",
+          "texture": "pants-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material.002",
+          "texture": "pants-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material.005",
+          "texture": "pants-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 21038,
+        "polys": 20988,
+        "bbox": [
+          -19.3,
+          19.2,
+          15.6,
+          111.0,
+          -12.8,
+          12.0
+        ],
+        "zones": {
+          "Thigh": 0.421,
+          "Shin": 0.263,
+          "Pelvis": 0.256,
+          "Belly": 0.06
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Ranger Trousers",
+        "nameRu": "Штаны рейнджера",
+        "descEn": "Full length, reinforced at the knee. Warm and hard to tear.",
+        "descRu": "В полную длину, усилены на коленях. Тёплые и трудно рвутся.",
+        "warmth": 0.17,
+        "armor": 0.04,
+        "thermalDelta": 0.0,
+        "capacity": 3,
+        "covers": [
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Default",
+          "from": "Pants",
+          "textures": [
+            {
+              "source": "Material.001",
+              "texture": "pants-Map.jpg"
+            },
+            {
+              "source": "Material.002",
+              "texture": "pants-Map.jpg"
+            },
+            {
+              "source": "Material.003",
+              "texture": "pants-Map.jpg"
+            },
+            {
+              "source": "Material.004",
+              "texture": "pants-Map.jpg"
+            },
+            {
+              "source": "Material.005",
+              "texture": "pants-Map.jpg"
+            },
+            {
+              "source": "Material.006",
+              "texture": "pants-Map.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "vest_10702",
+      "folder": "RangerVest",
+      "name": "RangerVest",
+      "simId": "clothing.vest_ranger",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "Belly"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Material.004",
+          "texture": "vest2-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material.006",
+          "texture": "vest2-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material.005",
+          "texture": "vest2-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material.001",
+          "texture": "vest3-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material.002",
+          "texture": "vest3-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material.003",
+          "texture": "vest3-Map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 10702,
+        "polys": 10510,
+        "bbox": [
+          -15.3,
+          15.2,
+          110.3,
+          154.7,
+          -15.6,
+          15.4
+        ],
+        "zones": {
+          "Chest": 0.725,
+          "Belly": 0.193,
+          "Neck": 0.082
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Padded Vest",
+        "nameRu": "Стёганый жилет",
+        "descEn": "Quilted panels over the chest. Turns a blow that a shirt would not.",
+        "descRu": "Стёганые вставки по груди. Держит удар, который рубаха бы не удержала.",
+        "warmth": 0.14,
+        "armor": 0.11,
+        "thermalDelta": 0.0,
+        "capacity": 1,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Camo",
+          "from": "Vest",
+          "textures": [
+            {
+              "source": "Material.001",
+              "texture": "vest3-Map.jpg"
+            },
+            {
+              "source": "Material.002",
+              "texture": "vest3-Map.jpg"
+            },
+            {
+              "source": "Material.003",
+              "texture": "vest3-Map.jpg"
+            },
+            {
+              "source": "Material.004",
+              "texture": "vest2-Map.jpg"
+            },
+            {
+              "source": "Material.005",
+              "texture": "vest2-Map.jpg"
+            },
+            {
+              "source": "Material.006",
+              "texture": "vest2-Map.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Green",
+          "from": "Vest",
+          "textures": [
+            {
+              "source": "Material.001",
+              "texture": "vest-Map.jpg"
+            },
+            {
+              "source": "Material.002",
+              "texture": "vest-Map.jpg"
+            },
+            {
+              "source": "Material.003",
+              "texture": "vest-Map.jpg"
+            },
+            {
+              "source": "Material.004",
+              "texture": "vest2-Map.jpg"
+            },
+            {
+              "source": "Material.005",
+              "texture": "vest2-Map.jpg"
+            },
+            {
+              "source": "Material.006",
+              "texture": "vest2-Map.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Packs",
+          "from": "Vest",
+          "textures": [
+            {
+              "source": "Material.001",
+              "texture": "packs-Map.jpg"
+            },
+            {
+              "source": "Material.002",
+              "texture": "packs-Map.jpg"
+            },
+            {
+              "source": "Material.003",
+              "texture": "packs-Map.jpg"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "skipped": [
+    "RGBand-aid_136",
+    "vestPack02",
+    "vestPack03"
+  ]
+}

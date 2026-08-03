@@ -1146,7 +1146,7 @@ public static class NewWearExtractor
             // them — "Bra Purple" came out as `clothing.top_anarchy_bra purple`,
             // an id that reads as two words everywhere it is ever printed.
             var id = $"{g.SimId}_{VariantSlug(variant.Name)}";
-            var defPath = DefinitionPath(id, prototype != null ? protoPath : null);
+            var defPath = DefinitionPath(id, prototype != null ? protoPath : null, g.Layer.ToString());
             var def = AssetDatabase.LoadAssetAtPath<GarmentDefinition>(defPath);
             if (def == null)
             {
@@ -1186,28 +1186,33 @@ public static class NewWearExtractor
     }
 
     // Catalog assets are filed by layer; a variant lands beside its prototype.
-    private static string DefinitionPath(string id, string beside = null)
+    private static string DefinitionPath(string id, string beside = null, string layer = null)
     {
         // Concat, NOT Join: `string.Join("_", chars)` puts a separator between
         // EVERY character, which is how the first variants landed on disk as
         // `c_l_o_t_h_i_n_g___b_e_l_t___a_n_a_r_c_h_y`.
         var slug = new string(id.Select(c => char.IsLetterOrDigit(c) ? char.ToLowerInvariant(c) : '_').ToArray());
-        foreach (var layer in new[] { "Underwear", "Wear", "Outerwear" })
+        foreach (var drawer in new[] { "Underwear", "Wear", "Outerwear" })
         {
-            var path = $"Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/{layer}/{slug}.asset";
+            var path = $"Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/{drawer}/{slug}.asset";
             if (File.Exists(path))
             {
                 return path;
             }
         }
 
-        // A new asset goes beside the one it belongs to when we know it — the
-        // folders ARE the layers, so a recoloured belt filed under `Wear` sits in
-        // a different drawer from the belt it recolours, and only the underwear
-        // and outerwear items were ever affected (their variants all landed in
-        // `Wear`). Without a neighbour, `Wear` is the honest default.
+        // The folders ARE the layers, so a recoloured belt filed under `Wear`
+        // sits in a different drawer from the belt it recolours. Beside the
+        // prototype when it already exists; otherwise by the garment's own
+        // layer — on a FIRST run the prototype asset does not exist yet (the
+        // catalog builder makes it afterwards), and six variants of the second
+        // drop landed in `Wear` while the builder created empty twins for them
+        // in `Outerwear`. Two assets, one id, and the empty one won.
         var folder = beside != null
             ? Path.GetDirectoryName(beside)?.Replace('\\', '/')
+            : null;
+        folder ??= layer != null
+            ? $"Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/{layer}"
             : null;
         folder ??= "Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Wear";
         EnsureFolder(folder);

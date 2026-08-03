@@ -88,6 +88,30 @@ def garment_names(product: Path) -> list[str]:
     return sorted((p.stem for p in product.glob("*.duf")), key=len, reverse=True)
 
 
+def _common_prefix(names: list[str]) -> str:
+    """Общая приставка из ЦЕЛЫХ слов, если она есть у всех имён.
+
+    Вендор часто повторяет название продукта в каждой вещи — «Riot Girl
+    Backpack», «Riot Girl Boots», — но в пресетах материалов его не пишет:
+    там просто «Backpack Denim». Без отбрасывания приставки ни одна расцветка
+    Riot Girl не находила свою вещь, хотя лежала в той же папке.
+    """
+    if len(names) < 2:
+        return ""
+    words = [n.split() for n in names]
+    prefix: list[str] = []
+    for i in range(min(len(w) for w in words)):
+        first = words[0][i]
+        if any(w[i] != first for w in words):
+            break
+        prefix.append(first)
+    # Целиком совпавшее имя приставкой не считается — иначе вещь останется без
+    # имени вовсе.
+    while prefix and any(len(w) <= len(prefix) for w in words):
+        prefix.pop()
+    return " ".join(prefix)
+
+
 def harvest(product: Path) -> dict[str, list[dict]]:
     """Вещь -> список её расцветок [{name, surfaces}], без запуска DAZ."""
     names = garment_names(product)
@@ -105,15 +129,26 @@ def harvest(product: Path) -> dict[str, list[dict]]:
     if not folder.exists():
         return {}
 
+    # Каждое имя ищется и целиком, и без общей приставки продукта; список
+    # отсортирован по длине, так что «CA Belt 2 Black» достаётся «CA Belt 2»,
+    # а не «CA Belt».
+    prefix = _common_prefix(names)
+    aliases: list[tuple[str, str]] = [(n, n) for n in names]
+    if prefix:
+        aliases += [(n[len(prefix):].strip(), n) for n in names
+                    if n.startswith(prefix) and n[len(prefix):].strip()]
+    aliases.sort(key=lambda pair: len(pair[0]), reverse=True)
+
     found: dict[str, list[dict]] = {n: [] for n in names}
     for preset in sorted(folder.rglob("*.duf")):
         stem = preset.stem
-        # Самый длинный подходящий префикс — иначе «CA Belt 2 Black»
-        # притянется к «CA Belt».
-        owner = next((n for n in names if stem.startswith(n)), None)
-        if owner is None:
+        match = next(((alias, full) for alias, full in aliases if stem.startswith(alias)), None)
+        if match is None:
             continue
-        colour = stem[len(owner):].strip(" -_") or "Default"
+        # Остаток режется по ТОМУ имени, которое совпало: при совпадении через
+        # алиас длина полного имени другая, и название расцветки уехало бы.
+        alias, owner = match
+        colour = stem[len(alias):].strip(" -_") or "Default"
         maps = surfaces(preset)
         if maps:
             found[owner].append({"name": colour, "surfaces": maps,
@@ -137,10 +172,20 @@ def owners(dress_report: dict) -> dict[str, str]:
     """
     out: dict[str, str] = {}
     for girl in dress_report.get("girls") or []:
+        # Сначала по ФАЙЛУ: имя вещи в DAZ — это имя её .duf, а под ним и лежат
+        # пресеты расцветок. Метка фигуры вендором не обязана совпадать ни с
+        # тем, ни с другим («Riot Girl Backpack.duf» -> `RGBackpack`), поэтому
+        # метка остаётся запасным вариантом, а не первым.
+        for entry in girl.get("loaded") or []:
+            stem = Path(str(entry.get("file", ""))).stem
+            for name in entry.get("names") or []:
+                if stem and name:
+                    out.setdefault(name, stem)
+
         for item in girl.get("fitted") or []:
             name, label = item.get("name"), item.get("label")
             if name and label:
-                out[name] = label
+                out.setdefault(name, label)
     return out
 
 

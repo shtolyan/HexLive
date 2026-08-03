@@ -2545,6 +2545,758 @@ MonoBehaviour:
       - 'Носимый предмет.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'item.gear_legrig_ranger_default.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh Rig (Default)'
+      - 'Набедренная подвеска (Default)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.gear_legrig_ranger_default.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps down the hip with a pouch on the thigh. Rides where the hands fall.'
+      - 'Ремни по бедру и подсумок сбоку. Там, куда падают руки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.gear_backpack_riot_denim.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Canvas Backpack (Denim)'
+      - 'Холщовый рюкзак (Denim)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.gear_backpack_riot_denim.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps, buckles and room. Carries more than her hands ever could.'
+      - 'Лямки, пряжки и место. Несёт больше, чем когда-либо унесут руки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.gear_backpack_riot_grey.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Canvas Backpack (Grey)'
+      - 'Холщовый рюкзак (Grey)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.gear_backpack_riot_grey.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps, buckles and room. Carries more than her hands ever could.'
+      - 'Лямки, пряжки и место. Несёт больше, чем когда-либо унесут руки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.gear_backpack_riot_leather.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Canvas Backpack (Leather)'
+      - 'Холщовый рюкзак (Leather)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.gear_backpack_riot_leather.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps, buckles and room. Carries more than her hands ever could.'
+      - 'Лямки, пряжки и место. Несёт больше, чем когда-либо унесут руки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_blouse_waist_riot_denim.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Blouse Tied at the Waist (Denim)'
+      - 'Блузка на поясе (Denim)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_blouse_waist_riot_denim.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sleeves knotted at the hip. Not worn so much as carried.'
+      - 'Рукава завязаны на бедре. Скорее носится с собой, чем надета.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_blouse_waist_riot_green.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Blouse Tied at the Waist (Green)'
+      - 'Блузка на поясе (Green)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_blouse_waist_riot_green.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sleeves knotted at the hip. Not worn so much as carried.'
+      - 'Рукава завязаны на бедре. Скорее носится с собой, чем надета.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_blouse_waist_riot_squaresclear.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Blouse Tied at the Waist (SquaresClear)'
+      - 'Блузка на поясе (SquaresClear)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_blouse_waist_riot_squaresclear.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sleeves knotted at the hip. Not worn so much as carried.'
+      - 'Рукава завязаны на бедре. Скорее носится с собой, чем надета.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_blouse_riot_denim.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Work Blouse (Denim)'
+      - 'Рабочая блузка (Denim)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_blouse_riot_denim.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long sleeves, buttoned to the throat. Thin, but it covers the arms.'
+      - 'Длинные рукава, застёгнута под горло. Тонкая, зато руки закрыты.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_blouse_riot_green.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Work Blouse (Green)'
+      - 'Рабочая блузка (Green)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_blouse_riot_green.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long sleeves, buttoned to the throat. Thin, but it covers the arms.'
+      - 'Длинные рукава, застёгнута под горло. Тонкая, зато руки закрыты.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_blouse_riot_squaresclear.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Work Blouse (SquaresClear)'
+      - 'Рабочая блузка (SquaresClear)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_blouse_riot_squaresclear.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long sleeves, buttoned to the throat. Thin, but it covers the arms.'
+      - 'Длинные рукава, застёгнута под горло. Тонкая, зато руки закрыты.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_riot_clear.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Laced Work Boots (Clear)'
+      - 'Рабочие ботинки (Clear)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_riot_clear.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Laces, straps and a hard sole. Made for standing all day.'
+      - 'Шнуровка, ремни и жёсткая подошва. Сделаны, чтобы стоять весь день.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_riot_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain Bra (Blue)'
+      - 'Простой лифчик (Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_riot_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Worn against the skin. She notices when it is gone.'
+      - 'На голое тело. Без него замечает сразу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_riot_pink.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain Bra (Pink)'
+      - 'Простой лифчик (Pink)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_riot_pink.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Worn against the skin. She notices when it is gone.'
+      - 'На голое тело. Без него замечает сразу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_riot_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain Bra (Red)'
+      - 'Простой лифчик (Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_riot_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Worn against the skin. She notices when it is gone.'
+      - 'На голое тело. Без него замечает сразу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_cap_riot_camel.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pinned Cap (Camel)'
+      - 'Кепка со значком (Camel)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_cap_riot_camel.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A soft cap with a pin on the brim. Keeps sun and rain off.'
+      - 'Мягкая кепка со значком на канте. Прячет от солнца и дождя.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_cap_riot_denim.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pinned Cap (Denim)'
+      - 'Кепка со значком (Denim)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_cap_riot_denim.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A soft cap with a pin on the brim. Keeps sun and rain off.'
+      - 'Мягкая кепка со значком на канте. Прячет от солнца и дождя.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_cap_riot_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pinned Cap (Red)'
+      - 'Кепка со значком (Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_cap_riot_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A soft cap with a pin on the brim. Keeps sun and rain off.'
+      - 'Мягкая кепка со значком на канте. Прячет от солнца и дождя.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_riot_brown.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut-off Shorts (Brown)'
+      - 'Обрезанные шорты (Brown)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_riot_brown.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Denim, cut at the thigh. Nothing between her knees and the weather.'
+      - 'Джинса, обрезана по бедру. Между коленями и погодой ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_riot_denimgrey.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut-off Shorts (DenimGrey)'
+      - 'Обрезанные шорты (DenimGrey)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_riot_denimgrey.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Denim, cut at the thigh. Nothing between her knees and the weather.'
+      - 'Джинса, обрезана по бедру. Между коленями и погодой ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_riot_green.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut-off Shorts (Green)'
+      - 'Обрезанные шорты (Green)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_riot_green.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Denim, cut at the thigh. Nothing between her knees and the weather.'
+      - 'Джинса, обрезана по бедру. Между коленями и погодой ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shirt_riot_greydark.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Buttoned Shirt (GreyDark)'
+      - 'Рубашка на пуговицах (GreyDark)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shirt_riot_greydark.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain and buttoned. What she puts on without thinking.'
+      - 'Простая, на пуговицах. Надевает не думая.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shirt_riot_pink.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Buttoned Shirt (Pink)'
+      - 'Рубашка на пуговицах (Pink)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shirt_riot_pink.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain and buttoned. What she puts on without thinking.'
+      - 'Простая, на пуговицах. Надевает не думая.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shirt_riot_wine.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Buttoned Shirt (Wine)'
+      - 'Рубашка на пуговицах (Wine)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shirt_riot_wine.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain and buttoned. What she puts on without thinking.'
+      - 'Простая, на пуговицах. Надевает не думая.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_riot_blackcat.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long Stockings (BlackCat)'
+      - 'Длинные чулки (BlackCat)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_riot_blackcat.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh to toe. More warmth than they look like they hold.'
+      - 'От бедра до пальцев. Греют больше, чем кажется.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_riot_clear.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long Stockings (Clear)'
+      - 'Длинные чулки (Clear)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_riot_clear.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh to toe. More warmth than they look like they hold.'
+      - 'От бедра до пальцев. Греют больше, чем кажется.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_ranger_default.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ranger Boots (Default)'
+      - 'Ботинки рейнджера (Default)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_ranger_default.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Reinforced to mid-calf. The best thing between a wolf and her ankle.'
+      - 'Усилены до середины икры. Лучшее между волком и её лодыжкой.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_ranger_green.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ranger Jacket (Green)'
+      - 'Куртка рейнджера (Green)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_ranger_green.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Zipped to the collar, lined and heavy. The warmest thing she owns.'
+      - 'Застёгнута под горло, на подкладке и тяжёлая. Самое тёплое, что у неё есть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_pants_ranger_default.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ranger Trousers (Default)'
+      - 'Штаны рейнджера (Default)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_pants_ranger_default.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Full length, reinforced at the knee. Warm and hard to tear.'
+      - 'В полную длину, усилены на коленях. Тёплые и трудно рвутся.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_vest_ranger_camo.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Padded Vest (Camo)'
+      - 'Стёганый жилет (Camo)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_vest_ranger_camo.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Quilted panels over the chest. Turns a blow that a shirt would not.'
+      - 'Стёганые вставки по груди. Держит удар, который рубаха бы не удержала.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_vest_ranger_green.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Padded Vest (Green)'
+      - 'Стёганый жилет (Green)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_vest_ranger_green.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Quilted panels over the chest. Turns a blow that a shirt would not.'
+      - 'Стёганые вставки по груди. Держит удар, который рубаха бы не удержала.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_vest_ranger_packs.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Padded Vest (Packs)'
+      - 'Стёганый жилет (Packs)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_vest_ranger_packs.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Quilted panels over the chest. Turns a blow that a shirt would not.'
+      - 'Стёганые вставки по груди. Держит удар, который рубаха бы не удержала.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.gear_legrig_ranger.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh Rig'
+      - 'Набедренная подвеска'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.gear_legrig_ranger.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps down the hip with a pouch on the thigh. Rides where the hands fall.'
+      - 'Ремни по бедру и подсумок сбоку. Там, куда падают руки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.gear_chestpack_ranger.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Chest Pack'
+      - 'Нагрудный подсумок'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.gear_chestpack_ranger.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A flat pouch across the chest. Small, and always within reach.'
+      - 'Плоский подсумок поперёк груди. Маленький, и всегда под рукой.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.gear_backpack_riot.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Canvas Backpack'
+      - 'Холщовый рюкзак'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.gear_backpack_riot.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps, buckles and room. Carries more than her hands ever could.'
+      - 'Лямки, пряжки и место. Несёт больше, чем когда-либо унесут руки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_blouse_waist_riot.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Blouse Tied at the Waist'
+      - 'Блузка на поясе'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_blouse_waist_riot.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sleeves knotted at the hip. Not worn so much as carried.'
+      - 'Рукава завязаны на бедре. Скорее носится с собой, чем надета.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_blouse_riot.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Work Blouse'
+      - 'Рабочая блузка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_blouse_riot.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long sleeves, buttoned to the throat. Thin, but it covers the arms.'
+      - 'Длинные рукава, застёгнута под горло. Тонкая, зато руки закрыты.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_riot.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Laced Work Boots'
+      - 'Рабочие ботинки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_riot.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Laces, straps and a hard sole. Made for standing all day.'
+      - 'Шнуровка, ремни и жёсткая подошва. Сделаны, чтобы стоять весь день.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_riot.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain Bra'
+      - 'Простой лифчик'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_riot.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Worn against the skin. She notices when it is gone.'
+      - 'На голое тело. Без него замечает сразу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_cap_riot.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pinned Cap'
+      - 'Кепка со значком'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_cap_riot.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A soft cap with a pin on the brim. Keeps sun and rain off.'
+      - 'Мягкая кепка со значком на канте. Прячет от солнца и дождя.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_riot.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut-off Shorts'
+      - 'Обрезанные шорты'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_riot.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Denim, cut at the thigh. Nothing between her knees and the weather.'
+      - 'Джинса, обрезана по бедру. Между коленями и погодой ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shirt_riot.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Buttoned Shirt'
+      - 'Рубашка на пуговицах'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shirt_riot.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain and buttoned. What she puts on without thinking.'
+      - 'Простая, на пуговицах. Надевает не думая.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_riot.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long Stockings'
+      - 'Длинные чулки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_riot.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh to toe. More warmth than they look like they hold.'
+      - 'От бедра до пальцев. Греют больше, чем кажется.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_ranger.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ranger Boots'
+      - 'Ботинки рейнджера'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_ranger.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Reinforced to mid-calf. The best thing between a wolf and her ankle.'
+      - 'Усилены до середины икры. Лучшее между волком и её лодыжкой.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.gear_beltpouch_ranger.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Belt Pouches'
+      - 'Подсумки на поясе'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.gear_beltpouch_ranger.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Two pouches and a buckle. No warmth — they are there to carry things.'
+      - 'Два подсумка и пряжка. Не греют — они чтобы носить.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_ranger.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ranger Jacket'
+      - 'Куртка рейнджера'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_ranger.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Zipped to the collar, lined and heavy. The warmest thing she owns.'
+      - 'Застёгнута под горло, на подкладке и тяжёлая. Самое тёплое, что у неё есть.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_pants_ranger.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ranger Trousers'
+      - 'Штаны рейнджера'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_pants_ranger.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Full length, reinforced at the knee. Warm and hard to tear.'
+      - 'В полную длину, усилены на коленях. Тёплые и трудно рвутся.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_vest_ranger.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Padded Vest'
+      - 'Стёганый жилет'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_vest_ranger.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Quilted panels over the chest. Turns a blow that a shirt would not.'
+      - 'Стёганые вставки по груди. Держит удар, который рубаха бы не удержала.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'item.clothing_cap_anarchy_black.name'
       TermType: 0
       Description: 

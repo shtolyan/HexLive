@@ -68,12 +68,54 @@ _STRIP_AND_FIT = """
   // as long as the figure is the current selection. `added` is how many things
   // that file actually put ON her — see the note in `dress_one` about why the
   // answer is not always one.
+  // Every node in the scene, so a figure that arrives WITHOUT being fitted can
+  // be told apart from the ones that were already there.
+  function allNodes() {
+    var all = [];
+    for (var i = 0; i < Scene.getNumNodes(); i++) all.push(Scene.getNode(i));
+    return all;
+  }
+  function has(list, n) {
+    for (var i = 0; i < list.length; i++) if (list[i] == n) return true;
+    return false;
+  }
+
   for (var i = 0; i < args.garments.length; i++) {
     Scene.selectAllNodes(false);
     Scene.setPrimarySelection(fig);
-    var before = wornNodes().length;
+    var seenWorn = wornNodes();
+    var before = seenWorn.length;
+    var seen = allNodes();
     var ok = App.getContentMgr().openFile(args.garments[i], true);
-    out.loaded.push({ file: args.garments[i], ok: ok, added: wornNodes().length - before });
+
+    // Auto-fit covers a `wearable` — its own file says what it conforms to.
+    // A `scene_subset` says nothing, so DAZ drops it into the scene beside her
+    // and it wears nothing: the Ranger vest landed loose on all four girls
+    // while the jacket from the same product fitted itself. Anything new that
+    // is a rigged figure standing on its own gets conformed by hand.
+    var arrived = allNodes();
+    for (var j = 0; j < arrived.length; j++) {
+      var n = arrived[j];
+      if (has(seen, n) || n == fig) continue;
+      if (!n.inherits("DzFigure") || !n.setFollowTarget) continue;
+      if (n.getFollowTarget && n.getFollowTarget()) continue;
+      if (n.getNodeParent && n.getNodeParent()) continue;
+      n.setFollowTarget(fig);
+      out.conformed = (out.conformed || []).concat([n.getLabel()]);
+    }
+
+    // Какие узлы породил ИМЕННО ЭТОТ файл. Имя фигуры вендор выбирает свободно
+    // и с именем файла не сверяется: «Riot Girl Backpack.duf» приезжает как
+    // `RGBackpack`, и расцветки, разложенные по именам файлов, не находили свою
+    // вещь. Здесь связь точная, потому что её сообщает сам DAZ.
+    var after = wornNodes();
+    var names = [];
+    for (var k = 0; k < after.length; k++) {
+      if (!has(seenWorn, after[k])) names.push(after[k].getName());
+    }
+
+    out.loaded.push({ file: args.garments[i], ok: ok,
+                      added: after.length - before, names: names });
   }
 
   var fitted = wornNodes();
@@ -166,6 +208,9 @@ def dress_one(girl: str, garments: list[Path], out_fbx: Path) -> dict:
         "size_mb": round(out_fbx.stat().st_size / 1024 / 1024, 1),
         "stripped": result["dropped"],
         "fitted": result["fitted"],
+        # Какой файл что надел. Нужно расцветкам: пресеты лежат под именем
+        # ФАЙЛА вещи, а метка фигуры вендором с ним не сверяется.
+        "loaded": result["loaded"],
     }
 
 

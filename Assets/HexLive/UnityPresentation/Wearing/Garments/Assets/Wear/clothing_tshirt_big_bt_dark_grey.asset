@@ -13,14 +13,12 @@ MonoBehaviour:
   m_Name: clothing_tshirt_big_bt_dark_grey
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.tshirt_big_bt_dark_grey
-  prototypeId: clothing.tshirt_big
-  displayName: 
-  variantMaterials:
-  - {fileID: 2100000, guid: 91cbf35cfbe45e34eb04a28254028794, type: 2}
-  - {fileID: 2100000, guid: 4ce86ea641313314982fa0dab1535860, type: 2}
+  prototypeId: 
+  displayName: Oversized Tee (BT Dark Grey)
+  variantMaterials: []
   layer: 1
-  covers: 
-  warmth: 0.1
+  covers: 01000000020000000300000004000000
+  warmth: 0.06
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

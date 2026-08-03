@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.tshirt_big_tshirt_american
   prototypeId: clothing.tshirt_big
-  displayName: 
+  displayName: Oversized Tee (TShirt American)
   variantMaterials:
   - {fileID: 2100000, guid: 6f258db593f698a40b38f2fcf00070da, type: 2}
   - {fileID: 2100000, guid: 12a99e16a4f07094cae647d7c1a68c24, type: 2}
   layer: 1
-  covers: 
-  warmth: 0.1
+  covers: 01000000020000000300000004000000
+  warmth: 0.06
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

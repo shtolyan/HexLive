@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.babydoll_sweety_07_babydoll
   prototypeId: clothing.babydoll_sweety
-  displayName: 
+  displayName: Lace Babydoll (07 BabyDoll)
   variantMaterials:
   - {fileID: 2100000, guid: 5d4f3d96874308d4d92e965a207197ef, type: 2}
   - {fileID: 2100000, guid: eab6385941e115b479c0b45123e1a9e6, type: 2}
@@ -30,8 +30,8 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 4b8992869b95c9948a4f885d9938a319, type: 2}
   - {fileID: 2100000, guid: 956d65c7473fa3b4f8c46895c1630de4, type: 2}
   layer: 1
-  covers: 
-  warmth: 0.1
+  covers: 01000000020000000500000006000000
+  warmth: 0.03
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

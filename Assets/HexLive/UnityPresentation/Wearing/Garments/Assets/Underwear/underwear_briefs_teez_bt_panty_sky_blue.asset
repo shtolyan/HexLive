@@ -14,14 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.briefs_teez_bt_panty_sky_blue
   prototypeId: underwear.briefs_teez
-  displayName: 
+  displayName: Cotton Briefs (BT Panty Sky Blue)
   variantMaterials:
   - {fileID: 2100000, guid: e6395f7c49a952f42b7a973e74590d2f, type: 2}
   - {fileID: 2100000, guid: 4999a0bc40e9ebd42a0dc552903a30f2, type: 2}
   - {fileID: 2100000, guid: 9fabd4f70f63c734a94f0a46277a3b10, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  layer: 0
+  covers: 02000000
+  warmth: 0.01
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

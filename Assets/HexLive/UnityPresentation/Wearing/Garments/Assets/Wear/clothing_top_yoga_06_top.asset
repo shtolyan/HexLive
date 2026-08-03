@@ -14,12 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.top_yoga_06_top
   prototypeId: clothing.top_yoga
-  displayName: 
+  displayName: Yoga Top (06 - Top)
   variantMaterials:
   - {fileID: 2100000, guid: 1159c030c17d98d4fb6da3a226af7d67, type: 2}
   layer: 1
-  covers: 
-  warmth: 0.1
+  covers: 01000000
+  warmth: 0.04
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

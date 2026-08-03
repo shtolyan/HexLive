@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.top_vapor_04
   prototypeId: underwear.top_vapor
-  displayName: 
+  displayName: Sheer Top (04)
   variantMaterials:
   - {fileID: 2100000, guid: 874a8a13c34445c4b8dd17df386be753, type: 2}
   - {fileID: 2100000, guid: 7b322f538dbb6c84db25d2ba96b9a471, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  layer: 0
+  covers: 01000000
+  warmth: 0.01
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

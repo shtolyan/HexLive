@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.dress_primal_color03
   prototypeId: clothing.dress_primal
-  displayName: 
+  displayName: Fur-Trimmed Dress (color03)
   variantMaterials:
   - {fileID: 2100000, guid: dde4bdd63c0144b44aa00eead9098670, type: 2}
   - {fileID: 2100000, guid: 5fbc9ae1db10b6d48a1ecb71b5505431, type: 2}
   layer: 1
-  covers: 
-  warmth: 0.1
+  covers: 01000000020000000500000006000000
+  warmth: 0.18
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

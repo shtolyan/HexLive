@@ -13,15 +13,12 @@ MonoBehaviour:
   m_Name: underwear_bra_wild_cw_bra_004
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.bra_wild_cw_bra_004
-  prototypeId: underwear.bra_wild
-  displayName: 
-  variantMaterials:
-  - {fileID: 2100000, guid: 07e69fd5df70b7e4ea45fc97b0d547dc, type: 2}
-  - {fileID: 2100000, guid: 6dcd121cc11bc0540a199834c693d345, type: 2}
-  - {fileID: 2100000, guid: 22254447c5738cc48bffb27862c0e9af, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  prototypeId: 
+  displayName: Ringed Bra (CW Bra 004)
+  variantMaterials: []
+  layer: 0
+  covers: 01000000
+  warmth: 0.02
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

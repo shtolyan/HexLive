@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.collar_fur_color04
   prototypeId: clothing.collar_fur
-  displayName: 
+  displayName: Fur Collar (color04)
   variantMaterials:
   - {fileID: 2100000, guid: 6a7af0bb41b337044b51d2ec800e9a36, type: 2}
   - {fileID: 2100000, guid: 547a5fed1389ee64ea0924cfbdfcce96, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  layer: 2
+  covers: 01000000
+  warmth: 0.07
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

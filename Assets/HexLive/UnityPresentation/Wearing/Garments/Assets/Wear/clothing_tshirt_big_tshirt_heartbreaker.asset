@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.tshirt_big_tshirt_heartbreaker
   prototypeId: clothing.tshirt_big
-  displayName: 
+  displayName: Oversized Tee (TShirt Heartbreaker)
   variantMaterials:
   - {fileID: 2100000, guid: 9c8208bb6b0223b409ba2b545a234b7d, type: 2}
   - {fileID: 2100000, guid: cfbeafe4257cf2f4882da9cbb184e6f5, type: 2}
   layer: 1
-  covers: 
-  warmth: 0.1
+  covers: 01000000020000000300000004000000
+  warmth: 0.06
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

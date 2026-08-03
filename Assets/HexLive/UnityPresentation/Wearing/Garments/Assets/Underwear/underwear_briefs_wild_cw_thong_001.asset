@@ -13,14 +13,12 @@ MonoBehaviour:
   m_Name: underwear_briefs_wild_cw_thong_001
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.briefs_wild_cw_thong_001
-  prototypeId: underwear.briefs_wild
-  displayName: 
-  variantMaterials:
-  - {fileID: 2100000, guid: 38dc259227bede2428727bbca3709745, type: 2}
-  - {fileID: 2100000, guid: c5b7e952875d1404d947c144cbb2917e, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  prototypeId: 
+  displayName: Strapped Briefs (CW Thong 001)
+  variantMaterials: []
+  layer: 0
+  covers: 02000000
+  warmth: 0.01
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

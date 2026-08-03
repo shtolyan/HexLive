@@ -14,14 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.briefs_teez_bt_panty_white
   prototypeId: underwear.briefs_teez
-  displayName: 
+  displayName: Cotton Briefs (BT Panty White)
   variantMaterials:
   - {fileID: 2100000, guid: c22aab2b8b2e24a41b3d77f364441817, type: 2}
   - {fileID: 2100000, guid: 713d99a0756358a439b056b70b65e80c, type: 2}
   - {fileID: 2100000, guid: 987dd9bf164c32c459d8271bdbe4eb17, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  layer: 0
+  covers: 02000000
+  warmth: 0.01
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.tshirt_big_tshirt_saints
   prototypeId: clothing.tshirt_big
-  displayName: 
+  displayName: Oversized Tee (TShirt Saints)
   variantMaterials:
   - {fileID: 2100000, guid: b72bef48a5e263647a58c554bc715fa5, type: 2}
   - {fileID: 2100000, guid: 27a60cd888777854cb6753d4854ecdff, type: 2}
   layer: 1
-  covers: 
-  warmth: 0.1
+  covers: 01000000020000000300000004000000
+  warmth: 0.06
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

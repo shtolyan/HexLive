@@ -13,17 +13,13 @@ MonoBehaviour:
   m_Name: clothing_skirt_wild_cw_skirt_003
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.skirt_wild_cw_skirt_003
-  prototypeId: clothing.skirt_wild
-  displayName: 
-  variantMaterials:
-  - {fileID: 2100000, guid: cb7dcea02f9836d4786b90e3d8c965a4, type: 2}
-  - {fileID: 2100000, guid: 9ca30b679fca4db48b9bc8e96e3693db, type: 2}
-  - {fileID: 2100000, guid: 9d9675069d1b66e46a8a4d77f23582dd, type: 2}
-  - {fileID: 2100000, guid: 3e8b480f70e6acb4b86363dc421a5723, type: 2}
+  prototypeId: 
+  displayName: Studded Skirt (CW Skirt 003)
+  variantMaterials: []
   layer: 1
-  covers: 
-  warmth: 0.1
-  armor: 0
+  covers: 02000000
+  warmth: 0.05
+  armor: 0.03
   thermalDelta: 0
   dressDurationTicks: 8
   capacity: 0

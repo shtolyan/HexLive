@@ -14,15 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.briefs_sweety_01panty
   prototypeId: underwear.briefs_sweety
-  displayName: 
+  displayName: Lace Panties (01Panty)
   variantMaterials:
   - {fileID: 2100000, guid: 7febe51a87f2cb54c8138676c864f4f3, type: 2}
   - {fileID: 2100000, guid: b27cb769ea94745479806801bbf3950c, type: 2}
   - {fileID: 2100000, guid: 5d48aa97b86c3444186374dcd2363cf8, type: 2}
   - {fileID: 2100000, guid: 0b45f8ad102160f4db76db89497a4ecc, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  layer: 0
+  covers: 0100000002000000
+  warmth: 0.01
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

@@ -14,12 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.leggings_yoga_04_pants
   prototypeId: clothing.leggings_yoga
-  displayName: 
+  displayName: Yoga Leggings (04 - Pants)
   variantMaterials:
   - {fileID: 2100000, guid: b23e0abc91194e048be032ca9a441508, type: 2}
   layer: 1
-  covers: 
-  warmth: 0.1
+  covers: 020000000500000006000000
+  warmth: 0.09
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

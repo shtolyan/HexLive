@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.briefs_vapor_bot09
   prototypeId: underwear.briefs_vapor
-  displayName: 
+  displayName: Sheer Briefs (Bot09)
   variantMaterials:
   - {fileID: 2100000, guid: 96e1271fe8b975b47a8f1f592e342a67, type: 2}
   - {fileID: 2100000, guid: a2c4d791221e4ad4f83ae41e73c53160, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  layer: 0
+  covers: 02000000
+  warmth: 0.01
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

@@ -14,14 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.briefs_teez_bt_panty_dark_grey
   prototypeId: underwear.briefs_teez
-  displayName: 
+  displayName: Cotton Briefs (BT Panty Dark Grey)
   variantMaterials:
   - {fileID: 2100000, guid: c875244086d5f1141b75ed95003f1430, type: 2}
   - {fileID: 2100000, guid: 453662edbccee5941827c180f8d7a99f, type: 2}
   - {fileID: 2100000, guid: 247cec9d4f1dd2141a2001340fe628d5, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  layer: 0
+  covers: 02000000
+  warmth: 0.01
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

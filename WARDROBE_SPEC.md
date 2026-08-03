@@ -413,7 +413,7 @@ name://@selection/lFoot:?rotation/x/value      # последний сегмен
 
 ## 11. Состояние на момент написания
 
-Ветка `wardrobe/import`. В каталоге и SimData — **515 записей**.
+Ветка `wardrobe/import`. В каталоге и SimData — **503 записи**.
 
 | заход | поставка | вещей | расцветок | статус |
 |---|---|---|---|---|
@@ -423,7 +423,7 @@ name://@selection/lFoot:?rotation/x/value      # последний сегмен
 | 4 | `nerdtekflairfit` — Nerd + Tek + Flair + Fit | 18 | 77 | закрыт |
 | 5 | `summerbikerlace` — Summer + Idol + Biker + … | 19 | 29 | закрыт |
 | 6 | `vampjanecharm` — Vamp + Sweet Jane + X-Fashion + Charm Boots + Spooky + Autumn + Panties + Bandaid + Fads | 14 | 112 | закрыт |
-| 7 | `sweetywildvapor` — Sweety + PrimalDress + CruX Wild + Yoga + NightDress + Reiko + VaporWear2 + Big Teez | 16 | 113 | ждёт осмотра |
+| 7 | `sweetywildvapor` — Sweety + PrimalDress + CruX Wild + Yoga + NightDress + Reiko + VaporWear2 + Big Teez | 16 | 101 | закрыт |
 
 Плюс 9 мужских вещей, живших в проекте раньше.
 
@@ -442,6 +442,11 @@ name://@selection/lFoot:?rotation/x/value      # последний сегмен
   50 расцветок) — ждёт той же автоподгонки, что и партия 4. Партия 6 (The Fighter + Props)
   одеждой уехала внутри заходa 5 — шесть вещей `*_fighter`, — но флаг `done` у
   неё в `import-plan.json` всё ещё `false`: остались не разобранными props.
+- **24 иконки-сироты** в `Resources/HexLive/UI/Items` не отвечают ни одному
+  предмету каталога: часть от еды, часть от женского гардероба, снесённого
+  «переездом» (`clothing.boots_cindy`, `clothing.necklace_night`, …). Все
+  датированы 2026-08-01 и раньше, к текущим заходам отношения не имеют —
+  но и не удалены, чтобы не снести чужое вслепую.
 - **Прозрачность расцветкой не является.** У Just Panties 24 пресета `Trans_*`
   меняют только непрозрачность: ни карты, ни оттенка, и в заход они не поехали.
   Из 52 «расцветок» по плану реальных — восемь.

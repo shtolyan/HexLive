@@ -13,25 +13,12 @@ MonoBehaviour:
   m_Name: clothing_babydoll_sweety_09babydoll
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.babydoll_sweety_09babydoll
-  prototypeId: clothing.babydoll_sweety
-  displayName: 
-  variantMaterials:
-  - {fileID: 2100000, guid: 3dddea28761060a4e9e28bb5bbefcd6a, type: 2}
-  - {fileID: 2100000, guid: 2e19e89067d883e4d9e0e3e056debff0, type: 2}
-  - {fileID: 2100000, guid: 084068020fd8e934ba00a837133ee81b, type: 2}
-  - {fileID: 2100000, guid: 24e9ff3105a736f49bd2841121edb762, type: 2}
-  - {fileID: 2100000, guid: 7605eaba9e6e49044a286ad0ed8be413, type: 2}
-  - {fileID: 2100000, guid: 3f9c745bacb2c3543883b8eeccd2d4bf, type: 2}
-  - {fileID: 2100000, guid: 3178318e548668c419b24e52f66fd761, type: 2}
-  - {fileID: 2100000, guid: 6d9f420a553a5114382bd8a6abe022d6, type: 2}
-  - {fileID: 2100000, guid: c0ca46f4491677b4bb2dc713a01bf9ec, type: 2}
-  - {fileID: 2100000, guid: bb09eca73732f25448d60e5046a314f2, type: 2}
-  - {fileID: 2100000, guid: e756dd243edc0a84db23de3fe6cd1cdc, type: 2}
-  - {fileID: 2100000, guid: e016946efc526d549a1fb948a21072cc, type: 2}
-  - {fileID: 2100000, guid: 430a0aefa0fb39e4cab8e8dd6c8405d2, type: 2}
+  prototypeId: 
+  displayName: Lace Babydoll (09BabyDoll)
+  variantMaterials: []
   layer: 1
-  covers: 
-  warmth: 0.1
+  covers: 01000000020000000500000006000000
+  warmth: 0.03
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

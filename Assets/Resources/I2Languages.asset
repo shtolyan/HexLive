@@ -2833,38 +2833,6 @@ MonoBehaviour:
       - 'Ремешки через металлические кольца.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'item.underwear_bra_wild_cw_bra_001.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Ringed Bra (CW Bra 001)'
-      - 'Лиф с кольцами (CW Bra 001)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.underwear_bra_wild_cw_bra_001.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Straps through metal rings.'
-      - 'Ремешки через металлические кольца.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.underwear_bra_wild_cw_bra_004.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Ringed Bra (CW Bra 004)'
-      - 'Лиф с кольцами (CW Bra 004)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.underwear_bra_wild_cw_bra_004.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Straps through metal rings.'
-      - 'Ремешки через металлические кольца.'
-      Flags: 0101
-      Languages_Touch: []
     - Term: 'item.underwear_briefs_wild.name'
       TermType: 0
       Description: 
@@ -2881,22 +2849,6 @@ MonoBehaviour:
       - 'Вторая половина того же комплекта.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'item.underwear_briefs_wild_cw_thong_001.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Strapped Briefs (CW Thong 001)'
-      - 'Трусики с ремешками (CW Thong 001)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.underwear_briefs_wild_cw_thong_001.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'The bra''s other half.'
-      - 'Вторая половина того же комплекта.'
-      Flags: 0101
-      Languages_Touch: []
     - Term: 'item.clothing_skirt_wild.name'
       TermType: 0
       Description: 
@@ -2906,54 +2858,6 @@ MonoBehaviour:
       Flags: 0101
       Languages_Touch: []
     - Term: 'item.clothing_skirt_wild.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Short, on a studded waistband.'
-      - 'Короткая, на клёпаном поясе.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_skirt_wild_cw_skirt_001.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Studded Skirt (CW Skirt 001)'
-      - 'Юбка с клёпками (CW Skirt 001)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_skirt_wild_cw_skirt_001.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Short, on a studded waistband.'
-      - 'Короткая, на клёпаном поясе.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_skirt_wild_cw_skirt_002.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Studded Skirt (CW Skirt 002)'
-      - 'Юбка с клёпками (CW Skirt 002)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_skirt_wild_cw_skirt_002.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Short, on a studded waistband.'
-      - 'Короткая, на клёпаном поясе.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_skirt_wild_cw_skirt_003.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Studded Skirt (CW Skirt 003)'
-      - 'Юбка с клёпками (CW Skirt 003)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_skirt_wild_cw_skirt_003.desc'
       TermType: 0
       Description: 
       Languages:
@@ -3434,22 +3338,6 @@ MonoBehaviour:
       Flags: 0101
       Languages_Touch: []
     - Term: 'item.clothing_tshirt_big_bt_charcoal.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Long enough to be a dress on a short day.'
-      - 'Достаточно длинная, чтобы сойти за платье.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_tshirt_big_bt_dark_grey.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Oversized Tee (BT Dark Grey)'
-      - 'Футболка навырост (BT Dark Grey)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_tshirt_big_bt_dark_grey.desc'
       TermType: 0
       Description: 
       Languages:
@@ -3953,22 +3841,6 @@ MonoBehaviour:
       - 'Кружево поверх почти ничего, и оно струится.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'item.clothing_babydoll_sweety_03babydoll_hight.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Lace Babydoll (03BabyDoll HighT)'
-      - 'Кружевной бэбидолл (03BabyDoll HighT)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_babydoll_sweety_03babydoll_hight.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Lace over almost nothing, and it flows.'
-      - 'Кружево поверх почти ничего, и оно струится.'
-      Flags: 0101
-      Languages_Touch: []
     - Term: 'item.clothing_babydoll_sweety_04babydoll.name'
       TermType: 0
       Description: 
@@ -4026,38 +3898,6 @@ MonoBehaviour:
       Flags: 0101
       Languages_Touch: []
     - Term: 'item.clothing_babydoll_sweety_07_babydoll.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Lace over almost nothing, and it flows.'
-      - 'Кружево поверх почти ничего, и оно струится.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_babydoll_sweety_08babydoll.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Lace Babydoll (08BabyDoll)'
-      - 'Кружевной бэбидолл (08BabyDoll)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_babydoll_sweety_08babydoll.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Lace over almost nothing, and it flows.'
-      - 'Кружево поверх почти ничего, и оно струится.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_babydoll_sweety_09babydoll.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Lace Babydoll (09BabyDoll)'
-      - 'Кружевной бэбидолл (09BabyDoll)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_babydoll_sweety_09babydoll.desc'
       TermType: 0
       Description: 
       Languages:
@@ -4202,22 +4042,6 @@ MonoBehaviour:
       Flags: 0101
       Languages_Touch: []
     - Term: 'item.underwear_briefs_sweety_08panty.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'In a set with the babydoll.'
-      - 'В комплект к бэбидоллу.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.underwear_briefs_sweety_09panty.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Lace Panties (09Panty)'
-      - 'Кружевные трусики (09Panty)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.underwear_briefs_sweety_09panty.desc'
       TermType: 0
       Description: 
       Languages:
@@ -4586,22 +4410,6 @@ MonoBehaviour:
       Flags: 0101
       Languages_Touch: []
     - Term: 'item.clothing_dress_night.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Lace at the hem, a clasp at the shoulder. Not made for outdoors.'
-      - 'Кружево по низу, застёжка на плече. Не для улицы.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_dress_night_default.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Night Dress (Default)'
-      - 'Ночное платье (Default)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_dress_night_default.desc'
       TermType: 0
       Description: 
       Languages:

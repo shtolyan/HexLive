@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.tshirt_big_tshirt_lost_angels
   prototypeId: clothing.tshirt_big
-  displayName: 
+  displayName: Oversized Tee (TShirt Lost Angels)
   variantMaterials:
   - {fileID: 2100000, guid: c3486dd15c0bc964ba74188c5d66cb6b, type: 2}
   - {fileID: 2100000, guid: 720b5ca6652ad0f40b14595c847f82a4, type: 2}
   layer: 1
-  covers: 
-  warmth: 0.1
+  covers: 01000000020000000300000004000000
+  warmth: 0.06
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

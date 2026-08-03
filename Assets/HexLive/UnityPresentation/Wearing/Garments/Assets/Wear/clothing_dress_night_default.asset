@@ -13,15 +13,12 @@ MonoBehaviour:
   m_Name: clothing_dress_night_default
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.dress_night_default
-  prototypeId: clothing.dress_night
-  displayName: 
-  variantMaterials:
-  - {fileID: 2100000, guid: 0f1b0f981ba90864bb096c995817a9ce, type: 2}
-  - {fileID: 2100000, guid: ad3b12e97fe14b7429e35c261609be0a, type: 2}
-  - {fileID: 2100000, guid: fbefbd601919d2d4a9fc4e8f701a8d31, type: 2}
+  prototypeId: 
+  displayName: Night Dress (Default)
+  variantMaterials: []
   layer: 1
-  covers: 
-  warmth: 0.1
+  covers: 0100000002000000
+  warmth: 0.06
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

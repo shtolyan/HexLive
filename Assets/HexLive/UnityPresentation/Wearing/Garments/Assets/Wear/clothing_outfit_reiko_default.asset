@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.outfit_reiko_default
   prototypeId: clothing.outfit_reiko
-  displayName: 
+  displayName: Boxing Outfit (Default)
   variantMaterials:
   - {fileID: 2100000, guid: 5b19c581e97785845a3580d79f832b59, type: 2}
   - {fileID: 2100000, guid: 00772e975c7f0fd4aa0cd8eed79fb9c3, type: 2}
@@ -34,9 +34,9 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 033eb5c943c98b246bfd4765ee9f682e, type: 2}
   - {fileID: 2100000, guid: a7b8e5d2ded72b24ba7e8b7c1e64636e, type: 2}
   layer: 1
-  covers: 
+  covers: 0200000003000000040000000500000006000000
   warmth: 0.1
-  armor: 0
+  armor: 0.06
   thermalDelta: 0
   dressDurationTicks: 8
   capacity: 0

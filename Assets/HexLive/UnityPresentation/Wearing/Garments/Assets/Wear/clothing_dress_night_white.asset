@@ -14,14 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.dress_night_white
   prototypeId: clothing.dress_night
-  displayName: 
+  displayName: Night Dress (White)
   variantMaterials:
   - {fileID: 2100000, guid: 62db7db84db6afd42b173541d2227891, type: 2}
   - {fileID: 2100000, guid: ac1434891b5518f45be736b3fdb58596, type: 2}
   - {fileID: 2100000, guid: 2c22552a30fea224291d631e2cc31d3b, type: 2}
   layer: 1
-  covers: 
-  warmth: 0.1
+  covers: 0100000002000000
+  warmth: 0.06
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

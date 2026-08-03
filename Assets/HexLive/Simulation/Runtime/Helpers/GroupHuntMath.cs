@@ -219,6 +219,10 @@ public static class GroupHuntMath
                     $"Going after NPC{stranger.Id.Value} with the others");
             }
 
+            // Счёт побоев — на НЁМ, и обнуляется он здесь, на сговоре: иначе
+            // прошлая расправа засчиталась бы новой (§108.5).
+            stranger.Mind.GroupHuntBlowsTaken = 0;
+
             girl.Mind.CurrentGoal = GoalType.GroupHunt;
             girl.Mind.GroupHuntTargetNpcId = stranger.Id;
             girl.Mind.GroupHuntStartedTick = world.Tick;

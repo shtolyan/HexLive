@@ -96,6 +96,9 @@ public sealed class HumanCombatSystem : ISimulationSystem
             if (hunting)
             {
                 actor.Mind.GroupHuntBlowsLanded++;
+                // Счёт расправы висит на НЁМ: охотница может уйти, побои
+                // остаются (§108.5).
+                opponent.Mind.GroupHuntBlowsTaken++;
             }
 
             MeleeSwing.ApplyHumanBlow(world, actor, opponent, damage, weaponId,

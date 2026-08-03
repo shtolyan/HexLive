@@ -56,6 +56,16 @@ public static class Spec108
     // умирать, и вся сцена превращается в погоню, а не в казнь.
     public static float GroupHuntTargetFleeHealth = 0.85f;
 
+    // ⭐ Здоровье, ниже которого ОХОТНИЦА выходит из расправы и убегает. Пара к
+    // порогу выше: право убежать нужно обеим сторонам. Без него расправа шла до
+    // последней — он вооружён и вдвое сильнее каждой, и первая же дошедшая до
+    // него тройка ложилась целиком (сид 42: колония 4→1 за 700 тиков).
+    // Числа те же, что у жертвы налёта (Spec72.RaidVictimFleeHealth и порог
+    // худшей части): бить и получать по голове — одно и то же ремесло.
+    public static float GroupHuntHunterFleeHealth = 0.6f;
+
+    public static float GroupHuntHunterFleeWorstPart = 0.35f;
+
     // Меньше этого числа охотниц на ногах — охота разваливается.
     public static int GroupHuntMinRemaining = 2;
 

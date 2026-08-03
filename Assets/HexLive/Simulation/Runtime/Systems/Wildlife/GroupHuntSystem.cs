@@ -95,9 +95,43 @@ public sealed class GroupHuntSystem : ISimulationSystem
                 break;
             }
 
+            // ⭐ СЧЁТ ПРОВЕРЯЕТСЯ ПЕРВЫМ — раньше, чем «кто ещё на ногах». Иначе
+            // добытая победа гасится тем, что за ней последовало: две охотницы
+            // отходят зализывать разбитое, группа падает ниже минимума, и
+            // PartyCollapsed пишет провал поверх шести уже всаженных ударов.
+            // Замер: сид 42 — 6 ударов, сид 313 — 7, порог 6, обе записаны в
+            // провал. Отступление ПОСЛЕ взбучки не отменяет взбучку.
+            var routBlows = PartyBlows(world, quarryId);
+            if (routBlows >= Spec108.GroupHuntBlowsToRout)
+            {
+                FinishHunt(world, quarryId, done: true, reason: $"Routed Blows={routBlows}");
+                break;
+            }
+
             if (hunter.Health <= 0f || hunter.IsUnconscious(world.Tick) || hunter.Body.IsProne)
             {
                 EndHunt(world, hunter, "HunterDown");
+                continue;
+            }
+
+            // ⭐ ОТСТУПЛЕНИЕ. Его не было вовсе, и это стоило колонии: у налёта
+            // право убежать есть у ОБЕИХ сторон (RaidVictimFleeHealth и
+            // RaidFleeHealth), а расправа шла до последней — втроём начали,
+            // втроём и легли. Замер, сид 42: три головы, разбитые машете за 700
+            // тиков, колония 4→1 с одной охоты.
+            //
+            // Порог тот же, что у жертвы налёта: пока цела — бьёт, разбили —
+            // уходит. Уходит ОДНА: остальные решают за себя, и охота кончается
+            // не потому, что кто-то скомандовал, а потому что в ней осталось
+            // меньше двоих (PartyCollapsed ниже).
+            if (hunter.Health < Spec108.GroupHuntHunterFleeHealth ||
+                MobSystem.WorstPartHealth(hunter) < Spec108.GroupHuntHunterFleeWorstPart)
+            {
+                Trace.Emit(world, hunter.Id, "GroupHuntHunterFled",
+                    $"Target=NPC{quarryId.Value} Health={hunter.Health:F2} " +
+                    $"Worst={MobSystem.WorstPartHealth(hunter):F2}");
+                EndHunt(world, hunter, "Hurt");
+                MobSystem.TryStartFlee(world, hunter, 1, attackerNpcId: quarryId);
                 continue;
             }
 
@@ -123,21 +157,12 @@ public sealed class GroupHuntSystem : ISimulationSystem
                 break;
             }
 
-            // ⭐ ПОБИЛИ И ПРОГНАЛИ. С пощадой §108 он не падает — а расправе
-            // нужен успешный конец, иначе единственным исходом остаётся
-            // истёкший бюджет, и «мы его проучили» никогда не случается.
-            // Мера проста и честна: сколько раз попали, и оторвался ли он.
-            // Счёт набран — довольно, и НИКАКИХ дополнительных условий. Сначала
-            // требовалось ещё и «он побежал или оторвался», и загнанный в угол
-            // получал всё, что влезет в бюджет: сид 20260803 дал 131 удар при
-            // пороге 6 — забой, а не взбучка (свалиться он с пощадой §108.6 не
-            // может, так что сама собой драка не кончалась).
-            var blows = PartyBlows(world, quarryId);
-            if (blows >= Spec108.GroupHuntBlowsToRout)
-            {
-                FinishHunt(world, quarryId, done: true, reason: $"Routed Blows={blows}");
-                break;
-            }
+            // «Побили и прогнали» проверено ВЫШЕ, до всех развалов: счёт ударов
+            // и есть успешный конец расправы. Мера проста и честна — сколько раз
+            // попали, и НИКАКИХ дополнительных условий: сначала требовалось ещё
+            // и «он побежал», и загнанный в угол получал всё, что влезет в
+            // бюджет (сид 20260803: 131 удар при пороге 6 — забой, а не
+            // взбучка).
 
             if (!InteractionReach.CanStrike(world, hunter, quarry))
             {
@@ -303,21 +328,14 @@ public sealed class GroupHuntSystem : ISimulationSystem
     }
 
     // Сколько ударов группа всадила в эту голову за нынешнюю охоту.
-    private static int PartyBlows(WorldState world, EntityId quarryId)
-    {
-        var blows = 0;
-        foreach (var npc in world.Entities.Npcs.Values)
-        {
-            if (npc.Mind.CurrentGoal == GoalType.GroupHunt &&
-                npc.Mind.GroupHuntTargetNpcId is { } target &&
-                target.Equals(quarryId))
-            {
-                blows += npc.Mind.GroupHuntBlowsLanded;
-            }
-        }
-
-        return blows;
-    }
+    // Сколько всадили ЕМУ за эту расправу. Читается с цели, а не складывается
+    // по охотницам: уходящей счёт обнуляют, и сумма по группе таяла вместе с
+    // группой — шесть ударов при пороге шесть превращались в два, и взбучка
+    // записывалась в провал (сид 42). Обнуляется при сговоре и на исходе.
+    private static int PartyBlows(WorldState world, EntityId quarryId) =>
+        world.Entities.Npcs.TryGetValue(quarryId, out var quarry)
+            ? quarry.Mind.GroupHuntBlowsTaken
+            : 0;
 
     private static string DownReason(WorldState world, NPCState quarry) =>
         quarry.Health <= 0f ? "Killed"
@@ -341,6 +359,10 @@ public sealed class GroupHuntSystem : ISimulationSystem
 
         party.Sort((a, b) => a.Id.Value.CompareTo(b.Id.Value));
         world.Entities.Npcs.TryGetValue(quarryId, out var quarry);
+        if (quarry != null)
+        {
+            quarry.Mind.GroupHuntBlowsTaken = 0;
+        }
 
         foreach (var hunter in party)
         {

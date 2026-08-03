@@ -2593,6 +2593,2070 @@ MonoBehaviour:
       - 'Носимый предмет.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'item.clothing_dress_primal.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fur-Trimmed Dress'
+      - 'Платье с мехом'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_primal.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long, with fur at the shoulders. Someone dressed for a colder place.'
+      - 'Длинное, с мехом на плечах. Кто-то одевался для места похолоднее.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_primal_color01.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fur-Trimmed Dress (color01)'
+      - 'Платье с мехом (color01)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_primal_color01.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long, with fur at the shoulders. Someone dressed for a colder place.'
+      - 'Длинное, с мехом на плечах. Кто-то одевался для места похолоднее.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_primal_color02.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fur-Trimmed Dress (color02)'
+      - 'Платье с мехом (color02)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_primal_color02.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long, with fur at the shoulders. Someone dressed for a colder place.'
+      - 'Длинное, с мехом на плечах. Кто-то одевался для места похолоднее.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_primal_color03.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fur-Trimmed Dress (color03)'
+      - 'Платье с мехом (color03)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_primal_color03.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long, with fur at the shoulders. Someone dressed for a colder place.'
+      - 'Длинное, с мехом на плечах. Кто-то одевался для места похолоднее.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_primal_color04.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fur-Trimmed Dress (color04)'
+      - 'Платье с мехом (color04)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_primal_color04.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long, with fur at the shoulders. Someone dressed for a colder place.'
+      - 'Длинное, с мехом на плечах. Кто-то одевался для места похолоднее.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_primal_color05.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fur-Trimmed Dress (color05)'
+      - 'Платье с мехом (color05)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_primal_color05.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long, with fur at the shoulders. Someone dressed for a colder place.'
+      - 'Длинное, с мехом на плечах. Кто-то одевался для места похолоднее.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_primal_color06.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fur-Trimmed Dress (color06)'
+      - 'Платье с мехом (color06)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_primal_color06.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long, with fur at the shoulders. Someone dressed for a colder place.'
+      - 'Длинное, с мехом на плечах. Кто-то одевался для места похолоднее.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_collar_fur.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fur Collar'
+      - 'Меховой воротник'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_collar_fur.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A fur collar on its own. Warms the neck and nothing else.'
+      - 'Меховой воротник сам по себе. Греет шею и больше ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_collar_fur_color01.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fur Collar (color01)'
+      - 'Меховой воротник (color01)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_collar_fur_color01.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A fur collar on its own. Warms the neck and nothing else.'
+      - 'Меховой воротник сам по себе. Греет шею и больше ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_collar_fur_color02.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fur Collar (color02)'
+      - 'Меховой воротник (color02)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_collar_fur_color02.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A fur collar on its own. Warms the neck and nothing else.'
+      - 'Меховой воротник сам по себе. Греет шею и больше ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_collar_fur_color03.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fur Collar (color03)'
+      - 'Меховой воротник (color03)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_collar_fur_color03.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A fur collar on its own. Warms the neck and nothing else.'
+      - 'Меховой воротник сам по себе. Греет шею и больше ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_collar_fur_color04.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fur Collar (color04)'
+      - 'Меховой воротник (color04)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_collar_fur_color04.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A fur collar on its own. Warms the neck and nothing else.'
+      - 'Меховой воротник сам по себе. Греет шею и больше ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_collar_fur_color05.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fur Collar (color05)'
+      - 'Меховой воротник (color05)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_collar_fur_color05.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A fur collar on its own. Warms the neck and nothing else.'
+      - 'Меховой воротник сам по себе. Греет шею и больше ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_collar_fur_color06.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fur Collar (color06)'
+      - 'Меховой воротник (color06)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_collar_fur_color06.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A fur collar on its own. Warms the neck and nothing else.'
+      - 'Меховой воротник сам по себе. Греет шею и больше ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_wild.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ringed Bra'
+      - 'Лиф с кольцами'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_wild.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps through metal rings.'
+      - 'Ремешки через металлические кольца.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_wild_cw_bra_001.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ringed Bra (CW Bra 001)'
+      - 'Лиф с кольцами (CW Bra 001)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_wild_cw_bra_001.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps through metal rings.'
+      - 'Ремешки через металлические кольца.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_wild_cw_bra_004.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ringed Bra (CW Bra 004)'
+      - 'Лиф с кольцами (CW Bra 004)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_wild_cw_bra_004.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps through metal rings.'
+      - 'Ремешки через металлические кольца.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_wild.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strapped Briefs'
+      - 'Трусики с ремешками'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_wild.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The bra''s other half.'
+      - 'Вторая половина того же комплекта.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_wild_cw_thong_001.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strapped Briefs (CW Thong 001)'
+      - 'Трусики с ремешками (CW Thong 001)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_wild_cw_thong_001.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The bra''s other half.'
+      - 'Вторая половина того же комплекта.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_wild.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Studded Skirt'
+      - 'Юбка с клёпками'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_wild.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Short, on a studded waistband.'
+      - 'Короткая, на клёпаном поясе.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_wild_cw_skirt_001.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Studded Skirt (CW Skirt 001)'
+      - 'Юбка с клёпками (CW Skirt 001)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_wild_cw_skirt_001.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Short, on a studded waistband.'
+      - 'Короткая, на клёпаном поясе.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_wild_cw_skirt_002.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Studded Skirt (CW Skirt 002)'
+      - 'Юбка с клёпками (CW Skirt 002)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_wild_cw_skirt_002.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Short, on a studded waistband.'
+      - 'Короткая, на клёпаном поясе.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_wild_cw_skirt_003.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Studded Skirt (CW Skirt 003)'
+      - 'Юбка с клёпками (CW Skirt 003)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_wild_cw_skirt_003.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Short, on a studded waistband.'
+      - 'Короткая, на клёпаном поясе.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_outfit_reiko.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Boxing Outfit'
+      - 'Боксёрский комплект'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_outfit_reiko.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Gloves, shoes and shorts as one kit. Made for a ring that no longer exists.'
+      - 'Перчатки, обувь и шорты одним комплектом. Для ринга, которого больше нет.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_outfit_reiko_default.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Boxing Outfit (Default)'
+      - 'Боксёрский комплект (Default)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_outfit_reiko_default.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Gloves, shoes and shorts as one kit. Made for a ring that no longer exists.'
+      - 'Перчатки, обувь и шорты одним комплектом. Для ринга, которого больше нет.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_vapor.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer Top'
+      - 'Прозрачный топ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_vapor.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Barely there, and knows it.'
+      - 'Почти ничего — и держится этого.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_vapor_01.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer Top (01)'
+      - 'Прозрачный топ (01)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_vapor_01.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Barely there, and knows it.'
+      - 'Почти ничего — и держится этого.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_vapor_02.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer Top (02)'
+      - 'Прозрачный топ (02)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_vapor_02.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Barely there, and knows it.'
+      - 'Почти ничего — и держится этого.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_vapor_03.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer Top (03)'
+      - 'Прозрачный топ (03)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_vapor_03.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Barely there, and knows it.'
+      - 'Почти ничего — и держится этого.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_vapor_04.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer Top (04)'
+      - 'Прозрачный топ (04)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_vapor_04.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Barely there, and knows it.'
+      - 'Почти ничего — и держится этого.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_vapor_05.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer Top (05)'
+      - 'Прозрачный топ (05)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_vapor_05.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Barely there, and knows it.'
+      - 'Почти ничего — и держится этого.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_vapor_06.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer Top (06)'
+      - 'Прозрачный топ (06)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_vapor_06.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Barely there, and knows it.'
+      - 'Почти ничего — и держится этого.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_vapor_07.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer Top (07)'
+      - 'Прозрачный топ (07)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_vapor_07.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Barely there, and knows it.'
+      - 'Почти ничего — и держится этого.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_vapor_08.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer Top (08)'
+      - 'Прозрачный топ (08)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_vapor_08.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Barely there, and knows it.'
+      - 'Почти ничего — и держится этого.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_vapor_09.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer Top (09)'
+      - 'Прозрачный топ (09)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_vapor_09.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Barely there, and knows it.'
+      - 'Почти ничего — и держится этого.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_vapor_10.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer Top (10)'
+      - 'Прозрачный топ (10)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_vapor_10.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Barely there, and knows it.'
+      - 'Почти ничего — и держится этого.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_vapor_11.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer Top (11)'
+      - 'Прозрачный топ (11)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_vapor_11.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Barely there, and knows it.'
+      - 'Почти ничего — и держится этого.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_vapor_12.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer Top (12)'
+      - 'Прозрачный топ (12)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_vapor_12.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Barely there, and knows it.'
+      - 'Почти ничего — и держится этого.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_vapor.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer Briefs'
+      - 'Прозрачные трусики'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_vapor.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Matches the top.'
+      - 'В пару к топу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_vapor_bot01.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer Briefs (Bot01)'
+      - 'Прозрачные трусики (Bot01)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_vapor_bot01.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Matches the top.'
+      - 'В пару к топу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_vapor_bot02.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer Briefs (Bot02)'
+      - 'Прозрачные трусики (Bot02)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_vapor_bot02.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Matches the top.'
+      - 'В пару к топу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_vapor_bot03.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer Briefs (Bot03)'
+      - 'Прозрачные трусики (Bot03)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_vapor_bot03.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Matches the top.'
+      - 'В пару к топу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_vapor_bot04.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer Briefs (Bot04)'
+      - 'Прозрачные трусики (Bot04)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_vapor_bot04.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Matches the top.'
+      - 'В пару к топу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_vapor_bot05.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer Briefs (Bot05)'
+      - 'Прозрачные трусики (Bot05)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_vapor_bot05.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Matches the top.'
+      - 'В пару к топу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_vapor_bot06.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer Briefs (Bot06)'
+      - 'Прозрачные трусики (Bot06)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_vapor_bot06.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Matches the top.'
+      - 'В пару к топу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_vapor_bot07.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer Briefs (Bot07)'
+      - 'Прозрачные трусики (Bot07)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_vapor_bot07.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Matches the top.'
+      - 'В пару к топу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_vapor_bot08.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer Briefs (Bot08)'
+      - 'Прозрачные трусики (Bot08)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_vapor_bot08.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Matches the top.'
+      - 'В пару к топу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_vapor_bot09.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer Briefs (Bot09)'
+      - 'Прозрачные трусики (Bot09)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_vapor_bot09.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Matches the top.'
+      - 'В пару к топу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_vapor_bot10.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer Briefs (Bot10)'
+      - 'Прозрачные трусики (Bot10)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_vapor_bot10.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Matches the top.'
+      - 'В пару к топу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_vapor_bot11.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer Briefs (Bot11)'
+      - 'Прозрачные трусики (Bot11)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_vapor_bot11.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Matches the top.'
+      - 'В пару к топу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_vapor_bot12.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sheer Briefs (Bot12)'
+      - 'Прозрачные трусики (Bot12)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_vapor_bot12.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Matches the top.'
+      - 'В пару к топу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Oversized Tee'
+      - 'Футболка навырост'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long enough to be a dress on a short day.'
+      - 'Достаточно длинная, чтобы сойти за платье.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_bt_charcoal.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Oversized Tee (BT Charcoal)'
+      - 'Футболка навырост (BT Charcoal)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_bt_charcoal.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long enough to be a dress on a short day.'
+      - 'Достаточно длинная, чтобы сойти за платье.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_bt_dark_grey.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Oversized Tee (BT Dark Grey)'
+      - 'Футболка навырост (BT Dark Grey)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_bt_dark_grey.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long enough to be a dress on a short day.'
+      - 'Достаточно длинная, чтобы сойти за платье.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_bt_dusty_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Oversized Tee (BT Dusty Blue)'
+      - 'Футболка навырост (BT Dusty Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_bt_dusty_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long enough to be a dress on a short day.'
+      - 'Достаточно длинная, чтобы сойти за платье.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_bt_dusty_pink.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Oversized Tee (BT Dusty Pink)'
+      - 'Футболка навырост (BT Dusty Pink)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_bt_dusty_pink.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long enough to be a dress on a short day.'
+      - 'Достаточно длинная, чтобы сойти за платье.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_bt_dusty_purple.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Oversized Tee (BT Dusty Purple)'
+      - 'Футболка навырост (BT Dusty Purple)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_bt_dusty_purple.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long enough to be a dress on a short day.'
+      - 'Достаточно длинная, чтобы сойти за платье.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_bt_grey.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Oversized Tee (BT Grey)'
+      - 'Футболка навырост (BT Grey)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_bt_grey.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long enough to be a dress on a short day.'
+      - 'Достаточно длинная, чтобы сойти за платье.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_bt_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Oversized Tee (BT Red)'
+      - 'Футболка навырост (BT Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_bt_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long enough to be a dress on a short day.'
+      - 'Достаточно длинная, чтобы сойти за платье.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_bt_sky_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Oversized Tee (BT Sky Blue)'
+      - 'Футболка навырост (BT Sky Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_bt_sky_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long enough to be a dress on a short day.'
+      - 'Достаточно длинная, чтобы сойти за платье.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_bt_white.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Oversized Tee (BT White)'
+      - 'Футболка навырост (BT White)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_bt_white.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long enough to be a dress on a short day.'
+      - 'Достаточно длинная, чтобы сойти за платье.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_tshirt_american.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Oversized Tee (TShirt American)'
+      - 'Футболка навырост (TShirt American)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_tshirt_american.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long enough to be a dress on a short day.'
+      - 'Достаточно длинная, чтобы сойти за платье.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_tshirt_born_to_ride.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Oversized Tee (TShirt Born to Ride)'
+      - 'Футболка навырост (TShirt Born to Ride)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_tshirt_born_to_ride.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long enough to be a dress on a short day.'
+      - 'Достаточно длинная, чтобы сойти за платье.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_tshirt_california.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Oversized Tee (TShirt California)'
+      - 'Футболка навырост (TShirt California)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_tshirt_california.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long enough to be a dress on a short day.'
+      - 'Достаточно длинная, чтобы сойти за платье.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_tshirt_denim.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Oversized Tee (TShirt Denim)'
+      - 'Футболка навырост (TShirt Denim)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_tshirt_denim.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long enough to be a dress on a short day.'
+      - 'Достаточно длинная, чтобы сойти за платье.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_tshirt_eagles.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Oversized Tee (TShirt Eagles)'
+      - 'Футболка навырост (TShirt Eagles)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_tshirt_eagles.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long enough to be a dress on a short day.'
+      - 'Достаточно длинная, чтобы сойти за платье.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_tshirt_heartbreaker.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Oversized Tee (TShirt Heartbreaker)'
+      - 'Футболка навырост (TShirt Heartbreaker)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_tshirt_heartbreaker.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long enough to be a dress on a short day.'
+      - 'Достаточно длинная, чтобы сойти за платье.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_tshirt_lost_angels.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Oversized Tee (TShirt Lost Angels)'
+      - 'Футболка навырост (TShirt Lost Angels)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_tshirt_lost_angels.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long enough to be a dress on a short day.'
+      - 'Достаточно длинная, чтобы сойти за платье.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_tshirt_queen.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Oversized Tee (TShirt Queen)'
+      - 'Футболка навырост (TShirt Queen)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_tshirt_queen.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long enough to be a dress on a short day.'
+      - 'Достаточно длинная, чтобы сойти за платье.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_tshirt_racing.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Oversized Tee (TShirt Racing)'
+      - 'Футболка навырост (TShirt Racing)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_tshirt_racing.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long enough to be a dress on a short day.'
+      - 'Достаточно длинная, чтобы сойти за платье.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_tshirt_saints.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Oversized Tee (TShirt Saints)'
+      - 'Футболка навырост (TShirt Saints)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_big_tshirt_saints.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Long enough to be a dress on a short day.'
+      - 'Достаточно длинная, чтобы сойти за платье.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_teez.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cotton Briefs'
+      - 'Хлопковые трусики'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_teez.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wide waistband, nothing else to say.'
+      - 'Широкий пояс, и говорить больше не о чем.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_teez_bt_panty_charcoal.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cotton Briefs (BT Panty Charcoal)'
+      - 'Хлопковые трусики (BT Panty Charcoal)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_teez_bt_panty_charcoal.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wide waistband, nothing else to say.'
+      - 'Широкий пояс, и говорить больше не о чем.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_teez_bt_panty_dark_grey.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cotton Briefs (BT Panty Dark Grey)'
+      - 'Хлопковые трусики (BT Panty Dark Grey)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_teez_bt_panty_dark_grey.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wide waistband, nothing else to say.'
+      - 'Широкий пояс, и говорить больше не о чем.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_teez_bt_panty_dusty_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cotton Briefs (BT Panty Dusty Blue)'
+      - 'Хлопковые трусики (BT Panty Dusty Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_teez_bt_panty_dusty_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wide waistband, nothing else to say.'
+      - 'Широкий пояс, и говорить больше не о чем.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_teez_bt_panty_dusty_pink.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cotton Briefs (BT Panty Dusty Pink)'
+      - 'Хлопковые трусики (BT Panty Dusty Pink)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_teez_bt_panty_dusty_pink.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wide waistband, nothing else to say.'
+      - 'Широкий пояс, и говорить больше не о чем.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_teez_bt_panty_dusty_purple.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cotton Briefs (BT Panty Dusty Purple)'
+      - 'Хлопковые трусики (BT Panty Dusty Purple)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_teez_bt_panty_dusty_purple.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wide waistband, nothing else to say.'
+      - 'Широкий пояс, и говорить больше не о чем.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_teez_bt_panty_grey.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cotton Briefs (BT Panty Grey)'
+      - 'Хлопковые трусики (BT Panty Grey)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_teez_bt_panty_grey.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wide waistband, nothing else to say.'
+      - 'Широкий пояс, и говорить больше не о чем.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_teez_bt_panty_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cotton Briefs (BT Panty Red)'
+      - 'Хлопковые трусики (BT Panty Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_teez_bt_panty_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wide waistband, nothing else to say.'
+      - 'Широкий пояс, и говорить больше не о чем.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_teez_bt_panty_sky_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cotton Briefs (BT Panty Sky Blue)'
+      - 'Хлопковые трусики (BT Panty Sky Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_teez_bt_panty_sky_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wide waistband, nothing else to say.'
+      - 'Широкий пояс, и говорить больше не о чем.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_teez_bt_panty_white.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cotton Briefs (BT Panty White)'
+      - 'Хлопковые трусики (BT Panty White)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_teez_bt_panty_white.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wide waistband, nothing else to say.'
+      - 'Широкий пояс, и говорить больше не о чем.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_babydoll_sweety.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Babydoll'
+      - 'Кружевной бэбидолл'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_babydoll_sweety.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace over almost nothing, and it flows.'
+      - 'Кружево поверх почти ничего, и оно струится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_babydoll_sweety_01babydoll.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Babydoll (01BabyDoll)'
+      - 'Кружевной бэбидолл (01BabyDoll)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_babydoll_sweety_01babydoll.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace over almost nothing, and it flows.'
+      - 'Кружево поверх почти ничего, и оно струится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_babydoll_sweety_02_babydoll.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Babydoll (02 BabyDoll)'
+      - 'Кружевной бэбидолл (02 BabyDoll)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_babydoll_sweety_02_babydoll.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace over almost nothing, and it flows.'
+      - 'Кружево поверх почти ничего, и оно струится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_babydoll_sweety_03_babydoll.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Babydoll (03 BabyDoll)'
+      - 'Кружевной бэбидолл (03 BabyDoll)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_babydoll_sweety_03_babydoll.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace over almost nothing, and it flows.'
+      - 'Кружево поверх почти ничего, и оно струится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_babydoll_sweety_03babydoll_hight.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Babydoll (03BabyDoll HighT)'
+      - 'Кружевной бэбидолл (03BabyDoll HighT)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_babydoll_sweety_03babydoll_hight.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace over almost nothing, and it flows.'
+      - 'Кружево поверх почти ничего, и оно струится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_babydoll_sweety_04babydoll.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Babydoll (04BabyDoll)'
+      - 'Кружевной бэбидолл (04BabyDoll)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_babydoll_sweety_04babydoll.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace over almost nothing, and it flows.'
+      - 'Кружево поверх почти ничего, и оно струится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_babydoll_sweety_05babydoll.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Babydoll (05BabyDoll)'
+      - 'Кружевной бэбидолл (05BabyDoll)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_babydoll_sweety_05babydoll.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace over almost nothing, and it flows.'
+      - 'Кружево поверх почти ничего, и оно струится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_babydoll_sweety_06_babydoll.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Babydoll (06 BabyDoll)'
+      - 'Кружевной бэбидолл (06 BabyDoll)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_babydoll_sweety_06_babydoll.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace over almost nothing, and it flows.'
+      - 'Кружево поверх почти ничего, и оно струится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_babydoll_sweety_07_babydoll.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Babydoll (07 BabyDoll)'
+      - 'Кружевной бэбидолл (07 BabyDoll)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_babydoll_sweety_07_babydoll.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace over almost nothing, and it flows.'
+      - 'Кружево поверх почти ничего, и оно струится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_babydoll_sweety_08babydoll.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Babydoll (08BabyDoll)'
+      - 'Кружевной бэбидолл (08BabyDoll)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_babydoll_sweety_08babydoll.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace over almost nothing, and it flows.'
+      - 'Кружево поверх почти ничего, и оно струится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_babydoll_sweety_09babydoll.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Babydoll (09BabyDoll)'
+      - 'Кружевной бэбидолл (09BabyDoll)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_babydoll_sweety_09babydoll.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace over almost nothing, and it flows.'
+      - 'Кружево поверх почти ничего, и оно струится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sweety.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Panties'
+      - 'Кружевные трусики'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sweety.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the babydoll.'
+      - 'В комплект к бэбидоллу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sweety_01panty.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Panties (01Panty)'
+      - 'Кружевные трусики (01Panty)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sweety_01panty.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the babydoll.'
+      - 'В комплект к бэбидоллу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sweety_02_panty.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Panties (02 Panty)'
+      - 'Кружевные трусики (02 Panty)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sweety_02_panty.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the babydoll.'
+      - 'В комплект к бэбидоллу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sweety_03_panty.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Panties (03 Panty)'
+      - 'Кружевные трусики (03 Panty)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sweety_03_panty.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the babydoll.'
+      - 'В комплект к бэбидоллу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sweety_04panty.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Panties (04Panty)'
+      - 'Кружевные трусики (04Panty)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sweety_04panty.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the babydoll.'
+      - 'В комплект к бэбидоллу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sweety_05panty.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Panties (05Panty)'
+      - 'Кружевные трусики (05Panty)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sweety_05panty.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the babydoll.'
+      - 'В комплект к бэбидоллу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sweety_06panty.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Panties (06Panty)'
+      - 'Кружевные трусики (06Panty)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sweety_06panty.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the babydoll.'
+      - 'В комплект к бэбидоллу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sweety_07panty.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Panties (07Panty)'
+      - 'Кружевные трусики (07Panty)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sweety_07panty.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the babydoll.'
+      - 'В комплект к бэбидоллу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sweety_08panty.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Panties (08Panty)'
+      - 'Кружевные трусики (08Panty)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sweety_08panty.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the babydoll.'
+      - 'В комплект к бэбидоллу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sweety_09panty.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Panties (09Panty)'
+      - 'Кружевные трусики (09Panty)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sweety_09panty.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the babydoll.'
+      - 'В комплект к бэбидоллу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_yoga.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Top'
+      - 'Топ для йоги'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_yoga.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stretch fabric, cut short. Made for moving.'
+      - 'Тянущаяся ткань, короткий крой. Сделан для движения.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_yoga_01_top.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Top (01 - Top)'
+      - 'Топ для йоги (01 - Top)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_yoga_01_top.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stretch fabric, cut short. Made for moving.'
+      - 'Тянущаяся ткань, короткий крой. Сделан для движения.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_yoga_02_top.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Top (02 - Top)'
+      - 'Топ для йоги (02 - Top)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_yoga_02_top.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stretch fabric, cut short. Made for moving.'
+      - 'Тянущаяся ткань, короткий крой. Сделан для движения.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_yoga_03_top.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Top (03 - Top)'
+      - 'Топ для йоги (03 - Top)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_yoga_03_top.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stretch fabric, cut short. Made for moving.'
+      - 'Тянущаяся ткань, короткий крой. Сделан для движения.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_yoga_04_top.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Top (04 - Top)'
+      - 'Топ для йоги (04 - Top)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_yoga_04_top.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stretch fabric, cut short. Made for moving.'
+      - 'Тянущаяся ткань, короткий крой. Сделан для движения.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_yoga_05_top.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Top (05 - Top)'
+      - 'Топ для йоги (05 - Top)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_yoga_05_top.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stretch fabric, cut short. Made for moving.'
+      - 'Тянущаяся ткань, короткий крой. Сделан для движения.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_yoga_06_top.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Top (06 - Top)'
+      - 'Топ для йоги (06 - Top)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_yoga_06_top.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stretch fabric, cut short. Made for moving.'
+      - 'Тянущаяся ткань, короткий крой. Сделан для движения.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_yoga_07_top.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Top (07 - Top)'
+      - 'Топ для йоги (07 - Top)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_yoga_07_top.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stretch fabric, cut short. Made for moving.'
+      - 'Тянущаяся ткань, короткий крой. Сделан для движения.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_yoga_08_top.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Top (08 - Top)'
+      - 'Топ для йоги (08 - Top)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_yoga_08_top.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stretch fabric, cut short. Made for moving.'
+      - 'Тянущаяся ткань, короткий крой. Сделан для движения.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_yoga_09_top.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Top (09 - Top)'
+      - 'Топ для йоги (09 - Top)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_yoga_09_top.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stretch fabric, cut short. Made for moving.'
+      - 'Тянущаяся ткань, короткий крой. Сделан для движения.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_yoga_10_top.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Top (10 - Top)'
+      - 'Топ для йоги (10 - Top)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_yoga_10_top.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stretch fabric, cut short. Made for moving.'
+      - 'Тянущаяся ткань, короткий крой. Сделан для движения.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_yoga.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Leggings'
+      - 'Легинсы для йоги'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_yoga.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stretch to the ankle. Warm enough to sleep in.'
+      - 'Тянутся до щиколотки. В таких и спать не холодно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_yoga_01_pants.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Leggings (01 - Pants)'
+      - 'Легинсы для йоги (01 - Pants)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_yoga_01_pants.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stretch to the ankle. Warm enough to sleep in.'
+      - 'Тянутся до щиколотки. В таких и спать не холодно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_yoga_02_pants.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Leggings (02 - Pants)'
+      - 'Легинсы для йоги (02 - Pants)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_yoga_02_pants.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stretch to the ankle. Warm enough to sleep in.'
+      - 'Тянутся до щиколотки. В таких и спать не холодно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_yoga_03_pants.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Leggings (03 - Pants)'
+      - 'Легинсы для йоги (03 - Pants)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_yoga_03_pants.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stretch to the ankle. Warm enough to sleep in.'
+      - 'Тянутся до щиколотки. В таких и спать не холодно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_yoga_04_pants.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Leggings (04 - Pants)'
+      - 'Легинсы для йоги (04 - Pants)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_yoga_04_pants.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stretch to the ankle. Warm enough to sleep in.'
+      - 'Тянутся до щиколотки. В таких и спать не холодно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_yoga_05_pants.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Leggings (05 - Pants)'
+      - 'Легинсы для йоги (05 - Pants)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_yoga_05_pants.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stretch to the ankle. Warm enough to sleep in.'
+      - 'Тянутся до щиколотки. В таких и спать не холодно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_yoga_06_pants.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Leggings (06 - Pants)'
+      - 'Легинсы для йоги (06 - Pants)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_yoga_06_pants.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stretch to the ankle. Warm enough to sleep in.'
+      - 'Тянутся до щиколотки. В таких и спать не холодно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_yoga_07_pants.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Leggings (07 - Pants)'
+      - 'Легинсы для йоги (07 - Pants)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_yoga_07_pants.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stretch to the ankle. Warm enough to sleep in.'
+      - 'Тянутся до щиколотки. В таких и спать не холодно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_yoga_08_pants.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Leggings (08 - Pants)'
+      - 'Легинсы для йоги (08 - Pants)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_yoga_08_pants.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stretch to the ankle. Warm enough to sleep in.'
+      - 'Тянутся до щиколотки. В таких и спать не холодно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_yoga_09_pants.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Leggings (09 - Pants)'
+      - 'Легинсы для йоги (09 - Pants)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_yoga_09_pants.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stretch to the ankle. Warm enough to sleep in.'
+      - 'Тянутся до щиколотки. В таких и спать не холодно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_yoga_10_pants.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Leggings (10 - Pants)'
+      - 'Легинсы для йоги (10 - Pants)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_yoga_10_pants.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stretch to the ankle. Warm enough to sleep in.'
+      - 'Тянутся до щиколотки. В таких и спать не холодно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_night.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Night Dress'
+      - 'Ночное платье'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_night.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace at the hem, a clasp at the shoulder. Not made for outdoors.'
+      - 'Кружево по низу, застёжка на плече. Не для улицы.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_night_default.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Night Dress (Default)'
+      - 'Ночное платье (Default)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_night_default.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace at the hem, a clasp at the shoulder. Not made for outdoors.'
+      - 'Кружево по низу, застёжка на плече. Не для улицы.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_night_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Night Dress (Red)'
+      - 'Ночное платье (Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_night_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace at the hem, a clasp at the shoulder. Not made for outdoors.'
+      - 'Кружево по низу, застёжка на плече. Не для улицы.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_night_white.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Night Dress (White)'
+      - 'Ночное платье (White)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_night_white.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace at the hem, a clasp at the shoulder. Not made for outdoors.'
+      - 'Кружево по низу, застёжка на плече. Не для улицы.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_necklace_beads.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Beaded Necklace'
+      - 'Бусы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_necklace_beads.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Beads on a metal chain. Worth nothing and kept anyway.'
+      - 'Бусины на металлической цепочке. Ничего не стоят, а хранят.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'item.clothing_halter_vamp.name'
       TermType: 0
       Description: 

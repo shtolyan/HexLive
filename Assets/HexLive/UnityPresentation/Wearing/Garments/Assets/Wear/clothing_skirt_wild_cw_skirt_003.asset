@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_skirt_wild_cw_skirt_003
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.skirt_wild_cw_skirt_003
+  prototypeId: clothing.skirt_wild
+  displayName: 
+  variantMaterials:
+  - {fileID: 2100000, guid: cb7dcea02f9836d4786b90e3d8c965a4, type: 2}
+  - {fileID: 2100000, guid: 9ca30b679fca4db48b9bc8e96e3693db, type: 2}
+  - {fileID: 2100000, guid: 9d9675069d1b66e46a8a4d77f23582dd, type: 2}
+  - {fileID: 2100000, guid: 3e8b480f70e6acb4b86363dc421a5723, type: 2}
+  layer: 1
+  covers: 
+  warmth: 0.1
+  armor: 0
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

@@ -1,0 +1,5131 @@
+{
+  "drop": "sweetywildvapor",
+  "sources": [
+    {
+      "fbx": "Assets/Temp/jolly sweetywildvapor.fbx",
+      "actor": "Jolly"
+    },
+    {
+      "fbx": "Assets/Temp/jana sweetywildvapor.fbx",
+      "actor": "Jana"
+    },
+    {
+      "fbx": "Assets/Temp/marta sweetywildvapor.fbx",
+      "actor": "Marta"
+    },
+    {
+      "fbx": "Assets/Temp/molly sweetywildvapor.fbx",
+      "actor": "Molly"
+    }
+  ],
+  "garments": [
+    {
+      "sourceKey": "PriDre_plain_fur_dress_116570",
+      "folder": "PrimalDress",
+      "name": "PrimalDress",
+      "simId": "clothing.dress_primal",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "Belly",
+        "Pelvis",
+        "ThighR",
+        "ThighL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "fur_plain",
+          "texture": "PrDr_fur_PrDr_furTR.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "dress",
+          "texture": "PrDr_fur.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 116570,
+        "polys": 103832,
+        "bbox": [
+          -19.5,
+          19.9,
+          70.7,
+          154.2,
+          -15.1,
+          16.5
+        ],
+        "zones": {
+          "Pelvis": 0.364,
+          "Chest": 0.236,
+          "Belly": 0.206,
+          "Thigh": 0.194,
+          "Neck": 0.0
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Fur-Trimmed Dress",
+        "nameRu": "Платье с мехом",
+        "descEn": "Long, with fur at the shoulders. Someone dressed for a colder place.",
+        "descRu": "Длинное, с мехом на плечах. Кто-то одевался для места похолоднее.",
+        "warmth": 0.18,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso",
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "color01",
+          "from": "Dress",
+          "textures": [
+            {
+              "source": "dress",
+              "texture": "PrDr_fur.jpg"
+            },
+            {
+              "source": "fur_plain",
+              "texture": "PrDr_fur.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "dress",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "fur_plain",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "color02",
+          "from": "Dress",
+          "textures": [
+            {
+              "source": "dress",
+              "texture": "PrDr_fur2.jpg"
+            },
+            {
+              "source": "fur_plain",
+              "texture": "PrDr_fur2.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "dress",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "fur_plain",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "color03",
+          "from": "Dress",
+          "textures": [
+            {
+              "source": "dress",
+              "texture": "PrDr_fur3.jpg"
+            },
+            {
+              "source": "fur_plain",
+              "texture": "PrDr_fur3.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "dress",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "fur_plain",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "color04",
+          "from": "Dress",
+          "textures": [
+            {
+              "source": "dress",
+              "texture": "PrDr_fur4.jpg"
+            },
+            {
+              "source": "fur_plain",
+              "texture": "PrDr_fur4.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "dress",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "fur_plain",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "color05",
+          "from": "Dress",
+          "textures": [
+            {
+              "source": "dress",
+              "texture": "PrDr_fur5.jpg"
+            },
+            {
+              "source": "fur_plain",
+              "texture": "PrDr_fur5.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "dress",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "fur_plain",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "color06",
+          "from": "Dress",
+          "textures": [
+            {
+              "source": "dress",
+              "texture": "PrDr_fur6.jpg"
+            },
+            {
+              "source": "fur_plain",
+              "texture": "PrDr_fur6.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "dress",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "fur_plain",
+              "color": "#FFFFFF"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "PriDre_plain_fur_collar_20825",
+      "folder": "PrimalCollar",
+      "name": "PrimalCollar",
+      "simId": "clothing.collar_fur",
+      "layer": "Outerwear",
+      "slots": [
+        "Chest",
+        "Belly"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "dress",
+          "texture": "PrDr_fur.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "fur_plain",
+          "texture": "PrDr_fur_PrDr_furTR.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        }
+      ],
+      "_measured": {
+        "verts": 20825,
+        "polys": 19936,
+        "bbox": [
+          2.8,
+          17.1,
+          104.5,
+          155.0,
+          -17.1,
+          18.4
+        ],
+        "zones": {
+          "Chest": 0.824,
+          "Belly": 0.155,
+          "Neck": 0.022
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Fur Collar",
+        "nameRu": "Меховой воротник",
+        "descEn": "A fur collar on its own. Warms the neck and nothing else.",
+        "descRu": "Меховой воротник сам по себе. Греет шею и больше ничего.",
+        "warmth": 0.07,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "variants": [
+        {
+          "name": "color01",
+          "from": "Collar",
+          "textures": [
+            {
+              "source": "dress",
+              "texture": "PrDr_fur.jpg"
+            },
+            {
+              "source": "fur_plain",
+              "texture": "PrDr_fur.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "dress",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "fur_plain",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "color02",
+          "from": "Collar",
+          "textures": [
+            {
+              "source": "dress",
+              "texture": "PrDr_fur2.jpg"
+            },
+            {
+              "source": "fur_plain",
+              "texture": "PrDr_fur2.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "dress",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "fur_plain",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "color03",
+          "from": "Collar",
+          "textures": [
+            {
+              "source": "dress",
+              "texture": "PrDr_fur3.jpg"
+            },
+            {
+              "source": "fur_plain",
+              "texture": "PrDr_fur3.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "dress",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "fur_plain",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "color04",
+          "from": "Collar",
+          "textures": [
+            {
+              "source": "dress",
+              "texture": "PrDr_fur4.jpg"
+            },
+            {
+              "source": "fur_plain",
+              "texture": "PrDr_fur4.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "dress",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "fur_plain",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "color05",
+          "from": "Collar",
+          "textures": [
+            {
+              "source": "dress",
+              "texture": "PrDr_fur5.jpg"
+            },
+            {
+              "source": "fur_plain",
+              "texture": "PrDr_fur5.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "dress",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "fur_plain",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "color06",
+          "from": "Collar",
+          "textures": [
+            {
+              "source": "dress",
+              "texture": "PrDr_fur6.jpg"
+            },
+            {
+              "source": "fur_plain",
+              "texture": "PrDr_fur6.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "dress",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "fur_plain",
+              "color": "#FFFFFF"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "CruX Wild Bra_6286",
+      "folder": "WildBra",
+      "name": "WildBra",
+      "simId": "underwear.bra_wild",
+      "layer": "Underwear",
+      "slots": [
+        "Chest"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "rings",
+          "texture": null,
+          "color": "#D3CFC9",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "chest",
+          "texture": null,
+          "color": "#0A0A0A",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "straps",
+          "texture": "CruX Wild Bra.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 6286,
+        "polys": 5888,
+        "bbox": [
+          -14.5,
+          14.5,
+          122.2,
+          152.1,
+          -12.7,
+          13.9
+        ],
+        "zones": {
+          "Chest": 0.998,
+          "Neck": 0.002
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Ringed Bra",
+        "nameRu": "Лиф с кольцами",
+        "descEn": "Straps through metal rings.",
+        "descRu": "Ремешки через металлические кольца.",
+        "warmth": 0.02,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "variants": [
+        {
+          "name": "CW Bra 001",
+          "from": "CruX Wild Bra",
+          "textures": [
+            {
+              "source": "straps",
+              "texture": "CruX Wild Bra.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "chest",
+              "color": "#0A0A0A"
+            },
+            {
+              "source": "rings",
+              "color": "#D3CFC9"
+            },
+            {
+              "source": "straps",
+              "color": "#E9E9E9"
+            }
+          ]
+        },
+        {
+          "name": "CW Bra 004",
+          "from": "CruX Wild Bra",
+          "textures": [
+            {
+              "source": "chest",
+              "texture": "CruX Wild Bra4.jpg"
+            },
+            {
+              "source": "straps",
+              "texture": "CruX Wild Bra.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "chest",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "rings",
+              "color": "#D3CFC9"
+            },
+            {
+              "source": "straps",
+              "color": "#E9E9E9"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "CruX Wild Panty_3027",
+      "folder": "WildPanty",
+      "name": "WildPanty",
+      "simId": "underwear.briefs_wild",
+      "layer": "Underwear",
+      "slots": [
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "panty",
+          "texture": "CruX Wild Panty_CruX Wild PantyT.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "straps",
+          "texture": "CruX Wild Panty.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 3027,
+        "polys": 2832,
+        "bbox": [
+          -16.7,
+          16.7,
+          87.8,
+          103.3,
+          -11.8,
+          9.8
+        ],
+        "zones": {
+          "Pelvis": 1.0
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Strapped Briefs",
+        "nameRu": "Трусики с ремешками",
+        "descEn": "The bra's other half.",
+        "descRu": "Вторая половина того же комплекта.",
+        "warmth": 0.01,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Pelvis"
+        ]
+      },
+      "variants": [
+        {
+          "name": "CW Thong 001",
+          "from": "CruX Wild Panty",
+          "textures": [
+            {
+              "source": "panty",
+              "texture": "CruX Wild Panty.jpg"
+            },
+            {
+              "source": "straps",
+              "texture": "CruX Wild Panty.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "panty",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "straps",
+              "color": "#FFFFFF"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "CruX Wild Skirt_6273",
+      "folder": "WildSkirt",
+      "name": "WildSkirt",
+      "simId": "clothing.skirt_wild",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "skirt",
+          "texture": null,
+          "color": "#101010",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "studs",
+          "texture": null,
+          "color": "#D3CFC9",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "waistband",
+          "texture": "CruX Wild Skirt.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "skirt edge",
+          "texture": null,
+          "color": "#101010",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 6273,
+        "polys": 5870,
+        "bbox": [
+          -22.5,
+          22.5,
+          86.2,
+          103.8,
+          -18.9,
+          15.0
+        ],
+        "zones": {
+          "Pelvis": 1.0
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Studded Skirt",
+        "nameRu": "Юбка с клёпками",
+        "descEn": "Short, on a studded waistband.",
+        "descRu": "Короткая, на клёпаном поясе.",
+        "warmth": 0.05,
+        "armor": 0.03,
+        "thermalDelta": 0.0,
+        "capacity": 1,
+        "covers": [
+          "Pelvis"
+        ]
+      },
+      "variants": [
+        {
+          "name": "CW Skirt 001",
+          "from": "CruX Wild Skirt",
+          "textures": [
+            {
+              "source": "waistband",
+              "texture": "CruX Wild Skirt.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "skirt",
+              "color": "#101010"
+            },
+            {
+              "source": "skirt edge",
+              "color": "#101010"
+            },
+            {
+              "source": "studs",
+              "color": "#D3CFC9"
+            },
+            {
+              "source": "waistband",
+              "color": "#C0C0C0"
+            }
+          ]
+        },
+        {
+          "name": "CW Skirt 002",
+          "from": "CruX Wild Skirt",
+          "textures": [
+            {
+              "source": "waistband",
+              "texture": "CruX Wild Skirt.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "skirt",
+              "color": "#151515"
+            },
+            {
+              "source": "skirt edge",
+              "color": "#151515"
+            },
+            {
+              "source": "studs",
+              "color": "#D3CFC9"
+            },
+            {
+              "source": "waistband",
+              "color": "#C0C0C0"
+            }
+          ]
+        },
+        {
+          "name": "CW Skirt 003",
+          "from": "CruX Wild Skirt",
+          "textures": [
+            {
+              "source": "waistband",
+              "texture": "CruX Wild Skirt.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "skirt",
+              "color": "#101010"
+            },
+            {
+              "source": "skirt edge",
+              "color": "#101010"
+            },
+            {
+              "source": "studs",
+              "color": "#D3CFC9"
+            },
+            {
+              "source": "waistband",
+              "color": "#999999"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "RR_7185",
+      "folder": "ReikoOutfit",
+      "name": "ReikoOutfit",
+      "simId": "clothing.outfit_reiko",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis",
+        "ShinR",
+        "ShinL",
+        "FootR",
+        "FootL",
+        "WristR",
+        "WristL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Glove, Wrist",
+          "texture": "glove_wrist_left_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Glove, Lower",
+          "texture": "gloves_lower_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Glove, Upper",
+          "texture": "gloves_upper_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Shoes",
+          "texture": "shoes_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Zipper Handle",
+          "texture": "zip_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Zipper",
+          "texture": "zip_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Buttons",
+          "texture": "buttons_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Laces",
+          "texture": "laces_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Shorts",
+          "texture": "shorts_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Pants",
+          "texture": "pants_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Shorts Pocket, Right",
+          "texture": "pockets_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Shorts Pocket Left",
+          "texture": "pockets_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Bra, Right",
+          "texture": "bra_right_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Bra, Left",
+          "texture": "bra_left_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Bra",
+          "texture": "bra_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Ribbon",
+          "texture": "ribbon_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Knot",
+          "texture": "knot_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 7185,
+        "polys": 7753,
+        "bbox": [
+          -79.4,
+          79.4,
+          -3.9,
+          156.1,
+          -17.9,
+          16.0
+        ],
+        "zones": {
+          "Shin": 0.315,
+          "Chest": 0.163,
+          "Pelvis": 0.159,
+          "Foot": 0.128,
+          "Wrist": 0.115,
+          "Neck": 0.039,
+          "Hand": 0.036,
+          "Forearm": 0.026,
+          "Belly": 0.018
+        },
+        "heelCm": 3.94
+      },
+      "heelPose": {
+        "foot": 20.98,
+        "toe": -20.98,
+        "lift": 0.0394,
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "_source": "по высоте каблука 3.9 см"
+      },
+      "_review": "покрывает 5 зон — похоже на КОМПЛЕКТ целиком. Проверьте, не приехали ли отдельные его части: держать нужно что-то одно",
+      "sim": {
+        "displayName": "Boxing Outfit",
+        "nameRu": "Боксёрский комплект",
+        "descEn": "Gloves, shoes and shorts as one kit. Made for a ring that no longer exists.",
+        "descRu": "Перчатки, обувь и шорты одним комплектом. Для ринга, которого больше нет.",
+        "warmth": 0.1,
+        "armor": 0.06,
+        "thermalDelta": 0.0,
+        "capacity": 1,
+        "covers": [
+          "Pelvis",
+          "ArmL",
+          "ArmR",
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Default",
+          "from": "Rowdy Reiko Outfit",
+          "textures": [
+            {
+              "source": "Bra",
+              "texture": "bra_diffuse.tga"
+            },
+            {
+              "source": "Bra, Left",
+              "texture": "bra_left_diffuse.tga"
+            },
+            {
+              "source": "Bra, Right",
+              "texture": "bra_right_diffuse.tga"
+            },
+            {
+              "source": "Buttons",
+              "texture": "buttons_diffuse.tga"
+            },
+            {
+              "source": "Glove, Lower",
+              "texture": "gloves_lower_diffuse.tga"
+            },
+            {
+              "source": "Glove, Upper",
+              "texture": "gloves_upper_diffuse.tga"
+            },
+            {
+              "source": "Glove, Wrist",
+              "texture": "glove_wrist_left_diffuse.tga"
+            },
+            {
+              "source": "Knot",
+              "texture": "knot_diffuse.tga"
+            },
+            {
+              "source": "Laces",
+              "texture": "laces_diffuse.tga"
+            },
+            {
+              "source": "Pants",
+              "texture": "pants_diffuse.tga"
+            },
+            {
+              "source": "Ribbon",
+              "texture": "ribbon_diffuse.tga"
+            },
+            {
+              "source": "Shoes",
+              "texture": "shoes_diffuse.tga"
+            },
+            {
+              "source": "Shorts",
+              "texture": "shorts_diffuse.tga"
+            },
+            {
+              "source": "Shorts Pocket Left",
+              "texture": "pockets_diffuse.tga"
+            },
+            {
+              "source": "Shorts Pocket, Right",
+              "texture": "pockets_diffuse.tga"
+            },
+            {
+              "source": "Zipper",
+              "texture": "zip_diffuse.tga"
+            },
+            {
+              "source": "Zipper Handle",
+              "texture": "zip_diffuse.tga"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Bra",
+              "color": "#FFF8FA"
+            },
+            {
+              "source": "Bra, Left",
+              "color": "#FFF8FA"
+            },
+            {
+              "source": "Bra, Right",
+              "color": "#FFF8FA"
+            },
+            {
+              "source": "Buttons",
+              "color": "#FFF8FA"
+            },
+            {
+              "source": "Glove, Lower",
+              "color": "#FFF8FA"
+            },
+            {
+              "source": "Glove, Upper",
+              "color": "#FFF8FA"
+            },
+            {
+              "source": "Glove, Wrist",
+              "color": "#FFF8FA"
+            },
+            {
+              "source": "Knot",
+              "color": "#FFF8FA"
+            },
+            {
+              "source": "Laces",
+              "color": "#FFF8FA"
+            },
+            {
+              "source": "Pants",
+              "color": "#FFF8FA"
+            },
+            {
+              "source": "Ribbon",
+              "color": "#FFF8FA"
+            },
+            {
+              "source": "Shoes",
+              "color": "#FFF8FA"
+            },
+            {
+              "source": "Shorts",
+              "color": "#FFF8FA"
+            },
+            {
+              "source": "Shorts Pocket Left",
+              "color": "#FFF8FA"
+            },
+            {
+              "source": "Shorts Pocket, Right",
+              "color": "#FFF8FA"
+            },
+            {
+              "source": "Zipper",
+              "color": "#FFF8FA"
+            },
+            {
+              "source": "Zipper Handle",
+              "color": "#FFF8FA"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Vapor2_Top_1532",
+      "folder": "VaporTop",
+      "name": "VaporTop",
+      "simId": "underwear.top_vapor",
+      "layer": "Underwear",
+      "slots": [
+        "Chest"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Fabric",
+          "texture": "Top00.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Band",
+          "texture": "Top00.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 1532,
+        "polys": 1434,
+        "bbox": [
+          -14.9,
+          15.0,
+          126.5,
+          138.9,
+          -10.8,
+          14.2
+        ],
+        "zones": {
+          "Chest": 1.0
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Sheer Top",
+        "nameRu": "Прозрачный топ",
+        "descEn": "Barely there, and knows it.",
+        "descRu": "Почти ничего — и держится этого.",
+        "warmth": 0.01,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "variants": [
+        {
+          "name": "01",
+          "from": "Top",
+          "textures": [
+            {
+              "source": "Band",
+              "texture": "Top00.jpg"
+            },
+            {
+              "source": "Fabric",
+              "texture": "Top00.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Band",
+              "color": "#0B0B05"
+            },
+            {
+              "source": "Fabric",
+              "color": "#CC9741"
+            }
+          ]
+        },
+        {
+          "name": "02",
+          "from": "Top",
+          "textures": [
+            {
+              "source": "Band",
+              "texture": "Top00.jpg"
+            },
+            {
+              "source": "Fabric",
+              "texture": "Top00.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Band",
+              "color": "#DFDFDF"
+            },
+            {
+              "source": "Fabric",
+              "color": "#052080"
+            }
+          ]
+        },
+        {
+          "name": "03",
+          "from": "Top",
+          "textures": [
+            {
+              "source": "Band",
+              "texture": "Top00.jpg"
+            },
+            {
+              "source": "Fabric",
+              "texture": "Top00.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Band",
+              "color": "#171717"
+            },
+            {
+              "source": "Fabric",
+              "color": "#FF1893"
+            }
+          ]
+        },
+        {
+          "name": "04",
+          "from": "Top",
+          "textures": [
+            {
+              "source": "Band",
+              "texture": "Top00.jpg"
+            },
+            {
+              "source": "Fabric",
+              "texture": "Top00.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Band",
+              "color": "#CECECE"
+            },
+            {
+              "source": "Fabric",
+              "color": "#110E0F"
+            }
+          ]
+        },
+        {
+          "name": "05",
+          "from": "Top",
+          "textures": [
+            {
+              "source": "Band",
+              "texture": "Top00.jpg"
+            },
+            {
+              "source": "Fabric",
+              "texture": "Top00.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Band",
+              "color": "#CECECE"
+            },
+            {
+              "source": "Fabric",
+              "color": "#AF0D38"
+            }
+          ]
+        },
+        {
+          "name": "06",
+          "from": "Top",
+          "textures": [
+            {
+              "source": "Band",
+              "texture": "Top00.jpg"
+            },
+            {
+              "source": "Fabric",
+              "texture": "Top00.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Band",
+              "color": "#E4AC2A"
+            },
+            {
+              "source": "Fabric",
+              "color": "#127D00"
+            }
+          ]
+        },
+        {
+          "name": "07",
+          "from": "Top",
+          "textures": [
+            {
+              "source": "Band",
+              "texture": "Top01.jpg"
+            },
+            {
+              "source": "Fabric",
+              "texture": "Top01.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Band",
+              "color": "#C3C3C3"
+            },
+            {
+              "source": "Fabric",
+              "color": "#C3C3C3"
+            }
+          ]
+        },
+        {
+          "name": "08",
+          "from": "Top",
+          "textures": [
+            {
+              "source": "Band",
+              "texture": "Top02.jpg"
+            },
+            {
+              "source": "Fabric",
+              "texture": "Top02.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Band",
+              "color": "#C3C3C3"
+            },
+            {
+              "source": "Fabric",
+              "color": "#C3C3C3"
+            }
+          ]
+        },
+        {
+          "name": "09",
+          "from": "Top",
+          "textures": [
+            {
+              "source": "Band",
+              "texture": "Top03.jpg"
+            },
+            {
+              "source": "Fabric",
+              "texture": "Top03.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Band",
+              "color": "#C3C3C3"
+            },
+            {
+              "source": "Fabric",
+              "color": "#C3C3C3"
+            }
+          ]
+        },
+        {
+          "name": "10",
+          "from": "Top",
+          "textures": [
+            {
+              "source": "Band",
+              "texture": "Top04.jpg"
+            },
+            {
+              "source": "Fabric",
+              "texture": "Top04.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Band",
+              "color": "#C3C3C3"
+            },
+            {
+              "source": "Fabric",
+              "color": "#C3C3C3"
+            }
+          ]
+        },
+        {
+          "name": "11",
+          "from": "Top",
+          "textures": [
+            {
+              "source": "Band",
+              "texture": "Top05.jpg"
+            },
+            {
+              "source": "Fabric",
+              "texture": "Top05.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Band",
+              "color": "#C3C3C3"
+            },
+            {
+              "source": "Fabric",
+              "color": "#C3C3C3"
+            }
+          ]
+        },
+        {
+          "name": "12",
+          "from": "Top",
+          "textures": [
+            {
+              "source": "Band",
+              "texture": "Top06.jpg"
+            },
+            {
+              "source": "Fabric",
+              "texture": "Top06.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Band",
+              "color": "#C3C3C3"
+            },
+            {
+              "source": "Fabric",
+              "color": "#C3C3C3"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Vapor2_Bottom_931",
+      "folder": "VaporBriefs",
+      "name": "VaporBriefs",
+      "simId": "underwear.briefs_vapor",
+      "layer": "Underwear",
+      "slots": [
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Band",
+          "texture": "Bottom00.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Fabric",
+          "texture": "Bottom00.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 931,
+        "polys": 846,
+        "bbox": [
+          -15.2,
+          15.2,
+          87.7,
+          110.4,
+          -12.2,
+          10.6
+        ],
+        "zones": {
+          "Pelvis": 0.832,
+          "Belly": 0.168
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Sheer Briefs",
+        "nameRu": "Прозрачные трусики",
+        "descEn": "Matches the top.",
+        "descRu": "В пару к топу.",
+        "warmth": 0.01,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Pelvis"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Bot01",
+          "from": "Bottom",
+          "textures": [
+            {
+              "source": "Band",
+              "texture": "Bottom00.jpg"
+            },
+            {
+              "source": "Fabric",
+              "texture": "Bottom00.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Band",
+              "color": "#0B0B05"
+            },
+            {
+              "source": "Fabric",
+              "color": "#CC9741"
+            }
+          ]
+        },
+        {
+          "name": "Bot02",
+          "from": "Bottom",
+          "textures": [
+            {
+              "source": "Band",
+              "texture": "Bottom00.jpg"
+            },
+            {
+              "source": "Fabric",
+              "texture": "Bottom00.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Band",
+              "color": "#DFDFDF"
+            },
+            {
+              "source": "Fabric",
+              "color": "#052080"
+            }
+          ]
+        },
+        {
+          "name": "Bot03",
+          "from": "Bottom",
+          "textures": [
+            {
+              "source": "Band",
+              "texture": "Bottom00.jpg"
+            },
+            {
+              "source": "Fabric",
+              "texture": "Bottom00.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Band",
+              "color": "#171717"
+            },
+            {
+              "source": "Fabric",
+              "color": "#FF1893"
+            }
+          ]
+        },
+        {
+          "name": "Bot04",
+          "from": "Bottom",
+          "textures": [
+            {
+              "source": "Band",
+              "texture": "Bottom00.jpg"
+            },
+            {
+              "source": "Fabric",
+              "texture": "Bottom00.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Band",
+              "color": "#CECECE"
+            },
+            {
+              "source": "Fabric",
+              "color": "#110E0F"
+            }
+          ]
+        },
+        {
+          "name": "Bot05",
+          "from": "Bottom",
+          "textures": [
+            {
+              "source": "Band",
+              "texture": "Bottom00.jpg"
+            },
+            {
+              "source": "Fabric",
+              "texture": "Bottom00.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Band",
+              "color": "#CECECE"
+            },
+            {
+              "source": "Fabric",
+              "color": "#AF0D38"
+            }
+          ]
+        },
+        {
+          "name": "Bot06",
+          "from": "Bottom",
+          "textures": [
+            {
+              "source": "Band",
+              "texture": "Bottom00.jpg"
+            },
+            {
+              "source": "Fabric",
+              "texture": "Bottom00.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Band",
+              "color": "#E4AC2A"
+            },
+            {
+              "source": "Fabric",
+              "color": "#127D00"
+            }
+          ]
+        },
+        {
+          "name": "Bot07",
+          "from": "Bottom",
+          "textures": [
+            {
+              "source": "Band",
+              "texture": "Bottom01.jpg"
+            },
+            {
+              "source": "Fabric",
+              "texture": "Bottom01.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Band",
+              "color": "#C3C3C3"
+            },
+            {
+              "source": "Fabric",
+              "color": "#C3C3C3"
+            }
+          ]
+        },
+        {
+          "name": "Bot08",
+          "from": "Bottom",
+          "textures": [
+            {
+              "source": "Band",
+              "texture": "Bottom02.jpg"
+            },
+            {
+              "source": "Fabric",
+              "texture": "Bottom02.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Band",
+              "color": "#C3C3C3"
+            },
+            {
+              "source": "Fabric",
+              "color": "#C3C3C3"
+            }
+          ]
+        },
+        {
+          "name": "Bot09",
+          "from": "Bottom",
+          "textures": [
+            {
+              "source": "Band",
+              "texture": "Bottom03.jpg"
+            },
+            {
+              "source": "Fabric",
+              "texture": "Bottom03.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Band",
+              "color": "#C3C3C3"
+            },
+            {
+              "source": "Fabric",
+              "color": "#C3C3C3"
+            }
+          ]
+        },
+        {
+          "name": "Bot10",
+          "from": "Bottom",
+          "textures": [
+            {
+              "source": "Band",
+              "texture": "Bottom04.jpg"
+            },
+            {
+              "source": "Fabric",
+              "texture": "Bottom04.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Band",
+              "color": "#C3C3C3"
+            },
+            {
+              "source": "Fabric",
+              "color": "#C3C3C3"
+            }
+          ]
+        },
+        {
+          "name": "Bot11",
+          "from": "Bottom",
+          "textures": [
+            {
+              "source": "Band",
+              "texture": "Bottom05.jpg"
+            },
+            {
+              "source": "Fabric",
+              "texture": "Bottom05.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Band",
+              "color": "#C3C3C3"
+            },
+            {
+              "source": "Fabric",
+              "color": "#C3C3C3"
+            }
+          ]
+        },
+        {
+          "name": "Bot12",
+          "from": "Bottom",
+          "textures": [
+            {
+              "source": "Band",
+              "texture": "Bottom06.jpg"
+            },
+            {
+              "source": "Fabric",
+              "texture": "Bottom06.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Band",
+              "color": "#C3C3C3"
+            },
+            {
+              "source": "Fabric",
+              "color": "#C3C3C3"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Big Tee_11886",
+      "folder": "BigTee",
+      "name": "BigTee",
+      "simId": "clothing.tshirt_big",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "Belly",
+        "Pelvis",
+        "ShoulderR",
+        "ShoulderL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "tshirt",
+          "texture": "BTHeartbreaker.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "sleeves",
+          "texture": "BTHeartbreaker.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 11886,
+        "polys": 11735,
+        "bbox": [
+          -41.9,
+          42.1,
+          86.2,
+          152.2,
+          -14.6,
+          15.7
+        ],
+        "zones": {
+          "Chest": 0.334,
+          "Shoulder": 0.311,
+          "Pelvis": 0.212,
+          "Belly": 0.141,
+          "Neck": 0.002
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Oversized Tee",
+        "nameRu": "Футболка навырост",
+        "descEn": "Long enough to be a dress on a short day.",
+        "descRu": "Достаточно длинная, чтобы сойти за платье.",
+        "warmth": 0.06,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso",
+          "Pelvis",
+          "ArmL",
+          "ArmR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "BT Charcoal",
+          "from": "Big Teez T-Shirt",
+          "textures": [
+            {
+              "source": "sleeves",
+              "texture": "BTeeCharcoal.jpg"
+            },
+            {
+              "source": "tshirt",
+              "texture": "BTeeCharcoal.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "sleeves",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "tshirt",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "BT Dark Grey",
+          "from": "Big Teez T-Shirt",
+          "textures": [
+            {
+              "source": "sleeves",
+              "texture": "BTeeDarkGrey.jpg"
+            },
+            {
+              "source": "tshirt",
+              "texture": "BTeeDarkGrey.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "sleeves",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "tshirt",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "BT Dusty Blue",
+          "from": "Big Teez T-Shirt",
+          "textures": [
+            {
+              "source": "sleeves",
+              "texture": "BTeeDustyBlue.jpg"
+            },
+            {
+              "source": "tshirt",
+              "texture": "BTeeDustyBlue.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "sleeves",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "tshirt",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "BT Dusty Pink",
+          "from": "Big Teez T-Shirt",
+          "textures": [
+            {
+              "source": "sleeves",
+              "texture": "BTeeDustyPink.jpg"
+            },
+            {
+              "source": "tshirt",
+              "texture": "BTeeDustyPink.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "sleeves",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "tshirt",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "BT Dusty Purple",
+          "from": "Big Teez T-Shirt",
+          "textures": [
+            {
+              "source": "sleeves",
+              "texture": "BTDustyPurple.jpg"
+            },
+            {
+              "source": "tshirt",
+              "texture": "BTDustyPurple.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "sleeves",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "tshirt",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "BT Grey",
+          "from": "Big Teez T-Shirt",
+          "textures": [
+            {
+              "source": "sleeves",
+              "texture": "BTeeGrey.jpg"
+            },
+            {
+              "source": "tshirt",
+              "texture": "BTeeGrey.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "sleeves",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "tshirt",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "BT Red",
+          "from": "Big Teez T-Shirt",
+          "textures": [
+            {
+              "source": "sleeves",
+              "texture": "BTeeRed.jpg"
+            },
+            {
+              "source": "tshirt",
+              "texture": "BTeeRed.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "sleeves",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "tshirt",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "BT Sky Blue",
+          "from": "Big Teez T-Shirt",
+          "textures": [
+            {
+              "source": "sleeves",
+              "texture": "BTSkyBlue.jpg"
+            },
+            {
+              "source": "tshirt",
+              "texture": "BTSkyBlue.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "sleeves",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "tshirt",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "BT White",
+          "from": "Big Teez T-Shirt",
+          "textures": [
+            {
+              "source": "sleeves",
+              "texture": "BTWhite.jpg"
+            },
+            {
+              "source": "tshirt",
+              "texture": "BTWhite.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "sleeves",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "tshirt",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "TShirt American",
+          "from": "Big Teez T-Shirt",
+          "textures": [
+            {
+              "source": "sleeves",
+              "texture": "BTAmericanr.jpg"
+            },
+            {
+              "source": "tshirt",
+              "texture": "BTAmericanr.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "sleeves",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "tshirt",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "TShirt Born to Ride",
+          "from": "Big Teez T-Shirt",
+          "textures": [
+            {
+              "source": "sleeves",
+              "texture": "BTBornToRide.jpg"
+            },
+            {
+              "source": "tshirt",
+              "texture": "BTBornToRide.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "sleeves",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "tshirt",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "TShirt California",
+          "from": "Big Teez T-Shirt",
+          "textures": [
+            {
+              "source": "sleeves",
+              "texture": "BTCalifornia.jpg"
+            },
+            {
+              "source": "tshirt",
+              "texture": "BTCalifornia.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "sleeves",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "tshirt",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "TShirt Denim",
+          "from": "Big Teez T-Shirt",
+          "textures": [
+            {
+              "source": "sleeves",
+              "texture": "BTOriginalDenim.jpg"
+            },
+            {
+              "source": "tshirt",
+              "texture": "BTOriginalDenim.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "sleeves",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "tshirt",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "TShirt Eagles",
+          "from": "Big Teez T-Shirt",
+          "textures": [
+            {
+              "source": "sleeves",
+              "texture": "BTEagles.jpg"
+            },
+            {
+              "source": "tshirt",
+              "texture": "BTEagles.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "sleeves",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "tshirt",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "TShirt Heartbreaker",
+          "from": "Big Teez T-Shirt",
+          "textures": [
+            {
+              "source": "sleeves",
+              "texture": "BTHeartbreaker.jpg"
+            },
+            {
+              "source": "tshirt",
+              "texture": "BTHeartbreaker.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "sleeves",
+              "color": "#EFEFEF"
+            },
+            {
+              "source": "tshirt",
+              "color": "#EFEFEF"
+            }
+          ]
+        },
+        {
+          "name": "TShirt Lost Angels",
+          "from": "Big Teez T-Shirt",
+          "textures": [
+            {
+              "source": "sleeves",
+              "texture": "BTLostAngels.jpg"
+            },
+            {
+              "source": "tshirt",
+              "texture": "BTLostAngels.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "sleeves",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "tshirt",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "TShirt Queen",
+          "from": "Big Teez T-Shirt",
+          "textures": [
+            {
+              "source": "sleeves",
+              "texture": "BTQueen.jpg"
+            },
+            {
+              "source": "tshirt",
+              "texture": "BTQueen.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "sleeves",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "tshirt",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "TShirt Racing",
+          "from": "Big Teez T-Shirt",
+          "textures": [
+            {
+              "source": "sleeves",
+              "texture": "BTRacing.jpg"
+            },
+            {
+              "source": "tshirt",
+              "texture": "BTRacing.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "sleeves",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "tshirt",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "TShirt Saints",
+          "from": "Big Teez T-Shirt",
+          "textures": [
+            {
+              "source": "sleeves",
+              "texture": "BTSaints.jpg"
+            },
+            {
+              "source": "tshirt",
+              "texture": "BTSaints.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "sleeves",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "tshirt",
+              "color": "#FFFFFF"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Big Tee Panty_3039",
+      "folder": "BigTeePanty",
+      "name": "BigTeePanty",
+      "simId": "underwear.briefs_teez",
+      "layer": "Underwear",
+      "slots": [
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "panty",
+          "texture": "BTPanty_Red_BigTeezPantyT2.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "waistband",
+          "texture": "BTPanty_Red.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "crotch",
+          "texture": "BTPanty_Red.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 3039,
+        "polys": 2896,
+        "bbox": [
+          -16.7,
+          16.7,
+          87.9,
+          107.1,
+          -12.1,
+          10.7
+        ],
+        "zones": {
+          "Pelvis": 0.785,
+          "Belly": 0.215
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Cotton Briefs",
+        "nameRu": "Хлопковые трусики",
+        "descEn": "Wide waistband, nothing else to say.",
+        "descRu": "Широкий пояс, и говорить больше не о чем.",
+        "warmth": 0.01,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Pelvis"
+        ]
+      },
+      "variants": [
+        {
+          "name": "BT Panty Charcoal",
+          "from": "Big Teez Panty",
+          "textures": [
+            {
+              "source": "crotch",
+              "texture": "BTPanty_Charcoal.jpg"
+            },
+            {
+              "source": "panty",
+              "texture": "BTPanty_Charcoal.jpg"
+            },
+            {
+              "source": "waistband",
+              "texture": "BTPanty_Charcoal.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "crotch",
+              "color": "#EFEFEF"
+            },
+            {
+              "source": "panty",
+              "color": "#EFEFEF"
+            },
+            {
+              "source": "waistband",
+              "color": "#EFEFEF"
+            }
+          ]
+        },
+        {
+          "name": "BT Panty Dark Grey",
+          "from": "Big Teez Panty",
+          "textures": [
+            {
+              "source": "crotch",
+              "texture": "BTPanty_Dark Grey.jpg"
+            },
+            {
+              "source": "panty",
+              "texture": "BTPanty_Dark Grey.jpg"
+            },
+            {
+              "source": "waistband",
+              "texture": "BTPanty_Dark Grey.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "crotch",
+              "color": "#EFEFEF"
+            },
+            {
+              "source": "panty",
+              "color": "#EFEFEF"
+            },
+            {
+              "source": "waistband",
+              "color": "#EFEFEF"
+            }
+          ]
+        },
+        {
+          "name": "BT Panty Dusty Blue",
+          "from": "Big Teez Panty",
+          "textures": [
+            {
+              "source": "crotch",
+              "texture": "BTPanty_Dusty Blue.jpg"
+            },
+            {
+              "source": "panty",
+              "texture": "BTPanty_Dusty Blue.jpg"
+            },
+            {
+              "source": "waistband",
+              "texture": "BTPanty_Dusty Blue.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "crotch",
+              "color": "#EFEFEF"
+            },
+            {
+              "source": "panty",
+              "color": "#EFEFEF"
+            },
+            {
+              "source": "waistband",
+              "color": "#EFEFEF"
+            }
+          ]
+        },
+        {
+          "name": "BT Panty Dusty Pink",
+          "from": "Big Teez Panty",
+          "textures": [
+            {
+              "source": "crotch",
+              "texture": "BTPanty_Dusty Pink.jpg"
+            },
+            {
+              "source": "panty",
+              "texture": "BTPanty_Dusty Pink.jpg"
+            },
+            {
+              "source": "waistband",
+              "texture": "BTPanty_Dusty Pink.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "crotch",
+              "color": "#EFEFEF"
+            },
+            {
+              "source": "panty",
+              "color": "#EFEFEF"
+            },
+            {
+              "source": "waistband",
+              "color": "#EFEFEF"
+            }
+          ]
+        },
+        {
+          "name": "BT Panty Dusty Purple",
+          "from": "Big Teez Panty",
+          "textures": [
+            {
+              "source": "crotch",
+              "texture": "BTPanty_DustyPurple.jpg"
+            },
+            {
+              "source": "panty",
+              "texture": "BTPanty_DustyPurple.jpg"
+            },
+            {
+              "source": "waistband",
+              "texture": "BTPanty_DustyPurple.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "crotch",
+              "color": "#EFEFEF"
+            },
+            {
+              "source": "panty",
+              "color": "#EFEFEF"
+            },
+            {
+              "source": "waistband",
+              "color": "#EFEFEF"
+            }
+          ]
+        },
+        {
+          "name": "BT Panty Grey",
+          "from": "Big Teez Panty",
+          "textures": [
+            {
+              "source": "crotch",
+              "texture": "BTPanty_Grey.jpg"
+            },
+            {
+              "source": "panty",
+              "texture": "BTPanty_Grey.jpg"
+            },
+            {
+              "source": "waistband",
+              "texture": "BTPanty_Grey.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "crotch",
+              "color": "#EFEFEF"
+            },
+            {
+              "source": "panty",
+              "color": "#EFEFEF"
+            },
+            {
+              "source": "waistband",
+              "color": "#EFEFEF"
+            }
+          ]
+        },
+        {
+          "name": "BT Panty Red",
+          "from": "Big Teez Panty",
+          "textures": [
+            {
+              "source": "crotch",
+              "texture": "BTPanty_Red.jpg"
+            },
+            {
+              "source": "panty",
+              "texture": "BTPanty_Red.jpg"
+            },
+            {
+              "source": "waistband",
+              "texture": "BTPanty_Red.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "crotch",
+              "color": "#EFEFEF"
+            },
+            {
+              "source": "panty",
+              "color": "#EFEFEF"
+            },
+            {
+              "source": "waistband",
+              "color": "#EFEFEF"
+            }
+          ]
+        },
+        {
+          "name": "BT Panty Sky Blue",
+          "from": "Big Teez Panty",
+          "textures": [
+            {
+              "source": "crotch",
+              "texture": "BTPanty_Sky Blue.jpg"
+            },
+            {
+              "source": "panty",
+              "texture": "BTPanty_Sky Blue.jpg"
+            },
+            {
+              "source": "waistband",
+              "texture": "BTPanty_Sky Blue.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "crotch",
+              "color": "#EFEFEF"
+            },
+            {
+              "source": "panty",
+              "color": "#EFEFEF"
+            },
+            {
+              "source": "waistband",
+              "color": "#EFEFEF"
+            }
+          ]
+        },
+        {
+          "name": "BT Panty White",
+          "from": "Big Teez Panty",
+          "textures": [
+            {
+              "source": "crotch",
+              "texture": "BTPanty_White.jpg"
+            },
+            {
+              "source": "panty",
+              "texture": "BTPanty_White.jpg"
+            },
+            {
+              "source": "waistband",
+              "texture": "BTPanty_White.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "crotch",
+              "color": "#EFEFEF"
+            },
+            {
+              "source": "panty",
+              "color": "#EFEFEF"
+            },
+            {
+              "source": "waistband",
+              "color": "#EFEFEF"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "dforceSweetyBabyDoll_2236",
+      "folder": "SweetyBabydoll",
+      "name": "SweetyBabydoll",
+      "simId": "clothing.babydoll_sweety",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "Belly",
+        "Pelvis",
+        "ThighR",
+        "ThighL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "BRALACEFRONT",
+          "texture": "SweetyBabyDoll_3_SweetyBabyDoll_3T.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "BRAFRONT",
+          "texture": "SweetyBabyDoll_3_SweetyBabyDoll_3T.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "BRALACEFRONTL",
+          "texture": "SweetyBabyDoll_3_SweetyBabyDoll_3T.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "BRABACK",
+          "texture": "SweetyBabyDoll_3_SweetyBabyDoll_3T.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "BRALACEBACKL",
+          "texture": "SweetyBabyDoll_3_SweetyBabyDoll_3T.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "BRALACEFRONTR",
+          "texture": "SweetyBabyDoll_3_SweetyBabyDoll_3T.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "BRALACEBACKR",
+          "texture": "SweetyBabyDoll_3_SweetyBabyDoll_3T.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "DRESSBACKL",
+          "texture": "SweetyBabyDoll_3_SweetyBabyDoll_3T.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "LACEBACKL",
+          "texture": "SweetyBabyDoll_3_SweetyBabyDoll_3T.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "LACEFRONT",
+          "texture": "SweetyBabyDoll_3_SweetyBabyDoll_3T.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "DRESSFRONT",
+          "texture": "SweetyBabyDoll_3_SweetyBabyDoll_3T.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "DRESSBACKR",
+          "texture": "SweetyBabyDoll_3_SweetyBabyDoll_3T.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "LACEBACKR",
+          "texture": "SweetyBabyDoll_3_SweetyBabyDoll_3T.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        }
+      ],
+      "_measured": {
+        "verts": 2236,
+        "polys": 2134,
+        "bbox": [
+          -20.3,
+          20.3,
+          74.6,
+          151.9,
+          -16.1,
+          16.6
+        ],
+        "zones": {
+          "Pelvis": 0.328,
+          "Chest": 0.282,
+          "Belly": 0.232,
+          "Thigh": 0.158
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Lace Babydoll",
+        "nameRu": "Кружевной бэбидолл",
+        "descEn": "Lace over almost nothing, and it flows.",
+        "descRu": "Кружево поверх почти ничего, и оно струится.",
+        "warmth": 0.03,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso",
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "01BabyDoll",
+          "from": "dforceSweetyBabyDollG3F",
+          "textures": [
+            {
+              "source": "BRABACK",
+              "texture": "SweetyBabyDoll_1.jpg"
+            },
+            {
+              "source": "BRAFRONT",
+              "texture": "SweetyBabyDoll_1.jpg"
+            },
+            {
+              "source": "BRALACEBACKL",
+              "texture": "SweetyBabyDoll_1.jpg"
+            },
+            {
+              "source": "BRALACEBACKR",
+              "texture": "SweetyBabyDoll_1.jpg"
+            },
+            {
+              "source": "BRALACEFRONT",
+              "texture": "SweetyBabyDoll_1.jpg"
+            },
+            {
+              "source": "BRALACEFRONTL",
+              "texture": "SweetyBabyDoll_1.jpg"
+            },
+            {
+              "source": "BRALACEFRONTR",
+              "texture": "SweetyBabyDoll_1.jpg"
+            },
+            {
+              "source": "DRESSBACKL",
+              "texture": "SweetyBabyDoll_1.jpg"
+            },
+            {
+              "source": "DRESSBACKR",
+              "texture": "SweetyBabyDoll_1.jpg"
+            },
+            {
+              "source": "DRESSFRONT",
+              "texture": "SweetyBabyDoll_1.jpg"
+            },
+            {
+              "source": "LACEBACKL",
+              "texture": "SweetyBabyDoll_1.jpg"
+            },
+            {
+              "source": "LACEBACKR",
+              "texture": "SweetyBabyDoll_1.jpg"
+            },
+            {
+              "source": "LACEFRONT",
+              "texture": "SweetyBabyDoll_1.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BRABACK",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "BRAFRONT",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "BRALACEBACKL",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "BRALACEBACKR",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "BRALACEFRONT",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "BRALACEFRONTL",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "BRALACEFRONTR",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "DRESSBACKL",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "DRESSBACKR",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "DRESSFRONT",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "LACEBACKL",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "LACEBACKR",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "LACEFRONT",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "02 BabyDoll",
+          "from": "dforceSweetyBabyDollG3F",
+          "textures": [
+            {
+              "source": "BRABACK",
+              "texture": "SweetyBabyDoll_2.jpg"
+            },
+            {
+              "source": "BRAFRONT",
+              "texture": "SweetyBabyDoll_2.jpg"
+            },
+            {
+              "source": "BRALACEBACKL",
+              "texture": "SweetyBabyDoll_2.jpg"
+            },
+            {
+              "source": "BRALACEBACKR",
+              "texture": "SweetyBabyDoll_2.jpg"
+            },
+            {
+              "source": "BRALACEFRONT",
+              "texture": "SweetyBabyDoll_2.jpg"
+            },
+            {
+              "source": "BRALACEFRONTL",
+              "texture": "SweetyBabyDoll_2.jpg"
+            },
+            {
+              "source": "BRALACEFRONTR",
+              "texture": "SweetyBabyDoll_2.jpg"
+            },
+            {
+              "source": "DRESSBACKL",
+              "texture": "SweetyBabyDoll_2.jpg"
+            },
+            {
+              "source": "DRESSBACKR",
+              "texture": "SweetyBabyDoll_2.jpg"
+            },
+            {
+              "source": "DRESSFRONT",
+              "texture": "SweetyBabyDoll_2.jpg"
+            },
+            {
+              "source": "LACEBACKL",
+              "texture": "SweetyBabyDoll_2.jpg"
+            },
+            {
+              "source": "LACEBACKR",
+              "texture": "SweetyBabyDoll_2.jpg"
+            },
+            {
+              "source": "LACEFRONT",
+              "texture": "SweetyBabyDoll_2.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BRABACK",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "BRAFRONT",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "BRALACEBACKL",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "BRALACEBACKR",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "BRALACEFRONT",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "BRALACEFRONTL",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "BRALACEFRONTR",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "DRESSBACKL",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "DRESSBACKR",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "DRESSFRONT",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "LACEBACKL",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "LACEBACKR",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "LACEFRONT",
+              "color": "#CCCCCC"
+            }
+          ]
+        },
+        {
+          "name": "03 BabyDoll",
+          "from": "dforceSweetyBabyDollG3F",
+          "textures": [
+            {
+              "source": "BRABACK",
+              "texture": "SweetyBabyDoll_3.jpg"
+            },
+            {
+              "source": "BRAFRONT",
+              "texture": "SweetyBabyDoll_3.jpg"
+            },
+            {
+              "source": "BRALACEBACKL",
+              "texture": "SweetyBabyDoll_3.jpg"
+            },
+            {
+              "source": "BRALACEBACKR",
+              "texture": "SweetyBabyDoll_3.jpg"
+            },
+            {
+              "source": "BRALACEFRONT",
+              "texture": "SweetyBabyDoll_3.jpg"
+            },
+            {
+              "source": "BRALACEFRONTL",
+              "texture": "SweetyBabyDoll_3.jpg"
+            },
+            {
+              "source": "BRALACEFRONTR",
+              "texture": "SweetyBabyDoll_3.jpg"
+            },
+            {
+              "source": "DRESSBACKL",
+              "texture": "SweetyBabyDoll_3.jpg"
+            },
+            {
+              "source": "DRESSBACKR",
+              "texture": "SweetyBabyDoll_3.jpg"
+            },
+            {
+              "source": "DRESSFRONT",
+              "texture": "SweetyBabyDoll_3.jpg"
+            },
+            {
+              "source": "LACEBACKL",
+              "texture": "SweetyBabyDoll_3.jpg"
+            },
+            {
+              "source": "LACEBACKR",
+              "texture": "SweetyBabyDoll_3.jpg"
+            },
+            {
+              "source": "LACEFRONT",
+              "texture": "SweetyBabyDoll_3.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BRABACK",
+              "color": "#EFEFEF"
+            },
+            {
+              "source": "BRAFRONT",
+              "color": "#EFEFEF"
+            },
+            {
+              "source": "BRALACEBACKL",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "BRALACEBACKR",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "BRALACEFRONT",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "BRALACEFRONTL",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "BRALACEFRONTR",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "DRESSBACKL",
+              "color": "#EFEFEF"
+            },
+            {
+              "source": "DRESSBACKR",
+              "color": "#EFEFEF"
+            },
+            {
+              "source": "DRESSFRONT",
+              "color": "#EFEFEF"
+            },
+            {
+              "source": "LACEBACKL",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "LACEBACKR",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "LACEFRONT",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "03BabyDoll HighT",
+          "from": "dforceSweetyBabyDollG3F",
+          "textures": [
+            {
+              "source": "BRABACK",
+              "texture": "SweetyBabyDoll_3.jpg"
+            },
+            {
+              "source": "BRAFRONT",
+              "texture": "SweetyBabyDoll_3.jpg"
+            },
+            {
+              "source": "BRALACEBACKL",
+              "texture": "SweetyBabyDoll_3.jpg"
+            },
+            {
+              "source": "BRALACEBACKR",
+              "texture": "SweetyBabyDoll_3.jpg"
+            },
+            {
+              "source": "BRALACEFRONT",
+              "texture": "SweetyBabyDoll_3.jpg"
+            },
+            {
+              "source": "BRALACEFRONTL",
+              "texture": "SweetyBabyDoll_3.jpg"
+            },
+            {
+              "source": "BRALACEFRONTR",
+              "texture": "SweetyBabyDoll_3.jpg"
+            },
+            {
+              "source": "DRESSBACKL",
+              "texture": "SweetyBabyDoll_3.jpg"
+            },
+            {
+              "source": "DRESSBACKR",
+              "texture": "SweetyBabyDoll_3.jpg"
+            },
+            {
+              "source": "DRESSFRONT",
+              "texture": "SweetyBabyDoll_3.jpg"
+            },
+            {
+              "source": "LACEBACKL",
+              "texture": "SweetyBabyDoll_3.jpg"
+            },
+            {
+              "source": "LACEBACKR",
+              "texture": "SweetyBabyDoll_3.jpg"
+            },
+            {
+              "source": "LACEFRONT",
+              "texture": "SweetyBabyDoll_3.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BRABACK",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "BRAFRONT",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "BRALACEBACKL",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "BRALACEBACKR",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "BRALACEFRONT",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "BRALACEFRONTL",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "BRALACEFRONTR",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "DRESSBACKL",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "DRESSBACKR",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "DRESSFRONT",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "LACEBACKL",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "LACEBACKR",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "LACEFRONT",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "04BabyDoll",
+          "from": "dforceSweetyBabyDollG3F",
+          "textures": [
+            {
+              "source": "BRABACK",
+              "texture": "SweetyBabyDoll_4.jpg"
+            },
+            {
+              "source": "BRAFRONT",
+              "texture": "SweetyBabyDoll_4.jpg"
+            },
+            {
+              "source": "BRALACEBACKL",
+              "texture": "SweetyBabyDoll_4.jpg"
+            },
+            {
+              "source": "BRALACEBACKR",
+              "texture": "SweetyBabyDoll_4.jpg"
+            },
+            {
+              "source": "BRALACEFRONT",
+              "texture": "SweetyBabyDoll_4.jpg"
+            },
+            {
+              "source": "BRALACEFRONTL",
+              "texture": "SweetyBabyDoll_4.jpg"
+            },
+            {
+              "source": "BRALACEFRONTR",
+              "texture": "SweetyBabyDoll_4.jpg"
+            },
+            {
+              "source": "DRESSBACKL",
+              "texture": "SweetyBabyDoll_4.jpg"
+            },
+            {
+              "source": "DRESSBACKR",
+              "texture": "SweetyBabyDoll_4.jpg"
+            },
+            {
+              "source": "DRESSFRONT",
+              "texture": "SweetyBabyDoll_4.jpg"
+            },
+            {
+              "source": "LACEBACKL",
+              "texture": "SweetyBabyDoll_4.jpg"
+            },
+            {
+              "source": "LACEBACKR",
+              "texture": "SweetyBabyDoll_4.jpg"
+            },
+            {
+              "source": "LACEFRONT",
+              "texture": "SweetyBabyDoll_4.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BRABACK",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "BRAFRONT",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "BRALACEBACKL",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "BRALACEBACKR",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "BRALACEFRONT",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "BRALACEFRONTL",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "BRALACEFRONTR",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "DRESSBACKL",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "DRESSBACKR",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "DRESSFRONT",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "LACEBACKL",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "LACEBACKR",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "LACEFRONT",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "05BabyDoll",
+          "from": "dforceSweetyBabyDollG3F",
+          "textures": [
+            {
+              "source": "BRABACK",
+              "texture": "SweetyBabyDoll_5.jpg"
+            },
+            {
+              "source": "BRAFRONT",
+              "texture": "SweetyBabyDoll_5.jpg"
+            },
+            {
+              "source": "BRALACEBACKL",
+              "texture": "SweetyBabyDoll_5.jpg"
+            },
+            {
+              "source": "BRALACEBACKR",
+              "texture": "SweetyBabyDoll_5.jpg"
+            },
+            {
+              "source": "BRALACEFRONT",
+              "texture": "SweetyBabyDoll_5.jpg"
+            },
+            {
+              "source": "BRALACEFRONTL",
+              "texture": "SweetyBabyDoll_5.jpg"
+            },
+            {
+              "source": "BRALACEFRONTR",
+              "texture": "SweetyBabyDoll_5.jpg"
+            },
+            {
+              "source": "DRESSBACKL",
+              "texture": "SweetyBabyDoll_5.jpg"
+            },
+            {
+              "source": "DRESSBACKR",
+              "texture": "SweetyBabyDoll_5.jpg"
+            },
+            {
+              "source": "DRESSFRONT",
+              "texture": "SweetyBabyDoll_5.jpg"
+            },
+            {
+              "source": "LACEBACKL",
+              "texture": "SweetyBabyDoll_5.jpg"
+            },
+            {
+              "source": "LACEBACKR",
+              "texture": "SweetyBabyDoll_5.jpg"
+            },
+            {
+              "source": "LACEFRONT",
+              "texture": "SweetyBabyDoll_5.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BRABACK",
+              "color": "#F0F0F0"
+            },
+            {
+              "source": "BRAFRONT",
+              "color": "#F0F0F0"
+            },
+            {
+              "source": "BRALACEBACKL",
+              "color": "#F0F0F0"
+            },
+            {
+              "source": "BRALACEBACKR",
+              "color": "#F0F0F0"
+            },
+            {
+              "source": "BRALACEFRONT",
+              "color": "#F0F0F0"
+            },
+            {
+              "source": "BRALACEFRONTL",
+              "color": "#F0F0F0"
+            },
+            {
+              "source": "BRALACEFRONTR",
+              "color": "#F0F0F0"
+            },
+            {
+              "source": "DRESSBACKL",
+              "color": "#F0F0F0"
+            },
+            {
+              "source": "DRESSBACKR",
+              "color": "#F0F0F0"
+            },
+            {
+              "source": "DRESSFRONT",
+              "color": "#F0F0F0"
+            },
+            {
+              "source": "LACEBACKL",
+              "color": "#F0F0F0"
+            },
+            {
+              "source": "LACEBACKR",
+              "color": "#F0F0F0"
+            },
+            {
+              "source": "LACEFRONT",
+              "color": "#F0F0F0"
+            }
+          ]
+        },
+        {
+          "name": "06 BabyDoll",
+          "from": "dforceSweetyBabyDollG3F",
+          "textures": [
+            {
+              "source": "BRABACK",
+              "texture": "SweetyBabyDoll_6.jpg"
+            },
+            {
+              "source": "BRAFRONT",
+              "texture": "SweetyBabyDoll_6.jpg"
+            },
+            {
+              "source": "BRALACEBACKL",
+              "texture": "SweetyBabyDoll_6.jpg"
+            },
+            {
+              "source": "BRALACEBACKR",
+              "texture": "SweetyBabyDoll_6.jpg"
+            },
+            {
+              "source": "BRALACEFRONT",
+              "texture": "SweetyBabyDoll_6.jpg"
+            },
+            {
+              "source": "BRALACEFRONTL",
+              "texture": "SweetyBabyDoll_6.jpg"
+            },
+            {
+              "source": "BRALACEFRONTR",
+              "texture": "SweetyBabyDoll_6.jpg"
+            },
+            {
+              "source": "DRESSBACKL",
+              "texture": "SweetyBabyDoll_6.jpg"
+            },
+            {
+              "source": "DRESSBACKR",
+              "texture": "SweetyBabyDoll_6.jpg"
+            },
+            {
+              "source": "DRESSFRONT",
+              "texture": "SweetyBabyDoll_6.jpg"
+            },
+            {
+              "source": "LACEBACKL",
+              "texture": "SweetyBabyDoll_6.jpg"
+            },
+            {
+              "source": "LACEBACKR",
+              "texture": "SweetyBabyDoll_6.jpg"
+            },
+            {
+              "source": "LACEFRONT",
+              "texture": "SweetyBabyDoll_6.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BRABACK",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "BRAFRONT",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "BRALACEBACKL",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "BRALACEBACKR",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "BRALACEFRONT",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "BRALACEFRONTL",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "BRALACEFRONTR",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "DRESSBACKL",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "DRESSBACKR",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "DRESSFRONT",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "LACEBACKL",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "LACEBACKR",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "LACEFRONT",
+              "color": "#CCCCCC"
+            }
+          ]
+        },
+        {
+          "name": "07 BabyDoll",
+          "from": "dforceSweetyBabyDollG3F",
+          "textures": [
+            {
+              "source": "BRABACK",
+              "texture": "SweetyBabyDoll_7.jpg"
+            },
+            {
+              "source": "BRAFRONT",
+              "texture": "SweetyBabyDoll_7.jpg"
+            },
+            {
+              "source": "BRALACEBACKL",
+              "texture": "SweetyBabyDoll_7.jpg"
+            },
+            {
+              "source": "BRALACEBACKR",
+              "texture": "SweetyBabyDoll_7.jpg"
+            },
+            {
+              "source": "BRALACEFRONT",
+              "texture": "SweetyBabyDoll_7.jpg"
+            },
+            {
+              "source": "BRALACEFRONTL",
+              "texture": "SweetyBabyDoll_7.jpg"
+            },
+            {
+              "source": "BRALACEFRONTR",
+              "texture": "SweetyBabyDoll_7.jpg"
+            },
+            {
+              "source": "DRESSBACKL",
+              "texture": "SweetyBabyDoll_7.jpg"
+            },
+            {
+              "source": "DRESSBACKR",
+              "texture": "SweetyBabyDoll_7.jpg"
+            },
+            {
+              "source": "DRESSFRONT",
+              "texture": "SweetyBabyDoll_7.jpg"
+            },
+            {
+              "source": "LACEBACKL",
+              "texture": "SweetyBabyDoll_7.jpg"
+            },
+            {
+              "source": "LACEBACKR",
+              "texture": "SweetyBabyDoll_7.jpg"
+            },
+            {
+              "source": "LACEFRONT",
+              "texture": "SweetyBabyDoll_7.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BRABACK",
+              "color": "#E6E6E6"
+            },
+            {
+              "source": "BRAFRONT",
+              "color": "#E6E6E6"
+            },
+            {
+              "source": "BRALACEBACKL",
+              "color": "#E9E9E9"
+            },
+            {
+              "source": "BRALACEBACKR",
+              "color": "#E9E9E9"
+            },
+            {
+              "source": "BRALACEFRONT",
+              "color": "#E9E9E9"
+            },
+            {
+              "source": "BRALACEFRONTL",
+              "color": "#E9E9E9"
+            },
+            {
+              "source": "BRALACEFRONTR",
+              "color": "#E9E9E9"
+            },
+            {
+              "source": "DRESSBACKL",
+              "color": "#E6E6E6"
+            },
+            {
+              "source": "DRESSBACKR",
+              "color": "#E6E6E6"
+            },
+            {
+              "source": "DRESSFRONT",
+              "color": "#E6E6E6"
+            },
+            {
+              "source": "LACEBACKL",
+              "color": "#E9E9E9"
+            },
+            {
+              "source": "LACEBACKR",
+              "color": "#E9E9E9"
+            },
+            {
+              "source": "LACEFRONT",
+              "color": "#E9E9E9"
+            }
+          ]
+        },
+        {
+          "name": "08BabyDoll",
+          "from": "dforceSweetyBabyDollG3F",
+          "textures": [
+            {
+              "source": "BRABACK",
+              "texture": "SweetyBabyDoll_8.jpg"
+            },
+            {
+              "source": "BRAFRONT",
+              "texture": "SweetyBabyDoll_8.jpg"
+            },
+            {
+              "source": "BRALACEBACKL",
+              "texture": "SweetyBabyDoll_8.jpg"
+            },
+            {
+              "source": "BRALACEBACKR",
+              "texture": "SweetyBabyDoll_8.jpg"
+            },
+            {
+              "source": "BRALACEFRONT",
+              "texture": "SweetyBabyDoll_8.jpg"
+            },
+            {
+              "source": "BRALACEFRONTL",
+              "texture": "SweetyBabyDoll_8.jpg"
+            },
+            {
+              "source": "BRALACEFRONTR",
+              "texture": "SweetyBabyDoll_8.jpg"
+            },
+            {
+              "source": "DRESSBACKL",
+              "texture": "SweetyBabyDoll_8.jpg"
+            },
+            {
+              "source": "DRESSBACKR",
+              "texture": "SweetyBabyDoll_8.jpg"
+            },
+            {
+              "source": "DRESSFRONT",
+              "texture": "SweetyBabyDoll_8.jpg"
+            },
+            {
+              "source": "LACEBACKL",
+              "texture": "SweetyBabyDoll_8.jpg"
+            },
+            {
+              "source": "LACEBACKR",
+              "texture": "SweetyBabyDoll_8.jpg"
+            },
+            {
+              "source": "LACEFRONT",
+              "texture": "SweetyBabyDoll_8.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BRABACK",
+              "color": "#F0F0F0"
+            },
+            {
+              "source": "BRAFRONT",
+              "color": "#F0F0F0"
+            },
+            {
+              "source": "BRALACEBACKL",
+              "color": "#E2E2E2"
+            },
+            {
+              "source": "BRALACEBACKR",
+              "color": "#E2E2E2"
+            },
+            {
+              "source": "BRALACEFRONT",
+              "color": "#E2E2E2"
+            },
+            {
+              "source": "BRALACEFRONTL",
+              "color": "#E2E2E2"
+            },
+            {
+              "source": "BRALACEFRONTR",
+              "color": "#E2E2E2"
+            },
+            {
+              "source": "DRESSBACKL",
+              "color": "#F0F0F0"
+            },
+            {
+              "source": "DRESSBACKR",
+              "color": "#F0F0F0"
+            },
+            {
+              "source": "DRESSFRONT",
+              "color": "#F0F0F0"
+            },
+            {
+              "source": "LACEBACKL",
+              "color": "#E2E2E2"
+            },
+            {
+              "source": "LACEBACKR",
+              "color": "#E2E2E2"
+            },
+            {
+              "source": "LACEFRONT",
+              "color": "#E2E2E2"
+            }
+          ]
+        },
+        {
+          "name": "09BabyDoll",
+          "from": "dforceSweetyBabyDollG3F",
+          "textures": [
+            {
+              "source": "BRABACK",
+              "texture": "SweetyBabyDoll_9.jpg"
+            },
+            {
+              "source": "BRAFRONT",
+              "texture": "SweetyBabyDoll_9.jpg"
+            },
+            {
+              "source": "BRALACEBACKL",
+              "texture": "SweetyBabyDoll_9.jpg"
+            },
+            {
+              "source": "BRALACEBACKR",
+              "texture": "SweetyBabyDoll_9.jpg"
+            },
+            {
+              "source": "BRALACEFRONT",
+              "texture": "SweetyBabyDoll_9.jpg"
+            },
+            {
+              "source": "BRALACEFRONTL",
+              "texture": "SweetyBabyDoll_9.jpg"
+            },
+            {
+              "source": "BRALACEFRONTR",
+              "texture": "SweetyBabyDoll_9.jpg"
+            },
+            {
+              "source": "DRESSBACKL",
+              "texture": "SweetyBabyDoll_9.jpg"
+            },
+            {
+              "source": "DRESSBACKR",
+              "texture": "SweetyBabyDoll_9.jpg"
+            },
+            {
+              "source": "DRESSFRONT",
+              "texture": "SweetyBabyDoll_9.jpg"
+            },
+            {
+              "source": "LACEBACKL",
+              "texture": "SweetyBabyDoll_9.jpg"
+            },
+            {
+              "source": "LACEBACKR",
+              "texture": "SweetyBabyDoll_9.jpg"
+            },
+            {
+              "source": "LACEFRONT",
+              "texture": "SweetyBabyDoll_9.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BRABACK",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "BRAFRONT",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "BRALACEBACKL",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "BRALACEBACKR",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "BRALACEFRONT",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "BRALACEFRONTL",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "BRALACEFRONTR",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "DRESSBACKL",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "DRESSBACKR",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "DRESSFRONT",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "LACEBACKL",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "LACEBACKR",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "LACEFRONT",
+              "color": "#CCCCCC"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "dforceSweetyPanty_189",
+      "folder": "SweetyPanty",
+      "name": "SweetyPanty",
+      "simId": "underwear.briefs_sweety",
+      "layer": "Underwear",
+      "slots": [
+        "Belly",
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "LACEBACK",
+          "texture": "SweetyPanty_3_SweetyPanty_3T.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "BACK",
+          "texture": "SweetyPanty_3_SweetyPanty_3T.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "FRONT",
+          "texture": "SweetyPanty_3_SweetyPanty_3T.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "LACEFRONT",
+          "texture": "SweetyPanty_3_SweetyPanty_3T.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        }
+      ],
+      "_measured": {
+        "verts": 189,
+        "polys": 152,
+        "bbox": [
+          -14.7,
+          14.7,
+          87.8,
+          112.0,
+          -12.4,
+          12.0
+        ],
+        "zones": {
+          "Pelvis": 0.571,
+          "Belly": 0.429
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Lace Panties",
+        "nameRu": "Кружевные трусики",
+        "descEn": "In a set with the babydoll.",
+        "descRu": "В комплект к бэбидоллу.",
+        "warmth": 0.01,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso",
+          "Pelvis"
+        ]
+      },
+      "variants": [
+        {
+          "name": "01Panty",
+          "from": "dforceSweetyPantyG3F",
+          "textures": [
+            {
+              "source": "BACK",
+              "texture": "SweetyPanty_1.jpg"
+            },
+            {
+              "source": "FRONT",
+              "texture": "SweetyPanty_1.jpg"
+            },
+            {
+              "source": "LACEBACK",
+              "texture": "SweetyPanty_1.jpg"
+            },
+            {
+              "source": "LACEFRONT",
+              "texture": "SweetyPanty_1.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BACK",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "FRONT",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "LACEBACK",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "LACEFRONT",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "02 Panty",
+          "from": "dforceSweetyPantyG3F",
+          "textures": [
+            {
+              "source": "BACK",
+              "texture": "SweetyPanty_2.jpg"
+            },
+            {
+              "source": "FRONT",
+              "texture": "SweetyPanty_2.jpg"
+            },
+            {
+              "source": "LACEBACK",
+              "texture": "SweetyPanty_2.jpg"
+            },
+            {
+              "source": "LACEFRONT",
+              "texture": "SweetyPanty_2.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BACK",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "FRONT",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "LACEBACK",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "LACEFRONT",
+              "color": "#CCCCCC"
+            }
+          ]
+        },
+        {
+          "name": "03 Panty",
+          "from": "dforceSweetyPantyG3F",
+          "textures": [
+            {
+              "source": "BACK",
+              "texture": "SweetyPanty_3.jpg"
+            },
+            {
+              "source": "FRONT",
+              "texture": "SweetyPanty_3.jpg"
+            },
+            {
+              "source": "LACEBACK",
+              "texture": "SweetyPanty_3.jpg"
+            },
+            {
+              "source": "LACEFRONT",
+              "texture": "SweetyPanty_3.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BACK",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "FRONT",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "LACEBACK",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "LACEFRONT",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "04Panty",
+          "from": "dforceSweetyPantyG3F",
+          "textures": [
+            {
+              "source": "BACK",
+              "texture": "SweetyPanty_4.jpg"
+            },
+            {
+              "source": "FRONT",
+              "texture": "SweetyPanty_4.jpg"
+            },
+            {
+              "source": "LACEBACK",
+              "texture": "SweetyPanty_4.jpg"
+            },
+            {
+              "source": "LACEFRONT",
+              "texture": "SweetyPanty_4.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BACK",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "FRONT",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "LACEBACK",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "LACEFRONT",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "05Panty",
+          "from": "dforceSweetyPantyG3F",
+          "textures": [
+            {
+              "source": "BACK",
+              "texture": "SweetyPanty_5.jpg"
+            },
+            {
+              "source": "FRONT",
+              "texture": "SweetyPanty_5.jpg"
+            },
+            {
+              "source": "LACEBACK",
+              "texture": "SweetyPanty_5.jpg"
+            },
+            {
+              "source": "LACEFRONT",
+              "texture": "SweetyPanty_5.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BACK",
+              "color": "#F0F0F0"
+            },
+            {
+              "source": "FRONT",
+              "color": "#F0F0F0"
+            },
+            {
+              "source": "LACEBACK",
+              "color": "#F0F0F0"
+            },
+            {
+              "source": "LACEFRONT",
+              "color": "#F0F0F0"
+            }
+          ]
+        },
+        {
+          "name": "06Panty",
+          "from": "dforceSweetyPantyG3F",
+          "textures": [
+            {
+              "source": "BACK",
+              "texture": "SweetyPanty_6.jpg"
+            },
+            {
+              "source": "FRONT",
+              "texture": "SweetyPanty_6.jpg"
+            },
+            {
+              "source": "LACEBACK",
+              "texture": "SweetyPanty_6.jpg"
+            },
+            {
+              "source": "LACEFRONT",
+              "texture": "SweetyPanty_6.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BACK",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "FRONT",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "LACEBACK",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "LACEFRONT",
+              "color": "#CCCCCC"
+            }
+          ]
+        },
+        {
+          "name": "07Panty",
+          "from": "dforceSweetyPantyG3F",
+          "textures": [
+            {
+              "source": "BACK",
+              "texture": "SweetyPanty_7.jpg"
+            },
+            {
+              "source": "FRONT",
+              "texture": "SweetyPanty_7.jpg"
+            },
+            {
+              "source": "LACEBACK",
+              "texture": "SweetyPanty_7.jpg"
+            },
+            {
+              "source": "LACEFRONT",
+              "texture": "SweetyPanty_7.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BACK",
+              "color": "#E6E6E6"
+            },
+            {
+              "source": "FRONT",
+              "color": "#E6E6E6"
+            },
+            {
+              "source": "LACEBACK",
+              "color": "#E9E9E9"
+            },
+            {
+              "source": "LACEFRONT",
+              "color": "#E9E9E9"
+            }
+          ]
+        },
+        {
+          "name": "08Panty",
+          "from": "dforceSweetyPantyG3F",
+          "textures": [
+            {
+              "source": "BACK",
+              "texture": "SweetyPanty_8.jpg"
+            },
+            {
+              "source": "FRONT",
+              "texture": "SweetyPanty_8.jpg"
+            },
+            {
+              "source": "LACEBACK",
+              "texture": "SweetyPanty_8.jpg"
+            },
+            {
+              "source": "LACEFRONT",
+              "texture": "SweetyPanty_8.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BACK",
+              "color": "#E6E6E6"
+            },
+            {
+              "source": "FRONT",
+              "color": "#E6E6E6"
+            },
+            {
+              "source": "LACEBACK",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "LACEFRONT",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "09Panty",
+          "from": "dforceSweetyPantyG3F",
+          "textures": [
+            {
+              "source": "BACK",
+              "texture": "SweetyPanty_9.jpg"
+            },
+            {
+              "source": "FRONT",
+              "texture": "SweetyPanty_9.jpg"
+            },
+            {
+              "source": "LACEBACK",
+              "texture": "SweetyPanty_9.jpg"
+            },
+            {
+              "source": "LACEFRONT",
+              "texture": "SweetyPanty_9.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "BACK",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "FRONT",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "LACEBACK",
+              "color": "#CCCCCC"
+            },
+            {
+              "source": "LACEFRONT",
+              "color": "#CCCCCC"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Top_3237",
+      "folder": "YogaTop",
+      "name": "YogaTop",
+      "simId": "clothing.top_yoga",
+      "layer": "Wear",
+      "slots": [
+        "Chest"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "top",
+          "texture": "01 - Top_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 3237,
+        "polys": 3088,
+        "bbox": [
+          -14.8,
+          14.8,
+          124.6,
+          153.3,
+          -13.2,
+          14.1
+        ],
+        "zones": {
+          "Chest": 0.973,
+          "Neck": 0.027
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Yoga Top",
+        "nameRu": "Топ для йоги",
+        "descEn": "Stretch fabric, cut short. Made for moving.",
+        "descRu": "Тянущаяся ткань, короткий крой. Сделан для движения.",
+        "warmth": 0.04,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "variants": [
+        {
+          "name": "01 - Top",
+          "from": "Top",
+          "textures": [
+            {
+              "source": "top",
+              "texture": "01 - Top_color.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "top",
+              "color": "#ADADAD"
+            }
+          ]
+        },
+        {
+          "name": "02 - Top",
+          "from": "Top",
+          "textures": [
+            {
+              "source": "top",
+              "texture": "02 - Top_color.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "top",
+              "color": "#ADADAD"
+            }
+          ]
+        },
+        {
+          "name": "03 - Top",
+          "from": "Top",
+          "textures": [
+            {
+              "source": "top",
+              "texture": "03 - Top_color.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "top",
+              "color": "#ADADAD"
+            }
+          ]
+        },
+        {
+          "name": "04 - Top",
+          "from": "Top",
+          "textures": [
+            {
+              "source": "top",
+              "texture": "04 - Top_color.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "top",
+              "color": "#ADADAD"
+            }
+          ]
+        },
+        {
+          "name": "05 - Top",
+          "from": "Top",
+          "textures": [
+            {
+              "source": "top",
+              "texture": "05 - Top_color.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "top",
+              "color": "#ADADAD"
+            }
+          ]
+        },
+        {
+          "name": "06 - Top",
+          "from": "Top",
+          "textures": [
+            {
+              "source": "top",
+              "texture": "06 - Top_color.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "top",
+              "color": "#ADADAD"
+            }
+          ]
+        },
+        {
+          "name": "07 - Top",
+          "from": "Top",
+          "textures": [
+            {
+              "source": "top",
+              "texture": "07 - Top_color.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "top",
+              "color": "#ADADAD"
+            }
+          ]
+        },
+        {
+          "name": "08 - Top",
+          "from": "Top",
+          "textures": [
+            {
+              "source": "top",
+              "texture": "08 - Top_colorb.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "top",
+              "color": "#ADADAD"
+            }
+          ]
+        },
+        {
+          "name": "09 - Top",
+          "from": "Top",
+          "textures": [
+            {
+              "source": "top",
+              "texture": "09 - Top_color.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "top",
+              "color": "#ADADAD"
+            }
+          ]
+        },
+        {
+          "name": "10 - Top",
+          "from": "Top",
+          "textures": [
+            {
+              "source": "top",
+              "texture": "10 - Top_color.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "top",
+              "color": "#ADADAD"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Pants_4075",
+      "folder": "YogaPants",
+      "name": "YogaPants",
+      "simId": "clothing.leggings_yoga",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis",
+        "ThighR",
+        "ThighL",
+        "ShinR",
+        "ShinL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "pants",
+          "texture": "01 - Pants_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 4075,
+        "polys": 4020,
+        "bbox": [
+          -19.1,
+          19.1,
+          16.7,
+          103.9,
+          -12.7,
+          11.6
+        ],
+        "zones": {
+          "Pelvis": 0.432,
+          "Thigh": 0.297,
+          "Shin": 0.271
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Yoga Leggings",
+        "nameRu": "Легинсы для йоги",
+        "descEn": "Stretch to the ankle. Warm enough to sleep in.",
+        "descRu": "Тянутся до щиколотки. В таких и спать не холодно.",
+        "warmth": 0.09,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "01 - Pants",
+          "from": "Pants",
+          "textures": [
+            {
+              "source": "pants",
+              "texture": "01 - Pants_color.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "pants",
+              "color": "#ADADAD"
+            }
+          ]
+        },
+        {
+          "name": "02 - Pants",
+          "from": "Pants",
+          "textures": [
+            {
+              "source": "pants",
+              "texture": "02 - Pants_color.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "pants",
+              "color": "#ADADAD"
+            }
+          ]
+        },
+        {
+          "name": "03 - Pants",
+          "from": "Pants",
+          "textures": [
+            {
+              "source": "pants",
+              "texture": "03 - Pants_color.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "pants",
+              "color": "#ADADAD"
+            }
+          ]
+        },
+        {
+          "name": "04 - Pants",
+          "from": "Pants",
+          "textures": [
+            {
+              "source": "pants",
+              "texture": "04 - Pants_color.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "pants",
+              "color": "#ADADAD"
+            }
+          ]
+        },
+        {
+          "name": "05 - Pants",
+          "from": "Pants",
+          "textures": [
+            {
+              "source": "pants",
+              "texture": "05 - Pants_color.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "pants",
+              "color": "#ADADAD"
+            }
+          ]
+        },
+        {
+          "name": "06 - Pants",
+          "from": "Pants",
+          "textures": [
+            {
+              "source": "pants",
+              "texture": "06 - Pants_color.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "pants",
+              "color": "#ADADAD"
+            }
+          ]
+        },
+        {
+          "name": "07 - Pants",
+          "from": "Pants",
+          "textures": [
+            {
+              "source": "pants",
+              "texture": "07 - Pants_color.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "pants",
+              "color": "#ADADAD"
+            }
+          ]
+        },
+        {
+          "name": "08 - Pants",
+          "from": "Pants",
+          "textures": [
+            {
+              "source": "pants",
+              "texture": "08 - Pants_color.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "pants",
+              "color": "#ADADAD"
+            }
+          ]
+        },
+        {
+          "name": "09 - Pants",
+          "from": "Pants",
+          "textures": [
+            {
+              "source": "pants",
+              "texture": "09 - Pants_color.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "pants",
+              "color": "#ADADAD"
+            }
+          ]
+        },
+        {
+          "name": "10 - Pants",
+          "from": "Pants",
+          "textures": [
+            {
+              "source": "pants",
+              "texture": "10 - Pants_color.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "pants",
+              "color": "#ADADAD"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "ndrss_dress_27797",
+      "folder": "NightDress",
+      "name": "NightDress",
+      "simId": "clothing.dress_night",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "Belly",
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Base",
+          "texture": "mytilus_ndrss_dress_tex.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Clasp",
+          "texture": null,
+          "color": "#FFE29B",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "SkirtLace",
+          "texture": "mytilus_ndrss_dress_tex_mytilus_ndrss_dress_tr.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        }
+      ],
+      "_measured": {
+        "verts": 27797,
+        "polys": 27342,
+        "bbox": [
+          -22.0,
+          22.0,
+          83.8,
+          138.1,
+          -17.2,
+          16.2
+        ],
+        "zones": {
+          "Pelvis": 0.607,
+          "Chest": 0.276,
+          "Belly": 0.107,
+          "Thigh": 0.01
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Night Dress",
+        "nameRu": "Ночное платье",
+        "descEn": "Lace at the hem, a clasp at the shoulder. Not made for outdoors.",
+        "descRu": "Кружево по низу, застёжка на плече. Не для улицы.",
+        "warmth": 0.06,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso",
+          "Pelvis"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Default",
+          "from": "ND Dress",
+          "textures": [
+            {
+              "source": "Base",
+              "texture": "mytilus_ndrss_dress_tex.jpg"
+            },
+            {
+              "source": "SkirtLace",
+              "texture": "mytilus_ndrss_dress_tex.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Base",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Clasp",
+              "color": "#FFE29B"
+            },
+            {
+              "source": "SkirtLace",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "Red",
+          "from": "ND Dress",
+          "textures": [
+            {
+              "source": "Base",
+              "texture": "mytilus_ndrss_dressR_tex.jpg"
+            },
+            {
+              "source": "SkirtLace",
+              "texture": "mytilus_ndrss_dressR_tex.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Base",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Clasp",
+              "color": "#FFE29B"
+            },
+            {
+              "source": "SkirtLace",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "White",
+          "from": "ND Dress",
+          "textures": [
+            {
+              "source": "Base",
+              "texture": "mytilus_ndrss_dressW_tex.jpg"
+            },
+            {
+              "source": "SkirtLace",
+              "texture": "mytilus_ndrss_dressW_tex.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Base",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Clasp",
+              "color": "#FFE29B"
+            },
+            {
+              "source": "SkirtLace",
+              "color": "#FFFFFF"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "ndrss_necklace_44217",
+      "folder": "NightNecklace",
+      "name": "NightNecklace",
+      "simId": "clothing.necklace_beads",
+      "layer": "Wear",
+      "slots": [
+        "Neck",
+        "Chest"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "SBean",
+          "texture": null,
+          "color": "#FFE29B",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "BBean",
+          "texture": null,
+          "color": "#E6E6E6",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Metal",
+          "texture": null,
+          "color": "#FFE29B",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 44217,
+        "polys": 43568,
+        "bbox": [
+          -8.0,
+          7.6,
+          144.4,
+          155.4,
+          -9.7,
+          6.1
+        ],
+        "zones": {
+          "Chest": 0.519,
+          "Neck": 0.481
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Beaded Necklace",
+        "nameRu": "Бусы",
+        "descEn": "Beads on a metal chain. Worth nothing and kept anyway.",
+        "descRu": "Бусины на металлической цепочке. Ничего не стоят, а хранят.",
+        "warmth": 0.0,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "variants": []
+    }
+  ]
+}

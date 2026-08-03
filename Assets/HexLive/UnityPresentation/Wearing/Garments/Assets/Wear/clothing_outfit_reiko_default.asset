@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_outfit_reiko_default
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.outfit_reiko_default
+  prototypeId: clothing.outfit_reiko
+  displayName: 
+  variantMaterials:
+  - {fileID: 2100000, guid: 5b19c581e97785845a3580d79f832b59, type: 2}
+  - {fileID: 2100000, guid: 00772e975c7f0fd4aa0cd8eed79fb9c3, type: 2}
+  - {fileID: 2100000, guid: f49b8531e2020894293442f3ba1020bf, type: 2}
+  - {fileID: 2100000, guid: f0afc68ff194eee44b085b4a1f783cc9, type: 2}
+  - {fileID: 2100000, guid: 7dcf20c5bbc693948ae14eb6e800aa83, type: 2}
+  - {fileID: 2100000, guid: bfd53f813fcaa544f81f4550e5142786, type: 2}
+  - {fileID: 2100000, guid: 794e19d154ae7524da6169bb8651face, type: 2}
+  - {fileID: 2100000, guid: 531b012c7c2eb3a479282fad96186eb6, type: 2}
+  - {fileID: 2100000, guid: 057e25fd66b098a47a09b16fb7d4d070, type: 2}
+  - {fileID: 2100000, guid: a5df25bc9ef0bae42916a6f6762b0be8, type: 2}
+  - {fileID: 2100000, guid: 789d27b1ed0e79e46834c402a53246de, type: 2}
+  - {fileID: 2100000, guid: f2a8149f5257f2040b20505114bbb858, type: 2}
+  - {fileID: 2100000, guid: 91aadbcbf66f43043b51e0a72cab370a, type: 2}
+  - {fileID: 2100000, guid: 09f2e0581a030254ea339c622216f3c3, type: 2}
+  - {fileID: 2100000, guid: 2d34a7a483b46ec47a8a09d6889eff2e, type: 2}
+  - {fileID: 2100000, guid: 033eb5c943c98b246bfd4765ee9f682e, type: 2}
+  - {fileID: 2100000, guid: a7b8e5d2ded72b24ba7e8b7c1e64636e, type: 2}
+  layer: 1
+  covers: 
+  warmth: 0.1
+  armor: 0
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

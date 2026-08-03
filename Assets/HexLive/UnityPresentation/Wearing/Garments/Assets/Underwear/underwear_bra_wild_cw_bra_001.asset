@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: underwear_bra_wild_cw_bra_001
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: underwear.bra_wild_cw_bra_001
+  prototypeId: underwear.bra_wild
+  displayName: 
+  variantMaterials:
+  - {fileID: 2100000, guid: c19112aebd471d64882410d95d89e5dc, type: 2}
+  - {fileID: 2100000, guid: 7c4fc94fee1522b4298c468339aa2215, type: 2}
+  - {fileID: 2100000, guid: d9410c2f32c08324482eb3de9a3b128c, type: 2}
+  layer: 1
+  covers: 
+  warmth: 0.1
+  armor: 0
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

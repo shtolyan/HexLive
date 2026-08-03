@@ -249,6 +249,118 @@ MonoBehaviour:
       - 'Простодушная'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'attr.strength.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'How hard she hits in a fight, how much she can carry, and how fast she gets through heavy work — felling, mining, building.'
+      - 'Насколько тяжело она бьёт, сколько уносит в руках и как быстро справляется с тяжёлой работой — рубкой, дроблением, стройкой.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'attr.agility.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'How fast she walks and turns, and how quickly she recovers between blows in a fight.'
+      - 'Как быстро она ходит и разворачивается и как скоро заносит руку для следующего удара.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'attr.endurance.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Her stamina reserve and how slowly she spends it working, how long she can hold a run, and how long she can stay on her feet before sleep drags her down.'
+      - 'Запас сил и как медленно он тратится на работе, надолго ли её хватает на бегу и сколько она может не спать, пока усталость не свалит.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'attr.toughness.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'How much of a blow actually reaches the flesh, how slowly she bleeds, and how fast wounds close. She has no larger health bar than anyone else — she simply takes less.'
+      - 'Сколько от удара доходит до тела, как медленно она истекает кровью и как быстро затягиваются раны. Здоровья у неё не больше, чем у других, — до неё просто меньше доходит.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'attr.hardiness.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'How long she goes without food and water, and how lightly heat and cold press on her.'
+      - 'Сколько она может не есть и не пить и насколько легко переносит жару и холод.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'attr.wits.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'How quickly she picks up a trade, and how fast her hands work at crafting and doctoring.'
+      - 'Как быстро она осваивает ремёсла и насколько споро работают руки в крафте и врачевании.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'skill.combat.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Grows with every blow she lands. A practised fighter hits harder with the same weapon.'
+      - 'Растёт с каждого попадания. Умелая бьёт тем же оружием больнее.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'skill.harvesting.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Grows from chopping, mining and cutting. A practised hand strips a palm or a boulder faster.'
+      - 'Растёт от рубки, дробления и резки. Набитая рука быстрее валит пальму и разбивает валун.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'skill.crafting.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Grows from making things. A practised crafter finishes the same item sooner.'
+      - 'Растёт от изготовления вещей. Умелая делает ту же вещь быстрее.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'skill.building.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Grows from raising build-sites. A practised builder drives the same piece home faster.'
+      - 'Растёт от стройки. Умелая ставит ту же деталь быстрее.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'skill.cooking.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Grows from cooking over the fire. A practised cook gets the meal ready sooner.'
+      - 'Растёт от готовки на огне. Умелая доводит еду до готовности быстрее.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'skill.medicine.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Grows from dressing wounds — her own and other people's. A practised healer gets more out of the same bandage.'
+      - 'Растёт от перевязок — своих и чужих. Умелая выжимает из того же бинта больше.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'skill.survival.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Grows from tending the fire, filling bottles and butchering. The daily work of staying alive, done faster.'
+      - 'Растёт от топки огня, набора воды и разделки. Повседневная работа выживания идёт быстрее.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'skill.social.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Grows from talking and comforting. A good listener calms a housemate further.'
+      - 'Растёт от разговоров и утешения. Хорошая слушательница успокаивает соседку сильнее.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'panel.relations'
       TermType: 0
       Description: 

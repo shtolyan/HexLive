@@ -72,6 +72,49 @@ internal static class AttributeMath
         }
     }
 
+    // ---- Training -----------------------------------------------------------
+
+    // §76.13: the body conditions itself. `effort` is the raw amount of the
+    // taxing thing (ticks worked, damage taken, blows landed), already scaled
+    // by its own Spec76 rate at the call site.
+    //
+    // No cap at 1.0 and no cap at the roll band: the roll is a starting hand.
+    // The brake is the distance left to AttributeTrainCeiling, squared — so the
+    // first points come easily and the last ones effectively never arrive. That
+    // shape is also why the sheet shows a bare number and no bar: there is a
+    // ceiling in the maths, but not one the player should read as a finish line.
+    //
+    // Only ever RAISES. Nothing in §76 takes an attribute away — a body that
+    // stops working does not un-learn being strong, it is only out-paced.
+    public static void Train(NPCState npc, AttributeKind kind, float effort)
+    {
+        if (!Spec76.Enabled || !Spec76.AttributeTrainEnabled || effort <= 0f)
+        {
+            return;
+        }
+
+        var ceiling = Spec76.AttributeTrainCeiling;
+        var current = npc.Attributes.Get(kind);
+        if (ceiling <= 0f || current >= ceiling)
+        {
+            return;
+        }
+
+        var headroom = (ceiling - current) / ceiling;
+        var next = current + effort * headroom * headroom;
+        npc.Attributes.Set(kind, System.MathF.Min(ceiling, next));
+    }
+
+    // The attribute a finished job conditions — the same map that decides how
+    // fast she does it, so the thing she is good at is the thing she trains.
+    public static void TrainFromWork(NPCState npc, InteractionType type, GoalType goal, int durationTicks)
+    {
+        if (durationTicks > 0)
+        {
+            Train(npc, WorkAttribute(type, goal), Spec76.AttributeTrainPerWorkTick * durationTicks);
+        }
+    }
+
     // ---- The shape of every multiplier --------------------------------------
 
     // `1 + (attr − Mean) × gain`. At Mean the deviation is 0 and this is

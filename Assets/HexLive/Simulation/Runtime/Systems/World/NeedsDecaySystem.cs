@@ -334,6 +334,17 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // down toward sleep slower. (Fighting still suspends the drain
             // entirely, as before.)
             var energyDrain = npc.IsFighting ? 0f : EnergyRate * AttributeMath.EnergyDrainMult(npc);
+
+            // §76.13: Hardiness has only one teacher — going without. Counted
+            // while she is genuinely in the red on food, water or temperature,
+            // not merely peckish, so a comfortable colony never trains it.
+            if (npc.Needs.Hunger >= Spec76.AttributeHardshipGate ||
+                npc.Needs.Thirst >= Spec76.AttributeHardshipGate ||
+                npc.Needs.ThermalDiscomfort >= Spec76.AttributeHardshipGate)
+            {
+                AttributeMath.Train(npc, AttributeKind.Hardiness,
+                    Spec76.AttributeTrainPerHardshipTick);
+            }
             npc.Needs.Energy = MathUtil.Clamp01(npc.Needs.Energy - energyDrain);
 
             // §54.11: faster sleep recovery — a base lift (shorter nights) plus a

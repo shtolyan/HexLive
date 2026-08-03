@@ -46,8 +46,10 @@ namespace HexLive.UnityPresentation.UI
         private Label _uvLabel;
         private VisualElement _statusDot;
         private Label _thoughtValue;
-        private VisualElement _healthFill;
-        private VisualElement _healthLockedFill;
+        // §105 r2: кольцо здоровья вокруг портрета. Горизонтальная полоска
+        // (_healthFill/_healthLockedFill) снята — два бара про одно и то же
+        // спорили бы друг с другом, а кольцо ещё и всегда рядом с лицом.
+        private RingMeter _healthRing;
         private Label _healthValue;
         private Label _starvingBadge;
         private VisualElement _needsContainer;
@@ -127,6 +129,10 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement _skillsContainer;
         private VisualElement _perkRow;
         private SheetTab _sheetTab = SheetTab.Needs;
+        // §76: what the sheet tooltip pops above — the whole middle column, so
+        // the card lands in one predictable place instead of chasing the row
+        // and clipping at the panel edge.
+        private VisualElement _sheetTooltipAnchor;
         private readonly List<SheetBinding> _attrBindings = new();
         private readonly List<SheetBinding> _skillBindings = new();
         private readonly List<string> _perkSig = new();
@@ -246,7 +252,6 @@ namespace HexLive.UnityPresentation.UI
             public SheetConfig Config;
             public Label Label;
             public Label Value;
-            public VisualElement Fill;
         }
 
         // §76.1 — the six innate characteristics. Order matches AttributeSet.All
@@ -591,11 +596,16 @@ namespace HexLive.UnityPresentation.UI
                 _relationsBuiltEmpty = false;
             }
 
-            var hp = Mathf.Clamp01(npc.Health);
-            _healthFill.style.width = Length.Percent(hp * 100f);
-            // Red right segment: HP that will NOT regen until wounds close.
+            // §105 r2: ХП — это ХУДШАЯ ВИТАЛЬНАЯ ЗОНА (голова/грудь), а не
+            // среднее по семи. Среднее врало в обе стороны: пробитая грудь при
+            // целых руках и ногах читалась как «75%, всё неплохо», хотя
+            // следующий удар убивает. Цвет берётся у той же функции, что красит
+            // куклу §57, — два мнения о «насколько всё плохо» разошлись бы.
+            var hp = Mathf.Clamp01(npc.VitalHealth);
+            _healthRing.Set(hp, HealthDollStage.StatusColor(hp, false));
+            // Красным по-прежнему считается то, что не отрастёт, пока открыты
+            // раны, — теперь это приписка к числу, а не второй бар.
             var locked = Mathf.Clamp01(npc.WoundLockedHp);
-            _healthLockedFill.style.width = Length.Percent(locked * 100f);
             _healthValue.text = locked > 0.005f
                 ? $"{Mathf.RoundToInt(hp * 100f)}% (-{Mathf.RoundToInt(locked * 100f)})"
                 : $"{Mathf.RoundToInt(hp * 100f)}%";
@@ -760,12 +770,18 @@ namespace HexLive.UnityPresentation.UI
                     break;
                 }
 
-                value = Mathf.Clamp01(value);
-                b.Fill.style.width = Length.Percent(value * 100f);
-                // Levels out of ten, not percent: the sheet is an RPG reading
-                // ("she is a 7 at crafting"), the needs grid is a gauge.
-                b.Value.text = $"{Mathf.RoundToInt(value * 10f)}/10";
-                b.Value.style.color = value >= 0.7f ? Gold : TextDim;
+                // A rating out of ten, with NO denominator and no bar: the sheet
+                // is an RPG reading ("she is a 7 at crafting"), and the number
+                // is not capped at the display's ten — it just reads high.
+                // Clamped only at zero; a value above 1.0 shows as 11, 12, …
+                // rather than pretending the scale ended.
+                value = Mathf.Max(0f, value);
+                b.Value.text = Mathf.RoundToInt(value * 10f).ToString();
+                // Same hue always (the row keeps its identity), brightness
+                // carries the magnitude. Deliberately NOT red-for-low: on a
+                // point-buy sheet a low line is a trade-off, not a defect, and
+                // an alarm colour would read as "something is wrong with her".
+                b.Value.style.color = Color.Lerp(TextMute, b.Config.Color, Mathf.Clamp01(value));
             }
         }
 
@@ -1054,11 +1070,17 @@ namespace HexLive.UnityPresentation.UI
                 : new Color(0.949f, 0.769f, 0.753f); // soft red for debuffs
             _effectTooltipDesc.text = Loc.Get(def.DescKey);
 
-            // Always the SAME spot: pinned to the row's left edge and lifted
-            // fully above it (percentage translate is of the tooltip's own
-            // height, so no measuring needed). The row's left sits ~20px from
-            // the screen edge, so the card can never run off-screen.
-            var rb = _effectsRow.worldBound;
+            PopTooltipAbove(_effectsRow);
+        }
+
+        // Always the SAME spot for a given row: pinned to the anchor's left edge
+        // and lifted fully above it (a percentage translate is of the tooltip's
+        // own height, so nothing needs measuring). Anchoring beats following the
+        // cursor here — a card that chases the mouse runs off-screen at the
+        // panel's edges, and these rows sit close to them.
+        private void PopTooltipAbove(VisualElement anchor)
+        {
+            var rb = anchor.worldBound;
             if (!float.IsNaN(rb.x))
             {
                 _effectTooltip.style.left = rb.x;
@@ -1067,6 +1089,23 @@ namespace HexLive.UnityPresentation.UI
             }
 
             _effectTooltip.style.display = DisplayStyle.Flex;
+        }
+
+        // §76: the character-sheet tooltip. Shares the one card with the effect
+        // chips — same look, one place to restyle — but anchors to the sheet
+        // column so the explanation pops next to what you are pointing at.
+        private void ShowSheetTooltip(SheetConfig config, VisualElement anchor)
+        {
+            if (_effectTooltip == null)
+            {
+                return;
+            }
+
+            _effectTooltipIcon.text = "?";
+            _effectTooltipTitle.text = Loc.Get(config.Key);
+            _effectTooltipTitle.style.color = Text;
+            _effectTooltipDesc.text = Loc.Get(config.Key + ".desc");
+            PopTooltipAbove(anchor);
         }
 
         private void HideEffectTooltip()
@@ -3195,15 +3234,32 @@ namespace HexLive.UnityPresentation.UI
             col.style.paddingRight = 18f;
             col.style.marginRight = 2f;
 
-            // Portrait
+            // Portrait, обведённый КОЛЬЦОМ ЗДОРОВЬЯ (§105 r2).
+            //
+            // Обёртка шире портрета ровно на толщину кольца, и портрет внутри
+            // отцентрован: кольцо рисуется по внешнему радиусу и не наползает
+            // на лицо. Живой бейдж по-прежнему висит в углу обёртки.
+            const float portraitSize = 156f;
+            const float ringPad = 9f;
             var wrap = new VisualElement();
-            wrap.style.width = 156f;
-            wrap.style.height = 156f;
+            wrap.style.width = portraitSize + ringPad * 2f;
+            wrap.style.height = portraitSize + ringPad * 2f;
             wrap.style.flexShrink = 0f;
+            wrap.style.alignItems = Align.Center;
+            wrap.style.justifyContent = Justify.Center;
+
+            _healthRing = new RingMeter(1f, HealthDollStage.StatusColor(1f, false));
+            _healthRing.style.position = Position.Absolute;
+            _healthRing.style.left = 0f;
+            _healthRing.style.right = 0f;
+            _healthRing.style.top = 0f;
+            _healthRing.style.bottom = 0f;
+            wrap.Add(_healthRing);
+
             _portrait = new VisualElement();
-            _portrait.style.width = 156f;
-            _portrait.style.height = 156f;
-            SetRadius(_portrait, 78f);
+            _portrait.style.width = portraitSize;
+            _portrait.style.height = portraitSize;
+            SetRadius(_portrait, portraitSize * 0.5f);
             _portrait.style.overflow = Overflow.Hidden;
             SetBorder(_portrait, Gold, 2.5f);
             _portrait.style.backgroundColor = new Color(0.10f, 0.12f, 0.14f);
@@ -3264,22 +3320,12 @@ namespace HexLive.UnityPresentation.UI
 
             HookHealthClick(hRow);
 
-            // Spec 40.8B: Fallout-style HP bar — green = current health,
-            // red (right-anchored) = HP locked by open wounds; regen can only
-            // fill the gap between them, the red shrinks as wounds close.
-            var hTrack = MakeTrack(5f);
-            _healthFill = MakeFill(new Color(0.36f, 0.72f, 0.33f));
-            hTrack.Add(_healthFill);
-            _healthLockedFill = new VisualElement();
-            _healthLockedFill.style.position = Position.Absolute;
-            _healthLockedFill.style.right = 0f;
-            _healthLockedFill.style.top = 0f;
-            _healthLockedFill.style.bottom = 0f;
-            _healthLockedFill.style.width = Length.Percent(0f);
-            _healthLockedFill.style.backgroundColor = new Color(0.72f, 0.16f, 0.14f);
-            hTrack.Add(_healthLockedFill);
-            info.Add(hTrack);
-            HookHealthClick(hTrack);
+            // §105 r2: горизонтальной полоски здоровья больше нет — её место
+            // занял круг вокруг портрета (см. wrap выше). Два бара про одно и
+            // то же спорили бы друг с другом, а кольцо вдобавок всегда рядом с
+            // лицом: видно, КОМУ скоро конец, не читая цифр.
+            // По портрету тоже кликается кукла §57.
+            HookHealthClick(wrap);
 
             // Status chip + badge in a row
             var statusRow = new VisualElement();
@@ -3438,8 +3484,10 @@ namespace HexLive.UnityPresentation.UI
                 }
             }
 
-            // §76: «Природа» — six innate characteristics, three across, plus
-            // the perk badges the extremes earn.
+            // §76: «Природа» — six innate characteristics, plus the perk badges
+            // the extremes earn. Two across: without a bar a row is just
+            // "7 · Неприхотливость", so it wants width for the word rather than
+            // for a track, and three-up clipped the longer Russian names.
             _natureContainer = new VisualElement();
             var attrGrid = new VisualElement();
             attrGrid.style.flexDirection = FlexDirection.Row;
@@ -3447,7 +3495,7 @@ namespace HexLive.UnityPresentation.UI
             _attrBindings.Clear();
             foreach (var row in AttributeRows)
             {
-                attrGrid.Add(BuildSheetCell(row, 33f, _attrBindings));
+                attrGrid.Add(BuildSheetCell(row, 32f, _attrBindings));
             }
 
             _natureContainer.Add(attrGrid);
@@ -3466,11 +3514,12 @@ namespace HexLive.UnityPresentation.UI
             _skillBindings.Clear();
             foreach (var row in SkillRows)
             {
-                _skillsContainer.Add(BuildSheetCell(row, 25f, _skillBindings));
+                _skillsContainer.Add(BuildSheetCell(row, 24f, _skillBindings));
             }
 
             col.Add(_skillsContainer);
 
+            _sheetTooltipAnchor = col;
             SelectSheetTab(SheetTab.Needs);
             return col;
         }
@@ -3516,52 +3565,84 @@ namespace HexLive.UnityPresentation.UI
             _refreshedTick = -1;
         }
 
-        // §76: a sheet row — name, level out of ten, and a bar. Same anatomy as
-        // a need cell minus the icon, so the two pages sit at the same rhythm.
+        // §76: a sheet row — a big number and a name. NO progress bar, on
+        // purpose: a bar draws a ceiling, and these have none. A characteristic
+        // is a rating that can keep climbing, so "7" is the honest reading
+        // while "7/10 filled" would promise a finish line that does not exist.
+        // (That is also why the value carries no denominator.)
+        //
+        // Hovering the cell explains what the line actually does — the numbers
+        // are meaningless to a player who has not read the spec, and a rating
+        // with no bar gives even less of a hint than one with.
         private VisualElement BuildSheetCell(SheetConfig config, float widthPercent,
             List<SheetBinding> bindings)
         {
             var cell = new VisualElement();
+            cell.style.flexDirection = FlexDirection.Row;
+            cell.style.alignItems = Align.Center;
             cell.style.width = Length.Percent(widthPercent);
-            cell.style.paddingRight = 16f;
-            cell.style.marginTop = 9f;
-            cell.style.marginBottom = 9f;
+            cell.style.paddingLeft = 10f;
+            cell.style.paddingRight = 10f;
+            cell.style.paddingTop = 6f;
+            cell.style.paddingBottom = 6f;
+            cell.style.marginRight = 6f;
+            cell.style.marginTop = 4f;
+            cell.style.marginBottom = 4f;
+            SetRadius(cell, 8f);
 
-            var top = new VisualElement();
-            top.style.flexDirection = FlexDirection.Row;
-            top.style.alignItems = Align.Center;
-            top.style.marginBottom = 6f;
+            // The rating, reading as the headline of the row.
+            var value = new Label("—");
+            value.style.color = config.Color;
+            value.style.fontSize = 20;
+            value.style.unityFontStyleAndWeight = FontStyle.Bold;
+            value.style.flexShrink = 0f;
+            value.style.minWidth = 26f;
+            value.style.unityTextAlign = TextAnchor.MiddleRight;
+            value.style.marginRight = 9f;
+            value.pickingMode = PickingMode.Ignore;
+            cell.Add(value);
 
             var label = new Label();
-            label.style.color = Text;
+            label.style.color = TextDim;
             label.style.fontSize = 12;
             label.style.flexGrow = 1f;
             label.style.overflow = Overflow.Hidden;
             label.style.textOverflow = TextOverflow.Ellipsis;
             label.style.whiteSpace = WhiteSpace.NoWrap;
+            label.pickingMode = PickingMode.Ignore;
+            cell.Add(label);
 
-            var value = new Label("—");
-            value.style.color = TextDim;
-            value.style.fontSize = 11;
-            value.style.unityFontStyleAndWeight = FontStyle.Bold;
-            value.style.flexShrink = 0f;
-            value.style.marginLeft = 6f;
+            // The affordance: a faint "?" that says the row can be read. It
+            // brightens with the rest of the cell on hover, so it never nags.
+            var hint = new Label("?");
+            hint.style.color = new Color(1f, 1f, 1f, 0.18f);
+            hint.style.fontSize = 11;
+            hint.style.unityFontStyleAndWeight = FontStyle.Bold;
+            hint.style.flexShrink = 0f;
+            hint.style.marginLeft = 4f;
+            hint.pickingMode = PickingMode.Ignore;
+            cell.Add(hint);
 
-            top.Add(label);
-            top.Add(value);
-            cell.Add(top);
-
-            var track = MakeTrack(9f);
-            var fill = MakeFill(config.Color);
-            track.Add(fill);
-            cell.Add(track);
+            cell.RegisterCallback<MouseEnterEvent>(_ =>
+            {
+                cell.style.backgroundColor = Raised;
+                hint.style.color = Gold;
+                label.style.color = Text;
+                ShowSheetTooltip(config, _sheetTooltipAnchor ?? cell);
+            });
+            cell.RegisterCallback<MouseLeaveEvent>(_ =>
+            {
+                cell.style.backgroundColor = Color.clear;
+                hint.style.color = new Color(1f, 1f, 1f, 0.18f);
+                label.style.color = TextDim;
+                HideEffectTooltip();
+            });
 
             bindings.Add(new SheetBinding
             {
                 Config = config,
                 Label = label,
-                Value = value,
-                Fill = fill
+                Value = value
             });
 
             return cell;
@@ -3945,8 +4026,8 @@ namespace HexLive.UnityPresentation.UI
 
         private sealed class RingMeter : VisualElement
         {
-            private readonly float _value;
-            private readonly Color _color;
+            private float _value;
+            private Color _color;
 
             public RingMeter(float value, Color color)
             {
@@ -3954,6 +4035,24 @@ namespace HexLive.UnityPresentation.UI
                 _color = color;
                 pickingMode = PickingMode.Ignore;
                 generateVisualContent += OnGenerate;
+            }
+
+            // §105 r2: кольцо здоровья живёт весь кадр и меняется каждый тик —
+            // в отличие от колец нужд, которые пересоздаются вместе со строкой.
+            // Перерисовка запрашивается только на РЕАЛЬНОМ изменении: панель
+            // обновляется каждый кадр, и безусловный MarkDirtyRepaint гонял бы
+            // генератор меша впустую.
+            public void Set(float value, Color color)
+            {
+                value = Mathf.Clamp01(value);
+                if (Mathf.Abs(value - _value) < 0.0005f && color == _color)
+                {
+                    return;
+                }
+
+                _value = value;
+                _color = color;
+                MarkDirtyRepaint();
             }
 
             private void OnGenerate(MeshGenerationContext ctx)

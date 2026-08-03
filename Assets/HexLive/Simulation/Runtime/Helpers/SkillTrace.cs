@@ -19,6 +19,9 @@ internal static class SkillTrace
     public static void Award(WorldState world, NPCState npc, InteractionType type, int durationTicks)
     {
         Emit(world, npc, SkillMath.Award(npc, type, npc.Plan.Goal, durationTicks));
+        // §76.13: the same job that taught her the trade also conditioned the
+        // body it leans on — heavy work builds Strength, fiddly work Wits.
+        AttributeMath.TrainFromWork(npc, type, npc.Plan.Goal, durationTicks);
     }
 
     // A landed blow. Separate entry because combat has no interaction and no
@@ -26,6 +29,10 @@ internal static class SkillTrace
     public static void AwardHit(WorldState world, NPCState npc)
     {
         Emit(world, npc, SkillMath.AwardHit(npc));
+        // §76.13: connecting is footwork before it is muscle — a landed blow
+        // trains Agility. Strength is built by the day's labour, not by fights,
+        // which are far too rare to condition anything.
+        AttributeMath.Train(npc, AttributeKind.Agility, Spec76.AttributeTrainPerHit);
     }
 
     // Fires ONLY on a band crossing, which SkillMath decides. An award happens

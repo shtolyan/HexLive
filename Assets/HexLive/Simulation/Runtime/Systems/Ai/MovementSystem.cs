@@ -702,6 +702,14 @@ public sealed class MovementSystem : ISimulationSystem
                 ? -SimBalance.BreathDrainPerTick * AttributeMath.BreathDrainMult(npc)
                 : SimBalance.BreathWalkRecoverPerTick));
 
+            // §76.13: wind is built by running out of it. Only while actually
+            // sprinting — a walk costs her nothing and teaches her nothing.
+            if (running)
+            {
+                AttributeMath.Train(npc, AttributeKind.Endurance,
+                    Spec76.AttributeTrainPerRunTick);
+            }
+
             movementPerTick *= urgency;
 
             // §81.10: понурая походка режет скорость — но ТОЛЬКО когда она

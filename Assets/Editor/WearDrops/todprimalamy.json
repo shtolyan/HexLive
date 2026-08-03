@@ -367,15 +367,15 @@
         "heelCm": 7.71
       },
       "heelPose": {
-        "foot": 29.34,
-        "toe": -29.34,
-        "lift": 0.0539,
+        "foot": 30.0,
+        "toe": -35.0,
+        "lift": 0.055,
         "axis": [
           1.0,
           0.0,
           0.0
         ],
-        "_source": "по высоте каблука 5.39 см (снижено на 30% по осмотру)"
+        "_source": "поза из набора: ToD All.duf"
       },
       "sim": {
         "displayName": "Buckled Shoes",
@@ -1336,15 +1336,15 @@
         "heelCm": 8.96
       },
       "heelPose": {
-        "foot": 44.06,
-        "toe": -44.06,
-        "lift": 0.0765,
+        "foot": 40.0,
+        "toe": -45.0,
+        "lift": 0.0707,
         "axis": [
           1.0,
           0.0,
           0.0
         ],
-        "_source": "по высоте каблука 7.65 см (снижено на 15% по осмотру)"
+        "_source": "поза из набора: AmyBootsFootPose.duf"
       },
       "sim": {
         "displayName": "Thigh Boots",
@@ -1450,15 +1450,15 @@
         "heelCm": 8.96
       },
       "heelPose": {
-        "foot": 40.89,
-        "toe": -40.89,
-        "lift": 0.072,
+        "foot": 40.0,
+        "toe": -45.0,
+        "lift": 0.0707,
         "axis": [
           1.0,
           0.0,
           0.0
         ],
-        "_source": "по высоте каблука 7.2 см (снижено на 20% по осмотру)"
+        "_source": "поза из набора: AmyBootsFootPose.duf"
       },
       "sim": {
         "displayName": "Ankle Boots",

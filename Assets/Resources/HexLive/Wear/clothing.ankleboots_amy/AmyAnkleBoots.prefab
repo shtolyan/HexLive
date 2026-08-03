@@ -322,9 +322,9 @@ MonoBehaviour:
   layer: 2
   gender: 1
   heel:
-    footDegrees: 40.89
-    toeDegrees: -40.89
-    lift: 0.072
+    footDegrees: 40
+    toeDegrees: -45
+    lift: 0.0707
     axis: {x: 1, y: 0, z: 0}
   hidesHair: 0
 --- !u!1 &5150688484309241199

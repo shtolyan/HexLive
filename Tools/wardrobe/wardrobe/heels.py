@@ -105,7 +105,13 @@ def _rotations(doc: dict) -> dict[str, float]:
         url = unquote(str(entry.get("url", "")))
         if ":?rotation/x" not in url:
             continue
-        bone = url.split("/")[-1].split(":")[0]
+        # Имя кости стоит ПЕРЕД `:?`, а не в конце адреса:
+        # `name://@selection/lFoot:?rotation/x/value` — последний сегмент здесь
+        # `value`, и по нему не находилось ничего. Поэтому поза из набора не
+        # читалась НИ РАЗУ, и её всегда подменял расчёт по высоте каблука —
+        # который у сапог Amy дал 54.6° вместо авторских 40°, и носок,
+        # повёрнутый не туда, полоскался на ноге.
+        bone = url.split(":?")[0].rstrip("/").split("/")[-1]
         keys = entry.get("keys") or []
         if keys and len(keys[0]) > 1:
             try:

@@ -49,7 +49,9 @@ public static class WorldSnapshotCodec
     /// v7: §85 EyeColor — цвет глаз отвязан от SkinSet и катится своей осью.
     /// v8: §110 IsCrying — стресс-крах кладёт её плакать, и это НЕ обморок:
     /// вид укладывает её сонной цепочкой и не глушит ей речь.
-    public const int WireVersion = 8;
+    /// v9: §81.10 IsSadWalk — понурая походка стала состоянием сима (она ещё и
+    /// ходит вдвое медленнее), а была таймером внутри вида.
+    public const int WireVersion = 9;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -531,6 +533,7 @@ public static class WorldSnapshotCodec
         w.Write(n.IsUnconscious);
         w.Write(n.IsDying); // §105
         w.Write(n.IsCrying); // §110
+        w.Write(n.IsSadWalk); // §81.10
         w.Write(n.AidTargetLyingDown);
         w.Write(n.IsLedgeSit);
         w.Write(n.LedgeSeatStepsUp);
@@ -709,6 +712,7 @@ public static class WorldSnapshotCodec
         n.IsUnconscious = r.ReadBoolean();
         n.IsDying = r.ReadBoolean(); // §105
         n.IsCrying = r.ReadBoolean(); // §110
+        n.IsSadWalk = r.ReadBoolean(); // §81.10
         n.AidTargetLyingDown = r.ReadBoolean();
         n.IsLedgeSit = r.ReadBoolean();
         n.LedgeSeatStepsUp = r.ReadInt32();

@@ -306,7 +306,7 @@ public sealed class PathfindingSystem : ISimulationSystem
             var startJunction = npc.CurrentJunction ?? SpatialQueries.FindNearestJunction(world, npc.Position);
             if (startJunction is null)
             {
-                npc.Movement.Status = MovementStatus.Blocked;
+                npc.Movement.SetStatus(MovementStatus.Blocked);
                 npc.Movement.StopReason = "No current junction";
                 Trace.Emit(world, npc.Id, "PathBlocked",
                     $"No current junction found at Pos={Trace.FormatPos(npc.Position)}");
@@ -334,7 +334,7 @@ public sealed class PathfindingSystem : ISimulationSystem
                 danger, Spec62.DangerStepCost);
             if (path.Count == 0)
             {
-                npc.Movement.Status = MovementStatus.Blocked;
+                npc.Movement.SetStatus(MovementStatus.Blocked);
                 npc.Movement.StopReason = "No path";
                 Trace.Emit(world, npc.Id, "PathFailed",
                     $"No route from Junction={startJunction.Value.Value} to Junction={npc.Plan.TargetJunctionId.Value.Value}");
@@ -358,7 +358,7 @@ public sealed class PathfindingSystem : ISimulationSystem
             npc.Movement.HopArmed = false;
             npc.Movement.HopPathIndex = -1;
             npc.Movement.IsMoving = path.Count > 1;
-            npc.Movement.Status = npc.Movement.IsMoving ? MovementStatus.Moving : MovementStatus.Arrived;
+            npc.Movement.SetStatus(npc.Movement.IsMoving ? MovementStatus.Moving : MovementStatus.Arrived);
             npc.Movement.StopReason = string.Empty;
 
             var pathJunctions = new System.Text.StringBuilder();

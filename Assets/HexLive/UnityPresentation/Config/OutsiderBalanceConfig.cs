@@ -214,6 +214,11 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 2f)] public float abuseTrustLoss = 0.25f;
         [Tooltip("Закрыть тихую кражу §40.5 до своих — у чужака теперь есть настоящая сцена.")]
         public bool abuseSupersedesPassiveTheft = true;
+        [Tooltip("§81.10 Сколько тиков после сцены она ходит понуро (360 = 1.5 минуты).")]
+        [Range(0, 2400)] public int sadWalkTicks = 360;
+        [Tooltip("§81.10 Насколько медленнее она в это время ходит. 0.5 = вдвое. " +
+                 "Понурый клип шире базового, и на полной скорости ноги по нему ехали.")]
+        [Range(0.1f, 1f)] public float sadWalkMoveFactor = 0.5f;
 
         [Header("§106 Вода — убежище")]
         [Tooltip("Пловца не бьют с суши, пловец не бьёт сам, погоня за нырнувшей бросается (Prey/Raid/Abuse/волки). Выключено — вода снова ничего не значит в бою, поведение до-§106.")]

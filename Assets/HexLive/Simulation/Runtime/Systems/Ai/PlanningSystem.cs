@@ -49,7 +49,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 npc.Movement.JunctionPath.Clear();
                 npc.Movement.PathIndex = 0;
                 npc.Movement.IsMoving = false;
-                npc.Movement.Status = MovementStatus.Waiting;
+                npc.Movement.SetStatus(MovementStatus.Waiting);
                 npc.Movement.HopArmed = false;
                 npc.Movement.HopPathIndex = -1;
             }

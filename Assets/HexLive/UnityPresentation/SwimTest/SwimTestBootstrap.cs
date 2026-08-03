@@ -435,7 +435,7 @@ public sealed class SwimTestBootstrap : MonoBehaviour
             var previousTile = npc.Tile;
             npc.Movement.JunctionPath.Clear();
             npc.Movement.IsMoving = false;
-            npc.Movement.Status = MovementStatus.Idle;
+            npc.Movement.SetStatus(MovementStatus.Idle);
             npc.Movement.ClimbPauseTimer = 0f;
             npc.Movement.HopTimer = 0f;
             npc.Movement.HopPathIndex = -1;

@@ -44,6 +44,18 @@ namespace HexLive.UnityPresentation.Config
             NpcActorView.MaleSeatForward = c.maleSeatForward;
             NpcActorView.MaleSeatDown = c.maleSeatDown;
 
+            // §71.5: походка. Пер-клиповая калибровка живёт в NpcAnimSet.strides
+            // (это данные о клипах), здесь — дефолты и сглаживание.
+            NpcActorView.FullWalkBodyHeightsPerSec = c.walkBodyHeightsPerSec;
+            NpcActorView.SlowRunCadence = c.slowRunCadence;
+            NpcActorView.RunCadence = c.runCadence;
+            NpcActorView.MinGaitCadence = c.minGaitCadence;
+            NpcActorView.MaxGaitCadence = c.maxGaitCadence;
+            NpcActorView.MaxWalkCadence = c.maxWalkCadence;
+            NpcActorView.SpeedSmoothTau = c.speedSmoothTau;
+            NpcActorView.WalkHoldSeconds = c.walkHoldSeconds;
+            NpcActorView.PivotYawSpeed = c.pivotYawSpeed;
+
             WaterWave.Amplitude = c.waveAmplitude;
             WaterWave.Frequency = c.waveFrequency;
             WaterWave.Speed = c.waveSpeed;
@@ -69,6 +81,16 @@ namespace HexLive.UnityPresentation.Config
             c.ledgeSeatBack = NpcActorView.LedgeSeatBack;
             c.maleSeatForward = NpcActorView.MaleSeatForward;
             c.maleSeatDown = NpcActorView.MaleSeatDown;
+
+            c.walkBodyHeightsPerSec = NpcActorView.FullWalkBodyHeightsPerSec;
+            c.slowRunCadence = NpcActorView.SlowRunCadence;
+            c.runCadence = NpcActorView.RunCadence;
+            c.minGaitCadence = NpcActorView.MinGaitCadence;
+            c.maxGaitCadence = NpcActorView.MaxGaitCadence;
+            c.maxWalkCadence = NpcActorView.MaxWalkCadence;
+            c.speedSmoothTau = NpcActorView.SpeedSmoothTau;
+            c.walkHoldSeconds = NpcActorView.WalkHoldSeconds;
+            c.pivotYawSpeed = NpcActorView.PivotYawSpeed;
 
             c.waveAmplitude = WaterWave.Amplitude;
             c.waveFrequency = WaterWave.Frequency;

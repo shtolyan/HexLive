@@ -454,6 +454,11 @@ public sealed class NpcSnapshot
     // всхлипом. Отдельный флаг именно потому, что это НЕ беспамятство.
     public bool IsCrying { get; set; }
 
+    // §81.10: понурая походка после сцены — вид подменяет ей клип шага, а сим
+    // одновременно режет скорость вдвое. Флаг, а не таймер вида: так он
+    // переживает сейв, доезжает до удалённого зрителя и не врёт на перемотке.
+    public bool IsSadWalk { get; set; }
+
     // Spec §53 r2: while this NPC is aiding a housemate (Feed/Hydrate/Treat/…),
     // is her WARD lying down (coma/faint/asleep/prone)? The kneeling "tending"
     // craft pose only plays over a lying ward; over a standing ward the helper

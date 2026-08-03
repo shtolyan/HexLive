@@ -720,6 +720,7 @@ public static class WorldSnapshotExporter
             // ветка IsFainted: вид кладёт её как спящую (не роняет) и не
             // затыкает ей рот, чтобы всхлипы и слёзный смайл шли своим чередом.
             IsCrying = npc.IsCrying(world.Tick),
+            IsSadWalk = world.Tick < npc.Mind.SadWalkUntilTick, // §81.10
             IsWaking = world.Tick < npc.Mind.WakeGraceUntilTick,
             Stress = npc.Needs.Stress,
             CurrentGoal = npc.Mind.CurrentGoal.ToString(),

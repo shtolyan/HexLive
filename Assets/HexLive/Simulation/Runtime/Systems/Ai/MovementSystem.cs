@@ -51,6 +51,34 @@ public sealed class MovementSystem : ISimulationSystem
         }
     }
 
+    // §71.2: она стоит НЕ ПО СВОЕЙ ВОЛЕ — упёрлась в товарку, планово
+    // разворачивается на месте (только около-разворот, §71.3), переводит дух
+    // после него, вылезает из воды. Все эти ветки уходят через `continue`
+    // МИМО блока походки и дыхания, и это стоило двух ошибок сразу.
+    //
+    // ⭐ ФЛАГ БЕГА ЗАВИСАЛ. Он остаётся с прошлого тика, а стоящая на месте
+    // не бежит — вид держал бы беговую походку на развороте. В затяжном случае
+    // это врёт часами: замер на сиде 12345 поймал чужака с целью `Abuse`,
+    // который 870 тиков подряд (3.6 минуты) провисел в `Rotating` с поднятым
+    // флагом бега. Сама эта вечная прокрутка — отдельная болезнь поворота, но
+    // ПОХОДКА обязана быть честной независимо от неё.
+    //
+    // ⭐ ДЫХАНИЕ НЕ СЧИТАЛОСЬ вовсе: заминка была для него дырой во времени.
+    // Теперь она стоит — значит восстанавливается по стоячей ставке. Порядок
+    // важен: флаг гасится ПЕРЕД восстановлением, иначе стоячая ставка чинила
+    // бы дыхание «на бегу» и рывок на извилистом маршруте не кончался бы
+    // (промежуточная версия так и делала — максимум рывка 108 с вместо 56 с).
+    private static void PauseGaitAndBreath(NPCState npc)
+    {
+        npc.Mind.IsRunning = false;
+        npc.Needs.Breath = MathUtil.Clamp01(
+            npc.Needs.Breath + SimBalance.BreathIdleRecoverPerTick);
+        if (npc.Needs.Breath >= SimBalance.BreathReArm)
+        {
+            npc.Mind.BreathSpent = false;
+        }
+    }
+
     public void Run(WorldState world)
     {
         foreach (var npc in world.Entities.Npcs.Values)
@@ -76,7 +104,7 @@ public sealed class MovementSystem : ISimulationSystem
             if (targetIndex >= npc.Movement.JunctionPath.Count)
             {
                 npc.Movement.IsMoving = false;
-                npc.Movement.Status = MovementStatus.Arrived;
+                npc.Movement.SetStatus(MovementStatus.Arrived);
                 Trace.Emit(world, npc.Id, "MovementPathExhausted",
                     $"PathIndex={targetIndex} >= PathCount={npc.Movement.JunctionPath.Count}");
                 continue;
@@ -86,7 +114,7 @@ public sealed class MovementSystem : ISimulationSystem
             if (!world.Junctions.Items.TryGetValue(targetJunctionId, out var targetJunction))
             {
                 npc.Movement.IsMoving = false;
-                npc.Movement.Status = MovementStatus.Invalid;
+                npc.Movement.SetStatus(MovementStatus.Invalid);
                 Trace.Emit(world, npc.Id, "MovementInvalidJunction",
                     $"Junction={targetJunctionId.Value} not found in world");
                 continue;
@@ -125,7 +153,7 @@ public sealed class MovementSystem : ISimulationSystem
                     npc.Movement.BlockedWaitTicks = 0;
                     npc.Movement.JunctionPath.Clear();
                     npc.Movement.IsMoving = false;
-                    npc.Movement.Status = MovementStatus.Waiting;
+                    npc.Movement.SetStatus(MovementStatus.Waiting);
                     // §21.21B: a hop must not survive its path — stale hop
                     // state over a NEW path is a mid-air teleport waiting to
                     // happen. Clearing these three DISARMS it: HopTimer=0 stops
@@ -142,6 +170,7 @@ public sealed class MovementSystem : ISimulationSystem
                         $"Junction={targetJunctionId.Value} held by a housemate");
                 }
 
+                PauseGaitAndBreath(npc);
                 continue;
             }
 
@@ -324,7 +353,7 @@ public sealed class MovementSystem : ISimulationSystem
 
                 if (facingError > alignmentThreshold)
                 {
-                    npc.Movement.Status = MovementStatus.Rotating;
+                    npc.Movement.SetStatus(MovementStatus.Rotating);
                     npc.Movement.PostTurnTimer = SimBalance.PostTurnPauseSeconds;
                     if (SimTrace.Verbose)
                     {
@@ -333,15 +362,18 @@ public sealed class MovementSystem : ISimulationSystem
                             $"Error={facingError:F1}>{alignmentThreshold} ToJunction={targetJunctionId.Value} " +
                             $"Step={targetIndex}/{npc.Movement.JunctionPath.Count}");
                     }
+
+                    PauseGaitAndBreath(npc);
                     continue;
                 }
 
                 if (npc.Movement.PostTurnTimer > 0f)
                 {
                     npc.Movement.PostTurnTimer -= world.TickDeltaTime;
-                    npc.Movement.Status = MovementStatus.Rotating;
+                    npc.Movement.SetStatus(MovementStatus.Rotating);
                     Trace.Emit(world, npc.Id, "MovementPostTurnPause",
                         $"Timer={npc.Movement.PostTurnTimer:F2}s remaining");
+                    PauseGaitAndBreath(npc);
                     continue;
                 }
             }
@@ -352,9 +384,10 @@ public sealed class MovementSystem : ISimulationSystem
             if (npc.Movement.ClimbPauseTimer > 0f && npc.Movement.HopTimer <= 0f)
             {
                 npc.Movement.ClimbPauseTimer -= world.TickDeltaTime;
-                npc.Movement.Status = MovementStatus.Waiting;
+                npc.Movement.SetStatus(MovementStatus.Waiting);
                 Trace.Emit(world, npc.Id, "ClimbPause",
                     $"Timer={npc.Movement.ClimbPauseTimer:F2}s remaining");
+                PauseGaitAndBreath(npc);
                 continue;
             }
 
@@ -385,7 +418,7 @@ public sealed class MovementSystem : ISimulationSystem
                     npc.RotationDegrees = MathUtil.RotateTowards(
                         npc.RotationDegrees, npc.Movement.DesiredRotationDegrees,
                         npc.TurnSpeed * world.TickDeltaTime);
-                    npc.Movement.Status = MovementStatus.Waiting;
+                    npc.Movement.SetStatus(MovementStatus.Waiting);
                     continue;
                 }
 
@@ -397,9 +430,9 @@ public sealed class MovementSystem : ISimulationSystem
                 npc.RotationDegrees = MathUtil.RotateTowards(
                     npc.RotationDegrees, npc.Movement.DesiredRotationDegrees,
                     npc.TurnSpeed * world.TickDeltaTime);
-                npc.Movement.Status = flightT < 1f
+                npc.Movement.SetStatus(flightT < 1f
                     ? MovementStatus.Moving
-                    : MovementStatus.Waiting; // landing beat: feet planting
+                    : MovementStatus.Waiting); // landing beat: feet planting
 
                 // Landing beat: pre-face the NEXT waypoint while the feet
                 // plant, so she stands up already in the right turn instead
@@ -519,7 +552,7 @@ public sealed class MovementSystem : ISimulationSystem
                             HexHopTuning.LandingSeconds *
                                 (npc.Movement.HopUp ? 1f : HexHopTuning.DownBeatScale));
                         npc.Movement.IsMoving = false;
-                        npc.Movement.Status = MovementStatus.Arrived;
+                        npc.Movement.SetStatus(MovementStatus.Arrived);
                         Trace.Emit(world, npc.Id, "MovementCompleted",
                             $"HopLanding Tile={npc.Tile.Q},{npc.Tile.R} " +
                             $"Pos={Trace.FormatPos(npc.Position)}");
@@ -589,7 +622,10 @@ public sealed class MovementSystem : ISimulationSystem
             // Множитель РАЗРЕШАЕТСЯ ЗДЕСЬ, а не хранится в таблице: ручки
             // баланса тюнятся, а таблица строится один раз и заморозила бы их
             // значения на момент своей постройки.
-            switch (AI.GoalCatalog.UrgencyFor(npc.Mind.CurrentGoal))
+            // Считается ОДИН раз: ниже §71.4 спрашивает тот же класс, а второй
+            // вызов — это второй шанс разойтись, когда таблица поменяется.
+            var goalUrgency = AI.GoalCatalog.UrgencyFor(npc.Mind.CurrentGoal);
+            switch (goalUrgency)
             {
                 case AI.UrgencyClass.Hurry:
                     urgency = System.MathF.Max(urgency, Spec57.DefendMoveSpeedFactor);
@@ -606,6 +642,35 @@ public sealed class MovementSystem : ISimulationSystem
                 npc.Mind.CurrentGoal is GoalType.GetFood or GoalType.GetWater)
             {
                 urgency = System.MathF.Max(urgency, SimBalance.NeedRunSpeedFactor);
+            }
+
+            // §71.4: ПРИБЕЖАЛА И ПЕРЕШЛА НА ШАГ. Бегущая упиралась в цель на
+            // полном ходу и вставала как вкопанная — торможения в системе нет
+            // вообще, скорость на последнем шаге ровно та же, что на первом.
+            // Последний метр она проходит шагом, и приход читается как приход.
+            //
+            // ⭐ ПОГОНЮ НЕ ОСАЖИВАЕМ. Цель-АГЕНТ уходит сама, и «сбавить у
+            // цели» здесь значит «никогда не догнать» — ровно то, на чём
+            // §89 (гопник) не начинался месяцами. Побег — тоже нет: страх не
+            // выдыхается у двери. Прыжок владеет своим окном.
+            //
+            // Целочисленный гейт по остатку пути стоит ПЕРЕД дистанцией
+            // намеренно: пока до конца больше трёх джанкшенов, ни одной новой
+            // операции с float не выполняется, и трасса не шевелится там, где
+            // поведение не менялось.
+            if (urgency > 1.001f &&
+                goalUrgency != AI.UrgencyClass.Flee &&
+                npc.Plan.TargetAgentId is null &&
+                !hopApproach && npc.Movement.HopTimer <= 0f &&
+                npc.Movement.JunctionPath.Count - targetIndex <= 3)
+            {
+                var lastId = npc.Movement.JunctionPath[npc.Movement.JunctionPath.Count - 1];
+                if (world.Junctions.Items.TryGetValue(lastId, out var lastJunction) &&
+                    HexSpatialMath.Distance(npc.Position, lastJunction.WorldPosition)
+                        <= SimBalance.ArrivalWalkDistance)
+                {
+                    urgency = 1f;
+                }
             }
 
             // §71 BREATH: running is rationed. Spent while she runs, refilled
@@ -639,6 +704,18 @@ public sealed class MovementSystem : ISimulationSystem
 
             movementPerTick *= urgency;
 
+            // §81.10: понурая походка режет скорость — но ТОЛЬКО когда она
+            // ИДЁТ. Понурый клип живёт в нулевом слоте блендера походки, то
+            // есть на бегу его не видно вовсе: замедлять бегущую значило бы
+            // платить за то, чего не показывают. И платить дорого — 2.25 × 0.5
+            // = 1.125, и уходящая от гопника перестаёт уходить: замер поймал
+            // ровно это, жертва не добегала до лагеря и погибала (сценарный
+            // гейт §104 не находил её в снапшоте).
+            if (!running && world.Tick < npc.Mind.SadWalkUntilTick)
+            {
+                movementPerTick *= Spec81.SadWalkMoveFactor;
+            }
+
             // §40.18-B: deep-water strokes are slower than a walk on land.
             // Keyed off the SWIMMER's tile, so the slowdown starts once she is
             // in the water and ends when she has climbed out.
@@ -663,12 +740,30 @@ public sealed class MovementSystem : ISimulationSystem
                 npc.Movement.HopStartTick = world.Tick;
                 npc.Movement.DesiredRotationDegrees = HexSpatialMath.AngleDegrees(
                     HexSpatialMath.Normalize(npc.Movement.HopTo - npc.Movement.HopFrom));
-                npc.Movement.Status = MovementStatus.Waiting;
+                npc.Movement.SetStatus(MovementStatus.Waiting);
                 Trace.Emit(world, npc.Id, "HopStarted",
                     $"{(npc.Movement.HopUp ? "Up" : "Down")} " +
                     $"From={Trace.FormatPos(npc.Movement.HopFrom)} To={Trace.FormatPos(npc.Movement.HopTo)}");
                 continue;
             }
+
+            // §71.3: ОНА ИДЁТ — и статус ставится здесь, до разбора «дошла ли
+            // на этом тике до джанкшена». Он стоял только в ветке «шагнула, но
+            // не дошла», а шаг НА БЕГУ (0.675..0.75 за тик) длиннее расстояния
+            // между точками решётки (0.375): бегущая берёт джанкшен КАЖДЫЙ тик,
+            // ветка с присвоением не выполняется ни разу, и статус залипает на
+            // том, чем был — обычно `Rotating` от разворота в начале пути.
+            //
+            // Это не косметика. От статуса зависит скорость заживления
+            // (`NeedsDecaySystem`: на ходу раны затягиваются вдвое медленнее),
+            // так что бегущая раненая лечилась ВДВОЕ БЫСТРЕЕ положенного —
+            // ровно наоборот к замыслу. Плюс статус уезжает в снапшот, и
+            // отладка читает «крутится на месте» у той, кто спокойно бежит:
+            // на этом уже один раз построили ложный диагноз.
+            //
+            // Ветка прибытия ниже перепишет его на `Arrived`, прыжок — на свой:
+            // оба идут после и выигрывают.
+            npc.Movement.Status = MovementStatus.Moving;
 
             if (distance <= movementPerTick)
             {
@@ -707,7 +802,7 @@ public sealed class MovementSystem : ISimulationSystem
                 if (npc.Movement.PathIndex >= npc.Movement.JunctionPath.Count)
                 {
                     npc.Movement.IsMoving = false;
-                    npc.Movement.Status = MovementStatus.Arrived;
+                    npc.Movement.SetStatus(MovementStatus.Arrived);
                     Trace.Emit(world, npc.Id, "MovementCompleted",
                         $"FinalJunction={targetJunctionId.Value} Tile={npc.Tile.Q},{npc.Tile.R} " +
                         $"Pos={Trace.FormatPos(npc.Position)}");
@@ -716,7 +811,13 @@ public sealed class MovementSystem : ISimulationSystem
             else
             {
                 npc.Position += direction * movementPerTick;
-                npc.Movement.Status = MovementStatus.Moving;
+                // §71.3: здесь стояла ЕДИНСТВЕННАЯ запись `Status = Moving`, и
+                // легаси-латч заживления обязан взводиться ровно тут же — в
+                // ветке неполного шага, куда бегун (шаг длиннее звена решётки)
+                // не попадает никогда. Честная запись статуса уехала выше и
+                // латч не трогает; SetStatus здесь повторяет старую запись
+                // дословно (статус она уже не меняет, латч — да).
+                npc.Movement.SetStatus(MovementStatus.Moving);
                 npc.RotationDegrees = MathUtil.RotateTowards(
                     npc.RotationDegrees,
                     npc.Movement.DesiredRotationDegrees,

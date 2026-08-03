@@ -151,10 +151,10 @@ MonoBehaviour:
   postTurnPauseSeconds: 0.15
   fleeRunSpeedFactor: 2.25
   needRunSpeedFactor: 1.6
-  breathDrainPerTick: 0.0045
-  breathWalkRecoverPerTick: 0.0022
-  breathIdleRecoverPerTick: 0.006
-  breathReArm: 0.35
+  breathDrainPerTick: 0.011
+  breathWalkRecoverPerTick: 0.005
+  breathIdleRecoverPerTick: 0.01
+  breathReArm: 0.55
   clothingBiteDurabilityWear: 0.0026
   clothingPassiveWearPerDay: 0.001
   sleepMetabolismFactor: 0.1

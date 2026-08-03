@@ -98,7 +98,7 @@ public static class PlanInterruption
         npc.Movement.JunctionPath.Clear();
         npc.Movement.PathIndex = 0;
         npc.Movement.IsMoving = false;
-        npc.Movement.Status = MovementStatus.Idle;
+        npc.Movement.SetStatus(MovementStatus.Idle);
         npc.Movement.StopReason = reason;
         npc.Movement.ClimbPauseTimer = 0f;
         npc.Movement.HopTimer = 0f;

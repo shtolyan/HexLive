@@ -82,6 +82,13 @@ public sealed class NPCMind
     // истечёт этот тик. Близнец SickUntilTick / AdrenalineUntilTick.
     public int ConvalescentUntilTick { get; set; }
 
+    // §81.10: понурая походка после сцены — держится до этого тика. Живёт
+    // рядом с ConvalescentUntilTick намеренно: это такой же след в ТЕЛЕ, он
+    // режет скорость и меняет клип шага, и больше ничего.
+    // ⭐ Слою решений читать его НЕЛЬЗЯ — как и Breath (§71.2). Грусть меняет
+    // ПОХОДКУ, а не цели: иначе побитая перестала бы есть и пить.
+    public int SadWalkUntilTick { get; set; }
+
     // Spec 41.5: just woke up — stand and come to your senses until this
     // tick (no goal scoring), so nobody sprints off the pillow and the
     // get-up animation has room to play.

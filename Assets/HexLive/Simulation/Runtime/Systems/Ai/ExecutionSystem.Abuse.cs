@@ -568,6 +568,7 @@ public sealed partial class ExecutionSystem
                 !loser.Body.IsProne)
             {
                 SocialCueSignals.Stamp(world, loser, "AbuseFledHome", winner.Id);
+                loser.Mind.SadWalkUntilTick = world.Tick + Spec81.SadWalkTicks;
                 var fled = MobSystem.TryFleeToCamp(world, loser,
                     $"Routed after abuse by NPC{winner.Id.Value}");
                 Trace.Emit(world, loser.Id, "AbuseRouted",
@@ -599,6 +600,7 @@ public sealed partial class ExecutionSystem
                   CombatMedium.IsNpcSwimming(world, leaving)))
             {
                 SocialCueSignals.Stamp(world, leaving, "AbuseFledHome", npc.Id);
+                leaving.Mind.SadWalkUntilTick = world.Tick + Spec81.SadWalkTicks;
                 var fled = MobSystem.TryFleeToCamp(world, leaving,
                     $"Shaken after abuse by NPC{npc.Id.Value}");
                 Trace.Emit(world, leaving.Id, "AbuseRouted",

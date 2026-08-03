@@ -127,6 +127,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private readonly Dictionary<int, Pose> _currAnimalPoses = new();
     private const float ActorSourceHeightMeters = 1.7f;
 
+    /// <summary>§71.5: the scale colonist bodies are rendered at. The locomotion
+    /// tuning scene has to spawn hers at EXACTLY this: a stride is calibrated in
+    /// body heights per second, so a differently-sized body calibrates a
+    /// different number and the game would then slide by the ratio.</summary>
+    public static float ActorScale =>
+        Spatial.SimulationUnityMapper.HexRadius * NpcHeightFactor * 2.4f / ActorSourceHeightMeters;
+
     private Transform? _tilesRoot;
     private Transform? _junctionsRoot;
     private Transform? _objectsRoot;
@@ -1472,6 +1479,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // §71: the gait comes from the SIM, not from measured speed — she walks
         // unless the sim gave her a reason to run.
         actorView.SetRunning(npc.IsRunning);
+        actorView.SetSadWalk(npc.IsSadWalk); // §81.10
         // Spec 40.7/40.8: weather the bare skin — tan browns it, sunburn
         // reddens it. (The old low-HP bruised-red whole-body flush was
         // retired: the painted wound marks carry the injury look on their

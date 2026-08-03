@@ -341,14 +341,27 @@ namespace HexLive.Simulation.Runtime
         public static float FleeRunSpeedFactor = 2.25f;  // running for her life
         public static float NeedRunSpeedFactor = 1.6f;   // hurrying to food/water when desperate
 
+        // §71.4: за сколько до СТАТИЧНОЙ цели бегущая переходит на шаг.
+        // Торможения в системе нет вовсе — скорость на последнем шаге ровно
+        // та же, что на первом, и приход выглядел как удар в стену. 3.0 ≈ 1.15
+        // гекса (гекс поперёк = 2.6 ед.), на беговом темпе это около секунды
+        // шага. Погоня за АГЕНТОМ и побег исключены в MovementSystem.
+        public static float ArrivalWalkDistance = 3.0f;
+
         // §71 BREATH — the sprint reserve (NPCNeeds.Breath). Drained per tick
         // while running, refilled while walking, faster while standing still.
         // Hysteresis on purpose: once spent she must recover to the re-arm line
         // before she may run again, so she cannot flicker between gaits.
-        public static float BreathDrainPerTick = 0.0045f;   // ~55 s of running from full
-        public static float BreathWalkRecoverPerTick = 0.0022f; // ~110 s walking it back
-        public static float BreathIdleRecoverPerTick = 0.006f;  // standing catches it fast
-        public static float BreathReArm = 0.35f;            // must climb back to this to run again
+        // §71.1 (пересчёт): рывок должен КОНЧАТЬСЯ на глазах. Старые числа
+        // давали 55 с бега с полного бака и 40 с шага до перевзвода — то есть
+        // за одну сцену чередование не успевало случиться ни разу, и колония,
+        // которой §89/§107/охота раздали поводы бежать, читалась просто
+        // «бегущей». Теперь полный бак ≈ 23 с, повторный рывок ≈ 12.5 с, а
+        // отдышаться шагом ≈ 27.5 с: бег стал рывком, а не режимом.
+        public static float BreathDrainPerTick = 0.011f;    // ~23 s of running from full
+        public static float BreathWalkRecoverPerTick = 0.005f;  // ~27 s walking back to the re-arm line
+        public static float BreathIdleRecoverPerTick = 0.010f;  // standing catches it twice as fast
+        public static float BreathReArm = 0.55f;            // must climb back to this to run again
 
         public static int AdrenalineTicks = 80;         // fresh damage keeps her too alert to sleep
         public static float AdrenalineEnergyFloor = 0.05f;

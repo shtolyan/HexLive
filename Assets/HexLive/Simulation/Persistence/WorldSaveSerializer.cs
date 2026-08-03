@@ -49,7 +49,9 @@ public static class WorldSaveSerializer
     // грани, ровно как когда-то чинила культю (§50).
     // v24 (§85): цвет глаз. Отдельным полем, потому что до §85 он ехал внутри
     // SkinSet — материалы актрисы несли и её глаза тоже.
-    public const int BlobVersion = 25;
+    // v26 (§81.10): понурая походка. Стала состоянием сима (режет скорость
+    // вдвое), а была таймером вида — и потому обнулялась перезагрузкой молча.
+    public const int BlobVersion = 26;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -778,6 +780,9 @@ public static class WorldSaveSerializer
         // §110 (v25): слёзы переживают сохранение — иначе перезагрузка
         // мгновенно «утешала» бы лежащую и рыдающую.
         w.Write(mind.CryingUntilTick);
+        // §81.10 (v26): и понурая походка тоже — иначе загрузка выпрямляла бы
+        // ей спину и возвращала полную скорость на середине минуты после сцены.
+        w.Write(mind.SadWalkUntilTick);
         w.Write(mind.WakeGraceUntilTick);
         w.Write(mind.AdrenalineUntilTick);
         w.Write(mind.PendingTalkSinceTick);
@@ -1149,6 +1154,8 @@ public static class WorldSaveSerializer
 
         // §110: старый сейв просто не плачет — 0 значит «не плачет».
         mind.CryingUntilTick = version >= 25 ? r.ReadInt32() : 0;
+        // §81.10: старый сейв просто не грустит.
+        mind.SadWalkUntilTick = version >= 26 ? r.ReadInt32() : 0;
 
         mind.WakeGraceUntilTick = r.ReadInt32();
         mind.AdrenalineUntilTick = version >= 9 ? r.ReadInt32() : 0;
@@ -1243,7 +1250,7 @@ public static class WorldSaveSerializer
         movement.DesiredRotationDegrees = r.ReadSingle();
         movement.MoveSpeed = r.ReadSingle();
         movement.TurnSpeed = r.ReadSingle();
-        movement.Status = (MovementStatus)r.ReadInt32();
+        movement.SetStatus((MovementStatus)r.ReadInt32());
         movement.StopReason = r.ReadString();
         movement.PostTurnDelay = r.ReadSingle();
         movement.PostTurnTimer = r.ReadSingle();

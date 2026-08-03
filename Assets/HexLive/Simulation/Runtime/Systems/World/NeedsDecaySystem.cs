@@ -995,9 +995,17 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 // §60: a coma knits flesh at the sleeping pace too.
                 // §76: Toughness rides on top of the activity pace — the same
                 // wound closes sooner on a hardy body.
+                //
+                // §71.3: ⭐ темп читает НЕ Status, а легаси-латч. Честный статус
+                // (Moving на каждом тике трансляции) менял бы экономику ран для
+                // всех бегунов разом — а на старой, залипающей семантике
+                // оттюнена вся дуга §81→§108: с честным штрафом гопник истекает
+                // кровью и умирает (сид 313, тик ~15900), не дожив ~700 тиков
+                // до сговора, который раньше выигрывал эту гонку. Подробности и
+                // условия снятия — у поля WoundPaceMoving.
                 var pace = (npc.Execution.CurrentInteraction == InteractionType.Sleep ||
                     npc.Mind.ComaCause != ComaCause.None ? 2f
-                    : npc.Movement.Status == MovementStatus.Moving ? 0.5f
+                    : npc.Movement.WoundPaceMoving ? 0.5f
                     : 1f) * AttributeMath.HealRateMult(npc);
 
                 for (var wi = npc.Wounds.Count - 1; wi >= 0; wi--)

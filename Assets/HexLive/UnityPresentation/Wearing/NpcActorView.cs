@@ -135,14 +135,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private const float FidgetIdleWarmup = 6f;
     private const float FidgetChancePerSecond = 0.03f;
     private const float FidgetMinGap = 25f;
-    // Сколько держится грустная походка после сцены абьюза.
-    private const float SadWalkSeconds = 90f;
 
     private float _idleSince;
     private float _lastEmoteTime = -999f;
     private float _lastFidgetRoll;
-    private float _sadWalkUntil;
-    private bool _sadWalkApplied;
     private bool _busyInteraction;
     private bool _combatFighting;
     private static readonly int LimpingParam = Animator.StringToHash("Limping");
@@ -375,6 +371,20 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     private AnimationClip CrawlClip => _animSet != null ? _animSet.crawl : null;
 
+    // §71.5: what the four locomotion slots are playing RIGHT NOW. The walk
+    // slot has four claimants and the cadence math has to know whose stride it
+    // is matching, so the resolver records every swap it makes. These are the
+    // ONLY writers of the Idle and GaitBlend keys — a direct OverrideClip on
+    // one of them would win the frame and then be silently undone.
+    private readonly AnimationClip[] _activeGait = new AnimationClip[3];
+    private AnimationClip _activeIdle;
+    // Resolver inputs: the mood (§81), the tool in hand, and the bare-handed
+    // fight stance (§104). Legless (§50) is _legless, read directly.
+    private bool _sadWalk;
+    private AnimationClip _armedIdleClip;
+    private AnimationClip _armedWalkClip;
+    private AnimationClip _bareStanceClip;
+
     // A standing action clip becomes the prone idle while legless.
     private AnimationClip Standing(AnimationClip standing) =>
         _legless && ProneClip != null ? ProneClip : standing;
@@ -493,22 +503,40 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // Feet match the ground: the walk cycle plays at the body's ACTUAL pace,
     // so a hobbling (mauled legs), soaked, or turning character takes slow
     // weighty steps instead of pattering in place at full cadence.
-    // Healthy full speed is 1.0 world units/s ≈ 0.76 body heights/s. This is a
-    // property of the CLIP (how much ground one cycle covers at rate 1.0), so
-    // it must NOT be retuned when the sim's pace changes — the cadence is what
-    // moves.
-    private const float FullWalkBodyHeightsPerSec = 0.76f;
+    // How much ground one cycle covers at playback 1× is a property of the
+    // CLIP, in body heights per second — the base walk covers ≈ 0.76.
+    // §71.5: this is now only the DEFAULT. Every locomotion clip carries its
+    // own figure in NpcAnimSet.strides, because the walk slot is shared: the
+    // sad walk (a 44-frame take against the base's 30), the armed walk, the
+    // male set and the §50 crawl were all played as if they had the base
+    // walk's stride, and each slid by exactly the ratio between them.
+    public static float FullWalkBodyHeightsPerSec = 0.76f;
     // §71: how much ground each GAIT covers, as a multiple of the walk clip's
     // pace. The girl blends walk -> slow run -> run as she speeds up, and each
     // clip then plays at ~1x its authored rate instead of a walk cycle
     // spinning absurdly fast. Mixamo's takes run roughly walk 1 : jog 2 : run
-    // 3.4 — if the feet slide at a sprint, these are the two numbers to tune.
-    private const float SlowRunCadence = 2.0f;
-    private const float RunCadence = 3.4f;
+    // 3.4 — §71.5: defaults for a run clip with no stride row of its own.
+    public static float SlowRunCadence = 2.0f;
+    public static float RunCadence = 3.4f;
     // Playback still trims a little around the blended gait (a hobbling or
     // soaked girl takes slower steps), but never far from the authored rate.
-    private const float MinGaitCadence = 0.35f;
-    private const float MaxGaitCadence = 1.25f;
+    public static float MinGaitCadence = 0.35f;
+    public static float MaxGaitCadence = 1.25f;
+    // §71.5: how hard the measured speed is smoothed before it drives the
+    // cadence, as a time constant in SIM seconds. The sim steps at 4 Hz and so
+    // does its speed — a graded turn costs TurnMinSpeedFactor for a tick, a
+    // planted pivot skips translation outright, a housemate in the doorway
+    // blocks one — so the raw frame-to-frame delta pumps the walk cycle four
+    // times a second. That pumping is the "jerky" half of the complaint; the
+    // feet sliding is the other half, and it is the stride table above.
+    public static float SpeedSmoothTau = 0.15f;
+    // ...and how long a stop must LAST before the body admits it stopped. One
+    // frozen tick (0.25 s) is a corner or a blocked step, not a halt, and
+    // flipping to Idle and back across it reads as a stutter. A planted pivot
+    // IS a halt and must reach Idle promptly or the turn-on-spot states never
+    // fire — that is what the yaw bypass below is for.
+    public static float WalkHoldSeconds = 0.3f;
+    public static float PivotYawSpeed = 90f;
     // §71: the three GaitBlend slots, keyed by CLIP name — these are the
     // AnimatorOverrideController keys. Overriding all three with one clip (the
     // §50 crawl) pins her to a single gait that can never blend into a run.
@@ -535,7 +563,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private bool _running;
     // A brisk walk is allowed to outrun the walk clip a little; a run clip
     // played much above its authored rate just looks frantic.
-    private const float MaxWalkCadence = 1.6f;
+    public static float MaxWalkCadence = 1.6f;
+    // §71.5: the measured speed, low-passed (SpeedSmoothTau), and how long she
+    // has read as still — the two pieces of state the de-jitter needs.
+    private float _smoothedSpeed;
+    private float _stillTimer;
 
     /// <summary>§71: the sim says whether she is running — walk is the default,
     /// and running always means a reason (defend, flee, adrenaline, or a body
@@ -1694,17 +1726,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // call sites; Sit/Sleep/LieDown keep their own clips.
     private void ApplyLeglessClipOverrides()
     {
-        // §71: ALL THREE gait slots become the crawl — a legless girl has one
-        // speed, and filling every slot means whatever Gait the view computes
-        // she keeps crawling and can never blend into a run.
-        foreach (var gaitKey in GaitClipKeys)
-        {
-            OverrideClip(gaitKey, CrawlClip);
-        }
+        // §71.5: the idle and ALL THREE gait slots are the resolver's — being
+        // legless is simply its top priority, and it fills every gait slot with
+        // the crawl so no Gait the view computes can blend her into a run.
+        ResolveLocomotionSlots();
         // Everything else standing → the prone idle. (The game leaves these base
         // clips in place — no NpcAnimSet action variants — so overriding the base
         // clip name here is what actually swaps them.)
-        OverrideClip(IdleClipKey, ProneClip);
         OverrideClip("crouch", ProneClip);
         OverrideClip("TurnOnSpotRightB", ProneClip);
         OverrideClip("TurnOnSpotLeftA", ProneClip);
@@ -2965,8 +2993,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             case "AbuseCry":
             case "AbuseFledHome":
                 PlayEmote(_animSet.crying);
-                // Дальше какое-то время ходит понуро.
-                _sadWalkUntil = Time.time + SadWalkSeconds;
+                // Понурая походка ставится НЕ здесь: с §81.10 это состояние
+                // сима (оно же режет скорость вдвое), приезжает флагом снапшота
+                // в SetSadWalk. Кьюшка отвечает только за одноразовый плач.
                 break;
         }
     }
@@ -3077,88 +3106,39 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _idleSince = 0f;
     }
 
-    // §81: грустная походка. Держится минуты после сцены — это не состояние
-    // симуляции, а след в теле, и живёт он там же, где остальная мимика.
-    private void UpdateSadWalk()
+    /// <summary>§81.10: понурая походка после сцены. Приезжает флагом снапшота
+    /// (`NpcSnapshot.IsSadWalk`) — раньше это был таймер внутри вида, и он
+    /// врал во всех трёх случаях, когда вид не совпадает с симом: у удалённого
+    /// зрителя, на перемотке и после загрузки сейва. Сим в это же время режет
+    /// ей скорость вдвое, поэтому широкий понурый шаг совпадает с землёй.
+    /// Тюнинг-сцена §71.5 дёргает этот же вход напрямую.</summary>
+    public void SetSadWalk(bool sad)
     {
-        if (_animSet == null || _animSet.sadWalk == null || _legless)
+        if (sad == _sadWalk)
         {
             return;
         }
 
-        var sad = Time.time < _sadWalkUntil;
-        if (sad == _sadWalkApplied)
-        {
-            return;
-        }
-
-        _sadWalkApplied = sad;
-        if (sad)
-        {
-            OverrideClip(GaitClipKeys[0], _animSet.sadWalk);
-        }
-        else
-        {
-            var baseWalk = BaseLocomotionClip(GaitClipKeys[0]);
-            if (baseWalk != null)
-            {
-                OverrideClip(GaitClipKeys[0], baseWalk);
-            }
-        }
+        _sadWalk = sad;
+        ResolveLocomotionSlots();
     }
 
     private void UpdateArmedStance(string itemId)
     {
-        if (_animSet == null)
-        {
-            return;
-        }
-
         var armed = !string.IsNullOrEmpty(itemId) &&
                     itemId.StartsWith("tool.", System.StringComparison.Ordinal);
 
         // Per-gear SO clips first; NpcAnimSet's shared armed set as fallback.
         var gearIdle = Config.GearLibrary.ArmedIdleFor(itemId);
         var gearWalk = Config.GearLibrary.ArmedWalkFor(itemId);
-        var idleClip = gearIdle != null ? gearIdle : _animSet.armedIdle;
-        var walkClip = gearWalk != null ? gearWalk : _animSet.armedWalk;
 
-        // §78: the restore goes through BaseLocomotionClip, not the controller's
-        // clip table — for a male actor "his" idle/walk IS the base, and handing
-        // back the authored take would undo his gait the moment a tool left his
-        // hand.
-        if (idleClip != null)
-        {
-            if (armed)
-            {
-                OverrideClip(IdleClipKey, Standing(idleClip));
-            }
-            else
-            {
-                var baseIdle = BaseLocomotionClip(IdleClipKey);
-                if (baseIdle != null)
-                {
-                    OverrideClip(IdleClipKey, Standing(baseIdle)); // legless stays prone
-                }
-            }
-        }
-
-        // Walk swap is skipped while legless — the crawl system owns "Walk".
-        if (walkClip != null && !_legless)
-        {
-            if (armed)
-            {
-                OverrideClip(GaitClipKeys[0], walkClip);
-            }
-            else
-            {
-                var baseWalk = BaseLocomotionClip(GaitClipKeys[0]);
-                if (baseWalk != null)
-                {
-                    OverrideClip(GaitClipKeys[0], baseWalk);
-                }
-            }
-        }
+        // §71.5: hand the clips to the resolver instead of writing the slots.
+        // The empty hand needs no restore branch here — dropping the claim IS
+        // the restore, and what it falls back to (his §78 take, the §50 crawl,
+        // the §81 sad walk) is the resolver's business, not this function's.
+        _armedIdleClip = armed ? (gearIdle != null ? gearIdle : _animSet?.armedIdle) : null;
+        _armedWalkClip = armed ? (gearWalk != null ? gearWalk : _animSet?.armedWalk) : null;
+        ResolveLocomotionSlots();
 
         // Work clip (рубка/добыча/стройка): the gear SO can swap the Chop
         // state's clip; restore the base take when the item declares none.
@@ -3192,12 +3172,99 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             ? _animSet.male
             : null;
 
-        SetLocomotionClip(IdleClipKey, set?.idle);
-        SetLocomotionClip(GaitClipKeys[0], set?.walk);
-        SetLocomotionClip(GaitClipKeys[1], set?.slowRun);
-        SetLocomotionClip(GaitClipKeys[2], set?.run);
+        // §71.5: his takes are the resolver's FALLBACK, not a write — the four
+        // blended slots have other claimants (a tool, the mood, a lost leg) and
+        // whoever writes last would win. Clearing the map above is what turns a
+        // re-Constructed female actor back to the authored takes.
+        RememberLocomotionClip(IdleClipKey, set?.idle);
+        RememberLocomotionClip(GaitClipKeys[0], set?.walk);
+        RememberLocomotionClip(GaitClipKeys[1], set?.slowRun);
+        RememberLocomotionClip(GaitClipKeys[2], set?.run);
+        ResolveLocomotionSlots();
+        // Sitting has exactly one claimant, so it is still set straight.
         SetLocomotionClip(SitClipKey, set?.sit);
     }
+
+    // His own take for a slot, kept as the resolver's fallback. No clip = the
+    // slot falls through to the controller's authored one (BaseLocomotionClip).
+    private void RememberLocomotionClip(string baseName, AnimationClip clip)
+    {
+        if (clip != null)
+        {
+            _actorLocomotion[baseName] = clip;
+        }
+    }
+
+    // §71.5: ONE place decides what each locomotion slot plays.
+    //
+    // Four systems claim the walk slot — the §50 crawl, the §81 sad walk, the
+    // armed walk, and the actor's own take (§78) — and each used to write it
+    // directly behind its own latch, so whoever moved last won. Picking up an
+    // axe while sad ate the sad walk for good (its latch still read "applied",
+    // so it never re-asserted), and the sadness timing out handed the slot back
+    // to the base walk with the axe still in hand. A priority chain resolved in
+    // one function cannot have that bug: read the state, pick the winner, and
+    // touch the slot only when the winner actually changed.
+    private void ResolveLocomotionSlots()
+    {
+        if (_animOverride == null)
+        {
+            return;
+        }
+
+        var crawling = _legless && CrawlClip != null;
+
+        // Idle: no legs > fists up (§104 bare-handed) > tool in hand > her own.
+        var idle = _legless && ProneClip != null ? ProneClip
+            : _bareStance && _bareStanceClip != null ? _bareStanceClip
+            : _armedIdleClip != null ? _armedIdleClip
+            : BaseLocomotionClip(IdleClipKey);
+
+        // Walk: crawling beats everything — she has no legs to be sad or armed
+        // with — then the mood, then the tool, then her own take.
+        var walk = crawling ? CrawlClip
+            : _sadWalk && _animSet != null && _animSet.sadWalk != null ? _animSet.sadWalk
+            : _armedWalkClip != null ? _armedWalkClip
+            : BaseLocomotionClip(GaitClipKeys[0]);
+
+        ApplyLocomotionSlot(IdleClipKey, idle, -1);
+        ApplyLocomotionSlot(GaitClipKeys[0], walk, 0);
+        ApplyLocomotionSlot(GaitClipKeys[1],
+            crawling ? CrawlClip : BaseLocomotionClip(GaitClipKeys[1]), 1);
+        ApplyLocomotionSlot(GaitClipKeys[2],
+            crawling ? CrawlClip : BaseLocomotionClip(GaitClipKeys[2]), 2);
+    }
+
+    // One resolved slot. Remembers what is playing there — the §71.5 cadence
+    // math reads it back to find that clip's authored stride.
+    private void ApplyLocomotionSlot(string baseName, AnimationClip clip, int gaitSlot)
+    {
+        if (clip == null || (gaitSlot < 0 ? _activeIdle : _activeGait[gaitSlot]) == clip)
+        {
+            return;
+        }
+
+        OverrideClip(baseName, clip);
+        if (gaitSlot < 0)
+        {
+            _activeIdle = clip;
+        }
+        else
+        {
+            _activeGait[gaitSlot] = clip;
+        }
+    }
+
+    // §71.5: how much ground the clip currently in a gait slot covers at 1×
+    // playback (body heights/sec). No stride row for it — or no anim set at all
+    // — means the slot's old single-constant figure, i.e. the pre-§71.5 result.
+    private float StrideOf(int gaitSlot, float fallback) =>
+        _animSet != null ? _animSet.StrideFor(_activeGait[gaitSlot], fallback) : fallback;
+
+    /// <summary>§71.5: the clip a gait slot is playing — the tuning scene shows the
+    /// name and calibrates that clip's stride.</summary>
+    public AnimationClip ActiveGaitClip(int gaitSlot) =>
+        gaitSlot >= 0 && gaitSlot < _activeGait.Length ? _activeGait[gaitSlot] : null;
 
     // One locomotion slot: remember the actor's clip and play it, or hand the
     // slot back to the controller's authored take when he has none.
@@ -3627,8 +3694,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             var stance = Config.GearLibrary.ArmedIdleFor(string.Empty);
             if (stance != null)
             {
-                OverrideClip(IdleClipKey, Standing(stance));
+                _bareStanceClip = stance;
                 _bareStance = true;
+                ResolveLocomotionSlots();
             }
         }
         else if (!bareHanded && _bareStance)
@@ -4642,6 +4710,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _lastPosition = position;
             _lastYaw = yaw;
             _motionSampleValid = true;
+            _smoothedSpeed = 0f;
+            _stillTimer = 0f;
             return;
         }
 
@@ -4652,10 +4722,37 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _lastPosition = position;
         _lastYaw = yaw;
 
+        // §71.5: low-pass the measured speed before anything reads it. The
+        // position it is differenced from is already interpolated between two
+        // 4 Hz sim poses, so it is a staircase, and every step of that
+        // staircase used to land straight on the walk cycle's playback rate.
+        // Fast-forward divides the time constant out, so a 4× world settles 4×
+        // sooner in wall-clock and the smoothing never lags the world.
+        _smoothedSpeed = Mathf.Lerp(_smoothedSpeed, linearSpeed,
+            1f - Mathf.Exp(-Time.deltaTime * _simSpeed / Mathf.Max(0.01f, SpeedSmoothTau)));
+
         // Hysteresis: harder to START walking than to KEEP walking, so the
         // stop-start junction gait doesn't flicker the walk/idle blend.
         var threshold = _wasWalking ? _moveEpsilon * 0.6f : _moveEpsilon * 1.3f;
-        var walking = linearSpeed > threshold;
+        var moving = linearSpeed > threshold;
+        if (moving)
+        {
+            _stillTimer = 0f;
+        }
+        else
+        {
+            _stillTimer += Time.deltaTime * _simSpeed;
+        }
+
+        // §71.5: ...and hold the walk across a stop too short to be one. A
+        // corner, a blocked step or a tick of turn penalty freezes her for a
+        // single 0.25 s tick, and dropping to Idle and back over it is a visible
+        // stutter. A planted pivot is exempt: it slews the body at hundreds of
+        // degrees a second, and it MUST reach Idle, because the turn-on-spot
+        // states can only be entered from there.
+        var walking = moving ||
+            (_wasWalking && _stillTimer < WalkHoldSeconds &&
+             Mathf.Abs(yawSpeed) <= PivotYawSpeed);
         _wasWalking = walking;
         _animator.SetFloat(SpeedParam, walking ? 1f : 0f, 0.05f, Time.deltaTime);
 
@@ -4671,8 +4768,20 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // ground-matching would crawl the strokes (deep water is slow by sim).
         if (walking && !_swimming && _bodyRoot != null && _jumpTimer <= 0f)
         {
-            var fullSpeed = 1.7f * _bodyRoot.lossyScale.y * FullWalkBodyHeightsPerSec;
-            var simCadence = linearSpeed / Mathf.Max(0.0001f, fullSpeed * _simSpeed);
+            // §71.5: each slot's ground pace comes from the clip ACTUALLY in it
+            // (the resolver above put it there), so a sad walk, an armed walk, a
+            // male take or the §50 crawl each play at their own authored stride
+            // instead of being forced through the base walk's. A clip with no
+            // row in the table falls back to the old single-constant figures,
+            // which is exactly the behaviour this replaced.
+            var bodyScale = 1.7f * _bodyRoot.lossyScale.y;
+            var walkGround = bodyScale * StrideOf(0, FullWalkBodyHeightsPerSec);
+            var slowGround = bodyScale * StrideOf(1, FullWalkBodyHeightsPerSec * SlowRunCadence);
+            var runGround = bodyScale * StrideOf(2, FullWalkBodyHeightsPerSec * RunCadence);
+            // Judged in SIM time — the fast-forward multiplier is divided out
+            // here and multiplied back into animator.speed below, so a 4× world
+            // steps exactly 4× faster instead of gliding.
+            var speedSim = _smoothedSpeed / Mathf.Max(0.0001f, _simSpeed);
 
             // §71: the SIM owns the gait. Deriving it from measured speed (the
             // first cut) meant any pace above a walk read as a jog, so a colony
@@ -4685,24 +4794,25 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 // Walking: stay on the walk clip however brisk the pace, and
                 // let the cadence carry the speed.
                 targetGait = 0f;
-                gaitGround = 1f;
+                gaitGround = walkGround;
             }
-            else if (simCadence <= SlowRunCadence)
+            else if (speedSim <= slowGround)
             {
                 targetGait = 0.5f;
-                gaitGround = SlowRunCadence;
+                gaitGround = slowGround;
             }
             else
             {
-                targetGait = 0.5f + Mathf.InverseLerp(SlowRunCadence, RunCadence, simCadence) * 0.5f;
-                gaitGround = Mathf.Lerp(SlowRunCadence, RunCadence, (targetGait - 0.5f) * 2f);
+                targetGait = 0.5f + Mathf.InverseLerp(slowGround, runGround, speedSim) * 0.5f;
+                gaitGround = Mathf.Lerp(slowGround, runGround, (targetGait - 0.5f) * 2f);
             }
 
             // A brisk walk may legitimately outrun the clip's authored pace, so
             // the walk ceiling is looser than the run's (a run clip playing 25%
             // fast already looks frantic).
             var maxCadence = _running ? MaxGaitCadence : MaxWalkCadence;
-            targetAnimSpeed = Mathf.Clamp(simCadence / gaitGround, MinGaitCadence, maxCadence);
+            targetAnimSpeed = Mathf.Clamp(speedSim / Mathf.Max(0.0001f, gaitGround),
+                MinGaitCadence, maxCadence);
         }
 
         _animSpeed = Mathf.MoveTowards(_animSpeed, targetAnimSpeed, Time.deltaTime * 3f * _simSpeed);
@@ -5273,10 +5383,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         SampleMotion();
         PollActionSounds();
         UpdateTalkTurns();
-        // §81: безделье и грустная походка. Идут ПОСЛЕ SampleMotion, потому что
-        // «стоит на месте» берётся из только что посчитанной скорости.
+        // §81: безделье. Идёт ПОСЛЕ SampleMotion, потому что «стоит на месте»
+        // берётся из только что посчитанной скорости. (Грустная походка сюда
+        // больше не ходит: с §81.10 она приезжает флагом снапшота, а не тикает
+        // тут таймером.)
         UpdateIdleFidget(_busyInteraction || _combatFighting || _wasWalking || _dead || _laying);
-        UpdateSadWalk();
         UpdateHurtReach();
         // §67.10: hands the bubble back to a running conversation once a line
         // fades, and paces the ambient self-talk layer.

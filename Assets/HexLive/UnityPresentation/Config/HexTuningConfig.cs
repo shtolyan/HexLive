@@ -75,6 +75,40 @@ namespace HexLive.UnityPresentation.Config
         [MirrorIgnore]
         [Range(-0.5f, 0.5f)] public float maleSeatDown = 0.06f;
 
+        [Header("§71.5 Походка — темп проигрывания и сглаживание")]
+        [Tooltip("Сколько ростов тела в секунду покрывает БАЗОВЫЙ шаг на скорости 1×. " +
+                 "Это дефолт: у каждого клипа есть своя строка в NpcAnimSet.strides. " +
+                 "Больше = клип считается «шире шагающим» и играется медленнее.")]
+        [MirrorIgnore]
+        [Range(0.2f, 2f)] public float walkBodyHeightsPerSec = 0.76f;
+        [Tooltip("Дефолт трусцы: во сколько раз она покрывает больше земли, чем шаг.")]
+        [MirrorIgnore]
+        [Range(1f, 4f)] public float slowRunCadence = 2f;
+        [Tooltip("Дефолт бега: во сколько раз он покрывает больше земли, чем шаг.")]
+        [MirrorIgnore]
+        [Range(1.5f, 6f)] public float runCadence = 3.4f;
+        [Tooltip("Нижний предел темпа проигрывания — еле ползущая всё же переставляет ноги.")]
+        [MirrorIgnore]
+        [Range(0.1f, 1f)] public float minGaitCadence = 0.35f;
+        [Tooltip("Верхний предел на БЕГУ: клип бега, разогнанный сильно выше авторского, выглядит истерично.")]
+        [MirrorIgnore]
+        [Range(1f, 2.5f)] public float maxGaitCadence = 1.25f;
+        [Tooltip("Верхний предел на ШАГЕ — бодрый шаг вправе слегка обгонять клип.")]
+        [MirrorIgnore]
+        [Range(1f, 3f)] public float maxWalkCadence = 1.6f;
+        [Tooltip("Сглаживание измеренной скорости, постоянная времени в СИМ-секундах. " +
+                 "0 = сырые 4 Гц-ступеньки (как было до §71.5), больше = мягче, но ленивее реакция.")]
+        [MirrorIgnore]
+        [Range(0f, 0.6f)] public float speedSmoothTau = 0.15f;
+        [Tooltip("Сколько держать шаг поверх короткой остановки (сек). Один замерший тик — " +
+                 "это угол или заминка, а не остановка. Разворот на месте исключён из этого — см. ниже.")]
+        [MirrorIgnore]
+        [Range(0f, 1f)] public float walkHoldSeconds = 0.3f;
+        [Tooltip("С какой угловой скорости (град/с) остановка считается разворотом на месте " +
+                 "и сразу пускает в Idle — иначе не сыграют клипы поворота.")]
+        [MirrorIgnore]
+        [Range(20f, 400f)] public float pivotYawSpeed = 90f;
+
         [Header("Вода — визуал")]
         [Tooltip("К какой высоте берега (в ЦЕЛЫХ ступенях) поднимается море, прежде чем утонуть на waterSurfaceDrop. Вода-тайлы в симуляции на уровне 0, а берег — на 1; поэтому без этого подъёма вода стояла на ступень ниже кромки. 1 = у самых пляжей (уровень 1).")]
         [MirrorIgnore]

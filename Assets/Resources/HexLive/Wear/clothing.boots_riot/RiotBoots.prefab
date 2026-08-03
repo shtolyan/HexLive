@@ -324,6 +324,7 @@ MonoBehaviour:
     toeDegrees: 0
     lift: 0
     axis: {x: 0, y: 0, z: 0}
+  hidesHair: 0
 --- !u!1 &3026406574230615180
 GameObject:
   m_ObjectHideFlags: 0

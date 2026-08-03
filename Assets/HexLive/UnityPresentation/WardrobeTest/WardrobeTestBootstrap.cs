@@ -115,6 +115,16 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
     private Label _scaleValue;
     private Label _saveLabel;
     private VisualElement _scaleBox;
+    private readonly Dictionary<VisualWearLayer, VisualElement> _layerButtons = new();
+    private VisualElement _hidesHairToggle;
+    private TextField _commentField;
+
+    // Заметки об осмотре. Живут рядом с манифестами поставок, а не в префабе:
+    // это разговор про вещь, а не её свойство, и читать их будет тот, кто
+    // правит конвейер, — по одному файлу, а не по девяноста двум ассетам.
+    private const string CommentsPath = "Assets/Editor/WearDrops/_comments.json";
+    private readonly Dictionary<string, string> _comments = new();
+    private bool _commentsDirty;
 
     // Sit -> sleep(5 s) -> get up loop. Off by default — the actor just stands
     // in idle until the cycle button turns the loop on.
@@ -173,6 +183,9 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         Application.runInBackground = true;
 
         BuildEnvironment();
+#if UNITY_EDITOR
+        LoadComments();
+#endif
         CollectWearEntries();
         CollectHairEntries();
         BuildUi();
@@ -584,13 +597,71 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
     {
 #if UNITY_EDITOR
         UnityEditor.AssetDatabase.SaveAssets();
-        Debug.Log($"Wardrobe: saved fit scales into {_dirty.Count} wear prefab(s)");
+        SaveComments();
+        Debug.Log($"Wardrobe: сохранено префабов {_dirty.Count}, заметок {_comments.Count}");
         _dirty.Clear();
         RefreshScalePanel();
 #else
         Debug.LogWarning("Wardrobe: saving prefabs only works in the editor");
 #endif
     }
+
+#if UNITY_EDITOR
+    // Плоский JSON `{"id": "заметка"}`, отсортированный по id. Своими руками, а
+    // не JsonUtility: он не умеет словари, а заводить ради двух строк класс с
+    // парой массивов — значит сделать файл, который неудобно читать глазами, а
+    // читать его будут именно глазами.
+    private void LoadComments()
+    {
+        _comments.Clear();
+        if (!System.IO.File.Exists(CommentsPath))
+        {
+            return;
+        }
+
+        foreach (var line in System.IO.File.ReadAllLines(CommentsPath))
+        {
+            var colon = line.IndexOf("\": \"", StringComparison.Ordinal);
+            if (colon < 0 || !line.TrimStart().StartsWith("\"", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var id = line.TrimStart().Substring(1, colon - line.IndexOf('"') - 1);
+            var rest = line.Substring(colon + 4);
+            var end = rest.LastIndexOf('"');
+            if (end > 0)
+            {
+                _comments[id] = rest.Substring(0, end).Replace("\\n", "\n").Replace("\\\"", "\"");
+            }
+        }
+    }
+
+    private void SaveComments()
+    {
+        if (!_commentsDirty)
+        {
+            return;
+        }
+
+        var sb = new System.Text.StringBuilder("{\n");
+        var keys = new List<string>(_comments.Keys);
+        keys.Sort(StringComparer.Ordinal);
+        for (var i = 0; i < keys.Count; i++)
+        {
+            var text = _comments[keys[i]].Replace("\\", "\\\\").Replace("\"", "\\\"")
+                .Replace("\r", "").Replace("\n", "\\n");
+            sb.Append("  \"").Append(keys[i]).Append("\": \"").Append(text).Append('"')
+              .Append(i < keys.Count - 1 ? ",\n" : "\n");
+        }
+
+        sb.Append("}\n");
+        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(CommentsPath));
+        System.IO.File.WriteAllText(CommentsPath, sb.ToString());
+        UnityEditor.AssetDatabase.ImportAsset(CommentsPath);
+        _commentsDirty = false;
+    }
+#endif
 
     // ---- animation cycle ----
 
@@ -1353,11 +1424,136 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         hint.style.marginBottom = 6f;
         _scaleBox.Add(hint);
 
+        BuildWearFlags(_scaleBox);
+
         var save = MakeButton(Loc.Get("wardrobe.save_prefabs"), Accent, SaveDirty);
         _saveLabel = (Label)save[0];
         _scaleBox.Add(save);
 
         RefreshScalePanel();
+    }
+
+    // ---- то, что раньше правилось только в инспекторе ----
+    //
+    // Слой, «прячет волосы» и заметка живут здесь по одной причине: их решают,
+    // ГЛЯДЯ на надетую вещь. Слой — это не свойство ткани, а ответ на вопрос
+    // «что она вытесняет»; заметку пишут ровно тогда, когда видно, что не так.
+    // Через инспектор это значит открыть префаб, потерять сцену из виду и
+    // забыть половину.
+    private void BuildWearFlags(VisualElement box)
+    {
+        var layers = new VisualElement();
+        layers.style.flexDirection = FlexDirection.Row;
+        layers.style.marginBottom = 4f;
+        box.Add(layers);
+
+        _layerButtons.Clear();
+        foreach (VisualWearLayer value in System.Enum.GetValues(typeof(VisualWearLayer)))
+        {
+            var pick = value;
+            var button = MakeButton(Loc.Get($"wardrobe.layer_{value.ToString().ToLowerInvariant()}"),
+                Raised, () => SetSelectedLayer(pick));
+            button.style.flexGrow = 1f;
+            button.style.marginRight = 3f;
+            button.style.justifyContent = Justify.Center;
+            layers.Add(button);
+            _layerButtons[pick] = button;
+        }
+
+        _hidesHairToggle = MakeButton(Loc.Get("wardrobe.hides_hair"), Raised, ToggleHidesHair);
+        _hidesHairToggle.style.marginBottom = 4f;
+        box.Add(_hidesHairToggle);
+
+        _commentField = new TextField { multiline = true };
+        _commentField.style.marginBottom = 6f;
+        _commentField.style.minHeight = 46f;
+        _commentField.style.whiteSpace = WhiteSpace.Normal;
+        _commentField.RegisterValueChangedCallback(e => StoreComment(e.newValue));
+        box.Add(_commentField);
+    }
+
+    private void SetSelectedLayer(VisualWearLayer layer)
+    {
+        if (_selectedKey == null || !_byKey.TryGetValue(_selectedKey, out var entry) ||
+            entry.Asset.Layer == layer)
+        {
+            return;
+        }
+
+        entry.Asset.SetLayer(layer);
+
+        // Слой живёт ДВАЖДЫ: в префабе — чтобы вещи вытесняли друг друга на
+        // теле, и в определении — чтобы то же самое считала симуляция. Оба
+        // перечисления идут в одном порядке (Underwear, Wear, Outerwear), но
+        // это разные типы в разных сборках. Правка только префаба разошлась бы
+        // тихо: на девушке одно, в игре другое.
+#if UNITY_EDITOR
+        var id = entry.VariantId ?? entry.Group;
+        foreach (var guid in UnityEditor.AssetDatabase.FindAssets("t:GarmentDefinition"))
+        {
+            var path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
+            var def = UnityEditor.AssetDatabase.LoadAssetAtPath<GarmentDefinition>(path);
+            if (def == null || def.id != id)
+            {
+                continue;
+            }
+
+            def.layer = (WearLayer)(int)layer;
+            UnityEditor.EditorUtility.SetDirty(def);
+            break;
+        }
+#endif
+
+        MarkDirtyAndRedress(entry);
+    }
+
+    private void ToggleHidesHair()
+    {
+        if (_selectedKey == null || !_byKey.TryGetValue(_selectedKey, out var entry))
+        {
+            return;
+        }
+
+        entry.Asset.SetHidesHair(!entry.Asset.HidesHair);
+        MarkDirtyAndRedress(entry);
+    }
+
+    // Заново надеть — иначе изменение слоя видно только на следующем надевании:
+    // вытеснение по слоям считается в Equip, а не каждый кадр.
+    private void MarkDirtyAndRedress(WearEntry entry)
+    {
+        if (_bodyBones != null && _bodyBones.IsEquipped(entry.EquipKey))
+        {
+            _bodyBones.TakeOff(entry.EquipKey);
+            _bodyBones.Equip(entry.EquipKey, entry.Asset);
+            RelaxSkinCulling();
+        }
+
+        _dirty.Add(entry.Key);
+#if UNITY_EDITOR
+        UnityEditor.EditorUtility.SetDirty(entry.Asset);
+#endif
+        RefreshScalePanel();
+    }
+
+    private void StoreComment(string text)
+    {
+        if (_selectedKey == null || !_byKey.TryGetValue(_selectedKey, out var entry))
+        {
+            return;
+        }
+
+        var id = entry.VariantId ?? entry.Group;
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            _comments.Remove(id);
+        }
+        else
+        {
+            _comments[id] = text;
+        }
+
+        _commentsDirty = true;
     }
 
     // ---- variants (§31B.4E) ----
@@ -1659,7 +1855,8 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
             return;
         }
 
-        if (_selectedKey != null && _byKey.TryGetValue(_selectedKey, out var entry))
+        WearEntry entry = null;
+        if (_selectedKey != null && _byKey.TryGetValue(_selectedKey, out entry))
         {
             _scaleTitle.text = string.Format(Loc.Get("wardrobe.scale_selected"), entry.DisplayName, _girl);
             _scaleValue.text = entry.Asset.GetConfigScale(_girl).ToString("0.000");
@@ -1668,6 +1865,28 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         {
             _scaleTitle.text = Loc.Get("wardrobe.scale_none");
             _scaleValue.text = "—";
+        }
+
+        foreach (var pair in _layerButtons)
+        {
+            pair.Value.style.backgroundColor =
+                entry != null && entry.Asset.Layer == pair.Key ? AccentSel : Raised;
+        }
+
+        if (_hidesHairToggle != null)
+        {
+            _hidesHairToggle.style.backgroundColor =
+                entry != null && entry.Asset.HidesHair ? AccentSel : Raised;
+        }
+
+        if (_commentField != null)
+        {
+            // SetValueWithoutNotify, иначе перерисовка панели тут же запишет то,
+            // что сама и подставила, и заметка соседней вещи уедет к этой.
+            var id = entry != null ? entry.VariantId ?? entry.Group : null;
+            _commentField.SetValueWithoutNotify(
+                id != null && _comments.TryGetValue(id, out var note) ? note : "");
+            _commentField.SetEnabled(entry != null);
         }
 
         if (_saveLabel != null)

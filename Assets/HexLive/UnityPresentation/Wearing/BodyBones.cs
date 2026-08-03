@@ -113,6 +113,9 @@ public sealed class BodyBones : MonoBehaviour
         }
 
         _hairInstance.Construct(_actorMesh, this, "hair");
+        // Причёску можно сменить, не снимая шапки — новая должна остаться под
+        // ней, а не выскочить наружу.
+        RefreshHairVisibility();
 
         // Hair must never catch SKIN-layer decals (dirt/sweat grain in the
         // strands): imported prefabs ship odd rendering-layer masks (257),
@@ -339,6 +342,41 @@ public sealed class BodyBones : MonoBehaviour
         _wearKeys[newWear] = key;
         UpdateGenitals();
         RefreshHeel();
+        RefreshHairVisibility();
+    }
+
+    /// <summary>Причёска видна, пока на ней не сидит шапка.</summary>
+    /// <remarks>
+    /// Считается по ВСЕМ надетым вещам, а не по последней: девушка может носить
+    /// сразу и кепку, и капюшон, и снятие одного из них волосы не возвращает.
+    /// Поэтому здесь не «спрятать при надевании / показать при снятии», а один
+    /// пересчёт, который зовут после любого изменения.
+    /// </remarks>
+    private void RefreshHairVisibility()
+    {
+        if (_hairInstance == null)
+        {
+            return;
+        }
+
+        var covered = false;
+        foreach (var wear in _wears.Values)
+        {
+            if (wear != null && wear.HidesHair)
+            {
+                covered = true;
+                break;
+            }
+        }
+
+        if (covered)
+        {
+            _hairInstance.Hide();
+        }
+        else
+        {
+            _hairInstance.Show();
+        }
     }
 
     public void TakeOff(string key)
@@ -377,6 +415,7 @@ public sealed class BodyBones : MonoBehaviour
         _wearKeys.Remove(wear);
         UpdateGenitals();
         RefreshHeel();
+        RefreshHairVisibility();
     }
 
     // §72: восстановленная логика molly_copy (в §31B.3 её сознательно срезали —

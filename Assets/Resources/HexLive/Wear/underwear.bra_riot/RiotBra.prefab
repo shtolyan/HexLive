@@ -48,19 +48,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Wear
   configs:
   - actorName: 0
-    scale: 1
+    scale: 1.01
     heightOffset: 0
     mesh: {fileID: 4300000, guid: 85ef402b57b81854b96920fb141e5bff, type: 2}
   - actorName: 1
-    scale: 1
+    scale: 1.01
     heightOffset: 0
     mesh: {fileID: 4300000, guid: 86c4a5949eee03f4baec201a27d5b171, type: 2}
   - actorName: 2
-    scale: 1
+    scale: 1.01
     heightOffset: 0
     mesh: {fileID: 4300000, guid: b0e7070039e7dfd4d8452251bef04c60, type: 2}
   - actorName: 5
-    scale: 1
+    scale: 1.03
     heightOffset: 0
     mesh: {fileID: 4300000, guid: 87425de72dd8bd8439028e22d980c693, type: 2}
   slots: 04000000
@@ -72,6 +72,7 @@ MonoBehaviour:
     toeDegrees: 0
     lift: 0
     axis: {x: 0, y: 0, z: 0}
+  hidesHair: 0
 --- !u!1 &1517690079042937324
 GameObject:
   m_ObjectHideFlags: 0

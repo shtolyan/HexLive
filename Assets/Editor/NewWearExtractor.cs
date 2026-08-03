@@ -1942,6 +1942,12 @@ public static class NewWearExtractor
         WriteSlotList(so.FindProperty("noHideUnderwearSlots"), g.NoHide);
         so.FindProperty("layer").enumValueIndex = (int)g.Layer;
         so.FindProperty("gender").enumValueIndex = (int)VisualGender.Female;
+        // Всё, что садится на голову, по умолчанию прячет причёску: шапка — это
+        // оболочка вокруг черепа, а причёска отдельный меш поверх него, и без
+        // этого волосы прорастают сквозь тулью. Правится галочкой в тестовой
+        // сцене — есть шляпы, из-под которых волосы должны торчать.
+        so.FindProperty("hidesHair").boolValue =
+            g.Slots != null && g.Slots.Contains(VisualWearSlot.Head);
         so.ApplyModifiedPropertiesWithoutUndo();
     }
 

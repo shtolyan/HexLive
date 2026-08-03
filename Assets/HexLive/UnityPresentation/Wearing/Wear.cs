@@ -21,7 +21,15 @@ public sealed class Wear : MonoBehaviour
     // layout and every existing prefab keeps binding unchanged.
     [SerializeField] private HeelPose heel;
 
+    // Прячет ли эта вещь причёску. Шапка сидит на черепе, а причёска —
+    // отдельный меш поверх него, и без этого волосы прорастают сквозь тулью.
+    // Значение по умолчанию — «не прячет», так что старые префабы читаются
+    // как прежде; головным уборам его ставит экстрактор.
+    [SerializeField] private bool hidesHair;
+
     public VisualWearLayer Layer => layer;
+
+    public bool HidesHair => hidesHair;
 
     public HeelPose Heel => heel;
 
@@ -195,6 +203,25 @@ public sealed class Wear : MonoBehaviour
         }
 
         return 1f;
+    }
+
+    // Правится ПРЯМО В ПРЕФАБЕ из тестовой сцены — тем же путём, что и подгонка
+    // размера ниже: инспектор для этого пришлось бы открывать по одной вещи, а
+    // решение «бельё или куртка» принимается, когда вещь надета и видна на
+    // девушке рядом с остальными.
+    public void SetLayer(VisualWearLayer value)
+    {
+        layer = value;
+    }
+
+    public void SetHidesHair(bool value)
+    {
+        hidesHair = value;
+    }
+
+    public void SetGender(VisualGender value)
+    {
+        gender = value;
     }
 
     // Write the fit scale for one actor; adds a config entry (mesh = shared

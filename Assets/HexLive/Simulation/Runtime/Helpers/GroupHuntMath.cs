@@ -226,6 +226,9 @@ public static class GroupHuntMath
             girl.Mind.CurrentGoal = GoalType.GroupHunt;
             girl.Mind.GroupHuntTargetNpcId = stranger.Id;
             girl.Mind.GroupHuntStartedTick = world.Tick;
+            // Мерка отступления — разница, а не абсолют (§108.5).
+            girl.Mind.GroupHuntStartHealth = girl.Health;
+            girl.Mind.GroupHuntStartWorstPart = MobSystem.WorstPartHealth(girl);
             girl.Mind.GoalLock = new GoalLock
             {
                 Goal = GoalType.GroupHunt,

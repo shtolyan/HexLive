@@ -272,10 +272,10 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 8)] public int groupHuntSpreadTiles = 2;
         [Tooltip("Здоровье, ниже которого он уже не принимает бой и бежит в свой лагерь. Высокое намеренно: трое против одного — это погоня, а не казнь.")]
         [Range(0f, 1f)] public float groupHuntTargetFleeHealth = 0.85f;
-        [Tooltip("Здоровье, ниже которого ОХОТНИЦА выходит из расправы и убегает. Пара к порогу выше: право убежать нужно обеим сторонам, иначе тройка ложится целиком.")]
-        [Range(0f, 1f)] public float groupHuntHunterFleeHealth = 0.6f;
-        [Tooltip("То же по худшей части тела: разбитая голова уводит охотницу, даже когда общее здоровье ещё держится.")]
-        [Range(0f, 1f)] public float groupHuntHunterFleeWorstPart = 0.35f;
+        [Tooltip("Сколько урона ОХОТНИЦА готова получить В ЭТОЙ расправе, прежде чем выйдет и убежит. Считается разницей с моментом сговора, а не абсолютом: иначе выбывает давно хромающая, не получив ни одного удара.")]
+        [Range(0f, 1f)] public float groupHuntHunterFleeDamage = 0.2f;
+        [Tooltip("То же по худшей части тела: разбитая голова уводит охотницу раньше, чем просядет среднее по телу.")]
+        [Range(0f, 1f)] public float groupHuntHunterFleeWorstDrop = 0.25f;
         [Tooltip("Меньше этого числа охотниц на ногах — охота разваливается.")]
         [Range(1, 4)] public int groupHuntMinRemaining = 2;
         [Tooltip("Передышка после охоты, любой. Без неё они пошли бы на него снова в тот же вечер.")]

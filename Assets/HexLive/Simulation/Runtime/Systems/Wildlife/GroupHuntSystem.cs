@@ -80,19 +80,40 @@ public sealed class GroupHuntSystem : ISimulationSystem
 
             // Свалился — расправа удалась. Проверяется у КАЖДОЙ, потому что
             // финальный удар мог лечь на быстром слое между проходами.
-            if (quarry.Health <= 0f || quarry.IsUnconscious(world.Tick) || quarry.Body.IsProne)
+            //
+            // Но их ли это заслуга? Ни одного удара значит, что его достал
+            // кто-то другой (волк, голод, отбившаяся жертва §109), и записывать
+            // это себе в победу нечестно — расплата выдавалась бы за чужую
+            // работу (сид 313: GroupHuntDone, не ударив ни разу).
+            var landed = PartyBlows(world, quarryId);
+            if (quarry.Health <= 0f)
             {
-                // Свалился — но их ли это заслуга? Ни одного удара значит, что
-                // его достал кто-то другой (волк, голод, другая драка), и
-                // записывать это себе в победу нечестно: расплата за расправу
-                // выдавалась бы за чужую работу. Замерено на сиде 313: группа
-                // получила GroupHuntDone, не ударив ни разу.
-                var landed = PartyBlows(world, quarryId);
                 FinishHunt(world, quarryId, done: landed > 0,
                     reason: landed > 0
                         ? $"{DownReason(world, quarry)} Blows={landed}"
                         : "SomebodyElseGotHim");
                 break;
+            }
+
+            // ⭐ ЛЕЖИТ ЖИВОЙ — это не конец охоты, а самый её удобный момент.
+            // Раньше любое «на земле» закрывало расправу, и чужой нокдаун
+            // распускал сговор: на смёрженном мире (§109 честный ответный бой,
+            // §110 рыдание) он валяется часто, и все три сговора сида 313
+            // кончились SomebodyElseGotHim, не начавшись. Ушли ни с чем оттого,
+            // что пришли вовремя.
+            //
+            // Свой нокдаун по-прежнему победа: удары есть — довольно, расходимся.
+            if (quarry.IsUnconscious(world.Tick) || quarry.Body.IsProne)
+            {
+                if (landed > 0)
+                {
+                    FinishHunt(world, quarryId, done: true,
+                        reason: $"{DownReason(world, quarry)} Blows={landed}");
+                    break;
+                }
+
+                // Ноль ударов — идём дальше и всыпаем. Смертельность решает
+                // лестница §86, как и всегда (§108.6).
             }
 
             // ⭐ СЧЁТ ПРОВЕРЯЕТСЯ ПЕРВЫМ — раньше, чем «кто ещё на ногах». Иначе
@@ -101,10 +122,9 @@ public sealed class GroupHuntSystem : ISimulationSystem
             // PartyCollapsed пишет провал поверх шести уже всаженных ударов.
             // Замер: сид 42 — 6 ударов, сид 313 — 7, порог 6, обе записаны в
             // провал. Отступление ПОСЛЕ взбучки не отменяет взбучку.
-            var routBlows = PartyBlows(world, quarryId);
-            if (routBlows >= Spec108.GroupHuntBlowsToRout)
+            if (landed >= Spec108.GroupHuntBlowsToRout)
             {
-                FinishHunt(world, quarryId, done: true, reason: $"Routed Blows={routBlows}");
+                FinishHunt(world, quarryId, done: true, reason: $"Routed Blows={landed}");
                 break;
             }
 
@@ -120,16 +140,24 @@ public sealed class GroupHuntSystem : ISimulationSystem
             // втроём и легли. Замер, сид 42: три головы, разбитые машете за 700
             // тиков, колония 4→1 с одной охоты.
             //
-            // Порог тот же, что у жертвы налёта: пока цела — бьёт, разбили —
-            // уходит. Уходит ОДНА: остальные решают за себя, и охота кончается
-            // не потому, что кто-то скомандовал, а потому что в ней осталось
+            // Мерка — УРОН, ПОЛУЧЕННЫЙ ЗДЕСЬ, а не абсолютное здоровье: с
+            // абсолютным порогом колонистка со старым рубцом (Worst=0,28 при
+            // здоровье 0,84) выбывала, не получив ни одного удара, и охота
+            // рассыпалась ещё на подходе. Разницу считает §81.13 — та же мысль.
+            //
+            // Уходит ОДНА: остальные решают за себя, и охота кончается не
+            // потому, что кто-то скомандовал, а потому что в ней осталось
             // меньше двоих (PartyCollapsed ниже).
-            if (hunter.Health < Spec108.GroupHuntHunterFleeHealth ||
-                MobSystem.WorstPartHealth(hunter) < Spec108.GroupHuntHunterFleeWorstPart)
+            var worstNow = MobSystem.WorstPartHealth(hunter);
+            var tookOverall = hunter.Mind.GroupHuntStartHealth - hunter.Health;
+            var tookWorst = hunter.Mind.GroupHuntStartWorstPart - worstNow;
+            if (tookOverall >= Spec108.GroupHuntHunterFleeDamage ||
+                tookWorst >= Spec108.GroupHuntHunterFleeWorstDrop)
             {
                 Trace.Emit(world, hunter.Id, "GroupHuntHunterFled",
                     $"Target=NPC{quarryId.Value} Health={hunter.Health:F2} " +
-                    $"Worst={MobSystem.WorstPartHealth(hunter):F2}");
+                    $"Took={tookOverall:F2} WorstDrop={tookWorst:F2} " +
+                    $"Blows={hunter.Mind.GroupHuntBlowsLanded}");
                 EndHunt(world, hunter, "Hurt");
                 MobSystem.TryStartFlee(world, hunter, 1, attackerNpcId: quarryId);
                 continue;

@@ -58,6 +58,17 @@ namespace HexLive.UnityPresentation.History
                     $"{actor} поссорилась с {target}."),
                 "TalkWaitTimeout" => T($"{actor} stopped waiting for the conversation.",
                     $"{actor} перестала ждать разговора."),
+                // §107: сговор против чужака и чем он кончился.
+                "GroupHuntPactFormed" => T($"{actor} agreed to go after the stranger together.",
+                    $"{actor} сговорилась идти на чужака вместе с остальными."),
+                "GroupHuntEngaged" => T($"{actor} laid into the stranger.",
+                    $"{actor} набросилась на чужака."),
+                "GroupHuntTargetFled" => T($"{actor} ran from the women.",
+                    $"{actor} побежал от женщин."),
+                "GroupHuntDone" => T($"{actor} got even with the stranger.",
+                    $"{actor} поквиталась с чужаком."),
+                "GroupHuntFailed" => T($"{actor} did not get to the stranger.",
+                    $"{actor} не добралась до чужака."),
                 "InteractionBlocked" => T($"{actor} could not use a busy object.",
                     $"{actor} не смогла воспользоваться занятым объектом."),
                 "InteractionRejected" => T($"{actor}'s talk was refused.",
@@ -222,6 +233,11 @@ namespace HexLive.UnityPresentation.History
                 "HelpCryAnswered" => HelpCryDecisionDetail(record.Message),
                 "HelpCryIgnored" => HelpCryDecisionDetail(record.Message),
                 "HelpCryDefended" => CleanDetail(record.Message),
+                "GroupHuntPactFormed" => T("Nobody in the circle could stand him any more.",
+                    "Его уже не выносил никто в кружке."),
+                "GroupHuntDone" => T("They beat him and drove him off.",
+                    "Побили и прогнали."),
+                "GroupHuntFailed" => CleanDetail(record.Message),
                 "RaftProgress" => record.Message,
                 "DireStraits" => T("Several survivors need urgent attention.",
                     "Нескольким выжившим срочно нужна помощь."),
@@ -291,7 +307,10 @@ namespace HexLive.UnityPresentation.History
             if (type is "NpcDied" or "BledOut" or "StarvedToDeath" or "VitalPartDestroyed" or
                 "DogFight" or "NightRaid" or "Murdered" or "Preyed" or "SharkBite" or "LimbSevered" or
                 "Collapsed" or // §105: она при смерти — тревожнее этого в колонии ничего нет
-                "HelpCry" or "HelpCryAssistStarted" or "HelpCryAssistArrived" or "HelpCryDefended")
+                "HelpCry" or "HelpCryAssistStarted" or "HelpCryAssistArrived" or "HelpCryDefended" or
+                // §107: расправа — это драка, и в ленте она должна быть красной.
+                "GroupHuntPactFormed" or "GroupHuntEngaged" or "GroupHuntStruck" or
+                "GroupHuntTargetFled" or "GroupHuntDone" or "GroupHuntFailed")
             {
                 return GameHistoryTone.Danger;
             }
@@ -407,6 +426,8 @@ namespace HexLive.UnityPresentation.History
             "Pain" => T("her wound", "свою рану"),
             "Tired" => T("her exhaustion", "свою усталость"),
             "Cold" => T("the chill in her bones", "свой холод"),
+            // §107: разговор ПРО НЕГО — единственная тема, у которой есть «о ком».
+            "Stranger" => T("the stranger", "чужак"),
             _ => topic
         };
 

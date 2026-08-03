@@ -16,6 +16,7 @@ namespace HexLive.UnityPresentation.Config
     [MirrorTarget(typeof(Spec82))]
     [MirrorTarget(typeof(Spec86))]
     [MirrorTarget(typeof(Spec106))]
+    [MirrorTarget(typeof(Spec107))]
     public sealed class OutsiderBalanceConfig : ScriptableObject
     {
         [Header("Общее (§72)")]
@@ -241,5 +242,45 @@ namespace HexLive.UnityPresentation.Config
         [Range(-1f, 1f)] public float hatredAffinity = -0.6f;
         [Tooltip("Распространять пощаду и на чужаков. Выключено — соак разведёт смерти от своих и от чужих.")]
         public bool mercyAppliesToOutsiders = true;
+
+        [Header("§107 Групповая охота — сговор против чужака")]
+        [Tooltip("⭐ Трое собрались, обсудили его и пошли бить. Выключено — тема «чужак» исчезает из разговоров, сговор не заключается.")]
+        public bool groupHuntEnabled = true;
+        [Tooltip("Сколько подруг должно стоять рядом, чтобы разговор мог свернуть на него. Двое — просто разговор; сговор начинается с троих.")]
+        [Range(2, 6)] public int groupHuntMinGirls = 3;
+        [Tooltip("В каком радиусе считаются «собравшиеся». Маленький намеренно: это кружок у костра, а не весь край острова.")]
+        [Range(1, 6)] public int groupHuntGatherRadiusTiles = 4;
+        [Tooltip("Симпатия, ниже которой она готова идти его бить. Одна сцена абьюза даёт -0.35, значит двух хватает. ⚠️ Держать ВЫШЕ порога ненависти §86 (-0.6): между ними и живёт «побить, но не убить».")]
+        [Range(-1f, 0f)] public float groupHuntHateThreshold = -0.5f;
+        [Tooltip("Базовый вес темы «чужак» в розыгрыше разговора (у болтовни ни о чём — 1.00).")]
+        [Range(0f, 4f)] public float groupHuntTopicWeight = 1.2f;
+        [Tooltip("Сколько к весу темы добавляет ненависть: чем сильнее ненавидят, тем чаще о нём и говорят.")]
+        [Range(0f, 4f)] public float groupHuntTopicHateGain = 1.5f;
+        [Tooltip("Дальше этого сговариваться не о чем — идти полострова за местью они не станут.")]
+        [Range(4, 80)] public int groupHuntMaxPactDistanceTiles = 40;
+        [Tooltip("Бюджет охоты в тиках: замок цели. Истёк — охота провалилась, все расходятся.")]
+        [Range(120, 4800)] public int groupHuntLockTicks = 900;
+        [Tooltip("Насколько передняя охотница может оторваться от самой отставшей, прежде чем встанет и подождёт. Это и есть «держатся вместе».")]
+        [Range(0, 8)] public int groupHuntSpreadTiles = 2;
+        [Tooltip("Здоровье, ниже которого он уже не принимает бой и бежит в свой лагерь. Высокое намеренно: трое против одного — это погоня, а не казнь.")]
+        [Range(0f, 1f)] public float groupHuntTargetFleeHealth = 0.85f;
+        [Tooltip("Меньше этого числа охотниц на ногах — охота разваливается.")]
+        [Range(1, 4)] public int groupHuntMinRemaining = 2;
+        [Tooltip("Передышка после охоты, любой. Без неё они пошли бы на него снова в тот же вечер.")]
+        [Range(0, 12000)] public int groupHuntCooldownTicks = 3000;
+        [Tooltip("Сколько стресса снимает удавшаяся расправа.")]
+        [Range(0f, 1f)] public float groupHuntStressRelief = 0.25f;
+        [Tooltip("Насколько теплеют друг к другу те, кто ходил вместе.")]
+        [Range(0f, 1f)] public float groupHuntBondAffinity = 0.10f;
+        [Tooltip("⭐ Сколько симпатии теряет ТА, КТО ВИДЕЛА сцену (не жертва). Недостающее звено: без него он фиксируется на удобной жертве, её симпатия уходит в -1.00, у двух других остаётся -0.35, и единогласия не бывает никогда.")]
+        [Range(0f, 1f)] public float groupHuntWitnessAffinityLoss = 0.18f;
+        [Tooltip("В каком радиусе сцену «видно». Шире круга сговора: слышно и с соседнего гекса.")]
+        [Range(0, 12)] public int groupHuntWitnessRadiusTiles = 5;
+        [Tooltip("Сколько ударов группы значит «проучили»: когда счёт набран и он оторвался или побежал — расправа удалась. Без этой меры у охоты с пощадой нет успешного конца вовсе.")]
+        [Range(1, 30)] public int groupHuntBlowsToRout = 6;
+        [Tooltip("Держать ли пощаду §86 на время расправы, независимо от ненависти. ВЫКЛЮЧЕНО намеренно: исход решает лестница ненависти — кто дошла до -0.6, добьёт, кто не дошла, отобьёт и отстанет. Включить — бьют строго до «свалился», и он всегда встаёт.")]
+        public bool groupHuntMercyHolds = false;
+        [Tooltip("Насколько он их за это возненавидит. Это его лестница оружия §91: побитый в следующий раз возьмётся за нож.")]
+        [Range(0f, 1f)] public float groupHuntTargetGrudge = 0.30f;
     }
 }

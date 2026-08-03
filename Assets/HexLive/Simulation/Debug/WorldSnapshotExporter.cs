@@ -715,6 +715,7 @@ public static class WorldSnapshotExporter
             HeldItemId = ResolveHeldItem(world, npc),
             // Spec 28.15E: conversation subject + last outcome for the bubble.
             TalkTopic = npc.Execution.CurrentTalkTopic?.ToString() ?? string.Empty,
+            TalkTopicPeerId = npc.Execution.CurrentTalkTopicPeerId?.Value,
             TalkResultTick = npc.Execution.LastTalkResultTick,
             TalkResultDelta = npc.Execution.LastTalkAffinityDelta,
             SocialCueTick = npc.Execution.LastSocialCueTick,

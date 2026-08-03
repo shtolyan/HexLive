@@ -2670,10 +2670,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private NpcSpeechBubble _speechBubble;
     private UI.NpcSpeechDirector _speech;
 
-    public void SetTalkTopic(string topicName)
+    public void SetTalkTopic(string topicName) => SetTalkTopic(topicName, null);
+
+    /// <summary>§107: тема с ЛИЦОМ — когда разговор про человека, в пузыре его
+    /// круглый портрет вместо значка.</summary>
+    public void SetTalkTopic(string topicName, Sprite subjectFace)
     {
         EnsureSpeechBubble();
-        _speech?.SetConversationTopic(topicName);
+        _speech?.SetConversationTopic(topicName, subjectFace);
     }
 
     // §67.10: her body, for the ambient self-talk layer (hungry/parched/cold…).
@@ -2772,6 +2776,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     void UI.ISpeechStage.ShowSpeechIcon(string iconKey, float seconds)
         => _speechBubble?.ShowIcon(iconKey, seconds);
+
+    void UI.ISpeechStage.ShowSpeechPortrait(Sprite portrait, float seconds)
+        => _speechBubble?.ShowIcon(portrait, seconds);
 
     void UI.ISpeechStage.HideSpeechIcon() => _speechBubble?.HideIcon();
 

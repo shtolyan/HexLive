@@ -108,6 +108,18 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 continue;
             }
 
+            // §107: сговор держится, пока цель жива и не вышел бюджет. Аукцион
+            // закрыт для НЕЁ, а не для группы: снять её оттуда может только
+            // конец охоты (GroupHuntSystem.EndHunt) — иначе трое разошлись бы
+            // по своим делам поодиночке и «идут вместе» распалось бы на первом
+            // же перепланировании. Голод и жажда всё равно рвут охоту раньше:
+            // их проверяет PactHolds на входе и EndHunt по бюджету.
+            if (npc.Mind.CurrentGoal == GoalType.GroupHunt &&
+                npc.Mind.GroupHuntTargetNpcId.HasValue)
+            {
+                continue;
+            }
+
             // Spec 29C.9: while an action is genuinely underway, don't
             // re-decide. Gradual needs (iter 30) drain the executing goal's
             // OWN score every tick (eating lowers Hunger -> Eat's score

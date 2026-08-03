@@ -43,6 +43,7 @@ public static class BalanceReflection
         typeof(Spec94),
         typeof(Spec105),
         typeof(Spec106),
+        typeof(Spec107),
         typeof(AiBalance),
         typeof(SocialBalance),
         typeof(WorldBalance),

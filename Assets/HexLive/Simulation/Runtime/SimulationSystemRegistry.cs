@@ -30,6 +30,11 @@ public static class SimulationSystemRegistry
         // §72: AFTER MobSystem — it clears IsFighting for every NPC each medium
         // pass, so anything that sets the latch has to run later.
         engine.Register(new RaidSystem()); // §72: the outsider's hunt and the colony's answer
+        // §107: AFTER RaidSystem for the same reason it runs after MobSystem —
+        // the latch has to be the last word on IsFighting. After the raid, not
+        // before: if he is mid-raid when the party arrives, his own scene stays
+        // in charge of that tick and the hunt simply piles on.
+        engine.Register(new GroupHuntSystem()); // §107: the girls' pact and the beating
         // §72: BEFORE AnimalCombatSystem — a body has one swing slot, and a man
         // with a knife outranks a dog for that tick of attention.
         engine.Register(new HumanCombatSystem()); // §72: timed human-vs-human blows

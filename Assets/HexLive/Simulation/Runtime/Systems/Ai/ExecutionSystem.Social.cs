@@ -159,8 +159,13 @@ public sealed partial class ExecutionSystem
             // tells her housemate about it instead of chatting coconuts, so the
             // two bubbles differ and read as a real exchange.
             var topic = PickTalkTopic(world, npc, target);
-            npc.Execution.CurrentTalkTopic = PickSpeakerTopic(world, npc, target, topic);
-            target.Execution.CurrentTalkTopic = PickSpeakerTopic(world, target, npc, topic);
+            if (ApplySharedTopic(world, npc, target, topic))
+            {
+                // §107: разговор о нём кончился сговором — обе уже идут бить,
+                // и «начать разговор» доигрывать нечего.
+                return;
+            }
+
             if (npc.Plan.TargetJunctionId is { } jId)
             {
                 SpatialMutations.OccupyJunction(world, jId, npc.Id);
@@ -258,6 +263,8 @@ public sealed partial class ExecutionSystem
             // Spec 28.15E: talk's over — drop the topic so the bubble clears.
             npc.Execution.CurrentTalkTopic = null;
             target.Execution.CurrentTalkTopic = null;
+            npc.Execution.CurrentTalkTopicPeerId = null;
+            target.Execution.CurrentTalkTopicPeerId = null;
 
             if (npc.Plan.TargetJunctionId is { } jId)
             {
@@ -301,6 +308,7 @@ public sealed partial class ExecutionSystem
     {
         // Spec 28.15E: a dropped talk clears its topic so no bubble lingers.
         npc.Execution.CurrentTalkTopic = null;
+        npc.Execution.CurrentTalkTopicPeerId = null;
         PlanningSystem.SetGoalCooldown(world, npc, GoalType.Socialize);
         PlanInterruption.Abort(world, npc, reason);
         npc.Mind.CurrentGoal = GoalType.None;
@@ -683,10 +691,17 @@ public sealed partial class ExecutionSystem
     {
         TalkTopic.SmallTalk, TalkTopic.Escape, TalkTopic.Sharks, TalkTopic.Dogs,
         TalkTopic.Weather, TalkTopic.Food, TalkTopic.Fire, TalkTopic.Home,
-        TalkTopic.Gossip, TalkTopic.Flirt, TalkTopic.Joke, TalkTopic.Grumble
+        TalkTopic.Gossip, TalkTopic.Flirt, TalkTopic.Joke, TalkTopic.Grumble,
+        // §107: последняя — тема про ЧЕЛОВЕКА, и единственная, у которой есть
+        // «о ком» (вес нулевой, пока рядом не соберётся кружок).
+        TalkTopic.Stranger
     };
 
-    private static readonly float[] TalkTopicWeights = new float[12];
+    private static readonly float[] TalkTopicWeights = new float[13];
+
+    // §107: буфер собравшихся. Один на систему — исполнитель однопоточный, и
+    // разговор считается по одной паре за раз.
+    private static readonly System.Collections.Generic.List<NPCState> GatheredBuffer = new();
 
     private static TalkTopic PickTalkTopic(WorldState world, NPCState npc, NPCState target)
     {
@@ -720,6 +735,12 @@ public sealed partial class ExecutionSystem
         w[9] = 0.20f + 1.20f * like;                    // Flirt (they warm to each other)
         w[10] = 0.40f + 0.80f * like;                   // Joke
         w[11] = 0.30f + 1.00f * dislike + 0.60f * hunger; // Grumble (dislike / crankiness)
+        // §107: о чужаке говорят только когда есть кружок и есть за что. Вес 0
+        // в остальное время — тема не «редкая», её просто НЕТ, пока условия не
+        // сложились, и попасть в неё случайно невозможно.
+        w[12] = GroupHuntMath.TopicAvailable(world, npc, target, GatheredBuffer, out _, out var hate)
+            ? Spec107.GroupHuntTopicWeight + Spec107.GroupHuntTopicHateGain * hate
+            : 0f;
 
         var total = 0f;
         for (var i = 0; i < w.Length; i++)
@@ -741,6 +762,41 @@ public sealed partial class ExecutionSystem
         }
 
         return TalkTopic.SmallTalk;
+    }
+
+    // §107: раздать обеим собеседницам их темы — и, если общая тема оказалась
+    // «чужак», проверить сговор. Одно место на оба вызова (начало разговора и
+    // каждое обновление), потому что забыть одно из них означало бы «иногда о
+    // нём говорят, а сговориться не могут», и искать это пришлось бы в трассе.
+    //
+    // Возвращает true, если сговор состоялся: тогда разговор оборван и его
+    // состояние трогать больше НЕЛЬЗЯ — участницы уже идут бить.
+    private static bool ApplySharedTopic(
+        WorldState world, NPCState npc, NPCState target, TalkTopic shared)
+    {
+        var stranger = shared == TalkTopic.Stranger
+            ? GroupHuntMath.MostHatedStranger(world, npc, target)
+            : null;
+
+        SetTopic(npc, PickSpeakerTopic(world, npc, target, shared), stranger);
+        SetTopic(target, PickSpeakerTopic(world, target, npc, shared), stranger);
+
+        if (stranger is null)
+        {
+            return false;
+        }
+
+        GroupHuntMath.GatheredGirls(world, npc, GatheredBuffer);
+        return GroupHuntMath.TryFormPact(world, GatheredBuffer, stranger);
+    }
+
+    private static void SetTopic(NPCState npc, TalkTopic topic, NPCState stranger)
+    {
+        npc.Execution.CurrentTalkTopic = topic;
+        // «О ком» есть только у темы про человека — иначе вид нарисовал бы
+        // лицо поверх разговора про погоду.
+        npc.Execution.CurrentTalkTopicPeerId =
+            topic == TalkTopic.Stranger && stranger is not null ? stranger.Id : null;
     }
 
     // §67.10: how often each speaker's subject is re-drawn inside one talk.
@@ -819,8 +875,7 @@ public sealed partial class ExecutionSystem
         }
 
         var shared = PickTalkTopic(world, npc, target);
-        npc.Execution.CurrentTalkTopic = PickSpeakerTopic(world, npc, target, shared);
-        target.Execution.CurrentTalkTopic = PickSpeakerTopic(world, target, npc, shared);
+        ApplySharedTopic(world, npc, target, shared);
     }
 }
 

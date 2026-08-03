@@ -79,6 +79,8 @@ internal static class CombatHelpSystem
                 !helper.IsFighting &&
                 helper.Mind.CurrentGoal != GoalType.Flee &&
                 helper.Mind.CurrentGoal != GoalType.Defend &&
+                helper.Mind.CurrentGoal != GoalType.GroupHunt && // §107: она уже идёт бить
+
                 (dogId.HasValue || attackerId.HasValue);
 
             if (!canHelp || score < Spec57.HelpCryDecisionThreshold || roll > score)
@@ -151,6 +153,10 @@ internal static class CombatHelpSystem
                 helper.IsFighting ||
                 helper.Mind.CurrentGoal == GoalType.Defend ||
                 helper.Mind.CurrentGoal == GoalType.Flee ||
+                // §107: она уже идёт бить его — своей волей и вместе с двумя
+                // подругами. Перекинуть её в Defend значило бы разменять
+                // расправу на конвой и развалить группу на полпути.
+                helper.Mind.CurrentGoal == GoalType.GroupHunt ||
                 !FactionRelations.AreAllies(helper, victim) || // §72: her side only
                 (attackerId is { } aId && helper.Id.Equals(aId)) ||
                 HexSpatialMath.HexDistance(helper.Tile, victim.Tile) > Spec57.FriendGuardRadiusTiles)

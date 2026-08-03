@@ -488,6 +488,11 @@ public sealed class NpcSnapshot
     // bubble while the speaker is chatting.
     public string TalkTopic { get; set; } = string.Empty;
 
+    // §107: о КОМ разговор, когда тема — человек (сегодня только Stranger).
+    // Вид берёт по этому id запечённый круглый портрет и ставит его в бабл
+    // вместо эмодзи. Null для всех прочих тем.
+    public int? TalkTopicPeerId { get; set; }
+
     // Spec 28.15E: last talk outcome, for the Sims-style relationship pop over
     // the head. TalkResultTick is when the outcome resolved (the view fires the
     // "+/-" once per new tick); TalkResultDelta is the signed affinity change

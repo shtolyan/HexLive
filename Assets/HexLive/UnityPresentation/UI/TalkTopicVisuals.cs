@@ -50,6 +50,7 @@ public static class TalkTopicVisuals
             case "Flirt":   return new Topic("\U0001F497", Love);  // 💗
             case "Joke":    return new Topic("\U0001F602", Warm);  // 😂
             case "Grumble": return new Topic("\U0001F620", Danger);// 😠
+            case "Stranger": return new Topic("\U0001F620", Danger);// 😠 §107: в пузыре его лицо
             case "SmallTalk":
             default:        return new Topic("\U0001F4AC", Neutral);// 💬
         }

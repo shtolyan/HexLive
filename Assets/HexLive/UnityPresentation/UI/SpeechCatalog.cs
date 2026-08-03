@@ -187,6 +187,12 @@ public static class SpeechCatalog
             "Flirt" => "happy_topic_flirt",
             "Joke" => "happy_topic_joke",
             "Grumble" => "angry_topic_grumble",
+            // §107: разговор ПРО НЕГО. Значок — злая гримаса ворчания: в самом
+            // пузыре его всё равно заслоняет портрет (лицо старше значка), а
+            // значок остаётся запасным на тот единственный игровой час, пока
+            // снимок ещё не сделан. Своей группы реплик на хекскуфе пока нет —
+            // берётся ворчание, заменится одной строкой.
+            "Stranger" => "angry_topic_grumble",
             "Hunger" => "sad_hunger",
             "Thirst" => "sad_thirst",
             "Pain" => "hurt_wound",
@@ -223,6 +229,11 @@ public static class SpeechCatalog
             "AbuseDefied" => "angry_defend",
             "AbuseThreatened" or "AbuseHurt" or "AbuseSubmit" or "AbuseRefused"
                 or "AbuseTook" or "AbuseFled" => null,
+            // §107: сговор и увиденная сцена. Обе кьюшки несут ЕГО id, так что
+            // над головой всплывает его лицо; звук — злость, ближайшее из
+            // существующего.
+            "GroupHuntPact" => "angry_defend",
+            "AbuseWitnessed" => "angry_attack",
             "TalkRejected" or "TalkRefused" or "TalkQuarrel" or "Resentment" => null,
             _ => null
         };

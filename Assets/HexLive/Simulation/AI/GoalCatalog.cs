@@ -239,6 +239,11 @@ public static class GoalCatalog
         Add(GoalType.Raid, urgency: UrgencyClass.Hurry,
             ignoresHostileRings: true, reactive: true);
         Add(GoalType.Abuse, urgency: UrgencyClass.Hurry, reactive: true);
+        // §107: сговор раздаёт её сразу троим, минуя аукцион. Кольца чужака
+        // игнорирует по той же причине, что и налёт: обходить того, к кому
+        // идёшь, — бессмыслица.
+        Add(GoalType.GroupHunt, urgency: UrgencyClass.Hurry,
+            ignoresHostileRings: true, reactive: true);
 
         // §28.15F: обобрать тело. Взаимодействие снимает ОДНУ вещь, поэтому
         // раздеть покойную целиком — это несколько отдельных походов, а не один

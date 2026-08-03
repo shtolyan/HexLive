@@ -27,6 +27,11 @@ public sealed class NPCExecutionState
     // talking; the presentation reads it to pick the overhead emoji.
     public TalkTopic? CurrentTalkTopic { get; set; }
 
+    // §107: О КОМ идёт речь, когда тема — человек (сегодня только Stranger).
+    // Без этого поля бабл может показать «мы говорим о чужаке», но не ЛИЦО:
+    // портрет берётся по id. Null для всех остальных тем.
+    public HexLive.Simulation.Common.EntityId? CurrentTalkTopicPeerId { get; set; }
+
     // Spec 28.15E: last resolved talk outcome, for the Sims-style "+/-"
     // relationship pop over the head. Tick of the roll (presentation fires the
     // pop once per new tick) and the signed affinity delta that was applied

@@ -20,6 +20,11 @@ public interface ISpeechStage
     // seconds <= 0 = hold indefinitely (a running conversation).
     void ShowSpeechIcon(string iconKey, float seconds);
 
+    // §107: то же место в пузыре, но занятое ЛИЦОМ — когда тема разговора это
+    // человек. Отдельный вызов, а не «iconKey может быть портретом»: ключ
+    // ищется в Resources, а лицо печёт NpcPortraitCache, и общего пути у них нет.
+    void ShowSpeechPortrait(Sprite portrait, float seconds);
+
     void HideSpeechIcon();
 
     // False when she physically cannot speak (dead, fast-forward, view not
@@ -68,6 +73,12 @@ public sealed class NpcSpeechDirector
     private string _conversationLine;
     private string _heldIcon;
 
+    // §107: лицо того, о ком разговор, и то, что реально висит в пузыре.
+    // Держим оба: значок отвечает на «сменилась ли тема», лицо — на «сменился
+    // ли тот, о ком речь», и по одному из них это не восстановить.
+    private Sprite _conversationFace;
+    private Sprite _heldFace;
+
     private SpeechCatalog.BodyState _state;
     private bool _stateKnown;
     private string _lastInteraction = string.Empty;
@@ -83,10 +94,17 @@ public sealed class NpcSpeechDirector
 
     /// <summary>The subject the sim says she is talking about right now (a
     /// TalkTopic name, "" when not talking). Pushed every snapshot.</summary>
-    public void SetConversationTopic(string topicName)
+    public void SetConversationTopic(string topicName) => SetConversationTopic(topicName, null);
+
+    /// <summary>§107: та же тема, но с ЛИЦОМ того, о ком речь (сегодня это
+    /// только чужак). Портрет живёт рядом с темой, а не вместо неё: реплика,
+    /// голос и уход пузыря остаются прежними, меняется одна картинка.</summary>
+    public void SetConversationTopic(string topicName, Sprite subjectFace)
     {
         var line = TalkTopicVisuals.IsKnown(topicName) ? SpeechCatalog.ForTopic(topicName) : null;
-        if (line == _conversationLine)
+        var faceChanged = !ReferenceEquals(subjectFace, _conversationFace);
+        _conversationFace = subjectFace;
+        if (line == _conversationLine && !faceChanged)
         {
             return;
         }
@@ -201,6 +219,10 @@ public sealed class NpcSpeechDirector
         var length = _stage.PlayVoiceLine(speechId);
         var hold = Mathf.Max(SpeechCatalog.MinBubbleSeconds, length) + SpeechCatalog.BubbleTailSeconds;
         _heldIcon = line.Icon;
+        // Реплика перебивает лицо: она говорит СВОЮ фразу, и пузырь на это
+        // время принадлежит ей. Тема с лицом вернётся сама — следующий снапшот
+        // снова толкнёт её через SetConversationTopic.
+        _heldFace = null;
         _stage.ShowSpeechIcon(line.Icon, hold);
 
         _activeUntil = now + hold;
@@ -248,12 +270,29 @@ public sealed class NpcSpeechDirector
     private void HoldConversationIcon()
     {
         var icon = SpeechCatalog.Get(_conversationLine).Icon;
-        if (_heldIcon == icon)
+        // §107: лицо старше значка. Значок при этом всё равно вычисляется и
+        // запоминается — по нему сравнивается «сменилась ли тема», и голос на
+        // её ход берётся из той же строки каталога.
+        if (_conversationFace != null)
+        {
+            if (_heldIcon == icon && _heldFace == _conversationFace)
+            {
+                return;
+            }
+
+            _heldIcon = icon;
+            _heldFace = _conversationFace;
+            _stage.ShowSpeechPortrait(_conversationFace, 0f);
+            return;
+        }
+
+        if (_heldIcon == icon && _heldFace == null)
         {
             return;
         }
 
         _heldIcon = icon;
+        _heldFace = null;
         _stage.ShowSpeechIcon(icon, 0f);
     }
 }

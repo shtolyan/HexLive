@@ -1467,7 +1467,9 @@ public static class WorldSaveSerializer
     private static Float2 ReadFloat2(BinaryReader r) => new(r.ReadSingle(), r.ReadSingle());
 
     private static GoalType SaveGoal(GoalType goal) =>
-        goal is GoalType.Defend or GoalType.Abuse ? GoalType.None : goal;
+        goal is GoalType.Defend or GoalType.Abuse or GoalType.GroupHunt
+            ? GoalType.None
+            : goal;
 
     private static void WriteNullableEntity(BinaryWriter w, EntityId? id)
     {

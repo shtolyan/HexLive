@@ -2593,6 +2593,1606 @@ MonoBehaviour:
       - 'Носимый предмет.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'item.clothing_sneakers_nerd_nc_sneakers_pink.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Canvas Sneakers (NC Sneakers Pink)'
+      - 'Кеды (NC Sneakers Pink)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sneakers_nerd_nc_sneakers_pink.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Soft soles, laced high. Quiet, and no use at all in the wet.'
+      - 'Мягкая подошва, высокая шнуровка. Тихие и совершенно бесполезные в сырость.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sneakers_nerd_nc_sneakers_purple.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Canvas Sneakers (NC Sneakers Purple)'
+      - 'Кеды (NC Sneakers Purple)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sneakers_nerd_nc_sneakers_purple.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Soft soles, laced high. Quiet, and no use at all in the wet.'
+      - 'Мягкая подошва, высокая шнуровка. Тихие и совершенно бесполезные в сырость.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_kneesocks_nerd_nc_sock_left_argyle.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Knee Socks (NC Sock Left Argyle)'
+      - 'Гольфы (NC Sock Left Argyle)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_kneesocks_nerd_nc_sock_left_argyle.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'To the knee, ribbed. More warmth than they look like they hold.'
+      - 'До колена, в рубчик. Греют больше, чем кажется.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_kneesocks_nerd_nc_sock_left_polka_dots.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Knee Socks (NC Sock Left Polka Dots)'
+      - 'Гольфы (NC Sock Left Polka Dots)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_kneesocks_nerd_nc_sock_left_polka_dots.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'To the knee, ribbed. More warmth than they look like they hold.'
+      - 'До колена, в рубчик. Греют больше, чем кажется.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_kneesocks_nerd_nc_sock_right_hearts.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Knee Socks (NC Sock Right Hearts)'
+      - 'Гольфы (NC Sock Right Hearts)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_kneesocks_nerd_nc_sock_right_hearts.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'To the knee, ribbed. More warmth than they look like they hold.'
+      - 'До колена, в рубчик. Греют больше, чем кажется.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_kneesocks_nerd_nc_sock_right_polka_dots.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Knee Socks (NC Sock Right Polka Dots)'
+      - 'Гольфы (NC Sock Right Polka Dots)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_kneesocks_nerd_nc_sock_right_polka_dots.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'To the knee, ribbed. More warmth than they look like they hold.'
+      - 'До колена, в рубчик. Греют больше, чем кажется.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_suspenders_nerd_nc_suspenders_checks.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Suspenders (NC Suspenders Checks)'
+      - 'Подтяжки (NC Suspenders Checks)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_suspenders_nerd_nc_suspenders_checks.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Two straps over the shoulders. They hold the skirt up, and that is all.'
+      - 'Две лямки через плечи. Держат юбку — и только.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tutu_nerd_nc_skirt_def.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tutu Skirt (NC Skirt Def)'
+      - 'Юбка-пачка (NC Skirt Def)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tutu_nerd_nc_skirt_def.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Layers of netting that stand out on their own. Warms nothing.'
+      - 'Слои сетки, что держат форму сами. Не греет совсем.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_tek_bra_01_apply_black_bottom_trim.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sports Bra (Bra 01 Apply Black Bottom Trim)'
+      - 'Спортивный лиф (Bra 01 Apply Black Bottom Trim)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_tek_bra_01_apply_black_bottom_trim.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Firm and plain. Made to be forgotten while running.'
+      - 'Плотный и простой. Сделан, чтобы о нём не думали на бегу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_tek_bra_01_apply_black_trim.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sports Bra (Bra 01 Apply Black Trim)'
+      - 'Спортивный лиф (Bra 01 Apply Black Trim)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_tek_bra_01_apply_black_trim.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Firm and plain. Made to be forgotten while running.'
+      - 'Плотный и простой. Сделан, чтобы о нём не думали на бегу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_tek_bra_01_apply_white_bottom_trim.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sports Bra (Bra 01 Apply White Bottom Trim)'
+      - 'Спортивный лиф (Bra 01 Apply White Bottom Trim)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_tek_bra_01_apply_white_bottom_trim.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Firm and plain. Made to be forgotten while running.'
+      - 'Плотный и простой. Сделан, чтобы о нём не думали на бегу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_tek_bra_01_apply_white_trim.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sports Bra (Bra 01 Apply White Trim)'
+      - 'Спортивный лиф (Bra 01 Apply White Trim)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_tek_bra_01_apply_white_trim.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Firm and plain. Made to be forgotten while running.'
+      - 'Плотный и простой. Сделан, чтобы о нём не думали на бегу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_tek_bra_02_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sports Bra (Bra 02 Black)'
+      - 'Спортивный лиф (Bra 02 Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_tek_bra_02_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Firm and plain. Made to be forgotten while running.'
+      - 'Плотный и простой. Сделан, чтобы о нём не думали на бегу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_tek_bra_03_orange_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sports Bra (Bra 03 Orange Black)'
+      - 'Спортивный лиф (Bra 03 Orange Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_tek_bra_03_orange_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Firm and plain. Made to be forgotten while running.'
+      - 'Плотный и простой. Сделан, чтобы о нём не думали на бегу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_tek_bra_04_red_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sports Bra (Bra 04 Red Black)'
+      - 'Спортивный лиф (Bra 04 Red Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_tek_bra_04_red_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Firm and plain. Made to be forgotten while running.'
+      - 'Плотный и простой. Сделан, чтобы о нём не думали на бегу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_tek_bra_05_black_pink.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sports Bra (Bra 05 Black Pink)'
+      - 'Спортивный лиф (Bra 05 Black Pink)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_tek_bra_05_black_pink.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Firm and plain. Made to be forgotten while running.'
+      - 'Плотный и простой. Сделан, чтобы о нём не думали на бегу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_tek_bra_06_blue_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sports Bra (Bra 06 Blue Black)'
+      - 'Спортивный лиф (Bra 06 Blue Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_tek_bra_06_blue_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Firm and plain. Made to be forgotten while running.'
+      - 'Плотный и простой. Сделан, чтобы о нём не думали на бегу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_tek_bra_07_blue_black_orange.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sports Bra (Bra 07 Blue Black Orange)'
+      - 'Спортивный лиф (Bra 07 Blue Black Orange)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_tek_bra_07_blue_black_orange.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Firm and plain. Made to be forgotten while running.'
+      - 'Плотный и простой. Сделан, чтобы о нём не думали на бегу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_tek_bra_08_white.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sports Bra (Bra 08 White)'
+      - 'Спортивный лиф (Bra 08 White)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_tek_bra_08_white.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Firm and plain. Made to be forgotten while running.'
+      - 'Плотный и простой. Сделан, чтобы о нём не думали на бегу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_yogapants_tek_yoga_01_black_mesh.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Pants (Yoga 01 Black Mesh)'
+      - 'Легинсы (Yoga 01 Black Mesh)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_yogapants_tek_yoga_01_black_mesh.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Full length and close to the skin. Warm, and they tear on the first thorn.'
+      - 'В полную длину, по коже. Тёплые — и рвутся о первый же шип.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_yogapants_tek_yoga_02_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Pants (Yoga 02 Black)'
+      - 'Легинсы (Yoga 02 Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_yogapants_tek_yoga_02_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Full length and close to the skin. Warm, and they tear on the first thorn.'
+      - 'В полную длину, по коже. Тёплые — и рвутся о первый же шип.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_yogapants_tek_yoga_03_black_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Pants (Yoga 03 Black Red)'
+      - 'Легинсы (Yoga 03 Black Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_yogapants_tek_yoga_03_black_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Full length and close to the skin. Warm, and they tear on the first thorn.'
+      - 'В полную длину, по коже. Тёплые — и рвутся о первый же шип.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_yogapants_tek_yoga_04_black_orange.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Pants (Yoga 04 Black Orange)'
+      - 'Легинсы (Yoga 04 Black Orange)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_yogapants_tek_yoga_04_black_orange.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Full length and close to the skin. Warm, and they tear on the first thorn.'
+      - 'В полную длину, по коже. Тёплые — и рвутся о первый же шип.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_yogapants_tek_yoga_05_black_pink.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Pants (Yoga 05 Black Pink)'
+      - 'Легинсы (Yoga 05 Black Pink)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_yogapants_tek_yoga_05_black_pink.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Full length and close to the skin. Warm, and they tear on the first thorn.'
+      - 'В полную длину, по коже. Тёплые — и рвутся о первый же шип.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_yogapants_tek_yoga_06_black_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Pants (Yoga 06 Black Blue)'
+      - 'Легинсы (Yoga 06 Black Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_yogapants_tek_yoga_06_black_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Full length and close to the skin. Warm, and they tear on the first thorn.'
+      - 'В полную длину, по коже. Тёплые — и рвутся о первый же шип.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_yogapants_tek_yoga_07_black_plain.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Pants (Yoga 07 Black Plain)'
+      - 'Легинсы (Yoga 07 Black Plain)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_yogapants_tek_yoga_07_black_plain.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Full length and close to the skin. Warm, and they tear on the first thorn.'
+      - 'В полную длину, по коже. Тёплые — и рвутся о первый же шип.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_yogapants_tek_yoga_08_white_plain.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Pants (Yoga 08 White Plain)'
+      - 'Легинсы (Yoga 08 White Plain)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_yogapants_tek_yoga_08_white_plain.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Full length and close to the skin. Warm, and they tear on the first thorn.'
+      - 'В полную длину, по коже. Тёплые — и рвутся о первый же шип.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_flair_panty_02.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Silk Briefs (Panty-02)'
+      - 'Шёлковые трусики (Panty-02)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_flair_panty_02.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Worn against the skin. She notices when they are gone.'
+      - 'На голое тело. Без них замечает сразу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_flair_panty_03.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Silk Briefs (Panty-03)'
+      - 'Шёлковые трусики (Panty-03)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_flair_panty_03.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Worn against the skin. She notices when they are gone.'
+      - 'На голое тело. Без них замечает сразу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_flair_skirt_02.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pencil Skirt (Skirt-02)'
+      - 'Юбка-карандаш (Skirt-02)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_flair_skirt_02.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straight, to the knee. Looks better than it lets her move.'
+      - 'Прямая, до колена. Выглядит лучше, чем позволяет двигаться.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_flair_skirt_03.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pencil Skirt (Skirt-03)'
+      - 'Юбка-карандаш (Skirt-03)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_flair_skirt_03.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straight, to the knee. Looks better than it lets her move.'
+      - 'Прямая, до колена. Выглядит лучше, чем позволяет двигаться.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sweater_flair_sweater_02.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Knit Sweater (Sweater-02)'
+      - 'Вязаный свитер (Sweater-02)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sweater_flair_sweater_02.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Loose knit, off one shoulder. The warmest thing that is not a coat.'
+      - 'Крупная вязка, с одного плеча. Самое тёплое, что ещё не пальто.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sweater_flair_sweater_03.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Knit Sweater (Sweater-03)'
+      - 'Вязаный свитер (Sweater-03)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sweater_flair_sweater_03.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Loose knit, off one shoulder. The warmest thing that is not a coat.'
+      - 'Крупная вязка, с одного плеча. Самое тёплое, что ещё не пальто.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_fit_black2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Training Gloves (Black2)'
+      - 'Тренировочные перчатки (Black2)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_fit_black2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Padded across the knuckles. For grip, and for hitting things.'
+      - 'С подбивкой на костяшках. Для хвата и для ударов.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_fit_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Training Gloves (Blue)'
+      - 'Тренировочные перчатки (Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_fit_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Padded across the knuckles. For grip, and for hitting things.'
+      - 'С подбивкой на костяшках. Для хвата и для ударов.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_fit_blue2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Training Gloves (Blue2)'
+      - 'Тренировочные перчатки (Blue2)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_fit_blue2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Padded across the knuckles. For grip, and for hitting things.'
+      - 'С подбивкой на костяшках. Для хвата и для ударов.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_1_blackblue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crop Top (1 BlackBlue)'
+      - 'Укороченный топ (1 BlackBlue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_1_blackblue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Thin, and she likes it.'
+      - 'Обрезан выше рёбер. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_1_blacklime.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crop Top (1 BlackLime)'
+      - 'Укороченный топ (1 BlackLime)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_1_blacklime.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Thin, and she likes it.'
+      - 'Обрезан выше рёбер. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_1_blackpink.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crop Top (1 BlackPink)'
+      - 'Укороченный топ (1 BlackPink)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_1_blackpink.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Thin, and she likes it.'
+      - 'Обрезан выше рёбер. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_1_blackwhite.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crop Top (1 BlackWhite)'
+      - 'Укороченный топ (1 BlackWhite)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_1_blackwhite.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Thin, and she likes it.'
+      - 'Обрезан выше рёбер. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_1_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crop Top (1 Blue)'
+      - 'Укороченный топ (1 Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_1_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Thin, and she likes it.'
+      - 'Обрезан выше рёбер. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_1_lime.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crop Top (1 Lime)'
+      - 'Укороченный топ (1 Lime)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_1_lime.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Thin, and she likes it.'
+      - 'Обрезан выше рёбер. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_1_pink.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crop Top (1 Pink)'
+      - 'Укороченный топ (1 Pink)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_1_pink.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Thin, and she likes it.'
+      - 'Обрезан выше рёбер. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_1_white.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crop Top (1 White)'
+      - 'Укороченный топ (1 White)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_1_white.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Thin, and she likes it.'
+      - 'Обрезан выше рёбер. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_2_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crop Top (2 Black)'
+      - 'Укороченный топ (2 Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_2_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Thin, and she likes it.'
+      - 'Обрезан выше рёбер. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_3_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crop Top (3 Black)'
+      - 'Укороченный топ (3 Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_3_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Thin, and she likes it.'
+      - 'Обрезан выше рёбер. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_3_black2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crop Top (3 Black2)'
+      - 'Укороченный топ (3 Black2)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_3_black2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Thin, and she likes it.'
+      - 'Обрезан выше рёбер. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_3_blackgreen.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crop Top (3 BlackGreen)'
+      - 'Укороченный топ (3 BlackGreen)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_3_blackgreen.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Thin, and she likes it.'
+      - 'Обрезан выше рёбер. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_3_blackmagenta.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crop Top (3 BlackMagenta)'
+      - 'Укороченный топ (3 BlackMagenta)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_3_blackmagenta.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Thin, and she likes it.'
+      - 'Обрезан выше рёбер. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_3_blackorange.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crop Top (3 BlackOrange)'
+      - 'Укороченный топ (3 BlackOrange)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_3_blackorange.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Thin, and she likes it.'
+      - 'Обрезан выше рёбер. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_3_magenta.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crop Top (3 Magenta)'
+      - 'Укороченный топ (3 Magenta)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_3_magenta.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Thin, and she likes it.'
+      - 'Обрезан выше рёбер. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_3_orange.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crop Top (3 Orange)'
+      - 'Укороченный топ (3 Orange)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_3_orange.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Thin, and she likes it.'
+      - 'Обрезан выше рёбер. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_3_turquoise.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crop Top (3 Turquoise)'
+      - 'Укороченный топ (3 Turquoise)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_3_turquoise.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Thin, and she likes it.'
+      - 'Обрезан выше рёбер. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_3_white.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crop Top (3 White)'
+      - 'Укороченный топ (3 White)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_3_white.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Thin, and she likes it.'
+      - 'Обрезан выше рёбер. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_4_batik1.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crop Top (4 Batik1)'
+      - 'Укороченный топ (4 Batik1)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_4_batik1.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Thin, and she likes it.'
+      - 'Обрезан выше рёбер. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_4_batik2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crop Top (4 Batik2)'
+      - 'Укороченный топ (4 Batik2)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_4_batik2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Thin, and she likes it.'
+      - 'Обрезан выше рёбер. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_4_batik3.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crop Top (4 Batik3)'
+      - 'Укороченный топ (4 Batik3)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_4_batik3.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Thin, and she likes it.'
+      - 'Обрезан выше рёбер. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_4_batik4.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crop Top (4 Batik4)'
+      - 'Укороченный топ (4 Batik4)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_4_batik4.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Thin, and she likes it.'
+      - 'Обрезан выше рёбер. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_4_batik5.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crop Top (4 Batik5)'
+      - 'Укороченный топ (4 Batik5)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit_4_batik5.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Thin, and she likes it.'
+      - 'Обрезан выше рёбер. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_1_blackblue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Running Shorts (1 BlackBlue)'
+      - 'Беговые шорты (1 BlackBlue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_1_blackblue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Light and short. Nothing between her legs and the weather.'
+      - 'Лёгкие и короткие. Между ногами и погодой ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_1_blacklime.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Running Shorts (1 BlackLime)'
+      - 'Беговые шорты (1 BlackLime)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_1_blacklime.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Light and short. Nothing between her legs and the weather.'
+      - 'Лёгкие и короткие. Между ногами и погодой ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_1_blackpink.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Running Shorts (1 BlackPink)'
+      - 'Беговые шорты (1 BlackPink)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_1_blackpink.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Light and short. Nothing between her legs and the weather.'
+      - 'Лёгкие и короткие. Между ногами и погодой ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_1_blackwhite.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Running Shorts (1 BlackWhite)'
+      - 'Беговые шорты (1 BlackWhite)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_1_blackwhite.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Light and short. Nothing between her legs and the weather.'
+      - 'Лёгкие и короткие. Между ногами и погодой ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_2_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Running Shorts (2 Black)'
+      - 'Беговые шорты (2 Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_2_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Light and short. Nothing between her legs and the weather.'
+      - 'Лёгкие и короткие. Между ногами и погодой ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_3_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Running Shorts (3 Black)'
+      - 'Беговые шорты (3 Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_3_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Light and short. Nothing between her legs and the weather.'
+      - 'Лёгкие и короткие. Между ногами и погодой ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_3_blackgreen.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Running Shorts (3 BlackGreen)'
+      - 'Беговые шорты (3 BlackGreen)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_3_blackgreen.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Light and short. Nothing between her legs and the weather.'
+      - 'Лёгкие и короткие. Между ногами и погодой ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_3_blackmagenta.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Running Shorts (3 BlackMagenta)'
+      - 'Беговые шорты (3 BlackMagenta)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_3_blackmagenta.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Light and short. Nothing between her legs and the weather.'
+      - 'Лёгкие и короткие. Между ногами и погодой ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_3_blackorange.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Running Shorts (3 BlackOrange)'
+      - 'Беговые шорты (3 BlackOrange)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_3_blackorange.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Light and short. Nothing between her legs and the weather.'
+      - 'Лёгкие и короткие. Между ногами и погодой ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_3_magenta.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Running Shorts (3 Magenta)'
+      - 'Беговые шорты (3 Magenta)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_3_magenta.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Light and short. Nothing between her legs and the weather.'
+      - 'Лёгкие и короткие. Между ногами и погодой ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_3_orange.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Running Shorts (3 Orange)'
+      - 'Беговые шорты (3 Orange)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_3_orange.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Light and short. Nothing between her legs and the weather.'
+      - 'Лёгкие и короткие. Между ногами и погодой ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_3_turquoise.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Running Shorts (3 Turquoise)'
+      - 'Беговые шорты (3 Turquoise)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_3_turquoise.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Light and short. Nothing between her legs and the weather.'
+      - 'Лёгкие и короткие. Между ногами и погодой ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_3_white.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Running Shorts (3 White)'
+      - 'Беговые шорты (3 White)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_3_white.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Light and short. Nothing between her legs and the weather.'
+      - 'Лёгкие и короткие. Между ногами и погодой ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_4_batik1.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Running Shorts (4 Batik1)'
+      - 'Беговые шорты (4 Batik1)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_4_batik1.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Light and short. Nothing between her legs and the weather.'
+      - 'Лёгкие и короткие. Между ногами и погодой ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_4_batik2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Running Shorts (4 Batik2)'
+      - 'Беговые шорты (4 Batik2)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_4_batik2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Light and short. Nothing between her legs and the weather.'
+      - 'Лёгкие и короткие. Между ногами и погодой ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_4_batik3.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Running Shorts (4 Batik3)'
+      - 'Беговые шорты (4 Batik3)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_4_batik3.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Light and short. Nothing between her legs and the weather.'
+      - 'Лёгкие и короткие. Между ногами и погодой ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_4_batik4.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Running Shorts (4 Batik4)'
+      - 'Беговые шорты (4 Batik4)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_4_batik4.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Light and short. Nothing between her legs and the weather.'
+      - 'Лёгкие и короткие. Между ногами и погодой ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_4_batik5.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Running Shorts (4 Batik5)'
+      - 'Беговые шорты (4 Batik5)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_4_batik5.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Light and short. Nothing between her legs and the weather.'
+      - 'Лёгкие и короткие. Между ногами и погодой ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_4_camouflage.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Running Shorts (4 Camouflage)'
+      - 'Беговые шорты (4 Camouflage)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit_4_camouflage.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Light and short. Nothing between her legs and the weather.'
+      - 'Лёгкие и короткие. Между ногами и погодой ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_socks_fit_black2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ankle Socks (Black2)'
+      - 'Носки (Black2)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_socks_fit_black2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain and short. Worn until they are not.'
+      - 'Простые и короткие. Носятся, пока носятся.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_socks_fit_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ankle Socks (Blue)'
+      - 'Носки (Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_socks_fit_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain and short. Worn until they are not.'
+      - 'Простые и короткие. Носятся, пока носятся.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_socks_fit_blue2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ankle Socks (Blue2)'
+      - 'Носки (Blue2)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_socks_fit_blue2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain and short. Worn until they are not.'
+      - 'Простые и короткие. Носятся, пока носятся.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_glasses_nerd.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Round Glasses'
+      - 'Круглые очки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_glasses_nerd.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thick rims and thicker lenses. The world comes into focus.'
+      - 'Толстая оправа и линзы толще. С ними мир наводится на резкость.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_blouse_nerd.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'School Blouse'
+      - 'Школьная блузка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_blouse_nerd.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Buttoned, pressed, and sleeved to the wrist. Tidier than her week.'
+      - 'На пуговицах, отглажена, рукав до запястья. Опрятнее, чем её неделя.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_bowtie_nerd.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bow Tie'
+      - 'Галстук-бабочка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_bowtie_nerd.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tied at the throat. Holds no heat and no blade — it is there to be seen.'
+      - 'Завязана на горле. Ни тепла, ни защиты — она чтобы её видели.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sneakers_nerd.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Canvas Sneakers'
+      - 'Кеды'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sneakers_nerd.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Soft soles, laced high. Quiet, and no use at all in the wet.'
+      - 'Мягкая подошва, высокая шнуровка. Тихие и совершенно бесполезные в сырость.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_kneesocks_nerd.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Knee Socks'
+      - 'Гольфы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_kneesocks_nerd.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'To the knee, ribbed. More warmth than they look like they hold.'
+      - 'До колена, в рубчик. Греют больше, чем кажется.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_suspenders_nerd.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Suspenders'
+      - 'Подтяжки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_suspenders_nerd.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Two straps over the shoulders. They hold the skirt up, and that is all.'
+      - 'Две лямки через плечи. Держат юбку — и только.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tutu_nerd.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tutu Skirt'
+      - 'Юбка-пачка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tutu_nerd.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Layers of netting that stand out on their own. Warms nothing.'
+      - 'Слои сетки, что держат форму сами. Не греет совсем.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_tek.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sports Bra'
+      - 'Спортивный лиф'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_tek.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Firm and plain. Made to be forgotten while running.'
+      - 'Плотный и простой. Сделан, чтобы о нём не думали на бегу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jackettied_tek.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Jacket Tied at the Waist'
+      - 'Куртка на поясе'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jackettied_tek.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sleeves knotted at the hip. Carried, not worn — until it turns cold.'
+      - 'Рукава завязаны на бедре. Не надета, а с собой — пока не похолодает.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_tek.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Training Jacket'
+      - 'Тренировочная куртка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_tek.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Zipped, light, and warmer than it looks. Wind stops at it.'
+      - 'На молнии, лёгкая и теплее, чем кажется. Ветер об неё останавливается.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_yogapants_tek.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Yoga Pants'
+      - 'Легинсы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_yogapants_tek.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Full length and close to the skin. Warm, and they tear on the first thorn.'
+      - 'В полную длину, по коже. Тёплые — и рвутся о первый же шип.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_flair.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Silk Briefs'
+      - 'Шёлковые трусики'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_flair.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Worn against the skin. She notices when they are gone.'
+      - 'На голое тело. Без них замечает сразу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_pumps_flair.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pumps'
+      - 'Лодочки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_pumps_flair.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A high heel and nothing else. Worn where the ground is flat and swept.'
+      - 'Высокий каблук и больше ничего. Для пола, который ровный и подметён.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_flair.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pencil Skirt'
+      - 'Юбка-карандаш'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_flair.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straight, to the knee. Looks better than it lets her move.'
+      - 'Прямая, до колена. Выглядит лучше, чем позволяет двигаться.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sweater_flair.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Knit Sweater'
+      - 'Вязаный свитер'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sweater_flair.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Loose knit, off one shoulder. The warmest thing that is not a coat.'
+      - 'Крупная вязка, с одного плеча. Самое тёплое, что ещё не пальто.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_fit.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Training Gloves'
+      - 'Тренировочные перчатки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_fit.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Padded across the knuckles. For grip, and for hitting things.'
+      - 'С подбивкой на костяшках. Для хвата и для ударов.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crop Top'
+      - 'Укороченный топ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_fit.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Thin, and she likes it.'
+      - 'Обрезан выше рёбер. Тонкий, и ей нравится.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Running Shorts'
+      - 'Беговые шорты'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_fit.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Light and short. Nothing between her legs and the weather.'
+      - 'Лёгкие и короткие. Между ногами и погодой ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_socks_fit.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ankle Socks'
+      - 'Носки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_socks_fit.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain and short. Worn until they are not.'
+      - 'Простые и короткие. Носятся, пока носятся.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'item.clothing_armwraps_primal_sleeve1.name'
       TermType: 0
       Description: 

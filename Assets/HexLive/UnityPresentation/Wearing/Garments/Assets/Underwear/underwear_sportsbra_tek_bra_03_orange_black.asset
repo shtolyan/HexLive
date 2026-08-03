@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: underwear_sportsbra_tek_bra_03_orange_black
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: underwear.sportsbra_tek_bra_03_orange_black
+  prototypeId: underwear.sportsbra_tek
+  displayName: Sports Bra (Bra 03 Orange Black)
+  variantMaterials:
+  - {fileID: 2100000, guid: 77c781bf7131d42409c23fbc25a1ccd7, type: 2}
+  - {fileID: 2100000, guid: 5af22b272b8096c4fbdd7840181f9928, type: 2}
+  - {fileID: 2100000, guid: 4294a1010e7e3fc49b4d5d56e3b66c66, type: 2}
+  layer: 0
+  covers: 01000000
+  warmth: 0.03
+  armor: 0
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

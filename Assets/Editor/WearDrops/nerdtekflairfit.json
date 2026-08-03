@@ -1,0 +1,2576 @@
+{
+  "drop": "nerdtekflairfit",
+  "sources": [
+    {
+      "fbx": "Assets/Temp/jolly nerdtekflairfit.fbx",
+      "actor": "Jolly"
+    },
+    {
+      "fbx": "Assets/Temp/jana nerdtekflairfit.fbx",
+      "actor": "Jana"
+    },
+    {
+      "fbx": "Assets/Temp/marta nerdtekflairfit.fbx",
+      "actor": "Marta"
+    },
+    {
+      "fbx": "Assets/Temp/molly nerdtekflairfit.fbx",
+      "actor": "Molly"
+    }
+  ],
+  "garments": [
+    {
+      "sourceKey": "Nerd Crush Glasses",
+      "folder": "NerdGlasses",
+      "name": "NerdGlasses",
+      "simId": "clothing.glasses_nerd",
+      "layer": "Outerwear",
+      "slots": [
+        "Head"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "tape",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "frame",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "lenses",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "metal",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "earpieces",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 5091,
+        "polys": 5048,
+        "bbox": [
+          -7.9,
+          7.9,
+          165.5,
+          170.2,
+          -4.7,
+          10.0
+        ],
+        "zones": {
+          "Head": 1.0
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Round Glasses",
+        "nameRu": "Круглые очки",
+        "descEn": "Thick rims and thicker lenses. The world comes into focus.",
+        "descRu": "Толстая оправа и линзы толще. С ними мир наводится на резкость.",
+        "warmth": 0.0,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Head"
+        ]
+      },
+      "sourceKeys": [
+        "Nerd Crush Glasses"
+      ]
+    },
+    {
+      "sourceKey": "Nerd Crush Blouse_8400",
+      "folder": "NerdBlouse",
+      "name": "NerdBlouse",
+      "simId": "clothing.blouse_nerd",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "ShoulderR",
+        "ShoulderL",
+        "ForearmR",
+        "ForearmL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "shirt",
+          "texture": "NCBlouseWh.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 8400,
+        "polys": 8294,
+        "bbox": [
+          -60.6,
+          60.6,
+          112.5,
+          156.7,
+          -12.7,
+          13.9
+        ],
+        "zones": {
+          "Chest": 0.416,
+          "Shoulder": 0.236,
+          "Forearm": 0.214,
+          "Neck": 0.076,
+          "Belly": 0.058
+        },
+        "heelCm": 0.0
+      },
+      "sourceKeys": [
+        "Nerd Crush Blouse",
+        "Nerd Crush Buttons"
+      ],
+      "sim": {
+        "displayName": "School Blouse",
+        "nameRu": "Школьная блузка",
+        "descEn": "Buttoned, pressed, and sleeved to the wrist. Tidier than her week.",
+        "descRu": "На пуговицах, отглажена, рукав до запястья. Опрятнее, чем её неделя.",
+        "warmth": 0.09,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 1,
+        "covers": [
+          "Torso",
+          "ArmL",
+          "ArmR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "Nerd Crush Bowtie",
+      "folder": "NerdBowtie",
+      "name": "NerdBowtie",
+      "simId": "clothing.bowtie_nerd",
+      "layer": "Wear",
+      "slots": [
+        "Neck"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "bowtie",
+          "texture": "NCBowtiePinkPlaid.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 1195,
+        "polys": 1136,
+        "bbox": [
+          -7.0,
+          5.7,
+          150.7,
+          156.1,
+          6.4,
+          8.4
+        ],
+        "zones": {
+          "Neck": 0.837,
+          "Chest": 0.163
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Bow Tie",
+        "nameRu": "Галстук-бабочка",
+        "descEn": "Tied at the throat. Holds no heat and no blade — it is there to be seen.",
+        "descRu": "Завязана на горле. Ни тепла, ни защиты — она чтобы её видели.",
+        "warmth": 0.01,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "sourceKeys": [
+        "Nerd Crush Bowtie"
+      ]
+    },
+    {
+      "sourceKey": "Nerd Crush Sneakers_36844",
+      "folder": "NerdSneakers",
+      "name": "NerdSneakers",
+      "simId": "clothing.sneakers_nerd",
+      "layer": "Outerwear",
+      "slots": [
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "bow",
+          "texture": "NCSneakersPink.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "laces",
+          "texture": "NCSneakersPink.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "eyelet",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "sole",
+          "texture": "NCSneakersPink.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "shoe_R",
+          "texture": "NCSneakersPink.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "shoe_L",
+          "texture": "NCSneakersPurple.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 36844,
+        "polys": 35080,
+        "bbox": [
+          -19.7,
+          19.7,
+          -0.8,
+          9.8,
+          -10.4,
+          15.7
+        ],
+        "zones": {
+          "Foot": 1.0
+        },
+        "heelCm": 0.81
+      },
+      "sim": {
+        "displayName": "Canvas Sneakers",
+        "nameRu": "Кеды",
+        "descEn": "Soft soles, laced high. Quiet, and no use at all in the wet.",
+        "descRu": "Мягкая подошва, высокая шнуровка. Тихие и совершенно бесполезные в сырость.",
+        "warmth": 0.07,
+        "armor": 0.03,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "NC Sneakers Pink",
+          "from": "Nerd Crush Sneakers",
+          "textures": [
+            {
+              "source": "shoe_L",
+              "texture": "NCSneakersPink.jpg"
+            },
+            {
+              "source": "shoe_R",
+              "texture": "NCSneakersPink.jpg"
+            }
+          ]
+        },
+        {
+          "name": "NC Sneakers Purple",
+          "from": "Nerd Crush Sneakers",
+          "textures": [
+            {
+              "source": "shoe_L",
+              "texture": "NCSneakersPurple.jpg"
+            },
+            {
+              "source": "shoe_R",
+              "texture": "NCSneakersPurple.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Nerd Crush Socks_5642",
+      "folder": "NerdKneeSocks",
+      "name": "NerdKneeSocks",
+      "simId": "underwear.kneesocks_nerd",
+      "layer": "Underwear",
+      "slots": [
+        "ShinR",
+        "ShinL",
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "sockR",
+          "texture": "NCSocksArgile.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "sockL",
+          "texture": "NCSocksHearts.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 5642,
+        "polys": 5600,
+        "bbox": [
+          -19.1,
+          19.1,
+          -0.3,
+          43.7,
+          -11.3,
+          14.3
+        ],
+        "zones": {
+          "Foot": 0.583,
+          "Shin": 0.417
+        },
+        "heelCm": 0.26
+      },
+      "sim": {
+        "displayName": "Knee Socks",
+        "nameRu": "Гольфы",
+        "descEn": "To the knee, ribbed. More warmth than they look like they hold.",
+        "descRu": "До колена, в рубчик. Греют больше, чем кажется.",
+        "warmth": 0.06,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "NC Sock Left Argyle",
+          "from": "Nerd Crush Socks",
+          "textures": [
+            {
+              "source": "sockL",
+              "texture": "NCSocksArgile.jpg"
+            }
+          ]
+        },
+        {
+          "name": "NC Sock Left Polka Dots",
+          "from": "Nerd Crush Socks",
+          "textures": [
+            {
+              "source": "sockL",
+              "texture": "NCSocksPolkaDots.jpg"
+            }
+          ]
+        },
+        {
+          "name": "NC Sock Right Hearts",
+          "from": "Nerd Crush Socks",
+          "textures": [
+            {
+              "source": "sockL",
+              "texture": "NCSocksPolkaDots.jpg"
+            },
+            {
+              "source": "sockR",
+              "texture": "NCSocksHearts.jpg"
+            }
+          ]
+        },
+        {
+          "name": "NC Sock Right Polka Dots",
+          "from": "Nerd Crush Socks",
+          "textures": [
+            {
+              "source": "sockR",
+              "texture": "NCSocksPolkaDots.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Nerd Crush Suspenders_2189",
+      "folder": "NerdSuspenders",
+      "name": "NerdSuspenders",
+      "simId": "clothing.suspenders_nerd",
+      "layer": "Outerwear",
+      "slots": [
+        "ShoulderR",
+        "ShoulderL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "met_rings",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "back_patch",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "met_clips",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "suspenders",
+          "texture": "NCSuspendersDots.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 2189,
+        "polys": 1959,
+        "bbox": [
+          -13.0,
+          13.0,
+          115.1,
+          153.0,
+          -12.6,
+          13.6
+        ],
+        "zones": {
+          "Chest": 0.751,
+          "Belly": 0.211,
+          "Neck": 0.038
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Suspenders",
+        "nameRu": "Подтяжки",
+        "descEn": "Two straps over the shoulders. They hold the skirt up, and that is all.",
+        "descRu": "Две лямки через плечи. Держат юбку — и только.",
+        "warmth": 0.01,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "ArmL",
+          "ArmR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "NC Suspenders Checks",
+          "from": "Nerd Crush Suspenders",
+          "textures": [
+            {
+              "source": "suspenders",
+              "texture": "NCSuspendersChecks.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Nerd Crush Tutu Skirt_5628",
+      "folder": "NerdTutu",
+      "name": "NerdTutu",
+      "simId": "clothing.tutu_nerd",
+      "layer": "Wear",
+      "slots": [
+        "Belly",
+        "Pelvis",
+        "ThighR",
+        "ThighL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "inner skirt",
+          "texture": "NCTutu.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "outer skirt",
+          "texture": "NCTutu_NCTutuT.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "waistband",
+          "texture": "NCTutu.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 5628,
+        "polys": 5514,
+        "bbox": [
+          -28.7,
+          28.6,
+          77.0,
+          117.3,
+          -22.0,
+          20.8
+        ],
+        "zones": {
+          "Belly": 0.555,
+          "Pelvis": 0.337,
+          "Thigh": 0.108
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Tutu Skirt",
+        "nameRu": "Юбка-пачка",
+        "descEn": "Layers of netting that stand out on their own. Warms nothing.",
+        "descRu": "Слои сетки, что держат форму сами. Не греет совсем.",
+        "warmth": 0.04,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso",
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "NC Skirt Def",
+          "from": "Nerd Crush Tutu Skirt",
+          "textures": [
+            {
+              "source": "inner skirt",
+              "texture": "NCTutu.jpg"
+            },
+            {
+              "source": "outer skirt",
+              "texture": "NCTutu.jpg"
+            },
+            {
+              "source": "waistband",
+              "texture": "NCTutu.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Teksportsbra_5401",
+      "folder": "TekSportsBra",
+      "name": "TekSportsBra",
+      "simId": "underwear.sportsbra_tek",
+      "layer": "Underwear",
+      "slots": [
+        "Chest"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "BraTrim",
+          "texture": "TekSportsBra01_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Sportsbra",
+          "texture": "TekSportsBra01_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "BraBottomSpandex",
+          "texture": "TekSportsBra01_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 5401,
+        "polys": 5214,
+        "bbox": [
+          -14.8,
+          14.8,
+          124.8,
+          152.2,
+          -12.7,
+          13.6
+        ],
+        "zones": {
+          "Chest": 0.995,
+          "Neck": 0.005
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Sports Bra",
+        "nameRu": "Спортивный лиф",
+        "descEn": "Firm and plain. Made to be forgotten while running.",
+        "descRu": "Плотный и простой. Сделан, чтобы о нём не думали на бегу.",
+        "warmth": 0.03,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Bra 01 Apply Black Bottom Trim",
+          "from": "Tek Sports Bra",
+          "textures": [
+            {
+              "source": "BraBottomSpandex",
+              "texture": "TekSportsBra02_BaseColor.png"
+            }
+          ]
+        },
+        {
+          "name": "Bra 01 Apply Black Trim",
+          "from": "Tek Sports Bra",
+          "textures": [
+            {
+              "source": "BraTrim",
+              "texture": "TekSportsBra02_BaseColor.png"
+            }
+          ]
+        },
+        {
+          "name": "Bra 01 Apply White Bottom Trim",
+          "from": "Tek Sports Bra",
+          "textures": [
+            {
+              "source": "BraBottomSpandex",
+              "texture": "TekSportsBra08_BaseColor.png"
+            }
+          ]
+        },
+        {
+          "name": "Bra 01 Apply White Trim",
+          "from": "Tek Sports Bra",
+          "textures": [
+            {
+              "source": "BraTrim",
+              "texture": "TekSportsBra08_BaseColor.png"
+            }
+          ]
+        },
+        {
+          "name": "Bra 02 Black",
+          "from": "Tek Sports Bra",
+          "textures": [
+            {
+              "source": "BraBottomSpandex",
+              "texture": "TekSportsBra02_BaseColor.png"
+            },
+            {
+              "source": "BraTrim",
+              "texture": "TekSportsBra02_BaseColor.png"
+            },
+            {
+              "source": "Sportsbra",
+              "texture": "TekSportsBra02_BaseColor.png"
+            }
+          ]
+        },
+        {
+          "name": "Bra 03 Orange Black",
+          "from": "Tek Sports Bra",
+          "textures": [
+            {
+              "source": "BraBottomSpandex",
+              "texture": "TekSportsBra03_BaseColor.png"
+            },
+            {
+              "source": "BraTrim",
+              "texture": "TekSportsBra03_BaseColor.png"
+            },
+            {
+              "source": "Sportsbra",
+              "texture": "TekSportsBra03_BaseColor.png"
+            }
+          ]
+        },
+        {
+          "name": "Bra 04 Red Black",
+          "from": "Tek Sports Bra",
+          "textures": [
+            {
+              "source": "BraBottomSpandex",
+              "texture": "TekSportsBra04_BaseColor.png"
+            },
+            {
+              "source": "BraTrim",
+              "texture": "TekSportsBra04_BaseColor.png"
+            },
+            {
+              "source": "Sportsbra",
+              "texture": "TekSportsBra04_BaseColor.png"
+            }
+          ]
+        },
+        {
+          "name": "Bra 05 Black Pink",
+          "from": "Tek Sports Bra",
+          "textures": [
+            {
+              "source": "BraBottomSpandex",
+              "texture": "TekSportsBra05_BaseColor.png"
+            },
+            {
+              "source": "BraTrim",
+              "texture": "TekSportsBra05_BaseColor.png"
+            },
+            {
+              "source": "Sportsbra",
+              "texture": "TekSportsBra05_BaseColor.png"
+            }
+          ]
+        },
+        {
+          "name": "Bra 06 Blue Black",
+          "from": "Tek Sports Bra",
+          "textures": [
+            {
+              "source": "BraBottomSpandex",
+              "texture": "TekSportsBra06_BaseColor.png"
+            },
+            {
+              "source": "BraTrim",
+              "texture": "TekSportsBra06_BaseColor.png"
+            },
+            {
+              "source": "Sportsbra",
+              "texture": "TekSportsBra06_BaseColor.png"
+            }
+          ]
+        },
+        {
+          "name": "Bra 07 Blue Black Orange",
+          "from": "Tek Sports Bra",
+          "textures": [
+            {
+              "source": "BraBottomSpandex",
+              "texture": "TekSportsBra07_BaseColor.png"
+            },
+            {
+              "source": "BraTrim",
+              "texture": "TekSportsBra07_BaseColor.png"
+            },
+            {
+              "source": "Sportsbra",
+              "texture": "TekSportsBra07_BaseColor.png"
+            }
+          ]
+        },
+        {
+          "name": "Bra 08 White",
+          "from": "Tek Sports Bra",
+          "textures": [
+            {
+              "source": "BraBottomSpandex",
+              "texture": "TekSportsBra08_BaseColor.png"
+            },
+            {
+              "source": "BraTrim",
+              "texture": "TekSportsBra08_BaseColor.png"
+            },
+            {
+              "source": "Sportsbra",
+              "texture": "TekSportsBra08_BaseColor.png"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "JacketTiedWaist_7923",
+      "folder": "TekJacketTied",
+      "name": "TekJacketTied",
+      "simId": "clothing.jackettied_tek",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis",
+        "ThighR",
+        "ThighL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "SidePanels",
+          "texture": "TekTrainingJacket01_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "ZipperCover",
+          "texture": "TekTrainingJacket01_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "ZipperZone02",
+          "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "ZipperCoverCollar",
+          "texture": "TekTrainingJacket01_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "ZipperZone08",
+          "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "ZipperZone10",
+          "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "ZipperZone01",
+          "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "ZipperZone04",
+          "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "ZipperZone05",
+          "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "ZipperZone03",
+          "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "BottomTrim",
+          "texture": "TekTrainingJacket01_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "ZipperZone09",
+          "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "ZipperZone06",
+          "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "ZipperZone07",
+          "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "Sleeves",
+          "texture": "TekTrainingJacket01_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Collar",
+          "texture": "TekTrainingJacket01_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Fabric",
+          "texture": "TekTrainingJacket01_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Cuffs",
+          "texture": "TekTrainingJacket01_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 7923,
+        "polys": 7845,
+        "bbox": [
+          -17.7,
+          29.3,
+          64.4,
+          116.2,
+          -37.3,
+          27.2
+        ],
+        "zones": {
+          "Belly": 0.474,
+          "Pelvis": 0.34,
+          "Thigh": 0.186
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Jacket Tied at the Waist",
+        "nameRu": "Куртка на поясе",
+        "descEn": "Sleeves knotted at the hip. Carried, not worn — until it turns cold.",
+        "descRu": "Рукава завязаны на бедре. Не надета, а с собой — пока не похолодает.",
+        "warmth": 0.04,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "TekTrainingJacket_9805",
+      "folder": "TekJacket",
+      "name": "TekJacket",
+      "simId": "clothing.jacket_tek",
+      "layer": "Outerwear",
+      "slots": [
+        "Neck",
+        "Chest",
+        "ShoulderR",
+        "ShoulderL",
+        "ForearmR",
+        "ForearmL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "ZipperZone06",
+          "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "ZipperZone10",
+          "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "ZipperPull01",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "ZipperPull02",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Collar",
+          "texture": "TekTrainingJacket01_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Cuffs",
+          "texture": "TekTrainingJacket01_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Sleeves",
+          "texture": "TekTrainingJacket01_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "BottomTrim",
+          "texture": "TekTrainingJacket01_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "SidePanels",
+          "texture": "TekTrainingJacket01_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "ZipperCover",
+          "texture": "TekTrainingJacket01_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "ZipperCoverCollar",
+          "texture": "TekTrainingJacket01_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "ZipperPull03",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "ZipperZone09",
+          "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "ZipperZone01",
+          "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "Fabric",
+          "texture": "TekTrainingJacket01_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "ZipperZone07",
+          "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "ZipperZone04",
+          "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "ZipperZone05",
+          "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "ZipperZone02",
+          "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "ZipperZone03",
+          "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "ZipperZone08",
+          "texture": "TekTrainingJacket01_BaseColor_TekTrainingJacket01_Opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        }
+      ],
+      "_measured": {
+        "verts": 9805,
+        "polys": 9722,
+        "bbox": [
+          -67.4,
+          67.4,
+          96.1,
+          159.6,
+          -13.0,
+          14.0
+        ],
+        "zones": {
+          "Chest": 0.392,
+          "Shoulder": 0.182,
+          "Forearm": 0.131,
+          "Neck": 0.111,
+          "Belly": 0.085,
+          "Pelvis": 0.083,
+          "Head": 0.009,
+          "Wrist": 0.007
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Training Jacket",
+        "nameRu": "Тренировочная куртка",
+        "descEn": "Zipped, light, and warmer than it looks. Wind stops at it.",
+        "descRu": "На молнии, лёгкая и теплее, чем кажется. Ветер об неё останавливается.",
+        "warmth": 0.22,
+        "armor": 0.02,
+        "thermalDelta": 0.0,
+        "capacity": 2,
+        "covers": [
+          "Torso",
+          "ArmL",
+          "ArmR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "TekYogaPants_11289",
+      "folder": "TekYogaPants",
+      "name": "TekYogaPants",
+      "simId": "clothing.yogapants_tek",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis",
+        "ThighR",
+        "ThighL",
+        "ShinR",
+        "ShinL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "WaistBand",
+          "texture": "TekYogaPants01_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Pants",
+          "texture": "TekYogaPants01_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "SidePanels",
+          "texture": "TekYogaPants01_BaseColor_TekYogaPants01_Opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        }
+      ],
+      "_measured": {
+        "verts": 11289,
+        "polys": 11228,
+        "bbox": [
+          -19.1,
+          19.1,
+          24.3,
+          108.7,
+          -12.5,
+          12.0
+        ],
+        "zones": {
+          "Thigh": 0.352,
+          "Shin": 0.296,
+          "Pelvis": 0.263,
+          "Belly": 0.088
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Yoga Pants",
+        "nameRu": "Легинсы",
+        "descEn": "Full length and close to the skin. Warm, and they tear on the first thorn.",
+        "descRu": "В полную длину, по коже. Тёплые — и рвутся о первый же шип.",
+        "warmth": 0.12,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Yoga 01 Black Mesh",
+          "from": "Tek Yoga Pants",
+          "textures": [
+            {
+              "source": "Pants",
+              "texture": "TekYogaPants01_BaseColor.png"
+            },
+            {
+              "source": "SidePanels",
+              "texture": "TekYogaPants01_BaseColor.png"
+            },
+            {
+              "source": "WaistBand",
+              "texture": "TekYogaPants01_BaseColor.png"
+            }
+          ]
+        },
+        {
+          "name": "Yoga 02 Black",
+          "from": "Tek Yoga Pants",
+          "textures": [
+            {
+              "source": "Pants",
+              "texture": "TekYogaPants02_BaseColor.png"
+            },
+            {
+              "source": "SidePanels",
+              "texture": "TekYogaPants02_BaseColor.png"
+            },
+            {
+              "source": "WaistBand",
+              "texture": "TekYogaPants02_BaseColor.png"
+            }
+          ]
+        },
+        {
+          "name": "Yoga 03 Black Red",
+          "from": "Tek Yoga Pants",
+          "textures": [
+            {
+              "source": "Pants",
+              "texture": "TekYogaPants03_BaseColor.png"
+            },
+            {
+              "source": "SidePanels",
+              "texture": "TekYogaPants03_BaseColor.png"
+            },
+            {
+              "source": "WaistBand",
+              "texture": "TekYogaPants03_BaseColor.png"
+            }
+          ]
+        },
+        {
+          "name": "Yoga 04 Black Orange",
+          "from": "Tek Yoga Pants",
+          "textures": [
+            {
+              "source": "Pants",
+              "texture": "TekYogaPants04_BaseColor.png"
+            },
+            {
+              "source": "SidePanels",
+              "texture": "TekYogaPants04_BaseColor.png"
+            },
+            {
+              "source": "WaistBand",
+              "texture": "TekYogaPants04_BaseColor.png"
+            }
+          ]
+        },
+        {
+          "name": "Yoga 05 Black Pink",
+          "from": "Tek Yoga Pants",
+          "textures": [
+            {
+              "source": "Pants",
+              "texture": "TekYogaPants05_BaseColor.png"
+            },
+            {
+              "source": "SidePanels",
+              "texture": "TekYogaPants05_BaseColor.png"
+            },
+            {
+              "source": "WaistBand",
+              "texture": "TekYogaPants05_BaseColor.png"
+            }
+          ]
+        },
+        {
+          "name": "Yoga 06 Black Blue",
+          "from": "Tek Yoga Pants",
+          "textures": [
+            {
+              "source": "Pants",
+              "texture": "TekYogaPants06_BaseColor.png"
+            },
+            {
+              "source": "SidePanels",
+              "texture": "TekYogaPants06_BaseColor.png"
+            },
+            {
+              "source": "WaistBand",
+              "texture": "TekYogaPants06_BaseColor.png"
+            }
+          ]
+        },
+        {
+          "name": "Yoga 07 Black Plain",
+          "from": "Tek Yoga Pants",
+          "textures": [
+            {
+              "source": "Pants",
+              "texture": "TekYogaPants07_BaseColor.png"
+            },
+            {
+              "source": "SidePanels",
+              "texture": "TekYogaPants07_BaseColor.png"
+            },
+            {
+              "source": "WaistBand",
+              "texture": "TekYogaPants07_BaseColor.png"
+            }
+          ]
+        },
+        {
+          "name": "Yoga 08 White Plain",
+          "from": "Tek Yoga Pants",
+          "textures": [
+            {
+              "source": "Pants",
+              "texture": "TekYogaPants09_BaseColor.png"
+            },
+            {
+              "source": "SidePanels",
+              "texture": "TekYogaPants09_BaseColor.png"
+            },
+            {
+              "source": "WaistBand",
+              "texture": "TekYogaPants09_BaseColor.png"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "fl-panty_1661",
+      "folder": "FlairBriefs",
+      "name": "FlairBriefs",
+      "simId": "underwear.briefs_flair",
+      "layer": "Underwear",
+      "slots": [
+        "Belly",
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "panty",
+          "texture": "flair-panty-01.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 1661,
+        "polys": 1576,
+        "bbox": [
+          -17.3,
+          17.3,
+          87.9,
+          108.8,
+          -12.9,
+          12.2
+        ],
+        "zones": {
+          "Pelvis": 0.598,
+          "Belly": 0.402
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Silk Briefs",
+        "nameRu": "Шёлковые трусики",
+        "descEn": "Worn against the skin. She notices when they are gone.",
+        "descRu": "На голое тело. Без них замечает сразу.",
+        "warmth": 0.02,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso",
+          "Pelvis"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Panty-02",
+          "from": "Flair-Panty",
+          "textures": [
+            {
+              "source": "panty",
+              "texture": "flair-panty-02.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Panty-03",
+          "from": "Flair-Panty",
+          "textures": [
+            {
+              "source": "panty",
+              "texture": "flair-panty-03.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "fl-pumps_12068",
+      "folder": "FlairPumps",
+      "name": "FlairPumps",
+      "simId": "clothing.pumps_flair",
+      "layer": "Outerwear",
+      "slots": [
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "heeltip",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "heel",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "sole",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "shoe",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "innershoe",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 12068,
+        "polys": 11840,
+        "bbox": [
+          -21.2,
+          21.2,
+          -11.5,
+          7.3,
+          -10.9,
+          15.7
+        ],
+        "zones": {
+          "Foot": 1.0
+        },
+        "heelCm": 11.48
+      },
+      "heelPose": {
+        "_review": "каблук 11.5 см даёт 90° — круче, чем бывает у обуви; проверьте замер, прежде чем верить",
+        "foot": 55.0,
+        "toe": -55.0,
+        "lift": 0.1148,
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "_source": "по высоте каблука 11.5 см (ОБРЕЗАНО)"
+      },
+      "sim": {
+        "displayName": "Pumps",
+        "nameRu": "Лодочки",
+        "descEn": "A high heel and nothing else. Worn where the ground is flat and swept.",
+        "descRu": "Высокий каблук и больше ничего. Для пола, который ровный и подметён.",
+        "warmth": 0.04,
+        "armor": 0.01,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "fl-skirt_3552",
+      "folder": "FlairSkirt",
+      "name": "FlairSkirt",
+      "simId": "clothing.skirt_flair",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis",
+        "ThighR",
+        "ThighL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "skirt",
+          "texture": "flair-skirt-01.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "waistband",
+          "texture": "flair-skirt-01.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 3552,
+        "polys": 3456,
+        "bbox": [
+          -24.6,
+          24.6,
+          72.6,
+          113.7,
+          -16.7,
+          14.5
+        ],
+        "zones": {
+          "Pelvis": 0.369,
+          "Belly": 0.36,
+          "Thigh": 0.272
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Pencil Skirt",
+        "nameRu": "Юбка-карандаш",
+        "descEn": "Straight, to the knee. Looks better than it lets her move.",
+        "descRu": "Прямая, до колена. Выглядит лучше, чем позволяет двигаться.",
+        "warmth": 0.07,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 1,
+        "covers": [
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Skirt-02",
+          "from": "Flair-Skirt",
+          "textures": [
+            {
+              "source": "skirt",
+              "texture": "flair-skirt-02.jpg"
+            },
+            {
+              "source": "waistband",
+              "texture": "flair-skirt-02.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Skirt-03",
+          "from": "Flair-Skirt",
+          "textures": [
+            {
+              "source": "skirt",
+              "texture": "flair-skirt-03.jpg"
+            },
+            {
+              "source": "waistband",
+              "texture": "flair-skirt-03.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "fl-sweater_8621",
+      "folder": "FlairSweater",
+      "name": "FlairSweater",
+      "simId": "clothing.sweater_flair",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "Belly",
+        "ShoulderR",
+        "ShoulderL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "sweater",
+          "texture": "flair-sweat-01.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Sleeves",
+          "texture": "flair-sweat-01.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 8621,
+        "polys": 8434,
+        "bbox": [
+          -36.4,
+          36.4,
+          110.2,
+          152.6,
+          -13.0,
+          13.8
+        ],
+        "zones": {
+          "Chest": 0.461,
+          "Shoulder": 0.37,
+          "Belly": 0.159,
+          "Neck": 0.01
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Knit Sweater",
+        "nameRu": "Вязаный свитер",
+        "descEn": "Loose knit, off one shoulder. The warmest thing that is not a coat.",
+        "descRu": "Крупная вязка, с одного плеча. Самое тёплое, что ещё не пальто.",
+        "warmth": 0.19,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso",
+          "ArmL",
+          "ArmR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Sweater-02",
+          "from": "Flair-Sweater",
+          "textures": [
+            {
+              "source": "Sleeves",
+              "texture": "flair-sweat-02.jpg"
+            },
+            {
+              "source": "sweater",
+              "texture": "flair-sweat-02.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Sweater-03",
+          "from": "Flair-Sweater",
+          "textures": [
+            {
+              "source": "Sleeves",
+              "texture": "flair-sweat-03.jpg"
+            },
+            {
+              "source": "sweater",
+              "texture": "flair-sweat-03.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "gloves_4400",
+      "folder": "FitGloves",
+      "name": "FitGloves",
+      "simId": "clothing.gloves_fit",
+      "layer": "Wear",
+      "slots": [
+        "ForearmR",
+        "ForearmL",
+        "WristR",
+        "WristL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "gloves",
+          "texture": "DMFnSgloves1.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 4400,
+        "polys": 4320,
+        "bbox": [
+          -69.7,
+          69.7,
+          141.6,
+          148.6,
+          -5.1,
+          6.5
+        ],
+        "zones": {
+          "Forearm": 0.773,
+          "Wrist": 0.227
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Training Gloves",
+        "nameRu": "Тренировочные перчатки",
+        "descEn": "Padded across the knuckles. For grip, and for hitting things.",
+        "descRu": "С подбивкой на костяшках. Для хвата и для ударов.",
+        "warmth": 0.03,
+        "armor": 0.04,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "ArmL",
+          "ArmR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Black2",
+          "from": "Fit N Sexy Gloves",
+          "textures": [
+            {
+              "source": "gloves",
+              "texture": "DMFnSgloves2.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Blue",
+          "from": "Fit N Sexy Gloves",
+          "textures": [
+            {
+              "source": "gloves",
+              "texture": "DMFnSgloves1ac.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Blue2",
+          "from": "Fit N Sexy Gloves",
+          "textures": [
+            {
+              "source": "gloves",
+              "texture": "DMFnSgloves2ac.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "shirt_4490",
+      "folder": "FitCropTop",
+      "name": "FitCropTop",
+      "simId": "clothing.croptop_fit",
+      "layer": "Wear",
+      "slots": [
+        "Chest"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "shirt",
+          "texture": "DMFnStop1.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 4490,
+        "polys": 4344,
+        "bbox": [
+          -15.7,
+          15.6,
+          124.3,
+          153.4,
+          -12.9,
+          14.4
+        ],
+        "zones": {
+          "Chest": 0.932,
+          "Neck": 0.068
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Crop Top",
+        "nameRu": "Укороченный топ",
+        "descEn": "Cut off above the ribs. Thin, and she likes it.",
+        "descRu": "Обрезан выше рёбер. Тонкий, и ей нравится.",
+        "warmth": 0.05,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "variants": [
+        {
+          "name": "1 BlackBlue",
+          "from": "Fit N Sexy Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "DMFnStop1ad.jpg"
+            }
+          ]
+        },
+        {
+          "name": "1 BlackLime",
+          "from": "Fit N Sexy Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "DMFnStop1ab.jpg"
+            }
+          ]
+        },
+        {
+          "name": "1 BlackPink",
+          "from": "Fit N Sexy Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "DMFnStop1aa.jpg"
+            }
+          ]
+        },
+        {
+          "name": "1 BlackWhite",
+          "from": "Fit N Sexy Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "DMFnStop1ac.jpg"
+            }
+          ]
+        },
+        {
+          "name": "1 Blue",
+          "from": "Fit N Sexy Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "DMFnStop1ah.jpg"
+            }
+          ]
+        },
+        {
+          "name": "1 Lime",
+          "from": "Fit N Sexy Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "DMFnStop1af.jpg"
+            }
+          ]
+        },
+        {
+          "name": "1 Pink",
+          "from": "Fit N Sexy Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "DMFnStop1ae.jpg"
+            }
+          ]
+        },
+        {
+          "name": "1 White",
+          "from": "Fit N Sexy Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "DMFnStop1ag.jpg"
+            }
+          ]
+        },
+        {
+          "name": "2 Black",
+          "from": "Fit N Sexy Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "DMFnStop2.jpg"
+            }
+          ]
+        },
+        {
+          "name": "3 Black",
+          "from": "Fit N Sexy Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "DMFnStop3.jpg"
+            }
+          ]
+        },
+        {
+          "name": "3 Black2",
+          "from": "Fit N Sexy Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "DMFnStop3aa.jpg"
+            }
+          ]
+        },
+        {
+          "name": "3 BlackGreen",
+          "from": "Fit N Sexy Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "DMFnStop3ac.jpg"
+            }
+          ]
+        },
+        {
+          "name": "3 BlackMagenta",
+          "from": "Fit N Sexy Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "DMFnStop3ab.jpg"
+            }
+          ]
+        },
+        {
+          "name": "3 BlackOrange",
+          "from": "Fit N Sexy Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "DMFnStop3ad.jpg"
+            }
+          ]
+        },
+        {
+          "name": "3 Magenta",
+          "from": "Fit N Sexy Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "DMFnStop3ae.jpg"
+            }
+          ]
+        },
+        {
+          "name": "3 Orange",
+          "from": "Fit N Sexy Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "DMFnStop3af.jpg"
+            }
+          ]
+        },
+        {
+          "name": "3 Turquoise",
+          "from": "Fit N Sexy Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "DMFnStop3ag.jpg"
+            }
+          ]
+        },
+        {
+          "name": "3 White",
+          "from": "Fit N Sexy Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "DMFnStop3ah.jpg"
+            }
+          ]
+        },
+        {
+          "name": "4 Batik1",
+          "from": "Fit N Sexy Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "DMFnStop4.jpg"
+            }
+          ]
+        },
+        {
+          "name": "4 Batik2",
+          "from": "Fit N Sexy Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "DMFnStop4aa.jpg"
+            }
+          ]
+        },
+        {
+          "name": "4 Batik3",
+          "from": "Fit N Sexy Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "DMFnStop4ab.jpg"
+            }
+          ]
+        },
+        {
+          "name": "4 Batik4",
+          "from": "Fit N Sexy Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "DMFnStop4ac.jpg"
+            }
+          ]
+        },
+        {
+          "name": "4 Batik5",
+          "from": "Fit N Sexy Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "DMFnStop4ad.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "shorts_4245",
+      "folder": "FitShorts",
+      "name": "FitShorts",
+      "simId": "clothing.shorts_fit",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "shorts",
+          "texture": "DMFnSshorts1.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 4245,
+        "polys": 4092,
+        "bbox": [
+          -17.3,
+          17.3,
+          87.9,
+          103.9,
+          -12.4,
+          10.6
+        ],
+        "zones": {
+          "Pelvis": 1.0
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Running Shorts",
+        "nameRu": "Беговые шорты",
+        "descEn": "Light and short. Nothing between her legs and the weather.",
+        "descRu": "Лёгкие и короткие. Между ногами и погодой ничего.",
+        "warmth": 0.04,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 1,
+        "covers": [
+          "Pelvis"
+        ]
+      },
+      "variants": [
+        {
+          "name": "1 BlackBlue",
+          "from": "Fit N Sexy Shorts",
+          "textures": [
+            {
+              "source": "shorts",
+              "texture": "DMFnSshorts1ad.jpg"
+            }
+          ]
+        },
+        {
+          "name": "1 BlackLime",
+          "from": "Fit N Sexy Shorts",
+          "textures": [
+            {
+              "source": "shorts",
+              "texture": "DMFnSshorts1ab.jpg"
+            }
+          ]
+        },
+        {
+          "name": "1 BlackPink",
+          "from": "Fit N Sexy Shorts",
+          "textures": [
+            {
+              "source": "shorts",
+              "texture": "DMFnSshorts1aa.jpg"
+            }
+          ]
+        },
+        {
+          "name": "1 BlackWhite",
+          "from": "Fit N Sexy Shorts",
+          "textures": [
+            {
+              "source": "shorts",
+              "texture": "DMFnSshorts1ac.jpg"
+            }
+          ]
+        },
+        {
+          "name": "2 Black",
+          "from": "Fit N Sexy Shorts",
+          "textures": [
+            {
+              "source": "shorts",
+              "texture": "DMFnSshorts2.jpg"
+            }
+          ]
+        },
+        {
+          "name": "3 Black",
+          "from": "Fit N Sexy Shorts",
+          "textures": [
+            {
+              "source": "shorts",
+              "texture": "DMFnSshorts3aa.jpg"
+            }
+          ]
+        },
+        {
+          "name": "3 BlackGreen",
+          "from": "Fit N Sexy Shorts",
+          "textures": [
+            {
+              "source": "shorts",
+              "texture": "DMFnSshorts3ac.jpg"
+            }
+          ]
+        },
+        {
+          "name": "3 BlackMagenta",
+          "from": "Fit N Sexy Shorts",
+          "textures": [
+            {
+              "source": "shorts",
+              "texture": "DMFnSshorts3ab.jpg"
+            }
+          ]
+        },
+        {
+          "name": "3 BlackOrange",
+          "from": "Fit N Sexy Shorts",
+          "textures": [
+            {
+              "source": "shorts",
+              "texture": "DMFnSshorts3ad.jpg"
+            }
+          ]
+        },
+        {
+          "name": "3 Magenta",
+          "from": "Fit N Sexy Shorts",
+          "textures": [
+            {
+              "source": "shorts",
+              "texture": "DMFnSshorts3ae.jpg"
+            }
+          ]
+        },
+        {
+          "name": "3 Orange",
+          "from": "Fit N Sexy Shorts",
+          "textures": [
+            {
+              "source": "shorts",
+              "texture": "DMFnSshorts3af.jpg"
+            }
+          ]
+        },
+        {
+          "name": "3 Turquoise",
+          "from": "Fit N Sexy Shorts",
+          "textures": [
+            {
+              "source": "shorts",
+              "texture": "DMFnSshorts3ag.jpg"
+            }
+          ]
+        },
+        {
+          "name": "3 White",
+          "from": "Fit N Sexy Shorts",
+          "textures": [
+            {
+              "source": "shorts",
+              "texture": "DMFnSshorts3ah.jpg"
+            }
+          ]
+        },
+        {
+          "name": "4 Batik1",
+          "from": "Fit N Sexy Shorts",
+          "textures": [
+            {
+              "source": "shorts",
+              "texture": "DMFnSshorts4.jpg"
+            }
+          ]
+        },
+        {
+          "name": "4 Batik2",
+          "from": "Fit N Sexy Shorts",
+          "textures": [
+            {
+              "source": "shorts",
+              "texture": "DMFnSshorts4aa.jpg"
+            }
+          ]
+        },
+        {
+          "name": "4 Batik3",
+          "from": "Fit N Sexy Shorts",
+          "textures": [
+            {
+              "source": "shorts",
+              "texture": "DMFnSshorts4ab.jpg"
+            }
+          ]
+        },
+        {
+          "name": "4 Batik4",
+          "from": "Fit N Sexy Shorts",
+          "textures": [
+            {
+              "source": "shorts",
+              "texture": "DMFnSshorts4ac.jpg"
+            }
+          ]
+        },
+        {
+          "name": "4 Batik5",
+          "from": "Fit N Sexy Shorts",
+          "textures": [
+            {
+              "source": "shorts",
+              "texture": "DMFnSshorts4ad.jpg"
+            }
+          ]
+        },
+        {
+          "name": "4 Camouflage",
+          "from": "Fit N Sexy Shorts",
+          "textures": [
+            {
+              "source": "shorts",
+              "texture": "DMFnSshorts4ae.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "socks_7468",
+      "folder": "FitSocks",
+      "name": "FitSocks",
+      "simId": "underwear.socks_fit",
+      "layer": "Underwear",
+      "slots": [
+        "ShinR",
+        "ShinL",
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "socks",
+          "texture": "DMFnSsocks1.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 7468,
+        "polys": 7376,
+        "bbox": [
+          -18.1,
+          18.1,
+          -0.1,
+          22.6,
+          -10.0,
+          6.1
+        ],
+        "zones": {
+          "Foot": 0.505,
+          "Shin": 0.495
+        },
+        "heelCm": 0.15
+      },
+      "sim": {
+        "displayName": "Ankle Socks",
+        "nameRu": "Носки",
+        "descEn": "Plain and short. Worn until they are not.",
+        "descRu": "Простые и короткие. Носятся, пока носятся.",
+        "warmth": 0.03,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Black2",
+          "from": "Fit N Sexy Socks",
+          "textures": [
+            {
+              "source": "socks",
+              "texture": "DMFnSsocks2.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Blue",
+          "from": "Fit N Sexy Socks",
+          "textures": [
+            {
+              "source": "socks",
+              "texture": "DMFnSsocks1ac.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Blue2",
+          "from": "Fit N Sexy Socks",
+          "textures": [
+            {
+              "source": "socks",
+              "texture": "DMFnSsocks2ac.jpg"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "skipped": [
+    "Nerd Crush Buttons"
+  ]
+}

@@ -83,6 +83,34 @@ def surfaces(preset: Path) -> dict[str, str]:
     return out
 
 
+def _preset_folders(product: Path) -> list[Path]:
+    """Где у ЭТОГО продукта лежат пресеты материалов.
+
+    Единого места нет и не будет: `Materials/Iray` у Complete Anarchy,
+    `MAT/Iray` у Flair, а Tek раскладывает по вещам — «Iray Bra Materials»,
+    «Iray Jacket Materials», «Iray Yoga Materials». Жёсткий путь `Materials/…`
+    молча возвращал ноль расцветок на двух продуктах из четырёх, и заметить это
+    можно было только сверив с планом.
+
+    Поэтому ищем по СЛОВУ в имени папки, а не по точному пути. Iray
+    предпочтительнее: он современнее и чаще несёт полный набор карт, а мешать
+    два вкуса в одной вещи — значит получить одну расцветку дважды.
+    """
+    dirs = [d for d in product.rglob("*") if d.is_dir() and any(d.glob("*.duf"))]
+    for flavour in FLAVOURS:
+        hit = [d for d in dirs if flavour.lower() in d.name.lower()]
+        if hit:
+            return sorted(hit)
+
+    named = [d for d in dirs if d.name.lower() in ("materials", "mat")]
+    if named:
+        return sorted(named)
+
+    # Ни намёка на материалы — но пресеты могут лежать и просто рядом с вещами.
+    # Корень не берём: там сами вещи, и их «расцветкой» считать нельзя.
+    return sorted(d for d in dirs if d != product)
+
+
 def garment_names(product: Path) -> list[str]:
     """Имена вещей продукта — по их собственным .duf в корне."""
     return sorted((p.stem for p in product.glob("*.duf")), key=len, reverse=True)
@@ -118,15 +146,8 @@ def harvest(product: Path) -> dict[str, list[dict]]:
     if not names:
         return {}
 
-    folder = None
-    for flavour in FLAVOURS:
-        candidate = product / "Materials" / flavour
-        if candidate.is_dir():
-            folder = candidate
-            break
-    if folder is None:
-        folder = product / "Materials"
-    if not folder.exists():
+    folders = _preset_folders(product)
+    if not folders:
         return {}
 
     # Каждое имя ищется и целиком, и без общей приставки продукта; список
@@ -141,7 +162,8 @@ def harvest(product: Path) -> dict[str, list[dict]]:
 
     found: dict[str, list[dict]] = {n: [] for n in names}
     claimed: set[Path] = set()
-    for preset in sorted(folder.rglob("*.duf")):
+    presets = sorted(f for d in folders for f in d.rglob("*.duf"))
+    for preset in presets:
         stem = preset.stem
         match = next(((alias, full) for alias, full in aliases if stem.startswith(alias)), None)
         if match is None:
@@ -172,7 +194,7 @@ def harvest(product: Path) -> dict[str, list[dict]]:
     # лишь однозначное совпадение. Ничья — не выбор.
     found["__orphans__"] = [
         {"name": _colour_of(p.stem), "surfaces": surfaces(p), "preset": p.name}
-        for p in sorted(folder.rglob("*.duf"))
+        for p in presets
         if p not in claimed and surfaces(p)
     ]
 

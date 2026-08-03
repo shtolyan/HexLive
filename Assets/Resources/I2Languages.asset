@@ -2689,22 +2689,6 @@ MonoBehaviour:
       - 'Укороченный топ с принтом. Тонкий, и ей нравится.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'item.clothing_top_anarchy_white.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Anarchy Top (White)'
-      - 'Топ «Анархия» (White)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_top_anarchy_white.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'A cropped top with a printed front. Thin, and she likes it.'
-      - 'Укороченный топ с принтом. Тонкий, и ей нравится.'
-      Flags: 0101
-      Languages_Touch: []
     - Term: 'item.clothing_boots_anarchy_purple.name'
       TermType: 0
       Description: 

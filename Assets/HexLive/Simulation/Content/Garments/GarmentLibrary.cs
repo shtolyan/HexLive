@@ -179,7 +179,6 @@ namespace HexLive.Simulation.Content
                 new("clothing.top_anarchy_bra_red", "Anarchy Top (Bra Red)", WearLayer.Wear, 0.06f, 0.00f, 0.00f, dress, 0, BodyPart.Torso) { PrototypeId = "clothing.top_anarchy" },
                 new("clothing.top_anarchy_bra_redpurp", "Anarchy Top (Bra RedPurp)", WearLayer.Wear, 0.06f, 0.00f, 0.00f, dress, 0, BodyPart.Torso) { PrototypeId = "clothing.top_anarchy" },
                 new("clothing.top_anarchy_red", "Anarchy Top (Red)", WearLayer.Wear, 0.06f, 0.00f, 0.00f, dress, 0, BodyPart.Torso) { PrototypeId = "clothing.top_anarchy" },
-                new("clothing.top_anarchy_white", "Anarchy Top (White)", WearLayer.Wear, 0.06f, 0.00f, 0.00f, dress, 0, BodyPart.Torso) { PrototypeId = "clothing.top_anarchy" },
                 new("clothing.corset_anarchy_red", "Laced Corset (Red)", WearLayer.Wear, 0.10f, 0.08f, 0.00f, dress, 0, BodyPart.Torso) { PrototypeId = "clothing.corset_anarchy" },
                 new("clothing.gloves_strap_anarchy_brn", "Long Gloves (Brn)", WearLayer.Wear, 0.02f, 0.02f, 0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR) { PrototypeId = "clothing.gloves_strap_anarchy" },
                 new("clothing.gloves_strap_anarchy_redpurp", "Long Gloves (RedPurp)", WearLayer.Wear, 0.02f, 0.02f, 0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR) { PrototypeId = "clothing.gloves_strap_anarchy" },

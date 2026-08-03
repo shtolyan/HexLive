@@ -53,6 +53,7 @@ internal static class WearIconShooter
         // disk: a variant (§31B.4E) borrows it and would otherwise be skipped
         // for the wrong reason.
         var art = new Dictionary<string, Mesh>();
+        var protoMaterials = new Dictionary<string, Material[]>();
 
         foreach (var folder in AssetDatabase.GetSubFolders(WearRoot).OrderBy(f => f))
         {
@@ -76,6 +77,7 @@ internal static class WearIconShooter
             }
 
             art[id] = smr.sharedMesh;
+            protoMaterials[id] = smr.sharedMaterials;
 
             var target = $"{IconRoot}/{id}.png";
             if (!force && File.Exists(target))
@@ -105,7 +107,8 @@ internal static class WearIconShooter
                 continue;
             }
 
-            if (!art.TryGetValue(def.ArtId, out var mesh))
+            if (!art.TryGetValue(def.ArtId, out var mesh) ||
+                !protoMaterials.ContainsKey(def.ArtId))
             {
                 log.AppendLine($"  {def.id}: нет арта прототипа {def.ArtId}");
                 continue;
@@ -117,7 +120,21 @@ internal static class WearIconShooter
                                $"подмешей {mesh.subMeshCount} — часть меша не будет снята");
             }
 
-            Write(target, mesh, def.variantMaterials, shot, log, def.id);
+            // Laid OVER the prototype's materials, exactly as Wear.ApplyVariant
+            // does at runtime — a colourway is allowed to repaint only part of a
+            // garment. The welded boots are seven submeshes and their colourways
+            // name six, so passing the variant array alone left the stocking top
+            // with no material: the icon would disagree with the thing worn.
+            var painted = (Material[])protoMaterials[def.ArtId].Clone();
+            for (var i = 0; i < painted.Length && i < def.variantMaterials.Length; i++)
+            {
+                if (def.variantMaterials[i] != null)
+                {
+                    painted[i] = def.variantMaterials[i];
+                }
+            }
+
+            Write(target, mesh, painted, shot, log, def.id);
         }
 
         AssetDatabase.Refresh();
@@ -192,7 +209,7 @@ internal static class WearIconShooter
         var preview = new PreviewRenderUtility();
         try
         {
-            var bounds = mesh.bounds;
+            var bounds = OneOfAPair(mesh);
             var radius = Mathf.Max(bounds.extents.magnitude, 0.001f);
             var camera = preview.camera;
             camera.fieldOfView = 30f;
@@ -238,6 +255,56 @@ internal static class WearIconShooter
     /// eight box corners into the camera's own basis instead and takes the
     /// tightest distance that still keeps every one of them inside the frustum.
     /// </remarks>
+    /// <summary>
+    /// Frame ONE half of a pair, not the span between them.
+    /// </summary>
+    /// <remarks>
+    /// A pair is one item and therefore one mesh, and in the bind pose the arms
+    /// are spread: the gloves measure 1.45 m across and 5 cm tall. Fitting that
+    /// box into a square icon draws a hairline — six of the drop's icons came
+    /// out effectively blank, which is exactly what the content check caught and
+    /// a "the file exists" check would not have.
+    ///
+    /// Only when the mesh is much wider than it is tall or deep, and only along
+    /// X: nothing else in the wardrobe has that shape, and a hat framed on half
+    /// of itself would be worse than one framed whole.
+    /// </remarks>
+    private static Bounds OneOfAPair(Mesh mesh)
+    {
+        var bounds = mesh.bounds;
+        var size = bounds.size;
+        if (size.x <= 3f * Mathf.Max(size.y, size.z))
+        {
+            return bounds;
+        }
+
+        // The REAL box of the right-hand half, walked over the vertices rather
+        // than assumed to be half the width: a pair is two lumps with air
+        // between them, so half the bounding box is mostly that air and the
+        // glove ends up small and off-centre inside its own icon.
+        var found = false;
+        var half = new Bounds();
+        foreach (var v in mesh.vertices)
+        {
+            if (v.x < bounds.center.x)
+            {
+                continue;
+            }
+
+            if (!found)
+            {
+                half = new Bounds(v, Vector3.zero);
+                found = true;
+            }
+            else
+            {
+                half.Encapsulate(v);
+            }
+        }
+
+        return found ? half : bounds;
+    }
+
     private static float FitDistance(Bounds bounds, float fieldOfView)
     {
         var direction = View.normalized;

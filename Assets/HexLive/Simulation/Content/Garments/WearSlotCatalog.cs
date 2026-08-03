@@ -79,7 +79,6 @@ namespace HexLive.Simulation.Content
             ["clothing.top_anarchy_bra_red"] = new[] { WearSlot.Chest },
             ["clothing.top_anarchy_bra_redpurp"] = new[] { WearSlot.Chest },
             ["clothing.top_anarchy_red"] = new[] { WearSlot.Chest },
-            ["clothing.top_anarchy_white"] = new[] { WearSlot.Chest },
             ["underwear.thong_anarchy"] = new[] { WearSlot.Pelvis },
             ["underwear.thong_anarchy_purple"] = new[] { WearSlot.Pelvis },
             ["underwear.thong_anarchy_red"] = new[] { WearSlot.Pelvis },

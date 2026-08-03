@@ -172,13 +172,19 @@ def dedupe(colours: list[dict], prototype: dict[str, str] | None = None) -> list
     расцветка не нужна тем более: прототип уже стоит в списке первым, и именно
     поэтому первый и последний варианты выглядели одинаково.
     """
-    seen: set[tuple] = set()
-    if prototype:
-        seen.add(tuple(sorted(prototype.items())))
+    base = dict(prototype or {})
+    seen: set[tuple] = {tuple(sorted(base.items()))} if base else set()
 
     out = []
     for colour in sorted(colours, key=lambda c: c["name"]):
-        key = tuple(sorted({t["source"]: t["texture"] for t in colour["textures"]}.items()))
+        # Сравнивается РЕЗУЛЬТАТ наложения, а не собственные карты расцветки:
+        # пресет переписывает лишь часть поверхностей, остальные остаются от
+        # прототипа. Расцветка топа «White» называет `shirt: TAShirt.jpg` — ровно
+        # то, что у прототипа и так стоит, — и по своим картам выглядит новой, а
+        # на девушке неотличима. Собственные карты сравнивать бессмысленно.
+        painted = dict(base)
+        painted.update({t["source"]: t["texture"] for t in colour["textures"]})
+        key = tuple(sorted(painted.items()))
         if key in seen:
             continue
         seen.add(key)

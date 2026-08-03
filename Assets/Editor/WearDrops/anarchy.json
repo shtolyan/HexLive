@@ -444,16 +444,6 @@
               "texture": "TAShirt2.jpg"
             }
           ]
-        },
-        {
-          "name": "White",
-          "from": "CA Blouse",
-          "textures": [
-            {
-              "source": "shirt",
-              "texture": "TAShirt.jpg"
-            }
-          ]
         }
       ],
       "sim": {

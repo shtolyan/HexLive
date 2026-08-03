@@ -117,6 +117,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
     private VisualElement _scaleBox;
     private readonly Dictionary<VisualWearLayer, VisualElement> _layerButtons = new();
     private VisualElement _hidesHairToggle;
+    private VisualElement _noHideRow;
     private TextField _commentField;
 
     // Заметки об осмотре. Живут рядом с манифестами поставок, а не в префабе:
@@ -619,21 +620,25 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
             return;
         }
 
-        foreach (var line in System.IO.File.ReadAllLines(CommentsPath))
+        foreach (var raw in System.IO.File.ReadAllLines(CommentsPath))
         {
-            var colon = line.IndexOf("\": \"", StringComparison.Ordinal);
-            if (colon < 0 || !line.TrimStart().StartsWith("\"", StringComparison.Ordinal))
+            // Индексы считаются по ОДНОЙ строке — обрезанной. Смешивать их с
+            // индексами исходной значит резать заметку не там, где кажется.
+            var line = raw.Trim().TrimEnd(',');
+            if (!line.StartsWith("\"", StringComparison.Ordinal))
             {
                 continue;
             }
 
-            var id = line.TrimStart().Substring(1, colon - line.IndexOf('"') - 1);
-            var rest = line.Substring(colon + 4);
-            var end = rest.LastIndexOf('"');
-            if (end > 0)
+            var split = line.IndexOf("\": \"", StringComparison.Ordinal);
+            if (split <= 0 || !line.EndsWith("\"", StringComparison.Ordinal))
             {
-                _comments[id] = rest.Substring(0, end).Replace("\\n", "\n").Replace("\\\"", "\"");
+                continue;
             }
+
+            var id = line.Substring(1, split - 1);
+            var text = line.Substring(split + 4, line.Length - split - 5);
+            _comments[id] = text.Replace("\\n", "\n").Replace("\\\"", "\"").Replace("\\\\", "\\");
         }
     }
 
@@ -1464,6 +1469,19 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         _hidesHairToggle.style.marginBottom = 4f;
         box.Add(_hidesHairToggle);
 
+        var noHideTitle = new Label(Loc.Get("wardrobe.shows_underwear"));
+        noHideTitle.style.color = Muted;
+        noHideTitle.style.fontSize = 10;
+        box.Add(noHideTitle);
+
+        // Строится заново под каждую вещь: перечислять здесь ВСЕ слоты
+        // бессмысленно, речь только о тех, которые эта вещь закрывает.
+        _noHideRow = new VisualElement();
+        _noHideRow.style.flexDirection = FlexDirection.Row;
+        _noHideRow.style.flexWrap = Wrap.Wrap;
+        _noHideRow.style.marginBottom = 6f;
+        box.Add(_noHideRow);
+
         _commentField = new TextField { multiline = true };
         _commentField.style.marginBottom = 6f;
         _commentField.style.minHeight = 46f;
@@ -1507,6 +1525,47 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         MarkDirtyAndRedress(entry);
     }
 
+    private void ToggleHideUnderwear(VisualWearSlot slot)
+    {
+        if (_selectedKey == null || !_byKey.TryGetValue(_selectedKey, out var entry))
+        {
+            return;
+        }
+
+        entry.Asset.SetHideUnderwear(slot, !entry.Asset.HeedHideUnderwearSlot(slot));
+        MarkDirtyAndRedress(entry);
+    }
+
+    // Кнопка на каждый слот, который эта вещь закрывает. Подсвечена — бельё под
+    // ней в этом слоте ВИДНО (слот в списке исключений); тусклая — спрятано,
+    // как по умолчанию.
+    private void RebuildNoHideRow(WearEntry entry)
+    {
+        if (_noHideRow == null)
+        {
+            return;
+        }
+
+        _noHideRow.Clear();
+        if (entry == null || entry.Asset == null)
+        {
+            return;
+        }
+
+        foreach (var slot in entry.Asset.Slots)
+        {
+            var pick = slot;
+            var shown = !entry.Asset.HeedHideUnderwearSlot(pick);
+            var chip = MakeButton(slot.ToString(), shown ? AccentSel : Raised,
+                () => ToggleHideUnderwear(pick));
+            chip.style.marginRight = 3f;
+            chip.style.marginBottom = 3f;
+            chip.style.paddingLeft = 6f;
+            chip.style.paddingRight = 6f;
+            _noHideRow.Add(chip);
+        }
+    }
+
     private void ToggleHidesHair()
     {
         if (_selectedKey == null || !_byKey.TryGetValue(_selectedKey, out var entry))
@@ -1533,6 +1592,10 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
 #if UNITY_EDITOR
         UnityEditor.EditorUtility.SetDirty(entry.Asset);
 #endif
+        // Список фильтруется по слою вещи, а не по тому, каким он был при
+        // сборке UI: сменив слой, вещь должна тут же уехать в свою вкладку,
+        // иначе она останется висеть там, где её больше нет.
+        ApplyActorFilter();
         RefreshScalePanel();
     }
 
@@ -1878,6 +1941,8 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
             _hidesHairToggle.style.backgroundColor =
                 entry != null && entry.Asset.HidesHair ? AccentSel : Raised;
         }
+
+        RebuildNoHideRow(entry);
 
         if (_commentField != null)
         {

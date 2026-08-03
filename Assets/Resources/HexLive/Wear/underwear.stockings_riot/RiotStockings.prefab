@@ -901,15 +901,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Wear
   configs:
   - actorName: 0
-    scale: 1
+    scale: 1.01
     heightOffset: 0
     mesh: {fileID: 4300000, guid: c9fae18574dbd5c4c8007183388a2557, type: 2}
   - actorName: 1
-    scale: 1.01
+    scale: 1.02
     heightOffset: 0
     mesh: {fileID: 4300000, guid: 94c5e7718af144644a49d918ec7ce443, type: 2}
   - actorName: 2
-    scale: 1.01
+    scale: 1.02
     heightOffset: 0
     mesh: {fileID: 4300000, guid: 9ced20b99a08f6440892a3ac34a85fe5, type: 2}
   - actorName: 5
@@ -918,7 +918,7 @@ MonoBehaviour:
     mesh: {fileID: 4300000, guid: 6d90d733ca58356408aea7c8d0bdc70f, type: 2}
   slots: 0f0000001000000011000000120000001300000014000000
   noHideUnderwearSlots: 
-  layer: 0
+  layer: 1
   gender: 1
   heel:
     footDegrees: 0

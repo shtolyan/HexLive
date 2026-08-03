@@ -276,6 +276,27 @@ public sealed class Wear : MonoBehaviour
         return noHideUnderwearSlots.Contains(slot) == false;
     }
 
+    public IReadOnlyList<VisualWearSlot> NoHideUnderwearSlots => noHideUnderwearSlots;
+
+    /// <summary>Скрывать ли бельё в этом слоте (правится из тестовой сцены).</summary>
+    /// <remarks>
+    /// Список хранит ИСКЛЮЧЕНИЯ, а не правила: по умолчанию верхняя вещь бельё
+    /// под собой прячет, и сюда попадают слоты, где этого делать не надо —
+    /// прозрачная блузка, сетчатые чулки, распахнутая куртка. Поэтому «включено»
+    /// в панели значит «бельё видно», то есть слот В списке.
+    /// </remarks>
+    public void SetHideUnderwear(VisualWearSlot slot, bool hide)
+    {
+        if (hide)
+        {
+            noHideUnderwearSlots.Remove(slot);
+        }
+        else if (!noHideUnderwearSlots.Contains(slot))
+        {
+            noHideUnderwearSlots.Add(slot);
+        }
+    }
+
     public void Hide()
     {
         if (_meshRenderer != null)

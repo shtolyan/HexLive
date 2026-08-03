@@ -17,7 +17,7 @@ MonoBehaviour:
   displayName: Long Stockings (Clear)
   variantMaterials:
   - {fileID: 2100000, guid: 5cadeebf99758f144a23b4956d966afb, type: 2}
-  layer: 0
+  layer: 1
   covers: 0500000006000000
   warmth: 0.06
   armor: 0

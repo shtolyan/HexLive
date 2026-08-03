@@ -5,9 +5,15 @@ using UnityEngine;
 namespace HexLive.UnityPresentation.UI
 {
     /// <summary>
-    /// §80: снимки лиц. Раз в игровой час камера фотографирует одного NPC в
-    /// текстуру, и этот снимок потом показывают везде, где раньше был цветной
-    /// кружок с буквой: пузырь «кого боюсь», вкладка отношений.
+    /// §80: снимки лиц. Раз в игровые СУТКИ, днём, камера фотографирует
+    /// каждого NPC в текстуру, и этот снимок потом показывают везде, где
+    /// раньше был цветной кружок с буквой: пузырь «кого боюсь», вкладка
+    /// отношений.
+    ///
+    /// Это именно фотография, а не случайный кадр: на время съёмки колонистка
+    /// смотрит В КАМЕРУ (BeginPortraitGaze) и не моргает, фон прозрачный, свет
+    /// дневной. Раньше снимали каждый час чем придётся — выходил тёмный
+    /// профиль с закрытыми глазами на серой плашке.
     ///
     /// Снимок, а НЕ живой рендер — по трём причинам, каждая из которых сама по
     /// себе решает вопрос:
@@ -34,7 +40,22 @@ namespace HexLive.UnityPresentation.UI
         private const float FaceDistanceMeters = 0.72f;
         private const float EyeLiftMeters = 0.03f;
 
-        private static readonly Color Backdrop = new(0.10f, 0.12f, 0.14f, 1f);
+        // Фон ПРОЗРАЧНЫЙ: снимок — вырезка персонажа, а не плашка. Тёмную
+        // подложку под неё рисует та панель, которой она нужна.
+        private static readonly Color Backdrop = new(0.10f, 0.12f, 0.14f, 0f);
+
+        // Снимать при дневном свете: ночью колонистка — тёмный силуэт, и
+        // фотография ни на что не годится. Окно 10:00-16:00 (0 = 06:00).
+        private const float DaylightFrom = 4f / 24f;
+        private const float DaylightTo = 10f / 24f;
+
+        // Кадров на «посмотри в камеру», прежде чем нажать затвор: взгляд
+        // ведёт Final-IK, и мгновенно он не доезжает.
+        private const int GazeConvergeFrames = 4;
+
+        // Между снимками — пауза в реальном времени: за один дневной оконный
+        // проход надо снять всех, но не десятком ReadPixels в одном кадре.
+        private const float BakeSpacingSeconds = 0.75f;
 
         private RenderTexture _scratch;
         private Camera _camera;
@@ -44,13 +65,26 @@ namespace HexLive.UnityPresentation.UI
         private readonly Dictionary<int, Texture2D> _portraits = new();
         private readonly Dictionary<int, Sprite> _sprites = new();
         private readonly Dictionary<int, int> _bakedAtTick = new();
+        private readonly Dictionary<int, int> _bakedDay = new();
 
-        // Съёмка занимает ДВА кадра: в первом камеру наводят и включают, во
-        // втором читают уже отрисованный кадр. Так делают оба существующих
-        // стейджа, и так надо: camera.Render() вызывается в обход порядка URP.
+        // Съёмка идёт несколько кадров: навести и заморозить камеру → дать
+        // взгляду доехать до объектива → отрисовать → прочитать пиксели.
+        // camera.Render() в обход порядка URP по-прежнему нельзя.
+        private enum BakePhase
+        {
+            Idle,
+            Converge,
+            Rendering
+        }
+
+        private BakePhase _phase = BakePhase.Idle;
         private int _pendingNpcId = -1;
+        private int _convergeFrames;
+        private bool _gazeHeld;
+        private float _nextBakeTime;
 
         private int _lastSweepTick = int.MinValue;
+        private int _currentDay;
 
         /// <summary>Готовый снимок лица, если он уже сделан.</summary>
         public bool TryGet(int npcId, out Texture2D portrait)
@@ -93,33 +127,37 @@ namespace HexLive.UnityPresentation.UI
         }
 
         /// <summary>
-        /// Раз в игровой час снять самое несвежее лицо. Один NPC за проход:
-        /// съёмка — это кадр камеры плюс чтение из GPU, и растягивать её по
-        /// одному телу дешевле, чем снимать всех разом.
+        /// Фотосессия раз в СУТКИ и только при дневном свете. Один NPC за
+        /// проход: съёмка — это кадр камеры плюс чтение из GPU, и растянуть её
+        /// по одному телу дешевле, чем снимать всех разом.
         /// </summary>
-        public void Sweep(int tick, int dayLengthTicks, IReadOnlyList<int> npcIds)
+        public void Sweep(int tick, int dayLengthTicks, float timeOfDay01, IReadOnlyList<int> npcIds)
         {
             if (npcIds == null || npcIds.Count == 0)
             {
                 return;
             }
 
-            var hourTicks = Mathf.Max(1, dayLengthTicks / 24);
-            if (_lastSweepTick != int.MinValue && tick - _lastSweepTick < hourTicks)
-            {
-                return;
-            }
-
             _lastSweepTick = tick;
-            if (_pendingNpcId >= 0)
+            _currentDay = tick / Mathf.Max(1, dayLengthTicks);
+
+            if (_pendingNpcId >= 0 ||
+                timeOfDay01 < DaylightFrom || timeOfDay01 > DaylightTo ||
+                Time.unscaledTime < _nextBakeTime)
             {
                 return;
             }
 
+            // Самая несвежая из тех, кого сегодня ещё не снимали.
             var stalest = -1;
             var stalestTick = int.MaxValue;
             foreach (var id in npcIds)
             {
+                if (_bakedDay.TryGetValue(id, out var day) && day == _currentDay)
+                {
+                    continue;
+                }
+
                 var baked = _bakedAtTick.TryGetValue(id, out var at) ? at : int.MinValue;
                 if (baked < stalestTick)
                 {
@@ -173,13 +211,27 @@ namespace HexLive.UnityPresentation.UI
                 }
             }
 
-            // Кадр 2: камера уже отрисовала кого просили — забрать пиксели.
-            if (_camera.enabled)
+            switch (_phase)
             {
-                Capture(_pendingNpcId);
-                _camera.enabled = false;
-                _pendingNpcId = -1;
-                return;
+                // Затвор: камера уже отрисовала кого просили — забрать пиксели.
+                case BakePhase.Rendering:
+                    Capture(_pendingNpcId);
+                    _camera.enabled = false;
+                    FinishBake();
+                    return;
+
+                // Взгляд доезжает до объектива, камера при этом СТОИТ там, куда
+                // её навели: она висит на осях кости головы, и если её двигать
+                // вслед за поворотом, она будет гнаться сама за собой.
+                case BakePhase.Converge:
+                    if (--_convergeFrames > 0)
+                    {
+                        return;
+                    }
+
+                    _camera.enabled = true;
+                    _phase = BakePhase.Rendering;
+                    return;
             }
 
             if (_pendingNpcId < 0)
@@ -187,7 +239,7 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            // Кадр 1: навести и включить.
+            // Навести, заморозить, попросить посмотреть в камеру.
             if (_worldRenderer == null)
             {
                 _worldRenderer = FindAnyObjectByType<HexWorldRenderer>();
@@ -200,15 +252,34 @@ namespace HexLive.UnityPresentation.UI
             if (!_worldRenderer.TryGetNpcFace(
                     _pendingNpcId, out var face, out var forward, out var up, out var scale))
             {
-                // Тела ещё нет в мире (или уже нет) — попробуем в следующий час.
-                _pendingNpcId = -1;
+                // Тела ещё нет в мире (или уже нет) — попробуем в следующий раз.
+                FinishBake();
                 return;
             }
 
             var eye = face + forward * (FaceDistanceMeters * scale) + up * (EyeLiftMeters * scale);
             _camera.transform.position = eye;
             _camera.transform.rotation = Quaternion.LookRotation(face - eye, up);
-            _camera.enabled = true;
+
+            _gazeHeld = _worldRenderer.TryBeginPortraitGaze(_pendingNpcId, eye);
+            _convergeFrames = _gazeHeld ? GazeConvergeFrames : 1;
+            _phase = BakePhase.Converge;
+        }
+
+        // Снять взгляд и закрыть съёмку. Вызывается на КАЖДОМ выходе, в том
+        // числе на отказном: иначе колонистка так и останется смотреть в точку,
+        // где висела камера.
+        private void FinishBake()
+        {
+            if (_gazeHeld && _worldRenderer != null && _pendingNpcId >= 0)
+            {
+                _worldRenderer.EndPortraitGaze(_pendingNpcId);
+            }
+
+            _gazeHeld = false;
+            _pendingNpcId = -1;
+            _phase = BakePhase.Idle;
+            _nextBakeTime = Time.unscaledTime + BakeSpacingSeconds;
         }
 
         private void Capture(int npcId)
@@ -238,13 +309,14 @@ namespace HexLive.UnityPresentation.UI
             // он ещё и читается как «плашка», а не как лицо.
             //
             // Маска пишется В САМУ ТЕКСТУРУ, а не поверх шейдером: снимок и так
-            // делается раз в игровой час, поэтому дешевле один раз обнулить
+            // делается раз в игровые сутки, поэтому дешевле один раз обнулить
             // альфу по углам, чем гонять отдельный материал и в пузыре, и в
             // трёх местах панели.
             ApplyCircleMask(texture);
             texture.Apply(false);
 
             _bakedAtTick[npcId] = _lastSweepTick;
+            _bakedDay[npcId] = _currentDay;
 
             // Спрайт держит ссылку на текстуру, а не копию, но пересоздать его
             // всё равно надо: Sprite кэширует размеры на момент создания.
@@ -290,6 +362,11 @@ namespace HexLive.UnityPresentation.UI
 
         private void OnDestroy()
         {
+            if (_gazeHeld && _worldRenderer != null && _pendingNpcId >= 0)
+            {
+                _worldRenderer.EndPortraitGaze(_pendingNpcId);
+            }
+
             if (_camera != null)
             {
                 _camera.targetTexture = null;

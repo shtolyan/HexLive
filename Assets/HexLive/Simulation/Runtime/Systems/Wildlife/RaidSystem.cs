@@ -620,7 +620,7 @@ public sealed class RaidSystem : ISimulationSystem
             defenders++;
             defender.IsFighting = true;
             defender.Mind.CombatOpponentNpcId = raider.Id;
-            SocialCueSignals.Stamp(world, defender, "HelpCryDefended", victim.Id);
+            SocialCueSignals.Stamp(world, defender, "HelpCryDefended:npc", victim.Id);
         }
 
         return defenders;

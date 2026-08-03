@@ -802,6 +802,26 @@
    ]
   },
   {
+   "code": "C13",
+   "id": "fear_stranger",
+   "priority": "P1",
+   "hook": "заметила чужака-человека (§72 `DangerStranger`)",
+   "lines": [
+    {
+     "text": "[frightened] Ooi! Bezheksa! Bezheksa gulao!",
+     "ru": "Ой! Чужак! Чужак идёт!"
+    },
+    {
+     "text": "[whispering] Kuna? Bezheksa...",
+     "ru": "Кто это? Чужак..."
+    },
+    {
+     "text": "[frightened] Shoop! Bezheksa! Zada, zada!",
+     "ru": "Страшно! Чужак! Уйди, уйди!"
+    }
+   ]
+  },
+  {
    "code": "D1",
    "id": "happy_topic_smalltalk",
    "priority": "P1",

@@ -153,7 +153,7 @@ public sealed class ThreatAlertSystem : ISimulationSystem
             // id живёт в другом пространстве (3 — это волк, а не Марта).
             // Раньше сюда шёл id самой кричащей, что прочиталось бы как «боится
             // себя»; null оставляет прежнюю иконку зверя.
-            SocialCueSignals.Stamp(world, npc, "DangerSpotted", null);
+            SocialCueSignals.Stamp(world, npc, "DangerSpotted:" + threat.MobId, null);
             var fit = IsFitToFight(npc) && pack <= Spec62.AttackMaxPack;
             Trace.Emit(world, npc.Id, "ThreatSpotted",
                 $"Mob={threat.Id} Dist={bestDistance} Pack={pack} Fit={fit} " +

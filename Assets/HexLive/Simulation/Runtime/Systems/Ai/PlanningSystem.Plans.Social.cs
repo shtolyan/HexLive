@@ -478,7 +478,9 @@ public sealed partial class PlanningSystem
         });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
-        SocialCueSignals.Stamp(world, npc, "HelpCryAssistStarted", npc.Id);
+        SocialCueSignals.Stamp(world, npc,
+            npc.Mind.CombatAssistDogId.HasValue ? "HelpCryAssistStarted:dog" : "HelpCryAssistStarted:npc",
+            null);
         Trace.Emit(world, npc.Id, "HelpCryAssistStarted",
             $"{label} ApproachJunction={approachJunction.Value} Tile={attackerTile.Q},{attackerTile.R}");
     }

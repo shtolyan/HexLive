@@ -632,7 +632,7 @@ public sealed class MobSystem : ISimulationSystem
                 $"Weapon={(string.IsNullOrEmpty(weaponId) ? "fists" : weaponId)}" +
                 $"{(strikeReady ? string.Empty : " recovering")} Speed={attackSpeed:F1} " +
                 $"DogHealth={System.Math.Max(0f, dog.Health):F2}");
-            SocialCueSignals.Stamp(world, defender, "HelpCryDefended", quarry.Id);
+            SocialCueSignals.Stamp(world, defender, "HelpCryDefended:dog", quarry.Id);
 
             if (dog.Health <= 0f)
             {

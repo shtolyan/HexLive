@@ -26,8 +26,12 @@ public sealed class NpcSpeechBubble : MonoBehaviour
     // texture space from the bottom-left. The tail/outline make the full image's
     // geometric centre wrong for the emoji.
     private static readonly Vector2 BubbleBodyCenterFrac = new(0.515f, 0.580f);
-    private const float CueBoxUnitsWide = 0.30f;
-    private const float CueBoxUnitsTall = 0.25f;
+    // Кьюшка — тот же белый бабл, только меньше: она короче реплики и должна
+    // читаться как «мелькнула мысль», не соревнуясь с разговором.
+    private const float CueBubbleUnitsTall = 0.52f;
+    private const float CueContentUnitsWide = 0.24f;
+    private const float CueContentUnitsTall = 0.165f;
+    private const float CueSideOffset = -0.42f; // влево, когда занят основной бабл
     private const float PopUnitsWide = 0.28f;
     private const float PopUnitsTall = 0.19f;    // "+/-" height (≈half the old size)
     private const float PopRiseSpeed = 0.42f;    // units/sec the "+/-" floats up
@@ -51,9 +55,12 @@ public sealed class NpcSpeechBubble : MonoBehaviour
     private float _popTimer = -1f;
 
     private Transform _cue;
-    private SpriteRenderer _cueRenderer;
-    private float _cueTimer = -1f;
-    private Color _cueColor = Color.white;
+    private SpriteRenderer _cueBubble;
+    private SpriteRenderer _cueContent;
+    private Color _cueContentColor = Color.white;
+    private float _cueHoldUntil = -1f;
+    private bool _cueShown;
+    private float _cueShownAmount;
 
     private bool _shown;
     private float _shownAmount; // eased 0..1 for the pop-in scale/fade
@@ -89,11 +96,27 @@ public sealed class NpcSpeechBubble : MonoBehaviour
 
         // Short social event pop: request/refusal/aid/quarrel/etc. It is
         // separate from the relationship "+/-", so an insult can show both.
+        // Живёт в СВОЁМ белом бабле: всё, что всплывает над головой словом или
+        // лицом, выглядит одинаково — раньше кьюшки мелькали голой картинкой
+        // мимо системы баблов и читались как глитч.
         var cueGo = new GameObject("SocialCuePop");
         cueGo.transform.SetParent(transform, false);
-        _cueRenderer = cueGo.AddComponent<SpriteRenderer>();
-        _cueRenderer.sortingOrder = sortingBase + 3;
         _cue = cueGo.transform;
+
+        var cueBubbleGo = new GameObject("CueBubble");
+        cueBubbleGo.transform.SetParent(_cue, false);
+        _cueBubble = cueBubbleGo.AddComponent<SpriteRenderer>();
+        _cueBubble.sprite = ResolveCueBubble();
+        _cueBubble.sortingOrder = sortingBase + 3;
+
+        var cueContentGo = new GameObject("CueContent");
+        cueContentGo.transform.SetParent(_cue, false);
+        _cueContent = cueContentGo.AddComponent<SpriteRenderer>();
+        _cueContent.sortingOrder = sortingBase + 4;
+        _cueContentLocalPosition = BodyCenterLocal(_cueBubble != null ? _cueBubble.sprite : null,
+            _cueBubbleBaseScale, _cueContentLocalPosition);
+        _cueContent.transform.localPosition = _cueContentLocalPosition;
+
         _cue.gameObject.SetActive(false);
 
         SetVisible(false);
@@ -164,24 +187,40 @@ public sealed class NpcSpeechBubble : MonoBehaviour
 
     // §80: portrait — лицо ТОГО, о ком кьюшка. ⚠️ над головой говорит, что ей
     // страшно, но не говорит, кого она увидела; лицо говорит. Когда снимка ещё
-    // нет (первый игровой час) или кьюшка не про человека — падаем на прежнюю
+    // нет (до первой дневной фотосессии) или кьюшка не про человека — падаем на
     // эмодзи, поэтому вызывающему не нужно ничего проверять.
     public void PopSocialCue(string cueKind, Sprite portrait = null)
     {
-        if (_cueRenderer == null || string.IsNullOrEmpty(cueKind))
+        if (_cueContent == null || string.IsNullOrEmpty(cueKind))
         {
             return;
         }
 
-        _cueRenderer.sprite = portrait != null ? portrait : ResolveEmoji(SocialCueSprite(cueKind));
+        var visual = SpeechCatalog.ForCue(cueKind);
+        _cueContent.sprite = portrait != null ? portrait : ResolveEmoji(visual.PopIcon);
         // Портрет красят только белым: эмодзи — силуэт, который тонируют по
         // смыслу, а лицо уже несёт свой цвет, и тонировка сделала бы из него
         // цветное пятно.
-        _cueColor = portrait != null ? Color.white : SocialCueColor(cueKind);
-        _cueRenderer.color = _cueColor;
-        FitSpriteInside(_cueRenderer, CueBoxUnitsWide, CueBoxUnitsTall);
+        _cueContentColor = portrait != null ? Color.white : ToneColor(visual.Tone);
+        _cueContent.color = _cueContentColor;
+        FitSpriteInside(_cueContent, CueContentUnitsWide, CueContentUnitsTall);
+
+        // Новая кьюшка поверх показанной — подмена содержимого на месте и
+        // рестарт холда, а не второй разворот: иначе частые TalkRequest дают
+        // строб вместо картинки.
         _cue.gameObject.SetActive(true);
-        _cueTimer = 0f;
+        _cueShown = true;
+        _cueHoldUntil = Time.time + SpeechCatalog.MinBubbleSeconds;
+    }
+
+    private static Color ToneColor(SpeechCatalog.CueTone tone)
+    {
+        return tone switch
+        {
+            SpeechCatalog.CueTone.Positive => PosColor,
+            SpeechCatalog.CueTone.Negative => NegColor,
+            _ => Color.white
+        };
     }
 
     private void SetVisible(bool visible)
@@ -268,29 +307,49 @@ public sealed class NpcSpeechBubble : MonoBehaviour
             }
         }
 
-        if (_cueTimer >= 0f && _cue != null)
+        // Кьюшка разворачивается и сворачивается тем же движением, что и
+        // основной бабл, — только уходит сама по холду.
+        if (_cue != null && _cue.gameObject.activeSelf)
         {
-            _cueTimer += Time.deltaTime;
-            var t = _cueTimer / PopLifetime;
-            if (t >= 1f)
+            if (_cueShown && _cueHoldUntil > 0f && Time.time >= _cueHoldUntil)
             {
-                _cueTimer = -1f;
+                _cueShown = false;
+                _cueHoldUntil = -1f;
+            }
+
+            _cueShownAmount = Mathf.MoveTowards(_cueShownAmount, _cueShown ? 1f : 0f,
+                Time.deltaTime * 6f);
+
+            // Рядом с занятым баблом кьюшка отходит влево, чтобы не накрывать
+            // реплику; одна — встаёт по центру над головой.
+            _cue.localPosition = new Vector3(_shown ? CueSideOffset : 0f, 0f, -0.03f);
+            ApplyCueShownAmount();
+
+            if (!_cueShown && _cueShownAmount <= 0.001f)
+            {
                 _cue.gameObject.SetActive(false);
             }
-            else
-            {
-                var rise = HeightOffset + 0.02f +
-                           _cueTimer * (PopRiseSpeed * 0.55f) / Mathf.Max(0.01f, transform.lossyScale.y);
-                _cue.localPosition = new Vector3(-0.18f, rise, -0.03f);
-                var punch = 1f + Mathf.Clamp01(1f - t * 4f) * 0.35f;
-                _cue.localScale = Vector3.one * (_cueBaseScale * punch);
-                if (_cueRenderer != null)
-                {
-                    var c = _cueColor;
-                    c.a = 1f - Mathf.SmoothStep(0.45f, 1f, t);
-                    _cueRenderer.color = c;
-                }
-            }
+        }
+    }
+
+    private void ApplyCueShownAmount()
+    {
+        var s = Mathf.SmoothStep(0f, 1f, _cueShownAmount);
+        if (_cueBubble != null)
+        {
+            _cueBubble.enabled = s > 0.01f && _cueBubble.sprite != null;
+            _cueBubble.transform.localScale = Vector3.one * (_cueBubbleBaseScale * s);
+        }
+
+        if (_cueContent != null)
+        {
+            _cueContent.enabled = s > 0.01f && _cueContent.sprite != null;
+            _cueContent.color = _cueContentColor;
+            _cueContent.transform.localScale = Vector3.one * (_cueContentBaseScale * s);
+            _cueContent.transform.localPosition = new Vector3(
+                _cueContentLocalPosition.x * s,
+                _cueContentLocalPosition.y * s,
+                _cueContentLocalPosition.z);
         }
     }
 
@@ -319,22 +378,31 @@ public sealed class NpcSpeechBubble : MonoBehaviour
     private float _bubbleBaseScale = 1f;
     private float _emojiBaseScale = 1f;
     private float _popBaseScale = 1f;
-    private float _cueBaseScale = 1f;
+    private float _cueBubbleBaseScale = 1f;
+    private float _cueContentBaseScale = 1f;
     private Vector3 _emojiLocalPosition = new(0f, 0.24f, -0.01f);
+    private Vector3 _cueContentLocalPosition = new(0f, 0.18f, -0.01f);
 
     private Vector3 BubbleBodyCenterLocal()
     {
-        var sprite = _bubble != null ? _bubble.sprite : null;
+        return BodyCenterLocal(_bubble != null ? _bubble.sprite : null, _bubbleBaseScale,
+            _emojiLocalPosition);
+    }
+
+    // Центр белого овала в спрайте бабла: хвост и обводка делают геометрический
+    // центр картинки неверным местом для эмодзи. Общий для обоих баблов.
+    private static Vector3 BodyCenterLocal(Sprite sprite, float baseScale, Vector3 fallback)
+    {
         if (sprite == null || sprite.rect.width <= 0f || sprite.rect.height <= 0f ||
             sprite.pixelsPerUnit <= 0.0001f)
         {
-            return _emojiLocalPosition;
+            return fallback;
         }
 
         var centerPx = new Vector2(
             BubbleBodyCenterFrac.x * sprite.rect.width,
             BubbleBodyCenterFrac.y * sprite.rect.height);
-        var local = (centerPx - sprite.pivot) / sprite.pixelsPerUnit * _bubbleBaseScale;
+        var local = (centerPx - sprite.pivot) / sprite.pixelsPerUnit * baseScale;
         return new Vector3(local.x, local.y, -0.01f);
     }
 
@@ -358,58 +426,12 @@ public sealed class NpcSpeechBubble : MonoBehaviour
         {
             _popBaseScale = k;
         }
-        else if (sr == _cueRenderer)
+        else if (sr == _cueContent)
         {
-            _cueBaseScale = k;
+            _cueContentBaseScale = k;
         }
 
         sr.transform.localScale = Vector3.one * k;
-    }
-
-    private static string SocialCueSprite(string cueKind)
-    {
-        return cueKind switch
-        {
-            "HelpCry" or "HelpCryAssistStarted" or "HelpCryAssistArrived" or "HelpCryDefended" => "Dogs",
-            "HelpCryIgnored" => "Grumble",
-            "HelpCryAnswer" or "HelpCryAnswered" => "Home",
-            "TalkRejected" or "TalkRefused" or "TalkQuarrel" or "Resentment" => "Grumble",
-            "AidRequest" or "AidIncoming" or "AidStarted" or "AidCompleted" => "Food",
-            "WitnessedMurder" => "Sharks",
-            // §62: spotted a predator from afar — the yellow warning triangle.
-            // §80: чужак-человек получил свой вид кьюшки, потому что над ним
-            // всплывает ЛИЦО, а у зверя лица в кэше нет. Треугольник остаётся
-            // запасным вариантом для обоих, пока снимок не сделан.
-            "DangerSpotted" or "DangerStranger" => "Warning",
-            "TalkSuccess" => "Joke",
-            // §81: сцена абьюза. Новых картинок не понадобилось — Gift и
-            // Grief лежали в папке и не были заняты ни одной кьюшкой, а Gift
-            // на такте «отдаёт под нажимом» читается ровно так, как надо.
-            "AbuseDemand" or "AbuseStruck" => "Attack",
-            "AbuseThreatened" => "Warning",
-            "AbuseCry" => "Grief",
-            "AbuseHurt" => "Blood",
-            "AbuseSubmit" or "AbuseGaveUp" or "AbuseTook" => "Gift",
-            "AbuseDefied" or "AbuseRefused" => "Grumble",
-            "AbuseFled" => "Flee",
-            _ => "SmallTalk"
-        };
-    }
-
-    private static Color SocialCueColor(string cueKind)
-    {
-        return cueKind switch
-        {
-            "TalkRejected" or "TalkRefused" or "TalkQuarrel" or "Resentment" or "WitnessedMurder" or
-                "HelpCry" or "HelpCryAssistStarted" or "HelpCryAssistArrived" or "HelpCryDefended" or
-                "HelpCryIgnored" or
-                "AbuseDemand" or "AbuseThreatened" or "AbuseCry" or "AbuseStruck" or
-                "AbuseHurt" or "AbuseSubmit" or "AbuseGaveUp" or "AbuseTook" or
-                "AbuseDefied" or "AbuseRefused" or "AbuseFled" => NegColor,
-            "AidRequest" or "AidIncoming" or "AidStarted" or "AidCompleted" or "TalkSuccess" or
-                "HelpCryAnswer" or "HelpCryAnswered" => PosColor,
-            _ => Color.white
-        };
     }
 
     private Sprite ResolveBubble()
@@ -419,6 +441,16 @@ public sealed class NpcSpeechBubble : MonoBehaviour
         // Scale the (variable-size) bubble to a fixed on-screen height.
         _bubbleBaseScale = s != null && s.bounds.size.y > 0.0001f
             ? BubbleUnitsTall / s.bounds.size.y
+            : 1f;
+        return s;
+    }
+
+    private Sprite ResolveCueBubble()
+    {
+        var s = ResolveSprite("speech_bubble", "HexLive/UI/speech_bubble",
+            new Vector2(0.5f, 0.16f), 820f, false);
+        _cueBubbleBaseScale = s != null && s.bounds.size.y > 0.0001f
+            ? CueBubbleUnitsTall / s.bounds.size.y
             : 1f;
         return s;
     }

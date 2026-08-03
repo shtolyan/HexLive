@@ -105,6 +105,7 @@ public static class SpeechCatalog
         ["cry_bury"] = new("Bury", Rank.Action, 20f),
         ["angry_defend"] = new("Attack", Rank.Alarm, 10f),
         ["fear_dark_alone"] = new("Warning", Rank.Ambient, 120f),
+        ["fear_stranger"] = new("Warning", Rank.Alarm, 15f),
 
         // ---- D. conversation (one per TalkTopic) -------------------------
         ["happy_topic_smalltalk"] = new("SmallTalk", Rank.Talk, 0f),
@@ -196,36 +197,129 @@ public static class SpeechCatalog
         };
     }
 
-    // One-shot social cue (WorldSnapshot.SocialCueKind). Null = this cue has no
-    // utterance of its own (the "+/-" pop already speaks for it).
-    public static string ForCue(string cueKind)
+    // ---- one-shot social cue (WorldSnapshot.SocialCueKind) ---------------
+
+    public enum CueTone
     {
-        return cueKind switch
+        Neutral,   // white
+        Positive,  // green
+        Negative   // red
+    }
+
+    public readonly struct CueVisual
+    {
+        public readonly string PopIcon;   // Resources/HexLive/UI/Emoji/<PopIcon>.png
+        public readonly string SpeechId;  // null = this cue has no utterance of its own
+        public readonly CueTone Tone;
+
+        public CueVisual(string popIcon, string speechId, CueTone tone)
         {
-            "HelpCry" => "call_help",
-            "HelpCryAssistStarted" or "HelpCryAssistArrived" or "HelpCryDefended" => "angry_defend",
-            "DangerSpotted" => "fear_wolf",
-            // §80: чужак-человек. Своей группы реплик пока нет — ставим
-            // «страх зверя»: молчать в момент, когда над головой всплыло его
-            // лицо, было бы хуже, чем сказать не совсем то. Заведём
-            // fear_stranger — заменится одной строкой.
-            "DangerStranger" => "fear_wolf",
-            "AidRequest" => "sad_aid_ask",
-            "AidIncoming" or "AidStarted" => "happy_aid_give",
-            "AidCompleted" => "happy_aid_thanks",
-            "WitnessedMurder" => "cry_corpse",
-            // §81: сцена абьюза. Своих групп на хекскуфе пока нет — берём
-            // ближайшие существующие, чтобы сцена не шла в полной тишине;
-            // заменится на angry_extort_* / cry_extort_* одной строкой.
-            "AbuseDemand" => "angry_attack",
-            "AbuseStruck" => "angry_attack",
-            "AbuseCry" or "AbuseGaveUp" => "cry_corpse",
-            "AbuseDefied" => "angry_defend",
-            "AbuseThreatened" or "AbuseHurt" or "AbuseSubmit" or "AbuseRefused"
-                or "AbuseTook" or "AbuseFled" => null,
-            "TalkRejected" or "TalkRefused" or "TalkQuarrel" or "Resentment" => null,
-            _ => null
-        };
+            PopIcon = popIcon;
+            SpeechId = speechId;
+            Tone = tone;
+        }
+    }
+
+    // Кьюшка рисуется ДВАЖДЫ — картинкой над головой и репликой в бабле, — и
+    // раньше это были два рукописных switch'а в разных файлах. Они разошлись:
+    // на любой крик о помощи всплывала СОБАКА, хотя резать могла и рука
+    // человека. Одна таблица — расходиться больше негде.
+    //
+    // Ключ — вид кьюшки из симуляции, при необходимости с суффиксом «кто»:
+    // "HelpCry:dog" / "HelpCry:npc" / "DangerSpotted:<mobId>". Голый вид без
+    // суффикса остаётся рабочим ключом (старые снапшоты, реплеи).
+    private static readonly Dictionary<string, CueVisual> Cues = new()
+    {
+        // ---- крик о помощи: картинка зависит от того, КТО напал ----------
+        ["HelpCry:dog"] = new("Dogs", "call_help", CueTone.Negative),
+        ["HelpCry:npc"] = new("Attack", "call_help", CueTone.Negative),
+        ["HelpCry"] = new("Dogs", "call_help", CueTone.Negative),
+
+        ["HelpCryAssistStarted:dog"] = new("Dogs", "angry_defend", CueTone.Negative),
+        ["HelpCryAssistArrived:dog"] = new("Dogs", "angry_defend", CueTone.Negative),
+        ["HelpCryDefended:dog"] = new("Dogs", "angry_defend", CueTone.Negative),
+        ["HelpCryAssistStarted:npc"] = new("Attack", "angry_defend", CueTone.Negative),
+        ["HelpCryAssistArrived:npc"] = new("Attack", "angry_defend", CueTone.Negative),
+        ["HelpCryDefended:npc"] = new("Attack", "angry_defend", CueTone.Negative),
+        ["HelpCryAssistStarted"] = new("Dogs", "angry_defend", CueTone.Negative),
+        ["HelpCryAssistArrived"] = new("Dogs", "angry_defend", CueTone.Negative),
+        ["HelpCryDefended"] = new("Dogs", "angry_defend", CueTone.Negative),
+
+        ["HelpCryIgnored"] = new("Grumble", null, CueTone.Negative),
+        ["HelpCryAnswer"] = new("Home", null, CueTone.Positive),
+        ["HelpCryAnswered"] = new("Home", null, CueTone.Positive),
+
+        // ---- угроза замечена издалека (§62/§72) --------------------------
+        // Над головой — жёлтый треугольник: это ещё не бой, это «вижу».
+        // Реплика уже про конкретного: зверь, акула или человек.
+        ["DangerSpotted:dog"] = new("Warning", "fear_wolf", CueTone.Neutral),
+        ["DangerSpotted:shark"] = new("Warning", "fear_shark", CueTone.Neutral),
+        ["DangerSpotted:*"] = new("Warning", "fear_flee", CueTone.Neutral),
+        ["DangerSpotted"] = new("Warning", "fear_wolf", CueTone.Neutral),
+        // §80: чужак-человек. Над ним всплывает ЛИЦО (портрет перекрывает
+        // иконку), а кричит она про чужака, а не про зверюгу.
+        ["DangerStranger"] = new("Warning", "fear_stranger", CueTone.Neutral),
+
+        // ---- взаимопомощь (§53) ------------------------------------------
+        ["AidRequest"] = new("Food", "sad_aid_ask", CueTone.Positive),
+        ["AidIncoming"] = new("Food", "happy_aid_give", CueTone.Positive),
+        ["AidStarted"] = new("Food", "happy_aid_give", CueTone.Positive),
+        ["AidCompleted"] = new("Food", "happy_aid_thanks", CueTone.Positive),
+
+        // ---- разговор ------------------------------------------------------
+        ["TalkSuccess"] = new("Joke", null, CueTone.Positive),
+        ["TalkRejected"] = new("Grumble", null, CueTone.Negative),
+        ["TalkRefused"] = new("Grumble", null, CueTone.Negative),
+        ["TalkQuarrel"] = new("Grumble", null, CueTone.Negative),
+        ["Resentment"] = new("Grumble", null, CueTone.Negative),
+
+        // Увидела убийство. Раньше здесь всплывала АКУЛА 🦈 — та же болезнь, что
+        // собака на человека: картинка из соседней строки таблицы.
+        ["WitnessedMurder"] = new("Death", "cry_corpse", CueTone.Negative),
+
+        // ---- §81: сцена абьюза. Своих групп на хекскуфе пока нет — берём
+        // ближайшие существующие, чтобы сцена не шла в полной тишине;
+        // заменится на angry_extort_* / cry_extort_* одной строкой.
+        ["AbuseDemand"] = new("Attack", "angry_attack", CueTone.Negative),
+        ["AbuseStruck"] = new("Attack", "angry_attack", CueTone.Negative),
+        ["AbuseThreatened"] = new("Warning", null, CueTone.Negative),
+        ["AbuseCry"] = new("Grief", "cry_corpse", CueTone.Negative),
+        ["AbuseGaveUp"] = new("Gift", "cry_corpse", CueTone.Negative),
+        ["AbuseHurt"] = new("Blood", null, CueTone.Negative),
+        ["AbuseSubmit"] = new("Gift", null, CueTone.Negative),
+        ["AbuseTook"] = new("Gift", null, CueTone.Negative),
+        ["AbuseDefied"] = new("Grumble", "angry_defend", CueTone.Negative),
+        ["AbuseRefused"] = new("Grumble", null, CueTone.Negative),
+        ["AbuseFled"] = new("Flee", null, CueTone.Negative)
+    };
+
+    // Never fails: an unknown cue still draws (fallback icon, no utterance).
+    // A suffixed kind falls back to "<base>:*" and then to the bare base, so a
+    // new mob id shows a sane bubble the day it is added to the sim.
+    public static CueVisual ForCue(string cueKind)
+    {
+        if (string.IsNullOrEmpty(cueKind))
+        {
+            return new CueVisual(FallbackIcon, null, CueTone.Neutral);
+        }
+
+        if (Cues.TryGetValue(cueKind, out var visual))
+        {
+            return visual;
+        }
+
+        var cut = cueKind.IndexOf(':');
+        if (cut > 0)
+        {
+            var baseKind = cueKind[..cut];
+            if (Cues.TryGetValue(baseKind + ":*", out visual) ||
+                Cues.TryGetValue(baseKind, out visual))
+            {
+                return visual;
+            }
+        }
+
+        return new CueVisual(FallbackIcon, null, CueTone.Neutral);
     }
 
     // The verb she is performing right now (WorldSnapshot.CurrentInteraction) →

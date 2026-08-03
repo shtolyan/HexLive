@@ -272,6 +272,22 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return false;
     }
 
+    // §80: на время съёмки портрета отдать взгляд камере. Возвращает false,
+    // если тела нет или оно не в состоянии позировать (ragdoll, кома).
+    public bool TryBeginPortraitGaze(int npcId, Vector3 eyeWorldPos)
+    {
+        return _actorViews.TryGetValue(npcId, out var actorView) && actorView != null &&
+               actorView.BeginPortraitGaze(eyeWorldPos);
+    }
+
+    public void EndPortraitGaze(int npcId)
+    {
+        if (_actorViews.TryGetValue(npcId, out var actorView) && actorView != null)
+        {
+            actorView.EndPortraitGaze();
+        }
+    }
+
     private void Update()
     {
         // While offline ticks wind forward, stay dark: winding is pure headless
@@ -1011,7 +1027,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         UpdateGrassFlattening(snapshot);
 
-        // §80: раз в игровой час снять одно самое несвежее лицо. В снапшоте
+        // §80/§107.4: фотосессия раз в игровые сутки, днём. В снапшоте
         // лежат только живые (мёртвых убирает MobSystem.RemoveDeadNpc), а их
         // снимки остаются в кэше — лицо погибшей во вкладке отношений должно
         // жить дальше, тела-то уже нет.
@@ -1024,7 +1040,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
 
             _portraitCache.Sweep(
-                snapshot.Tick, HexLive.Simulation.Runtime.WorldBalance.DayLengthTicks, _portraitIds);
+                snapshot.Tick, HexLive.Simulation.Runtime.WorldBalance.DayLengthTicks,
+                snapshot.TimeOfDayNormalized, _portraitIds);
         }
 
         SyncAnimalViews(snapshot);
@@ -1283,7 +1300,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     peerFace = _portraitCache.SpriteFor(peerId);
                     if (peerFace == null)
                     {
-                        // Первый игровой час: снимка ещё нет. Показываем эмодзи,
+                        // Снимка ещё нет (первая встреча). Показываем эмодзи,
                         // а лицо просим снять вне очереди — ко второму испугу
                         // оно будет.
                         _portraitCache.RequestNow(peerId);

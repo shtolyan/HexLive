@@ -171,6 +171,9 @@ namespace HexLive.UnityPresentation.UI
         private static readonly Color Stroke = new(1f, 1f, 1f, 0.10f);
         private static readonly Color StrokeStrong = new(1f, 1f, 1f, 0.13f);
         private static readonly Color Track = new(0.051f, 0.067f, 0.078f);
+        // §80: подложка под прозрачные снимки лиц (тот же тон, что был залит
+        // в саму текстуру, пока фон был непрозрачным).
+        private static readonly Color PortraitBackdrop = new(0.10f, 0.12f, 0.14f);
         private static readonly Color Gold = new(0.941f, 0.706f, 0.361f);
         private static readonly Color GoldDim = new(0.541f, 0.416f, 0.204f);
 
@@ -2317,7 +2320,8 @@ namespace HexLive.UnityPresentation.UI
                 var byAffinity = Mathf.Abs(b.Affinity).CompareTo(Mathf.Abs(a.Affinity));
                 return byAffinity != 0
                     ? byAffinity
-                    : string.Compare(a.OtherName, b.OtherName, StringComparison.OrdinalIgnoreCase);
+                    : string.Compare(Loc.NpcName(a.OtherName), Loc.NpcName(b.OtherName),
+                        StringComparison.CurrentCultureIgnoreCase);
             });
 
             var selected = relations.Find(r => r.OtherId == _selectedRelationId);
@@ -2411,7 +2415,7 @@ namespace HexLive.UnityPresentation.UI
             avatar.style.alignItems = Align.Center;
             avatar.style.justifyContent = Justify.Center;
 
-            var initial = new Label(InitialOf(rel.OtherName));
+            var initial = new Label(InitialOf(Loc.NpcName(rel.OtherName)));
             initial.style.color = new Color(0.06f, 0.086f, 0.102f);
             initial.style.unityFontStyleAndWeight = FontStyle.Bold;
             initial.style.fontSize = 13;
@@ -2420,7 +2424,7 @@ namespace HexLive.UnityPresentation.UI
             ApplyRelationFace(avatar, rel.OtherId, initial);
             tab.Add(avatar);
 
-            var name = new Label(rel.OtherName);
+            var name = new Label(Loc.NpcName(rel.OtherName));
             name.style.color = selected ? Text : TextDim;
             name.style.fontSize = selected ? 13 : 12;
             name.style.unityFontStyleAndWeight = selected ? FontStyle.Bold : FontStyle.Normal;
@@ -2488,7 +2492,7 @@ namespace HexLive.UnityPresentation.UI
             portrait.style.alignItems = Align.Center;
             portrait.style.justifyContent = Justify.Center;
 
-            var initial = new Label(InitialOf(rel.OtherName));
+            var initial = new Label(InitialOf(Loc.NpcName(rel.OtherName)));
             initial.style.color = new Color(0.06f, 0.086f, 0.102f);
             initial.style.unityFontStyleAndWeight = FontStyle.Bold;
             initial.style.fontSize = 30;
@@ -2533,7 +2537,7 @@ namespace HexLive.UnityPresentation.UI
             title.style.flexGrow = 1f;
             title.style.minWidth = 0f;
 
-            var name = new Label(rel.OtherName);
+            var name = new Label(Loc.NpcName(rel.OtherName));
             name.style.color = Text;
             name.style.fontSize = 21;
             name.style.unityFontStyleAndWeight = FontStyle.Bold;
@@ -2731,7 +2735,7 @@ namespace HexLive.UnityPresentation.UI
             av.style.backgroundColor = AvatarColor(rel.OtherId);
             av.style.alignItems = Align.Center;
             av.style.justifyContent = Justify.Center;
-            var initial = new Label(InitialOf(rel.OtherName));
+            var initial = new Label(InitialOf(Loc.NpcName(rel.OtherName)));
             initial.style.color = new Color(0.06f, 0.086f, 0.102f);
             initial.style.unityFontStyleAndWeight = FontStyle.Bold;
             initial.style.fontSize = 13;
@@ -2743,7 +2747,7 @@ namespace HexLive.UnityPresentation.UI
             mid.style.flexGrow = 1f;
             mid.style.flexShrink = 1f;
             mid.style.marginLeft = 9f;
-            var rn = new Label(rel.OtherName);
+            var rn = new Label(Loc.NpcName(rel.OtherName));
             rn.style.color = Text;
             rn.style.fontSize = 14;
             rn.style.unityFontStyleAndWeight = FontStyle.Bold;
@@ -3860,8 +3864,8 @@ namespace HexLive.UnityPresentation.UI
         }
 
         // §80: лицо вместо кружка с буквой. Кружок остаётся фолбэком, и это не
-        // временная мера: снимок появляется только через игровой час после
-        // первой встречи, а до тех пор буква — единственное, что вообще есть.
+        // временная мера: снимок появляется не раньше ближайшей дневной
+        // фотосессии, а до тех пор буква — единственное, что вообще есть.
         // Мёртвые лица тоже показываются: кэш переживает тело.
         private void ApplyRelationFace(VisualElement avatar, int otherId, Label initial)
         {
@@ -3871,9 +3875,10 @@ namespace HexLive.UnityPresentation.UI
             }
 
             avatar.style.backgroundImage = new StyleBackground(face);
-            // Цвет фона под непрозрачным снимком только пробивался бы по краям
-            // скруглённого кружка, а буква поверх лица нечитаема.
-            avatar.style.backgroundColor = Color.clear;
+            // §80: снимок теперь ПРОЗРАЧНЫЙ (вырезка без фона), поэтому под ним
+            // нужна подложка — иначе лицо висит в дырке. Буква прячется: поверх
+            // лица она нечитаема.
+            avatar.style.backgroundColor = PortraitBackdrop;
             initial.style.display = DisplayStyle.None;
         }
 

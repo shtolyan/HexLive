@@ -37,6 +37,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private float _gazeWeight;
     private float _gazeWeightTarget;
     private Transform _gazeProxy;
+    private bool _portraitGaze; // §80: взгляд отдан камере портрета
     private Transform _bodyRoot;
 
     // Spec 31B.5: animation follows measured view motion, not sim status —
@@ -4566,13 +4567,57 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // Gaze: talkers look at each other, walkers glance down the path.
     public void LookAt(Transform target)
     {
+        if (_portraitGaze)
+        {
+            return;
+        }
+
         _gazeTarget = target;
         _gazeWeightTarget = target != null ? 1f : 0f;
     }
 
     public void ClearGaze()
     {
+        // §80: пока идёт съёмка портрета, взгляд принадлежит камере — обычный
+        // выбор цели (собеседник, объект работы, точка пути) её не перебивает.
+        if (_portraitGaze)
+        {
+            return;
+        }
+
         _gazeWeightTarget = 0f;
+    }
+
+    // §80: смотреть В КАМЕРУ на время съёмки портрета. Раньше снимок ловил её
+    // с глазами, уведёнными на мировую цель (eyesWeight 0.2 и жёсткий клэмп),
+    // и на фото она смотрела мимо. Голову ведём слабо НАМЕРЕННО: камера едет по
+    // осям кости головы, и сильный поворот гнался бы сам за собой.
+    public bool BeginPortraitGaze(Vector3 eyeWorldPos)
+    {
+        if (_gazeProxy == null || _lookAtIK == null || !_lookAtIK.enabled)
+        {
+            return false;
+        }
+
+        _portraitGaze = true;
+        _gazeProxy.position = eyeWorldPos;
+        _gazeTarget = _gazeProxy;
+        _gazeWeightTarget = 1f;
+        _gazeWeight = 1f; // без разгона: съёмка длится несколько кадров
+        _face?.SetEyesHold(true);
+        return true;
+    }
+
+    public void EndPortraitGaze()
+    {
+        if (!_portraitGaze)
+        {
+            return;
+        }
+
+        _portraitGaze = false;
+        _gazeWeightTarget = 0f;
+        _face?.SetEyesHold(false);
     }
 
     private void ResetActionTargetIKWeights()
@@ -5106,6 +5151,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         if (_gazeTarget != null)
         {
             _lookAtIK.solver.target = _gazeTarget;
+            if (_portraitGaze)
+            {
+                // §80: на фото решают ГЛАЗА. Голову ведём чуть-чуть (камера
+                // висит на её же осях), тело не двигаем совсем, клэмп глаз
+                // отпускаем — иначе взгляд снова уходит мимо объектива.
+                _lookAtIK.solver.headWeight = 0.35f;
+                _lookAtIK.solver.eyesWeight = 1f;
+                _lookAtIK.solver.bodyWeight = 0f;
+                _lookAtIK.solver.clampWeight = 0.5f;
+                _lookAtIK.solver.clampWeightEyes = 0.2f;
+                return;
+            }
+
             _lookAtIK.solver.headWeight = 0.8f;
             _lookAtIK.solver.eyesWeight = 0.2f;
             _lookAtIK.solver.bodyWeight = 0.3f;

@@ -101,6 +101,7 @@
 | `soi` | её, его |
 | `nuo` | наш |
 | `janeiko` | милая, подруга (обращение) |
+| `bezheksa` | чужак (Г3 `bez-` + `heksa` «свой круг»): человек не из наших |
 | `pisko` | тело, кожа |
 | `kopa` | голова |
 | `lapa` | рука |
@@ -654,6 +655,13 @@ Tired, Cold`) — значения едут в трейсах/снапшотах
 | `[whispering, scared] Noka... bezfugo... shoop` | Ночь... без огня... страшно |
 | `[whispering] Kuna nip? Hooo?` | Кто там? Эй? |
 | `[scared] Mora gulao... nho...` | Тьма идёт... ох... |
+
+#### C13 · `fear_stranger` · P1 — заметила чужака-человека (§72 `DangerStranger`)
+| Реплика | Русский |
+|---|---|
+| `[frightened] Ooi! Bezheksa! Bezheksa gulao!` | Ой! Чужак! Чужак идёт! |
+| `[whispering] Kuna? Bezheksa...` | Кто это? Чужак... |
+| `[frightened] Shoop! Bezheksa! Zada, zada!` | Страшно! Чужак! Уйди, уйди! |
 
 ### D. Разговор (темы `TalkTopic`)
 

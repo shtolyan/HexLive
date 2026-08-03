@@ -1419,7 +1419,9 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
         if (npc.Mind.CurrentGoal == GoalType.Defend)
         {
-            SocialCueSignals.Stamp(world, npc, "HelpCryAssistArrived", npc.Id);
+            SocialCueSignals.Stamp(world, npc,
+                npc.Mind.CombatAssistDogId.HasValue ? "HelpCryAssistArrived:dog" : "HelpCryAssistArrived:npc",
+                null);
             Trace.Emit(world, npc.Id, "HelpCryAssistArrived",
                 "Reached attacker and joined the fight");
             return;

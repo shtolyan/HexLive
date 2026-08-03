@@ -40,7 +40,10 @@ internal static class CombatHelpSystem
         }
 
         victim.Mind.LastHelpCryTick = world.Tick;
-        SocialCueSignals.Stamp(world, victim, "HelpCry", victim.Id);
+        // Суффикс «:кто напал» — вид рисовал собаку на ЛЮБОЙ крик о помощи, в
+        // том числе когда резал человек. Пир — АТАКУЮЩИЙ, а не сама жертва:
+        // прежний victim.Id всплывал её же лицом над её же головой.
+        SocialCueSignals.Stamp(world, victim, dogId.HasValue ? "HelpCry:dog" : "HelpCry:npc", attackerId);
         Trace.Emit(world, victim.Id, "HelpCry",
             $"{attackerLabel} Radius={Spec57.HelpCryRadiusTiles} " +
             $"Health={victim.Health:F2} Attackers={attackers}");

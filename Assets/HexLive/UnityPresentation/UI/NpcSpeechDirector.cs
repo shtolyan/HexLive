@@ -123,7 +123,7 @@ public sealed class NpcSpeechDirector
     /// <summary>A one-shot social cue from the sim (help cry, danger, aid…).</summary>
     public void OnCue(string cueKind)
     {
-        Say(SpeechCatalog.ForCue(cueKind));
+        Say(SpeechCatalog.ForCue(cueKind).SpeechId);
     }
 
     /// <summary>The verb she is performing, pushed every snapshot; only the

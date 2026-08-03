@@ -19,7 +19,9 @@ namespace HexLive.UnityPresentation.UI
         private const float FaceDistanceMeters = 0.72f;
         private const float EyeLiftMeters = 0.03f;
 
-        private static readonly Color Backdrop = new(0.10f, 0.12f, 0.14f, 1f);
+        // §80: фон прозрачный — панель под портретом рисует свою подложку сама,
+        // а вырезка ложится на неё без серой плашки по краю кружка.
+        private static readonly Color Backdrop = new(0.10f, 0.12f, 0.14f, 0f);
 
         private RenderTexture _texture;
         private Camera _camera;

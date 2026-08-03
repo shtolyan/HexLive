@@ -154,10 +154,46 @@ first. Two more traps found the hard way while chasing it:
   at timeline 0 with no errors, which looks exactly like a broken bank. Verify
   suspicions in a FRESH play session, or against the standalone bank probe.
 
-Scripts (`FMODStudio/Scripts/`): `populate_events.js` rebuilds the sfx/ambience
-events (scans `Sfx` **flat**), `sync_voices.js` rebuilds the voice events (scans
-`Sfx/Voices/<char>/` **recursively**, purges stale `voice_*` events + assets
-first). Run them headless — and note the gotcha:
+### ⭐ A NEW VOICE LINE NEEDS NO FMOD WORK AT ALL
+
+**Do not touch FMOD Studio when adding hexkufa lines.** Voices never play
+through Studio events: `FmodSfx.EventPathFor` hard-forces the event path off for
+every id starting with `voice_` (the §67.7 lipsync needs the concrete file and
+playback position, which an event hides) and reads the WAV straight off disk via
+the Core API, discovering it by scanning `Sfx/Voices/**` at load. So the whole
+flow is:
+
+```bash
+# 1. add the group to HEXKUFA_LANGUAGE.md §7 (and any new word to §3)
+python3 _ArtSource/Voice/extract_lines.py               # doc -> hexkufa_lines.json
+python3 _ArtSource/Voice/generate_voices.py --groups <id>   # -> 5 voices x 3 wavs
+```
+
+That is the whole job — the line is audible on the next Play. `--dry-run` plans
+without spending API calls; `STILL CAPPED` in the output means the take hit the
+4.2 s cap and was **cut mid-word** — shorten the line in the doc and re-run with
+`--force`, do not ship it.
+
+### The Studio scripts are a rebuild, not a sync — reach for them rarely
+
+`FMODStudio/Scripts/`: `populate_events.js` rebuilds sfx/ambience events (scans
+`Sfx` **flat**), `sync_voices.js` tops up the voice events (scans
+`Sfx/Voices/<char>/` **recursively**). Three traps, all paid for the hard way:
+
+- **`populate_events.js` deletes events it did not make.** Run order is always
+  `populate_events` → `sync_voices`, never the reverse.
+- **`sync_voices.js` used to purge all 252 voice events and 756 assets on every
+  run** — minutes of work and ~1000 rewritten files in git for nothing. It is
+  incremental now (existing events are kept); full rebuild lives behind the
+  `PURGE_ALL` constant at the top of the script and is only for a schema change
+  (spatialiser, distances, playlist shape).
+- **Paths come from the OPENED PROJECT, never hardcoded.** `sync_voices.js`
+  used to point at `/Volumes/ORICO/HexLive` literally, so running it from a git
+  worktree silently rebuilt the bank from ANOTHER checkout's files: freshly
+  generated lines were missing and the fifth voice (`kshishtof`) had no events
+  at all. It now derives the repo root from `studio.project.filePath`.
+
+Run them headless — and note the gotcha:
 
 ```bash
 script -q /dev/null "/Applications/FMOD Studio.app/Contents/MacOS/fmodstudiocl" \
@@ -167,9 +203,12 @@ script -q /dev/null "/Applications/FMOD Studio.app/Contents/MacOS/fmodstudiocl" 
 ```
 
 `fmodstudiocl` **must** run under a pseudo-tty (`script -q /dev/null …`) —
-without one it dies with the cryptic «The files a, tty do not exist».
-A first build may print transient `FSBank error (7)` lines: delete
-`Build/Desktop/*.bank` and rebuild — a clean build must end with 0 errors.
+without one it dies with the cryptic «The files a, tty do not exist». It also
+writes its own log (`FMODStudio/Scripts/sync_voices.log`) **under the root it
+resolved**, so if a run seems to have done nothing, check whose log you are
+reading before re-running. A first build may print transient `FSBank error (7)`
+lines: delete `Build/Desktop/*.bank` and rebuild — a clean build must end with
+0 errors.
 
 ## Blender through MCP — it must be RUNNING, with a GUI
 

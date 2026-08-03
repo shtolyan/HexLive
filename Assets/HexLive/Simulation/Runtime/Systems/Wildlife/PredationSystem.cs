@@ -365,7 +365,7 @@ public sealed class PredationSystem : ISimulationSystem
                 Trace.Emit(world, defender.Id, "HelpCryDefended",
                     $"Victim=NPC{victim.Id.Value} Attacker=NPC{attacker.Id.Value} engaged " +
                     $"AttackerHealth={attacker.Health:F2}");
-                SocialCueSignals.Stamp(world, defender, "HelpCryDefended", victim.Id);
+                SocialCueSignals.Stamp(world, defender, "HelpCryDefended:npc", victim.Id);
                 continue;
             }
 
@@ -395,7 +395,7 @@ public sealed class PredationSystem : ISimulationSystem
                 $"Weapon={(string.IsNullOrEmpty(weaponId) ? "fists" : weaponId)}" +
                 $"{(strikeReady ? string.Empty : " recovering")} Speed={attackSpeed:F1} " +
                 $"AttackerHealth={attacker.Health:F2}");
-            SocialCueSignals.Stamp(world, defender, "HelpCryDefended", victim.Id);
+            SocialCueSignals.Stamp(world, defender, "HelpCryDefended:npc", victim.Id);
 
             if (attacker.Health <= 0f)
             {

@@ -39,9 +39,13 @@ public sealed class BodyBones : MonoBehaviour
         _bonesMap.Clear();
         _wears.Clear();
         _wearKeys.Clear();
-        _byLayer[VisualWearLayer.Underwear] = new Dictionary<VisualWearSlot, Wear>();
-        _byLayer[VisualWearLayer.Wear] = new Dictionary<VisualWearSlot, Wear>();
-        _byLayer[VisualWearLayer.Outerwear] = new Dictionary<VisualWearSlot, Wear>();
+        // По одному словарю на слой, перечислением — иначе новый слой пришлось
+        // бы вспомнить дописать сюда, а забытый обрушил бы Equip на первой же
+        // сумке (`_byLayer[layer]` без ключа — это исключение, а не пустота).
+        foreach (VisualWearLayer layer in System.Enum.GetValues(typeof(VisualWearLayer)))
+        {
+            _byLayer[layer] = new Dictionary<VisualWearSlot, Wear>();
+        }
 
         UpdateGenitals();
         RefreshHeel();

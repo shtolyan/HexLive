@@ -20,176 +20,11 @@
   ],
   "garments": [
     {
-      "sourceKey": "holsterPack",
-      "folder": "RangerLegRig",
-      "name": "RangerLegRig",
-      "simId": "gear.legrig_ranger",
-      "layer": "Outerwear",
-      "slots": [
-        "Pelvis",
-        "ThighR",
-        "ThighL"
-      ],
-      "noHide": [],
-      "materials": [
-        {
-          "source": "Material.001",
-          "texture": "packs-Map.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        },
-        {
-          "source": "Material.003",
-          "texture": "packs-Map.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        },
-        {
-          "source": "Material.002",
-          "texture": "packs-Map.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        }
-      ],
-      "_measured": {
-        "verts": 1727,
-        "polys": 1665,
-        "bbox": [
-          -22.1,
-          -16.5,
-          78.1,
-          95.6,
-          5.7,
-          13.0
-        ],
-        "zones": {
-          "Pelvis": 0.673,
-          "Thigh": 0.327
-        },
-        "heelCm": 0.0
-      },
-      "sim": {
-        "displayName": "Thigh Rig",
-        "nameRu": "Набедренная подвеска",
-        "descEn": "Straps down the hip with a pouch on the thigh. Rides where the hands fall.",
-        "descRu": "Ремни по бедру и подсумок сбоку. Там, куда падают руки.",
-        "warmth": 0.0,
-        "armor": 0.02,
-        "thermalDelta": 0.0,
-        "capacity": 2,
-        "covers": [
-          "Pelvis",
-          "LegL",
-          "LegR"
-        ]
-      },
-      "variants": [
-        {
-          "name": "Default",
-          "from": "Holster Pack",
-          "textures": [
-            {
-              "source": "Material.001",
-              "texture": "packs-Map.jpg"
-            },
-            {
-              "source": "Material.002",
-              "texture": "packs-Map.jpg"
-            },
-            {
-              "source": "Material.003",
-              "texture": "packs-Map.jpg"
-            }
-          ]
-        }
-      ],
-      "sourceKeys": [
-        "holsterPack"
-      ]
-    },
-    {
-      "sourceKey": "vestPack01",
-      "folder": "RangerChestPack",
-      "name": "RangerChestPack",
-      "simId": "gear.chestpack_ranger",
-      "layer": "Outerwear",
-      "slots": [
-        "Chest",
-        "Belly"
-      ],
-      "noHide": [],
-      "materials": [
-        {
-          "source": "Material.002",
-          "texture": "packs-Map.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        },
-        {
-          "source": "Material.003",
-          "texture": "packs-Map.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        },
-        {
-          "source": "Material.001",
-          "texture": "packs-Map.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        }
-      ],
-      "_measured": {
-        "verts": 1722,
-        "polys": 1664,
-        "bbox": [
-          -8.5,
-          -2.8,
-          113.3,
-          127.4,
-          14.0,
-          18.9
-        ],
-        "zones": {
-          "Chest": 0.697,
-          "Belly": 0.303
-        },
-        "heelCm": 0.0
-      },
-      "sim": {
-        "displayName": "Chest Pack",
-        "nameRu": "Нагрудный подсумок",
-        "descEn": "A flat pouch across the chest. Small, and always within reach.",
-        "descRu": "Плоский подсумок поперёк груди. Маленький, и всегда под рукой.",
-        "warmth": 0.0,
-        "armor": 0.01,
-        "thermalDelta": 0.0,
-        "capacity": 2,
-        "covers": [
-          "Torso"
-        ]
-      },
-      "sourceKeys": [
-        "vestPack01"
-      ]
-    },
-    {
       "sourceKey": "RGBackpack_21643",
       "folder": "RiotBackpack",
       "name": "RiotBackpack",
       "simId": "gear.backpack_riot",
-      "layer": "Outerwear",
+      "layer": "Bags",
       "slots": [
         "Chest",
         "Belly"
@@ -323,7 +158,7 @@
       "folder": "RiotBlouseWaist",
       "name": "RiotBlouseWaist",
       "simId": "clothing.blouse_waist_riot",
-      "layer": "Wear",
+      "layer": "Outerwear",
       "slots": [
         "Pelvis",
         "ThighR",
@@ -439,7 +274,7 @@
       "folder": "RiotBlouse",
       "name": "RiotBlouse",
       "simId": "clothing.blouse_riot",
-      "layer": "Wear",
+      "layer": "Outerwear",
       "slots": [
         "Chest",
         "Belly",
@@ -641,31 +476,7 @@
           "LegL",
           "LegR"
         ]
-      },
-      "variants": [
-        {
-          "name": "Clear",
-          "from": "Riot Girl Boots",
-          "textures": [
-            {
-              "source": "M2BaseBoots",
-              "texture": "LNA_RiotM2_Denim_albedo.jpg"
-            },
-            {
-              "source": "M2Laces",
-              "texture": "LNA_RiotM2_Square_albedo.jpg"
-            },
-            {
-              "source": "M2Soles",
-              "texture": "LNA_RiotM2_Square_albedo.jpg"
-            },
-            {
-              "source": "M2Straps",
-              "texture": "LNA_RiotM2_Denim_albedo.jpg"
-            }
-          ]
-        }
-      ]
+      }
     },
     {
       "sourceKey": "RGBra_2979",
@@ -1133,16 +944,6 @@
       },
       "variants": [
         {
-          "name": "BlackCat",
-          "from": "Riot Girl Stockings",
-          "textures": [
-            {
-              "source": "M2BaseStockings",
-              "texture": "LNA_RiotM2_Square_albedo.jpg"
-            }
-          ]
-        },
-        {
           "name": "Clear",
           "from": "Riot Girl Stockings",
           "textures": [
@@ -1271,51 +1072,7 @@
           "LegL",
           "LegR"
         ]
-      },
-      "variants": [
-        {
-          "name": "Default",
-          "from": "Boots",
-          "textures": [
-            {
-              "source": "Material01",
-              "texture": "boots-Map.jpg"
-            },
-            {
-              "source": "Material02",
-              "texture": "boots-Map.jpg"
-            },
-            {
-              "source": "Material03",
-              "texture": "boots-Map.jpg"
-            },
-            {
-              "source": "Material04",
-              "texture": "boots-Map.jpg"
-            },
-            {
-              "source": "Material05",
-              "texture": "boots-Map.jpg"
-            },
-            {
-              "source": "Material06",
-              "texture": "boots-Map.jpg"
-            },
-            {
-              "source": "Material07",
-              "texture": "boots-Map.jpg"
-            },
-            {
-              "source": "Material08",
-              "texture": "boots-Map.jpg"
-            },
-            {
-              "source": "Material09",
-              "texture": "boots-Map.jpg"
-            }
-          ]
-        }
-      ]
+      }
     },
     {
       "sourceKey": "legHolster_2204",
@@ -1477,35 +1234,7 @@
         "covers": [
           "Torso"
         ]
-      },
-      "variants": [
-        {
-          "name": "Green",
-          "from": "Jacket",
-          "textures": [
-            {
-              "source": "Material.001",
-              "texture": "jacket-Map.jpg"
-            },
-            {
-              "source": "Material.002",
-              "texture": "jacket-Map.jpg"
-            },
-            {
-              "source": "Material.003",
-              "texture": "jacket-Map.jpg"
-            },
-            {
-              "source": "Material.004",
-              "texture": "jacket-Map.jpg"
-            },
-            {
-              "source": "MaterialZip",
-              "texture": "jacket-Map.jpg"
-            }
-          ]
-        }
-      ]
+      }
     },
     {
       "sourceKey": "pants_21038",
@@ -1604,46 +1333,14 @@
           "LegL",
           "LegR"
         ]
-      },
-      "variants": [
-        {
-          "name": "Default",
-          "from": "Pants",
-          "textures": [
-            {
-              "source": "Material.001",
-              "texture": "pants-Map.jpg"
-            },
-            {
-              "source": "Material.002",
-              "texture": "pants-Map.jpg"
-            },
-            {
-              "source": "Material.003",
-              "texture": "pants-Map.jpg"
-            },
-            {
-              "source": "Material.004",
-              "texture": "pants-Map.jpg"
-            },
-            {
-              "source": "Material.005",
-              "texture": "pants-Map.jpg"
-            },
-            {
-              "source": "Material.006",
-              "texture": "pants-Map.jpg"
-            }
-          ]
-        }
-      ]
+      }
     },
     {
       "sourceKey": "vest_10702",
       "folder": "RangerVest",
       "name": "RangerVest",
       "simId": "clothing.vest_ranger",
-      "layer": "Wear",
+      "layer": "Outerwear",
       "slots": [
         "Chest",
         "Belly"
@@ -1731,36 +1428,6 @@
         ]
       },
       "variants": [
-        {
-          "name": "Camo",
-          "from": "Vest",
-          "textures": [
-            {
-              "source": "Material.001",
-              "texture": "vest3-Map.jpg"
-            },
-            {
-              "source": "Material.002",
-              "texture": "vest3-Map.jpg"
-            },
-            {
-              "source": "Material.003",
-              "texture": "vest3-Map.jpg"
-            },
-            {
-              "source": "Material.004",
-              "texture": "vest2-Map.jpg"
-            },
-            {
-              "source": "Material.005",
-              "texture": "vest2-Map.jpg"
-            },
-            {
-              "source": "Material.006",
-              "texture": "vest2-Map.jpg"
-            }
-          ]
-        },
         {
           "name": "Green",
           "from": "Vest",

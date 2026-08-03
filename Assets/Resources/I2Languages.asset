@@ -17,6 +17,14 @@ MonoBehaviour:
     UserAgreesToHaveItInsideThePluginsFolder: 0
     GoogleLiveSyncIsUptoDate: 1
     mTerms:
+    - Term: 'wardrobe.layer_bags'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bags'
+      - 'Сумки'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'wardrobe.shows_underwear'
       TermType: 0
       Description: 
@@ -2585,22 +2593,6 @@ MonoBehaviour:
       - 'Носимый предмет.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'item.gear_legrig_ranger_default.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Thigh Rig (Default)'
-      - 'Набедренная подвеска (Default)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.gear_legrig_ranger_default.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Straps down the hip with a pouch on the thigh. Rides where the hands fall.'
-      - 'Ремни по бедру и подсумок сбоку. Там, куда падают руки.'
-      Flags: 0101
-      Languages_Touch: []
     - Term: 'item.gear_backpack_riot_denim.name'
       TermType: 0
       Description: 
@@ -2743,22 +2735,6 @@ MonoBehaviour:
       Languages:
       - 'Long sleeves, buttoned to the throat. Thin, but it covers the arms.'
       - 'Длинные рукава, застёгнута под горло. Тонкая, зато руки закрыты.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_boots_riot_clear.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Laced Work Boots (Clear)'
-      - 'Рабочие ботинки (Clear)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_boots_riot_clear.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Laces, straps and a hard sole. Made for standing all day.'
-      - 'Шнуровка, ремни и жёсткая подошва. Сделаны, чтобы стоять весь день.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'item.underwear_bra_riot_blue.name'
@@ -2953,22 +2929,6 @@ MonoBehaviour:
       - 'Простая, на пуговицах. Надевает не думая.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'item.underwear_stockings_riot_blackcat.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Long Stockings (BlackCat)'
-      - 'Длинные чулки (BlackCat)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.underwear_stockings_riot_blackcat.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Thigh to toe. More warmth than they look like they hold.'
-      - 'От бедра до пальцев. Греют больше, чем кажется.'
-      Flags: 0101
-      Languages_Touch: []
     - Term: 'item.underwear_stockings_riot_clear.name'
       TermType: 0
       Description: 
@@ -2983,70 +2943,6 @@ MonoBehaviour:
       Languages:
       - 'Thigh to toe. More warmth than they look like they hold.'
       - 'От бедра до пальцев. Греют больше, чем кажется.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_boots_ranger_default.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Ranger Boots (Default)'
-      - 'Ботинки рейнджера (Default)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_boots_ranger_default.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Reinforced to mid-calf. The best thing between a wolf and her ankle.'
-      - 'Усилены до середины икры. Лучшее между волком и её лодыжкой.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_jacket_ranger_green.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Ranger Jacket (Green)'
-      - 'Куртка рейнджера (Green)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_jacket_ranger_green.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Zipped to the collar, lined and heavy. The warmest thing she owns.'
-      - 'Застёгнута под горло, на подкладке и тяжёлая. Самое тёплое, что у неё есть.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_pants_ranger_default.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Ranger Trousers (Default)'
-      - 'Штаны рейнджера (Default)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_pants_ranger_default.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Full length, reinforced at the knee. Warm and hard to tear.'
-      - 'В полную длину, усилены на коленях. Тёплые и трудно рвутся.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_vest_ranger_camo.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Padded Vest (Camo)'
-      - 'Стёганый жилет (Camo)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_vest_ranger_camo.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Quilted panels over the chest. Turns a blow that a shirt would not.'
-      - 'Стёганые вставки по груди. Держит удар, который рубаха бы не удержала.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'item.clothing_vest_ranger_green.name'
@@ -3079,38 +2975,6 @@ MonoBehaviour:
       Languages:
       - 'Quilted panels over the chest. Turns a blow that a shirt would not.'
       - 'Стёганые вставки по груди. Держит удар, который рубаха бы не удержала.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.gear_legrig_ranger.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Thigh Rig'
-      - 'Набедренная подвеска'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.gear_legrig_ranger.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Straps down the hip with a pouch on the thigh. Rides where the hands fall.'
-      - 'Ремни по бедру и подсумок сбоку. Там, куда падают руки.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.gear_chestpack_ranger.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Chest Pack'
-      - 'Нагрудный подсумок'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.gear_chestpack_ranger.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'A flat pouch across the chest. Small, and always within reach.'
-      - 'Плоский подсумок поперёк груди. Маленький, и всегда под рукой.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'item.gear_backpack_riot.name'
@@ -3385,38 +3249,6 @@ MonoBehaviour:
       - 'С козырьком и клёпками по канту. Прячет от солнца и дождя.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'item.clothing_hipbelt_anarchy_black.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Hip Straps (Black)'
-      - 'Набедренные ремни (Black)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_hipbelt_anarchy_black.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Straps down the hips. Decoration that happens to hold a pouch.'
-      - 'Ремни по бёдрам. Украшение, которое заодно держит подсумок.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_belt_anarchy_brn.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Studded Belt (Brn)'
-      - 'Ремень с клёпками (Brn)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_belt_anarchy_brn.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Wide, with loops. No warmth — it is there to carry things.'
-      - 'Широкий, с петлями. Не греет — он чтобы носить.'
-      Flags: 0101
-      Languages_Touch: []
     - Term: 'item.clothing_top_anarchy_bra_purple.name'
       TermType: 0
       Description: 
@@ -3442,22 +3274,6 @@ MonoBehaviour:
       Flags: 0101
       Languages_Touch: []
     - Term: 'item.clothing_top_anarchy_bra_red.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'A cropped top with a printed front. Thin, and she likes it.'
-      - 'Укороченный топ с принтом. Тонкий, и ей нравится.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_top_anarchy_bra_redpurp.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Anarchy Top (Bra RedPurp)'
-      - 'Топ «Анархия» (Bra RedPurp)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_top_anarchy_bra_redpurp.desc'
       TermType: 0
       Description: 
       Languages:
@@ -3545,22 +3361,6 @@ MonoBehaviour:
       - 'До локтя, вместе с пальцами. Тепла немного, зато костяшки целы.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'item.clothing_gloves_strap_anarchy_redpurp.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Long Gloves (RedPurp)'
-      - 'Длинные перчатки (RedPurp)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_gloves_strap_anarchy_redpurp.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'To the elbow, fingers and all. Little warmth, but the knuckles stay whole.'
-      - 'До локтя, вместе с пальцами. Тепла немного, зато костяшки целы.'
-      Flags: 0101
-      Languages_Touch: []
     - Term: 'item.clothing_pants_anarchy_black.name'
       TermType: 0
       Description: 
@@ -3609,22 +3409,6 @@ MonoBehaviour:
       - 'Ремни, кольца и клёпки на горле. Говорит больше, чем защищает.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'item.clothing_gloves_long_anarchy_black.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Strap Gloves (Black)'
-      - 'Перчатки с ремешками (Black)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_gloves_long_anarchy_black.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Plated forearm, buckled at the wrist. For grip, not for warmth.'
-      - 'Предплечье в пластинах, на ремешке у запястья. Для хвата, не для тепла.'
-      Flags: 0101
-      Languages_Touch: []
     - Term: 'item.clothing_collar_anarchy_brn.name'
       TermType: 0
       Description: 
@@ -3650,22 +3434,6 @@ MonoBehaviour:
       Flags: 0101
       Languages_Touch: []
     - Term: 'item.underwear_thong_anarchy_purple.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Worn against the skin. She notices when it is gone.'
-      - 'На голое тело. Без него замечает сразу.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.underwear_thong_anarchy_red.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Thong (Red)'
-      - 'Стринги (Red)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.underwear_thong_anarchy_red.desc'
       TermType: 0
       Description: 
       Languages:

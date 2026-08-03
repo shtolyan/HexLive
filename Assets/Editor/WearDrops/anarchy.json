@@ -221,38 +221,6 @@
         },
         "heelCm": 0.0
       },
-      "variants": [
-        {
-          "name": "Black",
-          "from": "CA Belt 2",
-          "textures": [
-            {
-              "source": "belt",
-              "texture": "OABelt_Blk.jpg"
-            },
-            {
-              "source": "eyelets",
-              "texture": "AnarchyBelt.jpg"
-            },
-            {
-              "source": "laces",
-              "texture": "OABelt_Blk.jpg"
-            },
-            {
-              "source": "rings",
-              "texture": "AnarchyBelt.jpg"
-            },
-            {
-              "source": "rivets",
-              "texture": "AnarchyBelt.jpg"
-            },
-            {
-              "source": "tabs",
-              "texture": "OABelt_Blk.jpg"
-            }
-          ]
-        }
-      ],
       "sim": {
         "displayName": "Hip Straps",
         "nameRu": "Набедренные ремни",
@@ -322,26 +290,6 @@
         },
         "heelCm": 0.0
       },
-      "variants": [
-        {
-          "name": "Brn",
-          "from": "CA Belt",
-          "textures": [
-            {
-              "source": "belt",
-              "texture": "TABelt2.jpg"
-            },
-            {
-              "source": "eyelets",
-              "texture": "TABelt.jpg"
-            },
-            {
-              "source": "metal",
-              "texture": "TABelt.jpg"
-            }
-          ]
-        }
-      ],
       "sim": {
         "displayName": "Studded Belt",
         "nameRu": "Ремень с клёпками",
@@ -422,16 +370,6 @@
             {
               "source": "bra",
               "texture": "TABraRed.jpg"
-            }
-          ]
-        },
-        {
-          "name": "Bra RedPurp",
-          "from": "CA Blouse",
-          "textures": [
-            {
-              "source": "bra",
-              "texture": "TAShirt.jpg"
             }
           ]
         },
@@ -870,16 +808,6 @@
               "texture": "TAGlove2.jpg"
             }
           ]
-        },
-        {
-          "name": "RedPurp",
-          "from": "CA Long Gloves",
-          "textures": [
-            {
-              "source": "glove",
-              "texture": "TAGlove.jpg"
-            }
-          ]
         }
       ],
       "sim": {
@@ -1220,34 +1148,6 @@
         },
         "heelCm": 0.0
       },
-      "variants": [
-        {
-          "name": "Black",
-          "from": "CA Strap Gloves",
-          "textures": [
-            {
-              "source": "buckle",
-              "texture": "AnarchyGlove.jpg"
-            },
-            {
-              "source": "glove",
-              "texture": "OAGlove_Blk.jpg"
-            },
-            {
-              "source": "metal",
-              "texture": "AnarchyGlove.jpg"
-            },
-            {
-              "source": "rivets",
-              "texture": "AnarchyGlove.jpg"
-            },
-            {
-              "source": "straps",
-              "texture": "OAGlove_Blk.jpg"
-            }
-          ]
-        }
-      ],
       "sim": {
         "displayName": "Strap Gloves",
         "nameRu": "Перчатки с ремешками",
@@ -1533,20 +1433,6 @@
             {
               "source": "strap",
               "texture": "TAThong2.jpg"
-            }
-          ]
-        },
-        {
-          "name": "Red",
-          "from": "CA Thong",
-          "textures": [
-            {
-              "source": "panty",
-              "texture": "TAThong.jpg"
-            },
-            {
-              "source": "strap",
-              "texture": "TAThong.jpg"
             }
           ]
         }

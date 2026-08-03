@@ -61,7 +61,11 @@ public enum WearLayer
 {
     Underwear,
     Wear,
-    Outerwear
+    Outerwear,
+
+    // Сумки: рюкзаки и подсумки, поверх всего. Порядок обязан совпадать с
+    // VisualWearLayer — презентация приводит одно к другому по числу.
+    Bags
 }
 
 // Spec 19.3C (molly bones, simplified): body zones for wounds and coverage.

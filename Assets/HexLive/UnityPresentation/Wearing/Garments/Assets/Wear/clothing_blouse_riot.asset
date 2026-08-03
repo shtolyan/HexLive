@@ -16,7 +16,7 @@ MonoBehaviour:
   prototypeId: 
   displayName: Work Blouse
   variantMaterials: []
-  layer: 2
+  layer: 1
   covers: 010000000300000004000000
   warmth: 0.1
   armor: 0

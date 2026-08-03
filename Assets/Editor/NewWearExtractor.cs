@@ -1192,7 +1192,7 @@ public static class NewWearExtractor
         // EVERY character, which is how the first variants landed on disk as
         // `c_l_o_t_h_i_n_g___b_e_l_t___a_n_a_r_c_h_y`.
         var slug = new string(id.Select(c => char.IsLetterOrDigit(c) ? char.ToLowerInvariant(c) : '_').ToArray());
-        foreach (var drawer in new[] { "Underwear", "Wear", "Outerwear" })
+        foreach (var drawer in System.Enum.GetNames(typeof(VisualWearLayer)))
         {
             var path = $"Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/{drawer}/{slug}.asset";
             if (File.Exists(path))
@@ -1939,15 +1939,25 @@ public static class NewWearExtractor
         heel.FindPropertyRelative("axis").vector3Value = g.Heel.axis;
 
         WriteSlotList(so.FindProperty("slots"), g.Slots);
-        WriteSlotList(so.FindProperty("noHideUnderwearSlots"), g.NoHide);
+
+        // Исключения «бельё видно насквозь» и флаг волос ставятся ГЛАЗАМИ, в
+        // тестовой сцене, и манифест о них ничего не знает. Пересбор обязан их
+        // сохранить — ровно как сохраняет подгонку размера выше: иначе одна
+        // команда «пересобрать» молча стирает вечер работы, и понять это можно
+        // только заметив, что бельё снова спряталось.
+        var previous = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath(g));
+        var tunedWear = previous != null ? previous.GetComponent<Wear>() : null;
+        WriteSlotList(so.FindProperty("noHideUnderwearSlots"),
+            tunedWear != null ? tunedWear.NoHideUnderwearSlots.ToArray() : g.NoHide);
         so.FindProperty("layer").enumValueIndex = (int)g.Layer;
         so.FindProperty("gender").enumValueIndex = (int)VisualGender.Female;
         // Всё, что садится на голову, по умолчанию прячет причёску: шапка — это
         // оболочка вокруг черепа, а причёска отдельный меш поверх него, и без
         // этого волосы прорастают сквозь тулью. Правится галочкой в тестовой
         // сцене — есть шляпы, из-под которых волосы должны торчать.
-        so.FindProperty("hidesHair").boolValue =
-            g.Slots != null && g.Slots.Contains(VisualWearSlot.Head);
+        so.FindProperty("hidesHair").boolValue = tunedWear != null
+            ? tunedWear.HidesHair
+            : g.Slots != null && g.Slots.Contains(VisualWearSlot.Head);
         so.ApplyModifiedPropertiesWithoutUndo();
     }
 

@@ -151,6 +151,95 @@ namespace HexLive.UnityPresentation.Wearing
             return uv.width > 0f && uv.height > 0f;
         }
 
+        /// <summary>The UV rectangle of <paramref name="group"/> reached by an
+        /// oriented projected-decal box. Unlike the sphere overload, this uses
+        /// the same thin slab as the runtime shader, so a wound on the front of
+        /// a limb does not make the GPU sweep cells on its back as well.
+        ///
+        /// Cell bounds are transformed conservatively: the transformed AABB
+        /// may be a little wider than the real parallelepiped, but it can never
+        /// reject a texel the shader would accept.</summary>
+        public bool TryGetUvBounds(int group, in Matrix4x4 objectToDecal,
+            in Vector3 halfExtents, out Rect uv)
+        {
+            uv = default;
+            if (group < 0 || group >= GroupCells.Length)
+            {
+                return false;
+            }
+
+            var grid = GroupCells[group];
+            var cellCount = CellsPerSide * CellsPerSide;
+            if (grid.Valid.Length != cellCount || grid.Min.Length != cellCount ||
+                grid.Max.Length != cellCount)
+            {
+                // No grid baked (older asset): paint the whole target rather
+                // than nothing — correct, just slower.
+                uv = new Rect(0f, 0f, 1f, 1f);
+                return true;
+            }
+
+            var minX = int.MaxValue;
+            var minY = int.MaxValue;
+            var maxX = int.MinValue;
+            var maxY = int.MinValue;
+            for (var y = 0; y < CellsPerSide; y++)
+            {
+                for (var x = 0; x < CellsPerSide; x++)
+                {
+                    var i = y * CellsPerSide + x;
+                    if (!grid.Valid[i] || !IntersectsDecalBox(
+                            grid.Min[i], grid.Max[i], objectToDecal, halfExtents))
+                    {
+                        continue;
+                    }
+
+                    if (x < minX) { minX = x; }
+                    if (x > maxX) { maxX = x; }
+                    if (y < minY) { minY = y; }
+                    if (y > maxY) { maxY = y; }
+                }
+            }
+
+            if (maxX < minX)
+            {
+                return false;
+            }
+
+            const float cell = 1f / CellsPerSide;
+            var u0 = Mathf.Max(0f, (minX - 1) * cell);
+            var v0 = Mathf.Max(0f, (minY - 1) * cell);
+            var u1 = Mathf.Min(1f, (maxX + 2) * cell);
+            var v1 = Mathf.Min(1f, (maxY + 2) * cell);
+            uv = new Rect(u0, v0, u1 - u0, v1 - v0);
+            return uv.width > 0f && uv.height > 0f;
+        }
+
+        private static bool IntersectsDecalBox(Vector3 min, Vector3 max,
+            in Matrix4x4 objectToDecal, in Vector3 halfExtents)
+        {
+            var center = (min + max) * 0.5f;
+            var extent = (max - min) * 0.5f;
+            var c = objectToDecal.MultiplyPoint3x4(center);
+
+            // Exact AABB extents after an affine transform. The transformed
+            // cell is generally a parallelepiped; its AABB is conservative and
+            // much tighter than the old world-space bounding sphere.
+            var ex = Mathf.Abs(objectToDecal.m00) * extent.x +
+                     Mathf.Abs(objectToDecal.m01) * extent.y +
+                     Mathf.Abs(objectToDecal.m02) * extent.z;
+            var ey = Mathf.Abs(objectToDecal.m10) * extent.x +
+                     Mathf.Abs(objectToDecal.m11) * extent.y +
+                     Mathf.Abs(objectToDecal.m12) * extent.z;
+            var ez = Mathf.Abs(objectToDecal.m20) * extent.x +
+                     Mathf.Abs(objectToDecal.m21) * extent.y +
+                     Mathf.Abs(objectToDecal.m22) * extent.z;
+
+            return Mathf.Abs(c.x) <= halfExtents.x + ex &&
+                   Mathf.Abs(c.y) <= halfExtents.y + ey &&
+                   Mathf.Abs(c.z) <= halfExtents.z + ez;
+        }
+
         private static float SqrDistanceToBox(Vector3 p, Vector3 min, Vector3 max)
         {
             var dx = Mathf.Max(0f, Mathf.Max(min.x - p.x, p.x - max.x));
@@ -159,10 +248,20 @@ namespace HexLive.UnityPresentation.Wearing
             return dx * dx + dy * dy + dz * dz;
         }
 
-        /// <summary>True when any of the slot's baked surface samples lies
-        /// within `radius` of `center` (both in bind/mesh space) — i.e. the
-        /// decal reaches this slot's geometry and its RT must be painted.</summary>
-        public bool SlotReaches(int slot, Vector3 center, float radius)
+        /// <summary>True when any of the slot's baked surface samples falls
+        /// inside the decal's BOX — the same test the shader runs per texel
+        /// (minus the facing term), not a bounding sphere. The difference is
+        /// not academic: a decal is a thin slab, and a sphere around it claims
+        /// everything curving away from it. On the head, where a 14 cm wrap is
+        /// large next to the skull, the sphere claimed the face, both ears and
+        /// the neck every single time — three extra ~21 MB render targets for
+        /// texels the shader was going to reject anyway.
+        ///
+        /// `objectToDecal` maps bind space to decal space (xy normalized to
+        /// ±0.5 across the art, z in mesh units); `halfExtents` is that box
+        /// grown by the sample spacing so a decal clipping the corner of a
+        /// slot still claims it.</summary>
+        public bool SlotReaches(int slot, in Matrix4x4 objectToDecal, in Vector3 halfExtents)
         {
             if (slot < 0 || slot >= SlotSamples.Length)
             {
@@ -170,10 +269,11 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             var points = SlotSamples[slot].Points;
-            var sqr = radius * radius;
             for (var i = 0; i < points.Length; i++)
             {
-                if ((points[i] - center).sqrMagnitude <= sqr)
+                var d = objectToDecal.MultiplyPoint3x4(points[i]);
+                if (Mathf.Abs(d.x) <= halfExtents.x && Mathf.Abs(d.y) <= halfExtents.y &&
+                    Mathf.Abs(d.z) <= halfExtents.z)
                 {
                     return true;
                 }

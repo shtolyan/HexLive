@@ -55,7 +55,15 @@ namespace HexLive.UnityDebug.Editor
                 return;
             }
 
-            Debug.Log($"[SkinSeam] {report}");
+            // Unity's console keeps only the FIRST line of a multi-line entry
+            // in its list view (and in what the MCP bridge reads back), so the
+            // report also lands in a file — that is the copy to read.
+            var reportPath = System.IO.Path.Combine(
+                System.IO.Path.GetDirectoryName(Application.dataPath) ?? ".",
+                "Build/skin_seam_probe.txt");
+            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(reportPath));
+            System.IO.File.WriteAllText(reportPath, report.ToString());
+            Debug.Log($"[SkinSeam] {actors} actors -> {reportPath}{report}");
         }
 
         private static void ProbeActor(string actorName, StringBuilder report)
@@ -84,7 +92,7 @@ namespace HexLive.UnityDebug.Editor
 
             foreach (var zone in map.Zones)
             {
-                ProbeZone(zone, set, meshScale, report);
+                ProbeZone(zone, set, meshScale, zone.BindAxisDir, report);
             }
         }
 
@@ -123,12 +131,20 @@ namespace HexLive.UnityDebug.Editor
         }
 
         private static void ProbeZone(PaintPointMap.ZonePoints zone, SkinPositionMapSet set,
-            float meshScale, StringBuilder report)
+            float meshScale, Vector3 axis, StringBuilder report)
         {
             var bandageCrossing = 0;
             var woundCrossing = 0;
             var sampled = 0;
             var slotsSeen = new HashSet<int>();
+            // Fill cost of ONE wound: the shader runs over the whole UV window
+            // the cell grid hands back, per claimed slot, per pass. That is
+            // what a combat burst multiplies.
+            var slotSum = 0f;
+            var oldAlbedoWindowSum = 0f;
+            var albedoWindowSum = 0f;
+            var oldGlossWindowSum = 0f;
+            var glossWindowSum = 0f;
 
             foreach (var point in zone.Points)
             {
@@ -139,15 +155,26 @@ namespace HexLive.UnityDebug.Editor
 
                 sampled++;
                 slotsSeen.Add(point.Slot);
-                if (SlotsReached(set, point, BandageWorld * meshScale) > 1)
+                if (SlotsReached(set, point, axis, BandageWorld * meshScale) > 1)
                 {
                     bandageCrossing++;
                 }
 
-                if (SlotsReached(set, point, WoundWorld * meshScale) > 1)
+                var woundSlots = SlotsReached(set, point, axis, WoundWorld * meshScale);
+                if (woundSlots > 1)
                 {
                     woundCrossing++;
                 }
+
+                slotSum += woundSlots;
+                WindowFractions(set, point, axis, WoundWorld * meshScale, footprintScale: 1.6f,
+                    out var oldAlbedo, out var albedo);
+                WindowFractions(set, point, axis, WoundWorld * meshScale, footprintScale: 1f,
+                    out var oldGloss, out var gloss);
+                oldAlbedoWindowSum += oldAlbedo;
+                albedoWindowSum += albedo;
+                oldGlossWindowSum += oldGloss;
+                glossWindowSum += gloss;
             }
 
             if (sampled == 0)
@@ -158,24 +185,80 @@ namespace HexLive.UnityDebug.Editor
 
             report.Append($"\n  {zone.Zone}: bandage {bandageCrossing}/{sampled}, ")
                 .Append($"wound {woundCrossing}/{sampled} spots span >1 slot ")
-                .Append($"(anchor slots {string.Join(",", slotsSeen)})");
+                .Append($"(anchor slots {string.Join(",", slotsSeen)}); ")
+                .Append($"wound cost: {slotSum / sampled:0.00} slots; windows old->box: ")
+                .Append($"albedo {oldAlbedoWindowSum / sampled * 100f:0.0}%->")
+                .Append($"{albedoWindowSum / sampled * 100f:0.0}%, gloss ")
+                .Append($"{oldGlossWindowSum / sampled * 100f:0.0}%->")
+                .Append($"{glossWindowSum / sampled * 100f:0.0}%");
         }
 
-        private static int SlotsReached(SkinPositionMapSet set, in PaintPointMap.Point point,
-            float size)
+        // UV-window area (0..1 of the whole target) before and after the
+        // oriented-box optimization. footprintScale=1.6 is wound albedo (halo
+        // + art); 1 is the detailed-art/gloss pass.
+        private static void WindowFractions(SkinPositionMapSet set,
+            in PaintPointMap.Point point, Vector3 axis, float size, float footprintScale,
+            out float oldFraction, out float boxFraction)
         {
-            var radius = size * 0.7071f + set.SampleSpacing;
+            var group = set.GroupOf(point.Slot);
+            var footprint = size * footprintScale;
+            var radius = footprint * 0.7071f + set.SampleSpacing;
+            oldFraction = set.TryGetUvBounds(group, point.BindPos, radius, out var oldUv)
+                ? oldUv.width * oldUv.height
+                : 0f;
+
+            BuildProjection(point, axis, size, footprintScale,
+                set.SampleSpacing + 0.005f, out var objectToDecal, out var half);
+            boxFraction = set.TryGetUvBounds(group, objectToDecal, half, out var boxUv)
+                ? boxUv.width * boxUv.height
+                : 0f;
+        }
+
+        // Mirrors SkinTexturePainter.TryPlaceProjected's frame + claim box, so
+        // the report counts exactly what the runtime will paint.
+        private static int SlotsReached(SkinPositionMapSet set, in PaintPointMap.Point point,
+            Vector3 axis, float size)
+        {
+            BuildProjection(point, axis, size, footprintScale: 1f,
+                set.SampleSpacing + 0.005f, out var objectToDecal, out var half);
+
             var count = 1; // the anchor slot always counts
             for (var slot = 0; slot < set.SlotSamples.Length; slot++)
             {
                 if (slot != point.Slot && set.GroupOf(slot) >= 0 &&
-                    set.SlotReaches(slot, point.BindPos, radius))
+                    set.SlotReaches(slot, objectToDecal, half))
                 {
                     count++;
                 }
             }
 
             return count;
+        }
+
+        private static void BuildProjection(in PaintPointMap.Point point, Vector3 axis,
+            float size, float footprintScale, float slack, out Matrix4x4 objectToDecal,
+            out Vector3 half)
+        {
+            var normal = point.BindNormal.normalized;
+            var along = axis - normal * Vector3.Dot(normal, axis);
+            if (along.sqrMagnitude < 1e-6f)
+            {
+                along = Vector3.Cross(normal, Vector3.right);
+                if (along.sqrMagnitude < 1e-6f)
+                {
+                    along = Vector3.Cross(normal, Vector3.forward);
+                }
+            }
+
+            along.Normalize();
+            var frame = Matrix4x4.TRS(point.BindPos,
+                Quaternion.LookRotation(normal, along), Vector3.one).inverse;
+            var footprint = size * footprintScale;
+            objectToDecal = Matrix4x4.Scale(
+                new Vector3(1f / footprint, 1f / footprint, 1f)) * frame;
+            var depth = size * 0.4f * footprintScale; // ProjectedDepthFactor
+            half = new Vector3(0.5f + slack / footprint,
+                0.5f + slack / footprint, depth + slack);
         }
     }
 }

@@ -522,6 +522,15 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // soaked girl takes slower steps), but never far from the authored rate.
     public static float MinGaitCadence = 0.35f;
     public static float MaxGaitCadence = 1.25f;
+    // §71.6: до какого перегона клипа шага походка остаётся ЧИСТЫМ шагом.
+    // Выше — поза начинает подмешивать трусцу вместо того, чтобы гнать плёнку
+    // (развёрнутый разбор — в SampleMotion). 1.15 выбрано так, чтобы средняя
+    // девушка (1.2 ед/с при базе 1.2 и множителе ловкости 1.0) бленда почти не
+    // касалась, а ловкая (1.38 ед/с) вставала примерно на треть к трусце.
+    public static float WalkStretchCadence = 1.15f;
+    // Насколько далеко ИДУЩАЯ вправе уйти в бленд. Трусца сидит на 0.5, так
+    // что 0.35 — «распустившийся размашистый шаг», а не бег.
+    public static float MaxWalkGait = 0.35f;
     // §71.5: how hard the measured speed is smoothed before it drives the
     // cadence, as a time constant in SIM seconds. The sim steps at 4 Hz and so
     // does its speed — a graded turn costs TurnMinSpeedFactor for a tick, a
@@ -696,8 +705,16 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         var hop = HexLive.Simulation.Navigation.HexHopTuning.HopSeconds;
         var fullWindow = HexLive.Simulation.Navigation.HexHopTuning.WindowSeconds(up);
         var takeoffFrac = HexLive.Simulation.Navigation.HexHopTuning.TakeoffSeconds / hop;
-        var flightEndFrac =
+        var airborneEndFrac =
             (hop - HexLive.Simulation.Navigation.HexHopTuning.LandingSeconds) / hop;
+        // §21.21B v16: on a climb the sim covers the distance over the first
+        // SettleFrac of the airborne beat and stands for the rest, so the arc
+        // must finish there too — otherwise the body would still be rising while
+        // the root already stood on the ledge (the "skating onto the step" the
+        // asymmetric flight exposed). A drop keeps the full beat.
+        var settle = Mathf.Clamp(
+            HexLive.Simulation.Navigation.HexHopTuning.SettleFrac(up), 0.2f, 1f);
+        var flightEndFrac = takeoffFrac + (airborneEndFrac - takeoffFrac) * settle;
         var age = Mathf.Clamp(ageSeconds, 0f, fullWindow);
 
         // §21.21B v15: a hop first seen AFTER the flight is over has nothing
@@ -797,11 +814,16 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     {
         if (_jumpUp)
         {
-            // Launch fast, fly PAST the ledge height, drop onto it.
-            return tf < 0.5f
-                ? Mathf.SmoothStep(0f, JumpUpOvershoot, Mathf.InverseLerp(0f, 0.5f, tf))
+            // Launch fast, fly PAST the ledge height, drop onto it. §21.21B v16:
+            // the apex is a knob (was a hard 0.5). Earlier apex = "up first,
+            // then over", which is how a step-up actually reads; at 0.5 the rise
+            // and the travel finished together and looked like a slide.
+            var apex = Mathf.Clamp(
+                HexLive.Simulation.Navigation.HexHopTuning.UpApexFrac, 0.1f, 0.9f);
+            return tf < apex
+                ? Mathf.SmoothStep(0f, JumpUpOvershoot, Mathf.InverseLerp(0f, apex, tf))
                 : Mathf.Lerp(JumpUpOvershoot, 1f,
-                    Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.5f, 1f, tf)));
+                    Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(apex, 1f, tf)));
         }
 
         // One drop for EVERYTHING (water or land — no special plunge): stay
@@ -4791,10 +4813,41 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             float gaitGround;
             if (!_running)
             {
-                // Walking: stay on the walk clip however brisk the pace, and
-                // let the cadence carry the speed.
-                targetGait = 0f;
-                gaitGround = walkGround;
+                // §71.6: БОДРЫЙ ШАГ РАСПУСКАЕТСЯ В ПОЗУ, А НЕ В ПЕРЕМОТКУ.
+                // Здесь стояло «шаг остаётся шагом, темп доберёт каденс» — и
+                // на среднем теле это честно (1.2 ед/с ≈ 1.2× клипа). Но §76
+                // даёт ловкости ±15%, и у девушки с ловкостью 10 шаг 1.38 ед/с
+                // гнал клип на 1.38× — ступни по земле попадали (стрид на
+                // цикл фиксирован, цикл едет быстрее), а читалось как ускоренная
+                // плёнка: мелкая семенящая походка.
+                //
+                // Ни один клип в одиночку эту скорость не берёт: шагу нужно
+                // 1.38×, трусце — 0.69×. Поэтому берём то, ради чего дерево
+                // блендов и существует, — СМЕСЬ поз, и играем её на скорости
+                // смеси. Порог WalkStretchCadence оставляет обычному шагу его
+                // законный запас (средняя девушка едва трогает бленд), а
+                // потолок MaxWalkGait держит идущую заметно ниже трусцы (0.5):
+                // §71.1 требует, чтобы БЕГУЩАЯ фигура читалась как ЧП, и это
+                // требование к силуэту, а не к параметру.
+                //
+                // ⚠️ Только для БЕЗОРУЖНОГО шага. Слоты 1-2 держат безоружную
+                // трусцу: инструмент подменяет один слот 0 (GearLibrary), и
+                // подмешать к нему четверть беговой позы значило бы уводить
+                // руку с топором к «пустой». Ползание сюда не доходит вовсе —
+                // оно занимает все три слота, — а грустная походка не доходит
+                // по скорости (§81.10 режет её вдвое, это ниже порога).
+                var stretched = walkGround * WalkStretchCadence;
+                var blendEnd = Mathf.Lerp(walkGround, slowGround, MaxWalkGait / 0.5f);
+                if (_armedWalkClip != null || speedSim <= stretched || blendEnd <= stretched)
+                {
+                    targetGait = 0f;
+                    gaitGround = walkGround;
+                }
+                else
+                {
+                    targetGait = Mathf.InverseLerp(stretched, blendEnd, speedSim) * MaxWalkGait;
+                    gaitGround = Mathf.Lerp(walkGround, slowGround, targetGait / 0.5f);
+                }
             }
             else if (speedSim <= slowGround)
             {
@@ -5058,14 +5111,41 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         _hurtReachWeight = 0f;
 
-        var contact = ActionPropContactPoint(_actionTargetPoint, hand);
+        // §104 r11: рука не резиновая. Прицел (3.5 wu в HexWorldRenderer)
+        // решает, ЕСТЬ ли цель; ЭТОТ предел — как далеко тело может за ней
+        // потянуться. Раньше предела не было вовсе, и IK честно дотягивался
+        // до края прицела: красиво, но нечеловечески. Точка дальше предела
+        // прижимается ПО НАПРАВЛЕНИЮ на цель — замах целится туда же, просто
+        // не достаёт, как и положено настоящей руке.
+        var targetPoint = _actionTargetPoint;
+        var flat = new Vector3(
+            targetPoint.x - transform.position.x,
+            0f,
+            targetPoint.z - transform.position.z);
+        var planar = flat.magnitude;
+        if (planar > ActionTargetMaxReachWorldUnits)
+        {
+            var pulled = flat * (ActionTargetMaxReachWorldUnits / planar);
+            targetPoint = new Vector3(
+                transform.position.x + pulled.x,
+                targetPoint.y,
+                transform.position.z + pulled.z);
+        }
+
+        var contact = ActionPropContactPoint(targetPoint, hand);
         solver.IKPositionWeight = 1f;
         solver.pullBodyHorizontal = ActionTargetIkBodyLean;
         effector.target = null;
-        effector.position = _actionTargetPoint - (contact - hand.position);
+        effector.position = targetPoint - (contact - hand.position);
         effector.positionWeight = weight;
         effector.rotationWeight = 0f;
     }
+
+    // §104 r11: потолок вытяжения замаха в мировых единицах (те же, что у
+    // прицела StrikeReachWorldUnits = 3.5 в HexWorldRenderer). 2.45 = минус
+    // ~30% от прежнего фактического предела: бой в упор и по соседнему узлу
+    // не задет, а дотяг через границу тайла заметно прижат к телу.
+    private const float ActionTargetMaxReachWorldUnits = 2.45f;
 
     // §82: «держится за то, что болит» — через Final IK, а не поворотом костей.
     //

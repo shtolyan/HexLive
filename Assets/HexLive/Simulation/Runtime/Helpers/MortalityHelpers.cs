@@ -185,14 +185,30 @@ internal static class MortalityHelpers
     {
         DyingCause.BloodLoss =>
             !IsBleeding(npc) && npc.Needs.Blood > Spec105.BloodExitFloor,
+        // ⭐ ВЫШЕ порога падения, а не «выше пола». Пол — это то, во что её
+        // запиннило падение; спрашивать про него значит спрашивать «поднялась
+        // ли хоть на волосок», и она вставала через один тик.
         DyingCause.TorsoDestroyed =>
-            npc.Body.Parts[BodyPart.Torso] > Spec105.BodyFloor,
+            npc.Body.Parts[BodyPart.Torso] > Spec105.TorsoExitHealth,
         DyingCause.Starvation =>
             npc.Needs.Hunger < SimBalance.StarveDeathThreshold,
         DyingCause.Dehydration =>
             npc.Needs.Thirst < SimBalance.StarveDeathThreshold,
         _ => true
     };
+
+    // Сколько тиков она уже лежит. Выводится из ЗАПАСА, а не из отдельного
+    // поля: запас тает ровно по прошедшим тикам, поэтому «сколько вытекло» и
+    // есть «сколько лежит» — и это переживает сохранение, ничего не добавляя в
+    // блоб. (Время под руками помощницы сюда не идёт: там запас заморожен —
+    // и правильно, лежать под перевязкой это не «отлёживаться».)
+    private static float TicksLain(NPCState npc, DyingCause cause) =>
+        (1f - npc.Mind.DyingReserve) * WindowTicks(cause) *
+        AttributeMath.DyingHoldMult(npc, cause);
+
+    // Можно ли уже вставать: и показатель вернулся, и она отлежала минимум.
+    private static bool CanStandUp(NPCState npc, DyingCause cause) =>
+        TicksLain(npc, cause) >= Spec105.MinDyingTicks && Recovered(npc, cause);
 
     // Над ней прямо сейчас работают НАД ТЕМ, ЧТО ЕЁ УБИВАЕТ. Запас на это время
     // замирает — доиграть перевязку помощница успевает всегда.
@@ -231,7 +247,7 @@ internal static class MortalityHelpers
         }
 
         var cause = npc.Mind.DyingCause;
-        if (Recovered(npc, cause))
+        if (CanStandUp(npc, cause))
         {
             ExitDying(world, npc, "Recovered");
             return;
@@ -337,7 +353,7 @@ internal static class MortalityHelpers
     // лежит «умирающей» уже после того, как её напоили).
     internal static void TryExitAfterAid(WorldState world, NPCState npc)
     {
-        if (npc.IsDying && Recovered(npc, npc.Mind.DyingCause))
+        if (npc.IsDying && CanStandUp(npc, npc.Mind.DyingCause))
         {
             ExitDying(world, npc, "Aided");
         }

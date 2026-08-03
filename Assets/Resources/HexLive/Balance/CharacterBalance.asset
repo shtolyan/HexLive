@@ -131,6 +131,7 @@ MonoBehaviour:
   staminaIdleGain: 0.0082
   stressUpRate: 0.0147
   stressDownRate: 0.0684
+  cryingBreakdownTicks: 240
   baseTemperature: 15.5
   temperatureAmplitude: 9.5
   rainTempDrop: 3
@@ -151,6 +152,7 @@ MonoBehaviour:
   postTurnPauseSeconds: 0.15
   fleeRunSpeedFactor: 2.25
   needRunSpeedFactor: 1.6
+  arrivalWalkDistance: 3
   breathDrainPerTick: 0.011
   breathWalkRecoverPerTick: 0.005
   breathIdleRecoverPerTick: 0.01
@@ -171,6 +173,8 @@ MonoBehaviour:
   aidFreezesReserve: 1
   bodyFloor: 0.02
   bloodExitFloor: 0.05
+  torsoExitHealth: 0.15
+  minDyingTicks: 300
   rescueEmergencyBoost: 1
   convalescentTicks: 3600
   convalescentStaminaRegenFactor: 0.3333

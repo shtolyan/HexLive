@@ -37,6 +37,7 @@ already does it.
 import argparse
 import hashlib
 import os
+import re
 import shutil
 import sys
 
@@ -53,15 +54,30 @@ BASE = os.path.join(
 OUT_DIR = os.path.join(REPO, "Assets/HexLive/Art/Eyes/Textures")
 
 # The material set is copied from Molly's, verbatim but for the texture: all
-# four actresses ship byte-identical eye material PARAMETERS (metallic 1,
-# smoothness 0.516, alpha-clipped iris at queue 2450 …) and differ only in the
-# map, which is what makes "one shared set, swap the texture" honest rather
-# than a redesign of how the eyes shade.
+# four actresses carry byte-identical eye material PARAMETERS (smoothness 0.516,
+# alpha-clipped iris at queue 2450 …) and differ only in the map, which is what
+# makes "one shared set, swap the texture" honest rather than a redesign of how
+# the eyes shade.
 DONOR_MATERIALS = os.path.join(
     REPO, "Assets/ImportedActors/Actors/Molly/Materials")
 DONOR_EYE_MAP_GUID = "2c2a13b66e1fc97469d38d5c92a1671c"
 
 MATERIALS_ROOT = os.path.join(REPO, "Assets/Resources/HexLive/Eyes")
+
+# …with ONE exception to "verbatim". The Daz import left `_Metallic: 1` on the
+# iris of all four actresses (the male outsider came in at 0, which is how the
+# defect stayed invisible). Under URP metallic 1 means the base map stops being
+# albedo and becomes the specular colour, so the iris renders as coloured
+# chrome — the shine reads as demonic, and it is the ONLY eye material affected:
+# sclera, pupil, cornea and the wet film all ship at 0 already.
+#
+# An iris is dielectric tissue and physically wants 0. It is left slightly above
+# it because at a clean 0 the eye also loses the gleam that made it читаемым at
+# portrait distance — the cornea in front is transparent with smoothness 0 and
+# contributes no highlight of its own, so today the iris IS the specular. This
+# is the dial to turn if it still shines: 0.0 = matte tissue, 1.0 = the chrome
+# it shipped as.
+IRIS_METALLIC = 0.2
 
 # Materials that carry the eye map — one copy per colour.
 TINTED_MATERIALS = ("Irises", "Sclera")
@@ -307,6 +323,11 @@ def write_materials(texture_guids):
                 sys.exit(f"{name}.mat no longer references the donor eye map — "
                          f"the material set moved, fix DONOR_EYE_MAP_GUID")
             body = body.replace(DONOR_EYE_MAP_GUID, guid)
+            if name == "Irises":
+                body, hits = re.subn(r"- _Metallic: [-\d.]+",
+                                     f"- _Metallic: {IRIS_METALLIC}", body)
+                if hits != 1:
+                    sys.exit(f"Irises.mat has {hits} _Metallic entries, expected 1")
             dst = os.path.join(folder, name + ".mat")
             with open(dst, "w") as handle:
                 handle.write(body)

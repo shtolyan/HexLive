@@ -666,16 +666,16 @@ Tired, Cold`) — значения едут в трейсах/снапшотах
 #### C14 · `cry_breakdown` · P1 — сломалась от стресса: легла и рыдает (§110 `CryingBreakdown`)
 | Реплика | Русский |
 |---|---|
-| `[sobbing] Mifo... mo mifo nip...` | Не могу... совсем я не могу... |
-| `[crying] Eeeh... birka zig... bi, bi` | Эх... сердце рвётся... больно, больно |
-| `[sobbing, weak] Doma... doma mia... nho` | Домой... домой мне... ох |
+| `[sobbing] Mifo... mifo` | Не могу... не могу |
+| `[crying] Birka zig... bi` | Сердце рвётся... больно |
+| `[sobbing, weak] Doma... doma` | Домой... домой |
 
 #### C15 · `cry_beaten` · P1 — проиграла сцену абьюза, бежит домой в слезах (§81.13 `AbuseFledHome`)
 | Реплика | Русский |
 |---|---|
-| `[crying] Nhooo... bi nip... bi mia` | Оох... больно же... больно мне |
-| `[sobbing] Kush? Kush mia? Bezharo!` | Почему? Почему мне? Нехорошо! |
-| `[crying, weak] Zada! Mo doma... doma nam` | Уйди! Я домой... домой надо |
+| `[crying] Nhooo... bi nip` | Оох... больно же |
+| `[sobbing] Kush? Kush?` | Почему? Почему? |
+| `[crying, weak] Mo doma... doma` | Я домой... домой |
 
 ### D. Разговор (темы `TalkTopic`)
 
@@ -813,9 +813,9 @@ Tired, Cold`) — значения едут в трейсах/снапшотах
 #### E1a · `happy_console` · P2 — утешает рыдающую: «ну не плачь» (§110 `ConsoleOther`)
 | Реплика | Русский |
 |---|---|
-| `[soothing] Mira, janeiko. Bezbi nam` | Тихо, милая. Не будет больно |
-| `[caring] Mo nip tut. Dai lapa, dai` | Я здесь. Дай руку, дай |
-| `[soothing] Besshoop. Haro nam, janeiko` | Не страшно. Всё будет хорошо, милая |
+| `[soothing] Mira, janeiko` | Тихо, милая |
+| `[caring] Mo nip tut. Dai lapa` | Я здесь. Дай руку |
+| `[soothing] Besshoop. Haro nam` | Не страшно. Всё хорошо |
 
 #### E2 · `happy_aid_thanks` · P2 — благодарность
 | Реплика | Русский |

@@ -1438,6 +1438,28 @@ Crossing to a tile one elevation level up OR down is a deliberate jump whose
 timing lives in ONE place — `HexHopTuning` (Simulation/Navigation) — shared by
 the sim and the presentation, so the two can never drift apart:
 
+- v16 — SHE LANDS, THEN PLANTS (fixes "he skates after landing", reported on the
+  CLIMB once v14 made the jump long). The sim spread the distance evenly over the
+  whole airborne beat, while the arc reaches the upper level early on purpose
+  (the apex overshoots the ledge) — so the body stood at ledge height and kept
+  gliding horizontally for another half second. Two knobs, both live sliders:
+  `FlightSettleFrac` (0.65) covers the distance over the FIRST fraction of the
+  beat and stands for the rest, and `UpApexFrac` (0.35, was a hard-coded 0.5)
+  moves the apex earlier so the read is "up first, then over" instead of one
+  diagonal glide. The view ends its arc on the same fraction — `SettleFrac(up)`
+  is the one source both read, so the clocks cannot drift.
+  **UP only.** A drop lands `FarPadding` out and never had the slide, and every
+  tick of movement timing reshuffles the dog dance: applied to both directions
+  this tipped seed 816616098 (the outsider finished the run comatose and §81's
+  abuse test went red). Measured after: climb touchdown 6 → 5 ticks from the
+  start of the hop, drop unchanged at 3.
+  Fallout worth knowing, because it is the same lesson as the mob exemption in
+  §40.17 v2: the seam weight made §108's group hunt unable to land a blow
+  ("Arrived but he moved on", repeatedly). A pursuer paying 4.5× for a ledge
+  walks around it while the quarry hops it, so the gap grows every crossing.
+  `ShouldWeightClimbs` now exempts every chase goal — GroupHunt, Abuse, Prey,
+  Hunt, Defend — on exactly the reasoning that already exempted Flee: a chase
+  needs the shortest route, not the comfiest.
 - v15 — THE ARC STOPPED GUESSING (fixes "she is either above the ground or
   suddenly under it", reported after v14 shipped and traced to `645c5466`). That
   commit moved the arc trigger from HopKind's rising edge to the `HopStartTick`
@@ -9943,7 +9965,12 @@ so the weight would price something that never happens, sending wolves around
 ledges the girl simply hops and handing her a free kite along every lip. It also
 unhooks chase routes from future retunes of these prices, which is the class of
 change that historically reshuffled the whole dog dance.
-**Not touched, deliberately:** `ShouldWeightClimbs` (the food/water/Flee
+**Chases are exempt too** (added with §21.21B v16, same reasoning as the mob
+exemption): GroupHunt, Abuse, Prey, Hunt and Defend join Flee in
+`ShouldWeightClimbs`, because a pursuer who pays 4.5× for a ledge loses ground
+every crossing to a quarry who simply hops it — measured as §108's group hunt
+never landing a blow.
+**Not touched, deliberately:** the rest of `ShouldWeightClimbs` (the food/water
 exemptions are load-bearing balance), `IsClimbSeamWalk` (it guards the execution
 layer, and under the edge model it no longer distorts prices — a detour one row
 back from the lip is now honestly flat), and the water prices — a dive really
@@ -14098,6 +14125,43 @@ low-pass (`SpeedSmoothTau`, постоянная времени в СИМ-сек
 
 Ручки вида переехали из `const` в `HexTuningConfig` (блок «§71.5 Походка»),
 поэтому крутятся в инспекторе и переживают перезапуск.
+
+### §71.6 Бодрый шаг — это ПОЗА, а не ускоренная плёнка
+
+§71.5 поставил ступни на землю, но одну ловушку оставил, и нашлась она на
+сейве, где у всех троих ловкость 10. §76 даёт ловкости ±15% к шагу, так что
+такая девушка идёт 1.38 ед/с против средних 1.2. Ветка «не бежит» держала её на
+клипе шага при любой скорости, и клип честно гнался на **1.38×**: ступни по
+земле попадали (стрид на цикл фиксирован, циклов в секунду больше), а читалось
+как перемотка — мелкая семенящая походка.
+
+Тонкость в том, что на этой скорости не годится НИ ОДИН клип поодиночке: шагу
+нужно 1.38×, трусце — 0.69×. Поэтому берётся то, ради чего дерево блендов и
+существует, — **смесь поз**, и играется на скорости смеси:
+
+| ловкость | скорость | было | стало |
+|---|---|---|---|
+| 0 | 1.02 | 1.02× шага | без изменений (ниже порога) |
+| 5 (средняя) | 1.20 | 1.20× | `Gait` 0.03, темп 1.13× |
+| 10 | 1.38 | **1.38×** | `Gait` 0.14, темп **1.07×** |
+| 13 (натренированная) | 1.49 | 1.48× | `Gait` 0.21, темп 1.04× |
+
+Две ручки: `WalkStretchCadence` (1.15) — до какого перегона шаг остаётся чистым
+шагом, `MaxWalkGait` (0.35) — как далеко идущая вправе уйти в бленд. Потолок
+ниже трусцы (0.5) не случайно: §71.1 требует, чтобы БЕГУЩАЯ фигура читалась как
+ЧП, и это требование к силуэту, а не к параметру — идущая на 0.14 остаётся
+идущей.
+
+Всё, что медленнее порога, не тронуто вовсе: грустная походка (§81.10 режет её
+вдвое), раненые ноги, «едва живая» §105, поворот, мокрая одежда — там прежние
+числа до бита.
+
+⚠️ **Только для безоружного шага.** Слоты 1-2 держат безоружную трусцу, а
+инструмент подменяет один слот 0 (`GearLibrary`), так что подмешать к нему
+четверть беговой позы значило бы уводить руку с топором к «пустой». Ползание
+сюда не доходит вовсе — оно занимает все три слота. Цена: девушка с топором
+по-прежнему идёт на 1.38×; честное лечение — своя строка калибровки для
+вооружённого шага и вооружённые же клипы в слотах 1-2, это контент, а не код.
 ## §72 Враг-человек — фракции, охотник и сплочённый отпор (iteration 72)
 
 **Цель.** На острове появляется мужчина. Он — полноценный выживальщик: те же
@@ -15691,6 +15755,22 @@ vs §84 — см. итог итерации. Попутно починена hea
 alpha-clip радужки на очереди 2450) и отличается только карта. Это и делает
 «один набор, меняем текстуру» честным, а не переделкой того, как глаза шейдятся.
 
+**85.3a Металлическая радужка — дефект импорта, а не стиль.** Daz оставил
+`_Metallic: 1` на радужке у всех ЧЕТЫРЁХ актрис (у чужака-мужчины пришло 0 —
+поэтому дефект и не бросался в глаза). В URP metallic 1 значит, что базовая
+карта перестаёт быть альбедо и становится ЦВЕТОМ БЛИКА: радужка рендерится
+цветным хромом, и блеск читается как демонический. Это единственный из пяти
+материалов глаза, кого касается, — склера, зрачок, роговица и влажная плёнка
+и так шли на 0.
+
+Ручка — `IRIS_METALLIC` в `Tools/make_eye_textures.py`, сейчас **0.2**. До нуля
+не опущено намеренно: роговица перед радужкой прозрачная и со `Smoothness 0`,
+собственного блика не даёт, так что сегодня радужка И ЕСТЬ вся зеркальность
+глаза, и на чистом нуле глаз становится матовым. Те же 0.2 проставлены и в
+четырёх исходных `Irises.mat` актрис — они теперь запасной путь (пустой
+`EyeColor`: тестовые сцены, чужак), но четыре хромовые радужки, оставленные
+лежать, вернулись бы позже.
+
 **85.4 Порядок в `Construct` — снова не стилистика.** `ApplyEyeSet` идёт СРАЗУ
 ПОСЛЕ `ApplySkinSet` и до `BuildSkinTintTargets`. После набора кожи — потому что
 тот несёт свои глаза и, отработав вторым, затёр бы выпавшую радужку донорской.
@@ -16228,9 +16308,23 @@ Golden-трасса: хеш состояния сдвинулся (два нов
 
 | Причина | Условие выхода |
 |---|---|
-| `BloodLoss` | кровотечение остановлено И `Blood > BloodExitFloor` |
-| `TorsoDestroyed` | `Torso > BodyFloor` |
+| `BloodLoss` | кровотечение остановлено И `Blood > BloodExitFloor` (0.1) |
+| `TorsoDestroyed` | `Torso > TorsoExitHealth` (0.15) |
 | `Starvation` / `Dehydration` | `Hunger`/`Thirst` ниже `StarveDeathThreshold` |
+
+**⭐ Порог выхода обязан стоять ВЫШЕ порога входа, и вдобавок есть минимальное
+время лёжа.** Первая редакция об это споткнулась ровно так, как и должна была:
+грудь пиннилась в `BodyFloor` на входе, а выход спрашивал «грудь выше
+`BodyFloor`?» — первый же тик регенерации поднимал её на волосок над порогом.
+Замер: она вставала **через ОДИН тик**, тут же получала следующий удар и падала
+снова, и бой читался как мигание «упала-встала-упала».
+
+Одного порога, впрочем, тоже мало: заживление возвращает зоне её `Severity`, и
+на глубокой ране это быстро — с порогом, но без таймера, подъём занимал 161
+тик. Поэтому `MinDyingTicks` (300 ≈ 75 секунд): сколько бы ни говорили пороги,
+раньше этого она не встаёт. Время лёжа выводится из ЗАПАСА, а не из отдельного
+поля — запас тает ровно по прошедшим тикам, так что «сколько вытекло» и есть
+«сколько лежит», и это переживает сохранение, ничего не добавляя в блоб.
 
 Одна перевязка закрывает первые две: `StabilizeBleedingOnAidStart` закрывает
 окно свежей раны, `TreatHeal` поднимает зоны, `TreatBlood` доливает крови.
@@ -16308,7 +16402,31 @@ AnyState годится для ОДНОГО состояния (`Death`, `Crawl`
 потерявшая сознание уходила бы в аккуратное «прилегла» вместо падения, а
 спящую, которую накрыла кома, сначала поднимало бы на ноги.
 
-### 105.11 Кил-свитч
+### 105.11 ХП — это худшая витальная зона, и она кольцом вокруг портрета
+
+Полоска здоровья показывала `NPCState.Health`, то есть СРЕДНЕЕ по семи зонам, и
+среднее врало в обе стороны. Разбитая в хлам грудь при целых руках и ногах даёт
+0.75 — «всё неплохо», хотя следующий удар убивает. Обглоданные конечности при
+целом торсе роняют то же число, хотя жизни ничего не грозит.
+
+Теперь панель читает `NpcSnapshot.VitalHealth` = `min(Head, Torso)`. Витальные
+зоны — ровно эти две: их обнуление и есть `VitalDestroyed`, а конечности могут
+дойти до нуля и даже оторваться (§50), не убив. Число отвечает на единственный
+вопрос, который игрок задаёт полоске: **сколько осталось до того, как станет
+поздно**.
+
+Балансу от этого ни жарко ни холодно: `Health` остаётся тем же средним, и все
+пороги симуляции (§53 срочность помощи, §86 пощада, гейты «своего кризиса»)
+по-прежнему смотрят на него. Изменилось ТОЛЬКО то, что видит игрок.
+
+Рисуется кольцом вокруг портрета (`RingMeter`, тот же, что у нужд), а
+горизонтальная полоска снята: два бара про одно и то же спорили бы друг с
+другом, а кольцо всегда рядом с лицом — видно, КОМУ скоро конец, не читая цифр.
+Цвет берётся у `HealthDollStage.StatusColor`, то есть у той же функции, что
+красит куклу §57: два мнения о «насколько всё плохо» разошлись бы. Красная
+приписка «сколько не отрастёт, пока открыты раны» (§40.8B) переехала в число.
+
+### 105.12 Кил-свитч
 
 `Spec105.Enabled = false` восстанавливает доигровое поведение ПОБИТОВО, вплоть
 до текста трассы: ни одна точка входа не отклоняется, смерть снова мгновенная.

@@ -3240,7 +3240,7 @@ namespace HexLive.UnityPresentation.UI
             // отцентрован: кольцо рисуется по внешнему радиусу и не наползает
             // на лицо. Живой бейдж по-прежнему висит в углу обёртки.
             const float portraitSize = 156f;
-            const float ringPad = 9f;
+            const float ringPad = 12f;
             var wrap = new VisualElement();
             wrap.style.width = portraitSize + ringPad * 2f;
             wrap.style.height = portraitSize + ringPad * 2f;
@@ -3248,7 +3248,12 @@ namespace HexLive.UnityPresentation.UI
             wrap.style.alignItems = Align.Center;
             wrap.style.justifyContent = Justify.Center;
 
-            _healthRing = new RingMeter(1f, HealthDollStage.StatusColor(1f, false));
+            _healthRing = new RingMeter(1f, HealthDollStage.StatusColor(1f, false))
+            {
+                // Толще колец нужд: это главный индикатор панели, и читаться
+                // он должен боковым зрением, а не при разглядывании.
+                LineWidth = 7f
+            };
             _healthRing.style.position = Position.Absolute;
             _healthRing.style.left = 0f;
             _healthRing.style.right = 0f;
@@ -4029,6 +4034,10 @@ namespace HexLive.UnityPresentation.UI
             private float _value;
             private Color _color;
 
+            // Толщина обводки. Кольца нужд оставляют её по умолчанию; кольцо
+            // здоровья вокруг портрета просит больше.
+            public float LineWidth { get; set; } = 5f;
+
             public RingMeter(float value, Color color)
             {
                 _value = Mathf.Clamp01(value);
@@ -4069,7 +4078,7 @@ namespace HexLive.UnityPresentation.UI
 
                 p.lineCap = LineCap.Round;
                 p.lineJoin = LineJoin.Round;
-                p.lineWidth = 5f;
+                p.lineWidth = LineWidth;
 
                 p.strokeColor = new Color(1f, 1f, 1f, 0.095f);
                 p.BeginPath();

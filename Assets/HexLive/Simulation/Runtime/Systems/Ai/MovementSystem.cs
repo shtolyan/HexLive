@@ -423,8 +423,18 @@ public sealed class MovementSystem : ISimulationSystem
                 }
 
                 // Airborne: straight lattice-point-to-lattice-point flight.
+                // §21.21B v16: on a CLIMB the distance is covered over the FIRST
+                // SettleFrac of the beat, not all of it. Spread evenly, the body
+                // finished rising (the arc overshoots the ledge on purpose) while
+                // the root still slid horizontally for another half second — she
+                // read as standing on the step and skating onto it. Arriving
+                // early means she lands, then plants; flightT still reaches 1, so
+                // every downstream check (touchdown bookkeeping, pre-facing, path
+                // advance) is unchanged — it just happens sooner.
                 var flightT = MathUtil.Clamp01(
-                    (hopElapsed - hopTakeoff) / flightSpan);
+                    (hopElapsed - hopTakeoff) /
+                    (flightSpan * MathUtil.Clamp(
+                        HexHopTuning.SettleFrac(npc.Movement.HopUp), 0.2f, 1f)));
                 npc.Position = npc.Movement.HopFrom +
                     (npc.Movement.HopTo - npc.Movement.HopFrom) * flightT;
                 npc.RotationDegrees = MathUtil.RotateTowards(

@@ -544,6 +544,20 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 npc.Health < 0.6f || npc.Needs.Hunger >= 0.85f || npc.Needs.Thirst >= 0.85f;
             npc.Needs.Stress = MathUtil.Clamp01(npc.Needs.Stress + (stressUp ? SimBalance.StressUpRate : -SimBalance.StressDownRate));
 
+            // §110: слёзы отпускают САМИ — это и есть смысл разрядки, поэтому
+            // облегчение идёт поверх формулы выше, а не вместо неё. Без него
+            // рыдающая лежит с неубывающим стрессом всякий раз, когда причина
+            // ещё при ней: память об опасности живёт 2400 тиков, а весь плач —
+            // 240, так что stressUp держал бы полосу на максимуме до конца и
+            // она срывалась бы снова сразу, как встанет. Ставка НА МЕДЛЕННЫЙ
+            // тик, как и обе соседние: за плач набегает около −0.6, то есть
+            // «потихонечку приходит в норму», а не обвал в ноль за секунды.
+            if (npc.IsCrying(world.Tick))
+            {
+                npc.Needs.Stress = MathUtil.Clamp01(
+                    npc.Needs.Stress - SimBalance.CryingStressRelief);
+            }
+
             // Spec 40.13: collapse. Utterly spent stamina AND a body pushed to
             // the edge (starving or bleeding) drops the NPC unconscious — it
             // lies helpless for ~80 ticks, then rises. Rare by construction,

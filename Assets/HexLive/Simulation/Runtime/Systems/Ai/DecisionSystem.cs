@@ -70,12 +70,21 @@ public sealed partial class DecisionSystem : ISimulationSystem
             }
 
             // Spec §110: crying her heart out — conscious, but no decisions
-            // until she is done. The body rests like the faint above, and the
-            // release itself sheds stress a little faster than plain calm.
+            // until she is done. The body rests exactly like the faint above.
+            //
+            // ⭐ Стресс здесь НЕ трогаем. Первая редакция вычитала
+            // StressDownRate прямо тут — и это была ошибка масштаба: ставка
+            // отмерена НА МЕДЛЕННЫЙ ТИК (16 обычных), а решения крутятся каждый
+            // тик, так что спад шёл в 16 раз быстрее задуманного и сбрасывал
+            // стресс с 0.95 в ноль за восемь секунд. Наблюдалось это как «она
+            // лежит и рыдает, а полоска стресса пустая и зелёная» — вид не
+            // врал, стресса действительно уже не было. Спад ей и так идёт: пока
+            // она лежит, ни одного повода из stressUp нет, и NeedsDecaySystem
+            // сама снимает по StressDownRate за медленный тик — за 240 тиков
+            // плача это примерно −0.45, то есть «потихонечку приходит в норму».
             if (world.Tick < npc.Mind.CryingUntilTick)
             {
                 npc.Needs.Stamina = MathUtil.Clamp01(npc.Needs.Stamina + 0.02f);
-                npc.Needs.Stress = MathUtil.Clamp01(npc.Needs.Stress - SimBalance.StressDownRate);
                 continue;
             }
 

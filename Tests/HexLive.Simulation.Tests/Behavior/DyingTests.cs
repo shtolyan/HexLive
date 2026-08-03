@@ -214,6 +214,50 @@ public sealed class DyingTests
             "Чип умирания снят вместе с состоянием.");
     }
 
+    /// <summary>
+    /// Пробитая грудь держит её на земле, а не подбрасывает обратно на ноги.
+    ///
+    /// <para>
+    /// Регресс, который был виден в бою: она валилась и вставала В ТОТ ЖЕ
+    /// МОМЕНТ, снова получала удар, снова валилась. Причина — нулевой
+    /// гистерезис: вход пиннил грудь РОВНО в <c>BodyFloor</c>, а выход
+    /// спрашивал «грудь выше <c>BodyFloor</c>?», и первый же тик регенерации
+    /// поднимал её на волосок выше порога. Упасть и встать стоило одного
+    /// медленного тика.
+    /// </para>
+    /// </summary>
+    [Test]
+    public void TorsoCollapse_KeepsHerDown_NotOneTickAndUp()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var girl = world.Entities.Npcs.Values.First();
+        // Сытая и с бинтами — то есть в самых благоприятных для быстрого
+        // подъёма условиях: регенерация открыта, аптечка при ней.
+        girl.Needs.Hunger = 0.2f;
+
+        // Через настоящий путь урона (§105 ResolveTrauma), а не присвоением
+        // поля: проверяем ту развилку, которой пользуется бой.
+        AmputateSystemHelpers.DebugBite(world, girl, BodyPart.Torso, 1f);
+        Assert.That(girl.IsDying, Is.True, "Грудь в ноль обязана ронять в умирание.");
+        Assert.That(girl.Mind.DyingCause, Is.EqualTo(DyingCause.TorsoDestroyed));
+
+        var downFor = 0;
+        for (var i = 0; i < 1500 && girl.IsDying; i++)
+        {
+            engine.Step();
+            downFor++;
+        }
+
+        Assert.That(girl.IsDying, Is.False, "Она всё-таки должна подняться, если выжила.");
+        Assert.That(downFor, Is.GreaterThan(200),
+            "Упала с пробитой грудью — обязана отлежаться. Мгновенный подъём " +
+            "превращает бой в мигание «упала-встала-упала».");
+        Assert.That(girl.Body.Parts[BodyPart.Torso], Is.GreaterThan(Spec105.BodyFloor * 3f),
+            "Встаёт, только когда грудь реально заросла ВЫШЕ порога падения, " +
+            "а не на волосок над ним.");
+    }
+
     [Test]
     public void KillSwitch_RestoresTheInstantDeath()
     {

@@ -44,6 +44,12 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("СПРЫГИВАНИЕ: доля полёта, до которой она летит РОВНО и не падает. Кромка пересекается на ближний/(ближний+дальний) полёта — ставить чуть больше этого, иначе задевает край.")]
         [MirrorField(typeof(HexHopTuning), "DownFallStartFrac")]
         [Range(0f, 0.95f)] public float hopDownFallStartFrac = 0.35f;
+        [Tooltip("Какую долю полёта она РЕАЛЬНО летит: остаток окна уже стоит на месте приземления. Меньше = быстрее домчала и раньше встала (лечит «скользит после приземления»). 1 = едет до последнего мгновения.")]
+        [MirrorField(typeof(HexHopTuning), "FlightSettleFrac")]
+        [Range(0.2f, 1f)] public float hopFlightSettleFrac = 0.65f;
+        [Tooltip("ЗАПРЫГИВАНИЕ: на какой доле полёта тело в самой верхней точке (она чуть выше ступеньки). Меньше = «сначала резко вверх, потом в сторону».")]
+        [MirrorField(typeof(HexHopTuning), "UpApexFrac")]
+        [Range(0.1f, 0.9f)] public float hopUpApexFrac = 0.35f;
         [Tooltip("НЫРОК: на сколько уходит ПОД уровень плавания в нижней точке плюха, потом выныривает.")]
         [Range(0f, 1.5f)] public float divePlungeDepth = 0.35f;
 
@@ -96,6 +102,15 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Верхний предел на ШАГЕ — бодрый шаг вправе слегка обгонять клип.")]
         [MirrorIgnore]
         [Range(1f, 3f)] public float maxWalkCadence = 1.6f;
+        [Tooltip("§71.6: до какого перегона клип шага играется ЧИСТЫМ. Выше порога поза " +
+                 "начинает распускаться в трусцу вместо ускоренной плёнки — ловкость §76 даёт " +
+                 "до +15% к шагу, и мелкое семенение было именно этим. 1 = бленд сразу.")]
+        [MirrorIgnore]
+        [Range(1f, 2f)] public float walkStretchCadence = 1.15f;
+        [Tooltip("§71.6: как далеко ИДУЩАЯ вправе уйти в бленд (трусца = 0.5). " +
+                 "0 = прежнее поведение, чистый шаг на любой скорости.")]
+        [MirrorIgnore]
+        [Range(0f, 0.5f)] public float maxWalkGait = 0.35f;
         [Tooltip("Сглаживание измеренной скорости, постоянная времени в СИМ-секундах. " +
                  "0 = сырые 4 Гц-ступеньки (как было до §71.5), больше = мягче, но ленивее реакция.")]
         [MirrorIgnore]

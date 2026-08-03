@@ -165,6 +165,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 1f)] public float consoleStressRelief = 0.3f;
         [Tooltip("§110: на сколько тиков утешение укорачивает ПЛАЧ (с подругой рядом она выплакивается быстрее).")]
         [Range(0, 400)] public int consoleCryingReliefTicks = 120;
+        [Tooltip("§110: утешала на коленях — столько тиков стоит после, пока играет вставание с колен (28 ≈ длина клипа). Иначе уезжает по земле в позе молитвы.")]
+        [Range(0, 120)] public int consoleStandUpTicks = 28;
         [Tooltip("Прибавка к отношениям с ОБЕИХ сторон за помощь (у разговора 0.075 — доброта роднит сильнее).")]
         [Range(0f, 0.5f)] public float aidRelationshipGain = 0.18f;
         [Tooltip("Длительность действия помощи (тиков).")]

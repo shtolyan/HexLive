@@ -379,7 +379,14 @@ public sealed class PathfindingSystem : ISimulationSystem
             return true;
         }
 
-        if (npc.Mind.CurrentGoal == GoalType.Flee)
+        // §40.17 v2: CHASING a moving target is exempt, for the same reason
+        // fleeing is — the route has to be the shortest one, not the comfiest.
+        // A pursuer paying 4.5x for a ledge walks around it while the quarry
+        // simply hops it, so the gap grows every crossing: measured, §108's group
+        // hunt could no longer land a blow ("Arrived but he moved on", over and
+        // over), and it is the same reasoning that exempts mobs entirely.
+        if (npc.Mind.CurrentGoal is GoalType.Flee or GoalType.GroupHunt or
+            GoalType.Abuse or GoalType.Prey or GoalType.Hunt or GoalType.Defend)
         {
             return false;
         }

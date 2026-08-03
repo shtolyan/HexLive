@@ -286,6 +286,20 @@ namespace HexLive.UnityDebug.Editor
 
                 var ui2 = prayUp.AddTransition(idle);
                 ui2.hasExitTime = true; ui2.exitTime = 0.9f; ui2.duration = 0.25f;
+
+                // §110: пошла — значит молитва кончилась, чем бы её ни подняло
+                // (побежала от волка, план сменился). Без этого клапана тело
+                // ЕДЕТ по земле в позе на коленях: ходьбу ведёт симуляция, а
+                // стейт молитвы её не отпускает. Пауза §53 держит её на месте в
+                // штатном случае; это — страховка на все нештатные. Тот же
+                // приём, что выбивает из Emote (Speed > 0.1).
+                foreach (var prayState in new[] { prayDown, pray, prayUp })
+                {
+                    var bolt = prayState.AddTransition(idle);
+                    bolt.AddCondition(AnimatorConditionMode.Greater, 0.1f, "Speed");
+                    bolt.hasExitTime = false;
+                    bolt.duration = 0.15f;
+                }
             }
 
             // §105: FallDown → (FallenIdle | Sleep) → подъём.

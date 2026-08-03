@@ -828,16 +828,16 @@
    "hook": "сломалась от стресса: легла и рыдает (§110 `CryingBreakdown`)",
    "lines": [
     {
-     "text": "[sobbing] Mifo... mo mifo nip...",
-     "ru": "Не могу... совсем я не могу..."
+     "text": "[sobbing] Mifo... mifo",
+     "ru": "Не могу... не могу"
     },
     {
-     "text": "[crying] Eeeh... birka zig... bi, bi",
-     "ru": "Эх... сердце рвётся... больно, больно"
+     "text": "[crying] Birka zig... bi",
+     "ru": "Сердце рвётся... больно"
     },
     {
-     "text": "[sobbing, weak] Doma... doma mia... nho",
-     "ru": "Домой... домой мне... ох"
+     "text": "[sobbing, weak] Doma... doma",
+     "ru": "Домой... домой"
     }
    ]
   },
@@ -848,16 +848,16 @@
    "hook": "проиграла сцену абьюза, бежит домой в слезах (§81.13 `AbuseFledHome`)",
    "lines": [
     {
-     "text": "[crying] Nhooo... bi nip... bi mia",
-     "ru": "Оох... больно же... больно мне"
+     "text": "[crying] Nhooo... bi nip",
+     "ru": "Оох... больно же"
     },
     {
-     "text": "[sobbing] Kush? Kush mia? Bezharo!",
-     "ru": "Почему? Почему мне? Нехорошо!"
+     "text": "[sobbing] Kush? Kush?",
+     "ru": "Почему? Почему?"
     },
     {
-     "text": "[crying, weak] Zada! Mo doma... doma nam",
-     "ru": "Уйди! Я домой... домой надо"
+     "text": "[crying, weak] Mo doma... doma",
+     "ru": "Я домой... домой"
     }
    ]
   },
@@ -1228,16 +1228,16 @@
    "hook": "утешает рыдающую: «ну не плачь» (§110 `ConsoleOther`)",
    "lines": [
     {
-     "text": "[soothing] Mira, janeiko. Bezbi nam",
-     "ru": "Тихо, милая. Не будет больно"
+     "text": "[soothing] Mira, janeiko",
+     "ru": "Тихо, милая"
     },
     {
-     "text": "[caring] Mo nip tut. Dai lapa, dai",
-     "ru": "Я здесь. Дай руку, дай"
+     "text": "[caring] Mo nip tut. Dai lapa",
+     "ru": "Я здесь. Дай руку"
     },
     {
-     "text": "[soothing] Besshoop. Haro nam, janeiko",
-     "ru": "Не страшно. Всё будет хорошо, милая"
+     "text": "[soothing] Besshoop. Haro nam",
+     "ru": "Не страшно. Всё хорошо"
     }
    ]
   },

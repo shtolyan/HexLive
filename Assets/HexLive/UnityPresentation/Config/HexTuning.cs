@@ -52,6 +52,8 @@ namespace HexLive.UnityPresentation.Config
             NpcActorView.MinGaitCadence = c.minGaitCadence;
             NpcActorView.MaxGaitCadence = c.maxGaitCadence;
             NpcActorView.MaxWalkCadence = c.maxWalkCadence;
+            NpcActorView.WalkStretchCadence = c.walkStretchCadence;
+            NpcActorView.MaxWalkGait = c.maxWalkGait;
             NpcActorView.SpeedSmoothTau = c.speedSmoothTau;
             NpcActorView.WalkHoldSeconds = c.walkHoldSeconds;
             NpcActorView.PivotYawSpeed = c.pivotYawSpeed;
@@ -88,6 +90,8 @@ namespace HexLive.UnityPresentation.Config
             c.minGaitCadence = NpcActorView.MinGaitCadence;
             c.maxGaitCadence = NpcActorView.MaxGaitCadence;
             c.maxWalkCadence = NpcActorView.MaxWalkCadence;
+            c.walkStretchCadence = NpcActorView.WalkStretchCadence;
+            c.maxWalkGait = NpcActorView.MaxWalkGait;
             c.speedSmoothTau = NpcActorView.SpeedSmoothTau;
             c.walkHoldSeconds = NpcActorView.WalkHoldSeconds;
             c.pivotYawSpeed = NpcActorView.PivotYawSpeed;

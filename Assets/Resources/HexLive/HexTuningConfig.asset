@@ -20,6 +20,8 @@ MonoBehaviour:
   hopFarPadding: 0.65
   hopDownUp: 0
   hopDownFallStartFrac: 0.15
+  hopFlightSettleFrac: 0.65
+  hopUpApexFrac: 0.35
   divePlungeDepth: 0.7
   swimEntryPauseSeconds: 2
   swimSpeedFactor: 0.6

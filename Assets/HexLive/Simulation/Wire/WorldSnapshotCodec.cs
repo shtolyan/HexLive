@@ -51,7 +51,9 @@ public static class WorldSnapshotCodec
     /// вид укладывает её сонной цепочкой и не глушит ей речь.
     /// v9: §81.10 IsSadWalk — понурая походка стала состоянием сима (она ещё и
     /// ходит вдвое медленнее), а была таймером внутри вида.
-    public const int WireVersion = 9;
+    /// v10: §105 r2 VitalHealth — худшая витальная зона; кольцо вокруг
+    /// портрета показывает ЕЁ, а не среднее по семи зонам.
+    public const int WireVersion = 10;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -601,6 +603,7 @@ public static class WorldSnapshotCodec
         WireIo.WriteStrings(w, n.Skills);
         WireIo.WriteStrings(w, n.Perks);
         w.Write(n.WoundLockedHp);
+        w.Write(n.VitalHealth); // §105 r2
 
         w.Write(n.KnownObjectCount);
         WireIo.WriteNullableInt(w, n.GoalLockEndTick);
@@ -772,6 +775,7 @@ public static class WorldSnapshotCodec
         WireIo.ReadStrings(r, n.Skills);
         WireIo.ReadStrings(r, n.Perks);
         n.WoundLockedHp = r.ReadSingle();
+        n.VitalHealth = r.ReadSingle(); // §105 r2
 
         n.KnownObjectCount = r.ReadInt32();
         n.GoalLockEndTick = WireIo.ReadNullableInt(r);

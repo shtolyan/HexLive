@@ -413,6 +413,19 @@ public sealed partial class ExecutionSystem
                 // Comforting someone eases the comforter's own tension a touch.
                 helper.Needs.Stress = MathUtil.Clamp01(
                     helper.Needs.Stress - Spec53.ConsoleStressRelief * 0.3f);
+
+                // §110: она утешала СТОЯ НА КОЛЕНЯХ (§53.6 — молитвенная поза
+                // над лежащей), и подняться с колен занимает целый клип. Без
+                // этой паузы решение следующего тика уводит её пешком, и она
+                // уезжает по земле в позе молитвы. Пауза = ровно длина вставания;
+                // грейс §41.5 уже умеет «стой и приходи в себя», так что новый
+                // способ держать тело на месте заводить не нужно.
+                if (target.IsLyingDown(world.Tick))
+                {
+                    helper.Mind.WakeGraceUntilTick = System.Math.Max(
+                        helper.Mind.WakeGraceUntilTick, world.Tick + Spec53.ConsoleStandUpTicks);
+                }
+
                 break;
         }
 

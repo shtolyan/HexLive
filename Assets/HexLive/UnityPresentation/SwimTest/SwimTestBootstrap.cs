@@ -103,6 +103,14 @@ public sealed class SwimTestBootstrap : MonoBehaviour
     [Range(0f, 0.95f)]
     [SerializeField] private float _hopDownFallStart = 0.5f;
 
+    [Tooltip("Какую долю полёта она РЕАЛЬНО летит: остаток окна уже стоит на месте приземления. Меньше = быстрее домчала и раньше встала (лечит «скользит после приземления»).")]
+    [Range(0.2f, 1f)]
+    [SerializeField] private float _hopFlightSettle = 0.65f;
+
+    [Tooltip("ЗАПРЫГИВАНИЕ: на какой доле полёта тело в самой верхней точке. Меньше = «сначала резко вверх, потом в сторону».")]
+    [Range(0.1f, 0.9f)]
+    [SerializeField] private float _hopUpApex = 0.35f;
+
     [Tooltip("Задержка старта симуляции после запуска сцены (реальные секунды): Unity успевает прогрузиться и отрисоваться, пока мир стоит на паузе.")]
     [Range(0f, 10f)]
     [SerializeField] private float _startDelaySeconds = 3f;
@@ -131,6 +139,8 @@ public sealed class SwimTestBootstrap : MonoBehaviour
         _tuningConfig.hopFarPadding = _hopFarPadding;
         _tuningConfig.hopDownUp = _hopDownUp;
         _tuningConfig.hopDownFallStartFrac = _hopDownFallStart;
+        _tuningConfig.hopFlightSettleFrac = _hopFlightSettle;
+        _tuningConfig.hopUpApexFrac = _hopUpApex;
         _tuningConfig.divePlungeDepth = _divePlungeDepth;
         _tuningConfig.swimEntryPauseSeconds = _treadPauseSeconds;
         _tuningConfig.swimSpeedFactor = _swimSpeedFactor;
@@ -162,6 +172,8 @@ public sealed class SwimTestBootstrap : MonoBehaviour
         _hopFarPadding = _tuningConfig.hopFarPadding;
         _hopDownUp = _tuningConfig.hopDownUp;
         _hopDownFallStart = _tuningConfig.hopDownFallStartFrac;
+        _hopFlightSettle = _tuningConfig.hopFlightSettleFrac;
+        _hopUpApex = _tuningConfig.hopUpApexFrac;
         _divePlungeDepth = _tuningConfig.divePlungeDepth;
         _treadPauseSeconds = _tuningConfig.swimEntryPauseSeconds;
         _swimSpeedFactor = _tuningConfig.swimSpeedFactor;
@@ -482,6 +494,8 @@ public sealed class SwimTestBootstrap : MonoBehaviour
         HexHopTuning.DivePlungeDepth = _divePlungeDepth;
         HexHopTuning.DownHopUp = _hopDownUp;
         HexHopTuning.DownFallStartFrac = _hopDownFallStart;
+        HexHopTuning.FlightSettleFrac = _hopFlightSettle;
+        HexHopTuning.UpApexFrac = _hopUpApex;
     }
 
     // ---- environment ----

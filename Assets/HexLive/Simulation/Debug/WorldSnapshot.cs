@@ -650,6 +650,14 @@ public sealed class NpcSnapshot
     // bar segment — regen can't cross it; it shrinks as wounds close).
     public float WoundLockedHp { get; set; }
 
+    // §105 r2: ХУДШАЯ витальная зона (голова/грудь) — то, что панель рисует
+    // кольцом вокруг портрета. НЕ то же, что Health: среднее по семи зонам
+    // врёт в обе стороны (разбитая грудь при целых конечностях читается как
+    // «0.75, всё неплохо», хотя следующий удар убивает). Считается симом —
+    // «что такое витальная зона» знает BodyState.VitalHealth, и вид не должен
+    // заводить второе мнение.
+    public float VitalHealth { get; set; } = 1f;
+
     public int InventoryCapacity { get; set; }
 
     // §28.15C v3: каким клипом она упала. Число обязано прийти из симуляции, а

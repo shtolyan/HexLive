@@ -111,7 +111,12 @@ public static class SpeechCatalog
         ["cry_beaten"] = new("Grief", Rank.Action, 30f),
         // §110: лежит и рыдает после стресс-краха. Ambient — потому что это
         // фон состояния, а не событие; пауза between всхлипами = AmbientGap.
-        ["cry_breakdown"] = new("Grief", Rank.Ambient, 20f),
+        // §110: всхлип — не бормотание себе под нос, а сама сцена, поэтому
+        // ранг Action: слой Ambient молчит в компании (а подруга как раз
+        // подошла утешать) и держит пол в 25 с — на 60-секундный плач это два
+        // звука за всю истерику. Action оставляет только MinGap: хнычет каждые
+        // ~12 с, и рядом стоящая её слышит.
+        ["cry_breakdown"] = new("Grief", Rank.Action, 12f),
         ["angry_defend"] = new("Attack", Rank.Alarm, 10f),
         ["fear_dark_alone"] = new("Warning", Rank.Ambient, 120f),
         ["fear_stranger"] = new("Warning", Rank.Alarm, 15f),

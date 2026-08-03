@@ -82,6 +82,11 @@ public static class Spec53
     // (CryingUntilTick) — с подругой рядом она выплакивается быстрее.
     public static int ConsoleCryingReliefTicks = 120;
 
+    // §110: утешала на коленях — столько тиков стоит после, пока играет
+    // вставание. Держать РАВНЫМ длине клипа PrayUp (6.9 с ≈ 28 тиков при 4/с):
+    // меньше — она уедет пешком в позе молитвы, больше — просто постоит зря.
+    public static int ConsoleStandUpTicks = 28;
+
     // Relationship gain on BOTH sides of a completed aid — deliberately larger
     // than a chat: kindness under hardship bonds hard.
     public static float AidRelationshipGain = 0.18f;

@@ -67,6 +67,32 @@ public static class HexHopTuning
     // Presentation only. 0 = fall immediately (old behaviour), 1 = no fall.
     public static float DownFallStartFrac = 0.35f;
 
+    // §21.21B v16: on a CLIMB, what fraction of the airborne beat actually
+    // COVERS the distance. The rest of it she is already standing on the ledge.
+    // Why: the sim spread 0.75 wu evenly over the whole beat, so the body
+    // reached the upper level early (the arc overshoots on purpose) and then kept
+    // sliding horizontally for another half second — she read as standing on the
+    // step and skating onto it. Arriving EARLY inside the beat kills that: she
+    // lands, then plants. 1 = the old behaviour (travel to the last instant).
+    // The view ends its arc on the same fraction, so the two clocks still agree
+    // by construction.
+    // UP ONLY, deliberately. A drop lands FarPadding out and never had the
+    // slide, and every tick of movement timing reshuffles the dog dance: applied
+    // to both directions this tipped seed 816616098 — the outsider ended the run
+    // comatose and §81's abuse test went red. Halving the perturbation keeps the
+    // fix where the complaint was.
+    public static float FlightSettleFrac = 0.65f;
+
+    // The fraction for a hop in the given direction: the settle applies to a
+    // climb, a drop keeps the full beat (see above).
+    public static float SettleFrac(bool up) => up ? FlightSettleFrac : 1f;
+
+    // Climbing UP: at what fraction of the covered flight the body is at its
+    // highest (its apex overshoots the target ledge, see JumpUpOvershoot).
+    // Earlier = snappier "up first, then over" read, which is what a real step-up
+    // looks like. Presentation only. 0.5 was the original symmetric arc.
+    public static float UpApexFrac = 0.35f;
+
     // Diving into water: the body SPLASHES this many world units BELOW the
     // swim level at the deepest point of the plunge, then bobs back up to it
     // — a real plunge with a resurface, not a hover-stop at the waterline.

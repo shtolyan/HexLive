@@ -850,6 +850,7 @@ public static class WorldSnapshotExporter
         }
 
         npcSnapshot.WoundLockedHp = lockedHp / npc.Body.Parts.Count;
+        npcSnapshot.VitalHealth = npc.Body.VitalHealth(); // §105 r2
 
         // Spec §48: derive the active status effects (buffs/debuffs) from this
         // NPC's live state — read-only, so nothing here touches balance. Each

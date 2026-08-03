@@ -36,15 +36,23 @@ public static class HexHopTuning
     public static float WindowSeconds(bool up) => up ? HopSeconds : DownHopSeconds;
     public static float DownBeatScale => DownHopSeconds / System.MathF.Max(0.0001f, HopSeconds);
 
-    // Symmetric wall clearance (world units, measured PERPENDICULAR to the
-    // obstacle border): the jump takes off exactly this far on the stand
-    // side of the wall and lands exactly this far on the target side. The
-    // lattice-point positions are only a DIRECTION hint — the takeoff/landing
-    // are placed geometrically, so a boundary point sitting right on the wall
-    // can no longer leave her jumping flush against it.
-    // 0.3 => takeoff 0.3 before the wall, land 0.3 past it, jump length 0.6
-    // (2*EdgePadding) — "just over the edge". Raise for a bigger leap.
+    // §21.21B v14: the jump is ASYMMETRIC, and which end is which flips with
+    // the direction. EdgePadding is the NEAR end (right at the lip),
+    // FarPadding the FAR one; both are measured ALONG the flight from the
+    // border, so every jump is EdgePadding + FarPadding long regardless of
+    // approach angle (v10).
+    //   DOWN: takeoff -EdgePadding (pushes off the very edge), land +FarPadding
+    //   UP:   takeoff -FarPadding (runs up and leaves early), land +EdgePadding
+    // That is how a person actually clears a step, and it fixes both halves of
+    // the old symmetric model: a drop that landed 0.1 past the lip read as
+    // SLIDING off (flight speed 0.44 wu/s against a 1.2 walk), and a climb that
+    // left 0.1 from the wall had no run-up at all. Do NOT confuse this with v7's
+    // rejected asymmetry — that one had takeoff flush ON the wall (0.00), so she
+    // walked into it; the near end stays non-zero here.
+    // The lattice points are only a DIRECTION hint; both ends are placed
+    // geometrically from the tile-centre crossing.
     public static float EdgePadding = 0.3f;
+    public static float FarPadding = 0.65f;
 
     // Dropping DOWN: a little UP pop off the edge before the fall (world
     // units) so the feet clear the lip instead of scraping it. Presentation
@@ -52,11 +60,12 @@ public static class HexHopTuning
     public static float DownHopUp = 0.2f;
 
     // Dropping DOWN: fraction of the FLIGHT she stays LEVEL (no drop) before
-    // gravity kicks in. The flight is symmetric about the wall border, which
-    // she crosses at 0.5 — so holding to ~0.5 means she sails OVER the lip and
-    // only falls once she's above the lower ground, never scraping the edge.
+    // gravity kicks in. Hold until she is PAST the lip or her feet scrape it.
+    // §21.21B v14: the flight is no longer symmetric, so the border is crossed
+    // at EdgePadding / (EdgePadding + FarPadding) of the flight — 0.32 on the
+    // code defaults, 0.13 on the shipped ones. Set this just above that.
     // Presentation only. 0 = fall immediately (old behaviour), 1 = no fall.
-    public static float DownFallStartFrac = 0.5f;
+    public static float DownFallStartFrac = 0.35f;
 
     // Diving into water: the body SPLASHES this many world units BELOW the
     // swim level at the deepest point of the plunge, then bobs back up to it

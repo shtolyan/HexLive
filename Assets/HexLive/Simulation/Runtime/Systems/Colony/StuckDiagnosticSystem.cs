@@ -84,7 +84,8 @@ public sealed class StuckDiagnosticSystem : ISimulationSystem
 
         // Без сознания — не застой, а сюжет. Спящая и в коме обязаны лежать
         // неподвижно, и жаловаться на это значит утопить настоящие находки.
-        if (npc.IsUnconscious(world.Tick) || npc.Health <= 0f)
+        // §110: рыдающая лежит неподвижно ровно так же, как спящая.
+        if (npc.IsUnconscious(world.Tick) || npc.IsCrying(world.Tick) || npc.Health <= 0f)
         {
             _watch.Remove(id);
             return;

@@ -32,15 +32,18 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 2f)] public float hopLandingSeconds = 0.5f;
 
         [Header("Прыжок — геометрия")]
-        [Tooltip("ОТСТУП от стены (мировые единицы): взлетает за столько ДО стены и приземляется за столько ПОСЛЕ — симметрично. Больше = длиннее прыжок.")]
+        [Tooltip("БЛИЖНИЙ конец прыжка — отступ у самой кромки (мировые единицы). СПРЫГИВАНИЕ отталкивается за столько ДО кромки; ЗАПРЫГИВАНИЕ приземляется за столько ПОСЛЕ неё.")]
         [MirrorField(typeof(HexHopTuning), "EdgePadding")]
         [Range(0.1f, 1.5f)] public float hopEdgePadding = 0.3f;
+        [Tooltip("ДАЛЬНИЙ конец прыжка (мировые единицы). СПРЫГИВАНИЕ приземляется за столько ЗА кромкой; ЗАПРЫГИВАНИЕ отталкивается за столько ДО неё (разбег). Длина прыжка = ближний + дальний.")]
+        [MirrorField(typeof(HexHopTuning), "FarPadding")]
+        [Range(0.2f, 1.2f)] public float hopFarPadding = 0.65f;
         [Tooltip("СПРЫГИВАНИЕ: на сколько подпрыгивает ВВЕРХ с края перед падением (клиренс ног над кромкой). 0 = сразу вниз.")]
         [MirrorField(typeof(HexHopTuning), "DownHopUp")]
         [Range(0f, 0.8f)] public float hopDownUp = 0.2f;
-        [Tooltip("СПРЫГИВАНИЕ: доля полёта, до которой она летит РОВНО и не падает. 0.5 = падает только перелетев кромку. Меньше = падает раньше (может задеть край).")]
+        [Tooltip("СПРЫГИВАНИЕ: доля полёта, до которой она летит РОВНО и не падает. Кромка пересекается на ближний/(ближний+дальний) полёта — ставить чуть больше этого, иначе задевает край.")]
         [MirrorField(typeof(HexHopTuning), "DownFallStartFrac")]
-        [Range(0f, 0.95f)] public float hopDownFallStartFrac = 0.5f;
+        [Range(0f, 0.95f)] public float hopDownFallStartFrac = 0.35f;
         [Tooltip("НЫРОК: на сколько уходит ПОД уровень плавания в нижней точке плюха, потом выныривает.")]
         [Range(0f, 1.5f)] public float divePlungeDepth = 0.35f;
 

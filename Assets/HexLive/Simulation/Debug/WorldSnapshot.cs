@@ -420,6 +420,13 @@ public sealed class NpcSnapshot
     // ground height (water dives land below the surface, not one step down).
     public TileCoord HopTargetTile { get; set; } = TileCoord.Zero;
 
+    // §21.21B v15: the tile the hop took off from. The arc's height delta is
+    // target - from, so a hop first SEEN mid-window still arcs the right way;
+    // deriving it from Tile broke there, because the sim commits Tile to the
+    // landing tile while HopKind is still set (delta 0 = body hangs a step off
+    // the ground, then teleports when the window closes).
+    public TileCoord HopFromTile { get; set; } = TileCoord.Zero;
+
     // §21.21B: the tick the hop started. The view arms the arc on a start it
     // has not played yet (HopKind's rising edge is lost whenever the frame
     // skips the tick that raised it) and, when it observes one late, shortens
@@ -440,6 +447,12 @@ public sealed class NpcSnapshot
     // Effects чипом Dying (сила чипа = сколько уже вытекло), поэтому здесь
     // хватает одного флага.
     public bool IsDying { get; set; }
+
+    // Spec §110: сломалась от стресса — ЛЕЖИТ И ПЛАЧЕТ, но в сознании. Вид
+    // укладывает её сонной цепочкой (LieDown→Sleep, а не падением), держит
+    // вторую позу сна и лицо «cry», и периодически даёт слёзный смайл со
+    // всхлипом. Отдельный флаг именно потому, что это НЕ беспамятство.
+    public bool IsCrying { get; set; }
 
     // Spec §53 r2: while this NPC is aiding a housemate (Feed/Hydrate/Treat/…),
     // is her WARD lying down (coma/faint/asleep/prone)? The kneeling "tending"

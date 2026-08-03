@@ -163,6 +163,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 0.5f)] public float medicateHeal = 0.1f;
         [Tooltip("На сколько снижается СТРЕСС утешённого соседа.")]
         [Range(0f, 1f)] public float consoleStressRelief = 0.3f;
+        [Tooltip("§110: на сколько тиков утешение укорачивает ПЛАЧ (с подругой рядом она выплакивается быстрее).")]
+        [Range(0, 400)] public int consoleCryingReliefTicks = 120;
         [Tooltip("Прибавка к отношениям с ОБЕИХ сторон за помощь (у разговора 0.075 — доброта роднит сильнее).")]
         [Range(0f, 0.5f)] public float aidRelationshipGain = 0.18f;
         [Tooltip("Длительность действия помощи (тиков).")]

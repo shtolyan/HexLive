@@ -298,6 +298,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 0.2f)] public float stressUpRate = 0.05f;
         [Tooltip("Спад стресса за тик в покое.")]
         [Range(0f, 0.2f)] public float stressDownRate = 0.03f;
+        [Tooltip("§110: сколько тиков она лежит и рыдает после стресс-краха (утешение укорачивает).")]
+        [Range(30, 900)] public int cryingBreakdownTicks = 240;
 
         [Header("Климат")]
         [Tooltip("Средняя температура острова (°C).")]

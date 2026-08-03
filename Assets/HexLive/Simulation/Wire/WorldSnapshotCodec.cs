@@ -47,7 +47,9 @@ public static class WorldSnapshotCodec
     /// в записи человека.
     /// v6: §105 IsDying — она лежит и умирает, и вид роняет её на землю.
     /// v7: §85 EyeColor — цвет глаз отвязан от SkinSet и катится своей осью.
-    public const int WireVersion = 7;
+    /// v8: §110 IsCrying — стресс-крах кладёт её плакать, и это НЕ обморок:
+    /// вид укладывает её сонной цепочкой и не глушит ей речь.
+    public const int WireVersion = 8;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -523,10 +525,12 @@ public static class WorldSnapshotCodec
         w.Write(n.Breath);
         WireIo.WriteString(w, n.HopKind);
         WireIo.WriteTile(w, n.HopTargetTile);
+        WireIo.WriteTile(w, n.HopFromTile);
         w.Write(n.HopStartTick);
         w.Write(n.IsFainted);
         w.Write(n.IsUnconscious);
         w.Write(n.IsDying); // §105
+        w.Write(n.IsCrying); // §110
         w.Write(n.AidTargetLyingDown);
         w.Write(n.IsLedgeSit);
         w.Write(n.LedgeSeatStepsUp);
@@ -699,10 +703,12 @@ public static class WorldSnapshotCodec
         n.Breath = r.ReadSingle();
         n.HopKind = r.ReadString();
         n.HopTargetTile = WireIo.ReadTile(r);
+        n.HopFromTile = WireIo.ReadTile(r);
         n.HopStartTick = r.ReadInt32();
         n.IsFainted = r.ReadBoolean();
         n.IsUnconscious = r.ReadBoolean();
         n.IsDying = r.ReadBoolean(); // §105
+        n.IsCrying = r.ReadBoolean(); // §110
         n.AidTargetLyingDown = r.ReadBoolean();
         n.IsLedgeSit = r.ReadBoolean();
         n.LedgeSeatStepsUp = r.ReadInt32();

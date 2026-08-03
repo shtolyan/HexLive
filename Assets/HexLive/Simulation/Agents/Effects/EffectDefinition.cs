@@ -105,6 +105,9 @@ namespace HexLive.Simulation.Agents.Effects
             Add(EffectKind.Dying, EffectPolarity.Debuff, EffectCategory.Injury, "💀");
             Add(EffectKind.Convalescent, EffectPolarity.Debuff, EffectCategory.Injury, "🤒");
 
+            // §110: сломалась от стресса — лежит и рыдает.
+            Add(EffectKind.Crying, EffectPolarity.Debuff, EffectCategory.Mind, "😭");
+
             return map;
         }
     }

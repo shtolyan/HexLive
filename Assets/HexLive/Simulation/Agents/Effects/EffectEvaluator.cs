@@ -258,7 +258,15 @@ namespace HexLive.Simulation.Agents.Effects
                 results.Add(new ActiveEffect(EffectKind.Grieving, 1f));
             }
 
-            if (needs.Stress >= StressShow)
+            // §110: пока она лежит и рыдает, чип «плачет» ВЫТЕСНЯЕТ «на нервах»
+            // — два оттенка одного и того же ничего игроку не добавят, а
+            // громче здесь именно слёзы.
+            var crying = npc.IsCrying(currentTick);
+            if (crying)
+            {
+                results.Add(new ActiveEffect(EffectKind.Crying, 1f));
+            }
+            else if (needs.Stress >= StressShow)
             {
                 results.Add(new ActiveEffect(EffectKind.Stressed, needs.Stress));
             }

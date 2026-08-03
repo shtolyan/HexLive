@@ -58,6 +58,17 @@ public sealed class Junction
     public bool Door { get; set; }
 
     public List<JunctionId> Neighbors { get; } = new();
+
+    // §40.17 v2: the signed elevation change of the step this -> Neighbors[i],
+    // precomputed at worldgen by the SAME resolver the hop arming uses
+    // (HexPathfinder.TryGetDirectedStepTile), so pathfinding and execution agree
+    // on what a jump is. 0 = flat, +1/-1 = a hop up/down.
+    // Why per-EDGE and not per-junction: a seam junction borders both elevations,
+    // so charging for ENTERING one also charged the detour that merely walks
+    // ALONG the wall — the exact route the weight is supposed to encourage.
+    // Worldgen-static (tile elevations never change at runtime) and rebuilt with
+    // the graph when a save loads, so it is never serialized.
+    public sbyte[] NeighborStepDelta;
 }
 
 public sealed class FragmentLink

@@ -716,6 +716,10 @@ public static class WorldSnapshotExporter
             IsFainted = world.Tick < npc.Mind.FaintedUntilTick,
             IsUnconscious = npc.Mind.ComaCause == AI.ComaCause.BloodLoss,
             IsDying = npc.IsDying, // §105
+            // §110: лежит и плачет — В СОЗНАНИИ, поэтому отдельный флаг, а не
+            // ветка IsFainted: вид кладёт её как спящую (не роняет) и не
+            // затыкает ей рот, чтобы всхлипы и слёзный смайл шли своим чередом.
+            IsCrying = npc.IsCrying(world.Tick),
             IsWaking = world.Tick < npc.Mind.WakeGraceUntilTick,
             Stress = npc.Needs.Stress,
             CurrentGoal = npc.Mind.CurrentGoal.ToString(),
@@ -945,6 +949,7 @@ public static class WorldSnapshotExporter
             : string.Empty;
         npcSnapshot.HopStartTick = npc.Movement.HopStartTick;
         npcSnapshot.HopTargetTile = npc.Movement.HopTargetTile;
+        npcSnapshot.HopFromTile = npc.Movement.HopFromTile;
 
         // Iter 28: sitting at a junction whose tiles step exactly one
         // level = a ledge seat; the view plants the butt on the upper step.

@@ -402,6 +402,14 @@ public sealed partial class ExecutionSystem
                     target.Mind.GrievingUntilTick = System.Math.Max(
                         world.Tick, target.Mind.GrievingUntilTick - 600);
                 }
+
+                // §110: утешение укорачивает и сам плач — с подругой рядом
+                // она выплакивается заметно быстрее, чем одна.
+                if (world.Tick < target.Mind.CryingUntilTick)
+                {
+                    target.Mind.CryingUntilTick = System.Math.Max(
+                        world.Tick, target.Mind.CryingUntilTick - Spec53.ConsoleCryingReliefTicks);
+                }
                 // Comforting someone eases the comforter's own tension a touch.
                 helper.Needs.Stress = MathUtil.Clamp01(
                     helper.Needs.Stress - Spec53.ConsoleStressRelief * 0.3f);

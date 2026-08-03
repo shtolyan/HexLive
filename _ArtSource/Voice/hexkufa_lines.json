@@ -822,6 +822,46 @@
    ]
   },
   {
+   "code": "C14",
+   "id": "cry_breakdown",
+   "priority": "P1",
+   "hook": "сломалась от стресса: легла и рыдает (§110 `CryingBreakdown`)",
+   "lines": [
+    {
+     "text": "[sobbing] Mifo... mo mifo nip...",
+     "ru": "Не могу... совсем я не могу..."
+    },
+    {
+     "text": "[crying] Eeeh... birka zig... bi, bi",
+     "ru": "Эх... сердце рвётся... больно, больно"
+    },
+    {
+     "text": "[sobbing, weak] Doma... doma mia... nho",
+     "ru": "Домой... домой мне... ох"
+    }
+   ]
+  },
+  {
+   "code": "C15",
+   "id": "cry_beaten",
+   "priority": "P1",
+   "hook": "проиграла сцену абьюза, бежит домой в слезах (§81.13 `AbuseFledHome`)",
+   "lines": [
+    {
+     "text": "[crying] Nhooo... bi nip... bi mia",
+     "ru": "Оох... больно же... больно мне"
+    },
+    {
+     "text": "[sobbing] Kush? Kush mia? Bezharo!",
+     "ru": "Почему? Почему мне? Нехорошо!"
+    },
+    {
+     "text": "[crying, weak] Zada! Mo doma... doma nam",
+     "ru": "Уйди! Я домой... домой надо"
+    }
+   ]
+  },
+  {
    "code": "D1",
    "id": "happy_topic_smalltalk",
    "priority": "P1",
@@ -1178,6 +1218,26 @@
     {
      "text": "[soothing] Mira-mira... ronka fesh nam",
      "ru": "Тихо-тихо... рана заживёт"
+    }
+   ]
+  },
+  {
+   "code": "E1a",
+   "id": "happy_console",
+   "priority": "P2",
+   "hook": "утешает рыдающую: «ну не плачь» (§110 `ConsoleOther`)",
+   "lines": [
+    {
+     "text": "[soothing] Mira, janeiko. Bezbi nam",
+     "ru": "Тихо, милая. Не будет больно"
+    },
+    {
+     "text": "[caring] Mo nip tut. Dai lapa, dai",
+     "ru": "Я здесь. Дай руку, дай"
+    },
+    {
+     "text": "[soothing] Besshoop. Haro nam, janeiko",
+     "ru": "Не страшно. Всё будет хорошо, милая"
     }
    ]
   },

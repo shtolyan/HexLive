@@ -373,12 +373,18 @@ public sealed class NPCState
     public bool IsUnconscious(int tick) =>
         Mind.ComaCause != AI.ComaCause.None || IsDying || tick < Mind.FaintedUntilTick;
 
+    // Spec §110: lying down and crying — the stress arm of the §40.13 collapse.
+    // Deliberately NOT part of IsUnconscious: she is awake (pain interrupts,
+    // cues/speech still show), she just can't act until she cries it out.
+    public bool IsCrying(int tick) => tick < Mind.CryingUntilTick;
+
     // Spec §53/§60: is this body lying flat on the ground right now — knocked
-    // out (coma/faint), asleep, or legless-prone? A lying ward keeps her
-    // authored pose (helpers/chatters must not spin her to "face" them), and
-    // the aid animation kneels beside her only when she is DOWN.
+    // out (coma/faint), asleep, crying (§110), or legless-prone? A lying ward
+    // keeps her authored pose (helpers/chatters must not spin her to "face"
+    // them), and the aid animation kneels beside her only when she is DOWN.
     public bool IsLyingDown(int tick) =>
         IsUnconscious(tick) ||
+        IsCrying(tick) ||
         Execution.CurrentInteraction == InteractionType.Sleep ||
         Body.IsProne;
 

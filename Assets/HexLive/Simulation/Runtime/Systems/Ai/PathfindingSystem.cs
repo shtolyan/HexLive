@@ -348,6 +348,15 @@ public sealed class PathfindingSystem : ISimulationSystem
             }
 
             npc.Movement.PathIndex = 1;
+            // §21.21B v15: a new path renumbers the steps, so hop state carried
+            // over from the old one is nonsense. HopPathIndex is the dangerous
+            // half: the wall scan is gated on `HopPathIndex != PathIndex`, and a
+            // hop that started on step 1 of the PREVIOUS path left it at 1 — the
+            // same value every new path starts with, so the scan was skipped on
+            // the first step and she crossed the elevation border WALKING. No
+            // hop, no arc, just a silent step up the cliff.
+            npc.Movement.HopArmed = false;
+            npc.Movement.HopPathIndex = -1;
             npc.Movement.IsMoving = path.Count > 1;
             npc.Movement.Status = npc.Movement.IsMoving ? MovementStatus.Moving : MovementStatus.Arrived;
             npc.Movement.StopReason = string.Empty;

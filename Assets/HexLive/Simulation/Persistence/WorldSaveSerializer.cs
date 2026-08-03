@@ -49,7 +49,7 @@ public static class WorldSaveSerializer
     // грани, ровно как когда-то чинила культю (§50).
     // v24 (§85): цвет глаз. Отдельным полем, потому что до §85 он ехал внутри
     // SkinSet — материалы актрисы несли и её глаза тоже.
-    public const int BlobVersion = 24;
+    public const int BlobVersion = 25;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -775,6 +775,9 @@ public static class WorldSaveSerializer
         w.Write((int)mind.DyingCause);
         w.Write(mind.DyingReserve);
         w.Write(mind.ConvalescentUntilTick);
+        // §110 (v25): слёзы переживают сохранение — иначе перезагрузка
+        // мгновенно «утешала» бы лежащую и рыдающую.
+        w.Write(mind.CryingUntilTick);
         w.Write(mind.WakeGraceUntilTick);
         w.Write(mind.AdrenalineUntilTick);
         w.Write(mind.PendingTalkSinceTick);
@@ -1143,6 +1146,9 @@ public static class WorldSaveSerializer
             mind.DyingReserve = r.ReadSingle();
             mind.ConvalescentUntilTick = r.ReadInt32();
         }
+
+        // §110: старый сейв просто не плачет — 0 значит «не плачет».
+        mind.CryingUntilTick = version >= 25 ? r.ReadInt32() : 0;
 
         mind.WakeGraceUntilTick = r.ReadInt32();
         mind.AdrenalineUntilTick = version >= 9 ? r.ReadInt32() : 0;

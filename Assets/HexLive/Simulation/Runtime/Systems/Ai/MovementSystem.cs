@@ -27,6 +27,11 @@ public sealed class MovementSystem : ISimulationSystem
     public static float SwimEntryPauseSeconds = 0.75f;
     public static float SwimSpeedFactor = 0.6f;
 
+    // §21.21B v14: how far off the flight axis a lattice point may sit and still
+    // count as "flown over" (world units). Below the 0.375 lattice pitch, so a
+    // point in the NEXT column — i.e. the route turning away — is never skipped.
+    private const float FlightCorridorHalfWidth = 0.3f;
+
     // Deep water = swim tile; the definition moved to SpatialQueries.IsSwimTile
     // (§106) so combat gates and movement can never disagree about who swims.
 
@@ -176,8 +181,15 @@ public sealed class MovementSystem : ISimulationSystem
                 var scanDist = 0f;
                 var scanFrom = npc.Position;
                 var scanTile = hopStandTile;
+                // §21.21B v14: an UP-jump now takes off FarPadding before the
+                // wall, so the wall has to be spotted at least that far out or
+                // the takeoff point lands behind her and the guard below has to
+                // salvage it (climb degrades to a flush walk-up). Scan on the
+                // LONGER of the two paddings.
+                var scanReach = System.MathF.Max(
+                    HexHopTuning.EdgePadding, HexHopTuning.FarPadding) + 1.2f;
                 for (var i = npc.Movement.PathIndex;
-                     i < npc.Movement.JunctionPath.Count && scanDist < HexHopTuning.EdgePadding + 1.2f;
+                     i < npc.Movement.JunctionPath.Count && scanDist < scanReach;
                      i++)
                 {
                     var toJunctionId = npc.Movement.JunctionPath[i];
@@ -226,18 +238,38 @@ public sealed class MovementSystem : ISimulationSystem
                     var nearCoord = wallNearTile.Coord;
 
                     // Fly straight across the shared edge, near CENTRE -> wall
-                    // CENTRE, symmetric EdgePadding before/after the border.
-                    // (Building the direction from consecutive path junctions
-                    // zig-zagged at corners and launched her at the wrong hex;
-                    // building it from npc.Tile broke when the wall was a step
-                    // ahead. Tile centres are robust for both.)
+                    // CENTRE. (Building the direction from consecutive path
+                    // junctions zig-zagged at corners and launched her at the
+                    // wrong hex; building it from npc.Tile broke when the wall
+                    // was a step ahead. Tile centres are robust for both.)
                     var nearCenter = HexSpatialMath.TileToWorld(nearCoord);
                     var targetCenter = HexSpatialMath.TileToWorld(wallTile.Coord);
                     var crossing = (nearCenter + targetCenter) * 0.5f;
                     var flightDir = HexSpatialMath.Normalize(targetCenter - nearCenter);
-                    var stepAlong = HexHopTuning.EdgePadding;
-                    var takeoff = crossing - flightDir * stepAlong;
-                    var landing = crossing + flightDir * stepAlong;
+
+                    // §21.21B v14: ASYMMETRIC, mirrored by direction. Dropping
+                    // down she pushes off the very lip and flies FAR; climbing
+                    // up she leaves EARLY (run-up) and lands ON the lip. Same
+                    // length either way, so the flight pace is one number.
+                    var hopUp = wallTile.Elevation > wallNearTile.Elevation;
+                    var nearPad = hopUp ? HexHopTuning.FarPadding : HexHopTuning.EdgePadding;
+                    var farPad = hopUp ? HexHopTuning.EdgePadding : HexHopTuning.FarPadding;
+                    var landing = crossing + flightDir * farPad;
+
+                    // Takeoff is nearPad before the border — but an UP takeoff
+                    // sits FarPadding out, so a wall spotted late can put it
+                    // BEHIND her. Walking back to it is the v9 death: the walk
+                    // aims one way, the rescan the other, and she oscillates in
+                    // place until she starves. So clamp along the flight axis to
+                    // where she actually is, never past the lip.
+                    // Clamping the PROJECTION, not taking her position outright:
+                    // approaching off-axis, her raw position stretched the jump
+                    // to a measured 2.4 wu (against 0.75) and sent her flying
+                    // diagonally across the corner.
+                    var fromCrossing = npc.Position - crossing;
+                    var npcAlong = fromCrossing.X * flightDir.X + fromCrossing.Y * flightDir.Y;
+                    var takeoff = crossing + flightDir *
+                        MathUtil.Clamp(npcAlong, -nearPad, -0.02f);
 
                     target = takeoff;                 // ONE target for the walk
                     hopApproach = true;
@@ -245,8 +277,14 @@ public sealed class MovementSystem : ISimulationSystem
                     npc.Movement.HopLandingIndex = wallIndex;
                     npc.Movement.HopFrom = takeoff;
                     npc.Movement.HopTo = landing;
-                    npc.Movement.HopUp = wallTile.Elevation > wallNearTile.Elevation;
+                    npc.Movement.HopUp = hopUp;
                     npc.Movement.HopTargetTile = wallTile.Coord;
+                    // §21.21B v15: the tile she leaves FROM. The view builds the
+                    // arc's height delta as target - from and so no longer cares
+                    // whether the sim has already committed npc.Tile (it does so
+                    // mid-window, which zeroed the delta and left the body
+                    // hanging a full step off the ground).
+                    npc.Movement.HopFromTile = nearCoord;
                 }
             }
 
@@ -424,9 +462,52 @@ public sealed class MovementSystem : ISimulationSystem
                         TryBeginSwimEntry(world, npc, hopPreviousTile, npc.Tile);
                     }
 
-                    npc.Movement.PathIndex = npc.Movement.HopLandingIndex + 1;
+                    // §21.21B v14: the flight now OVERSHOOTS lattice points. A
+                    // drop lands FarPadding past the border while the junctions
+                    // just past it sit ~0.375 out, and a climb takes off
+                    // FarPadding short of it — either way the next path step can
+                    // be a point she has physically already flown over, and
+                    // walking to it means stepping backwards. Skip exactly those:
+                    // a junction whose projection lands INSIDE the flight segment
+                    // and close to its axis. CurrentJunction rides to the last one
+                    // skipped — the next step's previousJunctionId, its directed
+                    // tile and other NPCs' occupancy checks all read it.
+                    //
+                    // The bounds matter more than they look. "Anything not ahead
+                    // of the landing" seems equivalent and is not: when the route
+                    // turns back along the wall, EVERY remaining point fails that
+                    // test and the whole path gets eaten (measured: one skip of
+                    // 118 junctions — she abandoned the route entirely).
+                    var flight = npc.Movement.HopTo - npc.Movement.HopFrom;
+                    var flightLength = HexSpatialMath.Distance(
+                        npc.Movement.HopFrom, npc.Movement.HopTo);
+                    var landDir = HexSpatialMath.Normalize(flight);
+                    var nextIndex = npc.Movement.HopLandingIndex + 1;
+                    var eaten = 0;
+                    while (nextIndex < npc.Movement.JunctionPath.Count &&
+                        world.Junctions.Items.TryGetValue(
+                            npc.Movement.JunctionPath[nextIndex], out var passedJunction))
+                    {
+                        var rel = passedJunction.WorldPosition - npc.Movement.HopFrom;
+                        var along = rel.X * landDir.X + rel.Y * landDir.Y;
+                        var across = System.MathF.Abs(rel.X * landDir.Y - rel.Y * landDir.X);
+                        // Off the flight line (the route turns), before the
+                        // takeoff, or beyond the landing — a real next step.
+                        if (across > FlightCorridorHalfWidth ||
+                            along < -0.01f || along > flightLength + 0.01f)
+                        {
+                            break;
+                        }
+
+                        npc.CurrentJunction = npc.Movement.JunctionPath[nextIndex];
+                        nextIndex++;
+                        eaten++;
+                    }
+
+                    npc.Movement.PathIndex = nextIndex;
                     Trace.Emit(world, npc.Id, "HopLanded",
-                        $"Tile={npc.Tile.Q},{npc.Tile.R} Pos={Trace.FormatPos(npc.Position)}");
+                        $"Tile={npc.Tile.Q},{npc.Tile.R} Pos={Trace.FormatPos(npc.Position)} " +
+                        $"Step={npc.Movement.PathIndex}/{npc.Movement.JunctionPath.Count} Eaten={eaten}");
                     if (npc.Movement.PathIndex >= npc.Movement.JunctionPath.Count)
                     {
                         // The path ends on this landing — close the hop window

@@ -148,6 +148,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
         }
 
         npc.Mind.ComaCause = cause;
+        npc.Mind.CryingUntilTick = 0; // §110: кома глубже слёз и вытесняет их
         PlanInterruption.Abort(world, npc, "Collapsed — coma");
         npc.Mind.CurrentGoal = GoalType.None;
         npc.IsFighting = false; // a body that just switched off holds no stance
@@ -533,11 +534,11 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             npc.Needs.Stress = MathUtil.Clamp01(npc.Needs.Stress + (stressUp ? SimBalance.StressUpRate : -SimBalance.StressDownRate));
 
             // Spec 40.13: collapse. Utterly spent stamina AND a body pushed to
-            // the edge (starving, bleeding, or stress-overwhelmed) drops the
-            // NPC unconscious — it lies helpless for ~80 ticks, then rises.
-            // Rare by construction, so it barely perturbs the colony.
+            // the edge (starving or bleeding) drops the NPC unconscious — it
+            // lies helpless for ~80 ticks, then rises. Rare by construction,
+            // so it barely perturbs the colony.
             if (world.Tick >= npc.Mind.FaintedUntilTick && npc.Needs.Stamina <= 0.01f &&
-                (npc.Needs.Hunger >= 0.9f || npc.Needs.Blood < 0.25f || npc.Needs.Stress >= 0.95f) &&
+                (npc.Needs.Hunger >= 0.9f || npc.Needs.Blood < 0.25f) &&
                 npc.Health > 0f)
             {
                 npc.Mind.FaintedUntilTick = world.Tick + 80;
@@ -549,6 +550,28 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                 ExecutionSystem.LieDownCentered(world, npc);
                 Trace.Emit(world, npc.Id, "Fainted",
                     $"Stamina={npc.Needs.Stamina:F2} Hunger={npc.Needs.Hunger:F2} Blood={npc.Needs.Blood:F2}");
+            }
+            // Spec §110: the STRESS arm of the same collapse is not a faint —
+            // she is conscious, she just can't go on. She lies down and CRIES:
+            // the body rests exactly like the faint, but pain snaps her out and
+            // a consoling friend (§53) shortens it. Split from the branch above
+            // so hunger/blood keep the old unconscious faint.
+            // Пока её бьют — не ложится: адреналин (§29C, свежая боль/испуг) и
+            // стойка боя держат её на ногах. Без этого гейта соак на сиде 7
+            // поймал цикл «легла → удар оборвал слёзы → легла снова» с шагом в
+            // 16 тиков: боль обнуляет CryingUntilTick, а стресс и стамина под
+            // избиением остаются на своих концах шкалы. Слёзы приходят ПОСЛЕ.
+            else if (world.Tick >= npc.Mind.CryingUntilTick && npc.Needs.Stamina <= 0.01f &&
+                npc.Needs.Stress >= 0.95f && npc.Health > 0f &&
+                npc.Mind.ComaCause == ComaCause.None && !npc.IsDying &&
+                !npc.IsFighting && !DamageReactionSystemHelpers.IsAdrenalineActive(world, npc))
+            {
+                npc.Mind.CryingUntilTick = world.Tick + SimBalance.CryingBreakdownTicks;
+                PlanInterruption.Abort(world, npc, "Broke down crying");
+                npc.Mind.CurrentGoal = GoalType.None;
+                ExecutionSystem.LieDownCentered(world, npc);
+                Trace.Emit(world, npc.Id, "CryingBreakdown",
+                    $"Stamina={npc.Needs.Stamina:F2} Stress={npc.Needs.Stress:F2}");
             }
 
             // Spec 40.6: hygiene drifts down with living, up at the waterside

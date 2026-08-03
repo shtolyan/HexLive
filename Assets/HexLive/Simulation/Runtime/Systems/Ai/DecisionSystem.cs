@@ -69,6 +69,16 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 continue;
             }
 
+            // Spec §110: crying her heart out — conscious, but no decisions
+            // until she is done. The body rests like the faint above, and the
+            // release itself sheds stress a little faster than plain calm.
+            if (world.Tick < npc.Mind.CryingUntilTick)
+            {
+                npc.Needs.Stamina = MathUtil.Clamp01(npc.Needs.Stamina + 0.02f);
+                npc.Needs.Stress = MathUtil.Clamp01(npc.Needs.Stress - SimBalance.StressDownRate);
+                continue;
+            }
+
             // Spec 41.5: just woke up — stand where you slept and come to
             // your senses; goals wait out the grace.
             if (world.Tick < npc.Mind.WakeGraceUntilTick)

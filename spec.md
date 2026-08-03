@@ -131,7 +131,9 @@ Transforms goal → steps
 
 ## 7. Pathfinding (Junction Graph)
 
-Pathfinding operates on the Junction graph via BFS.
+Pathfinding operates on the Junction graph via uniform-cost search (Dijkstra
+with relaxation — see §40.17 v2). Edge prices: flat 10, climb up 45, climb down
+25, strait 20, swim 40, plus §62's danger ring at +80.
 Path = `List<JunctionId>` — NPC walks junction-to-junction.
 Boundary junctions naturally connect tiles (they belong to multiple tiles).
 No separate tile-level or fragment-level pathfinding needed.
@@ -1436,6 +1438,84 @@ Crossing to a tile one elevation level up OR down is a deliberate jump whose
 timing lives in ONE place — `HexHopTuning` (Simulation/Navigation) — shared by
 the sim and the presentation, so the two can never drift apart:
 
+- v15 — THE ARC STOPPED GUESSING (fixes "she is either above the ground or
+  suddenly under it", reported after v14 shipped and traced to `645c5466`). That
+  commit moved the arc trigger from HopKind's rising edge to the `HopStartTick`
+  stamp so a hop survives a skipped tick — correct, but it also let the arc start
+  on ANY tick of the window, including the landing beat. There the sim has
+  already committed `npc.Tile` to the LANDING tile (`MovementSystem`, on
+  `flightT >= 1`) while `HopKind` is still set, so the renderer's
+  `ActorGroundY(HopTargetTile) - ActorGroundY(npc.Tile)` was **zero**: the body
+  held the takeoff level for the rest of the window, the root had already snapped
+  to the new level, and when `_jumpTimer` ran out the offset was cut to zero in
+  one frame. Dropping down that read as hovering then falling through; climbing
+  up, as sunk into the hex then popping out. It fires on ~1/4 of hops — whenever
+  frames skip ticks (fast-forward, a networked tick, a GC hitch) — which is why it
+  looked intermittent. Four parts:
+  (1) the snapshot carries `HopFromTile` (wire ProtocolVersion 2) and the view
+  builds the delta as `target - from`, so it is right in ANY phase — and it stays
+  in world units, which keeps a water dive landing at swim depth;
+  (2) the arc keeps the FULL window and starts at the phase the hop is already at
+  (`ageSeconds`), instead of shortening the window while still measuring the beat
+  fractions against the full `HopSeconds` — that mismatch made a late arc replay
+  the crouch and reach the target level at 75% of what was LEFT, i.e. after the
+  root snapped. The clip is CrossFaded in at the same phase for the same reason;
+  (3) the arc's base is the takeoff tile's ground level, not `transform.position.y`
+  — `SetHopSignal` runs inside `RenderSnapshot`, BEFORE the frame's interpolation,
+  so the live root Y is a tick stale;
+  (4) the window now ends by easing any residual offset out (~5 wu/s) instead of
+  cutting it, and an arc first seen after the flight is over is not started at all.
+  Also `PathfindingSystem` now clears `HopArmed`/`HopPathIndex` when it builds a
+  path: the wall scan is gated on `HopPathIndex != PathIndex`, and a hop that
+  started on step 1 of the previous path left it at 1 — the value every new path
+  starts with — so the scan was skipped on the first step and she crossed the
+  border WALKING, with no hop and no arc at all.
+  Known limitation, deliberately left: the arc runs on `Time.deltaTime` while the
+  sim runs on unscaled time, so `Time.timeScale = 0` (Esc menu) drifts their
+  phase. After (3) and (4) that is a phase shift, not a teleport.
+- v14 — ASYMMETRIC, MIRRORED BY DIRECTION (the drop "slid off the ledge"). The
+  symmetric ±`EdgePadding` model reads wrong at both ends, and at the shipped
+  `EdgePadding` 0.1 it was extreme: a 0.2 wu jump on a lattice of pitch 0.375,
+  flown at 0.44 wu/s against a 1.2 wu/s walk — she oozed off the step three
+  times slower than she walks. Now there are two paddings, and which end is which
+  flips with the direction:
+  DOWN takes off at −`EdgePadding` (off the very lip) and lands at +`FarPadding`;
+  UP takes off at −`FarPadding` (a run-up, leaving early) and lands at
+  +`EdgePadding` (on the lip). Length is `EdgePadding + FarPadding` either way
+  (0.75 shipped), so one number paces both, and the flight is 1.67 wu/s.
+  `FarPadding` 0.65 ≈ the second ring of lattice points past the border, which is
+  what "one point further out" means on this grid.
+  Not to be confused with the asymmetry v7 rejected: that one had takeoff FLUSH
+  on the wall (measured 0.00), so she walked into it before jumping. The near end
+  stays non-zero here. v10's "too big / too early" verdict was about a symmetric
+  length of 1.0 moving BOTH ends; only the far end moves now.
+  Two consequences that are load-bearing:
+  (a) the flight overshoots lattice points, so on touchdown the path is advanced
+  past every junction it flew over (projection inside the flight segment, within
+  0.3 wu of its axis) and `CurrentJunction` rides to the last one skipped —
+  otherwise the next step is a point BEHIND her and she walks back into the wall
+  she just left. The corridor bounds are not decoration: the first attempt skipped
+  "anything not ahead of the landing", and when a route turns back along the wall
+  that ate the entire path (measured: one skip of 118 junctions);
+  (b) the border is no longer crossed at half the flight but at
+  `EdgePadding / (EdgePadding + FarPadding)` — 0.13 down, 0.87 up — so
+  `DownFallStartFrac` is retuned to 0.15 (shipped) / 0.35 (code default) or her
+  feet scrape the lip. The UP arc needs no change: its overshoot already has her
+  above the ledge well before 0.87.
+  The wall scan looks ahead `max(EdgePadding, FarPadding) + 1.2`, since an UP
+  takeoff now sits further out. If a wall is still spotted too late for it, the
+  takeoff is CLAMPED ALONG THE FLIGHT AXIS to where she already is rather than
+  aimed behind her (the v9 lesson — a target behind her oscillated her in place
+  until she starved). It clamps the PROJECTION, not her raw position: taking the
+  position outright stretched an off-axis approach into a measured 2.4 wu
+  diagonal leap instead of 0.75. Measured after: every hop 0.75, except the
+  clamped ones, which are shorter by construction and never longer.
+  Soaked, 4 seeds × 12 000 ticks, ONE build with only the config differing (the
+  discipline matters — comparing across builds while another change was landing
+  produced a phantom regression): survivors **14/16 on the new geometry against
+  12/16 on the old**, i.e. no cost, inside the ±2 the dog dance moves anyway.
+  Tried and rejected in the same batch: `HopSeconds` 2.0 → 1.5 to make the longer
+  jump brisker — 10/16. The window stays 2.0.
 - v12 — CLIP ACTUALLY COMPRESSED TO THE WINDOW (the "master clock" was never
   wired). The design says the jump clip is compressed to exactly HopSeconds,
   but the animator's JumpUp/JumpDown states had `m_Speed 1` and NO speed
@@ -2692,20 +2772,21 @@ movement refines from tile arrival to point arrival
 
 ### 25.7 Path Cost Model
 
-For v1, keep path cost simple and explicit.
+Cost is a property of the EDGE (a directed junction-to-junction step), as
+`long`, and it lives in one function: `HexPathfinder.ClimbCost`. The shipped
+prices and how they were derived are in §40.17 v2 — in short, flat 10 and every
+premium priced from the ticks the move actually costs (climb up 45, down 25,
+strait 20, swim 40), plus §62's danger ring on top.
 
-**Possible cost factors:**
+Two things this model deliberately is NOT:
 
-- tile walkability
-- blocked / reserved penalty
-- door or connector transitions
-- future extension: heat, crowding, danger
-
-```csharp
-float GetTileCost(TileCoord tile)
-```
-
-For the first slice, uniform cost is acceptable.
+- **not per-tile.** An early plan had `float GetTileCost(TileCoord)`. Elevation
+  cost cannot be expressed that way: the price belongs to CROSSING between two
+  levels, not to standing on either of them — a tile price would tax walking
+  along a wall exactly as much as jumping it, which is the bug §40.17 v2 fixes.
+- **not uniform.** "For the first slice, uniform cost is acceptable" held while
+  every edge cost 1; once prices differ, the search needs relaxation to honour
+  them (§40.17 v2, point 3).
 
 ### 25.8 Reachability vs Path Existence
 
@@ -9823,6 +9904,53 @@ then goes dormant). §40.18's second island reaches 5/6 on this softened
 baseline (only one seed's fire/water soft-gate resists) — close, a focused
 placement pass away, no longer a hard blocker.
 
+**v2 — PRICED PER EDGE, ASYMMETRIC, AND ACTUALLY MINIMISED.** The weight above
+(later raised 12 → 30) still let NPCs sawtooth over ledges: measured on seed
+12345 over 4000 ticks, **38% of all hops changed direction within 10 seconds of
+the previous one** — down-then-up for nothing. Three separate causes, all fixed
+here; measured after: hops 204 → 171 and the sawtooth share **38% → 20%**.
+1. **The price belonged to the CROSSING, not to the seam junction.** A seam
+   junction borders both elevations, so charging for ENTERING one also charged
+   the detour that merely walks ALONG the wall — the very route the weight exists
+   to encourage. Worldgen now bakes the signed elevation change of every directed
+   edge into `Junction.NeighborStepDelta` (a `sbyte[]` parallel to `Neighbors`,
+   ~84 KB for the island), computed by the SAME resolver hop arming uses
+   (`HexPathfinder.ResolveStepDelta` → `TryGetDirectedStepTile`), so the route
+   and the execution cannot disagree about what a jump is. `ClimbSeams` stays —
+   presentation markers, the inspector and `IsClimbSeamWalk` read it. This is
+   step 1 of the plan above, in its "per-neighbour parallel list" form; it also
+   takes the float resolver out of the inner loop, which is where the §57.2
+   pathological seed spends its time. A hand-built graph (unit fixtures) has no
+   baked table, so `StepDelta` falls back to the live resolver — silently reading
+   0 would make every jump free again, i.e. reintroduce the bug.
+2. **Up and down cost the same, but take 8 ticks and 4.** Priced from that:
+   `SeamUpCost = 45`, `SeamDownCost = 25` against `FlatCost = 10`. Do NOT raise
+   them "to be safe" — walking around one tile is ~6.9 edges ≈ 14 ticks, so past
+   ~4.5× she takes detours that are genuinely slower than the jump she avoided.
+   Both numbers are `HopSeconds`/`DownHopSeconds` in different units: retune the
+   timing in §21.21B and these must be re-derived.
+3. **The search had no relaxation.** It closed a neighbour the first time it was
+   reached (`cameFrom.ContainsKey`) and never improved it, which is exact for
+   uniform cost and wrong the moment costs differ: a node first found through an
+   expensive edge kept that price, so the search could return a route more
+   expensive than one its own data supported. Now a cheaper parent replaces the
+   stale frontier entry (`SortedDictionary` + a key map + a closed set); the `seq`
+   tiebreak is unchanged, so equal-cost ties still resolve first-found and the
+   search stays deterministic.
+**Mobs are exempt** (`MobSystem.ChaseStep` passes `weightClimb: false`): a mob
+pays NO time for an elevation step — `MoveDogTo` relocates it logically at once —
+so the weight would price something that never happens, sending wolves around
+ledges the girl simply hops and handing her a free kite along every lip. It also
+unhooks chase routes from future retunes of these prices, which is the class of
+change that historically reshuffled the whole dog dance.
+**Not touched, deliberately:** `ShouldWeightClimbs` (the food/water/Flee
+exemptions are load-bearing balance), `IsClimbSeamWalk` (it guards the execution
+layer, and under the edge model it no longer distorts prices — a detour one row
+back from the lip is now honestly flat), and the water prices — a dive really
+costs ~12 ticks against `SwimCost` 40, but the swim ring is a corridor with no
+alternative route, so under-pricing it cannot produce a sawtooth. Deferred, with
+a note in §40.18.
+
 ### 40.18 Islands, swimming & shark — implementation plan (arc)
 The escape endgame (§40.15) and bigger-world (§40.12) share one dependency
 chain: **traversable water → swimming → shark → island-hopping**. No piece
@@ -9881,7 +10009,14 @@ grows) — budget multi-round rebalancing per [[project_dog_fragility_balance]].
    tags its junctions into `WorldState.StraitJunctions`, and `HexPathfinder`
    charges them `StraitCost` (2×) instead of the ring's `SwimCost` (4×), so a
    route will actually take the hop; the wider ring stays 4× (a shark-risked
-   last resort nobody enters). (b) The island holds an EXCLUSIVE resource —
+   last resort nobody enters). **DEFERRED, noted by §40.17 v2:** both water
+   prices are under-derived next to the land ones — a dive really costs ~12
+   ticks (down-hop 4 + the 8-tick treading pause), i.e. ~60 in edge units
+   against the 40 charged. Left alone on purpose: the ring is a corridor with
+   no alternative route, so the price decides only WHETHER she swims, never the
+   shape of the route, and these two numbers are what §40.18's 5/6-green
+   placement was tuned around. Re-derive them together with a placement pass,
+   not on their own. (b) The island holds an EXCLUSIVE resource —
    the ONLY `tool.pickaxe_stone` now sits on the island (the mainland scatter
    was removed), so a tool-seeking NPC must cross for it (a palm rides along
    for food/wood). Measured: 2 of 6 seeds show a real crossing (the island
@@ -11324,9 +11459,13 @@ traces and reuses the existing relationship-pop over both heads.
 water vessel); Treat/Medicate/Console tend bare-handed. The prop used to be
 purely cosmetic; since **§53.7** the item it stands for is really spent, so what
 she holds is what she gives away. **Only when the ward is lying
-down** (coma/faint/asleep/prone) does the helper kneel into the planting-style
-**CraftWork** clip (`CraftingParam`) beside her — the "tending" motion. Over a
-**standing** ward she just stands and holds the item, as before. The ward's
+down** (coma/faint/asleep/prone/crying) does the helper kneel beside her. **Which
+kneel depends on the aid** (§110): Feed/Hydrate/Treat/Medicate keep the
+planting-style **CraftWork** clip (`CraftingParam`) — hands that really work —
+while **Console** goes to its own **PrayDown → Pray → PrayUp** chain
+(`PrayingParam`): she sinks to her knees and prays over the crying girl, which is
+the whole of what consoling is. Over a **standing** ward she just stands and
+holds the item, as before. The ward's
 posture travels to the view on `NpcSnapshot.AidTargetLyingDown`, computed
 sim-side from `target.IsLyingDown(tick)` (the view has no cross-NPC access).
 
@@ -12585,7 +12724,8 @@ reference it: `I2.Loc` (runtime, `Scripts/`) + `I2.Loc.Editor`
 **60.1 Входы (две комы).**
 - **Истощение:** `Energy == 0` наяву (во сне энергия только растёт — спящая не
   «догорает» до комы). Тело выключается там, где стоит.
-- **Кровопотеря:** `Blood ≤ ComaBloodEnterThreshold` (0.05). Это лезвие бритвы
+- **Кровопотеря:** `Blood ≤ ComaBloodEnterThreshold` (0.25 — цифра r2, см. 60.6;
+  в этом абзаце годами стояло старое 0.05). Это лезвие бритвы
   ПЕРЕД смертью: кровь на нуле по-прежнему УБИВАЕТ (spec 40.2 не отменён) —
   кома лишь даёт шанс, если кровотечение удастся пережить.
   Попутно закрыт старый баг: у СЫТОЙ истекающей кровью fed-heal (§45 r5)
@@ -12651,9 +12791,11 @@ npc)` кладёт тело в свободное КОЙКО-МЕСТО этог
 ПАРАЛЛЕЛЬНО и головами в одну сторону; занятые места читаются из фактических
 позиций лежащих (ничего не сериализуется). Подробности и ручки — §29G r3.
 
-**60.3 Выход.** Кома кончается, когда СВАЛИВШИЙ показатель поднялся до
-`ComaWakeThreshold` (0.15): Exhaustion — Energy ≥ 0.15, BloodLoss — Blood ≥
-0.15. Пробуждение получает обычный wake-грейс (spec 41.5, 12 тиков) — встаёт,
+**60.3 Выход.** Кома кончается, когда СВАЛИВШИЙ показатель поднялся обратно.
+⚠️ Пороги ниже — **редакция v1, отменённая r2**: `ComaWakeThreshold` (0.15) в
+коде больше не используется вообще (retired, см. комментарий у поля). Актуальные
+пороги — `ExhaustedSleepWakeEnergy` 0.45 и `ComaBloodWakeThreshold` 0.35, см.
+60.6. Пробуждение получает обычный wake-грейс (spec 41.5, 12 тиков) — встаёт,
 приходит в себя, никакого спринта с «подушки».
 
 **60.4 Модель.** `NPCMind.ComaCause {None, Exhaustion, BloodLoss}` (сейв v6,
@@ -12791,6 +12933,10 @@ Idle», тот же подъём, что после сна) → Idle. Снапш
 проходима сквозь кольцо (проверено пробой: два коридора — обычный путь идёт
 сквозь волка 41 пересечением, осторожный делает крюк длиннее на 12 развязок с
 0 пересечений и доходит).
+Масштаб не изменился и после §40.17 v2: `FlatCost` по-прежнему 10, так что 80 —
+это те же 8 плоских шагов сверху. Для калибровки полезно держать в голове, что
+теперь это ДОРОЖЕ любого прыжка (вверх 45, вниз 25): осторожная девушка скорее
+перепрыгнет уступ, чем срежет через кольцо волка. Так и задумано.
 
 **62.4 Ручки.** Всё в статике `Spec62` (`SimulationSystems.cs`):
 `ThreatAlertEnabled`, `SpotRadiusTiles` 6, `CueCooldownTicks` 600,
@@ -16460,3 +16606,80 @@ HealthGate/DogForce`, `AnswerBlowsEnabled`, `AnswerReadyRadiusTiles`.
   сговору, снимает пощаду в обычной драке — на быстрых сидах правосудие
   успевает раньше топора толпы. Гейт проходит по любому из двух исходов;
   чистая механика сговора по-прежнему заперта юнитами GroupHuntTests.
+
+---
+
+## §110 Стресс — это слёзы, а не обморок (iteration 110)
+
+**Проблема.** Крах §40.13 был один на три причины: добитая стамина ПЛЮС одно из
+«на краю» — голод ≥ 0.9, кровь < 0.25 или **стресс ≥ 0.95**. Все трое падали
+одинаково: `Fainted`, 80 тиков беспамятства, цепочка падения `FallDown → Sleep`.
+Для голода и крови это верно — тело физически выключается. Для стресса это
+неправда: она не теряет сознание, она **ломается**. И читалось это неверно
+вдвойне — рухнувшую от нервов было не отличить от истёкшей кровью.
+
+**110.1 Развилка.** Ветка стресса ушла из обморока в своё состояние. Условие
+теперь: стамина ≤ 0.01 И `Stress ≥ 0.95`, И она не в коме и не умирает (то
+глубже и вытесняет слёзы). Голод и кровь остались на прежнем `Fainted` — ни
+порог, ни длительность, ни поза у них не изменились.
+
+| | Обморок §40.13 | **Слёзы §110** |
+|---|---|---|
+| Причина | голод ≥ 0.9 или кровь < 0.25 | стресс ≥ 0.95 |
+| Поле | `Mind.FaintedUntilTick` (+80) | `Mind.CryingUntilTick` (+`CryingBreakdownTicks`, 240) |
+| Событие | `Fainted` | `CryingBreakdown` |
+| В сознании? | нет (`IsUnconscious`) | **да** — говорит, её слышно, боль обрывает |
+| Тело | падает: `FallDown → Sleep` | **ложится**: `LieDown → Sleep → GetUp` |
+
+**110.2 Она в сознании — и это главное.** `IsCrying(tick)` намеренно НЕ входит в
+`IsUnconscious`: иначе три десятка читателей (бой, перцепция, речь, помощь)
+молча приняли бы её за выключенное тело и заткнули бы ей рот — а всхлипы и есть
+смысл сцены. В `IsLyingDown` она входит: лежит, разворачивать её к подошедшей
+нельзя, и помощь обязана вставать рядом на колени. Решения на время плача
+выключены (`DecisionSystem`), стамина восстанавливается как при обмороке, а сам
+плач сбрасывает стресс чуть быстрее обычного покоя — выплакаться помогает.
+
+**110.3 Выходы три.** По таймеру (240 тиков); **от боли** — любой урон обнуляет
+`CryingUntilTick` мгновенно (волчий зуб убедительнее любого стресса, тот же
+принцип, что будит истощённую в §60 r2); и **от утешения** — завершённый
+`AidKind.Console` укорачивает плач на `Spec53.ConsoleCryingReliefTicks` (120)
+сверх обычного снятия стресса.
+
+**110.4 Утешение стало отдельным делом.** Пока она плачет, `AidAssessment`
+держит для неё срочность Console на полу 0.55 — иначе помощница разворачивалась
+бы на полпути, едва слёзы сами сбили стресс ниже порога 0.6. Дойдя, она больше
+не изображает крафтовый присед: у Console своя цепочка **PrayDown → Pray →
+PrayUp** (`PrayingParam`) — опустилась на колени, помолилась за неё, встала.
+Остальные виды помощи (накормить, напоить, перевязать) остались на CraftWork:
+там руки и правда работают. И свои слова: `ConsoleOther` больше не берёт общую
+реплику помощи `happy_aid_give`, а говорит `happy_console` («ну не плачь») со
+своим значком 🫂 `Console`.
+
+**110.5 Клип входа в молитву запечён реверсом.** Mixamo дал два такта — «молится»
+и «встаёт с молитвы»; «опускается» не существовало. Отрицательной скорости
+состояния в проекте нет ни одной, и заводить её нельзя: поверх стейта лежит
+глобальный `_animator.speed = _animSpeed * _simSpeed` (пауза, фаст-форвард), и
+реверс под ним ведёт себя непредсказуемо. Канон здесь — **три честных клипа**
+(ровно как `LieDown → Sleep → GetUp`), поэтому вход развёрнут ОДИН раз
+headless-Blender'ом по ключам (зеркалятся и ручки Безье, без пересэмплинга) в
+`X Bot@Praying Down_once.fbx`. Проверено по позам: первый кадр «опускается»
+совпадает с последним кадром «встаёт» до третьего знака.
+
+**110.6 Вход в цепочку — явными переходами, не через AnyState.** Тот же капкан,
+что в §105.10: условие «Praying == true» истинно всю молитву, и AnyState дёргал
+бы её из лупа обратно во вход бесконечно. Из лежачих состояний входа нет —
+молится та, кто пришла на своих ногах.
+
+**110.7 Как это видно.** Поза плача — **вторая поза сна** (`NpcAnimSet.sleep[1]`,
+свернулась на боку), одна на всех и НЕ по id: тут важно узнать состояние, а не
+характер (личная поза сна вернётся, как только плач кончится). Лицо держит
+гримаса плача постоянно (`NpcFaceAnimator.SetCrying`) — не вспышкой на длину
+реплики, иначе оно гасло бы между всхлипами. Чип эффекта `Crying` 😭 вытесняет
+`Stressed`. И каждые ~25 секунд (слой Ambient) — слёзный значок 😭 со всхлипом
+голосом: `cry_breakdown`, новая группа хекскуфы, все пять голосов.
+
+**110.8 Заодно закрыта дыра §81.13.** Реплика `cry_beaten` (сбежала домой в
+слезах после проигранной сцены абьюза) была прописана в `SpeechCatalog` с
+обещанием «фолбэк на банк cry сработает сам» — фолбэка не существует: вторая
+ступень ищет `voice_<char>_cry`, а таких файлов нет ни одного. Полтора года это
+был немой пузырь. Теперь у группы есть секция в §7 и свои файлы.

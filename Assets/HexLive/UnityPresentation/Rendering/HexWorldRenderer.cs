@@ -1311,10 +1311,17 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // §21.21B v4 circle climbing: the sim itself steps her back onto the
         // hex inner circle during the takeoff beat and flies circle-to-circle
         // — the view only needs the exact height delta and the water flag.
+        // §21.21B v15: BOTH ends come from the hop's own tiles. Deriving the
+        // start from npc.Tile made the delta ZERO whenever the frame first saw
+        // the hop after the sim had already committed the landing tile (it does
+        // so mid-window) — the body then stayed at the old level for the rest of
+        // the window and snapped a whole step when the arc was cut: the "she is
+        // either above the ground or suddenly under it" report.
         actorView.SetHopSignal(npc.HopKind,
             npc.HopKind.Length > 0
-                ? ActorGroundY(npc.HopTargetTile) - ActorGroundY(npc.Tile)
+                ? ActorGroundY(npc.HopTargetTile) - ActorGroundY(npc.HopFromTile)
                 : 0f,
+            npc.HopKind.Length > 0 ? ActorGroundY(npc.HopFromTile) : 0f,
             npc.HopKind.Length > 0 && _swimCoords.Contains(npc.HopTargetTile),
             npc.HopStartTick,
             // How much of the hop already happened before this frame saw it —
@@ -1374,7 +1381,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
             Asleep = npc.CurrentInteraction == "Sleep",
             // §105: умирающая для речи и мимики — такое же выключенное тело,
             // как потерявшая сознание: реплик не подаёт, пузырей не рисует.
-            Fainted = npc.IsFainted || npc.IsUnconscious || npc.IsDying
+            Fainted = npc.IsFainted || npc.IsUnconscious || npc.IsDying,
+            // §110: рыдающая, наоборот, ГОВОРИТ — всхлипы и есть смысл сцены.
+            Crying = npc.IsCrying
         });
         actorView.SetSpeechInteraction(npc.CurrentInteraction);
         if (npc.SocialCueTick > 0 && !string.IsNullOrEmpty(npc.SocialCueKind))
@@ -1520,6 +1529,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // §105: умирает или без сознания от кровопотери — валится и ЛЕЖИТ
             // безвольно, пока её не поднимут.
             actorView.SetRagdoll(false);
+            actorView.SetCrying(false);
             actorView.SetFallen(true, sleepAfter: false, GroundY(npc.Tile));
         }
         else if (npc.IsFainted)
@@ -1527,16 +1537,28 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // §40.13/§105: потеряла сознание — рухнула тем же клипом, но дальше
             // просто спит: обморок это не кома, и вставать ей обычным GetUp.
             actorView.SetRagdoll(false);
+            actorView.SetCrying(false);
             actorView.SetFallen(true, sleepAfter: true, GroundY(npc.Tile));
+        }
+        else if (npc.IsCrying)
+        {
+            // §110: сломалась от стресса — она НЕ падает, а ложится: сонная
+            // цепочка LieDown → Sleep, на земле, где стояла (кровати тут нет —
+            // она не дошла бы). Позу и лицо доводит NpcActorView.SetCrying.
+            actorView.SetRagdoll(false);
+            actorView.SetCrying(true);
+            actorView.SetLaying(true, null, GroundY(npc.Tile));
         }
         else if (npc.CurrentInteraction == "Sleep" && npc.ExecutionStatus == "InProgress")
         {
             actorView.SetRagdoll(false);
+            actorView.SetCrying(false);
             actorView.SetLaying(true, FindBedAttachPoint(snapshot, npc, out var bedSurfaceY), bedSurfaceY);
         }
         else
         {
             actorView.SetRagdoll(false);
+            actorView.SetCrying(false);
             // Снимает ОБА флага разом (см. ApplyLying): «не лежит» одинаково
             // верно для обеих цепочек, и оставленный висеть второй bool держал
             // бы её на земле уже на ногах.

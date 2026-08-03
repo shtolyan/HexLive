@@ -262,6 +262,11 @@ namespace HexLive.Simulation.Runtime
         public static float StressUpRate = 0.05f;      // stress/tick in danger/combat/pain/starvation
         public static float StressDownRate = 0.03f;    // stress shed/tick in calm
 
+        // §110: сколько тиков она лежит и рыдает после стресс-краха (ветка
+        // §40.13). Дольше 80-тикового обморока намеренно: это СЦЕНА — подруга
+        // должна успеть дойти и утешить (§53 Console укорачивает плач).
+        public static int CryingBreakdownTicks = 240;
+
         // ─────────────────────────────────────────────────────────────
         // Climate swing.
         // ─────────────────────────────────────────────────────────────

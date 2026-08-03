@@ -66,6 +66,14 @@ internal static class WoundMath
             NeedsDecaySystem.WakeFromComa(world, npc, $"Pain ({zone})");
         }
 
+        // §110: pain cuts the crying short instantly — she is conscious, and a
+        // wolf tooth is a better argument than any stress. She gets back to
+        // her feet on the next decision tick.
+        if (world.Tick < npc.Mind.CryingUntilTick)
+        {
+            npc.Mind.CryingUntilTick = 0;
+        }
+
         foreach (var garment in npc.WornItems)
         {
             if (world.Content.ObjectDefinitions.TryGetValue(garment.DefinitionId, out var definition) &&

@@ -65,6 +65,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // §gear-craft v2: the staged in-place craft kneels her into the planting-
     // style work clip (state "CraftWork") instead of the generic crouch.
     private static readonly int CraftingParam = Animator.StringToHash("Crafting");
+    // §110: утешение над рыдающей — своя коленопреклонённая цепочка
+    // (PrayDown → Pray → PrayUp), а не заимствованный крафтовый присед.
+    private static readonly int PrayingParam = Animator.StringToHash("Praying");
     private static readonly int SittingParam = Animator.StringToHash("Sitting");
     // Clip-based action states (built by the "HexLive ▸ Build NPC Action States"
     // editor menu). Clips are swapped in via an AnimatorOverrideController.
@@ -466,6 +469,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private NpcFaceAnimator _face;
 
     private bool _laying;
+    private bool _crying; // §110: лежит и рыдает (поза + лицо отличаются от сна)
     private Transform _layingAttach;
     // Wake-up ease: while asleep the body is pinned to the bed attach point
     // while the actor root stands on the beside-junction — releasing the pin
@@ -575,7 +579,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // level snap at the tile crossing into a jump. No XZ prediction, no
     // velocity extrapolation, no settle phase — those double-computed the XZ
     // the sim already owns and left the residual offset the user saw.
-    private float _jumpStartY;         // root world-Y at arc start (stand level)
+    private float _jumpStartY;         // world-Y the arc starts from (stand level)
     private float _jumpHeightDelta;    // world units, signed (+ = up)
     private float _jumpTakeoffFrac;    // [0..this] = crouch beat (arc flat)
     private float _jumpFlightEndFrac;  // [this..1] = landing beat (arc = 1)
@@ -583,6 +587,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private float _jumpTimer;
     private float _jumpRetriggerGuard; // swallows the pose-delta echo at hop end
     private bool _jumpUp;
+    // §21.21B v15: the vertical offset the body held on the last frame of the
+    // window. A well-formed arc ends AT the root (offset 0), so this is normally
+    // zero; when it is not — clock drift, a swim lift, a hop cut short — it eases
+    // out over a few frames. Cutting it to zero in one frame is what read as the
+    // body "teleporting" onto the ledge.
+    private float _jumpResidualY;
+    private const float JumpSettleSpeed = 5f; // wu/s ≈ one elevation step per 0.11 s
 
     // §40.18-B: deep-water locomotion — the renderer flags the tile. While
     // swimming the animator runs TreadWater (still) / Swim (moving); the
@@ -618,15 +629,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // heightDeltaWorld is the EXACT signed root-level difference
     // (renderer-computed; water dives include the swim sink depth).
     //
+    // startGroundY is the ground level the hop LEAVES (the takeoff tile's actor
+    // ground Y). Taking it from the live transform instead was wrong on a late
+    // sighting: SetHopSignal runs inside RenderSnapshot, BEFORE this frame's
+    // interpolation, so the root still holds the PREVIOUS tick's Y.
+    //
     // hopStartTick / ageSeconds: the tick the sim opened the hop, and how long
     // ago that was in world time. Keying on the stamp rather than on HopKind's
     // rising edge matters because a frame renders only the last tick it stepped:
     // fast-forward (and any dropped network tick) can swallow the whole "Up",
     // after which she just glides up the ledge with no jump at all. ageSeconds
-    // then shortens the arc to what is LEFT of the window — replaying a
-    // full-length arc for a hop already half over overshoots the landing.
-    public void SetHopSignal(string hopKind, float heightDeltaWorld, bool intoWater = false,
-        int hopStartTick = 0, float ageSeconds = 0f)
+    // then places the arc at the phase the hop is ALREADY at.
+    public void SetHopSignal(string hopKind, float heightDeltaWorld, float startGroundY,
+        bool intoWater = false, int hopStartTick = 0, float ageSeconds = 0f)
     {
         hopKind ??= string.Empty;
 
@@ -648,25 +663,34 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // changes, so the sim window, the arc and the clip scale together.
         var hop = HexLive.Simulation.Navigation.HexHopTuning.HopSeconds;
         var fullWindow = HexLive.Simulation.Navigation.HexHopTuning.WindowSeconds(up);
-        // Observed late (fast-forward / a dropped tick): fly only what is left,
-        // so the arc still lands where the sim already put her. A floor keeps a
-        // very late sighting from degenerating into an instant snap.
-        var window = Mathf.Max(fullWindow * 0.25f, fullWindow - Mathf.Max(0f, ageSeconds));
-        // Same jump for everything — water or land (no special water handling);
-        // only up vs down differs, via the window.
-        StartJumpArc(
-            up,
-            heightDeltaWorld,
-            window,
-            HexLive.Simulation.Navigation.HexHopTuning.TakeoffSeconds / hop,
-            (hop - HexLive.Simulation.Navigation.HexHopTuning.LandingSeconds) / hop);
+        var takeoffFrac = HexLive.Simulation.Navigation.HexHopTuning.TakeoffSeconds / hop;
+        var flightEndFrac =
+            (hop - HexLive.Simulation.Navigation.HexHopTuning.LandingSeconds) / hop;
+        var age = Mathf.Clamp(ageSeconds, 0f, fullWindow);
+
+        // §21.21B v15: a hop first seen AFTER the flight is over has nothing
+        // left to play — the sim has already put her on the landing tile and the
+        // root has snapped to it. Arcing from here would lift the body back off
+        // the ground for the rest of the window.
+        if (age >= fullWindow * flightEndFrac)
+        {
+            return;
+        }
+
+        // §21.21B v15: the arc keeps the FULL window and starts at the phase the
+        // hop is already at. The old code shortened the window instead while
+        // still measuring the beats against the full HopSeconds — so a late arc
+        // replayed the crouch and only reached the target level at 75% of what
+        // was LEFT, long after the root had snapped up.
+        StartJumpArc(up, heightDeltaWorld, startGroundY, fullWindow,
+            takeoffFrac, flightEndFrac, age);
 
         // §67: нырок в воду — всплеск на посадочной доле дуги.
         if (intoWater && _simSpeed <= 4.01f)
         {
             Audio.SoundManager.Instance?.PlayDelayed(
                 Audio.FmodSfx.Sfx.Splash, transform.position,
-                window * 0.6f / Mathf.Max(0.25f, _simSpeed));
+                Mathf.Max(0f, fullWindow * 0.6f - age) / Mathf.Max(0.25f, _simSpeed));
         }
     }
 
@@ -683,16 +707,18 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         // Water dives/climb-outs have no sim hop window — half the hop clock
         // covers the treading pause they play over; no takeoff/landing beats.
+        // No takeoff tile either, so the live root Y is the only base available.
         StartJumpArc(
             heightDeltaWorld > 0f,
             heightDeltaWorld,
+            transform.position.y,
             HexLive.Simulation.Navigation.HexHopTuning.HopSeconds * 0.5f,
-            0f, 1f);
+            0f, 1f, 0f);
     }
 
     private void StartJumpArc(
-        bool up, float heightDelta, float durationSimSeconds,
-        float takeoffFrac, float flightEndFrac)
+        bool up, float heightDelta, float startGroundY, float durationSimSeconds,
+        float takeoffFrac, float flightEndFrac, float startElapsed)
     {
         if (_laying || _dead || _animator == null)
         {
@@ -701,11 +727,15 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         _jumpUp = up;
         _jumpHeightDelta = heightDelta;
-        _jumpStartY = transform.position.y;
+        _jumpStartY = startGroundY;
         _jumpDuration = Mathf.Max(0.05f, durationSimSeconds);
         _jumpTakeoffFrac = Mathf.Clamp01(takeoffFrac);
         _jumpFlightEndFrac = Mathf.Clamp(flightEndFrac, _jumpTakeoffFrac + 0.05f, 1f);
-        _jumpTimer = _jumpDuration;
+        // §21.21B v15: seen late? Keep the window, skip to the phase the sim is
+        // already at — the beat fractions then still measure against the window
+        // they were derived from.
+        var elapsed = Mathf.Clamp(startElapsed, 0f, _jumpDuration * 0.95f);
+        _jumpTimer = _jumpDuration - elapsed;
         // Compress the authored clip to exactly this window: one playthrough ==
         // durationSimSeconds. Speed = clipLength / window (Unity multiplies this
         // by the global animator.speed, so fast-forward stays in sync with the
@@ -716,7 +746,17 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _animator.SetFloat(JumpSpeedParam, jumpClipLength / _jumpDuration);
         }
         _animator.ResetTrigger(_jumpUp ? JumpDownParam : JumpUpParam);
-        _animator.SetTrigger(_jumpUp ? JumpUpParam : JumpDownParam);
+        if (elapsed > 0.1f)
+        {
+            // Enter the clip at the same phase as the arc — a triggered
+            // transition would replay the crouch a late hop is long past.
+            _animator.CrossFade(_jumpUp ? "JumpUp" : "JumpDown", 0.05f, 0,
+                elapsed / _jumpDuration);
+        }
+        else
+        {
+            _animator.SetTrigger(_jumpUp ? JumpUpParam : JumpDownParam);
+        }
     }
 
     // Vertical arc height 0..1 over the FLIGHT fraction tf (0 at takeoff-end,
@@ -765,7 +805,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // body follows it exactly and adds a Y arc that turns the tile-crossing
     // ground snap into a jump. Self-correcting: it reads the live root Y each
     // frame, so a late tile switch just holds the body at arc height until
-    // the snap arrives — no dip, no snap-back, no settle machinery.
+    // the snap arrives — no dip, no snap-back.
+    // §21.21B v15: the arc's BASE (_jumpStartY) is the takeoff tile's ground
+    // level, not the live root — on a late sighting the root has already
+    // snapped to the landing level, and basing the arc on it pinned the body a
+    // whole step off the ground. A tiny settle at window end covers the rest.
     private Vector3 JumpOffsetWorld()
     {
         if (_jumpRetriggerGuard > 0f)
@@ -775,14 +819,26 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         if (_jumpTimer <= 0f)
         {
-            return Vector3.zero;
+            // §21.21B v15: window closed. A well-formed arc ended level with the
+            // root, so there is nothing left; anything that IS left (clock drift
+            // between the arc and the sim, a swim lift fading, a hop cut short by
+            // a re-plan) eases out. Dropping it in one frame is exactly what read
+            // as the body teleporting onto the ledge.
+            if (Mathf.Abs(_jumpResidualY) <= 0.001f)
+            {
+                _jumpResidualY = 0f;
+                return Vector3.zero;
+            }
+
+            _jumpResidualY = Mathf.MoveTowards(_jumpResidualY, 0f,
+                Time.deltaTime * Mathf.Max(1f, _simSpeed) * JumpSettleSpeed);
+            return new Vector3(0f, _jumpResidualY, 0f);
         }
 
         _jumpTimer -= Time.deltaTime * _simSpeed;
         if (_jumpTimer <= 0f)
         {
             _jumpRetriggerGuard = 0.5f;
-            return Vector3.zero;
         }
 
         // t over the whole window; map to the FLIGHT fraction tf so the arc
@@ -804,8 +860,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         // Desired body world-Y minus the actual (live) root Y = the offset.
+        // Remembered so the frame AFTER the window can ease out whatever is
+        // left instead of cutting it (see the timer-expired branch above).
         var desiredY = _jumpStartY + _jumpHeightDelta * arc;
-        return new Vector3(0f, desiredY - transform.position.y, 0f);
+        _jumpResidualY = desiredY - transform.position.y;
+        return new Vector3(0f, _jumpResidualY, 0f);
     }
 
     // Face anchor rig for the portrait camera, calibrated once in the prefab's
@@ -2075,6 +2134,34 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     public void SetFallen(bool fallen, bool sleepAfter = false, float surfaceY = 0f) =>
         ApplyLying(fallen, null, surfaceY, fallenChain: true, sleepAfterFall: sleepAfter);
 
+    // §110: сломалась от стресса — лежит и плачет. Ложится она сонной цепочкой
+    // (SetLaying), а этот переключатель добавляет к ней то, чем плач ОТЛИЧАЕТСЯ
+    // от сна: вторая поза сна вместо её личной (свернувшийся клубок читается
+    // как «плачет», а её привычная поза — как «прилегла») и держащаяся гримаса
+    // плача вместо закрытых во сне глаз.
+    public void SetCrying(bool crying)
+    {
+        if (_crying == crying)
+        {
+            return;
+        }
+
+        _crying = crying;
+        if (crying)
+        {
+            ApplyCryingPose();
+        }
+        else
+        {
+            ApplySleepPose(); // вернуть её собственную позу сна
+        }
+
+        if (_face != null)
+        {
+            _face.SetCrying(crying);
+        }
+    }
+
     private void ApplyLying(
         bool laying, Transform attachPoint, float surfaceY, bool fallenChain, bool sleepAfterFall)
     {
@@ -2596,14 +2683,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             "HydrateOther" => "food.coconut_pierced",
             _ => string.Empty
         };
+        // §110: утешение над ЛЕЖАЩЕЙ — не крафтовый присед, а МОЛИТВА: она
+        // опускается на колени рядом и просит за неё. Остальные виды помощи
+        // (накормить, напоить, перевязать) остались на «садовничьем» приседе —
+        // там руки и правда работают.
+        var praying = aidingOther && aidTargetLying && interaction == "ConsoleOther";
         // The solo craft always kneels; an aid kneels only over a lying ward.
-        var kneelingCraft = crafting || (aidingOther && aidTargetLying);
+        var kneelingCraft = crafting || (aidingOther && aidTargetLying && !praying);
         _wantsTalk = interaction == "Talk"; // the Talk bool is driven by turn-taking
         _sitting = interaction == "Sit";   // §78.5: LateUpdate nudges a male seat
 
         // Which procedural/clip action this verb wants (before touching the
         // animator, so the axe-chop clip-state can pre-empt the crouch Working pose).
-        var actionKind = (gathering || drinking || kneelingCraft || _wantsTalk)
+        var actionKind = (gathering || drinking || kneelingCraft || praying || _wantsTalk)
             ? ActionKind.None
             : ActionFromInteraction(interaction, heldItemId);
         // §axe: chopping/mining with an axe or pickaxe now plays the looping Chop
@@ -2623,6 +2715,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _animator.SetBool(WorkingParam, !_legless && !chopping &&
                 interaction is "Harvest" or "BuildRaft");
             _animator.SetBool(CraftingParam, kneelingCraft);
+            _animator.SetBool(PrayingParam, praying); // §110
             _animator.SetBool(ChoppingParam, chopping);
             _animator.SetBool(SittingParam, interaction == "Sit");
             // Clip source: config override if present, else the state's base clip.
@@ -2642,7 +2735,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // kneel) — suppress the procedural shoulder pose so it doesn't fight the
         // clip. Eat keeps its own raise-to-mouth — except legless, where the
         // prone idle carries eat/drink.
-        _action = _legless || chopping || kneelingCraft
+        _action = _legless || chopping || kneelingCraft || praying
             ? ActionKind.None
             : actionKind;
         // A solo craft puts both hands to work (tool goes down). An aid keeps
@@ -3188,6 +3281,21 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         var clip = poses[((_npcId % poses.Length) + poses.Length) % poses.Length];
         OverrideClip(SleepBaseClip, clip);
+    }
+
+    // §110: поза плача — ВТОРАЯ поза сна (свернулась на боку), одна на всех.
+    // Она читается как «плачет», в отличие от привычной позы конкретной
+    // девушки, и потому НЕ выводится из id: тут важно узнавание состояния, а
+    // не характер. Если вариантов ещё не назначили — остаётся авторский клип.
+    private void ApplyCryingPose()
+    {
+        var poses = _animSet != null ? _animSet.sleep : null;
+        if (poses == null || poses.Length < 2)
+        {
+            return;
+        }
+
+        OverrideClip(SleepBaseClip, poses[1]);
     }
 
     private void OverrideClip(string baseName, AnimationClip with)

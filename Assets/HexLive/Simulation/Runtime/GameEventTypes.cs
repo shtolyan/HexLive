@@ -142,6 +142,8 @@ public static class GameEventTypes
         "FellAsleepExhausted",
         "FaintedBloodLoss",
         "Fainted",
+        // §110: стресс-ветка того же краха — легла и рыдает (в сознании).
+        "CryingBreakdown",
         "WokeUp",
         // §105: «Collapsed» вернулось в список — но теперь его ДЕЙСТВИТЕЛЬНО
         // эмитят (MortalityHelpers.EnterDying), и это самое громкое событие,

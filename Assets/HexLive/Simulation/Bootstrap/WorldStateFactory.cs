@@ -44,6 +44,7 @@ public sealed class WorldStateFactory
         BlockEdgeJunctions(world);
         BlockCliffAndSeaJunctions(world);
         OpenSwimRing(world);
+        BuildStepDeltas(world);
 
         foreach (var objectBootstrap in bootstrap.Objects)
         {
@@ -601,6 +602,29 @@ public sealed class WorldStateFactory
                     }
                 }
             }
+        }
+    }
+
+    // §40.17 v2: bake the signed elevation change of every directed edge, so the
+    // pathfinder can price a CROSSING instead of the seam junction it lands on.
+    // Uses the same resolver as hop arming, which is the point: the route and the
+    // execution cannot disagree about what counts as a jump. ~84 KB for the
+    // prototype island's 14k junctions; runs last because tile elevations are
+    // final by then (Blocked does not matter — a blocked edge is filtered by the
+    // search, and its delta is still correct).
+    private static void BuildStepDeltas(WorldState world)
+    {
+        foreach (var junction in world.Junctions.Items.Values)
+        {
+            var deltas = new sbyte[junction.Neighbors.Count];
+            for (var i = 0; i < junction.Neighbors.Count; i++)
+            {
+                var delta = Navigation.HexPathfinder.ResolveStepDelta(
+                    world, junction.Id, junction.Neighbors[i]);
+                deltas[i] = (sbyte)System.Math.Max(-127, System.Math.Min(127, delta));
+            }
+
+            junction.NeighborStepDelta = deltas;
         }
     }
 

@@ -103,10 +103,15 @@ public static class SpeechCatalog
         ["hurt_faint"] = new("Faint", Rank.Alarm, 20f),
         ["cry_corpse"] = new("Grief", Rank.Action, 25f),
         ["cry_bury"] = new("Bury", Rank.Action, 20f),
-        // §81.13: проигравший сцену абьюза бежит домой в слезах. Файлов
-        // voice_<char>_cry_beaten_<n> пока нет — фолбэк на банк cry сработает
-        // сам (PlayVoiceLine), а завести свои реплики = просто положить файлы.
+        // §81.13: проигравший сцену абьюза бежит домой в слезах.
+        // §110.8: обещанного здесь «фолбэка на банк cry» не существовало —
+        // вторая ступень PlayVoiceLine ищет voice_<char>_cry, а таких файлов
+        // нет ни одного, и пузырь был немым. У группы теперь своя секция в
+        // HEXKUFA_LANGUAGE.md §7 (C15) и свои файлы.
         ["cry_beaten"] = new("Grief", Rank.Action, 30f),
+        // §110: лежит и рыдает после стресс-краха. Ambient — потому что это
+        // фон состояния, а не событие; пауза between всхлипами = AmbientGap.
+        ["cry_breakdown"] = new("Grief", Rank.Ambient, 20f),
         ["angry_defend"] = new("Attack", Rank.Alarm, 10f),
         ["fear_dark_alone"] = new("Warning", Rank.Ambient, 120f),
         ["fear_stranger"] = new("Warning", Rank.Alarm, 15f),
@@ -132,6 +137,9 @@ public static class SpeechCatalog
 
         // ---- E. mutual aid (§53) ----------------------------------------
         ["happy_aid_give"] = new("Aid", Rank.Action, 12f),
+        // §110: «ну не плачь» — своя реплика утешения вместо общей на все виды
+        // помощи: над рыдающей помощница именно ГОВОРИТ, это вся её работа.
+        ["happy_console"] = new("Console", Rank.Action, 12f),
         ["happy_aid_thanks"] = new("Thanks", Rank.Action, 12f),
         ["sad_aid_ask"] = new("Help", Rank.Action, 20f)
     };
@@ -359,7 +367,10 @@ public static class SpeechCatalog
             "WashClothes" => "happy_wash",
             "Dress" => "happy_dress",
             "Bury" => "cry_bury",
-            "FeedOther" or "TreatOther" or "MedicateOther" or "ConsoleOther" or "HydrateOther"
+            // §110: утешение отделилось от остальной помощи — у него свои
+            // слова («ну не плачь») и свой значок.
+            "ConsoleOther" => "happy_console",
+            "FeedOther" or "TreatOther" or "MedicateOther" or "HydrateOther"
                 => "happy_aid_give",
             // §68: winding a dressing round her own wound — it hurts going on.
             "TreatSelf" => "hurt_wound",
@@ -384,6 +395,7 @@ public static class SpeechCatalog
         public bool Sick;
         public bool Asleep;
         public bool Fainted;
+        public bool Crying; // §110: лежит и рыдает
     }
 
     // The single worst thing about her right now, or null when she has nothing
@@ -409,6 +421,9 @@ public static class SpeechCatalog
             }
         }
 
+        // §110: пока она рыдает, жаловаться ей больше не на что — всхлип
+        // перебивает и голод, и жажду (порог 0 даёт k = 1, максимум шкалы).
+        Consider("cry_breakdown", s.Crying ? 1f : 0f, 0f);
         Consider("sad_hunger", s.Hunger, 0.60f);
         Consider("sad_thirst", s.Thirst, 0.60f);
         Consider("sleepy_tired", 1f - s.Energy, 0.75f);

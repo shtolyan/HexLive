@@ -48,6 +48,11 @@ namespace HexLive.UnityDebug.Editor
             // приходит откуда угодно, включая бег и драку.
             AddParam(ac, "Fallen", AnimatorControllerParameterType.Bool);
             AddParam(ac, "Chopping", AnimatorControllerParameterType.Bool); // §axe: swinging an axe at work
+            // §110: УТЕШЕНИЕ — она опускается на колени рядом с рыдающей и
+            // молится за неё. Свой bool, а не переиспользованный Crafting:
+            // утешение перестало быть «ещё одной помощью» и получило свою позу,
+            // а крафтовый присед остался крафту и остальным видам помощи.
+            AddParam(ac, "Praying", AnimatorControllerParameterType.Bool);
             // §gear-craft v2: the staged in-place craft — kneeling over the
             // laid-out ingredients, working the ground (planting-style clip).
             AddParam(ac, "Crafting", AnimatorControllerParameterType.Bool);
@@ -110,6 +115,16 @@ namespace HexLive.UnityDebug.Editor
             // §105: рухнула → лежит → встала. Три состояния на один bool, ровно
             // как LieDown→Sleep→GetUp у сна, но своей цепочкой: сон уходит в
             // кровать и держит свою позу, а это падение с любого места.
+            // §110: молитва-утешение — своя цепочка вход→луп→выход, как у сна и
+            // у падения. Клип «встаёт с молитвы» приехал из Mixamo, а «опускается
+            // на молитву» ОТСУТСТВОВАЛ: он запечён реверсом того же клипа
+            // (Tools, headless Blender) в отдельный файл. Отрицательной скорости
+            // состояния в проекте нет ни одной — и не заводим: поверх неё
+            // ложится глобальный _animator.speed (пауза, фаст-форвард), а канон
+            // здесь — три честных клипа.
+            var prayDown = AddState(sm, "PrayDown", Clip("X Bot@Praying Down_once"));
+            var pray = AddState(sm, "Pray", Clip("Praying Idle"));
+            var prayUp = AddState(sm, "PrayUp", Clip("X Bot@Praying Up_once"));
             var fallDown = AddState(sm, "FallDown", Clip("X Bot@Falling Down_once"));
             var fallenIdle = AddState(sm, "FallenIdle", Clip("X Bot@Sleeping Idle"));
             var standUp = AddState(sm, "StandUp", Clip("X Bot@Standing Up_once"));
@@ -220,6 +235,58 @@ namespace HexLive.UnityDebug.Editor
             var co = crawl.AddTransition(idle);
             co.AddCondition(AnimatorConditionMode.IfNot, 0, "Crawling");
             co.hasExitTime = false; co.duration = 0.2f;
+
+            // §110: PrayDown → Pray → PrayUp. Цепочка из трёх, поэтому вход —
+            // явными переходами из стоячих состояний, а НЕ через AnyState: тот
+            // же капкан, что описан ниже у падения (условие «Praying == true»
+            // остаётся истинным всё время молитвы и дёргало бы её из лупа
+            // обратно во вход). Из лежачих не входим — молится та, кто пришла
+            // на своих ногах.
+            {
+                ClearAny(sm, prayDown);
+                ClearAny(sm, pray);
+                ClearAny(sm, prayUp);
+                ClearInbound(sm, prayDown);
+                ClearInbound(sm, pray);
+                ClearInbound(sm, prayUp);
+                ClearOut(prayDown);
+                ClearOut(pray);
+                ClearOut(prayUp);
+
+                var lyingNames = new[] { "Sleep", "LieDown", "GetUp", "FallDown", "FallenIdle", "StandUp", "Death", "Crawl" };
+                foreach (var cs in sm.states)
+                {
+                    var s = cs.state;
+                    if (s == prayDown || s == pray || s == prayUp ||
+                        System.Array.IndexOf(lyingNames, s.name) >= 0)
+                    {
+                        continue;
+                    }
+
+                    var kneel = s.AddTransition(prayDown);
+                    kneel.AddCondition(AnimatorConditionMode.If, 0, "Praying");
+                    kneel.hasExitTime = false;
+                    kneel.duration = 0.2f;
+                }
+
+                // Опустилась — молится, пока флаг держат.
+                var pd = prayDown.AddTransition(pray);
+                pd.AddCondition(AnimatorConditionMode.If, 0, "Praying");
+                pd.hasExitTime = true; pd.exitTime = 0.95f; pd.duration = 0.25f;
+
+                // Досрочно отпустили (ward встала, помощь прервали) — вставать
+                // прямо со входа, не досматривая, как она опускается.
+                var pdu = prayDown.AddTransition(prayUp);
+                pdu.AddCondition(AnimatorConditionMode.IfNot, 0, "Praying");
+                pdu.hasExitTime = false; pdu.duration = 0.2f;
+
+                var pu = pray.AddTransition(prayUp);
+                pu.AddCondition(AnimatorConditionMode.IfNot, 0, "Praying");
+                pu.hasExitTime = false; pu.duration = 0.25f;
+
+                var ui2 = prayUp.AddTransition(idle);
+                ui2.hasExitTime = true; ui2.exitTime = 0.9f; ui2.duration = 0.25f;
+            }
 
             // §105: FallDown → (FallenIdle | Sleep) → подъём.
             //

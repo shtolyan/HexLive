@@ -78,6 +78,10 @@ public static class Spec53
     public static float MedicateHeal = 0.1f;        // target Health up (+ sickness cleared)
     public static float ConsoleStressRelief = 0.3f; // target Stress down (+ grief eased)
 
+    // §110: на сколько тиков одно завершённое утешение укорачивает плач
+    // (CryingUntilTick) — с подругой рядом она выплакивается быстрее.
+    public static int ConsoleCryingReliefTicks = 120;
+
     // Relationship gain on BOTH sides of a completed aid — deliberately larger
     // than a chat: kindness under hardship bonds hard.
     public static float AidRelationshipGain = 0.18f;

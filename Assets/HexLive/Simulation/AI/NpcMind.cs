@@ -49,6 +49,11 @@ public sealed class NPCMind
     // rises. 0 = conscious.
     public int FaintedUntilTick { get; set; }
 
+    // Spec §110: рыдает — стресс-вариант краха §40.13. Она В СОЗНАНИИ (это
+    // не обморок): ложится и плачет до этого тика, боль/урон обрывают сразу,
+    // утешение (§53 Console) укорачивает. 0 = не плачет.
+    public int CryingUntilTick { get; set; }
+
     // Spec §60: coma — the deep unconsciousness. Unlike the timed faint above,
     // a coma has no deadline: the body lies as if dead, recovering exactly as
     // in sleep, until the STAT that felled it climbs back over its wake

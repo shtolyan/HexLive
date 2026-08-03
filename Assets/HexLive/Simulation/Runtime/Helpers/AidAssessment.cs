@@ -63,6 +63,14 @@ internal static class AidAssessment
             consoleSev = System.Math.Max(consoleSev, target.Needs.Stress * 0.6f);
         }
 
+        // §110: лежит и рыдает — оставаться целью утешения ВЕСЬ плач, даже
+        // когда стресс уже стёк ниже порога (иначе утешающая разворачивается
+        // на полпути, как только слёзы «помогли сами»).
+        if (tick < target.Mind.CryingUntilTick)
+        {
+            consoleSev = System.Math.Max(consoleSev, 0.55f);
+        }
+
         severity = treatSev;
         var kind = AidKind.Treat;
         if (medSev > severity) { severity = medSev; kind = AidKind.Medicate; }

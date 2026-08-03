@@ -940,8 +940,15 @@ public sealed class MobSystem : ISimulationSystem
         _mobPathAvoidScratch.Clear();
         AddActorJunctions(world, _mobPathAvoidScratch, dog);
 
+        // §40.17 v2: weightClimb: false — a mob pays NO time for an elevation
+        // step (MoveDogTo relocates it logically at once, the view glides to
+        // catch up), so the climb weight would price something that never
+        // happens: the wolf would loop around ledges the girl simply hops, and
+        // she would kite it along every lip. It also unhooks chase routes from
+        // future retunes of the seam prices, which is the class of change that
+        // historically reshuffled the whole dog dance.
         var path = HexPathfinder.FindPath(world, dog.Junction, targetJunction, _mobPathAvoidScratch,
-            hardAvoid: EnsureMobForbidden(world));
+            weightClimb: false, hardAvoid: EnsureMobForbidden(world));
         if (path.Count < 2)
         {
             return;

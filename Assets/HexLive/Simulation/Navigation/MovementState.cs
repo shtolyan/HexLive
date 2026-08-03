@@ -70,6 +70,12 @@ public sealed class MovementState
     // Where the hop lands — the presentation reads the exact target ground
     // height from it (water dives land BELOW the surface, not one step down).
     public TileCoord HopTargetTile { get; set; }
+    // §21.21B v15: where the hop takes off FROM (the tile holding HopFrom). The
+    // view builds the arc's height delta as target - from, so it no longer has
+    // to read npc.Tile — which the sim commits to the LANDING tile while the
+    // window is still open, zeroing the delta and leaving the body pinned a
+    // whole elevation step off the ground until the arc was cut to zero.
+    public TileCoord HopFromTile { get; set; }
     public int HopPathIndex { get; set; } = -1;
 }
 

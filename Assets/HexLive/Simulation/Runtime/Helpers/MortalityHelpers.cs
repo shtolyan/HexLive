@@ -155,6 +155,7 @@ internal static class MortalityHelpers
         // (§60, порог 0.35) вытащило бы её из окна мимо всей этой механики.
         npc.Mind.ComaCause = ComaCause.None;
         npc.Mind.FaintedUntilTick = 0;
+        npc.Mind.CryingUntilTick = 0; // §110: слёзы тоже вытесняются
 
         PinVitals(npc);
         PlanInterruption.Abort(world, npc, "Collapsed — dying");

@@ -865,6 +865,22 @@ MonoBehaviour:
       - 'Вытащили с того света — еле ходит и мгновенно выдыхается.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'effect.crying.title'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Crying'
+      - 'Плачет'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.crying.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Broke down under the strain — lying on the ground, crying it out.'
+      - 'Сломалась от напряжения — лежит и выплакивает своё.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'effect.filthy.title'
       TermType: 0
       Description:

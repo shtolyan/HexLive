@@ -83,9 +83,13 @@ public sealed class SwimTestBootstrap : MonoBehaviour
     [Range(0f, 2f)]
     [SerializeField] private float _hopLandingSeconds = 0.5f;
 
-    [Tooltip("ОТСТУП от стены (мировые единицы, перпендикулярно границе): взлетает ровно за столько ДО стены и приземляется ровно за столько ПОСЛЕ — симметрично. Больше = дальше от стены и длиннее прыжок.")]
+    [Tooltip("БЛИЖНИЙ конец прыжка — отступ у самой кромки (мировые единицы). СПРЫГИВАНИЕ отталкивается за столько ДО кромки; ЗАПРЫГИВАНИЕ приземляется за столько ПОСЛЕ неё.")]
     [Range(0.1f, 1.5f)]
     [SerializeField] private float _hopEdgePadding = 0.5f;
+
+    [Tooltip("ДАЛЬНИЙ конец прыжка (мировые единицы). СПРЫГИВАНИЕ приземляется за столько ЗА кромкой; ЗАПРЫГИВАНИЕ отталкивается за столько ДО неё (разбег). Длина прыжка = ближний + дальний.")]
+    [Range(0.2f, 1.2f)]
+    [SerializeField] private float _hopFarPadding = 0.65f;
 
     [Tooltip("НЫРОК: на сколько мировых единиц она уходит ПОД уровень плавания в нижней точке плюха, потом выныривает.")]
     [Range(0f, 1.5f)]
@@ -124,6 +128,7 @@ public sealed class SwimTestBootstrap : MonoBehaviour
         _tuningConfig.hopTakeoffSeconds = _hopTakeoffSeconds;
         _tuningConfig.hopLandingSeconds = _hopLandingSeconds;
         _tuningConfig.hopEdgePadding = _hopEdgePadding;
+        _tuningConfig.hopFarPadding = _hopFarPadding;
         _tuningConfig.hopDownUp = _hopDownUp;
         _tuningConfig.hopDownFallStartFrac = _hopDownFallStart;
         _tuningConfig.divePlungeDepth = _divePlungeDepth;
@@ -154,6 +159,7 @@ public sealed class SwimTestBootstrap : MonoBehaviour
         _hopTakeoffSeconds = _tuningConfig.hopTakeoffSeconds;
         _hopLandingSeconds = _tuningConfig.hopLandingSeconds;
         _hopEdgePadding = _tuningConfig.hopEdgePadding;
+        _hopFarPadding = _tuningConfig.hopFarPadding;
         _hopDownUp = _tuningConfig.hopDownUp;
         _hopDownFallStart = _tuningConfig.hopDownFallStartFrac;
         _divePlungeDepth = _tuningConfig.divePlungeDepth;
@@ -472,6 +478,7 @@ public sealed class SwimTestBootstrap : MonoBehaviour
         HexHopTuning.TakeoffSeconds = _hopTakeoffSeconds;
         HexHopTuning.LandingSeconds = _hopLandingSeconds;
         HexHopTuning.EdgePadding = _hopEdgePadding;
+        HexHopTuning.FarPadding = _hopFarPadding;
         HexHopTuning.DivePlungeDepth = _divePlungeDepth;
         HexHopTuning.DownHopUp = _hopDownUp;
         HexHopTuning.DownFallStartFrac = _hopDownFallStart;

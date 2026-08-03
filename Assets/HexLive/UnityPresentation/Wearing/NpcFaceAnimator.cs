@@ -56,6 +56,7 @@ public sealed class NpcFaceAnimator : MonoBehaviour
     private float _blinkPhase = -1f; // <0 idle, otherwise 0..1 close, 1..2 open
     private bool _eyesHold;          // §80: не моргать, идёт съёмка портрета
     private bool _sleeping;
+    private bool _crying;            // §110: лежит и рыдает — гримаса держится
     private float _wellbeing = 0.6f; // 0 miserable .. 1 great
     private bool _fighting;
     private float _surprisePulse;
@@ -186,6 +187,15 @@ public sealed class NpcFaceAnimator : MonoBehaviour
     private string _talkEmotion;
     private float _talkEmotionUntil;
 
+    // §110: она лежит и рыдает — гримаса плача ДЕРЖИТСЯ всё это время, а не
+    // вспыхивает на длину реплики. Отдельный флаг, а не бесконечный
+    // FlashTalkEmotion: тот кончается по часам (кап 6 с) и гасил бы лицо между
+    // всхлипами, и его же перебивает каждая новая реплика.
+    public void SetCrying(bool crying)
+    {
+        _crying = crying;
+    }
+
     public void FlashTalkEmotion(string emotion, float seconds)
     {
         // §67.10: реплики каталога приходят как "<эмоция>_<повод>"
@@ -288,6 +298,18 @@ public sealed class NpcFaceAnimator : MonoBehaviour
         if (_talkEmotion != null && Time.time >= _talkEmotionUntil)
         {
             _talkEmotion = null;
+        }
+
+        // §110: пока она рыдает, плач — фон лица. Всхлип-реплика поверх него
+        // ничего не ломает (она сама "cry"), а любая другая на секунду
+        // перекрасит и вернётся сюда.
+        if (_crying)
+        {
+            frown = Mathf.Max(frown, 80f);
+            overlayBrow = Mathf.Max(overlayBrow, 65f);
+            overlaySquint = Mathf.Max(overlaySquint, 55f);
+            smile = 0f;
+            smileFull = 0f;
         }
 
         if (_talkEmotion != null)

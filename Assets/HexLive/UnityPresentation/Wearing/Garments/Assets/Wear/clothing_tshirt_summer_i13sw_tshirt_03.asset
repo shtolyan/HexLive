@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_tshirt_summer_i13sw_tshirt_03
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.tshirt_summer_i13sw_tshirt_03
+  prototypeId: clothing.tshirt_summer
+  displayName: T-Shirt (i13SW TShirt 03)
+  variantMaterials:
+  - {fileID: 2100000, guid: 6102fb432edf6ee46b2fc3130a6ce2d2, type: 2}
+  - {fileID: 2100000, guid: 21e38bc6578a871479e5cd8b49c82c59, type: 2}
+  layer: 1
+  covers: 010000000300000004000000
+  warmth: 0.07
+  armor: 0
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

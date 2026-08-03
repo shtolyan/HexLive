@@ -1,0 +1,2303 @@
+{
+  "drop": "summerbikerlace",
+  "sources": [
+    {
+      "fbx": "Assets/Temp/jolly summerbikerlace.fbx",
+      "actor": "Jolly"
+    },
+    {
+      "fbx": "Assets/Temp/jana summerbikerlace.fbx",
+      "actor": "Jana"
+    },
+    {
+      "fbx": "Assets/Temp/marta summerbikerlace.fbx",
+      "actor": "Marta"
+    },
+    {
+      "fbx": "Assets/Temp/molly summerbikerlace.fbx",
+      "actor": "Molly"
+    }
+  ],
+  "garments": [
+    {
+      "sourceKey": "Shorts10_14636",
+      "folder": "SummerShorts",
+      "name": "SummerShorts",
+      "simId": "clothing.shorts_summer",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "button",
+          "texture": "i13SW_Shorts_Diffuse.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "shorts",
+          "texture": "i13SW_Shorts_Diffuse.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 14636,
+        "polys": 14530,
+        "bbox": [
+          -19.0,
+          19.0,
+          84.4,
+          108.4,
+          -12.8,
+          12.3
+        ],
+        "zones": {
+          "Pelvis": 0.884,
+          "Belly": 0.116
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Denim Shorts",
+        "nameRu": "Джинсовые шорты",
+        "descEn": "Cut short and worn thin. Nothing between her legs and the weather.",
+        "descRu": "Короткие и вытертые. Между ногами и погодой ничего.",
+        "warmth": 0.05,
+        "armor": 0.01,
+        "thermalDelta": 0.0,
+        "capacity": 2,
+        "covers": [
+          "Pelvis"
+        ]
+      }
+    },
+    {
+      "sourceKey": "tshirt_8269",
+      "folder": "SummerTShirt",
+      "name": "SummerTShirt",
+      "simId": "clothing.tshirt_summer",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "Belly",
+        "ShoulderR",
+        "ShoulderL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "trim",
+          "texture": "i13SW_TShirt_Teddy.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "shirt",
+          "texture": "i13SW_TShirt_Teddy.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 8269,
+        "polys": 8147,
+        "bbox": [
+          -29.6,
+          29.7,
+          107.2,
+          153.4,
+          -12.7,
+          15.4
+        ],
+        "zones": {
+          "Chest": 0.625,
+          "Belly": 0.208,
+          "Shoulder": 0.155,
+          "Neck": 0.012
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "T-Shirt",
+        "nameRu": "Футболка",
+        "descEn": "Plain cotton, short sleeves. What she reaches for first.",
+        "descRu": "Простой хлопок, короткий рукав. То, за чем тянется первым делом.",
+        "warmth": 0.07,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso",
+          "ArmL",
+          "ArmR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "i13SW TShirt 02",
+          "from": "i13SW The T Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "i13SW_TShirt_Bee.jpg"
+            },
+            {
+              "source": "trim",
+              "texture": "i13SW_TShirt_Bee.jpg"
+            }
+          ]
+        },
+        {
+          "name": "i13SW TShirt 03",
+          "from": "i13SW The T Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "i13SW_TShirt_Day.jpg"
+            },
+            {
+              "source": "trim",
+              "texture": "i13SW_TShirt_Day.jpg"
+            }
+          ]
+        },
+        {
+          "name": "i13SW TShirt 04",
+          "from": "i13SW The T Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "i13SW_TShirt_Eyes.jpg"
+            },
+            {
+              "source": "trim",
+              "texture": "i13SW_TShirt_Eyes.jpg"
+            }
+          ]
+        },
+        {
+          "name": "i13SW TShirt 05",
+          "from": "i13SW The T Shirt",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "i13SW_TShirt.jpg"
+            },
+            {
+              "source": "trim",
+              "texture": "i13SW_TShirt.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "TankTop9_20034",
+      "folder": "SummerTankTop",
+      "name": "SummerTankTop",
+      "simId": "clothing.tanktop_summer",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "Belly"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "trim",
+          "texture": "i13SW_Tank_OffWhite.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "tank",
+          "texture": "i13SW_Tank_OffWhite.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 20034,
+        "polys": 19798,
+        "bbox": [
+          -16.0,
+          17.1,
+          101.4,
+          152.5,
+          -12.8,
+          13.8
+        ],
+        "zones": {
+          "Chest": 0.586,
+          "Belly": 0.392,
+          "Pelvis": 0.02,
+          "Neck": 0.003
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Tank Top",
+        "nameRu": "Майка",
+        "descEn": "Sleeveless and thin. Shoulders bare to whatever the day brings.",
+        "descRu": "Без рукавов и тонкая. Плечи открыты всему, что принесёт день.",
+        "warmth": 0.05,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "variants": [
+        {
+          "name": "i13SW Tank 02",
+          "from": "i13SW The Tank Top",
+          "textures": [
+            {
+              "source": "tank",
+              "texture": "i13SW_Tank_Pink.jpg"
+            },
+            {
+              "source": "trim",
+              "texture": "i13SW_Tank_OffWhite.jpg"
+            }
+          ]
+        },
+        {
+          "name": "i13SW Tank 03",
+          "from": "i13SW The Tank Top",
+          "textures": [
+            {
+              "source": "tank",
+              "texture": "i13SW_Tank_Blue.jpg"
+            },
+            {
+              "source": "trim",
+              "texture": "i13SW_Tank_OffWhite.jpg"
+            }
+          ]
+        },
+        {
+          "name": "i13SW Tank 04",
+          "from": "i13SW The Tank Top",
+          "textures": [
+            {
+              "source": "tank",
+              "texture": "i13SW_Tank_Olive.jpg"
+            },
+            {
+              "source": "trim",
+              "texture": "i13SW_Tank_OffWhite.jpg"
+            }
+          ]
+        },
+        {
+          "name": "i13SW Tank 05",
+          "from": "i13SW The Tank Top",
+          "textures": [
+            {
+              "source": "tank",
+              "texture": "i13SW_Tank_Vilet.jpg"
+            },
+            {
+              "source": "trim",
+              "texture": "i13SW_Tank_OffWhite.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "FitnessIdol_CroppedTop_G3F",
+      "folder": "IdolCropTop",
+      "name": "IdolCropTop",
+      "simId": "clothing.croptop_idol",
+      "layer": "Wear",
+      "slots": [
+        "Chest"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "CroppedTop",
+          "texture": "FITop_ORN_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Boundary",
+          "texture": "FITop_ORN_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 8250,
+        "polys": 8006,
+        "bbox": [
+          -14.8,
+          14.8,
+          123.0,
+          153.7,
+          -12.2,
+          13.8
+        ],
+        "zones": {
+          "Chest": 0.94,
+          "Neck": 0.06
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Cropped Top",
+        "nameRu": "Топ",
+        "descEn": "Cut off above the ribs. Made for moving, not for keeping warm.",
+        "descRu": "Обрезан выше рёбер. Для движения, не для тепла.",
+        "warmth": 0.04,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Blue",
+          "from": "CroppedTop",
+          "textures": [
+            {
+              "source": "Boundary",
+              "texture": "FITop_ORN_BaseColor.png"
+            },
+            {
+              "source": "CroppedTop",
+              "texture": "FITop_NO_BaseColor.png"
+            }
+          ]
+        },
+        {
+          "name": "White",
+          "from": "CroppedTop",
+          "textures": [
+            {
+              "source": "Boundary",
+              "texture": "FITop_NO_BaseColor.png"
+            },
+            {
+              "source": "CroppedTop",
+              "texture": "FITop_NO_BaseColor.png"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "FitnessIdol_Leggings_G3F",
+      "folder": "IdolLeggings",
+      "name": "IdolLeggings",
+      "simId": "clothing.leggings_idol",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis",
+        "ThighR",
+        "ThighL",
+        "ShinR",
+        "ShinL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Hose",
+          "texture": "FILeg_ORN_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Leggings",
+          "texture": "FILeg_ORN_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Belt",
+          "texture": "FILeg_ORN_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 51155,
+        "polys": 50248,
+        "bbox": [
+          -18.9,
+          18.9,
+          9.6,
+          115.0,
+          -12.7,
+          12.1
+        ],
+        "zones": {
+          "Thigh": 0.325,
+          "Pelvis": 0.238,
+          "Shin": 0.213,
+          "Belly": 0.2,
+          "Foot": 0.025
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Leggings",
+        "nameRu": "Легинсы",
+        "descEn": "Second skin from hip to ankle. Warm, and they tear on the first thorn.",
+        "descRu": "Вторая кожа от бедра до щиколотки. Тёплые — и рвутся о первый шип.",
+        "warmth": 0.12,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Blue",
+          "from": "Leggings",
+          "textures": [
+            {
+              "source": "Belt",
+              "texture": "FILeg_ORN_BaseColor.png"
+            },
+            {
+              "source": "Hose",
+              "texture": "FILeg_NO_BaseColor.png"
+            },
+            {
+              "source": "Leggings",
+              "texture": "FILeg_ORN_BaseColor.png"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Sleeves_G3F",
+      "folder": "IdolSleeves",
+      "name": "IdolSleeves",
+      "simId": "clothing.sleeves_idol",
+      "layer": "Wear",
+      "slots": [
+        "ShoulderR",
+        "ShoulderL",
+        "ForearmR",
+        "ForearmL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Sleeves",
+          "texture": "FITop_ORN_BaseColor.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 11624,
+        "polys": 11444,
+        "bbox": [
+          -74.2,
+          74.2,
+          140.1,
+          153.3,
+          -12.4,
+          7.6
+        ],
+        "zones": {
+          "Shoulder": 0.349,
+          "Chest": 0.277,
+          "Forearm": 0.232,
+          "Wrist": 0.115,
+          "Neck": 0.027
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Detached Sleeves",
+        "nameRu": "Отдельные рукава",
+        "descEn": "Sleeves and nothing between them. The arms stay covered, the rest does not.",
+        "descRu": "Рукава — и ничего между ними. Руки закрыты, остальное нет.",
+        "warmth": 0.05,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "ArmL",
+          "ArmR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "ChRO_gloveL_33641",
+      "folder": "BikerGloves",
+      "name": "BikerGloves",
+      "simId": "clothing.gloves_biker",
+      "layer": "Wear",
+      "slots": [
+        "ForearmR",
+        "ForearmL",
+        "WristR",
+        "WristL",
+        "HandR",
+        "HandL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Glove_Zipper_Tape_SG",
+          "texture": "ChRO_jacket-gloves-u1v1_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Glove_Body_SG",
+          "texture": "ChRO_jacket-gloves-u1v1_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Glove_Inner_SG",
+          "texture": "ChRO_outfit-u2v2_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 33641,
+        "polys": 33537,
+        "bbox": [
+          62.4,
+          84.5,
+          141.2,
+          148.2,
+          -1.5,
+          11.3
+        ],
+        "zones": {
+          "Wrist": 0.627,
+          "Hand": 0.201,
+          "Forearm": 0.172
+        },
+        "heelCm": 0.0
+      },
+      "sourceKeys": [
+        "ChRO_gloveL",
+        "ChRO_gloveR",
+        "glove_l_button",
+        "glove_r_button",
+        "glove_l_zipper_slider",
+        "glove_l_zipper_slider_dup_2",
+        "glove_r_zipper_slider",
+        "glove_r_zipper_slider_dup_2"
+      ],
+      "sim": {
+        "displayName": "Biker Gloves",
+        "nameRu": "Байкерские перчатки",
+        "descEn": "Leather to the wrist, zipped and studded. The knuckles stay whole.",
+        "descRu": "Кожа до запястья, на молнии и клёпках. Костяшки остаются целы.",
+        "warmth": 0.06,
+        "armor": 0.06,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "ArmL",
+          "ArmR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "ChRO_jacket_70822",
+      "folder": "BikerJacket",
+      "name": "BikerJacket",
+      "simId": "clothing.jacket_biker",
+      "layer": "Outerwear",
+      "slots": [
+        "Neck",
+        "Chest",
+        "Belly",
+        "ShoulderR",
+        "ShoulderL",
+        "ForearmR",
+        "ForearmL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Jacket_Buckles_SG",
+          "texture": "ChRO_outfit-u1v2_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Jacket_Body_SG",
+          "texture": "ChRO_jacket-gloves-u1v1_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Jacket_Zipper_Tape_SG",
+          "texture": "ChRO_jacket-gloves-u1v1_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Jacket_Inner_SG",
+          "texture": "ChRO_outfit-u2v2_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 70822,
+        "polys": 70680,
+        "bbox": [
+          -71.0,
+          71.5,
+          109.9,
+          158.5,
+          -13.4,
+          14.3
+        ],
+        "zones": {
+          "Chest": 0.486,
+          "Belly": 0.259,
+          "Shoulder": 0.111,
+          "Forearm": 0.089,
+          "Neck": 0.03,
+          "Wrist": 0.024,
+          "Head": 0.002
+        },
+        "heelCm": 0.0
+      },
+      "sourceKeys": [
+        "ChRO_jacket",
+        "jacket_buttons_L1",
+        "jacket_buttons_L2",
+        "jacket_buttons_R1",
+        "jacket_buttons_R2",
+        "jacket_zipper_slider_L1",
+        "jacket_zipper_slider_L2",
+        "jacket_zipper_slider_R1",
+        "jacket_zipper_slider_R2",
+        "jacket_zipper_MainSlider",
+        "jacket_zipper_MainSlider_dup_2",
+        "jacket_zipper_MainSlider_dup_3"
+      ],
+      "sim": {
+        "displayName": "Biker Jacket",
+        "nameRu": "Косуха",
+        "descEn": "Heavy leather, zipped to the throat. The warmest thing she owns, and the toughest.",
+        "descRu": "Тяжёлая кожа, застёгнута под горло. Самое тёплое, что у неё есть, и самое крепкое.",
+        "warmth": 0.32,
+        "armor": 0.14,
+        "thermalDelta": 0.0,
+        "capacity": 3,
+        "covers": [
+          "Torso",
+          "ArmL",
+          "ArmR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "ChRO_pants_51959",
+      "folder": "BikerPants",
+      "name": "BikerPants",
+      "simId": "clothing.pants_biker",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis",
+        "ThighR",
+        "ThighL",
+        "ShinR",
+        "ShinL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Belt_Buckle_SG",
+          "texture": "ChRO_pants_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Belt_Panel_SG",
+          "texture": "ChRO_pants_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Pants_Body_SG",
+          "texture": "ChRO_pants_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Pants_Zipper_Tape_SG",
+          "texture": "ChRO_pants_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Pants_Zipper_Slider_SG",
+          "texture": "ChRO_pants_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Pants_Button_SG",
+          "texture": "ChRO_pants_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 51959,
+        "polys": 51813,
+        "bbox": [
+          -18.9,
+          18.9,
+          5.2,
+          111.0,
+          -12.7,
+          13.3
+        ],
+        "zones": {
+          "Belly": 0.293,
+          "Pelvis": 0.256,
+          "Shin": 0.222,
+          "Thigh": 0.207,
+          "Foot": 0.022
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Biker Trousers",
+        "nameRu": "Байкерские штаны",
+        "descEn": "Reinforced leather to the ankle. Warm, and hard to tear.",
+        "descRu": "Усиленная кожа до щиколотки. Тёплые и рвутся неохотно.",
+        "warmth": 0.18,
+        "armor": 0.09,
+        "thermalDelta": 0.0,
+        "capacity": 3,
+        "covers": [
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "ChRO_shoeL_44330",
+      "folder": "BikerBoots",
+      "name": "BikerBoots",
+      "simId": "clothing.boots_biker",
+      "layer": "Outerwear",
+      "slots": [
+        "ShinR",
+        "ShinL",
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Shoes_Lace_Rings_SG",
+          "texture": "ChRO_shoes-u2v1_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Shoes_Tongue_SG",
+          "texture": "ChRO_shoes-u2v1_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Shoes_Body_SG",
+          "texture": "ChRO_shoes-u2v1_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Shoes_Lace_SG",
+          "texture": "ChRO_outfit-u1v2_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Shoes_Buckles_SG",
+          "texture": "ChRO_outfit-u1v2_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Shoes_Sole_SG",
+          "texture": "ChRO_shoes-u3v1_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Shoes_Zipper Tape_SG",
+          "texture": "ChRO_shoes-u2v1_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Shoes_Inner_SG",
+          "texture": "ChRO_outfit-u2v2_color.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 43610,
+        "polys": 42967,
+        "bbox": [
+          6.8,
+          19.6,
+          -2.3,
+          22.9,
+          -10.5,
+          14.9
+        ],
+        "zones": {
+          "Foot": 0.557,
+          "Shin": 0.443
+        },
+        "heelCm": 2.29
+      },
+      "sourceKeys": [
+        "ChRO_shoeL",
+        "ChRO_shoeR",
+        "glove_l_zipper_slider_dup_3",
+        "glove_l_zipper_slider_dup_4",
+        "glove_r_zipper_slider_dup_3",
+        "glove_r_zipper_slider_dup_4"
+      ],
+      "sim": {
+        "displayName": "Biker Boots",
+        "nameRu": "Байкерские ботинки",
+        "descEn": "Buckled and hard-soled. The best thing between a wolf and her ankle.",
+        "descRu": "На пряжках и жёсткой подошве. Лучшее между волком и её лодыжкой.",
+        "warmth": 0.15,
+        "armor": 0.14,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "Left Boot",
+      "folder": "LeatherBoots",
+      "name": "LeatherBoots",
+      "simId": "clothing.boots_leather",
+      "layer": "Outerwear",
+      "slots": [
+        "ShinR",
+        "ShinL",
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Stitching 2",
+          "texture": "Seam_solotex_.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Leather",
+          "texture": "Black4096_x_4096_Texture.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Leather Straps",
+          "texture": "Black4096_x_4096_Texture.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Metal Buckles",
+          "texture": "Black4096_x_4096_Texture.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Sole",
+          "texture": "Black4096_x_4096_Texture.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Stitching 1",
+          "texture": "Black4096_x_4096_Texture.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Demarcation Line",
+          "texture": "Black4096_x_4096_Texture.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 69535,
+        "polys": 66257,
+        "bbox": [
+          6.4,
+          19.8,
+          -1.9,
+          18.9,
+          -10.7,
+          15.0
+        ],
+        "zones": {
+          "Foot": 0.754,
+          "Shin": 0.246
+        },
+        "heelCm": 1.91
+      },
+      "sourceKeys": [
+        "Left Boot",
+        "Right Boot"
+      ],
+      "sim": {
+        "displayName": "Leather Boots",
+        "nameRu": "Кожаные сапоги",
+        "descEn": "Plain leather to mid-calf. Nothing fancy, and nothing to fix.",
+        "descRu": "Простая кожа до середины икры. Ничего лишнего и нечему ломаться.",
+        "warmth": 0.13,
+        "armor": 0.11,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "LB Black Red Leather",
+          "from": "LB Leather Boots G3F",
+          "textures": [
+            {
+              "source": "Demarcation Line",
+              "texture": "Black_Red_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather",
+              "texture": "Black_Red_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather Straps",
+              "texture": "Black_Red_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Metal Buckles",
+              "texture": "Black_Red_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Sole",
+              "texture": "Black_Red_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 1",
+              "texture": "Black_Red_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 2",
+              "texture": "Seam_solotex_.jpg"
+            }
+          ]
+        },
+        {
+          "name": "LB Black White Leather",
+          "from": "LB Leather Boots G3F",
+          "textures": [
+            {
+              "source": "Demarcation Line",
+              "texture": "Black_White_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather",
+              "texture": "Black_White_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather Straps",
+              "texture": "Black_White_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Metal Buckles",
+              "texture": "Black_White_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Sole",
+              "texture": "Black_White_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 1",
+              "texture": "Black_White_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 2",
+              "texture": "Seam_solotex_.jpg"
+            }
+          ]
+        },
+        {
+          "name": "LB Black Yellow Leather",
+          "from": "LB Leather Boots G3F",
+          "textures": [
+            {
+              "source": "Demarcation Line",
+              "texture": "Black_Yellow_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather",
+              "texture": "Black_Yellow_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather Straps",
+              "texture": "Black_Yellow_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Metal Buckles",
+              "texture": "Black_Yellow_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Sole",
+              "texture": "Black_Yellow_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 1",
+              "texture": "Black_Yellow_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 2",
+              "texture": "Seam_solotex_.jpg"
+            }
+          ]
+        },
+        {
+          "name": "LB Red Black Leather",
+          "from": "LB Leather Boots G3F",
+          "textures": [
+            {
+              "source": "Demarcation Line",
+              "texture": "Red_Black_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather",
+              "texture": "Red_Black_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather Straps",
+              "texture": "Red_Black_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Metal Buckles",
+              "texture": "Red_Black_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Sole",
+              "texture": "Red_Black_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 1",
+              "texture": "Red_Black_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 2",
+              "texture": "Seam_solotex_.jpg"
+            }
+          ]
+        },
+        {
+          "name": "LB Red Leather",
+          "from": "LB Leather Boots G3F",
+          "textures": [
+            {
+              "source": "Demarcation Line",
+              "texture": "Red4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather",
+              "texture": "Red4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather Straps",
+              "texture": "Red4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Metal Buckles",
+              "texture": "Red4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Sole",
+              "texture": "Red4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 1",
+              "texture": "Red4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 2",
+              "texture": "Seam_solotex_.jpg"
+            }
+          ]
+        },
+        {
+          "name": "LB Red White Leather",
+          "from": "LB Leather Boots G3F",
+          "textures": [
+            {
+              "source": "Demarcation Line",
+              "texture": "Red_White_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather",
+              "texture": "Red_White_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather Straps",
+              "texture": "Red_White_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Metal Buckles",
+              "texture": "Red_White_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Sole",
+              "texture": "Red_White_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 1",
+              "texture": "Red_White_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 2",
+              "texture": "Seam_solotex_.jpg"
+            }
+          ]
+        },
+        {
+          "name": "LB Red Yellow Leather",
+          "from": "LB Leather Boots G3F",
+          "textures": [
+            {
+              "source": "Demarcation Line",
+              "texture": "Red_Yellow_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather",
+              "texture": "Red_Yellow_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather Straps",
+              "texture": "Red_Yellow_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Metal Buckles",
+              "texture": "Red_Yellow_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Sole",
+              "texture": "Red_Yellow_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 1",
+              "texture": "Red_Yellow_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 2",
+              "texture": "Seam_solotex_.jpg"
+            }
+          ]
+        },
+        {
+          "name": "LB White Black Leather",
+          "from": "LB Leather Boots G3F",
+          "textures": [
+            {
+              "source": "Demarcation Line",
+              "texture": "White_Black_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather",
+              "texture": "White_Black_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather Straps",
+              "texture": "White_Black_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Metal Buckles",
+              "texture": "White_Black_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Sole",
+              "texture": "White_Black_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 1",
+              "texture": "White_Black_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 2",
+              "texture": "Seam_solotex_.jpg"
+            }
+          ]
+        },
+        {
+          "name": "LB White Leather",
+          "from": "LB Leather Boots G3F",
+          "textures": [
+            {
+              "source": "Demarcation Line",
+              "texture": "White4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather",
+              "texture": "White4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather Straps",
+              "texture": "White4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Metal Buckles",
+              "texture": "White4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Sole",
+              "texture": "White4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 1",
+              "texture": "White4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 2",
+              "texture": "Seam_solotex_.jpg"
+            }
+          ]
+        },
+        {
+          "name": "LB White Red Leather",
+          "from": "LB Leather Boots G3F",
+          "textures": [
+            {
+              "source": "Demarcation Line",
+              "texture": "White_Red_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather",
+              "texture": "White_Red_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather Straps",
+              "texture": "White_Red_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Metal Buckles",
+              "texture": "White_Red_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Sole",
+              "texture": "White_Red_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 1",
+              "texture": "White_Red_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 2",
+              "texture": "Seam_solotex_.jpg"
+            }
+          ]
+        },
+        {
+          "name": "LB White Yellow Leather",
+          "from": "LB Leather Boots G3F",
+          "textures": [
+            {
+              "source": "Demarcation Line",
+              "texture": "White_Yellow_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather",
+              "texture": "White_Yellow_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather Straps",
+              "texture": "White_Yellow_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Metal Buckles",
+              "texture": "White_Yellow_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Sole",
+              "texture": "White_Yellow_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 1",
+              "texture": "White_Yellow_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 2",
+              "texture": "Seam_solotex_.jpg"
+            }
+          ]
+        },
+        {
+          "name": "LB Yellow Black Leather",
+          "from": "LB Leather Boots G3F",
+          "textures": [
+            {
+              "source": "Demarcation Line",
+              "texture": "Yellow_Black_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather",
+              "texture": "Yellow_Black_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather Straps",
+              "texture": "Yellow_Black_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Metal Buckles",
+              "texture": "Yellow_Black_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Sole",
+              "texture": "Yellow_Black_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 1",
+              "texture": "Yellow_Black_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 2",
+              "texture": "Seam_solotex_.jpg"
+            }
+          ]
+        },
+        {
+          "name": "LB Yellow Leather",
+          "from": "LB Leather Boots G3F",
+          "textures": [
+            {
+              "source": "Demarcation Line",
+              "texture": "Yellow4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather",
+              "texture": "Yellow4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather Straps",
+              "texture": "Yellow4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Metal Buckles",
+              "texture": "Yellow4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Sole",
+              "texture": "Yellow4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 1",
+              "texture": "Yellow4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 2",
+              "texture": "Seam_solotex_.jpg"
+            }
+          ]
+        },
+        {
+          "name": "LB Yellow Red Leather",
+          "from": "LB Leather Boots G3F",
+          "textures": [
+            {
+              "source": "Demarcation Line",
+              "texture": "Yellow_Red_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather",
+              "texture": "Yellow_Red_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather Straps",
+              "texture": "Yellow_Red_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Metal Buckles",
+              "texture": "Yellow_Red_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Sole",
+              "texture": "Yellow_Red_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 1",
+              "texture": "Yellow_Red_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 2",
+              "texture": "Seam_solotex_.jpg"
+            }
+          ]
+        },
+        {
+          "name": "LB Yellow White Leather",
+          "from": "LB Leather Boots G3F",
+          "textures": [
+            {
+              "source": "Demarcation Line",
+              "texture": "Yellow_White_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather",
+              "texture": "Yellow_White_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Leather Straps",
+              "texture": "Yellow_White_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Metal Buckles",
+              "texture": "Yellow_White_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Sole",
+              "texture": "Yellow_White_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 1",
+              "texture": "Yellow_White_4096_x_4096_Texture.jpg"
+            },
+            {
+              "source": "Stitching 2",
+              "texture": "Seam_solotex_.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "FolkTop_4755",
+      "folder": "FolkTop",
+      "name": "FolkTop",
+      "simId": "clothing.top_folk",
+      "layer": "Wear",
+      "slots": [
+        "Neck",
+        "Chest",
+        "Belly"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "top",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "waistband",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "neckband",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 4755,
+        "polys": 4450,
+        "bbox": [
+          -14.7,
+          14.7,
+          113.5,
+          157.4,
+          -8.7,
+          13.7
+        ],
+        "zones": {
+          "Chest": 0.755,
+          "Neck": 0.131,
+          "Belly": 0.114
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Folk Blouse",
+        "nameRu": "Народная блуза",
+        "descEn": "Loose and embroidered at the collar. Cool in the sun, useless in the wind.",
+        "descRu": "Свободная, с вышивкой у ворота. Прохладна на солнце, бесполезна на ветру.",
+        "warmth": 0.06,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      }
+    },
+    {
+      "sourceKey": "Lace3BraGen3_13652",
+      "folder": "LaceBra",
+      "name": "LaceBra",
+      "simId": "underwear.bra_lace",
+      "layer": "Underwear",
+      "slots": [
+        "Chest"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "brassiere",
+          "texture": "Dreamlace3_Bra_Dreamlace3_Bra_tr.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "bowknot",
+          "texture": "Dreamlace3_Bra_Dreamlace3_Bra_tr.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "strap",
+          "texture": "Dreamlace3_Bra_Dreamlace3_Bra_tr.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "hook",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 13652,
+        "polys": 12111,
+        "bbox": [
+          -14.8,
+          14.8,
+          122.8,
+          151.5,
+          -11.9,
+          13.8
+        ],
+        "zones": {
+          "Chest": 1.0
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Lace Bra",
+        "nameRu": "Кружевной лиф",
+        "descEn": "Worn against the skin. She notices when it is gone.",
+        "descRu": "На голое тело. Без него замечает сразу.",
+        "warmth": 0.02,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Dream Lace 3 Bra",
+          "from": "Dream Lace 3 Bra Victoria 7",
+          "textures": [
+            {
+              "source": "bowknot",
+              "texture": "Dreamlace3_Bra.jpg"
+            },
+            {
+              "source": "brassiere",
+              "texture": "Dreamlace3_Bra.jpg"
+            },
+            {
+              "source": "strap",
+              "texture": "Dreamlace3_Bra.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Dream Lace 3 Bra Black",
+          "from": "Dream Lace 3 Bra Victoria 7",
+          "textures": [
+            {
+              "source": "bowknot",
+              "texture": "DreamLace3_BraWhite.jpg"
+            },
+            {
+              "source": "brassiere",
+              "texture": "DreamLace3_BraWhite.jpg"
+            },
+            {
+              "source": "strap",
+              "texture": "DreamLace3_BraWhite.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Lace3PanGen3_2635",
+      "folder": "LaceBriefs",
+      "name": "LaceBriefs",
+      "simId": "underwear.briefs_lace",
+      "layer": "Underwear",
+      "slots": [
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "pantie",
+          "texture": "Dreamlace3_Pan1_Dreamlace3_Pan1_tr.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "bowknot",
+          "texture": "Dreamlace3_Pan1_Dreamlace3_Pan1_tr.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        }
+      ],
+      "_measured": {
+        "verts": 2635,
+        "polys": 2290,
+        "bbox": [
+          -17.5,
+          17.5,
+          87.4,
+          106.1,
+          -12.4,
+          10.8
+        ],
+        "zones": {
+          "Pelvis": 0.81,
+          "Belly": 0.19
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Lace Briefs",
+        "nameRu": "Кружевные трусики",
+        "descEn": "Worn against the skin. She notices when they are gone.",
+        "descRu": "На голое тело. Без них замечает сразу.",
+        "warmth": 0.02,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Pelvis"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Dream Lace 3 Panty",
+          "from": "Dream Lace 3 Panty Victoria 7",
+          "textures": [
+            {
+              "source": "bowknot",
+              "texture": "Dreamlace3_Pan1.jpg"
+            },
+            {
+              "source": "pantie",
+              "texture": "Dreamlace3_Pan1.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Dream Lace 3 Panty Black",
+          "from": "Dream Lace 3 Panty Victoria 7",
+          "textures": [
+            {
+              "source": "bowknot",
+              "texture": "DreamLace3_PanWhite.jpg"
+            },
+            {
+              "source": "pantie",
+              "texture": "DreamLace3_PanGr.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Dream Lace 3 Panty Blue1",
+          "from": "Dream Lace 3 Panty Victoria 7",
+          "textures": [
+            {
+              "source": "bowknot",
+              "texture": "DreamLace3_PanWhite.jpg"
+            },
+            {
+              "source": "pantie",
+              "texture": "DreamLace3_PanWhite.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Dream Lace 3 Panty Blue2",
+          "from": "Dream Lace 3 Panty Victoria 7",
+          "textures": [
+            {
+              "source": "bowknot",
+              "texture": "DreamLace3_PanGr.jpg"
+            },
+            {
+              "source": "pantie",
+              "texture": "DreamLace3_PanGr.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "armGuardL_5752",
+      "folder": "FighterArmGuards",
+      "name": "FighterArmGuards",
+      "simId": "clothing.armguards_fighter",
+      "layer": "Wear",
+      "slots": [
+        "ForearmR",
+        "ForearmL",
+        "WristR",
+        "WristL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Material03",
+          "texture": "bandage.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material01",
+          "texture": "guard-map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material02",
+          "texture": "guard-map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 5752,
+        "polys": 5780,
+        "bbox": [
+          51.8,
+          77.9,
+          141.5,
+          148.6,
+          -5.6,
+          8.5
+        ],
+        "zones": {
+          "Wrist": 0.591,
+          "Forearm": 0.409
+        },
+        "heelCm": 0.0
+      },
+      "sourceKeys": [
+        "armGuardL",
+        "armGuardR"
+      ],
+      "sim": {
+        "displayName": "Arm Guards",
+        "nameRu": "Наручи",
+        "descEn": "Bound plates over the forearm. They have stopped a blade once.",
+        "descRu": "Пластины, примотанные к предплечью. Однажды остановили лезвие.",
+        "warmth": 0.04,
+        "armor": 0.15,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "ArmL",
+          "ArmR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "belt_4288",
+      "folder": "FighterBelt",
+      "name": "FighterBelt",
+      "simId": "clothing.belt_fighter",
+      "layer": "Outerwear",
+      "slots": [
+        "Belly"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Material-belt",
+          "texture": "belt-map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 4288,
+        "polys": 4296,
+        "bbox": [
+          -14.2,
+          14.5,
+          95.2,
+          117.7,
+          -8.6,
+          17.4
+        ],
+        "zones": {
+          "Belly": 0.913,
+          "Pelvis": 0.087
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Wide Belt",
+        "nameRu": "Широкий пояс",
+        "descEn": "Wrapped twice around the waist. No warmth — it is there to carry things.",
+        "descRu": "Дважды обёрнут вокруг пояса. Не греет — он чтобы носить.",
+        "warmth": 0.01,
+        "armor": 0.02,
+        "thermalDelta": 0.0,
+        "capacity": 2,
+        "covers": [
+          "Torso"
+        ]
+      }
+    },
+    {
+      "sourceKey": "footwear_8638",
+      "folder": "FighterFootwear",
+      "name": "FighterFootwear",
+      "simId": "clothing.footwear_fighter",
+      "layer": "Outerwear",
+      "slots": [
+        "ShinR",
+        "ShinL",
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Material02",
+          "texture": "footwear-map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material01",
+          "texture": "footwear-map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 8638,
+        "polys": 8674,
+        "bbox": [
+          -19.1,
+          19.1,
+          -0.7,
+          29.1,
+          -10.7,
+          14.4
+        ],
+        "zones": {
+          "Foot": 0.62,
+          "Shin": 0.38
+        },
+        "heelCm": 0.74
+      },
+      "sim": {
+        "displayName": "Wrapped Sandals",
+        "nameRu": "Обмотанные сандалии",
+        "descEn": "Cord and hide, bound to the shin. Quiet, and cold in the wet.",
+        "descRu": "Шнур и кожа, примотанные к голени. Тихие и холодные в сырость.",
+        "warmth": 0.07,
+        "armor": 0.05,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "keikogi_9921",
+      "folder": "FighterKeikogi",
+      "name": "FighterKeikogi",
+      "simId": "clothing.keikogi_fighter",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "Belly"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Material-waist",
+          "texture": "belt-map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material01",
+          "texture": "Keikogi-map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material02",
+          "texture": "Keikogi-map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 9921,
+        "polys": 9628,
+        "bbox": [
+          -18.6,
+          19.2,
+          97.5,
+          157.5,
+          -13.1,
+          16.3
+        ],
+        "zones": {
+          "Chest": 0.574,
+          "Belly": 0.329,
+          "Pelvis": 0.059,
+          "Neck": 0.038,
+          "Shoulder": 0.0
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Keikogi",
+        "nameRu": "Кэйкоги",
+        "descEn": "Heavy cotton, crossed at the chest. Takes a grip and does not give.",
+        "descRu": "Плотный хлопок, запахнут на груди. Держит захват и не отпускает.",
+        "warmth": 0.13,
+        "armor": 0.03,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      }
+    },
+    {
+      "sourceKey": "pants_12318",
+      "folder": "FighterPants",
+      "name": "FighterPants",
+      "simId": "clothing.pants_fighter",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis",
+        "ThighR",
+        "ThighL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Material01",
+          "texture": "pants-map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material02",
+          "texture": "pants-map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 12318,
+        "polys": 12147,
+        "bbox": [
+          -19.7,
+          19.2,
+          56.6,
+          112.6,
+          -12.6,
+          12.1
+        ],
+        "zones": {
+          "Thigh": 0.485,
+          "Pelvis": 0.393,
+          "Belly": 0.123
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Training Trousers",
+        "nameRu": "Тренировочные штаны",
+        "descEn": "Wide and tied at the waist. Nothing binds when she moves.",
+        "descRu": "Широкие, на завязке. Ничто не стесняет движения.",
+        "warmth": 0.1,
+        "armor": 0.01,
+        "thermalDelta": 0.0,
+        "capacity": 1,
+        "covers": [
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "top_4498",
+      "folder": "FighterTop",
+      "name": "FighterTop",
+      "simId": "clothing.top_fighter",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "Belly"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Material01",
+          "texture": "Keikogi-map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Material02",
+          "texture": "Keikogi-map.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 4498,
+        "polys": 4416,
+        "bbox": [
+          -14.7,
+          14.9,
+          110.4,
+          140.7,
+          -10.9,
+          13.8
+        ],
+        "zones": {
+          "Chest": 0.704,
+          "Belly": 0.296
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Wrapped Top",
+        "nameRu": "Обёрнутый топ",
+        "descEn": "One length of cloth and a knot. Nothing to catch on.",
+        "descRu": "Одна полоса ткани и узел. Не за что зацепиться.",
+        "warmth": 0.05,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      }
+    }
+  ],
+  "skipped": [
+    "ChRO_gloveR_33641",
+    "ChRO_shoeR_44330",
+    "Right Boot",
+    "armGuardR_5752",
+    "glove_l_button",
+    "glove_l_zipper_slider",
+    "glove_l_zipper_slider_dup_2",
+    "glove_l_zipper_slider_dup_3",
+    "glove_l_zipper_slider_dup_4",
+    "glove_r_button",
+    "glove_r_zipper_slider",
+    "glove_r_zipper_slider_dup_2",
+    "glove_r_zipper_slider_dup_3",
+    "glove_r_zipper_slider_dup_4",
+    "jacket_buttons_L1",
+    "jacket_buttons_L2",
+    "jacket_buttons_R1",
+    "jacket_buttons_R2",
+    "jacket_zipper_MainSlider",
+    "jacket_zipper_MainSlider_dup_2",
+    "jacket_zipper_MainSlider_dup_3",
+    "jacket_zipper_slider_L1",
+    "jacket_zipper_slider_L2",
+    "jacket_zipper_slider_R1",
+    "jacket_zipper_slider_R2"
+  ]
+}

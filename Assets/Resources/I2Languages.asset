@@ -2593,6 +2593,838 @@ MonoBehaviour:
       - 'Носимый предмет.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'item.clothing_tshirt_summer_i13sw_tshirt_02.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'T-Shirt (i13SW TShirt 02)'
+      - 'Футболка (i13SW TShirt 02)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_summer_i13sw_tshirt_02.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain cotton, short sleeves. What she reaches for first.'
+      - 'Простой хлопок, короткий рукав. То, за чем тянется первым делом.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_summer_i13sw_tshirt_03.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'T-Shirt (i13SW TShirt 03)'
+      - 'Футболка (i13SW TShirt 03)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_summer_i13sw_tshirt_03.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain cotton, short sleeves. What she reaches for first.'
+      - 'Простой хлопок, короткий рукав. То, за чем тянется первым делом.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_summer_i13sw_tshirt_04.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'T-Shirt (i13SW TShirt 04)'
+      - 'Футболка (i13SW TShirt 04)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_summer_i13sw_tshirt_04.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain cotton, short sleeves. What she reaches for first.'
+      - 'Простой хлопок, короткий рукав. То, за чем тянется первым делом.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_summer_i13sw_tshirt_05.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'T-Shirt (i13SW TShirt 05)'
+      - 'Футболка (i13SW TShirt 05)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_summer_i13sw_tshirt_05.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain cotton, short sleeves. What she reaches for first.'
+      - 'Простой хлопок, короткий рукав. То, за чем тянется первым делом.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tanktop_summer_i13sw_tank_02.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tank Top (i13SW Tank 02)'
+      - 'Майка (i13SW Tank 02)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tanktop_summer_i13sw_tank_02.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sleeveless and thin. Shoulders bare to whatever the day brings.'
+      - 'Без рукавов и тонкая. Плечи открыты всему, что принесёт день.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tanktop_summer_i13sw_tank_03.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tank Top (i13SW Tank 03)'
+      - 'Майка (i13SW Tank 03)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tanktop_summer_i13sw_tank_03.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sleeveless and thin. Shoulders bare to whatever the day brings.'
+      - 'Без рукавов и тонкая. Плечи открыты всему, что принесёт день.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tanktop_summer_i13sw_tank_04.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tank Top (i13SW Tank 04)'
+      - 'Майка (i13SW Tank 04)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tanktop_summer_i13sw_tank_04.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sleeveless and thin. Shoulders bare to whatever the day brings.'
+      - 'Без рукавов и тонкая. Плечи открыты всему, что принесёт день.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tanktop_summer_i13sw_tank_05.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tank Top (i13SW Tank 05)'
+      - 'Майка (i13SW Tank 05)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tanktop_summer_i13sw_tank_05.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sleeveless and thin. Shoulders bare to whatever the day brings.'
+      - 'Без рукавов и тонкая. Плечи открыты всему, что принесёт день.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_idol_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cropped Top (Blue)'
+      - 'Топ (Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_idol_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Made for moving, not for keeping warm.'
+      - 'Обрезан выше рёбер. Для движения, не для тепла.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_idol_white.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cropped Top (White)'
+      - 'Топ (White)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_idol_white.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Made for moving, not for keeping warm.'
+      - 'Обрезан выше рёбер. Для движения, не для тепла.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_idol_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leggings (Blue)'
+      - 'Легинсы (Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_idol_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Second skin from hip to ankle. Warm, and they tear on the first thorn.'
+      - 'Вторая кожа от бедра до щиколотки. Тёплые — и рвутся о первый шип.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_black_red_leather.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leather Boots (LB Black Red Leather)'
+      - 'Кожаные сапоги (LB Black Red Leather)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_black_red_leather.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain leather to mid-calf. Nothing fancy, and nothing to fix.'
+      - 'Простая кожа до середины икры. Ничего лишнего и нечему ломаться.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_black_white_leather.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leather Boots (LB Black White Leather)'
+      - 'Кожаные сапоги (LB Black White Leather)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_black_white_leather.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain leather to mid-calf. Nothing fancy, and nothing to fix.'
+      - 'Простая кожа до середины икры. Ничего лишнего и нечему ломаться.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_black_yellow_leather.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leather Boots (LB Black Yellow Leather)'
+      - 'Кожаные сапоги (LB Black Yellow Leather)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_black_yellow_leather.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain leather to mid-calf. Nothing fancy, and nothing to fix.'
+      - 'Простая кожа до середины икры. Ничего лишнего и нечему ломаться.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_red_black_leather.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leather Boots (LB Red Black Leather)'
+      - 'Кожаные сапоги (LB Red Black Leather)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_red_black_leather.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain leather to mid-calf. Nothing fancy, and nothing to fix.'
+      - 'Простая кожа до середины икры. Ничего лишнего и нечему ломаться.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_red_leather.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leather Boots (LB Red Leather)'
+      - 'Кожаные сапоги (LB Red Leather)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_red_leather.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain leather to mid-calf. Nothing fancy, and nothing to fix.'
+      - 'Простая кожа до середины икры. Ничего лишнего и нечему ломаться.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_red_white_leather.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leather Boots (LB Red White Leather)'
+      - 'Кожаные сапоги (LB Red White Leather)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_red_white_leather.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain leather to mid-calf. Nothing fancy, and nothing to fix.'
+      - 'Простая кожа до середины икры. Ничего лишнего и нечему ломаться.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_red_yellow_leather.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leather Boots (LB Red Yellow Leather)'
+      - 'Кожаные сапоги (LB Red Yellow Leather)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_red_yellow_leather.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain leather to mid-calf. Nothing fancy, and nothing to fix.'
+      - 'Простая кожа до середины икры. Ничего лишнего и нечему ломаться.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_white_black_leather.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leather Boots (LB White Black Leather)'
+      - 'Кожаные сапоги (LB White Black Leather)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_white_black_leather.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain leather to mid-calf. Nothing fancy, and nothing to fix.'
+      - 'Простая кожа до середины икры. Ничего лишнего и нечему ломаться.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_white_leather.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leather Boots (LB White Leather)'
+      - 'Кожаные сапоги (LB White Leather)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_white_leather.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain leather to mid-calf. Nothing fancy, and nothing to fix.'
+      - 'Простая кожа до середины икры. Ничего лишнего и нечему ломаться.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_white_red_leather.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leather Boots (LB White Red Leather)'
+      - 'Кожаные сапоги (LB White Red Leather)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_white_red_leather.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain leather to mid-calf. Nothing fancy, and nothing to fix.'
+      - 'Простая кожа до середины икры. Ничего лишнего и нечему ломаться.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_white_yellow_leather.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leather Boots (LB White Yellow Leather)'
+      - 'Кожаные сапоги (LB White Yellow Leather)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_white_yellow_leather.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain leather to mid-calf. Nothing fancy, and nothing to fix.'
+      - 'Простая кожа до середины икры. Ничего лишнего и нечему ломаться.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_yellow_black_leather.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leather Boots (LB Yellow Black Leather)'
+      - 'Кожаные сапоги (LB Yellow Black Leather)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_yellow_black_leather.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain leather to mid-calf. Nothing fancy, and nothing to fix.'
+      - 'Простая кожа до середины икры. Ничего лишнего и нечему ломаться.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_yellow_leather.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leather Boots (LB Yellow Leather)'
+      - 'Кожаные сапоги (LB Yellow Leather)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_yellow_leather.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain leather to mid-calf. Nothing fancy, and nothing to fix.'
+      - 'Простая кожа до середины икры. Ничего лишнего и нечему ломаться.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_yellow_red_leather.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leather Boots (LB Yellow Red Leather)'
+      - 'Кожаные сапоги (LB Yellow Red Leather)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_yellow_red_leather.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain leather to mid-calf. Nothing fancy, and nothing to fix.'
+      - 'Простая кожа до середины икры. Ничего лишнего и нечему ломаться.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_yellow_white_leather.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leather Boots (LB Yellow White Leather)'
+      - 'Кожаные сапоги (LB Yellow White Leather)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather_lb_yellow_white_leather.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain leather to mid-calf. Nothing fancy, and nothing to fix.'
+      - 'Простая кожа до середины икры. Ничего лишнего и нечему ломаться.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_lace_dream_lace_3_bra.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bra (Dream Lace 3 Bra)'
+      - 'Кружевной лиф (Dream Lace 3 Bra)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_lace_dream_lace_3_bra.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Worn against the skin. She notices when it is gone.'
+      - 'На голое тело. Без него замечает сразу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_lace_dream_lace_3_bra_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bra (Dream Lace 3 Bra Black)'
+      - 'Кружевной лиф (Dream Lace 3 Bra Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_lace_dream_lace_3_bra_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Worn against the skin. She notices when it is gone.'
+      - 'На голое тело. Без него замечает сразу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_lace_dream_lace_3_panty.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Briefs (Dream Lace 3 Panty)'
+      - 'Кружевные трусики (Dream Lace 3 Panty)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_lace_dream_lace_3_panty.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Worn against the skin. She notices when they are gone.'
+      - 'На голое тело. Без них замечает сразу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_lace_dream_lace_3_panty_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Briefs (Dream Lace 3 Panty Black)'
+      - 'Кружевные трусики (Dream Lace 3 Panty Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_lace_dream_lace_3_panty_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Worn against the skin. She notices when they are gone.'
+      - 'На голое тело. Без них замечает сразу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_lace_dream_lace_3_panty_blue1.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Briefs (Dream Lace 3 Panty Blue1)'
+      - 'Кружевные трусики (Dream Lace 3 Panty Blue1)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_lace_dream_lace_3_panty_blue1.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Worn against the skin. She notices when they are gone.'
+      - 'На голое тело. Без них замечает сразу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_lace_dream_lace_3_panty_blue2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Briefs (Dream Lace 3 Panty Blue2)'
+      - 'Кружевные трусики (Dream Lace 3 Panty Blue2)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_lace_dream_lace_3_panty_blue2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Worn against the skin. She notices when they are gone.'
+      - 'На голое тело. Без них замечает сразу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_summer.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Denim Shorts'
+      - 'Джинсовые шорты'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_summer.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut short and worn thin. Nothing between her legs and the weather.'
+      - 'Короткие и вытертые. Между ногами и погодой ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_summer.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'T-Shirt'
+      - 'Футболка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tshirt_summer.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain cotton, short sleeves. What she reaches for first.'
+      - 'Простой хлопок, короткий рукав. То, за чем тянется первым делом.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tanktop_summer.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tank Top'
+      - 'Майка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_tanktop_summer.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sleeveless and thin. Shoulders bare to whatever the day brings.'
+      - 'Без рукавов и тонкая. Плечи открыты всему, что принесёт день.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_idol.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cropped Top'
+      - 'Топ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_croptop_idol.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut off above the ribs. Made for moving, not for keeping warm.'
+      - 'Обрезан выше рёбер. Для движения, не для тепла.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_idol.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leggings'
+      - 'Легинсы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_leggings_idol.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Second skin from hip to ankle. Warm, and they tear on the first thorn.'
+      - 'Вторая кожа от бедра до щиколотки. Тёплые — и рвутся о первый шип.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sleeves_idol.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Detached Sleeves'
+      - 'Отдельные рукава'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sleeves_idol.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sleeves and nothing between them. The arms stay covered, the rest does not.'
+      - 'Рукава — и ничего между ними. Руки закрыты, остальное нет.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_biker.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Biker Gloves'
+      - 'Байкерские перчатки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_biker.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leather to the wrist, zipped and studded. The knuckles stay whole.'
+      - 'Кожа до запястья, на молнии и клёпках. Костяшки остаются целы.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_biker.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Biker Jacket'
+      - 'Косуха'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_biker.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Heavy leather, zipped to the throat. The warmest thing she owns, and the toughest.'
+      - 'Тяжёлая кожа, застёгнута под горло. Самое тёплое, что у неё есть, и самое крепкое.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_pants_biker.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Biker Trousers'
+      - 'Байкерские штаны'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_pants_biker.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Reinforced leather to the ankle. Warm, and hard to tear.'
+      - 'Усиленная кожа до щиколотки. Тёплые и рвутся неохотно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_biker.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Biker Boots'
+      - 'Байкерские ботинки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_biker.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Buckled and hard-soled. The best thing between a wolf and her ankle.'
+      - 'На пряжках и жёсткой подошве. Лучшее между волком и её лодыжкой.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leather Boots'
+      - 'Кожаные сапоги'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_leather.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain leather to mid-calf. Nothing fancy, and nothing to fix.'
+      - 'Простая кожа до середины икры. Ничего лишнего и нечему ломаться.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_folk.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Folk Blouse'
+      - 'Народная блуза'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_folk.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Loose and embroidered at the collar. Cool in the sun, useless in the wind.'
+      - 'Свободная, с вышивкой у ворота. Прохладна на солнце, бесполезна на ветру.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_lace.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bra'
+      - 'Кружевной лиф'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_lace.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Worn against the skin. She notices when it is gone.'
+      - 'На голое тело. Без него замечает сразу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_lace.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Briefs'
+      - 'Кружевные трусики'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_lace.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Worn against the skin. She notices when they are gone.'
+      - 'На голое тело. Без них замечает сразу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_armguards_fighter.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Arm Guards'
+      - 'Наручи'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_armguards_fighter.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bound plates over the forearm. They have stopped a blade once.'
+      - 'Пластины, примотанные к предплечью. Однажды остановили лезвие.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_belt_fighter.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wide Belt'
+      - 'Широкий пояс'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_belt_fighter.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wrapped twice around the waist. No warmth — it is there to carry things.'
+      - 'Дважды обёрнут вокруг пояса. Не греет — он чтобы носить.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_footwear_fighter.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wrapped Sandals'
+      - 'Обмотанные сандалии'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_footwear_fighter.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cord and hide, bound to the shin. Quiet, and cold in the wet.'
+      - 'Шнур и кожа, примотанные к голени. Тихие и холодные в сырость.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_keikogi_fighter.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Keikogi'
+      - 'Кэйкоги'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_keikogi_fighter.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Heavy cotton, crossed at the chest. Takes a grip and does not give.'
+      - 'Плотный хлопок, запахнут на груди. Держит захват и не отпускает.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_pants_fighter.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Training Trousers'
+      - 'Тренировочные штаны'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_pants_fighter.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wide and tied at the waist. Nothing binds when she moves.'
+      - 'Широкие, на завязке. Ничто не стесняет движения.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_fighter.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wrapped Top'
+      - 'Обёрнутый топ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_fighter.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One length of cloth and a knot. Nothing to catch on.'
+      - 'Одна полоса ткани и узел. Не за что зацепиться.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'item.clothing_sneakers_nerd_nc_sneakers_pink.name'
       TermType: 0
       Description: 

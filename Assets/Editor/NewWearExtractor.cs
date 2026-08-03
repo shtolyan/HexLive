@@ -1256,6 +1256,33 @@ public static class NewWearExtractor
     //  read off the instance while it still stands in its bind pose. Every part
     //  is pushed through that into the rig's own space, and one bindpose
     //  (anchor.worldToLocal * rig.localToWorld) sends the whole thing back.
+    /// <summary>Тот ли это узел, что назван ключом сварки.</summary>
+    /// <remarks>
+    /// Сравнение по началу имени нужно, потому что DAZ дописывает к узлу число
+    /// вершин: ключ `TA_StockingL` должен найти `TA_StockingL_882`. Но голое
+    /// «начинается с» захватывает и однофамильцев: `glove_l_zipper_slider` — это
+    /// бегунок ПЕРЧАТКИ, а `glove_l_zipper_slider_dup_3` уже бегунок БОТИНКА, и
+    /// перчатка утащила бы его в себя, оставив ботинок без детали.
+    ///
+    /// Поэтому после ключа допускается только суффикс DAZ: подчёркивание и
+    /// цифры. Всё остальное — другая вещь.
+    /// </remarks>
+    private static bool KeyMatches(string key, string node)
+    {
+        if (node == key)
+        {
+            return true;
+        }
+
+        if (!node.StartsWith(key, System.StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var tail = node.Substring(key.Length);
+        return tail.Length > 1 && tail[0] == '_' && tail.Skip(1).All(char.IsDigit);
+    }
+
     private static SkinnedMeshRenderer MergeParts(
         GarmentSpec g, GameObject rig, Dictionary<string, Material> mats)
     {
@@ -1288,7 +1315,7 @@ public static class NewWearExtractor
         Transform shared = null;
         foreach (var r in rig.GetComponentsInChildren<Renderer>(true))
         {
-            if (!g.SourceKeys.Any(k => r.name.StartsWith(k, System.StringComparison.Ordinal)))
+            if (!g.SourceKeys.Any(k => KeyMatches(k, r.name)))
             {
                 continue;
             }
@@ -1849,6 +1876,37 @@ public static class NewWearExtractor
         var clones = new Dictionary<string, Transform>();
         var hipClone = CloneBoneSubtree(srcHip, root.transform, needed, clones);
 
+        // Кости, которых под тазом нет вовсе. Их приносит сварка: у юбки свои
+        // `Skirt Left/Right/Back`, у байкерской куртки — кости бегунков молний,
+        // и висят они в экспорте не под скелетом тела, а сами по себе. Раньше
+        // такая вещь просто падала с «5 bone(s) missing», и вместе с ней — весь
+        // заход.
+        //
+        // Подцепляем их к клону ближайшего предка, который уже склонирован;
+        // если такого нет — к тазу. Локальные преобразования сохраняются, так
+        // что деталь остаётся там, где её нарисовал автор.
+        foreach (var bone in reference.bones)
+        {
+            if (bone == null || clones.ContainsKey(bone.name))
+            {
+                continue;
+            }
+
+            var chain = new List<Transform>();
+            var walk = bone;
+            while (walk != null && !clones.ContainsKey(walk.name))
+            {
+                chain.Add(walk);
+                walk = walk.parent;
+            }
+
+            var anchor = walk != null ? clones[walk.name] : hipClone;
+            for (var i = chain.Count - 1; i >= 0; i--)
+            {
+                anchor = CloneBone(chain[i], anchor, clones);
+            }
+        }
+
         var meshGo = new GameObject(g.Name + " Mesh");
         meshGo.transform.SetParent(root.transform, false);
         var smr = meshGo.AddComponent<SkinnedMeshRenderer>();
@@ -1884,9 +1942,9 @@ public static class NewWearExtractor
             .ToArray();
     }
 
-    private static Transform CloneBoneSubtree(
-        Transform src, Transform parent, HashSet<Transform> needed,
-        Dictionary<string, Transform> clones)
+    /// <summary>Одна кость, без её детей.</summary>
+    private static Transform CloneBone(Transform src, Transform parent,
+                                       Dictionary<string, Transform> clones)
     {
         var clone = new GameObject(src.name).transform;
         clone.SetParent(parent, false);
@@ -1894,6 +1952,14 @@ public static class NewWearExtractor
         clone.localRotation = src.localRotation;
         clone.localScale = src.localScale;
         clones[src.name] = clone;
+        return clone;
+    }
+
+    private static Transform CloneBoneSubtree(
+        Transform src, Transform parent, HashSet<Transform> needed,
+        Dictionary<string, Transform> clones)
+    {
+        var clone = CloneBone(src, parent, clones);
         foreach (Transform child in src)
         {
             if (SubtreeNeeded(child, needed))

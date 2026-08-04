@@ -69,6 +69,12 @@ public sealed class BodyBones : MonoBehaviour
     // read it to show which one is the default.
     public Wear DefaultHair => hair;
 
+    // The LIVE hairstyle — the one actually on her head right now. Dev tools
+    // need it to repaint hair without respawning the body: a hair colour is the
+    // same mesh with a different map, so swapping materials on this instance is
+    // the whole operation. Null when bald.
+    public Wear HairInstance => _hairInstance;
+
     // Spec §31B.4B: swap the hairstyle on a LIVE body; null = bald. Hair is
     // not a wardrobe item — it owns no slot, never goes through Equip, and
     // only ever has one instance — so it gets its own seam instead of riding

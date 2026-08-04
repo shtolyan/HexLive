@@ -17,6 +17,22 @@ MonoBehaviour:
     UserAgreesToHaveItInsideThePluginsFolder: 0
     GoogleLiveSyncIsUptoDate: 1
     mTerms:
+    - Term: 'wardrobe.hair_colour'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hair colour'
+      - 'Цвет волос'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'wardrobe.hair_colour_base'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'As imported'
+      - 'Как из коробки'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'wardrobe.layer_bags'
       TermType: 0
       Description: 

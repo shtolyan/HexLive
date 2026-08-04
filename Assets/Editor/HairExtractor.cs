@@ -296,6 +296,134 @@ public static class HairExtractor
     [MenuItem("HexLive/Hair/Extract Hair (FORCE Re-Extract)")]
     private static void RunForceMenu() => Run(force: true);
 
+    // ---------------------------------------------------------------------
+    // Цвета причёски (Assets/Editor/HairVariants.json, собирается
+    // `python -m wardrobe` -> wardrobe/hair.py).
+    //
+    // ⭐ Вариант причёски — это ТА ЖЕ причёска с другой картой, а не отдельная
+    // вещь: у волос нет ни слота, ни слоя, ни строки каталога. Поэтому материал
+    // цвета делается КОПИЕЙ настроенного материала прототипа, в которой заменён
+    // только `_BaseMap`.
+    //
+    // Именно так подобранные вручную пороги прозрачности (0.42 у большинства,
+    // 0.12 у Bendine, 0.08 у Chunky) и прозрачный режим у шапочек и кожи головы
+    // достаются каждому из 281 варианта САМИ. Копировать настройки отдельным
+    // шагом нельзя: они разойдутся на первом же новом наборе.
+    [MenuItem("HexLive/Hair/Build Hair Variants")]
+    private static void BuildVariantsMenu()
+    {
+        const string manifestPath = "Assets/Editor/HairVariants.json";
+        if (!File.Exists(manifestPath))
+        {
+            Debug.LogError($"[Hair] нет манифеста цветов: {manifestPath}");
+            return;
+        }
+
+        var json = JsonUtility.FromJson<HairVariantFile>(File.ReadAllText(manifestPath));
+        var built = 0;
+        var log = new System.Text.StringBuilder();
+
+        foreach (var hair in json.hairs)
+        {
+            var baseDir = $"{ImportRoot}/{hair.name}/Materials";
+            if (!AssetDatabase.IsValidFolder(baseDir))
+            {
+                log.AppendLine($"  {hair.name}: нет папки материалов — пропущено");
+                continue;
+            }
+
+            foreach (var colour in hair.colours)
+            {
+                var dir = $"{baseDir}/{Sanitize(colour.name)}";
+                EnsureFolder(dir);
+                foreach (var slot in colour.textures)
+                {
+                    var basePath = $"{baseDir}/{Sanitize(slot.source)}.mat";
+                    var origin = AssetDatabase.LoadAssetAtPath<Material>(basePath);
+                    if (origin == null)
+                    {
+                        continue;   // поверхность не наша — у цвета их бывает больше
+                    }
+
+                    var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(
+                        $"{ImportRoot}/{hair.name}/Textures/{slot.texture}");
+                    if (texture == null)
+                    {
+                        log.AppendLine($"  {hair.name}/{colour.name}: нет картинки {slot.texture}");
+                        continue;
+                    }
+
+                    var path = $"{dir}/{Sanitize(slot.source)}.mat";
+                    var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+                    if (mat == null)
+                    {
+                        // Копия НАСТРОЕННОГО материала — со всеми его порогами,
+                        // режимом поверхности и очередью отрисовки.
+                        mat = new Material(origin);
+                        AssetDatabase.CreateAsset(mat, path);
+                        built++;
+                    }
+
+                    mat.SetTexture("_BaseMap", texture);
+                    mat.SetTexture("_MainTex", texture);
+                    EditorUtility.SetDirty(mat);
+                }
+
+                // Пресет, который красит поверхность, а не меняет карту.
+                foreach (var tint in colour.colors)
+                {
+                    var basePath = $"{baseDir}/{Sanitize(tint.source)}.mat";
+                    var origin = AssetDatabase.LoadAssetAtPath<Material>(basePath);
+                    if (origin == null || !ColorUtility.TryParseHtmlString(tint.color, out var rgb))
+                    {
+                        continue;
+                    }
+
+                    var path = $"{dir}/{Sanitize(tint.source)}.mat";
+                    var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+                    if (mat == null)
+                    {
+                        mat = new Material(origin);
+                        AssetDatabase.CreateAsset(mat, path);
+                        built++;
+                    }
+
+                    mat.SetColor("_BaseColor", rgb);
+                    EditorUtility.SetDirty(mat);
+                }
+            }
+        }
+
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log($"[Hair] цвета собраны: причёсок {json.hairs.Length}, новых материалов {built}\n{log}");
+    }
+
+    // Манифест приходит в той форме, которую `JsonUtility` читает сам: объект с
+    // одним массивом. Переписывать словарь в массив на месте регулярками мы
+    // пробовали — оно обрывается на первом же вложенном массиве, а вложенные тут
+    // у каждого цвета. Форму задаёт питон-сторона (wardrobe/hair.py).
+    [System.Serializable] private sealed class HairVariantFile { public HairVariantSet[] hairs; }
+
+    [System.Serializable]
+    private sealed class HairVariantSet
+    {
+        public string name;
+        public HairColour[] colours;
+    }
+
+    [System.Serializable]
+    private sealed class HairColour
+    {
+        public string name;
+        public HairColourTexture[] textures;
+        public HairColourTint[] colors;
+    }
+
+    [System.Serializable] private sealed class HairColourTexture { public string source, texture; }
+
+    [System.Serializable] private sealed class HairColourTint { public string source, color; }
+
     private static string PrefabPath(HairSpec h) => $"{ImportRoot}/{h.Name}/{h.Name}.prefab";
 
     private static void Run(bool force)

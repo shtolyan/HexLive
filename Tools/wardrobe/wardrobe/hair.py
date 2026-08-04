@@ -99,11 +99,24 @@ def harvest(hair: str) -> list[dict]:
             "textures": [{"source": s, "texture": t} for s, t in sorted(maps.items())],
             "colors": [{"source": s, "color": c} for s, c in sorted(tints.items())],
             "_files": maps,
+            # Откуда пресет — нужно только чтобы выбрать вкус отрисовки при
+            # дублях по имени; в манифест не попадает.
+            "preset_dir": str(preset.parent).lower(),
         })
+
+    # ⚠️ Один цвет часто лежит ДВАЖДЫ — в двух вкусах отрисовки (Iray и
+    # 3Delight) или в папках двух поколений. Имя у них одно, поэтому в проекте
+    # они дали бы одну папку, но манифест бы врал числом: у Eilis 48 записей
+    # при 25 настоящих цветах. Iray предпочтительнее, как и у одежды.
+    by_name: dict[str, dict] = {}
+    for colour in found:
+        old = by_name.get(colour["name"])
+        if old is None or ("iray" in colour["preset_dir"] and "iray" not in old["preset_dir"]):
+            by_name[colour["name"]] = colour
 
     # Тот же отсев, что у одежды: сравнивается РЕЗУЛЬТАТ наложения на прототип,
     # иначе два пресета с одинаковыми картами доедут двумя одинаковыми цветами.
-    return variants.dedupe(found)
+    return variants.dedupe(sorted(by_name.values(), key=lambda c: c["name"]))
 
 
 def stage(hair: str, colours: list[dict]) -> dict:
@@ -111,6 +124,7 @@ def stage(hair: str, colours: list[dict]) -> dict:
     out_dir = HAIR_ROOT / hair / "Textures"
     written, missing = [], []
     for colour in colours:
+        colour.pop("preset_dir", None)   # служебное, в манифест не идёт
         for surface, name in sorted(colour.pop("_files", {}).items()):
             source = textures._resolve(name)
             if source is None:
@@ -136,9 +150,14 @@ def build() -> dict:
         data[hair] = colours
         report["hair"].append({"name": hair, "colours": len(colours),
                                "textures": len(staged["written"])})
+    # Форма ровно та, которую читает `JsonUtility` на стороне Unity: объект с
+    # одним массивом. Словарь «причёска -> цвета» он не умеет, а переделывать
+    # его на месте регулярками — способ получить обрыв на вложенном массиве,
+    # что однажды и вышло.
     MANIFEST.parent.mkdir(parents=True, exist_ok=True)
-    MANIFEST.write_text(json.dumps(data, ensure_ascii=False, indent=1) + "\n",
-                        encoding="utf-8")
+    MANIFEST.write_text(json.dumps(
+        {"hairs": [{"name": k, "colours": v} for k, v in sorted(data.items())]},
+        ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     report["manifest"] = str(MANIFEST)
     report["total"] = sum(h["colours"] for h in report["hair"])
     report["ok"] = not report["problems"]

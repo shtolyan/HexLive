@@ -101,6 +101,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
     private Label _hairScaleLabel;
     private Label _hairHeightLabel;
     private VisualElement _hairSaveButton;
+    private ScrollView _hairColourStrip;
     private bool _hairDirty;
 
     private ActorName _girl = ActorName.Marta;
@@ -374,6 +375,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
 
         _selectedHair = entry;
         _bodyBones.SetHair(entry.Asset);
+        RefreshHairColours();
 
         // A new hairstyle brings new renderers — they need the same culling
         // relaxation the body got, or the strands vanish mid-sleep.
@@ -1002,6 +1004,19 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
             scroll.Add(row);
         }
 
+        // --- цвета выбранной причёски. Вариант причёски — это ТА ЖЕ причёска с
+        // другой картой (у волос нет ни слота, ни строки каталога), поэтому цвет
+        // применяется подменой материалов на живой причёске, без пересоздания.
+        var colourTitle = MakeTitle(Loc.Get("wardrobe.hair_colour"));
+        colourTitle.style.marginTop = 8f;
+        box.Add(colourTitle);
+
+        _hairColourStrip = new ScrollView(ScrollViewMode.Vertical);
+        _hairColourStrip.style.maxHeight = 150f;
+        _hairColourStrip.contentContainer.style.flexDirection = FlexDirection.Row;
+        _hairColourStrip.contentContainer.style.flexWrap = Wrap.Wrap;
+        box.Add(_hairColourStrip);
+
         // --- fit block: every hairstyle was authored on the generic Genesis3
         // head, so each girl needs her own nudge. Written into the hair
         // prefab's WearConfig, per actor, and applied live.
@@ -1017,6 +1032,104 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
 
         RefreshHairRows();
         RefreshHairFit();
+        RefreshHairColours();
+    }
+
+    // Цвета лежат папками рядом с самой причёской:
+    // ImportedActors/Hair/<Причёска>/Materials/<Цвет>/<Поверхность>.mat —
+    // их собирает меню HexLive/Hair/Build Hair Variants из HairVariants.json.
+    // Как и список причёсок, это редакторская витрина: в сборке волосы не
+    // перечисляются, а стоят прямо на префабе актрисы.
+    private void RefreshHairColours()
+    {
+        if (_hairColourStrip == null)
+        {
+            return;
+        }
+
+        _hairColourStrip.Clear();
+
+#if UNITY_EDITOR
+        var hair = _selectedHair?.Asset;
+        if (hair == null)
+        {
+            return;
+        }
+
+        var root = $"Assets/ImportedActors/Hair/{hair.name}/Materials";
+        var folders = UnityEditor.AssetDatabase.GetSubFolders(root);
+        if (folders.Length == 0)
+        {
+            return;
+        }
+
+        // «Как из коробки» — материалы самого прототипа, уровнем выше цветов.
+        AddHairColourTile(Loc.Get("wardrobe.hair_colour_base"), null);
+        Array.Sort(folders, StringComparer.Ordinal);
+        foreach (var folder in folders)
+        {
+            AddHairColourTile(System.IO.Path.GetFileName(folder), folder);
+        }
+#endif
+    }
+
+    private void AddHairColourTile(string label, string folder)
+    {
+        var tile = MakeButton(label, Raised, () => ApplyHairColour(folder));
+        tile.style.height = 20f;
+        tile.style.marginRight = 3f;
+        tile.style.marginBottom = 3f;
+        tile.style.paddingLeft = 5f;
+        tile.style.paddingRight = 5f;
+        ((Label)tile[0]).style.fontSize = 10;
+        _hairColourStrip.Add(tile);
+    }
+
+    // Подмена материалов на ЖИВОЙ причёске: тот же меш, другие карты. Соответствие
+    // идёт по имени материала — оно и есть имя поверхности из DAZ, и совпадает у
+    // прототипа с каждым цветом, потому что материал цвета сделан его копией.
+    private void ApplyHairColour(string folder)
+    {
+#if UNITY_EDITOR
+        var live = _bodyBones != null ? _bodyBones.HairInstance : null;
+        if (live == null)
+        {
+            return;
+        }
+
+        var hairName = _selectedHair?.Asset != null ? _selectedHair.Asset.name : null;
+        var source = folder ?? $"Assets/ImportedActors/Hair/{hairName}/Materials";
+        var byName = new Dictionary<string, Material>();
+        foreach (var guid in UnityEditor.AssetDatabase.FindAssets("t:Material", new[] { source }))
+        {
+            var path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
+            // FindAssets ищет вглубь: материалы ДРУГИХ цветов сюда попасть не должны.
+            if (System.IO.Path.GetDirectoryName(path)?.Replace('\\', '/') != source)
+            {
+                continue;
+            }
+
+            var mat = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat != null)
+            {
+                byName[mat.name] = mat;
+            }
+        }
+
+        foreach (var renderer in live.GetComponentsInChildren<Renderer>(true))
+        {
+            var mats = renderer.sharedMaterials;
+            for (var i = 0; i < mats.Length; i++)
+            {
+                if (mats[i] != null && byName.TryGetValue(mats[i].name, out var swap))
+                {
+                    mats[i] = swap;
+                }
+            }
+
+            renderer.sharedMaterials = mats;
+        }
+#endif
     }
 
     // "[-] label [+]" row, returning the middle label so callers can retitle it.

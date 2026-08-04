@@ -1,0 +1,50 @@
+{
+  "AdellHair": {
+    "product": "People/Genesis 3 Female/Hair/SWAM/Adell Hair",
+    "presets": 10
+  },
+  "AsukaHair": {
+    "product": "People/Genesis 8 Female/Hair/SWAM/Asuka - Space Buns/Hair",
+    "presets": 25
+  },
+  "BendineHair": {
+    "product": "People/Genesis 8 Female/Hair/OOT Bendine Hair",
+    "presets": 31
+  },
+  "Bob3Hair": {
+    "product": "People/Genesis 3 Female/Hair/Goldtassel/Bobbity Bo Hair",
+    "presets": 3
+  },
+  "ChunkyHair": {
+    "product": "People/Genesis 3 Female/Hair/OOT Chunky Pigtails",
+    "presets": 51
+  },
+  "EilisHair": {
+    "product": "People/Genesis 8 Female/Hair/Eilis Hair",
+    "presets": 31
+  },
+  "Hair07": {
+    "product": "People/Genesis 8 Female/Hair/SWAM/Ladina Hair",
+    "presets": 25
+  },
+  "JenniferHair": {
+    "product": "People/Genesis 3 Female/Hair/Kool/Jennifer Hair",
+    "presets": 12
+  },
+  "LeonyPonytail": {
+    "product": "People/Genesis 3 Female/Hair/OOT Leony Ponytail Hair",
+    "presets": 27
+  },
+  "LoonaHair": {
+    "product": "People/Genesis 3 Female/Hair/SWAM/Loona Hair",
+    "presets": 24
+  },
+  "Neu09Hair": {
+    "product": "People/Genesis 3 Female/Hair/SWAM/Yumi Hair",
+    "presets": 34
+  },
+  "TootsieRollHair": {
+    "product": "People/Genesis 3 Female/Hair/Goldtassel/Classic Roll Hair",
+    "presets": 3
+  }
+}

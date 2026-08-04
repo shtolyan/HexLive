@@ -13,16 +13,12 @@ MonoBehaviour:
   m_Name: underwear_bodysuit_devi_03_leather_matte
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.bodysuit_devi_03_leather_matte
-  prototypeId: underwear.bodysuit_devi
-  displayName: 
-  variantMaterials:
-  - {fileID: 2100000, guid: 0d202d832d61ba448b31b83897be6841, type: 2}
-  - {fileID: 2100000, guid: 3244adfeb852dfa4d8070892dcb5b194, type: 2}
-  - {fileID: 2100000, guid: 70d2d7553b05c934eb821c13fb13e037, type: 2}
-  - {fileID: 2100000, guid: 8e2315ad0a204454987744509b9e99db, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  prototypeId: 
+  displayName: Lace Bodysuit (03 Leather Matte)
+  variantMaterials: []
+  layer: 0
+  covers: 0100000002000000
+  warmth: 0.03
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

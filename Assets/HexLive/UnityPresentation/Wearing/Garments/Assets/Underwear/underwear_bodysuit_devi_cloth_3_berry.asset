@@ -13,16 +13,12 @@ MonoBehaviour:
   m_Name: underwear_bodysuit_devi_cloth_3_berry
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.bodysuit_devi_cloth_3_berry
-  prototypeId: underwear.bodysuit_devi
-  displayName: 
-  variantMaterials:
-  - {fileID: 2100000, guid: fad0fdf316c03074a93a8b8b3f447117, type: 2}
-  - {fileID: 2100000, guid: afc379e1b8e515942bc4a114d2473ac3, type: 2}
-  - {fileID: 2100000, guid: 41e8b72c27b3fdb45a30ae8c19495cd7, type: 2}
-  - {fileID: 2100000, guid: c7f8882a8fc41204ca1743d19665e202, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  prototypeId: 
+  displayName: Lace Bodysuit (Cloth 3 Berry)
+  variantMaterials: []
+  layer: 0
+  covers: 0100000002000000
+  warmth: 0.03
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

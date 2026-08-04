@@ -13,16 +13,12 @@ MonoBehaviour:
   m_Name: underwear_bodysuit_devi_trim_light_gray
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.bodysuit_devi_trim_light_gray
-  prototypeId: underwear.bodysuit_devi
-  displayName: 
-  variantMaterials:
-  - {fileID: 2100000, guid: d04f88df8d20746408a3916086e656f0, type: 2}
-  - {fileID: 2100000, guid: 5d69efdc3a297dd40a72eb1e42146b8a, type: 2}
-  - {fileID: 2100000, guid: cc14a4b0dedf1af45a42931037149464, type: 2}
-  - {fileID: 2100000, guid: 520ab427233cb274a8a2da9b6113cbbf, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  prototypeId: 
+  displayName: Lace Bodysuit (Trim Light Gray)
+  variantMaterials: []
+  layer: 0
+  covers: 0100000002000000
+  warmth: 0.03
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

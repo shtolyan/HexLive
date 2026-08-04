@@ -13,16 +13,12 @@ MonoBehaviour:
   m_Name: underwear_bodysuit_devi_trim_berry
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.bodysuit_devi_trim_berry
-  prototypeId: underwear.bodysuit_devi
-  displayName: 
-  variantMaterials:
-  - {fileID: 2100000, guid: 2a0d3eb2f7934b946bd27e7a0bae874b, type: 2}
-  - {fileID: 2100000, guid: 6efb45b2e3b6ffb44af0d18b271abead, type: 2}
-  - {fileID: 2100000, guid: c4333218738110741bd32f329f5b64b4, type: 2}
-  - {fileID: 2100000, guid: 9b78fe923d009c94489048d201c5307a, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  prototypeId: 
+  displayName: Lace Bodysuit (Trim Berry)
+  variantMaterials: []
+  layer: 0
+  covers: 0100000002000000
+  warmth: 0.03
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

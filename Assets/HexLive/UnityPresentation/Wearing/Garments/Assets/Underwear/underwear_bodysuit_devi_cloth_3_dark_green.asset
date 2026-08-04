@@ -13,16 +13,12 @@ MonoBehaviour:
   m_Name: underwear_bodysuit_devi_cloth_3_dark_green
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.bodysuit_devi_cloth_3_dark_green
-  prototypeId: underwear.bodysuit_devi
-  displayName: 
-  variantMaterials:
-  - {fileID: 2100000, guid: efd7e99285fe55945874650578de5b79, type: 2}
-  - {fileID: 2100000, guid: 0f14b182784de5d4bab8bda870fa78c6, type: 2}
-  - {fileID: 2100000, guid: c5828ab9bbf86564ea25b530286da079, type: 2}
-  - {fileID: 2100000, guid: 428f7377ca1ba4d4bb362fed9aec023d, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  prototypeId: 
+  displayName: Lace Bodysuit (Cloth 3 Dark Green)
+  variantMaterials: []
+  layer: 0
+  covers: 0100000002000000
+  warmth: 0.03
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

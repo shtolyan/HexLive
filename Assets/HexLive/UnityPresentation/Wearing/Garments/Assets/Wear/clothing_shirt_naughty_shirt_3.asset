@@ -13,13 +13,12 @@ MonoBehaviour:
   m_Name: clothing_shirt_naughty_shirt_3
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.shirt_naughty_shirt_3
-  prototypeId: clothing.shirt_naughty
-  displayName: 
-  variantMaterials:
-  - {fileID: 2100000, guid: 6f61ef4e50f8b6147b6503d46d3245ab, type: 2}
+  prototypeId: 
+  displayName: Loose Shirt (Shirt 3)
+  variantMaterials: []
   layer: 1
-  covers: 
-  warmth: 0.1
+  covers: 010000000300000004000000
+  warmth: 0.07
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

@@ -88,10 +88,35 @@ def _rm(path: Path) -> bool:
     return hit
 
 
+def _with_colourways(data: dict, item_ids: list[str]) -> list[str]:
+    """Дополнить список расцветками тех вещей, которые снимают целиком.
+
+    ⚠️ Расцветка берёт у прототипа ГЕОМЕТРИЮ (`PrototypeId`), поэтому снять
+    вещь и оставить её расцветки — значит оставить 92 предмета, ссылающихся на
+    ничто: в манифесте они исчезнут вместе с вещью, а строки библиотеки, слоты,
+    термины и ассеты определений останутся сиротами. Порядок важен: расцветки
+    удаляются ПЕРЕД прототипом, пока он ещё в манифесте и по нему можно собрать
+    их имена.
+    """
+    out: list[str] = []
+    for item_id in item_ids:
+        garment = next((g for g in data.get("garments") or []
+                        if g["simId"] == item_id), None)
+        if garment:
+            out += [f'{item_id}_{register.variant_slug(v["name"])}'
+                    for v in garment.get("variants") or []]
+        out.append(item_id)
+    return out
+
+
 def remove(drop: str, item_ids: list[str]) -> dict:
     """Снять предметы заходa `drop`. Работает и с вещью, и с её расцветкой."""
     data = manifest.load(drop)
     report: dict = {"drop": drop, "items": [], "problems": []}
+
+    asked = list(item_ids)
+    item_ids = _with_colourways(data, item_ids)
+    report["expanded"] = [i for i in item_ids if i not in asked]
 
     for item_id in item_ids:
         where: list[str] = []
@@ -99,9 +124,14 @@ def remove(drop: str, item_ids: list[str]) -> dict:
         # 1. Манифест: вещь целиком или одна её расцветка.
         garments = data.get("garments") or []
         before = len(garments)
+        whole = next((g for g in garments if g["simId"] == item_id), None)
         data["garments"] = [g for g in garments if g["simId"] != item_id]
         if len(data["garments"]) != before:
             where.append("манифест: вещь")
+            # Арт вещи, которую сняли целиком, больше никому не нужен: меши,
+            # материалы и текстуры остались бы мёртвым весом в проекте.
+            if whole and whole.get("folder") and _rm(config.WEAR_IMPORT / whole["folder"]):
+                where.append(f'арт-папка {whole["folder"]}')
         else:
             for g in data["garments"]:
                 kept = [v for v in (g.get("variants") or [])

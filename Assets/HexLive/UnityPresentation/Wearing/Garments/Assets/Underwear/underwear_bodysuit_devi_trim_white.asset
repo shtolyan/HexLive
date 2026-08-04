@@ -13,16 +13,12 @@ MonoBehaviour:
   m_Name: underwear_bodysuit_devi_trim_white
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.bodysuit_devi_trim_white
-  prototypeId: underwear.bodysuit_devi
-  displayName: 
-  variantMaterials:
-  - {fileID: 2100000, guid: 4e2a14e22a41f9e449edfdca78fe0e6e, type: 2}
-  - {fileID: 2100000, guid: 0b977c647ec5a04409f0721f0d77be9a, type: 2}
-  - {fileID: 2100000, guid: cc146ff4fbfdb434fa416ab867435934, type: 2}
-  - {fileID: 2100000, guid: e7861eda1e21863469ae867f3ee05ac1, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  prototypeId: 
+  displayName: Lace Bodysuit (Trim White)
+  variantMaterials: []
+  layer: 0
+  covers: 0100000002000000
+  warmth: 0.03
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

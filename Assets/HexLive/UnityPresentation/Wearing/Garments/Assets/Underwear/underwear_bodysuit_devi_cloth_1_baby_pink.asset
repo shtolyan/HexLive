@@ -13,16 +13,12 @@ MonoBehaviour:
   m_Name: underwear_bodysuit_devi_cloth_1_baby_pink
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.bodysuit_devi_cloth_1_baby_pink
-  prototypeId: underwear.bodysuit_devi
-  displayName: 
-  variantMaterials:
-  - {fileID: 2100000, guid: 70069f919fe8c0e47bd1288cdb8c5f2a, type: 2}
-  - {fileID: 2100000, guid: 99ef05d411b417445b9c746a9ec3ee3e, type: 2}
-  - {fileID: 2100000, guid: 2c48cfac56432e648be82cd7264e683a, type: 2}
-  - {fileID: 2100000, guid: 3151dd26253bb0747a2a2730435e4d67, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  prototypeId: 
+  displayName: Lace Bodysuit (Cloth 1 Baby Pink)
+  variantMaterials: []
+  layer: 0
+  covers: 0100000002000000
+  warmth: 0.03
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

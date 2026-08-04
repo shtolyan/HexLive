@@ -13,16 +13,12 @@ MonoBehaviour:
   m_Name: underwear_bodysuit_devi_cloth_3_turquoise
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.bodysuit_devi_cloth_3_turquoise
-  prototypeId: underwear.bodysuit_devi
-  displayName: 
-  variantMaterials:
-  - {fileID: 2100000, guid: 0582d0e7d66940744bdaebb47744c3aa, type: 2}
-  - {fileID: 2100000, guid: 0bcb6e28652580e44933ed02424ad3b1, type: 2}
-  - {fileID: 2100000, guid: 8d31b716f61a45f4195b5ed97082bd0c, type: 2}
-  - {fileID: 2100000, guid: d252a5df192371f4fbac4e2b1b775bf5, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  prototypeId: 
+  displayName: Lace Bodysuit (Cloth 3 Turquoise)
+  variantMaterials: []
+  layer: 0
+  covers: 0100000002000000
+  warmth: 0.03
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

@@ -13,16 +13,12 @@ MonoBehaviour:
   m_Name: underwear_bodysuit_devi_cloth_3_apple
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.bodysuit_devi_cloth_3_apple
-  prototypeId: underwear.bodysuit_devi
-  displayName: 
-  variantMaterials:
-  - {fileID: 2100000, guid: 20eee9ce136fee84499d574cf2f6aa66, type: 2}
-  - {fileID: 2100000, guid: 334c6424e36c66341b47ad305e069102, type: 2}
-  - {fileID: 2100000, guid: 233cc4c26a1966d45bd402e7ee0b4e0e, type: 2}
-  - {fileID: 2100000, guid: 86b94772e5449db4697acc1c8644e551, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  prototypeId: 
+  displayName: Lace Bodysuit (Cloth 3 Apple)
+  variantMaterials: []
+  layer: 0
+  covers: 0100000002000000
+  warmth: 0.03
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

@@ -13,16 +13,12 @@ MonoBehaviour:
   m_Name: underwear_bodysuit_devi_cloth_3_champagne
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.bodysuit_devi_cloth_3_champagne
-  prototypeId: underwear.bodysuit_devi
-  displayName: 
-  variantMaterials:
-  - {fileID: 2100000, guid: bb5c9ca6b03c10d4fa6eeec75a2438d9, type: 2}
-  - {fileID: 2100000, guid: c13ef6263af173c42880b820cc339051, type: 2}
-  - {fileID: 2100000, guid: 912f3e226ae1fb14f8f91b93dcfbf952, type: 2}
-  - {fileID: 2100000, guid: ec66edd951683194485037ff209765a4, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  prototypeId: 
+  displayName: Lace Bodysuit (Cloth 3 Champagne)
+  variantMaterials: []
+  layer: 0
+  covers: 0100000002000000
+  warmth: 0.03
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

@@ -1,0 +1,78 @@
+{
+  "drop": "osirisprops",
+  "sources": [
+    {
+      "fbx": "Assets/Temp/jolly osirisprops.fbx",
+      "actor": "Jolly"
+    },
+    {
+      "fbx": "Assets/Temp/jana osirisprops.fbx",
+      "actor": "Jana"
+    },
+    {
+      "fbx": "Assets/Temp/marta osirisprops.fbx",
+      "actor": "Marta"
+    },
+    {
+      "fbx": "Assets/Temp/molly osirisprops.fbx",
+      "actor": "Molly"
+    }
+  ],
+  "garments": [
+    {
+      "sourceKey": "Necklace_2228",
+      "folder": "OsirisNecklace",
+      "name": "OsirisNecklace",
+      "simId": "clothing.necklace_osiris",
+      "layer": "Wear",
+      "slots": [
+        "Neck"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Accessories",
+          "texture": "UW_Accessories_D.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 2228,
+        "polys": 4468,
+        "bbox": [
+          -7.4,
+          7.5,
+          144.2,
+          155.1,
+          -9.1,
+          6.6
+        ],
+        "zones": {
+          "Chest": 0.761,
+          "Neck": 0.239
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Chain Necklace",
+        "nameRu": "Цепочка",
+        "descEn": "A plain chain. Someone kept it through worse than this.",
+        "descRu": "Простая цепочка. Кто-то пронёс её через худшее.",
+        "warmth": 0.0,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      }
+    }
+  ],
+  "skipped": [
+    "Gun Holster L",
+    "Gun Holster R"
+  ]
+}

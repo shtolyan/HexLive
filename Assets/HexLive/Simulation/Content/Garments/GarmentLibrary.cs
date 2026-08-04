@@ -551,6 +551,7 @@ namespace HexLive.Simulation.Content
                 new("clothing.dress_night_red", "Night Dress (Red)", WearLayer.Wear, 0.06f, 0.00f, 0.00f, dress, 0, BodyPart.Torso, BodyPart.Pelvis) { PrototypeId = "clothing.dress_night" },
                 new("clothing.dress_night_white", "Night Dress (White)", WearLayer.Wear, 0.06f, 0.00f, 0.00f, dress, 0, BodyPart.Torso, BodyPart.Pelvis) { PrototypeId = "clothing.dress_night" },
                 new("clothing.necklace_beads", "Beaded Necklace", WearLayer.Wear, 0.00f, 0.00f, 0.00f, dress, 0, BodyPart.Torso),
+                new("clothing.necklace_osiris", "Chain Necklace", WearLayer.Wear, 0.00f, 0.00f, 0.00f, dress, 0, BodyPart.Torso),
 
                 // --- Outerwear: the top layer — jackets, boots, armor. ----------
                 // §52.8 tool holster: GEAR, not clothing — no warmth, no thermal

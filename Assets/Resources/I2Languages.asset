@@ -2593,6 +2593,22 @@ MonoBehaviour:
       - 'Носимый предмет.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'item.clothing_necklace_osiris.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Chain Necklace'
+      - 'Цепочка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_necklace_osiris.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A plain chain. Someone kept it through worse than this.'
+      - 'Простая цепочка. Кто-то пронёс её через худшее.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'item.clothing_dress_primal.name'
       TermType: 0
       Description: 

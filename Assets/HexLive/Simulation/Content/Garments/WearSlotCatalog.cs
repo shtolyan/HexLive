@@ -229,6 +229,7 @@ namespace HexLive.Simulation.Content
             ["clothing.leggings_yoga_09_pants"] = new[] { WearSlot.Pelvis, WearSlot.ThighR, WearSlot.ThighL, WearSlot.ShinR, WearSlot.ShinL },
             ["clothing.leggings_yoga_10_pants"] = new[] { WearSlot.Pelvis, WearSlot.ThighR, WearSlot.ThighL, WearSlot.ShinR, WearSlot.ShinL },
             ["clothing.necklace_beads"] = new[] { WearSlot.Neck },
+            ["clothing.necklace_osiris"] = new[] { WearSlot.Neck },
             ["clothing.outfit_reiko"] = new[] { WearSlot.Pelvis, WearSlot.ShinR, WearSlot.ShinL, WearSlot.FootR, WearSlot.FootL, WearSlot.WristR, WearSlot.WristL },
             ["clothing.outfit_reiko_default"] = new[] { WearSlot.Pelvis, WearSlot.ShinR, WearSlot.ShinL, WearSlot.FootR, WearSlot.FootL, WearSlot.WristR, WearSlot.WristL },
             ["clothing.pants_anarchy"] = new[] { WearSlot.Pelvis, WearSlot.ThighR, WearSlot.ThighL, WearSlot.ShinR, WearSlot.ShinL },

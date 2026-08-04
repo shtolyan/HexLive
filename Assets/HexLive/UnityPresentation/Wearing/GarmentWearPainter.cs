@@ -35,6 +35,17 @@ namespace HexLive.UnityPresentation.Wearing
         // tint darkens it into readable brown grime (DrawTexture doubles rgb).
         private static Color DirtTint(float alpha) => new(0.33f, 0.26f, 0.19f, alpha * 0.6f);
 
+        // Blood used to share StampTint, whose 0.5 alpha factor capped cloth
+        // blood at 0.8 x 0.5 = 0.4 — fainter than the dirt beside it (0.6) and
+        // brown grime simply won. rgb stays neutral (DrawTexture doubles it to
+        // white) so the brush keeps its own red.
+        private const int BloodBrushCount = 3;
+        private static Color BloodTint(float alpha) => new(0.5f, 0.5f, 0.5f, alpha * 0.9f);
+
+        // Spread the three brushes evenly over the placement cells.
+        private static int BloodVariantOf(int cellKey) =>
+            (int)((uint)cellKey % (uint)BloodBrushCount);
+
         private sealed class Hole
         {
             public int Slot;
@@ -599,7 +610,7 @@ namespace HexLive.UnityPresentation.Wearing
                     Uv = uv,
                     Size = Mathf.Lerp(0.12f, 0.2f, strength),
                     Alpha = strength * 0.8f,
-                    Variant = (cellKey & 1)
+                    Variant = BloodVariantOf(cellKey)
                 };
                 _bloodStains.Add(stain);
                 _bloodStainsByCell[cellKey] = stain;
@@ -927,7 +938,7 @@ namespace HexLive.UnityPresentation.Wearing
                         var s = stain.Size;
                         Graphics.DrawTexture(new Rect(cx - s * 0.5f, cy - s * 0.5f, s, s),
                             brush, new Rect(0f, 0f, 1f, 1f), 0, 0, 0, 0,
-                            StampTint(stain.Alpha));
+                            BloodTint(stain.Alpha));
                     }
 
                     // Punch the open holes out of the alpha (sheer garments).
@@ -1033,7 +1044,7 @@ namespace HexLive.UnityPresentation.Wearing
         private static void EnsureArt()
         {
             if (_artLoaded && _texDirt != null && _texTearMask != null && _alphaErase != null &&
-                _texBloodBrushes.Length == 2)
+                _texBloodBrushes.Length == BloodBrushCount)
             {
                 return;
             }
@@ -1041,9 +1052,16 @@ namespace HexLive.UnityPresentation.Wearing
             _artLoaded = true;
             _texDirt = Resources.Load<Texture2D>("HexLive/Decals/dirt_dust");
             _texTearMask = Resources.Load<Texture2D>("HexLive/Decals/tear_mask");
+            // Blood on CLOTH is soak-through, not a wound: it must read as the
+            // same red splatter the skin uses for limb damage. The first two
+            // entries used to be wound_scratch (a claw gash) and blood_splat —
+            // gash art on a shirt reads as a tear, not blood. blood_stain is
+            // the brush the damage speckles use (spec 40.8-H r3, the picture
+            // picked by hand), so it leads; the other two give variety.
             _texBloodBrushes = new Texture2D?[]
             {
-                Resources.Load<Texture2D>("HexLive/Decals/wound_scratch"),
+                Resources.Load<Texture2D>("HexLive/Decals/blood_stain"),
+                Resources.Load<Texture2D>("HexLive/Decals/blood_splash"),
                 Resources.Load<Texture2D>("HexLive/Decals/blood_splat")
             };
             var erase = Shader.Find("Hidden/HexLive/AlphaErase");

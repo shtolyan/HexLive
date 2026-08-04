@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.sandals_summer3_style_03_sky
   prototypeId: clothing.sandals_summer3
-  displayName: 
+  displayName: Sandals, Style III (Style 03 Sky)
   variantMaterials:
   - {fileID: 2100000, guid: 22ce17539f9e8ec4494216643011732e, type: 2}
   - {fileID: 2100000, guid: 824bd9bbf7f678047a38aa90703b379a, type: 2}
@@ -23,10 +23,10 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 898e37654b4fc664dbef15688eb43737, type: 2}
   - {fileID: 2100000, guid: e17c67da5092b0844a974574c851f3e0, type: 2}
   - {fileID: 2100000, guid: 71a85726ee9ca45408d73be0d46f67ed, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
-  armor: 0
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.02
+  armor: 0.02
   thermalDelta: 0
   dressDurationTicks: 8
   capacity: 0

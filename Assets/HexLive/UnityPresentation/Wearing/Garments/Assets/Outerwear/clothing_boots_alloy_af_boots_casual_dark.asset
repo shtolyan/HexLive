@@ -13,19 +13,13 @@ MonoBehaviour:
   m_Name: clothing_boots_alloy_af_boots_casual_dark
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.boots_alloy_af_boots_casual_dark
-  prototypeId: clothing.boots_alloy
-  displayName: 
-  variantMaterials:
-  - {fileID: 2100000, guid: a54bdcd714ee38e42afe5faa78d42fcb, type: 2}
-  - {fileID: 2100000, guid: e938a2ddd581e134aa5ffe8840f40c0a, type: 2}
-  - {fileID: 2100000, guid: b53f045acb11a8f4691cc494871ae424, type: 2}
-  - {fileID: 2100000, guid: c77d97329a13cb245b7ad0a1e4d44f2d, type: 2}
-  - {fileID: 2100000, guid: 0ce2b58c16c018f41bec48e362e92f3c, type: 2}
-  - {fileID: 2100000, guid: bbbf140cf07ea0b42b11e4f32d62a223, type: 2}
-  layer: 1
-  covers: 
+  prototypeId: 
+  displayName: Plated Boots (AF Boots Casual Dark)
+  variantMaterials: []
+  layer: 2
+  covers: 0500000006000000
   warmth: 0.1
-  armor: 0
+  armor: 0.1
   thermalDelta: 0
   dressDurationTicks: 8
   capacity: 0

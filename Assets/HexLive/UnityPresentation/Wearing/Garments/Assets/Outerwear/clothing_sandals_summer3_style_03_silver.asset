@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.sandals_summer3_style_03_silver
   prototypeId: clothing.sandals_summer3
-  displayName: 
+  displayName: Sandals, Style III (Style 03 Silver)
   variantMaterials:
   - {fileID: 2100000, guid: 0eb35e2396aae1a4bb88f2b093dfd47d, type: 2}
   - {fileID: 2100000, guid: 8cfe48258bf148547bb940f20881f2d7, type: 2}
@@ -23,10 +23,10 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 9201110d8a6097348b045ee7d9a9e987, type: 2}
   - {fileID: 2100000, guid: 91591009a6df20e44ab9f0f080830581, type: 2}
   - {fileID: 2100000, guid: 7d199eb8e247eae43971a5b203b4ba7e, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
-  armor: 0
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.02
+  armor: 0.02
   thermalDelta: 0
   dressDurationTicks: 8
   capacity: 0

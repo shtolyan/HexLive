@@ -667,9 +667,7 @@ namespace HexLive.Simulation.Content
                 new("clothing.corset_skinny", "Laced Corset", WearLayer.Wear, 0.06f, 0.05f, 0.00f, dress, 0, BodyPart.Torso),
                 new("clothing.jeans_skinny", "Skinny Jeans", WearLayer.Wear, 0.12f, 0.05f, 0.00f, dress, 2, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
                 new("clothing.top_alloy", "Plated Top", WearLayer.Wear, 0.05f, 0.09f, 0.00f, dress, 0, BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR),
-                new("clothing.top_alloy_af_top_casual_dark", "Plated Top (AF Top Casual Dark)", WearLayer.Wear, 0.05f, 0.09f, 0.00f, dress, 0, BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR) { PrototypeId = "clothing.top_alloy" },
                 new("clothing.skirt_alloy", "Plated Skirt", WearLayer.Wear, 0.04f, 0.07f, 0.00f, dress, 0, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
-                new("clothing.skirt_alloy_af_skirt_casual_dark", "Plated Skirt (AF Skirt Casual Dark)", WearLayer.Wear, 0.04f, 0.07f, 0.00f, dress, 0, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.skirt_alloy" },
                 new("clothing.top_classic", "Ring Top", WearLayer.Wear, 0.03f, 0.00f, 0.00f, dress, 0, BodyPart.Torso),
                 new("clothing.shorts_classic", "Ring Shorts", WearLayer.Wear, 0.04f, 0.00f, 0.00f, dress, 1, BodyPart.Pelvis),
                 new("clothing.gloves_classic", "Ring Gloves", WearLayer.Wear, 0.02f, 0.03f, 0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR),
@@ -841,7 +839,6 @@ namespace HexLive.Simulation.Content
                 new("clothing.sneakers_sport_cream_white", "Running Shoes (Cream White)", WearLayer.Outerwear, 0.06f, 0.04f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sneakers_sport" },
                 new("clothing.sneakers_sport_lilac_purple", "Running Shoes (Lilac Purple)", WearLayer.Outerwear, 0.06f, 0.04f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.sneakers_sport" },
                 new("clothing.boots_alloy", "Plated Boots", WearLayer.Outerwear, 0.10f, 0.10f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR),
-                new("clothing.boots_alloy_af_boots_casual_dark", "Plated Boots (AF Boots Casual Dark)", WearLayer.Outerwear, 0.10f, 0.10f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.boots_alloy" },
                 new("clothing.boots_classic", "Ring Boots", WearLayer.Outerwear, 0.09f, 0.06f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR),
 
                 // --- §72: снаряжение чужака ------------------------------------

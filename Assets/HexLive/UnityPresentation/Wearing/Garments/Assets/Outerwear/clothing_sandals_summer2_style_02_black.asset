@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.sandals_summer2_style_02_black
   prototypeId: clothing.sandals_summer2
-  displayName: 
+  displayName: Sandals, Style II (Style 02 Black)
   variantMaterials:
   - {fileID: 2100000, guid: 6303bf1c779bc3547a7ebef73688a5ca, type: 2}
   - {fileID: 2100000, guid: 07aa8b75d65f31b488542dc31e736c3f, type: 2}
@@ -23,10 +23,10 @@ MonoBehaviour:
   - {fileID: 2100000, guid: edc02f42d4749c343a996c047117da65, type: 2}
   - {fileID: 2100000, guid: fd72c17c888962449b0e588c00de1074, type: 2}
   - {fileID: 2100000, guid: 91823119b2ce2724694166de8efc691d, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
-  armor: 0
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.02
+  armor: 0.02
   thermalDelta: 0
   dressDurationTicks: 8
   capacity: 0

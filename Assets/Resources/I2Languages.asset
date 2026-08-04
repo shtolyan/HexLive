@@ -3345,22 +3345,6 @@ MonoBehaviour:
       - 'Металлические пластины на плечах. Это делали, чтобы в этом видели.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'item.clothing_top_alloy_af_top_casual_dark.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Plated Top (AF Top Casual Dark)'
-      - 'Топ с пластинами (AF Top Casual Dark)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_top_alloy_af_top_casual_dark.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Metal plates over the shoulders. Someone made this to be seen in.'
-      - 'Металлические пластины на плечах. Это делали, чтобы в этом видели.'
-      Flags: 0101
-      Languages_Touch: []
     - Term: 'item.clothing_skirt_alloy.name'
       TermType: 0
       Description: 
@@ -3377,22 +3361,6 @@ MonoBehaviour:
       - 'Короткая, из пластин, и тяжелее, чем кажется.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'item.clothing_skirt_alloy_af_skirt_casual_dark.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Plated Skirt (AF Skirt Casual Dark)'
-      - 'Юбка с пластинами (AF Skirt Casual Dark)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_skirt_alloy_af_skirt_casual_dark.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Short, panelled, and heavier than it looks.'
-      - 'Короткая, из пластин, и тяжелее, чем кажется.'
-      Flags: 0101
-      Languages_Touch: []
     - Term: 'item.clothing_boots_alloy.name'
       TermType: 0
       Description: 
@@ -3402,22 +3370,6 @@ MonoBehaviour:
       Flags: 0101
       Languages_Touch: []
     - Term: 'item.clothing_boots_alloy.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'A heel this steep was a choice, and not a practical one.'
-      - 'Такой каблук был выбором — и точно не практичным.'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_boots_alloy_af_boots_casual_dark.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Plated Boots (AF Boots Casual Dark)'
-      - 'Ботинки с пластинами (AF Boots Casual Dark)'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_boots_alloy_af_boots_casual_dark.desc'
       TermType: 0
       Description: 
       Languages:

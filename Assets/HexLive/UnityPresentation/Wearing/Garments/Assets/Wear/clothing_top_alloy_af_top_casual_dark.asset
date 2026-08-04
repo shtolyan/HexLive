@@ -13,20 +13,13 @@ MonoBehaviour:
   m_Name: clothing_top_alloy_af_top_casual_dark
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.top_alloy_af_top_casual_dark
-  prototypeId: clothing.top_alloy
-  displayName: 
-  variantMaterials:
-  - {fileID: 2100000, guid: 0e973fef553078943b1f0f789a5deba7, type: 2}
-  - {fileID: 2100000, guid: 24f0e17070a91a04c8773899fb6fc028, type: 2}
-  - {fileID: 2100000, guid: d0f03695ba0722749bbfb67c9e7347ed, type: 2}
-  - {fileID: 2100000, guid: 4a83bf13879e5ca488dcd6fcc4683be9, type: 2}
-  - {fileID: 2100000, guid: 01adbfd7947b8e44b97121f1ac6eb095, type: 2}
-  - {fileID: 2100000, guid: 4bf704bc60d508846820ab5a449f0e50, type: 2}
-  - {fileID: 2100000, guid: c8b86b80e26d0fa428c2211c6b7ebc1a, type: 2}
+  prototypeId: 
+  displayName: Plated Top (AF Top Casual Dark)
+  variantMaterials: []
   layer: 1
-  covers: 
-  warmth: 0.1
-  armor: 0
+  covers: 010000000300000004000000
+  warmth: 0.05
+  armor: 0.09
   thermalDelta: 0
   dressDurationTicks: 8
   capacity: 0

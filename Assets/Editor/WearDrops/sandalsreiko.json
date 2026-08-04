@@ -3282,72 +3282,7 @@
           "ArmR"
         ]
       },
-      "variants": [
-        {
-          "name": "AF Top Casual Dark",
-          "from": "Alloy Fusion Top",
-          "textures": [
-            {
-              "source": "Bottom",
-              "texture": "AlloyFDark_Top_albedo.jpg"
-            },
-            {
-              "source": "Bust Trim",
-              "texture": "AlloyFDark_Top_albedo.jpg"
-            },
-            {
-              "source": "Center Bevel",
-              "texture": "AlloyFDark_Top_albedo.jpg"
-            },
-            {
-              "source": "Center Panel",
-              "texture": "AlloyFDark_Top_albedo.jpg"
-            },
-            {
-              "source": "Front Trim 1",
-              "texture": "AlloyFDark_Top_albedo.jpg"
-            },
-            {
-              "source": "Front Trim 2",
-              "texture": "AlloyFDark_Top_albedo.jpg"
-            },
-            {
-              "source": "Top",
-              "texture": "AlloyFDark_Top_albedo.jpg"
-            }
-          ],
-          "colors": [
-            {
-              "source": "Bottom",
-              "color": "#FFFFFF"
-            },
-            {
-              "source": "Bust Trim",
-              "color": "#FFFFFF"
-            },
-            {
-              "source": "Center Bevel",
-              "color": "#FFFFFF"
-            },
-            {
-              "source": "Center Panel",
-              "color": "#FFFFFF"
-            },
-            {
-              "source": "Front Trim 1",
-              "color": "#FFFFFF"
-            },
-            {
-              "source": "Front Trim 2",
-              "color": "#FFFFFF"
-            },
-            {
-              "source": "Top",
-              "color": "#FFFFFF"
-            }
-          ]
-        }
-      ]
+      "variants": []
     },
     {
       "sourceKey": "Alloy Fusion Skirt_4756",
@@ -3428,48 +3363,7 @@
           "LegR"
         ]
       },
-      "variants": [
-        {
-          "name": "AF Skirt Casual Dark",
-          "from": "Alloy Fusion Skirt",
-          "textures": [
-            {
-              "source": "Back Center Panel",
-              "texture": "AlloyFDark_Skirt_albedo.jpg"
-            },
-            {
-              "source": "Front Center Panel",
-              "texture": "AlloyFDark_Skirt_albedo.jpg"
-            },
-            {
-              "source": "Side Panels",
-              "texture": "AlloyFDark_Skirt_albedo.jpg"
-            },
-            {
-              "source": "Waist Band",
-              "texture": "AlloyFDark_Skirt_albedo.jpg"
-            }
-          ],
-          "colors": [
-            {
-              "source": "Back Center Panel",
-              "color": "#E3E3E3"
-            },
-            {
-              "source": "Front Center Panel",
-              "color": "#E3E3E3"
-            },
-            {
-              "source": "Side Panels",
-              "color": "#E3E3E3"
-            },
-            {
-              "source": "Waist Band",
-              "color": "#E3E3E3"
-            }
-          ]
-        }
-      ]
+      "variants": []
     },
     {
       "sourceKey": "Alloy Fusion Boots_3650",
@@ -3552,15 +3446,15 @@
         "heelCm": 10.08
       },
       "heelPose": {
-        "foot": 48.1,
+        "foot": 38.48,
         "toe": 0.0,
-        "lift": 0.0819,
+        "lift": 0.0684,
         "axis": [
           1.0,
           0.0,
           0.0
         ],
-        "_source": "поза, наложенная самой вещью при примерке: Alloy Fusion Boots"
+        "_source": "поза, наложенная самой вещью при примерке: Alloy Fusion Boots; опущено на 20% по осмотру человека"
       },
       "sim": {
         "displayName": "Plated Boots",
@@ -3576,64 +3470,7 @@
           "LegR"
         ]
       },
-      "variants": [
-        {
-          "name": "AF Boots Casual Dark",
-          "from": "Alloy Fusion Boots",
-          "textures": [
-            {
-              "source": "Body",
-              "texture": "AlloyFDark_Boots_albedo.jpg"
-            },
-            {
-              "source": "Heel Base",
-              "texture": "AlloyFDark_Boots_albedo.jpg"
-            },
-            {
-              "source": "Heels",
-              "texture": "AlloyFDark_Boots_albedo.jpg"
-            },
-            {
-              "source": "Sole",
-              "texture": "AlloyFDark_Boots_albedo.jpg"
-            },
-            {
-              "source": "Toe Panels",
-              "texture": "AlloyFDark_Boots_albedo.jpg"
-            },
-            {
-              "source": "Top Trim",
-              "texture": "AlloyFDark_Boots_albedo.jpg"
-            }
-          ],
-          "colors": [
-            {
-              "source": "Body",
-              "color": "#E3E3E3"
-            },
-            {
-              "source": "Heel Base",
-              "color": "#4A4A4A"
-            },
-            {
-              "source": "Heels",
-              "color": "#4A4A4A"
-            },
-            {
-              "source": "Sole",
-              "color": "#4A4A4A"
-            },
-            {
-              "source": "Toe Panels",
-              "color": "#E3E3E3"
-            },
-            {
-              "source": "Top Trim",
-              "color": "#E3E3E3"
-            }
-          ]
-        }
-      ]
+      "variants": []
     },
     {
       "sourceKey": "Classic Top_1090",

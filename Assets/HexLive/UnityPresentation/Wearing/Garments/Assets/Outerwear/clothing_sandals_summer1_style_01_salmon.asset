@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.sandals_summer1_style_01_salmon
   prototypeId: clothing.sandals_summer1
-  displayName: 
+  displayName: Sandals, Style I (Style 01 Salmon)
   variantMaterials:
   - {fileID: 2100000, guid: 36b6df08c3ab8e7418a225fdb82ad9eb, type: 2}
   - {fileID: 2100000, guid: 08bd7f86c12b1ce499c476620e603b07, type: 2}
@@ -23,10 +23,10 @@ MonoBehaviour:
   - {fileID: 2100000, guid: ed53d5a2294febc4a99e32a1c2639932, type: 2}
   - {fileID: 2100000, guid: f2dcdb882788d0d4daa94ba78c56a822, type: 2}
   - {fileID: 2100000, guid: ff4b43fc1b34b3847882ceffdd1a352c, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
-  armor: 0
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.02
+  armor: 0.02
   thermalDelta: 0
   dressDurationTicks: 8
   capacity: 0

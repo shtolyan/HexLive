@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.sandals_summer2_style_02_sky
   prototypeId: clothing.sandals_summer2
-  displayName: 
+  displayName: Sandals, Style II (Style 02 Sky)
   variantMaterials:
   - {fileID: 2100000, guid: a5bce77b7a7cda8498ab0d528ebae702, type: 2}
   - {fileID: 2100000, guid: 85fcd4ffc15fe104f8dcd16804f89bd7, type: 2}
@@ -23,10 +23,10 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 57e0ef6919189264ca19cfe9b370228a, type: 2}
   - {fileID: 2100000, guid: 7f313747237f68e4ea5a10bbbb705aed, type: 2}
   - {fileID: 2100000, guid: 472cd28b1f9c5d74f9f93467da8cc61d, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
-  armor: 0
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.02
+  armor: 0.02
   thermalDelta: 0
   dressDurationTicks: 8
   capacity: 0

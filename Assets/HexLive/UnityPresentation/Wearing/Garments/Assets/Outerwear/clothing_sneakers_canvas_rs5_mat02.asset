@@ -14,17 +14,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.sneakers_canvas_rs5_mat02
   prototypeId: clothing.sneakers_canvas
-  displayName: 
+  displayName: Canvas Sneakers (RS5 MAT02)
   variantMaterials:
   - {fileID: 2100000, guid: b0bb64b013fbf864193889bf66f6898c, type: 2}
   - {fileID: 2100000, guid: f9c1fd89d7296d243a8208d442896e10, type: 2}
   - {fileID: 2100000, guid: af36cdc45bb721345ae6f03b5ecb16cb, type: 2}
   - {fileID: 2100000, guid: 0d324172b4af8b34fa4eb8c6f4b8266f, type: 2}
   - {fileID: 2100000, guid: 86ce7e9bfffaf9147aa06c4edada3170, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
-  armor: 0
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.06
+  armor: 0.04
   thermalDelta: 0
   dressDurationTicks: 8
   capacity: 0

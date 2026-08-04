@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.sandals_summer1_style_01_red
   prototypeId: clothing.sandals_summer1
-  displayName: 
+  displayName: Sandals, Style I (Style 01 Red)
   variantMaterials:
   - {fileID: 2100000, guid: ce9df735294bf064fa27fdcab7899e9e, type: 2}
   - {fileID: 2100000, guid: f276abc3cce60f348a8a23aff303e657, type: 2}
@@ -23,10 +23,10 @@ MonoBehaviour:
   - {fileID: 2100000, guid: d27d9731b7e8619479d252f8855d6ec0, type: 2}
   - {fileID: 2100000, guid: aa8762d80be34be4d92bc480763d6b48, type: 2}
   - {fileID: 2100000, guid: b18d0e43b02e36f469b965d3578f7893, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
-  armor: 0
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.02
+  armor: 0.02
   thermalDelta: 0
   dressDurationTicks: 8
   capacity: 0

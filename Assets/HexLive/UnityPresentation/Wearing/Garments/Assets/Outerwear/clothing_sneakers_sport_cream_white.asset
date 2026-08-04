@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.sneakers_sport_cream_white
   prototypeId: clothing.sneakers_sport
-  displayName: 
+  displayName: Running Shoes (Cream White)
   variantMaterials:
   - {fileID: 2100000, guid: 03f477b84504a4d48955fec7aec415a2, type: 2}
   - {fileID: 2100000, guid: 7b6038febcb988146b84099a9f0ba68b, type: 2}
@@ -24,10 +24,10 @@ MonoBehaviour:
   - {fileID: 2100000, guid: d6450e8453b437b42989b65eeb5e8d02, type: 2}
   - {fileID: 2100000, guid: d816b682c916fec459267991d85f2524, type: 2}
   - {fileID: 2100000, guid: 56fc47455131d944da60eb48bc03fe3c, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
-  armor: 0
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.06
+  armor: 0.04
   thermalDelta: 0
   dressDurationTicks: 8
   capacity: 0

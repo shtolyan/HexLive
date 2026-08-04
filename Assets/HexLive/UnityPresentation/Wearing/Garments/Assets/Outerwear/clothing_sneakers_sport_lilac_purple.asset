@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.sneakers_sport_lilac_purple
   prototypeId: clothing.sneakers_sport
-  displayName: 
+  displayName: Running Shoes (Lilac Purple)
   variantMaterials:
   - {fileID: 2100000, guid: 5d7ee58799d8eb842bf6c48e430905cc, type: 2}
   - {fileID: 2100000, guid: fb8cf3e290836c243bc9a8875a8fe28b, type: 2}
@@ -24,10 +24,10 @@ MonoBehaviour:
   - {fileID: 2100000, guid: a289378dc086c0d41a88e7f578dc6d75, type: 2}
   - {fileID: 2100000, guid: 292b9d34f3e4e704eb1f8c4b3e8be62f, type: 2}
   - {fileID: 2100000, guid: 7b04bf9685e11ae4fb901faf1b8b7059, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
-  armor: 0
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.06
+  armor: 0.04
   thermalDelta: 0
   dressDurationTicks: 8
   capacity: 0

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.sandals_summer3_style_03_yellow
   prototypeId: clothing.sandals_summer3
-  displayName: 
+  displayName: Sandals, Style III (Style 03 Yellow)
   variantMaterials:
   - {fileID: 2100000, guid: 4da067f41d811a544855f9f491d1f5d4, type: 2}
   - {fileID: 2100000, guid: f5074d2c13f800c44b1e25d598cc9ab9, type: 2}
@@ -23,10 +23,10 @@ MonoBehaviour:
   - {fileID: 2100000, guid: d8c68fa27def35b4cb2a00d26c69d02f, type: 2}
   - {fileID: 2100000, guid: e14d566d2e505b849b92524aecdc7e25, type: 2}
   - {fileID: 2100000, guid: f2ce6ba09c9c46f4d9f2f4dd6377301a, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
-  armor: 0
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.02
+  armor: 0.02
   thermalDelta: 0
   dressDurationTicks: 8
   capacity: 0

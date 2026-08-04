@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.sandals_summer4_style_04_cherry
   prototypeId: clothing.sandals_summer4
-  displayName: 
+  displayName: Sandals, Style IV (Style 04 Cherry)
   variantMaterials:
   - {fileID: 2100000, guid: 63df5a4de16af664585c3d09885b4fc0, type: 2}
   - {fileID: 2100000, guid: 129d1827667c33241a6064cf32242741, type: 2}
@@ -24,10 +24,10 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 8a3b004c2ad6e0c4d945e9c75896c9de, type: 2}
   - {fileID: 2100000, guid: 25d312645efac6642859fe30d6c2b89b, type: 2}
   - {fileID: 2100000, guid: bc659eb05fb5d5a488c53778766cd021, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
-  armor: 0
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.02
+  armor: 0.02
   thermalDelta: 0
   dressDurationTicks: 8
   capacity: 0

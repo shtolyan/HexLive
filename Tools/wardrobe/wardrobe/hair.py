@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from urllib.parse import unquote
 
 from . import config, textures, variants
 
@@ -119,21 +120,112 @@ def harvest(hair: str) -> list[dict]:
     return variants.dedupe(sorted(by_name.values(), key=lambda c: c["name"]))
 
 
+def opacity_maps(hair: str) -> dict[str, str]:
+    """Поверхность -> карта ПРОЗРАЧНОСТИ этой причёски.
+
+    ⭐ Пресеты цвета её НЕ несут: они меняют только диффуз, блеск и
+    подповерхностное рассеяние. Прозрачность ставится один раз служебным
+    пресетом («Chunky Pigtails !Apply First») и одна на все цвета.
+
+    Без неё вариант выглядит сломанным, хотя материал верен: прозрачный режим
+    включён, а прозрачничать нечем — альфа сплошная, и шапочка садится на голову
+    чёрной полосой. Именно так и вышло на первом прогоне.
+    """
+    product = config.DAZ_LIBRARY / PRODUCTS[hair]
+    found: dict[str, str] = {}
+    for preset in sorted(product.rglob("*.duf")):
+        doc = variants._load(preset)
+        if not doc:
+            continue
+        for entry in doc.get("scene", {}).get("animations", []) or []:
+            url = unquote(str(entry.get("url", "")))
+            if "#materials/" not in url or "cutout" not in url.lower():
+                continue
+            keys = entry.get("keys") or []
+            value = keys[0][1] if keys and len(keys[0]) > 1 else None
+            if not isinstance(value, str) or "/" not in value.replace("\\", "/"):
+                continue
+            surface = url.split("#materials/", 1)[1].split(":", 1)[0]
+            found.setdefault(surface, Path(value.replace("\\", "/")).name)
+
+    # Второй источник — сами прототипы. Их картинки уже склеены и несут пару в
+    # имени: `08OOTChunkyCap__OOTUtilityChunkyCapT.png`. Служебный пресет
+    # выставляет прозрачность не всем поверхностям (у Chunky пяти из девяти), а
+    # у прототипа она есть у каждой, потому что он собран и проверен глазами.
+    for mat in (HAIR_ROOT / hair / "Materials").glob("*.mat"):
+        if mat.stem in found:
+            continue
+        text = mat.read_text(encoding="utf-8", errors="ignore")
+        for meta in (HAIR_ROOT / hair / "Textures").glob("*.meta"):
+            guid = _guid(meta)
+            # `meta.stem` — это «Цвет__Маска.png» целиком, поэтому расширение
+            # снимается отдельно: иначе получается «Маска.png.png».
+            name = Path(meta.stem)
+            if guid and guid in text and "__" in name.stem:
+                found[mat.stem] = name.stem.rsplit("__", 1)[1] + name.suffix
+                break
+    return found
+
+
+def _guid(meta: Path) -> str | None:
+    for line in meta.read_text(encoding="utf-8", errors="ignore").splitlines():
+        if line.startswith("guid: "):
+            return line.split(" ", 1)[1].strip()
+    return None
+
+
+def _find_mask(name: str) -> Path | None:
+    """Найти карту прозрачности, не полагаясь на расширение.
+
+    Имя маски мы узнаём двумя путями — из служебного пресета и из имени
+    склеенной картинки прототипа, — и расширение в них расходится: у Chunky
+    маска шапочки лежит как `.jpg`, а в имени склейки стоит `.png`.
+    """
+    direct = textures._resolve(name)
+    if direct is not None:
+        return direct
+    stem = Path(name).stem
+    for candidate in config.DAZ_TEXTURES.rglob(stem + ".*"):
+        if candidate.suffix.lower() in (".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp"):
+            return candidate
+    return None
+
+
 def stage(hair: str, colours: list[dict]) -> dict:
-    """Положить картинки цветов в папку причёски, вернуть отчёт."""
+    """Положить картинки цветов в папку причёски, вернуть отчёт.
+
+    Диффуз СКЛЕИВАЕТСЯ с картой прозрачности в один PNG — ровно так же, как
+    лежат картинки прототипов (`08OOTChunkyCap__OOTUtilityChunkyCapT.png`).
+    Имена в манифесте после этого указывают на склейку, а не на исходный jpg.
+    """
     out_dir = HAIR_ROOT / hair / "Textures"
+    masks = opacity_maps(hair)
     written, missing = [], []
     for colour in colours:
         colour.pop("preset_dir", None)   # служебное, в манифест не идёт
-        for surface, name in sorted(colour.pop("_files", {}).items()):
+        files = colour.pop("_files", {})
+        renamed: dict[str, str] = {}
+        for surface, name in sorted(files.items()):
             source = textures._resolve(name)
             if source is None:
                 missing.append(f"{colour['name']}/{surface}: {name}")
                 continue
-            target = out_dir / source.name
-            if not target.exists():
-                textures._save_plain(source, target)
-                written.append(source.name)
+
+            mask = _find_mask(masks[surface]) if surface in masks else None
+            if mask is not None:
+                target = out_dir / f"{source.stem}_{mask.stem}.png"
+                if not target.exists():
+                    textures._save_cutout(source, mask, target)
+                    written.append(target.name)
+            else:
+                target = out_dir / source.name
+                if not target.exists():
+                    textures._save_plain(source, target)
+                    written.append(target.name)
+            renamed[surface] = target.name
+
+        colour["textures"] = [{"source": s, "texture": t}
+                              for s, t in sorted(renamed.items())]
     return {"written": written, "missing": missing}
 
 

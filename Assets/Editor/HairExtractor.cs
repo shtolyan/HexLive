@@ -363,6 +363,13 @@ public static class HairExtractor
                         AssetDatabase.CreateAsset(mat, path);
                         built++;
                     }
+                    else
+                    {
+                        // Уже существующий цвет ПЕРЕСНИМАЕТСЯ с прототипа целиком.
+                        // Иначе подкрутили порог у причёски — а её цвета остались
+                        // со старым, и настройки разъехались бы по 254 копиям.
+                        mat.CopyPropertiesFromMaterial(origin);
+                    }
 
                     mat.SetTexture("_BaseMap", texture);
                     mat.SetTexture("_MainTex", texture);

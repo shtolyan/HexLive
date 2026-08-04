@@ -1085,9 +1085,18 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         _hairColourStrip.Add(tile);
     }
 
-    // Подмена материалов на ЖИВОЙ причёске: тот же меш, другие карты. Соответствие
-    // идёт по имени материала — оно и есть имя поверхности из DAZ, и совпадает у
-    // прототипа с каждым цветом, потому что материал цвета сделан его копией.
+    // ⭐ Цвет — это ТЕКСТУРА, а не материал. Настроенный материал причёски
+    // существует в ЕДИНСТВЕННОМ экземпляре на поверхность, и цвет меняет в нём
+    // только карту — на ЖИВОМ экземпляре, который `SetHair` и так создаёт заново.
+    //
+    // Почему не копией материала на каждый цвет: тогда подобранные вручную
+    // пороги прозрачности лежали бы в 254 копиях, и правка порога у прототипа
+    // не дошла бы ни до одной. Настройки должны жить в одном месте — ровно
+    // потому, что однажды они уже разошлись с картинками.
+    //
+    // Почему по экземпляру, а не по ассету: материал в Unity общий, и запись в
+    // ассет перекрасила бы эту причёску у всех сразу — Jana и Marta не смогли
+    // бы носить её разного цвета.
     private void ApplyHairColour(string folder)
     {
 #if UNITY_EDITOR
@@ -1121,7 +1130,10 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
             var mats = renderer.sharedMaterials;
             for (var i = 0; i < mats.Length; i++)
             {
-                if (mats[i] != null && byName.TryGetValue(mats[i].name, out var swap))
+                var surface = mats[i] != null
+                    ? mats[i].name.Replace(" (Instance)", string.Empty)
+                    : null;
+                if (surface != null && byName.TryGetValue(surface, out var swap))
                 {
                     mats[i] = swap;
                 }

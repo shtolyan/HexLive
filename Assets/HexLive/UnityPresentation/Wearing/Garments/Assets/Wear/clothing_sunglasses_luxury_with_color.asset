@@ -14,15 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.sunglasses_luxury_with_color
   prototypeId: clothing.sunglasses_luxury
-  displayName: 
+  displayName: Sunglasses (with color)
   variantMaterials:
   - {fileID: 2100000, guid: 3bb50c69b1d512b42bf135a77f898d7f, type: 2}
   - {fileID: 2100000, guid: b2c1e78f568760548acbbea260781b62, type: 2}
   - {fileID: 2100000, guid: 21961f38133238142a62e93af69027c4, type: 2}
   - {fileID: 2100000, guid: 7949c8bfa6a86f14c9f6dd5a778a61d3, type: 2}
   layer: 1
-  covers: 
-  warmth: 0.1
+  covers: 00000000
+  warmth: 0
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

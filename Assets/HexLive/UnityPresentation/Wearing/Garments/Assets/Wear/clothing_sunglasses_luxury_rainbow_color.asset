@@ -14,15 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.sunglasses_luxury_rainbow_color
   prototypeId: clothing.sunglasses_luxury
-  displayName: 
+  displayName: Sunglasses (Rainbow Color)
   variantMaterials:
   - {fileID: 2100000, guid: c602706eea494a446870bcffa0a76fc2, type: 2}
   - {fileID: 2100000, guid: 4ca56d23276255644899577af68d16f0, type: 2}
   - {fileID: 2100000, guid: 4b3a4baefd99fde478c5bda385a9914c, type: 2}
   - {fileID: 2100000, guid: af3bfcacd1fdcaa41be7a31b2a7446fe, type: 2}
   layer: 1
-  covers: 
-  warmth: 0.1
+  covers: 00000000
+  warmth: 0
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

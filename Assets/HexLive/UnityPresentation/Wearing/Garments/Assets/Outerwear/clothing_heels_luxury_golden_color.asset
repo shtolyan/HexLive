@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.heels_luxury_golden_color
   prototypeId: clothing.heels_luxury
-  displayName: 
+  displayName: Strap Heels (Golden Color)
   variantMaterials:
   - {fileID: 2100000, guid: 197191871a9ce0b47b20b90d5cdfc307, type: 2}
   - {fileID: 2100000, guid: ef5d965f68ba9cb438bc350fc7547709, type: 2}
@@ -22,10 +22,10 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 0bf777edc17a6424899c3387d7f26c98, type: 2}
   - {fileID: 2100000, guid: 8f2f72e69f020a74aae7c3fac09694b8, type: 2}
   - {fileID: 2100000, guid: 219c7e9beaedb9f42a585bbd5c2f1499, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
-  armor: 0
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.02
+  armor: 0.02
   thermalDelta: 0
   dressDurationTicks: 8
   capacity: 0

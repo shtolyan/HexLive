@@ -14,14 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.briefs_luxury_03_white_panties
   prototypeId: underwear.briefs_luxury
-  displayName: 
+  displayName: Jewelled Bikini Bottom (03 White Panties)
   variantMaterials:
   - {fileID: 2100000, guid: a2386659d4e788546b45e6caa76b5d48, type: 2}
   - {fileID: 2100000, guid: 736677257b7f61641983f87b29ccd6a5, type: 2}
   - {fileID: 2100000, guid: 27a7a6b362a3b6e4281cd9200c8758c3, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  layer: 0
+  covers: 0100000002000000
+  warmth: 0.01
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

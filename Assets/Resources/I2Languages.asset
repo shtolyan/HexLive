@@ -2753,22 +2753,6 @@ MonoBehaviour:
       - 'Одна до плеча, другая до запястья. Почему — уже никто не помнит.'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'item.clothing_pouches_deadly.name'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Belt Pouches'
-      - 'Подсумки'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'item.clothing_pouches_deadly.desc'
-      TermType: 0
-      Description: 
-      Languages:
-      - 'Four pouches on a waist strap. The colony''s favourite kind of thing.'
-      - 'Четыре подсумка на поясном ремне. Самое любимое в колонии.'
-      Flags: 0101
-      Languages_Touch: []
     - Term: 'item.clothing_corset_skinny.name'
       TermType: 0
       Description: 

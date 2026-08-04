@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.skirt_naughty_skirt_3
   prototypeId: clothing.skirt_naughty
-  displayName: 
+  displayName: Pleated Mini (Skirt 3)
   variantMaterials:
   - {fileID: 2100000, guid: 624f4921c9f4e644784ee34a7059b8c3, type: 2}
   - {fileID: 2100000, guid: 2f3dc120a68727c48a2a6d56e5c5e930, type: 2}
   layer: 1
-  covers: 
-  warmth: 0.1
+  covers: 02000000
+  warmth: 0.04
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

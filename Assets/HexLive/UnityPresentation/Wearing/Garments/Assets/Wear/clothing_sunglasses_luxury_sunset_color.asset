@@ -14,15 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.sunglasses_luxury_sunset_color
   prototypeId: clothing.sunglasses_luxury
-  displayName: 
+  displayName: Sunglasses (sunset color)
   variantMaterials:
   - {fileID: 2100000, guid: 2256934e43f13d548a30f9da855b039c, type: 2}
   - {fileID: 2100000, guid: 07c9581b0f5f37f4a9b2bcfdb4323457, type: 2}
   - {fileID: 2100000, guid: a94b1de0f7ae20645a08a0cc498dbd34, type: 2}
   - {fileID: 2100000, guid: 410ea1c0593ae1f4a85cf9238e2030fa, type: 2}
   layer: 1
-  covers: 
-  warmth: 0.1
+  covers: 00000000
+  warmth: 0
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

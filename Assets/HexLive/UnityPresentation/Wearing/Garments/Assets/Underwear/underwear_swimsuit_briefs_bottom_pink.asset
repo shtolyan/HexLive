@@ -14,16 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.swimsuit_briefs_bottom_pink
   prototypeId: underwear.swimsuit_briefs
-  displayName: 
+  displayName: Strappy Swim Bottom (Bottom Pink)
   variantMaterials:
   - {fileID: 2100000, guid: 3a41bff9f656fc246b54fc84c8261135, type: 2}
   - {fileID: 2100000, guid: 7ac096673a559f0498542dfa52b0b70e, type: 2}
   - {fileID: 2100000, guid: 35ea312c0903eea48b36d353879b7fc2, type: 2}
   - {fileID: 2100000, guid: f80afe405fc2ad148b54e0ae8727d654, type: 2}
   - {fileID: 2100000, guid: 4a235b74d6bbd6049b6b65955d426f2b, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  layer: 0
+  covers: 02000000
+  warmth: 0.01
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

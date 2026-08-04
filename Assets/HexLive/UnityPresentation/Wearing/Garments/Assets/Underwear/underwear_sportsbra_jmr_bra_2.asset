@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.sportsbra_jmr_bra_2
   prototypeId: underwear.sportsbra_jmr
-  displayName: 
+  displayName: Cross-Back Bra (Bra 2)
   variantMaterials:
   - {fileID: 2100000, guid: 3014d70e5920be549b906902f8bd12ab, type: 2}
   - {fileID: 2100000, guid: 9f1520c48f897394fa9a2616d456502c, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  layer: 0
+  covers: 01000000
+  warmth: 0.03
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

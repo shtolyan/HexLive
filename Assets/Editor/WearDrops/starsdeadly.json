@@ -603,57 +603,6 @@
       }
     },
     {
-      "sourceKey": "pouches_5674",
-      "folder": "DeadlyPouches",
-      "name": "DeadlyPouches",
-      "simId": "clothing.pouches_deadly",
-      "layer": "Outerwear",
-      "slots": [
-        "Belly"
-      ],
-      "noHide": [],
-      "materials": [
-        {
-          "source": "fabric",
-          "texture": "S3D_DdlSlc_Add_basecolor.jpg",
-          "smoothness": 0.0,
-          "metallic": 0.0,
-          "doubleSided": true,
-          "alphaClip": false
-        }
-      ],
-      "_measured": {
-        "verts": 5674,
-        "polys": 5548,
-        "bbox": [
-          5.9,
-          25.2,
-          98.4,
-          115.0,
-          -16.5,
-          9.0
-        ],
-        "zones": {
-          "Belly": 0.965,
-          "Pelvis": 0.035
-        },
-        "heelCm": 0.0
-      },
-      "sim": {
-        "displayName": "Belt Pouches",
-        "nameRu": "Подсумки",
-        "descEn": "Four pouches on a waist strap. The colony's favourite kind of thing.",
-        "descRu": "Четыре подсумка на поясном ремне. Самое любимое в колонии.",
-        "warmth": 0.01,
-        "armor": 0.02,
-        "thermalDelta": 0.0,
-        "capacity": 5,
-        "covers": [
-          "Torso"
-        ]
-      }
-    },
-    {
       "sourceKey": "Corset_87100",
       "folder": "SkinnyCorset",
       "name": "SkinnyCorset",

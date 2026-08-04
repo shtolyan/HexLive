@@ -14,12 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.sweater_naughty_sweater_3
   prototypeId: clothing.sweater_naughty
-  displayName: 
+  displayName: Loose Sweater (Sweater 3)
   variantMaterials:
   - {fileID: 2100000, guid: fcbcda196fdee0045bae1435b9ff1996, type: 2}
   layer: 1
-  covers: 
-  warmth: 0.1
+  covers: 010000000300000004000000
+  warmth: 0.2
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

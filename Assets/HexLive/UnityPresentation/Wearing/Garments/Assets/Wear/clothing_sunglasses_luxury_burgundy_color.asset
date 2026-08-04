@@ -14,15 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.sunglasses_luxury_burgundy_color
   prototypeId: clothing.sunglasses_luxury
-  displayName: 
+  displayName: Sunglasses (Burgundy Color)
   variantMaterials:
   - {fileID: 2100000, guid: b75a4e6c0ac3ef141a8af2db893bedcc, type: 2}
   - {fileID: 2100000, guid: c16a409a465e8b54e99fc5e3c2821337, type: 2}
   - {fileID: 2100000, guid: 6e014bfaac108fd4788a5df2f354071a, type: 2}
   - {fileID: 2100000, guid: 77d0bc09d637e914d9cae104eae1ce23, type: 2}
   layer: 1
-  covers: 
-  warmth: 0.1
+  covers: 00000000
+  warmth: 0
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

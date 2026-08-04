@@ -14,14 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.top_luxury_05_golden_bra
   prototypeId: underwear.top_luxury
-  displayName: 
+  displayName: Jewelled Bikini Top (05 Golden Bra)
   variantMaterials:
   - {fileID: 2100000, guid: 927e5695d103ef14885673c803f567e0, type: 2}
   - {fileID: 2100000, guid: 4a53b80f240f8c348bc396d81b32aa2a, type: 2}
   - {fileID: 2100000, guid: 4056ab71bc3d42a40989aacb472ad9de, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  layer: 0
+  covers: 01000000
+  warmth: 0.01
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

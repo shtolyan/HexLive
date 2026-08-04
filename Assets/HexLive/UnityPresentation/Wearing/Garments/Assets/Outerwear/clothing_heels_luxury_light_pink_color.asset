@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.heels_luxury_light_pink_color
   prototypeId: clothing.heels_luxury
-  displayName: 
+  displayName: Strap Heels (Light Pink Color)
   variantMaterials:
   - {fileID: 2100000, guid: 8295e2444a1e5de41b2e9dca54eae926, type: 2}
   - {fileID: 2100000, guid: ff868df80fd7963499c3c375a30a974c, type: 2}
@@ -22,10 +22,10 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 600c339d5ebbcec4496e8bc1dbbe263d, type: 2}
   - {fileID: 2100000, guid: b2273c8deabe4c14ab80baa3bb02e767, type: 2}
   - {fileID: 2100000, guid: 60d623d6582720f4fb8fa567d7bfda08, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
-  armor: 0
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.02
+  armor: 0.02
   thermalDelta: 0
   dressDurationTicks: 8
   capacity: 0

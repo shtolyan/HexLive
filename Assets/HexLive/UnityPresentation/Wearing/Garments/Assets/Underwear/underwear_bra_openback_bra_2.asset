@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.bra_openback_bra_2
   prototypeId: underwear.bra_openback
-  displayName: 
+  displayName: Lace Bra (Bra 2)
   variantMaterials:
   - {fileID: 2100000, guid: fef15dff04bafeb4ea77225c82d2e569, type: 2}
   - {fileID: 2100000, guid: df62cc4f5051a044c9d3a0c7c734e368, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  layer: 0
+  covers: 01000000
+  warmth: 0.02
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

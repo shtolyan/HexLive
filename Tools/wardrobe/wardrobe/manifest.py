@@ -278,26 +278,33 @@ def restage_textures(data: dict) -> list[str]:
     Так вышло на трёх поставках подряд, то есть это не невезение, а порядок
     шагов. Поэтому перенос делается ЗДЕСЬ — там, где имя меняется, — а не
     вспоминается потом каждым, кто заметит белую вещь.
+
+    ⚠️ Переносить надо и за ПРИВАРЕННЫМИ кусками, а не только за главным.
+    Черновая папка есть у каждого куска, а `sourceKey` у вещи один: у разных
+    перчаток Deadly Silence правая половина несёт свой материал `fabric` со
+    своей картинкой, и без неё она приезжала белой — «одна перчатка будто без
+    материала». Ровно та же природа, что и у списка материалов сварки (§5).
     """
     root = config.ASSETS / "ImportedActors" / "Wear"
     moved: list[str] = []
     for garment in data.get("garments") or []:
         folder = garment.get("folder")
-        key = garment.get("sourceKey")
-        if not folder or not key:
+        keys = [k for k in [garment.get("sourceKey"), *(garment.get("sourceKeys") or [])] if k]
+        if not folder or not keys:
             continue
-        draft = root / _pretty(key) / "Textures"
         dest = root / folder / "Textures"
-        if not draft.exists() or draft == dest:
-            continue
-        dest.mkdir(parents=True, exist_ok=True)
-        for image in draft.iterdir():
-            if image.suffix.lower() not in (".jpg", ".jpeg", ".png"):
+        for key in dict.fromkeys(keys):
+            draft = root / _pretty(key) / "Textures"
+            if not draft.exists() or draft == dest:
                 continue
-            if (dest / image.name).exists():
-                continue
-            shutil.copy2(image, dest / image.name)
-            moved.append(f"{_pretty(key)} -> {folder}: {image.name}")
+            dest.mkdir(parents=True, exist_ok=True)
+            for image in draft.iterdir():
+                if image.suffix.lower() not in (".jpg", ".jpeg", ".png"):
+                    continue
+                if (dest / image.name).exists():
+                    continue
+                shutil.copy2(image, dest / image.name)
+                moved.append(f"{_pretty(key)} -> {folder}: {image.name}")
     return moved
 
 

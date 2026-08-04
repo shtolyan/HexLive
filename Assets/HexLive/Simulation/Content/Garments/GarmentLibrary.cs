@@ -786,7 +786,6 @@ namespace HexLive.Simulation.Content
                 new("clothing.heels_luxury_white_color", "Strap Heels (White Color)", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.heels_luxury" },
                 new("clothing.vest_stars", "Tactical Vest", WearLayer.Outerwear, 0.08f, 0.22f, 0.00f, dress, 3, BodyPart.Torso),
                 new("clothing.belt_stars", "Duty Belt", WearLayer.Outerwear, 0.01f, 0.02f, 0.00f, dress, 3, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
-                new("clothing.pouches_deadly", "Belt Pouches", WearLayer.Outerwear, 0.01f, 0.02f, 0.00f, dress, 5, BodyPart.Torso),
 
                 // --- §72: снаряжение чужака ------------------------------------
                 // Он не выживальщик в трусах, а боец: тактический комплект с

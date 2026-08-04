@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.briefs_sport_panties_5
   prototypeId: underwear.briefs_sport
-  displayName: 
+  displayName: Sports Briefs (Panties 5)
   variantMaterials:
   - {fileID: 2100000, guid: adbb233211f5c1e40ad1eef4b2f9d736, type: 2}
   - {fileID: 2100000, guid: c34d04db0bc1eeb4e9b66d55f03ba82c, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  layer: 0
+  covers: 0100000002000000
+  warmth: 0.02
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

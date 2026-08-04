@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.dress_city_04_dress
   prototypeId: clothing.dress_city
-  displayName: 
+  displayName: City Dress (04 Dress)
   variantMaterials:
   - {fileID: 2100000, guid: 82d1561c4913f1546b076ce788904136, type: 2}
   - {fileID: 2100000, guid: 2b847f8447417ae4f904136d67334f3b, type: 2}
   layer: 1
-  covers: 
-  warmth: 0.1
+  covers: 01000000020000000500000006000000
+  warmth: 0.07
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

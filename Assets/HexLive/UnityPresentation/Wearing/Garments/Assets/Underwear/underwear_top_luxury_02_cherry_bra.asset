@@ -14,14 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.top_luxury_02_cherry_bra
   prototypeId: underwear.top_luxury
-  displayName: 
+  displayName: Jewelled Bikini Top (02 Cherry Bra)
   variantMaterials:
   - {fileID: 2100000, guid: c185c2e2dc55bf645a45cab3828f4917, type: 2}
   - {fileID: 2100000, guid: e56511012b3102644a20594a162db1bf, type: 2}
   - {fileID: 2100000, guid: dbf2a1f41f2eac04096011605c78d665, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  layer: 0
+  covers: 01000000
+  warmth: 0.01
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

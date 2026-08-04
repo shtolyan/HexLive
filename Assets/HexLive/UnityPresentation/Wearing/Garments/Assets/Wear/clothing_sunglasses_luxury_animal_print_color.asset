@@ -14,15 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.sunglasses_luxury_animal_print_color
   prototypeId: clothing.sunglasses_luxury
-  displayName: 
+  displayName: Sunglasses (Animal Print Color)
   variantMaterials:
   - {fileID: 2100000, guid: 4ac90989d06ecff46bd6a2bfcf4e1e14, type: 2}
   - {fileID: 2100000, guid: 175e4c9de5458764087ba74d74c9c316, type: 2}
   - {fileID: 2100000, guid: eec0d14a55e7fbb4ea7a3ac2b9e83f21, type: 2}
   - {fileID: 2100000, guid: ccbb9136dc6f87b4aa2938f2e1a5b1e7, type: 2}
   layer: 1
-  covers: 
-  warmth: 0.1
+  covers: 00000000
+  warmth: 0
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

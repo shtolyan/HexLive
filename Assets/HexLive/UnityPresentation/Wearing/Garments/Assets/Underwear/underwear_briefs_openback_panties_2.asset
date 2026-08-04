@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.briefs_openback_panties_2
   prototypeId: underwear.briefs_openback
-  displayName: 
+  displayName: Lace Panties (Panties 2)
   variantMaterials:
   - {fileID: 2100000, guid: 5d03f0d9e32e16044b0d73d681d4e07f, type: 2}
   - {fileID: 2100000, guid: 8e55bf91f90705541b6d95916caf9b40, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  layer: 0
+  covers: 02000000
+  warmth: 0.01
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

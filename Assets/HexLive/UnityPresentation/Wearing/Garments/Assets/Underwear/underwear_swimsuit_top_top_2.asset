@@ -14,16 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.swimsuit_top_top_2
   prototypeId: underwear.swimsuit_top
-  displayName: 
+  displayName: Strappy Swim Top (Top 2)
   variantMaterials:
   - {fileID: 2100000, guid: 982b309de38305542b1177ad3c465c38, type: 2}
   - {fileID: 2100000, guid: 6a06fc82052e11a49bbe841d3fc68321, type: 2}
   - {fileID: 2100000, guid: 49c04fd55173ecb409b827fd84d62956, type: 2}
   - {fileID: 2100000, guid: a84bec9ebfec582419635fa0a22bdc99, type: 2}
   - {fileID: 2100000, guid: 5ae2c75357ca805409b520fd32f971df, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  layer: 0
+  covers: 01000000
+  warmth: 0.01
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

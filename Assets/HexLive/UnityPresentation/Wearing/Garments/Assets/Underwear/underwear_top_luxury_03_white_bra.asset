@@ -14,14 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.top_luxury_03_white_bra
   prototypeId: underwear.top_luxury
-  displayName: 
+  displayName: Jewelled Bikini Top (03 White Bra)
   variantMaterials:
   - {fileID: 2100000, guid: 60c8e82e0f4c9294aae30fa8c9401180, type: 2}
   - {fileID: 2100000, guid: a22aade3670874f418039d7430c7baf5, type: 2}
   - {fileID: 2100000, guid: cdb615132c4190944aed53a33e5c078f, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  layer: 0
+  covers: 01000000
+  warmth: 0.01
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

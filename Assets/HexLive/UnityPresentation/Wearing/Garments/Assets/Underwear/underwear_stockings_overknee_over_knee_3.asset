@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.stockings_overknee_over_knee_3
   prototypeId: underwear.stockings_overknee
-  displayName: 
+  displayName: Over-Knee Socks (Over Knee 3)
   variantMaterials:
   - {fileID: 2100000, guid: af445f6a8f306ea4c80dd574a567984b, type: 2}
   - {fileID: 2100000, guid: d38f34d68c058c04d94ead773b4cd6c9, type: 2}
-  layer: 1
-  covers: 
-  warmth: 0.1
+  layer: 0
+  covers: 0500000006000000
+  warmth: 0.06
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

@@ -265,7 +265,6 @@ namespace HexLive.Simulation.Content
             ["clothing.pants_ranger"] = new[] { WearSlot.Pelvis, WearSlot.ThighR, WearSlot.ThighL, WearSlot.ShinR, WearSlot.ShinL },
             ["clothing.pants_stars"] = new[] { WearSlot.Pelvis, WearSlot.ThighR, WearSlot.ThighL, WearSlot.ShinR, WearSlot.ShinL },
             ["clothing.pendant_amy"] = new[] { WearSlot.Neck },
-            ["clothing.pouches_deadly"] = new[] { WearSlot.Belly },
             ["clothing.pumps_flair"] = new[] { WearSlot.FootR, WearSlot.FootL },
             ["clothing.shirt_amy"] = new[] { WearSlot.Chest, WearSlot.Belly, WearSlot.ShoulderR, WearSlot.ShoulderL, WearSlot.ForearmR, WearSlot.ForearmL },
             ["clothing.shirt_amy_07"] = new[] { WearSlot.Chest, WearSlot.Belly, WearSlot.ShoulderR, WearSlot.ShoulderL, WearSlot.ForearmR, WearSlot.ForearmL },

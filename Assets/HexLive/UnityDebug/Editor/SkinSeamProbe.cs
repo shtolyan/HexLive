@@ -137,6 +137,7 @@ namespace HexLive.UnityDebug.Editor
             var woundCrossing = 0;
             var sampled = 0;
             var slotsSeen = new HashSet<int>();
+            var reachCells = new Dictionary<int, int>();
             // Fill cost of ONE wound: the shader runs over the whole UV window
             // the cell grid hands back, per claimed slot, per pass. That is
             // what a combat burst multiplies.
@@ -155,7 +156,7 @@ namespace HexLive.UnityDebug.Editor
 
                 sampled++;
                 slotsSeen.Add(point.Slot);
-                if (SlotsReached(set, point, axis, BandageWorld * meshScale) > 1)
+                if (SlotsReached(set, point, axis, BandageWorld * meshScale, reachCells) > 1)
                 {
                     bandageCrossing++;
                 }
@@ -185,7 +186,8 @@ namespace HexLive.UnityDebug.Editor
 
             report.Append($"\n  {zone.Zone}: bandage {bandageCrossing}/{sampled}, ")
                 .Append($"wound {woundCrossing}/{sampled} spots span >1 slot ")
-                .Append($"(anchor slots {string.Join(",", slotsSeen)}); ")
+                .Append($"(anchor slots {string.Join(",", slotsSeen)}")
+                .Append($" -> bandage reaches {FormatReach(reachCells, sampled)}); ")
                 .Append($"wound cost: {slotSum / sampled:0.00} slots; windows old->box: ")
                 .Append($"albedo {oldAlbedoWindowSum / sampled * 100f:0.0}%->")
                 .Append($"{albedoWindowSum / sampled * 100f:0.0}%, gloss ")
@@ -217,7 +219,7 @@ namespace HexLive.UnityDebug.Editor
         // Mirrors SkinTexturePainter.TryPlaceProjected's frame + claim box, so
         // the report counts exactly what the runtime will paint.
         private static int SlotsReached(SkinPositionMapSet set, in PaintPointMap.Point point,
-            Vector3 axis, float size)
+            Vector3 axis, float size, Dictionary<int, int> reach = null)
         {
             BuildProjection(point, axis, size, footprintScale: 1f,
                 set.SampleSpacing + 0.005f, out var objectToDecal, out var half);
@@ -225,14 +227,42 @@ namespace HexLive.UnityDebug.Editor
             var count = 1; // the anchor slot always counts
             for (var slot = 0; slot < set.SlotSamples.Length; slot++)
             {
-                if (slot != point.Slot && set.GroupOf(slot) >= 0 &&
-                    set.SlotReaches(slot, objectToDecal, half))
+                if (slot == point.Slot || set.GroupOf(slot) < 0 ||
+                    !set.SlotReaches(slot, objectToDecal, half))
                 {
-                    count++;
+                    continue;
+                }
+
+                count++;
+                if (reach != null)
+                {
+                    reach.TryGetValue(slot, out var n);
+                    reach[slot] = n + 1;
                 }
             }
 
             return count;
+        }
+
+        // "spans >1 slot" alone hides the asymmetry the eye notices: a decal
+        // high on the thigh reaches the buttock's texture, one half way down
+        // simply is not near it. This says WHICH slots a zone can spill onto
+        // and from how many of its cells.
+        private static string FormatReach(Dictionary<int, int> reach, int sampled)
+        {
+            if (reach.Count == 0)
+            {
+                return "nothing else";
+            }
+
+            var parts = new List<string>();
+            foreach (var pair in reach)
+            {
+                parts.Add($"slot{pair.Key} from {pair.Value}/{sampled}");
+            }
+
+            parts.Sort(System.StringComparer.Ordinal);
+            return string.Join(", ", parts);
         }
 
         private static void BuildProjection(in PaintPointMap.Point point, Vector3 axis,

@@ -36,6 +36,7 @@ MonoBehaviour:
       Valid: 1
       BindPos: {x: -0.015181538, y: 0.7568868, z: 0.008888694}
       BindNormal: {x: 0.18113844, y: 0.9827691, z: 0.03679552}
+      UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmL
     Points: []
@@ -52,6 +53,7 @@ MonoBehaviour:
       Valid: 1
       BindPos: {x: -0.07540854, y: 0.4728569, z: 0.019604724}
       BindNormal: {x: 0.58509326, y: -0.35818812, z: 0.72757626}
+      UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegR
     Points:
@@ -62,4 +64,5 @@ MonoBehaviour:
       Valid: 1
       BindPos: {x: 0.07424798, y: 0.45144442, z: 0.0029883112}
       BindNormal: {x: 0.0415043, y: 0.9068689, z: 0.4193641}
+      UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}

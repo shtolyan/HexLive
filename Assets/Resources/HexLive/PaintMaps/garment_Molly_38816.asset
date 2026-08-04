@@ -45,6 +45,7 @@ MonoBehaviour:
       Valid: 1
       BindPos: {x: -0.11112245, y: 0.09969904, z: 0.0022869783}
       BindNormal: {x: 0.049838208, y: 0.9869775, z: -0.15294246}
+      UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegR
     Points:
@@ -55,4 +56,5 @@ MonoBehaviour:
       Valid: 1
       BindPos: {x: 0.111814596, y: 0.09957849, z: 0.0023012601}
       BindNormal: {x: -0.04975314, y: 0.9868629, z: -0.15370843}
+      UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}

@@ -30,6 +30,7 @@ MonoBehaviour:
       Valid: 1
       BindPos: {x: -0.07564041, y: 1.6296324, z: -0.041781653}
       BindNormal: {x: 0.7845324, y: -0.55025685, z: 0.2858782}
+      UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Torso
     Points: []

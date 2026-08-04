@@ -243,6 +243,16 @@ namespace HexLive.UnityPresentation.Wearing
         // cell PaintPointMap grid, so consecutive indices walk a full cycle
         // with no duplicate cells and the fill grows evenly with damage.
         private const int SpeckleCellStride = 45;
+        // How many cells a blot may walk past looking for one far enough from
+        // an island edge. Beyond this the zone is simply too narrow in UV and
+        // the blot is dropped — better a missing blot than a sliced one.
+        private const int SpeckleEdgeProbes = 12;
+        // Step between probes. Must NOT be a multiple of the grid size, or
+        // every probe lands on the same cell (an earlier version used
+        // index + probe*n, which cancels modulo n and probed nothing at all).
+        // 53 is coprime with the 128-cell grid, so the probes walk distinct
+        // cells.
+        private const int SpeckleEdgeProbeStep = 53;
         // r3: neutral — the stain art (the molly damage-decal splatter) is
         // already a rich saturated red and "классно смотрится" as-is, so the
         // stamp draws it unmodified instead of the r1 muted-bruise darkening.
@@ -1125,21 +1135,52 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             var start = (int)((((uint)(_npcId * 40503)) ^ (uint)zoneName.GetHashCode()) % (uint)n);
-            var point = points[(start + index * SpeckleCellStride) % n];
-            if (!point.Valid)
-            {
-                PlaceTombstone(key, index, isBandage: false);
-                return;
-            }
-
             EnsureStampTextures();
             var state = (uint)(_npcId * 83492791 ^ (zoneName.GetHashCode() * 31 + index)) | 1u;
             var targetWorld = (SpeckleWorldSizeMin +
                                NextRand(ref state) * (SpeckleWorldSizeMax - SpeckleWorldSizeMin)) *
                               (_height / 1.7f);
-            SizeFromDensity(point, targetWorld, out var sizeU, out var sizeV, minUv: 0.004f);
-            sizeU = Mathf.Min(sizeU, SpeckleMaxUvSize);
-            sizeV = Mathf.Min(sizeV, SpeckleMaxUvSize);
+
+            // Spec 40.8-H r8: a blot is a plain RECTANGLE in one slot's UV, so
+            // one whose centre sits closer to an island edge than its own
+            // radius gets sliced by the seam — the ugly edge seen on the back
+            // and the arms, INSIDE a single limb. Walk on to the next cell
+            // instead. The walk stays a pure function of (start, index), so
+            // blots still never move when the count grows with damage.
+            var point = default(PaintPointMap.Point);
+            var sizeU = 0f;
+            var sizeV = 0f;
+            var found = false;
+            for (var probe = 0; probe < SpeckleEdgeProbes && !found; probe++)
+            {
+                var candidate = points[
+                    (start + index * SpeckleCellStride + probe * SpeckleEdgeProbeStep) % n];
+                if (!candidate.Valid)
+                {
+                    continue;
+                }
+
+                SizeFromDensity(candidate, targetWorld, out var u, out var v, minUv: 0.004f);
+                u = Mathf.Min(u, SpeckleMaxUvSize);
+                v = Mathf.Min(v, SpeckleMaxUvSize);
+
+                // A pre-r8 map has no edge field (zero) — accept everything
+                // rather than reject everything.
+                var clearance = Mathf.Max(u, v) * 0.5f;
+                if (candidate.UvEdgeDistance <= 0f || candidate.UvEdgeDistance >= clearance)
+                {
+                    point = candidate;
+                    sizeU = u;
+                    sizeV = v;
+                    found = true;
+                }
+            }
+
+            if (!found)
+            {
+                PlaceTombstone(key, index, isBandage: false);
+                return;
+            }
             _stamps[key] = new Stamp
             {
                 Key = key,

@@ -49,6 +49,13 @@ namespace HexLive.UnityPresentation.Wearing
             // across the four separate skin textures alike.
             public Vector3 BindPos;
             public Vector3 BindNormal;
+            // Spec 40.8-H r8: how far this point's UV sits from the nearest
+            // edge of its UV island, in UV units. The damage speckles are
+            // drawn as plain RECTANGLES, so a blot whose centre sits closer to
+            // an edge than its own radius is cut in half by the seam — visible
+            // even WITHIN one limb, where the arm's or the back's island ends.
+            // Placement uses this to keep clear of the edges instead.
+            public float UvEdgeDistance;
         }
 
         [System.Serializable]

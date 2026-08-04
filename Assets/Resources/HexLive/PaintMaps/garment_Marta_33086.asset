@@ -33,6 +33,7 @@ MonoBehaviour:
       Valid: 1
       BindPos: {x: 0.0019350192, y: 1.1698292, z: -0.058477372}
       BindNormal: {x: 0.011967922, y: -0.17570198, z: -0.98437065}
+      UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Pelvis
     Points: []
@@ -46,6 +47,7 @@ MonoBehaviour:
       Valid: 1
       BindPos: {x: -0.42029443, y: 1.4687356, z: -0.07131616}
       BindNormal: {x: -0.019029845, y: 0.64460206, z: -0.76428145}
+      UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmR
     Points:
@@ -56,6 +58,7 @@ MonoBehaviour:
       Valid: 1
       BindPos: {x: 0.41713825, y: 1.4714149, z: -0.06895069}
       BindNormal: {x: 0.014678195, y: 0.69645965, z: -0.71744585}
+      UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegL
     Points: []

@@ -162,6 +162,121 @@ namespace HexLive.UnityDebug.Editor
             return null;
         }
 
+        // Spec 40.8-H r8: distance from any UV texel to the nearest edge of its
+        // UV island, in UV units.
+        //
+        // The damage speckles are drawn as plain RECTANGLES in one slot's UV,
+        // so a blot whose centre sits closer to an island edge than its own
+        // radius is sliced by the seam — and that shows up WITHIN a single
+        // limb, wherever the arm's or the back's island ends. Placement uses
+        // this to stay clear of the edges, which costs nothing at runtime.
+        //
+        // Built by rasterizing coverage (which texels any triangle of the SKIN
+        // touches, UDIM-wrapped like everything else) and then running a
+        // two-pass chamfer distance transform outward from the void.
+        private const int EdgeFieldSize = 256;
+
+        private static float[] BuildUvEdgeField(MeshGeometry geo)
+        {
+            const int size = EdgeFieldSize;
+            var covered = new bool[size * size];
+            var triangles = geo.Triangles;
+            var uvs = geo.Uvs;
+
+            for (var tri = 0; tri < triangles.Length; tri += 3)
+            {
+                var uv0 = uvs[triangles[tri]];
+                var uv1 = uvs[triangles[tri + 1]];
+                var uv2 = uvs[triangles[tri + 2]];
+                var centroid = (uv0 + uv1 + uv2) / 3f;
+                var shift = new Vector2(Mathf.Floor(centroid.x), Mathf.Floor(centroid.y));
+                MarkTriangle(size, covered, uv0 - shift, uv1 - shift, uv2 - shift);
+            }
+
+            // Chamfer 3-4: cheap, and a fraction of a texel of error is far
+            // below what a blot radius cares about.
+            var dist = new float[size * size];
+            for (var i = 0; i < dist.Length; i++)
+            {
+                dist[i] = covered[i] ? float.MaxValue : 0f;
+            }
+
+            for (var y = 0; y < size; y++)
+            {
+                for (var x = 0; x < size; x++)
+                {
+                    var i = y * size + x;
+                    if (dist[i] <= 0f) { continue; }
+                    if (x > 0) { dist[i] = Mathf.Min(dist[i], dist[i - 1] + 3f); }
+                    if (y > 0) { dist[i] = Mathf.Min(dist[i], dist[i - size] + 3f); }
+                    if (x > 0 && y > 0) { dist[i] = Mathf.Min(dist[i], dist[i - size - 1] + 4f); }
+                    if (x < size - 1 && y > 0) { dist[i] = Mathf.Min(dist[i], dist[i - size + 1] + 4f); }
+                }
+            }
+
+            for (var y = size - 1; y >= 0; y--)
+            {
+                for (var x = size - 1; x >= 0; x--)
+                {
+                    var i = y * size + x;
+                    if (dist[i] <= 0f) { continue; }
+                    if (x < size - 1) { dist[i] = Mathf.Min(dist[i], dist[i + 1] + 3f); }
+                    if (y < size - 1) { dist[i] = Mathf.Min(dist[i], dist[i + size] + 3f); }
+                    if (x < size - 1 && y < size - 1) { dist[i] = Mathf.Min(dist[i], dist[i + size + 1] + 4f); }
+                    if (x > 0 && y < size - 1) { dist[i] = Mathf.Min(dist[i], dist[i + size - 1] + 4f); }
+                }
+            }
+
+            // chamfer units -> texels -> UV
+            for (var i = 0; i < dist.Length; i++)
+            {
+                dist[i] = dist[i] >= float.MaxValue ? 1f : dist[i] / 3f / size;
+            }
+
+            return dist;
+        }
+
+        private static void MarkTriangle(int size, bool[] covered, Vector2 a, Vector2 b, Vector2 c)
+        {
+            var p0 = a * size;
+            var p1 = b * size;
+            var p2 = c * size;
+            var minX = Mathf.Clamp(Mathf.FloorToInt(Mathf.Min(p0.x, Mathf.Min(p1.x, p2.x))), 0, size - 1);
+            var maxX = Mathf.Clamp(Mathf.CeilToInt(Mathf.Max(p0.x, Mathf.Max(p1.x, p2.x))), 0, size - 1);
+            var minY = Mathf.Clamp(Mathf.FloorToInt(Mathf.Min(p0.y, Mathf.Min(p1.y, p2.y))), 0, size - 1);
+            var maxY = Mathf.Clamp(Mathf.CeilToInt(Mathf.Max(p0.y, Mathf.Max(p1.y, p2.y))), 0, size - 1);
+
+            var det = (p1.y - p2.y) * (p0.x - p2.x) + (p2.x - p1.x) * (p0.y - p2.y);
+            if (Mathf.Abs(det) < 1e-9f)
+            {
+                return;
+            }
+
+            var inv = 1f / det;
+            for (var y = minY; y <= maxY; y++)
+            {
+                for (var x = minX; x <= maxX; x++)
+                {
+                    var px = x + 0.5f;
+                    var py = y + 0.5f;
+                    var w0 = ((p1.y - p2.y) * (px - p2.x) + (p2.x - p1.x) * (py - p2.y)) * inv;
+                    var w1 = ((p2.y - p0.y) * (px - p2.x) + (p0.x - p2.x) * (py - p2.y)) * inv;
+                    if (w0 >= -0.35f && w1 >= -0.35f && 1f - w0 - w1 >= -0.35f)
+                    {
+                        covered[y * size + x] = true;
+                    }
+                }
+            }
+        }
+
+        private static float SampleEdgeField(float[] field, Vector2 uv)
+        {
+            const int size = EdgeFieldSize;
+            var x = Mathf.Clamp(Mathf.FloorToInt(Mathf.Repeat(uv.x, 1f) * size), 0, size - 1);
+            var y = Mathf.Clamp(Mathf.FloorToInt(Mathf.Repeat(uv.y, 1f) * size), 0, size - 1);
+            return field[y * size + x];
+        }
+
         private static PaintPointMap BuildSkinMap(string actorName, SkinnedMeshRenderer body,
             MeshGeometry geo)
         {
@@ -175,6 +290,7 @@ namespace HexLive.UnityDebug.Editor
             map.TMax = SkinTexturePainter.MapTMax;
             map.Version = PaintPointMap.ProjectedVersion;
 
+            var edgeField = BuildUvEdgeField(geo);
             var height = Mathf.Max(0.5f, geo.Bounds.size.y);
             // Spec 40.8-J: world-metre stamp sizes are authored against a
             // 1.7 m rig; the projected path needs them in MESH units.
@@ -208,7 +324,11 @@ namespace HexLive.UnityDebug.Editor
                         var azimuth = (ai + 0.5f) / AzimuthSamples * Mathf.PI * 2f;
                         var radial = Quaternion.AngleAxis(azimuth * Mathf.Rad2Deg, axisDir) * side;
                         var sample = boneA + axis * t + radial * (radius * height);
-                        points[ti * AzimuthSamples + ai] = geo.PointNearest(sample, float.MaxValue);
+                        var baked = geo.PointNearest(sample, float.MaxValue);
+                        baked.UvEdgeDistance = baked.Valid
+                            ? SampleEdgeField(edgeField, baked.Uv)
+                            : 0f;
+                        points[ti * AzimuthSamples + ai] = baked;
                     }
                 }
 

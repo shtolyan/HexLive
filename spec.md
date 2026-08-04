@@ -1442,6 +1442,38 @@ Crossing to a tile one elevation level up OR down is a deliberate jump whose
 timing lives in ONE place — `HexHopTuning` (Simulation/Navigation) — shared by
 the sim and the presentation, so the two can never drift apart:
 
+- v17 — A HOP IS ATOMIC (fixes "спрыгнула, резко развернулась — и её телепает
+  наверх, она уже не прыгает", and the same thing at the water: "пошла стирать,
+  прыгнула в воду без плюха — отшвырнуло обратно на берег"). One cause behind
+  both. A hop lives in TWO places — `npc.Position` moves along the flight, but
+  `npc.Tile` only commits at touchdown — and the flight block sat BELOW the path
+  checks in `MovementSystem.Run`. So when a plan changed mid-flight
+  (`PlanInterruption` clears the path, IsMoving and, as it did, `HopTimer`), she
+  was abandoned in the air: position half-way between the levels, tile still the
+  takeoff one. The view draws an actor at the ground height of `npc.Tile`, so that
+  renders as an instant snap back onto the ledge she had just left — no clip, no
+  arc, no plunge. Three parts:
+  (1) the window now runs at the TOP of the loop (`RunHopWindow`), before every
+  early-out, so a hop finishes whatever the planner has decided since;
+  (2) `PlanInterruption` no longer kills `HopTimer` — only the PRE-flight
+  commitment (`HopArmed`, `HopPathIndex`) is cancelled. Once she is off the
+  ground she lands;
+  (3) touchdown bookkeeping no longer requires a path. It used to bail out with
+  "landed in place" — leaving exactly the mismatch above — whenever the landing
+  index pointed into a replaced list; now the tile, the swim entry and
+  `CurrentJunction` are committed regardless (the junction from
+  `SpatialQueries.FindNearestJunction`, or the next pathfinding call would route
+  her from the junction she took off at — a second way to teleport her back).
+  Guarded by `HopAtomicityTests`: it interrupts a plan MID-flight (not near the
+  takeoff point — that passes even on the broken code, which is how the first
+  version of the test fooled itself) and requires the window to close with
+  position and tile agreeing on ONE end of the flight. On the pre-fix code it
+  fails with "стоит в (19.06,-15.02) — это не взлёт и не посадка".
+  Note what is NOT a valid invariant here, since it looks like one: "the position
+  lies inside its own tile's hex". Boundary junctions belong to two or three
+  tiles and the tile comes from the DIRECTED resolver, so walking along a border
+  legitimately puts her up to ~1.65 wu from the centre of the tile she is
+  bookkept in. A test asserting the nearest centre fails on healthy worlds.
 - v16 — SHE LANDS, THEN PLANTS (fixes "he skates after landing", reported on the
   CLIMB once v14 made the jump long). The sim spread the distance evenly over the
   whole airborne beat, while the arc reaches the upper level early on purpose
@@ -1666,6 +1698,16 @@ the sim and the presentation, so the two can never drift apart:
 - `LandIdleSeconds` (1.0): on reaching the edge junction the hop has landed —
   the NPC stands in plain idle (`ClimbPauseTimer`, status `Waiting`), then
   walks on.
+- ⭐ TWO SOURCES OF TRUTH, and the drift is silent. The game reads
+  `HexTuningConfig` (Resources); the **SwimTest scene reads its own serialized
+  sliders** and pushes them into `HexHopTuning` every frame, by design ("what you
+  dial in is what plays"). So the scene can quietly tune a DIFFERENT jump from the
+  one the game plays — which is exactly what "мы же это тюнили, почему
+  откатилось?" was: the scene still held Takeoff 0.25 / Landing 0.15 / DownHop 2 /
+  FallStart 0.225 against 0.6 / 0.5 / 1 / 0.15 in the asset. Fixed by updating the
+  scene, and `SwimTestBootstrap.Awake` now LOGS every field where the two differ,
+  since neither side may silently win. Sync with the component's own buttons:
+  "Загрузить настройки" (asset → sliders) or "Сохранить настройки" (sliders → asset).
 - windup regression fix: the saved `HexTuningConfig` asset had drifted to
   Takeoff 0.25 / Landing 1.0 — the whole flight packed into the front of the
   window, so the crouch beat was invisible and she seemed to launch
@@ -9385,6 +9427,19 @@ pass — order chosen to add robustness before difficulty.
   из molly_copy `—Pngtree—splash red paint blood stain_8483619.png`,
   материал skinblood.mat / blood.prefab); рисуется НЕИЗМЕНЁННЫМ
   (нейтральный `StampTint` — своя сочная краснота, r1-затемнение убрано).
+  **r8 — размещение обходит края островов (баг-трекер #5):** мельче стало
+  лучше, но не вылечило: прямоугольник не пересекает НИКАКОЙ шов, включая
+  внутренний шов острова спины или руки — «в рамках одной конечности». Перевод
+  на проекцию §40.8-J отвергнут по замеру (~130 млн фрагментов на пересборку,
+  вернулись бы фризы §40.8-K). Вместо этого в карту точек запечено
+  `Point.UvEdgeDistance` — расстояние до ближайшего края UV-острова (чемферный
+  distance transform 256² по растеризованной развёртке), и пятну запрещено
+  садиться ближе к краю, чем его собственный радиус: оно обходит на соседнюю
+  ячейку (до 12 проб). Резать нечего, полосу у шва закрывают соседние пятна с
+  обеих сторон, рантайм-стоимость ноль. ⚠️ Шаг пробы обязан быть ВЗАИМНО ПРОСТ
+  с размером сетки: первая версия шагала на `probe * n`, что кратно n и
+  сокращается по модулю — все пробы давали одну ячейку и пробинг молча не
+  работал. Замер на Jana: медиана 0.14 UV, при пороге 0.11 проходят 60% ячеек.
   **r7 — мельче и больше числом:** при 25-45 см одно пятно было
   САМОЙ КРУПНОЙ декалью в игре, крупнее бинта, и рисуется оно ПРЯМОУГОЛЬНИКОМ
   в UV одной сабмеши, то есть через шов пройти не может физически — линия по
@@ -13130,6 +13185,21 @@ Idle», тот же подъём, что после сна) → Idle. Снапш
   сознания») в I2Languages, пересохранить CharacterBalanceConfig
   (новое поле exhaustedSleepWakeEnergy), переэкспортировать SimData.
 
+**60.7 Утопление — без сознания в воде это смертельно.** Тело, потерявшее
+сознание (кома обеих причин, обморок §40.13 или умирание §105 — весь
+`IsUnconscious`) на ГЛУБОКОЙ воде (тот же предикат, что у §106: тайл
+`Water && !Walkable`), не лежит там безнаказанно: через
+`SimBalance.DrownDeathTicks` (1000) непрерывных тиков оно захлёбывается и
+умирает. Очнулась раньше — таймер сброшен; больше не в глубокой воде
+(доплыла-очнувшись, вытащили, отлив) — тоже сброшен, без следа. Смерть идёт
+каноническим путём §105 — `Health = 0`, тело подберёт свип `MobSystem`, — с
+событием-причиной `Drowned` в трассе (оно же в whitelist `GameEventTypes` и в
+списке причин `DeathRecord`). Таймер (`NPCMind.DrowningSinceTick`) тикает в
+`NeedsDecaySystem.TickDrowning` (Slow-слой, считает по фактическим тикам) и
+НАМЕРЕННО не сериализуется (как `DyingTickStamp`): после загрузки отсчёт
+начинается заново. Unity-pending: строка истории для `Drowned` в
+`GameHistoryFormatter` + I2-термин.
+
 ## §61 Поэтапный крафт на месте — выкладка, работа, взятие (iteration 61)
 
 Раньше крафт «на месте» (§59.1: станция Anywhere → план `CraftInPlace`) был
@@ -14625,6 +14695,26 @@ indoor-тайлов нет вовсе — то есть девушкам все�
 возвращался в неё. У колонии это скрадывалось тем, что четверо постоянно топчутся
 дома и закрывают округу собой; одиночке закрывать некому. Добавлен
 `Spec72.DogSpawnMinDistanceFromCamp` = 9 — отступ от ЛЮБОЙ стоянки, не от тела.
+
+**72.13 Строить только у себя — гейт «чья стройка» обязан стоять в ОБОИХ
+слоях.** Аукцион давно фильтрует очередь построек по фракции
+(`FindBuildSite` → `IsOurSite`: у именной стройки — союзность владельца, у
+безымянной — чей якорь лагеря ближе, ничья трактуется как своя). Но цель и
+план выбирают объект НЕЗАВИСИМО: план берёт БЛИЖАЙШИЙ подходящий объект из
+восприятия (`IsValidTargetFor`), и туда гейт не доехал — цель выигрывалась на
+своей стройке, а девушка с палками в руках, проходя мимо чужой стоянки,
+относила их туда; чужак симметрично мог достраивать мебель колонии. Закрыто
+тем же `IsOurSite` в целях `Build` и `BuildFurniture`; очки за хижину
+(`buildAvail`) вдобавок гейтятся `Faction.Colony` — `world.Project` один и
+колоний, чужаку не за что их набирать.
+
+Вторая дыра — геометрическая. Якоря стоянок ставятся в ≥8 гексах друг от
+друга, а радиус лагеря (`MaxCampRadiusTiles`) — 6, значит диски МОГУТ
+ПЕРЕСЕКАТЬСЯ, и тайл в полосе пересечения считался «своим» ОБОИМ лагерям.
+`BedSiteSystem` из-за этого мог усыновить чужой очаг (первый Campfire в
+порядке словаря) и обставить его кроватями этого лагеря, а мечта о костре у
+девушек — защёлкнуться от огня чужака. `InCamp` теперь отдаёт спорный тайл
+тому, чей якорь СТРОГО ближе (ничья — своему), зеркально `IsOurSite`.
 
 ## §73 Остров стал больше — границы карты в одном месте (iteration 73)
 

@@ -36,6 +36,7 @@ MonoBehaviour:
       Valid: 1
       BindPos: {x: -0.0030882563, y: 1.008491, z: -0.098007225}
       BindNormal: {x: -0.110485494, y: 0.006283659, z: 0.99385786}
+      UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmL
     Points: []

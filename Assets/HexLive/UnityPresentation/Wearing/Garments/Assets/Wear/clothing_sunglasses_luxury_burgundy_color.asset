@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_sunglasses_luxury_burgundy_color
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.sunglasses_luxury_burgundy_color
+  prototypeId: clothing.sunglasses_luxury
+  displayName: 
+  variantMaterials:
+  - {fileID: 2100000, guid: b75a4e6c0ac3ef141a8af2db893bedcc, type: 2}
+  - {fileID: 2100000, guid: c16a409a465e8b54e99fc5e3c2821337, type: 2}
+  - {fileID: 2100000, guid: 6e014bfaac108fd4788a5df2f354071a, type: 2}
+  - {fileID: 2100000, guid: 77d0bc09d637e914d9cae104eae1ce23, type: 2}
+  layer: 1
+  covers: 
+  warmth: 0.1
+  armor: 0
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

@@ -2593,6 +2593,3222 @@ MonoBehaviour:
       - 'Носимый предмет.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'item.underwear_bra_openback.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bra'
+      - 'Кружевной лиф'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_openback.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace, and a strap around the neck.'
+      - 'Кружево и ремешок вокруг шеи.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_openback_bra_2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bra (Bra 2)'
+      - 'Кружевной лиф (Bra 2)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_openback_bra_2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace, and a strap around the neck.'
+      - 'Кружево и ремешок вокруг шеи.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_openback_bra_3.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bra (Bra 3)'
+      - 'Кружевной лиф (Bra 3)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_openback_bra_3.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace, and a strap around the neck.'
+      - 'Кружево и ремешок вокруг шеи.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_openback_bra_4.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bra (Bra 4)'
+      - 'Кружевной лиф (Bra 4)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_openback_bra_4.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace, and a strap around the neck.'
+      - 'Кружево и ремешок вокруг шеи.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_openback_bra_5.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bra (Bra 5)'
+      - 'Кружевной лиф (Bra 5)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_openback_bra_5.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace, and a strap around the neck.'
+      - 'Кружево и ремешок вокруг шеи.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_openback_bra_6.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bra (Bra 6)'
+      - 'Кружевной лиф (Bra 6)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bra_openback_bra_6.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace, and a strap around the neck.'
+      - 'Кружево и ремешок вокруг шеи.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_openback.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Panties'
+      - 'Кружевные трусики'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_openback.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the bra.'
+      - 'В пару к лифу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_openback_panties_2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Panties (Panties 2)'
+      - 'Кружевные трусики (Panties 2)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_openback_panties_2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the bra.'
+      - 'В пару к лифу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_openback_panties_3.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Panties (Panties 3)'
+      - 'Кружевные трусики (Panties 3)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_openback_panties_3.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the bra.'
+      - 'В пару к лифу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_openback_panties_4.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Panties (Panties 4)'
+      - 'Кружевные трусики (Panties 4)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_openback_panties_4.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the bra.'
+      - 'В пару к лифу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_openback_panties_5.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Panties (Panties 5)'
+      - 'Кружевные трусики (Panties 5)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_openback_panties_5.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the bra.'
+      - 'В пару к лифу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_openback_panties_6.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Panties (Panties 6)'
+      - 'Кружевные трусики (Panties 6)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_openback_panties_6.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the bra.'
+      - 'В пару к лифу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_jmr.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cross-Back Bra'
+      - 'Спортивный лиф'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_jmr.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wide straps crossed at the back. Holds when you run.'
+      - 'Широкие лямки крест-накрест. Держит на бегу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_jmr_bra_2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cross-Back Bra (Bra 2)'
+      - 'Спортивный лиф (Bra 2)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_jmr_bra_2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wide straps crossed at the back. Holds when you run.'
+      - 'Широкие лямки крест-накрест. Держит на бегу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_jmr_bra_3.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cross-Back Bra (Bra 3)'
+      - 'Спортивный лиф (Bra 3)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_jmr_bra_3.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wide straps crossed at the back. Holds when you run.'
+      - 'Широкие лямки крест-накрест. Держит на бегу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_jmr_bra_4.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cross-Back Bra (Bra 4)'
+      - 'Спортивный лиф (Bra 4)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_jmr_bra_4.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wide straps crossed at the back. Holds when you run.'
+      - 'Широкие лямки крест-накрест. Держит на бегу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_jmr_bra_5.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cross-Back Bra (Bra 5)'
+      - 'Спортивный лиф (Bra 5)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_jmr_bra_5.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wide straps crossed at the back. Holds when you run.'
+      - 'Широкие лямки крест-накрест. Держит на бегу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_jmr_bra_6.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cross-Back Bra (Bra 6)'
+      - 'Спортивный лиф (Bra 6)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_sportsbra_jmr_bra_6.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wide straps crossed at the back. Holds when you run.'
+      - 'Широкие лямки крест-накрест. Держит на бегу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sport.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sports Briefs'
+      - 'Спортивные трусики'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sport.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'High waist, thick band.'
+      - 'Высокая посадка, плотная резинка.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sport_panties_2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sports Briefs (Panties 2)'
+      - 'Спортивные трусики (Panties 2)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sport_panties_2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'High waist, thick band.'
+      - 'Высокая посадка, плотная резинка.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sport_panties_3.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sports Briefs (Panties 3)'
+      - 'Спортивные трусики (Panties 3)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sport_panties_3.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'High waist, thick band.'
+      - 'Высокая посадка, плотная резинка.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sport_panties_4.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sports Briefs (Panties 4)'
+      - 'Спортивные трусики (Panties 4)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sport_panties_4.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'High waist, thick band.'
+      - 'Высокая посадка, плотная резинка.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sport_panties_5.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sports Briefs (Panties 5)'
+      - 'Спортивные трусики (Panties 5)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sport_panties_5.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'High waist, thick band.'
+      - 'Высокая посадка, плотная резинка.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sport_panties_6.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sports Briefs (Panties 6)'
+      - 'Спортивные трусики (Panties 6)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_sport_panties_6.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'High waist, thick band.'
+      - 'Высокая посадка, плотная резинка.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Top'
+      - 'Верх купальника'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps over straps. Dries fast, and that is its one virtue now.'
+      - 'Ремешки поверх ремешков. Сохнет быстро — теперь это всё его достоинство.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Top (Blue)'
+      - 'Верх купальника (Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps over straps. Dries fast, and that is its one virtue now.'
+      - 'Ремешки поверх ремешков. Сохнет быстро — теперь это всё его достоинство.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_green.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Top (Green)'
+      - 'Верх купальника (Green)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_green.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps over straps. Dries fast, and that is its one virtue now.'
+      - 'Ремешки поверх ремешков. Сохнет быстро — теперь это всё его достоинство.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_pink.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Top (Pink)'
+      - 'Верх купальника (Pink)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_pink.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps over straps. Dries fast, and that is its one virtue now.'
+      - 'Ремешки поверх ремешков. Сохнет быстро — теперь это всё его достоинство.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Top (Red)'
+      - 'Верх купальника (Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps over straps. Dries fast, and that is its one virtue now.'
+      - 'Ремешки поверх ремешков. Сохнет быстро — теперь это всё его достоинство.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_top_1.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Top (Top 1)'
+      - 'Верх купальника (Top 1)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_top_1.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps over straps. Dries fast, and that is its one virtue now.'
+      - 'Ремешки поверх ремешков. Сохнет быстро — теперь это всё его достоинство.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_top_2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Top (Top 2)'
+      - 'Верх купальника (Top 2)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_top_2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps over straps. Dries fast, and that is its one virtue now.'
+      - 'Ремешки поверх ремешков. Сохнет быстро — теперь это всё его достоинство.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_top_3.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Top (Top 3)'
+      - 'Верх купальника (Top 3)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_top_3.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps over straps. Dries fast, and that is its one virtue now.'
+      - 'Ремешки поверх ремешков. Сохнет быстро — теперь это всё его достоинство.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_top_4.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Top (Top 4)'
+      - 'Верх купальника (Top 4)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_top_4.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps over straps. Dries fast, and that is its one virtue now.'
+      - 'Ремешки поверх ремешков. Сохнет быстро — теперь это всё его достоинство.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_top_5.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Top (Top 5)'
+      - 'Верх купальника (Top 5)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_top_5.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps over straps. Dries fast, and that is its one virtue now.'
+      - 'Ремешки поверх ремешков. Сохнет быстро — теперь это всё его достоинство.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_top_6.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Top (Top 6)'
+      - 'Верх купальника (Top 6)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_top_6.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps over straps. Dries fast, and that is its one virtue now.'
+      - 'Ремешки поверх ремешков. Сохнет быстро — теперь это всё его достоинство.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_top_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Top (Top Black)'
+      - 'Верх купальника (Top Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_top_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps over straps. Dries fast, and that is its one virtue now.'
+      - 'Ремешки поверх ремешков. Сохнет быстро — теперь это всё его достоинство.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_top_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Top (Top Blue)'
+      - 'Верх купальника (Top Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_top_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps over straps. Dries fast, and that is its one virtue now.'
+      - 'Ремешки поверх ремешков. Сохнет быстро — теперь это всё его достоинство.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_top_green.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Top (Top Green)'
+      - 'Верх купальника (Top Green)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_top_green.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps over straps. Dries fast, and that is its one virtue now.'
+      - 'Ремешки поверх ремешков. Сохнет быстро — теперь это всё его достоинство.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_top_pink.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Top (Top Pink)'
+      - 'Верх купальника (Top Pink)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_top_pink.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps over straps. Dries fast, and that is its one virtue now.'
+      - 'Ремешки поверх ремешков. Сохнет быстро — теперь это всё его достоинство.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_top_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Top (Top Red)'
+      - 'Верх купальника (Top Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_top_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps over straps. Dries fast, and that is its one virtue now.'
+      - 'Ремешки поверх ремешков. Сохнет быстро — теперь это всё его достоинство.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_top_white.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Top (Top White)'
+      - 'Верх купальника (Top White)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_top_white.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps over straps. Dries fast, and that is its one virtue now.'
+      - 'Ремешки поверх ремешков. Сохнет быстро — теперь это всё его достоинство.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_white.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Top (White)'
+      - 'Верх купальника (White)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_top_white.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Straps over straps. Dries fast, and that is its one virtue now.'
+      - 'Ремешки поверх ремешков. Сохнет быстро — теперь это всё его достоинство.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_briefs.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Bottom'
+      - 'Низ купальника'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_briefs.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the top.'
+      - 'В пару к верху.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_briefs_bottom_2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Bottom (Bottom 2)'
+      - 'Низ купальника (Bottom 2)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_briefs_bottom_2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the top.'
+      - 'В пару к верху.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_briefs_bottom_3.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Bottom (Bottom 3)'
+      - 'Низ купальника (Bottom 3)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_briefs_bottom_3.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the top.'
+      - 'В пару к верху.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_briefs_bottom_4.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Bottom (Bottom 4)'
+      - 'Низ купальника (Bottom 4)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_briefs_bottom_4.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the top.'
+      - 'В пару к верху.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_briefs_bottom_5.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Bottom (Bottom 5)'
+      - 'Низ купальника (Bottom 5)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_briefs_bottom_5.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the top.'
+      - 'В пару к верху.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_briefs_bottom_6.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Bottom (Bottom 6)'
+      - 'Низ купальника (Bottom 6)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_briefs_bottom_6.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the top.'
+      - 'В пару к верху.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_briefs_bottom_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Bottom (Bottom Black)'
+      - 'Низ купальника (Bottom Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_briefs_bottom_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the top.'
+      - 'В пару к верху.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_briefs_bottom_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Bottom (Bottom Blue)'
+      - 'Низ купальника (Bottom Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_briefs_bottom_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the top.'
+      - 'В пару к верху.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_briefs_bottom_green.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Bottom (Bottom Green)'
+      - 'Низ купальника (Bottom Green)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_briefs_bottom_green.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the top.'
+      - 'В пару к верху.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_briefs_bottom_pink.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Bottom (Bottom Pink)'
+      - 'Низ купальника (Bottom Pink)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_briefs_bottom_pink.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the top.'
+      - 'В пару к верху.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_briefs_bottom_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Bottom (Bottom Red)'
+      - 'Низ купальника (Bottom Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_briefs_bottom_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the top.'
+      - 'В пару к верху.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_briefs_bottom_white.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strappy Swim Bottom (Bottom White)'
+      - 'Низ купальника (Bottom White)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_swimsuit_briefs_bottom_white.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the top.'
+      - 'В пару к верху.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sweater_naughty.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Loose Sweater'
+      - 'Свободный свитер'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sweater_naughty.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Knit, oversized, falls off one shoulder whatever you do.'
+      - 'Вязаный, на размер больше, всё время сползает с плеча.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sweater_naughty_sweater_2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Loose Sweater (Sweater 2)'
+      - 'Свободный свитер (Sweater 2)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sweater_naughty_sweater_2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Knit, oversized, falls off one shoulder whatever you do.'
+      - 'Вязаный, на размер больше, всё время сползает с плеча.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sweater_naughty_sweater_3.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Loose Sweater (Sweater 3)'
+      - 'Свободный свитер (Sweater 3)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sweater_naughty_sweater_3.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Knit, oversized, falls off one shoulder whatever you do.'
+      - 'Вязаный, на размер больше, всё время сползает с плеча.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sweater_naughty_sweater_4.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Loose Sweater (Sweater 4)'
+      - 'Свободный свитер (Sweater 4)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sweater_naughty_sweater_4.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Knit, oversized, falls off one shoulder whatever you do.'
+      - 'Вязаный, на размер больше, всё время сползает с плеча.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sweater_naughty_sweater_5.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Loose Sweater (Sweater 5)'
+      - 'Свободный свитер (Sweater 5)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sweater_naughty_sweater_5.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Knit, oversized, falls off one shoulder whatever you do.'
+      - 'Вязаный, на размер больше, всё время сползает с плеча.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sweater_naughty_sweater_6.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Loose Sweater (Sweater 6)'
+      - 'Свободный свитер (Sweater 6)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sweater_naughty_sweater_6.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Knit, oversized, falls off one shoulder whatever you do.'
+      - 'Вязаный, на размер больше, всё время сползает с плеча.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shirt_naughty.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Loose Shirt'
+      - 'Свободная рубашка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shirt_naughty.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thin cotton, sleeves too long.'
+      - 'Тонкий хлопок, рукава длиннее нужного.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shirt_naughty_shirt_2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Loose Shirt (Shirt 2)'
+      - 'Свободная рубашка (Shirt 2)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shirt_naughty_shirt_2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thin cotton, sleeves too long.'
+      - 'Тонкий хлопок, рукава длиннее нужного.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shirt_naughty_shirt_3.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Loose Shirt (Shirt 3)'
+      - 'Свободная рубашка (Shirt 3)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shirt_naughty_shirt_3.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thin cotton, sleeves too long.'
+      - 'Тонкий хлопок, рукава длиннее нужного.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shirt_naughty_shirt_4.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Loose Shirt (Shirt 4)'
+      - 'Свободная рубашка (Shirt 4)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shirt_naughty_shirt_4.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thin cotton, sleeves too long.'
+      - 'Тонкий хлопок, рукава длиннее нужного.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shirt_naughty_shirt_5.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Loose Shirt (Shirt 5)'
+      - 'Свободная рубашка (Shirt 5)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shirt_naughty_shirt_5.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thin cotton, sleeves too long.'
+      - 'Тонкий хлопок, рукава длиннее нужного.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shirt_naughty_shirt_6.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Loose Shirt (Shirt 6)'
+      - 'Свободная рубашка (Shirt 6)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shirt_naughty_shirt_6.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thin cotton, sleeves too long.'
+      - 'Тонкий хлопок, рукава длиннее нужного.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_naughty.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pleated Mini'
+      - 'Плиссированная мини'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_naughty.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Short and pleated. Sensible about nothing.'
+      - 'Короткая, в складку. Ни в чём не практичная.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_naughty_skirt_2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pleated Mini (Skirt 2)'
+      - 'Плиссированная мини (Skirt 2)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_naughty_skirt_2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Short and pleated. Sensible about nothing.'
+      - 'Короткая, в складку. Ни в чём не практичная.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_naughty_skirt_3.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pleated Mini (Skirt 3)'
+      - 'Плиссированная мини (Skirt 3)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_naughty_skirt_3.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Short and pleated. Sensible about nothing.'
+      - 'Короткая, в складку. Ни в чём не практичная.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_naughty_skirt_4.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pleated Mini (Skirt 4)'
+      - 'Плиссированная мини (Skirt 4)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_naughty_skirt_4.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Short and pleated. Sensible about nothing.'
+      - 'Короткая, в складку. Ни в чём не практичная.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_naughty_skirt_5.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pleated Mini (Skirt 5)'
+      - 'Плиссированная мини (Skirt 5)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_naughty_skirt_5.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Short and pleated. Sensible about nothing.'
+      - 'Короткая, в складку. Ни в чём не практичная.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_naughty_skirt_6.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Pleated Mini (Skirt 6)'
+      - 'Плиссированная мини (Skirt 6)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_naughty_skirt_6.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Short and pleated. Sensible about nothing.'
+      - 'Короткая, в складку. Ни в чём не практичная.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_overknee.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Over-Knee Socks'
+      - 'Гольфы выше колена'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_overknee.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Knit, to mid-thigh. Warmer than they look.'
+      - 'Вязаные, до середины бедра. Теплее, чем кажутся.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_overknee_over_knee_2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Over-Knee Socks (Over Knee 2)'
+      - 'Гольфы выше колена (Over Knee 2)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_overknee_over_knee_2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Knit, to mid-thigh. Warmer than they look.'
+      - 'Вязаные, до середины бедра. Теплее, чем кажутся.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_overknee_over_knee_3.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Over-Knee Socks (Over Knee 3)'
+      - 'Гольфы выше колена (Over Knee 3)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_overknee_over_knee_3.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Knit, to mid-thigh. Warmer than they look.'
+      - 'Вязаные, до середины бедра. Теплее, чем кажутся.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_overknee_over_knee_4.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Over-Knee Socks (Over Knee 4)'
+      - 'Гольфы выше колена (Over Knee 4)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_overknee_over_knee_4.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Knit, to mid-thigh. Warmer than they look.'
+      - 'Вязаные, до середины бедра. Теплее, чем кажутся.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_overknee_over_knee_5.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Over-Knee Socks (Over Knee 5)'
+      - 'Гольфы выше колена (Over Knee 5)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_overknee_over_knee_5.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Knit, to mid-thigh. Warmer than they look.'
+      - 'Вязаные, до середины бедра. Теплее, чем кажутся.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_overknee_over_knee_6.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Over-Knee Socks (Over Knee 6)'
+      - 'Гольфы выше колена (Over Knee 6)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_stockings_overknee_over_knee_6.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Knit, to mid-thigh. Warmer than they look.'
+      - 'Вязаные, до середины бедра. Теплее, чем кажутся.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_luxury.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Jewelled Bikini Top'
+      - 'Верх бикини с камнями'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_luxury.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Beads and metal. Useless and someone kept it anyway.'
+      - 'Бусины и металл. Бесполезен, а всё равно сохранили.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_luxury_02_cherry_bra.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Jewelled Bikini Top (02 Cherry Bra)'
+      - 'Верх бикини с камнями (02 Cherry Bra)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_luxury_02_cherry_bra.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Beads and metal. Useless and someone kept it anyway.'
+      - 'Бусины и металл. Бесполезен, а всё равно сохранили.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_luxury_03_white_bra.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Jewelled Bikini Top (03 White Bra)'
+      - 'Верх бикини с камнями (03 White Bra)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_luxury_03_white_bra.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Beads and metal. Useless and someone kept it anyway.'
+      - 'Бусины и металл. Бесполезен, а всё равно сохранили.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_luxury_04_black_bra.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Jewelled Bikini Top (04 Black Bra)'
+      - 'Верх бикини с камнями (04 Black Bra)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_luxury_04_black_bra.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Beads and metal. Useless and someone kept it anyway.'
+      - 'Бусины и металл. Бесполезен, а всё равно сохранили.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_luxury_05_golden_bra.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Jewelled Bikini Top (05 Golden Bra)'
+      - 'Верх бикини с камнями (05 Golden Bra)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_luxury_05_golden_bra.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Beads and metal. Useless and someone kept it anyway.'
+      - 'Бусины и металл. Бесполезен, а всё равно сохранили.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_luxury.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Jewelled Bikini Bottom'
+      - 'Низ бикини с камнями'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_luxury.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the top.'
+      - 'В пару к верху.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_luxury_02_cherry_panties.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Jewelled Bikini Bottom (02 Cherry Panties)'
+      - 'Низ бикини с камнями (02 Cherry Panties)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_luxury_02_cherry_panties.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the top.'
+      - 'В пару к верху.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_luxury_03_white_panties.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Jewelled Bikini Bottom (03 White Panties)'
+      - 'Низ бикини с камнями (03 White Panties)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_luxury_03_white_panties.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the top.'
+      - 'В пару к верху.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_luxury_04_black_panties.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Jewelled Bikini Bottom (04 Black Panties)'
+      - 'Низ бикини с камнями (04 Black Panties)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_luxury_04_black_panties.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the top.'
+      - 'В пару к верху.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_luxury_05_golden_panties.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Jewelled Bikini Bottom (05 Golden Panties)'
+      - 'Низ бикини с камнями (05 Golden Panties)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_luxury_05_golden_panties.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the top.'
+      - 'В пару к верху.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_heels_luxury.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strap Heels'
+      - 'Босоножки на каблуке'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_heels_luxury.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thin straps on a high heel. Made for a floor that no longer exists.'
+      - 'Тонкие ремешки на высоком каблуке. Для пола, которого больше нет.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_heels_luxury_golden_color.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strap Heels (Golden Color)'
+      - 'Босоножки на каблуке (Golden Color)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_heels_luxury_golden_color.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thin straps on a high heel. Made for a floor that no longer exists.'
+      - 'Тонкие ремешки на высоком каблуке. Для пола, которого больше нет.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_heels_luxury_light_pink_color.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strap Heels (Light Pink Color)'
+      - 'Босоножки на каблуке (Light Pink Color)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_heels_luxury_light_pink_color.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thin straps on a high heel. Made for a floor that no longer exists.'
+      - 'Тонкие ремешки на высоком каблуке. Для пола, которого больше нет.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_heels_luxury_silver_color.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strap Heels (Silver Color)'
+      - 'Босоножки на каблуке (Silver Color)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_heels_luxury_silver_color.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thin straps on a high heel. Made for a floor that no longer exists.'
+      - 'Тонкие ремешки на высоком каблуке. Для пола, которого больше нет.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_heels_luxury_white_color.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strap Heels (White Color)'
+      - 'Босоножки на каблуке (White Color)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_heels_luxury_white_color.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thin straps on a high heel. Made for a floor that no longer exists.'
+      - 'Тонкие ремешки на высоком каблуке. Для пола, которого больше нет.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_bracelet_luxury.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bracelet'
+      - 'Браслет'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_bracelet_luxury.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Metal, on the forearm.'
+      - 'Металл, на предплечье.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sunglasses_luxury.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sunglasses'
+      - 'Солнечные очки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sunglasses_luxury.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Dark lenses. The sun here is worse than it used to be.'
+      - 'Тёмные стёкла. Солнце тут теперь злее прежнего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sunglasses_luxury_animal_print_color.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sunglasses (Animal Print Color)'
+      - 'Солнечные очки (Animal Print Color)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sunglasses_luxury_animal_print_color.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Dark lenses. The sun here is worse than it used to be.'
+      - 'Тёмные стёкла. Солнце тут теперь злее прежнего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sunglasses_luxury_burgundy_color.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sunglasses (Burgundy Color)'
+      - 'Солнечные очки (Burgundy Color)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sunglasses_luxury_burgundy_color.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Dark lenses. The sun here is worse than it used to be.'
+      - 'Тёмные стёкла. Солнце тут теперь злее прежнего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sunglasses_luxury_light_peach_color.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sunglasses (Light Peach Color)'
+      - 'Солнечные очки (Light Peach Color)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sunglasses_luxury_light_peach_color.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Dark lenses. The sun here is worse than it used to be.'
+      - 'Тёмные стёкла. Солнце тут теперь злее прежнего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sunglasses_luxury_rainbow_color.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sunglasses (Rainbow Color)'
+      - 'Солнечные очки (Rainbow Color)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sunglasses_luxury_rainbow_color.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Dark lenses. The sun here is worse than it used to be.'
+      - 'Тёмные стёкла. Солнце тут теперь злее прежнего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sunglasses_luxury_sunset_color.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sunglasses (sunset color)'
+      - 'Солнечные очки (sunset color)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sunglasses_luxury_sunset_color.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Dark lenses. The sun here is worse than it used to be.'
+      - 'Тёмные стёкла. Солнце тут теперь злее прежнего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sunglasses_luxury_with_color.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sunglasses (with color)'
+      - 'Солнечные очки (with color)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sunglasses_luxury_with_color.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Dark lenses. The sun here is worse than it used to be.'
+      - 'Тёмные стёкла. Солнце тут теперь злее прежнего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_city.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'City Dress'
+      - 'Городское платье'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_city.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut for an office, worn where there are none.'
+      - 'Скроено для офиса, носится там, где офисов нет.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_city_02_dress.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'City Dress (02 Dress)'
+      - 'Городское платье (02 Dress)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_city_02_dress.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut for an office, worn where there are none.'
+      - 'Скроено для офиса, носится там, где офисов нет.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_city_03_dress.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'City Dress (03 Dress)'
+      - 'Городское платье (03 Dress)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_city_03_dress.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut for an office, worn where there are none.'
+      - 'Скроено для офиса, носится там, где офисов нет.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_city_04_dress.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'City Dress (04 Dress)'
+      - 'Городское платье (04 Dress)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_city_04_dress.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut for an office, worn where there are none.'
+      - 'Скроено для офиса, носится там, где офисов нет.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_city_05_dress.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'City Dress (05 Dress)'
+      - 'Городское платье (05 Dress)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_city_05_dress.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut for an office, worn where there are none.'
+      - 'Скроено для офиса, носится там, где офисов нет.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_city_06_dress.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'City Dress (06 Dress)'
+      - 'Городское платье (06 Dress)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_city_06_dress.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut for an office, worn where there are none.'
+      - 'Скроено для офиса, носится там, где офисов нет.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_city_07_dress.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'City Dress (07 Dress)'
+      - 'Городское платье (07 Dress)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_dress_city_07_dress.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut for an office, worn where there are none.'
+      - 'Скроено для офиса, носится там, где офисов нет.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit'
+      - 'Кружевное боди'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_03_leather_matte.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (03 Leather Matte)'
+      - 'Кружевное боди (03 Leather Matte)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_03_leather_matte.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_04_cotton_cloth.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (04 Cotton Cloth)'
+      - 'Кружевное боди (04 Cotton Cloth)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_04_cotton_cloth.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_05_reptile_leather.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (05 Reptile Leather)'
+      - 'Кружевное боди (05 Reptile Leather)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_05_reptile_leather.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_06_latex.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (06 Latex)'
+      - 'Кружевное боди (06 Latex)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_06_latex.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_apple.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 1 Apple)'
+      - 'Кружевное боди (Cloth 1 Apple)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_apple.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_baby_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 1 Baby Blue)'
+      - 'Кружевное боди (Cloth 1 Baby Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_baby_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_baby_pink.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 1 Baby Pink)'
+      - 'Кружевное боди (Cloth 1 Baby Pink)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_baby_pink.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_berry.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 1 Berry)'
+      - 'Кружевное боди (Cloth 1 Berry)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_berry.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 1 Black)'
+      - 'Кружевное боди (Cloth 1 Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_champagne.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 1 Champagne)'
+      - 'Кружевное боди (Cloth 1 Champagne)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_champagne.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_dark_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 1 Dark Blue)'
+      - 'Кружевное боди (Cloth 1 Dark Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_dark_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_dark_gray.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 1 Dark Gray)'
+      - 'Кружевное боди (Cloth 1 Dark Gray)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_dark_gray.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_dark_green.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 1 Dark Green)'
+      - 'Кружевное боди (Cloth 1 Dark Green)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_dark_green.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_dark_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 1 Dark Red)'
+      - 'Кружевное боди (Cloth 1 Dark Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_dark_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_light_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 1 Light Blue)'
+      - 'Кружевное боди (Cloth 1 Light Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_light_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_light_gray.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 1 Light Gray)'
+      - 'Кружевное боди (Cloth 1 Light Gray)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_light_gray.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_light_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 1 Light Red)'
+      - 'Кружевное боди (Cloth 1 Light Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_light_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_mint.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 1 Mint)'
+      - 'Кружевное боди (Cloth 1 Mint)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_mint.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_orange.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 1 Orange)'
+      - 'Кружевное боди (Cloth 1 Orange)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_orange.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_pink.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 1 Pink)'
+      - 'Кружевное боди (Cloth 1 Pink)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_pink.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_turquoise.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 1 Turquoise)'
+      - 'Кружевное боди (Cloth 1 Turquoise)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_turquoise.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_violet.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 1 Violet)'
+      - 'Кружевное боди (Cloth 1 Violet)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_violet.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_white.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 1 White)'
+      - 'Кружевное боди (Cloth 1 White)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_white.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_yellow.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 1 Yellow)'
+      - 'Кружевное боди (Cloth 1 Yellow)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_1_yellow.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_apple.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 2 Apple)'
+      - 'Кружевное боди (Cloth 2 Apple)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_apple.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_baby_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 2 Baby Blue)'
+      - 'Кружевное боди (Cloth 2 Baby Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_baby_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_baby_pink.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 2 Baby Pink)'
+      - 'Кружевное боди (Cloth 2 Baby Pink)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_baby_pink.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_berry.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 2 Berry)'
+      - 'Кружевное боди (Cloth 2 Berry)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_berry.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 2 Black)'
+      - 'Кружевное боди (Cloth 2 Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_champagne.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 2 Champagne)'
+      - 'Кружевное боди (Cloth 2 Champagne)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_champagne.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_dark_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 2 Dark Blue)'
+      - 'Кружевное боди (Cloth 2 Dark Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_dark_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_dark_gray.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 2 Dark Gray)'
+      - 'Кружевное боди (Cloth 2 Dark Gray)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_dark_gray.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_dark_green.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 2 Dark Green)'
+      - 'Кружевное боди (Cloth 2 Dark Green)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_dark_green.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_dark_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 2 Dark Red)'
+      - 'Кружевное боди (Cloth 2 Dark Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_dark_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_light_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 2 Light Blue)'
+      - 'Кружевное боди (Cloth 2 Light Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_light_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_light_gray.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 2 Light Gray)'
+      - 'Кружевное боди (Cloth 2 Light Gray)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_light_gray.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_light_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 2 Light Red)'
+      - 'Кружевное боди (Cloth 2 Light Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_light_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_mint.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 2 Mint)'
+      - 'Кружевное боди (Cloth 2 Mint)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_mint.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_orange.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 2 Orange)'
+      - 'Кружевное боди (Cloth 2 Orange)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_orange.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_pink.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 2 Pink)'
+      - 'Кружевное боди (Cloth 2 Pink)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_pink.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_turquoise.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 2 Turquoise)'
+      - 'Кружевное боди (Cloth 2 Turquoise)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_turquoise.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_violet.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 2 Violet)'
+      - 'Кружевное боди (Cloth 2 Violet)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_violet.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_white.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 2 White)'
+      - 'Кружевное боди (Cloth 2 White)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_white.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_yellow.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 2 Yellow)'
+      - 'Кружевное боди (Cloth 2 Yellow)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_2_yellow.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_apple.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 3 Apple)'
+      - 'Кружевное боди (Cloth 3 Apple)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_apple.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_baby_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 3 Baby Blue)'
+      - 'Кружевное боди (Cloth 3 Baby Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_baby_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_baby_pink.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 3 Baby Pink)'
+      - 'Кружевное боди (Cloth 3 Baby Pink)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_baby_pink.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_berry.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 3 Berry)'
+      - 'Кружевное боди (Cloth 3 Berry)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_berry.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 3 Black)'
+      - 'Кружевное боди (Cloth 3 Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_champagne.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 3 Champagne)'
+      - 'Кружевное боди (Cloth 3 Champagne)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_champagne.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_dark_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 3 Dark Blue)'
+      - 'Кружевное боди (Cloth 3 Dark Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_dark_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_dark_gray.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 3 Dark Gray)'
+      - 'Кружевное боди (Cloth 3 Dark Gray)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_dark_gray.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_dark_green.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 3 Dark Green)'
+      - 'Кружевное боди (Cloth 3 Dark Green)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_dark_green.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_dark_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 3 Dark Red)'
+      - 'Кружевное боди (Cloth 3 Dark Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_dark_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_light_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 3 Light Blue)'
+      - 'Кружевное боди (Cloth 3 Light Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_light_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_light_gray.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 3 Light Gray)'
+      - 'Кружевное боди (Cloth 3 Light Gray)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_light_gray.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_light_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 3 Light Red)'
+      - 'Кружевное боди (Cloth 3 Light Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_light_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_mint.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 3 Mint)'
+      - 'Кружевное боди (Cloth 3 Mint)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_mint.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_orange.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 3 Orange)'
+      - 'Кружевное боди (Cloth 3 Orange)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_orange.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_pink.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 3 Pink)'
+      - 'Кружевное боди (Cloth 3 Pink)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_pink.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_turquoise.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 3 Turquoise)'
+      - 'Кружевное боди (Cloth 3 Turquoise)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_turquoise.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_violet.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 3 Violet)'
+      - 'Кружевное боди (Cloth 3 Violet)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_violet.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_white.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 3 White)'
+      - 'Кружевное боди (Cloth 3 White)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_white.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_yellow.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Cloth 3 Yellow)'
+      - 'Кружевное боди (Cloth 3 Yellow)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_cloth_3_yellow.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_color_style_1.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Color Style 1)'
+      - 'Кружевное боди (Color Style 1)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_color_style_1.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_color_style_2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Color Style 2)'
+      - 'Кружевное боди (Color Style 2)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_color_style_2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_color_style_3.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Color Style 3)'
+      - 'Кружевное боди (Color Style 3)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_color_style_3.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_color_style_4.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Color Style 4)'
+      - 'Кружевное боди (Color Style 4)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_color_style_4.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_color_style_5.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Color Style 5)'
+      - 'Кружевное боди (Color Style 5)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_color_style_5.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_color_style_6.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Color Style 6)'
+      - 'Кружевное боди (Color Style 6)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_color_style_6.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_color_style_7.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Color Style 7)'
+      - 'Кружевное боди (Color Style 7)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_color_style_7.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_color_style_8.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Color Style 8)'
+      - 'Кружевное боди (Color Style 8)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_color_style_8.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_apple.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Trim Apple)'
+      - 'Кружевное боди (Trim Apple)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_apple.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_baby_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Trim Baby Blue)'
+      - 'Кружевное боди (Trim Baby Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_baby_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_baby_pink.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Trim Baby Pink)'
+      - 'Кружевное боди (Trim Baby Pink)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_baby_pink.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_berry.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Trim Berry)'
+      - 'Кружевное боди (Trim Berry)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_berry.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Trim Black)'
+      - 'Кружевное боди (Trim Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_champagne.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Trim Champagne)'
+      - 'Кружевное боди (Trim Champagne)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_champagne.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_dark_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Trim Dark Blue)'
+      - 'Кружевное боди (Trim Dark Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_dark_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_dark_gray.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Trim Dark Gray)'
+      - 'Кружевное боди (Trim Dark Gray)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_dark_gray.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_dark_green.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Trim Dark Green)'
+      - 'Кружевное боди (Trim Dark Green)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_dark_green.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_dark_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Trim Dark Red)'
+      - 'Кружевное боди (Trim Dark Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_dark_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_light_blue.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Trim Light Blue)'
+      - 'Кружевное боди (Trim Light Blue)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_light_blue.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_light_gray.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Trim Light Gray)'
+      - 'Кружевное боди (Trim Light Gray)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_light_gray.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_light_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Trim Light Red)'
+      - 'Кружевное боди (Trim Light Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_light_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_mint.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Trim Mint)'
+      - 'Кружевное боди (Trim Mint)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_mint.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_orange.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Trim Orange)'
+      - 'Кружевное боди (Trim Orange)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_orange.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_pink.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Trim Pink)'
+      - 'Кружевное боди (Trim Pink)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_pink.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_turquoise.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Trim Turquoise)'
+      - 'Кружевное боди (Trim Turquoise)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_turquoise.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_violet.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Trim Violet)'
+      - 'Кружевное боди (Trim Violet)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_violet.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_white.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Trim White)'
+      - 'Кружевное боди (Trim White)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_white.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_yellow.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Lace Bodysuit (Trim Yellow)'
+      - 'Кружевное боди (Trim Yellow)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_bodysuit_devi_trim_yellow.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece, all lace.'
+      - 'Цельное, всё в кружеве.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'item.clothing_jacket_cindy.name'
       TermType: 0
       Description: 

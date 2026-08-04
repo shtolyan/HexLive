@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: underwear_swimsuit_top_top_red
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: underwear.swimsuit_top_top_red
+  prototypeId: underwear.swimsuit_top
+  displayName: 
+  variantMaterials:
+  - {fileID: 2100000, guid: 0339a0226bdc17a4998a42a409586bf2, type: 2}
+  - {fileID: 2100000, guid: b6650fcf280e7e944985bd606f5c8025, type: 2}
+  - {fileID: 2100000, guid: 7d5c4169c26d11b4a9f23017775021c8, type: 2}
+  - {fileID: 2100000, guid: ebee972055d537b48b6e05ce54caaef4, type: 2}
+  - {fileID: 2100000, guid: b8b771cf9a49b1f4aa46c2f2b2718de0, type: 2}
+  layer: 1
+  covers: 
+  warmth: 0.1
+  armor: 0
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: underwear_bodysuit_devi_color_style_3
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: underwear.bodysuit_devi_color_style_3
+  prototypeId: underwear.bodysuit_devi
+  displayName: 
+  variantMaterials:
+  - {fileID: 2100000, guid: 1b66b6298a7a6d0409daa7c98a9cc4b3, type: 2}
+  - {fileID: 2100000, guid: aebc34ba8a69b7842ba4bf4b6e5d080b, type: 2}
+  - {fileID: 2100000, guid: 1c1d14a5a935d7c44acdadec29f1f6a2, type: 2}
+  - {fileID: 2100000, guid: 3e4b2dcac7934e347beca11badc6b0d6, type: 2}
+  layer: 1
+  covers: 
+  warmth: 0.1
+  armor: 0
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

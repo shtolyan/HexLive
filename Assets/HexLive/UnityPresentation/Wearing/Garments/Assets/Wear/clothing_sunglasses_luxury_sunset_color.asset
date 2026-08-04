@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_sunglasses_luxury_sunset_color
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.sunglasses_luxury_sunset_color
+  prototypeId: clothing.sunglasses_luxury
+  displayName: 
+  variantMaterials:
+  - {fileID: 2100000, guid: 2256934e43f13d548a30f9da855b039c, type: 2}
+  - {fileID: 2100000, guid: 07c9581b0f5f37f4a9b2bcfdb4323457, type: 2}
+  - {fileID: 2100000, guid: a94b1de0f7ae20645a08a0cc498dbd34, type: 2}
+  - {fileID: 2100000, guid: 410ea1c0593ae1f4a85cf9238e2030fa, type: 2}
+  layer: 1
+  covers: 
+  warmth: 0.1
+  armor: 0
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

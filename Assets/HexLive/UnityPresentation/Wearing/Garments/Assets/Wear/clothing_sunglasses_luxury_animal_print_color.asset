@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_sunglasses_luxury_animal_print_color
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.sunglasses_luxury_animal_print_color
+  prototypeId: clothing.sunglasses_luxury
+  displayName: 
+  variantMaterials:
+  - {fileID: 2100000, guid: 4ac90989d06ecff46bd6a2bfcf4e1e14, type: 2}
+  - {fileID: 2100000, guid: 175e4c9de5458764087ba74d74c9c316, type: 2}
+  - {fileID: 2100000, guid: eec0d14a55e7fbb4ea7a3ac2b9e83f21, type: 2}
+  - {fileID: 2100000, guid: ccbb9136dc6f87b4aa2938f2e1a5b1e7, type: 2}
+  layer: 1
+  covers: 
+  warmth: 0.1
+  armor: 0
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

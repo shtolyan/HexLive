@@ -66,7 +66,12 @@ namespace HexLive.UnityPresentation.UI
                     return _filePath;
                 }
 
-                var args = Environment.GetCommandLineArgs();
+                // Fully qualified on purpose: this file sits in
+                // HexLive.UnityPresentation.UI, and the project owns a
+                // HexLive.UnityPresentation.Environment namespace. A namespace
+                // member shadows a using-directive, so a bare `Environment`
+                // binds to THAT and the assembly stops compiling.
+                var args = System.Environment.GetCommandLineArgs();
                 for (var i = 0; i < args.Length - 1; i++)
                 {
                     if (args[i] == "-hexlive-bugs")

@@ -182,11 +182,22 @@ _STRIP_AND_FIT = """
                       added: after.length - before, names: names });
   }
 
+  // Число вершин — то, чем «надето дважды» отличается от простого совпадения
+  // имён. Два разных набора запросто зовут свои вещи «Boots», и DAZ переименует
+  // вторую в «Boots (2)» — при совершенно разной геометрии.
+  function vertexCount(n) {
+    var obj = n.getObject ? n.getObject() : null;
+    var shape = obj && obj.getCurrentShape ? obj.getCurrentShape() : null;
+    var geo = shape && shape.getGeometry ? shape.getGeometry() : null;
+    return geo && geo.getNumVertices ? geo.getNumVertices() : -1;
+  }
+
   var fitted = wornNodes();
   for (var i = 0; i < fitted.length; i++) {
     out.fitted.push({
       label: fitted[i].getLabel(),
       name: fitted[i].getName(),
+      verts: vertexCount(fitted[i]),
       how: (fitted[i].getFollowTarget && fitted[i].getFollowTarget()) ? "conform" : "parent"
     });
   }
@@ -250,14 +261,23 @@ def dress_one(girl: str, garments: list[Path], out_fbx: Path) -> dict:
         raise daz.DazError(
             f"{girl}: загрузились, но ни на ком не сидят: {', '.join(silent)}")
 
-    # DAZ renames a second copy of an already-loaded item to "Classic Boot (2)".
-    # Seeing one means two garment files carry the same geometry — the outfit
-    # preset beside its own pieces, or one product filed under two vendors.
-    labels = {x["label"] for x in result["fitted"]}
-    twice = sorted(x["label"] for x in result["fitted"]
-                   if (m := re.fullmatch(r"(.+) \(\d+\)", x["label"])) and m[1] in labels)
+    # Дубль — это ОДНА И ТА ЖЕ ГЕОМЕТРИЯ, надетая дважды, а не одинаковая
+    # надпись. Проверять надо узел и число вершин:
+    #
+    #   * «Boots» у Cindy Aurum и «Boots» у Osiris Outfit — разные вещи, DAZ
+    #     переименует вторую в «Boots (2)», и проверка по имени ругалась зря;
+    #   * «Belt Option 1» и «Belt Option 2» — РАЗНЫЕ надписи и один меш
+    #     `belt daz_7248`: это две расцветки одного пояса, и в экспорте один из
+    #     двух узлов молча пропал бы, потому что геометрии в FBX лежат по имени.
+    same: dict[tuple, list[str]] = {}
+    for item in result["fitted"]:
+        same.setdefault((item["name"], item.get("verts", -1)), []).append(item["label"])
+    twice = [f"{' и '.join(v)} -> {k[0]}" for k, v in sorted(same.items()) if len(v) > 1]
     if twice:
-        raise daz.DazError(f"{girl}: надето дважды: {', '.join(twice)}")
+        raise daz.DazError(
+            f"{girl}: одна геометрия надета дважды: {'; '.join(twice)}. "
+            "Это либо комплект рядом со своими частями, либо две расцветки "
+            "одной вещи — оставьте что-то одно")
 
     # Позу вернуть не удалось — экспортировать нельзя: в чужой позе уедут ВСЕ
     # вещи заходa, а не только та, что её принесла.

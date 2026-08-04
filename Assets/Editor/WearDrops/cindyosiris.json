@@ -1,0 +1,811 @@
+{
+  "drop": "cindyosiris",
+  "sources": [
+    {
+      "fbx": "Assets/Temp/jolly cindyosiris.fbx",
+      "actor": "Jolly"
+    },
+    {
+      "fbx": "Assets/Temp/jana cindyosiris.fbx",
+      "actor": "Jana"
+    },
+    {
+      "fbx": "Assets/Temp/marta cindyosiris.fbx",
+      "actor": "Marta"
+    },
+    {
+      "fbx": "Assets/Temp/molly cindyosiris.fbx",
+      "actor": "Molly"
+    }
+  ],
+  "garments": [
+    {
+      "sourceKey": "Jacket_7653",
+      "folder": "CindyJacket",
+      "name": "CindyJacket",
+      "simId": "clothing.jacket_cindy",
+      "layer": "Outerwear",
+      "slots": [
+        "Chest",
+        "ShoulderR",
+        "ShoulderL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Top Leather",
+          "texture": "Cloth D.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Basic Metal",
+          "texture": "Accesories.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Basic Leather",
+          "texture": "Accesories.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 7653,
+        "polys": 8182,
+        "bbox": [
+          -67.7,
+          67.5,
+          119.3,
+          158.9,
+          -12.8,
+          14.8
+        ],
+        "zones": {
+          "Chest": 0.72,
+          "Shoulder": 0.154,
+          "Forearm": 0.065,
+          "Neck": 0.045,
+          "Wrist": 0.008,
+          "Head": 0.008
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Cropped Jacket",
+        "nameRu": "Укороченная куртка",
+        "descEn": "Leather cut short, metal at the seams.",
+        "descRu": "Кожа, обрезанная по рёбрам, металл по швам.",
+        "warmth": 0.12,
+        "armor": 0.07,
+        "thermalDelta": 0.0,
+        "capacity": 1,
+        "covers": [
+          "Torso",
+          "ArmL",
+          "ArmR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "Bra_1529",
+      "folder": "CindyBikiniTop",
+      "name": "CindyBikiniTop",
+      "simId": "underwear.top_cindy",
+      "layer": "Underwear",
+      "slots": [
+        "Chest"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Bikini Top",
+          "texture": "Bikini tex.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 1529,
+        "polys": 1268,
+        "bbox": [
+          -13.9,
+          13.9,
+          124.6,
+          155.1,
+          -8.9,
+          13.3
+        ],
+        "zones": {
+          "Chest": 0.925,
+          "Neck": 0.075
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Halter Bikini Top",
+        "nameRu": "Верх бикини на завязках",
+        "descEn": "Ties behind the neck. That is the whole design.",
+        "descRu": "Завязывается за шеей. В этом вся конструкция.",
+        "warmth": 0.01,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      }
+    },
+    {
+      "sourceKey": "Bikini Bottom_699",
+      "folder": "CindyBikiniBriefs",
+      "name": "CindyBikiniBriefs",
+      "simId": "underwear.briefs_cindy",
+      "layer": "Underwear",
+      "slots": [
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Bikini Bottom",
+          "texture": "Bikini tex.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 699,
+        "polys": 640,
+        "bbox": [
+          -15.9,
+          15.8,
+          87.8,
+          106.3,
+          -10.9,
+          11.5
+        ],
+        "zones": {
+          "Pelvis": 0.645,
+          "Belly": 0.355
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Bikini Bottom",
+        "nameRu": "Низ бикини",
+        "descEn": "In a set with the top.",
+        "descRu": "В пару к верху.",
+        "warmth": 0.01,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Pelvis"
+        ]
+      }
+    },
+    {
+      "sourceKey": "bottom daz_5767",
+      "folder": "CindyShorts",
+      "name": "CindyShorts",
+      "simId": "clothing.shorts_cindy",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Short Pants",
+          "texture": "Cloth D.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Button",
+          "texture": "Accesories.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 5767,
+        "polys": 5665,
+        "bbox": [
+          -18.1,
+          18.1,
+          86.6,
+          104.2,
+          -13.0,
+          12.5
+        ],
+        "zones": {
+          "Pelvis": 0.984,
+          "Belly": 0.016
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Buttoned Shorts",
+        "nameRu": "Шорты на пуговице",
+        "descEn": "Short, plain, one button. Nothing to break.",
+        "descRu": "Короткие, простые, одна пуговица. Ломаться нечему.",
+        "warmth": 0.05,
+        "armor": 0.02,
+        "thermalDelta": 0.0,
+        "capacity": 1,
+        "covers": [
+          "Pelvis"
+        ]
+      }
+    },
+    {
+      "sourceKey": "Top_2300",
+      "folder": "OsirisTop",
+      "name": "OsirisTop",
+      "simId": "clothing.top_osiris",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "Belly"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Top",
+          "texture": "G_Cloth.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 2300,
+        "polys": 2196,
+        "bbox": [
+          -16.2,
+          16.2,
+          100.1,
+          152.7,
+          -12.9,
+          14.0
+        ],
+        "zones": {
+          "Chest": 0.705,
+          "Belly": 0.188,
+          "Pelvis": 0.073,
+          "Neck": 0.034
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Field Top",
+        "nameRu": "Полевой топ",
+        "descEn": "Plain, tight, made to go under gear.",
+        "descRu": "Простой, в облипку, чтобы надевать под снаряжение.",
+        "warmth": 0.04,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      }
+    },
+    {
+      "sourceKey": "Bottom_1389",
+      "folder": "OsirisShorts",
+      "name": "OsirisShorts",
+      "simId": "clothing.shorts_osiris",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Bottom",
+          "texture": "G_Cloth.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 1389,
+        "polys": 1321,
+        "bbox": [
+          -18.9,
+          18.9,
+          84.2,
+          104.4,
+          -12.6,
+          11.5
+        ],
+        "zones": {
+          "Pelvis": 0.967,
+          "Belly": 0.033
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Field Shorts",
+        "nameRu": "Полевые шорты",
+        "descEn": "In a set with the top.",
+        "descRu": "В пару к топу.",
+        "warmth": 0.04,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 1,
+        "covers": [
+          "Pelvis"
+        ]
+      }
+    },
+    {
+      "sourceKey": "belt daz_7248",
+      "folder": "CindyBelt",
+      "name": "CindyBelt",
+      "simId": "clothing.belt_cindy",
+      "layer": "Outerwear",
+      "slots": [
+        "Pelvis",
+        "ThighR",
+        "ThighL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Belt",
+          "texture": "Accesories.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "metal",
+          "texture": "Accesories.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 7248,
+        "polys": 6266,
+        "bbox": [
+          -27.7,
+          27.9,
+          75.5,
+          109.1,
+          -17.5,
+          13.0
+        ],
+        "zones": {
+          "Pelvis": 0.824,
+          "Thigh": 0.104,
+          "Belly": 0.073
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Hip Belt",
+        "nameRu": "Пояс на бедро",
+        "descEn": "Wide, low on the hip, metal fittings.",
+        "descRu": "Широкий, низко на бедре, с металлом.",
+        "warmth": 0.01,
+        "armor": 0.03,
+        "thermalDelta": 0.0,
+        "capacity": 2,
+        "covers": [
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "gloves daz_4228",
+      "folder": "CindyGloves",
+      "name": "CindyGloves",
+      "simId": "clothing.gloves_cindy",
+      "layer": "Wear",
+      "slots": [
+        "WristR",
+        "WristL",
+        "HandR",
+        "HandL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Gloves",
+          "texture": "Cloth D.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 4228,
+        "polys": 4484,
+        "bbox": [
+          -84.5,
+          84.5,
+          141.1,
+          148.0,
+          -1.4,
+          11.5
+        ],
+        "zones": {
+          "Wrist": 0.534,
+          "Hand": 0.431,
+          "Forearm": 0.035
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Short Gloves",
+        "nameRu": "Короткие перчатки",
+        "descEn": "To the wrist. Keeps the palms off hot metal.",
+        "descRu": "До запястья. Спасают ладони от горячего металла.",
+        "warmth": 0.02,
+        "armor": 0.02,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "ArmL",
+          "ArmR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "boots daz_6436",
+      "folder": "CindyBoots",
+      "name": "CindyBoots",
+      "simId": "clothing.boots_cindy",
+      "layer": "Outerwear",
+      "slots": [
+        "ThighR",
+        "ThighL",
+        "ShinR",
+        "ShinL",
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Boots",
+          "texture": "Cloth D.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Shocks",
+          "texture": "Cloth D.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Metal",
+          "texture": "Accesories.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 6436,
+        "polys": 7184,
+        "bbox": [
+          -21.1,
+          21.1,
+          -7.0,
+          73.4,
+          -13.2,
+          17.9
+        ],
+        "zones": {
+          "Foot": 0.454,
+          "Shin": 0.389,
+          "Thigh": 0.157
+        },
+        "heelCm": 7.04
+      },
+      "heelPose": {
+        "foot": 39.83,
+        "toe": -39.83,
+        "lift": 0.0704,
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "_source": "по высоте каблука 7.0 см"
+      },
+      "sim": {
+        "displayName": "Heeled Boots",
+        "nameRu": "Сапоги на каблуке",
+        "descEn": "To the knee, on a heel. Someone chose these for a city.",
+        "descRu": "До колена, на каблуке. Их выбирали для города.",
+        "warmth": 0.12,
+        "armor": 0.08,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "Boots_20496",
+      "folder": "OsirisBoots",
+      "name": "OsirisBoots",
+      "simId": "clothing.boots_osiris",
+      "layer": "Outerwear",
+      "slots": [
+        "ShinR",
+        "ShinL",
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Boots",
+          "texture": "UW_gear_d.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Socks",
+          "texture": "UW_gear_d.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 20496,
+        "polys": 21822,
+        "bbox": [
+          -19.9,
+          19.9,
+          -1.7,
+          45.2,
+          -13.1,
+          15.4
+        ],
+        "zones": {
+          "Foot": 0.679,
+          "Shin": 0.321
+        },
+        "heelCm": 1.74
+      },
+      "sim": {
+        "displayName": "Combat Boots",
+        "nameRu": "Берцы",
+        "descEn": "Flat, laced, made for walking all day.",
+        "descRu": "Плоские, на шнуровке, для целого дня на ногах.",
+        "warmth": 0.13,
+        "armor": 0.1,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "Gloves_5480",
+      "folder": "OsirisGloves",
+      "name": "OsirisGloves",
+      "simId": "clothing.gloves_osiris",
+      "layer": "Wear",
+      "slots": [
+        "ForearmR",
+        "ForearmL",
+        "WristR",
+        "WristL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Gloves",
+          "texture": "UW_gear_d.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 5480,
+        "polys": 10648,
+        "bbox": [
+          -78.1,
+          78.1,
+          142.0,
+          148.3,
+          -1.4,
+          9.7
+        ],
+        "zones": {
+          "Wrist": 0.778,
+          "Forearm": 0.218,
+          "Hand": 0.004
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Wrist Wraps",
+        "nameRu": "Напульсники",
+        "descEn": "Wrapped from wrist to forearm.",
+        "descRu": "Намотаны от запястья до предплечья.",
+        "warmth": 0.02,
+        "armor": 0.03,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "ArmL",
+          "ArmR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "Belt Holster_8757",
+      "folder": "OsirisHolsterBelt",
+      "name": "OsirisHolsterBelt",
+      "simId": "clothing.belt_holster",
+      "layer": "Outerwear",
+      "slots": [
+        "Pelvis",
+        "ThighR",
+        "ThighL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Holster",
+          "texture": "UW_gear_d.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Belt",
+          "texture": "UW_gear_d.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Metal",
+          "texture": "UW_gear_d.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 8757,
+        "polys": 16397,
+        "bbox": [
+          -25.3,
+          25.3,
+          69.5,
+          107.8,
+          -12.1,
+          12.6
+        ],
+        "zones": {
+          "Thigh": 0.489,
+          "Pelvis": 0.415,
+          "Belly": 0.097
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Holster Belt",
+        "nameRu": "Пояс с кобурой",
+        "descEn": "An empty holster on a thigh strap. The gun is someone else's story.",
+        "descRu": "Пустая кобура на бедренном ремне. Ствол — уже чужая история.",
+        "warmth": 0.01,
+        "armor": 0.03,
+        "thermalDelta": 0.0,
+        "capacity": 3,
+        "covers": [
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "Backpack_1540",
+      "folder": "OsirisBackpack",
+      "name": "OsirisBackpack",
+      "simId": "gear.backpack_osiris",
+      "layer": "Bags",
+      "slots": [
+        "Chest"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Backpack",
+          "texture": "UW_gear_d.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 1540,
+        "polys": 2836,
+        "bbox": [
+          -15.7,
+          15.8,
+          122.8,
+          153.5,
+          -24.8,
+          7.7
+        ],
+        "zones": {
+          "Chest": 0.971,
+          "Neck": 0.029
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Field Pack",
+        "nameRu": "Полевой рюкзак",
+        "descEn": "Small and flat. Holds a day, not a week.",
+        "descRu": "Маленький и плоский. На день, не на неделю.",
+        "warmth": 0.02,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 8,
+        "covers": [
+          "Torso"
+        ]
+      }
+    }
+  ]
+}

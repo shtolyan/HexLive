@@ -288,6 +288,8 @@ namespace HexLive.Simulation.Content
                 new("underwear.briefs_sweety_06panty", "Lace Panties (06Panty)", WearLayer.Underwear, 0.01f, 0.00f, 0.00f, dress, 0, BodyPart.Torso, BodyPart.Pelvis) { PrototypeId = "underwear.briefs_sweety" },
                 new("underwear.briefs_sweety_07panty", "Lace Panties (07Panty)", WearLayer.Underwear, 0.01f, 0.00f, 0.00f, dress, 0, BodyPart.Torso, BodyPart.Pelvis) { PrototypeId = "underwear.briefs_sweety" },
                 new("underwear.briefs_sweety_08panty", "Lace Panties (08Panty)", WearLayer.Underwear, 0.01f, 0.00f, 0.00f, dress, 0, BodyPart.Torso, BodyPart.Pelvis) { PrototypeId = "underwear.briefs_sweety" },
+                new("underwear.top_cindy", "Halter Bikini Top", WearLayer.Underwear, 0.01f, 0.00f, 0.00f, dress, 0, BodyPart.Torso),
+                new("underwear.briefs_cindy", "Bikini Bottom", WearLayer.Underwear, 0.01f, 0.00f, 0.00f, dress, 0, BodyPart.Pelvis),
 
                 // --- Wear: the main clothing layer, carries the warmth budget. --
                 // New-wear drop (2026-07, Temp FBX extraction — spec §31B.4).
@@ -552,6 +554,11 @@ namespace HexLive.Simulation.Content
                 new("clothing.dress_night_white", "Night Dress (White)", WearLayer.Wear, 0.06f, 0.00f, 0.00f, dress, 0, BodyPart.Torso, BodyPart.Pelvis) { PrototypeId = "clothing.dress_night" },
                 new("clothing.necklace_beads", "Beaded Necklace", WearLayer.Wear, 0.00f, 0.00f, 0.00f, dress, 0, BodyPart.Torso),
                 new("clothing.necklace_osiris", "Chain Necklace", WearLayer.Wear, 0.00f, 0.00f, 0.00f, dress, 0, BodyPart.Torso),
+                new("clothing.shorts_cindy", "Buttoned Shorts", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 1, BodyPart.Pelvis),
+                new("clothing.top_osiris", "Field Top", WearLayer.Wear, 0.04f, 0.00f, 0.00f, dress, 0, BodyPart.Torso),
+                new("clothing.shorts_osiris", "Field Shorts", WearLayer.Wear, 0.04f, 0.00f, 0.00f, dress, 1, BodyPart.Pelvis),
+                new("clothing.gloves_cindy", "Short Gloves", WearLayer.Wear, 0.02f, 0.02f, 0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR),
+                new("clothing.gloves_osiris", "Wrist Wraps", WearLayer.Wear, 0.02f, 0.03f, 0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR),
 
                 // --- Outerwear: the top layer — jackets, boots, armor. ----------
                 // §52.8 tool holster: GEAR, not clothing — no warmth, no thermal
@@ -659,6 +666,12 @@ namespace HexLive.Simulation.Content
                 new("clothing.collar_fur_color04", "Fur Collar (color04)", WearLayer.Outerwear, 0.07f, 0.00f, 0.00f, dress, 0, BodyPart.Torso) { PrototypeId = "clothing.collar_fur" },
                 new("clothing.collar_fur_color05", "Fur Collar (color05)", WearLayer.Outerwear, 0.07f, 0.00f, 0.00f, dress, 0, BodyPart.Torso) { PrototypeId = "clothing.collar_fur" },
                 new("clothing.collar_fur_color06", "Fur Collar (color06)", WearLayer.Outerwear, 0.07f, 0.00f, 0.00f, dress, 0, BodyPart.Torso) { PrototypeId = "clothing.collar_fur" },
+                new("clothing.jacket_cindy", "Cropped Jacket", WearLayer.Outerwear, 0.12f, 0.07f, 0.00f, dress, 1, BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR),
+                new("clothing.belt_cindy", "Hip Belt", WearLayer.Outerwear, 0.01f, 0.03f, 0.00f, dress, 2, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
+                new("clothing.boots_cindy", "Heeled Boots", WearLayer.Outerwear, 0.12f, 0.08f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR),
+                new("clothing.boots_osiris", "Combat Boots", WearLayer.Outerwear, 0.13f, 0.10f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR),
+                new("clothing.belt_holster", "Holster Belt", WearLayer.Outerwear, 0.01f, 0.03f, 0.00f, dress, 3, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
+                new("gear.backpack_osiris", "Field Pack", WearLayer.Bags, 0.02f, 0.00f, 0.00f, dress, 8, BodyPart.Torso),
 
                 // --- §72: снаряжение чужака ------------------------------------
                 // Он не выживальщик в трусах, а боец: тактический комплект с

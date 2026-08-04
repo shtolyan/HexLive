@@ -2593,6 +2593,214 @@ MonoBehaviour:
       - 'Носимый предмет.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'item.clothing_jacket_cindy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cropped Jacket'
+      - 'Укороченная куртка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jacket_cindy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leather cut short, metal at the seams.'
+      - 'Кожа, обрезанная по рёбрам, металл по швам.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_cindy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Halter Bikini Top'
+      - 'Верх бикини на завязках'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_top_cindy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ties behind the neck. That is the whole design.'
+      - 'Завязывается за шеей. В этом вся конструкция.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_cindy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bikini Bottom'
+      - 'Низ бикини'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_briefs_cindy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the top.'
+      - 'В пару к верху.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_cindy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Buttoned Shorts'
+      - 'Шорты на пуговице'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_cindy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Short, plain, one button. Nothing to break.'
+      - 'Короткие, простые, одна пуговица. Ломаться нечему.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_osiris.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Field Top'
+      - 'Полевой топ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_osiris.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plain, tight, made to go under gear.'
+      - 'Простой, в облипку, чтобы надевать под снаряжение.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_osiris.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Field Shorts'
+      - 'Полевые шорты'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_osiris.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the top.'
+      - 'В пару к топу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_belt_cindy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hip Belt'
+      - 'Пояс на бедро'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_belt_cindy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wide, low on the hip, metal fittings.'
+      - 'Широкий, низко на бедре, с металлом.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_cindy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Short Gloves'
+      - 'Короткие перчатки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_cindy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'To the wrist. Keeps the palms off hot metal.'
+      - 'До запястья. Спасают ладони от горячего металла.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_cindy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Heeled Boots'
+      - 'Сапоги на каблуке'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_cindy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'To the knee, on a heel. Someone chose these for a city.'
+      - 'До колена, на каблуке. Их выбирали для города.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_osiris.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Combat Boots'
+      - 'Берцы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_osiris.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Flat, laced, made for walking all day.'
+      - 'Плоские, на шнуровке, для целого дня на ногах.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_osiris.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wrist Wraps'
+      - 'Напульсники'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_osiris.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wrapped from wrist to forearm.'
+      - 'Намотаны от запястья до предплечья.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_belt_holster.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Holster Belt'
+      - 'Пояс с кобурой'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_belt_holster.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'An empty holster on a thigh strap. The gun is someone else''s story.'
+      - 'Пустая кобура на бедренном ремне. Ствол — уже чужая история.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.gear_backpack_osiris.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Field Pack'
+      - 'Полевой рюкзак'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.gear_backpack_osiris.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Small and flat. Holds a day, not a week.'
+      - 'Маленький и плоский. На день, не на неделю.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'item.clothing_necklace_osiris.name'
       TermType: 0
       Description: 

@@ -398,6 +398,182 @@
       ],
       "drop": "vampjanecharm",
       "done": true
+    },
+    {
+      "batch": 11,
+      "items": 14,
+      "variants": 0,
+      "products": [
+        {
+          "vendor": "",
+          "product": "Cindy Aurum",
+          "generation": "Genesis 3 Female",
+          "wearables": 8,
+          "variants": 0,
+          "path": "People/Genesis 3 Female/Clothing/Cindy Aurum"
+        },
+        {
+          "vendor": "",
+          "product": "Osiris Outfit",
+          "generation": "Genesis 3 Female",
+          "wearables": 6,
+          "variants": 0,
+          "path": "People/Genesis 3 Female/Clothing/Osiris Outfit"
+        }
+      ],
+      "drop": "",
+      "done": false,
+      "note": "Добавлено 2026-08-04 ревизией библиотеки: эти наборы стоят БЕЗ вендорской папки, прямо в Clothing/<продукт>, и первоначальный план их не увидел."
+    },
+    {
+      "batch": 12,
+      "items": 16,
+      "variants": 205,
+      "products": [
+        {
+          "vendor": "",
+          "product": "JMR Lace Bra and Open Back Panties",
+          "generation": "Genesis 3 Female",
+          "wearables": 2,
+          "variants": 12,
+          "path": "People/Genesis 3 Female/Clothing/JMR Lace Bra and Open Back Panties"
+        },
+        {
+          "vendor": "",
+          "product": "JMR Sports Lingerie",
+          "generation": "Genesis 3 Female",
+          "wearables": 2,
+          "variants": 12,
+          "path": "People/Genesis 3 Female/Clothing/JMR Sports Lingerie"
+        },
+        {
+          "vendor": "",
+          "product": "JMR Strappy Swimsuit",
+          "generation": "Genesis 3 Female",
+          "wearables": 2,
+          "variants": 36,
+          "path": "People/Genesis 3 Female/Clothing/JMR Strappy Swimsuit"
+        },
+        {
+          "vendor": "",
+          "product": "JMR dForce Naughty Outfit",
+          "generation": "Genesis 3 Female",
+          "wearables": 4,
+          "variants": 24,
+          "path": "People/Genesis 3 Female/Clothing/JMR dForce Naughty Outfit"
+        },
+        {
+          "vendor": "",
+          "product": "Luxury Bikini",
+          "generation": "Genesis 3 Female",
+          "wearables": 4,
+          "variants": 20,
+          "path": "People/Genesis 3 Female/Clothing/Luxury Bikini"
+        },
+        {
+          "vendor": "",
+          "product": "OOT City Dress",
+          "generation": "Genesis 3 Female",
+          "wearables": 1,
+          "variants": 7,
+          "path": "People/Genesis 3 Female/Clothing/OOT City Dress"
+        },
+        {
+          "vendor": "",
+          "product": "OOT DeviLingerie",
+          "generation": "Genesis 3 Female",
+          "wearables": 1,
+          "variants": 94,
+          "path": "People/Genesis 3 Female/Clothing/OOT DeviLingerie"
+        }
+      ],
+      "drop": "",
+      "done": false,
+      "note": "Добавлено 2026-08-04 ревизией библиотеки: эти наборы стоят БЕЗ вендорской папки, прямо в Clothing/<продукт>, и первоначальный план их не увидел."
+    },
+    {
+      "batch": 13,
+      "items": 18,
+      "variants": 10,
+      "products": [
+        {
+          "vendor": "",
+          "product": "S.T.A.R.S Uniform",
+          "generation": "Genesis 3 Female",
+          "wearables": 7,
+          "variants": 0,
+          "path": "People/Genesis 3 Female/Clothing/S.T.A.R.S Uniform"
+        },
+        {
+          "vendor": "",
+          "product": "S3D Deadly Silence",
+          "generation": "Genesis 3 Female",
+          "wearables": 7,
+          "variants": 7,
+          "path": "People/Genesis 3 Female/Clothing/S3D Deadly Silence"
+        },
+        {
+          "vendor": "",
+          "product": "Skinny Jeans and Corset",
+          "generation": "Genesis 3 Female",
+          "wearables": 4,
+          "variants": 3,
+          "path": "People/Genesis 3 Female/Clothing/Skinny Jeans and Corset"
+        }
+      ],
+      "drop": "",
+      "done": false,
+      "note": "Добавлено 2026-08-04 ревизией библиотеки: эти наборы стоят БЕЗ вендорской папки, прямо в Clothing/<продукт>, и первоначальный план их не увидел."
+    },
+    {
+      "batch": 14,
+      "items": 17,
+      "variants": 45,
+      "products": [
+        {
+          "vendor": "",
+          "product": "Summer Sandals Vol 1",
+          "generation": "Genesis 3 Female",
+          "wearables": 4,
+          "variants": 37,
+          "path": "People/Genesis 3 Female/Clothing/Summer Sandals Vol 1"
+        },
+        {
+          "vendor": "",
+          "product": "S3D Real Sneakers v5",
+          "generation": "Genesis 3 Female",
+          "wearables": 2,
+          "variants": 3,
+          "path": "People/Genesis 3 Female/Clothing/S3D Real Sneakers v5"
+        },
+        {
+          "vendor": "",
+          "product": "S3D SportSneakers",
+          "generation": "Genesis 3 Female",
+          "wearables": 2,
+          "variants": 2,
+          "path": "People/Genesis 3 Female/Clothing/S3D SportSneakers"
+        },
+        {
+          "vendor": "",
+          "product": "Alloy Fusion Outfit",
+          "generation": "Genesis 3 Female",
+          "wearables": 4,
+          "variants": 3,
+          "path": "People/Genesis 3 Female/Clothing/Alloy Fusion Outfit"
+        },
+        {
+          "vendor": "",
+          "product": "Classic Reiko Outfit",
+          "generation": "Genesis 3 Female",
+          "wearables": 5,
+          "variants": 0,
+          "path": "People/Genesis 3 Female/Clothing/Perfect Slam/Conversions/Rowdy Reiko Outfit/Classic Reiko Outfit"
+        }
+      ],
+      "drop": "",
+      "done": false,
+      "note": "Добавлено 2026-08-04 ревизией библиотеки: эти наборы стоят БЕЗ вендорской папки, прямо в Clothing/<продукт>, и первоначальный план их не увидел."
     }
   ]
 }

@@ -21,6 +21,13 @@ read it. The contract:
   gesture, done in-game. Never touch `nextId` except to preserve it.
 - The running game re-reads the file by mtime every ~2 s, so an edit made
   while Play mode is up appears live; no restart needed.
+- **Builds write to the same repo file** (the store falls back through
+  `-hexlive-bugs <path>` → repo root → `persistentDataPath`). A build made
+  before 2026-08-04, or one running on a machine without the repo, still
+  writes to the sandbox
+  `~/Library/Application Support/DefaultCompany/HexLive/BUGS.json` — **check
+  it too and merge any reports into the repo file** (its ids start at 1001
+  so they never collide), then empty its `reports` back to `[]`.
 
 Code: `UnityPresentation/UI/BugReportStore.cs` (schema + IO),
 `UI/BugReportPanel.cs` (window), button in `DebugControlsPanel`.

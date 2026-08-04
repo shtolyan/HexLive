@@ -48,15 +48,41 @@ namespace HexLive.UnityPresentation.UI
 
         private static FileModel _model;
         private static DateTime _loadedMtimeUtc;
+        private static string _filePath;
 
+        // Every surface — editor Play, a local build, the agent — must share
+        // ONE file, or bugs filed from a build land in a sandbox nobody reads
+        // (that happened on day one: persistentDataPath swallowed report #1).
+        // Resolution order: explicit -hexlive-bugs <path> → the repo root
+        // (editor derives it, a dev build on this machine finds it by its
+        // well-known path) → persistentDataPath as the last resort for a
+        // build on a machine without the repo.
         public static string FilePath
         {
             get
             {
+                if (_filePath != null)
+                {
+                    return _filePath;
+                }
+
+                var args = Environment.GetCommandLineArgs();
+                for (var i = 0; i < args.Length - 1; i++)
+                {
+                    if (args[i] == "-hexlive-bugs")
+                    {
+                        return _filePath = Path.GetFullPath(args[i + 1]);
+                    }
+                }
+
 #if UNITY_EDITOR
-                return Path.GetFullPath(Path.Combine(Application.dataPath, "..", "BUGS.json"));
+                return _filePath = Path.GetFullPath(
+                    Path.Combine(Application.dataPath, "..", "BUGS.json"));
 #else
-                return Path.Combine(Application.persistentDataPath, "BUGS.json");
+                const string devRepo = "/Volumes/ORICO/HexLive";
+                return _filePath = Directory.Exists(devRepo)
+                    ? Path.Combine(devRepo, "BUGS.json")
+                    : Path.Combine(Application.persistentDataPath, "BUGS.json");
 #endif
             }
         }

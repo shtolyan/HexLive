@@ -126,8 +126,8 @@
           "path": "People/Genesis 3 Female/Clothing/Osiris Outfit/Props"
         }
       ],
-      "drop": "",
-      "done": false,
+      "drop": "osirisprops",
+      "done": true,
       "note": "The Fighter уехал одеждой в заходе 5 (шесть вещей *_fighter, наручи L+R сварены в одну). Из Osiris Props одеждой являются только колье и, возможно, кобуры; пистолеты и магазины — снаряжение, не гардероб (§10)."
     },
     {

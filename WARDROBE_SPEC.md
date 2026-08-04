@@ -440,7 +440,9 @@ name://@selection/lFoot:?rotation/x/value      # последний сегмен
 
 ## 11. Состояние на момент написания
 
-Ветка `wardrobe/import`. В каталоге и SimData — **503 записи**.
+Ветка `wardrobe/import`. В каталоге и SimData — **504 записи**.
+**План импорта пройден целиком**: партии 1-3, 5-10 закрыты, партия 4 и
+X-Fashion Tiny Tropics исключены по правилу Genesis 3 (§10).
 
 | заход | поставка | вещей | расцветок | статус |
 |---|---|---|---|---|
@@ -451,6 +453,7 @@ name://@selection/lFoot:?rotation/x/value      # последний сегмен
 | 5 | `summerbikerlace` — Summer + Idol + Biker + … | 19 | 29 | закрыт |
 | 6 | `vampjanecharm` — Vamp + Sweet Jane + X-Fashion + Charm Boots + Spooky + Autumn + Panties + Bandaid + Fads | 14 | 112 | закрыт |
 | 7 | `sweetywildvapor` — Sweety + PrimalDress + CruX Wild + Yoga + NightDress + Reiko + VaporWear2 + Big Teez | 16 | 101 | закрыт |
+| 8 | `osirisprops` — Osiris Props (остаток партии 6) | 1 | 0 | закрыт |
 
 Плюс 9 мужских вещей, живших в проекте раньше.
 
@@ -465,8 +468,9 @@ name://@selection/lFoot:?rotation/x/value      # последний сегмен
   блуза (3), кружевной лиф (1), обёрнутый топ (2), подвеска Amy (3).
 - **Партия 4 и Tiny Tropics исключены** — Genesis 8, см. §10. Это решение, а не
   хвост: возвращаться к ним не нужно.
-- Из партии 6 одеждой остались только колье и, возможно, кобуры Osiris Props;
-  сам The Fighter уехал в заходе 5, а пистолеты и магазины — снаряжение. Партия 6 (The Fighter + Props)
+- Партия 6 доедена заходом 8: гардеробом в Osiris Props оказалась одна цепочка.
+  Кобуры отброшены как оружие — три материала из четырёх (`Frame`, `Slide`,
+  `Magazine`) это сам пистолет. Партия 6 (The Fighter + Props)
   одеждой уехала внутри заходa 5 — шесть вещей `*_fighter`, — но флаг `done` у
   неё в `import-plan.json` всё ещё `false`: остались не разобранными props.
 - **24 иконки-сироты** в `Resources/HexLive/UI/Items` не отвечают ни одному

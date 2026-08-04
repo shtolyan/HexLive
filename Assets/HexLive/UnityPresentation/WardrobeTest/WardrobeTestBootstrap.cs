@@ -334,7 +334,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
 
 #if UNITY_EDITOR
         foreach (var guid in UnityEditor.AssetDatabase.FindAssets(
-                     "t:Prefab", new[] { "Assets/ImportedActors/Wear" }))
+                     "t:Prefab", new[] { "Assets/ImportedActors/Hair" }))
         {
             var path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
             var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(path);

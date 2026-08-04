@@ -52,7 +52,12 @@ using UnityEngine;
 public static class HairExtractor
 {
     private const string Fbx = "Assets/Temp/hair.fbx";
-    private const string ImportRoot = "Assets/ImportedActors/Wear";
+    // ⚠️ Причёски живут в СВОЕЙ папке, не в Wear. Когда-то экстрактор писал их
+    // рядом с одеждой, и в проекте завелись две копии каждой причёски: в Hair
+    // — настроенные руками (пороги прозрачности, шапочки в прозрачном режиме),
+    // а в Wear — пустые, без текстур. Девушки ссылались на первые, тестовая
+    // сцена показывала вторые, и причёски в ней выглядели белыми.
+    private const string ImportRoot = "Assets/ImportedActors/Hair";
     private sealed class MatSpec
     {
         public string Source;       // material name inside the FBX

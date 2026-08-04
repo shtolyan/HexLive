@@ -6,12 +6,16 @@ using UnityEngine;
 namespace HexLive.UnityPresentation.Rendering
 {
     /// <summary>
-    /// Spec §112: the palms step out of the shot. Once a frame the culler draws
-    /// the sight line — from the lens to whatever the rig is framing (the followed
-    /// colonist in orbit mode, the ground pivot in free mode) — and hides every
-    /// <see cref="FoliageOccluder"/> whose geometry sits on it, plus anything
-    /// pressed right against the lens (the camera standing INSIDE a crown, which
-    /// is what fills half the screen with fronds).
+    /// Spec §112: the palms step out of the shot. The rule is a DEPTH CUT at the
+    /// followed colonist: every <see cref="FoliageOccluder"/> standing nearer to
+    /// the lens than she does is hidden for that frame, everything at her depth
+    /// or beyond is left alone. So the foreground clears and the backdrop — the
+    /// grove she is walking into — stays a grove.
+    ///
+    /// With no colonist to frame (free camera over the ground) there is no plane
+    /// to cut at, and the culler clears only the sight line to the pivot. Both
+    /// modes also clear anything pressed right against the lens — the camera
+    /// standing INSIDE a crown, which is what fills half the screen with fronds.
     ///
     /// Hiding is shadows-only and re-checked every frame, so nothing is
     /// permanently deleted: step aside and the palm is back. The short restore
@@ -37,8 +41,9 @@ namespace HexLive.UnityPresentation.Rendering
         [Tooltip("Seconds a cleared leaf stays cleared after it stops blocking (anti-strobe).")]
         [SerializeField] private float _restoreDelay = 0.15f;
 
-        [Tooltip("Leaves this close to the framed point are kept — the palm she is " +
-                 "chopping must not vanish out from under the axe.")]
+        [Tooltip("How far IN FRONT of the followed colonist the cut plane sits. " +
+                 "Leaves within this margin of her own depth stay — the palm she " +
+                 "is chopping must not vanish out from under the axe.")]
         [SerializeField] private float _focusClearance = 1f;
 
         [Tooltip("Fallback framing distance when no camera rig is present.")]
@@ -96,6 +101,17 @@ namespace HexLive.UnityPresentation.Rendering
             var clearanceSqr = _lensClearance * _lensClearance;
             var padding = _sightPadding * 2f;
 
+            // The depth rule needs a subject. While a colonist is being followed
+            // the cut is her own plane: everything standing NEARER to the lens
+            // than she does goes, everything at her depth or beyond stays —
+            // whether or not it happens to sit on the sight line. With no
+            // subject (free camera over the ground) that rule would strip the
+            // whole island from a top-down shot, so there the culler falls back
+            // to clearing just the sight line.
+            var forward = transform.forward;
+            var planeCut = _rig != null && _rig.HasFramedSubject;
+            var cutDepth = Vector3.Dot(toFocus, forward) - _focusClearance;
+
             for (var i = 0; i < occluders.Count; i++)
             {
                 var occluder = occluders[i];
@@ -104,9 +120,23 @@ namespace HexLive.UnityPresentation.Rendering
                     continue;
                 }
 
-                if ((occluder.transform.position - origin).sqrMagnitude > coarseRangeSqr)
+                var toRoot = occluder.transform.position - origin;
+                if (toRoot.sqrMagnitude > coarseRangeSqr)
                 {
                     continue; // far behind the framed point — it cannot be in the way
+                }
+
+                if (planeCut)
+                {
+                    // Where the plant STANDS decides it — the trunk's foot, not
+                    // the swaying crown, so the verdict is the one a player
+                    // would read off the ground: this palm is in front of her.
+                    var depth = Vector3.Dot(toRoot, forward);
+                    if (depth > 0f && depth < cutDepth)
+                    {
+                        occluder.BlockUntil(blockUntil);
+                        continue;
+                    }
                 }
 
                 var renderers = occluder.Renderers;
@@ -121,10 +151,12 @@ namespace HexLive.UnityPresentation.Rendering
                     var bounds = renderer.bounds;
                     bounds.Expand(padding);
 
-                    // Pressed against the lens, or standing on the sight line
-                    // between the lens and what is being framed.
+                    // Whatever survived the depth cut still goes if it is pressed
+                    // against the lens (a crown rooted behind her can still hang
+                    // into the objective), or — with no subject — if it stands on
+                    // the sight line.
                     if (bounds.SqrDistance(origin) <= clearanceSqr ||
-                        (bounds.IntersectRay(ray, out var hit) && hit < sightLength))
+                        (!planeCut && bounds.IntersectRay(ray, out var hit) && hit < sightLength))
                     {
                         occluder.BlockUntil(blockUntil);
                         break;

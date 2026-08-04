@@ -935,8 +935,12 @@ hills, and mountains — some climbable by natural ramps, some sheer.
   deterministically scattered from the tile coord, one shared flat green
   material — no texture, no alpha. Gated by `_grassDetail` /
   `_grassBladesPerTile` on the renderer. **Flattening:** a lying body
-  (sleeping / fainted / corpse) hides its tile's grass clump and it pops
-  back after — O(lying bodies) per tick, only affected tiles toggle.
+  hides its tile's grass clump and it pops back after — O(lying bodies) per
+  tick, only affected tiles toggle. "Lying" is ONE predicate
+  (`HexWorldRenderer.IsLyingDown`, §113): asleep, fainted (§40.13), comatose
+  (§60), dying (§105), playing dead (§105.14), **crying (§110)** and crawling
+  (§50), plus every `corpse.npc` object. Hand-writing that union a second
+  time is exactly how the crying body ended up lying in unbent grass.
 - Water renders sunken below its tile top. The sea/water tops use the imported
   **Definitive Stylized Water URP** material
   (`Resources/HexLive/Water/StylizedWaterDefinitive.mat`, from the user's
@@ -2361,6 +2365,29 @@ Skipping any of these leaks occupancy/reservations permanently.
 Starving is a status only: needs still clamp at their bounds and there is no
 death or damage in v1.
 
+**⭐ An interaction never outlives the plan that started it.** The cleanup above
+fires on a goal CHANGE, and for years that left a hole: a plan can also die
+*without* the goal moving (`ExecFailed` → `PlanStatus.Failed`), and then the
+verb it started stays switched on forever. `ExecutionSystem` will not clear it —
+the first line of its loop is `Plan.Status != Active → continue` — so the
+interaction can neither advance nor finish, while the planner calmly builds a
+fresh walking plan for the same goal on top of it.
+
+The symptom is visual and unmistakable: presentation mirrors
+`CurrentInteraction` every frame, so the body **slides across the island playing
+the action clip**. Found as "she drank a coconut and then skated away still
+drinking it" (seed 42: `Drink` started at tick 4825; two ticks later the pierced
+coconut left the pack; the same `Drink` goal was replanned into a 158-step walk;
+the drink clip and the coconut in hand rode along for 252 ticks). The orphan
+also kept the target object occupied and its junctions reserved.
+
+Rule: **`PlanningSystem`, on every replan, aborts an execution that is still
+`InProgress`** (full 23.17 cleanup, `GoalInterrupted` with reason
+`Replan over a live <verb>`). Guarded by `InteractionOrphanTests` — one gate on
+the seam, one on the prototype island ("nobody walks with a live interaction").
+A live interaction under an *active* matching plan is untouched: multi-sip
+drinking, staged craft and the laundry legs all keep `PlanStatus.Active`.
+
 ### 23.18 Decision Output
 
 The output of the decision system should be explicit.
@@ -3260,6 +3287,73 @@ Reach is measured twice — straight-line, and along the ground.
   1154→1166 interactions completed, 14 fires lit both ways), `InteractionTooFar`
   35→23, and the plan-level cost is `NoSuitableObject` on Gather goals — items
   stranded on a ledge are correctly no longer harvestable through the rock.
+
+#### 26.6A r5 — a THIRD body blocks the hands too
+
+r4 made terrain honest and left one hole open on purpose: the rim BFS still
+walked through **any** object footprint. That is right for the footprint you are
+working (you circle a fire to reach its rim) and wrong for anyone else's, and
+the sub-grid makes the difference exactly one junction wide:
+
+- every junction adjacency is **0.375 wu** — measured over all 192 920 edges,
+  not assumed; the `StandStepAllowance` comment claiming "~0.75 wu on a boundary
+  row" was simply stale;
+- `BesideReach(0)` is **0.80 wu** — i.e. **two** steps;
+- so exactly one blocked junction fits between the hand and the prize;
+- a palm trunk **is** exactly one blocked junction (`tree.palm` declares
+  `Obstacle` but no `ObstacleRadius`, so only its anchor closes), and a coconut
+  drops on a free junction of the palm's own tile (`FruitProductionSystem`).
+
+Hence the user's screenshot — a girl piercing a coconut through the trunk — was
+not a near miss but the arithmetic working as written.
+
+r5 states the invariant: **the rim may cross the footprint of the object it is
+being built FOR, and nothing else. Someone else's body is a wall exactly like a
+cliff.** One predicate carries it — `SpatialQueries.IsBarrierFor(world, j,
+target, purpose)` — and every caller already flows through it: the planner's
+beside-search, the coconut plan, the collector, the wash fetch, fireside
+furniture placement, and `InteractionReach.CheckObjectStart`. The violation
+emits the same `InteractionTooFar` trace, so the §26.6A soak counter covers this
+variant too.
+
+- **`RimPurpose` — the same two questions the §26.6A table already separates,
+  drawn one level down where the BFS can see them.** `Reach` ("may I work from
+  here") treats a third body as a wall; `Route` ("is there anywhere to stand
+  beside it at all") does not, because a body is walked AROUND. `PerceptionSystem`
+  and `Connectivity.ReachableBeside` ask `Route` and must keep asking it: merging
+  the two makes objects quietly stop being reachable, drop out of candidate lists,
+  and starve the colony with no `PlanFailed` to show for it.
+- **Own footprint = `WorldObjectState.BlockedJunctions`**, i.e. what this object
+  actually closed. Verified on the prototype island: 41 obstacles, **0** junctions
+  covered-but-not-owned, so the cheap identity test is also the correct one.
+- ⚠️ **MEASURED COST, and it is not zero.** Paired A/B on one tree, 30 seeds ×
+  24 000 ticks: **91/120 → 81/120 alive** (worse on 10 seeds, better on 4, no
+  total wipe either way), `plansFailed` +6%. The deaths shift toward COMBAT
+  (`VitalPartDestroyed` 4→10 over 12 seeds) rather than hunger — the colony is
+  not locked away from food, it loses working time walking around obstacles, and
+  it is already on a knife edge against dogs (§29C / `TimedMeleeEverywhere`).
+- **Part of that cost was the WORLD's fault, not the rule's, and is now fixed at
+  the source: `FruitProductionSystem.FindDropSpot` scores the drop.** A palm is
+  the one obstacle guaranteed to be beside its own fruit, and first-fit
+  ("the first passable free junction in slot order") routinely wedged the nut
+  against the trunk. That was survivable while the hand reached THROUGH the
+  trunk; under r5 it is simply food that rots. MEASURED over 12 seeds × 10 days:
+  nuts dropped unchanged (1270 → 1282) but picked up **1772 → 1595** and rotted
+  **625 → 651**. The drop now prefers the spot with the most legal approach
+  cells — counted by `InteractionReach.CountApproaches`, i.e. THE SAME predicate
+  the forager is later held to, so producer and planner cannot disagree — with
+  the fixed tile/slot order and strictly-greater comparison preserving
+  determinism, and an early-out at 4 so a cramped grove still gets its drop.
+  Result: pickups **1595 → 1682**, survival **81/120 → 84/120**, and the control
+  arm (rule off) stayed at exactly **91/120** — the change helps only where it
+  should and perturbs nothing else.
+- **`FindScatterSpot` deliberately did NOT get the same treatment.** The same
+  edit was tried and measured: it moved the CONTROL arm 91/120 → 84/120 too,
+  i.e. it reshuffled seeds rather than feeding anyone. A change that cannot show
+  a clean control is not an improvement, however plausible it reads.
+- Therefore r5 ships behind **`SimBalance.ReachThroughBodiesBlocked`** (default
+  ON — a visible lie costs more than a balance point). OFF restores r4 exactly.
+  The right compensation is dog damage, not giving the hand back its trunk.
 
 ### 26.7 Tick-Based Action Progress
 
@@ -7279,6 +7373,11 @@ SLEEP below is unchanged)*
   - Knobs: `Spec49.SleepBerths` (kill switch — off restores the pre-r3
     "everyone on the exact centre"), `SleepBerthSpacingFactor`,
     `SleepBerthHalfSpan` (1 → a rank of three).
+  - **§113: a berth is also taken by a THING.** The rank knew about bodies
+    only, so a hex whose centre holds a campfire / boulder / bed read as
+    free and the body lay inside it. Since §113 the same solver treats a
+    solid object's footprint as an occupied berth (and turns the rank along
+    another hex axis when a side berth is the blocked one) — see §113.
 
 **The bed must be earned**
 
@@ -9222,6 +9321,26 @@ pass — order chosen to add robustness before difficulty.
     бинты, — то есть загар в САМОМ НИЗУ и перекрасить его без перерисовки
     всего сверху нельзя. Поэтому он въезжает в базу только на плановом ходу; до
     тех пор свежие раны ложатся поверх СТАРОЙ базы и остаются дешёвыми.
+  - ⚠️ **Грабли r2: перенос на соседнюю сабмешь пропал.** Свежая метка ставится
+    прямоугольником на ЯКОРНОМ слоте, а апгрейд до проекции — это ЗАМЕНА
+    пикселей, не добавление. Аддитивный проход находил штамп уже в списке
+    нарисованных на якорном слоте, **пропускал** его, и обрезанный
+    прямоугольник оставался там навсегда: декаль дотягивалась до соседней
+    сабмеши, но переставать быть обрезанной на своей — нет. Читалось ровно как
+    «с ноги на pelvis не переносится». Лечится тем, что апгрейд ВСЕГДА идёт
+    полной пересборкой (`_forceFullRebuild`).
+  - **Плановый ход проверяется РАНЬШЕ свежих меток.** Иначе поток укусов
+    затыкает обход насмерть — а обход это и есть то, что превращает
+    прямоугольник в бесшовную декаль.
+  - **Декаль, реально попавшая на шов, апгрейдится сразу**, не дожидаясь своей
+    очереди (`Stamp.NeedsSeamUpgrade`, ставит воркер по `Slots.Length > 1`):
+    обход при ~19 painter'ах длится ~19 с, и всё это время рана выглядела бы
+    разрезанной. Декали внутри одной сабмеши ждут хода спокойно — там
+    прямоугольник и проекция почти неразличимы.
+  - Ручная таблица «нога→таз→туловище→руки» НЕ нужна: набор задетых сабмешей
+    считается геометрически (`SlotReaches` по запечённым точкам поверхности),
+    что точнее любого списка соседей — он находит ровно те слоты, которых
+    коробка декали действительно касается.
   - **Спеклы урона (§40.8-H) считаются каждый тик, но материализуются на
     плановом ходу.** Они НИЖНИЙ слой, поэтому появление одного пятна
     запрещает аддитивную дорисовку (новое пятно легло бы ПОВЕРХ ран) и тянет
@@ -12828,6 +12947,13 @@ npc)` кладёт тело в свободное КОЙКО-МЕСТО этог
 `Spec49.SleepBerthSpacingFactor × HexRadius` (0.75 wu). Соседки лежат
 ПАРАЛЛЕЛЬНО и головами в одну сторону; занятые места читаются из фактических
 позиций лежащих (ничего не сериализуется). Подробности и ручки — §29G r3.
+
+**60.2a r3 (§113): место занимает и ВЕЩЬ.** Центр гекса — это ещё и то место,
+где §66 ставит костёр, где лежит валун и стоит кровать; «центр свободен»
+означало «на нём никто не лежит», и вырубившаяся у костра ложилась в костёр.
+Теперь `LieDownCentered` считает занятым и физический габарит вещи, а при нужде
+разворачивает шеренгу по другой оси гекса — гекс костра не запрещён, запрещён
+сам огонь. Подробности, лестница радиусов и ручки — §113.
 
 **60.3 Выход.** Кома кончается, когда СВАЛИВШИЙ показатель поднялся обратно.
 ⚠️ Пороги ниже — **редакция v1, отменённая r2**: `ComaWakeThreshold` (0.15) в
@@ -16543,11 +16669,20 @@ AnyState годится для ОДНОГО состояния (`Death`, `Crawl`
   `TryStartPlayDead` второй раз, и перештамповка старта обнуляла отсчёт
   потолка — предохранитель не наступал НИКОГДА (в трассе: `PlayDeadStarted`
   каждые ~270 тиков и ни одного `PlayDeadEnded`). Старт ставится только с нуля.
-- **Собственный кризис сильнее волка.** У притворства нет сонного метаболизма
-  комы: нужды тают полным ходом, а решений она не принимает. Поэтому
-  `IsStarving` / `IsDehydrated` и не дают лечь, и поднимают до срока
-  (`PlayDeadEnded Reason=OwnCrisis`). Притворство — тактика, а не способ
-  умереть лёжа: голодной и жаждущей выгоднее встать и рискнуть.
+- **Собственный кризис сильнее волка** (`MortalityHelpers.OwnCrisisOutranksHiding`,
+  одно определение на оба гейта — «не лечь» и «встать досрочно»). У притворства
+  нет сонного метаболизма комы: нужды тают полным ходом, рана течёт, а решений
+  она не принимает. Поэтому голод, жажда и кровопотеря и не дают лечь, и
+  поднимают до срока (`PlayDeadEnded Reason=OwnCrisis`). Порог крови НЕ свой —
+  это `Spec53.SelfTreatBleedBlood`, та самая черта, по которой §53 заставляет
+  её бросить всё и перевязаться: заведи вторую, и «встать, чтобы спастись»
+  разъехалось бы с «чем именно спасаться».
+
+**Замер** (24 сида × 60 000 тиков, on против off): 64 выживших против 62,
+застой 0.0251 против 0.0255, churn 22.1 против 23.2. Фича меняет ПОВЕДЕНИЕ, а
+не выживаемость — разброс по сидам (±3) больше самого эффекта, и на пяти сидах
+тот же замер давал обратный знак. Вопрос «не вредит ли» требует двух десятков
+сидов; на пяти на него ответить нельзя.
 
 **Витрина** (§48.6): чип 🫥 `PlayingDead`, строка `state.playdead` в панели
 (ниже обморока — она В СОЗНАНИИ), провод `IsPlayingDead` (WireVersion 11), вид
@@ -17320,15 +17455,29 @@ pending.
 ни персонажа, ни того, что она делает. Ручного «выключить растительность» тоже
 не было.
 
-**112.1 Правило.** Раз в кадр строится линия взгляда — от объектива до того,
-что кадрируется (в орбите это сглаженный пивот на теле, в свободном режиме —
-наземный пивот). Всё, что помечено как ЛИСТВА и стоит на этой линии, на этот
-кадр убирается. Проверка идёт по мировым `bounds` каждого рендерера через
-`Bounds.IntersectRay` — коллайдеры и физика не нужны, их у видов нет.
+**112.1 Правило — срез по ГЛУБИНЕ, а не по лучу.** Точка слежения делит мир
+надвое. Всё, что помечено как ЛИСТВА и стоит БЛИЖЕ к объективу, чем колонистка,
+на этот кадр убирается — независимо от того, попадает оно в луч взгляда или
+нет. Всё, что на её глубине или ДАЛЬШЕ, не трогается никогда: роща, в которую
+она идёт, остаётся рощей.
 
-Второе условие важнее первого: убирается и то, что просто прижато к объективу
-(`_lensClearance`), даже если формально мимо линии. Именно этот случай — камера
-влезла в крону — и давал экран из листьев.
+Глубина считается проекцией на ось взгляда камеры (`Dot(pos - lens, forward)`),
+и берётся она от КОРНЯ вида — от подножия ствола, а не от качающейся кроны.
+Тогда вердикт совпадает с тем, что игрок читает по земле: эта пальма стоит
+перед ней. Порог сдвинут на `_focusClearance` (1 wu) вперёд от неё, чтобы
+пальма, которую она рубит, не исчезла из-под топора.
+
+Второе условие поверх среза: убирается и то, что просто прижато к объективу
+(`_lensClearance`) — крона, укоренённая ЗА ней, всё ещё может свисать в
+объектив. Именно этот случай — камера влезла в крону — и давал экран из
+листьев.
+
+**112.1a Когда персонажа нет.** Срез требует субъекта. В свободном режиме
+камера висит над землёй, пивот лежит на грунте — и «всё, что ближе пивота»
+означало бы при виде сверху весь остров разом. Поэтому без выбранной
+колонистки (`RtsCameraController.HasFramedSubject` = false) правило другое:
+чистится только линия взгляда до пивота (`Bounds.IntersectRay` по мировым
+`bounds` рендереров — коллайдеры и физика не нужны, их у видов нет).
 
 **112.2 Убрать ≠ удалить.** Скрытие — это `ShadowCastingMode.ShadowsOnly`, а не
 выключенный рендерер: тень пальмы остаётся лежать на песке, поэтому земля не
@@ -17345,8 +17494,8 @@ pending.
 прозрачны никогда — растворяющаяся мебель читается как баг рендера, а не как
 любезность.
 
-Крона у самой цели не убирается (`_focusClearance`): пальма, которую она рубит,
-не должна исчезнуть из-под топора.
+Листва на глубине самой цели не убирается (`_focusClearance`): пальма, под
+которой она стоит, и та, которую она рубит, остаются на месте.
 
 **112.4 Как подключено.** Ровно двумя нитками, без нового прохода по миру:
 `HexWorldRenderer` при создании вида вешает маркер `FoliageOccluder` (он сам
@@ -17356,3 +17505,74 @@ pending.
 считает ПОСЛЕ контроллеров камеры, то есть по той позе, которую кадр и
 нарисует. Выключатель — `CameraFoliageCuller.Enabled`; погашенный вернёт всё на
 следующем кадре.
+
+## §113 Лечь рядом, а не внутрь (iteration 113)
+
+**Проблема.** Мир и тела стоят на одних и тех же гексах, но «куда лечь» знало
+только про тела. §60.2a клал упавшую в геометрический центр гекса, §29G r3
+расширил центр до ШЕРЕНГИ из трёх мест — и оба правила считали центр свободным,
+если на нём никто не лежит. А в центре гекса горит костёр (§66: одна постройка
+на гекс, ровно в середине), лежит валун, стоит кровать. Вырубившаяся у костра
+ложилась В КОСТЁР. Вторая половина той же дыры — трава: сон, кома и обморок
+свой гекс приминали, а рыдающая (§110) лежала в нетронутой траве, потому что
+союз лежачих состояний был выписан от руки во второй раз и разошёлся.
+
+**113.1 Правило.** Гекс с крупной вещью НЕ запрещён для лежания — запрещена
+сама вещь. Место ищется тем же единственным алгоритмом шеренги (§29G r3),
+только занятым считается ещё и то место, куда вещь физически не пускает.
+Костёр стоит в центре ⇒ центральное место занято ⇒ тело ложится сбоку, слева
+или справа, ровно как ложится вторая девушка рядом с первой. Уходить с гекса
+костра нельзя: она вырубилась ЗДЕСЬ.
+
+**113.2 Поворот — часть ответа, а не украшение.** Лежащее тело — прямоугольник
+(≈1.32 × 0.36 wu), и в этом весь смысл: валун сбоку закрывает одну ось гекса и
+оставляет открытой перпендикулярную. Поэтому решатель перебирает не только
+места, но и КУРС: сначала курс шеренги (свой, приснапленный к оси гекса, кратной
+60° — или тот, что задала первая легшая), затем ±60°, ±120°, 180°. Первое
+чистое сочетание «курс + место» и есть ответ. Диск вместо прямоугольника этой
+разницы не увидел бы, и поворот стал бы бессмысленным.
+
+**113.3 Физический радиус ≠ ObstacleRadius.** `ObstacleRadius` — про
+ПРОХОДИМОСТЬ, и у костра это 0.55R угольного кольца (§47), сквозь которое не
+ходят, тогда как сам огонь втрое уже. Мерить лежание им значило бы выгнать тело
+с гекса костра целиком. Поэтому у определения есть отдельный
+`ObjectDefinition.SolidRadius` — габарит САМОЙ вещи. Лестница:
+
+| источник | когда | пример |
+|---|---|---|
+| `SolidRadius` | задан явно | костёр 0.30R, валун 0.25R |
+| `ObstacleRadius` | вещь `Obstacle`, и её радиус честный | кровать 1.39 wu |
+| пол `Spec49.LieSolidRadiusFloorFactor` | вещь `Obstacle` без габарита | пальма, любая новая |
+| 0 (не мешает) | вещь не `Obstacle` | инструмент, кокос, куча волокна |
+
+Пол — это и есть «залёт на будущее»: новая крупная вещь, помеченная `Obstacle`,
+обходится СРАЗУ, ничего для неё дописывать не надо; свой `SolidRadius` нужен
+только там, где габарит и проходимость расходятся. Строящийся сайт меряется по
+тому, ЧЕМ СТАНЕТ (как в `SetObstacleBlocking`): на площадке уже лежат брёвна
+будущей кровати.
+
+**113.4 Где живёт.** `Runtime/Helpers/LyingSpot.cs` — вся геометрия (порядок
+мест, повороты, габарит тела, радиусы вещей). `ExecutionSystem.LieDownCentered`
+остаётся ЕДИНСТВЕННЫМ входом («тело ложится на землю») и только записывает
+решение в NPC, так что все пути — сон на земле (§29G), обморок (§40.13), кома и
+умирание (§60/§105), притворство (§105.14), слёзы (§110) — получают правило
+разом. Трасса `LieDownBerth` теперь несёт `Fit=Clear|Stacked`: `Stacked` = гекс
+забит и легли как до §113 (лучше лечь неудачно, чем не лечь вовсе).
+
+Ручки — `Spec49`: `LieAroundObstacles` (выключатель: ровно поведение §29G r3,
+тело ложится в костёр), `LieBodyLengthFactor` / `LieBodyWidthFactor` (габарит
+тела долями HexRadius), `LieSolidRadiusFloorFactor` (пол из таблицы выше).
+
+**113.5 Трава — тот же список состояний.** «Она сейчас на земле?» — ОДИН
+предикат `HexWorldRenderer.IsLyingDown`, и им же мнётся трава (§20.16). Разбор
+по позам (какой цепочкой ронять тело) остаётся в `SyncActorView`, но союз его
+лежачих веток обязан совпадать с предикатом; ползущая (§50) входит в предикат
+намеренно — она тоже волочится по земле, просто гекс под ней гаснет, а
+пройденный отрастает.
+
+**113.6 Гейт.** `Tests/…/Behavior/LyingSpotTests.cs` — арена, не соак (вопрос
+«дошло ли до дела», а не «сколько раз за восемь дней», CLAUDE.md): пустой гекс
+даёт ровно центр (инвариант §60.2a цел), на гексе костра тело не задевает огонь
+и не уходит с гекса, валун обходится по полу радиуса, выключатель возвращает
+поведение до §113, а две легшие по-прежнему лежат параллельно на разных местах
+(§29G r3 не сломан).

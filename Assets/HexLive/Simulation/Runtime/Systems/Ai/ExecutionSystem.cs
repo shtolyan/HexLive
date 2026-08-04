@@ -1690,6 +1690,14 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             tiles.Add(neighbor);
         }
 
+        // §26.6A r5: the coconut drop is scored by legal approaches
+        // (FruitProductionSystem) — scatter deliberately is NOT. The same change
+        // here was tried and MEASURED: 30 seeds × 10 days moved the CONTROL arm
+        // (rule off) 91/120 → 84/120 as well, i.e. it reshuffled seeds instead of
+        // feeding anyone, unlike the coconut drop which left the control at
+        // exactly 91 and lifted the rule arm 81 → 84. Scatter runs on every
+        // harvest, so it costs a rim BFS per candidate junction for a benefit
+        // nothing could demonstrate. Revisit only with a measurement, not a hunch.
         foreach (var tileCoord in tiles)
         {
             if (!SpatialQueries.IsTileWalkable(world, tileCoord) ||
@@ -1829,114 +1837,32 @@ public sealed partial class ExecutionSystem : ISimulationSystem
     // middle; every later body copies that heading EXACTLY and takes the next
     // free berth beside her — right, then left. Three girls read as three
     // housemates bedded down side by side instead of one blurred pile.
+    //
+    // §113: и то же самое место обходит КРУПНЫЕ ВЕЩИ — костёр, валун, кровать.
+    // Геометрия (порядок мест, повороты по осям гекса, габарит тела) целиком
+    // живёт в LyingSpot; здесь остаётся только «записать решение в тело», чтобы
+    // у вопроса «где лежит упавшая» по-прежнему был ровно один ответчик.
     internal static void LieDownCentered(WorldState world, NPCState npc)
     {
-        var center = HexSpatialMath.TileToWorld(npc.Tile);
         if (!Spec49.SleepBerths)
         {
-            npc.Position = center;
+            npc.Position = HexSpatialMath.TileToWorld(npc.Tile);
             return;
         }
 
-        var heading = ResolveBerthHeading(world, npc);
-        var radians = heading * (System.MathF.PI / 180f);
+        var placement = LyingSpot.Solve(world, npc);
+        var radians = placement.Heading * (System.MathF.PI / 180f);
         var forward = new Float2(System.MathF.Cos(radians), System.MathF.Sin(radians));
-        var lateral = new Float2(-forward.Y, forward.X); // heading + 90°
-        var slot = PickBerthSlot(world, npc, center, lateral);
 
-        npc.Position = center + lateral * (slot * BerthSpacing);
-        npc.RotationDegrees = heading;
-        npc.Movement.DesiredRotationDegrees = heading;
+        npc.Position = placement.Position;
+        npc.RotationDegrees = placement.Heading;
+        npc.Movement.DesiredRotationDegrees = placement.Heading;
         npc.Movement.DesiredDirection = forward;
 
         Trace.Emit(world, npc.Id, "LieDownBerth",
-            $"Tile={npc.Tile.Q},{npc.Tile.R} Slot={slot} Heading={heading:F0}");
+            $"Tile={npc.Tile.Q},{npc.Tile.R} Slot={placement.Slot} " +
+            $"Heading={placement.Heading:F0} Fit={(placement.Clear ? "Clear" : "Stacked")}");
     }
-
-    private static float BerthSpacing => HexSpatialMath.HexRadius * Spec49.SleepBerthSpacingFactor;
-
-    // The heading the whole rank shares. Someone already down on this hex owns
-    // it (lowest EntityId wins, so the answer never depends on iteration order
-    // and a save-replay reproduces the same rank); an empty hex takes the
-    // newcomer's own facing snapped to the nearest hex axis — a body lying
-    // along a flat-to-flat axis fits the hex, a body across a corner does not.
-    private static float ResolveBerthHeading(WorldState world, NPCState npc)
-    {
-        NPCState lead = null;
-        foreach (var other in world.Entities.Npcs.Values)
-        {
-            if (!IsBerthNeighbour(world, npc, other))
-            {
-                continue;
-            }
-
-            if (lead is null || other.Id.Value < lead.Id.Value)
-            {
-                lead = other;
-            }
-        }
-
-        return lead is not null ? lead.RotationDegrees : SnapToHexAxis(npc.RotationDegrees);
-    }
-
-    // Nearest multiple of 60° — the six neighbour directions of a hex.
-    private static float SnapToHexAxis(float degrees)
-    {
-        var wrapped = degrees % 360f;
-        if (wrapped < 0f)
-        {
-            wrapped += 360f;
-        }
-
-        return System.MathF.Round(wrapped / 60f) % 6f * 60f;
-    }
-
-    // First free berth in the order centre, +1, -1 (… ±HalfSpan). Occupied berths are
-    // READ BACK from where the neighbours actually lie (project their offset onto
-    // the shared lateral axis), so no slot index has to be stored or serialized.
-    private static int PickBerthSlot(WorldState world, NPCState npc, Float2 center, Float2 lateral)
-    {
-        var half = Spec49.SleepBerthHalfSpan;
-        var taken = 0;
-        foreach (var other in world.Entities.Npcs.Values)
-        {
-            if (!IsBerthNeighbour(world, npc, other))
-            {
-                continue;
-            }
-
-            var offset = other.Position - center;
-            var slot = (int)System.MathF.Round(
-                (offset.X * lateral.X + offset.Y * lateral.Y) / BerthSpacing);
-            if (slot >= -half && slot <= half)
-            {
-                taken |= 1 << (slot + half);
-            }
-        }
-
-        for (var step = 0; step <= half; step++)
-        {
-            if ((taken & (1 << (step + half))) == 0)
-            {
-                return step;
-            }
-
-            if (step > 0 && (taken & (1 << (half - step))) == 0)
-            {
-                return -step;
-            }
-        }
-
-        return 0; // full rank — stack rather than wander off the hex
-    }
-
-    // A body already lying on the same hex: ground sleeper, exhausted sleeper,
-    // fainted, comatose or prone. The dead are gone (corpses are objects).
-    private static bool IsBerthNeighbour(WorldState world, NPCState npc, NPCState other) =>
-        !other.Id.Equals(npc.Id) &&
-        other.Health > 0f &&
-        other.Tile.Equals(npc.Tile) &&
-        other.IsLyingDown(world.Tick);
 
     // Spec 29G: the lying body covers junctions within half a hex radius.
     internal static void ClaimLyingFootprint(WorldState world, NPCState npc, JunctionId center)

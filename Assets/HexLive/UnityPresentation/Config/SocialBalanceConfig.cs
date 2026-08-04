@@ -60,6 +60,14 @@ namespace HexLive.UnityPresentation.Config
         [Range(0.2f, 1f)] public float sleepBerthSpacingFactor = 0.5f;
         [Tooltip("Мест по каждую сторону от центрального (1 = шеренга из трёх); дальше — снова центр, чтобы не свесить тело за кромку гекса.")]
         [Range(0, 2)] public int sleepBerthHalfSpan = 1;
+        [Tooltip("§113: место в шеренге занимает и КРУПНАЯ ВЕЩЬ — костёр, валун, кровать. Выкл — тело ложится прямо в костёр (поведение до §113).")]
+        public bool lieAroundObstacles = true;
+        [Tooltip("§113: длина лежащего тела, доля HexRadius (0.88 = 1.32 wu).")]
+        [Range(0.4f, 1.5f)] public float lieBodyLengthFactor = 0.88f;
+        [Tooltip("§113: ширина лежащего тела в плечах, доля HexRadius (0.24 = 0.36 wu).")]
+        [Range(0.1f, 0.6f)] public float lieBodyWidthFactor = 0.24f;
+        [Tooltip("§113: минимальный физический радиус Obstacle-вещи без своего габарита (валун, пальма), доля HexRadius.")]
+        [Range(0f, 0.8f)] public float lieSolidRadiusFloorFactor = 0.30f;
 
         [Header("§49 — cool-off dwell")]
         [Tooltip("Сколько тиков стоит остывать на охлаждающем тайле за один заход.")]

@@ -1544,6 +1544,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // притворство — это просто «лежит дольше». Сонную цепочку взять
         // нельзя: она читалась бы как «прилегла», а вся суть в том, что для
         // волка она труп.
+        //
+        // §113: ветки ниже — разбор ПО ПОЗАМ; их союз обязан совпадать с
+        // IsLyingDown (там же мнётся трава). Добавил лежачее состояние — добавь
+        // его в оба места, иначе тело ляжет в нетронутую траву.
         if (npc.IsDying || npc.IsUnconscious || npc.IsPlayingDead)
         {
             // Spec 40.13 v2: collapse lies down with the baked laying clip —
@@ -3415,15 +3419,30 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private readonly HashSet<TileCoord> _hiddenGrassTiles = new();
     private readonly List<TileCoord> _grassToggleScratch = new();
 
+    // §113: ОДИН ответ на «она сейчас на земле?». Разбор ПО ПОЗАМ (какой
+    // цепочкой её ронять) живёт в SyncActorView и остаётся там — здесь союз
+    // всех его лежачих веток. Пока этот союз был переписан от руки во второй
+    // раз, он разошёлся ровно там, где такое расхождение и незаметно: рыдающая
+    // (§110) ложилась на землю, а трава под ней стояла торчком — сон, кома и
+    // обморок траву гасили, слёзы нет.
+    //
+    // Ползущая (§50, обе ноги) сюда входит намеренно: она тоже волочится по
+    // земле, просто ещё и движется — гекс под ней гаснет, пройденный отрастает.
+    internal static bool IsLyingDown(NpcSnapshot npc) =>
+        npc.IsFainted ||          // §40.13 обморок
+        npc.IsUnconscious ||      // §60 кома
+        npc.IsDying ||            // §105 лежащая на грани
+        npc.IsPlayingDead ||      // §105.14 притворяющаяся
+        npc.IsCrying ||           // §110 стресс-крах: лежит и рыдает
+        npc.PostureHint == "Crawl" ||
+        (npc.CurrentInteraction == "Sleep" && npc.ExecutionStatus == "InProgress");
+
     private void UpdateGrassFlattening(WorldSnapshot snapshot)
     {
         _lyingTiles.Clear();
         foreach (var npc in snapshot.Npcs)
         {
-            if (npc.IsFainted || npc.IsUnconscious || // §60: a coma flattens the grass too
-                npc.IsDying ||                        // §105: и лежащая на грани
-                npc.IsPlayingDead ||                  // §105.14: и притворяющаяся
-                (npc.CurrentInteraction == "Sleep" && npc.ExecutionStatus == "InProgress"))
+            if (IsLyingDown(npc))
             {
                 _lyingTiles.Add(npc.Tile);
             }

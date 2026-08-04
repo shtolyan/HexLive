@@ -85,6 +85,30 @@ public sealed partial class PlanningSystem : ISimulationSystem
 
             var prevStatus = npc.Plan.Status;
             var prevGoal = npc.Plan.Goal;
+
+            // ⭐ Взаимодействие живёт ровно столько, сколько план, который его
+            // начал. Сюда мы попадаем ТОЛЬКО когда план перестал быть активным
+            // (или разошёлся с целью), а значит начатое им действие осиротело:
+            // ExecutionSystem его больше не тронет (первая же строка её цикла —
+            // `Plan.Status != Active → continue`), доиграть и закрыться оно не
+            // может, а сброса не было — смена цели чистит через Abort только
+            // когда цель СМЕНИЛАСЬ (§23.17), и та же самая цель проходит мимо.
+            //
+            // Так рождался «поехавший по земле питьевой кокос»: план
+            // ConsumeInventoryItem начал Drink, через два тика пробитый кокос
+            // ушёл из рюкзака (ExecFailed → Plan=Failed), цель осталась Drink,
+            // планировщик построил новый план — пеший, на 158 шагов, — и она
+            // ехала через весь остров с CurrentInteraction=Drink: вид зеркалит
+            // глагол каждый кадр, поэтому клип питья играл поверх ходьбы, а в
+            // руке оставался тот же кокос. Заодно осиротевшее взаимодействие
+            // держало занятость объекта и резервы — Abort отдаёт и их.
+            if (npc.Execution.Status == ExecutionStatus.InProgress)
+            {
+                PlanInterruption.Abort(world, npc,
+                    $"Replan over a live {npc.Execution.CurrentInteraction} " +
+                    $"(Goal={npc.Mind.CurrentGoal} PrevStatus={prevStatus})");
+            }
+
             npc.Plan.Steps.Clear();
             npc.Plan.TargetObjectId = null;
             npc.Plan.TargetJunctionId = null;
@@ -739,7 +763,8 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 var besideReach = SpatialQueries.BesideReach(
                     world.Content.ObjectDefinitions.TryGetValue(selected.DefinitionId, out var besideDef)
                         ? besideDef.ObstacleRadius : 0f);
-                SpatialQueries.CollectStandableAround(world, anchorId, _rimScratch, 96, besideReach);
+                SpatialQueries.CollectStandableAround(world, anchorId, _rimScratch, 96, besideReach,
+                    worldObject, InteractionReach.RimMode);
                 _rimScratch.Sort((a, b) =>
                 {
                     var da = world.Junctions.Items.TryGetValue(a, out var ja)
@@ -818,9 +843,13 @@ public sealed partial class PlanningSystem : ISimulationSystem
         JunctionId anchorId,
         int durationTicks,
         out JunctionId beside,
-        float maxBesideDist = float.MaxValue)
+        float maxBesideDist = float.MaxValue,
+        // §26.6A r5: the object this rim serves — only ITS footprint may be
+        // crossed on the way to the rim. Null means "cross nothing".
+        WorldObjectState owner = null)
     {
-        SpatialQueries.CollectStandableAround(world, anchorId, _rimScratch, 96, maxBesideDist);
+        SpatialQueries.CollectStandableAround(world, anchorId, _rimScratch, 96, maxBesideDist, owner,
+            InteractionReach.RimMode);
         if (npc.CurrentJunction is { } current && _rimScratch.Contains(current))
         {
             beside = current;
@@ -1268,7 +1297,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
             world.Content.ObjectDefinitions.TryGetValue(collector.DefinitionId, out var def)
                 ? def.ObstacleRadius : 0f);
         if (!TryReserveBesideJunction(world, npc, collector.Junctions[0], 48,
-                out var beside, besideReach))
+                out var beside, besideReach, collector))
         {
             Trace.Emit(world, npc.Id, "PlanFailed",
                 $"Goal={npc.Mind.CurrentGoal} collector {collector.Id.Value}: no free junction beside it");

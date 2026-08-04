@@ -226,6 +226,63 @@ public sealed class PlayDeadTests
         }
     }
 
+    /// <summary>
+    /// ⭐ Обе ловушки, которые поймал соак (сид 42: 0 выживших из 4).
+    ///
+    /// <para>
+    /// Первая: `TryStartPlayDead` был не идемпотентен, и обморок §40.13 поверх
+    /// уже притворяющейся перештамповывал старт — потолок отсчитывался заново и
+    /// не наступал НИКОГДА («PlayDeadStarted» каждые ~270 тиков без единого
+    /// «Ended»). Вторая: у притворства нет сонного метаболизма комы, поэтому
+    /// лежащая продолжала голодать и хотеть пить, не принимая решений; трупы
+    /// на сиде 42 все были с Thirst=1,00 в трёх шагах от воды.
+    /// </para>
+    /// </summary>
+    [Test]
+    public void ReEntry_KeepsTheOriginalStart_AndOwnCrisisOutranksTheWolf()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var girl = world.Entities.Npcs.Values.First();
+        Rested(girl);
+        var wolf = SpawnWolfOn(world, girl, chasing: true);
+        KnockOut(world, girl);
+
+        for (var i = 0; i < 40; i++)
+        {
+            engine.Step();
+            wolf.Tile = girl.Tile;
+        }
+
+        Assert.That(girl.IsPlayingDead(world.Tick), Is.True, "Предусловие: лежит.");
+        var firstStart = girl.Mind.PlayDeadSinceTick;
+
+        // Обморок поверх притворства — и повторный вход через тот же край.
+        girl.Mind.FaintedUntilTick = world.Tick + 4;
+        for (var i = 0; i < 20; i++)
+        {
+            engine.Step();
+            wolf.Tile = girl.Tile;
+        }
+
+        Assert.That(girl.Mind.PlayDeadSinceTick, Is.EqualTo(firstStart),
+            "⭐ Старт НЕ перештамповывается: иначе потолок отсчитывается заново " +
+            "и предохранитель не наступает никогда.");
+
+        // Теперь жажда: она сильнее волка — лежать и умереть от неё нельзя.
+        girl.Needs.Thirst = 1f;
+        girl.Mind.IsDehydrated = true;
+        for (var i = 0; i < 12; i++)
+        {
+            engine.Step();
+            wolf.Tile = girl.Tile;
+        }
+
+        Assert.That(girl.IsPlayingDead(world.Tick), Is.False,
+            "⭐ Свой кризис поднимает её ДО срока, хотя волк никуда не делся: " +
+            "притворство — тактика, а не способ умереть лёжа.");
+    }
+
     /// <summary>Кил-свитч: выключенная ручка = поведение до правки.</summary>
     [Test]
     public void KnobOff_BehavesExactlyAsBefore()

@@ -75,7 +75,7 @@ public sealed partial class PlanningSystem
 
             var anchorJunction = fire.Junctions[0];
             var reach = SpatialQueries.BesideReach(definition.ObstacleRadius);
-            if (!TryReserveBesideJunction(world, npc, anchorJunction, 48, out var targetJunction, reach))
+            if (!TryReserveBesideJunction(world, npc, anchorJunction, 48, out var targetJunction, reach, fire))
             {
                 continue;
             }
@@ -232,10 +232,16 @@ public sealed partial class PlanningSystem
         // Cap "beside" to one hop of the coconut's footprint — never pierce/drink
         // it from across a cliff (user's screenshot: nut at a palm base, reached
         // from ~1.7 hex out). A boxed-in nut fails here and the forager retargets.
+        // §26.6A r5: the nut carries NO footprint of its own, so passing it as
+        // the owner is the strictest possible rim — and that is the point. The
+        // palm it fell from is one blocked junction wide and BesideReach spans
+        // two sub-grid steps, so before r5 the far side of the trunk counted as
+        // "beside" and she pierced the nut straight through the tree.
         var coconutReach = SpatialQueries.BesideReach(
             world.Content.ObjectDefinitions.TryGetValue(worldObject.DefinitionId, out var cocoDef)
                 ? cocoDef.ObstacleRadius : 0f);
-        if (!TryReserveBesideJunction(world, npc, anchorJunction, 48, out var targetJunction, coconutReach))
+        if (!TryReserveBesideJunction(world, npc, anchorJunction, 48, out var targetJunction, coconutReach,
+                worldObject))
         {
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, goal);

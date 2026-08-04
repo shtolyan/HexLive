@@ -105,8 +105,28 @@ namespace HexLive.UnityPresentation.Wearing
 
             var now = Time.unscaledTime;
 
-            // Fresh marks first, and at most one per frame — a pack of dogs
-            // biting at once must not stack four rebuilds into one frame.
+            // The scheduled turn goes FIRST. It comes round about once a
+            // second, so it costs the fresh lane almost nothing — but checking
+            // fresh marks first would let a steady stream of bites starve the
+            // cycle completely, and the cycle is what upgrades a fresh
+            // rectangle to its seam-free form.
+            if (now >= _nextAdvance)
+            {
+                _nextAdvance = now + Mathf.Max(MinSpacingSeconds, CycleSeconds / Targets.Count);
+
+                if (_cursor >= Targets.Count)
+                {
+                    _cursor = 0;
+                }
+
+                var due = Targets[_cursor];
+                _cursor++;
+                due?.PaintCycle();
+                return; // one repaint per frame, whatever kind it was
+            }
+
+            // Fresh marks, at most one per frame — a pack of dogs biting at
+            // once must not stack four rebuilds into one frame.
             for (var i = 0; i < Targets.Count; i++)
             {
                 var target = Targets[i];
@@ -116,23 +136,6 @@ namespace HexLive.UnityPresentation.Wearing
                     return;
                 }
             }
-
-            if (now < _nextAdvance)
-            {
-                return;
-            }
-
-            // Spread the cycle evenly over the painters present.
-            _nextAdvance = now + Mathf.Max(MinSpacingSeconds, CycleSeconds / Targets.Count);
-
-            if (_cursor >= Targets.Count)
-            {
-                _cursor = 0;
-            }
-
-            var due = Targets[_cursor];
-            _cursor++;
-            due?.PaintCycle();
         }
 
         // No-domain-reload plays keep statics; a stale list would hold painters

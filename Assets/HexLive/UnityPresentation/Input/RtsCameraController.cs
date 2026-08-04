@@ -115,6 +115,14 @@ namespace HexLive.UnityPresentation.Input
         public Vector3 FocusPoint =>
             _mode == Mode.Orbit && _hasSmoothedTarget ? _smoothedTarget : _freePivot;
 
+        /// <summary>
+        /// Spec §112: true while the rig is framing a PERSON (orbit mode), i.e.
+        /// while <see cref="FocusPoint"/> is a subject and not just the ground
+        /// under a free-flying camera. The culler needs the difference: only a
+        /// subject gives the depth plane «нельзя стоять ближе неё».
+        /// </summary>
+        public bool HasFramedSubject => _mode == Mode.Orbit && _hasSmoothedTarget;
+
         private void Start()
         {
             _camera = GetComponent<Camera>();

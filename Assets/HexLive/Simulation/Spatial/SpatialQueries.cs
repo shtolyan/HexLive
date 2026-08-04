@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using HexLive.Simulation.Common;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 
 namespace HexLive.Simulation.Spatial
@@ -39,14 +40,23 @@ public static class SpatialQueries
     public static float BesideReach(float obstacleRadius) =>
         System.Math.Max(0f, obstacleRadius) + StandStepAllowance;
 
+    // ⭐ §26.6A r5: WHY the rim is being walked, because the answer differs and
+    // conflating the two cost a colony. The §26.6A table already separates
+    // "am I close enough" from "does a route exist"; this is that same line,
+    // drawn one level down where the BFS can see it.
+    public enum RimPurpose
+    {
+        /// <summary>«Дотянусь ли отсюда» — чужое тело стена (r5).</summary>
+        Reach,
+
+        /// <summary>«Есть ли где встать рядом ВООБЩЕ» — тело обходят, стеной
+        /// остаётся только терраин (§31C.7 / r4). Восприятие спрашивает это.</summary>
+        Route,
+    }
+
     // Spec §26.6A r4: a junction closed by TERRAIN — a cliff face (owning tiles
     // more than one level apart), the open sea, a hut wall, an authored block.
-    // The distinction matters because BOTH kinds of barrier read `Blocked`, yet
-    // they behave differently for the hands: an object footprint (palm trunk,
-    // ember ring, bed) is worked around from its rim, while terrain is a wall —
-    // nothing on the far side may be picked up, chopped, sat on or built.
-    // Water is deliberately NOT terrain: leaning over the bank to drink or to
-    // grab flotsam is legitimate, and shore work has always been allowed.
+    // The ROUTE question stops here and no further: a body is walked around.
     public static bool IsTerrainBlocked(WorldState world, JunctionId junctionId)
     {
         if (!world.Junctions.Items.TryGetValue(junctionId, out var junction) || !junction.Blocked)
@@ -77,21 +87,77 @@ public static class SpatialQueries
         world.ObjectBlockBuiltVersion = world.TopologyVersion;
     }
 
-    // Spec §26.6A r4: may the object anchored at `anchor` be TOUCHED from
-    // `stand`? The gap between them may cross the object's own footprint and
-    // water, never terrain — the same borders that stop the pathfinder stop the
-    // hands. Without this an NPC standing one sub-grid step BELOW a ledge
-    // pierced a coconut, felled a palm or sat on a stump straight through the
-    // cliff face, because 0.75 wu of straight-line distance said "adjacent".
+    // ⭐ Spec §26.6A r5: is this junction a WALL for a pair of hands reaching
+    // toward `target`? Blocked junctions come in three kinds, and only now are
+    // all three told apart:
+    //
+    //   - the TARGET's OWN footprint — the trunk when she fells the palm, the
+    //     ember ring when she tends the fire, the frame when she makes the bed.
+    //     CROSSABLE: you work a thing from its rim, and that is what makes
+    //     fireside work and furniture interactions possible at all.
+    //   - SOMEONE ELSE's footprint — a wall. r4 let the rim BFS walk through
+    //     ANY object, and the geometry makes that exactly wide enough to matter:
+    //     the sub-grid step is 0.375 wu and BesideReach(0) is 0.80 wu, i.e. two
+    //     steps, i.e. exactly one blocked junction fits between the hand and the
+    //     prize. A palm trunk IS exactly one blocked junction (tree.palm carries
+    //     no ObstacleRadius, so only its anchor closes) and a coconut drops on a
+    //     free junction of the palm's own tile — so "pierce the nut THROUGH the
+    //     trunk" was not a near miss, it was the arithmetic working as written.
+    //   - TERRAIN — a cliff face (§20.16), a hut wall, an authored block, the
+    //     open sea. A wall for everyone, `target` or not.
+    //
+    // Water is deliberately never a barrier: leaning over the bank to drink or
+    // to take flotsam has always been legitimate, and shore work stays allowed.
+    //
+    // `target` null = the strictest reading (nothing may be crossed) — that is
+    // what a caller with no object in hand (furniture placement) actually wants.
+    //
+    // ⚠️ MEASURED, and the reason `purpose` exists at all: applying the strict
+    // reading to the ROUTE question too (perception's ReachableBeside) cost the
+    // colony 86/120 → 72/120 alive over 30 seeds × 10 days, with two total
+    // wipes where there had been none — objects quietly stopped being
+    // "reachable" and dropped out of candidate lists with no PlanFailed to show
+    // for it. Reaching through a trunk is a lie; walking around one is not.
+    public static bool IsBarrierFor(
+        WorldState world, JunctionId junctionId, WorldObjectState target,
+        RimPurpose purpose = RimPurpose.Reach)
+    {
+        if (purpose == RimPurpose.Route)
+        {
+            return IsTerrainBlocked(world, junctionId);
+        }
+
+        if (!world.Junctions.Items.TryGetValue(junctionId, out var junction) || !junction.Blocked)
+        {
+            return false;
+        }
+
+        if (IsAllWaterJunction(world, junctionId))
+        {
+            return false;
+        }
+
+        return target is null || !target.BlockedJunctions.Contains(junctionId);
+    }
+
+    // Spec §26.6A r4/r5: may the object anchored at `anchor` be TOUCHED from
+    // `stand`? The gap between them may cross water and `target`'s own
+    // footprint — never terrain, and never a THIRD object standing in the way.
+    // The same borders that stop the pathfinder stop the hands. Without this an
+    // NPC standing one sub-grid step BELOW a ledge pierced a coconut, felled a
+    // palm or sat on a stump straight through the cliff face, because 0.75 wu of
+    // straight-line distance said "adjacent" (r4) — and, with the border honest,
+    // still reached the coconut through the palm beside it (r5).
     public static bool CanTouchAcross(
-        WorldState world, JunctionId stand, JunctionId anchor, float maxDist)
+        WorldState world, JunctionId stand, JunctionId anchor, float maxDist,
+        WorldObjectState target = null, RimPurpose purpose = RimPurpose.Reach)
     {
         if (stand.Equals(anchor))
         {
             return true;
         }
 
-        CollectStandableAround(world, anchor, _touchScratch, 96, maxDist);
+        CollectStandableAround(world, anchor, _touchScratch, 96, maxDist, target, purpose);
         return _touchScratch.Contains(stand);
     }
 
@@ -104,13 +170,16 @@ public static class SpatialQueries
     // rim junctions past it are dropped and the BFS never walks beyond it, so a
     // boxed-in object yields an EMPTY result (unreachable) instead of a spot a
     // whole hex away.
-    // §26.6A r4: the walk crosses object footprints and water only — a
-    // terrain-blocked junction (cliff face, hut wall, open sea) ends that branch,
+    // §26.6A r4/r5: the walk crosses water and `owner`'s OWN footprint only —
+    // any other blocked junction (a cliff face, a hut wall, the open sea, or
+    // another object's body: the palm between her and the nut) ends that branch,
     // so the rim never appears on the far side of a border nobody can walk over.
+    // `owner` is the object this rim is being built FOR; null = cross nothing.
     public static void CollectStandableAround(
         WorldState world, HexLive.Simulation.Common.JunctionId anchor,
         System.Collections.Generic.List<HexLive.Simulation.Common.JunctionId> results,
-        int maxVisited = 96, float maxAnchorDist = float.MaxValue)
+        int maxVisited = 96, float maxAnchorDist = float.MaxValue,
+        WorldObjectState owner = null, RimPurpose purpose = RimPurpose.Reach)
     {
         results.Clear();
         var hasCap = maxAnchorDist < float.MaxValue;
@@ -151,9 +220,9 @@ public static class SpatialQueries
                 {
                     results.Add(neighborId); // rim found; do not expand past it
                 }
-                else if (IsTerrainBlocked(world, neighborId))
+                else if (IsBarrierFor(world, neighborId, owner, purpose))
                 {
-                    continue; // a cliff / wall / open sea — the border ends here
+                    continue; // cliff / wall / open sea / another body — border ends here
                 }
                 else
                 {

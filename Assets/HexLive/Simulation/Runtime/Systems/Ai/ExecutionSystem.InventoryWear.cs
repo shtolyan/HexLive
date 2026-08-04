@@ -161,7 +161,8 @@ public sealed partial class ExecutionSystem
         // now — so we use the same beside-arrival BFS the planner uses:
         // furniture lands in the passable zone with a natural offset from
         // the flames, still fireside-close.
-        SpatialQueries.CollectStandableAround(world, anchor, _furnitureRimScratch);
+        SpatialQueries.CollectStandableAround(world, anchor, _furnitureRimScratch,
+            96, float.MaxValue, campfire, InteractionReach.RimMode);
         var firePosition = world.Junctions.Items.TryGetValue(anchor, out var fireJunction)
             ? fireJunction.WorldPosition
             : HexSpatialMath.TileToWorld(campfire.Tile);
@@ -204,7 +205,8 @@ public sealed partial class ExecutionSystem
         // Pass 3: fall back to any free rim junction (heap beats nowhere).
         if (ring is null)
         {
-            SpatialQueries.CollectStandableAround(world, anchor, _furnitureRimScratch);
+            SpatialQueries.CollectStandableAround(world, anchor, _furnitureRimScratch,
+            96, float.MaxValue, campfire, InteractionReach.RimMode);
             foreach (var neighbor in _furnitureRimScratch)
             {
                 if (SpatialQueries.IsJunctionFree(world, neighbor))

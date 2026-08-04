@@ -402,22 +402,39 @@ internal static class MortalityHelpers
     // И уже ведущаяся погоня бросается. Одного гейта мало — охотник вечно
     // шагал бы к недосягаемой цели (кольцо §102).
     //
-    // ЕДИНСТВЕННАЯ точка чтения Spec105.PlayDeadEnabled: выключенная ручка
-    // значит «окно никогда не взводится», и все проверки IsPlayingDead ниже по
-    // течению становятся инертны — прежнее поведение побитово.
+    // ⭐ ГЛАВНАЯ точка чтения Spec105.PlayDeadEnabled: выключенная ручка значит
+    // «окно никогда не взводится», и все проверки IsPlayingDead ниже по течению
+    // становятся инертны — прежнее поведение побитово (проверено golden trace,
+    // 3 сида × 4000 тиков, пресет scores).
+    //
+    // Ручку спрашивает ещё DecisionSystem — на краю окна обморока и плача, и
+    // это НЕ дублирование по невнимательности: край там ловится обнулением
+    // протухшего поля, а обнуление читается везде одинаково, но ХЭШИРУЕТСЯ
+    // иначе, и с выключенной ручкой трасса расходилась на ровном месте.
     internal static bool TryStartPlayDead(WorldState world, NPCState npc)
     {
         if (!Spec105.PlayDeadEnabled ||
             npc.Health <= 0f ||
             npc.IsDying ||
             npc.Mind.ComaCause != ComaCause.None ||
+            OwnCrisisOutranksHiding(npc) ||
             !HostileNearby(world, npc))
         {
             return false;
         }
 
-        npc.Mind.PlayDeadSinceTick = world.Tick;
-        npc.Mind.PlayDeadUntilTick = world.Tick + Spec105.PlayDeadHoldTicks;
+        // ⭐ ИДЕМПОТЕНТНОСТЬ, и она НЕ косметическая. Обморок §40.13 поверх уже
+        // притворяющейся приводит сюда второй раз, и перештамповка старта
+        // обнуляла бы отсчёт потолка — предохранитель не наступал НИКОГДА
+        // (сид 42: «PlayDeadStarted» каждые ~270 тиков без единого «Ended»).
+        if (npc.Mind.PlayDeadSinceTick == 0)
+        {
+            npc.Mind.PlayDeadSinceTick = world.Tick;
+        }
+
+        npc.Mind.PlayDeadUntilTick = System.Math.Min(
+            world.Tick + Spec105.PlayDeadHoldTicks,
+            npc.Mind.PlayDeadSinceTick + Spec105.PlayDeadMaxTicks);
         // Путь пробуждения только что выдал грацию подъёма (§41.5) и отпустил
         // лежачий след — но вставать она передумала: грацию снять, след занять
         // обратно (её выдаст EndPlayDead, когда она действительно поднимется).
@@ -430,9 +447,30 @@ internal static class MortalityHelpers
         return true;
     }
 
+    // §105.14: ⭐ СОБСТВЕННЫЙ КРИЗИС СИЛЬНЕЕ ВОЛКА — притворство это тактика, а
+    // не способ умереть лёжа.
+    //
+    // У комы §60 сонный метаболизм, у притворства его нет: нужды тают полным
+    // ходом, рана течёт, а решений она не принимает. Соак выставил счёт дважды,
+    // на одном и том же сиде 42 (0 выживших из 4): сперва все трупы были с
+    // Thirst=1,00 в трёх шагах от воды, а когда голод с жаждой закрыли — стали
+    // умирать от кровопотери, лёжа с неперевязанной раной.
+    //
+    // Порог крови НЕ свой: это ровно та черта, по которой §53 заставляет её
+    // бросить всё и перевязаться. Заведи здесь вторую — и «встать, чтобы
+    // спастись» разъехалось бы с «чем именно спасаться».
+    //
+    // ОДНО определение на оба гейта (не лечь / встать досрочно): две копии
+    // этого предиката неизбежно разошлись бы, и она вставала бы, чтобы тут же
+    // лечь обратно.
+    internal static bool OwnCrisisOutranksHiding(NPCState npc) =>
+        npc.Mind.IsStarving ||
+        npc.Mind.IsDehydrated ||
+        npc.Needs.Blood < Spec53.SelfTreatBleedBlood;
+
     // §105.14: враг ушёл (или вышел потолок) — теперь можно вставать. Зеркало
     // выхода из комы: грация подъёма и отпущенный лежачий след.
-    internal static void EndPlayDead(WorldState world, NPCState npc)
+    internal static void EndPlayDead(WorldState world, NPCState npc, string reason)
     {
         npc.Mind.PlayDeadUntilTick = 0;
         npc.Mind.PlayDeadSinceTick = 0;
@@ -445,7 +483,7 @@ internal static class MortalityHelpers
             SpatialMutations.ReleaseJunctionReservation(world, lay, npc.Id);
         }
 
-        Trace.Emit(world, npc.Id, "PlayDeadEnded", "Coast clear — getting up");
+        Trace.Emit(world, npc.Id, "PlayDeadEnded", $"Reason={reason} — getting up");
     }
 
     // §105.14: «враг рядом» — одно определение на все точки входа. Радиус —

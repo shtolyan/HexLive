@@ -512,7 +512,9 @@ public sealed partial class DecisionSystem
             if (known.Junction is { } j &&
                 world.Content.ObjectDefinitions.TryGetValue(known.DefinitionId, out var def) &&
                 def.Tags.Contains(tag) &&
-                (Connectivity.Reachable(world, from, j) || Connectivity.ReachableBeside(world, from, j)))
+                (Connectivity.Reachable(world, from, j) ||
+                 Connectivity.ReachableBeside(world, from, j, true,
+                     world.Entities.Objects.TryGetValue(known.Id, out var live) ? live : null)))
             {
                 return true;
             }

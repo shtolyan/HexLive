@@ -123,8 +123,10 @@ public sealed class WorldState
 
     // Spec §26.6A r4: the junctions closed by an OBJECT FOOTPRINT (a palm trunk,
     // the fire's ember ring, a bed) — as opposed to TERRAIN (a cliff face, a hut
-    // wall, the open sea). Both read `Junction.Blocked`, but only the first kind
-    // may be reached ACROSS: you work around a trunk, never through a cliff.
+    // wall, the open sea). Both read `Junction.Blocked`, and the ROUTE question
+    // ("is there a way to stand beside it at all") still tells them apart this
+    // way: a body is walked AROUND, a cliff never is. The REACH question is
+    // stricter and per-reacher — see SpatialQueries.IsBarrierFor.
     // DERIVED from every object's BlockedJunctions — rebuilt whenever
     // TopologyVersion moves, exactly like the component caches above.
     public int ObjectBlockBuiltVersion { get; set; }

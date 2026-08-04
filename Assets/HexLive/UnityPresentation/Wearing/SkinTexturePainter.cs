@@ -137,6 +137,8 @@ namespace HexLive.UnityPresentation.Wearing
             // (Uv/UvSizeX/UvSizeY are filled even on the projected path), and
             // switch to the seam-free projection on the next scheduled cycle.
             public bool DrawAsRect;
+            // Set by the worker when the decal reaches more than one submesh.
+            public bool NeedsSeamUpgrade;
         }
 
         // 1024 visibly softened the 4096 Daz skin (the whole slot swaps to the
@@ -444,34 +446,75 @@ namespace HexLive.UnityPresentation.Wearing
         // Zone damage is recomputed every tick but the blots it implies are
         // only materialised on this painter's scheduled turn.
         private bool _specklesDirty;
+        // Set for the scheduled turn: the rectangle->projection swap replaces
+        // pixels, so nothing may be carried over from the previous composite.
+        private bool _forceFullRebuild;
         private int _speckleHash;
 
-        public bool WantsFreshPass => _freshPending && _materials != null;
+        public bool WantsFreshPass =>
+            _materials != null && (_freshPending || HasPendingSeamUpgrade());
 
-        /// <summary>Draw just what appeared, on top of what is already there.
-        /// Cheap by construction: no base blit, no earlier stamp redrawn, and
-        /// the new marks use the plain rectangle stamp — the seam-free
-        /// projection lands on the next cycle.</summary>
+        // A decal confined to one submesh looks near enough the same drawn
+        // either way, so it can ride to the scheduled turn. One that actually
+        // STRADDLES a seam is visibly cut until it upgrades, and a sweep can be
+        // ~19 s long — which reads as "the decal does not carry over onto the
+        // next body part", i.e. the whole feature failing.
+        private bool HasPendingSeamUpgrade()
+        {
+            foreach (var stamp in _stamps.Values)
+            {
+                if (stamp.DrawAsRect && stamp.NeedsSeamUpgrade && stamp.GeometryReady)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Draw just what appeared, on top of what is already there —
+        /// no base blit, no earlier stamp redrawn. The exception is a decal
+        /// that turned out to cross a seam: swapping its rectangle for the
+        /// projection REPLACES pixels, so that one forces a full rebuild.</summary>
         public void PaintFresh()
         {
-            ReconcileSpeckles();
             _freshPending = false;
+            foreach (var stamp in _stamps.Values)
+            {
+                if (stamp.DrawAsRect && stamp.NeedsSeamUpgrade && stamp.GeometryReady)
+                {
+                    stamp.DrawAsRect = false;
+                    _forceFullRebuild = true;
+                }
+            }
+
             RepaintAll();
+            _forceFullRebuild = false;
         }
 
         /// <summary>This painter's scheduled turn: rebuild everything, promote
-        /// the tan into the base, and upgrade every rectangle stamp placed by
-        /// the fresh lane to its seam-free form.</summary>
+        /// the tan into the base, reconcile the damage speckles, and upgrade
+        /// every remaining rectangle to its seam-free form.</summary>
         public void PaintCycle()
         {
             _appliedTone = _skinTone;
+
+            // The rectangle->projection swap REPLACES pixels, so the composite
+            // is rebuilt from the base up. An additive pass would find the
+            // stamp already listed as painted on its anchor slot, skip it, and
+            // leave the clipped rectangle sitting there for good — the decal
+            // would reach the neighbouring submesh but never stop being cut on
+            // its own. That is exactly how leg->pelvis carry-over broke.
+            _forceFullRebuild = true;
             foreach (var stamp in _stamps.Values)
             {
                 stamp.DrawAsRect = false;
             }
 
+            ReconcileSpeckles();
             _freshPending = false;
             RepaintAll();
+            _forceFullRebuild = false;
         }
 
         // ---- raycast working set (lazy: built on the FIRST placement) ----
@@ -1706,6 +1749,7 @@ namespace HexLive.UnityPresentation.Wearing
                 }
             }
 
+            stamp.NeedsSeamUpgrade = reached.Count > 1;
             stamp.Slots = reached.ToArray();
             stamp.Windows = windows;
             stamp.UnderWindows = underWindows;
@@ -2139,7 +2183,8 @@ namespace HexLive.UnityPresentation.Wearing
         /// </summary>
         private bool CanDrawAdditively(int slot, bool hasDroplet)
         {
-            if (hasDroplet || _paintedKeys[slot].Count == 0 || _slotRt[slot] == null)
+            if (_forceFullRebuild || hasDroplet || _paintedKeys[slot].Count == 0 ||
+                _slotRt[slot] == null)
             {
                 return false;
             }

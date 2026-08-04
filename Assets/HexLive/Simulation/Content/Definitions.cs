@@ -45,6 +45,15 @@ public sealed class ObjectDefinition
     // of the anchor (solid furniture); 0 blocks the anchor only.
     public float ObstacleRadius { get; set; }
 
+    // Spec §113: ФИЗИЧЕСКИЙ радиус самой вещи в мировых единицах — то, во что
+    // телу нельзя лечь. Намеренно ОТДЕЛЬНОЕ число от ObstacleRadius: тот про
+    // проходимость и бывает много шире вещи (у костра это 0.55R угольного
+    // кольца, сквозь которое не ходят, а сам огонь втрое меньше), так что
+    // лежание по нему выгнало бы тело с гекса костра целиком. 0 = мерить по
+    // ObstacleRadius (кровати и станции объявляют там свой честный габарит) и,
+    // для Obstacle-вещей без габарита, по полу Spec49.LieSolidRadiusFloorFactor.
+    public float SolidRadius { get; set; }
+
     // Spec 31A.5B: wearable metadata (null = not wearable).
     public WearLayer? Layer { get; set; }
 

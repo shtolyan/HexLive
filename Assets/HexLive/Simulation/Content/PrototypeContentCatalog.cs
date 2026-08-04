@@ -145,6 +145,11 @@ public static class PrototypeContentCatalog
                 // radius: FootprintClear rejects a bed whose 1.39 wu disc
                 // overlaps the fire's blocked points.
                 ObstacleRadius = 0.55f * HexLive.Simulation.Spatial.HexSpatialMath.HexRadius,
+                // §113: сам ОГОНЬ втрое уже угольного кольца выше. Рендер даёт
+                // костру 0.55R по ширине (ObjectFit), то есть радиус ~0.28R;
+                // 0.30R — он же плюс ладонь запаса. По этому числу тело обходит
+                // огонь, ложась на гексе костра сбоку, а не уходит с гекса.
+                SolidRadius = 0.30f * HexLive.Simulation.Spatial.HexSpatialMath.HexRadius,
                 Interactions =
                 {
                     // §63 r2: deposit/raise the §54.14 upgrade stages (stone
@@ -238,6 +243,10 @@ public static class PrototypeContentCatalog
                 Id = "rock.boulder",
                 DisplayName = "Boulder",
                 Tags = { "Boulder", "Obstacle" },
+                // §113: валун закрывает только свой узел (ObstacleRadius 0), но
+                // на экране это глыба 0.45R в поперечнике — тело обходит её,
+                // ложась рядом, а не сквозь. 0.25R = её радиус плюс запас.
+                SolidRadius = 0.25f * HexLive.Simulation.Spatial.HexSpatialMath.HexRadius,
                 Interactions =
                 {
                     new InteractionDefinition

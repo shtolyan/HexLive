@@ -113,6 +113,21 @@ public sealed class FruitProductionSystem : ISimulationSystem
         }
     }
 
+    // §26.6A r5: a nut is dropped by the palm, and the palm is the one obstacle
+    // guaranteed to be next to it — so the old first-fit routinely wedged the
+    // fruit against the trunk. That was survivable while the hand could reach
+    // THROUGH the trunk; once it cannot, such a nut is simply food that rots.
+    // MEASURED before this: 12 seeds × 10 days, nuts dropped unchanged
+    // (1270 vs 1282) but picked up 1772 → 1595 and rotted 625 → 651.
+    //
+    // So the drop is now scored, not first-fit: prefer the spot with the most
+    // legal approach cells — exactly the rim the forager will later be held to,
+    // asked through the same predicate, so producer and planner cannot disagree.
+    // Determinism is preserved: the same fixed tile/slot order, strictly-greater
+    // comparison (ties keep the earlier candidate), and the search stops as soon
+    // as a spot is open enough, so a cramped grove still gets its drop.
+    private const int ApproachesGoodEnough = 4;
+
     // Deterministic: producer tile first, then hex neighbors in fixed direction
     // order; within a tile, junctions in slot order (spec 29A.2, v1 distance 1).
     private static (TileCoord, JunctionId?) FindDropSpot(WorldState world, WorldObjectState producer)
@@ -122,6 +137,10 @@ public sealed class FruitProductionSystem : ISimulationSystem
         {
             candidateTiles.Add(neighbor);
         }
+
+        TileCoord bestTile = default;
+        JunctionId? best = null;
+        var bestApproaches = -1;
 
         foreach (var tileCoord in candidateTiles)
         {
@@ -140,11 +159,23 @@ public sealed class FruitProductionSystem : ISimulationSystem
                     continue;
                 }
 
-                return (tileCoord, junctionId);
+                var approaches = InteractionReach.CountApproaches(world, junctionId);
+                if (approaches > bestApproaches)
+                {
+                    bestApproaches = approaches;
+                    bestTile = tileCoord;
+                    best = junctionId;
+                    if (approaches >= ApproachesGoodEnough)
+                    {
+                        return (bestTile, best); // open enough; stop looking
+                    }
+                }
             }
         }
 
-        return (producer.Tile, null);
+        // Every candidate walled in (or none at all): fall back to the best seen
+        // rather than skipping the drop — a hard-to-reach nut still beats none.
+        return best is null ? (producer.Tile, null) : (bestTile, best);
     }
 
     private static bool IsObjectAnchor(WorldState world, TileCoord tile, JunctionId junctionId)

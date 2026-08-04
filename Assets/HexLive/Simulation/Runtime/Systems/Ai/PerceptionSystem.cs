@@ -74,7 +74,8 @@ public sealed class PerceptionSystem : ISimulationSystem
                 var distance = HexSpatialMath.Distance(npc.Position, HexSpatialMath.TileToWorld(obj.Tile));
                 var objJunction = obj.Junctions.Count > 0 ? obj.Junctions[0] : (JunctionId?)null;
                 var isReachable = npcJunction.HasValue && objJunction.HasValue &&
-                    Connectivity.ReachableBeside(world, npcJunction.Value, objJunction.Value, npc.Body.CanJump);
+                    Connectivity.ReachableBeside(world, npcJunction.Value, objJunction.Value,
+                        npc.Body.CanJump, obj);
 
                 var perceived = new PerceivedObject
                 {
@@ -145,8 +146,13 @@ public sealed class PerceptionSystem : ISimulationSystem
                     continue;
                 }
 
+                // §26.6A r5: the remembered object usually still exists — hand it
+                // over so its own footprint stays crossable. Gone means its
+                // blocked junctions are gone too, so null is the right answer.
+                world.Entities.Objects.TryGetValue(record.Id, out var liveRemembered);
                 var isReachable = npcJunction.HasValue && record.Junction.HasValue &&
-                    Connectivity.ReachableBeside(world, npcJunction.Value, record.Junction.Value, npc.Body.CanJump);
+                    Connectivity.ReachableBeside(world, npcJunction.Value, record.Junction.Value,
+                        npc.Body.CanJump, liveRemembered);
 
                 var remembered = new PerceivedObject
                 {

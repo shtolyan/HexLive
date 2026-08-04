@@ -71,9 +71,15 @@ public sealed partial class DecisionSystem : ISimulationSystem
 
             // §105.14: окно обморока вышло — прежде чем встать, спросить себя,
             // а надо ли (враг рядом → притвориться мёртвой). Поле потребляем в
-            // ноль: это устоявшийся идиом (боль уже зануляет CryingUntilTick),
-            // и 0 читается везде так же, как протухший тик.
-            if (npc.Mind.FaintedUntilTick != 0)
+            // ноль, чтобы поймать край РОВНО ОДИН РАЗ: без этого протухший, но
+            // ненулевой тик заводил бы притворство заново каждый проход.
+            //
+            // ⭐ Ручка спрашивается ЗДЕСЬ, а не только внутри TryStartPlayDead:
+            // обнуление протухшего тика читается везде одинаково, но
+            // ХЭШИРУЕТСЯ иначе, и с выключенной ручкой golden trace расходился
+            // на ровном месте (сид 12345, тик 200). Выключено — не трогаем
+            // ничего вообще.
+            if (Spec105.PlayDeadEnabled && npc.Mind.FaintedUntilTick != 0)
             {
                 npc.Mind.FaintedUntilTick = 0;
                 MortalityHelpers.TryStartPlayDead(world, npc);
@@ -98,8 +104,9 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 continue;
             }
 
-            // §105.14: выплакалась — те же ворота перед подъёмом.
-            if (npc.Mind.CryingUntilTick != 0)
+            // §105.14: выплакалась — те же ворота перед подъёмом, и та же
+            // причина спрашивать ручку прямо здесь (см. обморок выше).
+            if (Spec105.PlayDeadEnabled && npc.Mind.CryingUntilTick != 0)
             {
                 npc.Mind.CryingUntilTick = 0;
                 MortalityHelpers.TryStartPlayDead(world, npc);
@@ -108,7 +115,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // §105.14: притворяется мёртвой — решений не принимает, тело
             // отдыхает ровно как в обмороке выше. Окно перевзводит Slow-тик
             // NeedsDecaySystem, пока враг рядом; здесь только истечение.
-            if (world.Tick < npc.Mind.PlayDeadUntilTick)
+            // ⭐ Собственный кризис поднимает её ДО срока (голод, жажда, текущая
+            // рана) — определение одно на оба гейта, см. OwnCrisisOutranksHiding.
+            // Латчи обновлены выше по циклу (UpdateStarving/UpdateDehydrated),
+            // так что читаются свежими.
+            if (world.Tick < npc.Mind.PlayDeadUntilTick &&
+                !MortalityHelpers.OwnCrisisOutranksHiding(npc))
             {
                 npc.Needs.Stamina = MathUtil.Clamp01(npc.Needs.Stamina + 0.02f);
                 continue;
@@ -116,7 +128,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
 
             if (npc.Mind.PlayDeadSinceTick != 0)
             {
-                MortalityHelpers.EndPlayDead(world, npc);
+                var reason = MortalityHelpers.OwnCrisisOutranksHiding(npc)
+                    ? "OwnCrisis"
+                    : world.Tick >= npc.Mind.PlayDeadSinceTick + Spec105.PlayDeadMaxTicks
+                        ? "CapReached"
+                        : "CoastClear";
+                MortalityHelpers.EndPlayDead(world, npc, reason);
                 continue; // грация подъёма всё равно гейтит этот тик
             }
 

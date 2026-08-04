@@ -97,6 +97,20 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private const float WardrobeHandoffFraction = 0.5f;
     private readonly HashSet<int> _wardrobeHiddenObjects = new();
 
+    // FOG-OF-WAR EXPERIMENT (visual only, sim untouched): hide object views no
+    // colony NPC has in her object memory, and mobs beyond the spot radius of
+    // every colonist. Object memory does not travel the wire, so this reads
+    // Engine.World directly — a deliberate, experiment-only breach of the
+    // "no Engine in rendering" rule; on a remote/loopback backend Engine is
+    // null and the fog silently stays off.
+    private readonly HashSet<int> _fogKnownObjects = new();
+    private readonly List<TileCoord> _fogColonyTiles = new();
+    private bool _fogActive;
+
+    // Mirrors Spec62.SpotRadiusTiles — how far a sim notices a threat. Kept as
+    // a local constant: presentation must not link sim balance.
+    private const int FogMobSpotRadiusTiles = 6;
+
     // §28.15C v3: ТЕЛА. Ключ — id самой погибшей, а не объекта-якоря: тело это
     // она, и живёт оно ровно столько, сколько её NPCState живёт в
     // Entities.Corpses (то есть до конца игры или до ножа).
@@ -874,6 +888,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
         }
 
+        RebuildFogState(snapshot);
+
         // §35.5B: map rack junctions and rank the garments hanging at each one
         // (sorted by object id) so every hung garment gets a stable hanger slot.
         _rackJunctions.Clear();
@@ -958,7 +974,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             // §Wardrobe-anim: hide/show the ground garment as its owner picks it
             // up / drops it (SetActive is idempotent, so this is cheap per frame).
-            var shouldHide = _wardrobeHiddenObjects.Contains(key);
+            // FOG-OF-WAR EXPERIMENT: also hide objects no colonist remembers.
+            var shouldHide = _wardrobeHiddenObjects.Contains(key)
+                || (_fogActive && !_fogKnownObjects.Contains(key));
             if (objectView.activeSelf == shouldHide)
             {
                 objectView.SetActive(!shouldHide);
@@ -2756,6 +2774,73 @@ public sealed class HexWorldRenderer : MonoBehaviour
         effect.Construct(HexRadius);
     }
 
+    // FOG-OF-WAR EXPERIMENT: once per rendered tick, gather what the colony
+    // knows. Object knowledge = union of every living colonist's persistent
+    // object memory (perception upserts a sighted object into memory the same
+    // tick, so memory covers "sees right now" too). Colonist tiles feed the
+    // mob spot-radius check. Reading Engine.World here is local-mode only.
+    private void RebuildFogState(WorldSnapshot snapshot)
+    {
+        var engine = UI.DebugControlsPanel.FogOfWar ? _runner?.Engine : null;
+        _fogActive = engine != null;
+        _fogKnownObjects.Clear();
+        _fogColonyTiles.Clear();
+        if (engine == null)
+        {
+            return;
+        }
+
+        // "Selected only": the fog narrows to what the selected NPC herself
+        // knows/sees. With nothing selected it falls back to the colony union,
+        // matching the debug panel's "target: everyone" convention.
+        var selectedId = UI.DebugControlsPanel.FogOfWarSelectedOnly &&
+            Input.NpcSelection.HasSelection
+                ? Input.NpcSelection.SelectedId
+                : -1;
+
+        foreach (var npc in engine.World.Entities.Npcs.Values)
+        {
+            var include = selectedId >= 0
+                ? npc.Id.Value == selectedId
+                : npc.Faction == HexLive.Simulation.Agents.Faction.Colony;
+            if (!include)
+            {
+                continue;
+            }
+
+            foreach (var knownId in npc.Memory.KnownObjects.Keys)
+            {
+                _fogKnownObjects.Add(knownId.Value);
+            }
+        }
+
+        // Spot tiles come from the snapshot so the mob check matches what is
+        // actually rendered this tick.
+        foreach (var npc in snapshot.Npcs)
+        {
+            var include = selectedId >= 0
+                ? npc.Id.Value == selectedId
+                : !npc.IsHostileToColony;
+            if (include)
+            {
+                _fogColonyTiles.Add(npc.Tile);
+            }
+        }
+    }
+
+    private bool FogColonySeesTile(TileCoord tile)
+    {
+        foreach (var colonistTile in _fogColonyTiles)
+        {
+            if (HexSpatialMath.HexDistance(colonistTile, tile) <= FogMobSpotRadiusTiles)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     // Animal keys share one pose map: dogs get positive ids, crabs negative.
     private void SyncAnimalViews(WorldSnapshot snapshot)
     {
@@ -2768,6 +2853,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
             {
                 mobView = CreateMobView(dog.MobId, dog.Id);
                 _mobViews[key] = mobView;
+            }
+
+            // FOG-OF-WAR EXPERIMENT: a mob exists for the player only while a
+            // colonist would notice it (the sim's spot-scan radius).
+            var fogHideMob = _fogActive && !FogColonySeesTile(dog.Tile);
+            if (mobView.activeSelf == fogHideMob)
+            {
+                mobView.SetActive(!fogHideMob);
             }
 
             if (mobView.TryGetComponent<MobView>(out var wolfView))
@@ -2805,9 +2898,17 @@ public sealed class HexWorldRenderer : MonoBehaviour
         {
             var key = -crab.Id - 1;
             liveKeys.Add(key);
-            if (!_crabViews.TryGetValue(crab.Id, out _))
+            if (!_crabViews.TryGetValue(crab.Id, out var crabView))
             {
-                _crabViews[crab.Id] = CreateMobView(HexLive.Simulation.Content.MobIds.Crab, crab.Id);
+                crabView = CreateMobView(HexLive.Simulation.Content.MobIds.Crab, crab.Id);
+                _crabViews[crab.Id] = crabView;
+            }
+
+            // FOG-OF-WAR EXPERIMENT: same spot-radius rule as the dogs above.
+            var fogHideCrab = _fogActive && !FogColonySeesTile(crab.Tile);
+            if (crabView.activeSelf == fogHideCrab)
+            {
+                crabView.SetActive(!fogHideCrab);
             }
 
             UpdateAnimalPose(key, crab.Position, crab.Tile);

@@ -221,12 +221,24 @@ namespace HexLive.UnityPresentation.Wearing
         // each stamp is a full palm-to-forearm-sized splatter; they freely
         // overlap (centres stay unique via the grid walk, nothing else is
         // deduplicated), which is what builds the solid gore near zero HP.
-        private const float SpeckleWorldSizeMin = 0.25f;
-        private const float SpeckleWorldSizeMax = 0.45f;
+        // r7: SMALLER blots, four times as many. At 25-45 cm a single blot was
+        // the largest decal in the game — bigger than a bandage — and it is
+        // drawn as a RECTANGLE in one submesh's UV, so it physically cannot
+        // cross a seam: the spine line on a bloodied back was one blot ending
+        // at the island edge. Blood is irregular, so a small blot cut at a
+        // seam reads as "the splatter ends there", while a palm-sized one
+        // reads as a straight cut. Coverage is preserved by count, since a
+        // blot's area goes as the SQUARE of its size: 0.35 m -> 0.16 m mean is
+        // a quarter of the area, so the ceilings below are x4.
+        private const float SpeckleWorldSizeMin = 0.12f;
+        private const float SpeckleWorldSizeMax = 0.20f;
         // Speckles get their own UV cap: the droplet 0.12 face-tile
         // insurance would strangle these big splatters. 0.5 still keeps a
         // single stamp from swallowing a whole dense UV tile.
-        private const float SpeckleMaxUvSize = 0.5f;
+        // r7: was 0.5 (half a tile) to let the old palm-sized blots through.
+        // The small ones never need that much, and the cap still saves a dense
+        // face tile from a blown-up stamp.
+        private const float SpeckleMaxUvSize = 0.22f;
         // Grid-cell stride for placement: odd => coprime with the 8×16 = 128
         // cell PaintPointMap grid, so consecutive indices walk a full cycle
         // with no duplicate cells and the fill grows evenly with damage.
@@ -243,14 +255,18 @@ namespace HexLive.UnityPresentation.Wearing
         private static float SpeckleRamp(float q) => Mathf.Pow(q, 0.85f);
 
         // r6: ceilings scaled to the no-flood calibration (≈0.18 of r4).
+        // r7 ceilings: x4 of the r6 calibration, to hold the same amount of
+        // red now that each blot covers a quarter of the area. All stay under
+        // the zone grid's 128 cells, so the coprime stride walk still gives
+        // every blot its own centre.
         private static int MaxSpecklesFor(string zone) => zone switch
         {
-            "Torso" => 22,
-            "Pelvis" => 15,
-            "LegL" or "LegR" => 13,
-            "ArmL" or "ArmR" => 9,
-            "Head" => 7,
-            _ => 7
+            "Torso" => 88,
+            "Pelvis" => 60,
+            "LegL" or "LegR" => 52,
+            "ArmL" or "ArmR" => 36,
+            "Head" => 28,
+            _ => 28
         };
 
         private static int SpeckleCountFor(string zone, float q) =>

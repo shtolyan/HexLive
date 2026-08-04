@@ -25,6 +25,14 @@ namespace HexLive.UnityPresentation.UI
         public static bool HideClothing;
         public static float? SweatOverride;
 
+        // FOG-OF-WAR EXPERIMENT: the renderer hides object views no colony NPC
+        // remembers and mobs beyond the sim's spot radius. Visual-only.
+        // SelectedOnly narrows the fog to the currently selected NPC's own
+        // memory/eyes (falls back to the whole colony while nothing is
+        // selected — same convention as the "target:" label above).
+        public static bool FogOfWar;
+        public static bool FogOfWarSelectedOnly;
+
         [SerializeField] private SimulationRunnerBehaviour _runner;
 
         private static readonly Color Panel = new(0.075f, 0.094f, 0.110f, 0.94f);
@@ -158,6 +166,14 @@ namespace HexLive.UnityPresentation.UI
             _clothesLabel = (Label)_clothesButton[0];
             box.Add(_clothesButton);
 
+            _fogButton = MakeButton("[ ] Fog of war", Raised, ToggleFogOfWar);
+            _fogLabel = (Label)_fogButton[0];
+            box.Add(_fogButton);
+
+            _fogSelectedButton = MakeButton("[ ] Fog: selected only", Raised, ToggleFogSelectedOnly);
+            _fogSelectedLabel = (Label)_fogSelectedButton[0];
+            box.Add(_fogSelectedButton);
+
             BuildExpandTab(root);
             ApplyCollapsed(); // hidden by default
         }
@@ -237,6 +253,31 @@ namespace HexLive.UnityPresentation.UI
             if (_clothesLabel != null)
             {
                 _clothesLabel.text = HideClothing ? "Show clothes" : "Hide clothes";
+            }
+        }
+
+        private VisualElement _fogButton;
+        private Label _fogLabel;
+        private VisualElement _fogSelectedButton;
+        private Label _fogSelectedLabel;
+
+        private void ToggleFogOfWar()
+        {
+            FogOfWar = !FogOfWar;
+            if (_fogLabel != null)
+            {
+                _fogLabel.text = FogOfWar ? "[x] Fog of war" : "[ ] Fog of war";
+            }
+        }
+
+        private void ToggleFogSelectedOnly()
+        {
+            FogOfWarSelectedOnly = !FogOfWarSelectedOnly;
+            if (_fogSelectedLabel != null)
+            {
+                _fogSelectedLabel.text = FogOfWarSelectedOnly
+                    ? "[x] Fog: selected only"
+                    : "[ ] Fog: selected only";
             }
         }
 

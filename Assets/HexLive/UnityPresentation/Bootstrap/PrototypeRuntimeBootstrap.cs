@@ -169,6 +169,13 @@ public static class PrototypeRuntimeBootstrap
         var debugPanel = debugRoot.AddComponent<DebugControlsPanel>();
         debugPanel.SetRunner(runner);
 
+        // In-game bug tracker window (BUGS.json), opened from the debug panel.
+        var bugRoot = new GameObject("HexLive Bug Reports");
+        bugRoot.AddComponent<UIDocument>();
+        var bugPanel = bugRoot.AddComponent<BugReportPanel>();
+        bugPanel.SetRunner(runner);
+        debugPanel.SetBugReportPanel(bugPanel);
+
         var historyRoot = new GameObject("HexLive Game History");
         historyRoot.AddComponent<UIDocument>();
         var historyPanel = historyRoot.AddComponent<GameHistoryPanel>();

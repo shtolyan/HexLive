@@ -34,6 +34,7 @@ namespace HexLive.UnityPresentation.UI
         public static bool FogOfWarSelectedOnly;
 
         [SerializeField] private SimulationRunnerBehaviour _runner;
+        [SerializeField] private BugReportPanel _bugReportPanel;
 
         private static readonly Color Panel = new(0.075f, 0.094f, 0.110f, 0.94f);
         private static readonly Color Raised = new(0.133f, 0.165f, 0.192f);
@@ -48,6 +49,8 @@ namespace HexLive.UnityPresentation.UI
 
         private UIDocument _document;
         private Label _targetLabel;
+        private Label _bugLabel;
+        private float _nextBugLabelRefresh;
 
         // Collapsible like the bottom character bar: hidden by default, a small
         // arrow tab pops it open, the header arrow tucks it away again.
@@ -56,6 +59,8 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement _expandTab;
 
         public void SetRunner(SimulationRunnerBehaviour runner) => _runner = runner;
+
+        public void SetBugReportPanel(BugReportPanel panel) => _bugReportPanel = panel;
 
         private void Awake()
         {
@@ -89,6 +94,17 @@ namespace HexLive.UnityPresentation.UI
                 _targetLabel.text = NpcSelection.HasSelection
                     ? $"target: NPC #{NpcSelection.SelectedId}"
                     : "target: everyone";
+            }
+
+            // A "(N fixed)" tail on the bug-tracker button is how the player
+            // learns the agent closed something — refresh it lazily, the count
+            // only moves when BUGS.json does.
+            if (_bugLabel != null && Time.unscaledTime >= _nextBugLabelRefresh)
+            {
+                _nextBugLabelRefresh = Time.unscaledTime + 2f;
+                BugReportStore.CheckExternalChange();
+                var fixedCount = BugReportStore.CountWithStatus(BugReportStore.StatusFixed);
+                _bugLabel.text = fixedCount > 0 ? $"Bug tracker ({fixedCount} fixed)" : "Bug tracker";
             }
         }
 
@@ -173,6 +189,11 @@ namespace HexLive.UnityPresentation.UI
             _fogSelectedButton = MakeButton("[ ] Fog: selected only", Raised, ToggleFogSelectedOnly);
             _fogSelectedLabel = (Label)_fogSelectedButton[0];
             box.Add(_fogSelectedButton);
+
+            var bugButton = MakeButton("Bug tracker", new Color(0.28f, 0.38f, 0.55f),
+                () => _bugReportPanel?.Toggle());
+            _bugLabel = (Label)bugButton[0];
+            box.Add(bugButton);
 
             BuildExpandTab(root);
             ApplyCollapsed(); // hidden by default

@@ -3,6 +3,28 @@
 Survival-colony sim (Unity, URP). The canonical design/behaviour spec is
 **`spec.md`** (repo root) — keep it in sync with code (spec-first).
 
+## ⭐ BUGS.json — the in-game bug tracker (spec §114)
+
+The player files bugs from inside the game (Bug tracker button in the debug
+panel) into **`BUGS.json` at the repo root**. When the user says «разбери
+баги» / «посмотри баг-трекер» (or at the start of any bug-fixing session),
+read it. The contract:
+
+- **Your queue** = every report with `status` `"created"` or `"rework"`.
+  Each report carries a `context` line (`seed=… tick=… npc=…`) captured at
+  submit time — use it to reproduce.
+- After fixing: set `status` to `"fixed"` and **append** a comment
+  `{"whenUtc": "…", "author": "claude", "text": "<что сделано, по-русски>"}`
+  to that report's `comments`. Keep the JSON pretty-printed (it is written by
+  `JsonUtility`, 4-space-style indentation).
+- **Never delete or reorder reports** — deletion is the player's accept
+  gesture, done in-game. Never touch `nextId` except to preserve it.
+- The running game re-reads the file by mtime every ~2 s, so an edit made
+  while Play mode is up appears live; no restart needed.
+
+Code: `UnityPresentation/UI/BugReportStore.cs` (schema + IO),
+`UI/BugReportPanel.cs` (window), button in `DebugControlsPanel`.
+
 ## Generating tool / weapon models (axe, knife, pickaxe, hammer, spear…)
 
 **Follow `TOOL_GENERATION_SPEC.md` exactly.** Every tool must be produced the

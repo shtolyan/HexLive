@@ -108,10 +108,17 @@ _STRIP_AND_FIT = """
     return false;
   }
 
-  // Кость доворачивает не она сама, а ERC поверх неё, поэтому ставить ноль в
-  // саму кость бесполезно: контроллер вернёт своё. Гасим ИСТОЧНИК.
-  function unpose() {
-    var zeroed = [];
+  // Позу накладывают ДВУМЯ разными способами, и лечатся они по-разному:
+  //
+  //   * через МОРФ (Great Charm Boots — «CDw Foot Pose»): кость доворачивает ERC
+  //     поверх неё, и ноль, записанный в кость, контроллер перепишет. Гасить
+  //     надо источник;
+  //   * ПРЯМО В КОСТЬ (Skinny Jeans and Corset Heels — 45° и −45°): контроллеров
+  //     нет вовсе, гасить нечего, и надо просто вернуть значение.
+  //
+  // Поэтому сперва источники, а потом — то, что всё ещё стоит не на месте.
+  function unpose(base) {
+    var fixed = [];
     for (var i = 0; i < FOOT_BONES.length; i++) {
       var b = fig.findBone(FOOT_BONES[i]);
       if (!b) continue;
@@ -119,12 +126,21 @@ _STRIP_AND_FIT = """
       for (var k = 0; k < c.getNumControllers(); k++) {
         var p = c.getController(k).getProperty();
         if (p && p.getValue && p.getValue() != 0) {
-          zeroed.push(p.getLabel());
+          fixed.push(String(p.getLabel()));
           p.setValue(0);
         }
       }
     }
-    return zeroed;
+    for (var i = 0; i < FOOT_BONES.length; i++) {
+      var b = fig.findBone(FOOT_BONES[i]);
+      if (!b) continue;
+      var c = b.getXRotControl();
+      if (Math.abs(c.getValue() - base[FOOT_BONES[i]]) > 0.5) {
+        c.setValue(base[FOOT_BONES[i]]);
+        fixed.push(FOOT_BONES[i] + " (прямо в кость)");
+      }
+    }
+    return fixed;
   }
 
   var basePose = footPose();
@@ -165,7 +181,7 @@ _STRIP_AND_FIT = """
 
     var posed = footPose();
     if (poseDiffers(posed, basePose)) {
-      var zeroed = unpose();
+      var zeroed = unpose(basePose);
       var left = footPose();
       out.posed.push({
         file: args.garments[i],

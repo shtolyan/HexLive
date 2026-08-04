@@ -360,6 +360,7 @@ namespace HexLive.Simulation.Content
                 new("underwear.briefs_luxury_03_white_panties", "Jewelled Bikini Bottom (03 White Panties)", WearLayer.Underwear, 0.01f, 0.00f, 0.00f, dress, 0, BodyPart.Torso, BodyPart.Pelvis) { PrototypeId = "underwear.briefs_luxury" },
                 new("underwear.briefs_luxury_04_black_panties", "Jewelled Bikini Bottom (04 Black Panties)", WearLayer.Underwear, 0.01f, 0.00f, 0.00f, dress, 0, BodyPart.Torso, BodyPart.Pelvis) { PrototypeId = "underwear.briefs_luxury" },
                 new("underwear.briefs_luxury_05_golden_panties", "Jewelled Bikini Bottom (05 Golden Panties)", WearLayer.Underwear, 0.01f, 0.00f, 0.00f, dress, 0, BodyPart.Torso, BodyPart.Pelvis) { PrototypeId = "underwear.briefs_luxury" },
+                new("underwear.tights_deadly", "Thigh Tights", WearLayer.Underwear, 0.05f, 0.00f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR),
 
                 // --- Wear: the main clothing layer, carries the warmth budget. --
                 // New-wear drop (2026-07, Temp FBX extraction — spec §31B.4).
@@ -656,6 +657,15 @@ namespace HexLive.Simulation.Content
                 new("clothing.dress_city_05_dress", "City Dress (05 Dress)", WearLayer.Wear, 0.07f, 0.00f, 0.00f, dress, 0, BodyPart.Torso, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.dress_city" },
                 new("clothing.dress_city_06_dress", "City Dress (06 Dress)", WearLayer.Wear, 0.07f, 0.00f, 0.00f, dress, 0, BodyPart.Torso, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.dress_city" },
                 new("clothing.dress_city_07_dress", "City Dress (07 Dress)", WearLayer.Wear, 0.07f, 0.00f, 0.00f, dress, 0, BodyPart.Torso, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.dress_city" },
+                new("clothing.top_stars", "Uniform Shirt", WearLayer.Wear, 0.07f, 0.02f, 0.00f, dress, 0, BodyPart.Torso, BodyPart.ArmL, BodyPart.ArmR),
+                new("clothing.pants_stars", "Uniform Trousers", WearLayer.Wear, 0.13f, 0.04f, 0.00f, dress, 2, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
+                new("clothing.gloves_stars", "Duty Gloves", WearLayer.Wear, 0.02f, 0.03f, 0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR),
+                new("clothing.cap_stars", "Uniform Cap", WearLayer.Wear, 0.04f, 0.01f, 0.00f, dress, 0, BodyPart.Head),
+                new("clothing.top_deadly", "Cropped Halter", WearLayer.Wear, 0.03f, 0.00f, 0.00f, dress, 0, BodyPart.Torso),
+                new("clothing.shorts_deadly", "High-Waist Shorts", WearLayer.Wear, 0.05f, 0.02f, 0.00f, dress, 1, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
+                new("clothing.gloves_deadly", "Mismatched Gloves", WearLayer.Wear, 0.03f, 0.04f, 0.00f, dress, 0, BodyPart.ArmL, BodyPart.ArmR),
+                new("clothing.corset_skinny", "Laced Corset", WearLayer.Wear, 0.06f, 0.05f, 0.00f, dress, 0, BodyPart.Torso),
+                new("clothing.jeans_skinny", "Skinny Jeans", WearLayer.Wear, 0.12f, 0.05f, 0.00f, dress, 2, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
 
                 // --- Outerwear: the top layer — jackets, boots, armor. ----------
                 // §52.8 tool holster: GEAR, not clothing — no warmth, no thermal
@@ -774,6 +784,9 @@ namespace HexLive.Simulation.Content
                 new("clothing.heels_luxury_light_pink_color", "Strap Heels (Light Pink Color)", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.heels_luxury" },
                 new("clothing.heels_luxury_silver_color", "Strap Heels (Silver Color)", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.heels_luxury" },
                 new("clothing.heels_luxury_white_color", "Strap Heels (White Color)", WearLayer.Outerwear, 0.02f, 0.02f, 0.00f, dress, 0, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.heels_luxury" },
+                new("clothing.vest_stars", "Tactical Vest", WearLayer.Outerwear, 0.08f, 0.22f, 0.00f, dress, 3, BodyPart.Torso),
+                new("clothing.belt_stars", "Duty Belt", WearLayer.Outerwear, 0.01f, 0.02f, 0.00f, dress, 3, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
+                new("clothing.pouches_deadly", "Belt Pouches", WearLayer.Outerwear, 0.01f, 0.02f, 0.00f, dress, 5, BodyPart.Torso),
 
                 // --- §72: снаряжение чужака ------------------------------------
                 // Он не выживальщик в трусах, а боец: тактический комплект с

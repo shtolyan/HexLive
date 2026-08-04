@@ -1,0 +1,936 @@
+{
+  "drop": "starsdeadly",
+  "sources": [
+    {
+      "fbx": "Assets/Temp/jolly starsdeadly.fbx",
+      "actor": "Jolly"
+    },
+    {
+      "fbx": "Assets/Temp/jana starsdeadly.fbx",
+      "actor": "Jana"
+    },
+    {
+      "fbx": "Assets/Temp/marta starsdeadly.fbx",
+      "actor": "Marta"
+    },
+    {
+      "fbx": "Assets/Temp/molly starsdeadly.fbx",
+      "actor": "Molly"
+    }
+  ],
+  "garments": [
+    {
+      "sourceKey": "stars top_2488",
+      "folder": "StarsTop",
+      "name": "StarsTop",
+      "simId": "clothing.top_stars",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "ShoulderR",
+        "ShoulderL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Top",
+          "texture": "top.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 2488,
+        "polys": 2432,
+        "bbox": [
+          -26.8,
+          26.9,
+          114.0,
+          153.5,
+          -13.1,
+          13.8
+        ],
+        "zones": {
+          "Chest": 0.79,
+          "Shoulder": 0.116,
+          "Belly": 0.076,
+          "Neck": 0.018
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Uniform Shirt",
+        "nameRu": "Форменная рубашка",
+        "descEn": "Issue shirt, shoulder seams reinforced.",
+        "descRu": "Уставная рубашка с усиленными плечевыми швами.",
+        "warmth": 0.07,
+        "armor": 0.02,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso",
+          "ArmL",
+          "ArmR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "vest_2279",
+      "folder": "StarsVest",
+      "name": "StarsVest",
+      "simId": "clothing.vest_stars",
+      "layer": "Outerwear",
+      "slots": [
+        "Neck",
+        "Chest"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Straps",
+          "texture": "straps.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Pad",
+          "texture": "pad d.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 2279,
+        "polys": 2254,
+        "bbox": [
+          -17.8,
+          17.8,
+          124.4,
+          155.9,
+          -14.6,
+          14.0
+        ],
+        "zones": {
+          "Chest": 0.88,
+          "Neck": 0.12
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Tactical Vest",
+        "nameRu": "Тактический жилет",
+        "descEn": "Plates front and back. Heavy, and worth it.",
+        "descRu": "Пластины спереди и сзади. Тяжёлый — и стоит того.",
+        "warmth": 0.08,
+        "armor": 0.22,
+        "thermalDelta": 0.0,
+        "capacity": 3,
+        "covers": [
+          "Torso"
+        ]
+      }
+    },
+    {
+      "sourceKey": "pants_3195",
+      "folder": "StarsPants",
+      "name": "StarsPants",
+      "simId": "clothing.pants_stars",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis",
+        "ThighR",
+        "ThighL",
+        "ShinR",
+        "ShinL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "pants",
+          "texture": "pants.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 3195,
+        "polys": 3159,
+        "bbox": [
+          -19.0,
+          19.1,
+          28.2,
+          115.0,
+          -13.0,
+          12.5
+        ],
+        "zones": {
+          "Thigh": 0.379,
+          "Shin": 0.288,
+          "Pelvis": 0.24,
+          "Belly": 0.093
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Uniform Trousers",
+        "nameRu": "Форменные брюки",
+        "descEn": "Thick cotton, knees doubled.",
+        "descRu": "Плотный хлопок, колени в два слоя.",
+        "warmth": 0.13,
+        "armor": 0.04,
+        "thermalDelta": 0.0,
+        "capacity": 2,
+        "covers": [
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "belt_1974",
+      "folder": "StarsBelt",
+      "name": "StarsBelt",
+      "simId": "clothing.belt_stars",
+      "layer": "Outerwear",
+      "slots": [
+        "Pelvis",
+        "ThighR",
+        "ThighL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Belt",
+          "texture": "straps.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 1974,
+        "polys": 2302,
+        "bbox": [
+          -22.9,
+          17.2,
+          68.8,
+          115.3,
+          -9.9,
+          16.1
+        ],
+        "zones": {
+          "Belly": 0.559,
+          "Pelvis": 0.228,
+          "Thigh": 0.213
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Duty Belt",
+        "nameRu": "Служебный пояс",
+        "descEn": "Wide belt with a thigh strap.",
+        "descRu": "Широкий пояс с ремнём на бедро.",
+        "warmth": 0.01,
+        "armor": 0.02,
+        "thermalDelta": 0.0,
+        "capacity": 3,
+        "covers": [
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "gloves_1876",
+      "folder": "StarsGloves",
+      "name": "StarsGloves",
+      "simId": "clothing.gloves_stars",
+      "layer": "Wear",
+      "slots": [
+        "ForearmR",
+        "ForearmL",
+        "WristR",
+        "WristL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Wrist arms",
+          "texture": "straps.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Gloves",
+          "texture": "Gloves.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 1876,
+        "polys": 1782,
+        "bbox": [
+          -78.9,
+          79.0,
+          141.2,
+          149.0,
+          -2.4,
+          10.1
+        ],
+        "zones": {
+          "Wrist": 0.737,
+          "Forearm": 0.176,
+          "Hand": 0.087
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Duty Gloves",
+        "nameRu": "Служебные перчатки",
+        "descEn": "Leather to the wrist.",
+        "descRu": "Кожа до запястья.",
+        "warmth": 0.02,
+        "armor": 0.03,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "ArmL",
+          "ArmR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "cap_1142",
+      "folder": "StarsCap",
+      "name": "StarsCap",
+      "simId": "clothing.cap_stars",
+      "layer": "Wear",
+      "slots": [
+        "Head"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "cap",
+          "texture": "Cap.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 1142,
+        "polys": 1140,
+        "bbox": [
+          -12.5,
+          9.9,
+          173.2,
+          183.7,
+          -14.4,
+          11.2
+        ],
+        "zones": {
+          "Head": 1.0
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Uniform Cap",
+        "nameRu": "Форменная кепка",
+        "descEn": "Stiff brim, unit patch gone.",
+        "descRu": "Жёсткий козырёк, нашивка спорота.",
+        "warmth": 0.04,
+        "armor": 0.01,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Head"
+        ]
+      }
+    },
+    {
+      "sourceKey": "S3D_DdlSlc_Top",
+      "folder": "DeadlyTop",
+      "name": "DeadlyTop",
+      "simId": "clothing.top_deadly",
+      "layer": "Wear",
+      "slots": [
+        "Chest"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Top",
+          "texture": "S3D_DS_Top_BaseColor.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 3184,
+        "polys": 2995,
+        "bbox": [
+          -14.6,
+          14.6,
+          116.4,
+          156.0,
+          -8.7,
+          15.1
+        ],
+        "zones": {
+          "Chest": 0.94,
+          "Neck": 0.037,
+          "Belly": 0.024
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Cropped Halter",
+        "nameRu": "Укороченный топ",
+        "descEn": "Cut above the ribs, high collar.",
+        "descRu": "Обрезан выше рёбер, высокий ворот.",
+        "warmth": 0.03,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      }
+    },
+    {
+      "sourceKey": "S3D_DdlSlc_Shorts_19751",
+      "folder": "DeadlyShorts",
+      "name": "DeadlyShorts",
+      "simId": "clothing.shorts_deadly",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis",
+        "ThighR",
+        "ThighL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Shorts",
+          "texture": "S3D_DdlSlc_Shorts_BaseColor.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 19751,
+        "polys": 19368,
+        "bbox": [
+          -20.5,
+          20.5,
+          78.8,
+          111.3,
+          -13.1,
+          13.2
+        ],
+        "zones": {
+          "Pelvis": 0.409,
+          "Belly": 0.388,
+          "Thigh": 0.202
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "High-Waist Shorts",
+        "nameRu": "Шорты с высокой посадкой",
+        "descEn": "High on the waist, short on the leg.",
+        "descRu": "Высоко на талии, коротко на ноге.",
+        "warmth": 0.05,
+        "armor": 0.02,
+        "thermalDelta": 0.0,
+        "capacity": 1,
+        "covers": [
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "DS_Tights_1818",
+      "folder": "DeadlyTights",
+      "name": "DeadlyTights",
+      "simId": "underwear.tights_deadly",
+      "layer": "Underwear",
+      "slots": [
+        "ThighR",
+        "ThighL",
+        "ShinR",
+        "ShinL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "main",
+          "texture": "DS_Tights_main_BaseColor_DS_Tights_main_opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        }
+      ],
+      "_measured": {
+        "verts": 1818,
+        "polys": 1770,
+        "bbox": [
+          -19.0,
+          19.0,
+          8.7,
+          83.1,
+          -11.4,
+          10.2
+        ],
+        "zones": {
+          "Thigh": 0.537,
+          "Shin": 0.416,
+          "Foot": 0.047
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Thigh Tights",
+        "nameRu": "Плотные чулки",
+        "descEn": "Opaque, to the thigh.",
+        "descRu": "Плотные, до бедра.",
+        "warmth": 0.05,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "glove_left_2245",
+      "folder": "DeadlyGloves",
+      "name": "DeadlyGloves",
+      "simId": "clothing.gloves_deadly",
+      "layer": "Wear",
+      "slots": [
+        "ForearmL",
+        "ForearmR",
+        "HandL",
+        "HandR",
+        "ShoulderL",
+        "ShoulderR",
+        "WristL",
+        "WristR"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "latex",
+          "texture": "S3D_DdlSlc_Add_basecolor_S3D_DdlSlc_Add_opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "fabric",
+          "texture": "S3D_DdlSlc_Add_basecolor.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 2245,
+        "polys": 2240,
+        "bbox": [
+          28.3,
+          84.4,
+          140.2,
+          149.1,
+          -9.6,
+          11.3
+        ],
+        "zones": {
+          "Wrist": 0.345,
+          "Shoulder": 0.302,
+          "Hand": 0.232,
+          "Forearm": 0.121
+        },
+        "heelCm": 0.0
+      },
+      "sourceKeys": [
+        "glove_left_2245",
+        "glove_right_1610"
+      ],
+      "sim": {
+        "displayName": "Mismatched Gloves",
+        "nameRu": "Разные перчатки",
+        "descEn": "One to the shoulder, one to the wrist. Nobody remembers why.",
+        "descRu": "Одна до плеча, другая до запястья. Почему — уже никто не помнит.",
+        "warmth": 0.03,
+        "armor": 0.04,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "ArmL",
+          "ArmR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "pouches_5674",
+      "folder": "DeadlyPouches",
+      "name": "DeadlyPouches",
+      "simId": "clothing.pouches_deadly",
+      "layer": "Outerwear",
+      "slots": [
+        "Belly"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "fabric",
+          "texture": "S3D_DdlSlc_Add_basecolor.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 5674,
+        "polys": 5548,
+        "bbox": [
+          5.9,
+          25.2,
+          98.4,
+          115.0,
+          -16.5,
+          9.0
+        ],
+        "zones": {
+          "Belly": 0.965,
+          "Pelvis": 0.035
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Belt Pouches",
+        "nameRu": "Подсумки",
+        "descEn": "Four pouches on a waist strap. The colony's favourite kind of thing.",
+        "descRu": "Четыре подсумка на поясном ремне. Самое любимое в колонии.",
+        "warmth": 0.01,
+        "armor": 0.02,
+        "thermalDelta": 0.0,
+        "capacity": 5,
+        "covers": [
+          "Torso"
+        ]
+      }
+    },
+    {
+      "sourceKey": "Corset_87100",
+      "folder": "SkinnyCorset",
+      "name": "SkinnyCorset",
+      "simId": "clothing.corset_skinny",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "Belly"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "FrontCorsetStraps",
+          "texture": "1SJ_Corset.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "FrontCorsetStrapsEyelets",
+          "texture": null,
+          "color": "#29190F",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "CorsetBuckles",
+          "texture": null,
+          "color": "#111111",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "MainCorset",
+          "texture": "1SJ_Corset.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "FrontCorsetClipsCatches",
+          "texture": null,
+          "color": "#111111",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "FrontCorsetClips",
+          "texture": null,
+          "color": "#29190F",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Chains",
+          "texture": null,
+          "color": "#29190F",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "BackLacing",
+          "texture": "1SJ_Corset.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "BackCorsetBoning",
+          "texture": "1SJ_Corset.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "BackCorsetEyelets",
+          "texture": null,
+          "color": "#111111",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "SideStraps",
+          "texture": "1SJ_Corset.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Rings",
+          "texture": null,
+          "color": "#111111",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "SideStuds",
+          "texture": null,
+          "color": "#111111",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "ChainAnchors",
+          "texture": null,
+          "color": "#111111",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "ChainAnchorBars",
+          "texture": "1SJ_Corset.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "BreastCloth",
+          "texture": "1SJ_Corset.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "NeckCloth",
+          "texture": "1SJ_Corset.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 87100,
+        "polys": 85786,
+        "bbox": [
+          -15.5,
+          15.5,
+          106.5,
+          155.0,
+          -10.3,
+          14.3
+        ],
+        "zones": {
+          "Chest": 0.761,
+          "Belly": 0.219,
+          "Neck": 0.02
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Laced Corset",
+        "nameRu": "Корсет на шнуровке",
+        "descEn": "Boned and laced. Holds a shape nobody needs out here.",
+        "descRu": "На косточках и шнуровке. Держит форму, которая тут не нужна.",
+        "warmth": 0.06,
+        "armor": 0.05,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      }
+    },
+    {
+      "sourceKey": "SkinnyJeans_24487",
+      "folder": "SkinnyJeans",
+      "name": "SkinnyJeans",
+      "simId": "clothing.jeans_skinny",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis",
+        "ThighR",
+        "ThighL",
+        "ShinR",
+        "ShinL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "MainPants",
+          "texture": "1SJ_Jeans.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "BeltLoops",
+          "texture": "1SJ_Jeans.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Belt",
+          "texture": "1SJ_Jeans.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "PantsButtons",
+          "texture": "1SJ_Jeans.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 24487,
+        "polys": 24104,
+        "bbox": [
+          -19.4,
+          19.3,
+          10.7,
+          105.2,
+          -12.9,
+          12.1
+        ],
+        "zones": {
+          "Pelvis": 0.411,
+          "Shin": 0.274,
+          "Thigh": 0.255,
+          "Belly": 0.06
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Skinny Jeans",
+        "nameRu": "Узкие джинсы",
+        "descEn": "Denim, tight to the ankle.",
+        "descRu": "Деним, в облипку до щиколотки.",
+        "warmth": 0.12,
+        "armor": 0.05,
+        "thermalDelta": 0.0,
+        "capacity": 2,
+        "covers": [
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      }
+    }
+  ],
+  "skipped": [
+    "Cammy Boots_130760",
+    "Heels_81360",
+    "S3D_DS_Boots_155064",
+    "glove_right_1610"
+  ]
+}

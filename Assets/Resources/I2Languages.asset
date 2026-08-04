@@ -2593,6 +2593,214 @@ MonoBehaviour:
       - 'Носимый предмет.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'item.clothing_top_stars.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Uniform Shirt'
+      - 'Форменная рубашка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_stars.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Issue shirt, shoulder seams reinforced.'
+      - 'Уставная рубашка с усиленными плечевыми швами.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_vest_stars.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tactical Vest'
+      - 'Тактический жилет'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_vest_stars.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plates front and back. Heavy, and worth it.'
+      - 'Пластины спереди и сзади. Тяжёлый — и стоит того.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_pants_stars.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Uniform Trousers'
+      - 'Форменные брюки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_pants_stars.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thick cotton, knees doubled.'
+      - 'Плотный хлопок, колени в два слоя.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_belt_stars.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Duty Belt'
+      - 'Служебный пояс'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_belt_stars.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wide belt with a thigh strap.'
+      - 'Широкий пояс с ремнём на бедро.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_stars.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Duty Gloves'
+      - 'Служебные перчатки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_stars.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Leather to the wrist.'
+      - 'Кожа до запястья.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_cap_stars.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Uniform Cap'
+      - 'Форменная кепка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_cap_stars.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stiff brim, unit patch gone.'
+      - 'Жёсткий козырёк, нашивка спорота.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_deadly.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cropped Halter'
+      - 'Укороченный топ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_deadly.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut above the ribs, high collar.'
+      - 'Обрезан выше рёбер, высокий ворот.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_deadly.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'High-Waist Shorts'
+      - 'Шорты с высокой посадкой'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_deadly.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'High on the waist, short on the leg.'
+      - 'Высоко на талии, коротко на ноге.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_tights_deadly.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh Tights'
+      - 'Плотные чулки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.underwear_tights_deadly.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Opaque, to the thigh.'
+      - 'Плотные, до бедра.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_deadly.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Mismatched Gloves'
+      - 'Разные перчатки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_deadly.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One to the shoulder, one to the wrist. Nobody remembers why.'
+      - 'Одна до плеча, другая до запястья. Почему — уже никто не помнит.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_pouches_deadly.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Belt Pouches'
+      - 'Подсумки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_pouches_deadly.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Four pouches on a waist strap. The colony''s favourite kind of thing.'
+      - 'Четыре подсумка на поясном ремне. Самое любимое в колонии.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_corset_skinny.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Laced Corset'
+      - 'Корсет на шнуровке'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_corset_skinny.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Boned and laced. Holds a shape nobody needs out here.'
+      - 'На косточках и шнуровке. Держит форму, которая тут не нужна.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jeans_skinny.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Skinny Jeans'
+      - 'Узкие джинсы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_jeans_skinny.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Denim, tight to the ankle.'
+      - 'Деним, в облипку до щиколотки.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'item.underwear_bra_openback.name'
       TermType: 0
       Description: 

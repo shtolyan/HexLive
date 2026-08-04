@@ -116,6 +116,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // Base-clip take-names each action state plays (the override KEYS).
     private const string TalkBaseClip = "X Bot@Talking";
     private const string AttackBaseClip = "X Bot@Bayonet Stab";
+
     // One full procedural swing = this many _actionPhase units (the Attack
     // case repeats at phase*cycles) — shared with the sim-window pacing in
     // SetCombat so ONE swing spans exactly the weapon's attack duration.
@@ -573,6 +574,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // A brisk walk is allowed to outrun the walk clip a little; a run clip
     // played much above its authored rate just looks frantic.
     public static float MaxWalkCadence = 1.6f;
+    // §114 bug #4: hard ceiling on the sim-time cadence (_animSpeed). Nothing
+    // legitimate ever asks a clip for more than ~2× (hex-hop compression peaks
+    // there); the valve exists so a stale/poisoned cadence can never make the
+    // body play "Flash"-fast for the seconds MoveTowards would need to unwind
+    // it after a fast-forward drop.
+    public static float MaxAnimCadenceCeiling = 4f;
     // §71.5: the measured speed, low-passed (SpeedSmoothTau), and how long she
     // has read as still — the two pieces of state the de-jitter needs.
     private float _smoothedSpeed;
@@ -4726,7 +4733,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 _animator.speed = _simSpeed;
             }
 
-            _animSpeed = _animator.speed;
+            // §114 bug #4: _animSpeed is the SIM-TIME cadence — the ×_simSpeed
+            // factor is folded in only at the animator.speed write in the
+            // walking branch. Mirroring animator.speed here (it already
+            // contains the multiplier) poisoned the cadence with the
+            // fast-forward factor: an NPC who stood up after the player
+            // dropped 50×→1× then spent many seconds (MoveTowards at 3/s)
+            // walking the ×50 back down — animations played "Flash"-fast.
+            _animSpeed = _animator.speed > 0f ? 1f : 0f;
             _motionSampleValid = false;
             return;
         }
@@ -4783,6 +4797,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
              Mathf.Abs(yawSpeed) <= PivotYawSpeed);
         _wasWalking = walking;
         _animator.SetFloat(SpeedParam, walking ? 1f : 0f, 0.05f, Time.deltaTime);
+
+        // §109.15: ⛔ ЗДЕСЬ СТОЯЛ ДОСРОЧНЫЙ ВЫХОД ИЗ ПОЗЫ УДАРА
+        // (`CrossFade(Idle)` при «пошла»). Он ломал тела: SampleMotion идёт
+        // КАЖДЫЙ КАДР, в бою «идёт» истинно почти всегда (стойку подталкивает
+        // отжим §72.5), и переход стартовал заново каждый кадр — вес блендa
+        // навсегда застревал на 0.04, аниматор не покидал Attack, а ретаргет
+        // недосмешанной позы ронял таз: тело уходило в землю. В паузе это
+        // видно прямо: двое дерущихся одновременно в переходе с весом 0.04 и
+        // 0.05, чего при одном вызове не бывает.
+        //
+        // Урок: команду аниматора нельзя ставить в покадровый расчёт без
+        // фронта. Если возвращать эту идею — только по РЕБРУ («в этом кадре
+        // впервые пошла») либо переходом по Speed в самом контроллере.
 
         // Scale the walk-cycle playback to the measured speed: half the
         // speed = half the cadence. The cadence is judged in SIM time (the
@@ -4874,7 +4901,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 MinGaitCadence, maxCadence);
         }
 
-        _animSpeed = Mathf.MoveTowards(_animSpeed, targetAnimSpeed, Time.deltaTime * 3f * _simSpeed);
+        _animSpeed = Mathf.Min(
+            Mathf.MoveTowards(_animSpeed, targetAnimSpeed, Time.deltaTime * 3f * _simSpeed),
+            MaxAnimCadenceCeiling);
         _animator.speed = _animSpeed * _simSpeed;
 
         // §71: ease into the gait so a sprint starting mid-stride ramps rather
@@ -4890,9 +4919,17 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             var jumpState = _animator.GetCurrentAnimatorStateInfo(0);
             if (jumpState.IsName("JumpUp") || jumpState.IsName("JumpDown"))
             {
-                _animator.speed = jumpState.length * _simSpeed /
-                    Mathf.Max(0.05f, _jumpDuration);
-                _animSpeed = _animator.speed;
+                // §114 bug #4: store the multiplier-FREE cadence and fold
+                // _simSpeed in only at the animator.speed write, same as the
+                // walking branch above. Storing animator.speed (which already
+                // contains ×_simSpeed) left a ×50 cadence behind after a hop
+                // under fast-forward; dropping to 1× then played every clip
+                // "Flash"-fast for the seconds MoveTowards needed to unwind
+                // it — the reported abuser flicker (he hops constantly while
+                // prowling across the island, so a speed change almost always
+                // landed on a poisoned cadence).
+                _animSpeed = jumpState.length / Mathf.Max(0.05f, _jumpDuration);
+                _animator.speed = _animSpeed * _simSpeed;
             }
         }
 
@@ -5123,19 +5160,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // до края прицела: красиво, но нечеловечески. Точка дальше предела
         // прижимается ПО НАПРАВЛЕНИЮ на цель — замах целится туда же, просто
         // не достаёт, как и положено настоящей руке.
+        // §109.14: прижимать ВЕСЬ вектор, а не только горизонталь. Первая
+        // версия резала XZ и оставляла высоту цели как есть — направление на
+        // цель заваливалось круто ВНИЗ (противник на гекс ниже — обычное
+        // дело), а solver.pullBodyHorizontal тянет за рукой корпус: тело
+        // уходило в землю, стоило встать в стойку. Пропорциональное
+        // сокращение сохраняет НАПРАВЛЕНИЕ удара и просто укорачивает вылет.
         var targetPoint = _actionTargetPoint;
-        var flat = new Vector3(
-            targetPoint.x - transform.position.x,
-            0f,
-            targetPoint.z - transform.position.z);
-        var planar = flat.magnitude;
-        if (planar > ActionTargetMaxReachWorldUnits)
+        var reach = targetPoint - transform.position;
+        var reachLength = reach.magnitude;
+        if (reachLength > ActionTargetMaxReachWorldUnits)
         {
-            var pulled = flat * (ActionTargetMaxReachWorldUnits / planar);
-            targetPoint = new Vector3(
-                transform.position.x + pulled.x,
-                targetPoint.y,
-                transform.position.z + pulled.z);
+            targetPoint = transform.position +
+                reach * (ActionTargetMaxReachWorldUnits / reachLength);
         }
 
         var contact = ActionPropContactPoint(targetPoint, hand);

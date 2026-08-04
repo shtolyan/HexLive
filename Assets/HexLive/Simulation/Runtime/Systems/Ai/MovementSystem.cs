@@ -32,6 +32,7 @@ public sealed class MovementSystem : ISimulationSystem
     // point in the NEXT column — i.e. the route turning away — is never skipped.
     private const float FlightCorridorHalfWidth = 0.3f;
 
+
     // Deep water = swim tile; the definition moved to SpatialQueries.IsSwimTile
     // (§106) so combat gates and movement can never disagree about who swims.
 
@@ -79,10 +80,223 @@ public sealed class MovementSystem : ISimulationSystem
         }
     }
 
+    // §21.21B v17: ОДНО окно прыжка, и оно доигрывает ВСЕГДА.
+    //
+    // Раньше эта логика жила внутри Run, ниже проверок пути, — а значит
+    // прыжок молча умирал, стоило плану оборваться посреди полёта
+    // (PlanInterruption чистит путь и IsMoving, и ранний выход в начале Run
+    // больше сюда не пускал). Она оставалась ВИСЕТЬ между уровнями: позиция
+    // на полпути, npc.Tile ещё взлётный. Вид рисует актёра по высоте
+    // npc.Tile — отсюда «спрыгнула, развернулась, и её телепнуло наверх» и
+    // «прыгнула в воду без плюха и отшвырнуло обратно на берег».
+    // Прыжок — атомарное действие: раз оторвалась, обязана приземлиться.
+    // Возвращает true, если тик принадлежит прыжку (шагать в этом тике нельзя).
+    private static bool RunHopWindow(WorldState world, NPCState npc)
+    {
+        if (npc.Movement.HopTimer <= 0f)
+        {
+            return false;
+        }
+
+        npc.Movement.HopTimer -= world.TickDeltaTime;
+            // §21.21B: up and down can run on different windows (down faster).
+            // beatScale is 1 for an up-jump (byte-identical) and shrinks the
+            // takeoff/landing beats in step with the shorter down window.
+            var hopWindow = HexHopTuning.WindowSeconds(npc.Movement.HopUp);
+            var beatScale = npc.Movement.HopUp ? 1f : HexHopTuning.DownBeatScale;
+            var hopTakeoff = HexHopTuning.TakeoffSeconds * beatScale;
+            var hopLanding = HexHopTuning.LandingSeconds * beatScale;
+            var hopElapsed = hopWindow - npc.Movement.HopTimer;
+            var flightSpan = System.MathF.Max(0.05f, hopWindow - hopTakeoff - hopLanding);
+
+            if (hopElapsed <= hopTakeoff)
+            {
+                // Push-off beat: she already STOPPED at the takeoff point
+                // (v8 stop-short) — just hold there and crouch, turning to
+                // face the flight. No gather, no slide.
+                npc.Position = npc.Movement.HopFrom;
+                npc.RotationDegrees = MathUtil.RotateTowards(
+                    npc.RotationDegrees, npc.Movement.DesiredRotationDegrees,
+                    npc.TurnSpeed * world.TickDeltaTime);
+                npc.Movement.SetStatus(MovementStatus.Waiting);
+                return true;
+            }
+
+            // Airborne: straight lattice-point-to-lattice-point flight.
+            // §21.21B v16: on a CLIMB the distance is covered over the FIRST
+            // SettleFrac of the beat, not all of it. Spread evenly, the body
+            // finished rising (the arc overshoots the ledge on purpose) while
+            // the root still slid horizontally for another half second — she
+            // read as standing on the step and skating onto it. Arriving
+            // early means she lands, then plants; flightT still reaches 1, so
+            // every downstream check (touchdown bookkeeping, pre-facing, path
+            // advance) is unchanged — it just happens sooner.
+            var flightT = MathUtil.Clamp01(
+                (hopElapsed - hopTakeoff) /
+                (flightSpan * MathUtil.Clamp(
+                    HexHopTuning.SettleFrac(npc.Movement.HopUp), 0.2f, 1f)));
+            npc.Position = npc.Movement.HopFrom +
+                (npc.Movement.HopTo - npc.Movement.HopFrom) * flightT;
+            npc.RotationDegrees = MathUtil.RotateTowards(
+                npc.RotationDegrees, npc.Movement.DesiredRotationDegrees,
+                npc.TurnSpeed * world.TickDeltaTime);
+            npc.Movement.SetStatus(flightT < 1f
+                ? MovementStatus.Moving
+                : MovementStatus.Waiting); // landing beat: feet planting
+
+            // Landing beat: pre-face the NEXT waypoint while the feet
+            // plant, so she stands up already in the right turn instead
+            // of landing, pausing and spinning afterwards.
+            // §109.13: ⭐ ДОВОРОТА НА ПРИЗЕМЛЕНИИ БОЛЬШЕ НЕТ, и это лечение,
+            // а не потеря. Он целился в УЗЕЛ ПУТИ, а ходьба на следующем же
+            // тике целится в ТОЧКУ ВЗЛЁТА следующего прыжка (§21.21B v9
+            // «ONE TARGET» — она перекрывает цель, когда впереди стена).
+            // Два прицела расходились на десятки градусов, и замер по сейву
+            // игрока показал ровно то, на что он жаловался: три тика доворота
+            // в никуда (+45°), затем рывок обратно (−24.7°) — «прыгнул,
+            // спрыгнул, повернулся зачем-то лишний раз».
+            //
+            // Прицел теперь ОДИН — тот, что ведёт шаг. Обещанного «встала уже
+            // в нужном развороте» это не отнимает: поворот идёт 54° за тик,
+            // то есть один тик после посадки против трёх тиков верчения не в
+            // ту сторону.
+
+            if (flightT >= 1f && !npc.Movement.HopCrossed)
+            {
+                // A re-plan may have REPLACED (or cleared) the path
+                // mid-flight, so the landing index can point into a stale
+                // list. §21.21B v17: that is NOT a reason to skip the
+                // bookkeeping. It used to bail out here with "landed in
+                // place", leaving her POSITION between the two levels and her
+                // TILE still the takeoff one — and the view draws her at the
+                // ground height of npc.Tile, so she snapped back up onto the
+                // ledge she had just dropped off ("её телепает наверх, она
+                // уже не прыгает"), or back onto the bank after a dive
+                // ("прыгнула в воду без плюха и отшвырнуло обратно").
+                // She has landed: commit the landing, whatever the path is
+                // doing. Only the path-relative half is skipped.
+                var pathLandingValid =
+                    npc.Movement.HopLandingIndex < npc.Movement.JunctionPath.Count;
+
+                npc.Movement.HopCrossed = true;
+                npc.CurrentJunction = pathLandingValid
+                    ? npc.Movement.JunctionPath[npc.Movement.HopLandingIndex]
+                    // No path to read it from: take the lattice point she
+                    // actually stands on, or the next pathfinding call would
+                    // route her from the junction she took off at — a second
+                    // way to teleport her back across the border.
+                    : SpatialQueries.FindNearestJunction(world, npc.Position)
+                        ?? npc.CurrentJunction;
+
+                // Tile: §21.21B v11 resolves HopTargetTile as the EXACT tile
+                // she flies into (from the wall junction + her path) and lands
+                // HopTo inside it — so commit it directly. Deriving the tile
+                // from the landing junction's Tiles[0] instead picked a
+                // neighbour (often her OWN previous tile), so npc.Tile never
+                // updated, the scan kept seeing the wall ahead and re-armed
+                // the SAME hop — she bounced on the border ("double jump",
+                // and the wrong tile fed the view a wrong ground Y so she
+                // sank into the hex).
+                var hopLandTile = npc.Movement.HopTargetTile;
+
+                var hopPreviousTile = npc.Tile;
+                if (hopLandTile != hopPreviousTile)
+                {
+                    npc.Tile = hopLandTile;
+                    SpatialMutations.MoveEntityToTile(world, npc.Id, hopPreviousTile, npc.Tile);
+                    Trace.Emit(world, npc.Id, "EnteredTile",
+                        $"From={hopPreviousTile.Q},{hopPreviousTile.R} To={npc.Tile.Q},{npc.Tile.R}");
+
+                    // §40.18-B: dove into deep water — tread a beat (plays
+                    // after the landing beat; the pause block defers while
+                    // the hop window runs).
+                    TryBeginSwimEntry(world, npc, hopPreviousTile, npc.Tile);
+                }
+
+                // §21.21B v14: the flight now OVERSHOOTS lattice points. A
+                // drop lands FarPadding past the border while the junctions
+                // just past it sit ~0.375 out, and a climb takes off
+                // FarPadding short of it — either way the next path step can
+                // be a point she has physically already flown over, and
+                // walking to it means stepping backwards. Skip exactly those:
+                // a junction whose projection lands INSIDE the flight segment
+                // and close to its axis. CurrentJunction rides to the last one
+                // skipped — the next step's previousJunctionId, its directed
+                // tile and other NPCs' occupancy checks all read it.
+                //
+                // The bounds matter more than they look. "Anything not ahead
+                // of the landing" seems equivalent and is not: when the route
+                // turns back along the wall, EVERY remaining point fails that
+                // test and the whole path gets eaten (measured: one skip of
+                // 118 junctions — she abandoned the route entirely).
+                var flight = npc.Movement.HopTo - npc.Movement.HopFrom;
+                var flightLength = HexSpatialMath.Distance(
+                    npc.Movement.HopFrom, npc.Movement.HopTo);
+                var landDir = HexSpatialMath.Normalize(flight);
+                var nextIndex = pathLandingValid
+                    ? npc.Movement.HopLandingIndex + 1
+                    : npc.Movement.JunctionPath.Count; // no path — nothing to advance into
+                var eaten = 0;
+                while (nextIndex < npc.Movement.JunctionPath.Count &&
+                    world.Junctions.Items.TryGetValue(
+                        npc.Movement.JunctionPath[nextIndex], out var passedJunction))
+                {
+                    var rel = passedJunction.WorldPosition - npc.Movement.HopFrom;
+                    var along = rel.X * landDir.X + rel.Y * landDir.Y;
+                    var across = System.MathF.Abs(rel.X * landDir.Y - rel.Y * landDir.X);
+                    // Off the flight line (the route turns), before the
+                    // takeoff, or beyond the landing — a real next step.
+                    if (across > FlightCorridorHalfWidth ||
+                        along < -0.01f || along > flightLength + 0.01f)
+                    {
+                        break;
+                    }
+
+                    npc.CurrentJunction = npc.Movement.JunctionPath[nextIndex];
+                    nextIndex++;
+                    eaten++;
+                }
+
+                npc.Movement.PathIndex = nextIndex;
+                Trace.Emit(world, npc.Id, "HopLanded",
+                    $"Tile={npc.Tile.Q},{npc.Tile.R} Pos={Trace.FormatPos(npc.Position)} " +
+                    $"Step={npc.Movement.PathIndex}/{npc.Movement.JunctionPath.Count} Eaten={eaten}");
+                if (npc.Movement.PathIndex >= npc.Movement.JunctionPath.Count)
+                {
+                    // The path ends on this landing — close the hop window
+                    // too, or the (now skipped) movement loop would leave
+                    // it dangling and HopKind stuck for the view.
+                    npc.Movement.HopTimer = 0f;
+                    npc.Movement.ClimbPauseTimer = System.MathF.Max(
+                        npc.Movement.ClimbPauseTimer,
+                        HexHopTuning.LandingSeconds *
+                            (npc.Movement.HopUp ? 1f : HexHopTuning.DownBeatScale));
+                    npc.Movement.IsMoving = false;
+                    npc.Movement.SetStatus(MovementStatus.Arrived);
+                    Trace.Emit(world, npc.Id, "MovementCompleted",
+                        $"HopLanding Tile={npc.Tile.Q},{npc.Tile.R} " +
+                        $"Pos={Trace.FormatPos(npc.Position)}");
+                }
+            }
+
+        return true;
+    }
+
     public void Run(WorldState world)
     {
         foreach (var npc in world.Entities.Npcs.Values)
         {
+            // §21.21B v17: a hop in the air outranks EVERYTHING below, including
+            // the early-outs. A plan change clears the path and IsMoving, and
+            // while this ran further down she was simply abandoned mid-flight —
+            // position between the levels, tile still the takeoff one, which the
+            // view renders as a snap back onto the ledge. Once she is off the
+            // ground she lands, whatever the planner has decided since.
+            if (RunHopWindow(world, npc))
+            {
+                continue;
+            }
+
             // §71: a girl who is not walking anywhere is, by definition, not
             // running — clear the gait flag before any of the early-outs below,
             // or a stale "running" would keep the run clip playing while she
@@ -391,187 +605,10 @@ public sealed class MovementSystem : ISimulationSystem
                 continue;
             }
 
-            // §21.21B v6: the hop OWNS its window — it runs BEFORE the walk
-            // rotation/alignment code (which would otherwise re-aim her at
-            // the excluded edge junction every tick and even SKIP flight
-            // ticks through the facing-error gate: the mid-air spinning and
-            // the sim-vs-view clock drift the user saw).
-            if (npc.Movement.HopTimer > 0f)
-            {
-                npc.Movement.HopTimer -= world.TickDeltaTime;
-                // §21.21B: up and down can run on different windows (down faster).
-                // beatScale is 1 for an up-jump (byte-identical) and shrinks the
-                // takeoff/landing beats in step with the shorter down window.
-                var hopWindow = HexHopTuning.WindowSeconds(npc.Movement.HopUp);
-                var beatScale = npc.Movement.HopUp ? 1f : HexHopTuning.DownBeatScale;
-                var hopTakeoff = HexHopTuning.TakeoffSeconds * beatScale;
-                var hopLanding = HexHopTuning.LandingSeconds * beatScale;
-                var hopElapsed = hopWindow - npc.Movement.HopTimer;
-                var flightSpan = System.MathF.Max(0.05f, hopWindow - hopTakeoff - hopLanding);
-
-                if (hopElapsed <= hopTakeoff)
-                {
-                    // Push-off beat: she already STOPPED at the takeoff point
-                    // (v8 stop-short) — just hold there and crouch, turning to
-                    // face the flight. No gather, no slide.
-                    npc.Position = npc.Movement.HopFrom;
-                    npc.RotationDegrees = MathUtil.RotateTowards(
-                        npc.RotationDegrees, npc.Movement.DesiredRotationDegrees,
-                        npc.TurnSpeed * world.TickDeltaTime);
-                    npc.Movement.SetStatus(MovementStatus.Waiting);
-                    continue;
-                }
-
-                // Airborne: straight lattice-point-to-lattice-point flight.
-                // §21.21B v16: on a CLIMB the distance is covered over the FIRST
-                // SettleFrac of the beat, not all of it. Spread evenly, the body
-                // finished rising (the arc overshoots the ledge on purpose) while
-                // the root still slid horizontally for another half second — she
-                // read as standing on the step and skating onto it. Arriving
-                // early means she lands, then plants; flightT still reaches 1, so
-                // every downstream check (touchdown bookkeeping, pre-facing, path
-                // advance) is unchanged — it just happens sooner.
-                var flightT = MathUtil.Clamp01(
-                    (hopElapsed - hopTakeoff) /
-                    (flightSpan * MathUtil.Clamp(
-                        HexHopTuning.SettleFrac(npc.Movement.HopUp), 0.2f, 1f)));
-                npc.Position = npc.Movement.HopFrom +
-                    (npc.Movement.HopTo - npc.Movement.HopFrom) * flightT;
-                npc.RotationDegrees = MathUtil.RotateTowards(
-                    npc.RotationDegrees, npc.Movement.DesiredRotationDegrees,
-                    npc.TurnSpeed * world.TickDeltaTime);
-                npc.Movement.SetStatus(flightT < 1f
-                    ? MovementStatus.Moving
-                    : MovementStatus.Waiting); // landing beat: feet planting
-
-                // Landing beat: pre-face the NEXT waypoint while the feet
-                // plant, so she stands up already in the right turn instead
-                // of landing, pausing and spinning afterwards.
-                if (flightT >= 1f && npc.Movement.HopCrossed &&
-                    npc.Movement.PathIndex < npc.Movement.JunctionPath.Count &&
-                    world.Junctions.Items.TryGetValue(
-                        npc.Movement.JunctionPath[npc.Movement.PathIndex], out var nextAfterHop))
-                {
-                    var toNext = nextAfterHop.WorldPosition - npc.Position;
-                    if (HexSpatialMath.Distance(nextAfterHop.WorldPosition, npc.Position) > 0.05f)
-                    {
-                        npc.Movement.DesiredRotationDegrees =
-                            HexSpatialMath.AngleDegrees(HexSpatialMath.Normalize(toNext));
-                    }
-                }
-
-                if (flightT >= 1f && !npc.Movement.HopCrossed)
-                {
-                    // A re-plan may have REPLACED the path mid-flight — the
-                    // landing index then points into a stale list. Land where
-                    // she is, close the hop, let pathfinding re-route.
-                    if (npc.Movement.HopLandingIndex >= npc.Movement.JunctionPath.Count)
-                    {
-                        npc.Movement.HopCrossed = true;
-                        npc.Movement.HopTimer = 0f;
-                        Trace.Emit(world, npc.Id, "HopAborted",
-                            "Path replaced mid-flight — landed in place");
-                        continue;
-                    }
-
-                    // Touched down on the landing lattice point: do the
-                    // bookkeeping for it AND the excluded edge junction.
-                    npc.Movement.HopCrossed = true;
-                    npc.CurrentJunction =
-                        npc.Movement.JunctionPath[npc.Movement.HopLandingIndex];
-
-                    // Tile: §21.21B v11 resolves HopTargetTile as the EXACT tile
-                    // she flies into (from the wall junction + her path) and lands
-                    // HopTo inside it — so commit it directly. Deriving the tile
-                    // from the landing junction's Tiles[0] instead picked a
-                    // neighbour (often her OWN previous tile), so npc.Tile never
-                    // updated, the scan kept seeing the wall ahead and re-armed
-                    // the SAME hop — she bounced on the border ("double jump",
-                    // and the wrong tile fed the view a wrong ground Y so she
-                    // sank into the hex).
-                    var hopLandTile = npc.Movement.HopTargetTile;
-
-                    var hopPreviousTile = npc.Tile;
-                    if (hopLandTile != hopPreviousTile)
-                    {
-                        npc.Tile = hopLandTile;
-                        SpatialMutations.MoveEntityToTile(world, npc.Id, hopPreviousTile, npc.Tile);
-                        Trace.Emit(world, npc.Id, "EnteredTile",
-                            $"From={hopPreviousTile.Q},{hopPreviousTile.R} To={npc.Tile.Q},{npc.Tile.R}");
-
-                        // §40.18-B: dove into deep water — tread a beat (plays
-                        // after the landing beat; the pause block defers while
-                        // the hop window runs).
-                        TryBeginSwimEntry(world, npc, hopPreviousTile, npc.Tile);
-                    }
-
-                    // §21.21B v14: the flight now OVERSHOOTS lattice points. A
-                    // drop lands FarPadding past the border while the junctions
-                    // just past it sit ~0.375 out, and a climb takes off
-                    // FarPadding short of it — either way the next path step can
-                    // be a point she has physically already flown over, and
-                    // walking to it means stepping backwards. Skip exactly those:
-                    // a junction whose projection lands INSIDE the flight segment
-                    // and close to its axis. CurrentJunction rides to the last one
-                    // skipped — the next step's previousJunctionId, its directed
-                    // tile and other NPCs' occupancy checks all read it.
-                    //
-                    // The bounds matter more than they look. "Anything not ahead
-                    // of the landing" seems equivalent and is not: when the route
-                    // turns back along the wall, EVERY remaining point fails that
-                    // test and the whole path gets eaten (measured: one skip of
-                    // 118 junctions — she abandoned the route entirely).
-                    var flight = npc.Movement.HopTo - npc.Movement.HopFrom;
-                    var flightLength = HexSpatialMath.Distance(
-                        npc.Movement.HopFrom, npc.Movement.HopTo);
-                    var landDir = HexSpatialMath.Normalize(flight);
-                    var nextIndex = npc.Movement.HopLandingIndex + 1;
-                    var eaten = 0;
-                    while (nextIndex < npc.Movement.JunctionPath.Count &&
-                        world.Junctions.Items.TryGetValue(
-                            npc.Movement.JunctionPath[nextIndex], out var passedJunction))
-                    {
-                        var rel = passedJunction.WorldPosition - npc.Movement.HopFrom;
-                        var along = rel.X * landDir.X + rel.Y * landDir.Y;
-                        var across = System.MathF.Abs(rel.X * landDir.Y - rel.Y * landDir.X);
-                        // Off the flight line (the route turns), before the
-                        // takeoff, or beyond the landing — a real next step.
-                        if (across > FlightCorridorHalfWidth ||
-                            along < -0.01f || along > flightLength + 0.01f)
-                        {
-                            break;
-                        }
-
-                        npc.CurrentJunction = npc.Movement.JunctionPath[nextIndex];
-                        nextIndex++;
-                        eaten++;
-                    }
-
-                    npc.Movement.PathIndex = nextIndex;
-                    Trace.Emit(world, npc.Id, "HopLanded",
-                        $"Tile={npc.Tile.Q},{npc.Tile.R} Pos={Trace.FormatPos(npc.Position)} " +
-                        $"Step={npc.Movement.PathIndex}/{npc.Movement.JunctionPath.Count} Eaten={eaten}");
-                    if (npc.Movement.PathIndex >= npc.Movement.JunctionPath.Count)
-                    {
-                        // The path ends on this landing — close the hop window
-                        // too, or the (now skipped) movement loop would leave
-                        // it dangling and HopKind stuck for the view.
-                        npc.Movement.HopTimer = 0f;
-                        npc.Movement.ClimbPauseTimer = System.MathF.Max(
-                            npc.Movement.ClimbPauseTimer,
-                            HexHopTuning.LandingSeconds *
-                                (npc.Movement.HopUp ? 1f : HexHopTuning.DownBeatScale));
-                        npc.Movement.IsMoving = false;
-                        npc.Movement.SetStatus(MovementStatus.Arrived);
-                        Trace.Emit(world, npc.Id, "MovementCompleted",
-                            $"HopLanding Tile={npc.Tile.Q},{npc.Tile.R} " +
-                            $"Pos={Trace.FormatPos(npc.Position)}");
-                    }
-                }
-
-                continue;
-            }
-
+            // §21.21B v6 + v17: the hop window ran at the TOP of this loop, before
+            // any path check — see RunHopWindow. It has to be up there and not
+            // here: down here it sat below the early-out on `!IsMoving || path
+            // empty`, so a plan change mid-flight abandoned her in the air.
 
             // §71: a gentle bend costs nothing; the penalty only ramps in past
             // the deadzone and bottoms out at TurnMinSpeedFactor. Beyond

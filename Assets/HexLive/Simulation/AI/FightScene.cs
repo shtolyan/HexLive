@@ -83,6 +83,7 @@ public static class FightScene
         actor.Mind.SceneBlowsPlanned = blows;
         actor.Mind.SceneBlowSpacingClips = spacingClips;
         actor.Mind.AbuseBlows = 0;
+        actor.Mind.SceneLastBlowRestTick = 0;
 
         Latch(world, actor, target);
     }
@@ -123,6 +124,17 @@ public static class FightScene
 
         // Своё он уже сказал: дальше стоит и смотрит, а сцена доигрывает до
         // приговора. Столько ударов, сколько назначено, и ни одним больше.
+        //
+        // §104 r12: но КЛИП последнего удара обязан доиграть. Хит ложится в
+        // середине клипа, а приговор наступал этим же тиком — End гасил пару и
+        // ForcedMeleeWeaponId, и прострелка обрывалась со сменой оружия в
+        // руке. Приговор (такт 4) теперь ждёт этот тик.
+        if (IsComplete(actor))
+        {
+            actor.Mind.SceneLastBlowRestTick =
+                world.Tick + Runtime.MeleeSwing.SecondsToTicks(clipSeconds);
+        }
+
         var pause = IsComplete(actor)
             ? SceneOverSentinel
             : Runtime.MeleeSwing.SecondsToTicks(clipSeconds * actor.Mind.SceneBlowSpacingClips);
@@ -209,6 +221,7 @@ public static class FightScene
     {
         actor.Mind.SceneBlowsPlanned = 0;
         actor.Mind.SceneBlowSpacingClips = 0f;
+        actor.Mind.SceneLastBlowRestTick = 0;
         actor.Mind.ForcedMeleeWeaponId = null;
         // Готовность здесь гасится ПОЛНОСТЬЮ, а не по порогу: сцена кончилась,
         // и ждать её кулдаун незачем — дальше обычный бой по своим правилам.

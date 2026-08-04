@@ -146,7 +146,17 @@ public sealed class SnapshotContractGateTests
             engine.Step();
 
             var snapshot = WorldSnapshotExporter.Export(world);
-            var outsider = Find(snapshot, AbuseTestWorld.OutsiderId);
+
+            // §109: с честным ответным боем чужак может ПАСТЬ в арене — она
+            // без лагерей и укрытий, клапан отхода §109.8 вхолостую, и трое с
+            // ножами добивают его до конца окна. Всё, что гейту нужно, сцены
+            // к этому моменту уже сказали — дальше мерить некого.
+            var outsider = snapshot.Npcs.FirstOrDefault(
+                n => n.Id.Value == AbuseTestWorld.OutsiderId);
+            if (outsider is null)
+            {
+                break;
+            }
 
             if (outsider.SwingStartTick > 0 &&
                 (stamps.Count == 0 || stamps[^1] != outsider.SwingStartTick))

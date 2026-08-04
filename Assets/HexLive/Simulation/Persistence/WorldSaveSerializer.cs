@@ -29,8 +29,8 @@ namespace HexLive.Simulation.Persistence
 //   on load, rebuilt on first pathfind),
 // - Mind scene-of-§81 fields (AbuseBeat/AbuseBlows/SceneBlowsPlanned/
 //   SceneBlowSpacingClips/AbuseVerdictTick/SceneStartHealth/
-//   ForcedMeleeWeaponId) — a scene lasts ≤60 ticks and never survives a
-//   save; SaveGoal already folds the Abuse goal itself to None.
+//   SceneLastBlowRestTick/ForcedMeleeWeaponId) — a scene lasts ≤60 ticks and
+//   never survives a save; SaveGoal already folds the Abuse goal itself to None.
 public static class WorldSaveSerializer
 {
     // v16 was §71 Breath; §72 lands on top of it, so the faction fields are a

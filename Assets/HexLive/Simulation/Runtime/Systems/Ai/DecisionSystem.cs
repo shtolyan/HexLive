@@ -104,12 +104,22 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 continue;
             }
 
-            // §105.14: выплакалась — те же ворота перед подъёмом, и та же
-            // причина спрашивать ручку прямо здесь (см. обморок выше).
-            if (Spec105.PlayDeadEnabled && npc.Mind.CryingUntilTick != 0)
+            // §110/§41.5: выплакалась — вид доигрывает тот же GetUp-клип, что
+            // и после сна, поэтому подъём получает ту же грацию: без неё она
+            // уходила по делам, пока тело ещё вставало, и ноги скользили по
+            // земле (баг #1). Метка сбрасывается здесь же, так что грация
+            // ставится один раз — на тике истечения плача.
+            if (npc.Mind.CryingUntilTick != 0)
             {
                 npc.Mind.CryingUntilTick = 0;
-                MortalityHelpers.TryStartPlayDead(world, npc);
+                npc.Mind.WakeGraceUntilTick = world.Tick + AiBalance.WakeGraceTicks;
+
+                // §105.14: те же ворота перед подъёмом, и та же причина
+                // спрашивать ручку прямо здесь (см. обморок выше).
+                if (Spec105.PlayDeadEnabled)
+                {
+                    MortalityHelpers.TryStartPlayDead(world, npc);
+                }
             }
 
             // §105.14: притворяется мёртвой — решений не принимает, тело
@@ -1593,6 +1603,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
         if (Spec81.AbuseEnabled &&
             npc.Faction != Faction.Colony &&
             !AbuseMath.GraceHolds(world, npc) &&
+            // §81.16: разбитая витальная зона — не до сцен. Гейт только на
+            // НОВУЮ ставку: идущий поход/сцену держат блоки ниже, а бой,
+            // который начали ПРОТИВ него, эта ветка и так не решает.
+            !AbuseMath.BadlyWounded(npc) &&
             world.Tick >= npc.Mind.AbuseCooldownUntilTick &&
             !npc.IsFighting &&
             npc.Body.CanUseToolsOrWeapons &&
@@ -1651,7 +1665,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
 
         // Spec 35.3 + §52: build a hut piece when the full bill is carried
         // AND a hammer is in hand — raising a wall now needs the tool.
-        var buildAvail = ctx.CanUseToolsOrWeapons && piece is { } needNow &&
+        // §72.13: world.Project — единственный и КОЛОНИЙ; чужак с молотком и
+        // полным биллом не должен набирать очки за достройку её стен.
+        var buildAvail = npc.Faction == Faction.Colony &&
+            ctx.CanUseToolsOrWeapons && piece is { } needNow &&
             carriedLogs >= needNow.Logs && stoneCount >= needNow.Stones &&
             carriedLeaves >= needNow.Leaves && hasHammer &&
             HasReachableWithTag(npc, world, "BuildSite");

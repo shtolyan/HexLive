@@ -302,8 +302,14 @@ public sealed partial class ExecutionSystem
         //
         // Время осталось ПОТОЛКОМ: если удары почему-то не ложатся (она ушла,
         // он не достаёт), сцена всё равно закончится.
+        // §104 r12: приговор ждёт, пока КЛИП последнего удара доиграет
+        // (SceneLastBlowRestTick) — иначе End обрывал прострелку и менял
+        // оружие в руке тем же тиком, что лёг хит. Потолок по времени
+        // остаётся страховкой на случай, если удары не ложатся вовсе.
         if (npc.Mind.AbuseBeat < 4 &&
-            (FightScene.IsComplete(npc) || elapsed >= Spec81.AbuseBeatVerdictTicks))
+            ((FightScene.IsComplete(npc) &&
+              world.Tick >= npc.Mind.SceneLastBlowRestTick) ||
+             elapsed >= Spec81.AbuseBeatVerdictTicks))
         {
             npc.Mind.AbuseBeat = 4;
             npc.Mind.AbuseVerdictTick = world.Tick;

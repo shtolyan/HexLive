@@ -220,10 +220,28 @@ public sealed class RaidSystem : ISimulationSystem
                 mark.IsUnconscious(world.Tick) ||
                 mark.Execution.CurrentInteraction == InteractionType.Sleep ||
                 mark.Mind.CurrentGoal == GoalType.Flee ||
+                // §109.10: идущая ДРАТЬСЯ не «готовится» — она уже готова.
+                // Braces обрывал охотнице §108 цель через 32 тика после
+                // сговора (GoalLost) — метка и охотница бывают одним человеком.
+                mark.Mind.CurrentGoal == GoalType.GroupHunt ||
+                mark.Mind.CurrentGoal == GoalType.Defend ||
+                mark.Mind.CurrentGoal == GoalType.Raid ||
+                mark.Mind.CurrentGoal == GoalType.Abuse ||
                 HexSpatialMath.HexDistance(mark.Tile, claimer.Tile) >
                     Spec57.AnswerReadyRadiusTiles)
             {
                 continue;
+            }
+
+            // §110/§81.15: рыдающая при подходе обидчика ОБРЫВАЕТ рыдания —
+            // опасность важнее слёз (боль их уже обрывает, WoundMath).
+            // Иначе она лежала, плакала и лишь поворачивалась вслед — вместо
+            // того чтобы встать, взять нож и ждать в стойке.
+            if (mark.IsCrying(world.Tick))
+            {
+                mark.Mind.CryingUntilTick = 0;
+                Trace.Emit(world, mark.Id, "MarkBraces",
+                    $"Abuser=NPC{claimer.Id.Value} CutCrying=True");
             }
 
             if (mark.Plan.Status == PlanStatus.Active ||
@@ -237,9 +255,27 @@ public sealed class RaidSystem : ISimulationSystem
                     $"Dist={HexSpatialMath.HexDistance(mark.Tile, claimer.Tile)}");
             }
 
-            // Стойка + разворот — и никакого первого удара.
-            mark.IsFighting = true;
-            HumanCombatSystem.FaceOpponent(world, mark, claimer);
+            // §109.13: разворот — не слежение. Доворачиваем, только когда он
+            // заметно сбоку: FaceOpponent на КАЖДОМ среднем тике держал её
+            // прицеленной в бегущего, тело подруливало без остановки, и
+            // снаружи это читалось как «крутится туда-сюда». Стойка — только
+            // вплотную; пока он бежит, она просто стоит и смотрит.
+            var toHim = HexSpatialMath.AngleDegrees(new Float2(
+                claimer.Position.X - mark.Position.X,
+                claimer.Position.Y - mark.Position.Y));
+            var delta = (toHim - mark.RotationDegrees) % 360f;
+            if (delta > 180f) { delta -= 360f; }
+            if (delta < -180f) { delta += 360f; }
+            var off = System.Math.Abs(delta);
+            if (off > Spec57.BraceFaceDeadzoneDegrees)
+            {
+                HumanCombatSystem.FaceOpponent(world, mark, claimer);
+            }
+
+            if (InteractionReach.CanStrike(world, mark, claimer))
+            {
+                mark.IsFighting = true;
+            }
         }
     }
 
@@ -257,6 +293,41 @@ public sealed class RaidSystem : ISimulationSystem
         if (!Spec57.AnswerBlowsEnabled)
         {
             return;
+        }
+
+        // §109.12: ⭐ ОДНА МЕТЛА НА ВСЕ ЗАВИСШИЕ ПАРЫ. Пара
+        // (CombatOpponentNpcId) — это вечные замахи от HumanCombatSystem, а
+        // подметали её только по ассисту (CombatAssistAttackerNpcId) и только
+        // в конце сцены. Сцепка от «бей в ответ» не имеет ассиста, и когда
+        // противник уходил, умирал или переставал драться, ответившая
+        // оставалась молотить воздух — «бьёт и скользит», ровно как видел
+        // игрок. Держим пару только пока ОБОСНОВАНИЕ живо: боевая цель,
+        // идущая сцена, или встречная сцепка.
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            if (npc.Mind.CombatOpponentNpcId is not { } oppId)
+            {
+                continue;
+            }
+
+            var opponentAlive = world.Entities.Npcs.TryGetValue(oppId, out var opp) &&
+                opp.Health > 0f && !opp.IsUnconscious(world.Tick);
+            var mineJustified = npc.Mind.CurrentGoal is GoalType.Raid or GoalType.Abuse
+                    or GoalType.Defend or GoalType.GroupHunt or GoalType.Prey ||
+                npc.Execution.CurrentInteraction == InteractionType.Abuse ||
+                npc.Mind.PendingAbuseFrom is not null;
+            var theirsJustified = opponentAlive &&
+                (opp.Mind.CombatOpponentNpcId is { } back && back.Equals(npc.Id) ||
+                 opp.Mind.CurrentGoal is GoalType.Raid or GoalType.Abuse
+                     or GoalType.Defend or GoalType.GroupHunt or GoalType.Prey);
+
+            if (!opponentAlive || (!mineJustified && !theirsJustified))
+            {
+                npc.Mind.CombatOpponentNpcId = null;
+                npc.IsFighting = false;
+                FightScene.ReleaseSwingSlot(npc);
+                CombatHelpSystem.ClearAssist(npc);
+            }
         }
 
         foreach (var target in world.Entities.Npcs.Values)
@@ -406,9 +477,14 @@ public sealed class RaidSystem : ISimulationSystem
 
             // Лучшее оружие, что есть, — никаких сценных ограничений.
             target.Mind.ForcedMeleeWeaponId = null;
-            target.IsFighting = true;
+
+            // §109.13: стойка — ТОЛЬКО когда бой в самом деле начался. Флаг
+            // стоял до проверки досягаемости, и «в бою без пары» набегало
+            // десятками тиков: вид честно ставил боевую позу человеку, до
+            // которого противник ещё бежит, и походка ломалась ни за что.
             if (InteractionReach.CanStrike(world, target, nearest))
             {
+                target.IsFighting = true;
                 // Трасса — только на НОВУЮ сцепку: перезащёлкивание идёт
                 // каждый средний тик (MobSystem гасит IsFighting у всех), и
                 // без этой кромки одна драка давала сотни одинаковых строк.
@@ -635,6 +711,20 @@ public sealed class RaidSystem : ISimulationSystem
                         $"Reason=Unfit Uncon={abuser.IsUnconscious(world.Tick)} " +
                         $"Prone={abuser.Body.IsProne} " +
                         $"Hands={abuser.Body.CanUseToolsOrWeapons}");
+                }
+                continue;
+            }
+
+            // §81.16 (баг #3): сильно ранен — витальная зона (голова/грудь/
+            // таз) потеряла больше половины. Новую сцену не начинает; идущую
+            // (goal==Abuse, выше) и самозащиту гейт не трогает.
+            if (AbuseMath.BadlyWounded(abuser))
+            {
+                if (explain)
+                {
+                    Trace.Emit(world, abuser.Id, "AbuseBlocked",
+                        $"Reason=Wounded Vital={abuser.Body.VitalHealth():F2} " +
+                        $"Floor={Spec81.AbuseWoundedVitalFloor:F2}");
                 }
                 continue;
             }

@@ -95,6 +95,15 @@ public static class AbuseMath
         world.Tick < Spec81.AbuseGraceDays * EnvironmentSystem.DayLengthTicks &&
         npc.Needs.Social > Spec81.AbuseObsessionSocialCeiling;
 
+    // §81.16: «сильно ранен» — хоть одна витальная зона (голова/грудь/таз,
+    // BodyState.VitalParts — то же определение, что у смерти §105) потеряла
+    // больше, чем AbuseWoundedVitalFloor. Такому не до сцен: оба входа в цель
+    // (аукцион DecisionSystem и латч RaidSystem) обязаны звать ЭТО — по той же
+    // причине, что и GraceHolds выше. Идущей сцены и самозащиты гейт не
+    // касается: если бьют его, работает обычный бой и бегство §81.13.
+    public static bool BadlyWounded(NPCState npc) =>
+        npc.Body.VitalHealth() < Spec81.AbuseWoundedVitalFloor;
+
     // Боевая мощь в глазах смотрящего. Всё безразмерное, поэтому сумма —
     // сравнимое число, а не мешанина единиц.
     //

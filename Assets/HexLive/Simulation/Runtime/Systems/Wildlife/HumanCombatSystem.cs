@@ -44,7 +44,19 @@ public sealed class HumanCombatSystem : ISimulationSystem
             }
 
             // Turn to face — the same courtesy the dog fight pays.
-            FaceOpponent(world, actor, opponent);
+            //
+            // §109.13: ⭐ НО ТОЛЬКО ЕСЛИ СТОИШЬ. Идущего разворачивает
+            // MovementSystem — по следующему узлу пути; этот же доворот целил
+            // в противника, и на каждом быстром тике тело дёргалось между
+            // двумя хотелками: измерено ±22.5° туда-сюда на месте, а на бегу
+            // — «колбасит». Ровно такая же оговорка уже стоит у отжима
+            // стойки ниже (`actor.Movement.IsMoving`), просто до поворота её
+            // не донесли. Пар вне сцен стало много (§109 — ответный бой,
+            // защитницы), и старая дыра вылезла на каждом подходе.
+            if (!actor.Movement.IsMoving)
+            {
+                FaceOpponent(world, actor, opponent);
+            }
 
             // And square up at arm's length — the same spacing the dog fight
             // keeps (AnimalCombatSystem.ClampToHoldDistance).
@@ -164,7 +176,50 @@ public sealed class HumanCombatSystem : ISimulationSystem
         var step = System.MathF.Min(
             Spec72.MeleeHoldGlideSpeed * world.TickDeltaTime,
             (hold - distance) * 0.5f);
-        actor.Position += dir * step;
+        var next = actor.Position + dir * step;
+
+        // §109.11: стойка ПЯТИТСЯ, но не УЕЗЖАЕТ. Junction не двигается вместе
+        // с Position, и отжим без предела дрейфа против непрерывно наступающего
+        // противника превращался в караван через полкарты: она скользит в
+        // боевой позе, «убегая» без единого шага, он бежит следом. Дальше
+        // радиуса от СВОЕГО узла стойка не отступает — упёрлась, значит стоит
+        // (и это честно: за спиной может быть обрыв, которого Position-глайд
+        // не видит).
+        // Гейт ЗАКРЫТЫЙ по умолчанию: нет якоря — не двигаемся. Позитивная
+        // форма («якорь есть И далеко ⇒ стоп») была дырой: CurrentJunction
+        // обнуляют извне, когда под ногами возводят стену (§45 r5), чинит это
+        // PerceptionSystem на СРЕДНЕМ такте, а отжим идёт на быстром — и в
+        // окне между ними предел не действовал вовсе.
+        if (actor.CurrentJunction is not { } ownJunction ||
+            !world.Junctions.Items.TryGetValue(ownJunction, out var anchor) ||
+            HexSpatialMath.Distance(next, anchor.WorldPosition) >
+                Spec72.MeleeHoldMaxDriftWorldUnits)
+        {
+            return;
+        }
+
+        // §109.14: ⭐ ОТЖИМ НЕ ВЫХОДИТ ЗА СВОЙ ГЕКС. Двигается ТОЛЬКО Position,
+        // а npc.Tile остаётся прежним — и высоту пола вид берёт именно от
+        // тайла (ActorGroundY). Отжатый на соседний гекс рисуется на высоте
+        // СТАРОГО: если сосед выше, тело уходит в землю — «боевая стойка по
+        // игреку в землю его вбивает». Держим внутри своего гекса: 0.8×радиуса
+        // заведомо меньше вписанной окружности (0.866×R), так что тайл под
+        // ногами не меняется, а значит и высота честная.
+        // Порог — НЕ фиксированный радиус. По описанной (1.0R) тело всё равно
+        // вылезало за грань в направлениях между вершинами, а по вписанной
+        // (0.866R) отжим запрещался бы законно стоящей НА вершине — узлы
+        // решётки сидят и там. Правило поэтому такое: за вписанную окружность
+        // не выталкиваем, а тому, кто уже стоит дальше, не даём уехать ЕЩЁ
+        // дальше от центра своего гекса.
+        var centre = HexSpatialMath.TileToWorld(actor.Tile);
+        var wasOut = HexSpatialMath.Distance(actor.Position, centre);
+        var willBeOut = HexSpatialMath.Distance(next, centre);
+        if (willBeOut > System.Math.Max(wasOut, HexSpatialMath.HexRadius * 0.866f))
+        {
+            return;
+        }
+
+        actor.Position = next;
     }
 
     // §81.15: internal — жертва, почуявшая приближение, разворачивается тем же

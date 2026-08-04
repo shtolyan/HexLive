@@ -121,6 +121,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 3f)] public float meleeHoldDistance = 0.9f;
         [Tooltip("Скорость отступания в стойку, wu/сек (шаг ходьбы ~1.2 — это осознанный шаг назад, не телепорт).")]
         [Range(0.1f, 4f)] public float meleeHoldGlideSpeed = 0.8f;
+        [Tooltip("§109.11: как далеко стойка может отпятиться от своего узла (wu). Без предела отжим против наступающего каравана через полкарты.")]
+        [Range(0.1f, 3f)] public float meleeHoldMaxDriftWorldUnits = 0.75f;
 
         [Header("Оборона колонии")]
         [Tooltip("Против ЧУЖАКА поднимать всю фракцию в радиусе без порога симпатии — в первые дни её ещё нет, а «дать отпор сплочённо» нужно именно тогда.")]
@@ -149,6 +151,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 12)] public int abuseGraceDays = 2;
         [Tooltip("§81.11: сытость общением, НА или НИЖЕ которой одержимость пробивает льготные дни. Держать много ниже abuseSocialFloor.")]
         [Range(0f, 0.45f)] public float abuseObsessionSocialCeiling = 0.05f;
+        [Tooltip("§81.16: худшая витальная зона (голова/грудь/таз) НИЖЕ этого — новую сцену не начинает, сначала зализывает раны. Гейт только на инициации: идущую сцену и самозащиту не трогает.")]
+        [Range(0f, 1f)] public float abuseWoundedVitalFloor = 0.5f;
         [Tooltip("Пауза после сцены.")]
         [Range(0, 4800)] public int abuseCooldownTicks = 900;
         [Tooltip("§87: на сколько цель абьюза запирается от аукциона после прерывания. Без замка ближайший пересчёт вернул бы его к «посидеть».")]

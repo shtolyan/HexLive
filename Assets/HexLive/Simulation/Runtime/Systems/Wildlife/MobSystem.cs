@@ -794,6 +794,11 @@ public sealed class MobSystem : ISimulationSystem
         }
 
         npc.IsFighting = false;
+        // §109.9: бегство РАСЦЕПЛЯЕТ бой. Живая пара — это замахи от
+        // HumanCombatSystem: бегущая с парой скользила по земле в атакующей
+        // позе, продолжая бить воздух. §108 в своём TryFleeHome это уже знал.
+        npc.Mind.CombatOpponentNpcId = null;
+        FightScene.ReleaseSwingSlot(npc);
         npc.Mind.FleeContactSinceTick = 0;
         npc.Mind.CurrentGoal = GoalType.Flee;
         npc.Plan.Goal = GoalType.Flee;
@@ -855,6 +860,10 @@ public sealed class MobSystem : ISimulationSystem
 
         PlanInterruption.Abort(world, npc, $"Fleeing from dogs (attackers={attackers})");
         npc.IsFighting = false;
+        // §109.9: бегство расцепляет бой — см. TryFleeToCamp выше. Здесь та же
+        // дыра давала «скользит от налётчика, не переставая махать ножом».
+        npc.Mind.CombatOpponentNpcId = null;
+        FightScene.ReleaseSwingSlot(npc);
         // Spec 29C.4A: a fresh flee earns a fresh stall grace — clear any pin
         // clock from a prior engagement so the new run is judged on its own.
         npc.Mind.FleeContactSinceTick = 0;
@@ -1391,6 +1400,7 @@ public sealed class MobSystem : ISimulationSystem
     {
         "BledOut" or
         "DogFight" or
+        "Drowned" or
         "Heatstroke" or
         "Hypothermia" or
         "LimbSevered" or

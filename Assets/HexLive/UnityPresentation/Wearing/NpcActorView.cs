@@ -2017,6 +2017,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // mirrors it in `WearSlotCatalog`. So the repair is: bring the SIM
             // table (and, if the layer itself is wrong, the garment's sim
             // WearLayer) into line with the prefab — never coarsen the prefab.
+            // §52.9 r2: reaching this branch at all is now a GATE failure, not a
+            // discovery — WearSlotGateTests proves no such pair exists headless
+            // (`dotnet test Tests/HexLive.Simulation.Tests`). It stays as the
+            // last line of defence for art that never reached the gate.
             if (prefabs.Count > 0 && !_bodyBones.IsEquipped($"{simId}#0"))
             {
                 // Do not try again on the next tick — see _clashedSimItems.
@@ -2030,7 +2034,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                         "Sync WearSlotCatalog (and the sim WearLayer) TO this prefab — " +
                         "do not coarsen the prefab's slots to match Covers. " +
                         "The piece stays OFF the body until that is fixed: re-stitching " +
-                        "it every tick was ~100 ms/tick and leaked a material set each time.",
+                        "it every tick was ~100 ms/tick and leaked a material set each time. " +
+                        "Reproduce and fix it headless: dotnet test Tests/HexLive.Simulation.Tests " +
+                        "(WearSlotGateTests names the exact pair and slot).",
                         this);
                 }
             }

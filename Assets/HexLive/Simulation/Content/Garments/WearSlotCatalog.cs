@@ -48,7 +48,11 @@ namespace HexLive.Simulation.Content
             ["Bikini Bottom"] = new[] { WearSlot.Pelvis },
             ["Bikini top"] = new[] { WearSlot.Chest },
             ["Boots"] = new[] { WearSlot.FootR, WearSlot.FootL },
-            // ["Boots 20496"] — prefab authors NO slots; falls back to Covers.
+            // §52.9 r2: the prefab authored NO slots, so this pair rode the coarse
+            // Covers fallback and stripped stockings/tights/socks for nothing (7
+            // false pairs). FootR/FootL was authored ON THE PREFAB to match its
+            // two siblings above; this row mirrors it.
+            ["Boots 20496"] = new[] { WearSlot.FootR, WearSlot.FootL },
             ["Boots_155064"] = new[] { WearSlot.FootR, WearSlot.FootL },
             ["CityDress"] = new[] { WearSlot.Chest, WearSlot.Belly, WearSlot.Pelvis },
             ["CowTop"] = new[] { WearSlot.Chest },
@@ -111,7 +115,11 @@ namespace HexLive.Simulation.Content
             ["clothing.sneakers_nerd"] = new[] { WearSlot.FootR, WearSlot.FootL },
             ["clothing.socks_nerd"] = new[] { WearSlot.ShinR, WearSlot.ShinL, WearSlot.FootR, WearSlot.FootL },
             ["clothing.stockings_spooky"] = new[] { WearSlot.ThighR, WearSlot.ThighL, WearSlot.ShinR, WearSlot.ShinL, WearSlot.FootR, WearSlot.FootL },
-            ["clothing.suspenders_nerd"] = new[] { WearSlot.ShoulderR, WearSlot.ShoulderL },
+            // §52.9 r2: NerdSuspenders.prefab claims Chest+Belly, not the shoulders
+            // this row guessed — so the sim let them coexist with every top while
+            // the body evicted one of the two (11 of the 30 clashing pairs). The
+            // prefab is the authority: it is a bib, and it replaces a top.
+            ["clothing.suspenders_nerd"] = new[] { WearSlot.Chest, WearSlot.Belly },
             ["clothing.sweater_flair"] = new[] { WearSlot.Chest, WearSlot.ShoulderR, WearSlot.ShoulderL, WearSlot.ForearmR, WearSlot.ForearmL },
             ["clothing.tank_sweetjane"] = new[] { WearSlot.Chest, WearSlot.Belly },
             ["clothing.top_classic"] = new[] { WearSlot.Chest },
@@ -159,11 +167,31 @@ namespace HexLive.Simulation.Content
                 : System.Array.Empty<WearSlot>();
 
         /// <summary>
-        /// Do these two garments occupy an overlapping spot on the body? This is
-        /// the ONE occupancy predicate every displacement site must use (it does
-        /// NOT test the wear layer — callers own that). Prefers the fine slot
-        /// data; falls back to the coarse protection zones only when either side
-        /// has no authored slots.
+        /// <b>THE</b> occupancy predicate (§52.9 r2): would wearing <paramref name="a"/>
+        /// take <paramref name="b"/> off? Layer AND slot, in one place, mirroring
+        /// <c>BodyBones.Equip</c> ("one garment per (layer, slot)") exactly.
+        /// <para>
+        /// Every displacement site calls this — <c>ResolveWearConflicts</c>,
+        /// <c>HasWearConflict</c>, <c>WarmthGainFromWearing</c>. The layer test used
+        /// to be re-typed at each of them, which is how <c>WarmthGainFromWearing</c>
+        /// drifted out of sync once already; with one predicate the sim's answer and
+        /// the prefab's answer can only disagree through DATA, and that is what the
+        /// headless wear-slot gate proves they never do.
+        /// </para>
+        /// <para>
+        /// A non-wearable (no <see cref="ObjectDefinition.Layer"/>) occupies nothing.
+        /// </para>
+        /// </summary>
+        public static bool Occupies(ObjectDefinition a, ObjectDefinition b) =>
+            a is not null && b is not null &&
+            a.Layer is not null && a.Layer == b.Layer &&
+            SameSpot(a, b);
+
+        /// <summary>
+        /// Do these two garments overlap on the BODY, ignoring the layer? Prefers
+        /// the fine slot data; falls back to the coarse protection zones only when
+        /// either side has no authored slots. Callers want
+        /// <see cref="Occupies"/> — this is its slot half, exposed for the gate.
         /// </summary>
         public static bool SameSpot(ObjectDefinition a, ObjectDefinition b)
         {

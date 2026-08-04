@@ -1157,12 +1157,13 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             Trace.Emit(world, npc.Id, "StashRecovered",
                 $"{worldObject.DefinitionId} returned [{string.Join(",", _dressPourScratch)}]");
         }
-        // §52.7: now that the new garment is on and the pack capacity
-        // is live, lay the displaced garment(s) on the ground — items
+        // §52.9 r2: now that the new garment is on and the pack capacity
+        // is live, put the displaced garment(s) away — into the pack if
+        // a pocket is free, on the ground only when it is not. Items
         // that still fit stayed in the pack (backed by the new
-        // garment's pockets); only the true overflow rides down inside
-        // the dropped piece (lowest importance first).
-        DropDisplacedGarments(world, npc);
+        // garment's pockets); the true overflow rides down inside the
+        // dropped piece (lowest importance first).
+        StowDisplacedGarments(world, npc);
         Trace.Emit(world, npc.Id, "ItemWorn",
             $"Def={worldObject.DefinitionId} Worn=[{string.Join(",", npc.WornItems)}] " +
             $"Warmth={npc.EquippedWarmth:F2} Armor={npc.EquippedArmor:F2}");

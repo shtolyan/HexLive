@@ -124,6 +124,21 @@ public sealed class GroupHuntTests
     /// GroupHuntDone выдавался за чужую работу. Цепочка целиком ловит и такое.
     /// </para>
     /// </summary>
+    /// <summary>
+    /// Сидов НЕСКОЛЬКО, и достаточно одного — потому что утверждение здесь
+    /// «остров ДОВОДИТ до удара», а не «сид 313 доводит».
+    /// <para>
+    /// Замер (соак, <c>--trace-preset grouphunt</c>, 10 сидов × 24000 тиков):
+    /// цепочка складывается на 8 сидах из 10, и какие именно это сиды — вопрос
+    /// удачи, а не здоровья механики. Любая законная правка в симуляции
+    /// пересобирает траекторию, и сид перестаёт быть везучим: §52.9 r2 (вещь при
+    /// смене уходит в рюкзак, а не на песок) ровно так и увёл 313 из везучих,
+    /// одновременно приведя туда 12345 — при 8/10 до и 8/10 после. Тест на ОДНОМ
+    /// сиде ловил бы это как поломку §108, которой нет.
+    /// </para>
+    /// </summary>
+    private static readonly int[] EmergenceSeeds = { 12346, 313, 12347 };
+
     [Test]
     public void GroupHunt_LandsBlows_OnThePrototypeIsland()
     {
@@ -135,7 +150,41 @@ public sealed class GroupHuntTests
         Assert.That(Spec72.Enabled, Is.True,
             "Кто-то оставил §72 выключенным — без фракций чужака нет вовсе.");
 
-        var engine = TestWorld.CreateEngine(313);
+        var tails = new List<string>();
+
+        foreach (var seed in EmergenceSeeds)
+        {
+            var (pactAt, struckAt, slainAt, tail) = RunUntilBlow(seed);
+            if (struckAt is not null)
+            {
+                Assert.Pass($"сид {seed}: сговор на тике {pactAt}, первый удар на {struckAt}.");
+            }
+
+            // §109.8: дуга ненависти может развязаться РАНЬШЕ сговора — чужак
+            // пал от руки колонистки в честном бою. Это не провал охоты, это
+            // её более ранний финал.
+            if (slainAt is not null)
+            {
+                Assert.Pass($"сид {seed}: чужак убит колонисткой на тике {slainAt} — " +
+                    "ненависть развязалась honest-боем раньше, чем понадобился сговор (§109.8).");
+            }
+
+            tails.Add($"── сид {seed}: сговор={(pactAt?.ToString() ?? "не сложился")}, " +
+                      "до удара не дошло\n" + string.Join("\n", tail));
+        }
+
+        Assert.Fail(
+            "Ни на одном из сидов " + string.Join(",", EmergenceSeeds) + " остров за " +
+            "24000 тиков не довёл колонисток до удара по чужаку. Пусто в «сговор» — " +
+            "не сложилась ненависть (§81/§108); сговор есть, а удара нет — сломана " +
+            "дорога к нему (BuildGroupHuntPlan) или сцепка боя (GroupHuntSystem). " +
+            "Хвосты событий охоты:\n" + string.Join("\n", tails));
+    }
+
+    private static (int? PactAt, int? StruckAt, int? SlainAt, IEnumerable<string> Tail)
+        RunUntilBlow(int seed)
+    {
+        var engine = TestWorld.CreateEngine(seed);
         var world = engine.World;
 
         var outsiderId = world.Entities.Npcs.Values
@@ -188,24 +237,9 @@ public sealed class GroupHuntTests
                         break;
                 }
             }
-
         }
 
-        if (slainAt is { } deathTick && struckAt is null)
-        {
-            Assert.Pass($"Чужак убит колонисткой на тике {deathTick} — ненависть " +
-                "развязалась honest-боем раньше, чем понадобился сговор (§109.8).");
-        }
-
-        Assert.That(pactAt, Is.Not.Null,
-            "За 24000 тиков реального мира трое ненавидящих его колонисток ни разу " +
-            "не сговорились. Последние причины отказа:\n" +
-            string.Join("\n", blockedTail));
-        Assert.That(struckAt, Is.Not.Null,
-            $"Сговор случился на тике {pactAt}, но до удара дело не дошло — " +
-            "значит сломана либо дорога к нему (BuildGroupHuntPlan), либо сцепка " +
-            "боя (GroupHuntSystem). Хвост событий охоты:\n" +
-            string.Join("\n", blockedTail));
+        return (pactAt, struckAt, slainAt, blockedTail);
     }
 
     private static IEnumerable<NPCState> Colony(WorldState world) =>

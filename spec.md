@@ -11373,19 +11373,29 @@ SimBalance.DressWarmthGainMin` (default **0.05 ≈ +0.5 °C**; +0.1 warmth = +1 
   EquippedArmor` gain check (§29C.4A); undress-for-heat (§31A.5A) is unchanged.
   The rule is warmth-only, per the design call.
 
-**A replaced garment relocates its pockets, then lies on the ground.** Taking a
-worn piece off (dress-over-conflict §31A.5B, or `CraftLeather`) shrinks the pack
-by that garment's slots. The swap now runs in the order that lets the contents
-land correctly: `ResolveWearConflicts` **collects** the displaced piece(s)
-without dropping → the replacement is donned and `EquipmentMath.Recalculate`
-makes the new capacity live → `DropDisplacedGarments` lays each displaced garment
-on the ground, riding down only the pack **overflow** that still doesn't fit
-(lowest importance first, §52.3) inside its `Contents`. Net effect matching the
-design: pocket items that fit **stay in the pack (moved into the new garment)**;
-the true remainder **rides to the ground inside the removed garment**; the
-garment itself always goes to the ground — never kept as dead weight in the pack.
-Deliberate Undress already did this (`DropGarmentWithContents`); the replace path
-had bare-dropped and could leave the pack over capacity.
+**A replaced garment relocates its pockets, then goes into the pack — the
+ground only if there is no pocket** (revised §52.9 r2; it used to always hit the
+ground). Taking a worn piece off (dress-over-conflict §31A.5B, or `CraftLeather`)
+shrinks the pack by that garment's slots. The swap runs in the order that lets
+the contents land correctly: `ResolveWearConflicts` **collects** the displaced
+piece(s) without disposing of them → the replacement is donned and
+`EquipmentMath.Recalculate` makes the new capacity live → `StowDisplacedGarments`
+folds each displaced garment **into the pack** when a slot is free, and only
+otherwise lays it on the ground, riding down the pack **overflow** that still
+doesn't fit (lowest importance first, §52.3) inside its `Contents`. Net effect:
+pocket items that fit **stay in the pack (moved into the new garment)**; the
+displaced garment is **carried, not littered** — swapping one pair of panties for
+another leaves nothing on the sand; the true remainder rides to the ground inside
+whatever is dropped. Deliberate Undress still lays the piece down
+(`DropGarmentWithContents`) — that is an explicit "take this off", not a swap.
+
+Two deliberate non-rules here. The stow never calls `InventoryMath.MakeRoomFor`:
+a swapped-out shirt must not shed food or a knife to ride along. And the run ends
+in `SpillOverflow`, so if the pack was already at the brim the garment simply
+falls back out — "into the pack, else the ground" needs no separate full-pack
+branch. Measured cost of carrying it: over 24 000 ticks a colony swaps a garment
+**once or twice**, so the pack never fills with laundry (0 `PickupBlocked` across
+three seeds).
 
 **Verify** (headless, tuned catalog, 10/10): same/worse/negligible (+0.03) top →
 rejected; coat (+0.28) and armor-over-top layering (+0.25) → accepted; bundled to
@@ -11513,11 +11523,14 @@ piece goes back on, so a false conflict laid clean clothes on the sand — a
 mechanical cause of "вещи лежат брошенными".
 
 **The fix.** `WearSlotCatalog` (engine-free, mirrors each prefab's slots by id)
-exposes ONE occupancy predicate, `SameSpot(a, b)`, used by all three
-displacement sites — `ResolveWearConflicts` (removes the loser),
-`HasWearConflict` (gates re-dressing after a wash) and
-`WarmthGainFromWearing` (§52.7, prices the piece that *would* come off; it had
-drifted out of sync with the other two). `Covers` keeps every one of its
+exposes ONE occupancy predicate, `Occupies(a, b)` — **layer and slot together**,
+the exact rule `BodyBones.Equip` runs — used by all three displacement sites:
+`ResolveWearConflicts` (removes the loser), `HasWearConflict` (gates re-dressing
+after a wash) and `WarmthGainFromWearing` (§52.7, prices the piece that *would*
+come off; it had drifted out of sync with the other two). The layer half used to
+be re-typed at each call site next to a shared `SameSpot`, which is how the
+warmth one drifted; folding it in leaves DATA as the only way the sim and the
+prefab can disagree, and §52.9 r2 below gates that. `Covers` keeps every one of its
 legitimate jobs (armor per bitten part, uncovered-skin/UV, bite damage to
 garments, wound staining) and no longer decides occupancy. A garment with no
 authored slots falls back to the old `Covers` test, so unauthored art keeps its
@@ -11532,9 +11545,9 @@ occupancy and stay.)
 
 **Known data gap.** `Top_11927` authors `Neck + ShoulderL` but **no `Chest`**,
 so under the slot rule it no longer displaces bras/tops and two tops can be worn
-at once (visual clipping). `Boots 20496` authors no slots at all and rides the
-`Covers` fallback. Both are prefab-side fixes; update the catalog row after
-editing a prefab.
+at once (visual clipping). That is a prefab-side fix; update the catalog row after
+editing the prefab. (`Boots 20496`, the other half of this gap, is closed in
+§52.9 r2 below.)
 
 **Verify.** Full-wardrobe sweep: 762 same-layer pairs, `SameSpot` == slot
 overlap on every pair with authored data, 0 discrepancies. Targeted: boots
@@ -11547,6 +11560,83 @@ higher on every seed, and clothing stays on — worn pieces 3 → 7 (seed 42) an
 false conflicts gone the girls dress far more successfully, so there is simply
 more wardrobe activity to replace later. The false strips themselves are gone by
 construction (the sweep above).
+
+### §52.9 r2 The mirror is now GATED — and the three rows it was already wrong about
+
+The mirror was never verified, so it drifted, and the drift is silent in the sim
+and expensive in the view. When the sim thinks two garments are compatible but
+their prefabs claim the same (layer, slot), `BodyBones.Equip` evicts one **the
+instant it lands** — `SyncWorn` then sees "worn in the sim, absent on the body",
+re-stitches ~57 bones, and is evicted again, every tick, forever: measured at
+**100–180 ms SELF per tick**, frames of 300–700 ms, and a leaked material set per
+attempt (Scene Object Count 382 414 → 445 790 in 80 s). The presentation now gives
+up after ONE attempt and warns
+(`[Wear] '<id>' was evicted the instant it was equipped`), so the price is no
+longer the frame — it is **a garment that is simply not worn**.
+
+**Three rows were wrong**, and they account for every clash in the wardrobe:
+
+| Row | Was | Prefab says | Cost |
+|---|---|---|---|
+| `armor.heavy` | sim layer `Outerwear` | layer `Wear` | **22 of 30** clashing pairs — the cuirass fought every top |
+| `clothing.suspenders_nerd` | `ShoulderR/L` | `Chest + Belly` | 11 clashing pairs — the bib fought every top |
+| `Boots 20496` | no slots authored ⇒ `Covers` fallback | now `FootR/FootL` | 7 **false strips** — boots stripped stockings/tights/socks |
+
+Sweep result: **30 clashing pairs → 0**, and the reverse direction (sim strips a
+pair the body would have worn together) **12 → 0**. `armor.heavy` now replaces a
+shirt rather than stacking over one, and still layers under a vest / harness /
+scarf, which really are `Outerwear`; to make it armour-over-shirt instead, move
+the **prefab** to `Outerwear` — never the sim row alone.
+
+**The gate** (`Tests/HexLive.Simulation.Tests/Gates/WearSlotGateTests.cs`, 5
+tests, `dotnet test Tests/HexLive.Simulation.Tests`). It parses the real
+`*.prefab` files off disk — Unity serializes an enum array as a little-endian hex
+string, `slots: 1300000014000000` = `FootR, FootL` — because a mirror can only be
+checked against the original, never against a second copy of itself:
+
+1. **no pair the sim allows together fights for the same (layer, slot)** — THE
+   invariant, the one whose violation cost 100 ms/tick;
+2. no pair the sim strips actually fits together (the §52.9 false-strip class);
+3. every catalog row equals its prefab's slot union, and no garment falls back to
+   `Covers` for want of authored slots;
+4. the sim's `WearLayer` equals the prefab's layer, and a garment's prefabs all
+   sit in one layer;
+5. the layer's **four homes agree** — the `GarmentDefinition` asset (what Unity
+   reads), `simdata.json` (what headless and the server read), the code default,
+   and the asset's own folder (`GarmentCatalogBuilder` finds an asset by
+   `Assets/<Layer>/<slug>.asset`, so an asset in the wrong folder is silently
+   duplicated and its tuning lost on the next Rebuild). This is the
+   `SimDataFreshnessGateTests` trap, which has no garment section.
+
+Direction of repair is always **toward the prefab** — the catalog row and, if the
+layer is wrong, the garment's `WearLayer` in all its homes. Never coarsen a
+prefab's slots to match `Covers`; that mistake already cost a shirt its wrist
+slots.
+
+**Verify.** Gate green on all 5 tests, and each of the three data fixes was
+reverted in turn to prove the gate names it (wrong catalog row → 11 pairs +
+`CatalogMirrorsThePrefabSlots`; wrong `simdata` layer → 22 pairs +
+`EveryHomeOfTheLayerAgrees`; unauthored prefab slots → 7 false strips). Golden
+trace (`Tools/golden_trace.sh HEAD --preset decisions`, 3 seeds × 4 000 ticks):
+**2 of 3 seeds bit-identical**; seed 12345 diverges from one event —
+`underwear.bra_cherry`, displaced by `armor.leather` at tick 1431, is folded into
+the pack (5/11) instead of laid on the sand — and the first *decision* that
+differs is 1 800 ticks later (t3256, one girl keeps `SplitLog` instead of
+switching to `CoolOff`). Soak, 16 seeds × 24 000 ticks: 4 seeds bit-identical (no
+swap happened at all), survivors **34 → 36**, plan-failure rate **2.96% → 2.23%**
+on the diverged seeds, 0 `PickupBlocked`. Stuck NPC-ticks rise (58 685 → 76 332),
+confounded by two seeds going 0 → 2 and 0 → 3 survivors: more living colonists is
+more NPC-ticks to be counted in.
+
+A note on **seed-fragile end-to-end tests**, since this change tripped one:
+`GroupHunt_LandsBlows_OnThePrototypeIsland` asserted a 24 000-tick emergent chain
+on the single seed 313, and any legitimate divergence can make one seed unlucky.
+Measured over 10 seeds, the chain forms on **8/10 before and 8/10 after** — §108
+is healthy; 313 stopped being lucky and 12345 started. The test now tries a short
+list of seeds and passes on the first that reaches a blow, which is what its own
+docstring always claimed to assert ("the island drives them to it", not "seed 313
+does").
+
 
 ## §53 Compassion & mutual aid (iteration 49)
 

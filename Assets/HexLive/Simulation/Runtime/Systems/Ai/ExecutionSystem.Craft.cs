@@ -127,7 +127,7 @@ public sealed partial class ExecutionSystem
                 ResolveWearConflicts(world, npc, ContentIds.LeatherPants);
                 npc.WornItems.Add(ContentIds.LeatherPants);
                 EquipmentMath.Recalculate(world, npc);
-                DropDisplacedGarments(world, npc); // §52.7: displaced pants' pockets relocate, overflow to ground
+                StowDisplacedGarments(world, npc); // §52.9 r2: displaced pants go to the pack, overflow to ground
                 Trace.Emit(world, npc.Id, "CraftedLeather",
                     $"Pants worn. Warmth={npc.EquippedWarmth:F2} Armor={npc.EquippedArmor:F2}");
                 return true;

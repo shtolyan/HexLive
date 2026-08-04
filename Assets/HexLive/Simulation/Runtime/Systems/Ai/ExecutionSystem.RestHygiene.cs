@@ -697,7 +697,7 @@ public sealed partial class ExecutionSystem
                 GiveOrDrop(world, npc, stashed);
             }
 
-            DropDisplacedGarments(world, npc);
+            StowDisplacedGarments(world, npc);
             reworn++;
         }
 
@@ -981,16 +981,11 @@ public sealed partial class ExecutionSystem
     {
         foreach (var wornId in npc.WornItems)
         {
-            if (!world.Content.ObjectDefinitions.TryGetValue(wornId, out var wornDef) ||
-                wornDef.Layer != newDef.Layer)
-            {
-                continue;
-            }
-
-            // §52.9: same slot-based occupancy as ResolveWearConflicts. This is
-            // what decides whether a freshly-washed piece goes back ON — a false
-            // conflict here silently leaves clean laundry on the sand.
-            if (WearSlotCatalog.SameSpot(newDef, wornDef))
+            // §52.9: the SAME occupancy predicate ResolveWearConflicts uses.
+            // This is what decides whether a freshly-washed piece goes back ON —
+            // a false conflict here silently leaves clean laundry on the sand.
+            if (world.Content.ObjectDefinitions.TryGetValue(wornId, out var wornDef) &&
+                WearSlotCatalog.Occupies(newDef, wornDef))
             {
                 return true;
             }

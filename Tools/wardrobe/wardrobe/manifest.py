@@ -299,7 +299,11 @@ def restage_textures(data: dict) -> list[str]:
                 continue
             dest.mkdir(parents=True, exist_ok=True)
             for image in draft.iterdir():
-                if image.suffix.lower() not in (".jpg", ".jpeg", ".png"):
+                # ⚠️ Не только jpg/png: DAZ отдаёт и .tga (Classic Reiko), и .tif.
+                # Узкий список молча оставлял такие вещи белыми — картинка на
+                # диске есть, но не в той папке, куда вещь переименовали.
+                if image.suffix.lower() not in (".jpg", ".jpeg", ".png", ".tga",
+                                                ".tif", ".tiff", ".bmp"):
                     continue
                 if (dest / image.name).exists():
                     continue

@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_sandals_summer2_style_02_red
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.sandals_summer2_style_02_red
+  prototypeId: clothing.sandals_summer2
+  displayName: 
+  variantMaterials:
+  - {fileID: 2100000, guid: 81ba524405d1c284cb838114a602a931, type: 2}
+  - {fileID: 2100000, guid: dc70cf722b0d0f141bdf79af7c9747d5, type: 2}
+  - {fileID: 2100000, guid: 8214d488c7ae51b43827a24c0174a9d8, type: 2}
+  - {fileID: 2100000, guid: 06ff118d1d09a3a4faabb0349e1076f2, type: 2}
+  - {fileID: 2100000, guid: 6cb812c0f6d2f6443847a136023468db, type: 2}
+  - {fileID: 2100000, guid: f8a05799ed6b2ea438ba261671db1c13, type: 2}
+  - {fileID: 2100000, guid: f2a84fe86e98152469e1ea238933f556, type: 2}
+  layer: 1
+  covers: 
+  warmth: 0.1
+  armor: 0
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

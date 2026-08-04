@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_skirt_alloy_af_skirt_casual_dark
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.skirt_alloy_af_skirt_casual_dark
+  prototypeId: clothing.skirt_alloy
+  displayName: 
+  variantMaterials:
+  - {fileID: 2100000, guid: 7590a02983d412e4d9f87b1f43801c72, type: 2}
+  - {fileID: 2100000, guid: 3663319324648d141a085950783d7fea, type: 2}
+  - {fileID: 2100000, guid: 9651125c70ae69947a7166c93d5d9df5, type: 2}
+  - {fileID: 2100000, guid: 28f10327ad17e674db8c46c445893232, type: 2}
+  layer: 1
+  covers: 
+  warmth: 0.1
+  armor: 0
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

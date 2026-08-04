@@ -489,7 +489,7 @@ Classic Reiko Outfit` — четыре уровня. Ищите по ТИПУ ф
 
 ## 11. Состояние на момент написания
 
-Ветка `wardrobe/import`. В каталоге и SimData — **631 запись**.
+Ветка `wardrobe/import`. В каталоге и SimData — **688 записей**.
 Партии 1-3 и 5-13 закрыты, партия 4 и X-Fashion Tiny Tropics исключены по
 правилу Genesis 3 (§10). Партия 14 — последняя находка ревизии библиотеки, ждёт.
 
@@ -506,6 +506,7 @@ Classic Reiko Outfit` — четыре уровня. Ищите по ТИПУ ф
 | 9 | `cindyosiris` — Cindy Aurum + Osiris Outfit | 13 | 0 | закрыт |
 | 10 | `jmrluxdevi` — JMR x4 + Luxury Bikini + City Dress | 16 | 87 | закрыт |
 | 11 | `starsdeadly` — S.T.A.R.S + Deadly Silence + Skinny Jeans | 12 | 0 | закрыт |
+| 12 | `sandalsreiko` — сандалии + кроссовки + Alloy Fusion + Classic Reiko | 14 | 43 | ждёт осмотра |
 
 Плюс 9 мужских вещей, живших в проекте раньше.
 

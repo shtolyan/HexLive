@@ -2593,6 +2593,918 @@ MonoBehaviour:
       - 'Носимый предмет.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer1.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style I'
+      - 'Сандалии, стиль 1'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer1.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Flat soles and thin straps. Nothing between you and the ground.'
+      - 'Плоская подошва и тонкие ремешки. Между тобой и землёй почти ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer1_style_01_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style I (Style 01 Black)'
+      - 'Сандалии, стиль 1 (Style 01 Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer1_style_01_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Flat soles and thin straps. Nothing between you and the ground.'
+      - 'Плоская подошва и тонкие ремешки. Между тобой и землёй почти ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer1_style_01_cherry.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style I (Style 01 Cherry)'
+      - 'Сандалии, стиль 1 (Style 01 Cherry)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer1_style_01_cherry.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Flat soles and thin straps. Nothing between you and the ground.'
+      - 'Плоская подошва и тонкие ремешки. Между тобой и землёй почти ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer1_style_01_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style I (Style 01 Red)'
+      - 'Сандалии, стиль 1 (Style 01 Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer1_style_01_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Flat soles and thin straps. Nothing between you and the ground.'
+      - 'Плоская подошва и тонкие ремешки. Между тобой и землёй почти ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer1_style_01_salmon.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style I (Style 01 Salmon)'
+      - 'Сандалии, стиль 1 (Style 01 Salmon)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer1_style_01_salmon.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Flat soles and thin straps. Nothing between you and the ground.'
+      - 'Плоская подошва и тонкие ремешки. Между тобой и землёй почти ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer1_style_01_silver.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style I (Style 01 Silver)'
+      - 'Сандалии, стиль 1 (Style 01 Silver)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer1_style_01_silver.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Flat soles and thin straps. Nothing between you and the ground.'
+      - 'Плоская подошва и тонкие ремешки. Между тобой и землёй почти ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer1_style_01_sky.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style I (Style 01 Sky)'
+      - 'Сандалии, стиль 1 (Style 01 Sky)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer1_style_01_sky.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Flat soles and thin straps. Nothing between you and the ground.'
+      - 'Плоская подошва и тонкие ремешки. Между тобой и землёй почти ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer1_style_01_tan.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style I (Style 01 Tan)'
+      - 'Сандалии, стиль 1 (Style 01 Tan)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer1_style_01_tan.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Flat soles and thin straps. Nothing between you and the ground.'
+      - 'Плоская подошва и тонкие ремешки. Между тобой и землёй почти ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer1_style_01_white.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style I (Style 01 White)'
+      - 'Сандалии, стиль 1 (Style 01 White)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer1_style_01_white.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Flat soles and thin straps. Nothing between you and the ground.'
+      - 'Плоская подошва и тонкие ремешки. Между тобой и землёй почти ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer1_style_01_yellow.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style I (Style 01 Yellow)'
+      - 'Сандалии, стиль 1 (Style 01 Yellow)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer1_style_01_yellow.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Flat soles and thin straps. Nothing between you and the ground.'
+      - 'Плоская подошва и тонкие ремешки. Между тобой и землёй почти ничего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style II'
+      - 'Сандалии, стиль 2'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wider straps, same flat sole.'
+      - 'Ремешки шире, подошва та же плоская.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer2_style_02_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style II (Style 02 Black)'
+      - 'Сандалии, стиль 2 (Style 02 Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer2_style_02_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wider straps, same flat sole.'
+      - 'Ремешки шире, подошва та же плоская.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer2_style_02_cherry.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style II (Style 02 Cherry)'
+      - 'Сандалии, стиль 2 (Style 02 Cherry)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer2_style_02_cherry.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wider straps, same flat sole.'
+      - 'Ремешки шире, подошва та же плоская.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer2_style_02_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style II (Style 02 Red)'
+      - 'Сандалии, стиль 2 (Style 02 Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer2_style_02_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wider straps, same flat sole.'
+      - 'Ремешки шире, подошва та же плоская.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer2_style_02_salmon.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style II (Style 02 Salmon)'
+      - 'Сандалии, стиль 2 (Style 02 Salmon)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer2_style_02_salmon.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wider straps, same flat sole.'
+      - 'Ремешки шире, подошва та же плоская.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer2_style_02_silver.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style II (Style 02 Silver)'
+      - 'Сандалии, стиль 2 (Style 02 Silver)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer2_style_02_silver.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wider straps, same flat sole.'
+      - 'Ремешки шире, подошва та же плоская.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer2_style_02_sky.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style II (Style 02 Sky)'
+      - 'Сандалии, стиль 2 (Style 02 Sky)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer2_style_02_sky.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wider straps, same flat sole.'
+      - 'Ремешки шире, подошва та же плоская.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer2_style_02_tan.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style II (Style 02 Tan)'
+      - 'Сандалии, стиль 2 (Style 02 Tan)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer2_style_02_tan.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wider straps, same flat sole.'
+      - 'Ремешки шире, подошва та же плоская.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer2_style_02_white.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style II (Style 02 White)'
+      - 'Сандалии, стиль 2 (Style 02 White)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer2_style_02_white.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wider straps, same flat sole.'
+      - 'Ремешки шире, подошва та же плоская.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer2_style_02_yellow.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style II (Style 02 Yellow)'
+      - 'Сандалии, стиль 2 (Style 02 Yellow)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer2_style_02_yellow.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Wider straps, same flat sole.'
+      - 'Ремешки шире, подошва та же плоская.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer3.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style III'
+      - 'Сандалии, стиль 3'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer3.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crossed straps up the ankle.'
+      - 'Ремешки крест-накрест до щиколотки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer3_style_03_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style III (Style 03 Black)'
+      - 'Сандалии, стиль 3 (Style 03 Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer3_style_03_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crossed straps up the ankle.'
+      - 'Ремешки крест-накрест до щиколотки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer3_style_03_cherry.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style III (Style 03 Cherry)'
+      - 'Сандалии, стиль 3 (Style 03 Cherry)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer3_style_03_cherry.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crossed straps up the ankle.'
+      - 'Ремешки крест-накрест до щиколотки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer3_style_03_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style III (Style 03 Red)'
+      - 'Сандалии, стиль 3 (Style 03 Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer3_style_03_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crossed straps up the ankle.'
+      - 'Ремешки крест-накрест до щиколотки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer3_style_03_salmon.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style III (Style 03 Salmon)'
+      - 'Сандалии, стиль 3 (Style 03 Salmon)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer3_style_03_salmon.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crossed straps up the ankle.'
+      - 'Ремешки крест-накрест до щиколотки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer3_style_03_silver.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style III (Style 03 Silver)'
+      - 'Сандалии, стиль 3 (Style 03 Silver)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer3_style_03_silver.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crossed straps up the ankle.'
+      - 'Ремешки крест-накрест до щиколотки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer3_style_03_sky.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style III (Style 03 Sky)'
+      - 'Сандалии, стиль 3 (Style 03 Sky)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer3_style_03_sky.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crossed straps up the ankle.'
+      - 'Ремешки крест-накрест до щиколотки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer3_style_03_tan.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style III (Style 03 Tan)'
+      - 'Сандалии, стиль 3 (Style 03 Tan)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer3_style_03_tan.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crossed straps up the ankle.'
+      - 'Ремешки крест-накрест до щиколотки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer3_style_03_white.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style III (Style 03 White)'
+      - 'Сандалии, стиль 3 (Style 03 White)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer3_style_03_white.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crossed straps up the ankle.'
+      - 'Ремешки крест-накрест до щиколотки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer3_style_03_yellow.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style III (Style 03 Yellow)'
+      - 'Сандалии, стиль 3 (Style 03 Yellow)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer3_style_03_yellow.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Crossed straps up the ankle.'
+      - 'Ремешки крест-накрест до щиколотки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer4.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style IV'
+      - 'Сандалии, стиль 4'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer4.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ankle strap and a small buckle.'
+      - 'Ремешок вокруг щиколотки и маленькая пряжка.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer4_style_04_black.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style IV (Style 04 Black)'
+      - 'Сандалии, стиль 4 (Style 04 Black)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer4_style_04_black.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ankle strap and a small buckle.'
+      - 'Ремешок вокруг щиколотки и маленькая пряжка.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer4_style_04_cherry.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style IV (Style 04 Cherry)'
+      - 'Сандалии, стиль 4 (Style 04 Cherry)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer4_style_04_cherry.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ankle strap and a small buckle.'
+      - 'Ремешок вокруг щиколотки и маленькая пряжка.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer4_style_04_red.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style IV (Style 04 Red)'
+      - 'Сандалии, стиль 4 (Style 04 Red)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer4_style_04_red.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ankle strap and a small buckle.'
+      - 'Ремешок вокруг щиколотки и маленькая пряжка.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer4_style_04_salmon.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style IV (Style 04 Salmon)'
+      - 'Сандалии, стиль 4 (Style 04 Salmon)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer4_style_04_salmon.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ankle strap and a small buckle.'
+      - 'Ремешок вокруг щиколотки и маленькая пряжка.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer4_style_04_silver.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style IV (Style 04 Silver)'
+      - 'Сандалии, стиль 4 (Style 04 Silver)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer4_style_04_silver.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ankle strap and a small buckle.'
+      - 'Ремешок вокруг щиколотки и маленькая пряжка.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer4_style_04_sky.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style IV (Style 04 Sky)'
+      - 'Сандалии, стиль 4 (Style 04 Sky)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer4_style_04_sky.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ankle strap and a small buckle.'
+      - 'Ремешок вокруг щиколотки и маленькая пряжка.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer4_style_04_tan.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style IV (Style 04 Tan)'
+      - 'Сандалии, стиль 4 (Style 04 Tan)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer4_style_04_tan.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ankle strap and a small buckle.'
+      - 'Ремешок вокруг щиколотки и маленькая пряжка.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer4_style_04_white.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style IV (Style 04 White)'
+      - 'Сандалии, стиль 4 (Style 04 White)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer4_style_04_white.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ankle strap and a small buckle.'
+      - 'Ремешок вокруг щиколотки и маленькая пряжка.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer4_style_04_yellow.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sandals, Style IV (Style 04 Yellow)'
+      - 'Сандалии, стиль 4 (Style 04 Yellow)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sandals_summer4_style_04_yellow.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ankle strap and a small buckle.'
+      - 'Ремешок вокруг щиколотки и маленькая пряжка.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sneakers_canvas.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Canvas Sneakers'
+      - 'Тканевые кроссовки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sneakers_canvas.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Worn flat, laces knotted where they broke.'
+      - 'Стоптаны, шнурки связаны там, где рвались.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sneakers_canvas_rs5_mat02.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Canvas Sneakers (RS5 MAT02)'
+      - 'Тканевые кроссовки (RS5 MAT02)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sneakers_canvas_rs5_mat02.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Worn flat, laces knotted where they broke.'
+      - 'Стоптаны, шнурки связаны там, где рвались.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sneakers_canvas_rs5_mat03.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Canvas Sneakers (RS5 MAT03)'
+      - 'Тканевые кроссовки (RS5 MAT03)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sneakers_canvas_rs5_mat03.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Worn flat, laces knotted where they broke.'
+      - 'Стоптаны, шнурки связаны там, где рвались.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sneakers_sport.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Running Shoes'
+      - 'Беговые кроссовки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sneakers_sport.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cushioned, and the cushion is long gone.'
+      - 'С амортизацией, от которой давно ничего не осталось.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sneakers_sport_cream_white.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Running Shoes (Cream White)'
+      - 'Беговые кроссовки (Cream White)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sneakers_sport_cream_white.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cushioned, and the cushion is long gone.'
+      - 'С амортизацией, от которой давно ничего не осталось.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sneakers_sport_lilac_purple.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Running Shoes (Lilac Purple)'
+      - 'Беговые кроссовки (Lilac Purple)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_sneakers_sport_lilac_purple.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cushioned, and the cushion is long gone.'
+      - 'С амортизацией, от которой давно ничего не осталось.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_alloy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plated Top'
+      - 'Топ с пластинами'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_alloy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Metal plates over the shoulders. Someone made this to be seen in.'
+      - 'Металлические пластины на плечах. Это делали, чтобы в этом видели.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_alloy_af_top_casual_dark.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plated Top (AF Top Casual Dark)'
+      - 'Топ с пластинами (AF Top Casual Dark)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_alloy_af_top_casual_dark.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Metal plates over the shoulders. Someone made this to be seen in.'
+      - 'Металлические пластины на плечах. Это делали, чтобы в этом видели.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_alloy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plated Skirt'
+      - 'Юбка с пластинами'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_alloy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Short, panelled, and heavier than it looks.'
+      - 'Короткая, из пластин, и тяжелее, чем кажется.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_alloy_af_skirt_casual_dark.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plated Skirt (AF Skirt Casual Dark)'
+      - 'Юбка с пластинами (AF Skirt Casual Dark)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_skirt_alloy_af_skirt_casual_dark.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Short, panelled, and heavier than it looks.'
+      - 'Короткая, из пластин, и тяжелее, чем кажется.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_alloy.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plated Boots'
+      - 'Ботинки с пластинами'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_alloy.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A heel this steep was a choice, and not a practical one.'
+      - 'Такой каблук был выбором — и точно не практичным.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_alloy_af_boots_casual_dark.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plated Boots (AF Boots Casual Dark)'
+      - 'Ботинки с пластинами (AF Boots Casual Dark)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_alloy_af_boots_casual_dark.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A heel this steep was a choice, and not a practical one.'
+      - 'Такой каблук был выбором — и точно не практичным.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_classic.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ring Top'
+      - 'Топ борца'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_classic.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut for a ring, kept for the fabric.'
+      - 'Скроен для ринга, сохранён ради ткани.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_classic.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ring Shorts'
+      - 'Шорты борца'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_shorts_classic.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'In a set with the top. The vendor called them a shirt.'
+      - 'В пару к топу. Вендор назвал их рубашкой.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_classic.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ring Boots'
+      - 'Ботинки борца'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_boots_classic.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Laced high, soled thin. Made for a canvas floor.'
+      - 'Высокая шнуровка, тонкая подошва. Для настила ринга.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_classic.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ring Gloves'
+      - 'Перчатки борца'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_gloves_classic.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fingerless, wrapped at the wrist.'
+      - 'Без пальцев, с намоткой на запястье.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_scarf_classic.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Neck Scarf'
+      - 'Шейный платок'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_scarf_classic.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Three hundred polygons of pure decoration.'
+      - 'Триста полигонов чистого украшательства.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'item.clothing_top_stars.name'
       TermType: 0
       Description: 

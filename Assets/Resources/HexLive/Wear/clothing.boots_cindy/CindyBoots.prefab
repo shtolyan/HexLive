@@ -856,7 +856,7 @@ MonoBehaviour:
   heel:
     footDegrees: 39.83
     toeDegrees: -39.83
-    lift: 0.0704
+    lift: 0.0598
     axis: {x: 1, y: 0, z: 0}
   hidesHair: 0
 --- !u!1 &7792567801504287274

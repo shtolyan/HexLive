@@ -473,9 +473,9 @@ Classic Reiko Outfit` — четыре уровня. Ищите по ТИПУ ф
 
 ## 11. Состояние на момент написания
 
-Ветка `wardrobe/import`. В каталоге и SimData — **504 записи**.
-**План импорта пройден целиком**: партии 1-3, 5-10 закрыты, партия 4 и
-X-Fashion Tiny Tropics исключены по правилу Genesis 3 (§10).
+Ветка `wardrobe/import`. В каталоге и SimData — **517 записей**.
+Партии 1-3 и 5-11 закрыты, партия 4 и X-Fashion Tiny Tropics исключены по
+правилу Genesis 3 (§10). Партии 12-14 — находки ревизии библиотеки, ждут.
 
 | заход | поставка | вещей | расцветок | статус |
 |---|---|---|---|---|
@@ -487,6 +487,7 @@ X-Fashion Tiny Tropics исключены по правилу Genesis 3 (§10).
 | 6 | `vampjanecharm` — Vamp + Sweet Jane + X-Fashion + Charm Boots + Spooky + Autumn + Panties + Bandaid + Fads | 14 | 112 | закрыт |
 | 7 | `sweetywildvapor` — Sweety + PrimalDress + CruX Wild + Yoga + NightDress + Reiko + VaporWear2 + Big Teez | 16 | 101 | закрыт |
 | 8 | `osirisprops` — Osiris Props (остаток партии 6) | 1 | 0 | закрыт |
+| 9 | `cindyosiris` — Cindy Aurum + Osiris Outfit | 13 | 0 | закрыт |
 
 Плюс 9 мужских вещей, живших в проекте раньше.
 

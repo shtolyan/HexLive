@@ -22,6 +22,8 @@ using UnityEngine;
 public static class HexLiveWearOutOfResources
 {
     public const string OldRoot = "Assets/Resources/HexLive/Wear";
+    public const string OldIcons = "Assets/Resources/HexLive/UI/Items";
+    public const string NewIcons = "Assets/HexLiveContent/Icons";
     public const string NewRoot = "Assets/HexLiveContent/Wear";
 
     [MenuItem("HexLive/Addressables/Вынести арт вещей из Resources")]
@@ -67,9 +69,49 @@ public static class HexLiveWearOutOfResources
             Debug.LogError($"[Addressables] не переехали ({failed.Count}): {string.Join("; ", failed)}");
         }
 
+        var icons = MoveIcons();
+
         Debug.Log($"[Addressables] арт вещей вынесен из Resources: {moved} папок -> {NewRoot}.\n" +
                   "Дальше обязательно: «Разметить гардероб и волосы» (адреса строятся от нового пути) " +
                   "и проверить, что вещи одеваются — грузятся они теперь по адресу.");
+    }
+
+    // Иконки уезжают туда же и по той же причине: в Resources они попадали в
+    // билд все семьсот штук сразу, а нужна за раз одна.
+    [MenuItem("HexLive/Addressables/Вынести иконки из Resources")]
+    public static void MoveIconsOnly() =>
+        Debug.Log($"[Addressables] иконок вынесено: {MoveIcons()} -> {NewIcons}.");
+
+    private static int MoveIcons()
+    {
+        if (!AssetDatabase.IsValidFolder(OldIcons))
+        {
+            return 0;
+        }
+
+        EnsureFolder(NewIcons);
+        var moved = 0;
+
+        AssetDatabase.StartAssetEditing();
+        try
+        {
+            foreach (var guid in AssetDatabase.FindAssets("t:Sprite", new[] { OldIcons }))
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                var name = Path.GetFileName(path);
+                if (string.IsNullOrEmpty(AssetDatabase.MoveAsset(path, $"{NewIcons}/{name}")))
+                {
+                    moved++;
+                }
+            }
+        }
+        finally
+        {
+            AssetDatabase.StopAssetEditing();
+            AssetDatabase.Refresh();
+        }
+
+        return moved;
     }
 
     private static void EnsureFolder(string path)

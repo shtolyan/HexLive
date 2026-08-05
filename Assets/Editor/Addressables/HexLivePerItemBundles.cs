@@ -35,6 +35,7 @@ using UnityEngine;
 public static class HexLivePerItemBundles
 {
     private const string WearRoot = "Assets/HexLiveContent/Wear";
+    private const string IconRoot = "Assets/HexLiveContent/Icons";
     private const string HairRoot = "Assets/ImportedActors/Hair";
 
     public static string WearLabel(string artId) => $"wear.{artId}";
@@ -53,7 +54,7 @@ public static class HexLivePerItemBundles
         // Сначала чистка: в группе могли остаться записи от прежней затеи
         // (иконки, определения). Лишняя запись — это лишний ассет в бандле, а
         // молча раздувшийся бандл потом ищи.
-        var dropped = DropForeign(settings, HexLiveAddressablesContent.WearGroup, "wear/");
+        var dropped = DropForeign(settings, HexLiveAddressablesContent.WearGroup, "wear/", "icon/");
         dropped += DropForeign(settings, HexLiveAddressablesContent.HairGroup, "hair/");
 
         var wear = LabelWear(settings);
@@ -70,7 +71,8 @@ public static class HexLivePerItemBundles
     // носит арт своего прототипа, поэтому её иконка и её материалы едут в тот
     // же бандл, что и геометрия, а не в свой собственный.
     // Всё, что не адресуется нашим правилом, группе не принадлежит.
-    private static int DropForeign(AddressableAssetSettings settings, string groupName, string prefix)
+    private static int DropForeign(AddressableAssetSettings settings, string groupName,
+                                   params string[] prefixes)
     {
         var group = settings.FindGroup(groupName);
         if (group == null)
@@ -79,7 +81,8 @@ public static class HexLivePerItemBundles
         }
 
         var doomed = group.entries
-            .Where(e => e != null && (string.IsNullOrEmpty(e.address) || !e.address.StartsWith(prefix)))
+            .Where(e => e != null && (string.IsNullOrEmpty(e.address) ||
+                                      !prefixes.Any(p => e.address.StartsWith(p))))
             .ToList();
 
         foreach (var entry in doomed)
@@ -110,6 +113,20 @@ public static class HexLivePerItemBundles
             foreach (var file in Directory.GetFiles(directory, "*.prefab"))
             {
                 labelled += Tag(settings, group, file.Replace('\\', '/'), label) ? 1 : 0;
+            }
+
+            // Иконки этой вещи — её собственная и всех её расцветок. Метка ТА ЖЕ,
+            // поэтому они ложатся в бандл своей вещи, а не в отдельный.
+            // Узнаются по ИМЕНИ ФАЙЛА: иконка расцветки названа её id, а он
+            // начинается с id прототипа. Реестр для этого не нужен.
+            if (Directory.Exists(IconRoot))
+            {
+                foreach (var icon in Directory.GetFiles(IconRoot, artId + "*.png"))
+                {
+                    var iconPath = icon.Replace('\\', '/');
+                    var iconName = Path.GetFileNameWithoutExtension(iconPath);
+                    labelled += TagIcon(settings, group, iconPath, label, "icon/" + iconName) ? 1 : 0;
+                }
             }
 
         }
@@ -170,6 +187,28 @@ public static class HexLivePerItemBundles
 
         schema.BundleMode = BundledAssetGroupSchema.BundlePackingMode.PackTogetherByLabel;
         EditorUtility.SetDirty(schema);
+    }
+
+    // Иконке нужен СВОЙ адрес (icon/<id>) — правило адреса вещи её не описывает.
+    // Метка при этом та же, что у вещи: бандл один на вещь.
+    private static bool TagIcon(AddressableAssetSettings settings, AddressableAssetGroup group,
+                                string path, string label, string address)
+    {
+        var guid = AssetDatabase.AssetPathToGUID(path);
+        if (string.IsNullOrEmpty(guid))
+        {
+            return false;
+        }
+
+        var entry = settings.CreateOrMoveEntry(guid, group, false, false);
+        if (entry == null)
+        {
+            return false;
+        }
+
+        entry.address = address;
+        entry.SetLabel(label, true, false, false);
+        return true;
     }
 
     private static bool Tag(AddressableAssetSettings settings, AddressableAssetGroup group,

@@ -1749,7 +1749,7 @@ namespace HexLive.UnityPresentation.UI
             {
                 return null;
             }
-            return Resources.Load<Sprite>($"HexLive/UI/Items/{id}");
+            return Wearing.Garments.ItemIcons.Load(id);
         }
 
         private VisualElement BuildItemRow(

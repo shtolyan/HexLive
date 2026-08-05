@@ -2031,8 +2031,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
             return null;
         }
 
-        return Resources.Load<Sprite>($"HexLive/UI/Items/{id}") ??
-               Resources.Load<Sprite>($"HexLive/UI/Items/{ItemInfo.Slug(id)}");
+        return Wearing.Garments.ItemIcons.Load(id);
     }
 
     // ---- ui refresh ----

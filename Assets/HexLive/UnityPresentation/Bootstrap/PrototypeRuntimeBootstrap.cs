@@ -46,7 +46,13 @@ public static class PrototypeRuntimeBootstrap
         // into GarmentLibrary before the world (and its content) is built.
         Config.GarmentTuning.LoadAndApply();
 
-        // Что вообще лежит рядом с игрой: перечень ИМЁН бандлов из каталога
+        // Гардероб КОНТЕНТОМ. Порядок важен и обратный привычному: сначала
+        // кодовые умолчания и тюнинг из ассетов (выше), потом меты из папки
+        // рядом с игрой — контент последнее слово. Вещь, которой не было при
+        // сборке exe, появляется в таблицах именно здесь.
+        Wearing.Garments.WardrobeMeta.Load();
+
+        // Что вообще лежит рядом: перечень ИМЁН бандлов из каталога
         // Addressables. Ни один ассет тут не грузится — содержимое приезжает,
         // когда вещь надевают.
         Wearing.Garments.WardrobeCatalog.Report();

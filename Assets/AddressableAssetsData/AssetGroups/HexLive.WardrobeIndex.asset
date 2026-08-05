@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: HexLive.WardrobeIndex
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: HexLive.WardrobeIndex
+  m_GUID: eaf39cd7a069f204c8e9f870cb14f3a1
+  m_SerializeEntries:
+  - m_GUID: fcdecb21135fcd1409adc44fd126f88e
+    m_Address: wardrobe/index
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: bddd39714fa3ad14ab0a44b36284ce65, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: f6f4d68c568909641acfbe2f4c6eb333, type: 2}
+    - {fileID: 11400000, guid: 32bf5de7209498c4aabf51ea9b4873b9, type: 2}
+    m_SchemaDisplayOrder:
+    - HexLive.WardrobeIndex_BundledAssetGroupSchema
+    - HexLive.WardrobeIndex_ContentUpdateGroupSchema
+  m_IncludeInBuild: 1
+  m_IncludeInBuildMigrated: 1

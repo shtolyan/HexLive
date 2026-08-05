@@ -47,6 +47,33 @@ public static class ActorWardrobe
         // блокировал точно так же. Цена платится в прогреве (GarmentDropFactory
         // .Prewarm за занавесом загрузки), а не переписыванием половины вида.
         var address = HairContent.WearAddress(Garments.GarmentVariants.ArtIdOf(simDefinitionId));
+
+        // ⭐ СНАЧАЛА спрашиваем каталог, есть ли такой адрес. Без этого
+        // LoadAssetAsync на несуществующем адресе бросает InvalidKeyException —
+        // и не один раз: исключение улетает ДО того, как результат попадёт в
+        // кэш, поэтому цикл одевания повторяет попытку каждый тик и заливает
+        // консоль. Прежний Resources.LoadAll на ту же ситуацию отвечал пустым
+        // массивом и молчал, и вызывающие рассчитаны именно на это.
+        //
+        // Ситуация законная: в библиотеке живут вещи, у которых арта нет вовсе
+        // (armor.leather и прочее из снесённого старого гардероба).
+        var locations = UnityEngine.AddressableAssets.Addressables
+            .LoadResourceLocationsAsync(address);
+        locations.WaitForCompletion();
+        var exists = locations.Status == UnityEngine.ResourceManagement.AsyncOperations
+                         .AsyncOperationStatus.Succeeded &&
+                     locations.Result != null && locations.Result.Count > 0;
+        UnityEngine.AddressableAssets.Addressables.Release(locations);
+
+        if (!exists)
+        {
+            // Пустой ответ кэшируется наравне с найденным: вещь без арта
+            // спросят ещё много раз, и каждый промах стоил бы обращения к
+            // каталогу.
+            _cache[simDefinitionId] = result;
+            return result;
+        }
+
         var handle = UnityEngine.AddressableAssets.Addressables.LoadAssetAsync<GameObject>(address);
         var prefab = handle.WaitForCompletion();
         if (prefab != null)

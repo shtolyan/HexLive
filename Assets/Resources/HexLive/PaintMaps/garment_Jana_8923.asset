@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
-  m_Name: garment_Jana_8923
+  m_Name: 
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
   MeshName: Jana
   VertexCount: 8923
@@ -31,8 +31,8 @@ MonoBehaviour:
       BindPerU: 1.2807232
       BindPerV: 1.2385004
       Valid: 1
-      BindPos: {x: 0.005536737, y: 1.1620452, z: -0.065963686}
-      BindNormal: {x: 0.041148372, y: 0.085105464, z: -0.9955219}
+      BindPos: {x: 0.0056817047, y: 1.1630104, z: -0.07114446}
+      BindNormal: {x: 0.039977208, y: 0.086762756, z: -0.9954266}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Pelvis
@@ -42,8 +42,8 @@ MonoBehaviour:
       BindPerU: 1.4878734
       BindPerV: 1.5237893
       Valid: 1
-      BindPos: {x: 0.0062630377, y: 1.103289, z: -0.07630631}
-      BindNormal: {x: 0.060577594, y: -0.49466982, z: -0.86696714}
+      BindPos: {x: 0.006351875, y: 1.1041591, z: -0.080653146}
+      BindNormal: {x: 0.057514142, y: -0.5135269, z: -0.85614383}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmL
@@ -53,8 +53,8 @@ MonoBehaviour:
       BindPerU: 1.2977817
       BindPerV: 1.2713726
       Valid: 1
-      BindPos: {x: -0.36247215, y: 1.4820601, z: -0.04925242}
-      BindNormal: {x: -0.97872937, y: 0.20503505, z: -0.007033972}
+      BindPos: {x: -0.36895743, y: 1.4919915, z: -0.051577013}
+      BindNormal: {x: -0.97764647, y: 0.21020594, z: -0.0045684176}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmR
@@ -64,8 +64,8 @@ MonoBehaviour:
       BindPerU: 1.2997289
       BindPerV: 1.2707608
       Valid: 1
-      BindPos: {x: 0.36247218, y: 1.4820603, z: -0.04925243}
-      BindNormal: {x: 0.9787248, y: 0.20505701, z: -0.0070345113}
+      BindPos: {x: 0.36895642, y: 1.4919947, z: -0.05157751}
+      BindNormal: {x: 0.9774888, y: 0.2109351, z: -0.004695379}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegL

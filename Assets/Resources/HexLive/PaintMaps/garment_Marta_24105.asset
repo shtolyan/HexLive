@@ -10,10 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
-  m_Name: garment_Marta_24105
+  m_Name: 
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
   MeshName: Marta
   VertexCount: 24105
+  Version: 0
+  MeshHeight: 1.7
   TSamples: 1
   AzimuthSamples: 1
   TMin: 0
@@ -21,6 +23,7 @@ MonoBehaviour:
   Zones:
   - Zone: Head
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Torso
     Points:
     - Slot: 0
@@ -28,6 +31,10 @@ MonoBehaviour:
       BindPerU: 0.71527064
       BindPerV: 1.0241574
       Valid: 1
+      BindPos: {x: 0.0026072871, y: 1.1348385, z: -0.06359757}
+      BindNormal: {x: -0.007727749, y: -0.11102744, z: -0.9937873}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Pelvis
     Points:
     - Slot: 0
@@ -35,6 +42,10 @@ MonoBehaviour:
       BindPerU: 0.7257901
       BindPerV: 1.0537341
       Valid: 1
+      BindPos: {x: -0.0027044157, y: 1.1003593, z: -0.07161392}
+      BindNormal: {x: 0.030289251, y: 0.25986716, z: -0.96516925}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmL
     Points:
     - Slot: 1
@@ -42,6 +53,10 @@ MonoBehaviour:
       BindPerU: 0.601877
       BindPerV: 0.8767849
       Valid: 1
+      BindPos: {x: -0.42059076, y: 1.4694871, z: -0.07406554}
+      BindNormal: {x: -0.0758778, y: 0.6198554, z: -0.78103894}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmR
     Points:
     - Slot: 1
@@ -49,7 +64,13 @@ MonoBehaviour:
       BindPerU: 0.6020047
       BindPerV: 0.87363935
       Valid: 1
+      BindPos: {x: 0.42059088, y: 1.4694866, z: -0.07406577}
+      BindNormal: {x: 0.075891204, y: 0.6199239, z: -0.7809833}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegL
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegR
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}

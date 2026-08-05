@@ -30,6 +30,7 @@ MonoBehaviour:
   friendGuardEnabled: 1
   friendGuardRadiusTiles: 6
   friendGuardAffinity: 0.25
+  braceFaceDeadzoneDegrees: 35
   defendMoveSpeedFactor: 2.5
   threatAlertEnabled: 1
   spotRadiusTiles: 6

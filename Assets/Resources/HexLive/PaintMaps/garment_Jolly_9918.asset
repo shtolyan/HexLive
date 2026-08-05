@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
-  m_Name: garment_Jolly_9918
+  m_Name: 
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
   MeshName: Jolly
   VertexCount: 9918
@@ -28,8 +28,8 @@ MonoBehaviour:
       BindPerU: 1.8992532
       BindPerV: 1.3940382
       Valid: 1
-      BindPos: {x: 0.062154252, y: 1.5839874, z: -0.06752992}
-      BindNormal: {x: -0.63521117, y: 0.6004352, z: 0.4857821}
+      BindPos: {x: 0.062176913, y: 1.5842746, z: -0.06733028}
+      BindNormal: {x: -0.6325176, y: 0.6027453, z: 0.48643568}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Torso
@@ -39,8 +39,8 @@ MonoBehaviour:
       BindPerU: 2.0116796
       BindPerV: 3.2074149
       Valid: 1
-      BindPos: {x: 0.015157734, y: 1.1933275, z: -0.07096172}
-      BindNormal: {x: -0.058132827, y: -0.6223394, z: 0.7805858}
+      BindPos: {x: 0.01514296, y: 1.1934012, z: -0.07103311}
+      BindNormal: {x: -0.060384095, y: -0.6224817, z: 0.7803014}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Pelvis
@@ -53,8 +53,8 @@ MonoBehaviour:
       BindPerU: 1.906161
       BindPerV: 1.7713369
       Valid: 1
-      BindPos: {x: -0.41620255, y: 1.4696465, z: -0.07495081}
-      BindNormal: {x: -0.10202822, y: 0.4615032, z: -0.881252}
+      BindPos: {x: -0.41617405, y: 1.4692518, z: -0.07445778}
+      BindNormal: {x: -0.08973691, y: 0.46013966, z: -0.88329995}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmR
@@ -64,8 +64,8 @@ MonoBehaviour:
       BindPerU: 2.0174105
       BindPerV: 1.7778581
       Valid: 1
-      BindPos: {x: 0.4276649, y: 1.4531342, z: -0.080399536}
-      BindNormal: {x: 0.15357223, y: 0.31001654, z: -0.9382459}
+      BindPos: {x: 0.42765546, y: 1.4530076, z: -0.07995}
+      BindNormal: {x: 0.14733423, y: 0.31383318, z: -0.9379773}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegL

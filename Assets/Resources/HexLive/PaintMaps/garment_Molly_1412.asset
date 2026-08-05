@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
-  m_Name: garment_Molly_1412
+  m_Name: 
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
   MeshName: Molly
   VertexCount: 1412
@@ -31,8 +31,8 @@ MonoBehaviour:
       BindPerU: 0.02900216
       BindPerV: 0.039197505
       Valid: 1
-      BindPos: {x: -0.0017217691, y: 1.1805311, z: 0.12039468}
-      BindNormal: {x: -0.09716435, y: -0.026400715, z: -0.99491817}
+      BindPos: {x: -0.0013002186, y: 1.2328347, z: 0.11137063}
+      BindNormal: {x: -0.12444741, y: 0.0071780304, z: -0.9922002}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Pelvis

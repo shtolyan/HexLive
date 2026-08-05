@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
-  m_Name: garment_Marta_27971
+  m_Name: 
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
   MeshName: Marta
   VertexCount: 27971
@@ -31,8 +31,8 @@ MonoBehaviour:
       BindPerU: 0.9383878
       BindPerV: 0.72704816
       Valid: 1
-      BindPos: {x: -0.0042923964, y: 1.1595093, z: 0.120524436}
-      BindNormal: {x: 0.009349698, y: 0.13569675, z: 0.9907063}
+      BindPos: {x: -0.0041264226, y: 1.1706184, z: 0.122611664}
+      BindNormal: {x: 0.04300195, y: 0.09293187, z: 0.99474347}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Pelvis
@@ -42,8 +42,8 @@ MonoBehaviour:
       BindPerU: 0.8351185
       BindPerV: 0.6440713
       Valid: 1
-      BindPos: {x: 0.0035454333, y: 1.0659603, z: 0.12826799}
-      BindNormal: {x: 0.014810795, y: -0.0042339675, z: 0.9998814}
+      BindPos: {x: 0.0033401444, y: 1.0640627, z: 0.13249235}
+      BindNormal: {x: 0.0071786526, y: -0.025968917, z: 0.99963695}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmL

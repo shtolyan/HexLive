@@ -10,10 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
-  m_Name: garment_Jana_30830
+  m_Name: 
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
   MeshName: Jana
   VertexCount: 30830
+  Version: 0
+  MeshHeight: 1.7
   TSamples: 1
   AzimuthSamples: 1
   TMin: 0
@@ -21,8 +23,10 @@ MonoBehaviour:
   Zones:
   - Zone: Head
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Torso
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Pelvis
     Points:
     - Slot: 0
@@ -30,10 +34,16 @@ MonoBehaviour:
       BindPerU: 1.9195262
       BindPerV: 2.0416188
       Valid: 1
+      BindPos: {x: -0.06799481, y: 0.23191524, z: -0.043325324}
+      BindNormal: {x: 0.45511743, y: 0.8797618, z: 0.1374309}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmL
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmR
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegL
     Points:
     - Slot: 0
@@ -41,6 +51,10 @@ MonoBehaviour:
       BindPerU: 1.8828415
       BindPerV: 2.02036
       Valid: 1
+      BindPos: {x: -0.07096146, y: 0.23074277, z: -0.030760562}
+      BindNormal: {x: 0.40108207, y: 0.89072615, z: 0.21386936}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegR
     Points:
     - Slot: 0
@@ -48,3 +62,7 @@ MonoBehaviour:
       BindPerU: 1.8828195
       BindPerV: 2.020365
       Valid: 1
+      BindPos: {x: 0.07096186, y: 0.23074244, z: -0.030760521}
+      BindNormal: {x: -0.40108088, y: 0.8907259, z: 0.21387263}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}

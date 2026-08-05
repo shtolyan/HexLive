@@ -10,10 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
-  m_Name: garment_Marta_7944
+  m_Name: 
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
   MeshName: Marta
   VertexCount: 7944
+  Version: 0
+  MeshHeight: 1.7
   TSamples: 1
   AzimuthSamples: 1
   TMin: 0
@@ -26,6 +28,10 @@ MonoBehaviour:
       BindPerU: 0.88162905
       BindPerV: 0.97121435
       Valid: 1
+      BindPos: {x: -0.050548654, y: 1.566135, z: -0.028529078}
+      BindNormal: {x: -0.60995764, y: 0.75484115, z: 0.24117748}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Torso
     Points:
     - Slot: 1
@@ -33,6 +39,10 @@ MonoBehaviour:
       BindPerU: 0.9571282
       BindPerV: 0.94729364
       Valid: 1
+      BindPos: {x: 0.0051300563, y: 1.1509467, z: -0.06292731}
+      BindNormal: {x: -0.0051294677, y: -0.0040642847, z: -0.9999786}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Pelvis
     Points:
     - Slot: 1
@@ -40,6 +50,10 @@ MonoBehaviour:
       BindPerU: 2.0909028
       BindPerV: 0.947392
       Valid: 1
+      BindPos: {x: 0.0049099694, y: 1.1025326, z: -0.069682725}
+      BindNormal: {x: -0.031343434, y: -0.44292822, z: -0.896009}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmL
     Points:
     - Slot: 0
@@ -47,6 +61,10 @@ MonoBehaviour:
       BindPerU: 0.9380962
       BindPerV: 0.85313165
       Valid: 1
+      BindPos: {x: -0.41953644, y: 1.4691991, z: -0.07456108}
+      BindNormal: {x: -0.009436693, y: 0.5984595, z: -0.8010975}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmR
     Points:
     - Slot: 0
@@ -54,7 +72,13 @@ MonoBehaviour:
       BindPerU: 0.9412598
       BindPerV: 0.8510748
       Valid: 1
+      BindPos: {x: 0.41952848, y: 1.4691988, z: -0.07455616}
+      BindNormal: {x: 0.009316569, y: 0.5986152, z: -0.8009826}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegL
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegR
     Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}

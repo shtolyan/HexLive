@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
-  m_Name: garment_Jolly_1299
+  m_Name: 
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
   MeshName: Jolly
   VertexCount: 1299
@@ -28,8 +28,8 @@ MonoBehaviour:
       BindPerU: 0.30438048
       BindPerV: 46.547237
       Valid: 1
-      BindPos: {x: 0.021439, y: 1.7532177, z: -0.031427506}
-      BindNormal: {x: -0.16952753, y: -0.9773427, z: 0.12673402}
+      BindPos: {x: 0.021438742, y: 1.7532206, z: -0.0314272}
+      BindNormal: {x: -0.16958985, y: -0.9773266, z: 0.12677595}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Torso
@@ -39,8 +39,8 @@ MonoBehaviour:
       BindPerU: 1.0002716
       BindPerV: 22.341904
       Valid: 1
-      BindPos: {x: 0.091755964, y: 1.7334353, z: -0.008271}
-      BindNormal: {x: -0.11764897, y: -0.99237186, z: 0.03683551}
+      BindPos: {x: 0.09175453, y: 1.7334381, z: -0.008271953}
+      BindNormal: {x: -0.117622964, y: -0.9923754, z: 0.036824323}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Pelvis

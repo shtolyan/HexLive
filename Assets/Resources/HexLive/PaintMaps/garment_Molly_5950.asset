@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
-  m_Name: garment_Molly_5950
+  m_Name: 
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
   MeshName: Molly
   VertexCount: 5950
@@ -34,8 +34,8 @@ MonoBehaviour:
       BindPerU: 0.57404065
       BindPerV: 0.60081494
       Valid: 1
-      BindPos: {x: -0.06100312, y: 0.41878745, z: -0.027381286}
-      BindNormal: {x: 0.85531116, y: -0.11985735, z: 0.50406045}
+      BindPos: {x: -0.06728207, y: 0.42277277, z: -0.018312797}
+      BindNormal: {x: 0.83188605, y: -0.099675596, z: 0.5459216}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmL
@@ -51,8 +51,8 @@ MonoBehaviour:
       BindPerU: 0.5475001
       BindPerV: 0.5903894
       Valid: 1
-      BindPos: {x: -0.083953895, y: 0.41922566, z: 0.00097640796}
-      BindNormal: {x: 0.65422314, y: -0.19018483, z: 0.7319985}
+      BindPos: {x: -0.077503696, y: 0.42228827, z: -0.0038765986}
+      BindNormal: {x: 0.76371366, y: -0.1660003, z: 0.62384725}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegR
@@ -62,7 +62,7 @@ MonoBehaviour:
       BindPerU: 0.54735875
       BindPerV: 0.59031624
       Valid: 1
-      BindPos: {x: 0.084591895, y: 0.4181899, z: 0.00097234594}
-      BindNormal: {x: -0.65286833, y: -0.18872523, z: 0.73358417}
+      BindPos: {x: 0.07750326, y: 0.42228734, z: -0.0038765117}
+      BindNormal: {x: -0.76362103, y: -0.16592067, z: 0.6239817}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}

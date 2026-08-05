@@ -10,10 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
-  m_Name: garment_Marta_9372
+  m_Name: 
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
   MeshName: Marta
   VertexCount: 9372
+  Version: 0
+  MeshHeight: 1.7
   TSamples: 1
   AzimuthSamples: 1
   TMin: 0
@@ -26,6 +28,10 @@ MonoBehaviour:
       BindPerU: 0.44563425
       BindPerV: 0.14659595
       Valid: 1
+      BindPos: {x: 0.04974034, y: 1.5499245, z: -0.021129226}
+      BindNormal: {x: -0.38450864, y: 0.908162, z: 0.16551392}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Torso
     Points:
     - Slot: 7
@@ -33,6 +39,10 @@ MonoBehaviour:
       BindPerU: 0.047789115
       BindPerV: 0.08824138
       Valid: 1
+      BindPos: {x: -0.005336275, y: 1.2233586, z: 0.12886466}
+      BindNormal: {x: 0.097715035, y: -0.9448324, z: -0.3126396}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Pelvis
     Points:
     - Slot: 9
@@ -40,6 +50,10 @@ MonoBehaviour:
       BindPerU: 0.41722143
       BindPerV: 0.1702299
       Valid: 1
+      BindPos: {x: -0.0135641545, y: 1.0067753, z: 0.1139678}
+      BindNormal: {x: -0.0017400382, y: 0.7786374, z: 0.6274717}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmL
     Points:
     - Slot: 0
@@ -47,6 +61,10 @@ MonoBehaviour:
       BindPerU: 0.18766136
       BindPerV: 0.07645451
       Valid: 1
+      BindPos: {x: -0.5977192, y: 1.4279753, z: -0.012181603}
+      BindNormal: {x: 0.903431, y: 0.38269717, z: -0.19327514}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmR
     Points:
     - Slot: 0
@@ -54,6 +72,10 @@ MonoBehaviour:
       BindPerU: 0.18812132
       BindPerV: 0.07651208
       Valid: 1
+      BindPos: {x: 0.5978023, y: 1.4278893, z: -0.012216606}
+      BindNormal: {x: -0.90369195, y: 0.3808285, z: -0.19573073}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegL
     Points:
     - Slot: 3
@@ -61,6 +83,10 @@ MonoBehaviour:
       BindPerU: 0.5020355
       BindPerV: 0.7465271
       Valid: 1
+      BindPos: {x: -0.11525804, y: 0.40157223, z: 0.022668337}
+      BindNormal: {x: 0.24414375, y: 0.8521978, z: -0.46276638}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegR
     Points:
     - Slot: 3
@@ -68,3 +94,7 @@ MonoBehaviour:
       BindPerU: 0.50204337
       BindPerV: 0.7465248
       Valid: 1
+      BindPos: {x: 0.115258195, y: 0.40157232, z: 0.02266845}
+      BindNormal: {x: -0.24382497, y: 0.8481705, z: -0.47027248}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}

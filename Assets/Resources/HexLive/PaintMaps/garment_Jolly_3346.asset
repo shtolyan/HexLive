@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
-  m_Name: garment_Jolly_3346
+  m_Name: 
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
   MeshName: Jolly
   VertexCount: 3346
@@ -31,8 +31,8 @@ MonoBehaviour:
       BindPerU: 0.89450145
       BindPerV: 1.224967
       Valid: 1
-      BindPos: {x: 0.010334386, y: 1.1433104, z: -0.056289595}
-      BindNormal: {x: 0.025259105, y: 0.30209824, z: -0.9529421}
+      BindPos: {x: 0.0103677595, y: 1.1434245, z: -0.056421828}
+      BindNormal: {x: 0.026527109, y: 0.3024002, z: -0.95281184}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Pelvis
@@ -42,8 +42,8 @@ MonoBehaviour:
       BindPerU: 0.87084824
       BindPerV: 0.9147725
       Valid: 1
-      BindPos: {x: 0.007651822, y: 1.1064299, z: -0.0685601}
-      BindNormal: {x: 0.011778852, y: 0.3136363, z: -0.9494701}
+      BindPos: {x: 0.0076725, y: 1.1064872, z: -0.06875503}
+      BindNormal: {x: 0.012967604, y: 0.3160037, z: -0.9486694}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmL
@@ -59,8 +59,8 @@ MonoBehaviour:
       BindPerU: 0.6642603
       BindPerV: 0.9542367
       Valid: 1
-      BindPos: {x: -0.068654664, y: 0.4961063, z: 0.028674664}
-      BindNormal: {x: 0.50557834, y: -0.27738103, z: 0.8169763}
+      BindPos: {x: -0.06866808, y: 0.49616715, z: 0.028578246}
+      BindNormal: {x: 0.5016467, y: -0.2745612, z: 0.8203455}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegR
@@ -70,7 +70,7 @@ MonoBehaviour:
       BindPerU: 0.6692929
       BindPerV: 0.9009751
       Valid: 1
-      BindPos: {x: 0.070085, y: 0.48572433, z: 0.027255664}
-      BindNormal: {x: -0.45936707, y: -0.21425374, z: 0.8620193}
+      BindPos: {x: 0.07008726, y: 0.48578358, z: 0.027155511}
+      BindNormal: {x: -0.4564725, y: -0.21319196, z: 0.8638183}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}

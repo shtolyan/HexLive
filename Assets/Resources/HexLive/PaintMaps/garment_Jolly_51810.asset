@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
-  m_Name: garment_Jolly_51810
+  m_Name: 
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
   MeshName: Jolly
   VertexCount: 51810
@@ -31,8 +31,8 @@ MonoBehaviour:
       BindPerU: 1.0056796
       BindPerV: 0.9665147
       Valid: 1
-      BindPos: {x: 0.0021676898, y: 1.110704, z: -0.061964262}
-      BindNormal: {x: -0.022107044, y: 0.9465707, z: 0.32173768}
+      BindPos: {x: 0.0021484103, y: 1.1107615, z: -0.06211993}
+      BindNormal: {x: -0.02142699, y: 0.94682795, z: 0.3210261}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Pelvis
@@ -42,8 +42,8 @@ MonoBehaviour:
       BindPerU: 1.0318788
       BindPerV: 0.9907711
       Valid: 1
-      BindPos: {x: 0.0043188166, y: 1.102344, z: -0.06483025}
-      BindNormal: {x: 0.045285687, y: -0.9436652, z: -0.3277884}
+      BindPos: {x: 0.002151598, y: 1.1023715, z: -0.06510288}
+      BindNormal: {x: 0.022016823, y: -0.9437841, z: -0.3298284}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmL
@@ -59,8 +59,8 @@ MonoBehaviour:
       BindPerU: 0.9422596
       BindPerV: 0.9541626
       Valid: 1
-      BindPos: {x: -0.063577585, y: 0.489495, z: 0.01765508}
-      BindNormal: {x: 0.68184054, y: -0.28702357, z: 0.672838}
+      BindPos: {x: -0.06352393, y: 0.48952976, z: 0.017655328}
+      BindNormal: {x: 0.67036974, y: -0.29119825, z: 0.6825013}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegR
@@ -70,7 +70,7 @@ MonoBehaviour:
       BindPerU: 0.9422655
       BindPerV: 0.9541626
       Valid: 1
-      BindPos: {x: 0.06357759, y: 0.489495, z: 0.017655078}
-      BindNormal: {x: -0.68184036, y: -0.2870254, z: 0.6728374}
+      BindPos: {x: 0.063524075, y: 0.48952976, z: 0.017655317}
+      BindNormal: {x: -0.67037106, y: -0.29120204, z: 0.68249834}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}

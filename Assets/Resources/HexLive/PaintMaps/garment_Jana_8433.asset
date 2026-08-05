@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
-  m_Name: garment_Jana_8433
+  m_Name: 
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
   MeshName: Jana
   VertexCount: 8433
@@ -34,8 +34,8 @@ MonoBehaviour:
       BindPerU: 1.3182566
       BindPerV: 2.525857
       Valid: 1
-      BindPos: {x: -0.05663191, y: 1.016893, z: 0.11262354}
-      BindNormal: {x: 0.6010418, y: 0.46324432, z: -0.6512706}
+      BindPos: {x: -0.0579526, y: 1.0142508, z: 0.117138155}
+      BindNormal: {x: 0.60036516, y: 0.48798138, z: -0.6335896}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmL

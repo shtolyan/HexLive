@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
-  m_Name: garment_Jolly_20934
+  m_Name: 
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
   MeshName: Jolly
   VertexCount: 20934
@@ -34,8 +34,8 @@ MonoBehaviour:
       BindPerU: 0.5998162
       BindPerV: 0.76515687
       Valid: 1
-      BindPos: {x: 0.00075118383, y: 1.1025263, z: -0.063155286}
-      BindNormal: {x: -0.003973066, y: -0.33204302, z: 0.94325584}
+      BindPos: {x: 0.0007527231, y: 1.1026117, z: -0.06326683}
+      BindNormal: {x: -0.00065076747, y: -0.33528313, z: 0.94211715}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmL

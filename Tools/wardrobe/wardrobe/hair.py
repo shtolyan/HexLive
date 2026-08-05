@@ -146,7 +146,12 @@ def opacity_maps(hair: str) -> dict[str, str]:
             if not isinstance(value, str) or "/" not in value.replace("\\", "/"):
                 continue
             surface = url.split("#materials/", 1)[1].split(":", 1)[0]
-            found.setdefault(surface, Path(value.replace("\\", "/")).name)
+            # ⚠️ Раскодировать надо и САМ ПУТЬ, а не только адрес канала: DAZ
+            # пишет пробел как «%20», и `T_Hair%20Basc.jpg` не находится на
+            # диске. Тогда склейка молча подменяется простым копированием, и
+            # поверхность приезжает без альфы — у Jennifer так вышло с кожей
+            # головы, и она села на макушку сплошным пятном.
+            found.setdefault(surface, Path(unquote(value).replace("\\", "/")).name)
 
     # Второй источник — сами прототипы. Их картинки уже склеены и несут пару в
     # имени: `08OOTChunkyCap__OOTUtilityChunkyCapT.png`. Служебный пресет
@@ -212,6 +217,12 @@ def stage(hair: str, colours: list[dict]) -> dict:
                 continue
 
             mask = _find_mask(masks[surface]) if surface in masks else None
+            if surface in masks and mask is None:
+                # ⚠️ Не подменять склейку копированием МОЛЧА. Так у Jennifer
+                # кожа головы уехала без альфы и села на макушку пятном, а
+                # поймал это человек глазами по снимку, а не конвейер.
+                missing.append(f"{colour['name']}/{surface}: не нашлась маска "
+                               f"{masks[surface]}")
             if mask is not None:
                 target = out_dir / f"{source.stem}_{mask.stem}.png"
                 if not target.exists():

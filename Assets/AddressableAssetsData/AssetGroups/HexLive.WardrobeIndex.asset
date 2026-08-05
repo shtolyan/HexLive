@@ -14,12 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
   m_GroupName: HexLive.WardrobeIndex
   m_GUID: eaf39cd7a069f204c8e9f870cb14f3a1
-  m_SerializeEntries:
-  - m_GUID: fcdecb21135fcd1409adc44fd126f88e
-    m_Address: wardrobe/index
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
+  m_SerializeEntries: []
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: bddd39714fa3ad14ab0a44b36284ce65, type: 2}
   m_SchemaSet:

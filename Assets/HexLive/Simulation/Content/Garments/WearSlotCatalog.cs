@@ -732,25 +732,6 @@ namespace HexLive.Simulation.Content
         /// </summary>
         public static bool Enabled = true;
 
-        /// <summary>
-        /// Записать слоты вещи, приехавшей КОНТЕНТОМ (§Addressables): у новой
-        /// вещи в этой таблице записи нет и быть не может — таблица собрана в
-        /// коде, а вещь появилась после сборки игры.
-        ///
-        /// Перезапись существующей записи разрешена намеренно: контент —
-        /// последнее слово, иначе правку слотов пришлось бы выпускать вместе с
-        /// exe, а весь смысл в обратном.
-        /// </summary>
-        public static void Register(string definitionId, WearSlot[] slots)
-        {
-            if (string.IsNullOrEmpty(definitionId) || slots == null || slots.Length == 0)
-            {
-                return;
-            }
-
-            Slots[definitionId] = slots;
-        }
-
         public static bool Has(string definitionId) =>
             Enabled && definitionId != null && Slots.ContainsKey(definitionId);
 

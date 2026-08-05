@@ -46,10 +46,10 @@ public static class PrototypeRuntimeBootstrap
         // into GarmentLibrary before the world (and its content) is built.
         Config.GarmentTuning.LoadAndApply();
 
-        // Гардероб КОНТЕНТОМ: оглавление из папки рядом с игрой перекрывает
-        // всё, что собрано выше. Порядок важен — сначала кодовые умолчания и
-        // тюнинг из ассетов, потом контент, потому что контент последнее слово.
-        Wearing.Garments.WardrobeContent.LoadIndex();
+        // Что вообще лежит рядом с игрой: перечень ИМЁН бандлов из каталога
+        // Addressables. Ни один ассет тут не грузится — содержимое приезжает,
+        // когда вещь надевают.
+        Wearing.Garments.WardrobeCatalog.Report();
 
         // Per-mob combat/behaviour from the MobConfig assets (one per mob) into
         // MobCatalog, before the world spawns any creatures.

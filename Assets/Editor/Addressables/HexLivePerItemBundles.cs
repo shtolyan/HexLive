@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
@@ -20,15 +21,10 @@ using UnityEngine;
 //  одной меткой, уезжает в один бандл. Метка тут работает не как «тег для
 //  поиска», а как ИМЯ БАНДЛА.
 //
-//  Что попадает в бандл вещи:
-//    * префаб арта,
-//    * иконка прототипа И иконки всех её расцветок (расцветки делят геометрию,
-//      но иконка у каждой своя),
-//    * материалы расцветок,
-//    * определение вещи (GarmentDefinition) — статы, слои, зоны покрытия.
-//
-//  Последнее — то, без чего «положил файл, и вещь появилась» не работает:
-//  арт без данных игре нечего надеть, она о такой вещи просто не знает.
+//  В бандл вещи кладётся ТОЛЬКО её арт — префаб и всё, что он тянет за собой
+//  (меши, текстуры, материалы). Ни иконок, ни определений, ни строк: игре
+//  достаточно ИМЕНИ бандла, чтобы знать, что такая вещь есть, а имя она берёт
+//  из каталога Addressables, который и так читает на старте.
 //
 //  ⚠️ Цена решения: общие зависимости (шейдер, общая текстура) ДУБЛИРУЮТСЯ в
 //  каждый бандл, который их использует. Это и есть плата за независимые файлы,
@@ -39,9 +35,7 @@ using UnityEngine;
 public static class HexLivePerItemBundles
 {
     private const string WearRoot = "Assets/HexLiveContent/Wear";
-    private const string IconRoot = "Assets/HexLiveContent/Icons";
     private const string HairRoot = "Assets/ImportedActors/Hair";
-    private const string DefinitionRoot = "Assets/HexLive/UnityPresentation/Wearing/Garments/Assets";
 
     public static string WearLabel(string artId) => $"wear.{artId}";
     public static string HairLabel(string hair) => $"hair.{hair}";
@@ -56,6 +50,12 @@ public static class HexLivePerItemBundles
             return;
         }
 
+        // Сначала чистка: в группе могли остаться записи от прежней затеи
+        // (иконки, определения). Лишняя запись — это лишний ассет в бандле, а
+        // молча раздувшийся бандл потом ищи.
+        var dropped = DropForeign(settings, HexLiveAddressablesContent.WearGroup, "wear/");
+        dropped += DropForeign(settings, HexLiveAddressablesContent.HairGroup, "hair/");
+
         var wear = LabelWear(settings);
         var hair = LabelHair(settings);
         ByLabel(settings, HexLiveAddressablesContent.WearGroup);
@@ -69,6 +69,27 @@ public static class HexLivePerItemBundles
     // Метка на всё, что принадлежит ОДНОЙ вещи. Ключ связи — artId: расцветка
     // носит арт своего прототипа, поэтому её иконка и её материалы едут в тот
     // же бандл, что и геометрия, а не в свой собственный.
+    // Всё, что не адресуется нашим правилом, группе не принадлежит.
+    private static int DropForeign(AddressableAssetSettings settings, string groupName, string prefix)
+    {
+        var group = settings.FindGroup(groupName);
+        if (group == null)
+        {
+            return 0;
+        }
+
+        var doomed = group.entries
+            .Where(e => e != null && (string.IsNullOrEmpty(e.address) || !e.address.StartsWith(prefix)))
+            .ToList();
+
+        foreach (var entry in doomed)
+        {
+            settings.RemoveAssetEntry(entry.guid, false);
+        }
+
+        return doomed.Count;
+    }
+
     private static int LabelWear(AddressableAssetSettings settings)
     {
         var group = settings.FindGroup(HexLiveAddressablesContent.WearGroup);
@@ -78,9 +99,6 @@ public static class HexLivePerItemBundles
             return 0;
         }
 
-        // Один проход по определениям вместо поиска на каждую вещь:
-        // иначе это 685 сканирований по 788 ассетов.
-        var definitions = LoadDefinitions();
         var labelled = 0;
 
         foreach (var directory in Directory.GetDirectories(WearRoot))
@@ -94,25 +112,6 @@ public static class HexLivePerItemBundles
                 labelled += Tag(settings, group, file.Replace('\\', '/'), label) ? 1 : 0;
             }
 
-            // Все вещи, которые носят ЭТОТ арт: сам прототип и его расцветки.
-            foreach (var pair in definitions)
-            {
-                if (pair.Value.ArtId != artId)
-                {
-                    continue;
-                }
-
-                if (!string.IsNullOrEmpty(pair.Value.Path))
-                {
-                    labelled += Tag(settings, group, pair.Value.Path, label) ? 1 : 0;
-                }
-
-                var icon = IconPath(pair.Key);
-                if (!string.IsNullOrEmpty(icon))
-                {
-                    labelled += Tag(settings, group, icon, label) ? 1 : 0;
-                }
-            }
         }
 
         return Directory.GetDirectories(WearRoot).Length;
@@ -160,49 +159,6 @@ public static class HexLivePerItemBundles
 
     // id вещи -> artId. Читается из ассетов определений: prototypeId пустой
     // значит «арт свой», иначе арт прототипа (§31B.4E).
-    private readonly struct Known
-    {
-        public Known(string artId, string path) { ArtId = artId; Path = path; }
-        public string ArtId { get; }
-        public string Path { get; }
-    }
-
-    private static Dictionary<string, Known> LoadDefinitions()
-    {
-        var result = new Dictionary<string, Known>();
-        foreach (var guid in AssetDatabase.FindAssets("t:GarmentDefinition", new[] { DefinitionRoot }))
-        {
-            var path = AssetDatabase.GUIDToAssetPath(guid);
-            var definition = AssetDatabase.LoadAssetAtPath<
-                HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition>(path);
-            if (definition != null && !string.IsNullOrEmpty(definition.id))
-            {
-                result[definition.id] = new Known(definition.ArtId, path);
-            }
-        }
-
-        return result;
-    }
-
-    // Иконка названа по id вещи — и по слагу тоже бывает, поэтому проверяются
-    // оба имени, ровно как их ищет UI.
-    private static string IconPath(string itemId)
-    {
-        foreach (var root in new[] { IconRoot, "Assets/Resources/HexLive/UI/Items" })
-        {
-            foreach (var name in new[] { itemId, HexLive.Simulation.Content.ItemInfo.Slug(itemId) })
-            {
-                var path = $"{root}/{name}.png";
-                if (File.Exists(path))
-                {
-                    return path;
-                }
-            }
-        }
-
-        return null;
-    }
-
     private static void ByLabel(AddressableAssetSettings settings, string groupName)
     {
         var group = settings.FindGroup(groupName);
@@ -231,27 +187,9 @@ public static class HexLivePerItemBundles
             return false;
         }
 
-        if (string.IsNullOrEmpty(entry.address) || entry.address.StartsWith("Assets/"))
-        {
-            // У ассета, попавшего сюда впервые (иконка, определение), адреса
-            // ещё нет — по умолчанию Addressables ставит путь. Путь как адрес
-            // не годится: он поменяется при первом же переезде папки.
-            entry.address = DefaultAddress(path);
-        }
-
         entry.SetLabel(label, true, false, false);
         return true;
     }
 
-    private static string DefaultAddress(string path)
-    {
-        var name = Path.GetFileNameWithoutExtension(path);
-        if (path.StartsWith(DefinitionRoot))
-        {
-            return $"item/{name}";
-        }
-
-        return path.EndsWith(".png") ? $"icon/{name}" : name;
-    }
 }
 #endif

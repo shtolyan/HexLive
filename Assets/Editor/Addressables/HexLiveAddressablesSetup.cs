@@ -119,6 +119,11 @@ public static class HexLiveAddressablesSetup
         }
 
         var built = BuiltContentFolder();
+
+        // Мета-файлы пишутся СРАЗУ после сборки и рядом с бандлами: игра должна
+        // уметь решить «эти трусы подходят стартовой девушке», не открывая
+        // бандл, а слой и зоны покрытия лежат именно в мете.
+        HexLiveBundleMeta.WriteBeside(built);
         Debug.Log($"[Addressables] контент собран за {result.Duration:F1} с -> {built}\n" +
                   "Игра его НЕ несёт: положи эту папку рядом с exe под именем " +
                   $"«{ContentFolderName}» (меню «Положить рядом с игрой» делает это само).");

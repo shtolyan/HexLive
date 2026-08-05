@@ -59,6 +59,29 @@ namespace HexLive.UnityPresentation.WardrobeTest
                     return _hidden;
                 }
 
+                // ⭐ Прятать отсмотренное имеет смысл, только пока есть
+                // НЕОТСМОТРЕННОЕ. Когда закрыты все заходы — а это и есть конец
+                // импорта — правило «скрыть готовые» прячет гардероб целиком, и
+                // человек открывает сцену, в которой нет ни одной вещи. Тогда
+                // фильтр отключается сам: смотреть заново на всё лучше, чем
+                // смотреть на пустоту.
+                var unreviewed = false;
+                foreach (var batch in plan.batches)
+                {
+                    if (batch != null && !batch.done && !batch.excluded)
+                    {
+                        unreviewed = true;
+                        break;
+                    }
+                }
+
+                if (!unreviewed)
+                {
+                    Debug.Log("[Wardrobe] все заходы импорта закрыты — фильтр «скрыть отсмотренное» " +
+                              "выключен, показан весь гардероб.");
+                    return _hidden;
+                }
+
                 foreach (var batch in plan.batches)
                 {
                     if (batch == null || !batch.done || string.IsNullOrEmpty(batch.drop))
@@ -108,6 +131,7 @@ namespace HexLive.UnityPresentation.WardrobeTest
         {
             public int batch;
             public bool done;
+            public bool excluded;
             public string drop;
         }
 

@@ -610,6 +610,7 @@
     {"id": "FCO Pants Male", "displayName": "Shtany boitsa", "layer": "Wear", "warmth": 0.2, "armor": 0.25, "thermalDelta": -0.04, "dressDurationTicks": 8, "capacity": 4, "covers": ["Pelvis", "LegL", "LegR"]},
     {"id": "FCO Waist Strappy Male", "displayName": "Nabedrennyy remen", "layer": "Outerwear", "warmth": 0.04, "armor": 0.3, "thermalDelta": -0.02, "dressDurationTicks": 8, "capacity": 2, "covers": ["Pelvis"]},
     {"id": "TonnyFlash", "displayName": "Poddospeshnik", "layer": "Underwear", "warmth": 0.12, "armor": 0.1, "thermalDelta": -0.02, "dressDurationTicks": 8, "capacity": 0, "covers": ["Torso"]},
+    {"id": "armor.heavy", "displayName": "Heavy Armor", "layer": "Wear", "warmth": 0.25, "armor": 0.5, "thermalDelta": -0.1, "dressDurationTicks": 8, "capacity": 6, "covers": ["Torso", "Pelvis"]},
     {"id": "clothing.ankleboots_amy", "displayName": "Ankle Boots", "layer": "Outerwear", "warmth": 0.14, "armor": 0.1, "thermalDelta": 0, "dressDurationTicks": 8, "capacity": 0, "covers": ["LegL", "LegR"]},
     {"id": "clothing.armguards_fighter", "displayName": "Arm Guards", "layer": "Wear", "warmth": 0.08, "armor": 0.15, "thermalDelta": 0, "dressDurationTicks": 8, "capacity": 1, "covers": ["ArmL", "ArmR"]},
     {"id": "clothing.armwraps_primal", "displayName": "Hide Arm Wraps", "layer": "Wear", "warmth": 0.08, "armor": 0.15, "thermalDelta": 0, "dressDurationTicks": 8, "capacity": 1, "covers": ["ArmL", "ArmR"]},

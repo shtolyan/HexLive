@@ -45,38 +45,116 @@ public static class BodyHairPhysicsSetup
         Debug.Log($"[Physics] Breast jiggle: {ok} prefab(s) updated.");
     }
 
-    [MenuItem("HexLive/Physics/Setup Hair Spring (LowPonytail)")]
-    static void SetupHair()
+    // --- Hair -------------------------------------------------------------
+    //
+    // One row per STRAND-BONE GROUP a hairstyle owns; roots only, BoneSpring
+    // walks each chain down from there. Two deflection budgets, both already
+    // approved on the two hairstyles that shipped with springs:
+    //
+    //  * CHAIN (OnyxHair Tail1->Tail2->Tail3, ~0.26 m a joint): the budget is
+    //    split across the joints instead of spent on one, so 14 deg x 3 lands
+    //    on Marta's ~40 deg of total sway ("немножечко"), not triple it. A long
+    //    chain also needs a firmer pull back to the animated pose and less
+    //    world inertia, or a walk cycle whips the tail around.
+    //  * STUB (LowPonytail's three childless 0.16 m bangs): one joint, so it
+    //    gets the whole ~40 deg itself — the defaults in Configure.
+    //
+    // Eight hairstyles are deliberately ABSENT: AdellHair, Bob3Hair, Hair07,
+    // JelikaHair_32434, JenniferHair, LoonaHair, Neu09Hair, TootsieRollHair are
+    // skinned to head/neck/chest/shoulder bones alone and own no strand bone at
+    // all, so BoneSpring has nothing to move. They sway through MeshCloth
+    // instead — the GarmentCloth component, the same path skirts use.
+    struct HairSpring
     {
-        Setup("Assets/ImportedActors/Wear/LowPonytail/LowPonytail.prefab",
-              new[] { "Tail", "lBangs", "rBangs" }, breast: false);
-        AssetDatabase.SaveAssets();
+        public string Hair;      // folder + prefab name under HairRoot
+        public string[] Roots;   // strand-bone roots for this group
+        public bool Chain;       // true = multi-joint chain, false = single stub
     }
 
-    // Jolly's OnyxHair is one ponytail CHAIN (Tail1 -> Tail2 -> Tail3, ~0.26 m
-    // per joint = 0.79 m of hair), where LowPonytail is three childless 0.16 m
-    // stubs hanging off the head. Same recipe, but the deflection budget is
-    // split across the joints instead of spent on one: 14 deg x 3 joints lands
-    // on Marta's ~40 deg of total sway ("немножечко"), not triple it. The
-    // longer chain also needs a firmer pull back to the animated pose and less
-    // world inertia, or a walk cycle whips the tail around.
-    [MenuItem("HexLive/Physics/Setup Hair Spring (OnyxHair)")]
-    static void SetupOnyxHair()
+    const string HairRoot = "Assets/ImportedActors/Hair";
+
+    static readonly HairSpring[] HairSprings =
     {
-        const string path = "Assets/ImportedActors/Wear/OnyxHair/OnyxHair.prefab";
-        Setup(path, new[] { "Tail1" }, breast: false,
-              limitAngle: 14f, restoreStiffness: 0.30f, worldInertia: 0.80f);
-        ConfigureOnyxHairRenderer(path);
+        // Front tips only — the rest of the cap rides the skull.
+        new HairSpring { Hair = "AsukaHair", Chain = false,
+                         Roots = new[] { "Front Tips LEFT", "Front Tips RIGHT" } },
+
+        // 18 childless strands: six front locks a side plus three back ones.
+        new HairSpring { Hair = "BendineHair", Chain = false, Roots = new[]
+                       { "lFront1", "lFront2", "lFront3", "lFront4", "lFront5", "lFront6",
+                         "rFront1", "rFront2", "rFront3", "rFront4", "rFront5", "rFront6",
+                         "lBack1", "lBack2", "lBack3", "rBack1", "rBack2", "rBack3" } },
+
+        // Two pigtails, three joints each.
+        new HairSpring { Hair = "ChunkyHair", Chain = true, Roots = new[] { "lTail", "rTail" } },
+
+        // 11 childless locks hanging off the head.
+        new HairSpring { Hair = "EilisHair", Chain = false, Roots = new[]
+                       { "Right1", "Right2", "Right3", "Right4", "Left1", "Left2",
+                         "BackRight1", "BackRight2", "BackRight3", "BackLeft1", "BackLeft2" } },
+
+        // Ponytail chain (4 joints) and the bangs/side stubs are separate
+        // groups: one component cannot hold two deflection budgets.
+        new HairSpring { Hair = "LeonyPonytail", Chain = true, Roots = new[] { "PonytailBase" } },
+        new HairSpring { Hair = "LeonyPonytail", Chain = false,
+                         Roots = new[] { "lBangs", "rBangs", "lSide", "rSide" } },
+
+        // The two that shipped with springs already — listed so the pass is
+        // complete and self-documenting; Setup skips a prefab that has one.
+        new HairSpring { Hair = "LowPonytail", Chain = false,
+                         Roots = new[] { "Tail", "lBangs", "rBangs" } },
+        new HairSpring { Hair = "OnyxHair", Chain = true, Roots = new[] { "Tail1" } },
+    };
+
+    [MenuItem("HexLive/Physics/Setup Hair Spring (all hairstyles)")]
+    static void SetupHairSprings()
+    {
+        int done = 0, skipped = 0;
+        foreach (var hair in HairSprings.Select(h => h.Hair).Distinct())
+        {
+            var path = $"{HairRoot}/{hair}/{hair}.prefab";
+            var asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (asset == null) { Debug.LogError($"[Physics] not found: {path}"); continue; }
+
+            var groups = HairSprings.Where(h => h.Hair == hair).ToList();
+            int already = asset.GetComponentsInChildren<MagicaCloth>(true).Length;
+            if (already > 0)
+            {
+                Debug.Log($"[Physics] {hair}: {already} MagicaCloth already there " +
+                          $"({groups.Count} group(s) expected) — skipped, delete them to redo.");
+                skipped++;
+                continue;
+            }
+
+            bool any = false;
+            foreach (var g in groups)
+            {
+                any |= Setup(path, g.Roots, breast: false,
+                             limitAngle:       g.Chain ? 14f  : (float?)null,
+                             restoreStiffness: g.Chain ? 0.30f : (float?)null,
+                             worldInertia:     g.Chain ? 0.80f : (float?)null,
+                             allowSecond: true);
+            }
+
+            // Simulated bones leave the skinned silhouette, so the renderer's
+            // own bounds no longer describe it and the hair pops out of view
+            // at the edge of the screen — the trap OnyxHair hit first.
+            if (any) { ConfigureHairRenderer(path); done++; }
+        }
+
         AssetDatabase.SaveAssets();
+        Debug.Log($"[Physics] Hair springs: {done} hairstyle(s) set up, {skipped} already had one.");
     }
 
-    static bool Setup(string path, string[] boneNames, bool breast,
+    // internal: HairSwaySetup reuses this once it has given a boneless
+    // hairstyle the chain it was missing.
+    internal static bool Setup(string path, string[] boneNames, bool breast,
                       float? limitAngle = null, float? restoreStiffness = null,
-                      float? worldInertia = null)
+                      float? worldInertia = null, bool allowSecond = false)
     {
         var asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
         if (asset == null) { Debug.LogError($"[Physics] not found: {path}"); return false; }
-        if (asset.GetComponent<MagicaCloth>() != null)
+        if (allowSecond == false && asset.GetComponent<MagicaCloth>() != null)
         {
             Debug.Log($"[Physics] {System.IO.Path.GetFileName(path)}: already has MagicaCloth — skipped (delete it to redo).");
             return false;
@@ -128,7 +206,10 @@ public static class BodyHairPhysicsSetup
         sd.cullingSettings.distanceCullingLength = new CheckSliderSerializeData(true, 25f);
     }
 
-    static void ConfigureOnyxHairRenderer(string path)
+    // updateWhenOffscreen makes Unity recompute the bounds from the simulated
+    // mesh every frame, so no hand-authored localBounds is needed (OnyxHair
+    // carries one from before this was table-driven; harmless, and skipped).
+    static void ConfigureHairRenderer(string path)
     {
         var root = PrefabUtility.LoadPrefabContents(path);
         try
@@ -136,7 +217,6 @@ public static class BodyHairPhysicsSetup
             foreach (var smr in root.GetComponentsInChildren<SkinnedMeshRenderer>(true))
             {
                 smr.updateWhenOffscreen = true;
-                smr.localBounds = new Bounds(new Vector3(0f, 0.3f, -0.18f), new Vector3(0.56f, 1.44f, 0.96f));
 
                 var serializedRenderer = new SerializedObject(smr);
                 var smallMeshCulling = serializedRenderer.FindProperty("m_SmallMeshCulling");

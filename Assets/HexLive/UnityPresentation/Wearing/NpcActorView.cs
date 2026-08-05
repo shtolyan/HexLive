@@ -5733,44 +5733,4 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 }
 
 // Spec 31B.4: Resources-convention wardrobe — no inspector wiring.
-internal static class ActorWardrobe
-{
-    private static readonly Dictionary<string, List<Wear>> _cache = new();
-
-    public static IReadOnlyList<Wear> GetVisuals(string simDefinitionId)
-    {
-        if (_cache.TryGetValue(simDefinitionId, out var cached))
-        {
-            return cached;
-        }
-
-        var result = new List<Wear>();
-        // §31B.4E: an item wears its PROTOTYPE's art. For all but a variant the
-        // prototype is itself, so this is the same art id as before.
-        //
-        // Арт уехал из Resources в Addressables: в Resources он попадал в билд
-        // ЦЕЛИКОМ и всегда, а теперь приезжает по адресу и только нужный.
-        //
-        // Загрузка СИНХРОННАЯ (WaitForCompletion) намеренно: все вызывающие —
-        // цикл одевания и постройка выброшенной на землю вещи — ждут готовый
-        // список здесь и сейчас, ровно как ждали Resources.LoadAll, который
-        // блокировал точно так же. Цена платится в прогреве (GarmentDropFactory
-        // .Prewarm за занавесом загрузки), а не переписыванием половины вида.
-        var address = HairContent.WearAddress(Garments.GarmentVariants.ArtIdOf(simDefinitionId));
-        var handle = UnityEngine.AddressableAssets.Addressables.LoadAssetAsync<GameObject>(address);
-        var prefab = handle.WaitForCompletion();
-        if (prefab != null)
-        {
-            var wear = prefab.GetComponent<Wear>();
-            if (wear != null)
-            {
-                result.Add(wear);
-            }
-        }
-
-        _cache[simDefinitionId] = result;
-        return result;
-    }
-}
-
 }

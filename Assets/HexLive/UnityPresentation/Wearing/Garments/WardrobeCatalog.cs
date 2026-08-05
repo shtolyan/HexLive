@@ -43,6 +43,12 @@ public static class WardrobeCatalog
     private static List<string> Collect(string prefix, bool nested)
     {
         var result = new List<string>();
+
+        // Дождаться подъёма Addressables ОБЯЗАТЕЛЬНО: до инициализации список
+        // локаторов пуст, и перечень молча выходит нулевым — ни ошибки, ни
+        // подсказки, просто «вещей 0». Именно так и случилось на первом
+        // прогоне: старт зовёт нас раньше, чем Addressables успевает встать.
+        Addressables.InitializeAsync(false).WaitForCompletion();
         foreach (var locator in Addressables.ResourceLocators)
         {
             if (locator?.Keys == null)

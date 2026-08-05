@@ -31,6 +31,9 @@ namespace HexLive.UnityPresentation.UI
         public static bool IsReplaying { get; private set; }
 
         private const float ReplayBudgetMsPerFrame = 10f;
+        // Потолок ожидания тел: шторка не имеет права висеть вечно.
+        private const float ActorWaitSeconds = 10f;
+
         private const float FadeSeconds = 0.7f;
 
         private SimulationRunnerBehaviour _runner;
@@ -787,6 +790,19 @@ namespace HexLive.UnityPresentation.UI
                 yield return null;
             }
 
+            // ⭐ Тела должны быть ПОСТРОЕНЫ до того, как поднимется шторка.
+            // С переходом на Addressables одежда и причёска приезжают не
+            // мгновенно, и выбор «первой» стал попадать в момент, когда
+            // выбирать ещё некого: раньше он срабатывал по счастливой
+            // случайности. Игрок не должен видеть, как это достраивается.
+            yield return WaitForActors(npcs);
+
+            // Выбор ДО занавеса, а не после: когда шторка уходит, персонаж уже
+            // выбран и панель открыта. Clear первым — чтобы SelectionChanged
+            // сработал даже если прогрев оставил её выбранной.
+            NpcSelection.Clear();
+            NpcSelection.Select(FindOpeningTarget(npcs));
+
             SetProgress(1f, Loc.Get("loading.done"));
             yield return null;
 
@@ -802,13 +818,6 @@ namespace HexLive.UnityPresentation.UI
 
                 yield return null;
             }
-
-            // Spec 41.1: the game opens looking at Jana, panel up (the RTS
-            // camera enters orbit on selection). LAST action — nothing may
-            // steal the selection after this; Clear first so SelectionChanged
-            // re-fires even if the warm-up pass left her selected.
-            NpcSelection.Clear();
-            NpcSelection.Select(FindOpeningTarget(npcs));
 
             if (!_runner.IsCompleted)
             {
@@ -939,6 +948,45 @@ namespace HexLive.UnityPresentation.UI
             }
 
             StartCoroutine(Run());
+        }
+
+        // Ждём, пока рендерер построит тела всем колонисткам. С потолком:
+        // если чья-то одежда не приедет вовсе (вещь без арта — законный
+        // случай), игра всё равно должна начаться, а не висеть на шторке.
+        private IEnumerator WaitForActors(
+            System.Collections.Generic.List<(int id, string name)> npcs)
+        {
+            if (npcs.Count == 0)
+            {
+                yield break;
+            }
+
+            var renderer = FindFirstObjectByType<Rendering.HexWorldRenderer>();
+            if (renderer == null)
+            {
+                yield break;
+            }
+
+            var ids = new System.Collections.Generic.List<int>(npcs.Count);
+            foreach (var npc in npcs)
+            {
+                ids.Add(npc.id);
+            }
+
+            var waited = 0f;
+            while (waited < ActorWaitSeconds && !renderer.ActorsReady(ids))
+            {
+                waited += Time.unscaledDeltaTime;
+                SetProgress(Mathf.Lerp(0.95f, 0.99f, waited / ActorWaitSeconds),
+                    Loc.Get("loading.warmup"));
+                yield return null;
+            }
+
+            if (!renderer.ActorsReady(ids))
+            {
+                Debug.LogWarning($"[Загрузка] тела не достроились за {ActorWaitSeconds:F0} с — " +
+                                 "начинаем без ожидания, чтобы не висеть на шторке.");
+            }
         }
 
         private System.Collections.Generic.List<(int id, string name)> ListNpcIds()

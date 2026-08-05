@@ -27,6 +27,61 @@ public static class ActorWardrobe
 {
     private static readonly Dictionary<string, List<Wear>> _cache = new();
 
+    /// <summary>
+    /// Положить арт вещи в кэш, НЕ блокируя вызывающего.
+    ///
+    /// ⚠️ Именно ради этого метод существует. Прогрев идёт из Bootstrap, а его
+    /// запускает корутина экрана загрузки — и блокирующее ожидание Addressables
+    /// внутри корутины не разрешается НИКОГДА: экран застревал, шторка не
+    /// уничтожалась, мир оставался на паузе (timeScale = 0). Персонажи скользили
+    /// без анимации, камера не двигалась, никто не выбирался — и ни одной ошибки
+    /// в логе, потому что это не сбой, а тупик.
+    ///
+    /// Синхронный GetVisuals остаётся для Update — там ждать можно и нужно.
+    /// </summary>
+    public static void PrewarmAsync(string simDefinitionId)
+    {
+        if (string.IsNullOrEmpty(simDefinitionId) || _cache.ContainsKey(simDefinitionId))
+        {
+            return;
+        }
+
+        var address = HairContent.WearAddress(
+            Garments.GarmentVariants.ArtIdOf(simDefinitionId));
+
+        UnityEngine.AddressableAssets.Addressables.LoadResourceLocationsAsync(address)
+            .Completed += found =>
+        {
+            var exists = found.Status == UnityEngine.ResourceManagement.AsyncOperations
+                             .AsyncOperationStatus.Succeeded &&
+                         found.Result != null && found.Result.Count > 0;
+            UnityEngine.AddressableAssets.Addressables.Release(found);
+
+            if (!exists)
+            {
+                _cache[simDefinitionId] = new List<Wear>();
+                return;
+            }
+
+            UnityEngine.AddressableAssets.Addressables.LoadAssetAsync<GameObject>(address)
+                .Completed += loaded =>
+            {
+                var list = new List<Wear>();
+                if (loaded.Status == UnityEngine.ResourceManagement.AsyncOperations
+                        .AsyncOperationStatus.Succeeded && loaded.Result != null)
+                {
+                    var wear = loaded.Result.GetComponent<Wear>();
+                    if (wear != null)
+                    {
+                        list.Add(wear);
+                    }
+                }
+
+                _cache[simDefinitionId] = list;
+            };
+        };
+    }
+
     public static IReadOnlyList<Wear> GetVisuals(string simDefinitionId)
     {
         if (_cache.TryGetValue(simDefinitionId, out var cached))

@@ -13,16 +13,29 @@ namespace HexLive.UnityPresentation.Wearing.Garments
 // сборки игры, иконка появляется вместе с ней. В Resources все семьсот штук
 // попадали в билд безусловно, нужны они кому-то или нет.
 //
-// Загрузка синхронная и кэшируется НАВСЕГДА, включая отрицательный ответ:
-// список вещей в UI перерисовывается постоянно, и повторный промах по адресу
-// стоил бы дороже самой иконки.
+// ⚠️ ЗАГРУЗКА НИКОГДА НЕ БЛОКИРУЕТ, и это выстрадано. Сначала здесь стоял
+// WaitForCompletion — и повесил игру намертво: экран загрузки прогревает панель
+// персонажа, панель просит иконку, а блокирующее ожидание Addressables ВНУТРИ
+// корутины не разрешается никогда. Корутина экрана застревала, шторка не
+// уничтожалась, мир оставался на паузе (timeScale = 0): персонажи скользили без
+// анимации, камера не двигалась, никто не выбирался. И ни одной ошибки в логе —
+// это был не сбой, а тупик.
+//
+// Поэтому правило: иконка отдаётся из кэша либо не отдаётся вовсе. Загрузка
+// уходит в фон, и на следующей перерисовке иконка уже на месте — а UI и так
+// перерисовывается постоянно.
 public static class ItemIcons
 {
     private static readonly Dictionary<string, Sprite> Cache = new();
+    private static readonly HashSet<string> Loading = new();
 
     public static string Address(string id) => $"icon/{id}";
 
-    /// <summary>Иконка вещи или null — тогда UI рисует свой запасной значок.</summary>
+    /// <summary>
+    /// Иконка вещи, если она уже в памяти. Иначе null — и запуск фоновой
+    /// загрузки, чтобы в следующий раз была. Вызывающий рисует свой запасной
+    /// значок и не думает об этом.
+    /// </summary>
     public static Sprite Load(string id)
     {
         if (string.IsNullOrEmpty(id))
@@ -35,29 +48,44 @@ public static class ItemIcons
             return cached;
         }
 
-        // Имя файла — это id вещи, но исторически встречается и слаг, поэтому
-        // проверяются оба: ровно так их искал прежний Resources.Load.
-        var sprite = ByAddress(Address(id)) ?? ByAddress(Address(ItemInfo.Slug(id)));
-        Cache[id] = sprite;
-        return sprite;
-    }
-
-    private static Sprite ByAddress(string address)
-    {
-        // Сначала спрашиваем каталог, есть ли такой адрес: это дешевле, чем
-        // ловить исключение, и не красит консоль на каждой вещи без иконки.
-        var locations = Addressables.LoadResourceLocationsAsync(address);
-        locations.WaitForCompletion();
-        var found = locations.Status == AsyncOperationStatus.Succeeded &&
-                    locations.Result != null && locations.Result.Count > 0;
-        Addressables.Release(locations);
-
-        if (!found)
+        if (Loading.Add(id))
         {
-            return null;
+            Begin(id, Address(id), fallbackToSlug: true);
         }
 
-        return Addressables.LoadAssetAsync<Sprite>(address).WaitForCompletion();
+        return null;
+    }
+
+    private static void Begin(string id, string address, bool fallbackToSlug)
+    {
+        Addressables.LoadResourceLocationsAsync(address).Completed += found =>
+        {
+            var exists = found.Status == AsyncOperationStatus.Succeeded &&
+                         found.Result != null && found.Result.Count > 0;
+            Addressables.Release(found);
+
+            if (!exists)
+            {
+                // Имя файла — это id вещи, но исторически встречается и слаг:
+                // проверяем оба, ровно как искал прежний Resources.Load.
+                var slug = ItemInfo.Slug(id);
+                if (fallbackToSlug && slug != id)
+                {
+                    Begin(id, Address(slug), fallbackToSlug: false);
+                    return;
+                }
+
+                // Отрицательный ответ кэшируется наравне с найденным: вещь без
+                // иконки спросят ещё много раз.
+                Cache[id] = null;
+                return;
+            }
+
+            Addressables.LoadAssetAsync<Sprite>(address).Completed += loaded =>
+            {
+                Cache[id] = loaded.Status == AsyncOperationStatus.Succeeded ? loaded.Result : null;
+            };
+        };
     }
 }
 

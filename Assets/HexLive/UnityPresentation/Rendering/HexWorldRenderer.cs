@@ -124,6 +124,25 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // capsules remain the fallback when no actor prefab matches.
     private readonly Dictionary<int, NpcActorView> _actorViews = new();
 
+    /// <summary>
+    /// Построены ли уже тела для всех этих колонисток. Нужно экрану загрузки:
+    /// выбрать «первую» можно только когда она есть, а с переходом на
+    /// Addressables её одежда и причёска приезжают не мгновенно. Раньше выбор
+    /// успевал сработать по счастливой случайности — теперь его надо дождаться.
+    /// </summary>
+    public bool ActorsReady(IEnumerable<int> ids)
+    {
+        foreach (var id in ids)
+        {
+            if (!_actorViews.TryGetValue(id, out var view) || view == null)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     // Spec 28.15E: the last talk-outcome tick popped per NPC, so the "+/-"
     // relationship glyph fires exactly once when a fresh outcome arrives.
     private readonly Dictionary<int, int> _lastTalkResultTick = new();

@@ -52,11 +52,6 @@ public static class PrototypeRuntimeBootstrap
         // сборке exe, появляется в таблицах именно здесь.
         Wearing.Garments.WardrobeMeta.Load();
 
-        // Что вообще лежит рядом: перечень ИМЁН бандлов из каталога
-        // Addressables. Ни один ассет тут не грузится — содержимое приезжает,
-        // когда вещь надевают.
-        Wearing.Garments.WardrobeCatalog.Report();
-
         // Per-mob combat/behaviour from the MobConfig assets (one per mob) into
         // MobCatalog, before the world spawns any creatures.
         Config.MobTuning.LoadAndApply();

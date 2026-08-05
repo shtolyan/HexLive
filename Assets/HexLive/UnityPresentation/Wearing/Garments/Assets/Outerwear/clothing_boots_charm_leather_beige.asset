@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_boots_charm_leather_beige
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.boots_charm_leather_beige
+  prototypeId: clothing.boots_charm
+  displayName: Thigh-High Boots (Leather Beige)
+  variantMaterials:
+  - {fileID: 2100000, guid: 849f6b1d462a55542a974873295a09cd, type: 2}
+  - {fileID: 2100000, guid: b1f9e4ac4d567384094a0380c91fde37, type: 2}
+  - {fileID: 2100000, guid: 84c875fe5881a384e8a0f7fc70cdeb83, type: 2}
+  - {fileID: 2100000, guid: e3141341a458e004688c74dd51309038, type: 2}
+  - {fileID: 2100000, guid: f738eeb168c1fce4b8470c3a5c0254ec, type: 2}
+  - {fileID: 2100000, guid: b7634bbad66669346a97439ccc946dd2, type: 2}
+  - {fileID: 2100000, guid: 4199e7a70b3d0774baccb57cc81a8091, type: 2}
+  - {fileID: 2100000, guid: 6c51912065fd3d146890559f952dfe6e, type: 2}
+  - {fileID: 2100000, guid: 3679254eb97ae6d409deb827f085612d, type: 2}
+  - {fileID: 2100000, guid: 4d55a0bfabe629b48aaface2fa2cd49e, type: 2}
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.14
+  armor: 0.1
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

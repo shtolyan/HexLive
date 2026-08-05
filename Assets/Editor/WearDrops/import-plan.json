@@ -1,0 +1,579 @@
+{
+  "_": "План импорта гардероба. done=true — заход доведён до игры и проверен; drop — имя манифеста в этой же папке. WardrobeTest прячет вещи готовых заходов, чтобы в списке оставалось только то, что смотрим сейчас. excluded=true — партия сознательно не берётся; причина в note и в WARDROBE_SPEC.md §10.",
+  "batches": [
+    {
+      "batch": 1,
+      "items": 18,
+      "variants": 78,
+      "products": [
+        {
+          "vendor": "RPublishing",
+          "product": "Complete Anarchy",
+          "generation": "Genesis 3 Female",
+          "wearables": 18,
+          "variants": 78,
+          "path": "People/Genesis 3 Female/Clothing/RPublishing/Complete Anarchy"
+        }
+      ],
+      "drop": "anarchy",
+      "done": true
+    },
+    {
+      "batch": 2,
+      "items": 13,
+      "variants": 41,
+      "products": [
+        {
+          "vendor": "Luthbellina",
+          "product": "Riot Girl",
+          "generation": "Genesis 3 Female",
+          "wearables": 13,
+          "variants": 41,
+          "path": "People/Genesis 3 Female/Clothing/Luthbellina/Riot Girl"
+        }
+      ],
+      "drop": "riotranger",
+      "done": true
+    },
+    {
+      "batch": 3,
+      "items": 13,
+      "variants": 13,
+      "products": [
+        {
+          "vendor": "Serzart",
+          "product": "Ranger Outfit",
+          "generation": "Genesis 3 Female",
+          "wearables": 13,
+          "variants": 13,
+          "path": "People/Genesis 3 Female/Clothing/Serzart/Ranger Outfit"
+        }
+      ],
+      "drop": "riotranger",
+      "done": true
+    },
+    {
+      "batch": 4,
+      "items": 12,
+      "variants": 248,
+      "products": [
+        {
+          "vendor": "lululee",
+          "product": "G3-G8-Sultry",
+          "generation": "Genesis 8 Female",
+          "wearables": 12,
+          "variants": 248,
+          "path": "People/Genesis 8 Female/Clothing/lululee/G3-G8-Sultry"
+        }
+      ],
+      "drop": "",
+      "done": false,
+      "excluded": true,
+      "note": "Genesis 8. Клона G8 для Genesis 3 в библиотеке нет, поэтому Auto-Fit может только натянуть геометрию без коррекции формы, и каждая вещь требует ответа в модальном окне, которое вешает DAZ. Плюс сам набор почти целиком геометрические оболочки (вторая кожа), а не одежда: конформных вещей шесть, остальные 240+ «расцветок» — шейдеры оболочек."
+    },
+    {
+      "batch": 5,
+      "items": 30,
+      "variants": 118,
+      "products": [
+        {
+          "vendor": "Pretty3D",
+          "product": "Touch of Death",
+          "generation": "Genesis 3 Female",
+          "wearables": 11,
+          "variants": 3,
+          "path": "People/Genesis 3 Female/Clothing/Pretty3D/Touch of Death"
+        },
+        {
+          "vendor": "PS",
+          "product": "Primal",
+          "generation": "Genesis 3 Female",
+          "wearables": 10,
+          "variants": 52,
+          "path": "People/Genesis 3 Female/Clothing/PS/Primal"
+        },
+        {
+          "vendor": "Kony",
+          "product": "Street Chic Amy",
+          "generation": "Genesis 3 Female",
+          "wearables": 9,
+          "variants": 63,
+          "path": "People/Genesis 3 Female/Clothing/Kony/Street Chic Amy"
+        }
+      ],
+      "drop": "todprimalamy",
+      "done": true
+    },
+    {
+      "batch": 6,
+      "items": 13,
+      "variants": 15,
+      "products": [
+        {
+          "vendor": "Serzart",
+          "product": "The Fighter",
+          "generation": "Genesis 3 Female",
+          "wearables": 7,
+          "variants": 15,
+          "path": "People/Genesis 3 Female/Clothing/Serzart/The Fighter"
+        },
+        {
+          "vendor": "Osiris Outfit",
+          "product": "Props",
+          "generation": "Genesis 3 Female",
+          "wearables": 6,
+          "variants": 0,
+          "path": "People/Genesis 3 Female/Clothing/Osiris Outfit/Props"
+        }
+      ],
+      "drop": "osirisprops",
+      "done": true,
+      "note": "The Fighter уехал одеждой в заходе 5 (шесть вещей *_fighter, наручи L+R сварены в одну). Из Osiris Props одеждой являются только колье и, возможно, кобуры; пистолеты и магазины — снаряжение, не гардероб (§10)."
+    },
+    {
+      "batch": 7,
+      "items": 22,
+      "variants": 263,
+      "products": [
+        {
+          "vendor": "RPublishing",
+          "product": "Nerd Crush",
+          "generation": "Genesis 3 Female",
+          "wearables": 6,
+          "variants": 18,
+          "path": "People/Genesis 3 Female/Clothing/RPublishing/Nerd Crush"
+        },
+        {
+          "vendor": "The3DWizard",
+          "product": "Tek  Athletic Collection",
+          "generation": "Genesis 3 Female",
+          "wearables": 6,
+          "variants": 60,
+          "path": "People/Genesis 3 Female/Clothing/The3DWizard/Tek  Athletic Collection"
+        },
+        {
+          "vendor": "Amaranth",
+          "product": "Flair",
+          "generation": "Genesis 3 Female",
+          "wearables": 5,
+          "variants": 25,
+          "path": "People/Genesis 3 Female/Clothing/Amaranth/Flair"
+        },
+        {
+          "vendor": "DM",
+          "product": "Fit N Sexy Outfit",
+          "generation": "Genesis 3 Female",
+          "wearables": 5,
+          "variants": 160,
+          "path": "People/Genesis 3 Female/Clothing/DM/Fit N Sexy Outfit"
+        }
+      ],
+      "drop": "nerdtekflairfit",
+      "done": true
+    },
+    {
+      "batch": 8,
+      "items": 22,
+      "variants": 259,
+      "products": [
+        {
+          "vendor": "i13",
+          "product": "Summer Wear",
+          "generation": "Genesis 3 Female",
+          "wearables": 5,
+          "variants": 10,
+          "path": "People/Genesis 3 Female/Clothing/i13/Summer Wear"
+        },
+        {
+          "vendor": "devianttuna13",
+          "product": "FitnessIdol",
+          "generation": "Genesis 3 Female",
+          "wearables": 4,
+          "variants": 29,
+          "path": "People/Genesis 3 Female/Clothing/devianttuna13/FitnessIdol"
+        },
+        {
+          "vendor": "zoro_d",
+          "product": "Chameleon ROse Biker Outfit",
+          "generation": "Genesis 3 Female",
+          "wearables": 4,
+          "variants": 11,
+          "path": "People/Genesis 3 Female/Clothing/zoro_d/Chameleon ROse Biker Outfit"
+        },
+        {
+          "vendor": "Art-de-Croh",
+          "product": "LeatherBoots",
+          "generation": "Genesis 3 Female",
+          "wearables": 3,
+          "variants": 16,
+          "path": "People/Genesis 3 Female/Clothing/Art-de-Croh/LeatherBoots"
+        },
+        {
+          "vendor": "Fabiana",
+          "product": "SummerFolk-Closet",
+          "generation": "Genesis 3 Female",
+          "wearables": 3,
+          "variants": 159,
+          "path": "People/Genesis 3 Female/Clothing/Fabiana/SummerFolk-Closet"
+        },
+        {
+          "vendor": "Hongyu",
+          "product": "Dream Lace 3",
+          "generation": "Genesis 3 Female",
+          "wearables": 3,
+          "variants": 34,
+          "path": "People/Genesis 3 Female/Clothing/Hongyu/Dream Lace 3"
+        }
+      ],
+      "drop": "summerbikerlace",
+      "done": true
+    },
+    {
+      "batch": 9,
+      "items": 22,
+      "variants": 320,
+      "products": [
+        {
+          "vendor": "nirvy",
+          "product": "Sweety",
+          "generation": "Genesis 3 Female",
+          "wearables": 3,
+          "variants": 144,
+          "path": "People/Genesis 3 Female/Clothing/nirvy/Sweety"
+        },
+        {
+          "vendor": "powerage",
+          "product": "PrimalDress",
+          "generation": "Genesis 3 Female",
+          "wearables": 3,
+          "variants": 6,
+          "path": "People/Genesis 3 Female/Clothing/powerage/PrimalDress"
+        },
+        {
+          "vendor": "Rhiannon",
+          "product": "CruX Wild",
+          "generation": "Genesis 3 Female",
+          "wearables": 3,
+          "variants": 9,
+          "path": "People/Genesis 3 Female/Clothing/Rhiannon/CruX Wild"
+        },
+        {
+          "vendor": "xtrart-3d",
+          "product": "X-Fashion Tiny Tropics Set",
+          "generation": "Genesis 8 Female",
+          "wearables": 3,
+          "variants": 50,
+          "path": "People/Genesis 8 Female/Clothing/xtrart-3d/X-Fashion Tiny Tropics Set"
+        },
+        {
+          "vendor": "Exnem",
+          "product": "Yoga",
+          "generation": "Genesis 3 Female",
+          "wearables": 2,
+          "variants": 20,
+          "path": "People/Genesis 3 Female/Clothing/Exnem/Yoga"
+        },
+        {
+          "vendor": "Mytilus",
+          "product": "NightDress",
+          "generation": "Genesis 3 Female",
+          "wearables": 2,
+          "variants": 8,
+          "path": "People/Genesis 3 Female/Clothing/Mytilus/NightDress"
+        },
+        {
+          "vendor": "Ryona Comics",
+          "product": "Conversions",
+          "generation": "Genesis 3 Female",
+          "wearables": 2,
+          "variants": 4,
+          "path": "People/Genesis 3 Female/Clothing/Ryona Comics/Conversions"
+        },
+        {
+          "vendor": "Quanto",
+          "product": "VaporWear2",
+          "generation": "Genesis 3 Female",
+          "wearables": 2,
+          "variants": 48,
+          "path": "People/Genesis 3 Female/Clothing/Quanto/VaporWear2"
+        },
+        {
+          "vendor": "Rhiannon",
+          "product": "Big Teez",
+          "generation": "Genesis 3 Female",
+          "wearables": 2,
+          "variants": 31,
+          "path": "People/Genesis 3 Female/Clothing/Rhiannon/Big Teez"
+        }
+      ],
+      "drop": "sweetywildvapor",
+      "done": true,
+      "note": "Genesis 3 часть уехала заходом sweetywildvapor. X-Fashion Tiny Tropics Set — Genesis 8, ждёт автоподгонки вместе с партией 4. X-Fashion Tiny Tropics Set исключён: Genesis 8/9, данных под Genesis 3 в наборе нет."
+    },
+    {
+      "batch": 10,
+      "items": 14,
+      "variants": 204,
+      "products": [
+        {
+          "vendor": "Rhiannon",
+          "product": "CruX Vamp",
+          "generation": "Genesis 3 Female",
+          "wearables": 2,
+          "variants": 5,
+          "path": "People/Genesis 3 Female/Clothing/Rhiannon/CruX Vamp"
+        },
+        {
+          "vendor": "Rhiannon",
+          "product": "Sweet Jane",
+          "generation": "Genesis 3 Female",
+          "wearables": 2,
+          "variants": 17,
+          "path": "People/Genesis 3 Female/Clothing/Rhiannon/Sweet Jane"
+        },
+        {
+          "vendor": "xtrart-3d",
+          "product": "X-Fashion Bikini 04",
+          "generation": "Genesis 3 Female",
+          "wearables": 2,
+          "variants": 12,
+          "path": "People/Genesis 3 Female/Clothing/xtrart-3d/X-Fashion Bikini 04"
+        },
+        {
+          "vendor": "xtrart-3d",
+          "product": "X-Fashion Lingerie6",
+          "generation": "Genesis 3 Female",
+          "wearables": 2,
+          "variants": 8,
+          "path": "People/Genesis 3 Female/Clothing/xtrart-3d/X-Fashion Lingerie6"
+        },
+        {
+          "vendor": "CDw",
+          "product": "Great Charm Boots",
+          "generation": "Genesis 3 Female",
+          "wearables": 1,
+          "variants": 26,
+          "path": "People/Genesis 3 Female/Clothing/CDw/Great Charm Boots"
+        },
+        {
+          "vendor": "Kaleya",
+          "product": "SpookyStockings",
+          "generation": "Genesis 3 Female",
+          "wearables": 1,
+          "variants": 18,
+          "path": "People/Genesis 3 Female/Clothing/Kaleya/SpookyStockings"
+        },
+        {
+          "vendor": "Oskarsson",
+          "product": "Autumn Jacket",
+          "generation": "Genesis 3 Female",
+          "wearables": 1,
+          "variants": 40,
+          "path": "People/Genesis 3 Female/Clothing/Oskarsson/Autumn Jacket"
+        },
+        {
+          "vendor": "Quanto",
+          "product": "Just Panties",
+          "generation": "Genesis 3 Female",
+          "wearables": 1,
+          "variants": 52,
+          "path": "People/Genesis 3 Female/Clothing/Quanto/Just Panties"
+        },
+        {
+          "vendor": "RPublishing",
+          "product": "Bandaid Suit",
+          "generation": "Genesis 3 Female",
+          "wearables": 1,
+          "variants": 16,
+          "path": "People/Genesis 3 Female/Clothing/RPublishing/Bandaid Suit"
+        },
+        {
+          "vendor": "RPublishing",
+          "product": "Fads Slip Ons",
+          "generation": "Genesis 3 Female",
+          "wearables": 1,
+          "variants": 10,
+          "path": "People/Genesis 3 Female/Clothing/RPublishing/Fads Slip Ons"
+        }
+      ],
+      "drop": "vampjanecharm",
+      "done": true
+    },
+    {
+      "batch": 11,
+      "items": 14,
+      "variants": 0,
+      "products": [
+        {
+          "vendor": "",
+          "product": "Cindy Aurum",
+          "generation": "Genesis 3 Female",
+          "wearables": 8,
+          "variants": 0,
+          "path": "People/Genesis 3 Female/Clothing/Cindy Aurum"
+        },
+        {
+          "vendor": "",
+          "product": "Osiris Outfit",
+          "generation": "Genesis 3 Female",
+          "wearables": 6,
+          "variants": 0,
+          "path": "People/Genesis 3 Female/Clothing/Osiris Outfit"
+        }
+      ],
+      "drop": "cindyosiris",
+      "done": true,
+      "note": "Добавлено 2026-08-04 ревизией библиотеки: эти наборы стоят БЕЗ вендорской папки, прямо в Clothing/<продукт>, и первоначальный план их не увидел."
+    },
+    {
+      "batch": 12,
+      "items": 16,
+      "variants": 205,
+      "products": [
+        {
+          "vendor": "",
+          "product": "JMR Lace Bra and Open Back Panties",
+          "generation": "Genesis 3 Female",
+          "wearables": 2,
+          "variants": 12,
+          "path": "People/Genesis 3 Female/Clothing/JMR Lace Bra and Open Back Panties"
+        },
+        {
+          "vendor": "",
+          "product": "JMR Sports Lingerie",
+          "generation": "Genesis 3 Female",
+          "wearables": 2,
+          "variants": 12,
+          "path": "People/Genesis 3 Female/Clothing/JMR Sports Lingerie"
+        },
+        {
+          "vendor": "",
+          "product": "JMR Strappy Swimsuit",
+          "generation": "Genesis 3 Female",
+          "wearables": 2,
+          "variants": 36,
+          "path": "People/Genesis 3 Female/Clothing/JMR Strappy Swimsuit"
+        },
+        {
+          "vendor": "",
+          "product": "JMR dForce Naughty Outfit",
+          "generation": "Genesis 3 Female",
+          "wearables": 4,
+          "variants": 24,
+          "path": "People/Genesis 3 Female/Clothing/JMR dForce Naughty Outfit"
+        },
+        {
+          "vendor": "",
+          "product": "Luxury Bikini",
+          "generation": "Genesis 3 Female",
+          "wearables": 4,
+          "variants": 20,
+          "path": "People/Genesis 3 Female/Clothing/Luxury Bikini"
+        },
+        {
+          "vendor": "",
+          "product": "OOT City Dress",
+          "generation": "Genesis 3 Female",
+          "wearables": 1,
+          "variants": 7,
+          "path": "People/Genesis 3 Female/Clothing/OOT City Dress"
+        },
+        {
+          "vendor": "",
+          "product": "OOT DeviLingerie",
+          "generation": "Genesis 3 Female",
+          "wearables": 1,
+          "variants": 94,
+          "path": "People/Genesis 3 Female/Clothing/OOT DeviLingerie"
+        }
+      ],
+      "drop": "jmrluxdevi",
+      "done": true,
+      "note": "Добавлено 2026-08-04 ревизией библиотеки: эти наборы стоят БЕЗ вендорской папки, прямо в Clothing/<продукт>, и первоначальный план их не увидел."
+    },
+    {
+      "batch": 13,
+      "items": 18,
+      "variants": 10,
+      "products": [
+        {
+          "vendor": "",
+          "product": "S.T.A.R.S Uniform",
+          "generation": "Genesis 3 Female",
+          "wearables": 7,
+          "variants": 0,
+          "path": "People/Genesis 3 Female/Clothing/S.T.A.R.S Uniform"
+        },
+        {
+          "vendor": "",
+          "product": "S3D Deadly Silence",
+          "generation": "Genesis 3 Female",
+          "wearables": 7,
+          "variants": 7,
+          "path": "People/Genesis 3 Female/Clothing/S3D Deadly Silence"
+        },
+        {
+          "vendor": "",
+          "product": "Skinny Jeans and Corset",
+          "generation": "Genesis 3 Female",
+          "wearables": 4,
+          "variants": 3,
+          "path": "People/Genesis 3 Female/Clothing/Skinny Jeans and Corset"
+        }
+      ],
+      "drop": "starsdeadly",
+      "done": true,
+      "note": "Обе пары ботинок исключены как слишком тяжёлые (130 760 и 155 064 вершин), туфли Skinny Jeans — дефект контента: Heels_81360.dsf повреждён, DAZ грузит скелет без формы. Подсумки сняты по осмотру."
+    },
+    {
+      "batch": 14,
+      "items": 17,
+      "variants": 45,
+      "products": [
+        {
+          "vendor": "",
+          "product": "Summer Sandals Vol 1",
+          "generation": "Genesis 3 Female",
+          "wearables": 4,
+          "variants": 37,
+          "path": "People/Genesis 3 Female/Clothing/Summer Sandals Vol 1"
+        },
+        {
+          "vendor": "",
+          "product": "S3D Real Sneakers v5",
+          "generation": "Genesis 3 Female",
+          "wearables": 2,
+          "variants": 3,
+          "path": "People/Genesis 3 Female/Clothing/S3D Real Sneakers v5"
+        },
+        {
+          "vendor": "",
+          "product": "S3D SportSneakers",
+          "generation": "Genesis 3 Female",
+          "wearables": 2,
+          "variants": 2,
+          "path": "People/Genesis 3 Female/Clothing/S3D SportSneakers"
+        },
+        {
+          "vendor": "",
+          "product": "Alloy Fusion Outfit",
+          "generation": "Genesis 3 Female",
+          "wearables": 4,
+          "variants": 3,
+          "path": "People/Genesis 3 Female/Clothing/Alloy Fusion Outfit"
+        },
+        {
+          "vendor": "",
+          "product": "Classic Reiko Outfit",
+          "generation": "Genesis 3 Female",
+          "wearables": 5,
+          "variants": 0,
+          "path": "People/Genesis 3 Female/Clothing/Perfect Slam/Conversions/Rowdy Reiko Outfit/Classic Reiko Outfit"
+        }
+      ],
+      "drop": "sandalsreiko",
+      "done": true,
+      "note": "Добавлено 2026-08-04 ревизией библиотеки: эти наборы стоят БЕЗ вендорской папки, прямо в Clothing/<продукт>, и первоначальный план их не увидел."
+    }
+  ]
+}

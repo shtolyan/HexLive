@@ -4460,8 +4460,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         var catalog = ActorAppearanceCatalog.Instance;
-        var prefab = catalog != null ? catalog.Find(hairstyle) : null;
-        if (prefab == null)
+        if (catalog == null || !catalog.Has(hairstyle))
         {
             Debug.LogWarning(
                 $"[§74] hairstyle '{hairstyle}' is not in the appearance catalog — " +
@@ -4469,7 +4468,41 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return;
         }
 
+        StartCoroutine(SpawnHair(hairstyle));
+    }
+
+    // Причёска и её цвет едут ПО АДРЕСУ (Addressables), а значит приезжают не
+    // мгновенно. Пока едет — на голове та причёска, что авторская на префабе: лучше чужая
+    // причёска на кадр, чем лысая голова.
+    //
+    // Цвет ставится ПОСЛЕ SetHair и по живому экземпляру: материал в Unity
+    // общий, и запись в ассет перекрасила бы эту причёску у всех сразу.
+    private System.Collections.IEnumerator SpawnHair(string hairstyle)
+    {
+        Wear prefab = null;
+        yield return HairContent.LoadHair(hairstyle, found => prefab = found);
+
+        if (prefab == null || _bodyBones == null)
+        {
+            yield break;
+        }
+
         _bodyBones.SetHair(prefab);
+
+        var colour = HairColourApplier.Choose(hairstyle, _npcId);
+        if (colour == null)
+        {
+            yield break;
+        }
+
+        System.Collections.Generic.Dictionary<string, Material> materials = null;
+        yield return HairContent.LoadColour(hairstyle, colour, loaded => materials = loaded);
+
+        var live = _bodyBones != null ? _bodyBones.HairInstance : null;
+        if (live != null && materials != null)
+        {
+            HairColourApplier.Apply(live.gameObject, materials);
+        }
     }
 
     // §74: wear another actress's face. All four girls are Genesis3Female with
@@ -5716,30 +5749,4 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 }
 
 // Spec 31B.4: Resources-convention wardrobe — no inspector wiring.
-internal static class ActorWardrobe
-{
-    private static readonly Dictionary<string, List<Wear>> _cache = new();
-
-    public static IReadOnlyList<Wear> GetVisuals(string simDefinitionId)
-    {
-        if (_cache.TryGetValue(simDefinitionId, out var cached))
-        {
-            return cached;
-        }
-
-        var result = new List<Wear>();
-        foreach (var prefab in Resources.LoadAll<GameObject>($"HexLive/Wear/{simDefinitionId}"))
-        {
-            var wear = prefab.GetComponent<Wear>();
-            if (wear != null)
-            {
-                result.Add(wear);
-            }
-        }
-
-        _cache[simDefinitionId] = result;
-        return result;
-    }
-}
-
 }

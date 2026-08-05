@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: underwear_kneesocks_nerd_nc_sock_left_polka_dots
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: underwear.kneesocks_nerd_nc_sock_left_polka_dots
+  prototypeId: underwear.kneesocks_nerd
+  displayName: Knee Socks (NC Sock Left Polka Dots)
+  variantMaterials:
+  - {fileID: 2100000, guid: 5ceb32682d4227f4bad034497e8b52d4, type: 2}
+  - {fileID: 2100000, guid: 785afd2ce22905245a5ec907e2807505, type: 2}
+  layer: 0
+  covers: 0500000006000000
+  warmth: 0.06
+  armor: 0
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

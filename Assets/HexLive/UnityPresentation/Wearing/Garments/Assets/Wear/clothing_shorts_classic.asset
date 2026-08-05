@@ -13,11 +13,13 @@ MonoBehaviour:
   m_Name: clothing_shorts_classic
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.shorts_classic
-  displayName: Classic Shorts
+  prototypeId: 
+  displayName: Ring Shorts
+  variantMaterials: []
   layer: 1
   covers: 02000000
-  warmth: 0.07
-  armor: 0
+  warmth: 0.05
+  armor: 0.02
   thermalDelta: 0
   dressDurationTicks: 8
-  capacity: 0
+  capacity: 2

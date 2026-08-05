@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: underwear_swimsuit_briefs_bottom_black
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: underwear.swimsuit_briefs_bottom_black
+  prototypeId: underwear.swimsuit_briefs
+  displayName: Strappy Swim Bottom (Bottom Black)
+  variantMaterials:
+  - {fileID: 2100000, guid: 1ae98466f50517c46bd79c03f488cf21, type: 2}
+  - {fileID: 2100000, guid: 996b9fede7500184ba6cacd7dd9a9fa9, type: 2}
+  - {fileID: 2100000, guid: a472d476b36b0ab40af74a8ed9a11ae0, type: 2}
+  - {fileID: 2100000, guid: 838392dca317b504d80cb3d2abbfb68b, type: 2}
+  - {fileID: 2100000, guid: 715135325b3d4c64b947ca6805481183, type: 2}
+  layer: 0
+  covers: 02000000
+  warmth: 0.02
+  armor: 0
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 1

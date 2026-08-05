@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 from pathlib import Path
 
 from . import config, fbx, heels
@@ -133,7 +134,18 @@ def propose(fbx_path: Path, drop: str, texture_report: dict,
             {
                 "source": material,
                 "texture": spec["texture"],
-                "smoothness": 0.3,
+                # Только у поверхностей без карты: экспортёр кладёт туда
+                # дефолтный серый, и им можно зря притемнить текстуру (§8).
+                **({"color": spec["color"]} if spec.get("color") else {}),
+                # Matte. Measured, not guessed: the same boot mesh under the same
+                # light renders (53,56,64) — bluish grey, no leather left — at
+                # 0.3, and (27,21,20) brown at 0. URP mirrors the skybox in the
+                # gloss lobe, and a default sky over a dark albedo simply erases
+                # it. Turning specular highlights off changes nothing (53,56,64
+                # either way), so smoothness is the whole of it. Matte is also
+                # what the art style asks for (CLAUDE.md: flat / faceted), and a
+                # surface that genuinely wants a sheen can still say so here.
+                "smoothness": 0.0,
                 "metallic": 0.0,
                 "doubleSided": True,
                 "alphaClip": spec["alphaClip"],
@@ -255,11 +267,58 @@ def path_for(drop: str) -> Path:
     return config.DROP_MANIFESTS / f"{drop}.json"
 
 
+def restage_textures(data: dict) -> list[str]:
+    """Перенести картинки за переименованной вещью.
+
+    Этап `build` раскладывает текстуры по ЧЕРНОВЫМ именам папок — они берутся из
+    ключа меша, потому что других имён в тот момент ещё нет. Настоящие имена
+    вещам дают следующим шагом, и картинки остаются под старыми: вещь приезжает
+    в игру белой, а на диске всё вроде бы на месте.
+
+    Так вышло на трёх поставках подряд, то есть это не невезение, а порядок
+    шагов. Поэтому перенос делается ЗДЕСЬ — там, где имя меняется, — а не
+    вспоминается потом каждым, кто заметит белую вещь.
+
+    ⚠️ Переносить надо и за ПРИВАРЕННЫМИ кусками, а не только за главным.
+    Черновая папка есть у каждого куска, а `sourceKey` у вещи один: у разных
+    перчаток Deadly Silence правая половина несёт свой материал `fabric` со
+    своей картинкой, и без неё она приезжала белой — «одна перчатка будто без
+    материала». Ровно та же природа, что и у списка материалов сварки (§5).
+    """
+    root = config.ASSETS / "ImportedActors" / "Wear"
+    moved: list[str] = []
+    for garment in data.get("garments") or []:
+        folder = garment.get("folder")
+        keys = [k for k in [garment.get("sourceKey"), *(garment.get("sourceKeys") or [])] if k]
+        if not folder or not keys:
+            continue
+        dest = root / folder / "Textures"
+        for key in dict.fromkeys(keys):
+            draft = root / _pretty(key) / "Textures"
+            if not draft.exists() or draft == dest:
+                continue
+            dest.mkdir(parents=True, exist_ok=True)
+            for image in draft.iterdir():
+                # ⚠️ Не только jpg/png: DAZ отдаёт и .tga (Classic Reiko), и .tif.
+                # Узкий список молча оставлял такие вещи белыми — картинка на
+                # диске есть, но не в той папке, куда вещь переименовали.
+                if image.suffix.lower() not in (".jpg", ".jpeg", ".png", ".tga",
+                                                ".tif", ".tiff", ".bmp"):
+                    continue
+                if (dest / image.name).exists():
+                    continue
+                shutil.copy2(image, dest / image.name)
+                moved.append(f"{_pretty(key)} -> {folder}: {image.name}")
+    return moved
+
+
 def save(data: dict, drop: str | None = None) -> Path:
     target = path_for(drop or data["drop"])
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n",
                       encoding="utf-8")
+    for line in restage_textures(data):
+        print("   картинка переехала:", line)
     return target
 
 

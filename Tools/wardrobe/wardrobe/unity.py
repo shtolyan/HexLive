@@ -22,11 +22,40 @@ import json
 import socket
 import struct
 import time
+from pathlib import Path
 
 from . import config
 
 HOST = "127.0.0.1"
-PORT = 6400
+
+
+def _port() -> int:
+    """Which port THIS project's editor is listening on.
+
+    Hard-coding 6400 was wrong and cost hours: the bridge publishes its real
+    port in `~/.unity-mcp/unity-mcp-port.json`, and when a second Unity is
+    already holding 6400 our editor quietly takes 6401. Every command then went
+    to the other instance or nowhere, and the failure looked exactly like "the
+    editor is busy" — which is why it was chased as a timeout for so long.
+
+    The file also names the project it belongs to, so a stale entry from another
+    checkout is ignored rather than trusted.
+    """
+    marker = Path.home() / ".unity-mcp" / "unity-mcp-port.json"
+    try:
+        data = json.loads(marker.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return 6400
+    published = str(data.get("project_path", "")).replace("\\", "/").rstrip("/").lower()
+    ours = str(config.ASSETS).replace("\\", "/").rstrip("/").lower()
+    if published and published != ours:
+        # The marker belongs to a different checkout — better the old default
+        # than confidently talking to somebody else's editor.
+        return 6400
+    return int(data.get("unity_port", 6400))
+
+
+PORT = _port()
 _HANDSHAKE_PREFIX = b"WELCOME UNITY-MCP"
 
 

@@ -13,11 +13,13 @@ MonoBehaviour:
   m_Name: clothing_top_stars
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.top_stars
-  displayName: Uniform Top
+  prototypeId: 
+  displayName: Uniform Shirt
+  variantMaterials: []
   layer: 1
   covers: 010000000300000004000000
-  warmth: 0.09
+  warmth: 0.07
   armor: 0.02
   thermalDelta: 0
   dressDurationTicks: 8
-  capacity: 0
+  capacity: 2

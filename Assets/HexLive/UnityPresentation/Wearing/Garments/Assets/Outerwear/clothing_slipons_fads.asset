@@ -13,11 +13,13 @@ MonoBehaviour:
   m_Name: clothing_slipons_fads
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.slipons_fads
+  prototypeId: 
   displayName: Slip-Ons
+  variantMaterials: []
   layer: 2
   covers: 0500000006000000
-  warmth: 0.06
-  armor: 0.02
+  warmth: 0.08
+  armor: 0.05
   thermalDelta: 0
   dressDurationTicks: 8
   capacity: 0

@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_tank_jane_reds
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.tank_jane_reds
+  prototypeId: clothing.tank_jane
+  displayName: Jersey Tank (Reds)
+  variantMaterials:
+  - {fileID: 2100000, guid: 594c71f63cf67434c9a1e03ddb9dac60, type: 2}
+  - {fileID: 2100000, guid: bfa8daddee5f1aa4ca971d9513b3c342, type: 2}
+  - {fileID: 2100000, guid: 3ddbd5e24346f6d49a81561188ccc1d5, type: 2}
+  layer: 1
+  covers: 01000000
+  warmth: 0.06
+  armor: 0.01
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 2

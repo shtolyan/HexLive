@@ -13,11 +13,13 @@ MonoBehaviour:
   m_Name: clothing_gloves_stars
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.gloves_stars
-  displayName: Uniform Gloves
+  prototypeId: 
+  displayName: Duty Gloves
+  variantMaterials: []
   layer: 1
   covers: 0300000004000000
-  warmth: 0.04
-  armor: 0.02
+  warmth: 0.03
+  armor: 0.05
   thermalDelta: 0
   dressDurationTicks: 8
   capacity: 0

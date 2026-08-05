@@ -13,11 +13,13 @@ MonoBehaviour:
   m_Name: clothing_sweater_flair
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.sweater_flair
-  displayName: Flair Sweater
+  prototypeId: 
+  displayName: Knit Sweater
+  variantMaterials: []
   layer: 1
   covers: 010000000300000004000000
-  warmth: 0.3
-  armor: 0
-  thermalDelta: -0.15
+  warmth: 0.2
+  armor: 0.02
+  thermalDelta: 0
   dressDurationTicks: 8
-  capacity: 0
+  capacity: 2

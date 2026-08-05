@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_slipons_fads_pink
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.slipons_fads_pink
+  prototypeId: clothing.slipons_fads
+  displayName: Slip-Ons (Pink)
+  variantMaterials:
+  - {fileID: 2100000, guid: 9b3a1374be312474e8273287a38196f3, type: 2}
+  - {fileID: 2100000, guid: e3f949a289ae0dd4094669317d41f371, type: 2}
+  - {fileID: 2100000, guid: 8147b940f0b3d0f41bd1c612d948c63d, type: 2}
+  - {fileID: 2100000, guid: 28b46d60c8e57c341a1ae84fc417fee0, type: 2}
+  - {fileID: 2100000, guid: 6e2ff4361fc56764dae8f97814270a67, type: 2}
+  - {fileID: 2100000, guid: d1cbbec4e56ac8542ab3324f66f527ac, type: 2}
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.08
+  armor: 0.05
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

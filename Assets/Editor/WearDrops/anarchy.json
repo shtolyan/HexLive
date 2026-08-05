@@ -1,0 +1,1460 @@
+{
+  "drop": "anarchy",
+  "sources": [
+    {
+      "fbx": "Assets/Temp/jolly anarchy.fbx",
+      "actor": "Jolly"
+    },
+    {
+      "fbx": "Assets/Temp/jana anarchy.fbx",
+      "actor": "Jana"
+    },
+    {
+      "fbx": "Assets/Temp/marta anarchy.fbx",
+      "actor": "Marta"
+    },
+    {
+      "fbx": "Assets/Temp/molly anarchy.fbx",
+      "actor": "Molly"
+    }
+  ],
+  "garments": [
+    {
+      "sourceKey": "CA_Cap_15453",
+      "folder": "AnarchyCap",
+      "name": "AnarchyCap",
+      "simId": "clothing.cap_anarchy",
+      "layer": "Wear",
+      "slots": [
+        "Head"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "bill",
+          "texture": "TA_CapRed.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "cap",
+          "texture": "TA_CapRed.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "metal",
+          "texture": "TA_CapRed.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 5151,
+        "polys": 5046,
+        "bbox": [
+          -10.5,
+          10.5,
+          4.1,
+          20.4,
+          -11.2,
+          16.3
+        ],
+        "zones": {
+          "Shin": 0.633,
+          "Foot": 0.367
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Studded Cap",
+        "nameRu": "Кепка с клёпками",
+        "descEn": "Peaked, and studded along the brim. Keeps sun and rain off.",
+        "descRu": "С козырьком и клёпками по канту. Прячет от солнца и дождя.",
+        "warmth": 0.05,
+        "armor": 0.02,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Head"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Black",
+          "from": "CA_Cap",
+          "textures": [
+            {
+              "source": "bill",
+              "texture": "TA_CapBlk.jpg"
+            },
+            {
+              "source": "cap",
+              "texture": "TA_CapBlk.jpg"
+            },
+            {
+              "source": "metal",
+              "texture": "TA_CapRed.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Brown",
+          "from": "CA_Cap",
+          "textures": [
+            {
+              "source": "bill",
+              "texture": "TA_CapBrn.jpg"
+            },
+            {
+              "source": "cap",
+              "texture": "TA_CapBrn.jpg"
+            },
+            {
+              "source": "metal",
+              "texture": "TA_CapRed.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Purple",
+          "from": "CA_Cap",
+          "textures": [
+            {
+              "source": "bill",
+              "texture": "TA_CapPurple.jpg"
+            },
+            {
+              "source": "cap",
+              "texture": "TA_CapPurple.jpg"
+            },
+            {
+              "source": "metal",
+              "texture": "TA_CapRed.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "strapbelt_24543",
+      "folder": "AnarchyHipBelt",
+      "name": "AnarchyHipBelt",
+      "simId": "clothing.hipbelt_anarchy",
+      "layer": "Outerwear",
+      "slots": [
+        "Pelvis",
+        "ThighR",
+        "ThighL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "belt",
+          "texture": "AnarchyBelt.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "eyelets",
+          "texture": "AnarchyBelt.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "laces",
+          "texture": "AnarchyBelt.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "tabs",
+          "texture": "AnarchyBelt.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "rivets",
+          "texture": "AnarchyBelt.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "rings",
+          "texture": "AnarchyBelt.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 14817,
+        "polys": 14487,
+        "bbox": [
+          -18.4,
+          18.3,
+          93.9,
+          106.3,
+          -13.2,
+          11.7
+        ],
+        "zones": {
+          "Pelvis": 0.923,
+          "Belly": 0.077
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Hip Straps",
+        "nameRu": "Набедренные ремни",
+        "descEn": "Straps down the hips. Decoration that happens to hold a pouch.",
+        "descRu": "Ремни по бёдрам. Украшение, которое заодно держит подсумок.",
+        "warmth": 0.0,
+        "armor": 0.02,
+        "thermalDelta": 0.0,
+        "capacity": 1,
+        "covers": [
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "TA_Belt_15293",
+      "folder": "AnarchyBelt",
+      "name": "AnarchyBelt",
+      "simId": "clothing.belt_anarchy",
+      "layer": "Outerwear",
+      "slots": [
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "belt",
+          "texture": "TABelt.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "metal",
+          "texture": "TABelt.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "eyelets",
+          "texture": "TABelt.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 15293,
+        "polys": 13816,
+        "bbox": [
+          -17.3,
+          17.1,
+          97.5,
+          109.4,
+          -9.9,
+          12.7
+        ],
+        "zones": {
+          "Belly": 0.68,
+          "Pelvis": 0.32
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Studded Belt",
+        "nameRu": "Ремень с клёпками",
+        "descEn": "Wide, with loops. No warmth — it is there to carry things.",
+        "descRu": "Широкий, с петлями. Не греет — он чтобы носить.",
+        "warmth": 0.0,
+        "armor": 0.02,
+        "thermalDelta": 0.0,
+        "capacity": 2,
+        "covers": [
+          "Pelvis"
+        ]
+      }
+    },
+    {
+      "sourceKey": "TA_Shirt_13442",
+      "folder": "AnarchyTop",
+      "name": "AnarchyTop",
+      "simId": "clothing.top_anarchy",
+      "layer": "Wear",
+      "slots": [
+        "Chest"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "shirt",
+          "texture": "TAShirt.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "bra",
+          "texture": "TAShirt_TAShirtT.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        }
+      ],
+      "_measured": {
+        "verts": 13018,
+        "polys": 12743,
+        "bbox": [
+          -28.4,
+          28.4,
+          112.2,
+          159.0,
+          -13.1,
+          14.5
+        ],
+        "zones": {
+          "Chest": 0.632,
+          "Shoulder": 0.19,
+          "Neck": 0.101,
+          "Belly": 0.072,
+          "Head": 0.005
+        },
+        "heelCm": 0.0
+      },
+      "variants": [
+        {
+          "name": "Bra Purple",
+          "from": "CA Blouse",
+          "textures": [
+            {
+              "source": "bra",
+              "texture": "TABraPurple.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Bra Red",
+          "from": "CA Blouse",
+          "textures": [
+            {
+              "source": "bra",
+              "texture": "TABraRed.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Red",
+          "from": "CA Blouse",
+          "textures": [
+            {
+              "source": "shirt",
+              "texture": "TAShirt2.jpg"
+            }
+          ]
+        }
+      ],
+      "sim": {
+        "displayName": "Anarchy Top",
+        "nameRu": "Топ «Анархия»",
+        "descEn": "A cropped top with a printed front. Thin, and she likes it.",
+        "descRu": "Укороченный топ с принтом. Тонкий, и ей нравится.",
+        "warmth": 0.06,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      }
+    },
+    {
+      "sourceKey": "Anarchy_Boots_25023",
+      "folder": "AnarchyBoots",
+      "name": "AnarchyBoots",
+      "simId": "clothing.boots_anarchy",
+      "layer": "Outerwear",
+      "slots": [
+        "ThighR",
+        "ThighL",
+        "ShinR",
+        "ShinL",
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "boot",
+          "texture": "AnarchyBoot.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "heel",
+          "texture": "AnarchyBoot.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "tap",
+          "texture": "Anarchy_Met.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "sole",
+          "texture": "AnarchyBoot.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "tab",
+          "texture": "AnarchyBoot.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "rivets",
+          "texture": "AnarchyBoot.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "stocking",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false,
+          "color": "#000000"
+        }
+      ],
+      "_measured": {
+        "verts": 21312,
+        "polys": 20778,
+        "bbox": [
+          -20.2,
+          20.2,
+          -9.8,
+          72.4,
+          -12.1,
+          15.0
+        ],
+        "zones": {
+          "Foot": 0.367,
+          "Shin": 0.318,
+          "Thigh": 0.315
+        },
+        "heelCm": 9.83
+      },
+      "heelPose": {
+        "_review": "каблук 9.8 см даёт 63° — круче, чем бывает у обуви; проверьте замер, прежде чем верить",
+        "foot": 55.0,
+        "toe": -55.0,
+        "lift": 0.0983,
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "_source": "по высоте каблука 9.8 см (ОБРЕЗАНО)"
+      },
+      "variants": [
+        {
+          "name": "Purple",
+          "from": "CA Boots",
+          "textures": [
+            {
+              "source": "boot",
+              "texture": "OA_BootsPurple.jpg"
+            },
+            {
+              "source": "heel",
+              "texture": "AnarchyBoot.jpg"
+            },
+            {
+              "source": "rivets",
+              "texture": "OA_BootsRed.jpg"
+            },
+            {
+              "source": "sole",
+              "texture": "OA_BootsRed.jpg"
+            },
+            {
+              "source": "tab",
+              "texture": "OA_BootsPurple.jpg"
+            },
+            {
+              "source": "tap",
+              "texture": "Anarchy_Met.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Red",
+          "from": "CA Boots",
+          "textures": [
+            {
+              "source": "boot",
+              "texture": "OA_BootsRed.jpg"
+            },
+            {
+              "source": "heel",
+              "texture": "AnarchyBoot.jpg"
+            },
+            {
+              "source": "rivets",
+              "texture": "OA_BootsRed.jpg"
+            },
+            {
+              "source": "sole",
+              "texture": "OA_BootsRed.jpg"
+            },
+            {
+              "source": "tab",
+              "texture": "OA_BootsRed.jpg"
+            },
+            {
+              "source": "tap",
+              "texture": "Anarchy_Met.jpg"
+            }
+          ]
+        }
+      ],
+      "sim": {
+        "displayName": "Buckled Thigh Boots",
+        "nameRu": "Ботфорты с чулками",
+        "descEn": "Heavy leather over the knee, torn stocking tops showing above. The best thing between a wolf and her leg.",
+        "descRu": "Тяжёлая кожа выше колена, рваный чулок торчит поверху. Лучшее, что есть между волком и её ногой.",
+        "warmth": 0.17,
+        "armor": 0.13,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      },
+      "sourceKeys": [
+        "Anarchy_Boots",
+        "TA_StockingL",
+        "TA_StockingR"
+      ]
+    },
+    {
+      "sourceKey": "Anarchy_Corset_35322",
+      "folder": "AnarchyCorset",
+      "name": "AnarchyCorset",
+      "simId": "clothing.corset_anarchy",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "Belly"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "corset",
+          "texture": "AnarchyCorset2.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "shldr_straps",
+          "texture": "AnarchyCorset1.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "front_straps",
+          "texture": "AnarchyCorset1.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "side_straps",
+          "texture": "AnarchyCorset1.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "buckles",
+          "texture": "AnarchyCorset2.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "rings",
+          "texture": "AnarchyCorset2.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "eyelets",
+          "texture": "AnarchyCorset2.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "rivets",
+          "texture": "AnarchyCorset2.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "bucklet",
+          "texture": "AnarchyCorset2.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "straps",
+          "texture": "AnarchyCorset1.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 35322,
+        "polys": 34075,
+        "bbox": [
+          -15.5,
+          15.5,
+          105.3,
+          152.3,
+          -13.1,
+          13.7
+        ],
+        "zones": {
+          "Chest": 0.599,
+          "Belly": 0.399,
+          "Neck": 0.002
+        },
+        "heelCm": 0.0
+      },
+      "variants": [
+        {
+          "name": "Red",
+          "from": "CA Corset",
+          "textures": [
+            {
+              "source": "buckles",
+              "texture": "AnarchyCorset2.jpg"
+            },
+            {
+              "source": "bucklet",
+              "texture": "Anarchy_Met.jpg"
+            },
+            {
+              "source": "corset",
+              "texture": "OACorset2.jpg"
+            },
+            {
+              "source": "eyelets",
+              "texture": "AnarchyCorset2.jpg"
+            },
+            {
+              "source": "front_straps",
+              "texture": "OACorset1.jpg"
+            },
+            {
+              "source": "rings",
+              "texture": "AnarchyCorset2.jpg"
+            },
+            {
+              "source": "rivets",
+              "texture": "AnarchyCorset2.jpg"
+            },
+            {
+              "source": "shldr_straps",
+              "texture": "OACorset1.jpg"
+            },
+            {
+              "source": "side_straps",
+              "texture": "OACorset1.jpg"
+            },
+            {
+              "source": "straps",
+              "texture": "OACorset1.jpg"
+            }
+          ]
+        }
+      ],
+      "sim": {
+        "displayName": "Laced Corset",
+        "nameRu": "Корсет на шнуровке",
+        "descEn": "Stiff panels laced at the back. Holds a shape, and holds a knife edge off.",
+        "descRu": "Жёсткие вставки на шнуровке сзади. Держит форму и держит лезвие.",
+        "warmth": 0.1,
+        "armor": 0.08,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      }
+    },
+    {
+      "sourceKey": "Gloves_13454",
+      "folder": "AnarchyStrapGloves",
+      "name": "AnarchyStrapGloves",
+      "simId": "clothing.gloves_strap_anarchy",
+      "layer": "Wear",
+      "slots": [
+        "WristR",
+        "WristL",
+        "HandR",
+        "HandL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "glove",
+          "texture": "TAGlove_TAGloveT.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        }
+      ],
+      "_measured": {
+        "verts": 13454,
+        "polys": 13270,
+        "bbox": [
+          -78.0,
+          78.0,
+          139.9,
+          149.1,
+          -9.0,
+          7.7
+        ],
+        "zones": {
+          "Wrist": 0.471,
+          "Forearm": 0.401,
+          "Shoulder": 0.128
+        },
+        "heelCm": 0.0
+      },
+      "variants": [
+        {
+          "name": "Brn",
+          "from": "CA Long Gloves",
+          "textures": [
+            {
+              "source": "glove",
+              "texture": "TAGlove2.jpg"
+            }
+          ]
+        }
+      ],
+      "sim": {
+        "displayName": "Long Gloves",
+        "nameRu": "Длинные перчатки",
+        "descEn": "To the elbow, fingers and all. Little warmth, but the knuckles stay whole.",
+        "descRu": "До локтя, вместе с пальцами. Тепла немного, зато костяшки целы.",
+        "warmth": 0.02,
+        "armor": 0.02,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "ArmL",
+          "ArmR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "Anarchy_Pants_14585",
+      "folder": "AnarchyPants",
+      "name": "AnarchyPants",
+      "simId": "clothing.pants_anarchy",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis",
+        "ThighR",
+        "ThighL",
+        "ShinR",
+        "ShinL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Pants",
+          "texture": "AnarchyPants.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 14585,
+        "polys": 14412,
+        "bbox": [
+          -19.3,
+          19.3,
+          61.5,
+          105.9,
+          -12.9,
+          11.2
+        ],
+        "zones": {
+          "Pelvis": 0.548,
+          "Thigh": 0.409,
+          "Belly": 0.043
+        },
+        "heelCm": 0.0
+      },
+      "variants": [
+        {
+          "name": "Black",
+          "from": "CA Pants",
+          "textures": [
+            {
+              "source": "Pants",
+              "texture": "OAPants_Blk.jpg"
+            }
+          ]
+        }
+      ],
+      "sim": {
+        "displayName": "Torn Trousers",
+        "nameRu": "Рваные штаны",
+        "descEn": "Full length, and torn at the knees on purpose.",
+        "descRu": "В полную длину, и на коленях рвано намеренно.",
+        "warmth": 0.15,
+        "armor": 0.02,
+        "thermalDelta": 0.0,
+        "capacity": 2,
+        "covers": [
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "TA_Skirt_3494",
+      "folder": "AnarchySkirt",
+      "name": "AnarchySkirt",
+      "simId": "clothing.skirt_anarchy",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis",
+        "ThighR",
+        "ThighL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "skirt",
+          "texture": "TASkirt.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 2220,
+        "polys": 2136,
+        "bbox": [
+          -20.8,
+          20.7,
+          84.1,
+          109.5,
+          -15.3,
+          14.2
+        ],
+        "zones": {
+          "Pelvis": 0.754,
+          "Belly": 0.246
+        },
+        "heelCm": 0.0
+      },
+      "variants": [
+        {
+          "name": "Red",
+          "from": "CA Skirt",
+          "textures": [
+            {
+              "source": "skirt",
+              "texture": "TASkirt2.jpg"
+            }
+          ]
+        }
+      ],
+      "sim": {
+        "displayName": "Pleated Skirt",
+        "nameRu": "Плиссированная юбка",
+        "descEn": "Short and pleated. Moves well, warms nothing.",
+        "descRu": "Короткая, в складку. Двигается хорошо, не греет совсем.",
+        "warmth": 0.06,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "Anarchy_Collar_6240",
+      "folder": "AnarchyStuddedCollar",
+      "name": "AnarchyStuddedCollar",
+      "simId": "clothing.collar_studded_anarchy",
+      "layer": "Wear",
+      "slots": [
+        "Neck"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "rings",
+          "texture": "Anarchy_Met.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "collar",
+          "texture": "AnarchyCollar.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "rivets",
+          "texture": "AnarchyCollar.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "tip",
+          "texture": "AnarchyCollar.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "tabs",
+          "texture": "AnarchyCollar.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 6240,
+        "polys": 6439,
+        "bbox": [
+          -6.0,
+          6.0,
+          149.8,
+          159.2,
+          -8.8,
+          3.3
+        ],
+        "zones": {
+          "Neck": 0.873,
+          "Chest": 0.077,
+          "Head": 0.05
+        },
+        "heelCm": 0.0
+      },
+      "variants": [
+        {
+          "name": "Black",
+          "from": "CA Strap Collar",
+          "textures": [
+            {
+              "source": "collar",
+              "texture": "OACollar_Blk.jpg"
+            },
+            {
+              "source": "rings",
+              "texture": "AnarchyCollar.jpg"
+            },
+            {
+              "source": "rivets",
+              "texture": "AnarchyCollar.jpg"
+            },
+            {
+              "source": "tabs",
+              "texture": "OACollar_Blk.jpg"
+            },
+            {
+              "source": "tip",
+              "texture": "AnarchyCollar.jpg"
+            }
+          ]
+        }
+      ],
+      "sim": {
+        "displayName": "Strap Collar",
+        "nameRu": "Ошейник-ремень",
+        "descEn": "Straps, rings and rivets at the throat. Says more than it protects.",
+        "descRu": "Ремни, кольца и клёпки на горле. Говорит больше, чем защищает.",
+        "warmth": 0.01,
+        "armor": 0.06,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      }
+    },
+    {
+      "sourceKey": "CA_Gloves_20374",
+      "folder": "AnarchyLongGloves",
+      "name": "AnarchyLongGloves",
+      "simId": "clothing.gloves_long_anarchy",
+      "layer": "Wear",
+      "slots": [
+        "ForearmR",
+        "ForearmL",
+        "WristR",
+        "WristL",
+        "HandR",
+        "HandL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "glove",
+          "texture": "AnarchyGlove.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "metal",
+          "texture": "AnarchyGlove.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "buckle",
+          "texture": "AnarchyGlove.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "rivets",
+          "texture": "AnarchyGlove.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "straps",
+          "texture": "AnarchyGlove.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 20374,
+        "polys": 19132,
+        "bbox": [
+          -72.5,
+          72.5,
+          139.5,
+          149.5,
+          -8.3,
+          6.1
+        ],
+        "zones": {
+          "Forearm": 0.936,
+          "Wrist": 0.064
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Strap Gloves",
+        "nameRu": "Перчатки с ремешками",
+        "descEn": "Plated forearm, buckled at the wrist. For grip, not for warmth.",
+        "descRu": "Предплечье в пластинах, на ремешке у запястья. Для хвата, не для тепла.",
+        "warmth": 0.05,
+        "armor": 0.03,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "ArmL",
+          "ArmR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "CA Stud Cuff Left_2498",
+      "folder": "AnarchyCuffs",
+      "name": "AnarchyCuffs",
+      "simId": "clothing.cuffs_anarchy",
+      "layer": "Wear",
+      "slots": [
+        "WristR",
+        "WristL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "bracelet",
+          "texture": "TABracelet.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "metal",
+          "texture": "TABracelet.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 2148,
+        "polys": 2072,
+        "bbox": [
+          58.3,
+          67.0,
+          142.0,
+          149.0,
+          -3.5,
+          5.4
+        ],
+        "zones": {
+          "Forearm": 0.876,
+          "Wrist": 0.124
+        },
+        "heelCm": 0.0
+      },
+      "sourceKeys": [
+        "CA Stud Cuff Left",
+        "CA Stud Cuff Right"
+      ],
+      "sim": {
+        "displayName": "Studded Cuffs",
+        "nameRu": "Клёпаные напульсники",
+        "descEn": "A pair of studded bands. They have stopped a blade once.",
+        "descRu": "Пара клёпаных полос. Однажды остановили лезвие.",
+        "warmth": 0.01,
+        "armor": 0.04,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "ArmL",
+          "ArmR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "TA_Collar_898",
+      "folder": "AnarchyCollar",
+      "name": "AnarchyCollar",
+      "simId": "clothing.collar_anarchy",
+      "layer": "Wear",
+      "slots": [
+        "Neck"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "metal",
+          "texture": "TACollar.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "collar",
+          "texture": "TACollar.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 898,
+        "polys": 838,
+        "bbox": [
+          -6.1,
+          6.2,
+          153.4,
+          157.4,
+          -9.3,
+          2.9
+        ],
+        "zones": {
+          "Neck": 1.0
+        },
+        "heelCm": 0.0
+      },
+      "variants": [
+        {
+          "name": "Brn",
+          "from": "CA Studded Collar",
+          "textures": [
+            {
+              "source": "collar",
+              "texture": "TACollar2.jpg"
+            },
+            {
+              "source": "metal",
+              "texture": "TACollar.jpg"
+            }
+          ]
+        }
+      ],
+      "sim": {
+        "displayName": "Studded Collar",
+        "nameRu": "Ошейник с шипами",
+        "descEn": "Metal studs on leather. Turns a bite that would open a throat.",
+        "descRu": "Металлические шипы по коже. Держит укус, который вскрыл бы горло.",
+        "warmth": 0.01,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      }
+    },
+    {
+      "sourceKey": "Anarchy_Shirt_16591",
+      "folder": "AnarchyBlouse",
+      "name": "AnarchyBlouse",
+      "simId": "clothing.blouse_anarchy",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "ShoulderR",
+        "ShoulderL",
+        "ForearmR",
+        "ForearmL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "shirt",
+          "texture": "AnarchyShirt.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "rivets",
+          "texture": "Anarchy_Met.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "laces",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 16324,
+        "polys": 15652,
+        "bbox": [
+          -16.0,
+          16.0,
+          111.4,
+          153.1,
+          -13.4,
+          14.1
+        ],
+        "zones": {
+          "Chest": 0.841,
+          "Belly": 0.145,
+          "Neck": 0.014
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Torn Blouse",
+        "nameRu": "Рваная блузка",
+        "descEn": "Sleeves and holes in equal measure. Covers the arms, and little else.",
+        "descRu": "Рукава и дыры поровну. Руки закрывает, остальное — как получится.",
+        "warmth": 0.08,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 1,
+        "covers": [
+          "Torso",
+          "ArmL",
+          "ArmR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "thong_4213",
+      "folder": "AnarchyThong",
+      "name": "AnarchyThong",
+      "simId": "underwear.thong_anarchy",
+      "layer": "Underwear",
+      "slots": [
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "panty",
+          "texture": "TAThong.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "strap",
+          "texture": "TAThong_TAThongT.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        }
+      ],
+      "_measured": {
+        "verts": 4213,
+        "polys": 3980,
+        "bbox": [
+          -14.3,
+          14.3,
+          87.7,
+          111.4,
+          -10.0,
+          10.2
+        ],
+        "zones": {
+          "Pelvis": 0.516,
+          "Belly": 0.484
+        },
+        "heelCm": 0.0
+      },
+      "variants": [
+        {
+          "name": "Purple",
+          "from": "CA Thong",
+          "textures": [
+            {
+              "source": "panty",
+              "texture": "TAThong2.jpg"
+            },
+            {
+              "source": "strap",
+              "texture": "TAThong2.jpg"
+            }
+          ]
+        }
+      ],
+      "sim": {
+        "displayName": "Thong",
+        "nameRu": "Стринги",
+        "descEn": "Worn against the skin. She notices when it is gone.",
+        "descRu": "На голое тело. Без него замечает сразу.",
+        "warmth": 0.01,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Pelvis"
+        ]
+      }
+    }
+  ],
+  "skipped": [
+    "CA Stud Cuff Right_2498",
+    "TA_StockingL_882",
+    "TA_StockingR_882"
+  ]
+}

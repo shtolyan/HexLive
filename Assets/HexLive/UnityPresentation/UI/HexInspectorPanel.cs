@@ -608,8 +608,8 @@ namespace HexLive.UnityPresentation.UI
         {
             if (string.IsNullOrEmpty(id)) return null;
             var slug = ItemInfo.Slug(id);
-            return Resources.Load<Sprite>($"HexLive/UI/Items/{id}") ??
-                Resources.Load<Sprite>($"HexLive/UI/Items/{slug}");
+            // Слаг проверяет сам загрузчик — здесь достаточно id.
+            return Wearing.Garments.ItemIcons.Load(id);
         }
 
         private static Color CategoryColor(ItemCategory category) => category switch

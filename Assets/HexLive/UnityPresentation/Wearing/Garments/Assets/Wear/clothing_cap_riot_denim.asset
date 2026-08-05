@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_cap_riot_denim
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.cap_riot_denim
+  prototypeId: clothing.cap_riot
+  displayName: Pinned Cap (Denim)
+  variantMaterials:
+  - {fileID: 2100000, guid: 607bc8cc56cca4c40b5dee8c3723b813, type: 2}
+  - {fileID: 2100000, guid: 2facebd64ebb1d3479a7980dd1d6eb77, type: 2}
+  - {fileID: 2100000, guid: 0f091c4583be8b5468c4de47c6b6c0d1, type: 2}
+  layer: 1
+  covers: 00000000
+  warmth: 0.05
+  armor: 0.01
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

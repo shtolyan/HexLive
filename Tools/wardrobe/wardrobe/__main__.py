@@ -16,8 +16,8 @@ import json
 import sys
 from pathlib import Path
 
-from . import (config, daz, dress, fbx, fetch, install, manifest, preview,
-               register, textures, unity)
+from . import (config, daz, dress, fbx, fetch, heels, install, manifest,
+               preview, register, remove, textures, unity)
 
 
 def _emit(report: dict, path: Path | None = None) -> int:
@@ -62,6 +62,11 @@ def cmd_register(args: argparse.Namespace) -> int:
                           "warmth/armor/thermalDelta/capacity/covers) для: "
                           + ", ".join(report["no_sim_block"]))
     return _emit(report, config.REPORTS / f"{args.drop}-register.json")
+
+
+def cmd_remove(args: argparse.Namespace) -> int:
+    report = remove.remove(args.drop, args.id)
+    return _emit(report, config.REPORTS / f"{args.drop}-remove.json")
 
 
 def cmd_preview(args: argparse.Namespace) -> int:
@@ -115,6 +120,18 @@ def cmd_build(args: argparse.Namespace) -> int:
     draft = manifest.propose(source, args.drop, staged, args.girls)
     for garment in draft["garments"]:
         garment["folder"] = folders[garment["sourceKey"]]
+
+    # Поза каблука, которую вещь навязала фигуре при примерке, — авторская, и
+    # она бьёт расчёт по высоте (HEEL_POSE_SPEC.md §2). Отчёт одевания её уже
+    # записал, здесь остаётся только положить её той вещи, чей это каблук.
+    dress_report_path = config.REPORTS / f"{args.drop}-dress.json"
+    if dress_report_path.exists():
+        authored = heels.from_dress_report(
+            json.loads(dress_report_path.read_text(encoding="utf-8")))
+        for garment in draft["garments"]:
+            pose = authored.get(garment["sourceKey"])
+            if pose:
+                garment["heelPose"] = pose
 
     existing = manifest.load(args.drop) if manifest.path_for(args.drop).exists() else None
     final = manifest.merge(existing, draft) if existing else draft
@@ -194,9 +211,19 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--girls", nargs="*", default=None)
     p.set_defaults(fn=cmd_build)
 
+    p = sub.add_parser("remove", help="снять вещь или расцветку из всех семи мест")
+    p.add_argument("--drop", required=True)
+    p.add_argument("--id", action="append", required=True, help="simId предмета")
+    p.set_defaults(fn=cmd_remove)
+
     p = sub.add_parser("show", help="показать манифест с доказательствами")
     p.add_argument("--drop", required=True)
     p.set_defaults(fn=cmd_show)
+
+    # Отчёты русские, а консоль на этой машине cp1252: печать падала
+    # UnicodeEncodeError уже ПОСЛЕ того, как манифест записан на диск, —
+    # то есть удачный этап выглядел упавшим.
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
     args = parser.parse_args(argv)
     return args.fn(args)

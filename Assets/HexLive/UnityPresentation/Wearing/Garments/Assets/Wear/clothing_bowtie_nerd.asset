@@ -13,11 +13,13 @@ MonoBehaviour:
   m_Name: clothing_bowtie_nerd
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.bowtie_nerd
+  prototypeId: 
   displayName: Bow Tie
+  variantMaterials: []
   layer: 1
   covers: 01000000
-  warmth: 0.01
-  armor: 0
+  warmth: 0.04
+  armor: 0.01
   thermalDelta: 0
   dressDurationTicks: 8
   capacity: 0

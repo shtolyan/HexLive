@@ -1,0 +1,100 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
+  MeshName: Molly
+  VertexCount: 9369
+  Version: 0
+  MeshHeight: 1.7
+  TSamples: 1
+  AzimuthSamples: 1
+  TMin: 0
+  TMax: 1
+  Zones:
+  - Zone: Head
+    Points:
+    - Slot: 14
+      Uv: {x: 0.31617865, y: 0.570776}
+      BindPerU: 0.37805045
+      BindPerV: 0.20399141
+      Valid: 1
+      BindPos: {x: 0.041013535, y: 1.5431036, z: -0.010426953}
+      BindNormal: {x: -0.15318015, y: 0.97651535, z: 0.15150456}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: Torso
+    Points:
+    - Slot: 7
+      Uv: {x: 0.74098164, y: 0.041619897}
+      BindPerU: 0.04736997
+      BindPerV: 0.08908689
+      Valid: 1
+      BindPos: {x: -0.0064298995, y: 1.233944, z: 0.12477153}
+      BindNormal: {x: 0.18428539, y: -0.9456504, z: -0.26792565}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: Pelvis
+    Points:
+    - Slot: 9
+      Uv: {x: 0.5086653, y: 0.30572534}
+      BindPerU: 0.49984565
+      BindPerV: 0.12800787
+      Valid: 1
+      BindPos: {x: -0.003593051, y: 1.0284535, z: -0.08511045}
+      BindNormal: {x: -0.016807666, y: 0.49820378, z: 0.86689705}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: ArmL
+    Points:
+    - Slot: 0
+      Uv: {x: 0.8138303, y: 0.2262212}
+      BindPerU: 0.20250839
+      BindPerV: 0.08143765
+      Valid: 1
+      BindPos: {x: -0.5958541, y: 1.4316765, z: -0.02304889}
+      BindNormal: {x: 0.947113, y: 0.266014, z: -0.17948158}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: ArmR
+    Points:
+    - Slot: 0
+      Uv: {x: 0.8138304, y: 0.22622132}
+      BindPerU: 0.2025081
+      BindPerV: 0.08143697
+      Valid: 1
+      BindPos: {x: 0.5958541, y: 1.4316764, z: -0.023048894}
+      BindNormal: {x: -0.9471127, y: 0.26601177, z: -0.17948626}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: LegL
+    Points:
+    - Slot: 3
+      Uv: {x: 0.483138, y: 0.90926933}
+      BindPerU: 0.48505563
+      BindPerV: 0.7494963
+      Valid: 1
+      BindPos: {x: -0.115923606, y: 0.39929506, z: 0.021730063}
+      BindNormal: {x: 0.241984, y: 0.8464574, z: -0.47429264}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: LegR
+    Points:
+    - Slot: 3
+      Uv: {x: 0.483138, y: 0.90926933}
+      BindPerU: 0.48490632
+      BindPerV: 0.749423
+      Valid: 1
+      BindPos: {x: 0.11592889, y: 0.39933264, z: 0.021702467}
+      BindNormal: {x: -0.24164419, y: 0.84237677, z: -0.4816736}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}

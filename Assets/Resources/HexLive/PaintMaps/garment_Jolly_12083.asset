@@ -30,12 +30,12 @@ MonoBehaviour:
   - Zone: Pelvis
     Points:
     - Slot: 0
-      Uv: {x: 0.4853637, y: 0.87748474}
-      BindPerU: 0.6691885
-      BindPerV: 0.6736086
+      Uv: {x: 0.499581, y: 0.8775801}
+      BindPerU: 0.6596173
+      BindPerV: 0.6705955
       Valid: 1
-      BindPos: {x: 0.0063428315, y: 0.999835, z: 0.10873461}
-      BindNormal: {x: 0.031639077, y: 0.08221061, z: 0.99611264}
+      BindPos: {x: -0.0031216356, y: 0.99985486, z: 0.107473396}
+      BindNormal: {x: -0.010141394, y: 0.091294885, z: 0.99577224}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmL

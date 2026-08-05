@@ -33,7 +33,7 @@ public static class GarmentDropFactory
     // is built from RAM instead of paying a blocking Resources read inside the
     // tick — see the prewarm block in SimulationRunnerBehaviour. A non-garment
     // id is a cheap no-op that also caches the "nothing here" answer.
-    public static void Prewarm(string definitionId) => ActorWardrobe.GetVisuals(definitionId);
+    public static void Prewarm(string definitionId) => ActorWardrobe.PrewarmAsync(definitionId);
 
     // Builds a ground-drop visual for a sim item id, or null when the id has
     // no wear prefabs (caller falls back to its primitive). Root pivot = the

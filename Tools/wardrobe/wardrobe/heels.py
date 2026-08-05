@@ -105,7 +105,13 @@ def _rotations(doc: dict) -> dict[str, float]:
         url = unquote(str(entry.get("url", "")))
         if ":?rotation/x" not in url:
             continue
-        bone = url.split("/")[-1].split(":")[0]
+        # Имя кости стоит ПЕРЕД `:?`, а не в конце адреса:
+        # `name://@selection/lFoot:?rotation/x/value` — последний сегмент здесь
+        # `value`, и по нему не находилось ничего. Поэтому поза из набора не
+        # читалась НИ РАЗУ, и её всегда подменял расчёт по высоте каблука —
+        # который у сапог Amy дал 54.6° вместо авторских 40°, и носок,
+        # повёрнутый не туда, полоскался на ноге.
+        bone = url.split(":?")[0].rstrip("/").split("/")[-1]
         keys = entry.get("keys") or []
         if keys and len(keys[0]) > 1:
             try:
@@ -113,6 +119,42 @@ def _rotations(doc: dict) -> dict[str, float]:
             except (TypeError, ValueError):
                 continue
     return out
+
+
+def from_dress_report(report: dict) -> dict[str, dict]:
+    """Ключ меша -> авторская поза, взятая с самой примерки.
+
+    Лучший источник из всех, и достаётся даром. Часть наборов задаёт позу не
+    файлом `*FootPose*.duf` с поворотами костей, а СВОИМ МОРФОМ на фигуре:
+    Great Charm Boots приносят «CDw Foot Pose», и ERC доворачивает стопу на 55°,
+    а пальцы на −65°. В пресете продукта при этом лежит только `value/value = 1`
+    — читать оттуда нечего, и `from_pose_preset` возвращает None.
+
+    Поэтому этап одевания снимает позу до и после каждого файла (`dress.py`):
+    что вещь навязала фигуре — то и есть её авторская поза. Заодно она там же
+    снимается обратно, иначе в чужой позе уедет ВЕСЬ заход.
+    """
+    poses: dict[str, dict] = {}
+    for girl in report.get("girls") or []:
+        by_file = {entry.get("file"): entry.get("names") or []
+                   for entry in girl.get("loaded") or []}
+        for posed in girl.get("posed") or []:
+            pose = posed.get("pose") or {}
+            foot = pose.get("lFoot", pose.get("rFoot", 0.0))
+            if abs(foot) <= 1.0:
+                continue
+            toe = pose.get("lToe", pose.get("rToe", -foot))
+            answer = {
+                "foot": round(float(foot), 2),
+                "toe": round(float(toe), 2),
+                "lift": round(ANKLE_TO_BALL * math.sin(math.radians(abs(foot))), 4),
+                "axis": [1.0, 0.0, 0.0],
+                "_source": f"поза, наложенная самой вещью при примерке: "
+                           f"{Path(str(posed.get('file'))).stem}",
+            }
+            for name in by_file.get(posed.get("file"), []):
+                poses[name] = answer
+    return poses
 
 
 def from_pose_preset(product_root: Path) -> dict | None:

@@ -13,11 +13,13 @@ MonoBehaviour:
   m_Name: clothing_pants_stars
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.pants_stars
+  prototypeId: 
   displayName: Uniform Trousers
+  variantMaterials: []
   layer: 1
   covers: 020000000500000006000000
-  warmth: 0.17
-  armor: 0.02
+  warmth: 0.13
+  armor: 0.05
   thermalDelta: 0
   dressDurationTicks: 8
-  capacity: 0
+  capacity: 4

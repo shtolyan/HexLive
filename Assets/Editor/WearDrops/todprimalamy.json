@@ -1,0 +1,1761 @@
+{
+  "drop": "todprimalamy",
+  "sources": [
+    {
+      "fbx": "Assets/Temp/jolly todprimalamy.fbx",
+      "actor": "Jolly"
+    },
+    {
+      "fbx": "Assets/Temp/jana todprimalamy.fbx",
+      "actor": "Jana"
+    },
+    {
+      "fbx": "Assets/Temp/marta todprimalamy.fbx",
+      "actor": "Marta"
+    },
+    {
+      "fbx": "Assets/Temp/molly todprimalamy.fbx",
+      "actor": "Molly"
+    }
+  ],
+  "garments": [
+    {
+      "sourceKey": "p3dToD_Babydoll_49239",
+      "folder": "TodBabydoll",
+      "name": "TodBabydoll",
+      "simId": "clothing.babydoll_tod",
+      "layer": "Wear",
+      "slots": [
+        "Chest"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Base",
+          "texture": "p3dToD_Babydoll_TX.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Bands",
+          "texture": "p3dToD_Babydoll_TX.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Line",
+          "texture": "p3dToD_Babydoll_TX.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Ruffle",
+          "texture": "p3dToD_Babydoll_TX.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 49239,
+        "polys": 47496,
+        "bbox": [
+          -21.7,
+          21.7,
+          90.5,
+          155.0,
+          -12.1,
+          17.3
+        ],
+        "zones": {
+          "Chest": 0.822,
+          "Belly": 0.071,
+          "Pelvis": 0.063,
+          "Neck": 0.044
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Lace Babydoll",
+        "nameRu": "Кружевная сорочка",
+        "descEn": "Sheer to the point of pointless. Worn for the wearing, not the warmth.",
+        "descRu": "Прозрачна до бессмысленности. Носится ради того, чтобы носить, а не греться.",
+        "warmth": 0.03,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      }
+    },
+    {
+      "sourceKey": "p3dToD_Gloves_8128",
+      "folder": "TodLaceGloves",
+      "name": "TodLaceGloves",
+      "simId": "clothing.gloves_lace_tod",
+      "layer": "Wear",
+      "slots": [
+        "ForearmR",
+        "ForearmL",
+        "WristR",
+        "WristL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Base",
+          "texture": "p3dToD_Gloves_TX.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Ruffle",
+          "texture": "p3dToD_Gloves_TX.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 8128,
+        "polys": 7872,
+        "bbox": [
+          -68.6,
+          68.6,
+          137.8,
+          151.0,
+          -10.2,
+          8.0
+        ],
+        "zones": {
+          "Forearm": 0.797,
+          "Wrist": 0.203
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Lace Gloves",
+        "nameRu": "Кружевные перчатки",
+        "descEn": "To the elbow, and see-through the whole way. Keep nothing out.",
+        "descRu": "До локтя и насквозь прозрачные. Не держат ничего.",
+        "warmth": 0.02,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "ArmL",
+          "ArmR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "p3dToD_Greaves_62214",
+      "folder": "TodGreaves",
+      "name": "TodGreaves",
+      "simId": "clothing.greaves_tod",
+      "layer": "Outerwear",
+      "slots": [
+        "ShinR",
+        "ShinL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Base",
+          "texture": "p3dToD_Greaves_TX.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Ruffle",
+          "texture": "p3dToD_Greaves_TX.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Belt",
+          "texture": "p3dToD_Greaves_TX.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Metal",
+          "texture": "p3dToD_Greaves_TX.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 62214,
+        "polys": 59056,
+        "bbox": [
+          -19.2,
+          19.2,
+          7.4,
+          46.8,
+          -12.3,
+          4.6
+        ],
+        "zones": {
+          "Shin": 0.989,
+          "Foot": 0.011
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Brass Greaves",
+        "nameRu": "Латунные поножи",
+        "descEn": "Plate strapped over the shin. Heavy, and worth the weight when teeth come.",
+        "descRu": "Пластина поверх голени. Тяжело — и не зря, когда доходит до зубов.",
+        "warmth": 0.04,
+        "armor": 0.18,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "p3dToD_Panty_31415",
+      "folder": "TodPanty",
+      "name": "TodPanty",
+      "simId": "underwear.panty_tod",
+      "layer": "Underwear",
+      "slots": [
+        "Belly",
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Base",
+          "texture": "p3dToD_Panty_TX.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Bands",
+          "texture": "p3dToD_Panty_TX.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Line",
+          "texture": "p3dToD_Panty_TX.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 31415,
+        "polys": 29944,
+        "bbox": [
+          -16.6,
+          16.6,
+          87.8,
+          111.0,
+          -12.0,
+          11.5
+        ],
+        "zones": {
+          "Pelvis": 0.645,
+          "Belly": 0.355
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Lace Briefs",
+        "nameRu": "Кружевные трусики",
+        "descEn": "Worn against the skin. She notices when it is gone.",
+        "descRu": "На голое тело. Без них замечает сразу.",
+        "warmth": 0.02,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso",
+          "Pelvis"
+        ]
+      }
+    },
+    {
+      "sourceKey": "p3dToD_Shoes_11862",
+      "folder": "TodShoes",
+      "name": "TodShoes",
+      "simId": "clothing.shoes_tod",
+      "layer": "Outerwear",
+      "slots": [
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Sole",
+          "texture": "p3dToD_Leather.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Heel",
+          "texture": "p3dToD_Leather.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Base",
+          "texture": "p3dToD_Leather.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Line",
+          "texture": "p3dToD_Leather.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 11862,
+        "polys": 11304,
+        "bbox": [
+          -19.4,
+          19.4,
+          -7.7,
+          6.7,
+          -10.5,
+          16.9
+        ],
+        "zones": {
+          "Foot": 1.0
+        },
+        "heelCm": 7.71
+      },
+      "heelPose": {
+        "foot": 30.0,
+        "toe": -35.0,
+        "lift": 0.055,
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "_source": "поза из набора: ToD All.duf"
+      },
+      "sim": {
+        "displayName": "Buckled Shoes",
+        "nameRu": "Туфли с пряжкой",
+        "descEn": "Thin soles and a hard heel. Made for floors, not for forests.",
+        "descRu": "Тонкая подошва и жёсткий каблук. Для полов, не для леса.",
+        "warmth": 0.05,
+        "armor": 0.02,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "p3dToD_Stockings_8731",
+      "folder": "TodStockings",
+      "name": "TodStockings",
+      "simId": "underwear.stockings_tod",
+      "layer": "Underwear",
+      "slots": [
+        "ThighR",
+        "ThighL",
+        "ShinR",
+        "ShinL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Base",
+          "texture": "p3dToD_LaceTX_p3dToD_LaceTR.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "Bands",
+          "texture": "p3dToD_LaceTX.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 8731,
+        "polys": 8244,
+        "bbox": [
+          -18.9,
+          18.9,
+          39.6,
+          80.2,
+          -11.2,
+          10.0
+        ],
+        "zones": {
+          "Thigh": 0.784,
+          "Shin": 0.216
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Lace Stockings",
+        "nameRu": "Кружевные чулки",
+        "descEn": "Thigh to shin, and you can see the leg through them.",
+        "descRu": "От бедра до голени, и нога сквозь них видна.",
+        "warmth": 0.03,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "p3dToD_Top_11927",
+      "folder": "TodTop",
+      "name": "TodTop",
+      "simId": "clothing.top_tod",
+      "layer": "Wear",
+      "slots": [
+        "Neck",
+        "Chest",
+        "ShoulderR",
+        "ShoulderL",
+        "ForearmR",
+        "ForearmL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Base",
+          "texture": "p3dToD_LaceTX_p3dToD_LaceTR.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "Lines",
+          "texture": "p3dToD_LaceTX.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Ruffle",
+          "texture": "p3dToD_LaceTX.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 11927,
+        "polys": 11744,
+        "bbox": [
+          -6.6,
+          50.3,
+          140.1,
+          160.0,
+          -11.3,
+          4.4
+        ],
+        "zones": {
+          "Neck": 0.426,
+          "Chest": 0.253,
+          "Shoulder": 0.198,
+          "Forearm": 0.101,
+          "Head": 0.022
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "High-collar Blouse",
+        "nameRu": "Блузка со стойкой",
+        "descEn": "Buttoned to the jaw, sleeves to the wrist, and thin as smoke.",
+        "descRu": "Застёгнута под челюсть, рукава до запястья, тонкая как дым.",
+        "warmth": 0.07,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso",
+          "ArmL",
+          "ArmR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "Sleeve_19793",
+      "folder": "PrimalArmWraps",
+      "name": "PrimalArmWraps",
+      "simId": "clothing.armwraps_primal",
+      "layer": "Wear",
+      "slots": [
+        "ForearmR",
+        "ForearmL",
+        "WristR",
+        "WristL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Sleeve",
+          "texture": "Primal_Sleeve.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Cord",
+          "texture": "Primal_Sleeve.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 19793,
+        "polys": 19688,
+        "bbox": [
+          44.5,
+          78.3,
+          140.1,
+          150.2,
+          -8.2,
+          7.7
+        ],
+        "zones": {
+          "Forearm": 0.728,
+          "Wrist": 0.27,
+          "Hand": 0.001
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Hide Arm Wraps",
+        "nameRu": "Кожаные обмотки",
+        "descEn": "Strips of hide bound from wrist to elbow. Warm, and they take a scrape.",
+        "descRu": "Полосы кожи от запястья до локтя. Тепло, и ссадину примут на себя.",
+        "warmth": 0.06,
+        "armor": 0.05,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "ArmL",
+          "ArmR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Sleeve1",
+          "from": "Primal Arm Wrap",
+          "textures": [
+            {
+              "source": "Cord",
+              "texture": "Primal_Sleeve1.jpg"
+            },
+            {
+              "source": "Sleeve",
+              "texture": "Primal_Sleeve1.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Sleeve2",
+          "from": "Primal Arm Wrap",
+          "textures": [
+            {
+              "source": "Cord",
+              "texture": "Primal_Sleeve2.jpg"
+            },
+            {
+              "source": "Sleeve",
+              "texture": "Primal_Sleeve2.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Sleeve3",
+          "from": "Primal Arm Wrap",
+          "textures": [
+            {
+              "source": "Cord",
+              "texture": "Primal_Sleeve3.jpg"
+            },
+            {
+              "source": "Sleeve",
+              "texture": "Primal_Sleeve3.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Panty_11571",
+      "folder": "PrimalBriefs",
+      "name": "PrimalBriefs",
+      "simId": "underwear.briefs_primal",
+      "layer": "Underwear",
+      "slots": [
+        "Belly",
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Panty",
+          "texture": "Primal_Panty.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Stitches",
+          "texture": "Primal_Panty.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 11571,
+        "polys": 11187,
+        "bbox": [
+          -15.9,
+          15.9,
+          87.6,
+          106.6,
+          -12.5,
+          10.8
+        ],
+        "zones": {
+          "Belly": 0.804,
+          "Pelvis": 0.196
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Hide Briefs",
+        "nameRu": "Кожаная набедренная повязка",
+        "descEn": "Soft hide, tied at the hip. The oldest thing anyone wears.",
+        "descRu": "Мягкая кожа, завязана на бедре. Древнейшее, что вообще носят.",
+        "warmth": 0.03,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso",
+          "Pelvis"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Panty1",
+          "from": "Primal Bottom",
+          "textures": [
+            {
+              "source": "Panty",
+              "texture": "Primal_Panty1.jpg"
+            },
+            {
+              "source": "Stitches",
+              "texture": "Primal_Panty1.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Panty2",
+          "from": "Primal Bottom",
+          "textures": [
+            {
+              "source": "Panty",
+              "texture": "Primal_Panty2.jpg"
+            },
+            {
+              "source": "Stitches",
+              "texture": "Primal_Panty2.jpg"
+            }
+          ]
+        },
+        {
+          "name": "Panty3",
+          "from": "Primal Bottom",
+          "textures": [
+            {
+              "source": "Panty",
+              "texture": "Primal_Panty3.jpg"
+            },
+            {
+              "source": "Stitches",
+              "texture": "Primal_Panty3.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "HeadWrap_6844",
+      "folder": "PrimalHeadband",
+      "name": "PrimalHeadband",
+      "simId": "clothing.headband_primal",
+      "layer": "Wear",
+      "slots": [
+        "Head"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Knot",
+          "texture": "Primal_Leather1.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Wrap",
+          "texture": "Primal_Leather1.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 6844,
+        "polys": 6820,
+        "bbox": [
+          -9.1,
+          8.0,
+          160.1,
+          174.0,
+          -10.7,
+          9.5
+        ],
+        "zones": {
+          "Head": 1.0
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Hide Headband",
+        "nameRu": "Кожаная повязка",
+        "descEn": "A band across the brow. Keeps sweat and hair out of her eyes.",
+        "descRu": "Полоса по лбу. Убирает из глаз пот и волосы.",
+        "warmth": 0.02,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Head"
+        ]
+      },
+      "variants": [
+        {
+          "name": "2",
+          "from": "Primal Headband",
+          "textures": [
+            {
+              "source": "Knot",
+              "texture": "Primal_Leather2.jpg"
+            },
+            {
+              "source": "Wrap",
+              "texture": "Primal_Leather2.jpg"
+            }
+          ]
+        },
+        {
+          "name": "3",
+          "from": "Primal Headband",
+          "textures": [
+            {
+              "source": "Knot",
+              "texture": "Primal_Leather3.jpg"
+            },
+            {
+              "source": "Wrap",
+              "texture": "Primal_Leather3.jpg"
+            }
+          ]
+        },
+        {
+          "name": "4",
+          "from": "Primal Headband",
+          "textures": [
+            {
+              "source": "Knot",
+              "texture": "Primal_Leather4.jpg"
+            },
+            {
+              "source": "Wrap",
+              "texture": "Primal_Leather4.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "wrapboots_83416",
+      "folder": "PrimalWrapBoots",
+      "name": "PrimalWrapBoots",
+      "simId": "clothing.wrapboots_primal",
+      "layer": "Outerwear",
+      "slots": [
+        "ShinR",
+        "ShinL",
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Stitches",
+          "texture": "Primal_Moccasins.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Cord",
+          "texture": "Primal_Moccasins.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "LegWrap",
+          "texture": "Primal_Moccasins.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 83416,
+        "polys": 82904,
+        "bbox": [
+          -19.2,
+          19.2,
+          -0.7,
+          50.9,
+          -11.8,
+          13.5
+        ],
+        "zones": {
+          "Foot": 0.521,
+          "Shin": 0.461,
+          "Thigh": 0.018
+        },
+        "heelCm": 0.66
+      },
+      "sim": {
+        "displayName": "Wrapped Boots",
+        "nameRu": "Обмотанные сапоги",
+        "descEn": "Hide bound around foot and shin with cord. Quiet on anything.",
+        "descRu": "Кожа, примотанная шнуром к ступне и голени. Тихие по любому грунту.",
+        "warmth": 0.11,
+        "armor": 0.07,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "1",
+          "from": "Primal Moccasins",
+          "textures": [
+            {
+              "source": "Cord",
+              "texture": "Primal_Moccasins1.jpg"
+            },
+            {
+              "source": "LegWrap",
+              "texture": "Primal_Moccasins1.jpg"
+            },
+            {
+              "source": "Stitches",
+              "texture": "Primal_Moccasins1.jpg"
+            }
+          ]
+        },
+        {
+          "name": "2",
+          "from": "Primal Moccasins",
+          "textures": [
+            {
+              "source": "Cord",
+              "texture": "Primal_Moccasins2.jpg"
+            },
+            {
+              "source": "LegWrap",
+              "texture": "Primal_Moccasins2.jpg"
+            },
+            {
+              "source": "Stitches",
+              "texture": "Primal_Moccasins2.jpg"
+            }
+          ]
+        },
+        {
+          "name": "3",
+          "from": "Primal Moccasins",
+          "textures": [
+            {
+              "source": "Cord",
+              "texture": "Primal_Moccasins3.jpg"
+            },
+            {
+              "source": "LegWrap",
+              "texture": "Primal_Moccasins3.jpg"
+            },
+            {
+              "source": "Stitches",
+              "texture": "Primal_Moccasins3.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Skirt_29046",
+      "folder": "PrimalSkirt",
+      "name": "PrimalSkirt",
+      "simId": "clothing.skirt_primal",
+      "layer": "Wear",
+      "slots": [
+        "Belly",
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Tie",
+          "texture": "Primal_Skirt.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Stitches",
+          "texture": "Primal_Skirt.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Skirt",
+          "texture": "Primal_Skirt.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Overhang",
+          "texture": "Primal_Skirt.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 29046,
+        "polys": 28472,
+        "bbox": [
+          -16.8,
+          19.2,
+          83.3,
+          107.1,
+          -14.3,
+          11.9
+        ],
+        "zones": {
+          "Belly": 0.592,
+          "Pelvis": 0.405,
+          "Thigh": 0.002
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Hide Skirt",
+        "nameRu": "Кожаная юбка",
+        "descEn": "Cut short and left ragged. Moves without asking.",
+        "descRu": "Обрезана коротко и оставлена рваной. Двигается не спрашивая.",
+        "warmth": 0.07,
+        "armor": 0.02,
+        "thermalDelta": 0.0,
+        "capacity": 1,
+        "covers": [
+          "Torso",
+          "Pelvis"
+        ]
+      },
+      "variants": [
+        {
+          "name": "1",
+          "from": "Primal Skirt",
+          "textures": [
+            {
+              "source": "Overhang",
+              "texture": "Primal_Skirt1.jpg"
+            },
+            {
+              "source": "Skirt",
+              "texture": "Primal_Skirt1.jpg"
+            },
+            {
+              "source": "Stitches",
+              "texture": "Primal_Skirt1.jpg"
+            },
+            {
+              "source": "Tie",
+              "texture": "Primal_Skirt1.jpg"
+            }
+          ]
+        },
+        {
+          "name": "2",
+          "from": "Primal Skirt",
+          "textures": [
+            {
+              "source": "Overhang",
+              "texture": "Primal_Skirt2.jpg"
+            },
+            {
+              "source": "Skirt",
+              "texture": "Primal_Skirt2.jpg"
+            },
+            {
+              "source": "Stitches",
+              "texture": "Primal_Skirt2.jpg"
+            },
+            {
+              "source": "Tie",
+              "texture": "Primal_Skirt2.jpg"
+            }
+          ]
+        },
+        {
+          "name": "3",
+          "from": "Primal Skirt",
+          "textures": [
+            {
+              "source": "Overhang",
+              "texture": "Primal_Skirt3.jpg"
+            },
+            {
+              "source": "Skirt",
+              "texture": "Primal_Skirt3.jpg"
+            },
+            {
+              "source": "Stitches",
+              "texture": "Primal_Skirt3.jpg"
+            },
+            {
+              "source": "Tie",
+              "texture": "Primal_Skirt3.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Top_11696",
+      "folder": "PrimalTop",
+      "name": "PrimalTop",
+      "simId": "clothing.top_primal",
+      "layer": "Wear",
+      "slots": [
+        "Chest"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Tie",
+          "texture": "Primal_Top.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Top",
+          "texture": "Primal_Top.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Fringe",
+          "texture": "Primal_Top.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 11696,
+        "polys": 11480,
+        "bbox": [
+          -15.0,
+          15.0,
+          123.5,
+          155.3,
+          -8.6,
+          14.1
+        ],
+        "zones": {
+          "Chest": 0.925,
+          "Neck": 0.075
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Hide Wrap",
+        "nameRu": "Кожаная повязка на грудь",
+        "descEn": "One piece of hide and a knot. Nothing to catch on a branch.",
+        "descRu": "Один кусок кожи и узел. Не за что зацепиться веткой.",
+        "warmth": 0.05,
+        "armor": 0.02,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "variants": [
+        {
+          "name": "1",
+          "from": "Primal Top",
+          "textures": [
+            {
+              "source": "Fringe",
+              "texture": "Primal_Top1.jpg"
+            },
+            {
+              "source": "Tie",
+              "texture": "Primal_Top1.jpg"
+            },
+            {
+              "source": "Top",
+              "texture": "Primal_Top1.jpg"
+            }
+          ]
+        },
+        {
+          "name": "2",
+          "from": "Primal Top",
+          "textures": [
+            {
+              "source": "Fringe",
+              "texture": "Primal_Top2.jpg"
+            },
+            {
+              "source": "Tie",
+              "texture": "Primal_Top2.jpg"
+            },
+            {
+              "source": "Top",
+              "texture": "Primal_Top2.jpg"
+            }
+          ]
+        },
+        {
+          "name": "3",
+          "from": "Primal Top",
+          "textures": [
+            {
+              "source": "Fringe",
+              "texture": "Primal_Top3.jpg"
+            },
+            {
+              "source": "Tie",
+              "texture": "Primal_Top3.jpg"
+            },
+            {
+              "source": "Top",
+              "texture": "Primal_Top3.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "AmyBootsToDS_117974",
+      "folder": "AmyThighBoots",
+      "name": "AmyThighBoots",
+      "simId": "clothing.thighboots_amy",
+      "layer": "Outerwear",
+      "slots": [
+        "ThighR",
+        "ThighL",
+        "ShinR",
+        "ShinL",
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "AmyBoots_SoleEdge",
+          "texture": "Amy Boots Bump A.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "AmyBoots_Sole",
+          "texture": "Amy Boots Bump A.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "AmyBoots_Heel",
+          "texture": "Amy Boots Bump A.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "AmyBoots_HeelTip",
+          "texture": "Amy Boots Bump A.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "AmyBoots_VampB",
+          "texture": "Amy Boots Bump A.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "AmyBoots_VampA",
+          "texture": "Amy Boots Bump A.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "AmyBoots_InVamp",
+          "texture": "Amy Boots Bump A.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 117974,
+        "polys": 116544,
+        "bbox": [
+          -19.1,
+          19.1,
+          -9.0,
+          64.3,
+          -12.0,
+          16.7
+        ],
+        "zones": {
+          "Foot": 0.614,
+          "Shin": 0.236,
+          "Thigh": 0.15
+        },
+        "heelCm": 8.96
+      },
+      "heelPose": {
+        "foot": 40.0,
+        "toe": -45.0,
+        "lift": 0.0707,
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "_source": "поза из набора: AmyBootsFootPose.duf"
+      },
+      "sim": {
+        "displayName": "Thigh Boots",
+        "nameRu": "Ботфорты",
+        "descEn": "Over the knee, on a heel. Warm, and slower than she would like.",
+        "descRu": "Выше колена, на каблуке. Тепло — и медленнее, чем ей хотелось бы.",
+        "warmth": 0.16,
+        "armor": 0.09,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "AmyBootsBToDS_103638",
+      "folder": "AmyAnkleBoots",
+      "name": "AmyAnkleBoots",
+      "simId": "clothing.ankleboots_amy",
+      "layer": "Outerwear",
+      "slots": [
+        "ShinR",
+        "ShinL",
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "AmyBoots_SoleEdge",
+          "texture": "Amy Boots Bump B.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "AmyBoots_Sole",
+          "texture": "Amy Boots Bump B.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "AmyBoots_Heel",
+          "texture": "Amy Boots Bump B.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "AmyBoots_HeelTip",
+          "texture": "Amy Boots Bump B.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "AmyBoots_VampB",
+          "texture": "Amy Boots Bump B.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "AmyBoots_VampA",
+          "texture": "Amy Boots Bump B.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "AmyBoots_InVamp",
+          "texture": "Amy Boots Bump B.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 103638,
+        "polys": 102208,
+        "bbox": [
+          -19.2,
+          19.2,
+          -9.0,
+          43.9,
+          -11.9,
+          17.2
+        ],
+        "zones": {
+          "Foot": 0.699,
+          "Shin": 0.301
+        },
+        "heelCm": 8.96
+      },
+      "heelPose": {
+        "foot": 40.0,
+        "toe": -45.0,
+        "lift": 0.0707,
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "_source": "поза из набора: AmyBootsFootPose.duf"
+      },
+      "sim": {
+        "displayName": "Ankle Boots",
+        "nameRu": "Полусапожки",
+        "descEn": "To the ankle, hard-soled. What she wears when there is walking to do.",
+        "descRu": "До щиколотки, на жёсткой подошве. То, что надевают, когда надо идти.",
+        "warmth": 0.1,
+        "armor": 0.08,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "Amy Necklace_2820",
+      "folder": "AmyPendant",
+      "name": "AmyPendant",
+      "simId": "clothing.pendant_amy",
+      "layer": "Wear",
+      "slots": [
+        "Neck"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "AmyNL_Chain",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "AmyNL_Metal",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "AmyNL_Gem",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 2820,
+        "polys": 2864,
+        "bbox": [
+          -6.7,
+          6.7,
+          146.2,
+          154.2,
+          -8.9,
+          4.8
+        ],
+        "zones": {
+          "Chest": 0.792,
+          "Neck": 0.208
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Pendant",
+        "nameRu": "Подвеска",
+        "descEn": "A stone on a cord. Worth nothing, and she would not sell it.",
+        "descRu": "Камень на шнурке. Ничего не стоит, и она его не продаст.",
+        "warmth": 0.0,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "sourceKeys": [
+        "Amy Necklace_2820"
+      ]
+    },
+    {
+      "sourceKey": "AmyShirt-MaxOut_23558",
+      "folder": "AmyShirt",
+      "name": "AmyShirt",
+      "simId": "clothing.shirt_amy",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "Belly",
+        "ShoulderR",
+        "ShoulderL",
+        "ForearmR",
+        "ForearmL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "AmyShirtBody",
+          "texture": "Amy Shirt Texture C.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "AmyShirtSleeve",
+          "texture": "Amy Shirt Texture C.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 23558,
+        "polys": 23392,
+        "bbox": [
+          -57.1,
+          57.1,
+          102.9,
+          152.0,
+          -12.9,
+          13.7
+        ],
+        "zones": {
+          "Chest": 0.374,
+          "Shoulder": 0.247,
+          "Forearm": 0.201,
+          "Belly": 0.149,
+          "Pelvis": 0.029
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Street Shirt",
+        "nameRu": "Уличная рубашка",
+        "descEn": "Loose, long-sleeved, worn open. Covers the arms and little else.",
+        "descRu": "Свободная, с длинным рукавом, нараспашку. Закрывает руки, и только.",
+        "warmth": 0.09,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 1,
+        "covers": [
+          "Torso",
+          "ArmL",
+          "ArmR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "07",
+          "from": "Amy Shirt",
+          "textures": [
+            {
+              "source": "AmyShirtBody",
+              "texture": "Amy Shirt Texture A.jpg"
+            },
+            {
+              "source": "AmyShirtSleeve",
+              "texture": "Amy Shirt Texture A.jpg"
+            }
+          ]
+        },
+        {
+          "name": "08",
+          "from": "Amy Shirt",
+          "textures": [
+            {
+              "source": "AmyShirtBody",
+              "texture": "Amy Shirt Texture B.jpg"
+            },
+            {
+              "source": "AmyShirtSleeve",
+              "texture": "Amy Shirt Texture B.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "AmySkirt-MaxOut_8672",
+      "folder": "AmySkirt",
+      "name": "AmySkirt",
+      "simId": "clothing.skirt_amy",
+      "layer": "Wear",
+      "slots": [
+        "Belly",
+        "Pelvis",
+        "ThighR",
+        "ThighL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "AmySkirt_BeltOut",
+          "texture": "Amy Skirt Texture A.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "AmySkirt_BeltIn",
+          "texture": "Amy Skirt Texture A.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "AmySkirt_Main",
+          "texture": "Amy Skirt Texture A.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 8672,
+        "polys": 8512,
+        "bbox": [
+          -25.0,
+          25.0,
+          81.1,
+          116.9,
+          -19.7,
+          18.3
+        ],
+        "zones": {
+          "Belly": 0.598,
+          "Pelvis": 0.295,
+          "Thigh": 0.107
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Pleated Skirt",
+        "nameRu": "Юбка в складку",
+        "descEn": "Short and pleated, sitting on the hip. Warms nothing at all.",
+        "descRu": "Короткая, в складку, сидит на бедре. Не греет совсем.",
+        "warmth": 0.05,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso",
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "04",
+          "from": "Amy Skirt",
+          "textures": [
+            {
+              "source": "AmySkirt_BeltIn",
+              "texture": "Amy Skirt Texture B.jpg"
+            },
+            {
+              "source": "AmySkirt_BeltOut",
+              "texture": "Amy Skirt Texture B.jpg"
+            },
+            {
+              "source": "AmySkirt_Main",
+              "texture": "Amy Skirt Texture B.jpg"
+            }
+          ]
+        },
+        {
+          "name": "05",
+          "from": "Amy Skirt",
+          "textures": [
+            {
+              "source": "AmySkirt_BeltIn",
+              "texture": "Amy Skirt Texture C.jpg"
+            },
+            {
+              "source": "AmySkirt_BeltOut",
+              "texture": "Amy Skirt Texture C.jpg"
+            },
+            {
+              "source": "AmySkirt_Main",
+              "texture": "Amy Skirt Texture C.jpg"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "skipped": []
+}

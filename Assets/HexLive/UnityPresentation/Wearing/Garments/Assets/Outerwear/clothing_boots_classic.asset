@@ -13,11 +13,13 @@ MonoBehaviour:
   m_Name: clothing_boots_classic
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.boots_classic
-  displayName: Classic Boots
+  prototypeId: 
+  displayName: Ring Boots
+  variantMaterials: []
   layer: 2
   covers: 0500000006000000
   warmth: 0.14
-  armor: 0.12
+  armor: 0.1
   thermalDelta: 0
   dressDurationTicks: 8
   capacity: 0

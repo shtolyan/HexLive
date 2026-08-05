@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: underwear_briefs_sweety_04panty
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: underwear.briefs_sweety_04panty
+  prototypeId: underwear.briefs_sweety
+  displayName: Lace Panties (04Panty)
+  variantMaterials:
+  - {fileID: 2100000, guid: b675a6bb203d1bd4ea86476f7624a9aa, type: 2}
+  - {fileID: 2100000, guid: b9a8dc646d090d746b6c78b70ce1e9c5, type: 2}
+  - {fileID: 2100000, guid: 1d29d63207375e54da5d97882831eb45, type: 2}
+  - {fileID: 2100000, guid: 92892cc0e6067ef4696619bbb48a2d69, type: 2}
+  layer: 0
+  covers: 0100000002000000
+  warmth: 0.02
+  armor: 0
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 1

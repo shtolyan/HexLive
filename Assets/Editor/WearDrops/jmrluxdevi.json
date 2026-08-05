@@ -1,0 +1,3563 @@
+{
+  "drop": "jmrluxdevi",
+  "sources": [
+    {
+      "fbx": "Assets/Temp/jolly jmrluxdevi.fbx",
+      "actor": "Jolly"
+    },
+    {
+      "fbx": "Assets/Temp/jana jmrluxdevi.fbx",
+      "actor": "Jana"
+    },
+    {
+      "fbx": "Assets/Temp/marta jmrluxdevi.fbx",
+      "actor": "Marta"
+    },
+    {
+      "fbx": "Assets/Temp/molly jmrluxdevi.fbx",
+      "actor": "Molly"
+    }
+  ],
+  "garments": [
+    {
+      "sourceKey": "Bra G3F_3690",
+      "folder": "OpenBackBra",
+      "name": "OpenBackBra",
+      "simId": "underwear.bra_openback",
+      "layer": "Underwear",
+      "slots": [
+        "Neck",
+        "Chest"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Mat1",
+          "texture": null,
+          "color": "#E0E0E0",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Mat2",
+          "texture": null,
+          "color": "#E0E0E0",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 3690,
+        "polys": 3432,
+        "bbox": [
+          -14.4,
+          14.6,
+          121.5,
+          157.4,
+          -8.8,
+          13.8
+        ],
+        "zones": {
+          "Chest": 0.895,
+          "Neck": 0.105
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Open-Back Bra",
+        "nameRu": "Лиф с открытой спиной",
+        "descEn": "Lace, and a strap around the neck.",
+        "descRu": "Кружево и ремешок вокруг шеи.",
+        "warmth": 0.02,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Bra 2",
+          "from": "Bra G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#1A1A1A"
+            },
+            {
+              "source": "Mat2",
+              "color": "#1A1A1A"
+            }
+          ]
+        },
+        {
+          "name": "Bra 3",
+          "from": "Bra G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#740000"
+            },
+            {
+              "source": "Mat2",
+              "color": "#740000"
+            }
+          ]
+        },
+        {
+          "name": "Bra 4",
+          "from": "Bra G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#73A9CD"
+            },
+            {
+              "source": "Mat2",
+              "color": "#73A9CD"
+            }
+          ]
+        },
+        {
+          "name": "Bra 5",
+          "from": "Bra G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#E692C6"
+            },
+            {
+              "source": "Mat2",
+              "color": "#E692C6"
+            }
+          ]
+        },
+        {
+          "name": "Bra 6",
+          "from": "Bra G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#408080"
+            },
+            {
+              "source": "Mat2",
+              "color": "#408080"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Panties G3F_2867",
+      "folder": "OpenBackBriefs",
+      "name": "OpenBackBriefs",
+      "simId": "underwear.briefs_openback",
+      "layer": "Underwear",
+      "slots": [
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Mat1",
+          "texture": null,
+          "color": "#E0E0E0",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Mat2",
+          "texture": null,
+          "color": "#E0E0E0",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 2867,
+        "polys": 2568,
+        "bbox": [
+          -17.1,
+          17.1,
+          87.8,
+          105.1,
+          -12.7,
+          9.7
+        ],
+        "zones": {
+          "Pelvis": 0.943,
+          "Belly": 0.057
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Open-Back Panties",
+        "nameRu": "Трусики с открытой спиной",
+        "descEn": "In a set with the bra.",
+        "descRu": "В пару к лифу.",
+        "warmth": 0.01,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Pelvis"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Panties 2",
+          "from": "Panties G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#1A1A1A"
+            },
+            {
+              "source": "Mat2",
+              "color": "#1A1A1A"
+            }
+          ]
+        },
+        {
+          "name": "Panties 3",
+          "from": "Panties G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#740000"
+            },
+            {
+              "source": "Mat2",
+              "color": "#740000"
+            }
+          ]
+        },
+        {
+          "name": "Panties 4",
+          "from": "Panties G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#73A9CD"
+            },
+            {
+              "source": "Mat2",
+              "color": "#73A9CD"
+            }
+          ]
+        },
+        {
+          "name": "Panties 5",
+          "from": "Panties G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#E692C6"
+            },
+            {
+              "source": "Mat2",
+              "color": "#E692C6"
+            }
+          ]
+        },
+        {
+          "name": "Panties 6",
+          "from": "Panties G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#408080"
+            },
+            {
+              "source": "Mat2",
+              "color": "#408080"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Sports Bra G3F_6951",
+      "folder": "SportsBraJmr",
+      "name": "SportsBraJmr",
+      "simId": "underwear.sportsbra_jmr",
+      "layer": "Underwear",
+      "slots": [
+        "Chest"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Mat2",
+          "texture": "Bra1.jpg",
+          "color": "#D6D6D6",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Mat1",
+          "texture": "Bra1.jpg",
+          "color": "#D6D6D6",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 6951,
+        "polys": 6660,
+        "bbox": [
+          -13.9,
+          13.9,
+          123.4,
+          152.4,
+          -12.8,
+          13.9
+        ],
+        "zones": {
+          "Chest": 0.995,
+          "Neck": 0.005
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Cross-Back Bra",
+        "nameRu": "Спортивный лиф",
+        "descEn": "Wide straps crossed at the back. Holds when you run.",
+        "descRu": "Широкие лямки крест-накрест. Держит на бегу.",
+        "warmth": 0.03,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Bra 2",
+          "from": "Sports Bra G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "Bra2.jpg"
+            },
+            {
+              "source": "Mat2",
+              "texture": "Bra2.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#D6D6D6"
+            },
+            {
+              "source": "Mat2",
+              "color": "#D6D6D6"
+            }
+          ]
+        },
+        {
+          "name": "Bra 3",
+          "from": "Sports Bra G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "Bra3.jpg"
+            },
+            {
+              "source": "Mat2",
+              "texture": "Bra3.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#D6D6D6"
+            },
+            {
+              "source": "Mat2",
+              "color": "#D6D6D6"
+            }
+          ]
+        },
+        {
+          "name": "Bra 4",
+          "from": "Sports Bra G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "Bra4.jpg"
+            },
+            {
+              "source": "Mat2",
+              "texture": "Bra4.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#D6D6D6"
+            },
+            {
+              "source": "Mat2",
+              "color": "#D6D6D6"
+            }
+          ]
+        },
+        {
+          "name": "Bra 5",
+          "from": "Sports Bra G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "Bra5.jpg"
+            },
+            {
+              "source": "Mat2",
+              "texture": "Bra5.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#D6D6D6"
+            },
+            {
+              "source": "Mat2",
+              "color": "#D6D6D6"
+            }
+          ]
+        },
+        {
+          "name": "Bra 6",
+          "from": "Sports Bra G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "Bra6.jpg"
+            },
+            {
+              "source": "Mat2",
+              "texture": "Bra6.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#D6D6D6"
+            },
+            {
+              "source": "Mat2",
+              "color": "#D6D6D6"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Sports Panties G3F_4131",
+      "folder": "SportsBriefsJmr",
+      "name": "SportsBriefsJmr",
+      "simId": "underwear.briefs_sport",
+      "layer": "Underwear",
+      "slots": [
+        "Belly",
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Mat2",
+          "texture": "Panties1.jpg",
+          "color": "#D6D6D6",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Mat1",
+          "texture": "Panties1.jpg",
+          "color": "#D6D6D6",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 4131,
+        "polys": 3928,
+        "bbox": [
+          -15.0,
+          14.9,
+          87.6,
+          112.6,
+          -12.5,
+          11.9
+        ],
+        "zones": {
+          "Pelvis": 0.515,
+          "Belly": 0.485
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Sports Briefs",
+        "nameRu": "Спортивные трусики",
+        "descEn": "High waist, thick band.",
+        "descRu": "Высокая посадка, плотная резинка.",
+        "warmth": 0.02,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso",
+          "Pelvis"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Panties 2",
+          "from": "Sports Panties G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "Panties2.jpg"
+            },
+            {
+              "source": "Mat2",
+              "texture": "Panties2.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#D6D6D6"
+            },
+            {
+              "source": "Mat2",
+              "color": "#D6D6D6"
+            }
+          ]
+        },
+        {
+          "name": "Panties 3",
+          "from": "Sports Panties G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "Panties3.jpg"
+            },
+            {
+              "source": "Mat2",
+              "texture": "Panties3.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#D6D6D6"
+            },
+            {
+              "source": "Mat2",
+              "color": "#D6D6D6"
+            }
+          ]
+        },
+        {
+          "name": "Panties 4",
+          "from": "Sports Panties G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "Panties4.jpg"
+            },
+            {
+              "source": "Mat2",
+              "texture": "Panties4.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#D6D6D6"
+            },
+            {
+              "source": "Mat2",
+              "color": "#D6D6D6"
+            }
+          ]
+        },
+        {
+          "name": "Panties 5",
+          "from": "Sports Panties G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "Panties5.jpg"
+            },
+            {
+              "source": "Mat2",
+              "texture": "Panties5.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#D6D6D6"
+            },
+            {
+              "source": "Mat2",
+              "color": "#D6D6D6"
+            }
+          ]
+        },
+        {
+          "name": "Panties 6",
+          "from": "Sports Panties G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "Panties6.jpg"
+            },
+            {
+              "source": "Mat2",
+              "texture": "Panties6.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#D6D6D6"
+            },
+            {
+              "source": "Mat2",
+              "color": "#D6D6D6"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Swimsuit Top G3F_3209",
+      "folder": "SwimsuitTop",
+      "name": "SwimsuitTop",
+      "simId": "underwear.swimsuit_top",
+      "layer": "Underwear",
+      "slots": [
+        "Chest"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Mat1",
+          "texture": null,
+          "color": "#FFFFFF",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Stripe1",
+          "texture": null,
+          "color": "#000000",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Stripe2",
+          "texture": null,
+          "color": "#000000",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Stripe3",
+          "texture": null,
+          "color": "#000000",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Stripe4",
+          "texture": null,
+          "color": "#000000",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 3209,
+        "polys": 2864,
+        "bbox": [
+          -15.2,
+          15.3,
+          125.0,
+          137.1,
+          -10.0,
+          13.7
+        ],
+        "zones": {
+          "Chest": 1.0
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Strappy Swim Top",
+        "nameRu": "Верх купальника",
+        "descEn": "Straps over straps. Dries fast, and that is its one virtue now.",
+        "descRu": "Ремешки поверх ремешков. Сохнет быстро — теперь это всё его достоинство.",
+        "warmth": 0.01,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Blue",
+          "from": "Swimsuit Top G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Stripe1",
+              "color": "#4040C4"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#4040C4"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#4040C4"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#4040C4"
+            }
+          ]
+        },
+        {
+          "name": "Green",
+          "from": "Swimsuit Top G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Stripe1",
+              "color": "#008000"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#008000"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#008000"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#008000"
+            }
+          ]
+        },
+        {
+          "name": "Pink",
+          "from": "Swimsuit Top G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Stripe1",
+              "color": "#FF80C0"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#FF80C0"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#FF80C0"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#FF80C0"
+            }
+          ]
+        },
+        {
+          "name": "Red",
+          "from": "Swimsuit Top G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Stripe1",
+              "color": "#800000"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#800000"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#800000"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#800000"
+            }
+          ]
+        },
+        {
+          "name": "Top 1",
+          "from": "Swimsuit Top G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "TopFlow1.jpg"
+            },
+            {
+              "source": "Stripe1",
+              "texture": "TopFlow1.jpg"
+            },
+            {
+              "source": "Stripe2",
+              "texture": "TopFlow1.jpg"
+            },
+            {
+              "source": "Stripe3",
+              "texture": "TopFlow1.jpg"
+            },
+            {
+              "source": "Stripe4",
+              "texture": "TopFlow1.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "Top 2",
+          "from": "Swimsuit Top G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "TopFlow2.jpg"
+            },
+            {
+              "source": "Stripe1",
+              "texture": "TopFlow2.jpg"
+            },
+            {
+              "source": "Stripe2",
+              "texture": "TopFlow2.jpg"
+            },
+            {
+              "source": "Stripe3",
+              "texture": "TopFlow2.jpg"
+            },
+            {
+              "source": "Stripe4",
+              "texture": "TopFlow2.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "Top 3",
+          "from": "Swimsuit Top G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "TopFlow3.jpg"
+            },
+            {
+              "source": "Stripe1",
+              "texture": "TopFlow3.jpg"
+            },
+            {
+              "source": "Stripe2",
+              "texture": "TopFlow3.jpg"
+            },
+            {
+              "source": "Stripe3",
+              "texture": "TopFlow3.jpg"
+            },
+            {
+              "source": "Stripe4",
+              "texture": "TopFlow3.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "Top 4",
+          "from": "Swimsuit Top G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "TopFlow4.jpg"
+            },
+            {
+              "source": "Stripe1",
+              "texture": "TopFlow4.jpg"
+            },
+            {
+              "source": "Stripe2",
+              "texture": "TopFlow4.jpg"
+            },
+            {
+              "source": "Stripe3",
+              "texture": "TopFlow4.jpg"
+            },
+            {
+              "source": "Stripe4",
+              "texture": "TopFlow4.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "Top 5",
+          "from": "Swimsuit Top G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "TopFlow5.jpg"
+            },
+            {
+              "source": "Stripe1",
+              "texture": "TopFlow5.jpg"
+            },
+            {
+              "source": "Stripe2",
+              "texture": "TopFlow5.jpg"
+            },
+            {
+              "source": "Stripe3",
+              "texture": "TopFlow5.jpg"
+            },
+            {
+              "source": "Stripe4",
+              "texture": "TopFlow5.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "Top 6",
+          "from": "Swimsuit Top G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "TopFlow6.jpg"
+            },
+            {
+              "source": "Stripe1",
+              "texture": "TopFlow6.jpg"
+            },
+            {
+              "source": "Stripe2",
+              "texture": "TopFlow6.jpg"
+            },
+            {
+              "source": "Stripe3",
+              "texture": "TopFlow6.jpg"
+            },
+            {
+              "source": "Stripe4",
+              "texture": "TopFlow6.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "Top Black",
+          "from": "Swimsuit Top G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#000000"
+            },
+            {
+              "source": "Stripe1",
+              "color": "#000000"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#000000"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#000000"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#000000"
+            }
+          ]
+        },
+        {
+          "name": "Top Blue",
+          "from": "Swimsuit Top G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#4040C4"
+            },
+            {
+              "source": "Stripe1",
+              "color": "#4040C4"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#4040C4"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#4040C4"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#4040C4"
+            }
+          ]
+        },
+        {
+          "name": "Top Green",
+          "from": "Swimsuit Top G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#008000"
+            },
+            {
+              "source": "Stripe1",
+              "color": "#008000"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#008000"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#008000"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#008000"
+            }
+          ]
+        },
+        {
+          "name": "Top Pink",
+          "from": "Swimsuit Top G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#FF80C0"
+            },
+            {
+              "source": "Stripe1",
+              "color": "#FF80C0"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#FF80C0"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#FF80C0"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#FF80C0"
+            }
+          ]
+        },
+        {
+          "name": "Top Red",
+          "from": "Swimsuit Top G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#800000"
+            },
+            {
+              "source": "Stripe1",
+              "color": "#800000"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#800000"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#800000"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#800000"
+            }
+          ]
+        },
+        {
+          "name": "Top White",
+          "from": "Swimsuit Top G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Stripe1",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#C0C0C0"
+            }
+          ]
+        },
+        {
+          "name": "White",
+          "from": "Swimsuit Top G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Stripe1",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#C0C0C0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Swimsuit Bottom G3F_4769",
+      "folder": "SwimsuitBriefs",
+      "name": "SwimsuitBriefs",
+      "simId": "underwear.swimsuit_briefs",
+      "layer": "Underwear",
+      "slots": [
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Mat1",
+          "texture": "BottomFlow1.jpg",
+          "color": "#FFFFFF",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Stripe1",
+          "texture": "BottomFlow1.jpg",
+          "color": "#FFFFFF",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Stripe2",
+          "texture": "BottomFlow1.jpg",
+          "color": "#FFFFFF",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Stripe3",
+          "texture": "BottomFlow1.jpg",
+          "color": "#FFFFFF",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Stripe4",
+          "texture": "BottomFlow1.jpg",
+          "color": "#FFFFFF",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 4769,
+        "polys": 4416,
+        "bbox": [
+          -17.4,
+          17.3,
+          87.8,
+          105.2,
+          -12.7,
+          10.7
+        ],
+        "zones": {
+          "Pelvis": 0.954,
+          "Belly": 0.046
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Strappy Swim Bottom",
+        "nameRu": "Низ купальника",
+        "descEn": "In a set with the top.",
+        "descRu": "В пару к верху.",
+        "warmth": 0.01,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Pelvis"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Bottom 2",
+          "from": "Swimsuit Bottom G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "BottomFlow2.jpg"
+            },
+            {
+              "source": "Stripe1",
+              "texture": "BottomFlow2.jpg"
+            },
+            {
+              "source": "Stripe2",
+              "texture": "BottomFlow2.jpg"
+            },
+            {
+              "source": "Stripe3",
+              "texture": "BottomFlow2.jpg"
+            },
+            {
+              "source": "Stripe4",
+              "texture": "BottomFlow2.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "Bottom 3",
+          "from": "Swimsuit Bottom G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "BottomFlow3.jpg"
+            },
+            {
+              "source": "Stripe1",
+              "texture": "BottomFlow3.jpg"
+            },
+            {
+              "source": "Stripe2",
+              "texture": "BottomFlow3.jpg"
+            },
+            {
+              "source": "Stripe3",
+              "texture": "BottomFlow3.jpg"
+            },
+            {
+              "source": "Stripe4",
+              "texture": "BottomFlow3.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "Bottom 4",
+          "from": "Swimsuit Bottom G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "BottomFlow4.jpg"
+            },
+            {
+              "source": "Stripe1",
+              "texture": "BottomFlow4.jpg"
+            },
+            {
+              "source": "Stripe2",
+              "texture": "BottomFlow4.jpg"
+            },
+            {
+              "source": "Stripe3",
+              "texture": "BottomFlow4.jpg"
+            },
+            {
+              "source": "Stripe4",
+              "texture": "BottomFlow4.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "Bottom 5",
+          "from": "Swimsuit Bottom G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "BottomFlow5.jpg"
+            },
+            {
+              "source": "Stripe1",
+              "texture": "BottomFlow5.jpg"
+            },
+            {
+              "source": "Stripe2",
+              "texture": "BottomFlow5.jpg"
+            },
+            {
+              "source": "Stripe3",
+              "texture": "BottomFlow5.jpg"
+            },
+            {
+              "source": "Stripe4",
+              "texture": "BottomFlow5.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "Bottom 6",
+          "from": "Swimsuit Bottom G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "BottomFlow6.jpg"
+            },
+            {
+              "source": "Stripe1",
+              "texture": "BottomFlow6.jpg"
+            },
+            {
+              "source": "Stripe2",
+              "texture": "BottomFlow6.jpg"
+            },
+            {
+              "source": "Stripe3",
+              "texture": "BottomFlow6.jpg"
+            },
+            {
+              "source": "Stripe4",
+              "texture": "BottomFlow6.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "Bottom Black",
+          "from": "Swimsuit Bottom G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#000000"
+            },
+            {
+              "source": "Stripe1",
+              "color": "#000000"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#000000"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#000000"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#000000"
+            }
+          ]
+        },
+        {
+          "name": "Bottom Blue",
+          "from": "Swimsuit Bottom G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#4040C4"
+            },
+            {
+              "source": "Stripe1",
+              "color": "#4040C4"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#4040C4"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#4040C4"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#4040C4"
+            }
+          ]
+        },
+        {
+          "name": "Bottom Green",
+          "from": "Swimsuit Bottom G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#008000"
+            },
+            {
+              "source": "Stripe1",
+              "color": "#008000"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#008000"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#008000"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#008000"
+            }
+          ]
+        },
+        {
+          "name": "Bottom Pink",
+          "from": "Swimsuit Bottom G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#FF80C0"
+            },
+            {
+              "source": "Stripe1",
+              "color": "#FF80C0"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#FF80C0"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#FF80C0"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#FF80C0"
+            }
+          ]
+        },
+        {
+          "name": "Bottom Red",
+          "from": "Swimsuit Bottom G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#800000"
+            },
+            {
+              "source": "Stripe1",
+              "color": "#800000"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#800000"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#800000"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#800000"
+            }
+          ]
+        },
+        {
+          "name": "Bottom White",
+          "from": "Swimsuit Bottom G3F",
+          "textures": [],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Stripe1",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Stripe2",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Stripe3",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "Stripe4",
+              "color": "#C0C0C0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "NHS Sweater G3F_24352",
+      "folder": "NaughtySweater",
+      "name": "NaughtySweater",
+      "simId": "clothing.sweater_naughty",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "ShoulderR",
+        "ShoulderL",
+        "ForearmR",
+        "ForearmL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Mat1",
+          "texture": "Sweater1.jpg",
+          "color": "#E6E6E6",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 24352,
+        "polys": 24140,
+        "bbox": [
+          -61.9,
+          61.9,
+          115.0,
+          152.2,
+          -13.1,
+          14.1
+        ],
+        "zones": {
+          "Chest": 0.56,
+          "Shoulder": 0.28,
+          "Forearm": 0.143,
+          "Belly": 0.017
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Loose Sweater",
+        "nameRu": "Свободный свитер",
+        "descEn": "Knit, oversized, falls off one shoulder whatever you do.",
+        "descRu": "Вязаный, на размер больше, всё время сползает с плеча.",
+        "warmth": 0.2,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso",
+          "ArmL",
+          "ArmR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Sweater 2",
+          "from": "NO Sweater G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "Sweater2.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#E6E6E6"
+            }
+          ]
+        },
+        {
+          "name": "Sweater 3",
+          "from": "NO Sweater G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "Sweater3.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#E6E6E6"
+            }
+          ]
+        },
+        {
+          "name": "Sweater 4",
+          "from": "NO Sweater G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "Sweater4.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#E6E6E6"
+            }
+          ]
+        },
+        {
+          "name": "Sweater 5",
+          "from": "NO Sweater G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "Sweater5.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#E6E6E6"
+            }
+          ]
+        },
+        {
+          "name": "Sweater 6",
+          "from": "NO Sweater G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "Sweater6.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#E6E6E6"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "NHS Skirt G3F_27980",
+      "folder": "NaughtySkirt",
+      "name": "NaughtySkirt",
+      "simId": "clothing.skirt_naughty",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Mat1",
+          "texture": "Skirt1.jpg",
+          "color": "#FFFFFF",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Mat2",
+          "texture": "Skirt1.jpg",
+          "color": "#FFFFFF",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 27980,
+        "polys": 27816,
+        "bbox": [
+          -24.6,
+          24.1,
+          79.9,
+          108.1,
+          -20.2,
+          14.7
+        ],
+        "zones": {
+          "Pelvis": 0.897,
+          "Thigh": 0.064,
+          "Belly": 0.039
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Pleated Mini",
+        "nameRu": "Плиссированная мини",
+        "descEn": "Short and pleated. Sensible about nothing.",
+        "descRu": "Короткая, в складку. Ни в чём не практичная.",
+        "warmth": 0.04,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Pelvis"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Skirt 2",
+          "from": "NO Skirt G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "Skirt2.jpg"
+            },
+            {
+              "source": "Mat2",
+              "texture": "Skirt2.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Mat2",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "Skirt 3",
+          "from": "NO Skirt G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "Skirt3.jpg"
+            },
+            {
+              "source": "Mat2",
+              "texture": "Skirt3.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Mat2",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "Skirt 4",
+          "from": "NO Skirt G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "Skirt4.jpg"
+            },
+            {
+              "source": "Mat2",
+              "texture": "Skirt4.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Mat2",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "Skirt 5",
+          "from": "NO Skirt G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "Skirt5.jpg"
+            },
+            {
+              "source": "Mat2",
+              "texture": "Skirt5.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Mat2",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "Skirt 6",
+          "from": "NO Skirt G3F",
+          "textures": [
+            {
+              "source": "Mat1",
+              "texture": "Skirt6.jpg"
+            },
+            {
+              "source": "Mat2",
+              "texture": "Skirt6.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Mat2",
+              "color": "#FFFFFF"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Over Knee G3F_18296",
+      "folder": "OverKneeSocks",
+      "name": "OverKneeSocks",
+      "simId": "underwear.stockings_overknee",
+      "layer": "Underwear",
+      "slots": [
+        "ThighR",
+        "ThighL",
+        "ShinR",
+        "ShinL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Mat1",
+          "texture": null,
+          "color": "#D6D6D6",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Mat2",
+          "texture": "OverKM2.jpg",
+          "color": "#FFFFFF",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 18296,
+        "polys": 18160,
+        "bbox": [
+          -16.7,
+          16.7,
+          7.5,
+          62.6,
+          -11.4,
+          6.5
+        ],
+        "zones": {
+          "Shin": 0.688,
+          "Thigh": 0.29,
+          "Foot": 0.022
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Over-Knee Socks",
+        "nameRu": "Гольфы выше колена",
+        "descEn": "Knit, to mid-thigh. Warmer than they look.",
+        "descRu": "Вязаные, до середины бедра. Теплее, чем кажутся.",
+        "warmth": 0.06,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Over Knee 2",
+          "from": "NO Over Knee G3F",
+          "textures": [
+            {
+              "source": "Mat2",
+              "texture": "OverKM2.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#4F4230"
+            },
+            {
+              "source": "Mat2",
+              "color": "#4F4230"
+            }
+          ]
+        },
+        {
+          "name": "Over Knee 3",
+          "from": "NO Over Knee G3F",
+          "textures": [
+            {
+              "source": "Mat2",
+              "texture": "OverKM2.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#000000"
+            },
+            {
+              "source": "Mat2",
+              "color": "#000000"
+            }
+          ]
+        },
+        {
+          "name": "Over Knee 4",
+          "from": "NO Over Knee G3F",
+          "textures": [
+            {
+              "source": "Mat2",
+              "texture": "OverKM2.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#8B0000"
+            },
+            {
+              "source": "Mat2",
+              "color": "#8B0000"
+            }
+          ]
+        },
+        {
+          "name": "Over Knee 5",
+          "from": "NO Over Knee G3F",
+          "textures": [
+            {
+              "source": "Mat2",
+              "texture": "OverKM2.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#DF99D0"
+            },
+            {
+              "source": "Mat2",
+              "color": "#DF99D0"
+            }
+          ]
+        },
+        {
+          "name": "Over Knee 6",
+          "from": "NO Over Knee G3F",
+          "textures": [
+            {
+              "source": "Mat2",
+              "texture": "OverKM2.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Mat1",
+              "color": "#5D89BF"
+            },
+            {
+              "source": "Mat2",
+              "color": "#5D89BF"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "top_39384",
+      "folder": "LuxuryBikiniTop",
+      "name": "LuxuryBikiniTop",
+      "simId": "underwear.top_luxury",
+      "layer": "Underwear",
+      "slots": [
+        "Chest"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "golden",
+          "texture": null,
+          "color": "#FFE29B",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "cord",
+          "texture": "top_texture.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "fabric",
+          "texture": "top_texture.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 39384,
+        "polys": 39536,
+        "bbox": [
+          -14.5,
+          14.5,
+          111.7,
+          156.3,
+          -9.5,
+          14.0
+        ],
+        "zones": {
+          "Chest": 0.925,
+          "Neck": 0.062,
+          "Belly": 0.013
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Jewelled Bikini Top",
+        "nameRu": "Верх бикини с камнями",
+        "descEn": "Beads and metal. Useless and someone kept it anyway.",
+        "descRu": "Бусины и металл. Бесполезен, а всё равно сохранили.",
+        "warmth": 0.01,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      },
+      "variants": [
+        {
+          "name": "02 Cherry Bra",
+          "from": "Luxury Bikini Bra",
+          "textures": [
+            {
+              "source": "cord",
+              "texture": "top_texture03.jpg"
+            },
+            {
+              "source": "fabric",
+              "texture": "top_texture03.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "cord",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "fabric",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "golden",
+              "color": "#D5C0A6"
+            }
+          ]
+        },
+        {
+          "name": "03 White Bra",
+          "from": "Luxury Bikini Bra",
+          "textures": [
+            {
+              "source": "cord",
+              "texture": "top_texture02.jpg"
+            },
+            {
+              "source": "fabric",
+              "texture": "top_texture02.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "cord",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "fabric",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "golden",
+              "color": "#FFE29B"
+            }
+          ]
+        },
+        {
+          "name": "04 Black Bra",
+          "from": "Luxury Bikini Bra",
+          "textures": [
+            {
+              "source": "cord",
+              "texture": "top_texture04.jpg"
+            },
+            {
+              "source": "fabric",
+              "texture": "top_texture04.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "cord",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "fabric",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "golden",
+              "color": "#5A5A5A"
+            }
+          ]
+        },
+        {
+          "name": "05 Golden Bra",
+          "from": "Luxury Bikini Bra",
+          "textures": [
+            {
+              "source": "cord",
+              "texture": "top_texture05.jpg"
+            },
+            {
+              "source": "fabric",
+              "texture": "top_texture05.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "cord",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "fabric",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "golden",
+              "color": "#FFC0C0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "bttm_84130",
+      "folder": "LuxuryBikiniBriefs",
+      "name": "LuxuryBikiniBriefs",
+      "simId": "underwear.briefs_luxury",
+      "layer": "Underwear",
+      "slots": [
+        "Belly",
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Bottom",
+          "texture": "bottom_texture.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Cords",
+          "texture": "bottom_texture.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "golden",
+          "texture": null,
+          "color": "#FFE29B",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 84130,
+        "polys": 84184,
+        "bbox": [
+          -19.0,
+          18.6,
+          87.5,
+          108.9,
+          -12.5,
+          11.2
+        ],
+        "zones": {
+          "Belly": 0.762,
+          "Pelvis": 0.238
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Jewelled Bikini Bottom",
+        "nameRu": "Низ бикини с камнями",
+        "descEn": "In a set with the top.",
+        "descRu": "В пару к верху.",
+        "warmth": 0.01,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso",
+          "Pelvis"
+        ]
+      },
+      "variants": [
+        {
+          "name": "02 Cherry Panties",
+          "from": "Luxury Bikini Panties",
+          "textures": [
+            {
+              "source": "Bottom",
+              "texture": "bottom_texture03.jpg"
+            },
+            {
+              "source": "Cords",
+              "texture": "bottom_texture03.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Bottom",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Cords",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "golden",
+              "color": "#D5C0A6"
+            }
+          ]
+        },
+        {
+          "name": "03 White Panties",
+          "from": "Luxury Bikini Panties",
+          "textures": [
+            {
+              "source": "Bottom",
+              "texture": "bottom_texture02.jpg"
+            },
+            {
+              "source": "Cords",
+              "texture": "bottom_texture02.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Bottom",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Cords",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "golden",
+              "color": "#FFE29B"
+            }
+          ]
+        },
+        {
+          "name": "04 Black Panties",
+          "from": "Luxury Bikini Panties",
+          "textures": [
+            {
+              "source": "Bottom",
+              "texture": "bottom_texture04.jpg"
+            },
+            {
+              "source": "Cords",
+              "texture": "bottom_texture04.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Bottom",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Cords",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "golden",
+              "color": "#5A5A5A"
+            }
+          ]
+        },
+        {
+          "name": "05 Golden Panties",
+          "from": "Luxury Bikini Panties",
+          "textures": [
+            {
+              "source": "Bottom",
+              "texture": "bottom_texture05.jpg"
+            },
+            {
+              "source": "Cords",
+              "texture": "bottom_texture05.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Bottom",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Cords",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "golden",
+              "color": "#FFC0C0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Shoes_18658",
+      "folder": "LuxuryHeels",
+      "name": "LuxuryHeels",
+      "simId": "clothing.heels_luxury",
+      "layer": "Outerwear",
+      "slots": [
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "crystal",
+          "texture": null,
+          "color": "#FFE29B",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "insole",
+          "texture": "summer_shoes02_texture.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "sole",
+          "texture": "summer_shoes02_texture.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "cork",
+          "texture": "summer_shoes02_texture.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "fabric",
+          "texture": "summer_shoes_texture.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "metal",
+          "texture": null,
+          "color": "#5A5A5A",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 18658,
+        "polys": 17864,
+        "bbox": [
+          -18.9,
+          18.9,
+          -9.1,
+          9.8,
+          -10.2,
+          15.0
+        ],
+        "zones": {
+          "Foot": 1.0
+        },
+        "heelCm": 9.13
+      },
+      "heelPose": {
+        "foot": 42.9,
+        "toe": 0.0,
+        "lift": 0.0749,
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "_source": "поза, наложенная самой вещью при примерке: Luxury Bikini Shoes"
+      },
+      "sim": {
+        "displayName": "Strap Heels",
+        "nameRu": "Босоножки на каблуке",
+        "descEn": "Thin straps on a high heel. Made for a floor that no longer exists.",
+        "descRu": "Тонкие ремешки на высоком каблуке. Для пола, которого больше нет.",
+        "warmth": 0.02,
+        "armor": 0.02,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Golden Color",
+          "from": "Luxury Bikini Shoes",
+          "textures": [
+            {
+              "source": "cork",
+              "texture": "summer_shoes02_texture.jpg"
+            },
+            {
+              "source": "fabric",
+              "texture": "summer_shoes_texture.jpg"
+            },
+            {
+              "source": "insole",
+              "texture": "summer_shoes02_texture.jpg"
+            },
+            {
+              "source": "sole",
+              "texture": "summer_shoes02_texture.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "cork",
+              "color": "#D5B8A4"
+            },
+            {
+              "source": "crystal",
+              "color": "#FFE29B"
+            },
+            {
+              "source": "fabric",
+              "color": "#F5F6F6"
+            },
+            {
+              "source": "insole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "metal",
+              "color": "#5A5A5A"
+            },
+            {
+              "source": "sole",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "Light Pink Color",
+          "from": "Luxury Bikini Shoes",
+          "textures": [
+            {
+              "source": "cork",
+              "texture": "summer_shoes02_texture02.jpg"
+            },
+            {
+              "source": "fabric",
+              "texture": "summer_shoes_texture03.jpg"
+            },
+            {
+              "source": "insole",
+              "texture": "summer_shoes02_texture02.jpg"
+            },
+            {
+              "source": "sole",
+              "texture": "summer_shoes02_texture02.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "cork",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "crystal",
+              "color": "#FAD0C0"
+            },
+            {
+              "source": "fabric",
+              "color": "#F5F6F6"
+            },
+            {
+              "source": "insole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "metal",
+              "color": "#5A5A5A"
+            },
+            {
+              "source": "sole",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "Silver Color",
+          "from": "Luxury Bikini Shoes",
+          "textures": [
+            {
+              "source": "cork",
+              "texture": "summer_shoes02_texture02.jpg"
+            },
+            {
+              "source": "fabric",
+              "texture": "summer_shoes_texture02.jpg"
+            },
+            {
+              "source": "insole",
+              "texture": "summer_shoes02_texture02.jpg"
+            },
+            {
+              "source": "sole",
+              "texture": "summer_shoes02_texture02.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "cork",
+              "color": "#D5B8A4"
+            },
+            {
+              "source": "crystal",
+              "color": "#C4C7C7"
+            },
+            {
+              "source": "fabric",
+              "color": "#F5F6F6"
+            },
+            {
+              "source": "insole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "metal",
+              "color": "#5A5A5A"
+            },
+            {
+              "source": "sole",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "White Color",
+          "from": "Luxury Bikini Shoes",
+          "textures": [
+            {
+              "source": "cork",
+              "texture": "summer_shoes02_texture.jpg"
+            },
+            {
+              "source": "fabric",
+              "texture": "summer_shoes_texture04.jpg"
+            },
+            {
+              "source": "insole",
+              "texture": "summer_shoes02_texture02.jpg"
+            },
+            {
+              "source": "sole",
+              "texture": "summer_shoes02_texture.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "cork",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "crystal",
+              "color": "#BABABA"
+            },
+            {
+              "source": "fabric",
+              "color": "#F5F6F6"
+            },
+            {
+              "source": "insole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "metal",
+              "color": "#5A5A5A"
+            },
+            {
+              "source": "sole",
+              "color": "#FFFFFF"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Bracelet_3006",
+      "folder": "LuxuryBracelet",
+      "name": "LuxuryBracelet",
+      "simId": "clothing.bracelet_luxury",
+      "layer": "Wear",
+      "slots": [
+        "ForearmR",
+        "ForearmL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "silver",
+          "texture": null,
+          "color": "#FFA7A7",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "White",
+          "texture": null,
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Golden",
+          "texture": null,
+          "color": "#8E7D56",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Metal",
+          "texture": "bracelet_texture.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 3006,
+        "polys": 2832,
+        "bbox": [
+          64.6,
+          66.6,
+          143.2,
+          148.2,
+          -1.1,
+          5.6
+        ],
+        "zones": {
+          "Forearm": 0.969,
+          "Wrist": 0.031
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Bracelet",
+        "nameRu": "Браслет",
+        "descEn": "Metal, on the forearm.",
+        "descRu": "Металл, на предплечье.",
+        "warmth": 0.0,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "ArmL",
+          "ArmR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "Sunglasses_31828",
+      "folder": "LuxurySunglasses",
+      "name": "LuxurySunglasses",
+      "simId": "clothing.sunglasses_luxury",
+      "layer": "Wear",
+      "slots": [
+        "Head"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Frame",
+          "texture": "sunglasses2_texture.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Golden",
+          "texture": null,
+          "color": "#FFF6D0",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Lens",
+          "texture": "sunglasses2_texture_sunglasses2_texture_op.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "Frame_sunglasses_texture.jpg",
+          "texture": "sunglasses_texture.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 31828,
+        "polys": 30552,
+        "bbox": [
+          -8.0,
+          8.0,
+          164.8,
+          170.8,
+          -4.3,
+          9.8
+        ],
+        "zones": {
+          "Head": 1.0
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Sunglasses",
+        "nameRu": "Солнечные очки",
+        "descEn": "Dark lenses. The sun here is worse than it used to be.",
+        "descRu": "Тёмные стёкла. Солнце тут теперь злее прежнего.",
+        "warmth": 0.0,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Head"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Animal Print Color",
+          "from": "Luxury Bikini Sunglasses",
+          "textures": [
+            {
+              "source": "Frame",
+              "texture": "sunglasses2_texture05.jpg"
+            },
+            {
+              "source": "Frame_sunglasses_texture.jpg",
+              "texture": "sunglasses_texture05.jpg"
+            },
+            {
+              "source": "Lens",
+              "texture": "sunglasses2_texture05.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Frame",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "Frame_sunglasses_texture.jpg",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "Golden",
+              "color": "#FFF6D0"
+            },
+            {
+              "source": "Lens",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "Burgundy Color",
+          "from": "Luxury Bikini Sunglasses",
+          "textures": [
+            {
+              "source": "Frame",
+              "texture": "sunglasses2_texture06.jpg"
+            },
+            {
+              "source": "Frame_sunglasses_texture.jpg",
+              "texture": "sunglasses_texture06.jpg"
+            },
+            {
+              "source": "Lens",
+              "texture": "sunglasses2_texture03.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Frame",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Frame_sunglasses_texture.jpg",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Golden",
+              "color": "#FFF6D0"
+            },
+            {
+              "source": "Lens",
+              "color": "#F5F6F6"
+            }
+          ]
+        },
+        {
+          "name": "Light Peach Color",
+          "from": "Luxury Bikini Sunglasses",
+          "textures": [
+            {
+              "source": "Frame",
+              "texture": "sunglasses2_texture.jpg"
+            },
+            {
+              "source": "Frame_sunglasses_texture.jpg",
+              "texture": "sunglasses_texture.jpg"
+            },
+            {
+              "source": "Lens",
+              "texture": "sunglasses2_texture.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Frame",
+              "color": "#DDDDDD"
+            },
+            {
+              "source": "Frame_sunglasses_texture.jpg",
+              "color": "#DDDDDD"
+            },
+            {
+              "source": "Golden",
+              "color": "#FFF6D0"
+            },
+            {
+              "source": "Lens",
+              "color": "#F5F6F6"
+            }
+          ]
+        },
+        {
+          "name": "Rainbow Color",
+          "from": "Luxury Bikini Sunglasses",
+          "textures": [
+            {
+              "source": "Frame",
+              "texture": "sunglasses2_texture02.jpg"
+            },
+            {
+              "source": "Frame_sunglasses_texture.jpg",
+              "texture": "sunglasses_texture02.jpg"
+            },
+            {
+              "source": "Lens",
+              "texture": "sunglasses2_texture02.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Frame",
+              "color": "#E9E9E9"
+            },
+            {
+              "source": "Frame_sunglasses_texture.jpg",
+              "color": "#E9E9E9"
+            },
+            {
+              "source": "Golden",
+              "color": "#FFF6D0"
+            },
+            {
+              "source": "Lens",
+              "color": "#F5F6F6"
+            }
+          ]
+        },
+        {
+          "name": "sunset color",
+          "from": "Luxury Bikini Sunglasses",
+          "textures": [
+            {
+              "source": "Frame",
+              "texture": "sunglasses2_texture04.jpg"
+            },
+            {
+              "source": "Frame_sunglasses_texture.jpg",
+              "texture": "sunglasses_texture04.jpg"
+            },
+            {
+              "source": "Lens",
+              "texture": "sunglasses2_texture04.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Frame",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "Frame_sunglasses_texture.jpg",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "Golden",
+              "color": "#FFF6D0"
+            },
+            {
+              "source": "Lens",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "with color",
+          "from": "Luxury Bikini Sunglasses",
+          "textures": [
+            {
+              "source": "Frame",
+              "texture": "sunglasses2_texture03.jpg"
+            },
+            {
+              "source": "Frame_sunglasses_texture.jpg",
+              "texture": "sunglasses_texture03.jpg"
+            },
+            {
+              "source": "Lens",
+              "texture": "sunglasses2_texture03.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "Frame",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "Frame_sunglasses_texture.jpg",
+              "color": "#E7E7E7"
+            },
+            {
+              "source": "Golden",
+              "color": "#FFF6D0"
+            },
+            {
+              "source": "Lens",
+              "color": "#F5F6F6"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "CityDress_6436",
+      "folder": "CityDress",
+      "name": "CityDress",
+      "simId": "clothing.dress_city",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "Belly",
+        "Pelvis",
+        "ThighR",
+        "ThighL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "top",
+          "texture": "01CityDress.jpg",
+          "color": "#646464",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "skirt",
+          "texture": "01CityDress.jpg",
+          "color": "#252525",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 6436,
+        "polys": 6296,
+        "bbox": [
+          -25.6,
+          25.6,
+          75.4,
+          156.2,
+          -14.0,
+          15.5
+        ],
+        "zones": {
+          "Chest": 0.377,
+          "Pelvis": 0.254,
+          "Thigh": 0.209,
+          "Belly": 0.107,
+          "Neck": 0.052
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "City Dress",
+        "nameRu": "Городское платье",
+        "descEn": "Cut for an office, worn where there are none.",
+        "descRu": "Скроено для офиса, носится там, где офисов нет.",
+        "warmth": 0.07,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso",
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "02 Dress",
+          "from": "City Dress",
+          "textures": [
+            {
+              "source": "skirt",
+              "texture": "01CityDress.jpg"
+            },
+            {
+              "source": "top",
+              "texture": "01CityDress.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "skirt",
+              "color": "#111111"
+            },
+            {
+              "source": "top",
+              "color": "#720000"
+            }
+          ]
+        },
+        {
+          "name": "03 Dress",
+          "from": "City Dress",
+          "textures": [
+            {
+              "source": "skirt",
+              "texture": "01CityDress.jpg"
+            },
+            {
+              "source": "top",
+              "texture": "01CityDress.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "skirt",
+              "color": "#C5B594"
+            },
+            {
+              "source": "top",
+              "color": "#907D5E"
+            }
+          ]
+        },
+        {
+          "name": "04 Dress",
+          "from": "City Dress",
+          "textures": [
+            {
+              "source": "skirt",
+              "texture": "01CityDress.jpg"
+            },
+            {
+              "source": "top",
+              "texture": "01CityDress.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "skirt",
+              "color": "#00067F"
+            },
+            {
+              "source": "top",
+              "color": "#14234C"
+            }
+          ]
+        },
+        {
+          "name": "05 Dress",
+          "from": "City Dress",
+          "textures": [
+            {
+              "source": "skirt",
+              "texture": "05CityDress.jpg"
+            },
+            {
+              "source": "top",
+              "texture": "05CityDress.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "skirt",
+              "color": "#E3E3E3"
+            },
+            {
+              "source": "top",
+              "color": "#E3E3E3"
+            }
+          ]
+        },
+        {
+          "name": "06 Dress",
+          "from": "City Dress",
+          "textures": [
+            {
+              "source": "skirt",
+              "texture": "06CityDress.jpg"
+            },
+            {
+              "source": "top",
+              "texture": "06CityDress.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "skirt",
+              "color": "#E3E3E3"
+            },
+            {
+              "source": "top",
+              "color": "#E3E3E3"
+            }
+          ]
+        },
+        {
+          "name": "07 Dress",
+          "from": "City Dress",
+          "textures": [
+            {
+              "source": "skirt",
+              "texture": "07CityDress.jpg"
+            },
+            {
+              "source": "top",
+              "texture": "07CityDress.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "skirt",
+              "color": "#E3E3E3"
+            },
+            {
+              "source": "top",
+              "color": "#E3E3E3"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

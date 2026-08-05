@@ -31,11 +31,11 @@ MonoBehaviour:
     Points:
     - Slot: 0
       Uv: {x: 0.7797866, y: 0.6351861}
-      BindPerU: 0.93805975
-      BindPerV: 0.84217095
+      BindPerU: 0.90569144
+      BindPerV: 0.91322535
       Valid: 1
-      BindPos: {x: 0.036769062, y: 0.6029888, z: -0.029486172}
-      BindNormal: {x: -0.95603436, y: -0.014536929, z: -0.29289415}
+      BindPos: {x: 0.042577516, y: 0.61888385, z: -0.030207837}
+      BindNormal: {x: -0.92584705, y: -0.004533537, z: -0.3778713}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmL
@@ -47,22 +47,22 @@ MonoBehaviour:
   - Zone: LegL
     Points:
     - Slot: 1
-      Uv: {x: 0.31840923, y: 0.494418}
-      BindPerU: 0.85626537
-      BindPerV: 0.8318726
+      Uv: {x: 0.31707457, y: 0.49689567}
+      BindPerU: 0.8382829
+      BindPerV: 0.92721546
       Valid: 1
-      BindPos: {x: -0.0682683, y: 0.47564864, z: 0.0146838045}
-      BindNormal: {x: 0.6300903, y: -0.3341867, z: 0.70093185}
+      BindPos: {x: -0.06639937, y: 0.48479763, z: 0.015045349}
+      BindNormal: {x: 0.6722071, y: -0.31575137, z: 0.66965556}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegR
     Points:
     - Slot: 1
-      Uv: {x: 0.18142779, y: 0.4927266}
-      BindPerU: 0.8091414
-      BindPerV: 0.85820043
+      Uv: {x: 0.1897015, y: 0.4970471}
+      BindPerU: 0.9658089
+      BindPerV: 0.8447181
       Valid: 1
-      BindPos: {x: 0.070934094, y: 0.47447062, z: 0.016346239}
-      BindNormal: {x: -0.6259533, y: -0.34320098, z: 0.7002824}
+      BindPos: {x: 0.063726805, y: 0.4865469, z: 0.013029623}
+      BindNormal: {x: -0.69985443, y: -0.30857578, z: 0.6441931}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}

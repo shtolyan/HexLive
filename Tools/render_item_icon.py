@@ -45,7 +45,130 @@ SUNS = (  # direction, energy: key / fill / rim / top
 )
 
 ICON_DIR = "Assets/Resources/HexLive/UI/Items"
-META_TEMPLATE = os.path.join(ICON_DIR, "Bikini Bottom.png.meta")
+# Шаблон .meta встроен НАМЕРЕННО. Раньше он копировался с соседней
+# иконки — и когда ту вещь снесли вместе со старым гардеробом,
+# установка иконок сломалась бы на пустом месте. Плюс режим спрайта
+# тут зафиксирован: Single. Multiple с пустой нарезкой даёт текстуру,
+# на которой Resources.Load<Sprite> возвращает null, — иконки просто
+# не появляются, без единой ошибки (так пропали 673 штуки).
+META_TEMPLATE_TEXT = """fileFormatVersion: 2
+guid: __GUID__
+TextureImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 1
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable: {}
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+"""
 
 
 def parse_args():
@@ -182,10 +305,9 @@ def install(png, item_id):
         raise SystemExit(f"run from the repo root — {ICON_DIR} not found")
     target = os.path.join(ICON_DIR, item_id + ".png")
     shutil.copyfile(png, target)
-    meta = open(META_TEMPLATE, encoding="utf-8").read()
-    meta = re.sub(r"^guid: [0-9a-f]{32}$", "guid: " + uuid.uuid4().hex, meta,
-                  count=1, flags=re.M)
-    meta = re.sub(r"spriteID: [0-9a-f]{32}", "spriteID: " + uuid.uuid4().hex, meta, count=1)
+    meta = (META_TEMPLATE_TEXT
+            .replace("__GUID__", uuid.uuid4().hex)
+            .replace("__SPRITEID__", uuid.uuid4().hex))
     open(target + ".meta", "w", encoding="utf-8").write(meta)
     print("INSTALLED", target)
 

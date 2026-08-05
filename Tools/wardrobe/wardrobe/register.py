@@ -46,6 +46,25 @@ def slug(garment_id: str) -> str:
     return "".join(c if c.isascii() and c.isalnum() else "_" for c in garment_id.lower())
 
 
+def variant_slug(colour_name: str) -> str:
+    """Имя расцветки -> хвост её id. Зеркало `NewWearExtractor.VariantSlug`.
+
+    ⚠️ Это НЕ `slug`, и разница не косметическая. Экстрактор схлопывает подряд
+    идущие подчёркивания, `ItemCatalog.Slug` — нет. У расцветки «Blk Lea + Lace»
+    получались два РАЗНЫХ id: `..._blk_lea_lace` у ассета определения и иконки,
+    `..._blk_lea___lace` у строки библиотеки. Дальше сборщик каталога честно
+    заводил под свой id пустого близнеца, и в игру попадал именно он — вещь без
+    материалов и без картинки (§9).
+
+    Один и тот же id должен получаться на обеих сторонах, поэтому правило здесь
+    ровно то же, что в C#: схлопнуть повторы и обрезать по краям.
+    """
+    tail = slug(colour_name)
+    while "__" in tail:
+        tail = tail.replace("__", "_")
+    return tail.strip("_")
+
+
 def covers_for(slots: list[str]) -> list[str]:
     parts = {_SLOT_TO_PART[s] for s in slots if s in _SLOT_TO_PART}
     return sorted(parts, key=_PART_ORDER.index)
@@ -73,14 +92,25 @@ _SECTION_END = {
     "Underwear": "// --- Wear: the main clothing layer",
     "Wear": "// --- Outerwear: the top layer",
     "Outerwear": "// --- §72: снаряжение чужака",
+    # Сумки идут той же секцией, что и верхняя одежда: отдельного баннера в
+    # библиотеке под них нет, а заводить его ради порядка строк — значит
+    # придумать себе ещё одно место, которое надо не забыть.
+    "Bags": "// --- §72: снаряжение чужака",
 }
 
 
 def library_row(sim: dict, garment_id: str, layer: str) -> str:
     covers = ", ".join(f"BodyPart.{p}" for p in sim["covers"])
-    return (f'                new("{garment_id}", "{sim["displayName"]}", '
-            f'WearLayer.{layer}, {sim["warmth"]:.2f}f, {sim["armor"]:.2f}f, '
-            f'{sim["thermalDelta"]:.2f}f, dress, {sim["capacity"]}, {covers}),')
+    row = (f'                new("{garment_id}", "{sim["displayName"]}", '
+           f'WearLayer.{layer}, {sim["warmth"]:.2f}f, {sim["armor"]:.2f}f, '
+           f'{sim["thermalDelta"]:.2f}f, dress, {sim["capacity"]}, {covers})')
+    # A colourway is an item in its own right — its own name, its own row — that
+    # merely borrows another's geometry. `PrototypeId` is a settable property
+    # rather than a constructor argument, because ~100 existing rows pass their
+    # arguments positionally and none of them would survive a new parameter.
+    if sim.get("prototypeId"):
+        row += f' {{ PrototypeId = "{sim["prototypeId"]}" }}'
+    return row + ","
 
 
 def add_to_library(garments: list[dict]) -> dict:

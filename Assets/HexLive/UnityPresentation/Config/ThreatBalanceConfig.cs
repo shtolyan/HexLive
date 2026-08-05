@@ -76,6 +76,8 @@ namespace HexLive.UnityPresentation.Config
         public bool answerBlowsEnabled = true;
         [Tooltip("§109: погоня ближе этого радиуса — встаёт в боевую стойку заранее.")]
         [Range(1, 8)] public int answerReadyRadiusTiles = 3;
+        [Tooltip("§109.13: мёртвая зона доворота к подходящему обидчику, градусы. Без неё жертва подруливала за бегущим на КАЖДОМ среднем тике — «крутится туда-сюда».")]
+        [Range(0f, 90f)] public float braceFaceDeadzoneDegrees = 35f;
         [Tooltip("§71: СПРИНТ НА ПОМОЩЬ — во сколько раз быстрее она бежит, пока цель Defend (крик о помощи, охрана друга, первый удар §62). НЕ складывается с адреналином: берётся БОЛЬШИЙ множитель.")]
         [Range(1f, 5f)] public float defendMoveSpeedFactor = 2.5f;
 

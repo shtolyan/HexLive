@@ -49,7 +49,12 @@ public static class ColonistAppearance
 
     // Hair prefabs (§31B.4B). Any Genesis3 hair fits any actress — it skins to
     // the shared head/neck bones — so this pool is not per-mesh. Kept in sync
-    // with Assets/ImportedActors/Wear/<Name>.prefab via the appearance catalog.
+    // with Assets/ImportedActors/Hair/<Name>.prefab via the appearance catalog.
+    //
+    // The COLOUR is not here and not anywhere in the simulation: it is derived
+    // from the colonist's id on the view side (§116.1), because a hairstyle's
+    // colour folders are art, and the sim would have to carry a copy of the
+    // whole list to roll one.
     public static readonly string[] Hairstyles =
     {
         "AdellHair", "AsukaHair", "BendineHair", "Bob3Hair", "ChunkyHair",

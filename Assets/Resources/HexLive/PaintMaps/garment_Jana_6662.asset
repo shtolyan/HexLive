@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
+  MeshName: Jana
+  VertexCount: 6662
+  Version: 0
+  MeshHeight: 1.7
+  TSamples: 1
+  AzimuthSamples: 1
+  TMin: 0
+  TMax: 1
+  Zones:
+  - Zone: Head
+    Points:
+    - Slot: 0
+      Uv: {x: 0.1332117, y: 0.76306766}
+      BindPerU: 1.4227558
+      BindPerV: 1.235519
+      Valid: 1
+      BindPos: {x: -0.0045449664, y: 1.5755153, z: -0.08831803}
+      BindNormal: {x: 0.018642966, y: 0.96103334, z: 0.27580318}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: Torso
+    Points:
+    - Slot: 1
+      Uv: {x: 0.6795955, y: 0.39974666}
+      BindPerU: 1.2390012
+      BindPerV: 1.2561781
+      Valid: 1
+      BindPos: {x: -0.0048517506, y: 1.1503178, z: -0.06450511}
+      BindNormal: {x: -0.0060718213, y: 0.0148325525, z: -0.9998716}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: Pelvis
+    Points:
+    - Slot: 1
+      Uv: {x: 0.679764, y: 0.37017262}
+      BindPerU: 1.2287068
+      BindPerV: 1.2437938
+      Valid: 1
+      BindPos: {x: -0.004590501, y: 1.1149386, z: -0.07246587}
+      BindNormal: {x: -0.008516686, y: 0.47305778, z: -0.88099027}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: ArmL
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: ArmR
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: LegL
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: LegR
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}

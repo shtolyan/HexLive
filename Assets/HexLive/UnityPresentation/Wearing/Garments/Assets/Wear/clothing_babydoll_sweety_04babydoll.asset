@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_babydoll_sweety_04babydoll
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.babydoll_sweety_04babydoll
+  prototypeId: clothing.babydoll_sweety
+  displayName: Lace Babydoll (04BabyDoll)
+  variantMaterials:
+  - {fileID: 2100000, guid: 20aae38aafbd01846a0f8af30220da7f, type: 2}
+  - {fileID: 2100000, guid: c2a45c722a46da04a994f8819de79601, type: 2}
+  - {fileID: 2100000, guid: d3ea02c64aff2ad4b8a1c0e7a897a791, type: 2}
+  - {fileID: 2100000, guid: bc823880038b52d419b02976c4190bd3, type: 2}
+  - {fileID: 2100000, guid: d1d8c99f3f1bfc4419800a4c4a509585, type: 2}
+  - {fileID: 2100000, guid: 0534a91300ce5bc428c0915bba9a0177, type: 2}
+  - {fileID: 2100000, guid: eeb449a298ea4c340bf634df251094ca, type: 2}
+  - {fileID: 2100000, guid: 7cd63c5836703b24fa2c96972429aad9, type: 2}
+  - {fileID: 2100000, guid: 82f27e68d46f13c4c9697ba0b2822026, type: 2}
+  - {fileID: 2100000, guid: 3bad69ea52107e5458ac1c979260100c, type: 2}
+  - {fileID: 2100000, guid: 6b9439c4430aeb74584e1df05f437d4f, type: 2}
+  - {fileID: 2100000, guid: a5c428c512bc65b488ed795089684d20, type: 2}
+  - {fileID: 2100000, guid: b3b72a87f0029cb45ae9b50fa3ad2de6, type: 2}
+  layer: 1
+  covers: 01000000020000000500000006000000
+  warmth: 0.04
+  armor: 0
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 1

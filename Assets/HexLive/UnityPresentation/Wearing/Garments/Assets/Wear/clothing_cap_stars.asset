@@ -13,11 +13,13 @@ MonoBehaviour:
   m_Name: clothing_cap_stars
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.cap_stars
+  prototypeId: 
   displayName: Uniform Cap
+  variantMaterials: []
   layer: 1
   covers: 00000000
-  warmth: 0.05
-  armor: 0.02
+  warmth: 0.04
+  armor: 0.01
   thermalDelta: 0
   dressDurationTicks: 8
   capacity: 0

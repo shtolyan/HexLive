@@ -31,11 +31,11 @@ MonoBehaviour:
     Points:
     - Slot: 0
       Uv: {x: 0.7365873, y: 0.7351017}
-      BindPerU: 0.7191992
-      BindPerV: 0.7544191
+      BindPerU: 0.7347841
+      BindPerV: 0.84304374
       Valid: 1
-      BindPos: {x: -0.006809953, y: 1.0501642, z: -0.068103194}
-      BindNormal: {x: 0.0065461816, y: 0.61630976, z: -0.7874766}
+      BindPos: {x: -0.0070574316, y: 1.0774845, z: -0.05714646}
+      BindNormal: {x: 0.011443826, y: 0.5372546, z: -0.84334254}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmL

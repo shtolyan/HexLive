@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_top_primal_1
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.top_primal_1
+  prototypeId: clothing.top_primal
+  displayName: Hide Wrap (1)
+  variantMaterials:
+  - {fileID: 2100000, guid: 8610f2f94d3261540a4afab51e8ab563, type: 2}
+  - {fileID: 2100000, guid: 4315d1af2718d7b46a9e2eda649a7563, type: 2}
+  - {fileID: 2100000, guid: 44419cc62f086fb4d995ce27991edbaf, type: 2}
+  layer: 1
+  covers: 01000000
+  warmth: 0.06
+  armor: 0.02
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 2

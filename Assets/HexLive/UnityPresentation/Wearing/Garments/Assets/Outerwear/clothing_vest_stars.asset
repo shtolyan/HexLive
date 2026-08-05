@@ -13,11 +13,13 @@ MonoBehaviour:
   m_Name: clothing_vest_stars
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.vest_stars
-  displayName: Uniform Vest
+  prototypeId: 
+  displayName: Tactical Vest
+  variantMaterials: []
   layer: 2
   covers: 01000000
-  warmth: 0.13
-  armor: 0.05
+  warmth: 0.08
+  armor: 0.22
   thermalDelta: 0
   dressDurationTicks: 8
-  capacity: 0
+  capacity: 3

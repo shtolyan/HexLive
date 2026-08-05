@@ -13,11 +13,13 @@ MonoBehaviour:
   m_Name: clothing_top_classic
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.top_classic
-  displayName: Classic Top
+  prototypeId: 
+  displayName: Ring Top
+  variantMaterials: []
   layer: 1
   covers: 01000000
   warmth: 0.06
-  armor: 0
+  armor: 0.01
   thermalDelta: 0
   dressDurationTicks: 8
-  capacity: 0
+  capacity: 2

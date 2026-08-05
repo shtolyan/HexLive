@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using HexLive.UnityPresentation.Wearing;
+using HexLive.UnityPresentation.Wearing.Garments;
 using UnityEditor;
 using UnityEngine;
 
@@ -103,7 +104,10 @@ public static class NewWearExtractor
         public string[] Aliases = { };
         public string Texture;      // file under <Folder>/Textures (null = plain color)
         public Color Color = Color.white;
-        public float Smoothness = 0.3f;
+        // Matte by default — the drop manifest is what normally sets this, and a
+        // glossy garment mirrors the skybox instead of showing its own texture
+        // (see the note beside `smoothness` in Tools/wardrobe/wardrobe/manifest.py).
+        public float Smoothness;
         public float Metallic;
         public bool DoubleSided = true;
         public bool AlphaClip;
@@ -127,7 +131,23 @@ public static class NewWearExtractor
         public VisualWearSlot[] Slots;
         public VisualWearSlot[] NoHide = { };
         public MatSpec[] Materials;
+        // Colourways over this same geometry — see DropGarment.variants.
+        public VariantSpec[] Variants = { };
         public HeelPose Heel;       // default = flat, which is almost everything
+    }
+
+    private sealed class VariantSpec
+    {
+        public string Name;
+        // FBX surface -> the texture file this colourway puts on it. Only the
+        // surfaces it actually changes: a variant may recolour the cloth and
+        // leave the buckles as the prototype has them.
+        public Dictionary<string, string> Textures = new Dictionary<string, string>();
+        // FBX surface -> the tint this colourway paints over that texture.
+        // Half the vendors ship colourways this way and change no picture at
+        // all: the Autumn Jacket has eighteen, every one of them the same
+        // `AUTUMN_Texture01.jpg` under a different diffuse colour.
+        public Dictionary<string, string> Colors = new Dictionary<string, string>();
     }
 
     // Empty for the same reason as BuiltInSources: every garment is described in
@@ -179,7 +199,30 @@ public static class NewWearExtractor
         public string[] dropMaterials;
         public string[] slots, noHide;
         public DropMaterial[] materials;
+        // Colourways of this same geometry (spec §31B.4E). Harvested from the
+        // product's own material presets without dressing anything twice —
+        // Complete Anarchy alone carries 33 across 14 garments, and a variant
+        // per DAZ preset would otherwise have meant 1 404 fittings.
+        public DropVariant[] variants;
         public DropHeel heelPose;   // spec §31B.4C — heeled shoes only
+    }
+
+    [System.Serializable] private sealed class DropVariant
+    {
+        public string name;
+        // An array, not a map: JsonUtility cannot deserialise a dictionary.
+        public DropVariantTexture[] textures;
+        public DropVariantColor[] colors;
+    }
+
+    [System.Serializable] private sealed class DropVariantTexture
+    {
+        public string source, texture;
+    }
+
+    [System.Serializable] private sealed class DropVariantColor
+    {
+        public string source, color;
     }
 
     // Straight out of the DAZ foot-pose preset that ships with a heeled shoe.
@@ -285,6 +328,19 @@ public static class NewWearExtractor
                     DoubleSided = m.doubleSided,
                     AlphaClip = m.alphaClip,
                 }).ToArray(),
+                Variants = (g.variants ?? new DropVariant[0]).Select(v => new VariantSpec
+                {
+                    Name = v.name,
+                    Textures = (v.textures ?? new DropVariantTexture[0])
+                        .Where(t => !string.IsNullOrEmpty(t.source))
+                        .GroupBy(t => t.source)
+                        .ToDictionary(grp => grp.Key, grp => grp.First().texture),
+                    Colors = (v.colors ?? new DropVariantColor[0])
+                        .Where(c => !string.IsNullOrEmpty(c.source) && !string.IsNullOrEmpty(c.color))
+                        .GroupBy(c => c.source)
+                        .ToDictionary(grp => grp.Key, grp => grp.First().color),
+                }).Where(v => !string.IsNullOrEmpty(v.Name)
+                              && (v.Textures.Count > 0 || v.Colors.Count > 0)).ToArray(),
                 Heel = ParseHeel(g.heelPose),
             });
         }
@@ -381,6 +437,32 @@ public static class NewWearExtractor
             if (!Sources.Any(s => pending.Contains(s.drop) && File.Exists(s.path))) return;
             Run(force: false);
         };
+    }
+
+    /// <summary>
+    /// Keep a finished drop's FBX exports instead of throwing them away.
+    /// </summary>
+    /// <remarks>
+    /// Discarding is right for a drop that is DONE (see <see cref="DiscardExports"/>),
+    /// and wrong while its extraction is still being fixed: the exports are the
+    /// only copy of what DAZ produced, so a re-extract after a bug fix costs a
+    /// full re-dress in DAZ — twenty minutes for a one-line change. Batch 1 paid
+    /// that once. While a drop is under work this stays ON; it goes back OFF when
+    /// the pipeline is trusted again.
+    /// </remarks>
+    private const string KeepExportsPref = "HexLive.Wear.KeepDropExports";
+
+    private static bool KeepExports => EditorPrefs.GetBool(KeepExportsPref, true);
+
+    [MenuItem("HexLive/Wear/Хранить экспорты поставки")]
+    private static void ToggleKeepExports() =>
+        EditorPrefs.SetBool(KeepExportsPref, !KeepExports);
+
+    [MenuItem("HexLive/Wear/Хранить экспорты поставки", validate = true)]
+    private static bool ToggleKeepExportsValidate()
+    {
+        Menu.SetChecked("HexLive/Wear/Хранить экспорты поставки", KeepExports);
+        return true;
     }
 
     [MenuItem("HexLive/Wear/Extract New Wear (Temp FBX)")]
@@ -740,6 +822,7 @@ public static class NewWearExtractor
 
             var done = 0;
             var skipped = 0;
+            var failed = 0;
             var log = new System.Text.StringBuilder();
             foreach (var g in garments)
             {
@@ -749,15 +832,29 @@ public static class NewWearExtractor
                     continue;
                 }
 
-                if (ExtractGarment(g, renderers, rigs, log))
+                // Каждая вещь сама по себе. Одна необычная — колье Amy без
+                // собственной кости `hip` — валила исключением ВЕСЬ заход, и
+                // семнадцать здоровых вещей не собирались из-за одной. Ошибка
+                // должна стоить одну строку в отчёте, а не прогон.
+                try
                 {
-                    done++;
+                    if (ExtractGarment(g, renderers, rigs, log))
+                    {
+                        done++;
+                    }
+                }
+                catch (System.Exception e)
+                {
+                    failed++;
+                    log.AppendLine($"  {g.SourceKey}: СБОЙ — {e.Message}");
+                    Debug.LogError($"[NewWear] {g.SourceKey}: {e}");
                 }
             }
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            var report = $"[NewWear] extracted {done}, skipped (already built) {skipped}\n{log}";
+            var report = $"[NewWear] extracted {done}, skipped (already built) {skipped}"
+                + (failed > 0 ? $", СБОЙ у {failed}" : string.Empty) + $"\n{log}";
             Debug.Log(report);
             // Also to a file: the MCP bridge's console read is the first thing
             // to time out on a busy editor, and this run's own verdict is
@@ -773,7 +870,7 @@ public static class NewWearExtractor
                 EditorApplication.ExecuteMenuItem("HexLive/Export Sim Data (JSON)");
             }
 
-            if (only != null)
+            if (only != null && !KeepExports)
             {
                 DiscardExports(only, sources, garments, instances);
             }
@@ -938,13 +1035,27 @@ public static class NewWearExtractor
                 // Keep the GUID stable across re-runs — prefab refs survive.
                 EditorUtility.CopySerialized(copy, existing);
                 Object.DestroyImmediate(copy);
-                meshes[actor] = existing;
             }
             else
             {
                 AssetDatabase.CreateAsset(copy, path);
-                meshes[actor] = copy;
             }
+
+            // Re-resolved from the PATH, never kept from the variable above. A
+            // freshly created asset is a live object only until the next import,
+            // and this run triggers several (EnsureFolder, SaveAssets) before the
+            // prefab is written — after which the old reference serializes as
+            // null. Only the welded garments took the delete-and-create branch,
+            // so only they came out with an empty mesh on the renderer: present
+            // in the project, registered everywhere, invisible in game.
+            var stored = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            if (stored == null)
+            {
+                Debug.LogError($"[NewWear] {g.SourceKey}: меш {actor} не сохранился в {path}");
+                continue;
+            }
+
+            meshes[actor] = stored;
         }
 
         if (!meshes.ContainsKey(ActorName.Jana))
@@ -960,15 +1071,186 @@ public static class NewWearExtractor
             BuildBonesAndRenderer(g, reference, meshes[ActorName.Jana], mats, root);
             FillWearComponent(g, meshes, root);
             PrefabUtility.SaveAsPrefabAsset(root, PrefabPath(g));
+            // Re-imported, because the FILE being right is not the same as the
+            // editor holding it. A welded garment's mesh asset is deleted and
+            // recreated on every run, and a prefab already loaded in this session
+            // keeps pointing at the object that went away — it reads back with an
+            // empty mesh and the garment simply does not draw, while every check
+            // against the file on disk says it is fine.
+            AssetDatabase.ImportAsset(PrefabPath(g), ImportAssetOptions.ForceUpdate);
         }
         finally
         {
             Object.DestroyImmediate(root);
         }
 
-        log.AppendLine($"  {g.SourceKey} -> {PrefabPath(g)} ({meshes.Count} meshes, {mats.Count} mats)" +
+        var variants = BuildVariants(g, reference, mats);
+
+        log.AppendLine($"  {g.SourceKey} -> {PrefabPath(g)} ({meshes.Count} meshes, {mats.Count} mats" +
+                       (variants > 0 ? $", расцветок {variants}" : "") + ")" +
                        (meshes.TryGetValue(ActorName.Jana, out var saved) ? $"\n      сохранённый: {Layout(saved)}" : ""));
         return true;
+    }
+
+    /// <summary>
+    /// Build a material set and a catalog entry for every colourway.
+    /// </summary>
+    /// <remarks>
+    /// Spec §31B.4E. The geometry is already built and shared: a variant only
+    /// swaps textures, so it costs a folder of `.mat` files and one
+    /// GarmentDefinition — never another mesh, prefab or fitting.
+    ///
+    /// The definition is written HERE rather than by the register stage because
+    /// this is the only place that knows which materials were actually created.
+    /// It carries `prototypeId`, so `GarmentVariants` sends it to the
+    /// prototype's art folder, and `variantMaterials` in submesh order, which is
+    /// what `Wear.ApplyVariant` paints with.
+    ///
+    /// Stats are COPIED from the prototype and not invented: spotted knickers
+    /// are not warmer than starred ones, and forty guessed warmth values would
+    /// be impossible to defend later.
+    /// </remarks>
+    private static int BuildVariants(
+        GarmentSpec g, SkinnedMeshRenderer reference, Dictionary<string, Material> mats)
+    {
+        if (g.Variants == null || g.Variants.Length == 0)
+        {
+            return 0;
+        }
+
+        var protoPath = DefinitionPath(g.SimId);
+        var prototype = AssetDatabase.LoadAssetAtPath<GarmentDefinition>(protoPath);
+        var built = 0;
+        foreach (var variant in g.Variants)
+        {
+            var folder = $"{ImportRoot}/{g.Folder}/Materials/{Sanitize(variant.Name)}";
+            EnsureFolder(folder);
+
+            // One material per submesh, in the renderer's order — the same order
+            // Wear.ApplyVariant walks.
+            var painted = new List<Material>();
+            foreach (var slot in reference.sharedMaterials)
+            {
+                var surface = slot != null ? slot.name.Replace(" (Instance)", "") : "";
+                var spec = SpecFor(g, surface);
+                var path = $"{folder}/{Sanitize(spec.Source)}.mat";
+                var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+                if (mat == null)
+                {
+                    mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                    AssetDatabase.CreateAsset(mat, path);
+                }
+
+                // Everything but the picture and its tint comes from the
+                // prototype's spec: a colourway changes how the cloth LOOKS,
+                // not how it behaves.
+                mat.SetColor("_BaseColor", variant.Colors.TryGetValue(surface, out var tint)
+                    ? ParseColor(tint)
+                    : spec.Color);
+                mat.SetFloat("_Smoothness", spec.Smoothness);
+                mat.SetFloat("_Metallic", spec.Metallic);
+                if (spec.DoubleSided)
+                {
+                    mat.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Off);
+                }
+
+                if (spec.AlphaClip)
+                {
+                    mat.SetFloat("_AlphaClip", 1f);
+                    mat.SetFloat("_Cutoff", 0.3f);
+                    mat.EnableKeyword("_ALPHATEST_ON");
+                    mat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.AlphaTest;
+                }
+
+                // A surface this colourway does not mention keeps the
+                // prototype's texture — that is what "recolour the cloth, keep
+                // the buckles" looks like in data.
+                var file = variant.Textures.TryGetValue(surface, out var named)
+                    ? named
+                    : spec.Texture;
+                var tex = file != null ? FindTexture(g, file) : null;
+                mat.SetTexture("_BaseMap", tex);
+                EditorUtility.SetDirty(mat);
+                painted.Add(mat);
+            }
+
+            // An item id travels into simdata.json, I2 terms and save files, so
+            // it may not carry whatever DAZ called the colourway. `Sanitize` only
+            // strips characters a FILENAME rejects, and a space is not one of
+            // them — "Bra Purple" came out as `clothing.top_anarchy_bra purple`,
+            // an id that reads as two words everywhere it is ever printed.
+            var id = $"{g.SimId}_{VariantSlug(variant.Name)}";
+            var defPath = DefinitionPath(id, prototype != null ? protoPath : null, g.Layer.ToString());
+            var def = AssetDatabase.LoadAssetAtPath<GarmentDefinition>(defPath);
+            if (def == null)
+            {
+                def = ScriptableObject.CreateInstance<GarmentDefinition>();
+                AssetDatabase.CreateAsset(def, defPath);
+            }
+
+            def.id = id;
+            def.prototypeId = g.SimId;
+            def.variantMaterials = painted.ToArray();
+            if (prototype != null)
+            {
+                def.displayName = $"{prototype.displayName} ({variant.Name})";
+                def.layer = prototype.layer;
+                // Fully qualified: UnityEditor has a BodyPart of its own, and
+                // `using UnityEditor` makes the bare name ambiguous.
+                def.covers = new List<HexLive.Simulation.Content.BodyPart>(prototype.covers);
+                def.warmth = prototype.warmth;
+                def.armor = prototype.armor;
+                def.thermalDelta = prototype.thermalDelta;
+                def.dressDurationTicks = prototype.dressDurationTicks;
+                def.capacity = prototype.capacity;
+            }
+
+            EditorUtility.SetDirty(def);
+            // Written NOW, not at the end of the run. `EnsureFolder` on the next
+            // colourway asks the AssetDatabase to import, and an import reloads
+            // any dirty-but-unsaved asset from disk — so every variant but the
+            // last was quietly reverted to a blank `GarmentDefinition`: no id, no
+            // prototype, no materials. The assets existed, which is why it read
+            // as a naming problem rather than a lost write.
+            AssetDatabase.SaveAssets();
+            built++;
+        }
+
+        return built;
+    }
+
+    // Catalog assets are filed by layer; a variant lands beside its prototype.
+    private static string DefinitionPath(string id, string beside = null, string layer = null)
+    {
+        // Concat, NOT Join: `string.Join("_", chars)` puts a separator between
+        // EVERY character, which is how the first variants landed on disk as
+        // `c_l_o_t_h_i_n_g___b_e_l_t___a_n_a_r_c_h_y`.
+        var slug = new string(id.Select(c => char.IsLetterOrDigit(c) ? char.ToLowerInvariant(c) : '_').ToArray());
+        foreach (var drawer in System.Enum.GetNames(typeof(VisualWearLayer)))
+        {
+            var path = $"Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/{drawer}/{slug}.asset";
+            if (File.Exists(path))
+            {
+                return path;
+            }
+        }
+
+        // The folders ARE the layers, so a recoloured belt filed under `Wear`
+        // sits in a different drawer from the belt it recolours. Beside the
+        // prototype when it already exists; otherwise by the garment's own
+        // layer — on a FIRST run the prototype asset does not exist yet (the
+        // catalog builder makes it afterwards), and six variants of the second
+        // drop landed in `Wear` while the builder created empty twins for them
+        // in `Outerwear`. Two assets, one id, and the empty one won.
+        var folder = beside != null
+            ? Path.GetDirectoryName(beside)?.Replace('\\', '/')
+            : null;
+        folder ??= layer != null
+            ? $"Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/{layer}"
+            : null;
+        folder ??= "Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/Wear";
+        EnsureFolder(folder);
+        return $"{folder}/{slug}.asset";
     }
 
     // --- welding an assembly into one garment --------------------------------
@@ -993,6 +1275,43 @@ public static class NewWearExtractor
     //  read off the instance while it still stands in its bind pose. Every part
     //  is pushed through that into the rig's own space, and one bindpose
     //  (anchor.worldToLocal * rig.localToWorld) sends the whole thing back.
+    /// <summary>Тот ли это узел, что назван ключом сварки.</summary>
+    /// <remarks>
+    /// Сравнение по началу имени нужно, потому что DAZ дописывает к узлу число
+    /// вершин: ключ `TA_StockingL` должен найти `TA_StockingL_882`. Но голое
+    /// «начинается с» захватывает и однофамильцев: `glove_l_zipper_slider` — это
+    /// бегунок ПЕРЧАТКИ, а `glove_l_zipper_slider_dup_3` уже бегунок БОТИНКА, и
+    /// перчатка утащила бы его в себя, оставив ботинок без детали.
+    ///
+    /// Поэтому после ключа допускается только суффикс DAZ: подчёркивание и
+    /// цифры. Всё остальное — другая вещь.
+    /// </remarks>
+    private static bool KeyMatches(string key, string node)
+    {
+        // Unity дописывает мешу «.Shape», и узел приезжает как
+        // `ChRO_gloveR_33641.Shape`. Без этого среза правило «после ключа
+        // только цифры» отвергало ВСЕ правые половины пар, и сваренная вещь
+        // выходила однобокой: один сапог, одна перчатка.
+        var dot = node.LastIndexOf(".Shape", System.StringComparison.Ordinal);
+        if (dot > 0)
+        {
+            node = node.Substring(0, dot);
+        }
+
+        if (node == key)
+        {
+            return true;
+        }
+
+        if (!node.StartsWith(key, System.StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var tail = node.Substring(key.Length);
+        return tail.Length > 1 && tail[0] == '_' && tail.Skip(1).All(char.IsDigit);
+    }
+
     private static SkinnedMeshRenderer MergeParts(
         GarmentSpec g, GameObject rig, Dictionary<string, Material> mats)
     {
@@ -1025,7 +1344,7 @@ public static class NewWearExtractor
         Transform shared = null;
         foreach (var r in rig.GetComponentsInChildren<Renderer>(true))
         {
-            if (!g.SourceKeys.Any(k => r.name.StartsWith(k, System.StringComparison.Ordinal)))
+            if (!g.SourceKeys.Any(k => KeyMatches(k, r.name)))
             {
                 continue;
             }
@@ -1044,7 +1363,15 @@ public static class NewWearExtractor
                     continue;
                 }
 
-                authored = skinned.bones[i].localToWorldMatrix * bind[i].inverse;
+                // Unity's own identity, and it takes the bind pose STRAIGHT, not
+                // inverted: `bindposes[i] = bones[i].worldToLocal * renderer.localToWorld`,
+                // so `bones[i].localToWorld * bindposes[i]` is exactly the mesh's
+                // model-to-world matrix. Inverting it applied the bone's offset a
+                // second time instead of cancelling it — the stockings came out
+                // as a flat slab at y = 1.70 (twice thigh height) and the cuffs
+                // four metres wide at y = 4.36. Rigid props survived it only
+                // because their single bind pose was near identity.
+                authored = skinned.bones[i].localToWorldMatrix * bind[i];
                 from = skinned.bones[i];
             }
             else
@@ -1094,6 +1421,39 @@ public static class NewWearExtractor
         // them back on its own.
         var wantsTangents = WantsTangents(mats);
 
+        // Collapsing everything onto ONE bone is exact for a kit whose parts
+        // hang off private bones the body can never drive — the jaguar
+        // headdress, where nothing could animate them whatever we did. It is
+        // destructive for anything genuinely skinned to the BODY: a pair of
+        // stockings spans thigh, shin and foot, and baking it to one bone makes
+        // a rigid tube that lands wherever that bone's bind pose points.
+        // Measured — the stockings and the cuffs were the only two garments of
+        // the drop to go through the weld, and both flew off into the sky.
+        //
+        // So the question is whether the parts are skinned to the body at all.
+        //
+        // Asked BY NAME, and it has to be: DAZ gives every fitted figure its own
+        // copy of the skeleton, so one export of this drop carries 19 transforms
+        // called `pelvis` and 12 called `lThighBend`. The stockings reference
+        // their own copy, never the body's, and a reference-identity test is
+        // therefore false for EVERY garment ever exported — which is exactly how
+        // the pair got baked onto one bone and flew off. `Wear.Construct` stitches
+        // garment bones to the body by name for the same reason.
+        //
+        // More than one shared bone, because a rigid prop pinned to a single bone
+        // (the jaguar headdress on `head`) is still right to collapse: it is the
+        // SPAN across bones that a single-bone bake destroys.
+        var skinnedToBody = parts.Any(p => p.renderer is SkinnedMeshRenderer s &&
+                                           s.bones.Where(b => b != null)
+                                               .Select(b => b.name)
+                                               .Where(byName.ContainsKey)
+                                               .Distinct()
+                                               .Skip(1)
+                                               .Any());
+        var boneList = new List<Transform>();
+        var boneIndex = new Dictionary<Transform, int>();
+        var weights = new List<BoneWeight>();
+
         foreach (var (renderer, mesh, toRig, _) in parts)
         {
             var offset = vertices.Count;
@@ -1122,6 +1482,62 @@ public static class NewWearExtractor
                 }
 
                 uvs.Add(i < srcUv.Length ? srcUv[i] : Vector2.zero);
+            }
+
+            // Carry the real skinning across for a garment the body drives:
+            // the same bones, re-indexed into the merged mesh's own bone list.
+            if (skinnedToBody)
+            {
+                var skinned = renderer as SkinnedMeshRenderer;
+                var partBones = skinned != null ? skinned.bones : System.Array.Empty<Transform>();
+                var map = new int[partBones.Length];
+                for (var b = 0; b < partBones.Length; b++)
+                {
+                    var bone = partBones[b];
+                    if (bone == null)
+                    {
+                        map[b] = 0;
+                        continue;
+                    }
+
+                    // Onto the BODY's skeleton, by name. The halves of a pair are
+                    // two fitted figures, so each carries its own copy of the
+                    // skeleton — and DAZ exports only the bones that copy actually
+                    // weights. Keeping both copies gives a bone list no single
+                    // subtree contains: the left stocking's `hip` has no `rShin`,
+                    // and cloning it later fails on exactly those two bones. The
+                    // body's skeleton is the one that has all of them, its bind
+                    // pose is the pose the garment was fitted in, and binding by
+                    // name is what `Wear.Construct` does at runtime anyway.
+                    if (byName.TryGetValue(bone.name, out var canonical))
+                    {
+                        bone = canonical;
+                    }
+
+                    if (!boneIndex.TryGetValue(bone, out var at))
+                    {
+                        at = boneList.Count;
+                        boneIndex[bone] = at;
+                        boneList.Add(bone);
+                    }
+
+                    map[b] = at;
+                }
+
+                var srcWeights = mesh.boneWeights;
+                for (var i = 0; i < src.Length; i++)
+                {
+                    var w = i < srcWeights.Length ? srcWeights[i] : default;
+                    weights.Add(new BoneWeight
+                    {
+                        boneIndex0 = map.Length > w.boneIndex0 ? map[w.boneIndex0] : 0,
+                        boneIndex1 = map.Length > w.boneIndex1 ? map[w.boneIndex1] : 0,
+                        boneIndex2 = map.Length > w.boneIndex2 ? map[w.boneIndex2] : 0,
+                        boneIndex3 = map.Length > w.boneIndex3 ? map[w.boneIndex3] : 0,
+                        weight0 = w.weight0, weight1 = w.weight1,
+                        weight2 = w.weight2, weight3 = w.weight3,
+                    });
+                }
             }
 
             var slots = renderer.sharedMaterials;
@@ -1161,8 +1577,21 @@ public static class NewWearExtractor
         }
 
         merged.SetUVs(0, uvs);
-        merged.bindposes = new[] { shared.worldToLocalMatrix * rig.transform.localToWorldMatrix };
-        SetSingleBoneSkin(merged, vertices.Count);
+        // The bind pose is the same identity either way — bone.worldToLocal
+        // times the rig's localToWorld — just one bone or many.
+        if (skinnedToBody && boneList.Count > 0)
+        {
+            merged.bindposes = boneList
+                .Select(b => b.worldToLocalMatrix * rig.transform.localToWorldMatrix)
+                .ToArray();
+            merged.boneWeights = weights.ToArray();
+        }
+        else
+        {
+            merged.bindposes = new[] { shared.worldToLocalMatrix * rig.transform.localToWorldMatrix };
+            SetSingleBoneSkin(merged, vertices.Count);
+        }
+
         merged.subMeshCount = order.Count;
         for (var i = 0; i < order.Count; i++)
         {
@@ -1175,7 +1604,7 @@ public static class NewWearExtractor
         go.transform.SetParent(rig.transform, false);
         var smr = go.AddComponent<SkinnedMeshRenderer>();
         smr.sharedMesh = merged;
-        smr.bones = new[] { shared };
+        smr.bones = skinnedToBody && boneList.Count > 0 ? boneList.ToArray() : new[] { shared };
         smr.rootBone = shared;
         smr.localBounds = merged.bounds;
         // Real FBX materials, not placeholders: their names go through the same
@@ -1235,7 +1664,17 @@ public static class NewWearExtractor
             mesh.SetTangents(new List<Vector4>());
         }
 
-        SetSingleBoneSkin(mesh, mesh.vertexCount);
+        // ONLY when the mesh really is one bone. This was written for a rigid
+        // kit and then inherited by the skinning-preserving weld, where it undid
+        // the whole point: the merged stockings arrived with 8 correct bind poses
+        // and every vertex pinned to bone 0, so the pair hung off one thigh —
+        // the bind poses made it look right in every check that counted them.
+        // A garment the body drives keeps its weights; it is 32 bytes a vertex,
+        // and it is the difference between cloth and a plank.
+        if (mesh.bindposes == null || mesh.bindposes.Length <= 1)
+        {
+            SetSingleBoneSkin(mesh, mesh.vertexCount);
+        }
     }
 
     /// <summary>
@@ -1339,6 +1778,43 @@ public static class NewWearExtractor
         return a;
     }
 
+    /// <summary>
+    /// A garment's texture, wherever the staging step happened to leave it.
+    /// </summary>
+    /// <remarks>
+    /// `build` stages textures under a folder derived from the DAZ MESH KEY,
+    /// because at that point nobody has named the garment yet. Renaming it in
+    /// the manifest during review — which is the whole point of the review —
+    /// then strands them, and every material comes out with no albedo: a white
+    /// garment in the world, not just on the icon.
+    ///
+    /// That has now happened on two separate drops, so the fix belongs here
+    /// rather than in a checklist: look under the reviewed name first, and fall
+    /// back to the draft one the key would have produced.
+    /// </remarks>
+    private static Texture2D FindTexture(GarmentSpec g, string file)
+    {
+        var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(
+            $"{ImportRoot}/{g.Folder}/Textures/{file}");
+        if (tex != null)
+        {
+            return tex;
+        }
+
+        foreach (var key in g.SourceKeys ?? new[] { g.SourceKey })
+        {
+            var draft = string.Concat(key.Where(char.IsLetterOrDigit));
+            tex = AssetDatabase.LoadAssetAtPath<Texture2D>(
+                $"{ImportRoot}/{draft}/Textures/{file}");
+            if (tex != null)
+            {
+                return tex;
+            }
+        }
+
+        return null;
+    }
+
     private static Material BuildMaterial(GarmentSpec g, MatSpec spec)
     {
         var path = $"{ImportRoot}/{g.Folder}/Materials/{Sanitize(spec.Source)}.mat";
@@ -1361,17 +1837,18 @@ public static class NewWearExtractor
             mat.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Off);
         }
 
-        if (spec.Texture != null)
+        // Карта ставится ВСЕГДА, в том числе в null. Раньше её только
+        // назначали: если у поверхности текстуру убрали из манифеста, материал
+        // молча оставался со старой. Бойцовский топ так и остался в чужом
+        // атласе кэйкоги после того, как атлас был снят, — и выглядело это как
+        // «артефакт текстуры», а не как невыполненная правка.
+        var tex = spec.Texture != null ? FindTexture(g, spec.Texture) : null;
+        if (spec.Texture != null && tex == null)
         {
-            var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(
-                $"{ImportRoot}/{g.Folder}/Textures/{spec.Texture}");
-            if (tex == null)
-            {
-                Debug.LogWarning($"[NewWear] {g.Folder}: texture {spec.Texture} not imported yet");
-            }
-
-            mat.SetTexture("_BaseMap", tex);
+            Debug.LogWarning($"[NewWear] {g.Folder}: texture {spec.Texture} not imported yet");
         }
+
+        mat.SetTexture("_BaseMap", tex);
 
         if (spec.AlphaClip)
         {
@@ -1397,7 +1874,13 @@ public static class NewWearExtractor
             throw new IOException($"{g.SourceKey}: no 'hip' bone in the source FBX");
         }
 
-        var needed = new HashSet<string>();
+        // Wanted bones are held BY OBJECT, not by name. DAZ parents each fitted
+        // figure under the body's skeleton and gives it a full copy of the bone
+        // names, so one export has 19 transforms called `hip`. Selecting by name
+        // let a neighbouring garment's node in — the cap's skeleton rode into the
+        // stockings prefab — and, worse, `clones` is keyed by name, so the cap's
+        // `hip` clone overwrote the body's and the mesh would have bound to it.
+        var needed = new HashSet<Transform>();
         foreach (var bone in reference.bones)
         {
             if (bone == null)
@@ -1408,7 +1891,7 @@ public static class NewWearExtractor
             // The bone itself plus every ancestor up to (and including) hip.
             for (var t = bone; t != null; t = t.parent)
             {
-                needed.Add(t.name);
+                needed.Add(t);
                 if (t == srcHip)
                 {
                     break;
@@ -1418,11 +1901,42 @@ public static class NewWearExtractor
 
         if (reference.rootBone != null)
         {
-            needed.Add(reference.rootBone.name);
+            needed.Add(reference.rootBone);
         }
 
         var clones = new Dictionary<string, Transform>();
         var hipClone = CloneBoneSubtree(srcHip, root.transform, needed, clones);
+
+        // Кости, которых под тазом нет вовсе. Их приносит сварка: у юбки свои
+        // `Skirt Left/Right/Back`, у байкерской куртки — кости бегунков молний,
+        // и висят они в экспорте не под скелетом тела, а сами по себе. Раньше
+        // такая вещь просто падала с «5 bone(s) missing», и вместе с ней — весь
+        // заход.
+        //
+        // Подцепляем их к клону ближайшего предка, который уже склонирован;
+        // если такого нет — к тазу. Локальные преобразования сохраняются, так
+        // что деталь остаётся там, где её нарисовал автор.
+        foreach (var bone in reference.bones)
+        {
+            if (bone == null || clones.ContainsKey(bone.name))
+            {
+                continue;
+            }
+
+            var chain = new List<Transform>();
+            var walk = bone;
+            while (walk != null && !clones.ContainsKey(walk.name))
+            {
+                chain.Add(walk);
+                walk = walk.parent;
+            }
+
+            var anchor = walk != null ? clones[walk.name] : hipClone;
+            for (var i = chain.Count - 1; i >= 0; i--)
+            {
+                anchor = CloneBone(chain[i], anchor, clones);
+            }
+        }
 
         var meshGo = new GameObject(g.Name + " Mesh");
         meshGo.transform.SetParent(root.transform, false);
@@ -1459,9 +1973,9 @@ public static class NewWearExtractor
             .ToArray();
     }
 
-    private static Transform CloneBoneSubtree(
-        Transform src, Transform parent, HashSet<string> needed,
-        Dictionary<string, Transform> clones)
+    /// <summary>Одна кость, без её детей.</summary>
+    private static Transform CloneBone(Transform src, Transform parent,
+                                       Dictionary<string, Transform> clones)
     {
         var clone = new GameObject(src.name).transform;
         clone.SetParent(parent, false);
@@ -1469,6 +1983,14 @@ public static class NewWearExtractor
         clone.localRotation = src.localRotation;
         clone.localScale = src.localScale;
         clones[src.name] = clone;
+        return clone;
+    }
+
+    private static Transform CloneBoneSubtree(
+        Transform src, Transform parent, HashSet<Transform> needed,
+        Dictionary<string, Transform> clones)
+    {
+        var clone = CloneBone(src, parent, clones);
         foreach (Transform child in src)
         {
             if (SubtreeNeeded(child, needed))
@@ -1480,9 +2002,9 @@ public static class NewWearExtractor
         return clone;
     }
 
-    private static bool SubtreeNeeded(Transform t, HashSet<string> needed)
+    private static bool SubtreeNeeded(Transform t, HashSet<Transform> needed)
     {
-        if (needed.Contains(t.name))
+        if (needed.Contains(t))
         {
             return true;
         }
@@ -1529,9 +2051,25 @@ public static class NewWearExtractor
         heel.FindPropertyRelative("axis").vector3Value = g.Heel.axis;
 
         WriteSlotList(so.FindProperty("slots"), g.Slots);
-        WriteSlotList(so.FindProperty("noHideUnderwearSlots"), g.NoHide);
+
+        // Исключения «бельё видно насквозь» и флаг волос ставятся ГЛАЗАМИ, в
+        // тестовой сцене, и манифест о них ничего не знает. Пересбор обязан их
+        // сохранить — ровно как сохраняет подгонку размера выше: иначе одна
+        // команда «пересобрать» молча стирает вечер работы, и понять это можно
+        // только заметив, что бельё снова спряталось.
+        var previous = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath(g));
+        var tunedWear = previous != null ? previous.GetComponent<Wear>() : null;
+        WriteSlotList(so.FindProperty("noHideUnderwearSlots"),
+            tunedWear != null ? tunedWear.NoHideUnderwearSlots.ToArray() : g.NoHide);
         so.FindProperty("layer").enumValueIndex = (int)g.Layer;
         so.FindProperty("gender").enumValueIndex = (int)VisualGender.Female;
+        // Всё, что садится на голову, по умолчанию прячет причёску: шапка — это
+        // оболочка вокруг черепа, а причёска отдельный меш поверх него, и без
+        // этого волосы прорастают сквозь тулью. Правится галочкой в тестовой
+        // сцене — есть шляпы, из-под которых волосы должны торчать.
+        so.FindProperty("hidesHair").boolValue = tunedWear != null
+            ? tunedWear.HidesHair
+            : g.Slots != null && g.Slots.Contains(VisualWearSlot.Head);
         so.ApplyModifiedPropertiesWithoutUndo();
     }
 
@@ -1595,6 +2133,22 @@ public static class NewWearExtractor
     private static string Sanitize(string name)
     {
         return string.Join("_", name.Split(Path.GetInvalidFileNameChars()));
+    }
+
+    /// <summary>A colourway's name as the tail of an item id.</summary>
+    private static string VariantSlug(string name)
+    {
+        var slug = new string(name
+            .Select(c => char.IsLetterOrDigit(c) ? char.ToLowerInvariant(c) : '_')
+            .ToArray());
+        // Runs of punctuation collapse, so "Red / Purple" is `red_purple` rather
+        // than `red___purple`.
+        while (slug.Contains("__"))
+        {
+            slug = slug.Replace("__", "_");
+        }
+
+        return slug.Trim('_');
     }
 
     private static void EnsureFolder(string path)

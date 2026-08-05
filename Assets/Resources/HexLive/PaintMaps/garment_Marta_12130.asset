@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
+  MeshName: Marta
+  VertexCount: 12130
+  Version: 0
+  MeshHeight: 1.7
+  TSamples: 1
+  AzimuthSamples: 1
+  TMin: 0
+  TMax: 1
+  Zones:
+  - Zone: Head
+    Points:
+    - Slot: 2
+      Uv: {x: 0.046499997, y: 0.7508001}
+      BindPerU: 0.9639754
+      BindPerV: 0.7800849
+      Valid: 1
+      BindPos: {x: 0.053945825, y: 1.5934376, z: -0.056688383}
+      BindNormal: {x: 0.5337933, y: 0.8435667, z: -0.05882079}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: Torso
+    Points:
+    - Slot: 1
+      Uv: {x: 0.4114667, y: 0.22143333}
+      BindPerU: 0.88983506
+      BindPerV: 0.32572642
+      Valid: 1
+      BindPos: {x: -0.124875076, y: 1.4508349, z: 0.022362778}
+      BindNormal: {x: 0.3689069, y: -0.88975745, z: 0.26877385}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: Pelvis
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: ArmL
+    Points:
+    - Slot: 0
+      Uv: {x: 0.85283345, y: 0.5690667}
+      BindPerU: 0.6598716
+      BindPerV: 0.4183526
+      Valid: 1
+      BindPos: {x: -0.41800022, y: 1.472191, z: -0.0679237}
+      BindNormal: {x: 0.008064246, y: 0.70671004, z: -0.7074573}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: ArmR
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: LegL
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: LegR
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}

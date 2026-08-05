@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: underwear_briefs_plain_mat02
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: underwear.briefs_plain_mat02
+  prototypeId: underwear.briefs_plain
+  displayName: Plain Panties (Mat02)
+  variantMaterials:
+  - {fileID: 2100000, guid: 2d2bfc8f5d12f0a4fa4cafc110052462, type: 2}
+  - {fileID: 2100000, guid: 3ad28f6a93907f14ba777a2360c7f3fc, type: 2}
+  - {fileID: 2100000, guid: febcfe55bb0ef234695448fb5555d42f, type: 2}
+  - {fileID: 2100000, guid: 31edd1b18b978d44ab4939f97cfb08f0, type: 2}
+  - {fileID: 2100000, guid: 5c199207f106a1244a8a991426bed2fb, type: 2}
+  layer: 0
+  covers: 02000000
+  warmth: 0.02
+  armor: 0
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 1

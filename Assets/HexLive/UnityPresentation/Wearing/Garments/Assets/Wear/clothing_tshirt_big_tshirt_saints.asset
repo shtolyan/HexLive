@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_tshirt_big_tshirt_saints
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.tshirt_big_tshirt_saints
+  prototypeId: clothing.tshirt_big
+  displayName: Oversized Tee (TShirt Saints)
+  variantMaterials:
+  - {fileID: 2100000, guid: b72bef48a5e263647a58c554bc715fa5, type: 2}
+  - {fileID: 2100000, guid: 27a60cd888777854cb6753d4854ecdff, type: 2}
+  layer: 1
+  covers: 01000000020000000300000004000000
+  warmth: 0.06
+  armor: 0.01
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 2

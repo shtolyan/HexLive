@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_blouse_riot_green
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.blouse_riot_green
+  prototypeId: clothing.blouse_riot
+  displayName: Work Blouse (Green)
+  variantMaterials:
+  - {fileID: 2100000, guid: ba1f7ab26b051464c8f97e1332c580b6, type: 2}
+  - {fileID: 2100000, guid: b43653d2b5715e7489c2632fb3577ab8, type: 2}
+  - {fileID: 2100000, guid: 1c6ca4a4f41886a4fb44445583d52a02, type: 2}
+  layer: 2
+  covers: 010000000300000004000000
+  warmth: 0.1
+  armor: 0.01
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 2

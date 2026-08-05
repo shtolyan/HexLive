@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_tank_jane_lavendar
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.tank_jane_lavendar
+  prototypeId: clothing.tank_jane
+  displayName: Jersey Tank (Lavendar)
+  variantMaterials:
+  - {fileID: 2100000, guid: 45d6b098e53813d4b8a5ee85d0ca74ab, type: 2}
+  - {fileID: 2100000, guid: 720fda3fd67fe754c9be9bb138db08e2, type: 2}
+  - {fileID: 2100000, guid: a4d451d1417be0f40b9c7ed41e8fbe4e, type: 2}
+  layer: 1
+  covers: 01000000
+  warmth: 0.06
+  armor: 0.01
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 2

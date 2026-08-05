@@ -7162,6 +7162,94 @@ Traps met building it:
 - The merged mesh is heavy — 55 844 vertices, ~10.8 MB per girl. Acceptable for
   now; decimation (as in `TOOL_GENERATION_SPEC.md`) is the lever if it hurts.
 
+### 31B.4E Prototypes and variants — one garment, many materials
+
+**Status: designed, not built.** Written before the code so the migration has
+something to aim at.
+
+#### What is actually duplicated
+
+Measured on the shipped wardrobe (`Temp/wardrobe-inventory.json`, regenerate by
+grouping every wear prefab by the set of meshes it points at):
+
+| | |
+|---|---|
+| garments with geometry of their own | 88 |
+| prototypes that already exist in several colours | 6 |
+| items those 6 account for | 22 |
+
+The meshes are **not** duplicated — a recolour already points at the same
+`.mesh` assets, and the drop pipeline produces one geometry per garment (75
+items, 75 geometries, no repeats). What is duplicated is the SCAFFOLDING: every
+colour costs a prefab, a `simId`, an art folder, an icon, a `GarmentDefinition`
+asset, a `GarmentLibrary` row, a `WearSlotCatalog` row and two I2 terms. Eight
+places per colour, all of which a human keeps in step by hand.
+
+The real prize is upstream. A DAZ product ships its colourways as material
+presets — *Charlotte High Heels* carries around forty (Faux Leather, Metals,
+Real World, Super Shiny) — and today the pipeline keeps ONE and throws the rest
+away, because a second colourway would mean a second garment. Harvesting them is
+already within reach: the presets are `.duf` files and the pipeline parses those
+(`heels.from_pose_preset` reads the same format).
+
+#### The shape
+
+    prototype  = geometry + skeleton + slots + layer + fit          (the art)
+    variant    = material set + display name + stat overrides       (the item)
+    item       = one variant; what the colony owns and wears
+
+A prototype owns everything that follows from the MESH: which slots it occupies,
+which layer it sits on, the per-girl `WearConfig` fits, the paint-point map. A
+variant owns everything a player can see or feel: what it is called, what it
+looks like, what it does in the cold.
+
+#### The one structural change
+
+`simId` today is three things at once: the item's identity, the address of its
+art folder (`Resources/HexLive/Wear/<simId>/`), and a frozen key. Variants need
+the first two split:
+
+- `GarmentDefinition.id` — the ITEM. Frozen, keys saves and I2 terms.
+- `GarmentDefinition.prototypeId` — the ART. Several items share it.
+
+Everything else follows from that split; nothing else about the wardrobe
+contract changes. `Wear` keeps one `SkinnedMeshRenderer` and one mesh per girl.
+
+#### What it touches, and what it fixes for free
+
+- **Runtime.** `Wear` already keeps per-slot material state and swaps materials
+  for dirt, wetness and tears through a `MaterialPropertyBlock`. Applying a
+  variant's materials at equip time is another user of that seam, not a new
+  mechanism.
+- **Paint maps.** Keyed `garment_<Actor>_<vertexCount>`, so variants sharing
+  geometry share one map — fewer assets, and correct. The generator currently
+  treats a key collision as an ERROR; it has to learn that for variants it is
+  the intent (§40.8-G).
+- **Icons.** Still one per variant — the colour is the point — but rendered off
+  the shared mesh with the variant's materials, which `WearIconShooter` already
+  does.
+- **Localization.** Terms follow the ITEM id, unchanged.
+
+#### The rule that keeps the balance honest
+
+**A variant changes how a garment LOOKS. Stats are inherited from the prototype
+and overridden only when the MATERIAL genuinely differs** — leather against
+mesh, yes; polka dots against stars, no. Without this rule the wardrobe grows
+forty arbitrary warmth values, and nobody will ever be able to say why the
+starred knickers are warmer than the spotted ones.
+
+#### Order of migration
+
+1. **Inventory** — done, above: the six prototypes are the first things to
+   convert, and they prove the schema on content that already exists.
+2. **Schema** — `prototypeId` on `GarmentDefinition`, the catalog and SimData;
+   the wire format follows (`Simulation/Wire/` — a new field means a codec
+   field, §31C).
+3. **Harvest** — read a product's material presets in `tools/wardrobe` and emit
+   one variant per preset instead of discarding all but one.
+4. **Content** — re-import onto the new schema. Doing it in this order means the
+   wardrobe moves once, not twice.
+
 ### 31B.5 Renderer bridge
 
 `HexWorldRenderer.CreateNpcView` instantiates
@@ -18283,9 +18371,150 @@ Worldgen с тем же сидом — другой мир, если сейв н
   подряд правил не ту причину именно потому, что после каждого круга я чинил
   следующую догадку вместо того, чтобы измерить результат предыдущей.
 
+## §115 Волосы колышутся — всем причёскам, но не одним способом (iteration 115)
+
+**Цель.** У девушки 16 причёсок; качались две. Остальные ехали жестяной шапкой.
+
+**Пружина ставится на МЕШ, а меш один на все расцветки** — у причёски 1 меш и
+до 40 цветовых папок (`Materials/<цвет>/`), сборка вариантов трогает только
+материалы. Значит настройка делается один раз на причёску и достаётся всем её
+цветам даром.
+
+### §115.1 Три класса причёсок, и класс решает всё
+
+Причёски пришли из DAZ разными: смотреть надо не на имя, а на **кости и на то,
+насколько низко свисает меш** (мерка — от собственной кости `head` причёски).
+
+| Класс | Кто | Что сделано |
+|---|---|---|
+| со своими костями прядей | AsukaHair, BendineHair, ChunkyHair, EilisHair, LeonyPonytail (+ уже качавшиеся LowPonytail, OnyxHair) | `BoneSpring` прямо на эти кости — `BodyHairPhysicsSetup` |
+| длинные без костей | Hair07, JelikaHair_32434, JenniferHair, LoonaHair (свес 11-20 см) | добавлена своя цепочка из 3 костей + перескиннивание низа — `HairSwaySetup` |
+| шапки | AdellHair, Bob3Hair, Neu09Hair, TootsieRollHair (свес 5-8 см, кончаются у ушей) | НИЧЕГО, и это решение, а не пропуск: качаться нечему |
+
+### §115.2 Почему бескостным — свои кости, а не MeshCloth
+
+Соблазн был взять путь юбки (§69, `GarmentCloth` + `MeshCloth`). Против два
+факта: меши причёсок **33-220 тыс. вершин** (юбка — 29 тыс.), а proxy строится
+в РАНТАЙМЕ на каждое одевание; и карта покраски читается **по uv0**, а у волос
+UV — атлас прядей, где десятки карточек лежат друг на друге, так что «где
+корни, где кончики» через UV не выражается.
+
+Поэтому недостающие кости просто добавляются: цепочка `HairSway1..3` под
+собственной `head` причёски, суставы — в центре масс своей полосы (хвост висит
+ЗА черепом, ось головы дала бы качание вбок вместо качания вдоль пряди), а вес
+нижней части меша переносится на цепочку плавно (`SmoothStep` сверху вниз).
+Дальше это обычная пружина — тот же рецепт, что у хвоста Марты.
+
+Веса сводятся к **четырём** влияниям и нормируются вручную: Unity скиннит не
+больше четырёх, пятое молча отбросили бы, и вершина поехала бы разбалансированной.
+
+### §115.3 Грабли
+
+- **Перескиннивание переписывает АССЕТ меша** (кости, байндпозы, веса).
+  Повторный прогон `HairExtractor` пересобирает меш из FBX и цепочку сносит —
+  после переизвлечения `Setup Hair Sway` надо прогнать снова.
+- Проверять — **по содержимому**: `Validate Hair Sway` сверяет число костей с
+  числом байндпоз и считает массу веса, реально осевшую на цепочке. Файл меша
+  Unity переписывает всегда, свежая дата не доказывает ничего.
+- `updateWhenOffscreen` обязателен: симулируемые вершины выходят за скиннинговый
+  силуэт, и без него причёска пропадает у края экрана (на OnyxHair это уже ловили).
+- Кость с именем, которого нет в скелете тела, `Wear.Construct` не трогает —
+  `HairSway*` остаются детьми головы причёски. Это то, что нужно, и это же
+  причина, по которой цепочку нельзя называть именем телесной кости.
+
+### §115.4 Как проверить
+
+Сцена `WardrobeTest`, кнопка цикла анимации (сесть → лечь → встать): голова и
+корпус ходят достаточно, чтобы пряди отставали и возвращались. Признак жизни —
+кончики запаздывают за поворотом головы, шапка на макушке при этом неподвижна.
+
+## §116 Гардероб доехал до игры: цвет волос, стартовый набор, статы, кровь (iteration 116)
+
+685 вещей и 254 расцветки существовали в проекте, но игра о большей части из
+них не знала. Этот заход — про дорогу от каталога до экрана.
+
+### §116.1 Цвет волос у каждой свой — и его нет в симуляции
+
+Расцветка причёски выводится из **id колонистки**
+(`HairColourApplier.Choose`), а не хранится. Причина: id и так сохраняется и
+передаётся, поэтому цвет одинаков у сервера и клиента, переживает загрузку
+сейва и не стоит ни поля в снапшоте, ни версии формата, ни строчки в кодеке —
+за косметику такая цена велика. Плата ровно одна: если художник ДОБАВИТ
+причёске расцветок, уже живущие колонистки перекрасятся.
+
+Материалы ставятся общие и подбираются **по имени поверхности**: порядок
+сабмешей у причёски не гарантирован. Поверхности, которых в папке цвета нет,
+остаются прототипными — так и задумано, пресет красит только то, чего касается
+(резинка у ChunkyHair своего цвета всегда).
+
+⚠️ **Расцветки обязаны лежать в `ActorAppearanceCatalog`.** Они не в
+`Resources`, и без ссылки сборка выкинула бы их — в редакторе всё работает, в
+билде все девушки одного цвета. Та же причина, по которой в каталоге лежат сами
+причёски.
+
+⚠️ И мина, которую этот заход обезвредил: билдер каталога сканировал
+`ImportedActors/Wear`, откуда причёски давно переехали. Ссылки переезд пережили
+(они по GUID), а сборка — нет: меню молча собрало бы ПУСТОЙ список, то есть
+раздело бы всех, кому причёску катает симуляция.
+
+Проверять — **HexLive ▸ Actors ▸ Validate Hair Colours**, а не глазами: мир
+создаётся только после «Новой игры» в меню, а сломаться тут может ровно одно и
+молча — несовпадение имён материалов. Меню инстанцирует каждую причёску, гоняет
+ТОТ ЖЕ `HairColourApplier`, что и игра, и считает подменённые слоты. Ноль
+подменённых = поломка.
+
+### §116.2 Стартовый набор ВЫВОДИТСЯ из гардероба
+
+Списком он был ровно до тех пор, пока вещей было тридцать: `WorldStateFactory`
+перечислял 29 id, и каждая новая партия одежды проходила бы мимо потерпевших
+молча. Теперь пулы собираются правилом (`StartPool`): бельё на таз, бельё на
+торс, и лёгкий верхний низ — `Warmth <= 0.06`, чтобы прошли шорты и юбки, но не
+джинсы (0.12) и не платья (0.10). Никто не выходит на берег в шубе (§42).
+
+Порядок в пуле — **по id**: пул участвует в seeded-розыгрыше, и любая
+нестабильность порядка развела бы один сид на разные наряды, а сервер с
+клиентом — на разные миры. Замерено: 117 / 118 / 53 вещи в пулах, 70 разных
+вещей на 12 сидах вместо прежних 29 на всех.
+
+### §116.3 Статы: обычным вещам понемногу, броне заметно
+
+`Tools/wardrobe/garment_stats.py` раздаёт тепло/броню/карманы по классу вещи с
+одним правилом: **никогда не понижать** (`max(текущее, пол класса)`), поэтому
+вручную вытюненная вещь остаётся как есть, а нулевая получает свой минимум.
+Тронуто 571 из 685. Джинсы 0.12/0.05/4 кармана, шорты 0.05/0.02/2, топ
+0.06/0.01/2, куртка 0.28/0.06/4, ботинки 0.14/0.10, броня 0.15+.
+
+Правятся ДВА места, и оба обязательны: `GarmentLibrary.cs` (кодовые умолчания —
+отсюда `GarmentTuning.BackfillCapacity` берёт карманы и пол, когда в ассете 0)
+и сами `.asset` (тюнинг, который в игре ПЕРЕКРЫВАЕТ умолчания и уезжает в
+`simdata.json`). После правки — переэкспорт SimData.
+
+Украшения и очки остаются нулевыми намеренно: статы действуют на ПОКРЫТЫХ
+зонах, а кулон не покрывает ничего.
+
+### §116.4 Кровь на одежде требует карту — их не было ни одной
+
+Грязь и разрывы (§40.10-D) работают на общих листах декалей и UV вещи, то есть
+новой одежде для них не нужно ничего. А вот **зональная кровь ищет
+`garment_<меш>_<вершин>` в `Resources/HexLive/PaintMaps`**, и таких карт в
+проекте не было НИ ОДНОЙ — ни для новых вещей, ни для старых. Симптом тихий:
+одно предупреждение на вещь и просто отсутствие крови.
+
+Лечится прогоном **HexLive ▸ Paint Maps ▸ Regenerate** (691 карта: 685 вещей +
+пять кож + волк, 4.6 МБ). Гонять после каждой партии одежды — карта ключуется
+именем меша И числом вершин, так что переэкспорт меша делает старую карту
+невидимой.
+
+### §116.5 Локализация
+
+Девять вещей чужака (§72) были единственными в каталоге без терминов: их id —
+сырые имена из DAZ, а `displayName` — транслит («Shtany boitsa»), который игрок
+и видел. Термины добавлены; теперь у всех 685 записей есть имя и описание на
+обоих языках.
+
 ---
 
-## §115 Прогнать чужака из лагеря (iteration 115)
+## §117 Прогнать чужака из лагеря (iteration 117)
 
 Выгон — симметричная реакция любой фракции на враждебного NPC внутри своего
 явно заданного лагеря. Живой, сознающий и стоящий хозяин в радиусе зрения прерывает

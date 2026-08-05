@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_collar_studded_anarchy_black
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.collar_studded_anarchy_black
+  prototypeId: clothing.collar_studded_anarchy
+  displayName: Studded Collar (Black)
+  variantMaterials:
+  - {fileID: 2100000, guid: 1a0a7308da9531f4687f3b885aa77265, type: 2}
+  - {fileID: 2100000, guid: 3c0bd7fd9ce464a4ca8bf911246bac47, type: 2}
+  - {fileID: 2100000, guid: 3332534a4641e444093db7a9a616c3ab, type: 2}
+  - {fileID: 2100000, guid: 7239b2dfcbad32c468d84ef60c41e7a3, type: 2}
+  - {fileID: 2100000, guid: cf294209d3b587c4d8a43d6e2733b2af, type: 2}
+  layer: 1
+  covers: 01000000
+  warmth: 0.04
+  armor: 0.06
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

@@ -21,7 +21,15 @@ public sealed class Wear : MonoBehaviour
     // layout and every existing prefab keeps binding unchanged.
     [SerializeField] private HeelPose heel;
 
+    // Прячет ли эта вещь причёску. Шапка сидит на черепе, а причёска —
+    // отдельный меш поверх него, и без этого волосы прорастают сквозь тулью.
+    // Значение по умолчанию — «не прячет», так что старые префабы читаются
+    // как прежде; головным уборам его ставит экстрактор.
+    [SerializeField] private bool hidesHair;
+
     public VisualWearLayer Layer => layer;
+
+    public bool HidesHair => hidesHair;
 
     public HeelPose Heel => heel;
 
@@ -33,6 +41,46 @@ public sealed class Wear : MonoBehaviour
 
     private SkinnedMeshRenderer _meshRenderer;
 
+    /// <summary>
+    /// Paint this instance in a variant's materials (spec §31B.4E).
+    /// </summary>
+    /// <remarks>
+    /// Must run BEFORE <see cref="Construct"/>: that caches each slot's dry
+    /// colour and smoothness so dirt and wet can be washed back off, and a
+    /// cache taken from the prototype would restore the wrong colour the first
+    /// time it rained.
+    ///
+    /// A shorter array than the mesh has submeshes leaves the rest as the
+    /// prototype's — a variant may recolour the cloth and keep the buttons.
+    /// Null or empty means "this item is not a variant", which is most of them.
+    /// </remarks>
+    public void ApplyVariant(Material[] materials)
+    {
+        if (materials == null || materials.Length == 0)
+        {
+            return;
+        }
+
+        var renderer = _meshRenderer != null
+            ? _meshRenderer
+            : GetComponentInChildren<SkinnedMeshRenderer>();
+        if (renderer == null)
+        {
+            return;
+        }
+
+        var current = renderer.sharedMaterials;
+        for (var i = 0; i < current.Length && i < materials.Length; i++)
+        {
+            if (materials[i] != null)
+            {
+                current[i] = materials[i];
+            }
+        }
+
+        renderer.sharedMaterials = current;
+    }
+
     public void Construct(ActorName actorMesh, BodyBones bodyBones, string equipKey = null)
     {
         // Spec 40.10-D: the wear painter seeds its stains from this — the piece's
@@ -43,6 +91,7 @@ public sealed class Wear : MonoBehaviour
             equipKey ?? name, bodyBones != null ? bodyBones.GetInstanceID() : 0);
         _meshRenderer = GetComponentInChildren<SkinnedMeshRenderer>();
         var hip = FindHip();
+
         if (hip == null || _meshRenderer == null)
         {
             Debug.LogWarning($"Wear '{name}': no hip or renderer — skipping construct", this);
@@ -156,6 +205,25 @@ public sealed class Wear : MonoBehaviour
         return 1f;
     }
 
+    // Правится ПРЯМО В ПРЕФАБЕ из тестовой сцены — тем же путём, что и подгонка
+    // размера ниже: инспектор для этого пришлось бы открывать по одной вещи, а
+    // решение «бельё или куртка» принимается, когда вещь надета и видна на
+    // девушке рядом с остальными.
+    public void SetLayer(VisualWearLayer value)
+    {
+        layer = value;
+    }
+
+    public void SetHidesHair(bool value)
+    {
+        hidesHair = value;
+    }
+
+    public void SetGender(VisualGender value)
+    {
+        gender = value;
+    }
+
     // Write the fit scale for one actor; adds a config entry (mesh = shared
     // authored mesh) when the actor had none. Called on the PREFAB ASSET by
     // the wardrobe test scene, then persisted via AssetDatabase.SaveAssets.
@@ -206,6 +274,27 @@ public sealed class Wear : MonoBehaviour
     public bool HeedHideUnderwearSlot(VisualWearSlot slot)
     {
         return noHideUnderwearSlots.Contains(slot) == false;
+    }
+
+    public IReadOnlyList<VisualWearSlot> NoHideUnderwearSlots => noHideUnderwearSlots;
+
+    /// <summary>Скрывать ли бельё в этом слоте (правится из тестовой сцены).</summary>
+    /// <remarks>
+    /// Список хранит ИСКЛЮЧЕНИЯ, а не правила: по умолчанию верхняя вещь бельё
+    /// под собой прячет, и сюда попадают слоты, где этого делать не надо —
+    /// прозрачная блузка, сетчатые чулки, распахнутая куртка. Поэтому «включено»
+    /// в панели значит «бельё видно», то есть слот В списке.
+    /// </remarks>
+    public void SetHideUnderwear(VisualWearSlot slot, bool hide)
+    {
+        if (hide)
+        {
+            noHideUnderwearSlots.Remove(slot);
+        }
+        else if (!noHideUnderwearSlots.Contains(slot))
+        {
+            noHideUnderwearSlots.Add(slot);
+        }
     }
 
     public void Hide()

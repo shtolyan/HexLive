@@ -27,12 +27,12 @@ MonoBehaviour:
   - Zone: Torso
     Points:
     - Slot: 0
-      Uv: {x: 0.92746663, y: 0.5964}
+      Uv: {x: 0.91429996, y: 0.59876674}
       BindPerU: 0.36
       BindPerV: 0.36
       Valid: 1
-      BindPos: {x: -0.011262999, y: 1.2448767, z: 0.13338368}
-      BindNormal: {x: 0.12895392, y: -0.99159765, z: 0.010244854}
+      BindPos: {x: -0.0046215807, y: 1.2467111, z: 0.13809729}
+      BindNormal: {x: 0.46712294, y: -0.88418216, z: 0.0042480896}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Pelvis

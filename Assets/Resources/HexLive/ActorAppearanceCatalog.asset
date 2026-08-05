@@ -13,19 +13,2536 @@ MonoBehaviour:
   m_Name: ActorAppearanceCatalog
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.ActorAppearanceCatalog
   hairstyles:
-  - {fileID: 4237885271606342491, guid: 16c74c662768dc14db310af2058e1d8a, type: 3}
-  - {fileID: 981942730775082348, guid: 6656edd8744ce954bab804d724061114, type: 3}
-  - {fileID: 6719276383305769003, guid: 9edd6b274d35f644d94b89fd0577be62, type: 3}
-  - {fileID: 7838977768484864180, guid: d6bc6c88a1bc6cb48a7b842711d1c255, type: 3}
-  - {fileID: 4586264236356159168, guid: 9e974949cc4c3ec45a146d51136e6121, type: 3}
-  - {fileID: 7247782644059013119, guid: 4d3265d1a4c863940809b1da009c91a8, type: 3}
-  - {fileID: 5305090620873555672, guid: 0e87ed6f3e5083b48a1b5bd9d21abf4a, type: 3}
-  - {fileID: 2686189325586104534, guid: 10f28e9abd8a242969d20919fb0856df, type: 3}
-  - {fileID: 2786174600953756029, guid: 0464cad814111854c84d535d381d7938, type: 3}
-  - {fileID: 8355972699817684869, guid: 8ac65038158a888499b69a71949a76a4, type: 3}
-  - {fileID: 7232675141285592703, guid: 295165e5f9a98c045be32aa86550322f, type: 3}
-  - {fileID: 2078132911978786281, guid: dd71c155f7338314fbd0dc7ac2c10bcd, type: 3}
-  - {fileID: 8681775747410027845, guid: d40b1bceef576ec4f97d5066a95faae2, type: 3}
-  - {fileID: -1246604828743692618, guid: e9add1981b812134fa96dbe11d7aa432, type: 3}
-  - {fileID: -7226743084929782580, guid: fcae97fd035081c41b601ac22c9dadb7, type: 3}
-  - {fileID: 4627830619183999660, guid: b7f811e03a6c13c42882626bc7099a17, type: 3}
+  - AdellHair
+  - AsukaHair
+  - BendineHair
+  - Bob3Hair
+  - ChunkyHair
+  - EilisHair
+  - Hair07
+  - JelikaHair_32434
+  - JenniferHair
+  - LeonyPonytail
+  - LoonaHair
+  - LowPonytail
+  - Neu09Hair
+  - OnyxHair
+  - ShilohHair
+  - TootsieRollHair
+  hairColours:
+  - hair: AdellHair
+    colour: Adell Col 01
+    surfaces:
+    - Base
+    - Hair
+  - hair: AdellHair
+    colour: Adell Col 02
+    surfaces:
+    - Base
+    - Hair
+  - hair: AdellHair
+    colour: Adell Col 03
+    surfaces:
+    - Base
+    - Hair
+  - hair: AdellHair
+    colour: Adell Col 04
+    surfaces:
+    - Base
+    - Hair
+  - hair: AdellHair
+    colour: Adell Col 05
+    surfaces:
+    - Base
+    - Hair
+  - hair: AdellHair
+    colour: Adell Col 06
+    surfaces:
+    - Base
+    - Hair
+  - hair: AdellHair
+    colour: Adell Col 07
+    surfaces:
+    - Base
+    - Hair
+  - hair: AdellHair
+    colour: Adell Col 08
+    surfaces:
+    - Base
+    - Hair
+  - hair: AdellHair
+    colour: Adell Col 09
+    surfaces:
+    - Base
+    - Hair
+  - hair: AdellHair
+    colour: Adell Col 10
+    surfaces:
+    - Base
+    - Hair
+  - hair: AsukaHair
+    colour: Asuka_Col 01
+    surfaces:
+    - A_Strands
+    - A_Strands_A
+    - A_Strands_B
+    - A_Strands_C
+    - B_Base
+    - B_Base_Fine
+    - B_Base_Neck
+    - B_Base_Str
+    - C_Bow
+    - C_Bow_Curl
+    - C_Bow_Fine
+    - Scalp
+  - hair: AsukaHair
+    colour: Asuka_Col 02
+    surfaces:
+    - A_Strands
+    - A_Strands_A
+    - A_Strands_B
+    - A_Strands_C
+    - B_Base
+    - B_Base_Fine
+    - B_Base_Neck
+    - B_Base_Str
+    - C_Bow
+    - C_Bow_Curl
+    - C_Bow_Fine
+    - Scalp
+  - hair: AsukaHair
+    colour: Asuka_Col 03
+    surfaces:
+    - A_Strands
+    - A_Strands_A
+    - A_Strands_B
+    - A_Strands_C
+    - B_Base
+    - B_Base_Fine
+    - B_Base_Neck
+    - B_Base_Str
+    - C_Bow
+    - C_Bow_Curl
+    - C_Bow_Fine
+    - Scalp
+  - hair: AsukaHair
+    colour: Asuka_Col 04
+    surfaces:
+    - A_Strands
+    - A_Strands_A
+    - A_Strands_B
+    - A_Strands_C
+    - B_Base
+    - B_Base_Fine
+    - B_Base_Neck
+    - B_Base_Str
+    - C_Bow
+    - C_Bow_Curl
+    - C_Bow_Fine
+    - Scalp
+  - hair: AsukaHair
+    colour: Asuka_Col 05
+    surfaces:
+    - A_Strands
+    - A_Strands_A
+    - A_Strands_B
+    - A_Strands_C
+    - B_Base
+    - B_Base_Fine
+    - B_Base_Neck
+    - B_Base_Str
+    - C_Bow
+    - C_Bow_Curl
+    - C_Bow_Fine
+    - Scalp
+  - hair: AsukaHair
+    colour: Asuka_Col 06
+    surfaces:
+    - A_Strands
+    - A_Strands_A
+    - A_Strands_B
+    - A_Strands_C
+    - B_Base
+    - B_Base_Fine
+    - B_Base_Neck
+    - B_Base_Str
+    - C_Bow
+    - C_Bow_Curl
+    - C_Bow_Fine
+    - Scalp
+  - hair: AsukaHair
+    colour: Asuka_Col 07
+    surfaces:
+    - A_Strands
+    - A_Strands_A
+    - A_Strands_B
+    - A_Strands_C
+    - B_Base
+    - B_Base_Fine
+    - B_Base_Neck
+    - B_Base_Str
+    - C_Bow
+    - C_Bow_Curl
+    - C_Bow_Fine
+    - Scalp
+  - hair: AsukaHair
+    colour: Asuka_Col 08
+    surfaces:
+    - A_Strands
+    - A_Strands_A
+    - A_Strands_B
+    - A_Strands_C
+    - B_Base
+    - B_Base_Fine
+    - B_Base_Neck
+    - B_Base_Str
+    - C_Bow
+    - C_Bow_Curl
+    - C_Bow_Fine
+    - Scalp
+  - hair: AsukaHair
+    colour: Asuka_Col 09
+    surfaces:
+    - A_Strands
+    - A_Strands_A
+    - A_Strands_B
+    - A_Strands_C
+    - B_Base
+    - B_Base_Fine
+    - B_Base_Neck
+    - B_Base_Str
+    - C_Bow
+    - C_Bow_Curl
+    - C_Bow_Fine
+    - Scalp
+  - hair: AsukaHair
+    colour: Asuka_Col 10
+    surfaces:
+    - A_Strands
+    - A_Strands_A
+    - A_Strands_B
+    - A_Strands_C
+    - B_Base
+    - B_Base_Fine
+    - B_Base_Neck
+    - B_Base_Str
+    - C_Bow
+    - C_Bow_Curl
+    - C_Bow_Fine
+    - Scalp
+  - hair: AsukaHair
+    colour: Asuka_Col 11
+    surfaces:
+    - A_Strands
+    - A_Strands_A
+    - A_Strands_B
+    - A_Strands_C
+    - B_Base
+    - B_Base_Fine
+    - B_Base_Neck
+    - B_Base_Str
+    - C_Bow
+    - C_Bow_Curl
+    - C_Bow_Fine
+    - Scalp
+  - hair: AsukaHair
+    colour: Asuka_Col 12
+    surfaces:
+    - A_Strands
+    - A_Strands_A
+    - A_Strands_B
+    - A_Strands_C
+    - B_Base
+    - B_Base_Fine
+    - B_Base_Neck
+    - B_Base_Str
+    - C_Bow
+    - C_Bow_Curl
+    - C_Bow_Fine
+    - Scalp
+  - hair: AsukaHair
+    colour: Asuka_Col 13
+    surfaces:
+    - A_Strands
+    - A_Strands_A
+    - A_Strands_B
+    - A_Strands_C
+    - B_Base
+    - B_Base_Fine
+    - B_Base_Neck
+    - B_Base_Str
+    - C_Bow
+    - C_Bow_Curl
+    - C_Bow_Fine
+    - Scalp
+  - hair: AsukaHair
+    colour: Asuka_Col 14
+    surfaces:
+    - A_Strands
+    - A_Strands_A
+    - A_Strands_B
+    - A_Strands_C
+    - B_Base
+    - B_Base_Fine
+    - B_Base_Neck
+    - B_Base_Str
+    - C_Bow
+    - C_Bow_Curl
+    - C_Bow_Fine
+    - Scalp
+  - hair: AsukaHair
+    colour: Asuka_Col 15
+    surfaces:
+    - A_Strands
+    - A_Strands_A
+    - A_Strands_B
+    - A_Strands_C
+    - B_Base
+    - B_Base_Fine
+    - B_Base_Neck
+    - B_Base_Str
+    - C_Bow
+    - C_Bow_Curl
+    - C_Bow_Fine
+    - Scalp
+  - hair: AsukaHair
+    colour: Asuka_Col 16
+    surfaces:
+    - A_Strands
+    - A_Strands_A
+    - A_Strands_B
+    - A_Strands_C
+    - B_Base
+    - B_Base_Fine
+    - B_Base_Neck
+    - B_Base_Str
+    - C_Bow
+    - C_Bow_Curl
+    - C_Bow_Fine
+    - Scalp
+  - hair: AsukaHair
+    colour: Asuka_Col 17
+    surfaces:
+    - A_Strands
+    - A_Strands_A
+    - A_Strands_B
+    - A_Strands_C
+    - B_Base
+    - B_Base_Fine
+    - B_Base_Neck
+    - B_Base_Str
+    - C_Bow
+    - C_Bow_Curl
+    - C_Bow_Fine
+    - Scalp
+  - hair: AsukaHair
+    colour: Asuka_Col 18
+    surfaces:
+    - A_Strands
+    - A_Strands_A
+    - A_Strands_B
+    - A_Strands_C
+    - B_Base
+    - B_Base_Fine
+    - B_Base_Neck
+    - B_Base_Str
+    - C_Bow
+    - C_Bow_Curl
+    - C_Bow_Fine
+    - Scalp
+  - hair: AsukaHair
+    colour: Asuka_Col 19
+    surfaces:
+    - A_Strands
+    - A_Strands_A
+    - A_Strands_B
+    - A_Strands_C
+    - B_Base
+    - B_Base_Fine
+    - B_Base_Neck
+    - B_Base_Str
+    - C_Bow
+    - C_Bow_Curl
+    - C_Bow_Fine
+    - Scalp
+  - hair: AsukaHair
+    colour: Asuka_Col 20
+    surfaces:
+    - A_Strands
+    - A_Strands_A
+    - A_Strands_B
+    - A_Strands_C
+    - B_Base
+    - B_Base_Fine
+    - B_Base_Neck
+    - B_Base_Str
+    - C_Bow
+    - C_Bow_Curl
+    - C_Bow_Fine
+    - Scalp
+  - hair: AsukaHair
+    colour: Asuka_Col 21
+    surfaces:
+    - A_Strands
+    - A_Strands_A
+    - A_Strands_B
+    - A_Strands_C
+    - B_Base
+    - B_Base_Fine
+    - B_Base_Neck
+    - B_Base_Str
+    - C_Bow
+    - C_Bow_Curl
+    - C_Bow_Fine
+    - Scalp
+  - hair: AsukaHair
+    colour: Asuka_Col 22
+    surfaces:
+    - A_Strands
+    - A_Strands_A
+    - A_Strands_B
+    - A_Strands_C
+    - B_Base
+    - B_Base_Fine
+    - B_Base_Neck
+    - B_Base_Str
+    - C_Bow
+    - C_Bow_Curl
+    - C_Bow_Fine
+    - Scalp
+  - hair: AsukaHair
+    colour: Asuka_Col 23
+    surfaces:
+    - A_Strands
+    - A_Strands_A
+    - A_Strands_B
+    - A_Strands_C
+    - B_Base
+    - B_Base_Fine
+    - B_Base_Neck
+    - B_Base_Str
+    - C_Bow
+    - C_Bow_Curl
+    - C_Bow_Fine
+    - Scalp
+  - hair: AsukaHair
+    colour: Asuka_Col 24
+    surfaces:
+    - A_Strands
+    - A_Strands_A
+    - A_Strands_B
+    - A_Strands_C
+    - B_Base
+    - B_Base_Fine
+    - B_Base_Neck
+    - B_Base_Str
+    - C_Bow
+    - C_Bow_Curl
+    - C_Bow_Fine
+    - Scalp
+  - hair: AsukaHair
+    colour: Asuka_Col 25
+    surfaces:
+    - A_Strands
+    - A_Strands_A
+    - A_Strands_B
+    - A_Strands_C
+    - B_Base
+    - B_Base_Fine
+    - B_Base_Neck
+    - B_Base_Str
+    - C_Bow
+    - C_Bow_Curl
+    - C_Bow_Fine
+    - Scalp
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 01
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 02
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 03
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 04
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 05
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 06
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 07
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 08
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 09
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 10
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 11
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 12
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 13
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 14
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 15
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 16
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 17
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 18
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 19
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 20
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 21
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 22
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 23
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 24
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 25
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 26
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 27
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 28
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 29
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 30
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: Bob3Hair
+    colour: 01 Bobbity Bo Hair 3Dl
+    surfaces:
+    - HairFine
+    - HairFiner
+    - HairLow
+    - HairMiddle
+    - Scalp
+  - hair: Bob3Hair
+    colour: 02 Bobbity Bo Hair 3Dl
+    surfaces:
+    - HairFine
+    - HairFiner
+    - HairLow
+    - HairMiddle
+    - Scalp
+  - hair: Bob3Hair
+    colour: 03 Bobbity Bo Hair 3Dl
+    surfaces:
+    - HairFine
+    - HairFiner
+    - HairLow
+    - HairMiddle
+    - Scalp
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 01
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 02
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 03
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 04
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 05
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 06
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 07
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 08
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 09
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 10
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 11
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 12
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 13
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 14
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 15
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 16
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 17
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 18
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 19
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 20
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 21
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 22
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 23
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 24
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 25
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 26
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 27
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 28
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 29
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 30
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: ChunkyHair
+    colour: Chunky Pigtailsbands 01
+    surfaces:
+    - Hairbands
+  - hair: ChunkyHair
+    colour: Chunky Pigtailsbands 02
+    surfaces:
+    - Hairbands
+  - hair: ChunkyHair
+    colour: Chunky Pigtailsbands 03
+    surfaces:
+    - Hairbands
+  - hair: ChunkyHair
+    colour: Chunky Pigtailsbands 04
+    surfaces:
+    - Hairbands
+  - hair: ChunkyHair
+    colour: Chunky Pigtailsbands 05
+    surfaces:
+    - Hairbands
+  - hair: ChunkyHair
+    colour: Chunky Pigtailsbands 06
+    surfaces:
+    - Hairbands
+  - hair: ChunkyHair
+    colour: Chunky Pigtailsbands 07
+    surfaces:
+    - Hairbands
+  - hair: ChunkyHair
+    colour: Chunky Pigtailsbands 08
+    surfaces:
+    - Hairbands
+  - hair: ChunkyHair
+    colour: Chunky Pigtailsbands 09
+    surfaces:
+    - Hairbands
+  - hair: ChunkyHair
+    colour: Chunky Pigtailsbands 10
+    surfaces:
+    - Hairbands
+  - hair: EilisHair
+    colour: Eilis 10 M AshBlue
+    surfaces:
+    - hair1
+    - hair2
+    - scalp
+  - hair: EilisHair
+    colour: Eilis 10 M Black
+    surfaces:
+    - hair1
+    - hair2
+    - scalp
+  - hair: EilisHair
+    colour: Eilis 10 M BlackRed
+    surfaces:
+    - hair1
+    - hair2
+    - scalp
+  - hair: EilisHair
+    colour: Eilis 10 M BlackWhite
+    surfaces:
+    - hair1
+    - hair2
+    - scalp
+  - hair: EilisHair
+    colour: Eilis 10 M Blonde
+    surfaces:
+    - hair1
+    - hair2
+    - scalp
+  - hair: EilisHair
+    colour: Eilis 10 M BlueYellow
+    surfaces:
+    - hair1
+    - hair2
+    - scalp
+  - hair: EilisHair
+    colour: Eilis 10 M Brown
+    surfaces:
+    - hair1
+    - hair2
+    - scalp
+  - hair: EilisHair
+    colour: Eilis 10 M BrownBlonde
+    surfaces:
+    - hair1
+    - hair2
+    - scalp
+  - hair: EilisHair
+    colour: Eilis 10 M BrownDk
+    surfaces:
+    - hair1
+    - hair2
+    - scalp
+  - hair: EilisHair
+    colour: Eilis 10 M Grey
+    surfaces:
+    - hair1
+    - hair2
+    - scalp
+  - hair: EilisHair
+    colour: Eilis 10 M Red
+    surfaces:
+    - hair1
+    - hair2
+    - scalp
+  - hair: EilisHair
+    colour: Eilis 10 M White
+    surfaces:
+    - hair1
+    - hair2
+    - scalp
+  - hair: EilisHair
+    colour: Eilis 10 M WhitePink
+    surfaces:
+    - hair1
+    - hair2
+    - scalp
+  - hair: EilisHair
+    colour: Eilis 20 D Ash
+    surfaces:
+    - hair1
+    - hair2
+    - scalp
+  - hair: EilisHair
+    colour: Eilis 20 D Blue
+    surfaces:
+    - hair1
+    - hair2
+    - scalp
+  - hair: EilisHair
+    colour: Eilis 20 D Candy
+    surfaces:
+    - hair1
+    - hair2
+    - scalp
+  - hair: EilisHair
+    colour: Eilis 20 D Coral
+    surfaces:
+    - hair1
+    - hair2
+    - scalp
+  - hair: EilisHair
+    colour: Eilis 20 D Green
+    surfaces:
+    - hair1
+    - hair2
+    - scalp
+  - hair: EilisHair
+    colour: Eilis 20 D Pink
+    surfaces:
+    - hair1
+    - hair2
+    - scalp
+  - hair: EilisHair
+    colour: Eilis 20 D Purple
+    surfaces:
+    - hair1
+    - hair2
+    - scalp
+  - hair: EilisHair
+    colour: Eilis 20 D Red
+    surfaces:
+    - hair1
+    - hair2
+    - scalp
+  - hair: EilisHair
+    colour: Eilis 20 D XBlackBlue
+    surfaces:
+    - hair1
+    - hair2
+    - scalp
+  - hair: EilisHair
+    colour: Eilis 20 D XBlackRed
+    surfaces:
+    - hair1
+    - hair2
+    - scalp
+  - hair: EilisHair
+    colour: Eilis 20 D XBlackWhite
+    surfaces:
+    - hair1
+    - hair2
+    - scalp
+  - hair: EilisHair
+    colour: Eilis 20 D XPurpleGreen
+    surfaces:
+    - hair1
+    - hair2
+    - scalp
+  - hair: Hair07
+    colour: Ladina-COl 06
+    surfaces:
+    - A_Back
+    - A_Hair
+    - B_FrontFine
+    - B_FrontLonger
+    - B_FrontShort
+    - Scalp
+  - hair: Hair07
+    colour: Ladina-Col 01
+    surfaces:
+    - A_Back
+    - A_Hair
+    - B_FrontFine
+    - B_FrontLonger
+    - B_FrontShort
+    - Scalp
+  - hair: Hair07
+    colour: Ladina-Col 02
+    surfaces:
+    - A_Back
+    - A_Hair
+    - B_FrontFine
+    - B_FrontLonger
+    - B_FrontShort
+    - Scalp
+  - hair: Hair07
+    colour: Ladina-Col 03
+    surfaces:
+    - A_Back
+    - A_Hair
+    - B_FrontFine
+    - B_FrontLonger
+    - B_FrontShort
+    - Scalp
+  - hair: Hair07
+    colour: Ladina-Col 04
+    surfaces:
+    - A_Back
+    - A_Hair
+    - B_FrontFine
+    - B_FrontLonger
+    - B_FrontShort
+    - Scalp
+  - hair: Hair07
+    colour: Ladina-Col 05
+    surfaces:
+    - A_Back
+    - A_Hair
+    - B_FrontFine
+    - B_FrontLonger
+    - B_FrontShort
+    - Scalp
+  - hair: Hair07
+    colour: Ladina-Col 07
+    surfaces:
+    - A_Back
+    - A_Hair
+    - B_FrontFine
+    - B_FrontLonger
+    - B_FrontShort
+    - Scalp
+  - hair: Hair07
+    colour: Ladina-Col 08
+    surfaces:
+    - A_Back
+    - A_Hair
+    - B_FrontFine
+    - B_FrontLonger
+    - B_FrontShort
+    - Scalp
+  - hair: Hair07
+    colour: Ladina-Col 09
+    surfaces:
+    - A_Back
+    - A_Hair
+    - B_FrontFine
+    - B_FrontLonger
+    - B_FrontShort
+    - Scalp
+  - hair: Hair07
+    colour: Ladina-Col 10
+    surfaces:
+    - A_Back
+    - A_Hair
+    - B_FrontFine
+    - B_FrontLonger
+    - B_FrontShort
+    - Scalp
+  - hair: Hair07
+    colour: Ladina-Col 11
+    surfaces:
+    - A_Back
+    - A_Hair
+    - B_FrontFine
+    - B_FrontLonger
+    - B_FrontShort
+    - Scalp
+  - hair: Hair07
+    colour: Ladina-Col 12
+    surfaces:
+    - A_Back
+    - A_Hair
+    - B_FrontFine
+    - B_FrontLonger
+    - B_FrontShort
+    - Scalp
+  - hair: Hair07
+    colour: Ladina-Col 13
+    surfaces:
+    - A_Back
+    - A_Hair
+    - B_FrontFine
+    - B_FrontLonger
+    - B_FrontShort
+    - Scalp
+  - hair: Hair07
+    colour: Ladina-Col 14
+    surfaces:
+    - A_Back
+    - A_Hair
+    - B_FrontFine
+    - B_FrontLonger
+    - B_FrontShort
+    - Scalp
+  - hair: Hair07
+    colour: Ladina-Col 15
+    surfaces:
+    - A_Back
+    - A_Hair
+    - B_FrontFine
+    - B_FrontLonger
+    - B_FrontShort
+    - Scalp
+  - hair: Hair07
+    colour: Ladina-Ombre Col 01
+    surfaces:
+    - A_Back
+    - A_Hair
+    - B_FrontFine
+    - B_FrontLonger
+    - B_FrontShort
+    - Scalp
+  - hair: Hair07
+    colour: Ladina-Ombre Col 02
+    surfaces:
+    - A_Back
+    - A_Hair
+    - B_FrontFine
+    - B_FrontLonger
+    - B_FrontShort
+    - Scalp
+  - hair: Hair07
+    colour: Ladina-Ombre Col 03
+    surfaces:
+    - A_Back
+    - A_Hair
+    - B_FrontFine
+    - B_FrontLonger
+    - B_FrontShort
+    - Scalp
+  - hair: Hair07
+    colour: Ladina-Ombre Col 04
+    surfaces:
+    - A_Back
+    - A_Hair
+    - B_FrontFine
+    - B_FrontLonger
+    - B_FrontShort
+    - Scalp
+  - hair: Hair07
+    colour: Ladina-Ombre Col 05
+    surfaces:
+    - A_Back
+    - A_Hair
+    - B_FrontFine
+    - B_FrontLonger
+    - B_FrontShort
+    - Scalp
+  - hair: Hair07
+    colour: Ladina-Ombre Col 06
+    surfaces:
+    - A_Back
+    - A_Hair
+    - B_FrontFine
+    - B_FrontLonger
+    - B_FrontShort
+    - Scalp
+  - hair: Hair07
+    colour: Ladina-Ombre Col 07
+    surfaces:
+    - A_Back
+    - A_Hair
+    - B_FrontFine
+    - B_FrontLonger
+    - B_FrontShort
+    - Scalp
+  - hair: Hair07
+    colour: Ladina-Ombre Col 08
+    surfaces:
+    - A_Back
+    - A_Hair
+    - B_FrontFine
+    - B_FrontLonger
+    - B_FrontShort
+    - Scalp
+  - hair: Hair07
+    colour: Ladina-Ombre Col 09
+    surfaces:
+    - A_Back
+    - A_Hair
+    - B_FrontFine
+    - B_FrontLonger
+    - B_FrontShort
+    - Scalp
+  - hair: Hair07
+    colour: Ladina-Ombre Col 10
+    surfaces:
+    - A_Back
+    - A_Hair
+    - B_FrontFine
+    - B_FrontLonger
+    - B_FrontShort
+    - Scalp
+  - hair: JenniferHair
+    colour: Jennifer Hair MAT 01
+    surfaces:
+    - Braid01
+    - Braid02
+    - BraidBack01
+    - BraidBack02
+    - HairFine
+    - HairFront
+    - HairLow
+    - Rubber_band
+    - Scalp
+    - temples
+  - hair: JenniferHair
+    colour: Jennifer Hair MAT 02
+    surfaces:
+    - Braid01
+    - Braid02
+    - BraidBack01
+    - BraidBack02
+    - HairFine
+    - HairFront
+    - HairLow
+    - Rubber_band
+    - Scalp
+    - temples
+  - hair: JenniferHair
+    colour: Jennifer Hair MAT 03
+    surfaces:
+    - Braid01
+    - Braid02
+    - BraidBack01
+    - BraidBack02
+    - HairFine
+    - HairFront
+    - HairLow
+    - Rubber_band
+    - Scalp
+    - temples
+  - hair: JenniferHair
+    colour: Jennifer Hair MAT 04
+    surfaces:
+    - Braid01
+    - Braid02
+    - BraidBack01
+    - BraidBack02
+    - HairFine
+    - HairFront
+    - HairLow
+    - Rubber_band
+    - Scalp
+    - temples
+  - hair: JenniferHair
+    colour: Jennifer Hair MAT 05
+    surfaces:
+    - Braid01
+    - Braid02
+    - BraidBack01
+    - BraidBack02
+    - HairFine
+    - HairFront
+    - HairLow
+    - Rubber_band
+    - Scalp
+    - temples
+  - hair: JenniferHair
+    colour: Jennifer Hair MAT 06
+    surfaces:
+    - Braid01
+    - Braid02
+    - BraidBack01
+    - BraidBack02
+    - HairFine
+    - HairFront
+    - HairLow
+    - Rubber_band
+    - Scalp
+    - temples
+  - hair: JenniferHair
+    colour: Jennifer Hair MAT 07
+    surfaces:
+    - Braid01
+    - Braid02
+    - BraidBack01
+    - BraidBack02
+    - HairFine
+    - HairFront
+    - HairLow
+    - Rubber_band
+    - Scalp
+    - temples
+  - hair: JenniferHair
+    colour: Jennifer Hair MAT 08
+    surfaces:
+    - Braid01
+    - Braid02
+    - BraidBack01
+    - BraidBack02
+    - HairFine
+    - HairFront
+    - HairLow
+    - Rubber_band
+    - Scalp
+    - temples
+  - hair: JenniferHair
+    colour: Jennifer Hair MAT 09
+    surfaces:
+    - Braid01
+    - Braid02
+    - BraidBack01
+    - BraidBack02
+    - HairFine
+    - HairFront
+    - HairLow
+    - Rubber_band
+    - Scalp
+    - temples
+  - hair: JenniferHair
+    colour: Jennifer Hair MAT 10
+    surfaces:
+    - Braid01
+    - Braid02
+    - BraidBack01
+    - BraidBack02
+    - HairFine
+    - HairFront
+    - HairLow
+    - Rubber_band
+    - Scalp
+    - temples
+  - hair: JenniferHair
+    colour: Jennifer Hair MAT 11
+    surfaces:
+    - Braid01
+    - Braid02
+    - BraidBack01
+    - BraidBack02
+    - HairFine
+    - HairFront
+    - HairLow
+    - Rubber_band
+    - Scalp
+    - temples
+  - hair: JenniferHair
+    colour: Jennifer Hair MAT 12
+    surfaces:
+    - Braid01
+    - Braid02
+    - BraidBack01
+    - BraidBack02
+    - HairFine
+    - HairFront
+    - HairLow
+    - Rubber_band
+    - Scalp
+    - temples
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 01
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 02
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 03
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 04
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 05
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 06
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 07
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 08
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 09
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 10
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 11
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 12
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 13
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 14
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 15
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 16
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 17
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 18
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 19
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 20
+    surfaces:
+    - Back
+    - BackUnder
+    - Bangs1
+    - Bangs2
+    - Cap
+    - Front1
+    - Front2
+    - Side1
+    - Side2
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hairband 01
+    surfaces:
+    - Bands
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hairband 02
+    surfaces:
+    - Bands
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hairband 03
+    surfaces:
+    - Bands
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hairband 04
+    surfaces:
+    - Bands
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hairband 05
+    surfaces:
+    - Bands
+  - hair: LoonaHair
+    colour: Loona Col 01
+    surfaces:
+    - Fine
+    - FlyAways
+    - Hair_lower
+    - Hair_upper
+    - Scalp
+    - Str_lower
+    - Str_upper
+  - hair: LoonaHair
+    colour: Loona Col 02
+    surfaces:
+    - Fine
+    - FlyAways
+    - Hair_lower
+    - Hair_upper
+    - Scalp
+    - Str_lower
+    - Str_upper
+  - hair: LoonaHair
+    colour: Loona Col 03
+    surfaces:
+    - Fine
+    - FlyAways
+    - Hair_lower
+    - Hair_upper
+    - Scalp
+    - Str_lower
+    - Str_upper
+  - hair: LoonaHair
+    colour: Loona Col 04
+    surfaces:
+    - Fine
+    - FlyAways
+    - Hair_lower
+    - Hair_upper
+    - Scalp
+    - Str_lower
+    - Str_upper
+  - hair: LoonaHair
+    colour: Loona Col 05
+    surfaces:
+    - Fine
+    - FlyAways
+    - Hair_lower
+    - Hair_upper
+    - Scalp
+    - Str_lower
+    - Str_upper
+  - hair: LoonaHair
+    colour: Loona Col 06
+    surfaces:
+    - Fine
+    - FlyAways
+    - Hair_lower
+    - Hair_upper
+    - Scalp
+    - Str_lower
+    - Str_upper
+  - hair: LoonaHair
+    colour: Loona Col 07
+    surfaces:
+    - Fine
+    - FlyAways
+    - Hair_lower
+    - Hair_upper
+    - Scalp
+    - Str_lower
+    - Str_upper
+  - hair: LoonaHair
+    colour: Loona Col 08
+    surfaces:
+    - Fine
+    - FlyAways
+    - Hair_lower
+    - Hair_upper
+    - Scalp
+    - Str_lower
+    - Str_upper
+  - hair: LoonaHair
+    colour: Loona Col 09
+    surfaces:
+    - Fine
+    - FlyAways
+    - Hair_lower
+    - Hair_upper
+    - Scalp
+    - Str_lower
+    - Str_upper
+  - hair: LoonaHair
+    colour: Loona Col 10
+    surfaces:
+    - Fine
+    - FlyAways
+    - Hair_lower
+    - Hair_upper
+    - Scalp
+    - Str_lower
+    - Str_upper
+  - hair: LoonaHair
+    colour: Loona Col 11
+    surfaces:
+    - Fine
+    - FlyAways
+    - Hair_lower
+    - Hair_upper
+    - Scalp
+    - Str_lower
+    - Str_upper
+  - hair: LoonaHair
+    colour: Loona Col 12
+    surfaces:
+    - Fine
+    - FlyAways
+    - Hair_lower
+    - Hair_upper
+    - Scalp
+    - Str_lower
+    - Str_upper
+  - hair: LoonaHair
+    colour: Loona Col 13
+    surfaces:
+    - Fine
+    - FlyAways
+    - Hair_lower
+    - Hair_upper
+    - Scalp
+    - Str_lower
+    - Str_upper
+  - hair: LoonaHair
+    colour: Loona Col 14
+    surfaces:
+    - Fine
+    - FlyAways
+    - Hair_lower
+    - Hair_upper
+    - Scalp
+    - Str_lower
+    - Str_upper
+  - hair: LoonaHair
+    colour: Loona Col 15
+    surfaces:
+    - Fine
+    - FlyAways
+    - Hair_lower
+    - Hair_upper
+    - Scalp
+    - Str_lower
+    - Str_upper
+  - hair: LoonaHair
+    colour: Loona Col 16
+    surfaces:
+    - Fine
+    - FlyAways
+    - Hair_lower
+    - Hair_upper
+    - Scalp
+    - Str_lower
+    - Str_upper
+  - hair: LoonaHair
+    colour: Loona Col 17
+    surfaces:
+    - Fine
+    - FlyAways
+    - Hair_lower
+    - Hair_upper
+    - Scalp
+    - Str_lower
+    - Str_upper
+  - hair: LoonaHair
+    colour: Loona Col 18
+    surfaces:
+    - Fine
+    - FlyAways
+    - Hair_lower
+    - Hair_upper
+    - Scalp
+    - Str_lower
+    - Str_upper
+  - hair: LoonaHair
+    colour: Loona Col 19
+    surfaces:
+    - Fine
+    - FlyAways
+    - Hair_lower
+    - Hair_upper
+    - Scalp
+    - Str_lower
+    - Str_upper
+  - hair: LoonaHair
+    colour: Loona Col 20
+    surfaces:
+    - Fine
+    - FlyAways
+    - Hair_lower
+    - Hair_upper
+    - Scalp
+    - Str_lower
+    - Str_upper
+  - hair: LoonaHair
+    colour: Loona Col 21
+    surfaces:
+    - Fine
+    - FlyAways
+    - Hair_lower
+    - Hair_upper
+    - Scalp
+    - Str_lower
+    - Str_upper
+  - hair: LoonaHair
+    colour: Loona Col 22
+    surfaces:
+    - Fine
+    - FlyAways
+    - Hair_lower
+    - Hair_upper
+    - Scalp
+    - Str_lower
+    - Str_upper
+  - hair: LoonaHair
+    colour: Loona GLossy 080
+    surfaces:
+    - Scalp
+  - hair: Neu09Hair
+    colour: Cherry Black
+    surfaces:
+    - Cherry01
+    - Cherry02
+    - Rubber
+  - hair: Neu09Hair
+    colour: Cherry Blue dark
+    surfaces:
+    - Cherry01
+    - Cherry02
+    - Rubber
+  - hair: Neu09Hair
+    colour: Cherry Blue light
+    surfaces:
+    - Cherry01
+    - Cherry02
+    - Rubber
+  - hair: Neu09Hair
+    colour: Cherry Green
+    surfaces:
+    - Cherry01
+    - Cherry02
+    - Rubber
+  - hair: Neu09Hair
+    colour: Cherry Orange
+    surfaces:
+    - Cherry01
+    - Cherry02
+    - Rubber
+  - hair: Neu09Hair
+    colour: Cherry Pink
+    surfaces:
+    - Cherry01
+    - Cherry02
+    - Rubber
+  - hair: Neu09Hair
+    colour: Cherry Red
+    surfaces:
+    - Cherry01
+    - Cherry02
+    - Rubber
+  - hair: Neu09Hair
+    colour: Cherry White
+    surfaces:
+    - Cherry01
+    - Cherry02
+    - Rubber
+  - hair: Neu09Hair
+    colour: Cherry Yellow
+    surfaces:
+    - Cherry01
+    - Cherry02
+    - Rubber
+  - hair: Neu09Hair
+    colour: Col 01
+    surfaces:
+    - A_hair
+    - A_neck
+    - B_side
+    - B_sideburn
+    - B_strands
+    - Scalp
+  - hair: Neu09Hair
+    colour: Col 02
+    surfaces:
+    - A_hair
+    - A_neck
+    - B_side
+    - B_sideburn
+    - B_strands
+    - Scalp
+  - hair: Neu09Hair
+    colour: Col 03
+    surfaces:
+    - A_hair
+    - A_neck
+    - B_side
+    - B_sideburn
+    - B_strands
+    - Scalp
+  - hair: Neu09Hair
+    colour: Col 04
+    surfaces:
+    - A_hair
+    - A_neck
+    - B_side
+    - B_sideburn
+    - B_strands
+    - Scalp
+  - hair: Neu09Hair
+    colour: Col 05
+    surfaces:
+    - A_hair
+    - A_neck
+    - B_side
+    - B_sideburn
+    - B_strands
+    - Scalp
+  - hair: Neu09Hair
+    colour: Col 06
+    surfaces:
+    - A_hair
+    - A_neck
+    - B_side
+    - B_sideburn
+    - B_strands
+    - Scalp
+  - hair: Neu09Hair
+    colour: Col 07
+    surfaces:
+    - A_hair
+    - A_neck
+    - B_side
+    - B_sideburn
+    - B_strands
+    - Scalp
+  - hair: Neu09Hair
+    colour: Col 08
+    surfaces:
+    - A_hair
+    - A_neck
+    - B_side
+    - B_sideburn
+    - B_strands
+    - Scalp
+  - hair: Neu09Hair
+    colour: Col 09
+    surfaces:
+    - A_hair
+    - A_neck
+    - B_side
+    - B_sideburn
+    - B_strands
+    - Scalp
+  - hair: Neu09Hair
+    colour: Col 10
+    surfaces:
+    - A_hair
+    - A_neck
+    - B_side
+    - B_sideburn
+    - B_strands
+    - Scalp
+  - hair: Neu09Hair
+    colour: Col 11
+    surfaces:
+    - A_hair
+    - A_neck
+    - B_side
+    - B_sideburn
+    - B_strands
+    - Scalp
+  - hair: Neu09Hair
+    colour: Col 12
+    surfaces:
+    - A_hair
+    - A_neck
+    - B_side
+    - B_sideburn
+    - B_strands
+    - Scalp
+  - hair: Neu09Hair
+    colour: Col 13
+    surfaces:
+    - A_hair
+    - A_neck
+    - B_side
+    - B_sideburn
+    - B_strands
+    - Scalp
+  - hair: Neu09Hair
+    colour: Col 14
+    surfaces:
+    - A_hair
+    - A_neck
+    - B_side
+    - B_sideburn
+    - B_strands
+    - Scalp
+  - hair: Neu09Hair
+    colour: Col 15
+    surfaces:
+    - A_hair
+    - A_neck
+    - B_side
+    - B_sideburn
+    - B_strands
+    - Scalp
+  - hair: Neu09Hair
+    colour: Col 16
+    surfaces:
+    - A_hair
+    - A_neck
+    - B_side
+    - B_sideburn
+    - B_strands
+    - Scalp
+  - hair: Neu09Hair
+    colour: Col 17
+    surfaces:
+    - A_hair
+    - A_neck
+    - B_side
+    - B_sideburn
+    - B_strands
+    - Scalp
+  - hair: Neu09Hair
+    colour: Col 18
+    surfaces:
+    - A_hair
+    - A_neck
+    - B_side
+    - B_sideburn
+    - B_strands
+    - Scalp
+  - hair: Neu09Hair
+    colour: Col 19
+    surfaces:
+    - A_hair
+    - A_neck
+    - B_side
+    - B_sideburn
+    - B_strands
+    - Scalp
+  - hair: Neu09Hair
+    colour: Col 20
+    surfaces:
+    - A_hair
+    - A_neck
+    - B_side
+    - B_sideburn
+    - B_strands
+    - Scalp
+  - hair: Neu09Hair
+    colour: Rubber Black
+    surfaces:
+    - Rubber
+  - hair: Neu09Hair
+    colour: Rubber Blue dark
+    surfaces:
+    - Rubber
+  - hair: Neu09Hair
+    colour: Rubber Red
+    surfaces:
+    - Rubber
+  - hair: Neu09Hair
+    colour: Rubber White
+    surfaces:
+    - Rubber
+  - hair: TootsieRollHair
+    colour: 01 Classic Roll Hair
+    surfaces:
+    - Bangs
+    - FineHair
+    - Hair
+    - InnerCurl
+    - LongCurl
+    - LowerOuterFine
+    - MidCurl
+    - OuterCLower
+    - OuterCurl
+    - Scalp
+    - UpperOuterFine
+  - hair: TootsieRollHair
+    colour: 02 Classic Roll Hair
+    surfaces:
+    - Bangs
+    - FineHair
+    - Hair
+    - InnerCurl
+    - LongCurl
+    - LowerOuterFine
+    - MidCurl
+    - OuterCLower
+    - OuterCurl
+    - Scalp
+    - UpperOuterFine
+  - hair: TootsieRollHair
+    colour: 03 Classic Roll Hair
+    surfaces:
+    - Bangs
+    - FineHair
+    - Hair
+    - InnerCurl
+    - LongCurl
+    - LowerOuterFine
+    - MidCurl
+    - OuterCLower
+    - OuterCurl
+    - Scalp
+    - UpperOuterFine

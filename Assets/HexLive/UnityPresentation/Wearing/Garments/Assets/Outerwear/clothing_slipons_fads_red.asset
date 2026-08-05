@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_slipons_fads_red
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.slipons_fads_red
+  prototypeId: clothing.slipons_fads
+  displayName: Slip-Ons (Red)
+  variantMaterials:
+  - {fileID: 2100000, guid: efe79f04320363f4f8e75a609d7ee96a, type: 2}
+  - {fileID: 2100000, guid: ce25994160d46c841b51ed54ace030e5, type: 2}
+  - {fileID: 2100000, guid: a7e0379d50dfe5c4eb687d3b97091286, type: 2}
+  - {fileID: 2100000, guid: ea2950bc9cb34c04389bb36e7cbcab51, type: 2}
+  - {fileID: 2100000, guid: d6d8866f1dbaf0a488ad5746adf7365e, type: 2}
+  - {fileID: 2100000, guid: 90eeaab2e17c87242af351c198622d9f, type: 2}
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.08
+  armor: 0.05
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

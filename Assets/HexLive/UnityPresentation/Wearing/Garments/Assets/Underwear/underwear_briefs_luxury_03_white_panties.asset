@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: underwear_briefs_luxury_03_white_panties
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: underwear.briefs_luxury_03_white_panties
+  prototypeId: underwear.briefs_luxury
+  displayName: Jewelled Bikini Bottom (03 White Panties)
+  variantMaterials:
+  - {fileID: 2100000, guid: a2386659d4e788546b45e6caa76b5d48, type: 2}
+  - {fileID: 2100000, guid: 736677257b7f61641983f87b29ccd6a5, type: 2}
+  - {fileID: 2100000, guid: 27a7a6b362a3b6e4281cd9200c8758c3, type: 2}
+  layer: 0
+  covers: 0100000002000000
+  warmth: 0.02
+  armor: 0
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 1

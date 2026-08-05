@@ -28,11 +28,11 @@ MonoBehaviour:
     Points:
     - Slot: 4
       Uv: {x: 0.4905095, y: 0.046630416}
-      BindPerU: 0.40057585
-      BindPerV: 0.31961387
+      BindPerU: 0.3981939
+      BindPerV: 0.3421834
       Valid: 1
-      BindPos: {x: -0.0040317755, y: 1.2028497, z: -0.06943303}
-      BindNormal: {x: 0.00943481, y: -0.2425374, z: -0.9700962}
+      BindPos: {x: -0.003699056, y: 1.253503, z: -0.06971381}
+      BindNormal: {x: 0.051831808, y: -0.287223, z: -0.9564603}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Pelvis

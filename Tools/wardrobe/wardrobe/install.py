@@ -81,6 +81,20 @@ def _extract(archive: Path, into: Path) -> None:
 _ARCHIVE_SUFFIXES = {".zip", ".rar", ".7z"}
 
 
+def _staging_name(stem: str) -> str:
+    """A folder name Windows will hand back the way we asked for it.
+
+    Win32 strips trailing spaces and dots from a path component when CREATING
+    or opening it, but not when ENUMERATING it — so a staging dir named after
+    `Skinny Jeans and Corset Outfit for Genesis 3 Female(s) .rar` (yes, that
+    space before the extension is really in the vendor's filename) is made as
+    `...Female(s)`, answers `exists()` with True, and then fails every
+    `scandir`/`rglob`/`rmtree` with «cannot find the path specified». The
+    archive silently never installs.
+    """
+    return stem.rstrip(" .") or "archive"
+
+
 def unpack_recursive(archive: Path, into: Path, depth: int = 0) -> list[str]:
     """Extract, then extract anything archived INSIDE, up to a sane depth.
 
@@ -95,7 +109,7 @@ def unpack_recursive(archive: Path, into: Path, depth: int = 0) -> list[str]:
         return nested
     for inner in sorted(into.rglob("*")):
         if inner.is_file() and inner.suffix.lower() in _ARCHIVE_SUFFIXES:
-            target = inner.parent / f"~{inner.stem}"
+            target = inner.parent / _staging_name(f"~{inner.stem}")
             try:
                 nested.append(str(inner.relative_to(into)).replace("\\", "/"))
                 unpack_recursive(inner, target, depth + 1)
@@ -308,7 +322,7 @@ def install(archives: list[Path], progress=lambda _: None,
             continue
 
         try:
-            staging = config.UNPACKED / archive.stem
+            staging = config.UNPACKED / _staging_name(archive.stem)
             if staging.exists():
                 shutil.rmtree(staging)
             entry["nested"] = unpack_recursive(archive, staging)

@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
+  MeshName: Jolly
+  VertexCount: 36408
+  Version: 0
+  MeshHeight: 1.7
+  TSamples: 1
+  AzimuthSamples: 1
+  TMin: 0
+  TMax: 1
+  Zones:
+  - Zone: Head
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: Torso
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: Pelvis
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: ArmL
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: ArmR
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: LegL
+    Points:
+    - Slot: 5
+      Uv: {x: 0.63373005, y: 0.91159505}
+      BindPerU: 0.24035208
+      BindPerV: 0.37070668
+      Valid: 1
+      BindPos: {x: -0.11773067, y: 0.08382022, z: 0.005373006}
+      BindNormal: {x: 0.045738004, y: 0.99746066, z: 0.054591645}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: LegR
+    Points:
+    - Slot: 5
+      Uv: {x: 0.63393277, y: 0.91119736}
+      BindPerU: 0.23591541
+      BindPerV: 0.37158197
+      Valid: 1
+      BindPos: {x: 0.11781659, y: 0.08381077, z: 0.005463075}
+      BindNormal: {x: -0.0062183603, y: 0.98299843, z: 0.18350871}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}

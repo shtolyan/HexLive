@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_sneakers_nerd_nc_sneakers_purple
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.sneakers_nerd_nc_sneakers_purple
+  prototypeId: clothing.sneakers_nerd
+  displayName: Canvas Sneakers (NC Sneakers Purple)
+  variantMaterials:
+  - {fileID: 2100000, guid: 89b94ca9584df8748922f8a4ba0e85fe, type: 2}
+  - {fileID: 2100000, guid: c5008b49c21378148b08ca680c842572, type: 2}
+  - {fileID: 2100000, guid: d3fb5e35fed6ce14c81de189b870b768, type: 2}
+  - {fileID: 2100000, guid: 237de70269742704d96d77df60762600, type: 2}
+  - {fileID: 2100000, guid: de079ddd3d9ed91419b71aafe3fae4ed, type: 2}
+  - {fileID: 2100000, guid: 96fb8b58a35831247b897a73e385f540, type: 2}
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.08
+  armor: 0.05
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

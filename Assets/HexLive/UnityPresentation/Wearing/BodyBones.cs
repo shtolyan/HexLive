@@ -39,9 +39,13 @@ public sealed class BodyBones : MonoBehaviour
         _bonesMap.Clear();
         _wears.Clear();
         _wearKeys.Clear();
-        _byLayer[VisualWearLayer.Underwear] = new Dictionary<VisualWearSlot, Wear>();
-        _byLayer[VisualWearLayer.Wear] = new Dictionary<VisualWearSlot, Wear>();
-        _byLayer[VisualWearLayer.Outerwear] = new Dictionary<VisualWearSlot, Wear>();
+        // По одному словарю на слой, перечислением — иначе новый слой пришлось
+        // бы вспомнить дописать сюда, а забытый обрушил бы Equip на первой же
+        // сумке (`_byLayer[layer]` без ключа — это исключение, а не пустота).
+        foreach (VisualWearLayer layer in System.Enum.GetValues(typeof(VisualWearLayer)))
+        {
+            _byLayer[layer] = new Dictionary<VisualWearSlot, Wear>();
+        }
 
         UpdateGenitals();
         RefreshHeel();
@@ -64,6 +68,12 @@ public sealed class BodyBones : MonoBehaviour
     // The hairstyle authored on this actor prefab (spec §31B.4B). Dev tools
     // read it to show which one is the default.
     public Wear DefaultHair => hair;
+
+    // The LIVE hairstyle — the one actually on her head right now. Dev tools
+    // need it to repaint hair without respawning the body: a hair colour is the
+    // same mesh with a different map, so swapping materials on this instance is
+    // the whole operation. Null when bald.
+    public Wear HairInstance => _hairInstance;
 
     // Spec §31B.4B: swap the hairstyle on a LIVE body; null = bald. Hair is
     // not a wardrobe item — it owns no slot, never goes through Equip, and
@@ -113,6 +123,9 @@ public sealed class BodyBones : MonoBehaviour
         }
 
         _hairInstance.Construct(_actorMesh, this, "hair");
+        // Причёску можно сменить, не снимая шапки — новая должна остаться под
+        // ней, а не выскочить наружу.
+        RefreshHairVisibility();
 
         // Hair must never catch SKIN-layer decals (dirt/sweat grain in the
         // strands): imported prefabs ship odd rendering-layer masks (257),
@@ -274,6 +287,14 @@ public sealed class BodyBones : MonoBehaviour
         }
     }
 
+    // The key is "<definition id>#<index>" — see SetWearGrime, which matches on
+    // the same prefix.
+    private static string KeyToDefinitionId(string key)
+    {
+        var hash = key != null ? key.IndexOf('#') : -1;
+        return hash >= 0 ? key.Substring(0, hash) : key;
+    }
+
     // key = sim item definition id + index (a sim item may map to several
     // visual garments, each equipped under its own key).
     public void Equip(string key, Wear wearPrefab)
@@ -286,6 +307,11 @@ public sealed class BodyBones : MonoBehaviour
         var layerDict = _byLayer[wearPrefab.Layer];
         var underwear = _byLayer[VisualWearLayer.Underwear];
         var newWear = Instantiate(wearPrefab, wearTransform);
+        // §31B.4E: a variant is the prototype's mesh in its own materials. It
+        // must be painted BEFORE Construct, which caches each slot's dry colour
+        // and smoothness to restore after dirt and wet — cache the prototype's
+        // and the variant would wash back to the wrong colour.
+        newWear.ApplyVariant(Garments.GarmentVariants.MaterialsOf(KeyToDefinitionId(key)));
         newWear.Construct(_actorMesh, this, key);
         SuppressGarmentShadows(newWear);
 
@@ -327,6 +353,41 @@ public sealed class BodyBones : MonoBehaviour
         _wearKeys[newWear] = key;
         UpdateGenitals();
         RefreshHeel();
+        RefreshHairVisibility();
+    }
+
+    /// <summary>Причёска видна, пока на ней не сидит шапка.</summary>
+    /// <remarks>
+    /// Считается по ВСЕМ надетым вещам, а не по последней: девушка может носить
+    /// сразу и кепку, и капюшон, и снятие одного из них волосы не возвращает.
+    /// Поэтому здесь не «спрятать при надевании / показать при снятии», а один
+    /// пересчёт, который зовут после любого изменения.
+    /// </remarks>
+    private void RefreshHairVisibility()
+    {
+        if (_hairInstance == null)
+        {
+            return;
+        }
+
+        var covered = false;
+        foreach (var wear in _wears.Values)
+        {
+            if (wear != null && wear.HidesHair)
+            {
+                covered = true;
+                break;
+            }
+        }
+
+        if (covered)
+        {
+            _hairInstance.Hide();
+        }
+        else
+        {
+            _hairInstance.Show();
+        }
     }
 
     // PERF (profiling, Aug-2026): every worn piece is a SkinnedMeshRenderer, and
@@ -386,6 +447,7 @@ public sealed class BodyBones : MonoBehaviour
         _wearKeys.Remove(wear);
         UpdateGenitals();
         RefreshHeel();
+        RefreshHairVisibility();
     }
 
     // §72: восстановленная логика molly_copy (в §31B.3 её сознательно срезали —

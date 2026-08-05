@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing_boots_leather_lb_yellow_black_leather
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.boots_leather_lb_yellow_black_leather
+  prototypeId: clothing.boots_leather
+  displayName: Leather Boots (LB Yellow Black Leather)
+  variantMaterials:
+  - {fileID: 2100000, guid: 34a39f5af4719244185bf65fd2d88f80, type: 2}
+  - {fileID: 2100000, guid: c87fdc80a4ac87e4c9d7b48e17b82485, type: 2}
+  - {fileID: 2100000, guid: 368aab7447f8df04884a5893c9b15669, type: 2}
+  - {fileID: 2100000, guid: a542d607fa309714e855419504242782, type: 2}
+  - {fileID: 2100000, guid: d73e53523fcf25547a6605681bcc93a0, type: 2}
+  - {fileID: 2100000, guid: f88a014624096fc46bbeeab40b030086, type: 2}
+  - {fileID: 2100000, guid: 1f46bbc49250814499d83add21898b08, type: 2}
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.14
+  armor: 0.11
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

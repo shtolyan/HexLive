@@ -119,11 +119,18 @@ whole garment set came from there.**
   *finishes anyway*. Never treat that message as failure: poll for the artefact the
   command was supposed to produce.
 
-### Wardrobe — three rules bought the hard way
+### Wardrobe — ⭐ read `WARDROBE_SPEC.md` before touching any of it
 
-The DAZ→Unity clothing pipeline lives in `Tools/wardrobe` (see also
-`HEEL_POSE_SPEC.md` and `ICON_GENERATION_SPEC.md`). Three mistakes cost real
-time and are worth not repeating:
+**`WARDROBE_SPEC.md` (repo root) is the whole pipeline**: the flow end to end,
+the WardrobeTest panel the human reviews in, the comment loop, where every file
+lives, and — most of the value — a list of the traps that already broke things
+silently (welds, colourways, heel poses, textures, the bridge, memory). Five
+drops and ~260 garments went through it; every warning in it is a bug that
+shipped once.
+
+The pipeline lives in `Tools/wardrobe` (see also `HEEL_POSE_SPEC.md` and
+`ICON_GENERATION_SPEC.md`). Three mistakes cost real time and are worth not
+repeating:
 
 - **A garment is identified by its DAZ MESH KEY, never by its name.**
   `armor.leather` and `S3D_DdlSlc_Top` are the same top; matching on the display

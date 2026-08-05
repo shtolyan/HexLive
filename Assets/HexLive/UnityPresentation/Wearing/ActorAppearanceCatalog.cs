@@ -4,34 +4,61 @@ using UnityEngine;
 namespace HexLive.UnityPresentation.Wearing
 {
     /// <summary>
-    /// §74: the hairstyle library, as a runtime-loadable asset.
+    /// §74: указатель причёсок и их расцветок — ТОЛЬКО ИМЕНА, ни одной ссылки
+    /// на ассет.
     ///
-    /// Hair prefabs live under <c>Assets/ImportedActors/Wear/&lt;Name&gt;/</c> and
-    /// are deliberately NOT in a Resources folder — until §74 the only way a
-    /// hairstyle reached the game was the <c>hair</c> field on an actor prefab,
-    /// so exactly four of the sixteen shipped. That is fine for a fixed cast and
-    /// fatal for a rolled one: <c>Resources.Load</c> cannot see them, and a
-    /// build strips every prefab nothing references. This asset IS the
-    /// reference — it pulls all sixteen into the build and gives the view one
-    /// place to resolve an id from.
+    /// Раньше здесь лежали прямые ссылки, и это было осознанно: причёски не в
+    /// Resources, а без ссылки сборка выкинула бы их — в редакторе всё
+    /// работает, в билде все девушки лысые. Ссылка втягивала их в билд, и это
+    /// было ровно то, что требовалось.
     ///
-    /// Rebuilt by <b>HexLive ▸ Actors ▸ Rebuild Appearance Catalog</b>; the id
-    /// of a hairstyle is simply its prefab name, matching
-    /// <c>ColonistAppearance.Hairstyles</c> on the simulation side.
+    /// С переходом на Addressables то же свойство стало проблемой: втягивала
+    /// она их ВСЕГДА и ЦЕЛИКОМ — 16 причёсок, 254 расцветки, 1754 материала и
+    /// все их текстуры, независимо от того, наденет ли кто-то хоть одну. Теперь
+    /// содержимое доезжает по адресу и только когда понадобилось, а этот ассет
+    /// отвечает на единственный вопрос: ЧТО вообще бывает.
+    ///
+    /// Адреса строит <c>HexLiveAddressablesContent</c> по правилу:
+    /// <c>hair/&lt;Причёска&gt;</c> и
+    /// <c>hair/&lt;Причёска&gt;/&lt;Цвет&gt;/&lt;Поверхность&gt;</c>.
+    /// Грузит их <see cref="HairContent"/>.
+    ///
+    /// Перестраивается меню <b>HexLive ▸ Actors ▸ Rebuild Appearance Catalog</b>.
     /// </summary>
     [CreateAssetMenu(menuName = "HexLive/Actor Appearance Catalog", fileName = "ActorAppearanceCatalog")]
     public sealed class ActorAppearanceCatalog : ScriptableObject
     {
         public const string ResourcePath = "HexLive/ActorAppearanceCatalog";
 
-        [Tooltip("Все причёски: обычные Wear-префабы без слотов. Заполняется меню HexLive ▸ Actors ▸ Rebuild Appearance Catalog.")]
-        public List<Wear> hairstyles = new();
+        [Tooltip("Имена причёсок (они же имена префабов и часть адреса). Заполняется меню HexLive ▸ Actors ▸ Rebuild Appearance Catalog.")]
+        public List<string> hairstyles = new();
+
+        /// <summary>
+        /// Одна расцветка одной причёски: имя папки и ИМЕНА ПОВЕРХНОСТЕЙ,
+        /// которые она перекрашивает.
+        ///
+        /// Поверхности перечислены не для красоты: подмена цвета идёт по имени
+        /// поверхности (порядок сабмешей у причёски не гарантирован), а адрес
+        /// материала собирается из причёски, цвета и этого имени. Поверхность,
+        /// которой в папке нет, остаётся прототипной — так и задумано, пресет
+        /// красит только то, чего касается.
+        /// </summary>
+        [System.Serializable]
+        public sealed class HairColour
+        {
+            public string hair = string.Empty;
+            public string colour = string.Empty;
+            public List<string> surfaces = new();
+        }
+
+        [Tooltip("Расцветки причёсок. Прототипный (не перекрашенный) вариант в список НЕ входит.")]
+        public List<HairColour> hairColours = new();
 
         private static ActorAppearanceCatalog _instance;
         private static bool _tried;
-        private Dictionary<string, Wear> _byId;
+        private Dictionary<string, List<HairColour>> _coloursByHair;
 
-        /// <summary>The shipped catalog, or null when the asset is missing.</summary>
+        /// <summary>Каталог, или null, если ассета нет.</summary>
         public static ActorAppearanceCatalog Instance
         {
             get
@@ -55,31 +82,53 @@ namespace HexLive.UnityPresentation.Wearing
             }
         }
 
+        /// <summary>Знает ли каталог такую причёску.</summary>
+        public bool Has(string hairId) =>
+            !string.IsNullOrEmpty(hairId) &&
+            hairstyles.Exists(h => string.Equals(h, hairId, System.StringComparison.OrdinalIgnoreCase));
+
         /// <summary>
-        /// Hairstyle by prefab name. Null when the id is unknown OR when it is
-        /// the explicit "bald" id — the caller cannot tell the difference and
-        /// should not: both mean "no hair prefab to spawn".
+        /// Расцветки одной причёски, в устойчивом порядке. Пусто — законно: у
+        /// половины причёсок расцветка одна, «как из коробки».
+        ///
+        /// Порядок важен: цвет выбирается индексом от хеша колониста, и
+        /// перетасовка списка перекрасила бы всех уже живущих.
         /// </summary>
-        public Wear Find(string id)
+        public IReadOnlyList<HairColour> ColoursFor(string hairId)
         {
-            if (string.IsNullOrEmpty(id))
+            if (string.IsNullOrEmpty(hairId))
             {
-                return null;
+                return System.Array.Empty<HairColour>();
             }
 
-            if (_byId == null)
+            if (_coloursByHair == null)
             {
-                _byId = new Dictionary<string, Wear>(System.StringComparer.OrdinalIgnoreCase);
-                foreach (var hair in hairstyles)
+                _coloursByHair = new Dictionary<string, List<HairColour>>(System.StringComparer.OrdinalIgnoreCase);
+                foreach (var entry in hairColours)
                 {
-                    if (hair != null)
+                    if (entry == null || string.IsNullOrEmpty(entry.hair) || entry.surfaces.Count == 0)
                     {
-                        _byId[hair.name] = hair;
+                        continue;
                     }
+
+                    if (!_coloursByHair.TryGetValue(entry.hair, out var list))
+                    {
+                        list = new List<HairColour>();
+                        _coloursByHair[entry.hair] = list;
+                    }
+
+                    list.Add(entry);
+                }
+
+                foreach (var list in _coloursByHair.Values)
+                {
+                    list.Sort((a, b) => string.CompareOrdinal(a.colour, b.colour));
                 }
             }
 
-            return _byId.TryGetValue(id, out var found) ? found : null;
+            return _coloursByHair.TryGetValue(hairId, out var found)
+                ? found
+                : (IReadOnlyList<HairColour>)System.Array.Empty<HairColour>();
         }
     }
 }

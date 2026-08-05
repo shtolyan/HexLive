@@ -787,6 +787,19 @@ namespace HexLive.UnityPresentation.UI
                 yield return null;
             }
 
+            // ⭐ Тела должны быть ПОСТРОЕНЫ до того, как поднимется шторка.
+            // С переходом на Addressables одежда и причёска приезжают не
+            // мгновенно, и выбор «первой» стал попадать в момент, когда
+            // выбирать ещё некого: раньше он срабатывал по счастливой
+            // случайности. Игрок не должен видеть, как это достраивается.
+            yield return WaitForActors(npcs);
+
+            // Выбор ДО занавеса, а не после: когда шторка уходит, персонаж уже
+            // выбран и панель открыта. Clear первым — чтобы SelectionChanged
+            // сработал даже если прогрев оставил её выбранной.
+            NpcSelection.Clear();
+            NpcSelection.Select(FindOpeningTarget(npcs));
+
             SetProgress(1f, Loc.Get("loading.done"));
             yield return null;
 
@@ -802,13 +815,6 @@ namespace HexLive.UnityPresentation.UI
 
                 yield return null;
             }
-
-            // Spec 41.1: the game opens looking at Jana, panel up (the RTS
-            // camera enters orbit on selection). LAST action — nothing may
-            // steal the selection after this; Clear first so SelectionChanged
-            // re-fires even if the warm-up pass left her selected.
-            NpcSelection.Clear();
-            NpcSelection.Select(FindOpeningTarget(npcs));
 
             if (!_runner.IsCompleted)
             {
@@ -939,6 +945,46 @@ namespace HexLive.UnityPresentation.UI
             }
 
             StartCoroutine(Run());
+        }
+
+        // Ждём, пока мир будет ГОТОВ ПОКАЗАТЬСЯ: тела построены и очередь
+        // контента пуста. Без таймаута — и это не смелость, а следствие
+        // устройства: каждая начатая задача обязана завершиться, потому что
+        // Addressables завершает операцию всегда, и успехом, и провалом.
+        // Задача, начатая без завершения, — ошибка в загрузчике, и лечить её
+        // страховкой на экране значит прятать её от себя.
+        //
+        // Подпись при этом человеческая: игрок видит «шьём одежду», а не
+        // проценты в пустоту.
+        private IEnumerator WaitForActors(
+            System.Collections.Generic.List<(int id, string name)> npcs)
+        {
+            if (npcs.Count == 0)
+            {
+                yield break;
+            }
+
+            var renderer = FindFirstObjectByType<Rendering.HexWorldRenderer>();
+            if (renderer == null)
+            {
+                yield break;
+            }
+
+            var ids = new System.Collections.Generic.List<int>(npcs.Count);
+            foreach (var npc in npcs)
+            {
+                ids.Add(npc.id);
+            }
+
+            while (!renderer.ActorsReady(ids) || !Wearing.Garments.ContentQueue.IsIdle)
+            {
+                // Прогресс НАСТОЯЩИЙ: сделано из всего, что заказано. Полоска
+                // на этом участке живёт в верхней четверти — терраген и прогрев
+                // панелей уже позади.
+                SetProgress(Mathf.Lerp(0.75f, 0.99f, Wearing.Garments.ContentQueue.Progress),
+                    Loc.Get(Wearing.Garments.ContentQueue.MessageKey));
+                yield return null;
+            }
         }
 
         private System.Collections.Generic.List<(int id, string name)> ListNpcIds()

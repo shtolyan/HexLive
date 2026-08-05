@@ -25,22 +25,22 @@ MonoBehaviour:
     Points:
     - Slot: 2
       Uv: {x: 0.025300002, y: 0.80476665}
-      BindPerU: 1.6261902
-      BindPerV: 0.91093886
+      BindPerU: 1.6229708
+      BindPerV: 0.91219896
       Valid: 1
-      BindPos: {x: 0.06051166, y: 1.5851718, z: -0.018898092}
-      BindNormal: {x: 0.683344, y: 0.6818164, z: 0.2610888}
+      BindPos: {x: 0.06050484, y: 1.5852332, z: -0.01883577}
+      BindNormal: {x: 0.68220896, y: 0.68364656, z: 0.25926512}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Torso
     Points:
     - Slot: 1
       Uv: {x: 0.4082, y: 0.2227}
-      BindPerU: 0.77919483
-      BindPerV: 0.40073073
+      BindPerU: 0.7759222
+      BindPerV: 0.4013781
       Valid: 1
-      BindPos: {x: -0.12180134, y: 1.4501863, z: 0.020525636}
-      BindNormal: {x: 0.38264433, y: -0.9168944, z: 0.113525525}
+      BindPos: {x: -0.12137992, y: 1.4509201, z: 0.020301579}
+      BindNormal: {x: 0.37924066, y: -0.9182211, z: 0.114220925}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Pelvis
@@ -50,11 +50,11 @@ MonoBehaviour:
     Points:
     - Slot: 0
       Uv: {x: 0.85283345, y: 0.5690667}
-      BindPerU: 0.6700149
-      BindPerV: 0.40525615
+      BindPerU: 0.6676737
+      BindPerV: 0.40349805
       Valid: 1
-      BindPos: {x: -0.41782966, y: 1.4720477, z: -0.06758433}
-      BindNormal: {x: -0.018121278, y: 0.7198376, z: -0.69390595}
+      BindPos: {x: -0.41775993, y: 1.4715881, z: -0.0672274}
+      BindNormal: {x: -0.0011262184, y: 0.71673465, z: -0.6973451}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmR

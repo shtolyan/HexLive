@@ -27,23 +27,23 @@ MonoBehaviour:
   - Zone: Torso
     Points:
     - Slot: 0
-      Uv: {x: 0.034500007, y: 0.9853334}
-      BindPerU: 0.80404675
-      BindPerV: 1.150427
+      Uv: {x: 0.9509, y: 0.98530006}
+      BindPerU: 0.86366576
+      BindPerV: 1.5333741
       Valid: 1
-      BindPos: {x: 0.009539205, y: 1.0962753, z: -0.05398346}
-      BindNormal: {x: 0.021064358, y: 0.37894213, z: -0.9251806}
+      BindPos: {x: -0.009496394, y: 1.1316346, z: -0.045968357}
+      BindNormal: {x: -0.019979134, y: 0.26669776, z: -0.9635731}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: Pelvis
     Points:
     - Slot: 0
-      Uv: {x: 0.031566665, y: 0.9402668}
-      BindPerU: 0.7882226
-      BindPerV: 0.808834
+      Uv: {x: 0.0383, y: 0.9321334}
+      BindPerU: 0.82708025
+      BindPerV: 0.97948134
       Valid: 1
-      BindPos: {x: 0.007180912, y: 1.0636808, z: -0.068880476}
-      BindNormal: {x: 0.01621872, y: 0.43831447, z: -0.8986754}
+      BindPos: {x: 0.012581152, y: 1.0854218, z: -0.060917553}
+      BindNormal: {x: 0.014393207, y: 0.35058564, z: -0.93642}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: ArmL
@@ -56,21 +56,21 @@ MonoBehaviour:
     Points:
     - Slot: 0
       Uv: {x: 0.54073334, y: 0.273}
-      BindPerU: 0.6689261
-      BindPerV: 0.87257564
+      BindPerU: 0.6477625
+      BindPerV: 0.9249439
       Valid: 1
-      BindPos: {x: -0.07329697, y: 0.47835657, z: 0.026637817}
-      BindNormal: {x: 0.44884104, y: -0.23405729, z: 0.8624146}
+      BindPos: {x: -0.072030716, y: 0.4853058, z: 0.027037716}
+      BindNormal: {x: 0.4643347, y: -0.2122289, z: 0.85985595}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}
   - Zone: LegR
     Points:
     - Slot: 0
       Uv: {x: 0.5408333, y: 0.2726}
-      BindPerU: 0.672207
-      BindPerV: 0.87230945
+      BindPerU: 0.65097266
+      BindPerV: 0.9246119
       Valid: 1
-      BindPos: {x: 0.07340252, y: 0.47702825, z: 0.0266668}
-      BindNormal: {x: -0.4480517, y: -0.23412532, z: 0.8628065}
+      BindPos: {x: 0.071359046, y: 0.4853182, z: 0.027086297}
+      BindNormal: {x: -0.46274593, y: -0.21285869, z: 0.8605564}
       UvEdgeDistance: 0
     BindAxisDir: {x: 0, y: 0, z: 0}

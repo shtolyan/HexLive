@@ -1,0 +1,3883 @@
+{
+  "drop": "sandalsreiko",
+  "sources": [
+    {
+      "fbx": "Assets/Temp/jolly sandalsreiko.fbx",
+      "actor": "Jolly"
+    },
+    {
+      "fbx": "Assets/Temp/jana sandalsreiko.fbx",
+      "actor": "Jana"
+    },
+    {
+      "fbx": "Assets/Temp/marta sandalsreiko.fbx",
+      "actor": "Marta"
+    },
+    {
+      "fbx": "Assets/Temp/molly sandalsreiko.fbx",
+      "actor": "Molly"
+    }
+  ],
+  "garments": [
+    {
+      "sourceKey": "Sandals V1 Style 1_30924",
+      "folder": "Sandals1",
+      "name": "Sandals1",
+      "simId": "clothing.sandals_summer1",
+      "layer": "Outerwear",
+      "slots": [
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "In_Sole",
+          "texture": "SoleA.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Under_Sole",
+          "texture": "SoleA.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Mid_Sole",
+          "texture": "SoleA.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Strap_Outer",
+          "texture": "Style 01.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Strap_inner",
+          "texture": "Style 01.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Strap_edge",
+          "texture": "Style 01.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Metals",
+          "texture": null,
+          "color": "#050505",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 30924,
+        "polys": 30604,
+        "bbox": [
+          -19.9,
+          19.9,
+          -2.5,
+          5.5,
+          -10.1,
+          14.8
+        ],
+        "zones": {
+          "Foot": 1.0
+        },
+        "heelCm": 2.52
+      },
+      "heelPose": {
+        "foot": 13.27,
+        "toe": -13.27,
+        "lift": 0.0252,
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "_source": "по высоте каблука 2.5 см"
+      },
+      "sim": {
+        "displayName": "Sandals, Style I",
+        "nameRu": "Сандалии, стиль 1",
+        "descEn": "Flat soles and thin straps. Nothing between you and the ground.",
+        "descRu": "Плоская подошва и тонкие ремешки. Между тобой и землёй почти ничего.",
+        "warmth": 0.02,
+        "armor": 0.02,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Style 01 Black",
+          "from": "Sandals Vol1 S1",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#070707"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#070707"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 01 Cherry",
+          "from": "Sandals Vol1 S1",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#400311"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#400311"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 01 Red",
+          "from": "Sandals Vol1 S1",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#C71808"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#C71808"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 01 Salmon",
+          "from": "Sandals Vol1 S1",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#FC8C88"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#FC8C88"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 01 Silver",
+          "from": "Sandals Vol1 S1",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#808080"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#808080"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 01 Sky",
+          "from": "Sandals Vol1 S1",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#69ADBF"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#69ADBF"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 01 Tan",
+          "from": "Sandals Vol1 S1",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#793C14"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#793C14"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 01 White",
+          "from": "Sandals Vol1 S1",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#E0E0E0"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#E0E0E0"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 01 Yellow",
+          "from": "Sandals Vol1 S1",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 01.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#F5C125"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#F5C125"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Sandals V1 Style 2_35008",
+      "folder": "Sandals2",
+      "name": "Sandals2",
+      "simId": "clothing.sandals_summer2",
+      "layer": "Outerwear",
+      "slots": [
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "In_Sole",
+          "texture": "SoleA.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Under_Sole",
+          "texture": "SoleA.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Mid_Sole",
+          "texture": "SoleA.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Strap_Outer",
+          "texture": "Style 02.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Strap_inner",
+          "texture": "Style 02.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Strap_edge",
+          "texture": "Style 02.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Metals",
+          "texture": null,
+          "color": "#050505",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 35008,
+        "polys": 34716,
+        "bbox": [
+          -19.8,
+          19.8,
+          -2.5,
+          8.1,
+          -10.1,
+          14.8
+        ],
+        "zones": {
+          "Foot": 1.0
+        },
+        "heelCm": 2.52
+      },
+      "heelPose": {
+        "foot": 13.27,
+        "toe": -13.27,
+        "lift": 0.0252,
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "_source": "по высоте каблука 2.5 см"
+      },
+      "sim": {
+        "displayName": "Sandals, Style II",
+        "nameRu": "Сандалии, стиль 2",
+        "descEn": "Wider straps, same flat sole.",
+        "descRu": "Ремешки шире, подошва та же плоская.",
+        "warmth": 0.02,
+        "armor": 0.02,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Style 02 Black",
+          "from": "Sandals Vol1 S2",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#0A0A0A"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#0A0A0A"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 02 Cherry",
+          "from": "Sandals Vol1 S2",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#400311"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#400311"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 02 Red",
+          "from": "Sandals Vol1 S2",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#C71808"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#C71808"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 02 Salmon",
+          "from": "Sandals Vol1 S2",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#FC8C88"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#FC8C88"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 02 Silver",
+          "from": "Sandals Vol1 S2",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#808080"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#808080"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 02 Sky",
+          "from": "Sandals Vol1 S2",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#69ADBF"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#69ADBF"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 02 Tan",
+          "from": "Sandals Vol1 S2",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#793C14"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#793C14"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 02 White",
+          "from": "Sandals Vol1 S2",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#E0E0E0"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#E0E0E0"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 02 Yellow",
+          "from": "Sandals Vol1 S2",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 02.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#F5C125"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#F5C125"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Sandals V1 Style 3_36354",
+      "folder": "Sandals3",
+      "name": "Sandals3",
+      "simId": "clothing.sandals_summer3",
+      "layer": "Outerwear",
+      "slots": [
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "In_Sole",
+          "texture": "SoleA.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Under_Sole",
+          "texture": "SoleA.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Mid_Sole",
+          "texture": "SoleA.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Strap_Outer",
+          "texture": "Style 03.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Strap_inner",
+          "texture": "Style 03.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Strap_edge",
+          "texture": "Style 03.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Metals",
+          "texture": null,
+          "color": "#050505",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 36354,
+        "polys": 35948,
+        "bbox": [
+          -19.8,
+          19.8,
+          -2.5,
+          9.9,
+          -10.1,
+          14.8
+        ],
+        "zones": {
+          "Foot": 1.0
+        },
+        "heelCm": 2.52
+      },
+      "heelPose": {
+        "foot": 13.27,
+        "toe": -13.27,
+        "lift": 0.0252,
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "_source": "по высоте каблука 2.5 см"
+      },
+      "sim": {
+        "displayName": "Sandals, Style III",
+        "nameRu": "Сандалии, стиль 3",
+        "descEn": "Crossed straps up the ankle.",
+        "descRu": "Ремешки крест-накрест до щиколотки.",
+        "warmth": 0.02,
+        "armor": 0.02,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Style 03 Black",
+          "from": "Sandals Vol1 S3",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#0A0A0A"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#0A0A0A"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 03 Cherry",
+          "from": "Sandals Vol1 S3",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#400311"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#400311"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 03 Red",
+          "from": "Sandals Vol1 S3",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#C71808"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#C71808"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 03 Salmon",
+          "from": "Sandals Vol1 S3",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#FC8C88"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#FC8C88"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 03 Silver",
+          "from": "Sandals Vol1 S3",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#808080"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#808080"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 03 Sky",
+          "from": "Sandals Vol1 S3",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#69ADBF"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#69ADBF"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 03 Tan",
+          "from": "Sandals Vol1 S3",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#793C14"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#793C14"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 03 White",
+          "from": "Sandals Vol1 S3",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#E0E0E0"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#E0E0E0"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 03 Yellow",
+          "from": "Sandals Vol1 S3",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 03.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#F5C125"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#F5C125"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Sandals V1 Style 4_31976",
+      "folder": "Sandals4",
+      "name": "Sandals4",
+      "simId": "clothing.sandals_summer4",
+      "layer": "Outerwear",
+      "slots": [
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "In_Sole",
+          "texture": "SoleA.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Under_Sole",
+          "texture": "SoleA.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Mid_Sole",
+          "texture": "SoleA.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Strap_Outer",
+          "texture": "Style 04.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Strap_inner",
+          "texture": "Style 04.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Strap_edge",
+          "texture": "Style 04.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Toe_Clip",
+          "texture": null,
+          "color": "#050505",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Metals",
+          "texture": null,
+          "color": "#050505",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 31976,
+        "polys": 31638,
+        "bbox": [
+          -19.8,
+          19.8,
+          -2.5,
+          8.4,
+          -10.1,
+          14.8
+        ],
+        "zones": {
+          "Foot": 1.0
+        },
+        "heelCm": 2.52
+      },
+      "heelPose": {
+        "foot": 13.27,
+        "toe": -13.27,
+        "lift": 0.0252,
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "_source": "по высоте каблука 2.5 см"
+      },
+      "sim": {
+        "displayName": "Sandals, Style IV",
+        "nameRu": "Сандалии, стиль 4",
+        "descEn": "Ankle strap and a small buckle.",
+        "descRu": "Ремешок вокруг щиколотки и маленькая пряжка.",
+        "warmth": 0.02,
+        "armor": 0.02,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Style 04 Black",
+          "from": "Sandals Vol1 S4",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#070707"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#070707"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Toe_Clip",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 04 Cherry",
+          "from": "Sandals Vol1 S4",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#400311"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#400311"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Toe_Clip",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 04 Red",
+          "from": "Sandals Vol1 S4",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#C71808"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#C71808"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Toe_Clip",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 04 Salmon",
+          "from": "Sandals Vol1 S4",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#FC8C88"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#FC8C88"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Toe_Clip",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 04 Silver",
+          "from": "Sandals Vol1 S4",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#808080"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#808080"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Toe_Clip",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 04 Sky",
+          "from": "Sandals Vol1 S4",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#69ADBF"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#69ADBF"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Toe_Clip",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 04 Tan",
+          "from": "Sandals Vol1 S4",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#793C14"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#793C14"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Toe_Clip",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 04 White",
+          "from": "Sandals Vol1 S4",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#E0E0E0"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#E0E0E0"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Toe_Clip",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        },
+        {
+          "name": "Style 04 Yellow",
+          "from": "Sandals Vol1 S4",
+          "textures": [
+            {
+              "source": "In_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Mid_Sole",
+              "texture": "SoleA.jpg"
+            },
+            {
+              "source": "Strap_Outer",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Strap_edge",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Strap_inner",
+              "texture": "Style 04.jpg"
+            },
+            {
+              "source": "Under_Sole",
+              "texture": "SoleA.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "In_Sole",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "Metals",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Mid_Sole",
+              "color": "#F5C125"
+            },
+            {
+              "source": "Strap_Outer",
+              "color": "#F5C125"
+            },
+            {
+              "source": "Strap_edge",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Strap_inner",
+              "color": "#4E381F"
+            },
+            {
+              "source": "Toe_Clip",
+              "color": "#C1BAB1"
+            },
+            {
+              "source": "Under_Sole",
+              "color": "#414141"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "S3D Sneakers G3_6554",
+      "folder": "RealSneakers",
+      "name": "RealSneakers",
+      "simId": "clothing.sneakers_canvas",
+      "layer": "Outerwear",
+      "slots": [
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "fabric",
+          "texture": "fabric_Diffuse.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "sole",
+          "texture": "sole_Diffuse.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "leather",
+          "texture": "leather_Diffuse.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "inner",
+          "texture": "inner_Diffuse.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "lace",
+          "texture": "lace_Diffuse.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 6554,
+        "polys": 6584,
+        "bbox": [
+          -19.7,
+          19.7,
+          -1.6,
+          10.4,
+          -12.2,
+          16.0
+        ],
+        "zones": {
+          "Foot": 0.977,
+          "Shin": 0.023
+        },
+        "heelCm": 1.61
+      },
+      "heelPose": {
+        "foot": 1.34,
+        "toe": -12.05,
+        "lift": 0.0026,
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "_source": "поза, наложенная самой вещью при примерке: S3D Real Sneakers v5 G3"
+      },
+      "sim": {
+        "displayName": "Canvas Sneakers",
+        "nameRu": "Тканевые кроссовки",
+        "descEn": "Worn flat, laces knotted where they broke.",
+        "descRu": "Стоптаны, шнурки связаны там, где рвались.",
+        "warmth": 0.06,
+        "armor": 0.04,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "RS5 MAT02",
+          "from": "S3D Real Sneakers v5 G3",
+          "textures": [
+            {
+              "source": "fabric",
+              "texture": "fabric_m02_Diffuse.jpg"
+            },
+            {
+              "source": "inner",
+              "texture": "inner_m02_Diffuse.jpg"
+            },
+            {
+              "source": "lace",
+              "texture": "lace_m02_Diffuse.jpg"
+            },
+            {
+              "source": "leather",
+              "texture": "leather_m02_Diffuse.jpg"
+            },
+            {
+              "source": "sole",
+              "texture": "sole_m02_Diffuse.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "fabric",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "inner",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "lace",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "leather",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "sole",
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "name": "RS5 MAT03",
+          "from": "S3D Real Sneakers v5 G3",
+          "textures": [
+            {
+              "source": "fabric",
+              "texture": "fabric_m03_Diffuse.jpg"
+            },
+            {
+              "source": "inner",
+              "texture": "inner_m03_Diffuse.jpg"
+            },
+            {
+              "source": "lace",
+              "texture": "lace_m03_Diffuse.jpg"
+            },
+            {
+              "source": "leather",
+              "texture": "leather_m03_Diffuse.jpg"
+            },
+            {
+              "source": "sole",
+              "texture": "sole_m03_Diffuse.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "fabric",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "inner",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "lace",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "leather",
+              "color": "#FFFFFF"
+            },
+            {
+              "source": "sole",
+              "color": "#FFFFFF"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "S3D_SportSneakers_59424",
+      "folder": "SportSneakers",
+      "name": "SportSneakers",
+      "simId": "clothing.sneakers_sport",
+      "layer": "Outerwear",
+      "slots": [
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "inner_left",
+          "texture": "S3D_SportSneakers_inner_basecolor.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "inner_right",
+          "texture": "S3D_SportSneakers_inner_basecolor.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "lace2_left",
+          "texture": "S3D_SportSneakers_lace_basecolor.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "lace2_right",
+          "texture": "S3D_SportSneakers_lace_basecolor.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "lace1_left",
+          "texture": "S3D_SportSneakers_lace_basecolor.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "lace1_right",
+          "texture": "S3D_SportSneakers_lace_basecolor.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "sole_left",
+          "texture": "S3D_SportSneakers_sole_basecolor.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "sole_right",
+          "texture": "S3D_SportSneakers_sole_basecolor.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "main_left",
+          "texture": "S3D_SportSneakers_main_basecolor.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "main_right",
+          "texture": "S3D_SportSneakers_main_basecolor.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 52496,
+        "polys": 50548,
+        "bbox": [
+          -19.6,
+          19.6,
+          -1.3,
+          10.3,
+          -11.5,
+          15.1
+        ],
+        "zones": {
+          "Foot": 0.988,
+          "Shin": 0.012
+        },
+        "heelCm": 1.32
+      },
+      "sim": {
+        "displayName": "Running Shoes",
+        "nameRu": "Беговые кроссовки",
+        "descEn": "Cushioned, and the cushion is long gone.",
+        "descRu": "С амортизацией, от которой давно ничего не осталось.",
+        "warmth": 0.06,
+        "armor": 0.04,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": [
+        {
+          "name": "Cream White",
+          "from": "S3D !Sport Sneakers",
+          "textures": [
+            {
+              "source": "inner_left",
+              "texture": "S3D_SportSneakers_inner_basecolor.jpg"
+            },
+            {
+              "source": "inner_right",
+              "texture": "S3D_SportSneakers_inner_basecolor.jpg"
+            },
+            {
+              "source": "lace1_left",
+              "texture": "S3D_SportSneakers_lace_basecolor.jpg"
+            },
+            {
+              "source": "lace1_right",
+              "texture": "S3D_SportSneakers_lace_basecolor.jpg"
+            },
+            {
+              "source": "lace2_left",
+              "texture": "S3D_SportSneakers_lace_basecolor.jpg"
+            },
+            {
+              "source": "lace2_right",
+              "texture": "S3D_SportSneakers_lace_basecolor.jpg"
+            },
+            {
+              "source": "main_left",
+              "texture": "S3D_SportSneakers_main_basecolor.jpg"
+            },
+            {
+              "source": "main_right",
+              "texture": "S3D_SportSneakers_main_basecolor.jpg"
+            },
+            {
+              "source": "sole_left",
+              "texture": "S3D_SportSneakers_sole_basecolor.jpg"
+            },
+            {
+              "source": "sole_right",
+              "texture": "S3D_SportSneakers_sole_basecolor.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "inner_left",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "inner_right",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "lace1_left",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "lace1_right",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "lace2_left",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "lace2_right",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "main_left",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "main_right",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "sole_left",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "sole_right",
+              "color": "#C0C0C0"
+            }
+          ]
+        },
+        {
+          "name": "Lilac Purple",
+          "from": "S3D !Sport Sneakers",
+          "textures": [
+            {
+              "source": "inner_left",
+              "texture": "S3D_SportSneakers_inner_basecolor.jpg"
+            },
+            {
+              "source": "inner_right",
+              "texture": "S3D_SportSneakers_inner_basecolor.jpg"
+            },
+            {
+              "source": "lace1_left",
+              "texture": "S3D_SportSneakers_lace_basecolor.jpg"
+            },
+            {
+              "source": "lace1_right",
+              "texture": "S3D_SportSneakers_lace_basecolor.jpg"
+            },
+            {
+              "source": "lace2_left",
+              "texture": "S3D_SportSneakers_lace_basecolor.jpg"
+            },
+            {
+              "source": "lace2_right",
+              "texture": "S3D_SportSneakers_lace_basecolor.jpg"
+            },
+            {
+              "source": "main_left",
+              "texture": "S3D_SportSneakers_main_basecolor.jpg"
+            },
+            {
+              "source": "main_right",
+              "texture": "S3D_SportSneakers_main_basecolor.jpg"
+            },
+            {
+              "source": "sole_left",
+              "texture": "S3D_SportSneakers_sole_basecolor.jpg"
+            },
+            {
+              "source": "sole_right",
+              "texture": "S3D_SportSneakers_sole_basecolor.jpg"
+            }
+          ],
+          "colors": [
+            {
+              "source": "inner_left",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "inner_right",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "lace1_left",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "lace1_right",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "lace2_left",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "lace2_right",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "main_left",
+              "color": "#E3E3E3"
+            },
+            {
+              "source": "main_right",
+              "color": "#E3E3E3"
+            },
+            {
+              "source": "sole_left",
+              "color": "#C0C0C0"
+            },
+            {
+              "source": "sole_right",
+              "color": "#C0C0C0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceKey": "Alloy Fusion Top_7656",
+      "folder": "AlloyTop",
+      "name": "AlloyTop",
+      "simId": "clothing.top_alloy",
+      "layer": "Wear",
+      "slots": [
+        "Chest",
+        "ShoulderR",
+        "ShoulderL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Top",
+          "texture": "AlloyFDark_Top_albedo_AlloyFLight_Top_opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "Bottom",
+          "texture": "AlloyFDark_Top_albedo_AlloyFLight_Top_opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "Front Trim 2",
+          "texture": "AlloyFDark_Top_albedo_AlloyFLight_Top_opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "Front Trim 1",
+          "texture": "AlloyFDark_Top_albedo_AlloyFLight_Top_opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "Center Panel",
+          "texture": "AlloyFDark_Top_albedo_AlloyFLight_Top_opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "Center Bevel",
+          "texture": "AlloyFDark_Top_albedo_AlloyFLight_Top_opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        },
+        {
+          "source": "Bust Trim",
+          "texture": "AlloyFDark_Top_albedo_AlloyFLight_Top_opacity.png",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": true
+        }
+      ],
+      "_measured": {
+        "verts": 7656,
+        "polys": 7524,
+        "bbox": [
+          -48.2,
+          48.2,
+          109.1,
+          157.3,
+          -13.0,
+          14.0
+        ],
+        "zones": {
+          "Chest": 0.462,
+          "Shoulder": 0.345,
+          "Belly": 0.088,
+          "Forearm": 0.062,
+          "Neck": 0.042
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Plated Top",
+        "nameRu": "Топ с пластинами",
+        "descEn": "Metal plates over the shoulders. Someone made this to be seen in.",
+        "descRu": "Металлические пластины на плечах. Это делали, чтобы в этом видели.",
+        "warmth": 0.05,
+        "armor": 0.09,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso",
+          "ArmL",
+          "ArmR"
+        ]
+      },
+      "variants": []
+    },
+    {
+      "sourceKey": "Alloy Fusion Skirt_4756",
+      "folder": "AlloySkirt",
+      "name": "AlloySkirt",
+      "simId": "clothing.skirt_alloy",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis",
+        "ThighR",
+        "ThighL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Side Panels",
+          "texture": "AlloyFDark_Skirt_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Front Center Panel",
+          "texture": "AlloyFDark_Skirt_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Back Center Panel",
+          "texture": "AlloyFDark_Skirt_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Waist Band",
+          "texture": "AlloyFDark_Skirt_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 4756,
+        "polys": 4660,
+        "bbox": [
+          -19.1,
+          19.2,
+          57.6,
+          106.5,
+          -12.6,
+          11.8
+        ],
+        "zones": {
+          "Thigh": 0.604,
+          "Pelvis": 0.345,
+          "Belly": 0.051
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Plated Skirt",
+        "nameRu": "Юбка с пластинами",
+        "descEn": "Short, panelled, and heavier than it looks.",
+        "descRu": "Короткая, из пластин, и тяжелее, чем кажется.",
+        "warmth": 0.04,
+        "armor": 0.07,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Pelvis",
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": []
+    },
+    {
+      "sourceKey": "Alloy Fusion Boots_3650",
+      "folder": "AlloyBoots",
+      "name": "AlloyBoots",
+      "simId": "clothing.boots_alloy",
+      "layer": "Outerwear",
+      "slots": [
+        "ShinR",
+        "ShinL",
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Toe Panels",
+          "texture": "AlloyFDark_Boots_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Body",
+          "texture": "AlloyFDark_Boots_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Top Trim",
+          "texture": "AlloyFDark_Boots_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Sole",
+          "texture": "AlloyFDark_Boots_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Heel Base",
+          "texture": "AlloyFDark_Boots_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Heels",
+          "texture": "AlloyFDark_Boots_albedo.jpg",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 3650,
+        "polys": 3620,
+        "bbox": [
+          -19.4,
+          19.4,
+          -10.1,
+          45.7,
+          -11.7,
+          15.5
+        ],
+        "zones": {
+          "Foot": 0.611,
+          "Shin": 0.389
+        },
+        "heelCm": 10.08
+      },
+      "heelPose": {
+        "foot": 38.48,
+        "toe": 0.0,
+        "lift": 0.0684,
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "_source": "поза, наложенная самой вещью при примерке: Alloy Fusion Boots; опущено на 20% по осмотру человека"
+      },
+      "sim": {
+        "displayName": "Plated Boots",
+        "nameRu": "Ботинки с пластинами",
+        "descEn": "A heel this steep was a choice, and not a practical one.",
+        "descRu": "Такой каблук был выбором — и точно не практичным.",
+        "warmth": 0.1,
+        "armor": 0.1,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      },
+      "variants": []
+    },
+    {
+      "sourceKey": "Classic Top_1090",
+      "folder": "ClassicTop",
+      "name": "ClassicTop",
+      "simId": "clothing.top_classic",
+      "layer": "Wear",
+      "slots": [
+        "Chest"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Buttons",
+          "texture": "buttons_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Laces",
+          "texture": "laces_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Bra,_Right",
+          "texture": "bra_right_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Bra,_Left",
+          "texture": "bra_left_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Bra",
+          "texture": "bra_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 1090,
+        "polys": 1073,
+        "bbox": [
+          -15.3,
+          15.3,
+          122.2,
+          152.3,
+          -12.7,
+          14.3
+        ],
+        "zones": {
+          "Chest": 0.997,
+          "Neck": 0.003
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Ring Top",
+        "nameRu": "Топ борца",
+        "descEn": "Cut for a ring, kept for the fabric.",
+        "descRu": "Скроен для ринга, сохранён ради ткани.",
+        "warmth": 0.03,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      }
+    },
+    {
+      "sourceKey": "Classic Shirt_1274",
+      "folder": "ClassicShorts",
+      "name": "ClassicShorts",
+      "simId": "clothing.shorts_classic",
+      "layer": "Wear",
+      "slots": [
+        "Pelvis"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Buttons",
+          "texture": "buttons_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Shorts",
+          "texture": "shorts_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Pants",
+          "texture": "pants_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Shorts_Pocket,_Right",
+          "texture": "pockets_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Shorts_Pocket_Left",
+          "texture": "pockets_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 1274,
+        "polys": 1504,
+        "bbox": [
+          -18.3,
+          18.4,
+          85.8,
+          105.9,
+          -12.8,
+          16.0
+        ],
+        "zones": {
+          "Pelvis": 0.898,
+          "Belly": 0.102
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Ring Shorts",
+        "nameRu": "Шорты борца",
+        "descEn": "In a set with the top. The vendor called them a shirt.",
+        "descRu": "В пару к топу. Вендор назвал их рубашкой.",
+        "warmth": 0.04,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 1,
+        "covers": [
+          "Pelvis"
+        ]
+      }
+    },
+    {
+      "sourceKey": "Classic Boot_12488",
+      "folder": "ClassicBoots",
+      "name": "ClassicBoots",
+      "simId": "clothing.boots_classic",
+      "layer": "Outerwear",
+      "slots": [
+        "ShinR",
+        "ShinL",
+        "FootR",
+        "FootL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Shoes",
+          "texture": "shoes_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Zipper_Handle",
+          "texture": null,
+          "color": "#FFFFFF",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Zipper",
+          "texture": "zip_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Buttons",
+          "texture": "buttons_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Laces",
+          "texture": "laces_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 12488,
+        "polys": 11148,
+        "bbox": [
+          -19.4,
+          19.4,
+          -3.9,
+          40.4,
+          -12.5,
+          14.9
+        ],
+        "zones": {
+          "Shin": 0.722,
+          "Foot": 0.278
+        },
+        "heelCm": 3.94
+      },
+      "heelPose": {
+        "foot": 20.98,
+        "toe": -20.98,
+        "lift": 0.0394,
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "_source": "по высоте каблука 3.9 см"
+      },
+      "sim": {
+        "displayName": "Ring Boots",
+        "nameRu": "Ботинки борца",
+        "descEn": "Laced high, soled thin. Made for a canvas floor.",
+        "descRu": "Высокая шнуровка, тонкая подошва. Для настила ринга.",
+        "warmth": 0.09,
+        "armor": 0.06,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "LegL",
+          "LegR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "Classic Glove_1278",
+      "folder": "ClassicGloves",
+      "name": "ClassicGloves",
+      "simId": "clothing.gloves_classic",
+      "layer": "Wear",
+      "slots": [
+        "ForearmR",
+        "ForearmL",
+        "WristR",
+        "WristL",
+        "HandR",
+        "HandL"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Glove,_Wrist",
+          "texture": "glove_wrist_left_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Glove,_Lower",
+          "texture": "gloves_lower_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Glove,_Upper",
+          "texture": "gloves_upper_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 1278,
+        "polys": 1498,
+        "bbox": [
+          -79.4,
+          79.4,
+          141.7,
+          150.4,
+          -3.2,
+          9.5
+        ],
+        "zones": {
+          "Wrist": 0.648,
+          "Hand": 0.205,
+          "Forearm": 0.147
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Ring Gloves",
+        "nameRu": "Перчатки борца",
+        "descEn": "Fingerless, wrapped at the wrist.",
+        "descRu": "Без пальцев, с намоткой на запястье.",
+        "warmth": 0.02,
+        "armor": 0.03,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "ArmL",
+          "ArmR"
+        ]
+      }
+    },
+    {
+      "sourceKey": "Classic Scarf_359",
+      "folder": "ClassicScarf",
+      "name": "ClassicScarf",
+      "simId": "clothing.scarf_classic",
+      "layer": "Wear",
+      "slots": [
+        "Neck",
+        "Chest"
+      ],
+      "noHide": [],
+      "materials": [
+        {
+          "source": "Bra",
+          "texture": "bra_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Ribbon",
+          "texture": "ribbon_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        },
+        {
+          "source": "Knot",
+          "texture": "knot_diffuse.tga",
+          "smoothness": 0.0,
+          "metallic": 0.0,
+          "doubleSided": true,
+          "alphaClip": false
+        }
+      ],
+      "_measured": {
+        "verts": 359,
+        "polys": 355,
+        "bbox": [
+          -6.4,
+          6.4,
+          122.0,
+          156.1,
+          -21.6,
+          2.2
+        ],
+        "zones": {
+          "Neck": 0.78,
+          "Chest": 0.22
+        },
+        "heelCm": 0.0
+      },
+      "sim": {
+        "displayName": "Neck Scarf",
+        "nameRu": "Шейный платок",
+        "descEn": "Three hundred polygons of pure decoration.",
+        "descRu": "Триста полигонов чистого украшательства.",
+        "warmth": 0.02,
+        "armor": 0.0,
+        "thermalDelta": 0.0,
+        "capacity": 0,
+        "covers": [
+          "Torso"
+        ]
+      }
+    }
+  ]
+}

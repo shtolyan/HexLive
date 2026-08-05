@@ -102,6 +102,7 @@
     "SimBalance.HeatPressureSlope": 0.0250000004,
     "SimBalance.HotBandTemp": 22,
     "SimBalance.HungerRate": 0.00249999994,
+    "SimBalance.HygieneDamageLoss": 3,
     "SimBalance.HygieneDriftLoss": 0.00039999999,
     "SimBalance.HygieneWashGain": 0.0500000007,
     "SimBalance.IndoorWarmthBonus": 4,

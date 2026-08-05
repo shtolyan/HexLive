@@ -126,6 +126,8 @@ public static class GameEventTypes
         // lines. "WoundInflicted" reports the moment of injury, "BledOut" the
         // outcome; the ongoing state is visible on the health bar.
         "BledOut",
+        // §60.7: без сознания в глубокой воде дольше DrownDeathTicks — утонула.
+        "Drowned",
         "WoundInflicted",
         "LimbSevered",
         "VitalPartDestroyed",

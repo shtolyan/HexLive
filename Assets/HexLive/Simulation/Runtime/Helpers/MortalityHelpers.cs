@@ -439,7 +439,20 @@ internal static class MortalityHelpers
         // лежачий след — но вставать она передумала: грацию снять, след занять
         // обратно (её выдаст EndPlayDead, когда она действительно поднимется).
         npc.Mind.WakeGraceUntilTick = 0;
+
+        // ⭐ СНОС ПЛАНА, зеркало EnterComa (§60) и слома в плач (§110) — и это
+        // НЕ формальность ради единообразия. Обнулить одну лишь цель мало:
+        // летящий план переживает укладывание, MovementSystem продолжает вести
+        // тело по его шагам, и получается «бежит и притворяется мёртвой
+        // одновременно» — вид рисует лежачую позу, а координаты едут (баг #7:
+        // абьюзер «поскользил в анимации лежачие куда-то дальше, в закат»).
+        //
+        // Порядок обязателен: Abort освобождает джанкшны и брони плана, а
+        // AnchorLyingBody ниже занимает лежачий след — поменяй местами, и она
+        // сама себе освободит только что застолблённое место.
+        PlanInterruption.Abort(world, npc, "Playing dead");
         npc.Mind.CurrentGoal = GoalType.None;
+        npc.IsFighting = false; // притворяющаяся не держит боевую стойку
         AnchorLyingBody(world, npc);
 
         Trace.Emit(world, npc.Id, "PlayDeadStarted",
@@ -545,6 +558,20 @@ internal static class MortalityHelpers
     // запас; грудь в ноль — тело падает и начинает умирать.
     internal static void ResolveTrauma(WorldState world, NPCState npc, float landed, string source)
     {
+        // Баг #9: кровь пачкает. landed — зонные единицы (одна из
+        // Body.Parts.Count частей), в общем HP это landed / Count; при
+        // HygieneDamageLoss = 3 суммарная треть максимума здоровья обнуляет
+        // гигиену — полностью помыться. Сюда стекают ВСЕ сайты урона, включая
+        // ожоги и болезнь, — ровно те же зоны, по которым художник сыплет
+        // кровяные капли, так что грязь и капли ходят парой (баг #10).
+        if (landed > 0f && SimBalance.HygieneDamageLoss > 0f &&
+            npc.Body.Parts.Count > 0)
+        {
+            npc.Needs.Hygiene = MathUtil.Clamp01(
+                npc.Needs.Hygiene -
+                landed / npc.Body.Parts.Count * SimBalance.HygieneDamageLoss);
+        }
+
         if (!Spec105.DyingEnabled)
         {
             // Кил-свитч: доигровое поведение, вплоть до текста трассы.

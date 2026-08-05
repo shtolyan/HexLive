@@ -40,144 +40,113 @@ namespace HexLive.UnityPresentation.History
             var target = FirstNpcIn(record.Message, record.EntityId);
             var title = record.Type switch
             {
-                "AidStarted" => T($"{actor} went to help {target}.", $"{actor} пошла помогать {target}."),
-                "AidRequested" => T($"{actor} noticed {target} needs help.",
-                    $"{actor} заметила, что {target} нужна помощь."),
-                "AidWaitTimeout" => T($"{actor} stopped waiting for help.",
-                    $"{actor} перестала ждать помощи."),
-                "Aided" => T($"{actor} helped {TargetFromArrow(record.Message, target)}.",
-                    $"{actor} помогла {TargetFromArrow(record.Message, target)}."),
+                "AidStarted" => F("history.AidStarted", actor, target),
+                "AidRequested" => F("history.AidRequested", actor, target),
+                "AidWaitTimeout" => F("history.AidWaitTimeout", actor),
+                "Aided" => F("history.Aided", actor, TargetFromArrow(record.Message, target)),
                 "RelationshipChanged" => FormatRelationship(record, actor),
-                "TalkRequested" => T($"{actor} invited {target} to talk.",
-                    $"{actor} позвала {target} поговорить."),
-                "TalkStarted" => T($"{actor} started a conversation with {target}.",
-                    $"{actor} начала разговор с {target}."),
-                "TalkCompleted" => T($"{actor} had a good talk with {target}.",
-                    $"{actor} хорошо поговорила с {target}."),
-                "TalkQuarreled" => T($"{actor} quarreled with {target}.",
-                    $"{actor} поссорилась с {target}."),
-                "TalkWaitTimeout" => T($"{actor} stopped waiting for the conversation.",
-                    $"{actor} перестала ждать разговора."),
+                "TalkRequested" => F("history.TalkRequested", actor, target),
+                "TalkStarted" => F("history.TalkStarted", actor, target),
+                "TalkCompleted" => F("history.TalkCompleted", actor, target),
+                "TalkQuarreled" => F("history.TalkQuarreled", actor, target),
+                "TalkWaitTimeout" => F("history.TalkWaitTimeout", actor),
                 // §108: сговор против чужака и чем он кончился.
-                "GroupHuntPactFormed" => T($"{actor} agreed to go after the stranger together.",
-                    $"{actor} сговорилась идти на чужака вместе с остальными."),
-                "GroupHuntEngaged" => T($"{actor} laid into the stranger.",
-                    $"{actor} набросилась на чужака."),
-                "GroupHuntTargetFled" => T($"{actor} ran from the women.",
-                    $"{actor} побежал от женщин."),
-                "GroupHuntDone" => T($"{actor} got even with the stranger.",
-                    $"{actor} поквиталась с чужаком."),
-                "GroupHuntFailed" => T($"{actor} did not get to the stranger.",
-                    $"{actor} не добралась до чужака."),
-                "InteractionBlocked" => T($"{actor} could not use a busy object.",
-                    $"{actor} не смогла воспользоваться занятым объектом."),
-                "InteractionRejected" => T($"{actor}'s talk was refused.",
-                    $"{actor} отказали в разговоре."),
-                "FoodShared" => T($"{actor} received food from {target}.",
-                    $"{actor} получила еду от {target}."),
-                "FoodStolen" => T("Food was stolen in the camp.", "В лагере украли еду."),
-                "Grieving" => T($"{actor} is grieving.", $"{actor} скорбит."),
-                "Mourned" => T($"{actor} paid respects to the dead.", $"{actor} почтила память погибшей."),
-                "Looted" => T($"{actor} took something from a body.", $"{actor} забрала вещь с тела."),
-                "StrippedHelpless" => T($"{actor} stripped a helpless enemy.",
-                    $"{actor} обчистила беспомощного врага."),
-                "NpcDied" => T($"{actor} died.", $"{actor} погибла."),
-                "BledOut" => T($"{actor} bled out.", $"{actor} истекла кровью."),
-                "StarvedToDeath" => T($"{actor} died from hunger or thirst.",
-                    $"{actor} умерла от голода или жажды."),
-                "VitalPartDestroyed" => T($"{actor} suffered a fatal wound.",
-                    $"{actor} получила смертельную рану."),
-                "DogFight" => T($"{actor} was attacked by a dog.", $"{actor} атакована собакой."),
-                "DogAggro" => T("A wild dog noticed the camp.", "Дикая собака заметила лагерь."),
-                "DogKilled" => T("A dog was killed.", "Собаку убили."),
-                "DogShot" => T($"{actor} fired at a dog.", $"{actor} выстрелила в собаку."),
-                "HelpCry" => T($"{actor} called for help.", $"{actor} позвала на помощь."),
-                "HelpCryAnswered" => T($"{actor} answered a call for help.",
-                    $"{actor} откликнулась на клич о помощи."),
-                "HelpCryIgnored" => T($"{actor} did not answer the call for help.",
-                    $"{actor} не откликнулась на клич о помощи."),
-                "HelpCryAssistStarted" => T($"{actor} ran to defend a housemate.",
-                    $"{actor} побежала защищать соседку."),
-                "HelpCryAssistArrived" => T($"{actor} joined the fight.",
-                    $"{actor} вступила в бой."),
-                "HelpCryAssistLost" => T($"{actor} lost the attacker.",
-                    $"{actor} потеряла нападающего."),
-                "HelpCryDefended" => T($"{actor} struck the attacker.",
-                    $"{actor} ударила нападающего."),
-                "FriendGuard" => T($"{actor} rushed to defend a friend.",
-                    $"{actor} бросилась защищать подругу."),
-                "NightRaid" => T("Dogs raided the camp at dusk.", "На закате на лагерь напали собаки."),
-                "Preyed" => T($"{actor} attacked a housemate.", $"{actor} напала на соседку."),
-                "PreyFoughtBack" => T($"{actor} fought back.", $"{actor} дала отпор."),
-                "PreyFled" => T($"{actor} fled from an attacker.", $"{actor} сбежала от нападавшей."),
-                "PredatorKilled" => T("An attacker was killed in self-defence.",
-                    "Нападавшую убили при самообороне."),
-                "Murdered" => T("A housemate was killed for meat.", "Соседку убили ради мяса."),
-                "SharkBite" => T($"{actor} was bitten by a shark.", $"{actor} укусила акула."),
-                "LimbSevered" => T($"{actor} lost a limb.", $"{actor} потеряла конечность."),
-                "Fainted" => T($"{actor} fainted.", $"{actor} потеряла сознание."),
+                "GroupHuntPactFormed" => F("history.GroupHuntPactFormed", actor),
+                "GroupHuntEngaged" => F("history.GroupHuntEngaged", actor),
+                "GroupHuntTargetFled" => F("history.GroupHuntTargetFled", actor),
+                "GroupHuntDone" => F("history.GroupHuntDone", actor),
+                "GroupHuntFailed" => F("history.GroupHuntFailed", actor),
+                "InteractionBlocked" => F("history.InteractionBlocked", actor),
+                "InteractionRejected" => F("history.InteractionRejected", actor),
+                "FoodShared" => F("history.FoodShared", actor, target),
+                "FoodStolen" => Loc.Get("history.FoodStolen"),
+                "Grieving" => F("history.Grieving", actor),
+                "Mourned" => F("history.Mourned", actor),
+                "Looted" => F("history.Looted", actor),
+                "StrippedHelpless" => F("history.StrippedHelpless", actor),
+                "NpcDied" => F("history.NpcDied", actor),
+                "BledOut" => F("history.BledOut", actor),
+                "StarvedToDeath" => F("history.StarvedToDeath", actor),
+                // §60.7: без сознания в глубокой воде дольше DrownDeathTicks.
+                "Drowned" => F("history.Drowned", actor),
+                "VitalPartDestroyed" => F("history.VitalPartDestroyed", actor),
+                "DogFight" => F("history.DogFight", actor),
+                "DogAggro" => Loc.Get("history.DogAggro"),
+                "DogKilled" => Loc.Get("history.DogKilled"),
+                "DogShot" => F("history.DogShot", actor),
+                "HelpCry" => F("history.HelpCry", actor),
+                "HelpCryAnswered" => F("history.HelpCryAnswered", actor),
+                "HelpCryIgnored" => F("history.HelpCryIgnored", actor),
+                "HelpCryAssistStarted" => F("history.HelpCryAssistStarted", actor),
+                "HelpCryAssistArrived" => F("history.HelpCryAssistArrived", actor),
+                "HelpCryAssistLost" => F("history.HelpCryAssistLost", actor),
+                "HelpCryDefended" => F("history.HelpCryDefended", actor),
+                "FriendGuard" => F("history.FriendGuard", actor),
+                "NightRaid" => Loc.Get("history.NightRaid"),
+                "Preyed" => F("history.Preyed", actor),
+                "PreyFoughtBack" => F("history.PreyFoughtBack", actor),
+                "PreyFled" => F("history.PreyFled", actor),
+                "PredatorKilled" => Loc.Get("history.PredatorKilled"),
+                "Murdered" => Loc.Get("history.Murdered"),
+                "SharkBite" => F("history.SharkBite", actor),
+                "LimbSevered" => F("history.LimbSevered", actor),
+                "Fainted" => F("history.Fainted", actor),
                 // The coma path emits these two — the old "Collapsed" title waited
                 // for a type nothing has ever sent, so comas were invisible here.
-                "FellAsleepExhausted" => T($"{actor} collapsed from exhaustion.",
-                    $"{actor} свалилась без сил."),
-                "FaintedBloodLoss" => T($"{actor} passed out from blood loss.",
-                    $"{actor} отключилась от потери крови."),
-                "WokeUp" => T($"{actor} came to.", $"{actor} пришла в себя."),
+                "FellAsleepExhausted" => F("history.FellAsleepExhausted", actor),
+                "FaintedBloodLoss" => F("history.FaintedBloodLoss", actor),
+                "WokeUp" => F("history.WokeUp", actor),
                 // §105: «Collapsed» снова в деле — теперь его действительно
                 // эмитят, и это уже не обморок, а обратный отсчёт.
-                "Collapsed" => T($"{actor} is dying.", $"{actor} при смерти."),
-                "Rescued" => T($"{actor} was pulled back from the brink.",
-                    $"{actor} вытащили с того света."),
-                "WoundInflicted" => T($"{actor} was wounded.", $"{actor} получила рану."),
-                "GotSick" => T($"{actor} got sick from raw water.",
-                    $"{actor} заболела от сырой воды."),
-                "ThreatSpotted" => T($"{actor} spotted a predator.",
-                    $"{actor} заметила хищника."),
-                "Bandaged" => T($"{actor} dressed the wounds.", $"{actor} перевязала раны."),
-                "Medicated" => T($"{actor} used medicine.", $"{actor} приняла лекарство."),
-                "StatusStarving" => T($"{actor} is starving.", $"{actor} голодает."),
-                "StatusDehydrated" => T($"{actor} is dehydrated.", $"{actor} обезвожена."),
-                "StatusOverheated" => T($"{actor} is overheating.", $"{actor} перегревается."),
-                "Sunburn" => T($"{actor} was burned by the sun.", $"{actor} обгорела на солнце."),
-                "RainStarted" => T("Rain started.", "Начался дождь."),
-                "RainStopped" => T("Rain stopped.", "Дождь закончился."),
-                "StormSurge" => T("A storm surge hit the island.", "Штормовой нагон ударил по острову."),
-                "TreeChopped" => T($"{actor} felled a tree.", $"{actor} срубила дерево."),
-                "BoulderBroken" => T($"{actor} broke a boulder.", $"{actor} разбила валун."),
-                "LogSplit" => T($"{actor} split a log into sticks.", $"{actor} расколола бревно на палки."),
-                "CrownChopped" => T($"{actor} cut palm leaves.", $"{actor} нарубила пальмовых листьев."),
-                "CoconutProcessed" => T($"{actor} opened a coconut.", $"{actor} вскрыла кокос."),
-                "CoconutDrank" => T($"{actor} drank coconut water.", $"{actor} выпила кокосовую воду."),
-                "CoconutEaten" => T($"{actor} ate coconut.", $"{actor} съела кокос."),
-                "BottleFilled" => T($"{actor} filled a bottle.", $"{actor} наполнила бутылку."),
-                "DrankBottle" => T($"{actor} drank from a bottle.", $"{actor} попила из бутылки."),
-                "FireLit" => T($"{actor} lit the fire.", $"{actor} разожгла костер."),
-                "FireFueled" => T($"{actor} fed the fire.", $"{actor} подбросила топлива в костер."),
-                "FireOut" => T("The fire went out.", "Костер погас."),
+                "Collapsed" => F("history.Collapsed", actor),
+                "Rescued" => F("history.Rescued", actor),
+                "WoundInflicted" => F("history.WoundInflicted", actor),
+                "GotSick" => F("history.GotSick", actor),
+                "ThreatSpotted" => F("history.ThreatSpotted", actor),
+                "Bandaged" => F("history.Bandaged", actor),
+                "Medicated" => F("history.Medicated", actor),
+                "StatusStarving" => F("history.StatusStarving", actor),
+                "StatusDehydrated" => F("history.StatusDehydrated", actor),
+                "StatusOverheated" => F("history.StatusOverheated", actor),
+                "Sunburn" => F("history.Sunburn", actor),
+                "RainStarted" => Loc.Get("history.RainStarted"),
+                "RainStopped" => Loc.Get("history.RainStopped"),
+                "StormSurge" => Loc.Get("history.StormSurge"),
+                "TreeChopped" => F("history.TreeChopped", actor),
+                "BoulderBroken" => F("history.BoulderBroken", actor),
+                "LogSplit" => F("history.LogSplit", actor),
+                "CrownChopped" => F("history.CrownChopped", actor),
+                "CoconutProcessed" => F("history.CoconutProcessed", actor),
+                "CoconutDrank" => F("history.CoconutDrank", actor),
+                "CoconutEaten" => F("history.CoconutEaten", actor),
+                "BottleFilled" => F("history.BottleFilled", actor),
+                "DrankBottle" => F("history.DrankBottle", actor),
+                "FireLit" => F("history.FireLit", actor),
+                "FireFueled" => F("history.FireFueled", actor),
+                "FireOut" => Loc.Get("history.FireOut"),
                 // The fire emits MeatRoasted — the old "MeatCooked" title waited
                 // for a type nothing has ever sent, so cooking was invisible here.
-                "MeatRoasted" => T("Meat finished roasting on the spit.",
-                    "Мясо на вертеле дожарилось."),
-                "MeatHungOnSpit" => T($"{actor} hung meat over the fire.",
-                    $"{actor} повесила мясо над костром."),
-                "MeatSpoiled" => T("Meat went bad.", "Мясо испортилось."),
+                "MeatRoasted" => Loc.Get("history.MeatRoasted"),
+                "MeatHungOnSpit" => F("history.MeatHungOnSpit", actor),
+                "MeatSpoiled" => Loc.Get("history.MeatSpoiled"),
                 // §54.17: the finish line of the meat chain.
-                "MeatEaten" => T($"{actor} ate roasted meat.", $"{actor} съела жареное мясо."),
-                "RaftProgress" => T($"{actor} worked on the raft.", $"{actor} строит плот."),
-                "RaftLaunched" => T("The raft is finished.", "Плот готов."),
-                "BuildProgress" => T($"{actor} built part of the shelter.", $"{actor} построила часть укрытия."),
-                "FurnitureBuilt" => T($"{actor} finished furniture.", $"{actor} закончила мебель."),
-                "HutCompleted" => T("The hut is complete.", "Хижина достроена."),
-                "BedCrafted" => T($"{actor} made a bed.", $"{actor} сделала постель."),
-                "TentCrafted" => T($"{actor} made a sun shelter.", $"{actor} сделала навес от солнца."),
-                "RackCrafted" => T($"{actor} made a drying rack.", $"{actor} сделала сушилку."),
-                "Butchered" => T($"{actor} butchered a body.", $"{actor} разделала тушу."),
-                "EmergencyUnload" => T($"{actor} dropped supplies to make room for food.",
-                    $"{actor} сбросила припасы, чтобы освободить место для еды."),
-                "DireStraits" => T("The colony is in crisis.", "Колония в критическом состоянии."),
+                "MeatEaten" => F("history.MeatEaten", actor),
+                "RaftProgress" => F("history.RaftProgress", actor),
+                "RaftLaunched" => Loc.Get("history.RaftLaunched"),
+                "BuildProgress" => F("history.BuildProgress", actor),
+                "FurnitureBuilt" => F("history.FurnitureBuilt", actor),
+                "HutCompleted" => Loc.Get("history.HutCompleted"),
+                "BedCrafted" => F("history.BedCrafted", actor),
+                "TentCrafted" => F("history.TentCrafted", actor),
+                "RackCrafted" => F("history.RackCrafted", actor),
+                "Butchered" => F("history.Butchered", actor),
+                "EmergencyUnload" => F("history.EmergencyUnload", actor),
+                "DireStraits" => Loc.Get("history.DireStraits"),
                 _ when record.Type.StartsWith("Crafted", StringComparison.Ordinal) =>
-                    T($"{actor} crafted something useful.", $"{actor} что-то смастерила."),
-                _ => T($"{actor}: {record.Type}", $"{actor}: {record.Type}")
+                    F("history.Crafted", actor),
+                // Dev-фолбэк для типа без термина: сырой тип события, локали
+                // не требует (и не должен маскироваться под перевод).
+                _ => $"{actor}: {record.Type}"
             };
 
             return new GameHistoryText(FormatTime(record.Tick), title,
@@ -190,62 +159,47 @@ namespace HexLive.UnityPresentation.History
             var delta = Token(record.Message, "(", ")");
             if (delta.StartsWith("+", StringComparison.Ordinal))
             {
-                return T($"{actor} warmed toward {target}.", $"{actor} стала теплее к {target}.");
+                return F("history.rel.warmed", actor, target);
             }
 
             if (delta.StartsWith("-", StringComparison.Ordinal))
             {
-                return T($"{actor} grew colder toward {target}.", $"{actor} стала хуже относиться к {target}.");
+                return F("history.rel.colder", actor, target);
             }
 
-            return T($"{actor}'s relationship with {target} changed.",
-                $"Отношение {actor} к {target} изменилось.");
+            return F("history.rel.changed", actor, target);
         }
 
         private static string Detail(GameHistoryRecord record)
         {
             return record.Type switch
             {
-                "AidStarted" => T($"Help: {AidKind(Token(record.Message, "Kind="))}",
-                    $"Помощь: {AidKind(Token(record.Message, "Kind="))}"),
-                "AidRequested" => T($"Help: {AidKind(Token(record.Message, "Kind="))}",
-                    $"Помощь: {AidKind(Token(record.Message, "Kind="))}"),
-                "AidWaitTimeout" => T("The promised helper did not arrive in time.",
-                    "Помощница не успела прийти вовремя."),
-                "Aided" => T($"Help: {AidKind(Token(record.Message, "Kind="))}. Relationship improved.",
-                    $"Помощь: {AidKind(Token(record.Message, "Kind="))}. Отношения улучшились."),
-                "TalkRequested" => T($"Affinity before invite: {Token(record.Message, "Affinity=")}",
-                    $"Отношение перед приглашением: {Token(record.Message, "Affinity=")}"),
-                "TalkStarted" => T($"Topic: {TalkTopic(Token(record.Message, "Topic="))}",
-                    $"Тема: {TalkTopic(Token(record.Message, "Topic="))}"),
-                "TalkCompleted" => T("Social need rose. Relationship improved.",
-                    "Общение стало лучше. Отношения улучшились."),
-                "TalkQuarreled" => T("Both gained some social contact, but affinity fell.",
-                    "Общение случилось, но отношения ухудшились."),
-                "TalkWaitTimeout" => T("The invited NPC did not arrive in time.",
-                    "Собеседница не успела подойти вовремя."),
+                "AidStarted" => F("history.detail.aid", AidKind(Token(record.Message, "Kind="))),
+                "AidRequested" => F("history.detail.aid", AidKind(Token(record.Message, "Kind="))),
+                "AidWaitTimeout" => Loc.Get("history.detail.AidWaitTimeout"),
+                "Aided" => F("history.detail.Aided", AidKind(Token(record.Message, "Kind="))),
+                "TalkRequested" => F("history.detail.TalkRequested", Token(record.Message, "Affinity=")),
+                "TalkStarted" => F("history.detail.TalkStarted", TalkTopic(Token(record.Message, "Topic="))),
+                "TalkCompleted" => Loc.Get("history.detail.TalkCompleted"),
+                "TalkQuarreled" => Loc.Get("history.detail.TalkQuarreled"),
+                "TalkWaitTimeout" => Loc.Get("history.detail.TalkWaitTimeout"),
                 "RelationshipChanged" => RelationshipDetail(record.Message),
                 "InteractionBlocked" => BusyObjectDetail(record.Message),
-                "InteractionRejected" => T("A personal refusal can hurt affinity.",
-                    "Личный отказ может ухудшить отношения."),
+                "InteractionRejected" => Loc.Get("history.detail.InteractionRejected"),
                 "NpcDied" => DeathDetail(record.Message),
                 "FoodStolen" => NpcArrowDetail(record.Message),
                 "Murdered" => NpcArrowDetail(record.Message),
-                "StrippedHelpless" => T(
-                    $"Taken: {Token(record.Message, "Count=")}. He will wake up unarmed.",
-                    $"Забрано вещей: {Token(record.Message, "Count=")}. Очнётся безоружным."),
+                "StrippedHelpless" => F("history.detail.StrippedHelpless",
+                    Token(record.Message, "Count=")),
                 "HelpCry" => HelpCryDetail(record.Message),
                 "HelpCryAnswered" => HelpCryDecisionDetail(record.Message),
                 "HelpCryIgnored" => HelpCryDecisionDetail(record.Message),
                 "HelpCryDefended" => CleanDetail(record.Message),
-                "GroupHuntPactFormed" => T("Nobody in the circle could stand him any more.",
-                    "Его уже не выносил никто в кружке."),
-                "GroupHuntDone" => T("They beat him and drove him off.",
-                    "Побили и прогнали."),
+                "GroupHuntPactFormed" => Loc.Get("history.detail.GroupHuntPactFormed"),
+                "GroupHuntDone" => Loc.Get("history.detail.GroupHuntDone"),
                 "GroupHuntFailed" => CleanDetail(record.Message),
                 "RaftProgress" => record.Message,
-                "DireStraits" => T("Several survivors need urgent attention.",
-                    "Нескольким выжившим срочно нужна помощь."),
+                "DireStraits" => Loc.Get("history.detail.DireStraits"),
                 _ => CleanDetail(record.Message)
             };
         }
@@ -260,8 +214,8 @@ namespace HexLive.UnityPresentation.History
             }
 
             return string.IsNullOrEmpty(delta)
-                ? T($"Affinity now {affinity}.", $"Отношение теперь {affinity}.")
-                : T($"Affinity now {affinity} ({delta}).", $"Отношение теперь {affinity} ({delta}).");
+                ? F("history.detail.affinity", affinity)
+                : F("history.detail.affinity.delta", affinity, delta);
         }
 
         private static string DeathDetail(string message)
@@ -274,22 +228,10 @@ namespace HexLive.UnityPresentation.History
 
             var typeEnd = cause.IndexOf(':');
             var type = typeEnd > 0 ? cause.Substring(0, typeEnd) : cause;
-            var localized = type switch
-            {
-                "BledOut" => T("blood loss", "кровопотеря"),
-                "DogFight" => T("dog attack", "нападение собаки"),
-                "Heatstroke" => T("heatstroke", "перегрев"),
-                "Hypothermia" => T("hypothermia", "переохлаждение"),
-                "LimbSevered" => T("lost limb", "потеря конечности"),
-                "Preyed" => T("housemate attack", "нападение соседки"),
-                "PreyFoughtBack" => T("self-defence fight", "бой при самообороне"),
-                "SharkBite" => T("shark bite", "укус акулы"),
-                "StarvedToDeath" => T("hunger or thirst", "голод или жажда"),
-                "Sunburn" => T("sun exposure", "солнце"),
-                "VitalPartDestroyed" => T("fatal wound", "смертельная рана"),
-                _ => type
-            };
-            return T($"Cause: {localized}.", $"Причина: {localized}.");
+            // Неизвестная причина рендерится сырым типом — как missing key в Loc.
+            var key = "history.cause." + type;
+            var localized = Loc.Has(key) ? Loc.Get(key) : type;
+            return F("history.detail.cause", localized);
         }
 
         private static GameHistoryTone Tone(string type)
@@ -309,7 +251,7 @@ namespace HexLive.UnityPresentation.History
                 return GameHistoryTone.Build;
             }
 
-            if (type is "NpcDied" or "BledOut" or "StarvedToDeath" or "VitalPartDestroyed" or
+            if (type is "NpcDied" or "BledOut" or "StarvedToDeath" or "VitalPartDestroyed" or "Drowned" or
                 "DogFight" or "NightRaid" or "Murdered" or "Preyed" or "SharkBite" or "LimbSevered" or
                 "Collapsed" or // §105: она при смерти — тревожнее этого в колонии ничего нет
                 "HelpCry" or "HelpCryAssistStarted" or "HelpCryAssistArrived" or "HelpCryDefended" or
@@ -342,11 +284,13 @@ namespace HexLive.UnityPresentation.History
             var progress = (tick % EnvironmentSystem.DayLengthTicks) /
                            (float)EnvironmentSystem.DayLengthTicks;
             var clock = EnvironmentSystem.FormatClock(progress);
-            return T($"Day {day}, {clock}", $"День {day}, {clock}");
+            return F("history.time", day, clock);
         }
 
         private static string Npc(int? id) =>
-            id.HasValue ? $"NPC #{id.Value.ToString(CultureInfo.InvariantCulture)}" : T("Colony", "Колония");
+            id.HasValue
+                ? $"NPC #{id.Value.ToString(CultureInfo.InvariantCulture)}"
+                : Loc.Get("history.colony");
 
         private static string FirstNpcIn(string message, int? fallback)
         {
@@ -404,40 +348,18 @@ namespace HexLive.UnityPresentation.History
             return message.Substring(start, Math.Max(0, end - start)).Trim();
         }
 
-        private static string AidKind(string kind) => kind switch
+        private static string AidKind(string kind)
         {
-            "Feed" => T("food", "еда"),
-            "Hydrate" => T("water", "вода"),
-            "Treat" => T("treatment", "лечение ран"),
-            "Medicate" => T("medicine", "лекарство"),
-            "Console" => T("comfort", "утешение"),
-            _ => kind
-        };
+            // Неизвестный вид помощи остаётся сырым токеном (виден как баг).
+            var key = "history.aid." + kind;
+            return Loc.Has(key) ? Loc.Get(key) : kind;
+        }
 
-        private static string TalkTopic(string topic) => topic switch
+        private static string TalkTopic(string topic)
         {
-            "SmallTalk" => T("small talk", "разговор ни о чем"),
-            "Escape" => T("escape", "побег с острова"),
-            "Sharks" => T("sharks", "акулы"),
-            "Dogs" => T("dogs", "собаки"),
-            "Weather" => T("weather", "погода"),
-            "Food" => T("food", "еда"),
-            "Fire" => T("fire", "костер"),
-            "Home" => T("home", "дом"),
-            "Gossip" => T("gossip", "слухи"),
-            "Flirt" => T("flirting", "флирт"),
-            "Joke" => T("jokes", "шутки"),
-            "Grumble" => T("complaints", "ворчание"),
-            // §67.10: личные жалобы — «рассказала подруге, что голодна».
-            "Hunger" => T("her hunger", "свой голод"),
-            "Thirst" => T("her thirst", "свою жажду"),
-            "Pain" => T("her wound", "свою рану"),
-            "Tired" => T("her exhaustion", "свою усталость"),
-            "Cold" => T("the chill in her bones", "свой холод"),
-            // §108: разговор ПРО НЕГО — единственная тема, у которой есть «о ком».
-            "Stranger" => T("the stranger", "чужак"),
-            _ => topic
-        };
+            var key = "history.topic." + topic;
+            return Loc.Has(key) ? Loc.Get(key) : topic;
+        }
 
         private static string NpcArrowDetail(string message)
         {
@@ -445,7 +367,7 @@ namespace HexLive.UnityPresentation.History
             var second = TargetFromArrow(message, string.Empty);
             return string.IsNullOrEmpty(second)
                 ? CleanDetail(message)
-                : T($"{first} -> {second}", $"{first} -> {second}");
+                : $"{first} -> {second}";
         }
 
         private static string HelpCryDetail(string message)
@@ -453,13 +375,13 @@ namespace HexLive.UnityPresentation.History
             var attacker = Token(message, "Dog=");
             if (!string.IsNullOrEmpty(attacker))
             {
-                return T($"Attacker: dog #{attacker}.", $"Нападающий: собака #{attacker}.");
+                return F("history.detail.attacker.dog", attacker);
             }
 
             attacker = Token(message, "Attacker=NPC");
             return string.IsNullOrEmpty(attacker)
                 ? CleanDetail(message)
-                : T($"Attacker: NPC #{attacker}.", $"Нападающая: NPC #{attacker}.");
+                : F("history.detail.attacker.npc", attacker);
         }
 
         private static string HelpCryDecisionDetail(string message)
@@ -472,8 +394,7 @@ namespace HexLive.UnityPresentation.History
                 return CleanDetail(message);
             }
 
-            return T($"For NPC #{victim}: score {score}, roll {roll}.",
-                $"За NPC #{victim}: шанс {score}, бросок {roll}.");
+            return F("history.detail.helpcry.decision", victim, score, roll);
         }
 
         private static string BusyObjectDetail(string message)
@@ -484,7 +405,7 @@ namespace HexLive.UnityPresentation.History
                 return CleanDetail(message);
             }
 
-            return T($"Occupied by {occupiedBy}.", $"Занято: {occupiedBy}.");
+            return F("history.detail.occupied", occupiedBy);
         }
 
         private static string CleanDetail(string message)
@@ -497,7 +418,8 @@ namespace HexLive.UnityPresentation.History
             return message.Length <= 160 ? message : message.Substring(0, 157) + "...";
         }
 
-        private static string T(string en, string ru) =>
-            Loc.Current == Language.Russian ? ru : en;
+        /// <summary>Термин §58 с подстановками ({0}, {1}, …) — как end.subtitle.</summary>
+        private static string F(string key, params object[] args) =>
+            string.Format(Loc.Get(key), args);
     }
 }

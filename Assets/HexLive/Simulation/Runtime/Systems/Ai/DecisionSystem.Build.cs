@@ -168,7 +168,12 @@ public sealed partial class DecisionSystem
     // общий очаг колонии ничей, поэтому по владельцу одному судить нельзя.
     // Если фракционных домов в мире нет вовсе (старый сейв, тестовый мир) —
     // ограничение не применяется, поведение остаётся прежним.
-    private static bool IsOurSite(WorldState world, NPCState npc, WorldObjectState site)
+    //
+    // Internal (§72.13): планировщик обязан задавать ТОТ ЖЕ вопрос. Аукцион ставит цель
+    // по своей стройке (FindBuildSite), но план брал БЛИЖАЙШИЙ подходящий
+    // объект из восприятия — и девушка с палками в руках, проходя мимо чужой
+    // стоянки, достраивала её (см. IsValidTargetFor: Build/BuildFurniture).
+    internal static bool IsOurSite(WorldState world, NPCState npc, WorldObjectState site)
     {
         if (site.Owner is { } owner)
         {

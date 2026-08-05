@@ -26,7 +26,7 @@ MonoBehaviour:
   shunTicks: 600
   sitCooldownTicks: 240
   dressCooldownTicks: 160
-  wakeGraceTicks: 12
+  wakeGraceTicks: 18
   failureCooldownTicks: 40
   drinkThirstThreshold: 0.35
   freezingComfortThreshold: -0.35
@@ -89,6 +89,7 @@ MonoBehaviour:
   comaWakeThreshold: 0.15
   comaBloodEnterThreshold: 0.25
   comaBloodWakeThreshold: 0.35
+  drownDeathTicks: 1000
   coconutHunger: 0.675
   coconutThirst: 0.338
   cookedMeatHunger: 0.9
@@ -118,6 +119,7 @@ MonoBehaviour:
   sunburnVitalFloor: 0.45
   hygieneWashGain: 0.05
   hygieneDriftLoss: 0.0004
+  hygieneDamageLoss: 3
   clothingDirtGain: 0.00035
   dirtyClothingComfortLoss: 0.002
   batheNeedThreshold: 0.4

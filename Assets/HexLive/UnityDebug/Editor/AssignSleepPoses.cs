@@ -28,10 +28,16 @@ namespace HexLive.UnityDebug.Editor
         private const string AnimDir = "Assets/ImportedActors/AnimLibrary/";
         private const string SetPath = "Assets/Resources/HexLive/NpcAnimSet.asset";
 
-        private static readonly string[] Poses =
+        // (файл FBX, имя клипа). Обычно совпадают, но у второй позы клип —
+        // «Bed»-вариант из того же FBX: он довёрнут orientationOffsetY так,
+        // чтобы лежать в ту же сторону, что конец LieDown / Sleep / старт
+        // GetUp (баг #6 — «легла в одном повороте, спит в другом»). Оригинал
+        // без доворота остаётся в файле: на нём стоит состояние FallenIdle,
+        // выровненное под StandUp.
+        private static readonly (string file, string clip)[] Poses =
         {
-            "Sleep",                 // авторский — на нём стоит состояние Sleep
-            "X Bot@Sleeping Idle",   // §105: вторая поза
+            ("Sleep", "Sleep"),      // авторский — на нём стоит состояние Sleep
+            ("X Bot@Sleeping Idle", "X Bot@Sleeping Idle Bed"), // §105: вторая поза
         };
 
         [MenuItem("HexLive/Actors/Assign Sleep Poses")]
@@ -53,14 +59,14 @@ namespace HexLive.UnityDebug.Editor
             var missing = new List<string>();
             foreach (var take in Poses)
             {
-                var clip = Clip(take);
+                var clip = Clip(take.file, take.clip);
                 if (clip != null)
                 {
                     found.Add(clip);
                 }
                 else
                 {
-                    missing.Add(take);
+                    missing.Add(take.clip);
                 }
             }
 
@@ -80,11 +86,11 @@ namespace HexLive.UnityDebug.Editor
             }
         }
 
-        private static AnimationClip Clip(string takeName)
+        private static AnimationClip Clip(string fileName, string clipName)
         {
-            foreach (var a in AssetDatabase.LoadAllAssetsAtPath(AnimDir + takeName + ".fbx"))
+            foreach (var a in AssetDatabase.LoadAllAssetsAtPath(AnimDir + fileName + ".fbx"))
             {
-                if (a is AnimationClip c && !c.name.StartsWith("__preview"))
+                if (a is AnimationClip c && c.name == clipName)
                 {
                     return c;
                 }

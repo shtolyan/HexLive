@@ -762,6 +762,7 @@ public sealed class MobSystem : ISimulationSystem
 
         JunctionId? best = null;
         var bestScore = float.MaxValue;
+        var bestToCamp = int.MaxValue;
         foreach (var junction in world.Junctions.Items.Values)
         {
             if (junction.Blocked || junction.Tiles.Count == 0 ||
@@ -777,11 +778,20 @@ public sealed class MobSystem : ISimulationSystem
             if (score < bestScore)
             {
                 bestScore = score;
+                bestToCamp = toCamp;
                 best = junction.Id;
             }
         }
 
+        // Баг #13: «дом» должен быть ДАЛЬШЕ, чем стоишь. Свой джанкшен занят
+        // самим собой, так что стоящему В лагере поиск отдавал соседний
+        // свободный узел — «бегство» удавалось каждый средний тик, клапан
+        // §109.8 съедал его ход, и разбитого били в его же дворе, а он шаркал
+        // на месте и не отвечал ни разу. Некуда бежать — не бегство: вернуть
+        // false и пусть вызывающий дерётся (форма §108 TryFleeHome, где
+        // refuge.Equals(from) стоял с самого начала).
         if (best is not { } refuge ||
+            bestToCamp >= HexSpatialMath.HexDistance(npc.Tile, camp) ||
             !Connectivity.Reachable(world, startJunction, refuge))
         {
             return false;

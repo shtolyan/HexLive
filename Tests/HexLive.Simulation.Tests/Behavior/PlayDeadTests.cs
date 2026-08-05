@@ -6,6 +6,7 @@ using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Runtime;
+using HexLive.Simulation.Spatial;
 using NUnit.Framework;
 
 namespace HexLive.Simulation.Tests.Behavior
@@ -281,6 +282,63 @@ public sealed class PlayDeadTests
         Assert.That(girl.IsPlayingDead(world.Tick), Is.False,
             "⭐ Свой кризис поднимает её ДО срока, хотя волк никуда не делся: " +
             "притворство — тактика, а не способ умереть лёжа.");
+    }
+
+    /// <summary>
+    /// ⭐ Баг #7: «бежал и притворялся мёртвым одновременно».
+    ///
+    /// <para>
+    /// Укладывание обнуляло ЦЕЛЬ, но не сносило летящий ПЛАН, и MovementSystem
+    /// продолжал вести тело по его шагам: вид рисовал лежачую позу, а
+    /// координаты ехали — абьюзер «поскользил в анимации лежачие в закат».
+    /// Кома §60 и слом в плач §110 зовут PlanInterruption.Abort, притворство
+    /// не звало.
+    /// </para>
+    /// <para>
+    /// Меряем ПОЗИЦИЮ, а не флаг: утверждение «план пуст» прошло бы и на
+    /// сломанном коде, если бы шаги просто кончились сами.
+    /// </para>
+    /// </summary>
+    [Test]
+    public void PlayingDead_DoesNotSlideAcrossTheIsland()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var girl = world.Entities.Npcs.Values.First();
+        Rested(girl);
+
+        // Дать ей разогнаться: пусть сим сам выберет дело и поведёт её.
+        for (var i = 0; i < 60; i++)
+        {
+            engine.Step();
+        }
+
+        var wolf = SpawnWolfOn(world, girl, chasing: true);
+        KnockOut(world, girl);
+        for (var i = 0; i < 10; i++)
+        {
+            engine.Step();
+            wolf.Tile = girl.Tile;
+        }
+
+        Assert.That(girl.IsPlayingDead(world.Tick), Is.True, "Предусловие: лежит.");
+        var lay = girl.Position;
+        var layTile = girl.Tile;
+
+        for (var i = 0; i < 40; i++)
+        {
+            engine.Step();
+            wolf.Tile = girl.Tile;
+            Assert.That(girl.IsPlayingDead(world.Tick), Is.True,
+                "Предусловие: всё ещё лежит — иначе тест меряет уже подъём.");
+        }
+
+        Assert.That(girl.Tile, Is.EqualTo(layTile),
+            "⭐ Притворяющаяся уехала на другой гекс — план пережил укладывание.");
+        Assert.That(HexSpatialMath.Distance(girl.Position, lay), Is.LessThan(0.01f),
+            "⭐ Труп не ползает: позиция обязана стоять намертво.");
+        Assert.That(girl.IsFighting, Is.False,
+            "Притворяющаяся не держит боевую стойку (зеркало EnterComa).");
     }
 
     /// <summary>Кил-свитч: выключенная ручка = поведение до правки.</summary>

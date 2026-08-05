@@ -156,6 +156,48 @@ public sealed class SwimTestBootstrap : MonoBehaviour
         // start, so a live water-level slider would desync mesh vs actors).
     }
 
+    // Слайдеры сцены против ассета, который читает игра. Не правим ни то, ни
+    // другое — только показываем расхождение, иначе сцена тихо тюнит «свой»
+    // прыжок. Кнопки «Загрузить/Сохранить» под компонентом — как это свести.
+    private void WarnIfSlidersDriftedFromConfig()
+    {
+        if (_tuningConfig == null)
+        {
+            return;
+        }
+
+        var drift = new System.Text.StringBuilder();
+        void Check(string name, float scene, float asset)
+        {
+            if (Mathf.Abs(scene - asset) > 0.0001f)
+            {
+                drift.Append($"\n  {name}: сцена {scene}, ассет {asset}");
+            }
+        }
+
+        Check("hopSeconds", _hopSeconds, _tuningConfig.hopSeconds);
+        Check("downHopSeconds", _downHopSeconds, _tuningConfig.downHopSeconds);
+        Check("hopTakeoffSeconds", _hopTakeoffSeconds, _tuningConfig.hopTakeoffSeconds);
+        Check("hopLandingSeconds", _hopLandingSeconds, _tuningConfig.hopLandingSeconds);
+        Check("hopEdgePadding", _hopEdgePadding, _tuningConfig.hopEdgePadding);
+        Check("hopFarPadding", _hopFarPadding, _tuningConfig.hopFarPadding);
+        Check("hopDownUp", _hopDownUp, _tuningConfig.hopDownUp);
+        Check("hopDownFallStartFrac", _hopDownFallStart, _tuningConfig.hopDownFallStartFrac);
+        Check("hopFlightSettleFrac", _hopFlightSettle, _tuningConfig.hopFlightSettleFrac);
+        Check("hopUpApexFrac", _hopUpApex, _tuningConfig.hopUpApexFrac);
+        Check("divePlungeDepth", _divePlungeDepth, _tuningConfig.divePlungeDepth);
+        Check("swimEntryPauseSeconds", _treadPauseSeconds, _tuningConfig.swimEntryPauseSeconds);
+        Check("swimSpeedFactor", _swimSpeedFactor, _tuningConfig.swimSpeedFactor);
+
+        if (drift.Length > 0)
+        {
+            Debug.LogWarning(
+                "SwimTest: слайдеры сцены РАСХОДЯТСЯ с HexTuningConfig — играть будут " +
+                "значения СЦЕНЫ, а игра берёт ассет. Свести: кнопка «Загрузить настройки» " +
+                "(ассет → слайдеры) или «Сохранить настройки» (слайдеры → ассет)." + drift);
+        }
+    }
+
     // Editor button: the config asset -> the sliders (revert to saved).
     public void ReadSlidersFromConfig()
     {
@@ -204,6 +246,14 @@ public sealed class SwimTestBootstrap : MonoBehaviour
         // statics, so what you set is what runs. To move a value into the
         // shipped code default, edit HexHopTuning.cs; to snap a slider back
         // to that default, right-click the field in the inspector → Reset.
+        //
+        // ⭐ И именно поэтому сцена умеет ТИХО откатывать настройки: игра читает
+        // HexTuningConfig, а эта сцена — свои сериализованные слайдеры, и стоит
+        // им разойтись, как прыжок здесь выглядит иначе, чем в игре («мы же это
+        // тюнили, почему вернулось?» — так и было: в сцене лежали Takeoff 0.25 /
+        // Landing 0.15 / DownHop 2 против 0.6 / 0.5 / 1 в ассете). Молчать об
+        // этом нельзя, перезаписывать слайдеры — тоже: просто говорим вслух.
+        WarnIfSlidersDriftedFromConfig();
 
         BuildEnvironment();
 

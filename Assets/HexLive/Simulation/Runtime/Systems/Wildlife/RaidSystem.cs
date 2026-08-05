@@ -334,6 +334,11 @@ public sealed class RaidSystem : ISimulationSystem
         {
             if (target.Health <= 0f ||
                 target.IsUnconscious(world.Tick) ||
+                // Притворившийся мёртвым лежит и молчит: без этого фильтра
+                // клапан §109.8 ниже ставил лежащему цель Flee, и тело
+                // скользило по земле — тот самый ход мимо CurrentGoal, о
+                // котором предупреждает PLAYDEAD_SPEC (баг #7).
+                target.IsPlayingDead(world.Tick) ||
                 target.Body.IsProne ||
                 !target.Body.CanUseToolsOrWeapons ||
                 // Бегущий бежит: клапаны §29C.4A/§108 сами решают, когда

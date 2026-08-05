@@ -1227,8 +1227,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     npc.Needs.Hunger >= SimBalance.CannibalizeHungerGate;
             case GoalType.Build:
                 // Spec §52: the hut anchor only — a furniture site is a separate goal.
+                // §72.13: и только СВОЯ — иначе чужак достраивал бы хижину колонии.
                 return definition.Tags.Contains("BuildSite") &&
-                    !definition.Tags.Contains("FurnitureSite");
+                    !definition.Tags.Contains("FurnitureSite") &&
+                    world.Entities.Objects.TryGetValue(perceived.Id, out var hutAnchor) &&
+                    DecisionSystem.IsOurSite(world, npc, hutAnchor);
             case GoalType.BuildFurniture:
                 // §54.13 r2: only a site this NPC can ADVANCE right now — she
                 // carries a material its CURRENT stage accepts, or it is fully
@@ -1240,9 +1243,14 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // 36-tick Build and looped — an empty ping-pong that starved
                 // every site for whole 10-day soaks (rack 0/4 sticks, seeds
                 // 12345/424242; FOCUS trace t5160-5237).
+                // §72.13: и только СВОЯ стройка. Аукцион уже фильтрует очередь
+                // (FindBuildSite → IsOurSite), но план брал БЛИЖАЙШИЙ валидный
+                // сайт из восприятия — цель выиграна на своём, а материалы
+                // уходили в чужой лагерь, стоило пройти рядом с ним.
                 return definition.Tags.Contains("FurnitureSite") &&
                     world.Entities.Objects.TryGetValue(perceived.Id, out var fsite) &&
                     BuildSiteMath.IsSite(fsite) &&
+                    DecisionSystem.IsOurSite(world, npc, fsite) &&
                     (DecisionSystem.CarriesSiteMaterial(npc, fsite) ||
                      BuildSiteMath.IsStocked(fsite));
             case GoalType.BuildRaft:

@@ -52,8 +52,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(20, 1200)] public int sitCooldownTicks = 240;
         [Tooltip("Одевшись, не переодевается столько тиков.")]
         [Range(20, 1200)] public int dressCooldownTicks = 160;
-        [Tooltip("Только что проснулась: столько тиков стоит и приходит в себя (§41.5).")]
-        [Range(0, 120)] public int wakeGraceTicks = 12;
+        [Tooltip("Только что проснулась: столько тиков стоит и приходит в себя (§41.5). Не меньше 18: GetUp-клип (Situp To Idle, 132 кадра @ 30 fps) = 4.4 с = 17.6 тика; меньше — ноги скользят под клип вставания (баг #1).")]
+        [Range(0, 120)] public int wakeGraceTicks = 18;
         [Tooltip("Цель, чей план не построился, отдыхает столько тиков.")]
         [Range(10, 400)] public int failureCooldownTicks = 40;
 
@@ -202,6 +202,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 0.5f)] public float comaBloodEnterThreshold = 0.25f;
         [Tooltip("Кровь, выше которой встаёт из комы кровопотери (гистерезис).")]
         [Range(0f, 0.6f)] public float comaBloodWakeThreshold = 0.35f;
+        [Tooltip("§60.7: без сознания в глубокой воде столько тиков подряд — утонула. Очнулась или вытащили на сушу — счётчик сбрасывается.")]
+        [Range(0, 12000)] public int drownDeathTicks = 1000;
 
         [Header("Еда — сколько снимает голода")]
         [Tooltip("Кокос (базовая еда).")]
@@ -270,6 +272,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 0.2f)] public float hygieneWashGain = 0.05f;
         [Tooltip("Потеря гигиены за тик обычной жизни (~10 дней до грязнули).")]
         [Range(0f, 0.005f)] public float hygieneDriftLoss = 0.0004f;
+        [Tooltip("Кровь пачкает: гигиена, теряемая на единицу общего HP, списанного уроном. 3 — треть максимума здоровья обнуляет гигиену (полностью помыться). Через гигиену же прячутся кровяные капли на коже: помылась — капли исчезли.")]
+        [Range(0f, 10f)] public float hygieneDamageLoss = 3f;
         [Tooltip("Загрязнение надетой одежды за тик.")]
         [Range(0f, 0.005f)] public float clothingDirtGain = 0.00035f;
         [Tooltip("Потеря комфорта за тик в грязной одежде.")]

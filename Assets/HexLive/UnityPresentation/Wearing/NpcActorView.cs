@@ -1558,11 +1558,20 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
             if (anyZoneDamage)
             {
+                // Баг #10: капли крови смываются. Урон роняет гигиену (баг #9,
+                // ResolveTrauma), купание возвращает её в 1 — так что чистая
+                // кожа прячет капли, а раны (отдельный слой стемпов, не
+                // IsSpeckle) остаются. Корень, а не линейка: свежая небольшая
+                // рана (гигиена ~0.85) всё ещё заметно кровит, а не тухнет до
+                // 15%. Дрейф гигиены медленно проявляет капли обратно на
+                // недолеченных зонах — «рана сочится».
+                var bloodShow = Mathf.Sqrt(Mathf.Clamp01(1f - hygiene));
                 foreach (var pair in _zoneHealthScratch)
                 {
                     if (!_severedZones.Contains(pair.Key))
                     {
-                        _zoneDamageScratch.Add((pair.Key, Mathf.Clamp01(1f - pair.Value)));
+                        _zoneDamageScratch.Add((pair.Key,
+                            Mathf.Clamp01(1f - pair.Value) * bloodShow));
                     }
                 }
             }

@@ -710,11 +710,13 @@ public static class WorldSnapshotExporter
             Sunburn = npc.Needs.Sunburn,
             Bandages = npc.Needs.Bandages,
             Pills = npc.Needs.Pills,
-            // Spec §60 r2: only the blood-loss faint is "unconscious" (limp
-            // pose, Coma chip). An energy crash reads as ordinary SLEEP — see
-            // CurrentInteraction below, so the view plays the sleeping flow.
+            // Spec §60 r3 (баг #8): ЛЮБАЯ кома — «без сознания». Раньше
+            // энергетический крах читался как обычный СОН (r2), и вырубившаяся
+            // мирно дышала в анимированной позе сна — неотличимо от здоровой.
+            // Теперь вид ведёт обе комы одним путём с умиранием: падение и
+            // замороженная поза (FallenIdle, скорость 0) — «как при смерти».
             IsFainted = world.Tick < npc.Mind.FaintedUntilTick,
-            IsUnconscious = npc.Mind.ComaCause == AI.ComaCause.BloodLoss,
+            IsUnconscious = npc.Mind.ComaCause != AI.ComaCause.None,
             IsDying = npc.IsDying, // §105
             // §110: лежит и плачет — В СОЗНАНИИ, поэтому отдельный флаг, а не
             // ветка IsFainted: вид кладёт её как спящую (не роняет) и не
@@ -728,15 +730,11 @@ public static class WorldSnapshotExporter
             CurrentDream = npc.Mind.CurrentDream.ToString(),
             PlanStatus = npc.Plan.Status.ToString(),
             MovementStatus = npc.Movement.Status.ToString(),
-            // §60 r2: an exhausted crash IS a sleep for the whole presentation
-            // stack — the view keys the lying/sleeping flow off
-            // CurrentInteraction=Sleep + InProgress, so export exactly that.
-            ExecutionStatus = npc.Mind.ComaCause == AI.ComaCause.Exhaustion
-                ? AI.ExecutionStatus.InProgress.ToString()
-                : npc.Execution.Status.ToString(),
-            CurrentInteraction = npc.Mind.ComaCause == AI.ComaCause.Exhaustion
-                ? InteractionType.Sleep.ToString()
-                : npc.Execution.CurrentInteraction?.ToString() ?? "-",
+            // §60 r3 (баг #8): подмена «кома от истощения = сон» убрана —
+            // теперь обе комы едут флагом IsUnconscious выше, и вид кладёт
+            // тело замороженным, а не дышащим в позе сна.
+            ExecutionStatus = npc.Execution.Status.ToString(),
+            CurrentInteraction = npc.Execution.CurrentInteraction?.ToString() ?? "-",
             HeldItemId = ResolveHeldItem(world, npc),
             // Spec 28.15E: conversation subject + last outcome for the bubble.
             TalkTopic = npc.Execution.CurrentTalkTopic?.ToString() ?? string.Empty,

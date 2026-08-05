@@ -300,6 +300,50 @@ public sealed class NeedsDecaySystem : ISimulationSystem
         MortalityHelpers.TryStartPlayDead(world, npc);
     }
 
+    // §60.7: утопление. Тело БЕЗ СОЗНАНИЯ (кома/обморок/умирание — весь
+    // IsUnconscious) на глубокой воде (тот же предикат, что и у §106:
+    // Water && !Walkable по тайлу) держит воду SimBalance.DrownDeathTicks
+    // тиков, потом умирает. Очнулась или её вытащили на сушу (тайл больше не
+    // плавательный) — таймер сбрасывается без следа. Смерть идёт каноническим
+    // путём §105: Health = 0, событие-причина в трассу, тело подберёт свип
+    // MobSystem следующим Medium-проходом.
+    private static void TickDrowning(WorldState world, NPCState npc)
+    {
+        if (npc.Health <= 0f ||
+            !npc.IsUnconscious(world.Tick) ||
+            !CombatMedium.IsNpcSwimming(world, npc))
+        {
+            npc.Mind.DrowningSinceTick = 0;
+            return;
+        }
+
+        if (npc.Mind.DrowningSinceTick == 0)
+        {
+            npc.Mind.DrowningSinceTick = world.Tick;
+            return;
+        }
+
+        if (world.Tick - npc.Mind.DrowningSinceTick < SimBalance.DrownDeathTicks)
+        {
+            return;
+        }
+
+        // Захлебнулась. Событие эмитится ДО обнуления состояния, чтобы в
+        // сообщении осталось, из какого бессознательного она не выплыла.
+        Trace.Emit(world, npc.Id, "Drowned",
+            $"Unconscious in deep water for {world.Tick - npc.Mind.DrowningSinceTick} ticks " +
+            $"(Coma={npc.Mind.ComaCause} Dying={npc.Mind.DyingCause} " +
+            $"Blood={npc.Needs.Blood:F2} Energy={npc.Needs.Energy:F2})");
+
+        npc.Mind.DrowningSinceTick = 0;
+        npc.Mind.ComaCause = ComaCause.None;
+        npc.Mind.FaintedUntilTick = 0;
+        npc.Mind.DyingCause = DyingCause.None;
+        npc.Mind.DyingReserve = 0f;
+        npc.Mind.DyingTickStamp = 0;
+        npc.Health = 0f;
+    }
+
     public void Run(WorldState world)
     {
         foreach (var npc in world.Entities.Npcs.Values)
@@ -1104,6 +1148,13 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // крови набралось). Здесь же наступает и смерть, когда запас
             // кончился: Health падает в ноль, и свип MobSystem уносит тело.
             MortalityHelpers.TickDying(world, npc);
+
+            // §60.7: без сознания в глубокой воде — тонет. Стоит ПОСЛЕДНИМ,
+            // рядом с TickDying, и по той же причине, что и пин крови выше:
+            // ветки fed-heal/закрытия ран пересчитывают Health из зон тела, а
+            // у утонувшей зоны целы — смерть, объявленная раньше по проходу,
+            // "воскресала" бы тем же тиком.
+            TickDrowning(world, npc);
 
             Trace.Emit(world, npc.Id, "NeedsDecay",
                 $"Hunger={prevHunger:F3}->{npc.Needs.Hunger:F3}(+{HungerRate}) " +

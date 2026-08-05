@@ -158,13 +158,16 @@ MonoBehaviour:
   _ledgeSeatLift: -0.344
   _ledgeSeatBack: 0.2
   _hopSeconds: 2
-  _downHopSeconds: 2
-  _hopTakeoffSeconds: 0.25
-  _hopLandingSeconds: 0.15
+  _downHopSeconds: 1
+  _hopTakeoffSeconds: 0.6
+  _hopLandingSeconds: 0.5
   _hopEdgePadding: 0.1
+  _hopFarPadding: 0.65
   _divePlungeDepth: 0.7
   _hopDownUp: 0
-  _hopDownFallStart: 0.225
+  _hopDownFallStart: 0.15
+  _hopFlightSettle: 0.65
+  _hopUpApex: 0.35
   _startDelaySeconds: 3
   _tuningConfig: {fileID: 11400000, guid: 93f675c6e6eb34945ba693152be8b233, type: 2}
 --- !u!4 &824721003

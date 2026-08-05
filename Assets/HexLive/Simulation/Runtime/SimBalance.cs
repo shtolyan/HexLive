@@ -147,6 +147,10 @@ namespace HexLive.Simulation.Runtime
         public static float ComaWakeThreshold = 0.15f;
         public static float ComaBloodEnterThreshold = 0.25f;
         public static float ComaBloodWakeThreshold = 0.35f;
+        // §60.7: без сознания (кома/обморок/умирание) В ГЛУБОКОЙ ВОДЕ — тонет:
+        // столько тиков непрерывно, и тело умирает, если не очнулась и её не
+        // вытащили на сушу. Считает NeedsDecaySystem.TickDrowning.
+        public static int DrownDeathTicks = 1000;
 
         // ─────────────────────────────────────────────────────────────
         // Food restore (hunger removed when eaten).
@@ -223,6 +227,11 @@ namespace HexLive.Simulation.Runtime
         // ─────────────────────────────────────────────────────────────
         public static float HygieneWashGain = 0.05f;   // hygiene regained per tick at the waterside
         public static float HygieneDriftLoss = 0.0004f; // hygiene lost per slow tick living (~2500 slow ticks / 2.8 real hours clean→filthy)
+        // Баг #9: кровь пачкает. Гигиена, теряемая на единицу ОБЩЕГО HP,
+        // списанного уроном: 3 ⇒ суммарная треть максимума здоровья обнуляет
+        // гигиену — надо полностью помыться. Через неё же прячутся кровяные
+        // капли на коже (баг #10): помылась — капли исчезли, раны остались.
+        public static float HygieneDamageLoss = 3f;
         public static float ClothingDirtGain = 0.00035f;
         public static float DirtyClothingComfortLoss = 0.002f;
         public static float BatheNeedThreshold = 0.4f;

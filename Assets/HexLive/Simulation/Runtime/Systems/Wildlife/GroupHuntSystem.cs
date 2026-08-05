@@ -178,6 +178,18 @@ public sealed class GroupHuntSystem : ISimulationSystem
                 continue;
             }
 
+            // §108: ярость расправы — тот же адреналин, что одержимость даёт
+            // ему самому (§81.14, RaidSystem). Дорога к нему — до 900 тиков
+            // GoalLock, аукцион закрыт, IsFighting на подходе false, и взятая
+            // на последней энергии охота кончалась «уснула по пути» (баг #12).
+            // Продлеваем, когда осталось меньше половины, — иначе трейс шумит.
+            if (hunter.Mind.AdrenalineUntilTick - world.Tick <
+                SimBalance.AdrenalineTicks / 2)
+            {
+                DamageReactionSystemHelpers.GrantAdrenaline(
+                    world, hunter, 1f, "GroupHuntRage");
+            }
+
             // ⭐ ОТСТУПЛЕНИЕ. Его не было вовсе, и это стоило колонии: у налёта
             // право убежать есть у ОБЕИХ сторон (RaidVictimFleeHealth и
             // RaidFleeHealth), а расправа шла до последней — втроём начали,

@@ -490,15 +490,28 @@ namespace HexLive.UnityDebug.Editor
         static AnimationClip Clip(string takeName)
         {
             var fbx = AnimDir + takeName + ".fbx";
+            // Точное имя — в приоритете: в одном FBX может лежать несколько
+            // клипов (у «X Bot@Sleeping Idle» есть довёрнутый «… Bed»-вариант
+            // для сонной цепочки, баг #6), а порядок LoadAllAssetsAtPath не
+            // определён. Фолбэк на первый клип — для файлов, где имя клипа
+            // не совпадает с именем файла.
+            AnimationClip first = null;
             foreach (var a in AssetDatabase.LoadAllAssetsAtPath(fbx))
             {
                 if (a is AnimationClip c && !c.name.StartsWith("__preview"))
                 {
-                    return c;
+                    if (c.name == takeName)
+                    {
+                        return c;
+                    }
+                    first = first != null ? first : c;
                 }
             }
-            Debug.LogWarning($"[NpcActionStates] Clip not found: {fbx}");
-            return null;
+            if (first == null)
+            {
+                Debug.LogWarning($"[NpcActionStates] Clip not found: {fbx}");
+            }
+            return first;
         }
 
         static void ClearAny(AnimatorStateMachine sm, AnimatorState dst)

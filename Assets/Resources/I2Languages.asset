@@ -5105,6 +5105,1230 @@ MonoBehaviour:
       - "Кшиштоф"
       Flags: 0000
       Languages_Touch: []
+    - Term: 'history.AidStarted'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} went to help {1}.'
+      - '{0} пошла помогать {1}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.AidRequested'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} noticed {1} needs help.'
+      - '{0} заметила, что {1} нужна помощь.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.AidWaitTimeout'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} stopped waiting for help.'
+      - '{0} перестала ждать помощи.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.Aided'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} helped {1}.'
+      - '{0} помогла {1}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.TalkRequested'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} invited {1} to talk.'
+      - '{0} позвала {1} поговорить.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.TalkStarted'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} started a conversation with {1}.'
+      - '{0} начала разговор с {1}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.TalkCompleted'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} had a good talk with {1}.'
+      - '{0} хорошо поговорила с {1}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.TalkQuarreled'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} quarreled with {1}.'
+      - '{0} поссорилась с {1}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.TalkWaitTimeout'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} stopped waiting for the conversation.'
+      - '{0} перестала ждать разговора.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.GroupHuntPactFormed'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} agreed to go after the stranger together.'
+      - '{0} сговорилась идти на чужака вместе с остальными.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.GroupHuntEngaged'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} laid into the stranger.'
+      - '{0} набросилась на чужака.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.GroupHuntTargetFled'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} ran from the women.'
+      - '{0} побежал от женщин.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.GroupHuntDone'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} got even with the stranger.'
+      - '{0} поквиталась с чужаком.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.GroupHuntFailed'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} did not get to the stranger.'
+      - '{0} не добралась до чужака.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.InteractionBlocked'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} could not use a busy object.'
+      - '{0} не смогла воспользоваться занятым объектом.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.InteractionRejected'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0}''s talk was refused.'
+      - '{0} отказали в разговоре.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.FoodShared'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} received food from {1}.'
+      - '{0} получила еду от {1}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.FoodStolen'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Food was stolen in the camp.'
+      - 'В лагере украли еду.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.Grieving'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} is grieving.'
+      - '{0} скорбит.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.Mourned'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} paid respects to the dead.'
+      - '{0} почтила память погибшей.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.Looted'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} took something from a body.'
+      - '{0} забрала вещь с тела.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.StrippedHelpless'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} stripped a helpless enemy.'
+      - '{0} обчистила беспомощного врага.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.NpcDied'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} died.'
+      - '{0} погибла.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.BledOut'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} bled out.'
+      - '{0} истекла кровью.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.StarvedToDeath'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} died from hunger or thirst.'
+      - '{0} умерла от голода или жажды.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.Drowned'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} drowned.'
+      - '{0} утонула.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.VitalPartDestroyed'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} suffered a fatal wound.'
+      - '{0} получила смертельную рану.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.DogFight'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} was attacked by a dog.'
+      - '{0} атакована собакой.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.DogAggro'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A wild dog noticed the camp.'
+      - 'Дикая собака заметила лагерь.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.DogKilled'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A dog was killed.'
+      - 'Собаку убили.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.DogShot'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} fired at a dog.'
+      - '{0} выстрелила в собаку.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.HelpCry'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} called for help.'
+      - '{0} позвала на помощь.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.HelpCryAnswered'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} answered a call for help.'
+      - '{0} откликнулась на клич о помощи.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.HelpCryIgnored'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} did not answer the call for help.'
+      - '{0} не откликнулась на клич о помощи.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.HelpCryAssistStarted'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} ran to defend a housemate.'
+      - '{0} побежала защищать соседку.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.HelpCryAssistArrived'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} joined the fight.'
+      - '{0} вступила в бой.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.HelpCryAssistLost'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} lost the attacker.'
+      - '{0} потеряла нападающего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.HelpCryDefended'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} struck the attacker.'
+      - '{0} ударила нападающего.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.FriendGuard'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} rushed to defend a friend.'
+      - '{0} бросилась защищать подругу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.NightRaid'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Dogs raided the camp at dusk.'
+      - 'На закате на лагерь напали собаки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.Preyed'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} attacked a housemate.'
+      - '{0} напала на соседку.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.PreyFoughtBack'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} fought back.'
+      - '{0} дала отпор.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.PreyFled'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} fled from an attacker.'
+      - '{0} сбежала от нападавшей.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.PredatorKilled'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'An attacker was killed in self-defence.'
+      - 'Нападавшую убили при самообороне.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.Murdered'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A housemate was killed for meat.'
+      - 'Соседку убили ради мяса.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.SharkBite'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} was bitten by a shark.'
+      - '{0} укусила акула.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.LimbSevered'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} lost a limb.'
+      - '{0} потеряла конечность.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.Fainted'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} fainted.'
+      - '{0} потеряла сознание.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.FellAsleepExhausted'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} collapsed from exhaustion.'
+      - '{0} свалилась без сил.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.FaintedBloodLoss'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} passed out from blood loss.'
+      - '{0} отключилась от потери крови.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.WokeUp'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} came to.'
+      - '{0} пришла в себя.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.Collapsed'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} is dying.'
+      - '{0} при смерти.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.Rescued'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} was pulled back from the brink.'
+      - '{0} вытащили с того света.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.WoundInflicted'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} was wounded.'
+      - '{0} получила рану.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.GotSick'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} got sick from raw water.'
+      - '{0} заболела от сырой воды.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.ThreatSpotted'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} spotted a predator.'
+      - '{0} заметила хищника.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.Bandaged'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} dressed the wounds.'
+      - '{0} перевязала раны.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.Medicated'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} used medicine.'
+      - '{0} приняла лекарство.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.StatusStarving'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} is starving.'
+      - '{0} голодает.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.StatusDehydrated'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} is dehydrated.'
+      - '{0} обезвожена.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.StatusOverheated'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} is overheating.'
+      - '{0} перегревается.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.Sunburn'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} was burned by the sun.'
+      - '{0} обгорела на солнце.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.RainStarted'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Rain started.'
+      - 'Начался дождь.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.RainStopped'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Rain stopped.'
+      - 'Дождь закончился.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.StormSurge'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A storm surge hit the island.'
+      - 'Штормовой нагон ударил по острову.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.TreeChopped'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} felled a tree.'
+      - '{0} срубила дерево.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.BoulderBroken'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} broke a boulder.'
+      - '{0} разбила валун.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.LogSplit'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} split a log into sticks.'
+      - '{0} расколола бревно на палки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.CrownChopped'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} cut palm leaves.'
+      - '{0} нарубила пальмовых листьев.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.CoconutProcessed'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} opened a coconut.'
+      - '{0} вскрыла кокос.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.CoconutDrank'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} drank coconut water.'
+      - '{0} выпила кокосовую воду.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.CoconutEaten'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} ate coconut.'
+      - '{0} съела кокос.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.BottleFilled'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} filled a bottle.'
+      - '{0} наполнила бутылку.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.DrankBottle'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} drank from a bottle.'
+      - '{0} попила из бутылки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.FireLit'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} lit the fire.'
+      - '{0} разожгла костер.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.FireFueled'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} fed the fire.'
+      - '{0} подбросила топлива в костер.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.FireOut'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The fire went out.'
+      - 'Костер погас.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.MeatRoasted'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Meat finished roasting on the spit.'
+      - 'Мясо на вертеле дожарилось.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.MeatHungOnSpit'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} hung meat over the fire.'
+      - '{0} повесила мясо над костром.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.MeatSpoiled'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Meat went bad.'
+      - 'Мясо испортилось.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.MeatEaten'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} ate roasted meat.'
+      - '{0} съела жареное мясо.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.RaftProgress'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} worked on the raft.'
+      - '{0} строит плот.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.RaftLaunched'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The raft is finished.'
+      - 'Плот готов.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.BuildProgress'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} built part of the shelter.'
+      - '{0} построила часть укрытия.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.FurnitureBuilt'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} finished furniture.'
+      - '{0} закончила мебель.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.HutCompleted'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The hut is complete.'
+      - 'Хижина достроена.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.BedCrafted'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} made a bed.'
+      - '{0} сделала постель.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.TentCrafted'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} made a sun shelter.'
+      - '{0} сделала навес от солнца.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.RackCrafted'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} made a drying rack.'
+      - '{0} сделала сушилку.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.Butchered'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} butchered a body.'
+      - '{0} разделала тушу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.EmergencyUnload'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} dropped supplies to make room for food.'
+      - '{0} сбросила припасы, чтобы освободить место для еды.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.DireStraits'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The colony is in crisis.'
+      - 'Колония в критическом состоянии.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.Crafted'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} crafted something useful.'
+      - '{0} что-то смастерила.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.rel.warmed'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} warmed toward {1}.'
+      - '{0} стала теплее к {1}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.rel.colder'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} grew colder toward {1}.'
+      - '{0} стала хуже относиться к {1}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.rel.changed'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0}''s relationship with {1} changed.'
+      - 'Отношение {0} к {1} изменилось.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.aid'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Help: {0}'
+      - 'Помощь: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.AidWaitTimeout'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The promised helper did not arrive in time.'
+      - 'Помощница не успела прийти вовремя.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.Aided'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Help: {0}. Relationship improved.'
+      - 'Помощь: {0}. Отношения улучшились.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.TalkRequested'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Affinity before invite: {0}'
+      - 'Отношение перед приглашением: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.TalkStarted'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Topic: {0}'
+      - 'Тема: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.TalkCompleted'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Social need rose. Relationship improved.'
+      - 'Общение стало лучше. Отношения улучшились.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.TalkQuarreled'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Both gained some social contact, but affinity fell.'
+      - 'Общение случилось, но отношения ухудшились.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.TalkWaitTimeout'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'The invited NPC did not arrive in time.'
+      - 'Собеседница не успела подойти вовремя.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.InteractionRejected'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A personal refusal can hurt affinity.'
+      - 'Личный отказ может ухудшить отношения.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.StrippedHelpless'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Taken: {0}. He will wake up unarmed.'
+      - 'Забрано вещей: {0}. Очнётся безоружным.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.GroupHuntPactFormed'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Nobody in the circle could stand him any more.'
+      - 'Его уже не выносил никто в кружке.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.GroupHuntDone'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'They beat him and drove him off.'
+      - 'Побили и прогнали.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.DireStraits'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Several survivors need urgent attention.'
+      - 'Нескольким выжившим срочно нужна помощь.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.affinity'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Affinity now {0}.'
+      - 'Отношение теперь {0}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.affinity.delta'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Affinity now {0} ({1}).'
+      - 'Отношение теперь {0} ({1}).'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.cause'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cause: {0}.'
+      - 'Причина: {0}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.attacker.dog'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Attacker: dog #{0}.'
+      - 'Нападающий: собака #{0}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.attacker.npc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Attacker: NPC #{0}.'
+      - 'Нападающая: NPC #{0}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.helpcry.decision'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'For NPC #{0}: score {1}, roll {2}.'
+      - 'За NPC #{0}: шанс {1}, бросок {2}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.occupied'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Occupied by {0}.'
+      - 'Занято: {0}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.cause.BledOut'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'blood loss'
+      - 'кровопотеря'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.cause.DogFight'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'dog attack'
+      - 'нападение собаки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.cause.Drowned'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'drowning'
+      - 'утопление'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.cause.Heatstroke'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'heatstroke'
+      - 'перегрев'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.cause.Hypothermia'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'hypothermia'
+      - 'переохлаждение'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.cause.LimbSevered'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'lost limb'
+      - 'потеря конечности'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.cause.Preyed'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'housemate attack'
+      - 'нападение соседки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.cause.PreyFoughtBack'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'self-defence fight'
+      - 'бой при самообороне'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.cause.SharkBite'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'shark bite'
+      - 'укус акулы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.cause.StarvedToDeath'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'hunger or thirst'
+      - 'голод или жажда'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.cause.Sunburn'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'sun exposure'
+      - 'солнце'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.cause.VitalPartDestroyed'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'fatal wound'
+      - 'смертельная рана'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.aid.Feed'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'food'
+      - 'еда'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.aid.Hydrate'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'water'
+      - 'вода'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.aid.Treat'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'treatment'
+      - 'лечение ран'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.aid.Medicate'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'medicine'
+      - 'лекарство'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.aid.Console'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'comfort'
+      - 'утешение'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.topic.SmallTalk'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'small talk'
+      - 'разговор ни о чем'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.topic.Escape'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'escape'
+      - 'побег с острова'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.topic.Sharks'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'sharks'
+      - 'акулы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.topic.Dogs'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'dogs'
+      - 'собаки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.topic.Weather'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'weather'
+      - 'погода'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.topic.Food'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'food'
+      - 'еда'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.topic.Fire'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'fire'
+      - 'костер'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.topic.Home'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'home'
+      - 'дом'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.topic.Gossip'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'gossip'
+      - 'слухи'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.topic.Flirt'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'flirting'
+      - 'флирт'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.topic.Joke'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'jokes'
+      - 'шутки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.topic.Grumble'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'complaints'
+      - 'ворчание'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.topic.Hunger'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'her hunger'
+      - 'свой голод'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.topic.Thirst'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'her thirst'
+      - 'свою жажду'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.topic.Pain'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'her wound'
+      - 'свою рану'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.topic.Tired'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'her exhaustion'
+      - 'свою усталость'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.topic.Cold'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'the chill in her bones'
+      - 'свой холод'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.topic.Stranger'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'the stranger'
+      - 'чужак'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.time'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Day {0}, {1}'
+      - 'День {0}, {1}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.colony'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Colony'
+      - 'Колония'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

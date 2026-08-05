@@ -978,7 +978,9 @@ namespace HexLive.UnityPresentation.UI
             // а одежда доезжает уже на глазах у игрока. Ровно это и было видно.
             var waited = 0f;
             while (waited < ActorWaitSeconds &&
-                   (!renderer.ActorsReady(ids) || Wearing.ActorWardrobe.Pending > 0))
+                   (!renderer.ActorsReady(ids) ||
+                    Wearing.ActorWardrobe.Pending > 0 ||
+                    Wearing.HairContent.Pending > 0))
             {
                 waited += Time.unscaledDeltaTime;
                 SetProgress(Mathf.Lerp(0.95f, 0.99f, waited / ActorWaitSeconds),
@@ -986,7 +988,9 @@ namespace HexLive.UnityPresentation.UI
                 yield return null;
             }
 
-            if (!renderer.ActorsReady(ids) || Wearing.ActorWardrobe.Pending > 0)
+            if (!renderer.ActorsReady(ids) ||
+                    Wearing.ActorWardrobe.Pending > 0 ||
+                    Wearing.HairContent.Pending > 0)
             {
                 Debug.LogWarning($"[Загрузка] тела не достроились за {ActorWaitSeconds:F0} с — " +
                                  "начинаем без ожидания, чтобы не висеть на шторке.");

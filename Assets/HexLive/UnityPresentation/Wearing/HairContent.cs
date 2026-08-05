@@ -28,6 +28,13 @@ namespace HexLive.UnityPresentation.Wearing
 public static class HairContent
 {
     private static readonly Dictionary<string, AsyncOperationHandle<GameObject>> Hair = new();
+
+    /// <summary>
+    /// Сколько загрузок причёсок и их цветов ещё в пути. Экран загрузки ждёт
+    /// нуля вместе с одеждой: девушка, у которой тело есть, а причёска ещё
+    /// едет, — это лысая девушка на глазах у игрока.
+    /// </summary>
+    public static int Pending { get; private set; }
     private static readonly Dictionary<string, AsyncOperationHandle<Material>> Materials = new();
 
     public static string HairAddress(string hair) => $"hair/{hair}";
@@ -59,7 +66,9 @@ public static class HairContent
 
         if (!handle.IsDone)
         {
+            Pending++;
             yield return handle;
+            Pending--;
         }
 
         if (handle.Status != AsyncOperationStatus.Succeeded || handle.Result == null)
@@ -99,7 +108,9 @@ public static class HairContent
 
             if (!handle.IsDone)
             {
+                Pending++;
                 yield return handle;
+                Pending--;
             }
 
             if (handle.Status == AsyncOperationStatus.Succeeded && handle.Result != null)

@@ -15,7 +15,7 @@ MonoBehaviour:
   m_DefaultGroup: ea38e2b8f7eac024d867ab3ff9d6bd40
   m_currentHash:
     serializedVersion: 2
-    Hash: 94ac8c49f05afa6ecfee48cd1a8f9ab7
+    Hash: 00000000000000000000000000000000
   m_DisableWriteTypeTree: 0
   m_OptimizeCatalogSize: 0
   m_BuildRemoteCatalog: 1
@@ -119,6 +119,200 @@ MonoBehaviour:
   m_LabelTable:
     m_LabelNames:
     - default
+    - wear.clothing.ankleboots_amy
+    - wear.clothing.armguards_fighter
+    - wear.clothing.armwraps_primal
+    - wear.clothing.babydoll_sweety
+    - wear.clothing.babydoll_tod
+    - wear.clothing.belt_anarchy
+    - wear.clothing.belt_cindy
+    - wear.clothing.belt_fighter
+    - wear.clothing.belt_holster
+    - wear.clothing.belt_stars
+    - wear.clothing.blouse_anarchy
+    - wear.clothing.blouse_nerd
+    - wear.clothing.blouse_riot
+    - wear.clothing.blouse_waist_riot
+    - wear.clothing.boots_alloy
+    - wear.clothing.boots_anarchy
+    - wear.clothing.boots_charm
+    - wear.clothing.boots_cindy
+    - wear.clothing.boots_classic
+    - wear.clothing.boots_leather
+    - wear.clothing.boots_osiris
+    - wear.clothing.boots_ranger
+    - wear.clothing.boots_riot
+    - wear.clothing.bowtie_nerd
+    - wear.clothing.bracelet_luxury
+    - wear.clothing.cap_anarchy
+    - wear.clothing.cap_riot
+    - wear.clothing.cap_stars
+    - wear.clothing.collar_anarchy
+    - wear.clothing.collar_fur
+    - wear.clothing.collar_studded_anarchy
+    - wear.clothing.corset_anarchy
+    - wear.clothing.corset_skinny
+    - wear.clothing.croptop_fit
+    - wear.clothing.croptop_idol
+    - wear.clothing.cuffs_anarchy
+    - wear.clothing.dress_city
+    - wear.clothing.dress_night
+    - wear.clothing.dress_primal
+    - wear.clothing.footwear_fighter
+    - wear.clothing.glasses_nerd
+    - wear.clothing.gloves_biker
+    - wear.clothing.gloves_cindy
+    - wear.clothing.gloves_classic
+    - wear.clothing.gloves_deadly
+    - wear.clothing.gloves_fit
+    - wear.clothing.gloves_lace_tod
+    - wear.clothing.gloves_long_anarchy
+    - wear.clothing.gloves_osiris
+    - wear.clothing.gloves_stars
+    - wear.clothing.gloves_strap_anarchy
+    - wear.clothing.greaves_tod
+    - wear.clothing.halter_vamp
+    - wear.clothing.headband_primal
+    - wear.clothing.heels_luxury
+    - wear.clothing.hipbelt_anarchy
+    - wear.clothing.jackettied_tek
+    - wear.clothing.jacket_autumn
+    - wear.clothing.jacket_biker
+    - wear.clothing.jacket_cindy
+    - wear.clothing.jacket_ranger
+    - wear.clothing.jacket_tek
+    - wear.clothing.jeans_skinny
+    - wear.clothing.keikogi_fighter
+    - wear.clothing.leggings_idol
+    - wear.clothing.leggings_yoga
+    - wear.clothing.necklace_beads
+    - wear.clothing.necklace_osiris
+    - wear.clothing.outfit_reiko
+    - wear.clothing.pants_anarchy
+    - wear.clothing.pants_biker
+    - wear.clothing.pants_fighter
+    - wear.clothing.pants_ranger
+    - wear.clothing.pants_stars
+    - wear.clothing.pendant_amy
+    - wear.clothing.pumps_flair
+    - wear.clothing.sandals_summer1
+    - wear.clothing.sandals_summer2
+    - wear.clothing.sandals_summer3
+    - wear.clothing.sandals_summer4
+    - wear.clothing.scarf_classic
+    - wear.clothing.shirt_amy
+    - wear.clothing.shirt_riot
+    - wear.clothing.shoes_tod
+    - wear.clothing.shorts_cindy
+    - wear.clothing.shorts_classic
+    - wear.clothing.shorts_deadly
+    - wear.clothing.shorts_fit
+    - wear.clothing.shorts_osiris
+    - wear.clothing.shorts_riot
+    - wear.clothing.shorts_summer
+    - wear.clothing.shorts_vamp
+    - wear.clothing.skirt_alloy
+    - wear.clothing.skirt_amy
+    - wear.clothing.skirt_anarchy
+    - wear.clothing.skirt_flair
+    - wear.clothing.skirt_jane
+    - wear.clothing.skirt_naughty
+    - wear.clothing.skirt_primal
+    - wear.clothing.skirt_wild
+    - wear.clothing.sleeves_idol
+    - wear.clothing.slipons_fads
+    - wear.clothing.sneakers_canvas
+    - wear.clothing.sneakers_nerd
+    - wear.clothing.sneakers_sport
+    - wear.clothing.suit_bandaid
+    - wear.clothing.sunglasses_luxury
+    - wear.clothing.sweater_flair
+    - wear.clothing.sweater_naughty
+    - wear.clothing.tanktop_summer
+    - wear.clothing.tank_jane
+    - wear.clothing.thighboots_amy
+    - wear.clothing.top_alloy
+    - wear.clothing.top_anarchy
+    - wear.clothing.top_classic
+    - wear.clothing.top_deadly
+    - wear.clothing.top_fighter
+    - wear.clothing.top_folk
+    - wear.clothing.top_osiris
+    - wear.clothing.top_primal
+    - wear.clothing.top_stars
+    - wear.clothing.top_tod
+    - wear.clothing.top_yoga
+    - wear.clothing.tshirt_big
+    - wear.clothing.tshirt_summer
+    - wear.clothing.tutu_nerd
+    - wear.clothing.vest_ranger
+    - wear.clothing.vest_stars
+    - wear.clothing.wrapboots_primal
+    - wear.clothing.yogapants_tek
+    - wear.FAO Harness Male
+    - wear.FCO Belt Male
+    - wear.FCO Boots Male
+    - wear.FCO Gloves Male
+    - wear.FCO Knee Straps Male
+    - wear.FCO Legs Straps Male
+    - wear.FCO Pants Male
+    - wear.FCO Waist Strappy Male
+    - wear.gear.backpack_osiris
+    - wear.gear.backpack_riot
+    - wear.gear.beltpouch_ranger
+    - wear.TonnyFlash
+    - wear.underwear.bikini_briefs
+    - wear.underwear.bikini_top
+    - wear.underwear.bra_lace
+    - wear.underwear.bra_openback
+    - wear.underwear.bra_riot
+    - wear.underwear.bra_strappy
+    - wear.underwear.bra_wild
+    - wear.underwear.briefs_cindy
+    - wear.underwear.briefs_flair
+    - wear.underwear.briefs_lace
+    - wear.underwear.briefs_luxury
+    - wear.underwear.briefs_openback
+    - wear.underwear.briefs_plain
+    - wear.underwear.briefs_primal
+    - wear.underwear.briefs_sport
+    - wear.underwear.briefs_strappy
+    - wear.underwear.briefs_sweety
+    - wear.underwear.briefs_teez
+    - wear.underwear.briefs_vapor
+    - wear.underwear.briefs_wild
+    - wear.underwear.kneesocks_nerd
+    - wear.underwear.panty_tod
+    - wear.underwear.socks_fit
+    - wear.underwear.sportsbra_jmr
+    - wear.underwear.sportsbra_tek
+    - wear.underwear.stockings_overknee
+    - wear.underwear.stockings_riot
+    - wear.underwear.stockings_spooky
+    - wear.underwear.stockings_tod
+    - wear.underwear.swimsuit_briefs
+    - wear.underwear.swimsuit_top
+    - wear.underwear.thong_anarchy
+    - wear.underwear.tights_deadly
+    - wear.underwear.top_cindy
+    - wear.underwear.top_luxury
+    - wear.underwear.top_vapor
+    - hair.AdellHair
+    - hair.AsukaHair
+    - hair.BendineHair
+    - hair.Bob3Hair
+    - hair.ChunkyHair
+    - hair.EilisHair
+    - hair.Hair07
+    - hair.JelikaHair_32434
+    - hair.JenniferHair
+    - hair.LeonyPonytail
+    - hair.LoonaHair
+    - hair.LowPonytail
+    - hair.Neu09Hair
+    - hair.OnyxHair
+    - hair.ShilohHair
+    - hair.TootsieRollHair
   m_SchemaTemplates: []
   m_GroupTemplateObjects:
   - {fileID: 11400000, guid: 8a9da1446d5082749a60369db64948f8, type: 2}

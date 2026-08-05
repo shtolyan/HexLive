@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
+  m_Name: garment_Jolly_38192
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
+  MeshName: Jolly
+  VertexCount: 38192
+  TSamples: 1
+  AzimuthSamples: 1
+  TMin: 0
+  TMax: 1
+  Zones:
+  - Zone: Head
+    Points: []
+  - Zone: Torso
+    Points:
+    - Slot: 0
+      Uv: {x: 0.50574666, y: 0.62139344}
+      BindPerU: 0.4849196
+      BindPerV: 0.55845034
+      Valid: 1
+  - Zone: Pelvis
+    Points:
+    - Slot: 0
+      Uv: {x: 0.5137146, y: 0.55294234}
+      BindPerU: 0.32253477
+      BindPerV: 1.6937214
+      Valid: 1
+  - Zone: ArmL
+    Points: []
+  - Zone: ArmR
+    Points: []
+  - Zone: LegL
+    Points: []
+  - Zone: LegR
+    Points: []

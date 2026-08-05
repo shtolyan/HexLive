@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
+  m_Name: garment_Jana_22931
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
+  MeshName: Jana
+  VertexCount: 22931
+  TSamples: 1
+  AzimuthSamples: 1
+  TMin: 0
+  TMax: 1
+  Zones:
+  - Zone: Head
+    Points: []
+  - Zone: Torso
+    Points:
+    - Slot: 3
+      Uv: {x: 0.7116453, y: 0.12292233}
+      BindPerU: 1.5731012
+      BindPerV: 1.5953509
+      Valid: 1
+  - Zone: Pelvis
+    Points:
+    - Slot: 3
+      Uv: {x: 0.712404, y: 0.07323181}
+      BindPerU: 1.5920765
+      BindPerV: 1.5909506
+      Valid: 1
+  - Zone: ArmL
+    Points: []
+  - Zone: ArmR
+    Points: []
+  - Zone: LegL
+    Points: []
+  - Zone: LegR
+    Points: []

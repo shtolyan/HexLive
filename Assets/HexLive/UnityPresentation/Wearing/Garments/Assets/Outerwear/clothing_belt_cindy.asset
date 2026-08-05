@@ -19,7 +19,7 @@ MonoBehaviour:
   layer: 2
   covers: 020000000500000006000000
   warmth: 0.01
-  armor: 0.03
+  armor: 0.04
   thermalDelta: 0
   dressDurationTicks: 8
-  capacity: 0
+  capacity: 2

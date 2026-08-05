@@ -19,7 +19,7 @@ MonoBehaviour:
   - {fileID: 2100000, guid: a24e6f9e6f343e2418dd0c65a43e7a23, type: 2}
   layer: 0
   covers: 0500000006000000
-  warmth: 0.03
+  warmth: 0.04
   armor: 0
   thermalDelta: 0
   dressDurationTicks: 8

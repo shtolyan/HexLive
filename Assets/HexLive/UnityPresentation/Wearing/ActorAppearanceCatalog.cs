@@ -27,9 +27,29 @@ namespace HexLive.UnityPresentation.Wearing
         [Tooltip("Все причёски: обычные Wear-префабы без слотов. Заполняется меню HexLive ▸ Actors ▸ Rebuild Appearance Catalog.")]
         public List<Wear> hairstyles = new();
 
+        /// <summary>
+        /// Одна расцветка одной причёски: папка
+        /// <c>ImportedActors/Hair/&lt;hair&gt;/Materials/&lt;colour&gt;/</c> целиком.
+        ///
+        /// Материалы здесь ССЫЛАЮТСЯ, а не копируются — по той же причине, по
+        /// которой в каталоге лежат сами причёски: они не в Resources, и без
+        /// ссылки сборка выкинула бы их, оставив всех девушек одного цвета.
+        /// </summary>
+        [System.Serializable]
+        public sealed class HairColour
+        {
+            public string hair = string.Empty;
+            public string colour = string.Empty;
+            public List<Material> materials = new();
+        }
+
+        [Tooltip("Расцветки причёсок. Заполняется тем же меню; прототипный (не перекрашенный) вариант в список НЕ входит.")]
+        public List<HairColour> hairColours = new();
+
         private static ActorAppearanceCatalog _instance;
         private static bool _tried;
         private Dictionary<string, Wear> _byId;
+        private Dictionary<string, List<HairColour>> _coloursByHair;
 
         /// <summary>The shipped catalog, or null when the asset is missing.</summary>
         public static ActorAppearanceCatalog Instance
@@ -80,6 +100,50 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             return _byId.TryGetValue(id, out var found) ? found : null;
+        }
+
+        /// <summary>
+        /// Расцветки одной причёски, в устойчивом порядке. Пусто — законно:
+        /// у половины причёсок расцветка одна, «как из коробки».
+        ///
+        /// Порядок важен: цвет выбирается индексом от хеша колониста, и
+        /// перетасовка списка перекрасила бы всех уже живущих.
+        /// </summary>
+        public IReadOnlyList<HairColour> ColoursFor(string hairId)
+        {
+            if (string.IsNullOrEmpty(hairId))
+            {
+                return System.Array.Empty<HairColour>();
+            }
+
+            if (_coloursByHair == null)
+            {
+                _coloursByHair = new Dictionary<string, List<HairColour>>(System.StringComparer.OrdinalIgnoreCase);
+                foreach (var entry in hairColours)
+                {
+                    if (entry == null || string.IsNullOrEmpty(entry.hair) || entry.materials.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    if (!_coloursByHair.TryGetValue(entry.hair, out var list))
+                    {
+                        list = new List<HairColour>();
+                        _coloursByHair[entry.hair] = list;
+                    }
+
+                    list.Add(entry);
+                }
+
+                foreach (var list in _coloursByHair.Values)
+                {
+                    list.Sort((a, b) => string.CompareOrdinal(a.colour, b.colour));
+                }
+            }
+
+            return _coloursByHair.TryGetValue(hairId, out var found)
+                ? found
+                : (IReadOnlyList<HairColour>)System.Array.Empty<HairColour>();
         }
     }
 }

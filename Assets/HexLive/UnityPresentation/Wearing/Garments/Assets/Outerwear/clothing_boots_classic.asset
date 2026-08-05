@@ -18,8 +18,8 @@ MonoBehaviour:
   variantMaterials: []
   layer: 2
   covers: 0500000006000000
-  warmth: 0.09
-  armor: 0.06
+  warmth: 0.14
+  armor: 0.1
   thermalDelta: 0
   dressDurationTicks: 8
   capacity: 0

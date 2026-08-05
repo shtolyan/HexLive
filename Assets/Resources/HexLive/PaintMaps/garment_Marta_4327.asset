@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
+  m_Name: garment_Marta_4327
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
+  MeshName: Marta
+  VertexCount: 4327
+  TSamples: 1
+  AzimuthSamples: 1
+  TMin: 0
+  TMax: 1
+  Zones:
+  - Zone: Head
+    Points: []
+  - Zone: Torso
+    Points: []
+  - Zone: Pelvis
+    Points:
+    - Slot: 0
+      Uv: {x: 0.5014, y: 0.72090006}
+      BindPerU: 1.2247984
+      BindPerV: 1.0682335
+      Valid: 1
+  - Zone: ArmL
+    Points: []
+  - Zone: ArmR
+    Points: []
+  - Zone: LegL
+    Points:
+    - Slot: 0
+      Uv: {x: 0.6385, y: 0.26233336}
+      BindPerU: 1.2981899
+      BindPerV: 1.3100499
+      Valid: 1
+  - Zone: LegR
+    Points:
+    - Slot: 0
+      Uv: {x: 0.3627, y: 0.261}
+      BindPerU: 1.2912521
+      BindPerV: 1.3014219
+      Valid: 1

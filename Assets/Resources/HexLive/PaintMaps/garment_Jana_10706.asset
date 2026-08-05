@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
+  m_Name: garment_Jana_10706
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
+  MeshName: Jana
+  VertexCount: 10706
+  TSamples: 1
+  AzimuthSamples: 1
+  TMin: 0
+  TMax: 1
+  Zones:
+  - Zone: Head
+    Points:
+    - Slot: 4
+      Uv: {x: 0.27712002, y: 0.054098636}
+      BindPerU: 0.9636178
+      BindPerV: 1.0687345
+      Valid: 1
+  - Zone: Torso
+    Points:
+    - Slot: 14
+      Uv: {x: 0.84137464, y: 0.60692626}
+      BindPerU: 1.2266384
+      BindPerV: 1.0926725
+      Valid: 1
+  - Zone: Pelvis
+    Points:
+    - Slot: 14
+      Uv: {x: 0.85536814, y: 0.569851}
+      BindPerU: 1.2325447
+      BindPerV: 1.0865812
+      Valid: 1
+  - Zone: ArmL
+    Points:
+    - Slot: 6
+      Uv: {x: 0.66705245, y: 0.121547334}
+      BindPerU: 1.2231827
+      BindPerV: 1.2606039
+      Valid: 1
+  - Zone: ArmR
+    Points:
+    - Slot: 6
+      Uv: {x: 0.3247353, y: 0.28246567}
+      BindPerU: 1.133798
+      BindPerV: 1.2177305
+      Valid: 1
+  - Zone: LegL
+    Points: []
+  - Zone: LegR
+    Points: []

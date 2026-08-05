@@ -29,3 +29,2520 @@ MonoBehaviour:
   - {fileID: -1246604828743692618, guid: e9add1981b812134fa96dbe11d7aa432, type: 3}
   - {fileID: -7226743084929782580, guid: fcae97fd035081c41b601ac22c9dadb7, type: 3}
   - {fileID: 4627830619183999660, guid: b7f811e03a6c13c42882626bc7099a17, type: 3}
+  hairColours:
+  - hair: AdellHair
+    colour: Adell Col 01
+    materials:
+    - {fileID: 2100000, guid: b21a61ce94bcea1438fc599d55a1c8d0, type: 2}
+    - {fileID: 2100000, guid: 58ff093eac7dc1b4fac11e4c167c6bdf, type: 2}
+  - hair: AdellHair
+    colour: Adell Col 02
+    materials:
+    - {fileID: 2100000, guid: 5dd97810bca91884297f3010dcbdcb40, type: 2}
+    - {fileID: 2100000, guid: 78e818915ec7ed94f95ae084f37a0c31, type: 2}
+  - hair: AdellHair
+    colour: Adell Col 03
+    materials:
+    - {fileID: 2100000, guid: f367334c23c932c4c8f4057a8feea218, type: 2}
+    - {fileID: 2100000, guid: dfcf0b236ec7ef64d98f76e5139ff3cc, type: 2}
+  - hair: AdellHair
+    colour: Adell Col 04
+    materials:
+    - {fileID: 2100000, guid: 44bd592170318504bb5f9dfbd9b525ab, type: 2}
+    - {fileID: 2100000, guid: 4ae42c1e96c255b498543c90924b2ea4, type: 2}
+  - hair: AdellHair
+    colour: Adell Col 05
+    materials:
+    - {fileID: 2100000, guid: 784c8addf14ef7b4184732fbb8b13641, type: 2}
+    - {fileID: 2100000, guid: 1060a051978261346aeff70decb45635, type: 2}
+  - hair: AdellHair
+    colour: Adell Col 06
+    materials:
+    - {fileID: 2100000, guid: eb89de54b73defc4ca9e274a4dea8f90, type: 2}
+    - {fileID: 2100000, guid: b6d20334006ee0c44a4e7f42aa512f2e, type: 2}
+  - hair: AdellHair
+    colour: Adell Col 07
+    materials:
+    - {fileID: 2100000, guid: d6e90c86a23ac784d9518a5d38450194, type: 2}
+    - {fileID: 2100000, guid: f0be937ebd1e90c4195e2eeafc5c21ec, type: 2}
+  - hair: AdellHair
+    colour: Adell Col 08
+    materials:
+    - {fileID: 2100000, guid: cdb81629c04842d46b078bd01818bedf, type: 2}
+    - {fileID: 2100000, guid: 84eac0c58c0edde49ab83e622170d719, type: 2}
+  - hair: AdellHair
+    colour: Adell Col 09
+    materials:
+    - {fileID: 2100000, guid: 0da7477376868f7468b2293106956513, type: 2}
+    - {fileID: 2100000, guid: a218b39c05440054fa1f34604a220794, type: 2}
+  - hair: AdellHair
+    colour: Adell Col 10
+    materials:
+    - {fileID: 2100000, guid: 58cc794da338c0042bad68b915f87f75, type: 2}
+    - {fileID: 2100000, guid: fb4e634aee1e41440b7e097d993c173c, type: 2}
+  - hair: AsukaHair
+    colour: Asuka_Col 01
+    materials:
+    - {fileID: 2100000, guid: f165a4f9230ebf6488b15e178e317bf1, type: 2}
+    - {fileID: 2100000, guid: bf0872efbfbe8024f9c21a45e1ba276e, type: 2}
+    - {fileID: 2100000, guid: c15613da07a2e10408c09e9a953a3e20, type: 2}
+    - {fileID: 2100000, guid: e078a2a647999ed4a819d909f1951168, type: 2}
+    - {fileID: 2100000, guid: c8f2c26aed5ecee46b99ed646cba5a9f, type: 2}
+    - {fileID: 2100000, guid: 792003cc1babe684fa1db7576fb5f756, type: 2}
+    - {fileID: 2100000, guid: 21e57f3195c96674da46113aebcbfec8, type: 2}
+    - {fileID: 2100000, guid: 267661e8dc0678947b720e27e24c108b, type: 2}
+    - {fileID: 2100000, guid: e967ec6300040e945829d4025cb84226, type: 2}
+    - {fileID: 2100000, guid: 9d30e954715596f4a98a88d2089a31e7, type: 2}
+    - {fileID: 2100000, guid: f4bb3d90d1c640e41ae900fd6b01493a, type: 2}
+    - {fileID: 2100000, guid: 7c5576a813fe9c44191aef3dde2ed0e4, type: 2}
+  - hair: AsukaHair
+    colour: Asuka_Col 02
+    materials:
+    - {fileID: 2100000, guid: ee30cdbae0e8db04ea67adec14e16d5b, type: 2}
+    - {fileID: 2100000, guid: 6276c875e3ee3a94c83f744a87ab9885, type: 2}
+    - {fileID: 2100000, guid: e471c1e02f156ad40a53184c36e0124a, type: 2}
+    - {fileID: 2100000, guid: 0a3cdb50a3bc2db4090e0831680cebd7, type: 2}
+    - {fileID: 2100000, guid: ea34eba951e86104e9873a0614b93bea, type: 2}
+    - {fileID: 2100000, guid: 4ccd1e6f740010d419d44c4f79b6aa5b, type: 2}
+    - {fileID: 2100000, guid: a0e91c6946f948e4babdbaa17fa87eb5, type: 2}
+    - {fileID: 2100000, guid: e4f3e51e90382804e846df7b9d6c6ce2, type: 2}
+    - {fileID: 2100000, guid: 2490b9e9fbe3440439d3b325503552f5, type: 2}
+    - {fileID: 2100000, guid: 45e13ab37b6175943a4705f59426077f, type: 2}
+    - {fileID: 2100000, guid: 16940f2d89345744a9a6c6ef9c212a55, type: 2}
+    - {fileID: 2100000, guid: 9d44c6db71112da419807f9995984715, type: 2}
+  - hair: AsukaHair
+    colour: Asuka_Col 03
+    materials:
+    - {fileID: 2100000, guid: 2effc6e3a1f6ae64eab3a4dc715bcd80, type: 2}
+    - {fileID: 2100000, guid: d46929aa11ad46a4da25787daa1d628a, type: 2}
+    - {fileID: 2100000, guid: 498c22cc9c341ac49b6cf221fa1eed49, type: 2}
+    - {fileID: 2100000, guid: c591daa0b5525094e91c804b476e44f2, type: 2}
+    - {fileID: 2100000, guid: b34ef3a19bdefae40a5a1814b6bc631c, type: 2}
+    - {fileID: 2100000, guid: 2c5976ee571c7ac479d96c628577ebfb, type: 2}
+    - {fileID: 2100000, guid: 9dad29df54a7970498ca0ae77b038cc4, type: 2}
+    - {fileID: 2100000, guid: b14d75895c5928c4ba3f57d3361eb34f, type: 2}
+    - {fileID: 2100000, guid: 91862a1b2006b814290cd55d6e8d33aa, type: 2}
+    - {fileID: 2100000, guid: f975b0b9e5634a947a54271fdfa51c8d, type: 2}
+    - {fileID: 2100000, guid: ee0e6a81c926cbd4e9973edc75b8bc1a, type: 2}
+    - {fileID: 2100000, guid: 5e4579cd19f62ef40b91b98e4f552d90, type: 2}
+  - hair: AsukaHair
+    colour: Asuka_Col 04
+    materials:
+    - {fileID: 2100000, guid: 0df87a363d6031946a29d3b98c69c193, type: 2}
+    - {fileID: 2100000, guid: d57501018e96be54a8df18fbe81923a5, type: 2}
+    - {fileID: 2100000, guid: 8ad7600b59ede8d41ab6688ebb864e62, type: 2}
+    - {fileID: 2100000, guid: 71ec7779118ee144c92788d71b81e856, type: 2}
+    - {fileID: 2100000, guid: 318f9b3230d3dd644a88f614f4071600, type: 2}
+    - {fileID: 2100000, guid: 99ee7bce17e793a46afb537c468e140c, type: 2}
+    - {fileID: 2100000, guid: 27878a5ff36eed843ba247d9cdd68d59, type: 2}
+    - {fileID: 2100000, guid: cb8911b1219c4d34cb13117ec216380e, type: 2}
+    - {fileID: 2100000, guid: 8e33fb159207f3f4fa88d6a8c60c3f27, type: 2}
+    - {fileID: 2100000, guid: 5578c32f8a3fa534f80f4e23ae7c197a, type: 2}
+    - {fileID: 2100000, guid: a8105644ab99fde429b49d6934d2c678, type: 2}
+    - {fileID: 2100000, guid: e9bb37e59b122014195ca9b2728609a4, type: 2}
+  - hair: AsukaHair
+    colour: Asuka_Col 05
+    materials:
+    - {fileID: 2100000, guid: 9c0413b8ca9d17a4b9d849f16a16b6b0, type: 2}
+    - {fileID: 2100000, guid: 74b6319f33274bc499c895e9ee8c839b, type: 2}
+    - {fileID: 2100000, guid: 05e4ceb096a713341afbf8e88bee2eaf, type: 2}
+    - {fileID: 2100000, guid: c11bf4af3360a294ca318f42174135ca, type: 2}
+    - {fileID: 2100000, guid: 240fb4346c37e3c428a236ccb1e35af0, type: 2}
+    - {fileID: 2100000, guid: 6532dd7e70aae9e42a3d8318bafb33bc, type: 2}
+    - {fileID: 2100000, guid: 81c87216bb888be4f90b4ca8dc93101f, type: 2}
+    - {fileID: 2100000, guid: 87c759a5eb35b7547bdf1c8e403455db, type: 2}
+    - {fileID: 2100000, guid: a7d2e76c5db960e4683a73ae2016caf4, type: 2}
+    - {fileID: 2100000, guid: b629b10e65243914f848dd11c36ee8fb, type: 2}
+    - {fileID: 2100000, guid: f5f55b04c01c8ea44a86a239511b82e1, type: 2}
+    - {fileID: 2100000, guid: 18806e83d6fc3bb46884ea9dbaabec8a, type: 2}
+  - hair: AsukaHair
+    colour: Asuka_Col 06
+    materials:
+    - {fileID: 2100000, guid: 5841b6f9b8de696478ed6630783469d6, type: 2}
+    - {fileID: 2100000, guid: 90ddf8212c801a449b582359ea354202, type: 2}
+    - {fileID: 2100000, guid: d23a742435b483843a2cc982ef3c4fda, type: 2}
+    - {fileID: 2100000, guid: 79b693c586bd4cc45b3fb84dbb9b8854, type: 2}
+    - {fileID: 2100000, guid: 69033bca98e90d2478a42817fc8a0078, type: 2}
+    - {fileID: 2100000, guid: 9eea564402e06e24896ebc42f38abe19, type: 2}
+    - {fileID: 2100000, guid: 2b34f6cb2cf537e4e86539f30904000d, type: 2}
+    - {fileID: 2100000, guid: 80ceae3d9b8c9e8449c911ae5b7f28e1, type: 2}
+    - {fileID: 2100000, guid: 0f861bc4e86154b44be7de685ac175ad, type: 2}
+    - {fileID: 2100000, guid: c77f37d9ec881dc4dab64ab391d6c774, type: 2}
+    - {fileID: 2100000, guid: 9645cd9d4ad2fb14cb07f357fbbc8c3b, type: 2}
+    - {fileID: 2100000, guid: 7261ea1c1bf7dcb46916c9bf3e725ce0, type: 2}
+  - hair: AsukaHair
+    colour: Asuka_Col 07
+    materials:
+    - {fileID: 2100000, guid: f98026fe42a84134d8101ed4efc83023, type: 2}
+    - {fileID: 2100000, guid: 8d938a2c933dff142a95f1564c2394df, type: 2}
+    - {fileID: 2100000, guid: d80c8478e91b3f34b86d8b139eb62ff8, type: 2}
+    - {fileID: 2100000, guid: 2587282f53df1e04fbd98dcc0d1ae782, type: 2}
+    - {fileID: 2100000, guid: 2f72bdadb5479254eac60ce76daa2198, type: 2}
+    - {fileID: 2100000, guid: 3fb237f65f8b19e40a554651247a5b35, type: 2}
+    - {fileID: 2100000, guid: bc33d4579fc3d8348985c2ae4e068d33, type: 2}
+    - {fileID: 2100000, guid: e8f6bb0c5fef6174dbb3a45dfcd7fde3, type: 2}
+    - {fileID: 2100000, guid: 61acd65a4a8c7114fbab934d9187d4e1, type: 2}
+    - {fileID: 2100000, guid: 393f668a9f197084eacf49e4e7cb54b9, type: 2}
+    - {fileID: 2100000, guid: 1b8e6f1162e83f443b78ef5f0d5e03c5, type: 2}
+    - {fileID: 2100000, guid: 005e7494827112849ab0d04c1825cc8c, type: 2}
+  - hair: AsukaHair
+    colour: Asuka_Col 08
+    materials:
+    - {fileID: 2100000, guid: 3cb1b020e34e6db45beb39bdf89db102, type: 2}
+    - {fileID: 2100000, guid: e192ee3704057064d9e77962a1e21bcd, type: 2}
+    - {fileID: 2100000, guid: a656d380498dc9743b2b93db1e38b8a3, type: 2}
+    - {fileID: 2100000, guid: 8d10e502772294743b11e1cf99775e10, type: 2}
+    - {fileID: 2100000, guid: 04cd1bd735cb8db4d91d12b6dc2db50f, type: 2}
+    - {fileID: 2100000, guid: 1ff3dff9cd2f26644aed3999029c7102, type: 2}
+    - {fileID: 2100000, guid: d6e5dff524e9898439b79a661b014525, type: 2}
+    - {fileID: 2100000, guid: d3b32fe0ca79b5d468e7027b818e6349, type: 2}
+    - {fileID: 2100000, guid: 2e49416380e5990459c4e40bbc3a0dce, type: 2}
+    - {fileID: 2100000, guid: fab2b19060a98e84daf789dd891d9dc6, type: 2}
+    - {fileID: 2100000, guid: 5fd018a8c0dc5ec4ca3c9f172c2c4e3f, type: 2}
+    - {fileID: 2100000, guid: 86621a02d67c8e743a6c663b39ca192d, type: 2}
+  - hair: AsukaHair
+    colour: Asuka_Col 09
+    materials:
+    - {fileID: 2100000, guid: b82982ab23d20524095b60d4aec8a77d, type: 2}
+    - {fileID: 2100000, guid: 972e12212d945a24c85c3299beb0db77, type: 2}
+    - {fileID: 2100000, guid: 96a91112691ec114587f3fb692e68a75, type: 2}
+    - {fileID: 2100000, guid: d02dd528638b232498a85dbad1c5634c, type: 2}
+    - {fileID: 2100000, guid: a77524aa1286541448655866dc151e8b, type: 2}
+    - {fileID: 2100000, guid: b7ac6db0e7b2de54d8c824a55d2e2d73, type: 2}
+    - {fileID: 2100000, guid: cca52dbecf83c0d43b6befbef93ffca2, type: 2}
+    - {fileID: 2100000, guid: e57b8fff70d2a5542a0746899893d837, type: 2}
+    - {fileID: 2100000, guid: 2a2ddbc1471803946a800e7ab8e7db5b, type: 2}
+    - {fileID: 2100000, guid: 31c31159f377f06469a042427d15d72c, type: 2}
+    - {fileID: 2100000, guid: c67e836c1695e904bbd5d9a7998be4c3, type: 2}
+    - {fileID: 2100000, guid: 6470bb27b197a504fac058cb8dcb52db, type: 2}
+  - hair: AsukaHair
+    colour: Asuka_Col 10
+    materials:
+    - {fileID: 2100000, guid: c440a64ea84bb42458ac897ea78d39f6, type: 2}
+    - {fileID: 2100000, guid: 3d397a9caa84bdf45ad670cf0fe0caeb, type: 2}
+    - {fileID: 2100000, guid: b70c37921a61e1945b9b6bb3722def4a, type: 2}
+    - {fileID: 2100000, guid: f38292b9b304c1c468ab646900eb099f, type: 2}
+    - {fileID: 2100000, guid: 3821be0f0cea29c40bbb01f2545250d7, type: 2}
+    - {fileID: 2100000, guid: 461b244cff351e0409b34836dabb5a86, type: 2}
+    - {fileID: 2100000, guid: fe93b0ae016b55e40b8df1fd1622337a, type: 2}
+    - {fileID: 2100000, guid: ed46fe0d600b3634aaaa3d85ad53d1ea, type: 2}
+    - {fileID: 2100000, guid: 0a5d064995430af41a0525da0122ab09, type: 2}
+    - {fileID: 2100000, guid: 7fa75386b307db943bf22dd3f645b1ba, type: 2}
+    - {fileID: 2100000, guid: 57ad6504014239949aaf3f9997fb7c8d, type: 2}
+    - {fileID: 2100000, guid: 006b25796f5607047af4d502aa51f686, type: 2}
+  - hair: AsukaHair
+    colour: Asuka_Col 11
+    materials:
+    - {fileID: 2100000, guid: 739a0141abe602441910d886ebf34428, type: 2}
+    - {fileID: 2100000, guid: 9ce2bbef4db8875408d43773aee17db5, type: 2}
+    - {fileID: 2100000, guid: bfcdeb74ea7096f42a95297c543e9a34, type: 2}
+    - {fileID: 2100000, guid: d320f8af79e61324ab102b7aa33c240a, type: 2}
+    - {fileID: 2100000, guid: 0507e76fc07cf07428c8a818bd3d811b, type: 2}
+    - {fileID: 2100000, guid: 0c68595fd329fd54ba19770ca4b4de3a, type: 2}
+    - {fileID: 2100000, guid: a63944abbc7ec1d4eb66454f1e07f53a, type: 2}
+    - {fileID: 2100000, guid: 2df4122d3627c34478fb19a8e89809b1, type: 2}
+    - {fileID: 2100000, guid: bb2800d8b559bcb42be60adbc051b7f6, type: 2}
+    - {fileID: 2100000, guid: 288188f2fc3116147b92ce3c53aa5a1e, type: 2}
+    - {fileID: 2100000, guid: 2f9c73e6651e1ce4085b92d866c858d7, type: 2}
+    - {fileID: 2100000, guid: c5b0bf4a3dba3344e8e39ae4ee318074, type: 2}
+  - hair: AsukaHair
+    colour: Asuka_Col 12
+    materials:
+    - {fileID: 2100000, guid: fc35ca3c1fbd5a347b9d70310bf0abc8, type: 2}
+    - {fileID: 2100000, guid: e161567ffa66b094fb350783f92220e8, type: 2}
+    - {fileID: 2100000, guid: b6d1b1d3a75e8b34180dd984f94aa59c, type: 2}
+    - {fileID: 2100000, guid: 9afcc1201f4e2e2489abeedd1aa5c62d, type: 2}
+    - {fileID: 2100000, guid: 9f2b2afc3826ec848903edd9ba3ea74b, type: 2}
+    - {fileID: 2100000, guid: bec7d5ba0f782f44188c9eb93ea48c42, type: 2}
+    - {fileID: 2100000, guid: edb1e032d3840e245b8ad90249b1557e, type: 2}
+    - {fileID: 2100000, guid: 5905de301da2c07458adbcf4f2af661a, type: 2}
+    - {fileID: 2100000, guid: 0005822272174e2408869f0c27d4f687, type: 2}
+    - {fileID: 2100000, guid: 4e26a91e04377874895d3b64bc84b475, type: 2}
+    - {fileID: 2100000, guid: ce89888c465040b4e815b4865e64818e, type: 2}
+    - {fileID: 2100000, guid: 36ad6e452d523a045a0b04720a58c0cd, type: 2}
+  - hair: AsukaHair
+    colour: Asuka_Col 13
+    materials:
+    - {fileID: 2100000, guid: 8a959a930637e5a4b8da8a872d988c7e, type: 2}
+    - {fileID: 2100000, guid: ee79468be541295459616c4839546b2c, type: 2}
+    - {fileID: 2100000, guid: f147eaa1030e0004d9933fdda2555093, type: 2}
+    - {fileID: 2100000, guid: 7dbbf663828d25148a06b597f49db73d, type: 2}
+    - {fileID: 2100000, guid: d9b2068b2eb540f478027410d9d62c79, type: 2}
+    - {fileID: 2100000, guid: 6a89369b5d7283f498da00f2b8dc1da0, type: 2}
+    - {fileID: 2100000, guid: 4f360bb5ff8c96142863f5547ff17813, type: 2}
+    - {fileID: 2100000, guid: 09ea4110219af284ca6facc03f22f461, type: 2}
+    - {fileID: 2100000, guid: 2a599951df6cd6b45b1da174cd121422, type: 2}
+    - {fileID: 2100000, guid: 72253f50d71f1e9429104e042aa31072, type: 2}
+    - {fileID: 2100000, guid: 40f4ef5c6f2a8b1449448dbd34414e9e, type: 2}
+    - {fileID: 2100000, guid: bb117eec6052ac440ab5365893847b3f, type: 2}
+  - hair: AsukaHair
+    colour: Asuka_Col 14
+    materials:
+    - {fileID: 2100000, guid: 5326e5e53b4063f4583583472ea88de4, type: 2}
+    - {fileID: 2100000, guid: 9f991308df5ad014da25c5069816b157, type: 2}
+    - {fileID: 2100000, guid: 0ed12f41424c5384b8b8c70c47905782, type: 2}
+    - {fileID: 2100000, guid: 151fa93ea29c94b4e833c25ee8340699, type: 2}
+    - {fileID: 2100000, guid: 98f2aaf50f6e4ea45a08a2f82f502852, type: 2}
+    - {fileID: 2100000, guid: 5421b4912e1a7294988b9d41528f4896, type: 2}
+    - {fileID: 2100000, guid: fd0a5ae802d09b440a6bd098acc54989, type: 2}
+    - {fileID: 2100000, guid: 488d248dd52d1a048aabd539e8e956b9, type: 2}
+    - {fileID: 2100000, guid: c021b783bb808a54688a83cfa453c873, type: 2}
+    - {fileID: 2100000, guid: d70381dc306df9241b08102b06ad48ea, type: 2}
+    - {fileID: 2100000, guid: 3726c42189466e94999a14c6e4598c5c, type: 2}
+    - {fileID: 2100000, guid: 2459d5f940daed0499ec387d4d40f190, type: 2}
+  - hair: AsukaHair
+    colour: Asuka_Col 15
+    materials:
+    - {fileID: 2100000, guid: 02e4f108fce99d649836170cbacbdf6a, type: 2}
+    - {fileID: 2100000, guid: 739b11d263938644a9fe075a0d92c297, type: 2}
+    - {fileID: 2100000, guid: 8c5bd27c982e82340b82f4c28cda78b0, type: 2}
+    - {fileID: 2100000, guid: d1c147e41890cc44f8fb8415e9d5430c, type: 2}
+    - {fileID: 2100000, guid: 41ea639bd32c3454090afbe3a1801405, type: 2}
+    - {fileID: 2100000, guid: e66947c2cd7174a4e807f29e060ec351, type: 2}
+    - {fileID: 2100000, guid: e8b517fa2e1a7444f94dce3e88d834a9, type: 2}
+    - {fileID: 2100000, guid: 2a0ae1b14abe57240b20e322acc0014a, type: 2}
+    - {fileID: 2100000, guid: 594e962a82df2964eaa03168e5c29466, type: 2}
+    - {fileID: 2100000, guid: 10612752043a62149928a8c9a029f616, type: 2}
+    - {fileID: 2100000, guid: 937cc543b358b3b4395348912f0672b6, type: 2}
+    - {fileID: 2100000, guid: 77f7742d88597d044a272d5aefe34e91, type: 2}
+  - hair: AsukaHair
+    colour: Asuka_Col 16
+    materials:
+    - {fileID: 2100000, guid: 6293fa4e31daec548bd1b16dd18ce04a, type: 2}
+    - {fileID: 2100000, guid: 7595eb97d29b53d4793373910584f7c2, type: 2}
+    - {fileID: 2100000, guid: b41fcd4ba3ae9094aa298a383bb78b26, type: 2}
+    - {fileID: 2100000, guid: 80fcd538f3030544a8d540ae89bdf532, type: 2}
+    - {fileID: 2100000, guid: 4d5e05074c60b354d9fbb9b1a8a9de95, type: 2}
+    - {fileID: 2100000, guid: 6f7c79672819c0644bdfc5c987b954a0, type: 2}
+    - {fileID: 2100000, guid: 226bbc214657d9048b7d2d9dee791878, type: 2}
+    - {fileID: 2100000, guid: 7ae2372d56e0a404f949cb7297128272, type: 2}
+    - {fileID: 2100000, guid: ed22d0b2bfb88a744a691158c14d1987, type: 2}
+    - {fileID: 2100000, guid: 8351cdfc7073f9549aa2c36651e0057e, type: 2}
+    - {fileID: 2100000, guid: e728bcf880b957f49859b97917ca1155, type: 2}
+    - {fileID: 2100000, guid: 6b6d4c25350516c4891b3e9eea55e907, type: 2}
+  - hair: AsukaHair
+    colour: Asuka_Col 17
+    materials:
+    - {fileID: 2100000, guid: b5f8f65ca1222be4e83795e9304c5e6b, type: 2}
+    - {fileID: 2100000, guid: 03e67c402d796af4382a5deea149c6d1, type: 2}
+    - {fileID: 2100000, guid: 973b4b01bf91f7244b53d00d875ea6e1, type: 2}
+    - {fileID: 2100000, guid: e950e8e4f8bf34f45a0896e193599b30, type: 2}
+    - {fileID: 2100000, guid: 3b71748bc99ea0e42a71cc405df26a77, type: 2}
+    - {fileID: 2100000, guid: 3f3214677122a6a4a85443a8f21523bd, type: 2}
+    - {fileID: 2100000, guid: fdf88e7fbc56e4849a554a83f5540554, type: 2}
+    - {fileID: 2100000, guid: 5a094a64d47f68146aa0ef1c1d64176e, type: 2}
+    - {fileID: 2100000, guid: fc6eb7aa9c43c5e4b8bb1489f6acefe9, type: 2}
+    - {fileID: 2100000, guid: 528eb3444c5f86b4d97c1d7d60cd8b19, type: 2}
+    - {fileID: 2100000, guid: b0c63f6a0b828aa4a90d6c913e71e334, type: 2}
+    - {fileID: 2100000, guid: 60d5a2bdffbcb464988cabf6ce0f141e, type: 2}
+  - hair: AsukaHair
+    colour: Asuka_Col 18
+    materials:
+    - {fileID: 2100000, guid: 0133322cc43028e45844e880c3cd4e56, type: 2}
+    - {fileID: 2100000, guid: 58b40008c2216e84a8e084296b412511, type: 2}
+    - {fileID: 2100000, guid: fc01d33b7b0ff674fb57fdf59af50a04, type: 2}
+    - {fileID: 2100000, guid: eb3689cee8fef344bab65571b9c91939, type: 2}
+    - {fileID: 2100000, guid: f3b4c33be332f474fba19b0847157f72, type: 2}
+    - {fileID: 2100000, guid: da35752bf10a3a64095df0f796e5969f, type: 2}
+    - {fileID: 2100000, guid: 434f426d3f65fe547a853690816d05d4, type: 2}
+    - {fileID: 2100000, guid: 33fe83dd8413d4a4abebfdf982236664, type: 2}
+    - {fileID: 2100000, guid: 629fb7652b3c22f4fb535fbd898443a4, type: 2}
+    - {fileID: 2100000, guid: 4d76c4186049c444891d64eb1243b6db, type: 2}
+    - {fileID: 2100000, guid: 66a0def1763574d4cb7d9af13534fbf4, type: 2}
+    - {fileID: 2100000, guid: 71ee826e698926543a41daeeb8bd8cce, type: 2}
+  - hair: AsukaHair
+    colour: Asuka_Col 19
+    materials:
+    - {fileID: 2100000, guid: 7d13da0e742b26c4492c43f9e9a7f97b, type: 2}
+    - {fileID: 2100000, guid: d83acd77c40d4d643b5020940087ed93, type: 2}
+    - {fileID: 2100000, guid: 634c9180109420f44b4f7d7ff9b517b9, type: 2}
+    - {fileID: 2100000, guid: 28409dfaa876105429dc1adee8a8b6d8, type: 2}
+    - {fileID: 2100000, guid: 771f81eec1b32b64ba474c7aa2f30c86, type: 2}
+    - {fileID: 2100000, guid: 35a941c417cb2a64ba2a78cd267bae01, type: 2}
+    - {fileID: 2100000, guid: 140560c0c014c284d9d39536e0e0399c, type: 2}
+    - {fileID: 2100000, guid: c4d965918ef5f5d40b7046fda5fbb1e3, type: 2}
+    - {fileID: 2100000, guid: c6046a6253957424c8256bb3949b65d0, type: 2}
+    - {fileID: 2100000, guid: 205f6a91e4cd9734fb8b5cf8ff7cda5d, type: 2}
+    - {fileID: 2100000, guid: d3d2d99c264a0974db6b89b11c553df2, type: 2}
+    - {fileID: 2100000, guid: 148f7b97866eb0843b7330e2f832d8cb, type: 2}
+  - hair: AsukaHair
+    colour: Asuka_Col 20
+    materials:
+    - {fileID: 2100000, guid: efb9ea5c51c9bd848b1c258aabe0b26a, type: 2}
+    - {fileID: 2100000, guid: 0ab81d5dea098a34593119d2dbe7764e, type: 2}
+    - {fileID: 2100000, guid: 666db5ea5b4d0604688af2e228ced8c0, type: 2}
+    - {fileID: 2100000, guid: ff89bc473fa29244f99e9adde822f0a5, type: 2}
+    - {fileID: 2100000, guid: 4518b47e3bd186640ba40b9aad9b84f2, type: 2}
+    - {fileID: 2100000, guid: eb482713e899c8445b2bab155e681746, type: 2}
+    - {fileID: 2100000, guid: 1ad784f9e96b3484f80441d011e56927, type: 2}
+    - {fileID: 2100000, guid: c828372ecaa3ec44b988883ceee7a55a, type: 2}
+    - {fileID: 2100000, guid: 6bbd93e1f6e1f5646a91a88d086de8be, type: 2}
+    - {fileID: 2100000, guid: ec3f2254e992b2147a4a5073079a230b, type: 2}
+    - {fileID: 2100000, guid: 76c94632c1960a24dbf51f376cb3c3ec, type: 2}
+    - {fileID: 2100000, guid: 6143ce376f1ea134e80f9f4bf130e569, type: 2}
+  - hair: AsukaHair
+    colour: Asuka_Col 21
+    materials:
+    - {fileID: 2100000, guid: b5c9ae91c39a5544092a885f807bc66a, type: 2}
+    - {fileID: 2100000, guid: 73eabc83d1f71134891ea1baaaa23417, type: 2}
+    - {fileID: 2100000, guid: c10731b11966a95459309e7eeb8e145a, type: 2}
+    - {fileID: 2100000, guid: c0d0ab25e77928b4c9d6958358852afd, type: 2}
+    - {fileID: 2100000, guid: 9ee3edb57590f8043ba069e2ad908783, type: 2}
+    - {fileID: 2100000, guid: 8d933914d4ae668478db5bfaae1af1f9, type: 2}
+    - {fileID: 2100000, guid: e1b08d83cdc5fe44380b0765071137c7, type: 2}
+    - {fileID: 2100000, guid: 1f4b38efff3ce6049b7472ec7610d0fe, type: 2}
+    - {fileID: 2100000, guid: a455623455283bb4b8809fe1a75018d7, type: 2}
+    - {fileID: 2100000, guid: a66cedeaddba14a43b965272a50b17ef, type: 2}
+    - {fileID: 2100000, guid: 3677f5835ed7172409fce64ecb44cd26, type: 2}
+    - {fileID: 2100000, guid: 3850483e97b7ead45a36570a792f3dde, type: 2}
+  - hair: AsukaHair
+    colour: Asuka_Col 22
+    materials:
+    - {fileID: 2100000, guid: d0938bff1d90e2c458f468e04679f2de, type: 2}
+    - {fileID: 2100000, guid: cab9868010391ec48bbdc0e97357d554, type: 2}
+    - {fileID: 2100000, guid: da4bf2d0b2aec454cabb757bb46cfc40, type: 2}
+    - {fileID: 2100000, guid: a702fbf2f865415469e6e17dbee2806a, type: 2}
+    - {fileID: 2100000, guid: a8a52d30371c33a47b2a888296bf9f37, type: 2}
+    - {fileID: 2100000, guid: a84e8189a6bdc5a43a0aeb73715b1ecc, type: 2}
+    - {fileID: 2100000, guid: b5a9e87762a585e42b2b0628bd81fcda, type: 2}
+    - {fileID: 2100000, guid: f8e7a6e1ccf4f32489d57c147307006e, type: 2}
+    - {fileID: 2100000, guid: 5114f8c1b9b53ae4aadfe7cc5ce14732, type: 2}
+    - {fileID: 2100000, guid: 5dbe58f1b25f16348a3d95820ada929b, type: 2}
+    - {fileID: 2100000, guid: 9b45ed8f08504d04c97a36914dcb3c84, type: 2}
+    - {fileID: 2100000, guid: 2c8af42cb00a00e4fa04cc162aca8c49, type: 2}
+  - hair: AsukaHair
+    colour: Asuka_Col 23
+    materials:
+    - {fileID: 2100000, guid: 76ccef5974edf844fbeec3910e2d91e2, type: 2}
+    - {fileID: 2100000, guid: 41e8c4686c6af8e41bfb807ac65ee58b, type: 2}
+    - {fileID: 2100000, guid: 448f48cd69fdee7438dbd469e7bb7289, type: 2}
+    - {fileID: 2100000, guid: 7ea49093a3e0c9548b700018a37a2da5, type: 2}
+    - {fileID: 2100000, guid: 4cffc98cbd0d8434fa8bd2e7f1c804f5, type: 2}
+    - {fileID: 2100000, guid: b76c6c0c1267ad24a9d9b48e55786baa, type: 2}
+    - {fileID: 2100000, guid: 8d83a6cc76800044a8aaef58c1423eca, type: 2}
+    - {fileID: 2100000, guid: 64ede4062bae3a24aa70960eb73e3af6, type: 2}
+    - {fileID: 2100000, guid: 7d1b9dc83bdc94449a3feb835be2ee25, type: 2}
+    - {fileID: 2100000, guid: 742eb3ef718f1ee48b86fae1e715fdfb, type: 2}
+    - {fileID: 2100000, guid: 86c6a745af3efb04cb2b65f491ff88a2, type: 2}
+    - {fileID: 2100000, guid: d3da5e33a55ba6e409fc56e4e91189b0, type: 2}
+  - hair: AsukaHair
+    colour: Asuka_Col 24
+    materials:
+    - {fileID: 2100000, guid: ae71f83bc24ec2443b518ba496cb368c, type: 2}
+    - {fileID: 2100000, guid: 978d9b2f2b273904081bfd6edcf9b2a8, type: 2}
+    - {fileID: 2100000, guid: e0038b02b0c9f75499444e1583a7fb66, type: 2}
+    - {fileID: 2100000, guid: 5519d82e5d6ee1a45b525d534b8506de, type: 2}
+    - {fileID: 2100000, guid: 668e18450f1883b4595cee302c53f45d, type: 2}
+    - {fileID: 2100000, guid: da533eeca71d93d4c8da553d1a004bea, type: 2}
+    - {fileID: 2100000, guid: 7410d286d8a3d044495c29009e9489f6, type: 2}
+    - {fileID: 2100000, guid: e733fa4bdb618c3469ee20f7e2888b24, type: 2}
+    - {fileID: 2100000, guid: 048acf726fdc22a4a9d08317c0415e70, type: 2}
+    - {fileID: 2100000, guid: 117efdbe2e4a03c4da21d7e9c1450f31, type: 2}
+    - {fileID: 2100000, guid: a4575a90a63f54a4ea74fb2a8f83e259, type: 2}
+    - {fileID: 2100000, guid: 7539dd977827a154c8fcf4fbf434255f, type: 2}
+  - hair: AsukaHair
+    colour: Asuka_Col 25
+    materials:
+    - {fileID: 2100000, guid: ac759f72ab1ccfc4c9baf2b0358f991b, type: 2}
+    - {fileID: 2100000, guid: 60bc8c38c1c6cf14f921e55cef20db03, type: 2}
+    - {fileID: 2100000, guid: f7367248f70407447af78cbf3e40143f, type: 2}
+    - {fileID: 2100000, guid: 2cc0134112c219b46ba64e94248153b9, type: 2}
+    - {fileID: 2100000, guid: 6c05b1add255331459a6ab8eabeb607e, type: 2}
+    - {fileID: 2100000, guid: fe8119741259be147b18dc8aab1f42e2, type: 2}
+    - {fileID: 2100000, guid: 5bca73b471873d54087a98993de8d0c9, type: 2}
+    - {fileID: 2100000, guid: c14ba8ee1b2832448b1105abb8361a4d, type: 2}
+    - {fileID: 2100000, guid: 3b273d1207937cd4dbe5eec3ede05d88, type: 2}
+    - {fileID: 2100000, guid: 2396336bc307948488f4fc2e480801ef, type: 2}
+    - {fileID: 2100000, guid: 270b809934ef66e4ca823c7d1a605bd0, type: 2}
+    - {fileID: 2100000, guid: 88e1124a814eea84db32f292d5e03fc8, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 01
+    materials:
+    - {fileID: 2100000, guid: 1daa0bbba288ca2409f2695185c6931a, type: 2}
+    - {fileID: 2100000, guid: f89212f54236f2a4fac249392bfc6580, type: 2}
+    - {fileID: 2100000, guid: 3ee61f0616ded0d4096d7fb545de289f, type: 2}
+    - {fileID: 2100000, guid: f1abae46fda2a744b824d4ebbe175897, type: 2}
+    - {fileID: 2100000, guid: 721b5854e1b828542bb2d2f07305fd89, type: 2}
+    - {fileID: 2100000, guid: 51903e8f4da6ac34792b85fd5f19115e, type: 2}
+    - {fileID: 2100000, guid: b018bae4fb0f9ef4a897cdc17b7602d8, type: 2}
+    - {fileID: 2100000, guid: 47ce2f64de0afc14aa00d8e03c6f7809, type: 2}
+    - {fileID: 2100000, guid: d9e3d307b4a89d042a32bb85d04ea976, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 02
+    materials:
+    - {fileID: 2100000, guid: bd074d0cd73e6ed489bdb244b4e3df16, type: 2}
+    - {fileID: 2100000, guid: 09fbcf7ec855b6b469ccc6958ae3030e, type: 2}
+    - {fileID: 2100000, guid: cb458920dc6ad0544a3629c761f7ab8d, type: 2}
+    - {fileID: 2100000, guid: 6312e47fc40b04f458cf09d580fb5fef, type: 2}
+    - {fileID: 2100000, guid: fc78c6b1450e1f4488e0c3e4a7c60b3a, type: 2}
+    - {fileID: 2100000, guid: 188b59ac1e527a3458f810a73198aea6, type: 2}
+    - {fileID: 2100000, guid: ebce87b9b60cbfb4a8829974ca16275e, type: 2}
+    - {fileID: 2100000, guid: addcd46ad6a6a0941ba6fb352c34d7fa, type: 2}
+    - {fileID: 2100000, guid: ef2b3402ddfaef94f803d775db56043d, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 03
+    materials:
+    - {fileID: 2100000, guid: d9003ac48d1432e4cb4967bed54b1e02, type: 2}
+    - {fileID: 2100000, guid: 26a625dd98ccfe14980fa46ee76d3d26, type: 2}
+    - {fileID: 2100000, guid: 4146b08d6e36c21419e76be997c75648, type: 2}
+    - {fileID: 2100000, guid: d42190f88ffa3494d9786b89940123cf, type: 2}
+    - {fileID: 2100000, guid: a4d445dc96aaecb409cfd0fb757203a9, type: 2}
+    - {fileID: 2100000, guid: 31fd2a2ec7a313d46a29f9a09e956204, type: 2}
+    - {fileID: 2100000, guid: ed45b76e28cf56a4090e48b2c35bc369, type: 2}
+    - {fileID: 2100000, guid: 47366142d0671ed42a15ce2d66959275, type: 2}
+    - {fileID: 2100000, guid: c91a93becb9696d4196bfbe5b8be64ac, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 04
+    materials:
+    - {fileID: 2100000, guid: 7c7f9bfb8288c8b4b9ffcfe9a2b1fb0b, type: 2}
+    - {fileID: 2100000, guid: 3984cd41ae2f9c74dac24d3d85e1bec5, type: 2}
+    - {fileID: 2100000, guid: 4e46285a6e6884e43a4f541ed480cec8, type: 2}
+    - {fileID: 2100000, guid: 020bc7b002cb5274ea02d47c5934d36e, type: 2}
+    - {fileID: 2100000, guid: d3f744075f072ef418ebec038514c73c, type: 2}
+    - {fileID: 2100000, guid: 90503098f3ef39349acfc55e87ebb390, type: 2}
+    - {fileID: 2100000, guid: feb19cd3e18b7c34da21a4c33095e0f6, type: 2}
+    - {fileID: 2100000, guid: f8c553292d86dca4ba83792c5d48d45c, type: 2}
+    - {fileID: 2100000, guid: f990dbc009f004643a390b1e4d9b00de, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 05
+    materials:
+    - {fileID: 2100000, guid: 491ad54d29ce78b4495142b1632317d3, type: 2}
+    - {fileID: 2100000, guid: 3ff9247f88eadee4aa29d8b2a1f7ba2c, type: 2}
+    - {fileID: 2100000, guid: 6c51701717ba87d40ba45344473eaacc, type: 2}
+    - {fileID: 2100000, guid: c438b969b22cf4740bd4df31fb8e6c30, type: 2}
+    - {fileID: 2100000, guid: 326aa991f1f578e4788c56e2606436ba, type: 2}
+    - {fileID: 2100000, guid: 8388d8e68c154f34588c810fe642e008, type: 2}
+    - {fileID: 2100000, guid: 232b780f20836e04190c9fcdc5cdd270, type: 2}
+    - {fileID: 2100000, guid: b393e4d16c1bd524cbc831e4b3233418, type: 2}
+    - {fileID: 2100000, guid: b6e8183323d4716449cdf3925a028d21, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 06
+    materials:
+    - {fileID: 2100000, guid: e29cfadc431480c47a9a1720e367d52e, type: 2}
+    - {fileID: 2100000, guid: d9b76111a00becb409c58ea1179ddce4, type: 2}
+    - {fileID: 2100000, guid: 4ff02d11d7be8444f81261e62b5d51ae, type: 2}
+    - {fileID: 2100000, guid: b0763e60d54951341812052675c8a70e, type: 2}
+    - {fileID: 2100000, guid: 8ca6387b0c76e234db9f2f5f9bd5c3d8, type: 2}
+    - {fileID: 2100000, guid: 203637402519a904ebc18899977ff37c, type: 2}
+    - {fileID: 2100000, guid: b4f6cc98a44417f499890eff93ffbe94, type: 2}
+    - {fileID: 2100000, guid: 04224b7abab489d408236822c39dda54, type: 2}
+    - {fileID: 2100000, guid: 660d6b829a955ec4a87ee441c8f6d587, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 07
+    materials:
+    - {fileID: 2100000, guid: bfbc1107c9aa6904f802896a72574ca0, type: 2}
+    - {fileID: 2100000, guid: c39c43f52f02f1c44bcc05a2233dedbd, type: 2}
+    - {fileID: 2100000, guid: bd779c87e5ae90d459b1bbbed05b5a9b, type: 2}
+    - {fileID: 2100000, guid: b2c9c6d4c9fd0714fb9bb54fe190cc92, type: 2}
+    - {fileID: 2100000, guid: 1ad15be60178f6147ae507c7d8be3ea9, type: 2}
+    - {fileID: 2100000, guid: a1ea449687487ab44bbdcf6c3e423770, type: 2}
+    - {fileID: 2100000, guid: 0090a80712b81d640abda93191e47187, type: 2}
+    - {fileID: 2100000, guid: f185566e013051e4a9eea4dbf70a9e1b, type: 2}
+    - {fileID: 2100000, guid: c60c6e7acb63f4e4f9ebc4610d18b166, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 08
+    materials:
+    - {fileID: 2100000, guid: 8e36754b222d09e459548c735852f4d3, type: 2}
+    - {fileID: 2100000, guid: 631b6b081ab05854891c3abecf642d6e, type: 2}
+    - {fileID: 2100000, guid: dfc4951677187ab4b90c7b193ce4cda9, type: 2}
+    - {fileID: 2100000, guid: a4672636ad1633b45885fac5587b518b, type: 2}
+    - {fileID: 2100000, guid: 33f2455f9922f86418ea84ab50c7b317, type: 2}
+    - {fileID: 2100000, guid: 2f05e3c85ef948a4da4d89c793c4cad1, type: 2}
+    - {fileID: 2100000, guid: 296a244a17b56c14a9f6f090ad0623c7, type: 2}
+    - {fileID: 2100000, guid: ec6191fca99b92840828a98d1abfa850, type: 2}
+    - {fileID: 2100000, guid: d127b316c942cba4cbacdf94285242cc, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 09
+    materials:
+    - {fileID: 2100000, guid: b3240cbe1ad32cd4687b9cf035320b26, type: 2}
+    - {fileID: 2100000, guid: a1957e8bd36b1e94b8d8d9bf42221808, type: 2}
+    - {fileID: 2100000, guid: 799b2103f6ecde84fb9e03789c373749, type: 2}
+    - {fileID: 2100000, guid: 311553080829aee4eb4dd2e7af242d61, type: 2}
+    - {fileID: 2100000, guid: e7b406b2058cb644e97e1a1052c2a5da, type: 2}
+    - {fileID: 2100000, guid: 7f2bb8e30321d104ba1bdc16af41e0ca, type: 2}
+    - {fileID: 2100000, guid: c6dfaf09b91ea814b81c114b35b6ada9, type: 2}
+    - {fileID: 2100000, guid: 07c8baeca264f2d45948fe66a954beab, type: 2}
+    - {fileID: 2100000, guid: cbbd9e212cb325942a387dfac4184470, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 10
+    materials:
+    - {fileID: 2100000, guid: ee5c00e7ca07be44d92f350517b4c803, type: 2}
+    - {fileID: 2100000, guid: 64681ee105bfa2c45bcee2f6a9351586, type: 2}
+    - {fileID: 2100000, guid: e0a211ed64c9c6e47920369b7e1cdba2, type: 2}
+    - {fileID: 2100000, guid: 6d611ca0ce527be4f95e5adb436263c3, type: 2}
+    - {fileID: 2100000, guid: 4cfc4958b0d841a41a9833ffbbf0e1dc, type: 2}
+    - {fileID: 2100000, guid: 5951b8a2d268d9b4d80fb5cfa7fe6a3d, type: 2}
+    - {fileID: 2100000, guid: 634c623990cad4f49bd482f0b944e540, type: 2}
+    - {fileID: 2100000, guid: 72db282f18666974a93d9c2dbfb34426, type: 2}
+    - {fileID: 2100000, guid: 873a72b1b8f064546bb44998d114c5c7, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 11
+    materials:
+    - {fileID: 2100000, guid: 1bea88952ab9a184e92dd1c1dacd400c, type: 2}
+    - {fileID: 2100000, guid: ea55223c72dc34f4bb9eee655e2d429f, type: 2}
+    - {fileID: 2100000, guid: 1ef28c0b59a87004b83663d829d5b381, type: 2}
+    - {fileID: 2100000, guid: 786c5b17394ef5848935f2541fe210a3, type: 2}
+    - {fileID: 2100000, guid: 43dd545ee6174d74f8c1326b05aab843, type: 2}
+    - {fileID: 2100000, guid: eac6514140a8a5540bf5525908239cfc, type: 2}
+    - {fileID: 2100000, guid: 75e7a252cd36dc943b5d05d3370efc8b, type: 2}
+    - {fileID: 2100000, guid: e11abe818f72b5a4093e4129484702df, type: 2}
+    - {fileID: 2100000, guid: 999dd5fc68fd43645a99d2e87c2a7508, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 12
+    materials:
+    - {fileID: 2100000, guid: 97e54949339d8184380e5fcac5a3737c, type: 2}
+    - {fileID: 2100000, guid: 85cbd68876e917c40841849d4997bb51, type: 2}
+    - {fileID: 2100000, guid: 8fdd6a3dbd3e51b46a68cee3fd13ead3, type: 2}
+    - {fileID: 2100000, guid: fb1ac5ff8c814b849a94beedb588d779, type: 2}
+    - {fileID: 2100000, guid: 9948003c9e58e954ca5f25f920fbeba6, type: 2}
+    - {fileID: 2100000, guid: f22487d8cc156f54a97d92260c725d64, type: 2}
+    - {fileID: 2100000, guid: cee1bf063f8509440850de8b4ee4978c, type: 2}
+    - {fileID: 2100000, guid: e8ff76b44ee99714d925a0016a116c2b, type: 2}
+    - {fileID: 2100000, guid: 7df265bea48cd2b44a026d507e1aed72, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 13
+    materials:
+    - {fileID: 2100000, guid: eb7622c6bfd9b3a4885a01eee800d1d1, type: 2}
+    - {fileID: 2100000, guid: 697adbe06d362684a9cbd19cd27f0e16, type: 2}
+    - {fileID: 2100000, guid: fd1a7f22f0a9ee64a8af09db3c829aee, type: 2}
+    - {fileID: 2100000, guid: 804d3b37bd9fe944fb777305025d9213, type: 2}
+    - {fileID: 2100000, guid: 32c64b4ea447c9f459c899787172fc10, type: 2}
+    - {fileID: 2100000, guid: 6c26ec3bfdbc8a143861955e0a52763e, type: 2}
+    - {fileID: 2100000, guid: 414e390dae2842044ab81277c7431b7b, type: 2}
+    - {fileID: 2100000, guid: 884365c249795be459406d0aa63c466a, type: 2}
+    - {fileID: 2100000, guid: 1c48e60ade851934683e44e3d8551cb3, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 14
+    materials:
+    - {fileID: 2100000, guid: 913a84d63d03150489e8bcca275ac350, type: 2}
+    - {fileID: 2100000, guid: 16c997d8693b0334791f99803a803147, type: 2}
+    - {fileID: 2100000, guid: ced43da0709ec70408139c12c15c801d, type: 2}
+    - {fileID: 2100000, guid: f5e95a76b09e78143bc813d0d7b8004e, type: 2}
+    - {fileID: 2100000, guid: 42e1bf425c1e62442b10fe3611c21f3f, type: 2}
+    - {fileID: 2100000, guid: 6dbf74df5547fba4ca3973333f087138, type: 2}
+    - {fileID: 2100000, guid: 9d8eba4b0dc4bdb47bf7f4b71ee2fd88, type: 2}
+    - {fileID: 2100000, guid: 4f8bcbc9ad4ad544aa183e888f502e12, type: 2}
+    - {fileID: 2100000, guid: adb6309a982c5c248b7fac7f30a0c275, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 15
+    materials:
+    - {fileID: 2100000, guid: a27af41f5a7669249a299605c68dad3a, type: 2}
+    - {fileID: 2100000, guid: 4cbe40f3b7172f34eb0eb5eb60c9564f, type: 2}
+    - {fileID: 2100000, guid: 92508db39185e5d498998fc6b38a558b, type: 2}
+    - {fileID: 2100000, guid: 01a96bc8cc3701a4a8dfbeb67fd51506, type: 2}
+    - {fileID: 2100000, guid: a80ac7c91a3eda54e93f2c131c969c30, type: 2}
+    - {fileID: 2100000, guid: d7eb8b3ea8eb67648b52240b07166362, type: 2}
+    - {fileID: 2100000, guid: 671c9d4046848cf48986b93d1cce2d10, type: 2}
+    - {fileID: 2100000, guid: 1f166cf4072213b4d8c47b144eef133f, type: 2}
+    - {fileID: 2100000, guid: d22d47d7f780d1b44a2e2a5d80d5ba44, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 16
+    materials:
+    - {fileID: 2100000, guid: 1644460aa85d9934cb24f8d1d530b93d, type: 2}
+    - {fileID: 2100000, guid: c9000efa4e05c694aa620e6b091be210, type: 2}
+    - {fileID: 2100000, guid: f93081135b36ca540b0719c11bb4e510, type: 2}
+    - {fileID: 2100000, guid: 015c9e79c3477b240a1cbd0678fe9914, type: 2}
+    - {fileID: 2100000, guid: 5afeec1978994a8419d7af882fa2b43a, type: 2}
+    - {fileID: 2100000, guid: 3c2db26977771c94882b284accd51f24, type: 2}
+    - {fileID: 2100000, guid: 7469b3fea25c73f48b9f7d3a6fa7798a, type: 2}
+    - {fileID: 2100000, guid: 65f85442d4430894b9dd508ac1f26fcf, type: 2}
+    - {fileID: 2100000, guid: be71eca4eda06d6429cc220ab7ca8b66, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 17
+    materials:
+    - {fileID: 2100000, guid: b881d0aca6f20b34499a63e6ce9af008, type: 2}
+    - {fileID: 2100000, guid: ee422bbea0ef6384080b3fc374de6443, type: 2}
+    - {fileID: 2100000, guid: 41109ecd4b451ce40834bc5050b7fb57, type: 2}
+    - {fileID: 2100000, guid: dcae7ac1d3fc4d34abecc8011bbc11ad, type: 2}
+    - {fileID: 2100000, guid: 2d591bb39fd86734fb4f9f8d0f595862, type: 2}
+    - {fileID: 2100000, guid: a6f10024d59a5ff48b23ea68e2b21fb8, type: 2}
+    - {fileID: 2100000, guid: 1baf6aa173f96454e8f1f37a0faeb6dd, type: 2}
+    - {fileID: 2100000, guid: de95043f2af8bd04a982885167de484e, type: 2}
+    - {fileID: 2100000, guid: 1f885dec7d6c56e4795af0dc868103a6, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 18
+    materials:
+    - {fileID: 2100000, guid: 03114ce31b22d8c418acce1df17d7ada, type: 2}
+    - {fileID: 2100000, guid: fc761ac2d16ca1d4c90290d61d0b32e5, type: 2}
+    - {fileID: 2100000, guid: 0ce0f7ea7cd6bc84c8328a4ab707214e, type: 2}
+    - {fileID: 2100000, guid: 327ee15957730954094dba1449f98a79, type: 2}
+    - {fileID: 2100000, guid: 506130063c7ce174585c68d67abe7105, type: 2}
+    - {fileID: 2100000, guid: 5b5b9186740c8e541b4089b54aea2281, type: 2}
+    - {fileID: 2100000, guid: 3a0341a0a0370c74b999e7b1c5f060c9, type: 2}
+    - {fileID: 2100000, guid: 0443d0fdd5a4dc043b3e41629400abda, type: 2}
+    - {fileID: 2100000, guid: 7bda59d6a48e72d4fb5282c50170a525, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 19
+    materials:
+    - {fileID: 2100000, guid: d493d35b01ae2e34cb4000c1d050e7e5, type: 2}
+    - {fileID: 2100000, guid: 10349a5d31a826342a44bde7ce21f6d9, type: 2}
+    - {fileID: 2100000, guid: 27ed27f474f73784f844979ff93916f7, type: 2}
+    - {fileID: 2100000, guid: 85c3cf5418f7d9847b3c9363b8b28ba5, type: 2}
+    - {fileID: 2100000, guid: 91d091e7780cc9e48ac88455dacf23fc, type: 2}
+    - {fileID: 2100000, guid: 1dd9fba10c636e14d80d6c7703b33524, type: 2}
+    - {fileID: 2100000, guid: d24fa73ffd647054eb5bf9b6d542a3ec, type: 2}
+    - {fileID: 2100000, guid: 957b4a8aadad73440a1b5f4aad3ed97f, type: 2}
+    - {fileID: 2100000, guid: 05e520cae4a886243a77971c957655cc, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 20
+    materials:
+    - {fileID: 2100000, guid: a4d633500f3e32340af37b40925dad9d, type: 2}
+    - {fileID: 2100000, guid: cbb29b6d249d73c4aa0b5084374fbf25, type: 2}
+    - {fileID: 2100000, guid: 1e808e02a99218a4bbcee05a48c38267, type: 2}
+    - {fileID: 2100000, guid: dd4732494b4374a408f622d691186278, type: 2}
+    - {fileID: 2100000, guid: 9b364872df22e6c4db1ba488aa87bc44, type: 2}
+    - {fileID: 2100000, guid: 7b5e1eef63efb6848ad2c1d296584421, type: 2}
+    - {fileID: 2100000, guid: 99d0a96d56b646248935a873722481fd, type: 2}
+    - {fileID: 2100000, guid: 3c9535e10898f9a4d8527f3956079661, type: 2}
+    - {fileID: 2100000, guid: 22cedc1dc3a70d44fafe46e6fe63c206, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 21
+    materials:
+    - {fileID: 2100000, guid: 15a625f2af9758f499a170df6a5efc4d, type: 2}
+    - {fileID: 2100000, guid: 2c030e8a3531e2e499f0c316e081b970, type: 2}
+    - {fileID: 2100000, guid: bc76e619ef95bc7438118a09fd72e98a, type: 2}
+    - {fileID: 2100000, guid: 7a18de2b2392ad8459489b20e6ede0c1, type: 2}
+    - {fileID: 2100000, guid: 2dc640e3102bd2a40a8f5aa3d4acbf15, type: 2}
+    - {fileID: 2100000, guid: 22ddfcd0535d65d49bf16fa236d15b8c, type: 2}
+    - {fileID: 2100000, guid: f68f8881c1f3e30489c44cfef84098c1, type: 2}
+    - {fileID: 2100000, guid: f6e3811eccebd444199115943533d8d6, type: 2}
+    - {fileID: 2100000, guid: cb821e7c1900ffd458dede3d7c7bf0fb, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 22
+    materials:
+    - {fileID: 2100000, guid: f53aeacaa7e30c64a8d855de5cb1e832, type: 2}
+    - {fileID: 2100000, guid: 947d391b8591df74fbaaf55beb4ee449, type: 2}
+    - {fileID: 2100000, guid: 3edbcca932369a04ea02ab8c914b38b7, type: 2}
+    - {fileID: 2100000, guid: af29feb2ae9e4ca4d8652aa746dc5752, type: 2}
+    - {fileID: 2100000, guid: 31d139a3265d8a74a8c69e30529c9bbf, type: 2}
+    - {fileID: 2100000, guid: 95615c979a28a8440b60b84e1a6f6d6d, type: 2}
+    - {fileID: 2100000, guid: 7986078c1e59798408101dedf4763cea, type: 2}
+    - {fileID: 2100000, guid: f1f9ae2038b970747b75216945595879, type: 2}
+    - {fileID: 2100000, guid: 511f84b1b31f94842996a68cb2456780, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 23
+    materials:
+    - {fileID: 2100000, guid: b419c02313170df489e903339edb3400, type: 2}
+    - {fileID: 2100000, guid: 24ef4c7aa7cda33478d128208657d674, type: 2}
+    - {fileID: 2100000, guid: 65d17a483aa61cb46b68ec6ab22bd97d, type: 2}
+    - {fileID: 2100000, guid: a5146b534bfa5c445baad3b33fd1ebdd, type: 2}
+    - {fileID: 2100000, guid: 19acb76d847e89f4eb9de47ad2784392, type: 2}
+    - {fileID: 2100000, guid: d852195d9d71ec2469eef890835a0421, type: 2}
+    - {fileID: 2100000, guid: f9bd491226b93f443bdc3982d501cec6, type: 2}
+    - {fileID: 2100000, guid: 436a6f9a58e164b48bef517b4b0f994a, type: 2}
+    - {fileID: 2100000, guid: 8e215ab26bfe8fd448a34e6196e62452, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 24
+    materials:
+    - {fileID: 2100000, guid: b3881871569f4cb40b68ce952fafed35, type: 2}
+    - {fileID: 2100000, guid: 9ce0cf2d9f218904f89135e62628c948, type: 2}
+    - {fileID: 2100000, guid: 6644ea54a0a8c3d44b68f147a8c7580d, type: 2}
+    - {fileID: 2100000, guid: f3ba9621504e22f439849eb6020d8657, type: 2}
+    - {fileID: 2100000, guid: fc7e7ce91ad979b498441a8bf3503322, type: 2}
+    - {fileID: 2100000, guid: 7fffe42f6cf18ed4688d8ab34c4f13ba, type: 2}
+    - {fileID: 2100000, guid: 7c81dbde44ae1ec439db95538bc51188, type: 2}
+    - {fileID: 2100000, guid: f2577f42955888e45ba463c6e03d8344, type: 2}
+    - {fileID: 2100000, guid: 7b161c473f627784484d7cb0898192c3, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 25
+    materials:
+    - {fileID: 2100000, guid: da203d06a2ea37c4caab9297d41fce8d, type: 2}
+    - {fileID: 2100000, guid: 64a3941986ba6d24bae89588db24634c, type: 2}
+    - {fileID: 2100000, guid: a2daf177309d5a84faf78ee5b4640de6, type: 2}
+    - {fileID: 2100000, guid: 57ff1bb1be76e0a4dadd2cabe7dd2ea5, type: 2}
+    - {fileID: 2100000, guid: f4afc9f89f6cef642b0c600ce2d49750, type: 2}
+    - {fileID: 2100000, guid: 290a666f0dc0eb84f8fec2e3aad0e710, type: 2}
+    - {fileID: 2100000, guid: 03ee4edfc1ca0624482dd8cb84522150, type: 2}
+    - {fileID: 2100000, guid: 9ec824855c20a0b4c823db28d1b0f32e, type: 2}
+    - {fileID: 2100000, guid: d726646ff6816284db12a8eee69ed794, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 26
+    materials:
+    - {fileID: 2100000, guid: 9273a7ea841ac034d8d04db3ea775500, type: 2}
+    - {fileID: 2100000, guid: b11d6cd4e85135246adea94f138b08ea, type: 2}
+    - {fileID: 2100000, guid: 26d7b22b1b3b4ea469e4da47e0ddeb0a, type: 2}
+    - {fileID: 2100000, guid: 950f7330a71e34a4fbf614033845f0e4, type: 2}
+    - {fileID: 2100000, guid: 754380d7ef848194282c6cc4e60ca8fd, type: 2}
+    - {fileID: 2100000, guid: deed5debeefe9dd40a0d2003d2ec4a6f, type: 2}
+    - {fileID: 2100000, guid: a9d2b4aa9aec0034096fcb3e715dbcdc, type: 2}
+    - {fileID: 2100000, guid: e311aad8ce8247749abcee2747534604, type: 2}
+    - {fileID: 2100000, guid: a6780be4da723964db2c404a6584395c, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 27
+    materials:
+    - {fileID: 2100000, guid: a52b5f525ae997b48984747e9f99f984, type: 2}
+    - {fileID: 2100000, guid: 4ea32605e579a674491f0389bd2dc91c, type: 2}
+    - {fileID: 2100000, guid: 21ef144922861fb4e87c9c5341027210, type: 2}
+    - {fileID: 2100000, guid: 44c681be7960bb841ad6dc859b96bdc9, type: 2}
+    - {fileID: 2100000, guid: de7b80a71d51d004b810782427176d2a, type: 2}
+    - {fileID: 2100000, guid: 3a7fa1aed08fc994c992d53398905e1c, type: 2}
+    - {fileID: 2100000, guid: e619b9ae2ff1abb4bb6b1ad5a3c292fe, type: 2}
+    - {fileID: 2100000, guid: a3bfe0f9e46d6c24c89ba6586327b8c8, type: 2}
+    - {fileID: 2100000, guid: 1b0ca2f9365807b4e90e20977b64ca72, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 28
+    materials:
+    - {fileID: 2100000, guid: 74bdf10e42d29834dad6dac34dba80f6, type: 2}
+    - {fileID: 2100000, guid: ebf60489b240fc841bca5c8d3a785253, type: 2}
+    - {fileID: 2100000, guid: f8f52201b5491a242a1a8eb9f5b13f3a, type: 2}
+    - {fileID: 2100000, guid: f1098b84cdf65694c8234c9fde4561f1, type: 2}
+    - {fileID: 2100000, guid: ee8d2f50043734246b6aa9d5edb0e5bc, type: 2}
+    - {fileID: 2100000, guid: 559869e5fd5e01b44aa22b7d43547a46, type: 2}
+    - {fileID: 2100000, guid: 86d1836c86ba02f4bbbd0068d2b3e570, type: 2}
+    - {fileID: 2100000, guid: 39050c452c7d4f243a12c56356f417ad, type: 2}
+    - {fileID: 2100000, guid: 8df970cc0b8897241a44a4cb04fb13d9, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 29
+    materials:
+    - {fileID: 2100000, guid: 349898fc950d1514fb1e80a4001b8180, type: 2}
+    - {fileID: 2100000, guid: dc8674c4eaa2b1942916f43889c3c4d0, type: 2}
+    - {fileID: 2100000, guid: e64ad76cb8e4fab40b28146b107a0b83, type: 2}
+    - {fileID: 2100000, guid: d9ed8d5c770f709469a81bef957db578, type: 2}
+    - {fileID: 2100000, guid: f9d64389976ca6542805c7e6770d418b, type: 2}
+    - {fileID: 2100000, guid: bc1a03b910d61144598466465cfe0058, type: 2}
+    - {fileID: 2100000, guid: c38579e9834825e4495674019dc37c89, type: 2}
+    - {fileID: 2100000, guid: 2661ea5e5c9d9224eb223a926386c526, type: 2}
+    - {fileID: 2100000, guid: 3a8bddc1792842a4281b57e7cefaf094, type: 2}
+  - hair: BendineHair
+    colour: Bendine Hair Base Color 30
+    materials:
+    - {fileID: 2100000, guid: 5230cf8f06898564db8b9bf2689244c9, type: 2}
+    - {fileID: 2100000, guid: 8773f94e650b29645bfa2710253c988b, type: 2}
+    - {fileID: 2100000, guid: a50169ff2d28e9b479de19abb47e8f59, type: 2}
+    - {fileID: 2100000, guid: ad584ebfb43fb3e468f965ca31a6862e, type: 2}
+    - {fileID: 2100000, guid: 497217f633c1ec741814e0906005845b, type: 2}
+    - {fileID: 2100000, guid: e7d8ead05cf3e2544bd3388b33ee52ec, type: 2}
+    - {fileID: 2100000, guid: 90784bc533ded9444908269db69f40a7, type: 2}
+    - {fileID: 2100000, guid: bf5ff8f4dd81cf34996a9a66e09ab7c4, type: 2}
+    - {fileID: 2100000, guid: f57286a4e7a05ae4b99f5547cf63c5b1, type: 2}
+  - hair: Bob3Hair
+    colour: 01 Bobbity Bo Hair 3Dl
+    materials:
+    - {fileID: 2100000, guid: e785984cc32f402468ac3771def00edd, type: 2}
+    - {fileID: 2100000, guid: 43efa448d1f8ad34a8cdd6c25ae5cfa0, type: 2}
+    - {fileID: 2100000, guid: 259d066fb19c6794688fb8bca8167e22, type: 2}
+    - {fileID: 2100000, guid: 6a8fee6a9af54164882a7c3cc1bb92c5, type: 2}
+    - {fileID: 2100000, guid: 501743de99f0d4841a59cea80e6492cc, type: 2}
+  - hair: Bob3Hair
+    colour: 02 Bobbity Bo Hair 3Dl
+    materials:
+    - {fileID: 2100000, guid: 726e712c77590a6498a5a5ddcfd19de3, type: 2}
+    - {fileID: 2100000, guid: 9f70a2617d8d7e845a8d8719d08c504b, type: 2}
+    - {fileID: 2100000, guid: 20b118a17426b9049b43c0b2889a771e, type: 2}
+    - {fileID: 2100000, guid: 2587d8c1c3c96ab4094f3bddbaccf839, type: 2}
+    - {fileID: 2100000, guid: 4271a6dc48ab3764ea5bcaa08c0a5a02, type: 2}
+  - hair: Bob3Hair
+    colour: 03 Bobbity Bo Hair 3Dl
+    materials:
+    - {fileID: 2100000, guid: 95093af5453383140b51987a6566977a, type: 2}
+    - {fileID: 2100000, guid: 0ca2cf31c0167894bafb38805c8efff5, type: 2}
+    - {fileID: 2100000, guid: 212337b82f12abd429e25d4fae9f3565, type: 2}
+    - {fileID: 2100000, guid: 65792cd0097ff9d4a80e79866249102f, type: 2}
+    - {fileID: 2100000, guid: 00cc6d491f4a89447b88ac82b8a561b0, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 01
+    materials:
+    - {fileID: 2100000, guid: 41c745073b971574286accb31ff0e69b, type: 2}
+    - {fileID: 2100000, guid: 3d657f8aea5b3de4aa98a0995c8f6eef, type: 2}
+    - {fileID: 2100000, guid: 8e731d84aef7a85468981af63b17c7e6, type: 2}
+    - {fileID: 2100000, guid: 327894274210c9e439ec1d0c80171cca, type: 2}
+    - {fileID: 2100000, guid: 18abaafdbf1a3fc4aa4549c4dee88f87, type: 2}
+    - {fileID: 2100000, guid: c8b5e4f11712a35438b0078d4d4755f8, type: 2}
+    - {fileID: 2100000, guid: c38affd79c4eb1549b50eb6838bc4ce5, type: 2}
+    - {fileID: 2100000, guid: 91372e7f5e7d5564688bdaa67da39b08, type: 2}
+    - {fileID: 2100000, guid: de805b39be862b048be6c866e74d9a44, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 02
+    materials:
+    - {fileID: 2100000, guid: 7422ed9f5237c744cb1d2acffcdfc400, type: 2}
+    - {fileID: 2100000, guid: 0b6f9913a65c78c478b723535ec80286, type: 2}
+    - {fileID: 2100000, guid: cd7334abe1f3cfe47afba834e9c775c1, type: 2}
+    - {fileID: 2100000, guid: dcb1b39954da14642a87a086a98eaf90, type: 2}
+    - {fileID: 2100000, guid: f80a8b328163af441a4238eb1ba92653, type: 2}
+    - {fileID: 2100000, guid: f786e5d170c24b943b04b90f9b6c979d, type: 2}
+    - {fileID: 2100000, guid: 878c66122d3ac014ba7a5843b6e69a06, type: 2}
+    - {fileID: 2100000, guid: 978899b1a5137854e9820041947b3b52, type: 2}
+    - {fileID: 2100000, guid: 387c41608c6b5f943943589608f58aaf, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 03
+    materials:
+    - {fileID: 2100000, guid: 94fdf102820dd2a498bd357cef91dbd9, type: 2}
+    - {fileID: 2100000, guid: ae682012bc286ae44b90aff8fb76b94c, type: 2}
+    - {fileID: 2100000, guid: 0a490ad36688a5d4fac415893a1fb2f3, type: 2}
+    - {fileID: 2100000, guid: e1b8fd8016ec6ca4886726d5a98536fe, type: 2}
+    - {fileID: 2100000, guid: 8950fa18c4fed5b44a76fe1ace6f50ab, type: 2}
+    - {fileID: 2100000, guid: 68d996a227422ba40b912bea300ae03d, type: 2}
+    - {fileID: 2100000, guid: 06ef32b4277d1484683cfacacd3033e8, type: 2}
+    - {fileID: 2100000, guid: 174e0e48bb8577a4084756b7e8791a49, type: 2}
+    - {fileID: 2100000, guid: e1bb659039c702e4da33fe2172c99f21, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 04
+    materials:
+    - {fileID: 2100000, guid: 0e1d37b95fd61a24b88b6c9b2e9db422, type: 2}
+    - {fileID: 2100000, guid: e7afa58a83e669f41aedf4fd867605df, type: 2}
+    - {fileID: 2100000, guid: a1b6b5660d09e9c47aded491bd5a6c4f, type: 2}
+    - {fileID: 2100000, guid: 58808eb56b2311a47a494b051365cd9d, type: 2}
+    - {fileID: 2100000, guid: 197aa40fc4b894a4d8a68bcf7e6cf93e, type: 2}
+    - {fileID: 2100000, guid: b7ca84c9414b5ea4d87ecf6a01a4d395, type: 2}
+    - {fileID: 2100000, guid: 0fe037c8bbcde0e4b9d9192e69a6eb7b, type: 2}
+    - {fileID: 2100000, guid: ff83bdb1a965af14cb62eac01a6804c8, type: 2}
+    - {fileID: 2100000, guid: 54c676eeb4027e341ae254daef3bf9ac, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 05
+    materials:
+    - {fileID: 2100000, guid: 682690de23ee43d49a31a18857a6762e, type: 2}
+    - {fileID: 2100000, guid: 578b1ace73e623748aed458fe419099b, type: 2}
+    - {fileID: 2100000, guid: a8c9c98fee8ffb54ba666df62959243e, type: 2}
+    - {fileID: 2100000, guid: 7b3e41e2492f75e40a26261390a1bd2c, type: 2}
+    - {fileID: 2100000, guid: 5c59e7731c1d92c4ea048aadb5d3135c, type: 2}
+    - {fileID: 2100000, guid: f65c5dc90befce645816a6940945368c, type: 2}
+    - {fileID: 2100000, guid: f6060f4e565646b45964d172b665430c, type: 2}
+    - {fileID: 2100000, guid: 4099f51ad9248be4295a2da0b864ca4b, type: 2}
+    - {fileID: 2100000, guid: 5cb3d2d7e7b943f4e9c0ddc1d7ab54a3, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 06
+    materials:
+    - {fileID: 2100000, guid: f3e37ee6088f6cc489a3299d46fe58ec, type: 2}
+    - {fileID: 2100000, guid: 1ea28bb4b361d144889a6ab135885b62, type: 2}
+    - {fileID: 2100000, guid: 7d4974f404ed8ea4d8ef934ff9e04d48, type: 2}
+    - {fileID: 2100000, guid: c60a891ab9d320e4e9279dafc389f3bf, type: 2}
+    - {fileID: 2100000, guid: 89ef84a9e195e7d429d773e2dd326401, type: 2}
+    - {fileID: 2100000, guid: 4aef38b10f439ef4392be3f98d7190d2, type: 2}
+    - {fileID: 2100000, guid: 0e27c2fb5d628c841a0ac420ef19d1d0, type: 2}
+    - {fileID: 2100000, guid: 57566863f8d08504bba0be88f84549ee, type: 2}
+    - {fileID: 2100000, guid: 2f20546ce4b238442b6d545d2551140a, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 07
+    materials:
+    - {fileID: 2100000, guid: 6a45f04cbc565494b8f9d6ad1df63527, type: 2}
+    - {fileID: 2100000, guid: a00359b57503e5d4591f93b4a6eab97b, type: 2}
+    - {fileID: 2100000, guid: bbd7cfc18610d284b85c0221a14ced86, type: 2}
+    - {fileID: 2100000, guid: 440175123024ade4d8be79f4aeb707c1, type: 2}
+    - {fileID: 2100000, guid: 23bdfb02ca60f88428703d6805c1b6e8, type: 2}
+    - {fileID: 2100000, guid: 4433c354bfc58a84a94261ba2e4ed468, type: 2}
+    - {fileID: 2100000, guid: f74b483ec9a201245a8073e01e4602c9, type: 2}
+    - {fileID: 2100000, guid: 5ee51f574cc2e1249b427608a7a391b6, type: 2}
+    - {fileID: 2100000, guid: 8914c9781e254c74d901f17b63d71c47, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 08
+    materials:
+    - {fileID: 2100000, guid: fdf3866632cec4743bae74a5c6332433, type: 2}
+    - {fileID: 2100000, guid: d141daa211682a046a29e364ccc38d3a, type: 2}
+    - {fileID: 2100000, guid: 0496b458b6e0c5748a0c33588307df14, type: 2}
+    - {fileID: 2100000, guid: bbae4ad1b8505114597abf8c0219f1b9, type: 2}
+    - {fileID: 2100000, guid: df81b5ed4c3a54941aa684eee01e8270, type: 2}
+    - {fileID: 2100000, guid: 7136c5dca37d5e046afe59b2a8bbb44a, type: 2}
+    - {fileID: 2100000, guid: b971b32829093424cbb25909f77c1ec8, type: 2}
+    - {fileID: 2100000, guid: 388528a50851453489932be7dd5df129, type: 2}
+    - {fileID: 2100000, guid: 83a205e14e8fd1a4299cab7ccb3fdcf0, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 09
+    materials:
+    - {fileID: 2100000, guid: 8c268aa4c1823de4881a4809fc368400, type: 2}
+    - {fileID: 2100000, guid: a23bdf6d75bdbe44ead8bd8d565c375b, type: 2}
+    - {fileID: 2100000, guid: 321921da8110e0f4496e29f67e71bcd0, type: 2}
+    - {fileID: 2100000, guid: 6bfe984fa330b3f49a185e745691f6a0, type: 2}
+    - {fileID: 2100000, guid: 2e0ccf656ef8f4d42891d51cf6abde27, type: 2}
+    - {fileID: 2100000, guid: 3a856d2e73472a94bafe84dda23febca, type: 2}
+    - {fileID: 2100000, guid: 3f6b20cf2e632f04d930ab414e90c8b9, type: 2}
+    - {fileID: 2100000, guid: 264ddfcc9de69a04cb3e41e927f8b03c, type: 2}
+    - {fileID: 2100000, guid: 6056d55e0168081448e9a9426f5d71d2, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 10
+    materials:
+    - {fileID: 2100000, guid: cbd9d98241fd9724fad63823f460b4a7, type: 2}
+    - {fileID: 2100000, guid: 15f94aef44910be4b93cf023ba4303f5, type: 2}
+    - {fileID: 2100000, guid: f507c3e18c0b4624c9e1dc0146592a41, type: 2}
+    - {fileID: 2100000, guid: cfd8146c7372b5b4d821819da35182c5, type: 2}
+    - {fileID: 2100000, guid: 5b3fa0f0fbc4e334a954c706216b7f0b, type: 2}
+    - {fileID: 2100000, guid: 67b01753d3f69f644997e12e015c9f65, type: 2}
+    - {fileID: 2100000, guid: b7e30129d34052242baea41972edaacf, type: 2}
+    - {fileID: 2100000, guid: dca22373e1a7e6641bcc406504527607, type: 2}
+    - {fileID: 2100000, guid: d78acf27f456cd2418c434d7c23906fa, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 11
+    materials:
+    - {fileID: 2100000, guid: fb6bdd0563d0f9441b3dc6b217bf7af8, type: 2}
+    - {fileID: 2100000, guid: 8f9b548e52bd30c40b527bca2eb818d0, type: 2}
+    - {fileID: 2100000, guid: f7399e5ecc3f07a4d99c33dbfd1c4bbd, type: 2}
+    - {fileID: 2100000, guid: 06778828316881c439270c56a36d0b73, type: 2}
+    - {fileID: 2100000, guid: a9f18cd79cb3f6545ab3984d08ec217a, type: 2}
+    - {fileID: 2100000, guid: 566ef3ab9d3e54d449f51d67ba3d4880, type: 2}
+    - {fileID: 2100000, guid: 695144a9a7897d54394582beed84de71, type: 2}
+    - {fileID: 2100000, guid: 14df5c0baab64ec4bb7a9e61365369fe, type: 2}
+    - {fileID: 2100000, guid: 4999ca1f5c3deed44a24b88a3b16bcda, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 12
+    materials:
+    - {fileID: 2100000, guid: f8d08ec52c52e4b4db0ca5f81654bea3, type: 2}
+    - {fileID: 2100000, guid: a73388fdf7142024797b56a3656da106, type: 2}
+    - {fileID: 2100000, guid: 1f2f881dbbb8dee478429d8504065092, type: 2}
+    - {fileID: 2100000, guid: 631cb352588a070478edf09210d64e08, type: 2}
+    - {fileID: 2100000, guid: 4ad2d364e95c7ac44abccb81c4dfdf2f, type: 2}
+    - {fileID: 2100000, guid: 06518ead0c59a7e41a0cdd46a507dfb1, type: 2}
+    - {fileID: 2100000, guid: 53f62fce36825c143a30d8d698c01195, type: 2}
+    - {fileID: 2100000, guid: 67ef40e05a523e74590fbaeaada1a862, type: 2}
+    - {fileID: 2100000, guid: bcb66947a6ec2194781d6b6535b16f15, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 13
+    materials:
+    - {fileID: 2100000, guid: 33c28b7f8287d124bbe7a12263b1e516, type: 2}
+    - {fileID: 2100000, guid: 59bab5d9cddd3274994224343dc48163, type: 2}
+    - {fileID: 2100000, guid: a19a3094d1ab54a4196bce7696c920a4, type: 2}
+    - {fileID: 2100000, guid: b0e45a6e0e95f9041bfa9db837b233e7, type: 2}
+    - {fileID: 2100000, guid: 2a7ac6eed676b004e89d5945cc7a31c1, type: 2}
+    - {fileID: 2100000, guid: 1b294021263bee74c8d1a2b19de619ef, type: 2}
+    - {fileID: 2100000, guid: be6ea0d8aa058df4db5fb61ddc7987b9, type: 2}
+    - {fileID: 2100000, guid: b02160639de13634496a219b8ab7fd34, type: 2}
+    - {fileID: 2100000, guid: 5bf59dea4de7c6248bf21fe64cfd5146, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 14
+    materials:
+    - {fileID: 2100000, guid: 1e0038dc0a513b945933c846ce5c7744, type: 2}
+    - {fileID: 2100000, guid: b965457ca7a38954ca485cc68b5e23e0, type: 2}
+    - {fileID: 2100000, guid: 76dd3fa030689b94ea5426c0fe02de40, type: 2}
+    - {fileID: 2100000, guid: e50f67bf9c4010344abe4a85842b1357, type: 2}
+    - {fileID: 2100000, guid: 3d0317880ebef8c429f280c1231b41fd, type: 2}
+    - {fileID: 2100000, guid: 44d22e98bcd6f5e449ee645e72b02581, type: 2}
+    - {fileID: 2100000, guid: 0af356c7efc059c4c8519588e55f1c41, type: 2}
+    - {fileID: 2100000, guid: 26b9edbbb0b61f849a7a1ad7af7dc70a, type: 2}
+    - {fileID: 2100000, guid: fee5868d0d3ac754a800fa7c814e80eb, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 15
+    materials:
+    - {fileID: 2100000, guid: b90fca1026ad6c442844247fd316431d, type: 2}
+    - {fileID: 2100000, guid: 8572d4c8bb6862c4f86744715e72d2ce, type: 2}
+    - {fileID: 2100000, guid: b3d350fdc2b23aa489527bf49b4df8db, type: 2}
+    - {fileID: 2100000, guid: 9ee827019f9bb7d49a970f154555ecb6, type: 2}
+    - {fileID: 2100000, guid: a5b82086190a56046966156e2662d8b3, type: 2}
+    - {fileID: 2100000, guid: 790ccafa014f775409b62d4a310f6cb4, type: 2}
+    - {fileID: 2100000, guid: 31690ae63cbc73846a8e89c228600ff3, type: 2}
+    - {fileID: 2100000, guid: f6a9fe757c2afbf4492bf3bbf7f8f1a3, type: 2}
+    - {fileID: 2100000, guid: 631aaf8f159581d4cbfa1e783349b88c, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 16
+    materials:
+    - {fileID: 2100000, guid: 2eebd5b3e91998e439d6747ab1679690, type: 2}
+    - {fileID: 2100000, guid: c2e344843b4bb4c469a6d49b02edcb38, type: 2}
+    - {fileID: 2100000, guid: 6f6da805e56fa1b42b15cf8c8e9d802f, type: 2}
+    - {fileID: 2100000, guid: b1d90ad1fcfe2bd408ed8c4622205bdd, type: 2}
+    - {fileID: 2100000, guid: 311b481f0b436174b9b9683c672955aa, type: 2}
+    - {fileID: 2100000, guid: 03b282860ac936146819b391ff2a14ec, type: 2}
+    - {fileID: 2100000, guid: 71875976856821d4c92e54bec970d28f, type: 2}
+    - {fileID: 2100000, guid: d99f65e8876fc6c45b0b8c7c90a95f52, type: 2}
+    - {fileID: 2100000, guid: 74ef89f7579718041ad54b5b41d8ce05, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 17
+    materials:
+    - {fileID: 2100000, guid: dcbaf02d9f979a64a8874edbca16b63c, type: 2}
+    - {fileID: 2100000, guid: a0ab15819a08168498fd8f6dc819fe11, type: 2}
+    - {fileID: 2100000, guid: b8fffb44884399e43a24d667c17b750f, type: 2}
+    - {fileID: 2100000, guid: 197d56b82d3f2be40815422f2fd9fd77, type: 2}
+    - {fileID: 2100000, guid: f7276b7835e3ef34c96c2db3c8e8a83b, type: 2}
+    - {fileID: 2100000, guid: 115df76b47587a841a4759fbba530867, type: 2}
+    - {fileID: 2100000, guid: 1cf75196fa8b0d541aee5639f9666b61, type: 2}
+    - {fileID: 2100000, guid: 1ee8eba3aee8167489c5e72137df54c9, type: 2}
+    - {fileID: 2100000, guid: 623825bbf4303604d9484c5cda5ea6d9, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 18
+    materials:
+    - {fileID: 2100000, guid: 26e12207b2506424390eba43239e36e3, type: 2}
+    - {fileID: 2100000, guid: 353fc0ccf622ef84f9af850a864eaa80, type: 2}
+    - {fileID: 2100000, guid: 62d0629b278a4624ebe14742e5bece27, type: 2}
+    - {fileID: 2100000, guid: 8181be22bcf1f2345a4e6e0c8961ec8a, type: 2}
+    - {fileID: 2100000, guid: a4389c2dc06655a458cce714b8ea4138, type: 2}
+    - {fileID: 2100000, guid: 5e3763fa66028b549ac6eeb6584c8cce, type: 2}
+    - {fileID: 2100000, guid: 0bc15322b0cb4724380c8d9bc87e72be, type: 2}
+    - {fileID: 2100000, guid: 828e1e6eddc7ee34d9035a2bcceed82f, type: 2}
+    - {fileID: 2100000, guid: 0c7d13f915b1acb4ca8dd4f1e1b463d1, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 19
+    materials:
+    - {fileID: 2100000, guid: 7056f84332cc5594ca1779029787b7c4, type: 2}
+    - {fileID: 2100000, guid: f049de6b3e3b06f4b98c242e3a006629, type: 2}
+    - {fileID: 2100000, guid: 05604b726ce584944a654a9919abd982, type: 2}
+    - {fileID: 2100000, guid: f2c4a4c3f08897044abf1618239f0a00, type: 2}
+    - {fileID: 2100000, guid: ed07f885a0e9b2842ac36c92f488d30f, type: 2}
+    - {fileID: 2100000, guid: 46b63e8ef7f4a2c488a49306662a797d, type: 2}
+    - {fileID: 2100000, guid: 1daf435761525bb4e8996ec73ee0311f, type: 2}
+    - {fileID: 2100000, guid: bdaf8d0397c9d854592c139c806ea327, type: 2}
+    - {fileID: 2100000, guid: 90472582aa8319441953c1b5a16747a2, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 20
+    materials:
+    - {fileID: 2100000, guid: 8644b8fc1940fd94b89902fc1cb1c48d, type: 2}
+    - {fileID: 2100000, guid: efaa412e58e870b48b94ebcb757e5fa3, type: 2}
+    - {fileID: 2100000, guid: a685e39b9fddb154789ac49e5837ba3d, type: 2}
+    - {fileID: 2100000, guid: b2a3a10cff2ade64fa23a3b5fc7eff29, type: 2}
+    - {fileID: 2100000, guid: 3a72ad919d7b23848a06a822d0e46733, type: 2}
+    - {fileID: 2100000, guid: 57d036b8381ffab44ade82dcc42fe03d, type: 2}
+    - {fileID: 2100000, guid: 8237dae80a12d8048a562e4a2190e255, type: 2}
+    - {fileID: 2100000, guid: a400c28f22f651d479b20fbed21eb666, type: 2}
+    - {fileID: 2100000, guid: 7be0faaacd67f3a498929ef5a07234d2, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 21
+    materials:
+    - {fileID: 2100000, guid: f4414d129873b6140b6cea44c0cdbcad, type: 2}
+    - {fileID: 2100000, guid: f9b9da867cb189d4ab7ae9204ce2d7e3, type: 2}
+    - {fileID: 2100000, guid: 2214041404d2c86469812d03a5be7f2d, type: 2}
+    - {fileID: 2100000, guid: 637a9921d4390f1478e66d978eb4fc64, type: 2}
+    - {fileID: 2100000, guid: 41f95dc74bd77e249920f300b7986473, type: 2}
+    - {fileID: 2100000, guid: 5b1da340669d1a949b9da224c0dd2eb9, type: 2}
+    - {fileID: 2100000, guid: 6ea3b1513ad47d54bae4d9c2952a90c5, type: 2}
+    - {fileID: 2100000, guid: 06dbbfd2b1590204da65336f592bb9e0, type: 2}
+    - {fileID: 2100000, guid: ce5718cc93c450946a87ff6e03c4c93a, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 22
+    materials:
+    - {fileID: 2100000, guid: 3204aa2b2bca75b4bb57f0093ca7c872, type: 2}
+    - {fileID: 2100000, guid: 815290170d2cd5945bc1516de9ec3855, type: 2}
+    - {fileID: 2100000, guid: 93a45f4ee83de7045a8a17c51deea6b3, type: 2}
+    - {fileID: 2100000, guid: 43825eba0aacc3246b3e587dfe154558, type: 2}
+    - {fileID: 2100000, guid: 6af59d980f0100b4da6f80baf8f0da01, type: 2}
+    - {fileID: 2100000, guid: 644b4ae7eec287347bac2a89b984bc2e, type: 2}
+    - {fileID: 2100000, guid: 6b3dcace732d04b4ca4b47c60d763160, type: 2}
+    - {fileID: 2100000, guid: 9f8e6051c9002994983e3102498fea14, type: 2}
+    - {fileID: 2100000, guid: b4f71e3bf9dcd5e46b2b9d24edbd7e89, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 23
+    materials:
+    - {fileID: 2100000, guid: 7c65e576b085cf94293e0180247eccb6, type: 2}
+    - {fileID: 2100000, guid: 54d7add2ae9effd4193df30f047de4af, type: 2}
+    - {fileID: 2100000, guid: eec4b06297aaf5e40b4bb638c27eee8b, type: 2}
+    - {fileID: 2100000, guid: ba383e139705fed4f800d74ef5bcef30, type: 2}
+    - {fileID: 2100000, guid: 883882c32d971534ab1003d114a8e52d, type: 2}
+    - {fileID: 2100000, guid: f9b66de5bf629084b8b0c6acb267ffa7, type: 2}
+    - {fileID: 2100000, guid: 5263188f602d56b409732813ae6c6433, type: 2}
+    - {fileID: 2100000, guid: bed005d0542521e4987c2135d066b2c4, type: 2}
+    - {fileID: 2100000, guid: 7dcbdd27b80191c43a1ff95440d1cce2, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 24
+    materials:
+    - {fileID: 2100000, guid: 1e25c960437980c4fb96c6f7d94dcc0c, type: 2}
+    - {fileID: 2100000, guid: 1d4ed7920bd4ac447852c9665338c91d, type: 2}
+    - {fileID: 2100000, guid: d4c6db81702528345a57c47504b2bd19, type: 2}
+    - {fileID: 2100000, guid: dce29b434567abb4996ab68737f15066, type: 2}
+    - {fileID: 2100000, guid: 92abe03f1064cc84f934007c09589e24, type: 2}
+    - {fileID: 2100000, guid: d5a227788a2f85b468fff9c791c55f52, type: 2}
+    - {fileID: 2100000, guid: f906cf126533a5140a12235867cf180e, type: 2}
+    - {fileID: 2100000, guid: 94feaf2ac4dbe3b4d990ff73fea8f8d2, type: 2}
+    - {fileID: 2100000, guid: 124f17bda70c0e1468283c85d8ed66c0, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 25
+    materials:
+    - {fileID: 2100000, guid: 66a7919d59ae0454fbad5ce0fae2d614, type: 2}
+    - {fileID: 2100000, guid: f5a61bd6a18e7784da66b67efa261038, type: 2}
+    - {fileID: 2100000, guid: b2f4002ee8d7b8e4cb7fe2e7e3395044, type: 2}
+    - {fileID: 2100000, guid: 2193301c8979d024cb196b01849c5a3f, type: 2}
+    - {fileID: 2100000, guid: 2bb59ace758841c4894124855f9c531b, type: 2}
+    - {fileID: 2100000, guid: 24cae56675339dc4fb22f9e5b89b4e4e, type: 2}
+    - {fileID: 2100000, guid: dd655334ede04db49bf2df62eb1c1b72, type: 2}
+    - {fileID: 2100000, guid: 10693f65dc214224d99c94dc69ac7a71, type: 2}
+    - {fileID: 2100000, guid: a5184726690408e4cb1ea0fdadc99a89, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 26
+    materials:
+    - {fileID: 2100000, guid: 4c8a32803804a004997577e8d7d0b658, type: 2}
+    - {fileID: 2100000, guid: a73fdaa8776b0e94ea9c35373b806df3, type: 2}
+    - {fileID: 2100000, guid: b4546e9c7f3e0254596f655d87d2f98b, type: 2}
+    - {fileID: 2100000, guid: 0310cc9eb79f35a40b9b13ceee1dacbd, type: 2}
+    - {fileID: 2100000, guid: 705f997f45d3f894486c63c603d98d4a, type: 2}
+    - {fileID: 2100000, guid: 2bbd50b8b11967a4caf1d131ca7f1514, type: 2}
+    - {fileID: 2100000, guid: e442b58504780474e982ccc8b47522b7, type: 2}
+    - {fileID: 2100000, guid: d282584db35d30b4d831bca40a5162e7, type: 2}
+    - {fileID: 2100000, guid: bdc26d466a2e76143b3390c2fabe6f7b, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 27
+    materials:
+    - {fileID: 2100000, guid: cdf2b5e4ed7600545933e82a0d1c3db2, type: 2}
+    - {fileID: 2100000, guid: dbecc401f9dfff24aae35816c45e5a40, type: 2}
+    - {fileID: 2100000, guid: a831063316a74634f8ea2dc1f803d905, type: 2}
+    - {fileID: 2100000, guid: 6a099a502a4f0be448be475b345d5439, type: 2}
+    - {fileID: 2100000, guid: 6ecec4f93fa1c6d46b0d38e5257895c4, type: 2}
+    - {fileID: 2100000, guid: e2bf2a5bfb9af954d9a88b406674e98b, type: 2}
+    - {fileID: 2100000, guid: d69f9ce3fb246714aadc07389c0669ed, type: 2}
+    - {fileID: 2100000, guid: 3319187ee63c7184595e20591edf3435, type: 2}
+    - {fileID: 2100000, guid: 69ed550e37a81954eb71e0b64eea7b77, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 28
+    materials:
+    - {fileID: 2100000, guid: 024bf8a78a143de45b505bfca54216ba, type: 2}
+    - {fileID: 2100000, guid: 4a0ba408c4c3fb84a8fddf059ff00e6a, type: 2}
+    - {fileID: 2100000, guid: d9e18c652665beb438819b75a4238056, type: 2}
+    - {fileID: 2100000, guid: 8c0e887782814794595a345db9a4d238, type: 2}
+    - {fileID: 2100000, guid: c95a234a5089ce249a03e055bf075c9d, type: 2}
+    - {fileID: 2100000, guid: b9a4747e77f873540a37105a3770d09d, type: 2}
+    - {fileID: 2100000, guid: e28b48fd506d0e841984f83c68f355e2, type: 2}
+    - {fileID: 2100000, guid: c4ffda02b4c9b984bbd18aa75aaf1a4b, type: 2}
+    - {fileID: 2100000, guid: aeb1f88887e6db3448d208cf2cc0cb58, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 29
+    materials:
+    - {fileID: 2100000, guid: 6fec02860bafec1498c8e95fbbce86b4, type: 2}
+    - {fileID: 2100000, guid: 0e32e14f86f02804499376df1cc6bd78, type: 2}
+    - {fileID: 2100000, guid: f64883c8c7109dd4082940f92232731e, type: 2}
+    - {fileID: 2100000, guid: 51ffbdcfa140a9142b85e1c4a1a07229, type: 2}
+    - {fileID: 2100000, guid: 8aa9dc423f65da34d8a4a2d988e73eda, type: 2}
+    - {fileID: 2100000, guid: 049f33095f4f2ac4c902fcc46b6ef386, type: 2}
+    - {fileID: 2100000, guid: 56315f02adfe42a45bdd3259af78a101, type: 2}
+    - {fileID: 2100000, guid: bdeb0f34d3152ce40b028b5003e375ea, type: 2}
+    - {fileID: 2100000, guid: be3f16b215d57e243a03f9fa925f7a5f, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtails Base Color 30
+    materials:
+    - {fileID: 2100000, guid: e4cf08a6320765d4995b5448e5e168ec, type: 2}
+    - {fileID: 2100000, guid: 5ac4c984528a5cf40acb0ec637817785, type: 2}
+    - {fileID: 2100000, guid: 6fe38933d7d16484ab164f05c8bcc6bc, type: 2}
+    - {fileID: 2100000, guid: 9c3ff3f9db86299409ccd86b8baba9ce, type: 2}
+    - {fileID: 2100000, guid: 23caa7a9696402e4aba28cd7c55c8d4b, type: 2}
+    - {fileID: 2100000, guid: 8c6fbb6fabf417243b1c3abb7453bc0b, type: 2}
+    - {fileID: 2100000, guid: a427f68618cc7a94b8c99c8faaf8d636, type: 2}
+    - {fileID: 2100000, guid: 38941215624a02249a399e9c155dfa67, type: 2}
+    - {fileID: 2100000, guid: 2300b7ac3daaffd428be7738a9f8510b, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtailsbands 01
+    materials:
+    - {fileID: 2100000, guid: f94dc303cb4baa247a491d3aa390055c, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtailsbands 02
+    materials:
+    - {fileID: 2100000, guid: 1196139e0407db84a987d85a5678b11a, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtailsbands 03
+    materials:
+    - {fileID: 2100000, guid: 210e39cda2b52fb4bb83c145326fb953, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtailsbands 04
+    materials:
+    - {fileID: 2100000, guid: 4df5dd5776ce5f748a31145925db8935, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtailsbands 05
+    materials:
+    - {fileID: 2100000, guid: 39740ceee4d6bf949a3cfd74282a716f, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtailsbands 06
+    materials:
+    - {fileID: 2100000, guid: f67152de4fcaa374face86a93abf7d55, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtailsbands 07
+    materials:
+    - {fileID: 2100000, guid: c6dd780fdd5934f43ac2a7d2db0086d1, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtailsbands 08
+    materials:
+    - {fileID: 2100000, guid: b96362eb67e836d4581acf65945888e2, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtailsbands 09
+    materials:
+    - {fileID: 2100000, guid: d9463f335c6e3324583d3d90d383db96, type: 2}
+  - hair: ChunkyHair
+    colour: Chunky Pigtailsbands 10
+    materials:
+    - {fileID: 2100000, guid: 68c5ea4852e927142a0c805027738e83, type: 2}
+  - hair: EilisHair
+    colour: Eilis 10 M AshBlue
+    materials:
+    - {fileID: 2100000, guid: db63193487d3138408e4ecd484999c00, type: 2}
+    - {fileID: 2100000, guid: 47a9c75895488f64882897caca7dffbe, type: 2}
+    - {fileID: 2100000, guid: e8d346ed2bd892b4aa724f446d3a71b2, type: 2}
+  - hair: EilisHair
+    colour: Eilis 10 M Black
+    materials:
+    - {fileID: 2100000, guid: ad3fff3ddcfeb974e8eda60b4aac8ebe, type: 2}
+    - {fileID: 2100000, guid: b86a5d841d608cb42b9baecb7d7cac26, type: 2}
+    - {fileID: 2100000, guid: 6b6dd8d7993d669408f9da32f20313fd, type: 2}
+  - hair: EilisHair
+    colour: Eilis 10 M BlackRed
+    materials:
+    - {fileID: 2100000, guid: d725f6abbce478b41b64e480070cd245, type: 2}
+    - {fileID: 2100000, guid: 26949bb1d4fb1954f9d525fd35834fb1, type: 2}
+    - {fileID: 2100000, guid: 8594cb6576f878945b4239cd9f6172d3, type: 2}
+  - hair: EilisHair
+    colour: Eilis 10 M BlackWhite
+    materials:
+    - {fileID: 2100000, guid: 2f0b65425686964438844d7acf964eec, type: 2}
+    - {fileID: 2100000, guid: 7c5caced534efcf468224423b181158a, type: 2}
+    - {fileID: 2100000, guid: 1f95f70ea49d830448891cfacaaa9292, type: 2}
+  - hair: EilisHair
+    colour: Eilis 10 M Blonde
+    materials:
+    - {fileID: 2100000, guid: 9667a19b01480a54794661fbc6d854d2, type: 2}
+    - {fileID: 2100000, guid: 32395b8999c36344fb4a6949d98fcd0b, type: 2}
+    - {fileID: 2100000, guid: a385c68016cf3724cb299c15019f6521, type: 2}
+  - hair: EilisHair
+    colour: Eilis 10 M BlueYellow
+    materials:
+    - {fileID: 2100000, guid: 3100dbdb9d3174a42a4bcd1f880108ad, type: 2}
+    - {fileID: 2100000, guid: ac1775802b201dc4e88c55af9e4c4790, type: 2}
+    - {fileID: 2100000, guid: 5fc00f408bc0a8b4c8a28a3ea5ff1a68, type: 2}
+  - hair: EilisHair
+    colour: Eilis 10 M Brown
+    materials:
+    - {fileID: 2100000, guid: 340ad9ee0ce2b54468cabe895f0f5d82, type: 2}
+    - {fileID: 2100000, guid: a095fcb79fd48224e82b875408d494f4, type: 2}
+    - {fileID: 2100000, guid: eb3bab46a88edc84c9616dc49fdb68f7, type: 2}
+  - hair: EilisHair
+    colour: Eilis 10 M BrownBlonde
+    materials:
+    - {fileID: 2100000, guid: 26c0b2d19f944834783aa861c23d7b71, type: 2}
+    - {fileID: 2100000, guid: 4b59b8fb90fdf284a8b2f6bc659cc78f, type: 2}
+    - {fileID: 2100000, guid: 99177376a06900843a52c976ac18cc85, type: 2}
+  - hair: EilisHair
+    colour: Eilis 10 M BrownDk
+    materials:
+    - {fileID: 2100000, guid: d5f82310823169f478109a302b71c788, type: 2}
+    - {fileID: 2100000, guid: 5d76d6a4d0c45384e957380b8b1822b5, type: 2}
+    - {fileID: 2100000, guid: aae28a65a72e8f04f88b313f96000704, type: 2}
+  - hair: EilisHair
+    colour: Eilis 10 M Grey
+    materials:
+    - {fileID: 2100000, guid: 6307e728d4e8c4e45a62ab756f71fe05, type: 2}
+    - {fileID: 2100000, guid: c8eb0388822ce7e4ca5e580bf0339f68, type: 2}
+    - {fileID: 2100000, guid: b78820576f21c8d4b94f6fd13b38acb6, type: 2}
+  - hair: EilisHair
+    colour: Eilis 10 M Red
+    materials:
+    - {fileID: 2100000, guid: cc174a5636bbc4349918a7a4dac171b3, type: 2}
+    - {fileID: 2100000, guid: d1db3a44d96060a4d894d5c514ee46be, type: 2}
+    - {fileID: 2100000, guid: f278acc357678854da48e4af89bcb012, type: 2}
+  - hair: EilisHair
+    colour: Eilis 10 M White
+    materials:
+    - {fileID: 2100000, guid: 6a8bf6a39a569cc44a1625d806c12006, type: 2}
+    - {fileID: 2100000, guid: a32fc490bebb6ee4ebd06029283e2e85, type: 2}
+    - {fileID: 2100000, guid: 9665cedca84a49e4f8706a0468700e55, type: 2}
+  - hair: EilisHair
+    colour: Eilis 10 M WhitePink
+    materials:
+    - {fileID: 2100000, guid: 477551b985cfa844f9ebba9f93a48501, type: 2}
+    - {fileID: 2100000, guid: 6be1d18bc1077d544b978ea2cbf09e8d, type: 2}
+    - {fileID: 2100000, guid: 519e51084daafaf40af920b0e9d04314, type: 2}
+  - hair: EilisHair
+    colour: Eilis 20 D Ash
+    materials:
+    - {fileID: 2100000, guid: 573fa97eded61e34a9cf6d349275ec7d, type: 2}
+    - {fileID: 2100000, guid: 618b41f71df56f446883bce2de4270f6, type: 2}
+    - {fileID: 2100000, guid: 34b92ef940c5fb6409b02aa26d79bb41, type: 2}
+  - hair: EilisHair
+    colour: Eilis 20 D Blue
+    materials:
+    - {fileID: 2100000, guid: 5b0a8638492127443a9abcb7e5ee06fb, type: 2}
+    - {fileID: 2100000, guid: dbb234c572f5291439a557f858f592bc, type: 2}
+    - {fileID: 2100000, guid: d51b6a5b5ac8e87449b31be38acf6d3d, type: 2}
+  - hair: EilisHair
+    colour: Eilis 20 D Candy
+    materials:
+    - {fileID: 2100000, guid: 20701526ee301774e872c2898244d937, type: 2}
+    - {fileID: 2100000, guid: 0cca4d49c329b984fa5a695799c8b3d2, type: 2}
+    - {fileID: 2100000, guid: d6e6d9d76542bca4d8d6b3e65e4a8053, type: 2}
+  - hair: EilisHair
+    colour: Eilis 20 D Coral
+    materials:
+    - {fileID: 2100000, guid: 72025dd4692d2de419cb3028b014b294, type: 2}
+    - {fileID: 2100000, guid: b4bbd96b0a029be48bb107f6f808f9b1, type: 2}
+    - {fileID: 2100000, guid: d9bfbc3af64559f498e4da3096892d57, type: 2}
+  - hair: EilisHair
+    colour: Eilis 20 D Green
+    materials:
+    - {fileID: 2100000, guid: fbde6bda9eb0c93408ea677c37fd9153, type: 2}
+    - {fileID: 2100000, guid: 84e8a6bafe2e71a439b49a8e2424d686, type: 2}
+    - {fileID: 2100000, guid: 428cc2939cccfe049b611ff7beca57af, type: 2}
+  - hair: EilisHair
+    colour: Eilis 20 D Pink
+    materials:
+    - {fileID: 2100000, guid: e3773bde357ea6b45b8d326ba47222ad, type: 2}
+    - {fileID: 2100000, guid: ba1faa112863e3143986a94e4447c78d, type: 2}
+    - {fileID: 2100000, guid: 452269baac8be4542b72dfc22c4deaa1, type: 2}
+  - hair: EilisHair
+    colour: Eilis 20 D Purple
+    materials:
+    - {fileID: 2100000, guid: e168357639e388f498f7d761fa54f71d, type: 2}
+    - {fileID: 2100000, guid: f1434304137d88741b3e035138fb58c8, type: 2}
+    - {fileID: 2100000, guid: 75822cf78f0e0f248a9249566fcf97db, type: 2}
+  - hair: EilisHair
+    colour: Eilis 20 D Red
+    materials:
+    - {fileID: 2100000, guid: f254821ded493ad428caca468ad86825, type: 2}
+    - {fileID: 2100000, guid: 7af180decb452d44bbf7defdb490c937, type: 2}
+    - {fileID: 2100000, guid: 1d69a3daf01064d48a729e99014ab84a, type: 2}
+  - hair: EilisHair
+    colour: Eilis 20 D XBlackBlue
+    materials:
+    - {fileID: 2100000, guid: ea799ff74cc68d245be4531e978fe9a9, type: 2}
+    - {fileID: 2100000, guid: f15d7b40c853c964989a5b8630ef147e, type: 2}
+    - {fileID: 2100000, guid: 8a2c62a8d8657534e9e3729ce59d65b8, type: 2}
+  - hair: EilisHair
+    colour: Eilis 20 D XBlackRed
+    materials:
+    - {fileID: 2100000, guid: ccd2fcf02f0ed9049b4a23fddba18ac8, type: 2}
+    - {fileID: 2100000, guid: 0ced1d0af654b954dbd05a6361fb5c64, type: 2}
+    - {fileID: 2100000, guid: 6a6d1097f38b9ab49a9da279508c3efe, type: 2}
+  - hair: EilisHair
+    colour: Eilis 20 D XBlackWhite
+    materials:
+    - {fileID: 2100000, guid: 2b2672be529b9b84f9936585c1f09d4b, type: 2}
+    - {fileID: 2100000, guid: 4854690ebcd6c8744a487624c02348da, type: 2}
+    - {fileID: 2100000, guid: 611f33ab042e8a44996ad2c240ed3073, type: 2}
+  - hair: EilisHair
+    colour: Eilis 20 D XPurpleGreen
+    materials:
+    - {fileID: 2100000, guid: fa644ef2df4e44542a80c99f9e5d46ed, type: 2}
+    - {fileID: 2100000, guid: 6dabe524c4f5fd44b89cd1f4491b8e9e, type: 2}
+    - {fileID: 2100000, guid: 768e6b9f7b66b39428e5531562054eba, type: 2}
+  - hair: Hair07
+    colour: Ladina-COl 06
+    materials:
+    - {fileID: 2100000, guid: efeb5c2589a70a44e8caf24993365659, type: 2}
+    - {fileID: 2100000, guid: 38db82ea5a2110142a31125184c39ea9, type: 2}
+    - {fileID: 2100000, guid: d6a62778c7f697045a322eaeea54ed41, type: 2}
+    - {fileID: 2100000, guid: 47b89be7f2a4e9b46b7493d9a6c0d21b, type: 2}
+    - {fileID: 2100000, guid: 4e1ac6f4e7429e442a5027559018ce98, type: 2}
+    - {fileID: 2100000, guid: bf4a22ae29376da429fe87470cb9823f, type: 2}
+  - hair: Hair07
+    colour: Ladina-Col 01
+    materials:
+    - {fileID: 2100000, guid: b26fb16fa7102db4798838517ac4dd4a, type: 2}
+    - {fileID: 2100000, guid: 968f9da69e85846469d6c967a338fa59, type: 2}
+    - {fileID: 2100000, guid: 33e853a1bfd0e304186cd3129cddae9d, type: 2}
+    - {fileID: 2100000, guid: dc0baee7094887548b86b6c4bb4479e2, type: 2}
+    - {fileID: 2100000, guid: df7bb6d076ec46c4b808b9d42f6971aa, type: 2}
+    - {fileID: 2100000, guid: 20538830d355bf64a904c5faa64464e4, type: 2}
+  - hair: Hair07
+    colour: Ladina-Col 02
+    materials:
+    - {fileID: 2100000, guid: 3920a615ab391074194df500c9edf1df, type: 2}
+    - {fileID: 2100000, guid: 8f60a146959af454896a5c7fabe78987, type: 2}
+    - {fileID: 2100000, guid: bd88700f13037364c927f803ee1b6f36, type: 2}
+    - {fileID: 2100000, guid: 1db8e6e8aaf251d4496dfb08cdd736d3, type: 2}
+    - {fileID: 2100000, guid: 0f1cdbf06eaf72c4c88356383a96d0b5, type: 2}
+    - {fileID: 2100000, guid: 57e1dbdb9c9aadc41b1beca6b944555f, type: 2}
+  - hair: Hair07
+    colour: Ladina-Col 03
+    materials:
+    - {fileID: 2100000, guid: b69168b11f888a54d98e4dbc4d05a6b0, type: 2}
+    - {fileID: 2100000, guid: 0c5888fa7eb9dbd49a8ed812eaa0a826, type: 2}
+    - {fileID: 2100000, guid: 5712060827ce2ce4fa977c06d706b19a, type: 2}
+    - {fileID: 2100000, guid: b372399faad4c294999a44fa09a94a7c, type: 2}
+    - {fileID: 2100000, guid: 1c853b6df84b94646949d7d19160abba, type: 2}
+    - {fileID: 2100000, guid: 270cf7d39e408b249948d963a20c8823, type: 2}
+  - hair: Hair07
+    colour: Ladina-Col 04
+    materials:
+    - {fileID: 2100000, guid: 1088e9cbe3e775943b112521c6e82ab7, type: 2}
+    - {fileID: 2100000, guid: ee5221bce20aa484e9e826f638598166, type: 2}
+    - {fileID: 2100000, guid: 5a3cd79282b34964a8f4357d8a23f04e, type: 2}
+    - {fileID: 2100000, guid: a37d0a16772fe9543a77ecb9c50da369, type: 2}
+    - {fileID: 2100000, guid: e7f46e576417db544a1084ef6c5f9f8a, type: 2}
+    - {fileID: 2100000, guid: 734b5a23b1594dd4782154336d32fae8, type: 2}
+  - hair: Hair07
+    colour: Ladina-Col 05
+    materials:
+    - {fileID: 2100000, guid: 2fbd4541c1ae1f54ca11b13b4224212b, type: 2}
+    - {fileID: 2100000, guid: 75b8d506595683b40a37063df1478e3d, type: 2}
+    - {fileID: 2100000, guid: f8c037e5e99ef3649908bb79db201b60, type: 2}
+    - {fileID: 2100000, guid: ee86dc64131b40a4899283dc712e556d, type: 2}
+    - {fileID: 2100000, guid: c4537f6d9f1c1c343a4487a7328e101b, type: 2}
+    - {fileID: 2100000, guid: 105032d25b6e1774bac2069464d6710f, type: 2}
+  - hair: Hair07
+    colour: Ladina-Col 07
+    materials:
+    - {fileID: 2100000, guid: 240c3332e1c54314eb90017dcfa759b4, type: 2}
+    - {fileID: 2100000, guid: f890273d54fb1dd4f8fe9e8de8a5861f, type: 2}
+    - {fileID: 2100000, guid: 64a87c6ce7436f14f9c45af15f84ca5e, type: 2}
+    - {fileID: 2100000, guid: fa3c8166c97b44d4eb417a25deacf1f5, type: 2}
+    - {fileID: 2100000, guid: 9d397125fbe856345b0b62383a1417e1, type: 2}
+    - {fileID: 2100000, guid: 8cfb178bcace82c469b44a0fb3945f52, type: 2}
+  - hair: Hair07
+    colour: Ladina-Col 08
+    materials:
+    - {fileID: 2100000, guid: 3a35627dee7da3c4a88be891bd588576, type: 2}
+    - {fileID: 2100000, guid: f5273b26a5adabe498f11e3ab5c3ca08, type: 2}
+    - {fileID: 2100000, guid: 21ca0b3c0073e6d4e8dd6ffb5b8198c0, type: 2}
+    - {fileID: 2100000, guid: 96d05decc22e8b849a3e8c681f754b50, type: 2}
+    - {fileID: 2100000, guid: b6cae6a3d5a97f04784acd9d05923d13, type: 2}
+    - {fileID: 2100000, guid: 6a08c12216b40a9488e3a0abeb98e188, type: 2}
+  - hair: Hair07
+    colour: Ladina-Col 09
+    materials:
+    - {fileID: 2100000, guid: 88568fe407802d7498f4cfcd42f9c81f, type: 2}
+    - {fileID: 2100000, guid: 1059101cde1a0b545a05957d941c2d1f, type: 2}
+    - {fileID: 2100000, guid: 9dd519f1e1342c349a139a9b81727fca, type: 2}
+    - {fileID: 2100000, guid: 1cecc039a4e123b43b293ba94da1421c, type: 2}
+    - {fileID: 2100000, guid: 0b97e18cdb75a3e4ea64220ae1620e1b, type: 2}
+    - {fileID: 2100000, guid: cc641396ee965504486e22fbd9dd7443, type: 2}
+  - hair: Hair07
+    colour: Ladina-Col 10
+    materials:
+    - {fileID: 2100000, guid: 2516a3b296de17847b19fcee6b44876e, type: 2}
+    - {fileID: 2100000, guid: 99ab951f3c377e94baf0529ddd987760, type: 2}
+    - {fileID: 2100000, guid: a10f0f7c71cb6274da8e3ff1621d1178, type: 2}
+    - {fileID: 2100000, guid: c195a80dd2fa0ab45b10cfd49e683b02, type: 2}
+    - {fileID: 2100000, guid: 52863dce682f5444da70d397ce180f2c, type: 2}
+    - {fileID: 2100000, guid: 0af802d4399cad4438edcaf5e1f0b033, type: 2}
+  - hair: Hair07
+    colour: Ladina-Col 11
+    materials:
+    - {fileID: 2100000, guid: e1fbdbe66a115e1419a08f83fa982db6, type: 2}
+    - {fileID: 2100000, guid: 2e71fca15a9bf3c40855be0b45a75d08, type: 2}
+    - {fileID: 2100000, guid: a2d349826dfc9fa4b82a4970970f475f, type: 2}
+    - {fileID: 2100000, guid: d50d2cee2df72e0449f14c20969aa3a7, type: 2}
+    - {fileID: 2100000, guid: 8361d6f7e9f0fad4fa8459432c85cf76, type: 2}
+    - {fileID: 2100000, guid: 1008b4c008a430a468fd35151d83da37, type: 2}
+  - hair: Hair07
+    colour: Ladina-Col 12
+    materials:
+    - {fileID: 2100000, guid: 19f7a04fd591c9d45ac63400fba38ff1, type: 2}
+    - {fileID: 2100000, guid: 388f1e6b230d51f459f329946cc64f8b, type: 2}
+    - {fileID: 2100000, guid: 086d5e102be4b9148a57554196c8ddb8, type: 2}
+    - {fileID: 2100000, guid: 95f91844c83f3f643a2432231e12ddd9, type: 2}
+    - {fileID: 2100000, guid: f3cb5852cd3b52e4a8a0b0bc3661916f, type: 2}
+    - {fileID: 2100000, guid: 46512efa38a41e34c8308ab37e5c19c9, type: 2}
+  - hair: Hair07
+    colour: Ladina-Col 13
+    materials:
+    - {fileID: 2100000, guid: 286ba1168bb048a4c9b6336f035f4f9d, type: 2}
+    - {fileID: 2100000, guid: ad13094459723fa4b9eea24fe7842299, type: 2}
+    - {fileID: 2100000, guid: 0a6c9c17428e501489cfc0a64bde1657, type: 2}
+    - {fileID: 2100000, guid: 8d7c7dc1507df4941a951d59a5aa8116, type: 2}
+    - {fileID: 2100000, guid: a0b2c2976b276db448592e35491442bc, type: 2}
+    - {fileID: 2100000, guid: 8f5d2c83a338c864db2e64d9dc7b8a32, type: 2}
+  - hair: Hair07
+    colour: Ladina-Col 14
+    materials:
+    - {fileID: 2100000, guid: 7a4a57ff102981a4ca680880508e6089, type: 2}
+    - {fileID: 2100000, guid: 26980cc7d41afc94287febbc9cdad34d, type: 2}
+    - {fileID: 2100000, guid: 768d5594ae56c184095e3e01ee78e0cb, type: 2}
+    - {fileID: 2100000, guid: d680b458d9daba54aaa34ddadaa4d3dc, type: 2}
+    - {fileID: 2100000, guid: 95250254c2087e44cbc9dc9f56c98d72, type: 2}
+    - {fileID: 2100000, guid: 6b6af38d06c044d46a899673ed641820, type: 2}
+  - hair: Hair07
+    colour: Ladina-Col 15
+    materials:
+    - {fileID: 2100000, guid: f13c124110c431a46b1633fdb4a90b7d, type: 2}
+    - {fileID: 2100000, guid: d3cb36bed7f3fb640a9a3fd86a1f730a, type: 2}
+    - {fileID: 2100000, guid: 6e1859a6af87be942858f50494d6ae9f, type: 2}
+    - {fileID: 2100000, guid: f72d948818d27a6409e7debc7edffda7, type: 2}
+    - {fileID: 2100000, guid: 8fa9320764d96df4a8e438697e494279, type: 2}
+    - {fileID: 2100000, guid: 6ab3c592a16300948a3b42db1d59db76, type: 2}
+  - hair: Hair07
+    colour: Ladina-Ombre Col 01
+    materials:
+    - {fileID: 2100000, guid: eff0056598fab2240a8442f538a9ed5b, type: 2}
+    - {fileID: 2100000, guid: bb2096ffb9dd68f449975905b7e24ca2, type: 2}
+    - {fileID: 2100000, guid: 2269edd91f96cc047b667c767fe54eb9, type: 2}
+    - {fileID: 2100000, guid: dab590d9af0d14d44a03eda5abcd0fa7, type: 2}
+    - {fileID: 2100000, guid: 891fba975efcf9d40a50d16071c4c30b, type: 2}
+    - {fileID: 2100000, guid: c915b507809a21d4a85c9e37cfb1b485, type: 2}
+  - hair: Hair07
+    colour: Ladina-Ombre Col 02
+    materials:
+    - {fileID: 2100000, guid: d318b9571af1911488d410723c301ccb, type: 2}
+    - {fileID: 2100000, guid: ca15d68fd593c664a99e0f2c9102bd98, type: 2}
+    - {fileID: 2100000, guid: 15c70786f2ee0374aab08248b9e44090, type: 2}
+    - {fileID: 2100000, guid: 0b13e5fab7bd05b4a935acbdd7fc2000, type: 2}
+    - {fileID: 2100000, guid: 6d909c8c9aba5ed4cb8736fb85873a56, type: 2}
+    - {fileID: 2100000, guid: 801b8923fa53eb9438477d3210271e83, type: 2}
+  - hair: Hair07
+    colour: Ladina-Ombre Col 03
+    materials:
+    - {fileID: 2100000, guid: 387680aff4c305740be9780f268ff1c4, type: 2}
+    - {fileID: 2100000, guid: 68a0ae450f0eda841af76afac64fa263, type: 2}
+    - {fileID: 2100000, guid: 88573cd1ef79b8a47b6f6a125c04d7f9, type: 2}
+    - {fileID: 2100000, guid: 227a7919486668c40967eceb01143b76, type: 2}
+    - {fileID: 2100000, guid: 017c15e6e40c40f469b3ebc6bcc9581d, type: 2}
+    - {fileID: 2100000, guid: 7f0e82f981e520a48bf7e2d53581698b, type: 2}
+  - hair: Hair07
+    colour: Ladina-Ombre Col 04
+    materials:
+    - {fileID: 2100000, guid: 5192b79bcf66aed4caaf21958d25e140, type: 2}
+    - {fileID: 2100000, guid: 599c25ac4efc40945a1455595568de99, type: 2}
+    - {fileID: 2100000, guid: e8355ab670cf36f49bbd077f99d94b3a, type: 2}
+    - {fileID: 2100000, guid: 4cce5c0d3cba325478d792135aacb974, type: 2}
+    - {fileID: 2100000, guid: d4d1aad56279b784b8241baccece0e70, type: 2}
+    - {fileID: 2100000, guid: 9864bdaa9c71d0d45a5de26042cca904, type: 2}
+  - hair: Hair07
+    colour: Ladina-Ombre Col 05
+    materials:
+    - {fileID: 2100000, guid: 02849ae0a2db4d049b1c7d1089fc8919, type: 2}
+    - {fileID: 2100000, guid: 006ce2a2755b3964ea14d25f9e7261b4, type: 2}
+    - {fileID: 2100000, guid: 1112a8f0ef8693746b0d0923dfcb79d1, type: 2}
+    - {fileID: 2100000, guid: 56f57fcffd98897469c317f4c5694512, type: 2}
+    - {fileID: 2100000, guid: bad880db0d1136942bbf56b52e031f2c, type: 2}
+    - {fileID: 2100000, guid: 06e2b1e209e64224594cd7eeb169956e, type: 2}
+  - hair: Hair07
+    colour: Ladina-Ombre Col 06
+    materials:
+    - {fileID: 2100000, guid: ec43e9e1ee6f4c244884c9da47312ff0, type: 2}
+    - {fileID: 2100000, guid: ca7f8fb61911f0d478ff9715f572c150, type: 2}
+    - {fileID: 2100000, guid: b173e6f8a6a91b04d82fef197e77b932, type: 2}
+    - {fileID: 2100000, guid: 83bde9d3058dbda4aafd2feaf4c37426, type: 2}
+    - {fileID: 2100000, guid: b5f3895f02cfda54192d74d842b1a003, type: 2}
+    - {fileID: 2100000, guid: 1245476fae20eec4db80fd08a30633e4, type: 2}
+  - hair: Hair07
+    colour: Ladina-Ombre Col 07
+    materials:
+    - {fileID: 2100000, guid: dc5e44ca741165a4597d3597e170ac19, type: 2}
+    - {fileID: 2100000, guid: 5732310ec6ab0ac4a8c6140f04735a0f, type: 2}
+    - {fileID: 2100000, guid: 344332c43e412db46bed1aa8a3e38831, type: 2}
+    - {fileID: 2100000, guid: 9ca60b3b7285edd4398bbead8875c278, type: 2}
+    - {fileID: 2100000, guid: ce5237d2c2f13e9438649c9c8493fe80, type: 2}
+    - {fileID: 2100000, guid: 1e521ac05b3924b4da310a677d7ab3ea, type: 2}
+  - hair: Hair07
+    colour: Ladina-Ombre Col 08
+    materials:
+    - {fileID: 2100000, guid: 24b35abaa9907eb4c8ef588777eaf45b, type: 2}
+    - {fileID: 2100000, guid: a762ed88c56125349907003cbf332406, type: 2}
+    - {fileID: 2100000, guid: 106195946ab587243803f323f6185e61, type: 2}
+    - {fileID: 2100000, guid: 55b96aff39f950e4b8d8d288ed8364bb, type: 2}
+    - {fileID: 2100000, guid: ad9b7dec3a0e9fa49bdc50318f5e375b, type: 2}
+    - {fileID: 2100000, guid: f6802d62326060b4384f187714d8952c, type: 2}
+  - hair: Hair07
+    colour: Ladina-Ombre Col 09
+    materials:
+    - {fileID: 2100000, guid: 4c54acfb96b01cc43a0f2889c08bfc39, type: 2}
+    - {fileID: 2100000, guid: b1ffff2ce0156b945a6725f3fad54c37, type: 2}
+    - {fileID: 2100000, guid: 880e9a5ecae41134f996ec06dd6384d0, type: 2}
+    - {fileID: 2100000, guid: 83b74f8d8f4051140a4ed95cc51928a5, type: 2}
+    - {fileID: 2100000, guid: ffc6e8cc5a35f774dab10da832700739, type: 2}
+    - {fileID: 2100000, guid: dc1f38d3cc9d25a419176203e583ccd6, type: 2}
+  - hair: Hair07
+    colour: Ladina-Ombre Col 10
+    materials:
+    - {fileID: 2100000, guid: 70726fe38742b4845b79942eb31aba4b, type: 2}
+    - {fileID: 2100000, guid: af3e097966a683c4598b9958c43d3fa1, type: 2}
+    - {fileID: 2100000, guid: 3724d6b5132e5c54ca2a864aec54a4ad, type: 2}
+    - {fileID: 2100000, guid: 2d76ac64ec2781a4b830d477d8070666, type: 2}
+    - {fileID: 2100000, guid: a06e2331c0d10ca448b401cf6dc193f5, type: 2}
+    - {fileID: 2100000, guid: 32564f5ed26139146acef978bdc115bf, type: 2}
+  - hair: JenniferHair
+    colour: Jennifer Hair MAT 01
+    materials:
+    - {fileID: 2100000, guid: d153927e0ced2d14c9e0bed95e7c6061, type: 2}
+    - {fileID: 2100000, guid: 28b00412de0aea5428df3d1ada7af358, type: 2}
+    - {fileID: 2100000, guid: 4e3c6d4745aefd048b5009c33f19077c, type: 2}
+    - {fileID: 2100000, guid: 514b77abc98a2a349b3d1b0f287294ef, type: 2}
+    - {fileID: 2100000, guid: e46291f0baab4d94f8039b92a16bafee, type: 2}
+    - {fileID: 2100000, guid: 950f1f76b64f4c84c9309cbeab6db90a, type: 2}
+    - {fileID: 2100000, guid: f62f37d7e8b4ae24a9680476bf25161b, type: 2}
+    - {fileID: 2100000, guid: 98a7f2bc53532eb4ba9d4e41dbff626c, type: 2}
+    - {fileID: 2100000, guid: d83d0108ee0391f4dbc38ee397663b54, type: 2}
+    - {fileID: 2100000, guid: deb796f6cbaa49541a3e09bbb8919154, type: 2}
+  - hair: JenniferHair
+    colour: Jennifer Hair MAT 02
+    materials:
+    - {fileID: 2100000, guid: e442e3d2fe9230540a2b5d519e5957fc, type: 2}
+    - {fileID: 2100000, guid: 80d70c80ce3f98d47a1b381bf8d048b1, type: 2}
+    - {fileID: 2100000, guid: 6cee2d4f62200f84381e471429bcf637, type: 2}
+    - {fileID: 2100000, guid: 77a091512528f874a87c98357bcbb996, type: 2}
+    - {fileID: 2100000, guid: 5570a523af1e601409c67e33728436ec, type: 2}
+    - {fileID: 2100000, guid: c8cdfae3ef20aae4d8ae67704c8f8d3b, type: 2}
+    - {fileID: 2100000, guid: b2262e11045fda64a8951ba26d30fec8, type: 2}
+    - {fileID: 2100000, guid: 39702a57fb42f3e45ac561a4b1f98d8c, type: 2}
+    - {fileID: 2100000, guid: 2eef07ae9aa8f654aa05271ed2000ad5, type: 2}
+    - {fileID: 2100000, guid: 1d0b9be1c90ff264e8c42af92b7ea240, type: 2}
+  - hair: JenniferHair
+    colour: Jennifer Hair MAT 03
+    materials:
+    - {fileID: 2100000, guid: bd3d1e9bdeded9344af632d29beb5e13, type: 2}
+    - {fileID: 2100000, guid: d34c9f276a893834ea6789561b0e1bd0, type: 2}
+    - {fileID: 2100000, guid: b47eb4faf7c2a32468b5ba7620446a0f, type: 2}
+    - {fileID: 2100000, guid: 9b460b91216dff641ba5028bf185f27a, type: 2}
+    - {fileID: 2100000, guid: 0e5338e70839bb440b8d0069f65311dd, type: 2}
+    - {fileID: 2100000, guid: c21ae252d61acc44db977d472f413e8d, type: 2}
+    - {fileID: 2100000, guid: 3e20b5dad5a05894aa326b8955267049, type: 2}
+    - {fileID: 2100000, guid: 96dc0b3627159df428eeb509780752af, type: 2}
+    - {fileID: 2100000, guid: a47db3846d007014087ffe68fab9cbea, type: 2}
+    - {fileID: 2100000, guid: 84d6450f6ebdbc248993283eae1750fe, type: 2}
+  - hair: JenniferHair
+    colour: Jennifer Hair MAT 04
+    materials:
+    - {fileID: 2100000, guid: 31147f6dfe8cd7e47b779f6f87caf334, type: 2}
+    - {fileID: 2100000, guid: 02221c1edd4813546b551e5e7bad84d6, type: 2}
+    - {fileID: 2100000, guid: 3f90a67118cb8954b9a7c418cc2f23d5, type: 2}
+    - {fileID: 2100000, guid: 0078a5e21132b1e49b9bf2e19d3307bd, type: 2}
+    - {fileID: 2100000, guid: 6e5c388420a70c04eac44121072b57c6, type: 2}
+    - {fileID: 2100000, guid: 604e7709b2afb464f9b15e81894d89c0, type: 2}
+    - {fileID: 2100000, guid: 7986311fa63c82b4fb98a17595e218f9, type: 2}
+    - {fileID: 2100000, guid: 59c88e42ff2d8ac4280b8642deb2d3f9, type: 2}
+    - {fileID: 2100000, guid: 9b15741936357aa4db7bd264d6b967c0, type: 2}
+    - {fileID: 2100000, guid: 427f27001bd3ced48be90477a91e3589, type: 2}
+  - hair: JenniferHair
+    colour: Jennifer Hair MAT 05
+    materials:
+    - {fileID: 2100000, guid: 3c93725b5f91c684cbb30365f5123c2a, type: 2}
+    - {fileID: 2100000, guid: 600763481cb779543a09c95cf878f3b1, type: 2}
+    - {fileID: 2100000, guid: 571c5c25ea2f8e04aa2f0a1a4684e854, type: 2}
+    - {fileID: 2100000, guid: 708029d1a9e6fe04b93702877059446c, type: 2}
+    - {fileID: 2100000, guid: 840bfee257feacf498769e1ab37dbdb3, type: 2}
+    - {fileID: 2100000, guid: d660338d905dc3b49af3a9e49a6031ed, type: 2}
+    - {fileID: 2100000, guid: 1f45a05ab9819754e8d0e8377d7a9065, type: 2}
+    - {fileID: 2100000, guid: 89e17a97b7ce98243a58d62e6d0ddf89, type: 2}
+    - {fileID: 2100000, guid: 002bee9f20fad304d9d076988fb4d101, type: 2}
+    - {fileID: 2100000, guid: 97f06c2e219a18143984d14a627c038e, type: 2}
+  - hair: JenniferHair
+    colour: Jennifer Hair MAT 06
+    materials:
+    - {fileID: 2100000, guid: f1d436df6e2ae364ea9e40a467a87609, type: 2}
+    - {fileID: 2100000, guid: d62fd722b0d4b5b43a76337d07ecdfee, type: 2}
+    - {fileID: 2100000, guid: e53647149a57a3841b045400857fef11, type: 2}
+    - {fileID: 2100000, guid: 0e45681bf3ce87a4da1a028f00e5cea8, type: 2}
+    - {fileID: 2100000, guid: 2403d6a3648657d4d999b249c040fe72, type: 2}
+    - {fileID: 2100000, guid: 2d81840914b70aa458e7c79f16975819, type: 2}
+    - {fileID: 2100000, guid: e6ca582a9a2c76a48884c9fbc79c6df1, type: 2}
+    - {fileID: 2100000, guid: ee9103c18af7516439f86c726efa51fe, type: 2}
+    - {fileID: 2100000, guid: 5e1e28ed393baa643abd40fbd31a4100, type: 2}
+    - {fileID: 2100000, guid: 9b87dc4b127c17a46a87807153f79907, type: 2}
+  - hair: JenniferHair
+    colour: Jennifer Hair MAT 07
+    materials:
+    - {fileID: 2100000, guid: 22f1b53222693df4b82c6d3a0f16b941, type: 2}
+    - {fileID: 2100000, guid: a69c541604e768543a6d041b8067ac39, type: 2}
+    - {fileID: 2100000, guid: ef884715747f9c54e82478b0414624ae, type: 2}
+    - {fileID: 2100000, guid: 710fecc85cf19d44782f90c7f7b05e26, type: 2}
+    - {fileID: 2100000, guid: 85ca7242b1ca6be468a911f89570aaff, type: 2}
+    - {fileID: 2100000, guid: 8b956a7c0899bf24d8d08b6aeeffe041, type: 2}
+    - {fileID: 2100000, guid: 7f65c95442a5b4a40a503734439549fc, type: 2}
+    - {fileID: 2100000, guid: 1deb721f42ca4c04fbef669896f4be55, type: 2}
+    - {fileID: 2100000, guid: a78e2cb134982b245b374f99bb5e59d5, type: 2}
+    - {fileID: 2100000, guid: c0c548ccc548b5e4bbc007149f2d2abf, type: 2}
+  - hair: JenniferHair
+    colour: Jennifer Hair MAT 08
+    materials:
+    - {fileID: 2100000, guid: 0252d320d6cdf1d4e9322c471c5c229e, type: 2}
+    - {fileID: 2100000, guid: 8cc9241c1449085449c396c2604826c9, type: 2}
+    - {fileID: 2100000, guid: 1c81a07cf9bfd124a99a92c0bf42b3e3, type: 2}
+    - {fileID: 2100000, guid: fdd37aa918c549940a8673264a92b1fb, type: 2}
+    - {fileID: 2100000, guid: c7833a1fc6cce9042b745907eddbbec9, type: 2}
+    - {fileID: 2100000, guid: 6ca278d08752e9e40a8064a48a607df5, type: 2}
+    - {fileID: 2100000, guid: 1241d87f683f24741a5a03b5831b8737, type: 2}
+    - {fileID: 2100000, guid: baa9f594a27bddc4fa455f5769e10acc, type: 2}
+    - {fileID: 2100000, guid: 6baa0f6580622ee42badb2df8325c3ae, type: 2}
+    - {fileID: 2100000, guid: 1755b287813b0764ead9ee452b470716, type: 2}
+  - hair: JenniferHair
+    colour: Jennifer Hair MAT 09
+    materials:
+    - {fileID: 2100000, guid: 81326ad259113974392b94516fb75783, type: 2}
+    - {fileID: 2100000, guid: 276b403a626f8184eb2c8001691fa738, type: 2}
+    - {fileID: 2100000, guid: 76d65b0adef632b4c8d4a891411ab56f, type: 2}
+    - {fileID: 2100000, guid: d8fe7384ee94c1a4a95e71aef973fd6e, type: 2}
+    - {fileID: 2100000, guid: b71f9ec6e8783c643a41f5e15e87afb7, type: 2}
+    - {fileID: 2100000, guid: 1e1fed1756f4e75408708a0275a25770, type: 2}
+    - {fileID: 2100000, guid: 52c19eef45511144fa155101dce382d9, type: 2}
+    - {fileID: 2100000, guid: b9747a67a2d0a6e4d87b0dcee612d84b, type: 2}
+    - {fileID: 2100000, guid: 343630e7237bca842aa460b01fd96bbe, type: 2}
+    - {fileID: 2100000, guid: 95f43ccd1653b5e4aa0497a1910ba196, type: 2}
+  - hair: JenniferHair
+    colour: Jennifer Hair MAT 10
+    materials:
+    - {fileID: 2100000, guid: adcbbd5d5fbca604c936faebbb9df760, type: 2}
+    - {fileID: 2100000, guid: 06088f4a02396db41911fe80c79021f9, type: 2}
+    - {fileID: 2100000, guid: 3b879c4e2f8dafb4d8babcb57c413c67, type: 2}
+    - {fileID: 2100000, guid: 5aa01f972595e00438b0db9522b278ed, type: 2}
+    - {fileID: 2100000, guid: f4f54781998567747a1523ce6dea70cd, type: 2}
+    - {fileID: 2100000, guid: a8380534e3781de499b81899a714c44b, type: 2}
+    - {fileID: 2100000, guid: ee85e55aa67334b4fa367e339a93c0e9, type: 2}
+    - {fileID: 2100000, guid: 18201d581a5a3b4489be4b8c5720728e, type: 2}
+    - {fileID: 2100000, guid: 1e7397cb4ea83cf4c854e4328423a431, type: 2}
+    - {fileID: 2100000, guid: 5972cbf41bf631f46946a4177928e4c8, type: 2}
+  - hair: JenniferHair
+    colour: Jennifer Hair MAT 11
+    materials:
+    - {fileID: 2100000, guid: d9f1fd85e804fbb4292cbc89ce532cc6, type: 2}
+    - {fileID: 2100000, guid: 33b3a1cf20ac5f1468ab066c9ae496ca, type: 2}
+    - {fileID: 2100000, guid: 1828ac5b35e9b1f49b982af6c9ead82b, type: 2}
+    - {fileID: 2100000, guid: 2f41f34b62317a74cbcea6e48a6d9717, type: 2}
+    - {fileID: 2100000, guid: 91f4e93ba314ce74c82475da687def40, type: 2}
+    - {fileID: 2100000, guid: 1826917b23b55a34d8632499c8e699d6, type: 2}
+    - {fileID: 2100000, guid: ebfd18f36561d7d4493a48def5b051f3, type: 2}
+    - {fileID: 2100000, guid: 91d4263f1f6e65c4585d365d7bba395f, type: 2}
+    - {fileID: 2100000, guid: b0311df66ca29e847a74d830d9b0a028, type: 2}
+    - {fileID: 2100000, guid: 9c306279b983de641b877e78896d00d2, type: 2}
+  - hair: JenniferHair
+    colour: Jennifer Hair MAT 12
+    materials:
+    - {fileID: 2100000, guid: fafb094597a84ca4cbbc79275fe97308, type: 2}
+    - {fileID: 2100000, guid: d2a153c01bedf704f9e41d9a7d55db8d, type: 2}
+    - {fileID: 2100000, guid: 4ecda51400a74d148b7a57b0a14b5e97, type: 2}
+    - {fileID: 2100000, guid: b1dc90e408239cc4f8d7beb63ded4776, type: 2}
+    - {fileID: 2100000, guid: 7f1e143800f60934fbc9135e129a8831, type: 2}
+    - {fileID: 2100000, guid: b853131a0c772c3428231ebc4fa2b762, type: 2}
+    - {fileID: 2100000, guid: 80f237e6cec595f41bf31013aa2be8bb, type: 2}
+    - {fileID: 2100000, guid: 43143ca6dd3dc9b438e7a5c41c2b64fb, type: 2}
+    - {fileID: 2100000, guid: 8c984517ab1d453468ca61523bfa25fa, type: 2}
+    - {fileID: 2100000, guid: 2df799ea9a0dfcd47b90ca8a08e340da, type: 2}
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 01
+    materials:
+    - {fileID: 2100000, guid: e60dedb987c4a5c4e83d953e5a0e45a1, type: 2}
+    - {fileID: 2100000, guid: 314fd50f2ad0afb43bf172a98f915a08, type: 2}
+    - {fileID: 2100000, guid: f0a3d55e8d2f1b34b94794c77094e50f, type: 2}
+    - {fileID: 2100000, guid: 0f4efbc3f57d11a4aadcf4b79361fea0, type: 2}
+    - {fileID: 2100000, guid: d897a8b668bb7e3458ef6aa97afb7612, type: 2}
+    - {fileID: 2100000, guid: 9a6e8f37cf8444449abed32787314fba, type: 2}
+    - {fileID: 2100000, guid: e9c51e2c1b7664f4d93bc3372582d7d2, type: 2}
+    - {fileID: 2100000, guid: fa0ad64a952f5ff4690c7aa397973d61, type: 2}
+    - {fileID: 2100000, guid: a0188084a06059d489dc5eb9f71ba307, type: 2}
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 02
+    materials:
+    - {fileID: 2100000, guid: ca0929c20c26a3642b8d01fff86563b2, type: 2}
+    - {fileID: 2100000, guid: 27df23207b581544d90075350a639e66, type: 2}
+    - {fileID: 2100000, guid: 0154ad655a05e534b9fe3ee6d10794b9, type: 2}
+    - {fileID: 2100000, guid: f202efcbe6e79a546a3dde46785b96de, type: 2}
+    - {fileID: 2100000, guid: 0026daa2285cbb147a74a302164b9ed2, type: 2}
+    - {fileID: 2100000, guid: 5b227501f3cab464c9bd48b285a66db2, type: 2}
+    - {fileID: 2100000, guid: 9cd69605e285b2044b4e3cae5c6349af, type: 2}
+    - {fileID: 2100000, guid: c268938a95fe30c448af6f64128fcfcb, type: 2}
+    - {fileID: 2100000, guid: e0287916c8adf8d4cad2b0b9378b4e69, type: 2}
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 03
+    materials:
+    - {fileID: 2100000, guid: 91ce0bdbaa7d1c34b9740561c815a8d5, type: 2}
+    - {fileID: 2100000, guid: 643fc77f1695d924db4a0a847d1bed2e, type: 2}
+    - {fileID: 2100000, guid: 4aebad572f120be4a86f6ca6f568e5c7, type: 2}
+    - {fileID: 2100000, guid: dfb02414f8e19fc4f9c58b17ac1c674b, type: 2}
+    - {fileID: 2100000, guid: 36da1a0df1e0f074a9d736c6b23e1a23, type: 2}
+    - {fileID: 2100000, guid: 426f47cc6366e0542b8d01996a32558f, type: 2}
+    - {fileID: 2100000, guid: ebc515b029275d149892e636b3cfdf24, type: 2}
+    - {fileID: 2100000, guid: 5c0ee45c23eabe1458b2e496d43a207b, type: 2}
+    - {fileID: 2100000, guid: 6fd2509ec1fdf12448123dd30cf3230f, type: 2}
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 04
+    materials:
+    - {fileID: 2100000, guid: a2b417d0bd88ac34fb234c7ca2ecee2d, type: 2}
+    - {fileID: 2100000, guid: 1244cadc9ed406446bd40a38e93006eb, type: 2}
+    - {fileID: 2100000, guid: b5f62a09c7745ad479092f1cb35eb0ca, type: 2}
+    - {fileID: 2100000, guid: 776089d65c78e1e43afd64fa551c9ecf, type: 2}
+    - {fileID: 2100000, guid: e3e48c86cb056084cb1c41f084f7bf8c, type: 2}
+    - {fileID: 2100000, guid: 0f06e29c1a98fbe44b899f5178bb318a, type: 2}
+    - {fileID: 2100000, guid: 7d255f6074d0e784a9514f2162e9e97b, type: 2}
+    - {fileID: 2100000, guid: c030ed4f87b258e41b2139249e9a080d, type: 2}
+    - {fileID: 2100000, guid: 12e310f1ebc615144adf75e4ce54ba7f, type: 2}
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 05
+    materials:
+    - {fileID: 2100000, guid: 77eada07f98bcf548b119d0c9f28c38a, type: 2}
+    - {fileID: 2100000, guid: ca8b17e3c8c2ecd42af67b05393dacc5, type: 2}
+    - {fileID: 2100000, guid: 24d8988315a89de4995a0892f1f4ac3f, type: 2}
+    - {fileID: 2100000, guid: e50c5c37aa6d1e84f91fe56f2c481a9f, type: 2}
+    - {fileID: 2100000, guid: 5675a64b2a1d5fb4c92ce253acf06a5e, type: 2}
+    - {fileID: 2100000, guid: a5eade4f6ac950c4ea85cfd4f556c6a6, type: 2}
+    - {fileID: 2100000, guid: e7977801ea815b04299d4060764d0d78, type: 2}
+    - {fileID: 2100000, guid: 91caab352da22394a9f3fb3656deacea, type: 2}
+    - {fileID: 2100000, guid: 1416049d47e87494195b79106f24df73, type: 2}
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 06
+    materials:
+    - {fileID: 2100000, guid: e64026d988d4a6948b32df58b52e8bd0, type: 2}
+    - {fileID: 2100000, guid: 925fc9636806ede4c958faeaa0e09366, type: 2}
+    - {fileID: 2100000, guid: c7b6f78ecc0f72444a8e02eb3bc1b445, type: 2}
+    - {fileID: 2100000, guid: b020defff0e57d74e83f4c6dcaccab98, type: 2}
+    - {fileID: 2100000, guid: 4bce7bc3cf0fef0439e9a5f0181856b5, type: 2}
+    - {fileID: 2100000, guid: 09258770ce48a7b4d9a9e69ed9d11387, type: 2}
+    - {fileID: 2100000, guid: 846beeab1e1842d4f85ce2a2ec6c0b44, type: 2}
+    - {fileID: 2100000, guid: c98932091593525439ce34dd49c03e9a, type: 2}
+    - {fileID: 2100000, guid: e7c4ad39b5b69d74dba11bcdb8bd9a5e, type: 2}
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 07
+    materials:
+    - {fileID: 2100000, guid: d9bf23898ce55184fb17f8d236421499, type: 2}
+    - {fileID: 2100000, guid: 31e6759fb4520024ca77528cf1165145, type: 2}
+    - {fileID: 2100000, guid: 4bdad35a2a7116546ade13d6a73b146e, type: 2}
+    - {fileID: 2100000, guid: 5d13efb6df551344cb91814d06e7b316, type: 2}
+    - {fileID: 2100000, guid: 1c5cf6efb7e1048429e2f88c90fb226f, type: 2}
+    - {fileID: 2100000, guid: 6155fb7dc6a2876419bea1074befa249, type: 2}
+    - {fileID: 2100000, guid: a78d7a2e76fdbba47817869e2ec7a2de, type: 2}
+    - {fileID: 2100000, guid: 89483d6dd7dfe36468558041c364543d, type: 2}
+    - {fileID: 2100000, guid: 4cf1642859c918e44983bc789ade33c0, type: 2}
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 08
+    materials:
+    - {fileID: 2100000, guid: d539d7ec891ab5443a6be811e21e70de, type: 2}
+    - {fileID: 2100000, guid: 8b93f2c76a807ea4893db4ceaef1aca9, type: 2}
+    - {fileID: 2100000, guid: 8f08ccda5b69d7b459180d1b3647e30a, type: 2}
+    - {fileID: 2100000, guid: 244baa0e2d12fdb4ab3c7e468ebdd1fc, type: 2}
+    - {fileID: 2100000, guid: 20b0cde57a2722243a37bb3f70a1848b, type: 2}
+    - {fileID: 2100000, guid: 8545ff5d55ec3e4419e2c2a4952cf799, type: 2}
+    - {fileID: 2100000, guid: 2d799038f780d484787eda5cf5d6b02c, type: 2}
+    - {fileID: 2100000, guid: 2725c555afca5e64a93b03906176c810, type: 2}
+    - {fileID: 2100000, guid: 19e4519d4df540c4191f883045844f2f, type: 2}
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 09
+    materials:
+    - {fileID: 2100000, guid: a3a5a5e1b51295245ad420c83919077f, type: 2}
+    - {fileID: 2100000, guid: 7157399953d1aa6419bfeb6cb1976fb5, type: 2}
+    - {fileID: 2100000, guid: 40440f186a67aa04a98f4153e62b6e2e, type: 2}
+    - {fileID: 2100000, guid: bb25f65d67a7a1a48ab61bb8cf1fffea, type: 2}
+    - {fileID: 2100000, guid: 660430c89ddf60b4d9950ee3c23c9c2e, type: 2}
+    - {fileID: 2100000, guid: cd0cdbabae6d48343b561782911fee86, type: 2}
+    - {fileID: 2100000, guid: c00e08c2fabe822418d744de8d934697, type: 2}
+    - {fileID: 2100000, guid: df7de1086d6d5f745b386300061c74bc, type: 2}
+    - {fileID: 2100000, guid: 67d0f5d70b8f7d24a9c5874028d6555a, type: 2}
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 10
+    materials:
+    - {fileID: 2100000, guid: c043bb23a675f1b43a95364335a8e673, type: 2}
+    - {fileID: 2100000, guid: 2d08dc17a46ffcc4891711e3b2f5ed1a, type: 2}
+    - {fileID: 2100000, guid: 03e4f1d1bae786945aebd634472607f5, type: 2}
+    - {fileID: 2100000, guid: 862fc59d8ea46924ca8d81b7f5f06b2b, type: 2}
+    - {fileID: 2100000, guid: a8ad5c40c53d8eb4e818fe777da820d0, type: 2}
+    - {fileID: 2100000, guid: 8a0eb9f1f7dde74449233538a85a82fd, type: 2}
+    - {fileID: 2100000, guid: 7fca9341da63b084b89088644ce8b1ff, type: 2}
+    - {fileID: 2100000, guid: 4fe1c84a2f6c8334b96818b31788f146, type: 2}
+    - {fileID: 2100000, guid: cfae70703d03db145a7f4e5fd119fb06, type: 2}
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 11
+    materials:
+    - {fileID: 2100000, guid: 2d0f7dd1eb255a342ac3bac838b11847, type: 2}
+    - {fileID: 2100000, guid: b483e9c25d8cc994ca90a992edb28548, type: 2}
+    - {fileID: 2100000, guid: d898aecf2757f3f48a515f58a4651d32, type: 2}
+    - {fileID: 2100000, guid: 947a84f6d8fcba647b89f42fccd0cb10, type: 2}
+    - {fileID: 2100000, guid: 0105f093cea64f64c8d8925a5bd8bed2, type: 2}
+    - {fileID: 2100000, guid: da13d67d2f46a8342aabc4f2b5b20f62, type: 2}
+    - {fileID: 2100000, guid: b75f053f34ecfd1459c62efbd199f8f1, type: 2}
+    - {fileID: 2100000, guid: fca0870932f5f0349bdf94a651c3a3b8, type: 2}
+    - {fileID: 2100000, guid: 5b6636f5d1329774ab4e46224082a32b, type: 2}
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 12
+    materials:
+    - {fileID: 2100000, guid: 9e3672130d2d3174993cfd3c65ccb49a, type: 2}
+    - {fileID: 2100000, guid: 1b53f5219e9638747b2c3e9769b44de2, type: 2}
+    - {fileID: 2100000, guid: 8c6e7d7f1b7eae642aa75db3a8a17f90, type: 2}
+    - {fileID: 2100000, guid: 172d2b892003c554b9b7b8716de22259, type: 2}
+    - {fileID: 2100000, guid: a65a24bb21e8b1949b29603888506126, type: 2}
+    - {fileID: 2100000, guid: 903016c984dcc7a48be6ff7b41abce33, type: 2}
+    - {fileID: 2100000, guid: 61c8b9f6f79832748a8c0ba28c5a6087, type: 2}
+    - {fileID: 2100000, guid: 98ea0c6ebac3ba147829ebf8489c6e4c, type: 2}
+    - {fileID: 2100000, guid: fae47fbc0f506b44b89531bc56066bfe, type: 2}
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 13
+    materials:
+    - {fileID: 2100000, guid: e328a69b215b0ef4893118dce20b5a7f, type: 2}
+    - {fileID: 2100000, guid: 3c035492869bed642be887c32ce550ed, type: 2}
+    - {fileID: 2100000, guid: 44d98009fef7a4244bfe74e76faf9197, type: 2}
+    - {fileID: 2100000, guid: cb45bb97d2ccc1742880370a8d8c6149, type: 2}
+    - {fileID: 2100000, guid: c3f4cebb95c5e164bb08f4eb27151f46, type: 2}
+    - {fileID: 2100000, guid: ec93bf206ce89a7468ba07f6bed1cb80, type: 2}
+    - {fileID: 2100000, guid: 58eb9fdff18610d45b33d034180fbf4f, type: 2}
+    - {fileID: 2100000, guid: a305d592987839f4794262c8e5e5d5e6, type: 2}
+    - {fileID: 2100000, guid: 714a7b9d112ed8e4cad0b506ca80e909, type: 2}
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 14
+    materials:
+    - {fileID: 2100000, guid: ac1944e077200f445a91b9d3966855aa, type: 2}
+    - {fileID: 2100000, guid: e84b5a7339e01a247b723968dfa6d6d4, type: 2}
+    - {fileID: 2100000, guid: 2db7260a342a5b448809c53014d1d03e, type: 2}
+    - {fileID: 2100000, guid: 0b7ad073a8cfa38428c70a4b649ff4e4, type: 2}
+    - {fileID: 2100000, guid: 043c648a5781d354582d50329a5068e1, type: 2}
+    - {fileID: 2100000, guid: d705def60ca1d924fa7cbe75462c7b21, type: 2}
+    - {fileID: 2100000, guid: bea70721dbac63141ae10a948f6600db, type: 2}
+    - {fileID: 2100000, guid: 11c8b7b63b33b45458b7d85ee6b225c4, type: 2}
+    - {fileID: 2100000, guid: 8a3a8d5b6e3760f44b04f9a35796973d, type: 2}
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 15
+    materials:
+    - {fileID: 2100000, guid: 232020a0505d9c640ab0c712de35a228, type: 2}
+    - {fileID: 2100000, guid: 5f033994212440747822c78b3490ec9b, type: 2}
+    - {fileID: 2100000, guid: fc73b913a3e05844d97a2573d5dd3f8a, type: 2}
+    - {fileID: 2100000, guid: 59a93101137c989409cf941de11963d4, type: 2}
+    - {fileID: 2100000, guid: 5117648db0c36814cb3364388987e36b, type: 2}
+    - {fileID: 2100000, guid: 32176537cd9b3a5479d81294d277b852, type: 2}
+    - {fileID: 2100000, guid: f31bc33a10d3a40409592164c3067768, type: 2}
+    - {fileID: 2100000, guid: 1b037ff9187481e47b546a5e58db9821, type: 2}
+    - {fileID: 2100000, guid: 3d7d2d51f0fa6984684bbf7fb5b15a1f, type: 2}
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 16
+    materials:
+    - {fileID: 2100000, guid: 6b97420c94da09a4598753405e24c03a, type: 2}
+    - {fileID: 2100000, guid: 3e5e29a3208c1c44bbc0483f9d07173f, type: 2}
+    - {fileID: 2100000, guid: 3384b53674077214aac9219fac819fce, type: 2}
+    - {fileID: 2100000, guid: 6676f163e8afeb548972882c07981615, type: 2}
+    - {fileID: 2100000, guid: ffd219a7e00f46e4e933a8b3e85bae53, type: 2}
+    - {fileID: 2100000, guid: 7dd1b2b70b8b21d41900d395420e37e4, type: 2}
+    - {fileID: 2100000, guid: 550fc503cfb571442bcf5356104ccf39, type: 2}
+    - {fileID: 2100000, guid: f1795fea7ef1b0348bf77b814fa9957e, type: 2}
+    - {fileID: 2100000, guid: 254dc85c4d6e298499222e6a370c451b, type: 2}
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 17
+    materials:
+    - {fileID: 2100000, guid: 1ad10c44d359a8c42a3dfecd1d3f1bde, type: 2}
+    - {fileID: 2100000, guid: fdf23bb4b1cf96e41a101fb70401192f, type: 2}
+    - {fileID: 2100000, guid: 433a95f0b363f6247ba9b625adcb64e4, type: 2}
+    - {fileID: 2100000, guid: 37222e51659e7a847ac926f107804993, type: 2}
+    - {fileID: 2100000, guid: 97d043a5e9972834a949f701b93e218b, type: 2}
+    - {fileID: 2100000, guid: a970b7cf5f2bdd848a1e799ba84ba0ca, type: 2}
+    - {fileID: 2100000, guid: 96f711ab3641c174eb6158b468347c43, type: 2}
+    - {fileID: 2100000, guid: 7b11ea5523d80d342a55a031401bc20f, type: 2}
+    - {fileID: 2100000, guid: 00bb31eae53a9704b9f8b2aa83fa2e1f, type: 2}
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 18
+    materials:
+    - {fileID: 2100000, guid: f42d365c5d078f6479bf150c5630b617, type: 2}
+    - {fileID: 2100000, guid: 05204217832760d4e8948a0d8a338467, type: 2}
+    - {fileID: 2100000, guid: 0b7889efeacca9d42aecdbde64e5155e, type: 2}
+    - {fileID: 2100000, guid: 279d72166914d8d49974e5bfd1718260, type: 2}
+    - {fileID: 2100000, guid: 0469e8146138f1242a1a88c612da4146, type: 2}
+    - {fileID: 2100000, guid: 56be701f58748314d9773ed408f7006d, type: 2}
+    - {fileID: 2100000, guid: 0d64a891833438f4dbbfd8ae768c6ccc, type: 2}
+    - {fileID: 2100000, guid: f99e92095ae360947b660d4ad0bffb56, type: 2}
+    - {fileID: 2100000, guid: 712bfe0cfae00cf4b810ace47068218b, type: 2}
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 19
+    materials:
+    - {fileID: 2100000, guid: 6494eb91891a510419ecbcb866cfb519, type: 2}
+    - {fileID: 2100000, guid: 6634692346116ff408f8ffaa0b1c152f, type: 2}
+    - {fileID: 2100000, guid: 9d7b9daaf6c8e7e44b1927e0bff89bab, type: 2}
+    - {fileID: 2100000, guid: 213966e98a06a934881d7f40878dfd00, type: 2}
+    - {fileID: 2100000, guid: 8fbab31518e04f140baf31fdf6ec3282, type: 2}
+    - {fileID: 2100000, guid: 69dd4552bd977624ea776bc54400e96a, type: 2}
+    - {fileID: 2100000, guid: d9b2a37ffe6c3d5418f95d4d8550ceaa, type: 2}
+    - {fileID: 2100000, guid: 6a3974e6acd93da42a6d6fb3065cc18a, type: 2}
+    - {fileID: 2100000, guid: db8186f1778c9a3489a1a04fe34e3677, type: 2}
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hair Base Color 20
+    materials:
+    - {fileID: 2100000, guid: bbf7276a50151d14893626a0ec23ae6e, type: 2}
+    - {fileID: 2100000, guid: 78c1c2cd2faa6fe47b5b41cbc10b3431, type: 2}
+    - {fileID: 2100000, guid: 877b6d3310a232c4abd4505aad5dbdb9, type: 2}
+    - {fileID: 2100000, guid: 2a2178d5cc2436b4089d1e08fe6437c0, type: 2}
+    - {fileID: 2100000, guid: 84ab7689d7898274c976c08e0f2f1b08, type: 2}
+    - {fileID: 2100000, guid: 9a6240e7ab5a6d541a4659373a48008d, type: 2}
+    - {fileID: 2100000, guid: 2c4ef459ec597ce44a6b474ee5e793b0, type: 2}
+    - {fileID: 2100000, guid: b6054fbb313841841aa403849d06becc, type: 2}
+    - {fileID: 2100000, guid: 2561fd5ddffc22d4db408ee05b8eccf6, type: 2}
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hairband 01
+    materials:
+    - {fileID: 2100000, guid: 9e10cf12f9cdc754d9617bd9bbaf2494, type: 2}
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hairband 02
+    materials:
+    - {fileID: 2100000, guid: 161b9d8f69063c14ca7232f1046efc38, type: 2}
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hairband 03
+    materials:
+    - {fileID: 2100000, guid: 5e21fabf0dce02d44aa245d8a2b00255, type: 2}
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hairband 04
+    materials:
+    - {fileID: 2100000, guid: 69105ef2729e7174da96d89d66da7a39, type: 2}
+  - hair: LeonyPonytail
+    colour: Leony Ponytail Hairband 05
+    materials:
+    - {fileID: 2100000, guid: d66be572b3b9f9f47a5a63131855c563, type: 2}
+  - hair: LoonaHair
+    colour: Loona Col 01
+    materials:
+    - {fileID: 2100000, guid: 13bf4b345d76141499e9a40c321a673e, type: 2}
+    - {fileID: 2100000, guid: e0934d938ab0f8d4e8851fa1963823c2, type: 2}
+    - {fileID: 2100000, guid: 082c07d7952306d4cab558334703ede8, type: 2}
+    - {fileID: 2100000, guid: 3f73f73f56df4b44cb2dfe3486bd9761, type: 2}
+    - {fileID: 2100000, guid: b0b99a34d02847845b8bd97ac8cfaa59, type: 2}
+    - {fileID: 2100000, guid: adf88157b3926f2438d5731c2fc1acbc, type: 2}
+    - {fileID: 2100000, guid: 1381c211564cc1441bf27e7808eb47ec, type: 2}
+  - hair: LoonaHair
+    colour: Loona Col 02
+    materials:
+    - {fileID: 2100000, guid: d5712f12b024a684db209e28c060a610, type: 2}
+    - {fileID: 2100000, guid: 84225aa8ec3bd4e4ab767240ef2957c6, type: 2}
+    - {fileID: 2100000, guid: c641f18fbc76b7c48989088464976e50, type: 2}
+    - {fileID: 2100000, guid: a43907bf0f0f86f4997df371941f0533, type: 2}
+    - {fileID: 2100000, guid: 74adfa023c97e9d43baad8707ac3898d, type: 2}
+    - {fileID: 2100000, guid: 1e1a6921b13114945826ad7714b407b2, type: 2}
+    - {fileID: 2100000, guid: c3e4fdadf9a72784bb440dbb668c15ac, type: 2}
+  - hair: LoonaHair
+    colour: Loona Col 03
+    materials:
+    - {fileID: 2100000, guid: f78c9c9d7f7468243badaf193f0c078f, type: 2}
+    - {fileID: 2100000, guid: dd37e4fbbdf76e54686af234b842737a, type: 2}
+    - {fileID: 2100000, guid: 772116a53a7cc924e81638b67117be22, type: 2}
+    - {fileID: 2100000, guid: d86219f3ef4ec5f408e36ba6ab8d1abd, type: 2}
+    - {fileID: 2100000, guid: 7f70dc15a65235541a90dc0a4d7e20bf, type: 2}
+    - {fileID: 2100000, guid: 64d5c290f6b6cb64f8241071ef6a0d48, type: 2}
+    - {fileID: 2100000, guid: 90d774d1cc7d80a4a9f367b7d6b3a0c7, type: 2}
+  - hair: LoonaHair
+    colour: Loona Col 04
+    materials:
+    - {fileID: 2100000, guid: cdb6bd6c1d128e74fb2e8913359b7bb6, type: 2}
+    - {fileID: 2100000, guid: cc49d450f0d65224e8ca9123770281b2, type: 2}
+    - {fileID: 2100000, guid: d0a755ca0bec4c14389a72521482796d, type: 2}
+    - {fileID: 2100000, guid: 20ca88f738312b349bee959555fba9cf, type: 2}
+    - {fileID: 2100000, guid: 3d374bcfa48124a428defad4ff4d3659, type: 2}
+    - {fileID: 2100000, guid: 1d817cc7c922351488cbb3a204418eab, type: 2}
+    - {fileID: 2100000, guid: 41cdbfe8825d0754a9a1594bc01e4f67, type: 2}
+  - hair: LoonaHair
+    colour: Loona Col 05
+    materials:
+    - {fileID: 2100000, guid: af2ef73503c9dea419f01d4717688f33, type: 2}
+    - {fileID: 2100000, guid: feb4beb1230cec245a0acabdfce694e9, type: 2}
+    - {fileID: 2100000, guid: c35d9790c8e0d6b49a93e2dc54c13d39, type: 2}
+    - {fileID: 2100000, guid: 08a8cd76ddb2c9f4b9eb9cbba1e9ebf5, type: 2}
+    - {fileID: 2100000, guid: 8feb00644af89494fa3039b90e44249a, type: 2}
+    - {fileID: 2100000, guid: 50cdad287af1a6b47969662b758ede72, type: 2}
+    - {fileID: 2100000, guid: 3bd3b356f0c27bc4e941ab4eeb111db3, type: 2}
+  - hair: LoonaHair
+    colour: Loona Col 06
+    materials:
+    - {fileID: 2100000, guid: 6fc80e8b14d11b24b9ea3f95dd846694, type: 2}
+    - {fileID: 2100000, guid: 67ab8a3858a06e048976f151085b4d68, type: 2}
+    - {fileID: 2100000, guid: 17189e0553f08c64c992d695b9650270, type: 2}
+    - {fileID: 2100000, guid: 9eebbf47c5d21964dae0f2d7dbdc754c, type: 2}
+    - {fileID: 2100000, guid: 6803e35d2088299439d64ed2b5ac33a2, type: 2}
+    - {fileID: 2100000, guid: 74691ae4591cbe34b988d10f17833dd2, type: 2}
+    - {fileID: 2100000, guid: 20e3d98fbec4b3c42b29f22a910ce05b, type: 2}
+  - hair: LoonaHair
+    colour: Loona Col 07
+    materials:
+    - {fileID: 2100000, guid: 5bb8aa16972933e4b88acb4d389eb557, type: 2}
+    - {fileID: 2100000, guid: abb286360fe5d024cb759634f85aecc6, type: 2}
+    - {fileID: 2100000, guid: caaa18f73c5ce3742a9528007d6a60cc, type: 2}
+    - {fileID: 2100000, guid: 84eb69667031f7d40bff8c323b3cc4aa, type: 2}
+    - {fileID: 2100000, guid: 349f0f1db15788b47a4de4533070c102, type: 2}
+    - {fileID: 2100000, guid: bf50810ad57278e4eae16a27186b9e93, type: 2}
+    - {fileID: 2100000, guid: a140eb67d4e2b104a99b41469fbdbd44, type: 2}
+  - hair: LoonaHair
+    colour: Loona Col 08
+    materials:
+    - {fileID: 2100000, guid: 3475c96f95fc6234588fc4fb9f8ad749, type: 2}
+    - {fileID: 2100000, guid: b773b43ed70b13942a754cce048bea76, type: 2}
+    - {fileID: 2100000, guid: e39e50d8784de0d40bd4f4140ff7df8b, type: 2}
+    - {fileID: 2100000, guid: ea14b1a1e73fe414fbf7bf2ca76bb562, type: 2}
+    - {fileID: 2100000, guid: cb771beb64914914ea2465dc3655811e, type: 2}
+    - {fileID: 2100000, guid: 3fe835e0773b8794f9d353ae6c5b7d3f, type: 2}
+    - {fileID: 2100000, guid: c338fc9a54736e44c9431ebcf180a9fa, type: 2}
+  - hair: LoonaHair
+    colour: Loona Col 09
+    materials:
+    - {fileID: 2100000, guid: 37e08b9be6c74c640a0dc04c7237294b, type: 2}
+    - {fileID: 2100000, guid: cca79895d75e3d0438d85cf695c08cfb, type: 2}
+    - {fileID: 2100000, guid: 81fee31723a99b446bc11cf288e4530d, type: 2}
+    - {fileID: 2100000, guid: 2b5fb74dab17b6242a9aa2fee28ff96d, type: 2}
+    - {fileID: 2100000, guid: ab620864fd4882740b015079a2aed41f, type: 2}
+    - {fileID: 2100000, guid: d6390b07297959145a8ccfed0ef5fd48, type: 2}
+    - {fileID: 2100000, guid: 015b56b413794de4ebe2d29febf01072, type: 2}
+  - hair: LoonaHair
+    colour: Loona Col 10
+    materials:
+    - {fileID: 2100000, guid: ef8c9c3d54840a54f8356ae95e904866, type: 2}
+    - {fileID: 2100000, guid: 8c24c6f9726046d4a9e81a913c96ebef, type: 2}
+    - {fileID: 2100000, guid: beb96b1c5901826409e048280a149bb5, type: 2}
+    - {fileID: 2100000, guid: 438c7ba3f85a60e4eb7798f5da702f1a, type: 2}
+    - {fileID: 2100000, guid: 306207ea5ce8ba14f97857a07bf42acf, type: 2}
+    - {fileID: 2100000, guid: 27b50ca6e946a404abcfac512c3baab8, type: 2}
+    - {fileID: 2100000, guid: dab4fd27626c0be41b4253a2396009da, type: 2}
+  - hair: LoonaHair
+    colour: Loona Col 11
+    materials:
+    - {fileID: 2100000, guid: 737c9c16266db9f4b863770fec495594, type: 2}
+    - {fileID: 2100000, guid: 0f29d02e72efca24fba867029a57fdda, type: 2}
+    - {fileID: 2100000, guid: 10d0bf4976372fe4fb0374aeeecfb6b1, type: 2}
+    - {fileID: 2100000, guid: 6a382c0c4e904c44ba3ca1b7b73d8492, type: 2}
+    - {fileID: 2100000, guid: b42f52a800e9ce540b19c5600f390e12, type: 2}
+    - {fileID: 2100000, guid: b04ce900dd2a031478def9fe2e124962, type: 2}
+    - {fileID: 2100000, guid: c0780ce5352b51f4fa62aeec940944ee, type: 2}
+  - hair: LoonaHair
+    colour: Loona Col 12
+    materials:
+    - {fileID: 2100000, guid: 20beee01005a11842abc8626ff5f2f86, type: 2}
+    - {fileID: 2100000, guid: 3413be04427bc2a459ae6ae6ec21d5aa, type: 2}
+    - {fileID: 2100000, guid: 65831028de913d44d9781dc60b2d1fc3, type: 2}
+    - {fileID: 2100000, guid: 17d52c368d1e5e940b261ea21fd203d8, type: 2}
+    - {fileID: 2100000, guid: 8670ee6b022de824e98581f7835ed945, type: 2}
+    - {fileID: 2100000, guid: ca39dc4698c813042963e3ac70f48a0a, type: 2}
+    - {fileID: 2100000, guid: ee7e7edd1e8031540b005f774c951d1e, type: 2}
+  - hair: LoonaHair
+    colour: Loona Col 13
+    materials:
+    - {fileID: 2100000, guid: a64a0d8ab196ebd409fd0fc874bf3766, type: 2}
+    - {fileID: 2100000, guid: dd18dd54fe459f546ac383e320d78e16, type: 2}
+    - {fileID: 2100000, guid: 02066a2e36262454ab408148a477b078, type: 2}
+    - {fileID: 2100000, guid: a316ac8923e94c6458d3067ee8e5c814, type: 2}
+    - {fileID: 2100000, guid: 166e72159df49a44b8ff462cf5e5dc08, type: 2}
+    - {fileID: 2100000, guid: 7a25cdbf1c14e6a47be11fa498e4a7ed, type: 2}
+    - {fileID: 2100000, guid: 9f6abd78710c69844a4aeae55fe7d3b7, type: 2}
+  - hair: LoonaHair
+    colour: Loona Col 14
+    materials:
+    - {fileID: 2100000, guid: 418576ef5b7476244b9f4195de9d05d6, type: 2}
+    - {fileID: 2100000, guid: 5e7594931363b5e489ac6c578eb88074, type: 2}
+    - {fileID: 2100000, guid: dba747ac153ff0541a6fb9ab9c7f302c, type: 2}
+    - {fileID: 2100000, guid: a3464e3d5c97c4a41b31646f7d4ff0e4, type: 2}
+    - {fileID: 2100000, guid: e91f8ee7c5ce4ea4dba5038ffc53461f, type: 2}
+    - {fileID: 2100000, guid: aebd9730bebc5474f9a4fe34051827b4, type: 2}
+    - {fileID: 2100000, guid: b1aa8e99f6d079440a93009a3a84b490, type: 2}
+  - hair: LoonaHair
+    colour: Loona Col 15
+    materials:
+    - {fileID: 2100000, guid: adc38eb43fd03bc4599392af5ff44609, type: 2}
+    - {fileID: 2100000, guid: 4de597c4a4b5fb6408ac67f2697f851f, type: 2}
+    - {fileID: 2100000, guid: 17cf2103f66f2044c8421022698935fb, type: 2}
+    - {fileID: 2100000, guid: 0439343bb40026345a49785f54b72523, type: 2}
+    - {fileID: 2100000, guid: 0c1ef300aaf31dd48ba99421400ce13e, type: 2}
+    - {fileID: 2100000, guid: c09b8b6edea6052409f8309c55057bd1, type: 2}
+    - {fileID: 2100000, guid: d7aa27cf07ec0fa41bff27e133d544b2, type: 2}
+  - hair: LoonaHair
+    colour: Loona Col 16
+    materials:
+    - {fileID: 2100000, guid: df6e2491f39940e4d8e56420a897073f, type: 2}
+    - {fileID: 2100000, guid: 706da37ef908d93439a25b8ed2095f74, type: 2}
+    - {fileID: 2100000, guid: c925feb9d5519b342b54075dad4d795e, type: 2}
+    - {fileID: 2100000, guid: 6af032d3732f40540a57af7734e846ed, type: 2}
+    - {fileID: 2100000, guid: 5f5a74b5bca4a954ab5e1c398afc214a, type: 2}
+    - {fileID: 2100000, guid: c9217b4e91a509a4f9ccc2db7c5b9e3e, type: 2}
+    - {fileID: 2100000, guid: 16b59621e30b77e4c91103a279069aed, type: 2}
+  - hair: LoonaHair
+    colour: Loona Col 17
+    materials:
+    - {fileID: 2100000, guid: ab2be23d8eaf4274f874c013381ea91f, type: 2}
+    - {fileID: 2100000, guid: 3461e146d5826154ba15d4dc914dbc9b, type: 2}
+    - {fileID: 2100000, guid: c7a297f792e6ec849ad0514f2a8bff96, type: 2}
+    - {fileID: 2100000, guid: eb5e9d46434766947abe49d03c803050, type: 2}
+    - {fileID: 2100000, guid: 8162c6ad4bc3a1243acdc1c9e4f1fbeb, type: 2}
+    - {fileID: 2100000, guid: 8a5787785865d6f4f8432d356b45e902, type: 2}
+    - {fileID: 2100000, guid: 1a65f378fe8b13b4db2ea72766e1ee58, type: 2}
+  - hair: LoonaHair
+    colour: Loona Col 18
+    materials:
+    - {fileID: 2100000, guid: b09b6182544fedb4695a7e48241cb1cd, type: 2}
+    - {fileID: 2100000, guid: dee77253a179fff4da5a53682a45568b, type: 2}
+    - {fileID: 2100000, guid: 0988fd0847ecc4246b99eeb9443af2ab, type: 2}
+    - {fileID: 2100000, guid: 12671a4b1e22a63409f0fe580ca42ca3, type: 2}
+    - {fileID: 2100000, guid: 6190d15934f19c3479e6b169c09d7267, type: 2}
+    - {fileID: 2100000, guid: ad471bcd9a5fecd4fb5507451617a09c, type: 2}
+    - {fileID: 2100000, guid: e53d2b794933a634b8bd49ea8cdc7362, type: 2}
+  - hair: LoonaHair
+    colour: Loona Col 19
+    materials:
+    - {fileID: 2100000, guid: dce2a50f7478875498aa9d65601e233e, type: 2}
+    - {fileID: 2100000, guid: 0fb62ee694cb9534ebecd3e4bfdaaf4d, type: 2}
+    - {fileID: 2100000, guid: d1fd16d2e9216634ba3cdd1cbd95c36e, type: 2}
+    - {fileID: 2100000, guid: 6f026f68b417d0d47b5571212fcc10cf, type: 2}
+    - {fileID: 2100000, guid: 2232ff18eeadf6348add9e79a86fa9df, type: 2}
+    - {fileID: 2100000, guid: a68198724331277459253be12e8ec511, type: 2}
+    - {fileID: 2100000, guid: da355bd80158b1d458d9f56e02f54cb8, type: 2}
+  - hair: LoonaHair
+    colour: Loona Col 20
+    materials:
+    - {fileID: 2100000, guid: a017983318d12584e8004a9063046212, type: 2}
+    - {fileID: 2100000, guid: 2359824d33e0fdc4e8fd35812faa3d9a, type: 2}
+    - {fileID: 2100000, guid: 4466b311ccda7284c9a0a19e933e90ae, type: 2}
+    - {fileID: 2100000, guid: 1ba29fd18b0e14b428b152d76f0297f5, type: 2}
+    - {fileID: 2100000, guid: fafa3c3ffd9b76c48971a16dd417e515, type: 2}
+    - {fileID: 2100000, guid: 5e5e75454da174847a3457ee9070fd21, type: 2}
+    - {fileID: 2100000, guid: 0c41df724385bf84ba157ed599949745, type: 2}
+  - hair: LoonaHair
+    colour: Loona Col 21
+    materials:
+    - {fileID: 2100000, guid: 1d04068827c262d4781144546bdcaa68, type: 2}
+    - {fileID: 2100000, guid: be80b434be896064683997b6d45cf98d, type: 2}
+    - {fileID: 2100000, guid: ec4a33db93e01b946a510d5a47111e5c, type: 2}
+    - {fileID: 2100000, guid: b17a85d74752d39489e4d686c9ffb57c, type: 2}
+    - {fileID: 2100000, guid: 1a170c17b5f47a5458530b4747f7365a, type: 2}
+    - {fileID: 2100000, guid: 4590fa3f7b03f0f469d260179744f370, type: 2}
+    - {fileID: 2100000, guid: 4686b6618eb21a145b119189fbe867b6, type: 2}
+  - hair: LoonaHair
+    colour: Loona Col 22
+    materials:
+    - {fileID: 2100000, guid: 58e5c94fc87765949bc8a59e180f7e27, type: 2}
+    - {fileID: 2100000, guid: 4b06c517b54954646908b50f2337d2e4, type: 2}
+    - {fileID: 2100000, guid: 7133bce9038b5514589b1d8ff1f43497, type: 2}
+    - {fileID: 2100000, guid: c7254c81530e5534695093f7f36a2c01, type: 2}
+    - {fileID: 2100000, guid: 8c9bf552fae032948b7428b1de742821, type: 2}
+    - {fileID: 2100000, guid: b5f0e18f0966ccb48ad0654189b5d02d, type: 2}
+    - {fileID: 2100000, guid: c34bef25ef79dbc4d9074644110a9afc, type: 2}
+  - hair: LoonaHair
+    colour: Loona GLossy 080
+    materials:
+    - {fileID: 2100000, guid: 2047c428c862e294f907369f32fb8e6a, type: 2}
+  - hair: Neu09Hair
+    colour: Cherry Black
+    materials:
+    - {fileID: 2100000, guid: cac5ef0abc84fdc409fd8762c655b12f, type: 2}
+    - {fileID: 2100000, guid: 74a829484b77a82469296ed850f3c7bd, type: 2}
+    - {fileID: 2100000, guid: 295a7987c0557774f9ca80368e4aab31, type: 2}
+  - hair: Neu09Hair
+    colour: Cherry Blue dark
+    materials:
+    - {fileID: 2100000, guid: 2326f3416231d6649aece3e004d4c627, type: 2}
+    - {fileID: 2100000, guid: aac7c1e1ca490454c80db1c34524addd, type: 2}
+    - {fileID: 2100000, guid: c8865b0f611f28149bc247357b0806d7, type: 2}
+  - hair: Neu09Hair
+    colour: Cherry Blue light
+    materials:
+    - {fileID: 2100000, guid: 5a7d2d8376820474eaf4973eefc80750, type: 2}
+    - {fileID: 2100000, guid: 1461f0b77c2c20246bb136f095279c65, type: 2}
+    - {fileID: 2100000, guid: f5b9462ec67d243499ae450dbb92a92c, type: 2}
+  - hair: Neu09Hair
+    colour: Cherry Green
+    materials:
+    - {fileID: 2100000, guid: 938dcdb01d1087442860f93f29d3dcb6, type: 2}
+    - {fileID: 2100000, guid: 99f52307fc3fcf74d96fc6ca62216aaf, type: 2}
+    - {fileID: 2100000, guid: d073b0170ab13734e9bf8d290ae4f765, type: 2}
+  - hair: Neu09Hair
+    colour: Cherry Orange
+    materials:
+    - {fileID: 2100000, guid: df9ccd55a4abbbf4f872a1ece115f82c, type: 2}
+    - {fileID: 2100000, guid: 2a374fdc658d2d945941a3b1d3a8bf25, type: 2}
+    - {fileID: 2100000, guid: d59e9a3237aa71b40a72ac65b9fe9563, type: 2}
+  - hair: Neu09Hair
+    colour: Cherry Pink
+    materials:
+    - {fileID: 2100000, guid: 7394a788d65dc5c44bebf0bf9e00e30e, type: 2}
+    - {fileID: 2100000, guid: 167280288985bcf4c88af024a4f56edc, type: 2}
+    - {fileID: 2100000, guid: 96ed8ed3fe4963b4ba281e261fbd9c99, type: 2}
+  - hair: Neu09Hair
+    colour: Cherry Red
+    materials:
+    - {fileID: 2100000, guid: c6c7974b8276dc54e93d8055d23d8ae0, type: 2}
+    - {fileID: 2100000, guid: bbf6b932ded38534cb6e85c1aea6d9ad, type: 2}
+    - {fileID: 2100000, guid: 59ce72dd6821f474dbc4d0a6c140d09d, type: 2}
+  - hair: Neu09Hair
+    colour: Cherry White
+    materials:
+    - {fileID: 2100000, guid: d76da0a876d36f74194765224e69d841, type: 2}
+    - {fileID: 2100000, guid: e3a2d8501a570bc429772369ec38f3f1, type: 2}
+    - {fileID: 2100000, guid: abe398c61fe079f428ed8f65ffc14274, type: 2}
+  - hair: Neu09Hair
+    colour: Cherry Yellow
+    materials:
+    - {fileID: 2100000, guid: 5c49be5c146d7c34cb8c8beeefb8893b, type: 2}
+    - {fileID: 2100000, guid: a9baa348074a58e4aaf7ffc9635bb648, type: 2}
+    - {fileID: 2100000, guid: f766a2a9c8410da4891aa681e9c728ee, type: 2}
+  - hair: Neu09Hair
+    colour: Col 01
+    materials:
+    - {fileID: 2100000, guid: e83a97dfcaed1024e8615c5fa4703037, type: 2}
+    - {fileID: 2100000, guid: 678bb93d9c3176346805bc6014fba80c, type: 2}
+    - {fileID: 2100000, guid: 172243bec12482a4a8bb7c5cf205ed81, type: 2}
+    - {fileID: 2100000, guid: 8d8754464005e6e4398adbac962a6ce5, type: 2}
+    - {fileID: 2100000, guid: f9fca910ca497454c832aa5efe881696, type: 2}
+    - {fileID: 2100000, guid: b5a731640d61c0b479cc3174ee327ae3, type: 2}
+  - hair: Neu09Hair
+    colour: Col 02
+    materials:
+    - {fileID: 2100000, guid: e1529adef26377f48bf88749326b5676, type: 2}
+    - {fileID: 2100000, guid: 096d2d5ec4280ef42b286d195deb00ad, type: 2}
+    - {fileID: 2100000, guid: 1dec8e283dbd1854d837f1395a02086e, type: 2}
+    - {fileID: 2100000, guid: b37364fa85ff79b4d8829566e99c9f5b, type: 2}
+    - {fileID: 2100000, guid: 44a3d64dd17131f4b93b5cf5586dd142, type: 2}
+    - {fileID: 2100000, guid: a5ba3fac5fa3b9d4c9b3d224c58ee824, type: 2}
+  - hair: Neu09Hair
+    colour: Col 03
+    materials:
+    - {fileID: 2100000, guid: 0950818ada17e63408c77eb9794204af, type: 2}
+    - {fileID: 2100000, guid: aa3b4453c4ad16f469cbfcaa4f3b75e2, type: 2}
+    - {fileID: 2100000, guid: c39f693c86d11c24e884364deb1551a6, type: 2}
+    - {fileID: 2100000, guid: 569adc7e4d413fc4b966b95a13fb490f, type: 2}
+    - {fileID: 2100000, guid: 214e5690b485dae4e81eab166ebcfc60, type: 2}
+    - {fileID: 2100000, guid: 8bccaa18955ebd6498a2cafe2a56cf13, type: 2}
+  - hair: Neu09Hair
+    colour: Col 04
+    materials:
+    - {fileID: 2100000, guid: 014e21ffa6a5e2c449d2e193f585f45c, type: 2}
+    - {fileID: 2100000, guid: 5cb712c107c1e1c46a1fe1a02b494c9f, type: 2}
+    - {fileID: 2100000, guid: 5a00c7a7a4733f94b80fec6badc2a6b6, type: 2}
+    - {fileID: 2100000, guid: 63e0643ab5dd69c4f8df859da9c67332, type: 2}
+    - {fileID: 2100000, guid: 2ab7fd6b24bb3294bbef1e13be84006b, type: 2}
+    - {fileID: 2100000, guid: 5a97725623f6b164bb7ec29cb15ce2d2, type: 2}
+  - hair: Neu09Hair
+    colour: Col 05
+    materials:
+    - {fileID: 2100000, guid: a4d311486273c4649a5fe32b1fd5a919, type: 2}
+    - {fileID: 2100000, guid: 560a3976729586d44bbc838c42caf45a, type: 2}
+    - {fileID: 2100000, guid: d8274af456c8e28408bf8b76ac44b89c, type: 2}
+    - {fileID: 2100000, guid: bb02fdeda5a0f6249a6a080663add852, type: 2}
+    - {fileID: 2100000, guid: 09dcb7c26c005c4479a0f3f35207871f, type: 2}
+    - {fileID: 2100000, guid: e7a5ed67a3f8e874fa09e3d45f99ab10, type: 2}
+  - hair: Neu09Hair
+    colour: Col 06
+    materials:
+    - {fileID: 2100000, guid: 70b570bdb95e35e47b3c432664cdce41, type: 2}
+    - {fileID: 2100000, guid: d9fc67a8e2aa799448be4f035ed18213, type: 2}
+    - {fileID: 2100000, guid: 0d7f177f9927ec3418715fc50deae9a5, type: 2}
+    - {fileID: 2100000, guid: 2e7e4b37df69399409159718b0297695, type: 2}
+    - {fileID: 2100000, guid: 211da85a97b5f1c4faae4a66e405f652, type: 2}
+    - {fileID: 2100000, guid: a834d5236ee84d14c951a36bbdbe2899, type: 2}
+  - hair: Neu09Hair
+    colour: Col 07
+    materials:
+    - {fileID: 2100000, guid: e1d198f4f892ae8418723b613da3bbb7, type: 2}
+    - {fileID: 2100000, guid: b374469e232561347926c3651bfe0af5, type: 2}
+    - {fileID: 2100000, guid: 93d2a84b2b638054c853352621eea2ee, type: 2}
+    - {fileID: 2100000, guid: cc8152b0aa6aadb4c93ce2fb456a481a, type: 2}
+    - {fileID: 2100000, guid: 6301d705a0d832a4ea702a087f074fd1, type: 2}
+    - {fileID: 2100000, guid: 175c770be0d5e144b9c25f97f698aa50, type: 2}
+  - hair: Neu09Hair
+    colour: Col 08
+    materials:
+    - {fileID: 2100000, guid: 70f5054919497744f9955dcaa2105269, type: 2}
+    - {fileID: 2100000, guid: 31c273b2eb1b10b47b97fe2764add0f0, type: 2}
+    - {fileID: 2100000, guid: e556d9f844bc0a04db2901b3f3e41a85, type: 2}
+    - {fileID: 2100000, guid: 125d6d01398143a4186453bfbb84a539, type: 2}
+    - {fileID: 2100000, guid: 3bd82e016f372a24bad86e5da0d2392b, type: 2}
+    - {fileID: 2100000, guid: 6786160509a871847b584584c4b10496, type: 2}
+  - hair: Neu09Hair
+    colour: Col 09
+    materials:
+    - {fileID: 2100000, guid: bb1cfa420d314dc4fb70b6b7f522df8d, type: 2}
+    - {fileID: 2100000, guid: 3d701a4d0bc631147a04b6416a0e2507, type: 2}
+    - {fileID: 2100000, guid: fb0ae3e950d836b49a8b43e531426c69, type: 2}
+    - {fileID: 2100000, guid: 0d05ee118a2d7b34bb5c852658ebd25e, type: 2}
+    - {fileID: 2100000, guid: d973853cccebf0f47bfae50142911ae8, type: 2}
+    - {fileID: 2100000, guid: 7d15318014d7fb14d8c643c3dd649dd4, type: 2}
+  - hair: Neu09Hair
+    colour: Col 10
+    materials:
+    - {fileID: 2100000, guid: 2bd10fb776e7e13468d80c668d7d1f4b, type: 2}
+    - {fileID: 2100000, guid: c7f319de03d092a4a926ad88554d6c38, type: 2}
+    - {fileID: 2100000, guid: 74025c5bd0a12084aa864f248c4287e6, type: 2}
+    - {fileID: 2100000, guid: b456b29cadb6a744f9f797a5687f6ebc, type: 2}
+    - {fileID: 2100000, guid: 3246adac07d12d1428469b17aad0aefa, type: 2}
+    - {fileID: 2100000, guid: 24fd75edf3af2c14786926c2015edb38, type: 2}
+  - hair: Neu09Hair
+    colour: Col 11
+    materials:
+    - {fileID: 2100000, guid: b137852e70a45174b8eb07c836a14fa5, type: 2}
+    - {fileID: 2100000, guid: 7e1e0938664ca504e928b86b2daa917d, type: 2}
+    - {fileID: 2100000, guid: 497ebb9f7c990c042bed06765c571be8, type: 2}
+    - {fileID: 2100000, guid: c9822c3c42fa2d949890dfb2728778ca, type: 2}
+    - {fileID: 2100000, guid: 343b1d9706bee2b4abdb8493a004da63, type: 2}
+    - {fileID: 2100000, guid: 9545a61c5a9706e40be5ee0dc7831bd8, type: 2}
+  - hair: Neu09Hair
+    colour: Col 12
+    materials:
+    - {fileID: 2100000, guid: b24daa43bb2d37645a959304e922c315, type: 2}
+    - {fileID: 2100000, guid: 66c79d8f78a54da4bb628d8810dca499, type: 2}
+    - {fileID: 2100000, guid: 8fe7b37fadaeedf4f9bfc746246527dd, type: 2}
+    - {fileID: 2100000, guid: 67c537d1c3cbb9146a7f51b2d6b771c6, type: 2}
+    - {fileID: 2100000, guid: 1c828600130c86c469043b93e5775bdb, type: 2}
+    - {fileID: 2100000, guid: 36e098ebe03f978479bfc361b66ab5dc, type: 2}
+  - hair: Neu09Hair
+    colour: Col 13
+    materials:
+    - {fileID: 2100000, guid: d94e9b37e82dc8946a211d044b7a5106, type: 2}
+    - {fileID: 2100000, guid: 252ee3bb80e215145aa64df9c8dd22df, type: 2}
+    - {fileID: 2100000, guid: 8cfcf0ad9fa0ff345807c1c2ac2ba5cd, type: 2}
+    - {fileID: 2100000, guid: 72ea02ed233dc3f43994fc15b6b81560, type: 2}
+    - {fileID: 2100000, guid: f099f1247a2e882459dea322538b2f28, type: 2}
+    - {fileID: 2100000, guid: 239ba3c47b85b084ca409624502f3cb4, type: 2}
+  - hair: Neu09Hair
+    colour: Col 14
+    materials:
+    - {fileID: 2100000, guid: 4f9915a7ae8080a4097544bb75c81250, type: 2}
+    - {fileID: 2100000, guid: 47d4b23c25c98b24081284c98c0cc179, type: 2}
+    - {fileID: 2100000, guid: 0de2b3443492f5d4cba9bd9abc05749a, type: 2}
+    - {fileID: 2100000, guid: 5e702d3e638357247bade96a68b151e2, type: 2}
+    - {fileID: 2100000, guid: 5b037c9942976eb4b960da59122d76a4, type: 2}
+    - {fileID: 2100000, guid: 4f932ab0744a0d847a3544d3fa41b3d6, type: 2}
+  - hair: Neu09Hair
+    colour: Col 15
+    materials:
+    - {fileID: 2100000, guid: 9a39764d7f1ee9847ad23e937decc2df, type: 2}
+    - {fileID: 2100000, guid: 08050c1b5f2e359448bfe12e25a4a51b, type: 2}
+    - {fileID: 2100000, guid: 32bab49ce7ea4f04cb11138193d91f88, type: 2}
+    - {fileID: 2100000, guid: 4b165b14ca21d6b49aceaf1eff703b1d, type: 2}
+    - {fileID: 2100000, guid: 9540efdec23204640a3a856d2b1aed7c, type: 2}
+    - {fileID: 2100000, guid: 53237477ba7806549849267b1e3b9177, type: 2}
+  - hair: Neu09Hair
+    colour: Col 16
+    materials:
+    - {fileID: 2100000, guid: dc6f391f6bdf0ef49a1e053b058727ad, type: 2}
+    - {fileID: 2100000, guid: dadb7862f4ae3a5478eab41f1024ede0, type: 2}
+    - {fileID: 2100000, guid: 975bfb20e8a3b3b429caa4a5cb81932d, type: 2}
+    - {fileID: 2100000, guid: cc5ed3793e37f974990a7a6f1034f377, type: 2}
+    - {fileID: 2100000, guid: d7fa15ea21c3ec746acfd3951a5929bc, type: 2}
+    - {fileID: 2100000, guid: df88460fb7a2d7c40b970fb6727024ed, type: 2}
+  - hair: Neu09Hair
+    colour: Col 17
+    materials:
+    - {fileID: 2100000, guid: dbb7432d81f9fea4b955975983d1b529, type: 2}
+    - {fileID: 2100000, guid: 42fa5cc0ba0b2a349ac4ac87f4a59407, type: 2}
+    - {fileID: 2100000, guid: 064183260048d9a4e958969317dd8109, type: 2}
+    - {fileID: 2100000, guid: 1499fc44c82c3234eb4f1e470f66fca4, type: 2}
+    - {fileID: 2100000, guid: b19327add10c78949ad54f5da16744d7, type: 2}
+    - {fileID: 2100000, guid: 7b06600c6fe39ff45b01eb84737f954c, type: 2}
+  - hair: Neu09Hair
+    colour: Col 18
+    materials:
+    - {fileID: 2100000, guid: 28e36f59ba55d984fb158bb4efdef1cf, type: 2}
+    - {fileID: 2100000, guid: 3eb271dd4c0ca8549ab1a402f6c4ffd4, type: 2}
+    - {fileID: 2100000, guid: 9459e1f943231bd41873d469ef221eee, type: 2}
+    - {fileID: 2100000, guid: 132d8d3569b13b44297e0eafaff7ef8b, type: 2}
+    - {fileID: 2100000, guid: a3eda7dda836ea54a905fe53a45da335, type: 2}
+    - {fileID: 2100000, guid: 10ac9e8909983eb49871d2349b5a3aa0, type: 2}
+  - hair: Neu09Hair
+    colour: Col 19
+    materials:
+    - {fileID: 2100000, guid: 3c23109199dc91846bad8038e876c39c, type: 2}
+    - {fileID: 2100000, guid: 8b4e035f38e70934a8602e23acc67ae8, type: 2}
+    - {fileID: 2100000, guid: 778efa0853be9b046b532831376bf535, type: 2}
+    - {fileID: 2100000, guid: b4052a0a549391844bb559b6846266ac, type: 2}
+    - {fileID: 2100000, guid: 86cd368bb0a9f324ba9bd0bb5b2d5d78, type: 2}
+    - {fileID: 2100000, guid: 0a684b5f91878be4f995343ee7ac2246, type: 2}
+  - hair: Neu09Hair
+    colour: Col 20
+    materials:
+    - {fileID: 2100000, guid: e928d0049c8afc640b55284e7e4f424b, type: 2}
+    - {fileID: 2100000, guid: cebe3089933e01441aa06d5b34ce0a9b, type: 2}
+    - {fileID: 2100000, guid: 76f2eb996618f7c479d9588ff0ecc894, type: 2}
+    - {fileID: 2100000, guid: b5ff46178c51aed41b1f970c29be29ac, type: 2}
+    - {fileID: 2100000, guid: 20c2ecd91cc18ba44819ca80cbfdca63, type: 2}
+    - {fileID: 2100000, guid: 249a2ece6fbcb034abd66ba37030449a, type: 2}
+  - hair: Neu09Hair
+    colour: Rubber Black
+    materials:
+    - {fileID: 2100000, guid: be429d774d8f5cc4ea35ece07a8f4d11, type: 2}
+  - hair: Neu09Hair
+    colour: Rubber Blue dark
+    materials:
+    - {fileID: 2100000, guid: 3ac4a05df9e580343817c41f7b5a351e, type: 2}
+  - hair: Neu09Hair
+    colour: Rubber Red
+    materials:
+    - {fileID: 2100000, guid: eeff34adf4e91014c804c10e2d3f55c0, type: 2}
+  - hair: Neu09Hair
+    colour: Rubber White
+    materials:
+    - {fileID: 2100000, guid: b53ff45195f69d144a8dd70bdfce0a50, type: 2}
+  - hair: TootsieRollHair
+    colour: 01 Classic Roll Hair
+    materials:
+    - {fileID: 2100000, guid: 1ffccec87e1be3144a39d6ea54f8457b, type: 2}
+    - {fileID: 2100000, guid: 0ae22ccf03a5dae43a6af22e9b035fec, type: 2}
+    - {fileID: 2100000, guid: 1ec7f4ef35d8bae439e719eb2a387845, type: 2}
+    - {fileID: 2100000, guid: 473a6a60583fab349bd7d7c5b9c88812, type: 2}
+    - {fileID: 2100000, guid: aa9c9b268569b8f449cba1dbf75ccf41, type: 2}
+    - {fileID: 2100000, guid: 12338b0b0f5de644197b91e0b3edd1de, type: 2}
+    - {fileID: 2100000, guid: 0d635295aeb54f246b0bfc6769763b08, type: 2}
+    - {fileID: 2100000, guid: b592e4e176ba7084f9206cfe336ed332, type: 2}
+    - {fileID: 2100000, guid: 684ed9babae045445b066b795fbe817c, type: 2}
+    - {fileID: 2100000, guid: c5381815f91ed034698bd68d4bf01bf5, type: 2}
+    - {fileID: 2100000, guid: acca9090cf296064d8a15484b889a658, type: 2}
+  - hair: TootsieRollHair
+    colour: 02 Classic Roll Hair
+    materials:
+    - {fileID: 2100000, guid: 01c33fa71f1f65d4abd0b480a4953b2b, type: 2}
+    - {fileID: 2100000, guid: fea7a20f0f76bec4eab90f45d1c54abd, type: 2}
+    - {fileID: 2100000, guid: ea3ae77b6c253b04982199cedfdbbbe3, type: 2}
+    - {fileID: 2100000, guid: 99f20e0a2daf86b4995403e75500181f, type: 2}
+    - {fileID: 2100000, guid: be75e8e6cb95d924fb2332321fdc3ece, type: 2}
+    - {fileID: 2100000, guid: 6204b0b8e3fd4cd4f9dfdadf4aa427d5, type: 2}
+    - {fileID: 2100000, guid: abdb28d4d9f17864eb775b0a912052af, type: 2}
+    - {fileID: 2100000, guid: 38ee0d57d2ad44d44bc56637300a3660, type: 2}
+    - {fileID: 2100000, guid: baae9e9290905d24a90eafb2ba0956de, type: 2}
+    - {fileID: 2100000, guid: 2a3f4951869380b4fa1837f1b653429e, type: 2}
+    - {fileID: 2100000, guid: cbfe149a8d144d44e98b1f152db753c1, type: 2}
+  - hair: TootsieRollHair
+    colour: 03 Classic Roll Hair
+    materials:
+    - {fileID: 2100000, guid: 0b46f8eb0020a21489f4cd90a860eec0, type: 2}
+    - {fileID: 2100000, guid: ca2037e4a7525c74cbdbee9aa66e4333, type: 2}
+    - {fileID: 2100000, guid: ad5abf337d2351242b76c1257f0187f6, type: 2}
+    - {fileID: 2100000, guid: f8f539004a47c6a4aab73147f61a70dd, type: 2}
+    - {fileID: 2100000, guid: 054729a0184bee04382acf40cf744186, type: 2}
+    - {fileID: 2100000, guid: e040dc17a773899448ed5ba73e6c9faa, type: 2}
+    - {fileID: 2100000, guid: 8358169a65ff54d40909ea92d7bd4df3, type: 2}
+    - {fileID: 2100000, guid: 925f8375c96120442ad951747a0ead5a, type: 2}
+    - {fileID: 2100000, guid: e37df62756b278a4da0ea4cc1ef609dd, type: 2}
+    - {fileID: 2100000, guid: 905d228512f2f1c47837ef8c6329f3df, type: 2}
+    - {fileID: 2100000, guid: f4c81e4f3ecf4b540a6e7f7f60397259, type: 2}

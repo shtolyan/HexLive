@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
+  m_Name: garment_Jolly_24105
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
+  MeshName: Jolly
+  VertexCount: 24105
+  TSamples: 1
+  AzimuthSamples: 1
+  TMin: 0
+  TMax: 1
+  Zones:
+  - Zone: Head
+    Points: []
+  - Zone: Torso
+    Points:
+    - Slot: 0
+      Uv: {x: 0.762016, y: 0.57927066}
+      BindPerU: 0.72289205
+      BindPerV: 1.0398828
+      Valid: 1
+  - Zone: Pelvis
+    Points:
+    - Slot: 0
+      Uv: {x: 0.75458074, y: 0.54533273}
+      BindPerU: 0.72839266
+      BindPerV: 1.0560516
+      Valid: 1
+  - Zone: ArmL
+    Points:
+    - Slot: 1
+      Uv: {x: 0.5423217, y: 0.24359}
+      BindPerU: 0.5955323
+      BindPerV: 0.8948296
+      Valid: 1
+  - Zone: ArmR
+    Points:
+    - Slot: 1
+      Uv: {x: 0.264554, y: 0.24314767}
+      BindPerU: 0.59565115
+      BindPerV: 0.8916082
+      Valid: 1
+  - Zone: LegL
+    Points: []
+  - Zone: LegR
+    Points: []

@@ -17,6 +17,150 @@ MonoBehaviour:
     UserAgreesToHaveItInsideThePluginsFolder: 0
     GoogleLiveSyncIsUptoDate: 1
     mTerms:
+    - Term: 'item.tonnyflash.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Gambeson'
+      - 'Поддоспешник'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.tonnyflash.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Quilted padding worn under the straps. Soaks up what the plates let through.'
+      - 'Стёганая поддёвка под ремни. Гасит то, что пропустили пластины.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.fco_pants_male.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fighter''s Trousers'
+      - 'Штаны бойца'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.fco_pants_male.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thick canvas, reinforced at the knee. Made for crawling, not for sitting.'
+      - 'Плотный брезент, усиленный на коленях. Шиты для ползания, а не для сидения.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.fco_belt_male.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fighter''s Belt'
+      - 'Ремень бойца'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.fco_belt_male.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A wide belt with loops for everything. Half his kit hangs off it.'
+      - 'Широкий ремень с петлями подо всё. Половина снаряжения висит на нём.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.fco_gloves_male.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Tactical Gloves'
+      - 'Перчатки бойца'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.fco_gloves_male.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Cut-resistant palms, knuckles armoured. He does not put his hands down.'
+      - 'Ладони не режутся, костяшки прикрыты. Руки он не опускает.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.fao_harness_male.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Harness'
+      - 'Портупея'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.fao_harness_male.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Plated webbing across the chest. The one thing between a bite and his ribs.'
+      - 'Стропы с пластинами через грудь. Единственное между укусом и рёбрами.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.fco_boots_male.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Fighter''s Boots'
+      - 'Сапоги бойца'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.fco_boots_male.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'High laced boots, soles worn smooth. They have walked a long way here.'
+      - 'Высокие шнурованные сапоги, подошва стёрта. Они шли сюда долго.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.fco_legs_straps_male.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Thigh Guards'
+      - 'Набедренники'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.fco_legs_straps_male.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Strapped plates over the thighs. Heavy, and he never takes them off.'
+      - 'Пластины на ремнях поверх бёдер. Тяжёлые, и он их не снимает.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.fco_knee_straps_male.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Knee Pads'
+      - 'Наколенники'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.fco_knee_straps_male.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hard caps over the knees. He kneels to shoot, and to finish.'
+      - 'Жёсткие чашки на коленях. Он встаёт на колено, чтобы выстрелить и чтобы добить.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.fco_waist_strappy_male.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hip Belt'
+      - 'Набедренный ремень'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.fco_waist_strappy_male.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'A second belt low on the hips, carrying the weight off his shoulders.'
+      - 'Второй ремень низко на бёдрах — снимает вес с плеч.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'wardrobe.hair_colour'
       TermType: 0
       Description: 

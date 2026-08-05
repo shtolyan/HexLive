@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
+  m_Name: garment_Molly_74029
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
+  MeshName: Molly
+  VertexCount: 74029
+  TSamples: 1
+  AzimuthSamples: 1
+  TMin: 0
+  TMax: 1
+  Zones:
+  - Zone: Head
+    Points:
+    - Slot: 1
+      Uv: {x: 0.51772904, y: 0.445611}
+      BindPerU: 1.6463273
+      BindPerV: 1.4916124
+      Valid: 1
+  - Zone: Torso
+    Points:
+    - Slot: 2
+      Uv: {x: 0.8048223, y: 0.5606173}
+      BindPerU: 0.77614087
+      BindPerV: 0.69278026
+      Valid: 1
+  - Zone: Pelvis
+    Points:
+    - Slot: 1
+      Uv: {x: 0.23417766, y: 0.0077446667}
+      BindPerU: 1.0080519
+      BindPerV: 1.2430462
+      Valid: 1
+  - Zone: ArmL
+    Points:
+    - Slot: 1
+      Uv: {x: 0.84730005, y: 0.28813836}
+      BindPerU: 1.1263595
+      BindPerV: 1.1491148
+      Valid: 1
+  - Zone: ArmR
+    Points:
+    - Slot: 1
+      Uv: {x: 0.8443424, y: 0.78478605}
+      BindPerU: 1.1528733
+      BindPerV: 1.1414875
+      Valid: 1
+  - Zone: LegL
+    Points: []
+  - Zone: LegR
+    Points: []

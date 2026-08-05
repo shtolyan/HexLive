@@ -3724,6 +3724,24 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         _bodyBones.SetHair(prefab);
+        ApplyHairColour(hairstyle);
+    }
+
+    // §74: свой цвет волос. Правило и подмена живут в HairColourApplier —
+    // там же, откуда их берёт проверяющее меню.
+    private void ApplyHairColour(string hairstyle)
+    {
+        var live = _bodyBones != null ? _bodyBones.HairInstance : null;
+        if (live == null)
+        {
+            return;
+        }
+
+        var colour = HairColourApplier.Choose(hairstyle, _npcId);
+        if (colour != null)
+        {
+            HairColourApplier.Apply(live.gameObject, colour);
+        }
     }
 
     // §74: wear another actress's face. All four girls are Genesis3Female with

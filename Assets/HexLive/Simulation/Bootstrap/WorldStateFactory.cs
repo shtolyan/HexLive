@@ -110,17 +110,17 @@ public sealed class WorldStateFactory
         // random (deterministic per seed+NPC) underwear, MAYBE shorts, MAYBE
         // a top missing entirely. Clothing barely warms; the designed way
         // through a cold night is the campfire, not the wardrobe.
-        // Custom-print underwear/tops (fal.ai textures, spec 42) join the
-        // seeded rotation so castaways can wash ashore in the leopard/star
-        // panties or the tie-dye/tropic tee.
-        // The 2026-07 new-wear drop (spec §31B.4) joins the rotation too: the
-        // extracted panties/bra/swimsuit read as castaway beachwear. The
-        // dresses and sweater stay out — nobody washes ashore in a fur dress
-        // (they're registered, dressable and tunable in the WardrobeTest
-        // scene).
-        string[] startBottoms = { "Panty_11571", "Bikini Bottom", "underwear.panty_leo", "underwear.panty_stars", "underwear.panty_flair", "underwear.panty_basic", "underwear.swim_bottom", "underwear.panty_dots", "underwear.panty_stripe", "underwear.panty_cherry" };
-        string[] startTops = { "Bikini top", "Top_11927", "CowTop", "clothing.top_tiedye", "clothing.top_tropic", "underwear.bra_basic", "underwear.swim_top", "underwear.bra_dots", "underwear.bra_stripe", "underwear.bra_cherry" };
-        string[] startShorts = { "Shorts Green", "Shorts short", "Shorts 1389", "clothing.shorts_red", "clothing.shorts_olive", "clothing.shorts_cherry", "clothing.shorts_white", "clothing.shorts_hearts", "clothing.shorts_critters" };
+        // Пулы ВЫВОДЯТСЯ из гардероба, а не перечисляются. Списком они были
+        // ровно до тех пор, пока вещей было тридцать: после импорта их 685, и
+        // каждая новая партия проходила бы мимо потерпевших молча — новую вещь
+        // никто бы не увидел, пока её не впишут сюда руками.
+        var startBottoms = StartPool(g => g.Layer == WearLayer.Underwear && g.Covers.Contains(BodyPart.Pelvis));
+        var startTops = StartPool(g => g.Layer == WearLayer.Underwear && g.Covers.Contains(BodyPart.Torso));
+        // Верхний низ — только ЛЁГКИЙ: шорты и юбки проходят, джинсы (0.12) и
+        // платья (0.10) нет. Никто не выходит на берег в шубе (§42).
+        var startShorts = StartPool(g => g.Layer == WearLayer.Wear &&
+                                         g.Covers.Contains(BodyPart.Pelvis) &&
+                                         g.Warmth <= 0.06f);
         // §72: чужак сходит на берег не потерпевшим, а бойцом — в своём
         // тактическом комплекте. Раздавать ему женское пляжное бельё было бы
         // не только нелепо на вид: без брони он гиб на всех сидах, дважды даже
@@ -146,21 +146,58 @@ public sealed class WorldStateFactory
                 continue;
             }
 
-            npc.WornItems.Add(startBottoms[(int)(MathUtil.Hash01(world.Seed, id, 11, 4201) * startBottoms.Length)]);
+            Wear(npc, startBottoms, MathUtil.Hash01(world.Seed, id, 11, 4201));
             if (MathUtil.Hash01(world.Seed, id, 12, 4202) < 0.8f)
             {
-                npc.WornItems.Add(startTops[(int)(MathUtil.Hash01(world.Seed, id, 13, 4203) * startTops.Length)]);
+                Wear(npc, startTops, MathUtil.Hash01(world.Seed, id, 13, 4203));
             }
 
             if (MathUtil.Hash01(world.Seed, id, 14, 4204) < 0.5f)
             {
-                npc.WornItems.Add(startShorts[(int)(MathUtil.Hash01(world.Seed, id, 15, 4205) * startShorts.Length)]);
+                Wear(npc, startShorts, MathUtil.Hash01(world.Seed, id, 15, 4205));
             }
 
             Runtime.EquipmentMath.Recalculate(world, npc);
         }
 
         return world;
+    }
+
+    // Один пул стартовой одежды: всё женское из ЖИВОГО гардероба, что подходит
+    // под правило. Порядок — по id: пул участвует в seeded-розыгрыше, и любая
+    // нестабильность порядка развела бы один и тот же сид на разные наряды
+    // (а с сервером — сервер и клиента на разные миры).
+    //
+    // Пустой пул означал бы голых потерпевших, поэтому пустоту тут не молчат:
+    // если гардероб не доехал, честнее раздеть одну зону, чем всех.
+    // Розыгрыш по уже посчитанному 0..1. Пустой пул — не повод падать: одна
+    // зона останется голой, остальные оденутся.
+    private static void Wear(NPCState npc, string[] pool, float roll)
+    {
+        if (pool.Length == 0)
+        {
+            return;
+        }
+
+        var index = (int)(roll * pool.Length);
+        npc.WornItems.Add(pool[index >= pool.Length ? pool.Length - 1 : index]);
+    }
+
+    private static string[] StartPool(Func<GarmentParams, bool> keep)
+    {
+        var pool = new List<string>();
+        foreach (var garment in GarmentLibrary.Active)
+        {
+            if (garment == null || garment.Sex == GarmentSex.Male || !keep(garment))
+            {
+                continue;
+            }
+
+            pool.Add(garment.Id);
+        }
+
+        pool.Sort(StringComparer.Ordinal);
+        return pool.ToArray();
     }
 
     // Spec 35.3: choose the communal hut site (seeded) — walkable, dry,

@@ -23,7 +23,11 @@ namespace HexLive.UnityPresentation.Wearing
     /// </summary>
     public static class ActorAppearanceCatalogBuilder
     {
-        private const string HairRoot = "Assets/ImportedActors/Wear";
+        // Причёски переехали из ImportedActors/Wear в свою папку. Ссылки в
+        // каталоге пережили переезд (они по GUID), а вот СБОРКА каталога — нет:
+        // со старым путём это меню молча собирало пустой список, то есть
+        // раздевало догола всех, кому причёску катает симуляция.
+        private const string HairRoot = "Assets/ImportedActors/Hair";
         private const string CatalogPath =
             "Assets/Resources/HexLive/ActorAppearanceCatalog.asset";
 
@@ -62,6 +66,7 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             catalog.hairstyles = found;
+            catalog.hairColours = CollectColours(found);
             EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -74,10 +79,68 @@ namespace HexLive.UnityPresentation.Wearing
 
             Debug.Log(
                 $"[§74] ActorAppearanceCatalog {(created ? "created" : "rebuilt")} " +
-                $"with {found.Count} hairstyles: {string.Join(", ", names)}\n" +
+                $"with {found.Count} hairstyles ({catalog.hairColours.Count} расцветок): " +
+                $"{string.Join(", ", names)}\n" +
                 "Keep ColonistAppearance.Hairstyles (simulation side) in sync with this list — " +
                 "an id the sim rolls but the catalog lacks silently leaves the girl with her prefab hair.",
                 catalog);
+        }
+
+        // Расцветки лежат папками рядом с причёской:
+        // <hair>/Materials/<Цвет>/<Поверхность>.mat, а прототипные материалы —
+        // прямо в <hair>/Materials. Отсюда правило отбора: берём ТОЛЬКО
+        // подпапки, иначе прототип уехал бы в список как ещё один «цвет» и
+        // выпадал бы вторым шансом на самого себя.
+        private static List<ActorAppearanceCatalog.HairColour> CollectColours(List<Wear> hairstyles)
+        {
+            var result = new List<ActorAppearanceCatalog.HairColour>();
+            foreach (var hair in hairstyles)
+            {
+                var prefabPath = AssetDatabase.GetAssetPath(hair);
+                var root = Path.GetDirectoryName(prefabPath)?.Replace('\\', '/');
+                var materials = $"{root}/Materials";
+                if (string.IsNullOrEmpty(root) || !AssetDatabase.IsValidFolder(materials))
+                {
+                    continue;
+                }
+
+                foreach (var folder in AssetDatabase.GetSubFolders(materials))
+                {
+                    var entry = new ActorAppearanceCatalog.HairColour
+                    {
+                        hair = hair.name,
+                        colour = Path.GetFileName(folder),
+                    };
+
+                    foreach (var guid in AssetDatabase.FindAssets("t:Material", new[] { folder }))
+                    {
+                        var path = AssetDatabase.GUIDToAssetPath(guid);
+                        // FindAssets ищет вглубь — чужие подпапки не наши.
+                        if (Path.GetDirectoryName(path)?.Replace('\\', '/') != folder)
+                        {
+                            continue;
+                        }
+
+                        var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+                        if (material != null)
+                        {
+                            entry.materials.Add(material);
+                        }
+                    }
+
+                    if (entry.materials.Count > 0)
+                    {
+                        result.Add(entry);
+                    }
+                }
+            }
+
+            result.Sort((a, b) =>
+            {
+                var byHair = string.CompareOrdinal(a.hair, b.hair);
+                return byHair != 0 ? byHair : string.CompareOrdinal(a.colour, b.colour);
+            });
+            return result;
         }
     }
 }

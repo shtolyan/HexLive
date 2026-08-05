@@ -39,4 +39,4 @@ MonoBehaviour:
   armor: 0.06
   thermalDelta: 0
   dressDurationTicks: 8
-  capacity: 0
+  capacity: 2

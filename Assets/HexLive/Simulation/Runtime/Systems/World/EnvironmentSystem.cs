@@ -23,6 +23,11 @@ public sealed class EnvironmentSystem : ISimulationSystem
     // The gameplay cadence for the seeded per-cycle rolls (rain, storms, surf
     // gifts, raids) — deliberately NOT the visual day, see WorldBalance.
     public static int EventCycleTicks => WorldBalance.EventCycleTicks;
+
+    // The normalized day starts at 06:00, so 23:00 is 17/24 into it and the
+    // interval stays contiguous through the 00:00 wrap until dawn.
+    internal static bool IsAfter23(WorldState world) =>
+        world.Environment.TimeOfDayNormalized >= 17f / 24f;
     // Spec 42: a real tropical swing — 25° at the 15:00 peak (dressed girls
     // cross the >24 undress gate and strip for the day), 6° at 03:00 (layers
     // and the campfire earn their keep at night).

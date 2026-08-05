@@ -24,6 +24,7 @@ MonoBehaviour:
   moistureDryBase: 0.02
   fireBurnPerSlowTick: 16
   fruitRotTicks: 2400
+  surfGiftIntervalDays: 5
   maxDogs: 2
   dogRespawnCheckTicks: 7200
   raidDuskOffsetTicks: 1800

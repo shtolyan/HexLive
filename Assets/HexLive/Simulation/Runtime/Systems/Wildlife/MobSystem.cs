@@ -262,7 +262,18 @@ public sealed class MobSystem : ISimulationSystem
             // Spec 29C.4A: out of melee = she has (for now) broken contact, so
             // the flee-stall clock resets — the cornered-fight valve only fires
             // on CONTINUOUS melee pinning, never on a chase she is outrunning.
-            target.Mind.FleeContactSinceTick = 0;
+            // Bug #20: this clock belongs to the NPC-versus-PACK encounter,
+            // not to each dog. With two wolves, the one still chasing used to
+            // reset the clock set by the wolf already pinning the victim every
+            // pass. The victim then stayed Flee forever, neither escaping nor
+            // reaching the cornered-fight valve; weapon/IsFighting flickered
+            // with mob iteration order. Break contact only when the whole pack
+            // is out of junction melee.
+            var packHasMeleeContact = CountAdjacentDogs(world, target) > 0;
+            if (!packHasMeleeContact)
+            {
+                target.Mind.FleeContactSinceTick = 0;
+            }
             var junctionBefore = dog.Junction;
             ChaseStep(world, dog, target);
 
@@ -298,6 +309,14 @@ public sealed class MobSystem : ISimulationSystem
             }
 
             TryCoverFire(world, dog, target);
+
+            // Another dog already owns the live exchange. This chaser may
+            // close distance, but must not start a fresh flee/standoff decision
+            // afterward and overwrite the pack-level fighting latch.
+            if (packHasMeleeContact || CountAdjacentDogs(world, target) > 0)
+            {
+                return;
+            }
 
             // Behavior audit (Jul 2026): a girl being RUN DOWN at arm's length
             // kept strolling to her errand — IsFighting only latched in actual

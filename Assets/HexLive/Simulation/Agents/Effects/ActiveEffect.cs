@@ -10,10 +10,16 @@ namespace HexLive.Simulation.Agents.Effects
 
         public readonly float Intensity;
 
-        public ActiveEffect(EffectKind kind, float intensity)
+        // Optional localized explanation for the concrete cause. The catalog
+        // still owns the stable title/emoji; this only refines the tooltip for
+        // states such as coma, fainting, crying and dying.
+        public readonly string DetailKey;
+
+        public ActiveEffect(EffectKind kind, float intensity, string detailKey = null)
         {
             Kind = kind;
             Intensity = intensity < 0f ? 0f : intensity > 1f ? 1f : intensity;
+            DetailKey = detailKey ?? string.Empty;
         }
     }
 }

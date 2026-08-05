@@ -190,10 +190,11 @@ namespace HexLive.UnityPresentation.Wearing
         // ---- wound volume knobs (spec 40.8-D v5) ----
         // Fresh cuts glisten: absolute smoothness stamped into the wet core
         // (base skin stays at the caller's dry/wet value, 0.32 dry).
-        // Full 1.0 — the wound IS the volume cue now, so it must visibly
-        // out-shine everything, including the 0.72 sweat sheen and the 0.95
-        // droplets.
-        private const float WoundWetGloss = 1f;
+        // Do NOT use 1.0: zero roughness collapses URP's GGX highlight to a
+        // sub-pixel point, so some wounds look matte unless sun/view alignment
+        // is exact. 0.92 is still far above wet skin (0.72), but spreads a
+        // readable highlight across every wound at gameplay distance.
+        private const float WoundWetGloss = 0.92f;
 
         // A LITTLE surface relief on the wound (v5 cut wound relief for UV-seam
         // ridge artifacts — but a flat smooth-1 surface only mirrors a

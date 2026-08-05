@@ -34,6 +34,12 @@ public static class Spec111
     // мы режем ЗНАНИЕ, а не только дорогу, иначе он «чует» тело через полострова.
     public static int LootHelplessSightRadiusTiles = 6;
 
+    // A helpless body cannot cry for help, but allies close enough to SEE the
+    // search treat it exactly like an attack. Three hexes is the deliberately
+    // tight witness bubble requested for the scene; this is a rule, not a
+    // balance slider, so it stays const and does not enter SimData.
+    public const int LootWitnessRadiusTiles = 3;
+
     // Тиков на одну вещь. Вдвое быстрее лута трупа (20): там раздевание, тут
     // «хоп-хоп» по карманам. Обмороки коротки (80 тиков), и этот темп —
     // единственное, что успевает снять с жертвы больше одной вещи.

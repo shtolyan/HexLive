@@ -19,16 +19,24 @@ public static class Spec82
 
     // --- Территория ---------------------------------------------------------
 
-    // ⭐ Подошла к его стоянке — бьёт без разговора. Это и есть «злой»: не
-    // расчётливый шантажист, который взвешивает выгоду, а хозяин, который гонит
-    // чужих со двора. Разговор для этого не нужен, и повод тоже.
+    // ⭐ Враждебный NPC в своём лагере запускает сцену выгона §115.
     public static bool TerritorialEnabled = true;
 
-    // Радиус вокруг стоянки, внутри которого он считает себя дома.
+    // Личный радиус зрения; сама граница лагеря берётся из ColonyQueries.InCamp.
     public static int TerritoryRadiusTiles = 5;
 
     // Пауза между выгонами, чтобы он не молотил одну и ту же без передышки.
     public static int TerritoryCooldownTicks = 300;
+
+    public static float TerritorySubmitHealth = 0.5f;
+
+    public static int TerritoryResponseDelayTicks = 8;
+
+    public static int TerritoryMaxBlows = 3;
+
+    public static float TerritoryBlowSpacingClips = 1.2f;
+
+    public static int TerritoryFightTimeoutTicks = 60;
 
     // Ставка. Намеренно ОЧЕНЬ высокая: это не дело, которое он выбирает между
     // делами, а реакция на вторжение. Всё, кроме бегства и боя, обязано ждать.

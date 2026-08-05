@@ -515,6 +515,11 @@ public sealed partial class ExecutionSystem
                 return;
             }
 
+            if (target.IsLyingDown(world.Tick))
+            {
+                LyingSpot.AlignInteractorAtFeet(npc, target);
+            }
+
             // Turn to face her — a caring stance. The HELPER kneels toward the
             // patient; the patient, if she's lying (coma/asleep/prone), keeps
             // her authored pose and is NOT rotated to face back (§60: a flat
@@ -566,6 +571,11 @@ public sealed partial class ExecutionSystem
 
         if (npc.Execution.Status == ExecutionStatus.InProgress)
         {
+            if (target.IsLyingDown(world.Tick))
+            {
+                LyingSpot.AlignInteractorAtFeet(npc, target);
+            }
+
             var remaining = npc.Execution.EndTick - world.Tick;
             if (remaining > 0)
             {

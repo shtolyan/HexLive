@@ -68,6 +68,57 @@ internal static class LyingSpot
     internal static float BodyHalfWidth =>
         HexSpatialMath.HexRadius * Spec49.LieBodyWidthFactor * 0.5f;
 
+    // §111.9 (bug #19 r3): every interaction with a living lying body uses one
+    // authored pose. LieDown/Sleep are backward falls: the actor ROOT keeps
+    // its standing forward, so while she lies that root axis runs HEAD->FEET.
+    // The helper must therefore stand at +forward and face -forward. Calling
+    // RotationDegrees itself "feet->head" was the old sign bug: it put every
+    // helper at the head, facing the feet, and was especially obvious with the
+    // curled second sleep pose.
+    internal static Float2 InteractionFeet(NPCState target) =>
+        target.Position + Forward(target.RotationDegrees) * BodyHalfLength;
+
+    internal static float InteractionHeading(NPCState target) =>
+        Wrap360(target.RotationDegrees + 180f);
+
+    // The route ends on a FREE junction beside the occupied body footprint;
+    // the authored interaction station itself deliberately sits inside that
+    // footprint, at its feet. The final move is therefore a short scene snap,
+    // not another pathfinding step and not a melee/topology test against the
+    // ward's occupied junction. Aid is the approach radius; BodyHalfLength is
+    // the furthest the station can lie from the body's centre.
+    internal static float InteractionStationReach =>
+        InteractionReach.Aid + BodyHalfLength;
+
+    internal static void AlignInteractorAtFeet(NPCState actor, NPCState target)
+    {
+        var heading = InteractionHeading(target);
+        actor.Position = InteractionFeet(target);
+        actor.RotationDegrees = heading;
+        actor.Movement.DesiredRotationDegrees = heading;
+        actor.Movement.DesiredDirection = Forward(heading);
+    }
+
+    // §66.5 + §111.9 r3: a bed attach point owns the VISIBLE body's centre and
+    // yaw. Keep the simulation body on that same pose, otherwise aid/loot uses
+    // the approach junction and stale walk yaw while the renderer silently
+    // pins the sleeper somewhere else and helpers aim at empty space.
+    internal static void AlignBodyToObject(
+        WorldState world, NPCState body, WorldObjectState worldObject, Float2 anchorPosition)
+    {
+        if (body.Tile != worldObject.Tile)
+        {
+            var previousTile = body.Tile;
+            body.Tile = worldObject.Tile;
+            SpatialMutations.MoveEntityToTile(world, body.Id, previousTile, body.Tile);
+        }
+
+        body.Position = anchorPosition;
+        body.RotationDegrees = Wrap360(worldObject.RotationDegrees);
+        body.Movement.DesiredRotationDegrees = body.RotationDegrees;
+        body.Movement.DesiredDirection = Forward(body.RotationDegrees);
+    }
+
     /// <summary>
     /// Место и курс для тела, которое ложится на своём гексе. Порядок перебора
     /// фиксирован и не зависит от порядка обхода словарей — трасса на том же

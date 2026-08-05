@@ -196,81 +196,8 @@ public static class AbuseMath
 
         foreach (var mark in world.Entities.Npcs.Values)
         {
-            if (mark.Id.Equals(abuser.Id) ||
-                mark.Health <= 0f ||
-                !FactionRelations.AreHostile(abuser.Faction, mark.Faction))
+            if (!IsEligibleMark(world, abuser, mark, ref tally))
             {
-                continue;
-            }
-
-            tally.Hostile++;
-
-            // §81.12: глазами, не ростером. Дальше радиуса взгляда женщины для
-            // него не существует — пусть идёт туда, где люди бывают (prowl §90),
-            // и замечает их по дороге. §85 r2 снимал радиус, потому что тот
-            // резал ВЫБОР при всевидящем знании; здесь режется само ЗНАНИЕ,
-            // а выбор внутри поля зрения по-прежнему без порогов.
-            if (Spec81.AbuseHuntBySight &&
-                HexSpatialMath.HexDistance(abuser.Tile, mark.Tile) >
-                    Spec81.AbuseSightRadiusTiles)
-            {
-                tally.OutOfSight++;
-                continue;
-            }
-
-            // §105.14: притворяющаяся идёт сюда же — лежит неподвижно, и
-            // абьюзер теряет к ней интерес (Body.IsProne её НЕ покрывает: это
-            // безногость, а не поза).
-            if (mark.IsUnconscious(world.Tick) || mark.Body.IsProne ||
-                mark.IsPlayingDead(world.Tick))
-            {
-                tally.Helpless++;
-                continue;
-            }
-
-            // Спящую не трогаем: кьюшка над спящей молча гасится (§60), и
-            // вся сцена прошла бы без единого эмодзи, а «она взвесила силы
-            // и сдалась» требует, чтобы она вообще была в сознании. Тихий
-            // грабёж спящей — это другая механика, кража §40.5.
-            if (mark.Execution.CurrentInteraction == InteractionType.Sleep)
-            {
-                tally.Asleep++;
-                continue;
-            }
-
-            if (mark.Mind.CurrentGoal == GoalType.Flee)
-            {
-                tally.Fleeing++;
-                continue;
-            }
-
-            if (Spec81.AbuseRespectsSanctuary && MobSystem.IsNpcInSanctuary(world, mark))
-            {
-                tally.Sanctuary++;
-                continue;
-            }
-
-            // §106: пловчиху не выбирают — вода второй санктуарий, и сцена,
-            // которую нельзя начать (CanStrike), не должна и планироваться.
-            if (Spec106.WaterSanctuaryEnabled && CombatMedium.IsNpcSwimming(world, mark))
-            {
-                tally.Swimming++;
-                continue;
-            }
-
-            // §85 r2: радиуса поиска БОЛЬШЕ НЕТ. Он был последним, что мешало:
-            // жертву он находил лишь в половине замеров, и почти всё
-            // оставшееся — «никого нет в семи гексах». А раз цели нет, цель
-            // абьюза не участвует в аукционе, и он идёт пить воду — ровно то,
-            // что видно в игре.
-            //
-            // Захотел — значит идёт, хоть через весь остров. Близость осталась
-            // ВЕСОМ: ближняя приятнее дальней, но дальняя лучше, чем никакой.
-
-            // Уже занята чужим рукопожатием — не влезаем в чужую сцену.
-            if (mark.Mind.PendingAbuseFrom is { } claimed && !claimed.Equals(abuser.Id))
-            {
-                tally.Claimed++;
                 continue;
             }
 
@@ -316,6 +243,167 @@ public static class AbuseMath
         }
 
         return best;
+    }
+
+    // §81.12: единый фильтр жертвы для первоначального выбора и маршрутного
+    // перевыбора. Если две ветки начнут решать пригодность по-разному, абьюзер
+    // сможет увидеть цель, на которую затем не имеет права переключиться (или
+    // наоборот), поэтому правила и диагностические счётчики живут здесь.
+    public static bool IsEligibleMark(
+        WorldState world, NPCState abuser, NPCState mark, ref MarkFilterTally tally)
+    {
+        if (mark.Id.Equals(abuser.Id) ||
+            mark.Health <= 0f ||
+            !FactionRelations.AreHostile(abuser.Faction, mark.Faction))
+        {
+            return false;
+        }
+
+        tally.Hostile++;
+
+        if (Spec81.AbuseHuntBySight &&
+            HexSpatialMath.HexDistance(abuser.Tile, mark.Tile) >
+                Spec81.AbuseSightRadiusTiles)
+        {
+            tally.OutOfSight++;
+            return false;
+        }
+
+        if (mark.IsUnconscious(world.Tick) || mark.Body.IsProne ||
+            mark.IsPlayingDead(world.Tick))
+        {
+            tally.Helpless++;
+            return false;
+        }
+
+        if (mark.Execution.CurrentInteraction == InteractionType.Sleep)
+        {
+            tally.Asleep++;
+            return false;
+        }
+
+        if (mark.Mind.CurrentGoal == GoalType.Flee)
+        {
+            tally.Fleeing++;
+            return false;
+        }
+
+        if (Spec81.AbuseRespectsSanctuary && MobSystem.IsNpcInSanctuary(world, mark))
+        {
+            tally.Sanctuary++;
+            return false;
+        }
+
+        if (Spec106.WaterSanctuaryEnabled && CombatMedium.IsNpcSwimming(world, mark))
+        {
+            tally.Swimming++;
+            return false;
+        }
+
+        if (mark.Mind.PendingAbuseFrom is { } claimed && !claimed.Equals(abuser.Id))
+        {
+            tally.Claimed++;
+            return false;
+        }
+
+        return true;
+    }
+
+    // §81.12 / bug #17: «ближе» означает не расстояние между гексами, а
+    // реально проходимый маршрут по графу джанкшенов. Высота, вода и обход
+    // препятствия могут сделать визуально близкую цель дальней по пути.
+    // FindPath применяет те же правила проходимости, что обычное движение;
+    // возвращаем геометрическую длину выбранного маршрута в world units.
+    public static NPCState ClosestReachableMark(
+        WorldState world, NPCState abuser, out bool hasLoot, out float routeLength)
+    {
+        hasLoot = false;
+        routeLength = float.MaxValue;
+        var start = abuser.CurrentJunction ??
+            SpatialQueries.FindNearestJunction(world, abuser.Position);
+        if (start is null)
+        {
+            return null;
+        }
+
+        var avoid = PathfindingSystem.OtherActorJunctions(world, abuser);
+        NPCState best = null;
+        foreach (var mark in world.Entities.Npcs.Values)
+        {
+            var tally = default(MarkFilterTally);
+            if (!IsEligibleMark(world, abuser, mark, ref tally))
+            {
+                continue;
+            }
+
+            var goal = mark.CurrentJunction ??
+                SpatialQueries.FindNearestJunction(world, mark.Position);
+            if (goal is null)
+            {
+                continue;
+            }
+
+            var path = HexPathfinder.FindPath(
+                world, start.Value, goal.Value, avoid, weightClimb: false,
+                canJump: abuser.Body.CanJump);
+            if (path.Count == 0)
+            {
+                continue;
+            }
+
+            var length = RouteLength(world, path);
+            if (length < routeLength - 0.0001f ||
+                (System.Math.Abs(length - routeLength) <= 0.0001f &&
+                 best is not null && mark.Id.Value < best.Id.Value))
+            {
+                best = mark;
+                routeLength = length;
+                hasLoot = WhatToTake(world, abuser, mark) != AidKind.None;
+            }
+        }
+
+        return best;
+    }
+
+    public static bool TryRouteLength(
+        WorldState world, NPCState actor, NPCState target, out float routeLength)
+    {
+        routeLength = float.MaxValue;
+        var start = actor.CurrentJunction ??
+            SpatialQueries.FindNearestJunction(world, actor.Position);
+        var goal = target.CurrentJunction ??
+            SpatialQueries.FindNearestJunction(world, target.Position);
+        if (start is null || goal is null)
+        {
+            return false;
+        }
+
+        var path = HexPathfinder.FindPath(
+            world, start.Value, goal.Value,
+            PathfindingSystem.OtherActorJunctions(world, actor),
+            weightClimb: false, canJump: actor.Body.CanJump);
+        if (path.Count == 0)
+        {
+            return false;
+        }
+
+        routeLength = RouteLength(world, path);
+        return true;
+    }
+
+    private static float RouteLength(WorldState world, System.Collections.Generic.List<JunctionId> path)
+    {
+        var length = 0f;
+        for (var i = 1; i < path.Count; i++)
+        {
+            if (world.Junctions.Items.TryGetValue(path[i - 1], out var from) &&
+                world.Junctions.Items.TryGetValue(path[i], out var to))
+            {
+                length += HexSpatialMath.Distance(from.WorldPosition, to.WorldPosition);
+            }
+        }
+
+        return length;
     }
 
     // Забрать припас. Отдельно от AidSupply.TrySpend, потому что там припас

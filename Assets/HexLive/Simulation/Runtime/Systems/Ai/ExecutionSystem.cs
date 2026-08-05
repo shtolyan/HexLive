@@ -504,7 +504,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     // §54.14 (r2): same hysteresis as the decision layer — the
                     // walk over must not revoke the drill (LastFreezingTick is
                     // stamped in DecisionSystem each freezing tick).
-                    var canFrictionLight = npc.Needs.ThermalComfort < -0.35f ||
+                    var canFrictionLight = npc.Mind.NightSleepUntilRested ||
+                        npc.Needs.ThermalComfort < -0.35f ||
                         world.Tick - npc.Mind.LastFreezingTick < SimBalance.FrictionLightGraceTicks;
                     var missingLighter = worldObject.ResourceAmount <= 0f &&
                         !Content.GearCatalog.HasCapability(
@@ -536,6 +537,16 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     npc.RotationDegrees = npc.Movement.DesiredRotationDegrees;
                 }
 
+                // §66.5 + §111.9 r3: the renderer pins a sleeping body to the
+                // bed's centre and rotation. Mirror that authored pose in the
+                // simulation before anybody targets the sleeper for aid/loot;
+                // the free rim junction remains only the route/occupancy
+                // anchor, never the visible body's position or direction.
+                if (interaction.Type == InteractionType.Sleep)
+                {
+                    LyingSpot.AlignBodyToObject(world, npc, worldObject, anchorPosition);
+                }
+
                 npc.Execution.Status = ExecutionStatus.InProgress;
                 npc.Execution.CurrentInteraction = interaction.Type;
                 npc.Execution.TargetObject = worldObject.Id;
@@ -557,7 +568,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 worldObject.IsOccupied = true;
                 // Spec 28.15C: a corpse's CurrentUser records whose body it
                 // is — mourning must not overwrite it.
-                if (!definition.Tags.Contains("Corpse"))
+                if (!CorpseMath.IsHumanDead(definition))
                 {
                     worldObject.CurrentUser = npc.Id;
                 }
@@ -584,6 +595,32 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
             if (npc.Execution.Status == ExecutionStatus.InProgress)
             {
+                // Also repair/resynchronise a sleep restored from a save made
+                // before §111.9 r3. The bed pose is an invariant for the whole
+                // interaction, not only a one-shot adjustment at its start.
+                if (npc.Execution.CurrentInteraction == InteractionType.Sleep)
+                {
+                    var sleepAnchor = worldObject.Junctions.Count > 0 &&
+                        world.Junctions.Items.TryGetValue(worldObject.Junctions[0], out var sleepJunction)
+                            ? sleepJunction.WorldPosition
+                            : HexSpatialMath.TileToWorld(worldObject.Tile);
+                    LyingSpot.AlignBodyToObject(world, npc, worldObject, sleepAnchor);
+
+                    // §49 parity: object-backed sleep used to ignore the same
+                    // critical wake conditions that ground sleep honors. Abort
+                    // promptly, but retain NightSleepUntilRested so after the
+                    // crisis is handled she returns to finish the recharge.
+                    if (HasSleepInterrupt(world, npc, alreadyAsleep: true))
+                    {
+                        Trace.Emit(world, npc.Id, "SleepInterrupted",
+                            $"Hunger={npc.Needs.Hunger:F2} Thirst={npc.Needs.Thirst:F2} " +
+                            $"Danger={npc.Memory.Dangers.Count}");
+                        PlanInterruption.Abort(world, npc, "Critical need interrupted sleep");
+                        npc.Mind.CurrentGoal = GoalType.None;
+                        continue;
+                    }
+                }
+
                 // Spec 42: the fire died mid-huddle — a dead pit warms nobody,
                 // so warming (and boiling) at it stops NOW instead of playing
                 // out the full interaction at a cold fireplace.
@@ -649,6 +686,21 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 ApplyEffectsScaled(npc, completedInteraction.Effects,
                     completedTotal > 0 ? 1f / completedTotal : 1f);
 
+                // §49.1 / §49.9: beds and leaf mats re-arm exactly like ground
+                // sleep. Keep the bed claim and authored lying pose, and do not
+                // run interaction completion (which would stand her up) until
+                // the nightly full-energy condition or a critical interrupt.
+                if (completedInteraction.Type == InteractionType.Sleep &&
+                    ShouldKeepSleeping(world, npc))
+                {
+                    npc.Execution.StartTick = world.Tick;
+                    npc.Execution.EndTick = world.Tick + completedInteraction.DurationTicks;
+                    Trace.Emit(world, npc.Id, "SleepContinued",
+                        $"Surface={worldObject.DefinitionId} Energy={npc.Needs.Energy:F2} " +
+                        $"Comfort={npc.Needs.Comfort:F2}");
+                    continue;
+                }
+
                 // Spec 29H: filling the bottle charges it (raw at a bank,
                 // boiled at a lit campfire) — thirst is quenched only on Drink.
                 if (!ApplyInteractionCompletion(
@@ -656,6 +708,24 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 {
                     continue;
                 }
+
+                // §49.9 / bug #25: beds and ground sleep obey the SAME re-arm
+                // rule. The ground path already continued in place; object
+                // sleep used to complete here, stand up and re-plan after each
+                // block. Keep the bed occupied and restart the authored block
+                // until energy is full or a real sleep interrupt appears.
+                if (completedInteraction.Type == InteractionType.Sleep &&
+                    ShouldKeepSleeping(world, npc))
+                {
+                    var sleepBlockTicks = System.Math.Max(1, completedTotal);
+                    npc.Execution.StartTick = world.Tick;
+                    npc.Execution.EndTick = world.Tick + sleepBlockTicks;
+                    Trace.Emit(world, npc.Id, "SleepContinued",
+                        $"Object={worldObject.DefinitionId} Energy={npc.Needs.Energy:F2} " +
+                        $"Comfort={npc.Needs.Comfort:F2}");
+                    continue;
+                }
+
                 SkillTrace.Award(world, npc, completedInteraction.Type,
                     npc.Execution.EndTick - npc.Execution.StartTick);
 
@@ -945,7 +1015,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             }
         }
         else if (completedInteraction.Type == InteractionType.Observe &&
-                 definition.Tags.Contains("Corpse"))
+                 CorpseMath.IsHumanDead(definition))
         {
             // Spec 28.15C: closure — the mourning period ends early.
             npc.Mind.GrievingUntilTick = world.Tick;
@@ -1359,7 +1429,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         string needsBefore)
     {
         var body = CorpseMath.BodyOf(world, worldObject);
-        var spoil = CorpseMath.NextSpoil(body, out var fromPockets);
+        var spoil = CorpseMath.NextSpoil(world, worldObject, out var source);
         if (spoil is null)
         {
             // Кто-то успел раньше. Не провал плана — просто здесь уже пусто.
@@ -1379,14 +1449,14 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             return false;
         }
 
-        CorpseMath.TakeSpoil(body, spoil, fromPockets);
+        CorpseMath.TakeSpoil(world, worldObject, spoil, source);
         npc.Inventory.Items.Add(spoil);
-        worldObject.IsOccupied = false; // owner (CurrentUser) preserved — тело её
+        worldObject.IsOccupied = false; // CurrentUser хранит id покойной и на теле, и на останках
 
         Trace.Emit(world, npc.Id, "Looted",
-            $"Def={spoil.DefinitionId} from={(fromPockets ? "pockets" : "worn")} " +
-            $"NPC{body.Id.Value} ({body.DisplayName}) " +
-            $"left=[{string.Join(",", body.WornItems)}|{string.Join(",", body.Inventory.Items)}] " +
+            $"Def={spoil.DefinitionId} from={source.ToString().ToLowerInvariant()} " +
+            $"NPC{worldObject.CurrentUser?.Value.ToString() ?? "?"} " +
+            $"left={(body is not null ? body.WornItems.Count + body.Inventory.Items.Count : worldObject.Contents.Count)} " +
             $"Inventory=[{string.Join(",", npc.Inventory.Items)}] " +
             $"({npc.Inventory.UsedSlots}/{npc.Inventory.Capacity})");
 
@@ -1460,6 +1530,15 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         {
             Trace.Emit(world, npc.Id, "GroupHuntContinues",
                 "Arrived but he moved on — keep after him");
+            return;
+        }
+
+        if (npc.Mind.CurrentGoal == GoalType.Expel &&
+            (npc.Mind.ExpulsionTargetNpcId is not null ||
+             npc.Mind.PendingExpulsionFrom is not null))
+        {
+            Trace.Emit(world, npc.Id, "CampExpelContinues",
+                "Arrived but the live expulsion scene owns the goal");
             return;
         }
 

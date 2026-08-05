@@ -27,6 +27,13 @@ public static class SimulationSystemRegistry
         engine.Register(new DecisionSystem());
         engine.Register(new PlanningSystem());
         engine.Register(new MobSystem());
+        // §72.14: create a due attacker before RaidSystem scans for hunters, so
+        // a landing at a boundary joins the ordinary faction/GOAP machinery in
+        // the same medium pass.
+        engine.Register(new RaidWaveSystem());
+        // §115: после MobSystem (перезажечь боевую сцепку), до RaidSystem
+        // (чтобы общая метла пар увидела живое обоснование Expel).
+        engine.Register(new CampExpulsionSystem());
         // §72: AFTER MobSystem — it clears IsFighting for every NPC each medium
         // pass, so anything that sets the latch has to run later.
         engine.Register(new RaidSystem()); // §72: the outsider's hunt and the colony's answer

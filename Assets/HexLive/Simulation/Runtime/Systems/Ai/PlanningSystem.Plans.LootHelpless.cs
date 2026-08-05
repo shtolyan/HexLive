@@ -50,7 +50,10 @@ public sealed partial class PlanningSystem
             return;
         }
 
-        var approach = PickApproachJunction(world, npc, markJunction);
+        // Loot and every kind of aid share the same lying-body approach: walk
+        // to the junction nearest her feet, then execution pins the exact root
+        // pose there. This replaces the arbitrary first free neighbour.
+        var approach = TryReserveArmsLengthApproach(world, npc, mark, markJunction);
         if (approach is not { } approachJunction)
         {
             npc.Plan.Status = PlanStatus.Failed;

@@ -75,11 +75,7 @@ public sealed class WaterBloodStains : MonoBehaviour
     // body root); x/z come from her world position.
     public void OnNpcTick(int npcId, float blood, Vector3 posWorld, float surfaceY, int tick)
     {
-        if (!_trackers.TryGetValue(npcId, out var tracker))
-        {
-            tracker = new BleedTracker { PrevBlood = blood };
-            _trackers[npcId] = tracker;
-        }
+        var tracker = TrackerFor(npcId, blood);
 
         if (blood < tracker.PrevBlood - 0.0001f)
         {
@@ -88,12 +84,41 @@ public sealed class WaterBloodStains : MonoBehaviour
 
         tracker.PrevBlood = blood;
 
-        if (tick <= tracker.BleedingUntilTick && tick >= tracker.NextDripTick)
+        if (tick <= tracker.BleedingUntilTick)
         {
-            tracker.NextDripTick = tick + DripIntervalTicks;
-            var jitter = Random.insideUnitCircle * DropJitter;
-            Spawn(posWorld.x + jitter.x, posWorld.z + jitter.y, surfaceY, tick);
+            DripIfDue(tracker, posWorld, surfaceY, tick);
         }
+    }
+
+    public void OnBleedingSourceTick(
+        int sourceId, Vector3 posWorld, float surfaceY, int tick)
+    {
+        DripIfDue(TrackerFor(sourceId, 0f), posWorld, surfaceY, tick);
+    }
+
+    private BleedTracker TrackerFor(int sourceId, float initialBlood)
+    {
+        if (_trackers.TryGetValue(sourceId, out var tracker))
+        {
+            return tracker;
+        }
+
+        tracker = new BleedTracker { PrevBlood = initialBlood };
+        _trackers[sourceId] = tracker;
+        return tracker;
+    }
+
+    private void DripIfDue(
+        BleedTracker tracker, Vector3 posWorld, float surfaceY, int tick)
+    {
+        if (tick < tracker.NextDripTick)
+        {
+            return;
+        }
+
+        tracker.NextDripTick = tick + DripIntervalTicks;
+        var jitter = Random.insideUnitCircle * DropJitter;
+        Spawn(posWorld.x + jitter.x, posWorld.z + jitter.y, surfaceY, tick);
     }
 
     // Once per rendered sim tick, after the NPC loop: spread + dilute + expire.

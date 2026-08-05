@@ -182,7 +182,9 @@ public sealed class RaidSystem : ISimulationSystem
                  // защитницы на первом же среднем тике сцены: подруги
                  // НИКОГДА не могли вступиться в абьюз, только в налёт.
                  (attacker.Mind.CurrentGoal != GoalType.Raid &&
-                  attacker.Mind.CurrentGoal != GoalType.Abuse)))
+                  attacker.Mind.CurrentGoal != GoalType.Abuse &&
+                  // §111.8: keep the witness assist alive for the search scene.
+                  attacker.Mind.CurrentGoal != GoalType.LootHelpless)))
             {
                 CombatHelpSystem.ClearAssist(npc);
                 npc.Mind.CombatOpponentNpcId = null;
@@ -313,13 +315,14 @@ public sealed class RaidSystem : ISimulationSystem
             var opponentAlive = world.Entities.Npcs.TryGetValue(oppId, out var opp) &&
                 opp.Health > 0f && !opp.IsUnconscious(world.Tick);
             var mineJustified = npc.Mind.CurrentGoal is GoalType.Raid or GoalType.Abuse
-                    or GoalType.Defend or GoalType.GroupHunt or GoalType.Prey ||
+                    or GoalType.Defend or GoalType.GroupHunt or GoalType.Prey or GoalType.Expel ||
                 npc.Execution.CurrentInteraction == InteractionType.Abuse ||
-                npc.Mind.PendingAbuseFrom is not null;
+                npc.Mind.PendingAbuseFrom is not null ||
+                npc.Mind.PendingExpulsionFrom is not null;
             var theirsJustified = opponentAlive &&
                 (opp.Mind.CombatOpponentNpcId is { } back && back.Equals(npc.Id) ||
                  opp.Mind.CurrentGoal is GoalType.Raid or GoalType.Abuse
-                     or GoalType.Defend or GoalType.GroupHunt or GoalType.Prey);
+                     or GoalType.Defend or GoalType.GroupHunt or GoalType.Prey or GoalType.Expel);
 
             if (!opponentAlive || (!mineJustified && !theirsJustified))
             {
@@ -350,11 +353,13 @@ public sealed class RaidSystem : ISimulationSystem
                 target.Mind.CurrentGoal == GoalType.Raid ||
                 target.Mind.CurrentGoal == GoalType.Defend ||
                 target.Mind.CurrentGoal == GoalType.GroupHunt ||
+                target.Mind.CurrentGoal == GoalType.Expel ||
                 // Сценой абьюза правит сцена — с обеих сторон: он в такте,
                 // она приняла решение в AnswersBack, и «не отвечает» — тоже
                 // решение.
                 target.Execution.CurrentInteraction == InteractionType.Abuse ||
-                target.Mind.PendingAbuseFrom is not null)
+                target.Mind.PendingAbuseFrom is not null ||
+                target.Mind.PendingExpulsionFrom is not null)
             {
                 continue;
             }
@@ -385,6 +390,7 @@ public sealed class RaidSystem : ISimulationSystem
                     attacker.Mind.CurrentGoal != GoalType.Defend &&
                     attacker.Mind.CurrentGoal != GoalType.GroupHunt &&
                     attacker.Mind.CurrentGoal != GoalType.Prey &&
+                    attacker.Mind.CurrentGoal != GoalType.Expel &&
                     attacker.Execution.CurrentInteraction != InteractionType.Abuse)
                 {
                     attacker.Mind.CombatOpponentNpcId = null;
@@ -527,42 +533,11 @@ public sealed class RaidSystem : ISimulationSystem
 
         foreach (var raider in world.Entities.Npcs.Values)
         {
-            // §82: ВТОРЖЕНИЕ. Подошла к его стоянке — он бьёт, и точка.
-            //
-            // Это не налёт и не шантаж: там он оппортунист и считает выгоду,
-            // из-за чего выходил неприлично мирным — девушки ходили мимо его
-            // очага, а он взвешивал расклад и не находил повода. Хозяин двора
-            // повода не ищет. Поэтому проверка стоит ПЕРЕД всеми гейтами
-            // охоты: ни льготные дни, ни кулдаун, ни «достаточно ли она
-            // одинока», ни его собственный голод тут не спрашиваются.
-            //
-            // Дальше всё как в обычном налёте — сцепка, удары на быстром слое,
-            // её выбор «драться или бежать», клич и отход. Отдельную сцену
-            // заводить незачем: она бы делала ровно это же.
-            if (Spec82.TerritorialEnabled &&
-                raider.Faction != Faction.Colony &&
-                raider.Health > 0f &&
-                !raider.IsFighting &&
-                !raider.IsUnconscious(world.Tick) &&
-                !raider.Body.IsProne &&
-                raider.Mind.CurrentGoal != GoalType.Flee &&
-                world.Tick >= raider.Mind.TerritoryCooldownUntilTick &&
-                world.FactionHomes.TryGetValue(raider.Faction, out var camp))
-            {
-                var intruder = NearestIntruder(world, raider, camp);
-                if (intruder is not null)
-                {
-                    StartRaidOn(world, raider, intruder, "Trespass");
-                    raider.Mind.TerritoryCooldownUntilTick =
-                        world.Tick + Spec82.TerritoryCooldownTicks;
-                    continue;
-                }
-            }
-
             if (raider.Faction == Faction.Colony ||
                 raider.Health <= 0f ||
                 raider.Mind.CurrentGoal == GoalType.Raid ||
                 raider.Mind.CurrentGoal == GoalType.Flee ||
+                raider.Mind.CurrentGoal == GoalType.Expel ||
                 raider.IsFighting ||
                 raider.IsUnconscious(world.Tick) ||
                 world.Tick < raider.Mind.RaidCooldownUntilTick ||
@@ -736,7 +711,8 @@ public sealed class RaidSystem : ISimulationSystem
 
             if (abuser.IsFighting ||
                 abuser.Mind.CurrentGoal == GoalType.Raid ||
-                abuser.Mind.CurrentGoal == GoalType.Flee)
+                abuser.Mind.CurrentGoal == GoalType.Flee ||
+                abuser.Mind.CurrentGoal == GoalType.Expel)
             {
                 if (explain)
                 {
@@ -794,10 +770,10 @@ public sealed class RaidSystem : ISimulationSystem
         }
     }
 
-    // §81.12: он бежит через полкарты к выбранной — а по пути ближе прошла
-    // другая. Держаться старой в этот момент читается как телепатия («он ЗНАЕТ,
-    // что дальняя лучше»); человек передумывает. Гистерезис
-    // AbuseRetargetGainTiles бережёт от метания между равноудалёнными —
+    // §81.12: он бежит через полкарты к выбранной — а по пути появилась цель
+    // с более коротким ПРОХОДИМЫМ маршрутом. Сравнивать гексы нельзя: близкая
+    // на уступе может требовать длинного обхода. Гистерезис
+    // AbuseRetargetGainTiles бережёт от метания между почти равноценными —
     // пинг-понг ретаргета уже стоил нам охоты на краба (§29F.2).
     private static void TryRetargetCloserMark(WorldState world, NPCState abuser)
     {
@@ -823,15 +799,20 @@ public sealed class RaidSystem : ISimulationSystem
             return;
         }
 
-        var currentDistance = HexSpatialMath.HexDistance(abuser.Tile, current.Tile);
-        var best = AbuseMath.BestMark(world, abuser, out var hasLoot);
+        var best = AbuseMath.ClosestReachableMark(
+            world, abuser, out var hasLoot, out var bestRoute);
         if (best is null || best.Id.Equals(currentId))
         {
             return;
         }
 
-        var bestDistance = HexSpatialMath.HexDistance(abuser.Tile, best.Tile);
-        if (bestDistance + Spec81.AbuseRetargetGainTiles > currentDistance)
+        var currentTally = default(AbuseMath.MarkFilterTally);
+        var currentEligible = AbuseMath.IsEligibleMark(
+            world, abuser, current, ref currentTally);
+        var currentReachable = AbuseMath.TryRouteLength(
+            world, abuser, current, out var currentRoute);
+        var gainWorld = Spec81.AbuseRetargetGainTiles * HexSpatialMath.HexRadius;
+        if (currentEligible && currentReachable && bestRoute + gainWorld > currentRoute)
         {
             return;
         }
@@ -855,55 +836,11 @@ public sealed class RaidSystem : ISimulationSystem
 
         Trace.Emit(world, abuser.Id, "AbuseRetarget",
             $"From=NPC{currentId.Value} To=NPC{best.Id.Value} " +
-            $"Dist={currentDistance}->{bestDistance}");
+            $"Route={currentRoute:F2}->{bestRoute:F2}wu");
     }
 
-    // §82: кто залез на его двор. Ближайший — а не «самый слабый»: он не
-    // выбирает жертву, он гонит того, кто пришёл.
-    private static NPCState NearestIntruder(WorldState world, NPCState owner, TileCoord camp)
-    {
-        NPCState nearest = null;
-        var best = int.MaxValue;
-        foreach (var npc in world.Entities.Npcs.Values)
-        {
-            if (npc.Id.Equals(owner.Id) ||
-                npc.Health <= 0f ||
-                !FactionRelations.AreHostile(owner.Faction, npc.Faction))
-            {
-                continue;
-            }
-
-            var toCamp = HexSpatialMath.HexDistance(npc.Tile, camp);
-            if (toCamp > Spec82.TerritoryRadiusTiles)
-            {
-                continue;
-            }
-
-            // До неё ещё надо дойти: девушка на другом берегу залива формально
-            // «в радиусе», а фактически недосягаема.
-            if (owner.CurrentJunction is not { } from ||
-                npc.CurrentJunction is not { } to ||
-                !Connectivity.Reachable(world, from, to, owner.Body.CanJump))
-            {
-                continue;
-            }
-
-            // Ничью разрывает меньший id — порядок обхода словаря не должен
-            // протекать в реплей.
-            if (toCamp < best || (toCamp == best && nearest is not null &&
-                                  npc.Id.Value < nearest.Id.Value))
-            {
-                best = toCamp;
-                nearest = npc;
-            }
-        }
-
-        return nearest;
-    }
-
-    // §82: общий вход в налёт — им пользуются и аукционная охота, и выгон со
-    // двора, чтобы «как начинается драка» было описано ровно в одном месте.
-    private static void StartRaidOn(WorldState world, NPCState raider, NPCState victim, string why)
+    // Общий вход в налёт; §115 использует его, если проигравшему некуда бежать.
+    internal static void StartRaidOn(WorldState world, NPCState raider, NPCState victim, string why)
     {
         if (raider.Plan.Status == PlanStatus.Active ||
             raider.Execution.Status == ExecutionStatus.InProgress)

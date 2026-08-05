@@ -287,6 +287,20 @@ public sealed class PathfindingSystem : ISimulationSystem
                 continue;
             }
 
+            // Пока взаимодействие живо, ноги выключены. Сцена §81 начинается
+            // с УДАРНОЙ дистанции (§102 r3), то есть не дойдя до узла плана, —
+            // план при этом остаётся Active на шаге «дойти», и без этого гейта
+            // маршрут к недостигнутому узлу перестраивался заново ПОСРЕДИ
+            // сцены: он шёл, не выпуская из рук CurrentInteraction=Abuse, и
+            // вид играл клип действия поверх ходьбы (гейт
+            // NobodyWalksWithALiveInteraction ловил ровно это). Кому мало
+            // дистанции, тот сначала честно закрывает взаимодействие — ветка
+            // преследования в RunAbuse так и делает.
+            if (npc.Execution.CurrentInteraction is not null)
+            {
+                continue;
+            }
+
             if (npc.Movement.IsMoving && npc.Movement.JunctionPath.Count > 0)
             {
                 continue;

@@ -664,13 +664,16 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     $"Stamina={npc.Needs.Stamina:F2} Stress={npc.Needs.Stress:F2}");
             }
 
-            // Spec 40.6: hygiene drifts down with living, up at the waterside
-            // (washing while drinking/filling). Soft v1 — tracked for the UI,
-            // no dedicated Bathe goal yet (that reshuffles the fragile colony).
-            // Grubbying takes ~2500 slow ticks (2.8 real hours) from clean to
-            // filthy (0.0004/slow tick; was 0.004 — 10x too fast once dirt got
-            // real smudge decals).
-            npc.Needs.Hygiene = MathUtil.Clamp01(npc.Needs.Hygiene - SimBalance.HygieneDriftLoss);
+            // §40.6 r10 (bug #18): water itself washes the body, regardless of
+            // WHY she entered it. Previously HygieneWashGain was only consumed
+            // by the authored Bathe interaction, so a swimmer, a wader filling
+            // a bottle, or an unconscious body in water kept getting dirtier.
+            // TileFlags.Water deliberately includes both shallows and deep swim
+            // tiles — the same contract the view uses for body wetness.
+            var standingInWater = world.Tiles.Items.TryGetValue(npc.Tile, out var hygieneTile) &&
+                hygieneTile.Flags.HasFlag(TileFlags.Water);
+            npc.Needs.Hygiene = MathUtil.Clamp01(npc.Needs.Hygiene +
+                (standingInWater ? SimBalance.HygieneWashGain : -SimBalance.HygieneDriftLoss));
             foreach (var worn in npc.WornItems)
             {
                 worn.Dirtiness = MathUtil.Clamp01(worn.Dirtiness + SimBalance.ClothingDirtGain);

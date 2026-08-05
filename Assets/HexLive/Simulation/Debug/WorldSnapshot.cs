@@ -635,9 +635,9 @@ public sealed class NpcSnapshot
     // whose exact spot/look derive from seed and whose alpha fades with heal.
     public List<string> Wounds { get; } = new();
 
-    // Spec §48: active status effects (buffs/debuffs), "Kind\tintensity" each —
-    // derived read-only from this NPC's state by EffectEvaluator. The character
-    // panel renders one circular chip per entry with a hover tooltip.
+    // Spec §48: active effects, "Kind\tintensity[\tdetailKey]" each — derived
+    // read-only by EffectEvaluator. The optional localized detail explains the
+    // concrete reason for coma/fainting/crying/dying in the hover tooltip.
     public List<string> Effects { get; } = new();
 
     // Spec §76: the character sheet. "Strength\t0.62" per innate attribute,

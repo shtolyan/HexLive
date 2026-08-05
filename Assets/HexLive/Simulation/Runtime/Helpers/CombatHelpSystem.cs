@@ -15,6 +15,71 @@ namespace HexLive.Simulation.Runtime
 // reactive: the bitten NPC is held in place and strikes back automatically.
 internal static class CombatHelpSystem
 {
+    // §111.8: the victim is unconscious and therefore cannot produce the usual
+    // §57 help cry. Every awake ally who can see the body search in this tight
+    // radius treats the looter as an attacker immediately — no affinity gate,
+    // compassion roll, or responder cap. This is a witnessed assault, not a
+    // request the helper may politely decline.
+    public static int RallyLootWitnesses(
+        WorldState world,
+        NPCState victim,
+        EntityId looterId)
+    {
+        var responders = 0;
+        foreach (var helper in world.Entities.Npcs.Values)
+        {
+            if (helper.Id.Equals(victim.Id) ||
+                helper.Id.Equals(looterId) ||
+                helper.Health <= 0f ||
+                helper.Body.IsProne ||
+                helper.IsUnconscious(world.Tick) ||
+                helper.IsPlayingDead(world.Tick) ||
+                helper.Execution.CurrentInteraction == InteractionType.Sleep ||
+                helper.IsFighting ||
+                helper.Mind.CurrentGoal == GoalType.Flee ||
+                helper.Mind.CurrentGoal == GoalType.GroupHunt ||
+                !FactionRelations.AreAllies(helper, victim) ||
+                HexSpatialMath.HexDistance(helper.Tile, victim.Tile) >
+                    Spec111.LootWitnessRadiusTiles)
+            {
+                continue;
+            }
+
+            if (helper.Mind.CurrentGoal == GoalType.Defend &&
+                helper.Mind.CombatAssistAttackerNpcId is { } current &&
+                current.Equals(looterId))
+            {
+                continue; // already answering this exact assault
+            }
+
+            if (helper.Plan.Status == PlanStatus.Active ||
+                helper.Execution.Status == ExecutionStatus.InProgress)
+            {
+                PlanInterruption.Abort(world, helper,
+                    $"Witnessed looting of NPC{victim.Id.Value}");
+            }
+
+            helper.Mind.CurrentGoal = GoalType.Defend;
+            helper.Mind.GoalLock = new GoalLock
+            {
+                Goal = GoalType.Defend,
+                StartTick = world.Tick,
+                EndTick = world.Tick + Spec111.LootHelplessMaxSceneTicks
+            };
+            helper.Mind.CombatAssistDogId = null;
+            helper.Mind.CombatAssistAttackerNpcId = looterId;
+            helper.Mind.PendingTalkFrom = null;
+            helper.Mind.PendingAidFrom = null;
+            SocialCueSignals.Stamp(world, helper, "LootWitnessed", looterId);
+            Trace.Emit(world, helper.Id, "LootWitnessRallied",
+                $"Victim=NPC{victim.Id.Value} Looter=NPC{looterId.Value} " +
+                $"Dist={HexSpatialMath.HexDistance(helper.Tile, victim.Tile)}");
+            responders++;
+        }
+
+        return responders;
+    }
+
     public static void CallForHelpFromDog(WorldState world, NPCState victim, int dogId, int attackers)
     {
         CallForHelp(world, victim, dogId, null, $"Dog={dogId}", attackers);

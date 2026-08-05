@@ -81,6 +81,7 @@ public static class ContentIds
 
     // ── Мёртвое ──────────────────────────────────────────────────────────
     public const string CorpseNpc = "corpse.npc";
+    public const string HumanRemains = "remains.human";
     public const string CarcassAnimal = "carcass.animal";
     public const string GraveNpc = "grave.npc";
     public const string PalmStump = "stump.palm";

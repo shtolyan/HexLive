@@ -47,6 +47,8 @@ public sealed class SystemRegistryGateTests
         "DecisionSystem",
         "PlanningSystem",
         "MobSystem",
+        "RaidWaveSystem",
+        "CampExpulsionSystem",
         "RaidSystem",
         // §108: между налётом и ударами — по той же причине, по какой налёт
         // идёт после MobSystem: сцепку боя ставит последний, кто её трогает.

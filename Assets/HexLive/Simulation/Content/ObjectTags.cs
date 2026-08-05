@@ -60,6 +60,7 @@ public static class ObjectTags
 
     // ── Мёртвое ──────────────────────────────────────────────────────────
     public const string Corpse = "Corpse";
+    public const string Remains = "Remains";
     public const string Carcass = "Carcass";
     public const string Grave = "Grave";
     public const string Gore = "Gore";

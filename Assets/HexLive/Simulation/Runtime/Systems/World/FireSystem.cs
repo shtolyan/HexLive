@@ -34,14 +34,7 @@ public sealed class FireSystem : ISimulationSystem
             // Spec 42: rain douses the fire — not instantly, but a downpour
             // eats fuel 4x faster, so a full stack dies in ~40 game minutes.
             // A dry night by the fire is the warm-up plan; a wet one isn't.
-            var burn = BurnPerSlowTick * (world.Environment.IsRaining ? 4f : 1f);
-            // §54.14 (r2): a finished stone ring (stage 2) banks the coals —
-            // fuel burns at half rate, so the same wood keeps the fire twice
-            // as long.
-            if (BuildSiteMath.CampfireRingComplete(obj))
-            {
-                burn *= SimBalance.CampfireRingBurnMultiplier;
-            }
+            var burn = FuelBurnPerSlowTick(world, obj);
 
             obj.ResourceAmount = System.Math.Max(0f, obj.ResourceAmount - burn);
             if (obj.ResourceAmount <= 0f)
@@ -53,6 +46,25 @@ public sealed class FireSystem : ISimulationSystem
 
             RoastHangingMeat(world, obj);
         }
+    }
+
+    // One source of truth for the actual fuel clock and §49.9's bedtime
+    // reserve. reserveForRain plans for a downpour even when the sky is dry at
+    // bedtime; the live burn still uses the current weather.
+    internal static float FuelBurnPerSlowTick(
+        WorldState world, WorldObjectState fire, bool reserveForRain = false)
+    {
+        var burn = BurnPerSlowTick *
+            (reserveForRain || world.Environment.IsRaining ? 4f : 1f);
+        // §54.14 (r2): a finished stone ring (stage 2) banks the coals —
+        // fuel burns at half rate, so the same wood keeps the fire twice
+        // as long.
+        if (BuildSiteMath.CampfireRingComplete(fire))
+        {
+            burn *= SimBalance.CampfireRingBurnMultiplier;
+        }
+
+        return burn;
     }
 
     // §54.14 (r2): stage 3 — meat hung on the spit roasts while the fire is

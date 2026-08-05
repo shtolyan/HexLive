@@ -2739,6 +2739,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         //   reads as the stooping gather motion, not the generic crouch.
         var gathering = interaction is "PickUp" or "FillBottle" or "Fuel" or "Bury" or "Hang" or "Build";
         var drinking = interaction == "Drink";
+        // §111.8: searching a helpless body uses the same two-hands-working
+        // kneel as crafting. The sim deliberately keeps InteractionType.Loot;
+        // this visual alias is all the scene needs.
+        var looting = !_legless && interaction == "Loot";
         var crafting = !_legless && interaction == "Craft";
         // §53: tending a suffering housemate — the helper holds the mediator
         // item (feed → whole coconut, water → the pierced drink coconut;
@@ -2761,7 +2765,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // там руки и правда работают.
         var praying = aidingOther && aidTargetLying && interaction == "ConsoleOther";
         // The solo craft always kneels; an aid kneels only over a lying ward.
-        var kneelingCraft = crafting || (aidingOther && aidTargetLying && !praying);
+        var kneelingCraft = crafting || looting ||
+            (aidingOther && aidTargetLying && !praying);
         _wantsTalk = interaction == "Talk"; // the Talk bool is driven by turn-taking
         _sitting = interaction == "Sit";   // §78.5: LateUpdate nudges a male seat
 
@@ -2796,11 +2801,21 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // §77.5: fit the work clip to the sim's window — one interaction,
             // one playthrough. Set AFTER the clip swap above, because the length
             // we divide by is the length of whatever take is actually bound.
-            _animator.SetFloat(ActionSpeedParam, gathering
-                ? FitClipSpeed(GatherBaseClip, interactionSeconds)
-                : kneelingCraft
-                    ? FitClipSpeed(CraftBaseClip, interactionSeconds)
-                    : 1f);
+            var actionSpeed = 1f;
+            if (gathering)
+            {
+                actionSpeed = FitClipSpeed(GatherBaseClip, interactionSeconds);
+            }
+            // LootHelpless exports its 60-second SAFETY timeout as the
+            // interaction window. Fitting one planting gesture to that value
+            // slowed the clip to near-zero and looked like a frozen idle. Loot
+            // is a repeated search, so keep authored cadence; ordinary
+            // craft/aid still fit one gesture to their duration.
+            else if (kneelingCraft && !looting)
+            {
+                actionSpeed = FitClipSpeed(CraftBaseClip, interactionSeconds);
+            }
+            _animator.SetFloat(ActionSpeedParam, actionSpeed);
         }
 
         // A full-body clip now covers these (incl. the axe swing and the craft
@@ -2813,7 +2828,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // A solo craft puts both hands to work (tool goes down). An aid keeps
         // the mediator prop in hand (coconut to feed/water; empty to treat/
         // console). Everything else holds whatever the sim says.
-        SetHandProp(crafting ? string.Empty
+        SetHandProp(crafting || looting ? string.Empty
             : aidingOther ? aidPropId
             : heldItemId);
     }
@@ -3552,6 +3567,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             case "PickUp":
             case "BuildRaft":
             case "Craft":
+            case "Loot":
             case "Fuel":
             case "Bury":
             case "Hang":

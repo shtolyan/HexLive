@@ -147,6 +147,29 @@ internal static class MeleeSwing
             : actor.Mind.ForcedMeleeWeaponId
               ?? SimBalance.BestMeleeWeapon(actor.Inventory.Items, actor.Body.IntactHands);
 
+    /// <summary>
+    /// Что сейчас должно быть вынуто из кобуры. Одна производная функция для
+    /// всех боевых целей: назначили цель — вооружилась, сняли — убрала. Сцена
+    /// с <see cref="NpcMind.ForcedMeleeWeaponId"/> имеет приоритет, потому что
+    /// пустая строка там намеренно означает кулаки.
+    /// </summary>
+    internal static string ReadiedWeapon(NPCState actor)
+    {
+        if (!actor.Body.CanUseToolsOrWeapons)
+        {
+            return string.Empty;
+        }
+
+        if (actor.Mind.ForcedMeleeWeaponId is not null ||
+            actor.Mind.CombatOpponentNpcId is not null ||
+            GoalCatalog.ReadiesMeleeWeapon(actor.Mind.CurrentGoal))
+        {
+            return EffectiveWeapon(actor);
+        }
+
+        return string.Empty;
+    }
+
     // Тайминги переехали в GearStats.StrikeTimings: это свойство снаряжения, и
     // спрашивать их должен ещё и ВИД (иначе он мерит замах базой, пока сим
     // мерит вариантом). Копия жила здесь и в AnimalCombatSystem.

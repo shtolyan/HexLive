@@ -68,6 +68,7 @@ namespace HexLive.UnityPresentation.UI
         // Only rebuild the chips when the SET of effects changes, so hovering
         // stays stable across ticks (intensity-only shifts recolour in place).
         private readonly List<EffectKind> _effectSigKinds = new();
+        private readonly List<string> _effectSigDetails = new();
         private readonly List<EffectView> _effectParseScratch = new();
 
         // Spec §51: character inventory — a backpack button on the identity
@@ -967,6 +968,7 @@ namespace HexLive.UnityPresentation.UI
         {
             public EffectKind Kind;
             public float Intensity;
+            public string DetailKey;
         }
 
         // Rebuild the chip row from the snapshot's "Kind\tintensity" list —
@@ -991,16 +993,30 @@ namespace HexLive.UnityPresentation.UI
                 }
 
                 var intensity = 0f;
+                var detailKey = string.Empty;
                 if (tab >= 0)
                 {
+                    var detailTab = raw.IndexOf('\t', tab + 1);
+                    var intensitySpan = detailTab >= 0
+                        ? raw.AsSpan(tab + 1, detailTab - tab - 1)
+                        : raw.AsSpan(tab + 1);
                     float.TryParse(
-                        raw.AsSpan(tab + 1),
+                        intensitySpan,
                         System.Globalization.NumberStyles.Float,
                         System.Globalization.CultureInfo.InvariantCulture,
                         out intensity);
+                    if (detailTab >= 0 && detailTab + 1 < raw.Length)
+                    {
+                        detailKey = raw.Substring(detailTab + 1);
+                    }
                 }
 
-                parsed.Add(new EffectView { Kind = kind, Intensity = intensity });
+                parsed.Add(new EffectView
+                {
+                    Kind = kind,
+                    Intensity = intensity,
+                    DetailKey = detailKey,
+                });
             }
 
             parsed.Sort((a, b) =>
@@ -1017,25 +1033,29 @@ namespace HexLive.UnityPresentation.UI
 
             // PERF: was a string built by += in a loop — quadratic garbage every
             // tick to answer a yes/no question. The kinds are compared directly.
-            var changed = _effectSigKinds.Count != parsed.Count;
+            var changed = _effectSigKinds.Count != parsed.Count ||
+                _effectSigDetails.Count != parsed.Count;
             for (var i = 0; !changed && i < parsed.Count; i++)
             {
-                changed = _effectSigKinds[i] != parsed[i].Kind;
+                changed = _effectSigKinds[i] != parsed[i].Kind ||
+                    _effectSigDetails[i] != parsed[i].DetailKey;
             }
 
             if (changed)
             {
                 _effectSigKinds.Clear();
+                _effectSigDetails.Clear();
                 for (var i = 0; i < parsed.Count; i++)
                 {
                     _effectSigKinds.Add(parsed[i].Kind);
+                    _effectSigDetails.Add(parsed[i].DetailKey);
                 }
 
                 HideEffectTooltip();
                 _effectsRow.Clear();
                 foreach (var e in parsed)
                 {
-                    _effectsRow.Add(BuildEffectChip(e.Kind, e.Intensity));
+                    _effectsRow.Add(BuildEffectChip(e.Kind, e.Intensity, e.DetailKey));
                 }
             }
             else
@@ -1050,7 +1070,8 @@ namespace HexLive.UnityPresentation.UI
             _effectsRow.style.display = parsed.Count > 0 ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
-        private VisualElement BuildEffectChip(EffectKind kind, float intensity)
+        private VisualElement BuildEffectChip(
+            EffectKind kind, float intensity, string detailKey)
         {
             var def = EffectCatalog.Get(kind);
 
@@ -1075,7 +1096,7 @@ namespace HexLive.UnityPresentation.UI
             glyph.style.unityTextAlign = TextAnchor.MiddleCenter;
             chip.Add(glyph);
 
-            chip.RegisterCallback<MouseEnterEvent>(_ => ShowEffectTooltip(kind));
+            chip.RegisterCallback<MouseEnterEvent>(_ => ShowEffectTooltip(kind, detailKey));
             chip.RegisterCallback<MouseLeaveEvent>(_ => HideEffectTooltip());
 
             return chip;
@@ -1089,7 +1110,7 @@ namespace HexLive.UnityPresentation.UI
                 : Color.Lerp(Warn, Crit, Mathf.Clamp01(intensity));
         }
 
-        private void ShowEffectTooltip(EffectKind kind)
+        private void ShowEffectTooltip(EffectKind kind, string detailKey)
         {
             if (_effectTooltip == null || !EffectCatalog.TryGet(kind, out var def))
             {
@@ -1101,7 +1122,8 @@ namespace HexLive.UnityPresentation.UI
             _effectTooltipTitle.style.color = def.Polarity == EffectPolarity.Buff
                 ? Good
                 : new Color(0.949f, 0.769f, 0.753f); // soft red for debuffs
-            _effectTooltipDesc.text = Loc.Get(def.DescKey);
+            _effectTooltipDesc.text = Loc.Get(
+                string.IsNullOrEmpty(detailKey) ? def.DescKey : detailKey);
 
             PopTooltipAbove(_effectsRow);
         }

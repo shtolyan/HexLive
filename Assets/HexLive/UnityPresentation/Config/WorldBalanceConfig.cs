@@ -43,12 +43,12 @@ namespace HexLive.UnityPresentation.Config
         [Range(1f, 60f)] public float fireBurnPerSlowTick = 16f;
         [Tooltip("Через сколько тиков сгнивает неподобранный фрукт на земле.")]
         [Range(300, 9600)] public int fruitRotTicks = 2400;
+        [Tooltip("§29A r2: фрукт падает не ближе стольких радиусов ствола (ObstacleRadius) от дерева. Один радиус — непроходимое кольцо, второй — отступ падения. 0 = без отступа.")]
+        [Range(0f, 4f)] public float fruitDropClearanceFactor = 2f;
 
         [Header("Прибой приносит одежду (§63)")]
-        [Tooltip("Шанс за один игровой период (eventCycleTicks), что прибой вынесет случайную вещь на берег (0.35 ≈ 2-3 вещи за 7 периодов).")]
-        [Range(0f, 1f)] public float surfGiftChancePerDay = 0.35f;
-        [Tooltip("В какой момент игрового периода прилив оставляет вещь (тики от начала периода, кратно 16).")]
-        [Range(0, 2400)] public int surfGiftOffsetTicks = 800;
+        [Tooltip("Раз в сколько полных игровых суток в 06:00 прибой приносит по одной случайной женской вещи на каждую живую девушку колонии.")]
+        [Range(1, 30)] public int surfGiftIntervalDays = 5;
 
         [Header("Собаки — директор стаи (§46)")]
         [Tooltip("Максимум собак на острове одновременно.")]

@@ -956,19 +956,13 @@ public sealed class WorldStateFactory
         // it must be crafted (1 stick at the fire), like every other tool.
         npc.Inventory.Items.Add(new Agents.ItemInstance("tool.bottle"));
 
-        // §72: the outsider carries his own blade ashore. He has no colony to
-        // split the work with, and the hunt is gated on holding a real weapon.
+        // §72 / §79: the authored opening outsider keeps his established
+        // machete+knife loadout. §72.14 treats recurring arrivals as their own
+        // escalation sequence (axe -> spear -> machete), so adding waves does
+        // not silently rebalance the already-soaked opening scenario.
         if (bootstrap.Faction != Faction.Colony &&
             HexLive.Simulation.Runtime.Spec72.OutsiderStartsArmed)
         {
-            // §79: МАЧЕТЕ вместо копья. Копьё стояло здесь потому, что нож был
-            // слишком слаб (0.375 против 0.221 — с ножом он выходил на четверых,
-            // которые сбегаются все разом, и стабильно проигрывал размен:
-            // 20 его ударов против 30 ответных). Мачете бьёт ещё вдвое сильнее
-            // топора (0.5625), при этом ОДНОручное и рубит дрова — то есть
-            // закрывает и бой, и хозяйство одним предметом, а копьё в его
-            // маленьком рюкзаке было бы мёртвым весом. Нож остаётся: он
-            // достаётся колонии с его тела вторым трофеем.
             npc.Inventory.Items.Add(new Agents.ItemInstance("tool.machete"));
             npc.Inventory.Items.Add(new Agents.ItemInstance("tool.knife"));
         }

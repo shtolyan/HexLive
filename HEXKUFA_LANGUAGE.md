@@ -677,6 +677,13 @@ Tired, Cold`) — значения едут в трейсах/снапшотах
 | `[sobbing] Kush? Kush?` | Почему? Почему? |
 | `[crying, weak] Mo doma... doma` | Я домой... домой |
 
+#### C16 · `angry_expel` · P1 — требует уйти из своего лагеря (§115 `CampExpelDemand`)
+| Реплика | Русский |
+|---|---|
+| `[angry, shouting] Bezheksa! Nuo doma — zada!` | Чужак! Наш дом — прочь! |
+| `[angry] Hoo! Zada nuo heksa!` | Эй! Прочь с нашей земли! |
+| `[angry, shouting] Zada! Zada nip, bezheksa!` | Уходи! Сейчас же, чужак! |
+
 ### D. Разговор (темы `TalkTopic`)
 
 Реплика говорящей играется на её ход в диалоге (`_talkTurnOn`), тема — из
@@ -938,8 +945,10 @@ r=pathlib.Path('Assets/StreamingAssets/HexLive/Sfx/Voices')
 d=[(f.name, wave.open(str(f)).getnframes()/44100) for f in r.rglob('*.wav')]
 print('files', len(d), 'capped', [n for n,s in d if s>=4.19])"
 ```
-- **FMOD Studio:** `FMODStudio/Scripts/populate_events.js` генерит события
-  `voice_*` по факту наличия групп — после раскладки прогнать заново.
+- **FMOD Studio не трогать:** `voice_*` играются через Core API и
+  рекурсивно находят WAV в `StreamingAssets`. Добавление группы не требует
+  `populate_events.js`, `sync_voices.js` или пересборки банков; эти действия могут
+  удалить уже разложенные голоса.
 
 ---
 

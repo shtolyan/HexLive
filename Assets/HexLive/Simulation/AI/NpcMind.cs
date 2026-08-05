@@ -110,6 +110,14 @@ public sealed class NPCMind
     // get-up animation has room to play.
     public int WakeGraceUntilTick { get; set; }
 
+    // Bug #25 / spec §49.9: late-night bedtime is a multi-goal intention, not
+    // just a large Sleep score. It stays armed while the NPC gathers a stick,
+    // fuels the hearth, handles a critical interruption, and finally sleeps to
+    // a full energy bar. Transient by design: after load the ordinary 23:00 +
+    // low-energy edge re-arms it; an interrupted bedtime may otherwise be
+    // reconsidered from the freshly restored needs like every other goal chain.
+    public bool NightSleepUntilRested { get; set; }
+
     // Pain/fear spike after fresh damage. While active she should not start or
     // continue sleeping; every new hit extends the window.
     public int AdrenalineUntilTick { get; set; }
@@ -239,6 +247,18 @@ public sealed class NPCMind
     // без передышки. В сейв не пишется — цель Raid при сохранении и так
     // обнуляется, недоигранной драке взяться неоткуда.
     public int TerritoryCooldownUntilTick { get; set; }
+
+    // §115: transient-сцена выгона; Expel при сохранении сбрасывается.
+    public HexLive.Simulation.Common.EntityId? ExpulsionTargetNpcId { get; set; }
+
+    public HexLive.Simulation.Common.EntityId? PendingExpulsionFrom { get; set; }
+
+    // 0 = подход, 1 = требовование/ответ, 2 = драка.
+    public int ExpulsionPhase { get; set; }
+
+    public int ExpulsionPhaseStartedTick { get; set; }
+
+    public int ExpulsionProtectedUntilTick { get; set; }
 
     // Курсор такта хранится ЧИСЛОМ, а не выводится из времени: иначе один
     // пропущенный тик проглатывал бы удар или проигрывал его дважды.
@@ -471,7 +491,10 @@ public enum GoalType
     // обмороке. Не «добить», а «разоружить и обчистить»: между §81 (та в
     // сознании) и §28.15F (та мертва) лежала живая, но выключенная, и её никто
     // не трогал. Дописана в конец — сейв хранит цели ординалом.
-    LootHelpless
+    LootHelpless,
+
+    // §115: прогнать враждебного NPC из своего лагеря. Append-only: сейв хранит ординал.
+    Expel
 }
 
 public sealed class GoalScore

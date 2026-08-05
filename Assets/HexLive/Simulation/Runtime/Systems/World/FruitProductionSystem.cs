@@ -138,6 +138,23 @@ public sealed class FruitProductionSystem : ISimulationSystem
             candidateTiles.Add(neighbor);
         }
 
+        // §29A r2: the trunk blocks one ObstacleRadius of junctions around
+        // itself, and the drop keeps a further clearance ring on top — a nut
+        // wedged against the blocked ring would have half its approaches shut.
+        // Strict: no spot outside the clearance means no drop this interval
+        // (the producer retries), never a drop inside it.
+        var clearanceSq = 0f;
+        var anchor = default(Float2);
+        if (world.Content.ObjectDefinitions.TryGetValue(producer.DefinitionId, out var producerDef) &&
+            producerDef.ObstacleRadius > 0f &&
+            producer.Junctions.Count > 0 &&
+            world.Junctions.Items.TryGetValue(producer.Junctions[0], out var anchorJunction))
+        {
+            var clearance = producerDef.ObstacleRadius * WorldBalance.FruitDropClearanceFactor;
+            clearanceSq = clearance * clearance;
+            anchor = anchorJunction.WorldPosition;
+        }
+
         TileCoord bestTile = default;
         JunctionId? best = null;
         var bestApproaches = -1;
@@ -157,6 +174,17 @@ public sealed class FruitProductionSystem : ISimulationSystem
                     IsObjectAnchor(world, tileCoord, junctionId))
                 {
                     continue;
+                }
+
+                if (clearanceSq > 0f &&
+                    world.Junctions.Items.TryGetValue(junctionId, out var junction))
+                {
+                    var dx = junction.WorldPosition.X - anchor.X;
+                    var dy = junction.WorldPosition.Y - anchor.Y;
+                    if (dx * dx + dy * dy < clearanceSq)
+                    {
+                        continue;
+                    }
                 }
 
                 var approaches = InteractionReach.CountApproaches(world, junctionId);

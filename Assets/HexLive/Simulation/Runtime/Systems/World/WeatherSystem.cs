@@ -61,29 +61,89 @@ public sealed class WeatherSystem : ISimulationSystem
                 $"-{washed} raft logs -> {world.RaftProgress}/{WorldState.RaftTarget} (cycle {cycle})");
         }
 
-        // §63: the SURF GIFT — the tide beaches a random piece of clothing on
-        // the shoreline every few cycles (~2-3 per 7 cycles). Worn-out garments are
-        // destroyed by wear, and every lost garment is lost pocket capacity —
-        // the sea keeps the island's wardrobe from bottoming out. Seeded
-        // schedule like rain/storms: a pure function of (seed, cycle).
-        if (world.Tick == cycle * EnvironmentSystem.EventCycleTicks + SurfGiftOffsetTicks &&
-            MathUtil.Hash01(world.Seed, cycle, 6363) < SurfGiftChancePerDay)
+        // §63: the SURF GIFT — at 06:00 after every five complete visual days,
+        // the tide beaches one random girl-compatible garment per living girl
+        // in the player's colony. Tick 0 is the beginning of day one, not a
+        // delivery; the first delivery is tick 5*DayLengthTicks (day 6, 06:00).
+        // The schedule is deterministic and follows the actual game clock, not
+        // the short weather/raid event cycle.
+        var elapsedDays = world.Tick / EnvironmentSystem.DayLengthTicks;
+        if (world.Tick > 0 &&
+            world.Tick % EnvironmentSystem.DayLengthTicks == 0 &&
+            elapsedDays % SurfGiftIntervalDays == 0)
         {
-            TrySpawnSurfGarment(world, cycle);
+            TrySpawnSurfGarments(world, elapsedDays, CountColonyGirls(world));
         }
     }
 
-    // §63: pick a random garment from the wardrobe table and beach it on a
-    // free land junction that touches the water. Arrives soaked and worn-in
-    // (durability 0.55-0.95) — driftwood clothing, not a shop delivery.
-    private static void TrySpawnSurfGarment(WorldState world, int cycle)
+    private static int CountColonyGirls(WorldState world)
     {
-        var wardrobe = GarmentLibrary.Active;
+        var count = 0;
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            // Entities.Npcs is the living roster. "In our camp" means colony
+            // membership, not where she happens to stand at 06:00: a hunter on
+            // the far beach is still one of the camp's girls.
+            if (npc.Faction == Faction.Colony && npc.Sex == GarmentSex.Female)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    // §63: choose one garment wearable by a female body and one distinct free
+    // shoreline junction for every girl. Each piece arrives soaked and worn-in
+    // (durability 0.55-0.95) — driftwood clothing, not a shop delivery.
+    private static void TrySpawnSurfGarments(WorldState world, int giftDay, int count)
+    {
+        if (count <= 0)
+        {
+            return;
+        }
+
+        var wardrobe = new System.Collections.Generic.List<GarmentParams>();
+        foreach (var garment in GarmentLibrary.Active)
+        {
+            if (garment.Sex != GarmentSex.Male)
+            {
+                wardrobe.Add(garment);
+            }
+        }
+
         if (wardrobe.Count == 0)
         {
             return;
         }
 
+        for (var giftIndex = 0; giftIndex < count; giftIndex++)
+        {
+            var shore = FindFreeShore(world, giftDay, giftIndex);
+            if (shore is null)
+            {
+                break;
+            }
+
+            var pick = (int)(MathUtil.Hash01(world.Seed, giftDay, giftIndex, 6365) * wardrobe.Count);
+            pick = System.Math.Min(pick, wardrobe.Count - 1);
+            var garment = wardrobe[pick];
+
+            var spawned = WorldObjectMutations.SpawnObject(
+                world, garment.Id, shore.Fragment, shore.Tiles[0], shore.Id);
+            spawned.Wetness = 1f;
+            spawned.Durability = 0.55f + 0.4f *
+                MathUtil.Hash01(world.Seed, giftDay, giftIndex, 6366);
+            spawned.Dirtiness = 0.1f + 0.2f *
+                MathUtil.Hash01(world.Seed, giftDay, giftIndex, 6367);
+            Trace.EmitSystem(world, "SurfGift",
+                $"{garment.Id} washed ashore at Tile={shore.Tiles[0].Q},{shore.Tiles[0].R} " +
+                $"(dur={spawned.Durability:F2} day {giftDay} gift {giftIndex + 1}/{count})");
+        }
+    }
+
+    private static Junction FindFreeShore(WorldState world, int giftDay, int giftIndex)
+    {
         Junction shore = null;
         var bestRoll = -1f;
         foreach (var junction in world.Junctions.Items.Values)
@@ -111,8 +171,10 @@ public sealed class WeatherSystem : ISimulationSystem
             }
 
             // Seeded shuffle: the highest per-junction hash wins — stable for
-            // (seed, cycle), different spot every gift.
-            var roll = MathUtil.Hash01(world.Seed, cycle, junction.Id.Value, 6364);
+            // (seed, day, item), different spot for every piece. Earlier gifts
+            // are already occupied and therefore excluded from later picks.
+            var roll = MathUtil.Hash01(
+                world.Seed, giftDay, junction.Id.Value, 6364 + giftIndex * 17);
             if (roll > bestRoll)
             {
                 bestRoll = roll;
@@ -120,23 +182,7 @@ public sealed class WeatherSystem : ISimulationSystem
             }
         }
 
-        if (shore is null)
-        {
-            return;
-        }
-
-        var pick = (int)(MathUtil.Hash01(world.Seed, cycle, 6365) * wardrobe.Count);
-        pick = System.Math.Min(pick, wardrobe.Count - 1);
-        var garment = wardrobe[pick];
-
-        var spawned = WorldObjectMutations.SpawnObject(
-            world, garment.Id, shore.Fragment, shore.Tiles[0], shore.Id);
-        spawned.Wetness = 1f;
-        spawned.Durability = 0.55f + 0.4f * MathUtil.Hash01(world.Seed, cycle, 6366);
-        spawned.Dirtiness = 0.1f + 0.2f * MathUtil.Hash01(world.Seed, cycle, 6367);
-        Trace.EmitSystem(world, "SurfGift",
-            $"{garment.Id} washed ashore at Tile={shore.Tiles[0].Q},{shore.Tiles[0].R} " +
-            $"(dur={spawned.Durability:F2} cycle {cycle})");
+        return shore;
     }
 
     // §46 v2: storm-surge catastrophe knobs. Offset 1600 keeps the tick on
@@ -145,9 +191,10 @@ public sealed class WeatherSystem : ISimulationSystem
     private static int StormRaftLogLoss => WorldBalance.StormRaftLogLoss;
     private static int StormSurgeOffsetTicks => WorldBalance.StormSurgeOffsetTicks;
 
-    // §63 surf gift knobs (0.35 per event cycle ≈ 2-3 garments per 7 cycles).
-    private static float SurfGiftChancePerDay => WorldBalance.SurfGiftChancePerDay;
-    private static int SurfGiftOffsetTicks => WorldBalance.SurfGiftOffsetTicks;
+    // §63 surf gift cadence in complete visual days. Defensive clamp keeps a
+    // malformed remote simdata value from causing a modulo-by-zero crash.
+    private static int SurfGiftIntervalDays =>
+        System.Math.Max(1, WorldBalance.SurfGiftIntervalDays);
 }
 
 }

@@ -100,11 +100,7 @@ public sealed class GroundBloodStains : MonoBehaviour
     // Per-NPC, once per rendered sim tick: detect blood loss and drip.
     public void OnNpcTick(int npcId, float blood, Vector3 footWorld, int tick)
     {
-        if (!_trackers.TryGetValue(npcId, out var tracker))
-        {
-            tracker = new BleedTracker { PrevBlood = blood };
-            _trackers[npcId] = tracker;
-        }
+        var tracker = TrackerFor(npcId, blood);
 
         if (blood < tracker.PrevBlood - 0.0001f)
         {
@@ -113,15 +109,46 @@ public sealed class GroundBloodStains : MonoBehaviour
 
         tracker.PrevBlood = blood;
 
-        if (tick <= tracker.BleedingUntilTick && tick >= tracker.NextDripTick)
+        if (tick <= tracker.BleedingUntilTick)
         {
-            tracker.NextDripTick = tick + DripIntervalTicks;
-            var jitter = Random.insideUnitCircle * FootJitter;
-            var at = footWorld + new Vector3(jitter.x, 0f, jitter.y);
-            if (!TryMergeIntoPool(at, tick))
-            {
-                Spawn(at, tick);
-            }
+            DripIfDue(tracker, footWorld, tick);
+        }
+    }
+
+    // Bug #22: an open wound does not become dry at the instant its owner
+    // dies. The renderer owns the finite post-mortem window; this component
+    // only accepts an explicit bleeding source and feeds it through the SAME
+    // cadence/merge/spawn path as a living NPC.
+    public void OnBleedingSourceTick(int sourceId, Vector3 footWorld, int tick)
+    {
+        DripIfDue(TrackerFor(sourceId, 0f), footWorld, tick);
+    }
+
+    private BleedTracker TrackerFor(int sourceId, float initialBlood)
+    {
+        if (_trackers.TryGetValue(sourceId, out var tracker))
+        {
+            return tracker;
+        }
+
+        tracker = new BleedTracker { PrevBlood = initialBlood };
+        _trackers[sourceId] = tracker;
+        return tracker;
+    }
+
+    private void DripIfDue(BleedTracker tracker, Vector3 footWorld, int tick)
+    {
+        if (tick < tracker.NextDripTick)
+        {
+            return;
+        }
+
+        tracker.NextDripTick = tick + DripIntervalTicks;
+        var jitter = Random.insideUnitCircle * FootJitter;
+        var at = footWorld + new Vector3(jitter.x, 0f, jitter.y);
+        if (!TryMergeIntoPool(at, tick))
+        {
+            Spawn(at, tick);
         }
     }
 

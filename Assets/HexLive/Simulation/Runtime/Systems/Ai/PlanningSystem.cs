@@ -53,7 +53,19 @@ public sealed partial class PlanningSystem : ISimulationSystem
                        (gj.Equals(huntedJunction) ||
                         IsAdjacentJunction(world, gj, huntedJunction))));
 
-                if (!huntStale && !groupHuntStale)
+                // §115: чужак тоже ходит. Достала его или он сменил узел —
+                // старый подход больше не правда, его надо пересобрать.
+                var expelStale = npc.Mind.CurrentGoal == GoalType.Expel &&
+                    npc.Movement.HopTimer <= 0f &&
+                    npc.Mind.ExpulsionTargetNpcId is { } expelledId &&
+                    world.Entities.Npcs.TryGetValue(expelledId, out var expelled) &&
+                    expelled.CurrentJunction is { } expelledJunction &&
+                    (InteractionReach.CanStrike(world, npc, expelled) ||
+                     !(npc.Plan.TargetJunctionId is { } ej &&
+                       (ej.Equals(expelledJunction) ||
+                        IsAdjacentJunction(world, ej, expelledJunction))));
+
+                if (!huntStale && !groupHuntStale && !expelStale)
                 {
                     Trace.Emit(world, npc.Id, "PlanSkipped",
                         $"ActivePlan already matches Goal={npc.Mind.CurrentGoal} Step={npc.Plan.CurrentStepIndex}/{npc.Plan.Steps.Count}");
@@ -80,6 +92,10 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 if (groupHuntStale && npc.Plan.TargetJunctionId is { } droppedApproach)
                 {
                     SpatialMutations.ReleaseJunctionReservation(world, droppedApproach, npc.Id);
+                }
+                if (expelStale && npc.Plan.TargetJunctionId is { } droppedExpelApproach)
+                {
+                    SpatialMutations.ReleaseJunctionReservation(world, droppedExpelApproach, npc.Id);
                 }
             }
 
@@ -315,6 +331,12 @@ public sealed partial class PlanningSystem : ISimulationSystem
             if (npc.Mind.CurrentGoal == GoalType.GroupHunt)
             {
                 BuildGroupHuntPlan(world, npc);
+                continue;
+            }
+
+            if (npc.Mind.CurrentGoal == GoalType.Expel)
+            {
+                BuildExpelPlan(world, npc);
                 continue;
             }
 
@@ -1131,6 +1153,14 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     return false;
                 }
 
+                // §49.9: bedtime wants a burnable stick. A whole log remains
+                // a SplitLog target on the ground; picking it up first removes
+                // the very Process interaction needed to turn it into fuel.
+                if (npc.Mind.NightSleepUntilRested)
+                {
+                    return perceived.DefinitionId == ContentIds.Stick;
+                }
+
                 if (!definition.Tags.Contains("Log"))
                 {
                     return true;
@@ -1256,15 +1286,15 @@ public sealed partial class PlanningSystem : ISimulationSystem
             case GoalType.BuildRaft:
                 return definition.Tags.Contains("Raft");
             case GoalType.Mourn:
-                return definition.Tags.Contains("Corpse");
+                return CorpseMath.IsHumanDead(definition);
             case GoalType.LootCorpse:
                 // §28.15F: ровно то же условие, что считал аукцион — тело, на
                 // котором ещё что-то есть. Пустой труп мимо: иначе цель
                 // выигрывала бы снова и снова, а поход каждый раз кончался бы
                 // ничем (та же петля, что съела колонию на кокосах).
-                return definition.Tags.Contains("Corpse") &&
+                return CorpseMath.IsHumanDead(definition) &&
                     world.Entities.Objects.TryGetValue(perceived.Id, out var lootAnchor) &&
-                    CorpseMath.HasSpoils(CorpseMath.BodyOf(world, lootAnchor));
+                    CorpseMath.HasSpoils(world, lootAnchor);
             case GoalType.WarmUp:
                 // Spec 42: only a BURNING fire warms — a cold pit is no target.
                 return definition.Tags.Contains("Campfire") &&

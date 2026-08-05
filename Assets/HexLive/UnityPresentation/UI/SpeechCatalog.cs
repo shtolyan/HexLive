@@ -118,6 +118,7 @@ public static class SpeechCatalog
         // ~12 с, и рядом стоящая её слышит.
         ["cry_breakdown"] = new("Grief", Rank.Action, 12f),
         ["angry_defend"] = new("Attack", Rank.Alarm, 10f),
+        ["angry_expel"] = new("Attack", Rank.Alarm, 10f),
         ["fear_dark_alone"] = new("Warning", Rank.Ambient, 120f),
         ["fear_stranger"] = new("Warning", Rank.Alarm, 15f),
 
@@ -326,6 +327,14 @@ public static class SpeechCatalog
         ["AbuseFled"] = new("Flee", null, Rank.Alarm),
         // §81.13: проигравший сцену убегает домой с плачем.
         ["AbuseFledHome"] = new("Flee", "cry_beaten"),
+
+        // ---- §115: прогнать чужака из лагеря -----------------------
+        ["CampExpelDemand"] = new("Attack", "angry_expel", Rank.Alarm),
+        ["CampExpelAccepted"] = new("Done", "happy_agree", Rank.Alarm),
+        ["CampExpelRefused"] = new("Grumble", "angry_defend", Rank.Alarm),
+        ["CampExpelFled"] = new("Flee", "fear_flee", Rank.Alarm),
+        ["CampExpelHeld"] = new("Victory", "happy_victory", Rank.Alarm),
+        ["CampExpelFailed"] = new("Grumble", "angry_fail", Rank.Alarm),
 
         // ---- §108: сговор и увиденная сцена. Обе несут ЕГО id, так что над
         // головой всплывает его лицо, а иконка — запасная на тот час, пока

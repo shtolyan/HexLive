@@ -10,3 +10,13 @@
 #
 # Перегенерация: HEXLIVE_UPDATE_ALLOWLIST=1 dotnet test --filter HardcodedId
 
+Assets/HexLive/Simulation/Runtime/Systems/Wildlife/RaidWaveSystem.cs	armor.heavy
+Assets/HexLive/Simulation/Runtime/Systems/Wildlife/RaidWaveSystem.cs	armor.leather
+Assets/HexLive/Simulation/Runtime/Systems/Wildlife/RaidWaveSystem.cs	clothing.boots_cammy
+Assets/HexLive/Simulation/Runtime/Systems/Wildlife/RaidWaveSystem.cs	clothing.boots_classic
+Assets/HexLive/Simulation/Runtime/Systems/Wildlife/RaidWaveSystem.cs	clothing.cap_stars
+Assets/HexLive/Simulation/Runtime/Systems/Wildlife/RaidWaveSystem.cs	clothing.gloves_classic
+Assets/HexLive/Simulation/Runtime/Systems/Wildlife/RaidWaveSystem.cs	clothing.gloves_stars
+Assets/HexLive/Simulation/Runtime/Systems/Wildlife/RaidWaveSystem.cs	clothing.headdress_jaguar
+Assets/HexLive/Simulation/Runtime/Systems/Wildlife/RaidWaveSystem.cs	underwear.panty_basic
+Assets/HexLive/Simulation/Runtime/Systems/Wildlife/RaidWaveSystem.cs	underwear.panty_flair

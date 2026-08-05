@@ -141,12 +141,12 @@ public sealed partial class ExecutionSystem
                 $"Danger={npc.Memory.Dangers.Count}");
         }
 
-        // Spec §49: sleep the night in ONE continuous lie. Instead of ending the
+        // Spec §49: sleep in ONE continuous lie. Instead of ending the
         // block, standing (wake-grace + get-up clip), re-planning a spot and
         // dropping back down — the "empty get-up" churn that was 57% of night
         // get-ups — re-arm the block in place, holding the footprint claim. She
-        // only truly wakes when rested enough, dawn breaks, or a real need
-        // (hunger/thirst/cold/danger) crosses its threshold and the decision
+        // only truly wakes when rested enough or a real need
+        // (hunger/thirst/danger) crosses its threshold and the decision
         // system takes over.
         if (kind == InteractionType.Sleep && ShouldKeepSleeping(world, npc))
         {
@@ -216,6 +216,38 @@ public sealed partial class ExecutionSystem
 
     private static float SleepInterruptThirst => SimBalance.SleepInterruptThirst;
 
+    // §49.9: fuel is time, so reserve TIME rather than an arbitrary pile size.
+    // Ground sleep is the slowest supported surface and therefore the safe
+    // baseline. The interaction restores every fast tick; needs recovery and
+    // energy drain happen every 16 ticks. One extra slow burn covers alignment
+    // at the start/end of the block. FireSystem supplies the real ring/rain
+    // burn rule, reserving against a downpour that may begin after lying down.
+    internal static float NightSleepFuelRequired(
+        WorldState world, NPCState npc, WorldObjectState fire)
+    {
+        var deficit = System.Math.Max(0f,
+            Spec49.NightSleepWakeEnergy - npc.Needs.Energy);
+        if (deficit <= 0f)
+        {
+            return 0f;
+        }
+
+        const float blockTicks = 100f;
+        const float slowInterval = 16f;
+        var slowTicksPerBlock = blockTicks / slowInterval;
+        var slowRecovery = SimBalance.SleepEnergyBaseBonus +
+            SimBalance.SleepEnergyFireBonus -
+            SimBalance.EnergyRate * AttributeMath.EnergyDrainMult(npc);
+        var recoveryPerBlock = SimBalance.GroundSleepEnergy +
+            slowTicksPerBlock * slowRecovery;
+        recoveryPerBlock = System.Math.Max(0.01f, recoveryPerBlock);
+
+        var sleepTicks = System.MathF.Ceiling(deficit / recoveryPerBlock * blockTicks);
+        var burnSlowTicks = System.MathF.Ceiling(sleepTicks / slowInterval) + 1f;
+        return burnSlowTicks *
+            FireSystem.FuelBurnPerSlowTick(world, fire, reserveForRain: true);
+    }
+
     // NOTE: cold is deliberately NOT a wake trigger — mild cold at night is the
     // norm and she usually can't fix it, so waking just produced the "empty
     // get-up" churn; sleeping through it is what a real body does (§49.1).
@@ -239,11 +271,21 @@ public sealed partial class ExecutionSystem
             return false;
         }
 
-        // Spec §49: sleep THROUGH the night in one lie (the user's ask — "let
-        // them sleep more") — no energy cap after dark. By day, only nap while
-        // genuinely tired.
-        var night = world.Environment.Phase is DayPhase.Night or DayPhase.Evening;
-        return night || npc.Needs.Energy < SleepWakeEnergyDay;
+        // Bug #25: the late-night sleep has an ENERGY end, not a clock end.
+        // The latch survives dawn and critical wake-ups; otherwise crossing
+        // either 06:00 or the 25% start line would forget the unfinished sleep.
+        if (npc.Mind.NightSleepUntilRested)
+        {
+            if (npc.Needs.Energy < Spec49.NightSleepWakeEnergy)
+            {
+                return true;
+            }
+
+            npc.Mind.NightSleepUntilRested = false;
+            return false;
+        }
+
+        return npc.Needs.Energy < SleepWakeEnergyDay;
     }
 
     // §49-parity: the DECISION layer reads this too — going to sleep while an

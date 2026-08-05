@@ -284,8 +284,11 @@ public static class PrototypeContentCatalog
             {
                 Id = "tree.palm",
                 DisplayName = "Palm",
-                // Spec 31C.1: obstacle — the trunk blocks its anchor junction.
+                // Spec 31C.1 / §29A r2: obstacle — same footprint as the stump
+                // it leaves (0.3R), so the trunk blocks its anchor junction AND
+                // the ring around it; felling swaps one blocker for the other.
                 Tags = { "Flora", "Shade", "Palm", "Obstacle" },
+                ObstacleRadius = 0.3f * HexLive.Simulation.Spatial.HexSpatialMath.HexRadius,
                 // Spec 43: palm_final mesh is 3.9 wu tall (~7 elevation steps).
                 ShadeSteps = 7f,
                 Interactions =
@@ -339,6 +342,8 @@ public static class PrototypeContentCatalog
                 Id = "tree.palm_small",
                 DisplayName = "Palm",
                 Tags = { "Flora", "Shade", "Palm", "Obstacle" },
+                // §29A r2: same trunk footprint as the big palm and the stump.
+                ObstacleRadius = 0.3f * HexLive.Simulation.Spatial.HexSpatialMath.HexRadius,
                 // Spec 43: two trunk segments instead of three (~2.7 wu tall).
                 ShadeSteps = 5f,
                 Interactions =
@@ -575,6 +580,32 @@ public static class PrototypeContentCatalog
                             new HarvestDrop { DefinitionId = "food.meat_raw", Count = SimBalance.CarcassMeatYield, Scatter = false },
                             new HarvestDrop { DefinitionId = "resource.hide", Count = 1, Scatter = true }
                         }
+                    }
+                }
+            },
+            // §28.15C v4: через двое визуальных суток тяжёлый NPCState
+            // уходит, а на том же якоре остаются скелет и один мешок-
+            // контейнер. Он хранит все вещи в Contents, не спавня их по одной.
+            ["remains.human"] = new ObjectDefinition
+            {
+                Id = "remains.human",
+                // Player-facing name lives in I2: item.remains_human.name.
+                DisplayName = string.Empty,
+                Tags = { ObjectTags.Remains },
+                Interactions =
+                {
+                    new InteractionDefinition
+                    {
+                        Id = "mourn.remains",
+                        Type = InteractionType.Observe,
+                        DurationTicks = 16,
+                        Effects = { ComfortDelta = 0.1f }
+                    },
+                    new InteractionDefinition
+                    {
+                        Id = "loot.remains_bag",
+                        Type = InteractionType.Loot,
+                        DurationTicks = 8
                     }
                 }
             },

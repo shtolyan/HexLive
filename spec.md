@@ -489,17 +489,21 @@ split out:
 
 | Constant | Value | Drives |
 |---|---|---|
-| `WorldBalance.DayLengthTicks` | 24000 | THE VISUAL CLOCK — sun and shadows, sky, the four phases, the temperature sinusoid, UV, `FormatClock`, `CalendarDay` ("Day N"). Nothing else. |
-| `WorldBalance.EventCycleTicks` | 2400 | THE GAMEPLAY CADENCE — the seeded "once per day" rolls: rain (`WeatherSystem`), the storm surge, the §63 surf gift, the §46 dog raid (`MobSystem`); and the daylight gate on fruit production (`FruitProductionSystem`). |
+| `WorldBalance.DayLengthTicks` | 24000 | THE VISUAL CLOCK — sun and shadows, sky, the four phases, the temperature sinusoid, UV, `FormatClock`, `CalendarDay` ("Day N"), and the §63 five-day surf-gift schedule. |
+| `WorldBalance.EventCycleTicks` | 2400 | THE GAMEPLAY CADENCE — the seeded "once per day" rolls: rain (`WeatherSystem`), the storm surge and the §46 dog raid (`MobSystem`); and the daylight gate on fruit production (`FruitProductionSystem`). |
 
-The per-cycle rolls index off `EventCycleTicks`, not the day: keying them to
-the stretched clock would have made rain, raids and beached clothing 10x rarer
-in REAL time, which is exactly what this change was not supposed to do. Their
-within-cycle offsets (`StormSurgeOffsetTicks` 1600, `SurfGiftOffsetTicks` 800,
-`RaidDuskOffsetTicks` 1800, the rain start jitter 2100 and duration 300–900)
+The per-cycle rolls index off `EventCycleTicks`, not the day: keying rain and
+raids to the stretched clock would have made them 10x rarer in REAL time,
+which is exactly what this change was not supposed to do. Their within-cycle
+offsets (`StormSurgeOffsetTicks` 1600, `RaidDuskOffsetTicks` 1800, the rain
+start jitter 2100 and duration 300–900)
 are positions inside the 2400-tick cycle and are unchanged. The accepted cost:
 a raid lands at the dusk of its *cycle*, so raids arrive at ten evenly spaced
 moments across the long day instead of at the visual dusk.
+
+The surf gift is the deliberate exception: §63 now keys it to the visual-day
+boundary because the rule is explicitly player-facing — 06:00 every five full
+days — rather than a real-time survival cadence.
 
 Two divisors look like day lengths and deliberately are not — both are
 per-slow-tick rates whose counterparts are also per slow tick, so the ratio
@@ -4387,21 +4391,22 @@ heals. Relationships oscillate instead of saturating at eternal friendship.
 
 A housemate's death must not pass unnoticed.
 
-**⭐ v3 (тела остаются): она НЕ исчезает.** Раньше смерть удаляла колонистку
-из мира, вываливала её гардероб и карманы кучей под ноги и оставляла объект
-`corpse.npc`, который истлевал за двое суток. Через два дня от человека не
-оставалось ничего — ни тела, ни места, ни повода вспомнить; а вещи колония
-получала обратно бесплатно, просто пройдя мимо.
+**⭐ v4 (двое суток тело, затем скелет + мешок).** Смерть не рассыпает гардероб
+и карманы по земле: все вещи первые двое игровых суток остаются на самой покойной.
+Ровно через `2 × EnvironmentSystem.DayLengthTicks` = **48 000 тиков** тяжёлый `NPCState`
+трупа удаляется, а на том же центральном якоре появляется один лёгкий объект
+`remains.human`: плоский скелет и мешок. Все оставшиеся вещи едут в `WorldObjectState.Contents`
+этого **одного** мешка; отдельные world-object’ы не спавнятся.
 
 Теперь смерть — это **переезд, а не удаление**:
 
 | | Было | Стало (v3) |
 |---|---|---|
-| Сущность | `Entities.Npcs.Remove` — её нет | `NPCState` целиком → `Entities.Corpses` |
-| Вещи | падают на землю под ноги | **остаются на теле** — надетое и карманы |
-| Срок | истлевает за 4800 тиков | **лежит до конца игры** |
-| Убрать | само гниение, либо похороны | только нож (§56, разделка) |
-| Вид | капсула-заглушка, затем ничего | её собственное тело в позе падения |
+| Сущность | `Entities.Npcs.Remove` — её нет | `NPCState` → `Entities.Corpses` на 48 000 тиков → удаляется |
+| Вещи | падают на землю под ноги | на теле → в `Contents` одного мешка |
+| Срок | полное исчезновение | **тело — 2 суток; скелет и мешок — без самоисчезновения** |
+| Убрать | само гниение, либо похороны | нож может разделать только свежее тело; скелет остаётся |
+| Вид | капсула-заглушка, затем ничего | её тело в позе падения → спрайт скелета той же длины, позы и курса |
 
 **Почему ОТДЕЛЬНЫЙ реестр, а не флаг `IsDead` в `Npcs`.** Живой ростер
 обходят несколько десятков систем, и каждая должна была бы вспомнить про флаг;
@@ -4410,11 +4415,11 @@ A housemate's death must not pass unnoticed.
 свойство структуры, а не дисциплины. Плата: тело не участвует ни в чём само,
 всё с ним делают через объект-якорь.
 
-**Якорь:** `corpse.npc` по-прежнему спавнится на джанкшене в ЦЕНТРЕ гекса
-смерти (§60.2a), `CurrentUser` хранит id покойной. Он больше не гниёт
-(`CorpseSystem` фильтрует только тег `Decays` — конечности и звериные туши) и
-ничего не рисует: тело рисует сама погибшая. Якорь нужен ровно для «подойти и
-что-то сделать»: оплакать (§28.15C), обобрать (§28.15F), разделать (§56).
+**Якорь:** `corpse.npc` спавнится на джанкшене в ЦЕНТРЕ гекса смерти (§60.2a),
+`CurrentUser` хранит id покойной, а `SpawnTick` — момент смерти. На тике `SpawnTick + 48 000`
+`CorpseSystem` атомарно заменяет его на `remains.human` на **том же джанкшене**. Новый якорь
+сохраняет `CurrentUser`, `RotationDegrees` и вариант позы; вид рисует ground-sprite **1.32 wu** —
+точно длину лежащего тела `HexRadius 1.5 × LieBodyLengthFactor 0.88`.
 
 **Поза смерти — состояние мира, а не украшение кадра.**
 `NPCState.DeathAnimVariant` выбирается СИМУЛЯЦИЕЙ по хешу сида, один раз, в
@@ -4431,8 +4436,8 @@ A housemate's death must not pass unnoticed.
 или поздно разошлось бы с первым.
 
 Клип доигрывает — и **аниматор выключается совсем** (`enabled = false`, не
-`speed = 0`): позу больше некому сдвинуть, ни дыханию, ни взгляду, ни фиджетам,
-а накопленные за игру тела перестают что-либо стоить.
+`speed = 0`). После двух суток вид актёра уничтожается вместе с записью в `snapshot.Corpses`,
+и дальшнейшая цена останков — один `SpriteRenderer` и один `WorldObjectState` независимо от числа вещей.
 
 **Learning of death:**
 
@@ -4457,14 +4462,13 @@ targets the corpse with the existing `Observe` interaction (16 ticks).
 Completing it ends the mourning period early ("простился") with a small
 Comfort recovery (+0.1).
 
-v3: тело больше не истлевает, поэтому прощание всегда доходит до конца —
-раньше скорбящая не успевала дойти, труп рассыпался по дороге, и горе просто
-истекало по таймеру. Ставка Mourn упрощена до 0.7 без второй ветки.
+v4: после двух суток цель Mourn перенацеливается на `remains.human`: место смерти не исчезло,
+а тот, кто уже оплакал тело, не получает горе второй раз из-за смены object id.
 
 ### 28.15D Похороны — СНЯТЫ (v3)
 
-Механики похорон больше нет. Тело остаётся лежать там, где упало, до конца
-игры: остров помнит своих мёртвых, и место смерти — это место смерти, а не
+Механики похорон больше нет. Двое суток тело, а затем скелет и мешок остаются там, где
+она упала: остров помнит своих мёртвых, и место смерти — это место смерти, а не
 аккуратный холмик, который через день ничем не отличается от соседнего.
 
 Сняты: цель `Bury`, взаимодействие `bury.body`, спавн `grave.npc`, «посетить
@@ -4494,6 +4498,11 @@ v3: тело больше не истлевает, поэтому прощани
 | Берёт | **ОДНУ** вещь за подход: сначала карманы, потом надетое |
 | Итог | вещь у неё в рюкзаке, тело лежит дальше — пустое, но на месте |
 
+После 48 000 тиков эта же цель работает с `remains.human`: берёт по одной вещи из
+мешка (`Contents`), такт короче — **8 тиков**, потому что вещь уже не надо снимать с человека.
+Порядок внутри мешка тот же: бывшие карманы, затем одежда. Пустой мешок перестаёт
+быть целью Loot, но сам спрайт скелета и мешка остаётся как память места.
+
 **Порядок «карманы раньше одежды» — не косметика.** Ёмкость карманов даётся
 одеждой: сними куртку раньше, чем вынешь из неё нож, — и на теле останется
 вещь, которую хранить уже негде.
@@ -4508,7 +4517,7 @@ v3: тело больше не истлевает, поэтому прощани
 причине доступность в аукционе и выбор цели в плане спрашивают ОДНИ И ТЕ ЖЕ
 функции — `CorpseMath`.
 
-**Разделка (§56) — единственное, что убирает тело.** При этом всё, что на нём
+**Разделка (§56) может убрать тело только в первые двое суток.** При этом всё, что на нём
 ещё оставалось, вываливается под ноги: вещи не исчезают вместе с ней.
 
 **Loot, not inheritance:** права собственности в игре нет. `CurrentUser` на
@@ -5084,10 +5093,20 @@ Production runs as a Slow-layer system (after needs/temperature):
 
 **Drop spot selection (deterministic):** candidate tiles are the producer's
 tile plus its neighbors within `MaxDistanceTiles`, filtered to existing,
-walkable, non-blocked tiles. Within a tile, pick the first junction (by slot
-order) that is not blocked, not occupied, and not already the anchor of
-another object on that tile. If no candidate exists → skip, trace
-`ProduceSkipped(NoFreeSpot)`, retry next interval.
+walkable, non-blocked tiles. Within a tile, junctions are visited in slot
+order; a candidate must be passable, unoccupied and not the anchor of
+another object. **§26.6A r5:** among candidates the drop is *scored*, not
+first-fit — prefer the junction with the most legal approach cells
+(`InteractionReach.CountApproaches`, the same predicate the forager will
+later be held to), stopping early at ≥4 approaches; ties keep the earlier
+candidate, so the choice stays deterministic. **§29A r2 (clearance):** a
+producer with `ObstacleRadius > 0` (the palms, 0.3R) additionally rejects
+every junction closer than `ObstacleRadius × WorldBalance.FruitDropClearanceFactor`
+(default 2) to its anchor: the first radius is the trunk's blocked ring, the
+second is the drop clearance, so a nut always lands with walkable ground on
+every side instead of wedged against the blocked ring. This filter is
+strict — no candidate outside the clearance means no drop this interval
+(`ProduceSkipped(NoFreeSpot)`, retry next interval), never a drop inside it.
 
 **Accepted limitation:** produce may land on a junction that is currently
 unreachable for an NPC. Perception marks it `IsReachable = false`, it is never
@@ -5427,6 +5446,14 @@ mid-fight simply grants a fresh grace window). Prone/unconscious bodies are
 exempt — they can only crawl, never stand. This closes the endless-maul loop
 where a girl fled a dog she could not shake, never struck back, and was
 amputated where she stood (seed 351193917).
+
+**Pack-contact clarification (r2, bug #20).** “Out of melee” above is a fact
+about the victim versus the **whole pack**, not about whichever dog happens to
+be updated now. `FleeContactSinceTick` resets only when zero dogs have junction
+melee contact. A second dog that is still chasing may close the distance, but
+cannot reset the timer or overwrite the fight/flee latch owned by the dog
+already pinning her. Thus dictionary iteration order cannot produce the loop
+“run in place → briefly draw a weapon → run again”.
 
 **Standoff-release valve (amendment, Jul 2026):** the square-up stance (a girl
 within 1 tile of a charging mob latches `IsFighting` so a run-down can't stroll
@@ -7256,6 +7283,10 @@ section.
   no longer walk through trunks. Interaction plans with a blocked-anchor
   target approach a free passable **neighbor** junction instead — the
   execution range check is junction-adjacent by construction.
+  **§29A r2:** both palms carry `ObstacleRadius = 0.3R` — the same footprint
+  as the stump they fell into — so a standing trunk blocks its anchor plus
+  the sub-grid ring around it (7 junctions), and felling swaps one blocker
+  for an equal one instead of briefly opening the ring.
 - **Produce rot** (29A): a dropped fruit that nobody picks up despawns
   after 2400 ticks (`ProduceRotted` trace) — unreachable-junction drops no
   longer litter the world forever.
@@ -7365,8 +7396,9 @@ SLEEP below is unchanged)*
 
 **Lying on the grass**
 
-- Sleep works with no bed, but only for the tired or after dark:
-  availability = Energy < 0.45 OR Evening/Night phase. Unconditional
+- Sleep works with no bed, but only for the tired:
+  availability = Energy < 0.45; после 23:00 при Energy < 0.25 взводится
+  подготовка костра и сон до полного восстановления (§49.9). Unconditional
   availability turned naps into a universal time sink (73/soak, the fire
   never lit).
 - The girl lies at the CENTER of a free hexagon — walkable, not water, no
@@ -8933,6 +8965,15 @@ pass — order chosen to add robustness before difficulty.
   they run on realtime `Time.deltaTime` and would ignore sim pause/speed;
   the tick-driven lifecycle stays ours. TUNING KNOBS: `LifetimeTicks`,
   `SpreadTicks`, `DripIntervalTicks`, `PuddleScaleMin/Max`, `MaxStains`.
+  **Post-mortem source (r2, bug #22).** A corpse with at least one open wound
+  and remaining `Blood` continues feeding this same emitter for 120 ticks
+  (30 sim seconds) after its `DeathRecord.Tick`. This is not a second blood
+  implementation and not a persisted VFX entity: `HexWorldRenderer` merely
+  calls `OnBleedingSourceTick` during the finite window, and the normal
+  cadence, jitter, merge, spreading and expiry stay in `GroundBloodStains`.
+  A corpse in water is routed to the matching `WaterBloodStains` source.
+  `DeathRecord` makes the window deterministic after reconnect/load; a body
+  whose blood is already empty does not manufacture more blood.
 - **40.2-C Blood in water (shipped, presentation).** When a bleeding girl is
   IN the water her blood billows on the surface instead of pooling on the
   ground. Detection is the renderer's existing `_npcOnWater[key]`
@@ -9025,6 +9066,12 @@ pass — order chosen to add robustness before difficulty.
   param). Restore by **bathing** — swim in water / stand under a
   **waterfall** / shower. Find/borrow swim & shower animations (the
   molly_copy repo has a shower animation).
+- **§40.6 r10 — water always washes (bug #18).** Every slow needs tick spent on
+  a `TileFlags.Water` tile adds `HygieneWashGain`, regardless of the current
+  goal, interaction or body state: bathing, wading, swimming, fetching water
+  and an unconscious body obey the same physical rule. The ordinary hygiene
+  drift applies only on dry land. Garment dirt remains a separate channel and
+  is not silently cleaned by this body-hygiene rule.
 - **Shipped (visual):** `NpcActorView.SetSkinWeathering` now takes `hygiene`
   and muddies the bare-skin tint toward a dull earthy brown as it drops
   (grime overlay via the same per-submesh property block, skin-only). Driven
@@ -9771,8 +9818,10 @@ pass — order chosen to add robustness before difficulty.
   droplet **gloss map** (`_MetallicGlossMap`, alpha = ABSOLUTE smoothness,
   NpcActorView pins `_Smoothness` to 1 on live slots): the detailed
   over-art stamps its wet-core shape (`wound_scratch_g`/`blood_splat_g`,
-  `WoundWetGloss = 1.0` — with relief cut, the glint IS the volume cue;
-  it must out-shine the 0.72 sweat sheen and the 0.95 droplets) via
+  `WoundWetGloss = 0.92` — 1.0 is forbidden by the GGX dead-zone recorded
+  above: zero roughness collapses the highlight to a subpixel point and makes
+  some wounds read matte; 0.92 keeps the cue broad and visible in sunlight)
+  via
   `WoundGlossStamp.shader` — **BlendOp Max, ColorMask A**, so overlaps
   keep the shiniest value, the base never darkens, and a healing wound
   sinks below the base and vanishes; the splash underlay stays DRY and
@@ -10020,6 +10069,12 @@ pass — order chosen to add robustness before difficulty.
   marker); sim-side Mourn/Bury logic untouched. `SetRagdoll` stays in
   `NpcActorView` as dormant code (no callers) in case tile colliders ever
   land and it's worth revisiting.
+- **UPDATE — TWO-DAY REMAINS (v4).** Актуальный цикл заменяет оба исторических
+  апдейта выше: первые 48 000 тиков вид усыновляет и замораживает настоящее
+  тело; после этого `snapshot.Corpses` теряет тяжёлый `NpcSnapshot`, а на том же
+  якоре рисуется `remains.human` — ground-sprite скелета с мешком. Вариант и
+  `RotationDegrees` переносят позу; длина спрайта — 1.32 wu, как у актёра. Все вещи
+  едут в `Contents` одного объекта, поэтому россыпи предметов нет.
 
 ### 40.14 Tent (sun shelter) & tiered beds
 - **Tent — RETIRED (Jul 2026, §66).** The v1 lean-to canopy (`shelter.tent`,
@@ -10946,8 +11001,12 @@ Pure C#, Unity-free (testable, and the sim could later read it):
   polarity, category, a placeholder **emoji** glyph (v1; see §48.3) and the
   `effect.<kind>.title` / `effect.<kind>.desc` localization keys. No `Color`
   here — the presentation maps polarity → ring colour.
-- **`ActiveEffect { Kind, Intensity }`** — one effect acting now; `Intensity`
-  (0..1) is how hard it bites (tooltip reads mild/severe, ring brightens).
+- **`ActiveEffect { Kind, Intensity, DetailKey? }`** — one effect acting now;
+  `Intensity` (0..1) is how hard it bites (ring brightens). Optional
+  `DetailKey` selects a localized cause-specific tooltip without multiplying
+  effect kinds: coma explains critical blood loss; fainting distinguishes
+  energy exhaustion, starvation and low blood; crying names stress plus spent
+  stamina; dying names blood loss, destroyed vitals, starvation or dehydration.
 - **`EffectEvaluator.Collect(npc, tick, effectiveUv, nearLitFire, restingInBed,
   results)`** — the classifier. Bleeding
   takes precedence over the milder `Injured`; a faint suppresses the redundant
@@ -10967,11 +11026,13 @@ later is a per-kind catalog edit; the rest of the pipeline is unchanged.
 
 ### §48.4 Bridge & UI
 `WorldSnapshotExporter.ExportNpc` runs the evaluator and exports
-`NpcSnapshot.Effects` as `"Kind\tintensity"` per active effect (same tab-encoded
-convention as `Wounds`/`WornDurability`). The character panel (§40.11) renders
+`NpcSnapshot.Effects` as `"Kind\tintensity[\tdetailKey]"` per active effect
+(same tab-encoded convention as `Wounds`/`WornDurability`; old two-field rows
+remain valid). The character panel (§40.11) renders
 one circular chip per entry — buffs ringed green, debuffs red (brighter with
 intensity) — and on hover pops a small tooltip with the localized title and the
-one-line "what it does". Debuffs sort before buffs, most-intense first.
+cause-specific localized explanation when present, otherwise the catalog's
+generic one-line description. Debuffs sort before buffs, most-intense first.
 
 ### §48.5 Not yet modelled
 `Fighting` stays a dedicated badge (§40.11), not an effect chip, to avoid
@@ -11034,14 +11095,15 @@ deaths** → full **10W·0L·3 deaths**, with the "empty get-up" churn cut **47 
 `boilChainWeight` for more).
 
 ### §49.1 Sleep re-arm — kill the "empty get-up" churn
-Ground sleep was hard-chunked into 100-tick blocks; each block *completed* into
+Sleep was hard-chunked into 100-tick blocks; each block *completed* into
 a full stand + wake-grace + re-plan, then Sleep re-won and she lay back down —
-57 % of night get-ups did nothing but re-lie. `RunGroundRest` now **re-arms the
-block in place** (`ShouldKeepSleeping`) instead of standing: she sleeps the
-night in one continuous lie and only truly wakes for a real, actionable need
-(hunger/thirst ≥ 0.6) or a threat. Crucially **cold is NOT a wake trigger** — a
-near-naked girl on a cold night sits at max thermal discomfort she can't fix, so
-waking her only produced churn; the cold HP hit lands whether she's up or lying.
+57 % of night get-ups did nothing but re-lie. Both `RunGroundRest` and
+object-backed Sleep (leaf mat / bed) now **re-arm the block in place** through
+one `ShouldKeepSleeping` rule instead of standing: she sleeps in one continuous
+lie and only truly wakes for the existing actionable need or threat conditions.
+Crucially **cold is NOT a wake trigger** — a near-naked girl on a cold night sits
+at max thermal discomfort she can't fix, so waking her only produced churn; the
+cold HP hit lands whether she's up or lying.
 
 ### §49.2 Unified sleep-comfort formula
 Comfort no longer drains while asleep, and no longer rides the bed interaction's
@@ -11116,6 +11178,44 @@ Both surface as the derived buff chip **`Cozy`** (§48, 🏕️, `effect.cozy.*`
 raised whenever a lit fire is in warming range. Pure additive comfort — no death
 class touched; the knobs are `Spec49.SleepComfortFireBonusNight` /
 `Spec49.AwakeFireComfortGain`.
+
+### §49.9 Ночная подготовка ко сну — костёр и полный заряд (bug #25)
+
+После **23:00** (`EnvironmentSystem.IsAfter23`: нормализованный день начинается
+в 06:00, поэтому граница = 17/24), когда Energy впервые доходит до или ниже
+`NightSleepEnergy` (**0.25**), у NPC взводится намерение
+`Mind.NightSleepUntilRested`. Это защёлка над штатной цепочкой, а не ещё один
+одношаговый Goal: принести дерево/расщепить бревно → подбросить палку и зажечь
+обычный лагерный костёр → выбрать штатное удобное место сна у очага → Sleep.
+`NightSleepBoost` (**1.0**) поднимает звенья этой цепи; существующие критические
+голод, жажда, свежая опасность и адреналин остаются законными прерываниями.
+После такого прерывания защёлка не теряется: разобравшись с кризисом, NPC
+возвращается досыпать. Снимается она только при
+`Energy >= NightSleepWakeEnergy` (**0.999**), поэтому рассвет и пересечение
+стартовых 25% сами по себе больше не поднимают тело. В 18:00 персонаж больше не
+ложится только из-за фазы `Evening`; вне ночного намерения действует обычный
+порог усталости.
+
+Перед укладыванием требуется не просто `fuel > 0`, а запас до полного
+восстановления. Расчёт берёт медленнейшую поверхность (землю) и фактические
+ручки баланса:
+
+`recovery100 = GroundSleepEnergy + 100/16 × (SleepEnergyBaseBonus + SleepEnergyFireBonus − EnergyRate × endurance)`;
+
+`sleepTicks = ceil((NightSleepWakeEnergy − Energy) / recovery100 × 100)`.
+
+Требуемое топливо — число медленных тиков сна плюс один тик запаса, умноженное
+на расход `FireSystem` с учётом каменного кольца и худшего дождевого режима
+(×4). Поэтому признанный готовым огонь не должен погаснуть до полного заряда,
+даже если дождь начнётся уже после укладывания. Если нет известного достижимого
+очага или вообще невозможно добыть топливо, действует безопасный fallback —
+всё равно лечь у домашнего якоря, а не колобродить до обморока. План сна
+по-прежнему предпочитает кровать; сон на земле якорится к лагерному
+`campfire.spot` и использует существующее ранжирование безопасных свободных
+мест (indoor, тепло костра/тень, расстояние).
+
+Ручки: `NightSleepSchedule`, `NightSleepEnergy`, `NightSleepBoost`,
+`NightSleepWakeEnergy`.
 
 ## §50 Limb loss — amputation (iteration 48)
 
@@ -11567,9 +11667,8 @@ closed against it:
   drawn in the acting hand is skipped, so it shows *in the holster only when not
   in use* — take it out to work, and it returns to the thigh when done.
 
-**Acquisition.** No special spawn: the §63 surf gift picks a random garment from
-`GarmentLibrary.Active`, which includes the holster, and the girls Dress into it
-like anything else washed ashore.
+**Acquisition.** No special spawn: a §63 surf gift may pick the `GarmentSex.Any`
+holster because it fits a female body; only explicitly male garments are excluded.
 
 **Verify** (headless, tuned catalog, 17/17 ALL PASS): holster adds 0 capacity;
 axe+knife+hammer ride free ⇒ only the 2 non-tool items count; a tool picked up
@@ -12136,8 +12235,8 @@ across seeds, a bed completes (`FurnitureBuilt`), `BuildFurniture` time rose 0.8
 2.7%, and deaths fell (hut removal + fewer wasted trips).
 
 ### §54.11 Faster sleep recovery + bed/fire reward
-Sleep was ~45% of living time — nights are slept through by design (`ShouldKeep
-Sleeping` = night ∨ low-energy), but the *daytime* naps ate the build window. A
+Sleep was ~45% of living time — ночной сон перевзводится до полного
+восстановления энергии (§49.9), но the *daytime* naps ate the build window. A
 single unified hook in `NeedsDecaySystem` (where `sleeping` is already true for
 both the ground-sleep and bed-sleep paths) adds an energy bonus per slow tick while
 asleep, so recovery is faster ⇒ less napping ⇒ more time awake to build:
@@ -12959,6 +13058,13 @@ reference it: `I2.Loc` (runtime, `Scripts/`) + `I2.Loc.Editor`
 (`Scripts/Editor/`, editor-only), both referencing `UnityEngine.UI` and
 `Unity.TextMeshPro` (the project defines `TextMeshPro` globally).
 
+### §58.5 Goal coverage
+
+The character card's “what I will do now” value is `Loc.Goal(CurrentGoal)`;
+therefore every `GoalType` must have a non-empty EN and RU term named
+`goal.<GoalType>`. `Bury`, `StowBottle`, `GroupHunt` and `LootHelpless` are
+covered explicitly; a raw enum name in this card is a localization defect.
+
 ## §59 Data-driven catalogs — SO-конфиги и headless-мост (iteration 59)
 
 Весь баланс сущностей вынесен из кода в НАСТРАИВАЕМЫЕ ОБЪЕКТЫ (ScriptableObjects);
@@ -13342,18 +13448,26 @@ pending.
 **63.1 Прибой-подарок (surf gift).** Одежда изнашивается насмерть (укусы,
 стирка времени) — а каждая потерянная вещь = потерянные карманы (§52:
 инвентарь = руки + карманы надетого). Чтобы гардероб острова не
-выкашивался в ноль, прилив периодически выносит на берег случайную вещь:
+выкашивался в ноль, прилив регулярно пополняет женский гардероб лагеря:
 
-- Сидированное расписание как у дождя/штормов (чистая функция seed+день):
-  в `WeatherSystem`, раз в день на тике `day*DayLength + SurfGiftOffsetTicks`
-  (800, середина утра) с шансом `SurfGiftChancePerDay` (0.35 ≈ 2-3 вещи в
-  7 дней; оба — `WorldBalance`, зеркалятся из `WorldBalanceConfig`).
-- Вещь — случайная строка `GarmentLibrary.Active` (весь гардероб, включая
-  импортированные); точка — случайный СВОБОДНЫЙ сухопутный junction, у
-  которого есть сосед-вода (кромка берега), сидированный слот дня.
-- Прибывает мокрой (Wetness 1.0), поношенной (Durability 0.55-0.95) и
-  слегка грязной (0.1-0.3) — «принесло море», не магазинная поставка.
-  Событие трассы: `SurfGift`.
+- Расписание привязано к реальным игровым часам: в `WeatherSystem` ровно в
+  **06:00 после каждых пяти полных суток** (`SurfGiftIntervalDays = 5`). Тик 0
+  — начало первых суток, не бесплатная поставка; первый приход — тик 120000,
+  начало шестых суток. Шанса нет: каждый срок срабатывает обязательно.
+- Количество = число живых NPC с `Faction.Colony` и `Sex == Female` в момент
+  прихода. Это принадлежность лагерю, а не физическое положение: ушедшая на
+  охоту колонистка продолжает учитываться; посторонние и мужчины — нет.
+- Для каждой девушки независимо выбирается случайная вещь из строк
+  `GarmentLibrary.Active`, совместимых с женским телом (`Female` или `Any`;
+  явно мужские исключены). Повторы моделей допустимы.
+- Каждая вещь получает отдельный случайный СВОБОДНЫЙ сухопутный junction, у
+  которого есть сосед-вода (кромка берега). Выбор сидирован по seed + номеру
+  пятидневного прихода + индексу вещи; занятая предыдущей вещью точка уже не
+  участвует в следующем выборе. Если свободных береговых точек меньше, чем
+  девушек, спавн останавливается после исчерпания точек.
+- Каждая вещь прибывает мокрой (Wetness 1.0), поношенной (Durability 0.55-0.95)
+  и слегка грязной (0.1-0.3) — «принесло море», не магазинная поставка.
+  На каждый предмет эмитится событие трассы `SurfGift`.
 
 **63.2 Поведенческий аудит (Jul 2026) — исправленные классы смертей.**
 25-дневный 10-сидовый соак дал 10-14 смертей/прогон; хвосты поведения
@@ -13700,9 +13814,11 @@ seed 1104049673), но их ЧИСЛО не растёт — ожидаемо д
 **66.5 Спящая поворачивается вместе с кроватью.** Тело во сне пинится к маркеру `point`
 внутри префаба кровати и берёт **его** мировой поворот (`NpcActorView.SetLaying` →
 `_bodyRoot.rotation = _layingAttach.rotation`), поэтому поворот корня кровати
-автоматически разворачивает и спящую — отдельной логики не нужно. Кровати теперь в
-центрах гексов, значит спящая стоит на СОСЕДНЕМ тайле и «в тайле от неё» может оказаться
-сразу две кровати: `FindBedAttachPoint` сначала берёт кровать из плана сима
+автоматически разворачивает и спящую. С §111.9 r3 симуляция при старте и на всём
+протяжении сна зеркалит в `NPCState` центр и поворот этой кровати: визуальное тело и
+точки взаимодействия у его ног не имеют права жить в разных местах. Кровати теперь в
+центрах гексов, значит у спящей может оказаться сразу две кровати в соседстве:
+`FindBedAttachPoint` сначала берёт кровать из плана сима
 (`TargetObjectId`), и только потом — ближайшую по РЕАЛЬНОМУ расстоянию, а не по кольцу
 гексов.
 
@@ -14745,6 +14861,32 @@ indoor-тайлов нет вовсе — то есть девушкам все�
 девушек — защёлкнуться от огня чужака. `InCamp` теперь отдаёт спорный тайл
 тому, чей якорь СТРОГО ближе (ничья — своему), зеркально `IsOurSite`.
 
+**72.14 Волны противников.** Авторский мужчина при старте не входит в счёт волн
+и сохраняет выверенный §72/§79 набор мачете+нож. На третьи сутки и затем каждые
+три дня в лагере чужаков высаживается ещё один полноценный `NPCState`. «Сутки»
+здесь — КАЛЕНДАРНЫЕ (`EnvironmentSystem.CalendarDay`, счётчик на экране,
+1-based, рубеж в полночь): граница волны n — начало дня 3n, первая — полночь
+дня 3. Сырые тик-сутки не годятся: они сдвинуты на четверть суток (тик 0 =
+06:00 дня 1), и «волна на тике 3·24000» приезжала утром экранного дня 4 —
+игрок ждал врага на третий день и не получал его. Пол новых
+прибывших чередуется строго: женщина, мужчина, женщина, мужчина. Женский
+облик выбирается детерминированно из §74 (тело, кожа, глаза, волосы, голос и
+уникальное имя), одежда — один из двух совместимых защищённых комплектов, без
+пляжного случайного старта. Мужчины получают штатный тактический комплект.
+
+Сила новых прибывших растёт по номеру волны: оружие идёт ступенями каменный топор → копьё
+→ мачете, затем мачете остаётся потолком, а врождённые Strength/Endurance/
+Toughness/Hardiness и навык Combat продолжают расти до капа. Сострадание,
+наоборот, падает. Все прибывшие принадлежат `Faction.Outsiders`, живут в общем
+лагере и дальше используют обычные GOAP, налёт, защиту и лут — отдельного вида
+«волнового моба» нет.
+
+`WorldState.RaidWavesSpawned` хранит число уже прибывших волн; save v27 пишет
+его явно, поэтому убитая волна не воскресает после загрузки. При чтении старого
+сейва прошедшие границы принимаются уже обработанными: загрузка на 30-й день не
+высаживает десятерых сразу, следующая волна приходит на ближайшей будущей
+трёхдневной границе.
+
 ## §73 Остров стал больше — границы карты в одном месте (iteration 73)
 
 **Цель.** Остров читался тесным: 285 тайлов, из них суша едва половина, и вся
@@ -15417,12 +15559,12 @@ walk, slowRun, run, sit). Пустой слот проваливается в к
 копья (30), то есть лучшее оружие в игре. Инструмент: `Cut | Butcher | ChopWood`
 — умеет всё, что нож и топор вместе.
 
-**Не крафтится.** Железа на острове нет: мачете приносит с собой чужак (§72), и
-в колонию оно попадает единственным способом — с его тела. Поэтому в стартовом
-наборе чужака оно ЗАМЕНИЛО копьё: копьё стояло там как затычка, когда ножа не
-хватало на размен с четырьмя, а мачете сильнее копья, одноручное и вдобавок
-рубит дрова — двуручная палка в его маленьком рюкзаке была бы мёртвым весом.
-Нож у него остаётся вторым трофеем.
+**Не крафтится.** Железа на острове нет: мачете приносят поздние чужаки (§72.14), и
+в колонию оно попадает только как трофей — с тела или после обыска вырубленного рейдера (§111).
+Авторский стартовый чужак сохраняет мачете+нож, чтобы волны не перебалансировали
+уже выверенную начальную сцену. Новая лестница идёт через топор и копьё; с третьей
+трёхдневной волны мачете становится оружейным потолком, а дальнейшая угроза растёт
+за счёт брони, атрибутов и Combat.
 
 **79.4 Модель и иконка.** Сделаны по `TOOL_GENERATION_SPEC.md`: fal.ai flux
 (фасеточная картинка) → Artificial Studio `trellis-2` (481 K тр.) → починка
@@ -15798,9 +15940,15 @@ Clamp01) молча выключил бы одержимость навсегд�
 - **Увидел по дороге — бросил рысканье.** `TryStartAbuse` каждый medium-тик:
   цель Abuse без метки + кто-то показался → поход обрывается
   (`AbuseSpotted`), ближайшее планирование берёт её через `ResolveAbuseMark`.
-- **Передумывает на бегу.** Бежит к выбранной, а по пути ближе прошла другая
-  годная — перевыбор (`AbuseRetarget`), если новая ближе минимум на
-  `AbuseRetargetGainTiles` = 2 гекса. Гистерезис обязателен: без запаса он
+- **Передумывает на бегу.** Бежит к выбранной, а по пути показалась другая
+  годная — для каждой видимой цели строится проходимый маршрут по графу
+  джанкшенов тем же `HexPathfinder`, что ведёт самого NPC. Сравнивается длина
+  выбранного маршрута в world units, а НЕ прямое расстояние между гексами:
+  цель на верхнем уступе может быть визуально ближе, но требовать длинного
+  обхода. Перевыбор (`AbuseRetarget`) происходит, если новый маршрут короче
+  минимум на `AbuseRetargetGainTiles × HexRadius` = 2 × 1.5 = **3.0 wu**;
+  недоступная или переставшая быть годной текущая цель меняется без порога.
+  Гистерезис обязателен: без запаса он
   метался бы между равноудалёнными, не дойдя ни до одной (пинг-понг §29F.2).
   Заявка со старой снимается — тот же инвариант, что в `AbandonAbuse`. Работает
   и при выключенной охоте. Сцена уже идёт — поздно передумывать.
@@ -15908,14 +16056,10 @@ churn-петлю §81.14. Налёт §72 отдельного гейта не �
   дел — он спокойно строил лежанку, ни с кем не поговорив. Множитель
   `LonelinessDriveMult` поднимает нужду над бытом.
 - **Он оппортунист, а не хозяин.** Налёт и абьюз оба взвешивают расклад и ищут
-  выгоду, а у двора логика другая. Добавлено ВТОРЖЕНИЕ: подошла ближе
-  `TerritoryRadiusTiles` к его стоянке — бьёт, и точка. Проверка стоит ПЕРЕД
-  всеми гейтами охоты: ни льготные дни, ни кулдаун, ни «достаточно ли она
-  одинока», ни его собственный голод там не спрашиваются.
-
-Отдельной сцены не заводили: дальше работает обычный налёт — сцепка, удары на
-быстром слое, её выбор «драться или бежать», клич и отход. Заодно код «как
-начинается драка» был написан дважды и сведён в один `StartRaidOn`.
+  выгоду, а у двора логика другая. Вторжение теперь запускает отдельный выгон
+  по правилам §115: хозяин подходит, требует уйти, а драка начинается только после
+  отказа. Границы двора задаёт `ColonyQueries.InCamp`, а `TerritoryRadiusTiles`
+  ограничивает радиус, в котором хозяин лично замечает чужака.
 
 **82.5 «Держится за то, что болит» переехало на IK.** Прежняя поза доворачивала
 плечо на −95°, а предплечье на −120° поверх любого клипа, не зная, где рука
@@ -16487,6 +16631,17 @@ alpha-clip радужки на очереди 2450) и отличается то
 все умирали от жажды к четвёртому дню, и выглядело это как «абьюз почему-то
 перестал случаться». Добавлен пруд. Тест, в котором нельзя выжить, ничего не
 проверяет.
+
+**102.6 (r5) Живое взаимодействие выключает патфайндер.** Обратная сторона
+старта «с ударной дистанции» (102.3): сцена начинается, НЕ дойдя до узла
+плана, — план остаётся Active на шаге «дойти», и `PathfindingSystem`, глядя
+только на план, перестраивал маршрут к недостигнутому узлу ПОСРЕДИ сцены. Он
+шёл с живым `CurrentInteraction=Abuse`, и вид играл клип действия поверх
+ходьбы (гейт `NobodyWalksWithALiveInteraction`). Правило: пока
+`CurrentInteraction` не пуст, новые маршруты не строятся; кому мало
+дистанции, тот сначала честно закрывает взаимодействие (ветка преследования
+102.4 так и делает). Прочие взаимодействия стартуют, стоя на целевом узле, —
+для них патфайндер и так молчит по «уже на месте».
 
 ## §104 Бой перестал быть копией самого себя (iteration 104)
 
@@ -17249,6 +17404,17 @@ Abort` → `CurrentGoal = GroupHunt` + `GroupHuntTargetNpcId` + `GoalLock` на
 его id (портрет всплывает и над третьей, которая ни с кем не говорила), трейс
 `GroupHuntPactFormed`.
 
+**Вооружаются в момент назначения цели (bug #21).** Это не особый случай
+групповой охоты: в `GoalCatalog` есть единый признак `ReadiesMeleeWeapon` для
+боевых целей (`Hunt`, `Prey`, `Defend`, `Raid`, `GroupHunt`, `Expel`).
+`MeleeSwing.ReadiedWeapon` тем же `EffectiveWeapon`, которым считается удар,
+выводит предмет в руку уже на подходе; `ResolveHeldItem` только передаёт это
+решение виду. Как только цель снята, вычисляемое намерение исчезает и штатный
+`NpcActorView` возвращает предмет в кобуру. Отдельного сохраняемого флага
+«вооружена» нет, поэтому он не может протухнуть или разойтись с реальной целью.
+Назначенное сценой `ForcedMeleeWeaponId` выше цели: пустая строка по-прежнему
+честно означает кулаки.
+
 ⚠️ Кулдаун проверяется В САМОМ сговоре, а не в аукционе: цель реактивная,
 аукцион её не спрашивает, и кулдаун цели её бы не удержал.
 
@@ -17664,8 +17830,8 @@ headless-Blender'ом по ключам (зеркалятся и ручки Бе
 сдалась» требует, чтобы она была в сознании. §28.15F умеет только мёртвых. А
 между ними — живая, но выключенная: в коме, умирающая, в обмороке, с ножом в
 кармане и мачете за поясом. Мимо неё проходили и не наклонялись. Хуже того,
-мачете §79 нельзя скрафтить, и в колонию оно попадало ровно одним путём — с
-трупа чужака, то есть только если его сумели убить.
+мачете §79 нельзя скрафтить, и без обыска в колонию оно попадало только с
+трупа вооружённого чужака — то есть только если его сумели убить.
 
 **111.1 Мотив.** Увидел ВРАЖДЕБНОГО (§72, `FactionRelations.AreHostile`) и
 БЕСПОМОЩНОГО — бросил дела и пошёл обыскивать. Беспомощность здесь — строго
@@ -17708,7 +17874,8 @@ headless-Blender'ом по ключам (зеркалятся и ручки Бе
 (перебор `Perception.Objects`) не годится, и сцена собрана по образцу §81:
 план move-only с `TargetAgentId`, подход до ударной дистанции
 (`InteractionReach.CanStrike`), дальше такты на месте. Взаимодействие —
-существующий `InteractionType.Loot` (присел), новый глагол не заводился.
+существующий `InteractionType.Loot`; вид отображает его тем же двухручным
+коленным клипом `CraftWork`, что и `Craft`, новый глагол и новый клип не нужны.
 Жертва закрепляется за одним лутером (`PendingLootedBy`), иначе двое садятся
 на одно тело.
 
@@ -17731,8 +17898,52 @@ headless-Blender'ом по ключам (зеркалятся и ручки Бе
 **111.7 Как это видно.** В истории колонии — одно событие на СЦЕНУ,
 `StrippedHelpless` (по событию на вещь залило бы ленту). Трассы
 `LootHelplessStarted / Took / Blocked / Aborted / Abandoned` остаются
-внутренними. Поза — штатный крауч `Loot`; свой клип «присел над телом» —
-pending.
+внутренними. Поза — штатный коленный `CraftWork`, включаемый для строки `Loot`.
+
+**111.8 Свидетели.** Беспомощная сама не может крикнуть §57, поэтому начало
+обыска напрямую поднимает ВСЕХ бодрствующих союзников жертвы в радиусе трёх
+гексов. Без порога симпатии, броска сострадания и лимита ответивших они получают
+`Defend` на лутера и бегут защищать лежащую; это наблюдаемое нападение, а не
+просьба о помощи. Дальние и спящие сцену не видят.
+
+**111.9 Единая точка у ног (bug #19).** Любое реализованное взаимодействие с
+лежащим живым телом — обыск и вся семья помощи §53 (еда, вода, лечение,
+лекарство, утешение) — использует одну геометрию `LyingSpot`. Корень помощницы
+ставится точно в конец прямоугольника тела со стороны ног:
+`Position + Forward(Rotation) × BodyHalfLength`; её курс равен
+`Rotation + 180°` и направлен от ног к голове. Планировщик ведёт к ближайшему доступному
+узлу этой точки, а исполнение держит точную позу весь такт. Завершение обыска
+освобождает goal-lock, путь, бронь узла и статус движения, поэтому после
+последней вещи персонаж немедленно возвращается в аукцион, а не остаётся ждать
+в `Loot`.
+
+**111.9 r2 — rework позиционирования и клипа.** Путь заканчивается на
+СВОБОДНОМ узле рядом с занятым футпринтом тела, а точная станция у ног по
+определению лежит ВНУТРИ этого футпринта. Поэтому старт обыска после прибытия
+не имеет права второй раз требовать `CanStrike` до узла самой лежащей: это
+создавало вечный `Goal=LootHelpless` без `CurrentInteraction=Loot`. Вместо
+этого разрешён только локальный снап от подхода к `InteractionFeet` в пределах
+`InteractionReach.Aid + BodyHalfLength`; всё дальше — аборт, не телепорт.
+`CraftWork` во время `Loot` играет в авторском темпе и повторяется: аварийный
+60-секундный потолок сцены не является длительностью одного жеста и больше не
+растягивает клип почти до неподвижного кадра.
+
+**111.9 r3 — ось клипа и кровать.** `Rotation` лежащей — это поворот КОРНЯ
+актёра, а не уже готовый вектор «ноги → голова». Штатная цепочка
+`LieDown → Sleep` ложится назад: в лежачей позе локальный forward корня идёт от
+головы к ногам. Поэтому прежний минус в формуле ставил помощницу у головы и
+разворачивал к ногам; особенно явно ошибка читалась на второй, свёрнутой позе
+сна. Канонический ответ теперь один: ноги находятся по `+Forward`, голова — по
+`−Forward`, помощница смотрит по `Rotation + 180°`. Все пять видов помощи и
+обыск читают только этот ответ из `LyingSpot`, без таблиц на отдельные глаголы.
+
+Сон на объекте раньше нарушал тот же инвариант ещё сильнее: вид пинил тело к
+центру и повороту маркера кровати, тогда как `NPCState.Position/Rotation` оставались
+на свободном узле подхода с углом последнего шага. Помощь честно целилась в это
+невидимое состояние и оказывалась не у тех ног. На всём протяжении `Sleep` на
+кровати симуляция теперь держит позицию на её якоре, а курс — на
+`WorldObjectState.RotationDegrees`; свободный узел остаётся только маршрутной и
+occupancy-бронью. Это же чинит загруженный посреди сна старый сейв.
 
 ## §112 Пальма не заслоняет кадр (iteration 112)
 
@@ -17863,6 +18074,26 @@ pending.
 и не уходит с гекса, валун обходится по полу радиуса, выключатель возвращает
 поведение до §113, а две легшие по-прежнему лежат параллельно на разных местах
 (§29G r3 не сломан).
+
+**113.7 Визуальный гейт позы сна (bug #23).**
+`Assets/Scenes/LyingPoseTest.unity` поднимает настоящую одно-NPC симуляцию на
+«цветке» из семи гексов: старт — один из шести лепестков, единственная крытая
+точка сна — центр. Энергия 0.20 открывает обычный `Sleep` (порог 0.45), но не
+аварийный крах от истощения (порог 0.15), поэтому персонаж обязан сам выбрать
+сон, пройти штатный plan/path/execution и лечь в центре. Стенд шагает реальную
+симуляцию по одному тику на кадр и замораживает её после четырёх устойчивых
+тиков `Sleep/InProgress`: оба конца интерполяции рендера уже несут финальный
+курс, и предыдущий поворот ходьбы не может исказить проверку.
+
+Поверх тела рисуется не художественная подсказка, а точный футпринт модели
+`HexRadius × LieBodyLengthFactor` на `HexRadius × LieBodyWidthFactor`, то есть
+1.32 × 0.36 wu: бирюзовый прямоугольник, красная голова по `−Forward`, жёлтые
+ноги по `+Forward` (§111.9 r3). Пакетный вход `StartBatch` прогоняет обе
+`NpcAnimSet.sleep`-позы со всех шести лепестков и сохраняет 12 кадров. Приёмочный
+инвариант — совпадение центра, продольной оси и сторон «голова/ноги» тела с
+моделью. Руки и ноги вправе выходить за узкий collision-футпринт и двигаться в
+авторском sleep-loop: мгновенная оболочка конечностей не является геометрией
+занятого места.
 
 **109.9 Рыдания уступают опасности; последний удар доигрывает (§104 r12).**
 
@@ -18051,3 +18282,24 @@ Worldgen с тем же сидом — другой мир, если сейв н
 - **Симптом «стало так же» — повод мерить, а не чинить дальше.** Три круга
   подряд правил не ту причину именно потому, что после каждого круга я чинил
   следующую догадку вместо того, чтобы измерить результат предыдущей.
+
+---
+
+## §115 Прогнать чужака из лагеря (iteration 115)
+
+Выгон — симметричная реакция любой фракции на враждебного NPC внутри своего
+явно заданного лагеря. Живой, сознающий и стоящий хозяин в радиусе зрения прерывает
+бытовую цель, подходит к ближайшему достижимому чужаку и произносит `angry_expel`.
+
+- Если текущее здоровье чужака **строго меньше 50%** и есть достижимый путь в свой лагерь,
+  он отвечает `happy_agree` с зелёной галочкой и переходит в `Flee` домой. Урона нет.
+- При здоровье **50% или выше**, а также если бежать домой некуда, чужак отвечает `angry_defend` с
+  красной злой гримасой и начинает драку.
+- Драка идёт через общий `FightScene`: три удара хозяина с интервалом 1.2 длины клипа, реальные
+  оружие, броня, раны и ответные удары `HumanCombatSystem`.
+- Победитель определяется по **полученному за сцену урону**, а не по числу замахов. При ненулевой ничьей
+  преимущество у хозяина. Нулевой таймаут не объявляет ложной победы.
+- Проигравший чужак бежит в свой лагерь. Победивший остаётся и получает 300 тиков защиты от немедленного
+  повтора. У чужака не больше одного предъявителя; все выходы сцены снимают заявку и боевую сцепку.
+
+Недоигранный выгон не сериализуется: `GoalType.Expel` и его сценные поля при сохранении сбрасываются.

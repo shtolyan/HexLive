@@ -232,12 +232,22 @@ namespace HexLive.UnityPresentation.Config
         [Header("§82 Солнце и злость")]
         [Tooltip("Во что превращается краснота в ставке «одеться». 1.0 = полностью обгоревшая хочет прикрыться так же, как продрогшая.")]
         [Range(0f, 4f)] public float sunburnDressWeight = 1.0f;
-        [Tooltip("⭐ Подошла к его стоянке — бьёт без разговора. Выключено = прежнее мирное поведение.")]
+        [Tooltip("⭐ Враждебный NPC в своём лагере подходит, требует уйти и дерётся только после отказа.")]
         public bool territorialEnabled = true;
-        [Tooltip("Радиус вокруг стоянки, который он считает своим двором.")]
+        [Tooltip("Радиус, в котором хозяин лично замечает чужака внутри границ лагеря.")]
         [Range(0, 12)] public int territoryRadiusTiles = 5;
         [Tooltip("Пауза между выгонами, чтобы не молотил одну и ту же без передышки.")]
         [Range(0, 2400)] public int territoryCooldownTicks = 300;
+        [Tooltip("Ниже этой доли здоровья чужак соглашается уйти; ровно на пороге отказывается.")]
+        [Range(0f, 1f)] public float territorySubmitHealth = 0.5f;
+        [Tooltip("Пауза между требованием и ответом.")]
+        [Range(0, 120)] public int territoryResponseDelayTicks = 8;
+        [Tooltip("Сколько ударов хозяин объявляет в сцене.")]
+        [Range(1, 12)] public int territoryMaxBlows = 3;
+        [Tooltip("Интервал между ударами в длинах клипа.")]
+        [Range(0.5f, 4f)] public float territoryBlowSpacingClips = 1.2f;
+        [Tooltip("Страховочный таймаут драки; нулевой урон не даёт ложной победы.")]
+        [Range(1, 600)] public int territoryFightTimeoutTicks = 60;
         [Tooltip("Ставка выгона. Очень высокая намеренно: это реакция на вторжение, а не дело между делами.")]
         [Range(0f, 4f)] public float territoryScore = 2.5f;
         [Tooltip("Насколько сильнее давит нулевое общение. Ниже ~1.5 он тонет среди бытовых дел и никого не трогает.")]

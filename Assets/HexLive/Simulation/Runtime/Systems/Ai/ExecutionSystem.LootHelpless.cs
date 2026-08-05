@@ -42,10 +42,13 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        // §102 r3: прибытие — это «достал или нет», а не «стою на том самом
-        // узле». Не достаёт и никуда не идёт — ждём.
+        // The route owns a FREE approach junction. The final authored station
+        // is inside the lying body's occupied footprint, so reaching the route
+        // target — not melee adjacency to the body's own junction — is what
+        // permits the local feet snap below. Using CanStrike here deadlocked
+        // bug #19: the looter arrived, stayed Goal=LootHelpless forever, but
+        // never entered CurrentInteraction=Loot and therefore never animated.
         if (npc.Execution.Status == ExecutionStatus.None &&
-            !InteractionReach.CanStrike(world, npc, mark) &&
             npc.Plan.TargetJunctionId is { } wantJunction &&
             (npc.CurrentJunction is not { } atJunction || !atJunction.Equals(wantJunction)))
         {
@@ -87,13 +90,19 @@ public sealed partial class ExecutionSystem
         // --- Начало ----------------------------------------------------------
         if (npc.Execution.Status == ExecutionStatus.None)
         {
-            // §98: начинать только с дистанции вытянутой руки. Страховка на
-            // случай, если какой-нибудь будущий путь пустит сцену в обход
-            // проверок выше.
-            if (!InteractionReach.CanStrike(world, npc, mark))
+            // The path may only hand off locally: accept the short move from
+            // its free approach to the occupied feet station, but never
+            // teleport across the camp if a future planner supplies junk.
+            var feet = LyingSpot.InteractionFeet(mark);
+            if (!InteractionReach.CheckStart(world, npc, feet,
+                    LyingSpot.InteractionStationReach,
+                    $"LootHelpless feet of NPC{mark.Id.Value}"))
             {
+                AbortLootHelpless(world, npc, "FeetStationOutOfReach");
                 return;
             }
+
+            LyingSpot.AlignInteractorAtFeet(npc, mark);
 
             npc.Execution.Status = ExecutionStatus.InProgress;
             npc.Execution.CurrentInteraction = InteractionType.Loot;
@@ -106,11 +115,21 @@ public sealed partial class ExecutionSystem
                 SpatialMutations.OccupyJunction(world, jId, npc.Id);
             }
 
+            // The body cannot call for help while unconscious. Nearby allies
+            // who see the search treat it as an attack and run at the looter.
+            var witnesses = CombatHelpSystem.RallyLootWitnesses(world, mark, npc.Id);
+
             Trace.Emit(world, npc.Id, "LootHelplessStarted",
                 $"Mark=NPC{mark.Id.Value} Items={mark.Inventory.Items.Count} " +
-                $"Weapon={GearCatalog.BestMeleeWeapon(mark.Inventory.Items, mark.Body.IntactHands)}");
+                $"Weapon={GearCatalog.BestMeleeWeapon(mark.Inventory.Items, mark.Body.IntactHands)} " +
+                $"Witnesses={witnesses}");
             return;
         }
+
+        // Hold the single shared feet->head pose for the whole scene. This is
+        // positional presentation data owned by the simulation, like shore
+        // washing: renderer interpolation must not guess it independently.
+        LyingSpot.AlignInteractorAtFeet(npc, mark);
 
         // Потолок сцены — страховка от зависшего такта, а не игровой срок.
         if (world.Tick >= npc.Execution.EndTick)
@@ -175,6 +194,10 @@ public sealed partial class ExecutionSystem
         npc.Mind.LootHelplessTargetNpcId = null;
         npc.Mind.LootHelplessTakenCount = 0;
         npc.Mind.LootHelplessCooldownUntilTick = world.Tick + Spec111.LootHelplessCooldownTicks;
+        if (npc.Mind.GoalLock is { } lootLock && lootLock.Goal == GoalType.LootHelpless)
+        {
+            npc.Mind.GoalLock = null;
+        }
 
         npc.Plan.Status = PlanStatus.Completed;
         npc.Plan.Steps.Clear();
@@ -189,6 +212,8 @@ public sealed partial class ExecutionSystem
         npc.Execution.EndTick = 0;
         npc.Movement.JunctionPath.Clear();
         npc.Movement.PathIndex = 0;
+        npc.Movement.IsMoving = false;
+        npc.Movement.SetStatus(MovementStatus.Idle);
     }
 
     private static void AbortLootHelpless(WorldState world, NPCState npc, string reason)

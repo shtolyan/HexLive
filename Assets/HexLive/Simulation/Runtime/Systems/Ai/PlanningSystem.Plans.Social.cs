@@ -199,12 +199,13 @@ public sealed partial class PlanningSystem
     {
         if (partner is not null)
         {
-            var toMe = HexSpatialMath.Normalize(new Float2(
-                npc.Position.X - partner.Position.X,
-                npc.Position.Y - partner.Position.Y));
-            var spot = new Float2(
-                partner.Position.X + toMe.X * HexSpatialMath.HexRadius * 0.9f,
-                partner.Position.Y + toMe.Y * HexSpatialMath.HexRadius * 0.9f);
+            // §111.9: a lying ward has an absolute care/search station at her
+            // feet. Standing partners retain the old caller-side approach.
+            var spot = partner.IsLyingDown(world.Tick)
+                ? LyingSpot.InteractionFeet(partner)
+                : partner.Position + HexSpatialMath.Normalize(new Float2(
+                    npc.Position.X - partner.Position.X,
+                    npc.Position.Y - partner.Position.Y)) * HexSpatialMath.HexRadius * 0.9f;
             if (SpatialQueries.FindNearestJunction(world, spot) is { } armsLength &&
                 !armsLength.Equals(partnerJunction) &&
                 world.Junctions.Items.TryGetValue(armsLength, out var armsJct) &&

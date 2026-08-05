@@ -41,6 +41,12 @@ public static class Spec72
     // лагерем: садятся на якорь стоянки и кольцо вокруг него.
     public static int OutsiderCount = 1;
 
+    // §72.14: wave 0 is the authored male outsider. Wave 1 lands after three
+    // days, then one new hostile survivor every three days. Exact authored rule
+    // (not a tuning knob): save migration and deterministic wave numbering both
+    // depend on this interval.
+    public const int RaidWaveIntervalDays = 3;
+
     // --- His camp -----------------------------------------------------------
 
     // How far his camp must sit from the girls' home plateau. The island is

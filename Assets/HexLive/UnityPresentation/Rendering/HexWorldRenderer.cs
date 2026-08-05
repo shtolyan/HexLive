@@ -1,6 +1,7 @@
 #nullable enable
 using System.Collections.Generic;
 using HexLive.Simulation.Common;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Spatial;
 using HexLive.UnityPresentation.Bootstrap;
@@ -111,9 +112,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // a local constant: presentation must not link sim balance.
     private const int FogMobSpotRadiusTiles = 6;
 
-    // §28.15C v3: ТЕЛА. Ключ — id самой погибшей, а не объекта-якоря: тело это
-    // она, и живёт оно ровно столько, сколько её NPCState живёт в
-    // Entities.Corpses (то есть до конца игры или до ножа).
+    // §28.15C v4: СВЕЖИЕ ТЕЛА. Ключ — id самой погибшей. Реестр живёт ровно
+    // двое игровых суток или до ножа; после истлевания его заменяет лёгкий
+    // ground-sprite в обычном _objectViews.
     private readonly Dictionary<int, GameObject> _corpseViews = new();
     private readonly Dictionary<int, NpcActorView> _corpseActorViews = new();
     private readonly HashSet<int> _liveCorpseIds = new();
@@ -412,6 +413,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     // Spec 40.2-B: ground blood stains manager (lazy — lives under the
     // renderer, cleared with it on scene teardown).
+    private const int CorpseBleedTicks = 120; // 30 sim seconds after death
     private HexLive.UnityPresentation.Environment.GroundBloodStains _bloodStains;
 
     private HexLive.UnityPresentation.Environment.GroundBloodStains EnsureBloodStains()
@@ -1133,6 +1135,41 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
         }
 
+        // Spec 40.2-B/C r2 / bug #22: a body with an open wound keeps feeding
+        // the existing cosmetic blood pipeline for a finite period after the
+        // death tick. DeathRecords makes the window deterministic across a
+        // reconnect/save load; no duplicate sim entity or persisted VFX object
+        // is needed. Land and water use their normal respective emitters.
+        foreach (var body in snapshot.Corpses)
+        {
+            if (body.Wounds.Count == 0 || body.Blood <= 0.0001f ||
+                !TryGetDeathTick(snapshot, body.Id.Value, out var deathTick))
+            {
+                continue;
+            }
+
+            var age = snapshot.Tick - deathTick;
+            if (age < 0 || age > CorpseBleedTicks)
+            {
+                continue;
+            }
+
+            var key = body.Id.Value;
+            var bodyPos = SimulationUnityMapper.ToUnityPosition(
+                body.Position, ActorGroundY(body.Tile));
+            if (_waterCoords.Contains(body.Tile))
+            {
+                var waterSurfaceY = GroundY(body.Tile) +
+                    ElevationStep * SwimVisuals.SurfaceStepOffset;
+                EnsureWaterBlood().OnBleedingSourceTick(
+                    key, bodyPos, waterSurfaceY, snapshot.Tick);
+            }
+            else
+            {
+                EnsureBloodStains().OnBleedingSourceTick(key, bodyPos, snapshot.Tick);
+            }
+        }
+
         _bloodStains?.Advance(snapshot.Tick);
         _waterBlood?.Advance(snapshot.Tick);
 
@@ -1244,6 +1281,21 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
 
         return null;
+    }
+
+    private static bool TryGetDeathTick(WorldSnapshot snapshot, int npcId, out int deathTick)
+    {
+        foreach (var death in snapshot.DeathRecords)
+        {
+            if (death.EntityId == npcId)
+            {
+                deathTick = death.Tick;
+                return true;
+            }
+        }
+
+        deathTick = 0;
+        return false;
     }
 
     /// <summary>
@@ -2364,6 +2416,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private GameObject CreateObjectView(
         ObjectSnapshot worldObject, Dictionary<int, Float2> junctionPositions, int snapshotTick)
     {
+        // §28.15C v4: через двое суток тяжёлый актёр трупа уходит из снапшота.
+        // Вместо него один плоский ground-sprite рисует скелет и единственный
+        // мешок лута. Длина 1.32 wu совпадает с расчётным телом §113; курс приходит из сима.
+        if (worldObject.DefinitionId == ContentIds.HumanRemains)
+        {
+            return CreateHumanRemainsView(worldObject, junctionPositions);
+        }
+
         // Spec 31C.4: water interaction anchors have no gizmo — the river
         // and pond tiles ARE the visual; NPCs just come and drink.
         // Spec 40.13 v2: corpse.npc has no blob either — the dead actor's own
@@ -2722,6 +2782,48 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var pos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
         root.transform.position = SimulationUnityMapper.ToUnityPosition(pos, GroundY(worldObject.Tile));
         MaybeAttachCampfire(root, worldObject.DefinitionId);
+        return root;
+    }
+
+    private GameObject CreateHumanRemainsView(
+        ObjectSnapshot worldObject, Dictionary<int, Float2> junctionPositions)
+    {
+        var root = new GameObject($"Object {worldObject.DefinitionId}");
+        root.transform.SetParent(_objectsRoot, false);
+
+        var variant = worldObject.Variant == "1" ? "b" : "a";
+        var sprite = Resources.Load<Sprite>($"HexLive/Remains/human_remains_{variant}");
+        if (sprite != null)
+        {
+            var visual = new GameObject("SkeletonAndLootBag");
+            visual.transform.SetParent(root.transform, false);
+            var spriteRenderer = visual.AddComponent<SpriteRenderer>();
+            spriteRenderer.sprite = sprite;
+            spriteRenderer.sortingOrder = 2;
+            spriteRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            spriteRenderer.receiveShadows = false;
+
+            var authoredBodyLength = HexRadius * NpcHeightFactor * 2.4f;
+            var sourceLength = Mathf.Max(0.001f, sprite.bounds.size.y);
+            visual.transform.localScale = Vector3.one * (authoredBodyLength / sourceLength);
+            // Sprite local +Y points to the head. A lying actor's +forward points
+            // head->feet (LyingSpot), so turn the image around before laying XY on XZ.
+            visual.transform.localRotation = Quaternion.Euler(90f, 0f, 180f);
+            visual.transform.localPosition = Vector3.up * 0.025f;
+        }
+        else
+        {
+            Debug.LogWarning($"[remains] Missing sprite variant '{variant}'.");
+            var fallback = CreatePrimitiveVisual(
+                root.transform, PrimitiveType.Capsule,
+                new Vector3(0.2f, 0.65f, 0.08f), new Color(0.82f, 0.78f, 0.62f));
+            fallback.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            fallback.transform.localPosition = Vector3.up * 0.04f;
+        }
+
+        var anchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
+        root.transform.position = SimulationUnityMapper.ToUnityPosition(
+            anchor, GroundY(worldObject.Tile));
         return root;
     }
 
@@ -3551,7 +3653,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         foreach (var obj in snapshot.Objects)
         {
-            if (obj.DefinitionId == "corpse.npc")
+            if (obj.DefinitionId == ContentIds.CorpseNpc ||
+                obj.DefinitionId == ContentIds.HumanRemains)
             {
                 _lyingTiles.Add(obj.Tile);
             }

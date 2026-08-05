@@ -12,14 +12,12 @@ namespace HexLive.Simulation.Tests.Behavior
 {
 
 /// <summary>
-/// §28.15C v3: она умирает — и остаётся лежать, одетая, до конца игры.
+/// §28.15C v4: двое суток она лежит сама, затем остаются скелет и мешок.
 ///
 /// <para>
 /// До этого смерть была исчезновением: сущность удалялась, гардероб и карманы
-/// сыпались кучей под ноги, объект-труп истлевал за двое суток. Через два дня
-/// от человека не оставалось ничего. Здесь проверяется, что каждое звено новой
-/// цепочки на месте — и, главное, что оно переживает ПЕРЕЗАГРУЗКУ: тело,
-/// которого нет в сейве, это ровно то старое поведение, только медленнее.
+/// сыпались кучей под ноги. Теперь тяжёлый NPCState живёт ровно двое игровых суток,
+/// а затем все вещи переезжают в Contents одного лёгкого world-object.
 /// </para>
 /// </summary>
 public sealed class CorpseTests
@@ -70,12 +68,10 @@ public sealed class CorpseTests
     }
 
     /// <summary>
-    /// Якорь для «подойти и что-то сделать» — и он больше не гниёт. Раньше
-    /// ResourceAmount тикал вниз до нуля, и CorpseSystem убирал тело через
-    /// двое суток вместе со всем, что на нём.
+    /// До границы двух суток тело и вещи остаются на самой покойной.
     /// </summary>
     [Test]
-    public void TheAnchorStaysAndDoesNotRot()
+    public void TheBodyStaysUntilTwoFullDaysHaveElapsed()
     {
         var (engine, deadId) = Kill();
         var world = engine.World;
@@ -84,16 +80,100 @@ public sealed class CorpseTests
             o => o.DefinitionId == ContentIds.CorpseNpc && o.CurrentUser == deadId);
         Assert.That(anchor, Is.Not.Null, "Объект-якорь corpse.npc не появился.");
 
-        // Заведомо дольше прежнего срока жизни трупа (4800 тиков).
-        for (var i = 0; i < 600; i++)
-        {
-            engine.Step();
-        }
+        world.Tick = anchor.SpawnTick + CorpseSystem.HumanCorpseLifetimeTicks - 1;
+        new CorpseSystem().Run(world);
 
         Assert.That(world.Entities.Objects.ContainsKey(anchor.Id), Is.True,
-            "Якорь исчез — CorpseSystem снова гноит человеческие тела.");
+            "Якорь исчез раньше полных двух игровых суток.");
         Assert.That(world.Entities.Corpses.ContainsKey(deadId), Is.True,
-            "Тело исчезло само собой. Убрать его может только нож (§56).");
+            "NPCState исчез раньше границы двух суток.");
+    }
+
+    [Test]
+    public void TwoDaysReplaceTheBodyWithOneSkeletonAndLootBag()
+    {
+        var (engine, deadId) = Kill();
+        var world = engine.World;
+        var body = world.Entities.Corpses[deadId];
+        body.WornItems.Add(new ItemInstance(ContentIds.Rope));
+        var pocketIds = body.Inventory.Items.Select(i => i.DefinitionId).ToArray();
+        var anchor = world.Entities.Objects.Values.Single(
+            o => o.DefinitionId == ContentIds.CorpseNpc && o.CurrentUser == deadId);
+        var junction = anchor.Junctions[0];
+        var rotation = body.RotationDegrees;
+
+        world.Tick = anchor.SpawnTick + CorpseSystem.HumanCorpseLifetimeTicks;
+        new CorpseSystem().Run(world);
+
+        Assert.That(world.Entities.Corpses.ContainsKey(deadId), Is.False,
+            "Тяжёлый NPCState остался в мире после двух суток.");
+        var remains = world.Entities.Objects.Values.Single(
+            o => o.DefinitionId == ContentIds.HumanRemains && o.CurrentUser == deadId);
+        Assert.That(remains.Junctions[0], Is.EqualTo(junction),
+            "Скелет переехал с места смерти.");
+        Assert.That(remains.RotationDegrees, Is.EqualTo(rotation),
+            "Скелет не повторяет курс позы тела.");
+        Assert.That(remains.Variant, Is.EqualTo((body.DeathAnimVariant & 1).ToString()),
+            "Вариант спрайта не привязан к позе падения.");
+        Assert.That(remains.Contents.Take(pocketIds.Length).Select(i => i.DefinitionId),
+            Is.EqualTo(pocketIds), "Карманы должны идти в мешке раньше одежды.");
+        Assert.That(remains.Contents.Last().DefinitionId, Is.EqualTo(ContentIds.Rope));
+    }
+
+    [Test]
+    public void LootBagSurvivesSaveAndReloadAsOneWorldObject()
+    {
+        var (engine, deadId) = Kill();
+        var world = engine.World;
+        var anchor = world.Entities.Objects.Values.Single(
+            o => o.DefinitionId == ContentIds.CorpseNpc && o.CurrentUser == deadId);
+        world.Tick = anchor.SpawnTick + CorpseSystem.HumanCorpseLifetimeTicks;
+        new CorpseSystem().Run(world);
+        var before = world.Entities.Objects.Values.Single(
+            o => o.DefinitionId == ContentIds.HumanRemains && o.CurrentUser == deadId);
+
+        var blob = new MemoryStream();
+        using (var w = new BinaryWriter(blob, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            WorldSaveSerializer.Write(world, w);
+        }
+
+        blob.Position = 0;
+        var reloaded = TestWorld.CreateWorld();
+        using (var r = new BinaryReader(blob, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            WorldSaveSerializer.Read(reloaded, r);
+        }
+
+        var after = reloaded.Entities.Objects.Values.Single(
+            o => o.DefinitionId == ContentIds.HumanRemains && o.CurrentUser == deadId);
+        Assert.That(after.Contents.Select(i => i.DefinitionId),
+            Is.EqualTo(before.Contents.Select(i => i.DefinitionId)),
+            "Мешок потерял содержимое после загрузки.");
+        Assert.That(reloaded.Entities.Objects.Values.Count(
+            o => o.DefinitionId == ContentIds.HumanRemains && o.CurrentUser == deadId), Is.EqualTo(1),
+            "Вместо одного мешка появилось несколько world-object'ов.");
+    }
+
+    [Test]
+    public void SkeletonLootComesFromTheBagOneItemAtATime()
+    {
+        var (engine, deadId) = Kill();
+        var world = engine.World;
+        var anchor = world.Entities.Objects.Values.Single(
+            o => o.DefinitionId == ContentIds.CorpseNpc && o.CurrentUser == deadId);
+        world.Tick = anchor.SpawnTick + CorpseSystem.HumanCorpseLifetimeTicks;
+        new CorpseSystem().Run(world);
+        var remains = world.Entities.Objects.Values.Single(
+            o => o.DefinitionId == ContentIds.HumanRemains && o.CurrentUser == deadId);
+        var count = remains.Contents.Count;
+
+        var spoil = CorpseMath.NextSpoil(world, remains, out var source);
+        Assert.That(spoil, Is.Not.Null);
+        Assert.That(source, Is.EqualTo(CorpseMath.SpoilSource.Bag));
+        Assert.That(CorpseMath.TakeSpoil(world, remains, spoil, source), Is.True);
+        Assert.That(remains.Contents.Count, Is.EqualTo(count - 1),
+            "Один такт лута должен забирать из мешка ровно одну вещь.");
     }
 
     /// <summary>

@@ -469,14 +469,39 @@ public sealed partial class PlanningSystem
     private void BuildGroundSleepPlan(WorldState world, NPCState npc)
     {
         var anchor = npc.Tile;
+        WorldObjectState hearth = null;
         foreach (var obj in world.Entities.Objects.Values)
         {
-            if (world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var objDef) &&
-                objDef.Tags.Contains("Campfire"))
+            if (obj.DefinitionId != ContentIds.Campfire ||
+                !ColonyQueries.InCamp(world, obj.Tile, npc.Faction))
             {
-                anchor = obj.Tile;
-                break;
+                continue;
             }
+
+            if (hearth is null || obj.Id.Value < hearth.Id.Value)
+            {
+                hearth = obj;
+            }
+        }
+
+        // Old/custom worlds may have no faction-home metadata. Preserve their
+        // existing fallback to any ordinary campfire rather than sleeping at
+        // the work site.
+        if (hearth is null)
+        {
+            foreach (var obj in world.Entities.Objects.Values)
+            {
+                if (obj.DefinitionId == ContentIds.Campfire &&
+                    (hearth is null || obj.Id.Value < hearth.Id.Value))
+                {
+                    hearth = obj;
+                }
+            }
+        }
+
+        if (hearth is not null)
+        {
+            anchor = hearth.Tile;
         }
 
         JunctionId? spot = null;
@@ -578,7 +603,8 @@ public sealed partial class PlanningSystem
         npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.GroundSleep, TargetJunction = lieSpot });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
-        Trace.Emit(world, npc.Id, "GroundSleepPlanned", $"Junction={lieSpot.Value}");
+        Trace.Emit(world, npc.Id, "GroundSleepPlanned",
+            $"Junction={lieSpot.Value} Hearth={anchor}");
     }
 
     // Spec 35.5: is a free drying rack within reach?

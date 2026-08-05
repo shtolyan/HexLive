@@ -50,6 +50,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // reopen her survival-only auction) now governs on its own.
             UpdateStarvingStatus(world, npc);
             UpdateDehydratedStatus(world, npc);
+            UpdateNightSleepIntent(world, npc);
 
             // Spec §60: comatose — the body lies as if dead; recovery runs in
             // NeedsDecaySystem (sleep rules) and the wake check lives there
@@ -234,13 +235,17 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // the same regime, and starving/dehydrated/danger still block it.
             var deadTiredBoost = Spec49.DeadTiredSeek && npc.Needs.Energy < Spec49.DeadTiredEnergy
                 ? Spec49.DeadTiredSleepBoost : 0f;
+            var scheduledNightSleep = npc.Mind.NightSleepUntilRested;
+            var sleepUrgencyBoost = scheduledNightSleep
+                ? System.Math.Max(deadTiredBoost, Spec49.NightSleepBoost)
+                : deadTiredBoost;
 
             // Spec 28.15C: discovering a body triggers grief on sight.
             foreach (var perceived in npc.Perception.Objects)
             {
                 if (!perceived.FromMemory &&
                     world.Content.ObjectDefinitions.TryGetValue(perceived.DefinitionId, out var perceivedDef) &&
-                    perceivedDef.Tags.Contains("Corpse") &&
+                    CorpseMath.IsHumanDead(perceivedDef) &&
                     world.Entities.Objects.TryGetValue(perceived.Id, out var corpseObject))
                 {
                     GriefSystemHelpers.TriggerGrief(world, npc, corpseObject);
@@ -368,9 +373,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // the first tick (hunger/thirst over the wake threshold, danger
             // remembered) — the same condition execution wakes on. Without
             // this the thirsty-and-tired girl loops lie-down→wake forever.
-            var sleepAvail = (npc.Needs.Energy < SimBalance.SleepEnergyThreshold ||
-                    world.Environment.Phase is DayPhase.Night or DayPhase.Evening) &&
-                !ExecutionSystem.HasSleepInterrupt(world, npc);
+            var sleepAvail =
+                (npc.Needs.Energy < SimBalance.SleepEnergyThreshold || scheduledNightSleep) &&
+                !ExecutionSystem.HasSleepInterrupt(world, npc) &&
+                NightFireReadyOrCannotPrepare(world, npc);
             // Spec 31C.7A: sit because you need it — and never settle into a
             // chair on an empty stomach. Sitting yields to sleep hours (the
             // Sit->Sleep churn was 47 interrupts/soak before this gate).
@@ -547,7 +553,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 bleedingCrisis,
                 emergencyBoost,
                 drinkBoost,
-                deadTiredBoost,
+                sleepUrgencyBoost,
                 isGrieving,
                 hasCoconutWater,
                 hasCoconutBlade,
@@ -625,7 +631,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
             bool bleedingCrisis,
             float emergencyBoost,
             float drinkBoost,
-            float deadTiredBoost,
+            float sleepUrgencyBoost,
             bool isGrieving,
             bool hasCoconutWater,
             bool hasCoconutBlade,
@@ -649,7 +655,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
             BleedingCrisis = bleedingCrisis;
             EmergencyBoost = emergencyBoost;
             DrinkBoost = drinkBoost;
-            DeadTiredBoost = deadTiredBoost;
+            SleepUrgencyBoost = sleepUrgencyBoost;
             IsGrieving = isGrieving;
             HasCoconutWater = hasCoconutWater;
             HasCoconutBlade = hasCoconutBlade;
@@ -674,7 +680,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         public bool BleedingCrisis { get; }
         public float EmergencyBoost { get; }
         public float DrinkBoost { get; }
-        public float DeadTiredBoost { get; }
+        public float SleepUrgencyBoost { get; }
         public bool IsGrieving { get; }
         public bool HasCoconutWater { get; }
         public bool HasCoconutBlade { get; }
@@ -751,7 +757,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         AddGoalScore(npc, world.Tick, GoalType.Eat, npc.Needs.Hunger, ctx.EatAvail, ctx.EmergencyBoost);
         AddGoalScore(npc, world.Tick, GoalType.GetFood, npc.Needs.Hunger, ctx.GetFoodAvail, ctx.EmergencyBoost);
         AddGoalScore(npc, world.Tick, GoalType.Sleep, 1f - npc.Needs.Energy, ctx.SleepAvail,
-            emergency: ctx.DeadTiredBoost, environment: ctx.SleepEnvironmentBonus);
+            emergency: ctx.SleepUrgencyBoost, environment: ctx.SleepEnvironmentBonus);
         // Sitting anywhere is leisure, not survival: half-weight keeps it
         // an idle-time filler instead of outbidding fire and food chores
         // (full 1-Comfort made Sit >= 0.4 by construction of its gate).
@@ -891,6 +897,16 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // Spec §54: "wood in hand" for fire/craft now means a STICK.
         var hasWood = npc.Inventory.Items.Contains(ContentIds.Stick);
         var (campfireSeen, campfireFuel, campfireObj) = FindCampfire(npc, world);
+        var nightSleepFuel = npc.Mind.NightSleepUntilRested && campfireObj is not null
+            ? ExecutionSystem.NightSleepFuelRequired(world, npc, campfireObj)
+            : 0f;
+        var nightFireReady = campfireObj is not null && campfireFuel > 0f &&
+            campfireFuel >= nightSleepFuel;
+        var nightFireChain = npc.Mind.NightSleepUntilRested &&
+            !ExecutionSystem.HasSleepInterrupt(world, npc) &&
+            campfireSeen && !nightFireReady
+            ? Spec49.NightSleepBoost
+            : 0f;
         // §gear-craft: a recipe with NO station crafts in place — its
         // availability must not demand a campfire in view.
         bool CraftPlaceOk(GoalType craftGoal)
@@ -960,7 +976,9 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var wantsBoil = false;
         // Spec 35.2: any reachable Tool not carried (saw, dropped gear).
         var gatherToolsAvail = HasMissingToolReachable(npc, world);
-        var fuelLow = campfireSeen && campfireFuel < 600f;
+        // §49.9: the ordinary 600-unit housekeeping line remains, but bedtime
+        // may demand more when rain can consume the reserve at 4x speed.
+        var fuelLow = campfireSeen && campfireFuel < System.Math.Max(600f, nightSleepFuel);
         // Balance audit (Jul 2026): the raft chain's gate — shared by
         // raftWoodDemand here and buildRaftAvail below — used to demand
         // needs < 0.55 and an EMPTY danger memory. Needs equilibrate at
@@ -997,6 +1015,9 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // §54.12: a site's stick stage pulls loose ground sticks too — SplitLog
         // only covers the log-rich camp; with a fed fire and no logs around,
         // nothing else ever picked a scattered stick up for the bed.
+        var gatherWoodTargetReachable = npc.Mind.NightSleepUntilRested
+            ? HasReachableDefinition(npc, world, ContentIds.Stick)
+            : HasReachableWithTag(npc, world, "Wood");
         var gatherWoodAvail = ((fuelLow && carriedSticks == 0 && carriedLogs == 0) ||
                 (piece is { } pLog && carriedLogs < pLog.Logs) ||
                 siteNeedsLogs ||
@@ -1004,7 +1025,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
                  carriedSticks < BuildSiteMath.Remaining(buildSite, BuildSiteMath.MaterialSticks)) ||
                 raftWoodDemand ||
                 (coconutToolPressure && carriedSticks < knifeStickCost)) &&
-            npc.Inventory.HasSpace && HasReachableWithTag(npc, world, "Wood");
+            npc.Inventory.HasSpace && gatherWoodTargetReachable;
         // §45 r5: a genuinely cold girl can start the fire WITHOUT the
         // lighter (friction/hand-drill). The freeze probe showed 60-75%
         // of all freezing npc-ticks were "dead fire + wood in hand + no
@@ -1022,7 +1043,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
             npc.Mind.LastFreezingTick = world.Tick;
         }
 
-        var canFrictionLight = npc.Needs.ThermalComfort < AiBalance.FreezingComfortThreshold ||
+        var canFrictionLight = npc.Mind.NightSleepUntilRested ||
+            npc.Needs.ThermalComfort < AiBalance.FreezingComfortThreshold ||
             world.Tick - npc.Mind.LastFreezingTick < SimBalance.FrictionLightGraceTicks;
         var tendFireAvail = hasWood && fuelLow &&
             (campfireFuel > 0f || canFrictionLight || (ctx.CanUseToolsOrWeapons && hasLighter));
@@ -1052,7 +1074,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         AddGoalScore(npc, world.Tick, GoalType.GatherWood,
             0.2f + 0.3f * npc.Needs.Thirst + coldChain + boilChain +
             (raftWoodDemand ? 0.3f : 0f) + coconutToolBoost + bedStickPull +
-            bedLogPull,
+            bedLogPull + nightFireChain,
             gatherWoodAvail, coconutEmergencyBoost);
         // Spec 42: cold is the second reason to light the fire — a
         // freezing girl with wood and a lighter prioritizes the flame
@@ -1070,7 +1092,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // and Sleep (~1.1) plus the 0.15 switch margin at full cold.
         AddGoalScore(npc, world.Tick, GoalType.TendFire,
             0.25f + 0.3f * npc.Needs.Thirst + boilChain +
-            (freezing ? 0.9f * npc.Needs.ThermalDiscomfort : 0f), tendFireAvail);
+            (freezing ? 0.9f * npc.Needs.ThermalDiscomfort : 0f) + nightFireChain,
+            tendFireAvail);
 
         // §54.15: park the empty bottle under the collector's funnel so any
         // rain — now or tonight — turns into clean drinking water. A quiet
@@ -1205,7 +1228,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // могиле от одиночества» ушло вместе с ними. Прощаться теперь ходят к
         // самому телу, и оно никуда не денется: раньше скорбящая не успевала
         // дойти, потому что труп истлевал по дороге.
-        var corpseReachable = HasReachableWithTag(npc, world, "Corpse");
+        var corpseReachable = HasReachableWithTag(npc, world, ObjectTags.Corpse) ||
+            HasReachableWithTag(npc, world, ObjectTags.Remains);
         AddGoalScore(npc, world.Tick, GoalType.Mourn, 0.7f, ctx.IsGrieving && corpseReachable);
 
         // §28.15F: обобрать тело. Хозяйственная работа, а не нужда: ставка ниже
@@ -1450,7 +1474,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
             npc.Inventory.HasSpace &&
             HasReachableWithTag(npc, world, "Log") && wantsSticks;
         AddGoalScore(npc, world.Tick, GoalType.SplitLog,
-            (fuelLow ? 0.5f : 0.3f) + freeHands + bedStickPull + dreamPull, splitLogAvail);
+            (fuelLow ? 0.5f : 0.3f) + freeHands + bedStickPull + dreamPull + nightFireChain,
+            splitLogAvail);
 
         // Spec §54.2: chop a felled palm CROWN into loose leaves — when leaves
         // are wanted (a bed short, or a build/tent bill) and a crown lies
@@ -2413,6 +2438,73 @@ public sealed partial class DecisionSystem : ISimulationSystem
             GoalType.CraftBandage or GoalType.GatherHerb => true,
             _ => false
         };
+    }
+
+    // §49.9: remember the whole bedtime chain across GatherWood -> TendFire ->
+    // Sleep and across a critical wake-up. A clock-only condition cannot do
+    // that: at dawn, or once the first sleep block raises Energy above 25%, the
+    // NPC would otherwise forget that she still owes herself a full recharge.
+    private static void UpdateNightSleepIntent(WorldState world, NPCState npc)
+    {
+        if (!Spec49.NightSleepSchedule)
+        {
+            npc.Mind.NightSleepUntilRested = false;
+            return;
+        }
+
+        if (npc.Needs.Energy >= Spec49.NightSleepWakeEnergy)
+        {
+            if (npc.Mind.NightSleepUntilRested)
+            {
+                Trace.Emit(world, npc.Id, "NightSleepSatisfied",
+                    $"Energy={npc.Needs.Energy:F2}");
+            }
+
+            npc.Mind.NightSleepUntilRested = false;
+            return;
+        }
+
+        if (!npc.Mind.NightSleepUntilRested &&
+            EnvironmentSystem.IsAfter23(world) &&
+            npc.Needs.Energy <= Spec49.NightSleepEnergy)
+        {
+            npc.Mind.NightSleepUntilRested = true;
+            Trace.Emit(world, npc.Id, "NightSleepPrepared",
+                $"Energy={npc.Needs.Energy:F2} Threshold={Spec49.NightSleepEnergy:F2}");
+        }
+    }
+
+    // Preparing the fire is preferred, never a new deadlock. If there is no
+    // known reachable hearth or no possible wood step, the safety fallback is
+    // still to sleep at home instead of wandering until exhaustion.
+    private static bool NightFireReadyOrCannotPrepare(WorldState world, NPCState npc)
+    {
+        if (!npc.Mind.NightSleepUntilRested)
+        {
+            return true;
+        }
+
+        var (seen, fuel, fire) = FindCampfire(npc, world);
+        if (!seen || fire is null)
+        {
+            return true;
+        }
+
+        var required = ExecutionSystem.NightSleepFuelRequired(world, npc, fire);
+        if (fuel > 0f && fuel >= required)
+        {
+            return true;
+        }
+
+        var carriesStick = npc.Inventory.Items.Contains(ContentIds.Stick);
+        var canFetchStick = npc.Inventory.HasSpace &&
+            HasReachableDefinition(npc, world, ContentIds.Stick);
+        var canSplitLog = npc.Inventory.HasSpace &&
+            HasReachableWithTag(npc, world, "Log") &&
+            CanPerformDeclared(world, npc, ContentIds.Log, InteractionType.Process,
+                legacyOk: Content.GearCatalog.HasCapability(
+                    npc.Inventory.Items, Content.GearCapability.ChopWood));
+        return !carriesStick && !canFetchStick && !canSplitLog;
     }
 
     private static void UpdateDehydratedStatus(WorldState world, NPCState npc)

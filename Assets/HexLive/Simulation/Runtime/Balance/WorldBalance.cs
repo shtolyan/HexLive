@@ -20,11 +20,12 @@ public static class WorldBalance
     public static int DayLengthTicks = 24000;
 
     // The GAMEPLAY CADENCE — how often the seeded "once per day" rolls happen
-    // (rain, storm surge, surf gift, the dog raid). It used to BE the day: the
+    // (rain, storm surge, the dog raid). It used to BE the day: the
     // clock was stretched 10x so the calendar stops racing, but those rolls
     // must keep their real-time frequency, so they index off this instead.
-    // The within-cycle offsets (StormSurgeOffsetTicks, SurfGiftOffsetTicks,
-    // RaidDuskOffsetTicks, the rain jitter) are positions inside THIS period.
+    // The within-cycle offsets (StormSurgeOffsetTicks, RaidDuskOffsetTicks,
+    // the rain jitter) are positions inside THIS period. The §63 surf gift is
+    // intentionally calendar-driven and therefore does not use this cadence.
     public static int EventCycleTicks = 2400;
 
     // §33 shadow model: how many tiles a shadow ray marches, the renderer's
@@ -49,12 +50,15 @@ public static class WorldBalance
     // Ground fruit (coconuts) rots away after this many ticks unpicked.
     public static int FruitRotTicks = 2400;
 
-    // §63: the surf beaches a random garment on the shoreline — chance per
-    // day (0.35 ≈ 2-3 pieces per week) and when in the day the tide drops it
-    // (on the Slow 16-tick grid, mid-morning). Keeps the wardrobe (and with
-    // it pocket capacity) from wearing down to nothing.
-    public static float SurfGiftChancePerDay = 0.35f;
-    public static int SurfGiftOffsetTicks = 800;
+    // §29A r2: produce lands no closer than this many trunk radii
+    // (ObstacleRadius) from its producer. The blocked ring is one radius; the
+    // drop keeps one more, so a nut always has walkable ground on every side.
+    // 0 (or a radius-0 producer) = no clearance, pre-r2 behaviour.
+    public static float FruitDropClearanceFactor = 2f;
+
+    // §63: at 06:00 after this many complete visual days, the surf beaches one
+    // random girl-compatible garment per living girl in the player's colony.
+    public static int SurfGiftIntervalDays = 5;
 }
 
 }

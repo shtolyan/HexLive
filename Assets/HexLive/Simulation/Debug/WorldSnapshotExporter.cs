@@ -385,6 +385,16 @@ public static class WorldSnapshotExporter
     // should not have to guess these from strings.
     private static string ResolveHeldItem(WorldState world, NPCState npc)
     {
+        // §108 / bug #21: общий draw/holster-контур. Боевой intent принадлежит
+        // цели, а конкретное оружие — MeleeSwing; представление ничего не
+        // угадывает. Поэтому GroupHunt/Defend/Raid показывают оружие уже на
+        // подходе и автоматически прячут его после снятия цели.
+        var readiedWeapon = Runtime.MeleeSwing.ReadiedWeapon(npc);
+        if (!string.IsNullOrEmpty(readiedWeapon))
+        {
+            return readiedWeapon;
+        }
+
         if (npc.Execution.CurrentInteraction is not { } interaction)
         {
             return string.Empty;
@@ -853,7 +863,8 @@ public static class WorldSnapshotExporter
 
         // Spec §48: derive the active status effects (buffs/debuffs) from this
         // NPC's live state — read-only, so nothing here touches balance. Each
-        // exports as "Kind\tintensity" for the character panel's chip row.
+        // exports as "Kind\tintensity\tdetailKey" for the character panel's
+        // chip row; the optional third field explains the concrete cause.
         var effects = new List<ActiveEffect>();
         // Spec §49.8: a lit campfire within warming range earns the Cozy buff —
         // same warmth probe the temperature/sleep-comfort systems use.
@@ -867,7 +878,12 @@ public static class WorldSnapshotExporter
         EffectEvaluator.Collect(npc, world.Tick, npcSnapshot.EffectiveUv, nearLitFire, restingInBed, effects);
         foreach (var effect in effects)
         {
-            npcSnapshot.Effects.Add($"{effect.Kind}\t{effect.Intensity:0.###}");
+            var encoded = $"{effect.Kind}\t{effect.Intensity:0.###}";
+            if (!string.IsNullOrEmpty(effect.DetailKey))
+            {
+                encoded += $"\t{effect.DetailKey}";
+            }
+            npcSnapshot.Effects.Add(encoded);
         }
 
         // §76: the character sheet. Looped off AttributeSet.All/SkillSet.All so
@@ -987,14 +1003,22 @@ public static class WorldSnapshotExporter
 
         foreach (var relation in npc.Social.Relationships)
         {
-            var otherName = world.Entities.Npcs.TryGetValue(relation.Key, out var otherNpc)
-                ? otherNpc.DisplayName
-                : $"NPC{relation.Key.Value}";
+            // Мёртвых в списке отношений не показываем. Запись в Social
+            // остаётся (симу она нужна — свидетельства, страх, история), но
+            // труп уже не в Npcs, имя не находилось, и вкладка рисовалась
+            // безымянной «NPC1001» — так §72.14-волна и выдала себя после
+            // гибели.
+            if (!world.Entities.Npcs.TryGetValue(relation.Key, out var otherNpc))
+            {
+                continue;
+            }
 
             npcSnapshot.RelationshipDetails.Add(new RelationshipSnapshot
             {
                 OtherId = relation.Key.Value,
-                OtherName = string.IsNullOrEmpty(otherName) ? $"NPC{relation.Key.Value}" : otherName,
+                OtherName = string.IsNullOrEmpty(otherNpc.DisplayName)
+                    ? $"NPC{relation.Key.Value}"
+                    : otherNpc.DisplayName,
                 Trust = relation.Value.Trust,
                 Familiarity = relation.Value.Familiarity,
                 Affinity = relation.Value.Affinity

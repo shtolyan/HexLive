@@ -48,6 +48,11 @@ public sealed class WorldState
     // Runtime-spawned objects allocate ids from here; bootstrap ids stay below 1000.
     public int NextRuntimeObjectId { get; set; } = 1000;
 
+    // §72.14: how many post-start raid waves have already landed. Persistent:
+    // deriving this only from Tick would respawn a dead/looted wave after load.
+    // The authored opening outsider is not a wave; this counts arrivals 1, 2, ... only.
+    public int RaidWavesSpawned { get; set; }
+
     // Spec 40.15: logs hauled to the escape raft (target 20). At the target the
     // colony can sail off the island — the global goal.
     public int RaftProgress { get; set; }

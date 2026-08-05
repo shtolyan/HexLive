@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.AI;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Runtime;
@@ -15,7 +16,7 @@ namespace HexLive.Simulation.Tests.Behavior
 /// которых уже ломалась в соседних механиках:
 ///
 /// <list type="bullet">
-/// <item>сцена вообще СЛУЧАЕТСЯ, в обе стороны (мачете чужака должно доехать
+/// <item>сцена вообще СЛУЧАЕТСЯ, в обе стороны (мачете рейдера должно доехать
 /// до колонии — до §111 оно попадало туда только с трупа);</item>
 /// <item>порядок добычи — оружие раньше барахла, иначе короткий обморок
 /// уносит котелок, а нож остаётся;</item>
@@ -61,6 +62,17 @@ public sealed class LootHelplessTests
         Assert.That(npc.IsUnconscious(world.Tick), Is.True);
     }
 
+    // Tests of the two-person loot transaction must not accidentally become
+    // tests of §111.8. The witness response has its own radius-bound test below.
+    private static void SilenceAlliedWitnesses(WorldState world, NPCState victim)
+    {
+        foreach (var ally in world.Entities.Npcs.Values.Where(n =>
+                     !n.Id.Equals(victim.Id) && FactionRelations.AreAllies(n, victim)))
+        {
+            ally.Mind.FaintedUntilTick = world.Tick + 10000;
+        }
+    }
+
     // Шагать до события или до потолка, собирая трассу: кольцо подрезается на
     // 2048 (~11 тиков), поэтому watermark, а не сравнение по ссылке.
     private static (bool seen, List<string> tail) StepUntil(
@@ -104,16 +116,20 @@ public sealed class LootHelplessTests
         var world = engine.World;
 
         KnockOut(world, colonist);
-        colonist.Inventory.Items.Add(new ItemInstance("tool.knife"));
+        SilenceAlliedWitnesses(world, colonist);
+        // The authored wave-0 outsider already carries a knife (§72.14), so a
+        // second knife has no marginal loadout value and is correctly skipped.
+        // Use a tool he does not own to verify the actual transfer contract.
+        colonist.Inventory.Items.Add(new ItemInstance("tool.hammer"));
 
         var (seen, tail) = StepUntil(engine, "StrippedHelpless", 600);
 
         Assert.That(seen, Is.True,
             "Чужак не обыскал лежащую рядом колонистку за 600 тиков. Трасса:\n  " +
             string.Join("\n  ", tail));
-        Assert.That(outsider.Inventory.Items.Any(i => i.DefinitionId == "tool.knife"), Is.True,
-            "Нож обязан переехать к нему: сцена сыграла, а вещь осталась.");
-        Assert.That(colonist.Inventory.Items.Any(i => i.DefinitionId == "tool.knife"), Is.False);
+        Assert.That(outsider.Inventory.Items.Any(i => i.DefinitionId == "tool.hammer"), Is.True,
+            "Молоток обязан переехать к нему: сцена сыграла, а вещь осталась.");
+        Assert.That(colonist.Inventory.Items.Any(i => i.DefinitionId == "tool.hammer"), Is.False);
     }
 
     [Test]
@@ -153,6 +169,7 @@ public sealed class LootHelplessTests
         // рюкзак: такт — LootHelplessTakeTicks (10), и её надо разбудить раньше,
         // чем карманы опустеют.
         KnockOut(world, colonist, ticks: 25);
+        SilenceAlliedWitnesses(world, colonist);
         colonist.Inventory.Items.Add(new ItemInstance("tool.knife"));
         colonist.Inventory.Items.Add(new ItemInstance("tool.hammer"));
         colonist.Inventory.Items.Add(new ItemInstance("tool.saw"));
@@ -229,6 +246,34 @@ public sealed class LootHelplessTests
 
         Assert.That(LootHelplessMath.IsLootableBy(world, sister, colonist), Is.False,
             "Своих не обыскивают: §111 живёт строго на вражде §72.");
+    }
+
+    [Test]
+    public void NearbyAllies_DefendTheLootedVictim_ButDistantAlliesDoNot()
+    {
+        var (engine, outsider, victim) = Adjacent();
+        var world = engine.World;
+        var allies = world.Entities.Npcs.Values
+            .Where(n => n.Faction == Faction.Colony && !n.Id.Equals(victim.Id))
+            .Take(2)
+            .ToArray();
+        Assert.That(allies.Length, Is.EqualTo(2),
+            "Для проверки радиуса нужны две союзницы жертвы.");
+
+        var near = allies[0];
+        var far = allies[1];
+        near.Tile = new TileCoord(victim.Tile.Q + Spec111.LootWitnessRadiusTiles, victim.Tile.R);
+        far.Tile = new TileCoord(victim.Tile.Q + Spec111.LootWitnessRadiusTiles + 1, victim.Tile.R);
+
+        var responders = CombatHelpSystem.RallyLootWitnesses(world, victim, outsider.Id);
+
+        Assert.That(responders, Is.EqualTo(1),
+            "На обыск должны ответить все бодрствующие союзники в трёх гексах.");
+        Assert.That(near.Mind.CurrentGoal, Is.EqualTo(GoalType.Defend));
+        Assert.That(near.Mind.CombatAssistAttackerNpcId, Is.EqualTo(outsider.Id),
+            "Свидетель должен бить обыскивающего, а не саму жертву.");
+        Assert.That(far.Mind.CurrentGoal, Is.Not.EqualTo(GoalType.Defend),
+            "Союзница за пределом радиуса не должна видеть сцену.");
     }
 }
 

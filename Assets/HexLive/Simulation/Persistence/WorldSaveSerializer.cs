@@ -51,7 +51,9 @@ public static class WorldSaveSerializer
     // SkinSet — материалы актрисы несли и её глаза тоже.
     // v26 (§81.10): понурая походка. Стала состоянием сима (режет скорость
     // вдвое), а была таймером вида — и потому обнулялась перезагрузкой молча.
-    public const int BlobVersion = 26;
+    // v27 (§72.14): число уже высаженных трёхдневных волн. Без него убитая
+    // волна возвращалась бы после загрузки, если выводить прогресс из ростера.
+    public const int BlobVersion = 27;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -86,6 +88,7 @@ public static class WorldSaveSerializer
         w.Write(world.NextMobSpawnCheckTick);
         w.Write(world.NextRabbitSpawnCheckTick);
         w.Write(world.TopologyVersion);
+        w.Write(world.RaidWavesSpawned); // §72.14, v27
 
         var env = world.Environment;
         w.Write(env.GlobalTemperature);
@@ -295,6 +298,15 @@ public static class WorldSaveSerializer
         world.NextMobSpawnCheckTick = r.ReadInt32();
         world.NextRabbitSpawnCheckTick = r.ReadInt32();
         world.TopologyVersion = r.ReadInt32();
+        // An old save never had recurring waves. Adopt the elapsed boundaries
+        // as already handled so loading on day 30 does not dump ten attackers
+        // into the camp at once; the next boundary proceeds normally.
+        world.RaidWavesSpawned = version >= 27
+            ? r.ReadInt32()
+            // Same boundary formula as RaidWaveSystem (calendar days), or the
+            // adoption would mark a different set of waves as already handled.
+            : HexLive.Simulation.Runtime.EnvironmentSystem.CalendarDay(world.Tick) /
+              HexLive.Simulation.Runtime.Spec72.RaidWaveIntervalDays;
 
         var env = world.Environment;
         env.GlobalTemperature = r.ReadSingle();
@@ -1487,7 +1499,7 @@ public static class WorldSaveSerializer
     private static Float2 ReadFloat2(BinaryReader r) => new(r.ReadSingle(), r.ReadSingle());
 
     private static GoalType SaveGoal(GoalType goal) =>
-        goal is GoalType.Defend or GoalType.Abuse or GoalType.GroupHunt
+        goal is GoalType.Defend or GoalType.Abuse or GoalType.GroupHunt or GoalType.Expel
             ? GoalType.None
             : goal;
 

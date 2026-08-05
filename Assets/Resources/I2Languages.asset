@@ -801,6 +801,38 @@ MonoBehaviour:
       - 'Потеряла сознание — лежит и не может действовать, пока не очнётся.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'effect.fainted.reason.energy'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cause: total energy exhaustion. She will wake after recovering enough energy.'
+      - 'Причина: полное истощение энергии. Очнётся, когда достаточно восстановит силы.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.fainted.reason.bloodloss'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cause: collapse from low blood and spent stamina.'
+      - 'Причина: потеря крови на фоне полностью потраченной выносливости.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.fainted.reason.starvation'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cause: collapse from starvation and spent stamina.'
+      - 'Причина: голод на фоне полностью потраченной выносливости.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.fainted.reason.exhaustion'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cause: physical collapse after stamina was completely spent.'
+      - 'Причина: физический обморок после полного истощения выносливости.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'effect.coma.title'
       TermType: 0
       Description:
@@ -815,6 +847,14 @@ MonoBehaviour:
       Languages:
       - 'Out cold — the body lies as if dead, healing as in sleep, until it recovers enough to come to.'
       - 'Глубоко без сознания — тело лежит как мёртвое и восстанавливается, как во сне, пока не окрепнет настолько, чтобы очнуться.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.coma.reason.bloodloss'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cause: critical blood loss. She remains in a coma until her blood level recovers.'
+      - 'Причина: критическая потеря крови. Кома продлится, пока уровень крови не восстановится.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'effect.wellfed.title'
@@ -1041,6 +1081,38 @@ MonoBehaviour:
       - 'На грани — без чужой помощи ей осталось недолго.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'effect.dying.reason.bloodloss'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cause: fatal blood loss. Bandaging can still save her before the reserve runs out.'
+      - 'Причина: смертельная потеря крови. Перевязка ещё может спасти её, пока не иссяк запас времени.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.dying.reason.vitalcrushed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cause: a vital body part is destroyed. Immediate treatment is required.'
+      - 'Причина: разрушена жизненно важная часть тела. Требуется немедленное лечение.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.dying.reason.starvation'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cause: fatal starvation. Feeding her can still stop the dying process.'
+      - 'Причина: смертельный голод. Кормление ещё может остановить умирание.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.dying.reason.dehydration'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cause: fatal dehydration. Giving her water can still stop the dying process.'
+      - 'Причина: смертельное обезвоживание. Вода ещё может остановить умирание.'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'effect.convalescent.title'
       TermType: 0
       Description:
@@ -1071,6 +1143,14 @@ MonoBehaviour:
       Languages:
       - 'Broke down under the strain — lying on the ground, crying it out.'
       - 'Сломалась от напряжения — лежит и выплакивает своё.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'effect.crying.reason.breakdown'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cause: stress reached its limit while stamina was completely spent.'
+      - 'Причина: стресс достиг предела при полностью потраченной выносливости.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'effect.filthy.title'
@@ -1873,12 +1953,44 @@ MonoBehaviour:
       - 'Скорбит'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'goal.Bury'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Burying the fallen'
+      - 'Хоронит погибшую'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'goal.LootCorpse'
       TermType: 0
       Description:
       Languages:
       - 'Searching a body'
       - 'Обирает тело'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.GroupHunt'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Hunting the enemy together'
+      - 'Идёт в совместную атаку'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.Expel'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Driving an intruder out of camp'
+      - 'Прогоняет чужака из лагеря'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.LootHelpless'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Searching a helpless enemy'
+      - 'Обирает беспомощного врага'
       Flags: 0101
       Languages_Touch: []
     - Term: 'goal.CraftAxe'
@@ -1975,6 +2087,14 @@ MonoBehaviour:
       Languages:
       - 'Fetching water'
       - 'Ищет воду'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'goal.StowBottle'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Leaving the bottle at the collector'
+      - 'Оставляет бутылку у сборника'
       Flags: 0101
       Languages_Touch: []
     - Term: 'goal.SplitLog'
@@ -2783,6 +2903,22 @@ MonoBehaviour:
       Languages:
       - 'A carried item.'
       - 'Носимый предмет.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.remains_human.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Human remains'
+      - 'Человеческие останки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.remains_human.desc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'A skeleton and one loot bag holding everything left on the body.'
+      - 'Скелет и один мешок со всеми вещами, оставшимися на теле.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'item.clothing_boots_classic.name'

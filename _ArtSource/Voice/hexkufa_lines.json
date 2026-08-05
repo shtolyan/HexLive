@@ -862,6 +862,26 @@
    ]
   },
   {
+   "code": "C16",
+   "id": "angry_expel",
+   "priority": "P1",
+   "hook": "требует уйти из своего лагеря (§115 `CampExpelDemand`)",
+   "lines": [
+    {
+     "text": "[angry, shouting] Bezheksa! Nuo doma — zada!",
+     "ru": "Чужак! Наш дом — прочь!"
+    },
+    {
+     "text": "[angry] Hoo! Zada nuo heksa!",
+     "ru": "Эй! Прочь с нашей земли!"
+    },
+    {
+     "text": "[angry, shouting] Zada! Zada nip, bezheksa!",
+     "ru": "Уходи! Сейчас же, чужак!"
+    }
+   ]
+  },
+  {
    "code": "D1",
    "id": "happy_topic_smalltalk",
    "priority": "P1",

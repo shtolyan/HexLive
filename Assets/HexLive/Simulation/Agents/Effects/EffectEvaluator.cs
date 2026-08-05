@@ -188,7 +188,8 @@ namespace HexLive.Simulation.Agents.Effects
             if (dying)
             {
                 results.Add(new ActiveEffect(EffectKind.Dying,
-                    Clamp01(1f - npc.Mind.DyingReserve)));
+                    Clamp01(1f - npc.Mind.DyingReserve),
+                    DyingDetailKey(npc.Mind.DyingCause)));
             }
 
             // §105: несколько часов после спасения — «едва живая».
@@ -200,7 +201,8 @@ namespace HexLive.Simulation.Agents.Effects
             var comatose = !dying && npc.Mind.ComaCause == AI.ComaCause.BloodLoss;
             if (comatose)
             {
-                results.Add(new ActiveEffect(EffectKind.Coma, 1f));
+                results.Add(new ActiveEffect(
+                    EffectKind.Coma, 1f, "effect.coma.reason.bloodloss"));
             }
 
             var fainted = !dying && !comatose &&
@@ -208,7 +210,14 @@ namespace HexLive.Simulation.Agents.Effects
                  currentTick < npc.Mind.FaintedUntilTick);
             if (fainted)
             {
-                results.Add(new ActiveEffect(EffectKind.Fainted, 1f));
+                var reason = npc.Mind.ComaCause == AI.ComaCause.Exhaustion
+                    ? "effect.fainted.reason.energy"
+                    : npc.Needs.Blood < 0.25f
+                        ? "effect.fainted.reason.bloodloss"
+                        : npc.Needs.Hunger >= 0.9f
+                            ? "effect.fainted.reason.starvation"
+                            : "effect.fainted.reason.exhaustion";
+                results.Add(new ActiveEffect(EffectKind.Fainted, 1f, reason));
             }
 
             if (npc.Mind.IsStarving)
@@ -264,7 +273,8 @@ namespace HexLive.Simulation.Agents.Effects
             var crying = npc.IsCrying(currentTick);
             if (crying)
             {
-                results.Add(new ActiveEffect(EffectKind.Crying, 1f));
+                results.Add(new ActiveEffect(
+                    EffectKind.Crying, 1f, "effect.crying.reason.breakdown"));
             }
             else if (needs.Stress >= StressShow)
             {
@@ -298,6 +308,15 @@ namespace HexLive.Simulation.Agents.Effects
                 results.Add(new ActiveEffect(EffectKind.Filthy, 1f - needs.Hygiene / FilthyShow));
             }
         }
+
+        private static string DyingDetailKey(AI.DyingCause cause) => cause switch
+        {
+            AI.DyingCause.BloodLoss => "effect.dying.reason.bloodloss",
+            AI.DyingCause.VitalCrushed => "effect.dying.reason.vitalcrushed",
+            AI.DyingCause.Starvation => "effect.dying.reason.starvation",
+            AI.DyingCause.Dehydration => "effect.dying.reason.dehydration",
+            _ => string.Empty,
+        };
 
         private static float Part(NPCState npc, BodyPart part) =>
             npc.Body.Parts.TryGetValue(part, out var v) ? v : 1f;

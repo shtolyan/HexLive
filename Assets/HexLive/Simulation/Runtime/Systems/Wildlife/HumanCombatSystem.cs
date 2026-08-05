@@ -87,6 +87,10 @@ public sealed class HumanCombatSystem : ISimulationSystem
             var raiding = FactionRelations.AreHostile(actor, opponent) &&
                 ((actor.Mind.RaidTargetNpcId is { } raidTarget && raidTarget.Equals(opponent.Id)) ||
                  (actor.Mind.AbuseTargetNpcId is { } abuseTarget && abuseTarget.Equals(opponent.Id)));
+            var expelling = FactionRelations.AreHostile(actor, opponent) &&
+                actor.Mind.CurrentGoal == GoalType.Expel &&
+                actor.Mind.ExpulsionTargetNpcId is { } expelTarget &&
+                expelTarget.Equals(opponent.Id);
             // Множитель налёта — только настоящему налёту. У сцены абьюза свой
             // регулятор: чем она бьёт (лестница ненависти) и сколько ударов.
             if (raiding && actor.Mind.CurrentGoal == GoalType.Raid)
@@ -114,7 +118,8 @@ public sealed class HumanCombatSystem : ISimulationSystem
             }
 
             MeleeSwing.ApplyHumanBlow(world, actor, opponent, damage, weaponId,
-                hunting ? "GroupHuntStruck" : raiding ? "RaidStruck" : "RaidFoughtBack");
+                hunting ? "GroupHuntStruck" : expelling ? "CampExpelStruck" :
+                raiding ? "RaidStruck" : "RaidFoughtBack");
 
             // Emit the outcome HERE, at the blow that caused it. MobSystem
             // sweeps every 0-health NPC on the next medium pass — before
@@ -123,7 +128,7 @@ public sealed class HumanCombatSystem : ISimulationSystem
             // deaths while the man died six times.
             if (opponent.Health <= 0f)
             {
-                Trace.EmitSystem(world, raiding ? "RaidKilledVictim" : "RaiderKilled",
+                Trace.EmitSystem(world, raiding || expelling ? "RaidKilledVictim" : "RaiderKilled",
                     $"NPC{opponent.Id.Value} ({opponent.DisplayName}) killed by " +
                     $"NPC{actor.Id.Value} ({actor.DisplayName}) at " +
                     $"Tile={opponent.Tile.Q},{opponent.Tile.R}");

@@ -69,6 +69,11 @@ public sealed class GoalDescriptor
     /// существующем сейве.</summary>
     public bool IsDead { get; set; }
 
+    /// <summary>Вооружается сразу при получении цели и убирает оружие, когда
+    /// цель снята. Это намерение, а не текущий замах: поход к противнику уже
+    /// должен читаться как боевой.</summary>
+    public bool ReadiesMeleeWeapon { get; set; }
+
     // ── Крафт ────────────────────────────────────────────────────────────
 
     /// <summary>Что крафт выкладывает на землю на такте «взять». Null —
@@ -105,6 +110,9 @@ public static class GoalCatalog
 
     public static bool IsDead(GoalType goal) => For(goal)?.IsDead ?? false;
 
+    public static bool ReadiesMeleeWeapon(GoalType goal) =>
+        For(goal)?.ReadiesMeleeWeapon ?? false;
+
     public static UrgencyClass UrgencyFor(GoalType goal) =>
         For(goal)?.Urgency ?? UrgencyClass.Stroll;
 
@@ -125,7 +133,8 @@ public static class GoalCatalog
         void Add(GoalType goal, InteractionType? interaction = null,
             UrgencyClass urgency = UrgencyClass.Stroll,
             bool ignoresHostileRings = false, bool reactive = false, bool dead = false,
-            string[] craftOutputs = null, string craftTrace = null, bool craftNeedsHands = false)
+            string[] craftOutputs = null, string craftTrace = null, bool craftNeedsHands = false,
+            bool readiesMeleeWeapon = false)
         {
             rows.Add(new GoalDescriptor
             {
@@ -135,6 +144,7 @@ public static class GoalCatalog
                 IgnoresHostileRings = ignoresHostileRings,
                 IsReactive = reactive,
                 IsDead = dead,
+                ReadiesMeleeWeapon = readiesMeleeWeapon,
                 CraftGroundOutputs = craftOutputs,
                 CraftTraceName = craftTrace,
                 CraftNeedsHands = craftNeedsHands,
@@ -230,20 +240,22 @@ public static class GoalCatalog
         // ── Охота и бой ──────────────────────────────────────────────────
         // Hunt бежит: краб отпрыгивает на узел каждый Medium-тик, шагом
         // (Stroll) погоня вырождается в вечный пинг-понг «шаг к — шаг от».
-        Add(GoalType.Hunt, urgency: UrgencyClass.Hurry);
-        Add(GoalType.Prey);
+        Add(GoalType.Hunt, urgency: UrgencyClass.Hurry, readiesMeleeWeapon: true);
+        Add(GoalType.Prey, readiesMeleeWeapon: true);
         Add(GoalType.Flee, urgency: UrgencyClass.Flee,
             ignoresHostileRings: true, reactive: true);
         Add(GoalType.Defend, urgency: UrgencyClass.Hurry,
-            ignoresHostileRings: true, reactive: true);
+            ignoresHostileRings: true, reactive: true, readiesMeleeWeapon: true);
         Add(GoalType.Raid, urgency: UrgencyClass.Hurry,
-            ignoresHostileRings: true, reactive: true);
+            ignoresHostileRings: true, reactive: true, readiesMeleeWeapon: true);
         Add(GoalType.Abuse, urgency: UrgencyClass.Hurry, reactive: true);
         // §108: сговор раздаёт её сразу троим, минуя аукцион. Кольца чужака
         // игнорирует по той же причине, что и налёт: обходить того, к кому
         // идёшь, — бессмыслица.
         Add(GoalType.GroupHunt, urgency: UrgencyClass.Hurry,
-            ignoresHostileRings: true, reactive: true);
+            ignoresHostileRings: true, reactive: true, readiesMeleeWeapon: true);
+        Add(GoalType.Expel, urgency: UrgencyClass.Hurry,
+            ignoresHostileRings: true, reactive: true, readiesMeleeWeapon: true);
 
         // §28.15F: обобрать тело. Взаимодействие снимает ОДНУ вещь, поэтому
         // раздеть покойную целиком — это несколько отдельных походов, а не один
